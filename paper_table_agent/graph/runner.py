@@ -190,7 +190,13 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         index = build_index(chunks)
         save_index(index, context.run_paths.retrieval_dir / pdf.pdf_id)
 
-    header = extract_header(context.client, "\n".join(parsed.page_text[:2]))
+    header_text = "\n".join(parsed.page_text[:2])
+    header_text = _truncate_header_text(
+        header_text,
+        context.config.matching.header_max_chars,
+        context.logger,
+    )
+    header = extract_header(context.client, header_text)
     candidates = shortlist_candidates(header, context.rows_data, context.config.matching.top_k)
     adjudication = adjudicate_match(context.client, header, candidates)
     match_record = build_match_record(pdf.pdf_id, adjudication)
@@ -263,6 +269,15 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
 
     store.update_pdf_status(pdf.pdf_id, "processed")
     return True
+
+
+def _truncate_header_text(text: str, limit: int, logger: Any) -> str:
+    if limit <= 0:
+        return text
+    if len(text) <= limit:
+        return text
+    logger.info("truncating header text from %s to %s chars", len(text), limit)
+    return text[:limit]
 
 
 def prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tuple[RunContext, list[PdfRecord]]:
