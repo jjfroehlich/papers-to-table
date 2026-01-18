@@ -25,6 +25,7 @@ class MatchingConfig(BaseModel):
     top_k: int = 10
     confidence_threshold: float = 0.75
     year_tolerance: int = 1
+    header_max_chars: int = 8000
 
 
 class ExtractionConfig(BaseModel):
