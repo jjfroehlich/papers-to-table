@@ -43,3 +43,6 @@ venv/
 coverage/
 logs/
 *.log
+
+# runs
+runs/
