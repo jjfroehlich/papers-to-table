@@ -34,6 +34,7 @@ class AdjudicationResult(BaseModel):
     top_candidates: list[dict[str, Any]] = Field(default_factory=list)
     confidence: float = 0.0
     rationale: str | None = None
+    evidence: list[EvidenceQuote] = Field(default_factory=list)
 
 
 class QueryExpansionResult(BaseModel):
@@ -50,8 +51,9 @@ class ProposalItem(BaseModel):
     status: str
     confidence: float
     evidence: list[EvidenceQuote] = Field(default_factory=list)
+    needs_more_evidence: bool | None = None
     flags: dict[str, Any] = Field(default_factory=dict)
-    reasoning: str | None = None
+    rationale: str | None = None
 
 
 class GroupExtractionResult(BaseModel):

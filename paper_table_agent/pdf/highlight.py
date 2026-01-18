@@ -18,6 +18,7 @@ def locate_quote(
     pdf_path: str,
     quote: str,
     page_number: int,
+    locator_hint: str | None = None,
     tokens: Sequence[dict[str, object]] | None = None,
 ) -> HighlightResult:
     doc = fitz.open(pdf_path)
@@ -33,6 +34,18 @@ def locate_quote(
     if rects:
         doc.close()
         return HighlightResult(rects=rects, found=True, strategy="normalized")
+    if locator_hint:
+        hits = page.search_for(locator_hint)
+        rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
+        if rects:
+            doc.close()
+            return HighlightResult(rects=rects, found=True, strategy="locator_hint")
+        normalized_hint = " ".join(locator_hint.split())
+        hits = page.search_for(normalized_hint)
+        rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
+        if rects:
+            doc.close()
+            return HighlightResult(rects=rects, found=True, strategy="locator_hint_normalized")
     if tokens:
         rect = _match_tokens(quote, page_number, tokens)
         if rect:

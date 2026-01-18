@@ -37,6 +37,19 @@ CREATE TABLE IF NOT EXISTS matches (
     created_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS match_candidates (
+    candidate_id TEXT PRIMARY KEY,
+    pdf_id TEXT,
+    row_id TEXT,
+    score REAL,
+    title TEXT,
+    authors TEXT,
+    year TEXT,
+    rank INTEGER,
+    source TEXT,
+    created_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS proposals (
     proposal_id TEXT PRIMARY KEY,
     pdf_id TEXT,

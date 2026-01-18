@@ -2,18 +2,30 @@
 
 Local-first batch PDF → table proposals with evidence, plus post-run row review.
 
+## Purpose + use-cases
+
+Paper Table Agent helps you:
+
+- **Backfill missing fields** in a literature table from PDFs with evidence-backed proposals.
+- **Verify locked cells** (optional) without overwriting existing values.
+- **Audit and export** decisions with a row-by-row review flow.
+
+Typical use-cases:
+
+- Meta-analysis tables (methods, outcomes, cohort details).
+- Rapid review spreadsheets with many empty columns.
+- Maintaining a canonical table while keeping a proposal/audit trail.
+
 ## Status
 
-- **Core scaffold**: package, CLI, Streamlit UI, and SQLite storage.
-- **Batch pipeline**: PDF parsing, matching, retrieval (query expansion + HyDE + rerank), and proposal extraction are wired end-to-end with LangGraph checkpoints.
-- **Review/Export**: row review + export flow is available via UI and CLI, with PDF evidence highlights.
+- **Core pipeline**: PDF parsing, two-pass matching, retrieval (query expansion + HyDE + rerank), and proposal extraction run end-to-end with checkpoints.
+- **Review/Export**: row review with Prev/Next navigation, evidence highlights, and export workflow.
+- **UI stability**: Streamlit launches through the CLI using subprocess (no bootstrap runtime errors).
 
-Known gaps to improve in future iterations:
+Near-term to-do:
+
 - Retrieval quality tuning (swap in stronger dense embedding + reranker models).
 - Evidence locator robustness for complex PDFs and OCR-heavy scans.
-
-## Requirements
-- LM Studio installed. 
 
 ## Installation
 
@@ -24,28 +36,21 @@ source .venv/Scripts/activate
 pip install -e .
 ```
 
-## Configuration (use with LM Studio)
-Set the models in 
-```bash
-paper_table_agent/config.py
-```
-For example
-```bash
-    model_extract: str = "gpt-oss-20b"
-    model_query_helper: str = "gpt-oss-20b"
-```
+> **Streamlit version pin**
+>
+> Streamlit is pinned to `1.32.2` to avoid runtime session errors. Use `paper-table-agent ui` (CLI launches Streamlit via `python -m streamlit run`).
 
-## Usage
+## How to run
 
-### Start LM Studio and load required models (e.g. gpt-oss-20b)
-
-### Run UI
+### 1) Start the UI
 
 ```bash
 paper-table-agent ui
 ```
 
-### Run batch pipeline (CLI)
+The Run tab uses dropdowns for tables and PDF folders. Completed runs automatically appear in Review and Export.
+
+### 2) Run the batch pipeline (CLI)
 
 Generate a starter config:
 
@@ -53,7 +58,7 @@ Generate a starter config:
 paper-table-agent init-config --output run_config.json
 ```
 
-Create a run config JSON (example):
+Example config:
 
 ```json
 {
@@ -104,22 +109,50 @@ Create a run config JSON (example):
 }
 ```
 
+Run:
+
 ```bash
 paper-table-agent run --config run_config.json
 ```
 
-### Resume or stop a run
+Resume or stop a run:
 
 ```bash
 paper-table-agent resume --run_dir runs/<timestamp>__<table>/
 paper-table-agent stop --run_dir runs/<timestamp>__<table>/
 ```
 
-### Export decisions
+Export decisions:
 
 ```bash
 paper-table-agent export --run_dir runs/<timestamp>__<table>/
 ```
+
+## How extraction is made reliable
+
+1. **Two-pass matching (Title + Authors first)**
+   - Pass A uses RapidFuzz title scoring + author last-name overlap; year is a small tie-breaker.
+   - If **exactly one** candidate crosses the threshold, we match deterministically.
+   - Otherwise, we invoke the LLM on the top K candidates only.
+
+2. **Hybrid retrieval pipeline (state-of-the-art patterns)**
+   - BM25 + dense retrieval + reranking.
+   - Multi-query expansion and HyDE for recall.
+   - Reciprocal-rank fusion and top-K context packing.
+
+3. **Validation + JSON repair**
+   - LLM JSON is strictly validated.
+   - Invalid JSON triggers a repair prompt, then is recorded as an error (no silent drops).
+
+4. **Quote substring constraint + highlights**
+   - Proposed values must cite evidence quotes + page numbers.
+   - Highlights use PyMuPDF `search_for` with fallback to `locator_hint` keywords and token-based bounding boxes.
+
+5. **Needs-more-evidence semantics**
+   - Proposals are flagged if evidence is missing, indirect, or cannot be highlighted.
+   - These are surfaced prominently in review filters.
+
+This aligns with state-of-the-art retrieval-augmented extraction: hybrid search, reranking, query expansion, and evidence-grounded generation.
 
 ## Input schema sheet
 
@@ -129,24 +162,25 @@ Provide a `schema` sheet with at least:
 - `description`
 - optional `group`, `priority`
 
+## Repository structure
+
+```
+paper_table_agent/
+  ui/          # Streamlit UI and run registry
+  store/       # SQLite persistence + schema
+  io/          # XLSX/CSV/schema readers
+  pdf/         # PDF parsing, OCR, highlighting
+  retrieval/   # indexing and retrieval pipeline
+  llm/         # OpenAI-compatible client + prompts
+  graph/       # LangGraph workflow orchestration
+  prompts/     # prompt templates for LLM steps
+```
+
 ## Troubleshooting
 
+- **Streamlit startup errors**: use `paper-table-agent ui` (subprocess launch) and ensure Streamlit is pinned to 1.32.2.
 - **OCR**: install optional OCR extras if you need hi-res OCR:
   ```bash
   pip install -e .[ocr]
   ```
-- **LLM JSON failures**: use `mock_mode` with canned JSON payloads for testing.
-
-## Repository layout
-
-```
-paper_table_agent/
-  ui/
-  store/
-  io/
-  pdf/
-  retrieval/
-  llm/
-  graph/
-  prompts/
-```
+- **LLM JSON failures**: enable `mock_mode` with canned JSON payloads for tests, or inspect errors in `runs/<...>/logs/errors.jsonl`.

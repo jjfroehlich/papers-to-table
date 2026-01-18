@@ -1,20 +1,16 @@
 # Spec: Paper Table Agent (LangGraph) — Batch PDF→Table Proposals with Evidence + Post-Run Row Review
 
-This spec updates the previous version using your feedback:
+This v0.2 spec updates the previous version with:
 
-* 1-to-1 mapping (with duplicate detection + mapping report)
-* authors as full comma-separated list
-* year tolerance ±1 (title/authors primary)
-* lock policy: any non-empty cell is locked **except** a single space `" "` counts as empty
-* optional **Verify mode** for locked cells
-* all values stored as **text**
-* OCR fallback included
-* review by **row**
-* local-first with Ollama/LM Studio, optional cloud provider (OpenAI-compatible)
-* schema descriptions in a separate XLSX sheet
-* highlight rectangles required in most cases
-* add: **two-pass matching** and **Needs more evidence** flag
-* retrieval/chunking upgraded to a “best-practice / state-of-the-art” pipeline (hybrid + multi-query + reranking + hierarchical summaries)
+* Streamlit startup stability (CLI launches via `python -m streamlit run`, pinned version).
+* Two-pass matching where **Title + Authors are primary**; year is **optional tie-breaker**.
+* Deterministic matching rule: exactly one candidate above threshold → **matched**, no LLM.
+* LLM adjudication only when needed, strict JSON with `matched|ambiguous|unmatched`.
+* Mapping report includes **counts + per-PDF candidate table**.
+* Unified proposal schema stored **per column** for both propose + verify flows.
+* Review UX: row-by-row with **Prev/Next** per proposal, **manual edit** option, and PDF side panel.
+* Run registry-driven UI (dropdowns for runs, PDFs, tables, columns, queries).
+* Robust JSON repair + error capture (no silent drops).
 
 ---
 
@@ -134,7 +130,9 @@ Parsing uses structured text extraction first (see §7), then LLM just *interpre
 
 * Normalize title strings.
 * Use fuzzy matching (RapidFuzz) to score against all table titles; take top K (default 10). ([rapidfuzz.github.io][1])
-* Optionally incorporate author overlap score (token-set/Jaccard on last names) to break ties.
+* Incorporate author last-name overlap score for tie-breaking.
+* Year is optional and only a small tie-breaker bonus (missing year is allowed).
+* Deterministic rule: if **exactly one** candidate is above the threshold → matched, skip LLM.
 
 **Pass 2 (LLM adjudication)**
 Provide the LLM:
@@ -142,9 +140,10 @@ Provide the LLM:
 * extracted PDF title/authors/year + evidence quotes
 * candidate rows (row_id, title, authors, year)
   LLM outputs:
-* selected `row_id` or `ambiguous`
-* top 3 candidates + rationale
-* confidence
+* `status`: `matched | ambiguous | unmatched`
+* selected `row_id` when matched
+* `top_candidates[]` (row_id, title, authors, year, score)
+* confidence + evidence
 
 ### 4.3 1-to-1 enforcement + duplicates detection
 
@@ -164,12 +163,13 @@ Default assumption: one PDF ↔ one row.
 
 Before/alongside extraction (but without requiring user intervention), generate a report:
 
-* PDFs processed / matched / ambiguous / failed
+* PDFs processed / matched / ambiguous / unmatched
 * duplicates detected
 * for each matched PDF:
 
   * extracted title/authors/year vs table row title/authors/year side-by-side
   * confidence + evidence snippets
+  * candidate table (top K shortlist + LLM top candidates)
     This addresses your request for a mapping summary.
 
 ---
@@ -194,19 +194,18 @@ Each group is extracted separately to reduce failure and improve evidence qualit
 For each (row_id, column):
 
 * proposed_value (text or null)
-* status: `found` | `inferred` | `not_found`
+* status: `found` | `inferred` | `not_found` (or `supports|contradicts|unclear` for verify)
 * confidence (0–1)
 * evidence[]:
 
   * quote (short)
   * page number
-  * locator strategy: exact quote / fuzzy span / token bbox reference
+  * locator_hint (substring)
   * highlight rectangles (bounding boxes), when available
-* flags:
-
-  * `needs_more_evidence` (boolean)
-  * `mapping_dependent` (boolean)
+* needs_more_evidence (boolean)
 * rationale (short; only for inferred/derived)
+
+Every column in the extraction group produces a record (no gaps).
 
 ### 5.3 Needs more evidence flag
 
@@ -232,19 +231,26 @@ For a selected row:
 
 * Row header: title/authors/year
 * Mapping panel: linked PDF, mapping confidence, duplicates warnings
+* Review proposal-by-proposal with Prev/Next
 * Current values (locked cells shown read-only)
-* Proposed updates list (one card per column):
+* Proposed updates (one column at a time):
 
   * proposed value
   * evidence snippets + page
   * “jump to page”
-  * Accept / Reject / Revise
+  * Accept / Accept with manual edit / Reject / Revise
   * indicator if Needs more evidence
+  * manual edit text field (works for verify mode too)
 
 ### 6.3 PDF highlighting requirement
 
 * Display PDF page and draw highlight rectangles for evidence spans (most cases).
-  Implementation uses PyMuPDF search + highlight annotations, falling back to layout-token-based bbox matching when exact substring search fails. ([pymupdf.readthedocs.io][3])
+  Implementation uses PyMuPDF search + highlight annotations, falling back to locator_hint keyword search and layout-token-based bbox matching when exact substring search fails. ([pymupdf.readthedocs.io][3])
+
+### 6.4 Run registry + dropdown-only selections
+
+* Run tab uses registry-driven dropdowns for tables, PDF folders, and runs.
+* Review/Advanced tabs use dropdowns for run, PDF, column, and query presets.
 
 ---
 
@@ -425,7 +431,7 @@ Defaults for offline:
 
 ### Exports
 
-* updated_table.xlsx (apply accepted/revised only)
+* updated_table.xlsx (apply accepted proposals only)
 * audit_log.csv (proposal→decision lineage)
 * pdf_row_matches.csv (mapping + confidence + duplicates)
 * mapping_report.html
@@ -445,11 +451,12 @@ Audit log includes:
 
 ## 11) Acceptance criteria
 
-* **Mapping report** exists and includes counts + side-by-side comparisons.
+* **Mapping report** exists and includes counts + side-by-side comparisons + candidate tables.
 * Locked cells unchanged (unless Verify mode, which only adds verification items).
 * Every `found` proposal has evidence with page and highlight rectangles for most cases.
 * Needs-more-evidence proposals are flagged and filterable.
 * Review is row-by-row and exports produce a clean updated table.
+* Streamlit UI launches via `paper-table-agent ui` without bootstrap errors.
 
 ---
 

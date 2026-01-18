@@ -9,6 +9,7 @@ pd = pytest.importorskip("pandas")
 from paper_table_agent.config import RunConfig, create_run_paths
 from paper_table_agent.graph.runner import run_pipeline
 from paper_table_agent.store.db import Store
+from paper_table_agent.ui.registry import discover_runs
 
 
 def _write_pdf(path: Path, text: str) -> None:
@@ -44,6 +45,7 @@ def test_end_to_end_with_mock_llm(tmp_path: Path):
             "status": "matched",
             "top_candidates": [],
             "confidence": 0.9,
+            "evidence": [{"quote": "Test Paper", "page": 1, "locator_hint": "Test Paper"}],
             "rationale": "Exact match",
         },
         "extracting values for a group": {
@@ -54,8 +56,8 @@ def test_end_to_end_with_mock_llm(tmp_path: Path):
                     "status": "found",
                     "confidence": 0.8,
                     "evidence": [{"quote": "method X", "page": 1, "locator_hint": "method X"}],
-                    "flags": {"needs_more_evidence": False},
-                    "reasoning": "Quoted",
+                    "needs_more_evidence": False,
+                    "rationale": "Quoted",
                 }
             ]
         },
@@ -80,3 +82,15 @@ def test_end_to_end_with_mock_llm(tmp_path: Path):
 
     proposals = store.conn.execute("SELECT * FROM proposals").fetchall()
     assert proposals
+
+
+def test_registry_lists_runs(tmp_path: Path):
+    run_dir = tmp_path / "runs" / "20250101_000000__demo"
+    run_dir.mkdir(parents=True)
+    (run_dir / "run_config.json").write_text(
+        json.dumps({"table_path": "table.xlsx", "pdf_folder": "pdfs"}),
+        encoding="utf-8",
+    )
+    (run_dir / "proposals.sqlite").write_text("stub", encoding="utf-8")
+    runs = discover_runs(tmp_path / "runs")
+    assert runs
