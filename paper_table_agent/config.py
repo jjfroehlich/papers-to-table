@@ -15,6 +15,8 @@ DEFAULT_EMPTY_VALUES = ["", "NA", "N/A", "null", "-", " "]
 class ProviderConfig(BaseModel):
     base_url: str = "http://localhost:1234/v1"
     api_key: str | None = None
+    model_header: str = "gpt-oss-20b"
+    model_match: str = "gpt-oss-20b"
     model_extract: str = "gpt-oss-20b"
     model_query_helper: str = "gpt-oss-20b"
     max_prompt_chars: int = 26000
@@ -25,6 +27,7 @@ class ProviderConfig(BaseModel):
 class MatchingConfig(BaseModel):
     top_k: int = 10
     confidence_threshold: float = 0.75
+    confidence_margin: float = 0.05
     year_tolerance: int = 1
     header_max_chars: int = 8000
 
@@ -33,6 +36,8 @@ class ExtractionConfig(BaseModel):
     groups: list[dict[str, Any]] = Field(default_factory=list)
     examples_per_col: int = 3
     max_chunks: int = 20
+    retry_on_unclear: bool = True
+    retry_extra_chunks: int = 6
 
 
 class RetrievalConfig(BaseModel):
@@ -44,11 +49,20 @@ class RetrievalConfig(BaseModel):
     use_query_expansion: bool = True
     use_hyde: bool = True
     rrf_k: int = 60
+    embedding_backend: str = "tfidf"
+    reranker_backend: str = "tfidf"
+    use_reranker: bool = True
 
 
 class OcrConfig(BaseModel):
     enable_ocr: bool = True
     ocr_trigger_min_chars_per_page: int = 400
+
+
+class GrobidConfig(BaseModel):
+    enable_grobid: bool = False
+    server_url: str = "http://localhost:8070"
+    parse_references: bool = False
 
 
 class RunConfig(BaseModel):
@@ -68,6 +82,7 @@ class RunConfig(BaseModel):
     extraction: ExtractionConfig = Field(default_factory=ExtractionConfig)
     retrieval: RetrievalConfig = Field(default_factory=RetrievalConfig)
     ocr: OcrConfig = Field(default_factory=OcrConfig)
+    grobid: GrobidConfig = Field(default_factory=GrobidConfig)
     max_workers: int = 1
 
     @field_validator("table_path", "pdf_folder")

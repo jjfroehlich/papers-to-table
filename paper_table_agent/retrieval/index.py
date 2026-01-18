@@ -19,15 +19,24 @@ class RetrievalIndex:
     bm25: BM25Okapi
     vectorizer: TfidfVectorizer
     embeddings: np.ndarray
+    embedding_backend: str = "tfidf"
 
 
-def build_index(chunks: list[Chunk]) -> RetrievalIndex:
+def build_index(chunks: list[Chunk], embedding_backend: str = "tfidf") -> RetrievalIndex:
+    if embedding_backend != "tfidf":
+        raise ValueError(f"Unsupported embedding backend: {embedding_backend}")
     texts = [chunk.text for chunk in chunks]
     tokens = [text.split() for text in texts]
     bm25 = BM25Okapi(tokens)
     vectorizer = TfidfVectorizer()
     embeddings = vectorizer.fit_transform(texts).toarray()
-    return RetrievalIndex(chunks=chunks, bm25=bm25, vectorizer=vectorizer, embeddings=embeddings)
+    return RetrievalIndex(
+        chunks=chunks,
+        bm25=bm25,
+        vectorizer=vectorizer,
+        embeddings=embeddings,
+        embedding_backend=embedding_backend,
+    )
 
 
 def chunks_hash(chunks: list[Chunk]) -> str:
@@ -50,7 +59,10 @@ def save_index(index: RetrievalIndex, output_dir: Path) -> None:
     with (output_dir / "vectorizer.pkl").open("wb") as handle:
         pickle.dump(index.vectorizer, handle)
     (output_dir / "index_meta.json").write_text(
-        json.dumps({"chunks_hash": chunks_hash(index.chunks)}, indent=2),
+        json.dumps(
+            {"chunks_hash": chunks_hash(index.chunks), "embedding_backend": index.embedding_backend},
+            indent=2,
+        ),
         encoding="utf-8",
     )
 
@@ -80,10 +92,24 @@ def load_index(output_dir: Path) -> RetrievalIndex | None:
         vectorizer = pickle.load(handle)
     tokens = [chunk.text.split() for chunk in chunks]
     bm25 = BM25Okapi(tokens)
-    return RetrievalIndex(chunks=chunks, bm25=bm25, vectorizer=vectorizer, embeddings=embeddings)
+    embedding_backend = "tfidf"
+    meta_path = output_dir / "index_meta.json"
+    if meta_path.exists():
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            embedding_backend = meta.get("embedding_backend", "tfidf")
+        except json.JSONDecodeError:
+            embedding_backend = "tfidf"
+    return RetrievalIndex(
+        chunks=chunks,
+        bm25=bm25,
+        vectorizer=vectorizer,
+        embeddings=embeddings,
+        embedding_backend=embedding_backend,
+    )
 
 
-def load_index_if_fresh(output_dir: Path, chunks: list[Chunk]) -> RetrievalIndex | None:
+def load_index_if_fresh(output_dir: Path, chunks: list[Chunk], embedding_backend: str) -> RetrievalIndex | None:
     meta_path = output_dir / "index_meta.json"
     if not meta_path.exists():
         return None
@@ -92,5 +118,7 @@ def load_index_if_fresh(output_dir: Path, chunks: list[Chunk]) -> RetrievalIndex
     except json.JSONDecodeError:
         return None
     if meta.get("chunks_hash") != chunks_hash(chunks):
+        return None
+    if meta.get("embedding_backend", "tfidf") != embedding_backend:
         return None
     return load_index(output_dir)

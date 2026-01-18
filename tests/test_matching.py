@@ -23,5 +23,17 @@ def test_deterministic_match_threshold():
         {"row_id": "2", "title": "Gene Editing", "authors": "Alan Turing", "year": "2021"},
     ]
     candidates = shortlist_candidates(header, rows, top_k=2, year_tolerance=1)
-    result = deterministic_match(header, candidates, threshold=0.8)
+    result = deterministic_match(header, candidates, threshold=0.8, margin=0.05)
     assert result is None
+
+
+def test_deterministic_match_margin():
+    header = HeaderExtractionResult(title="Single Winner", authors=["Ada Lovelace"])
+    rows = [
+        {"row_id": "1", "title": "Single Winner", "authors": "Ada Lovelace", "year": "2022"},
+        {"row_id": "2", "title": "Different Study", "authors": "Ada", "year": "2022"},
+    ]
+    candidates = shortlist_candidates(header, rows, top_k=2, year_tolerance=1)
+    result = deterministic_match(header, candidates, threshold=0.5, margin=0.05)
+    assert result is not None
+    assert result.status == "matched"

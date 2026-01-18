@@ -2,8 +2,10 @@
 
 ## Unreleased
 
-- Fixed Streamlit startup stability by launching via subprocess and pinning Streamlit 1.32.2.
-- Updated two-pass matching to prioritize title/authors, add deterministic matching, and include candidate tables in mapping reports.
-- Unified proposal schema (one record per column) and persisted verify results in proposals for review.
-- Overhauled UI with run registry dropdowns, row-by-row Prev/Next review, and PDF side-panel highlighting.
-- Added JSON repair + diagnostics for LLM parsing failures and new tests for matching/schema/registry.
+- Added completion markers so finished runs appear in Review dropdowns without exporting.
+- Enforced evidence-first proposals: no proposed value without quote+page; unclear/no_evidence records persist per column.
+- Strengthened matching with margin-based deterministic rule, adjudication validation, and repair retry.
+- Added OCR-aware highlight fallback and cached highlight rectangles in stored evidence.
+- Introduced per-column retrieval with retry on unclear results and configurable embedding/reranker backends.
+- Added optional GROBID integration for structured metadata + section chunking (off by default).
+- Updated Review UI with PDF dropdown and side-by-side proposal/evidence layout.

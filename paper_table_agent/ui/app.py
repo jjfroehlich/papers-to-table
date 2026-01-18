@@ -12,7 +12,7 @@ from paper_table_agent.graph.exporter import export_run
 from paper_table_agent.graph.workflow import run_workflow
 from paper_table_agent.io.schema import group_columns, load_schema
 from paper_table_agent.io.xlsx import load_table
-from paper_table_agent.pdf.highlight import locate_quote, render_page_image
+from paper_table_agent.pdf.highlight import render_page_image
 from paper_table_agent.retrieval.index import load_index
 from paper_table_agent.retrieval.pipeline import RetrievalConfig, retrieve_context
 from paper_table_agent.store.db import Store
@@ -356,7 +356,7 @@ with run_tab:
 
 with review_tab:
     st.header("Review Proposals")
-    runs = st.session_state.get("runs", [])
+    runs = [run for run in st.session_state.get("runs", []) if run.status == "completed"]
     run_labels = [run.label for run in runs]
     default_run_dir = st.session_state.get("selected_run_dir")
     default_index = 0
@@ -365,6 +365,8 @@ with review_tab:
             if run.run_dir == default_run_dir:
                 default_index = idx
                 break
+    if not run_labels:
+        st.info("No completed runs yet.")
     selected_label = (
         st.selectbox("Run", run_labels, index=default_index, key="review-run") if run_labels else None
     )
@@ -383,10 +385,15 @@ with review_tab:
         proposals = [dict(row) for row in store.conn.execute("SELECT * FROM proposals")]
         matches = [dict(row) for row in store.fetch_matches()]
         reviews = store.fetch_reviews()
+        pdf_map = {row["pdf_id"]: row["path"] for row in store.list_pdfs()}
+        pdf_options = ["All PDFs"] + list(pdf_map.keys())
+        selected_pdf = st.selectbox("PDF", pdf_options, key="review-pdf")
 
         proposal_by_row: dict[str, list[dict[str, Any]]] = {}
         needs_evidence_rows: set[str] = set()
         for proposal in proposals:
+            if selected_pdf != "All PDFs" and proposal.get("pdf_id") != selected_pdf:
+                continue
             flags = json.loads(proposal.get("flags_json") or "{}")
             proposal["flags"] = flags
             proposal["evidence"] = json.loads(proposal.get("evidence_json") or "[]")
@@ -397,6 +404,8 @@ with review_tab:
         match_by_row: dict[str, list[dict[str, Any]]] = {}
         for match in matches:
             if match.get("row_id") is None:
+                continue
+            if selected_pdf != "All PDFs" and match.get("pdf_id") != selected_pdf:
                 continue
             match_by_row.setdefault(match["row_id"], []).append(match)
 
@@ -428,18 +437,6 @@ with review_tab:
         if selection:
             row_id = row_options[selection]
             row_data = next((row for row in rows if row["row_id"] == row_id), {})
-            st.subheader("Row details")
-            st.write(
-                {
-                    "Title": row_data.get("title"),
-                    "Authors": row_data.get("authors"),
-                    "Year": row_data.get("year"),
-                }
-            )
-            row_matches = match_by_row.get(row_id, [])
-            if row_matches:
-                st.write("Mapping status:", [match["status"] for match in row_matches])
-
             row_proposals = proposal_by_row.get(row_id, [])
             if not row_proposals:
                 st.info("No proposals for this row.")
@@ -461,125 +458,109 @@ with review_tab:
                     if st.button("Next", key=f"next-{row_id}"):
                         st.session_state[index_key] = min(current_index + 1, len(row_proposals) - 1)
 
-                st.markdown(f"### {current['column']}")
-                st.write("Status:", current.get("status"))
-                current_value = ""
-                normalized_column = _normalize_column_name(current.get("column", ""))
-                resolved_column = column_map.get(normalized_column)
-                if resolved_column is not None and int(row_id) in table.dataframe.index:
-                    current_value = table.dataframe.loc[int(row_id), resolved_column]
-                st.write("Current value:", current_value)
-                st.write("Proposed value:", current.get("proposed_value"))
-                st.write("Confidence:", current.get("confidence"))
-                if current["flags"].get("needs_more_evidence"):
-                    st.warning("Needs more evidence")
-
-                evidence_items = current.get("evidence", [])
-                evidence = None
-                if evidence_items:
-                    evidence_choice = st.selectbox(
-                        "Evidence",
-                        list(range(len(evidence_items))),
-                        format_func=lambda idx: f"Page {evidence_items[idx].get('page')}",
-                        key=f"evidence-{current['proposal_id']}",
+                left_col, right_col = st.columns([1, 1])
+                with left_col:
+                    st.subheader("Row details")
+                    st.write(
+                        {
+                            "Title": row_data.get("title"),
+                            "Authors": row_data.get("authors"),
+                            "Year": row_data.get("year"),
+                        }
                     )
-                    evidence = evidence_items[evidence_choice]
-                    st.write("Quote:", evidence.get("quote"))
-                    st.write("Page:", evidence.get("page"))
+                    row_matches = match_by_row.get(row_id, [])
+                    if row_matches:
+                        st.write("Mapping status:", [match["status"] for match in row_matches])
 
-                review = reviews.get(current["proposal_id"])
-                manual_value_default = (
-                    review["final_value"] if review and review["final_value"] else current.get("proposed_value") or ""
-                )
-                manual_value = st.text_input(
-                    "Proposed value (editable)",
-                    value=manual_value_default,
-                    key=f"manual-{current['proposal_id']}",
-                )
-                note = st.text_area(
-                    "Note",
-                    value=review["note"] if review else "",
-                    key=f"note-{current['proposal_id']}",
-                )
+                    st.markdown(f"### {current['column']}")
+                    st.write("Status:", current.get("status"))
+                    current_value = ""
+                    normalized_column = _normalize_column_name(current.get("column", ""))
+                    resolved_column = column_map.get(normalized_column)
+                    row_index = row_data.get("row_index")
+                    if resolved_column is not None and row_index in table.dataframe.index:
+                        current_value = table.dataframe.loc[row_index, resolved_column]
+                    st.write("Current value:", current_value)
+                    st.write("Proposed value:", current.get("proposed_value"))
+                    st.write("Confidence:", current.get("confidence"))
+                    if current["flags"].get("needs_more_evidence"):
+                        st.warning("Needs more evidence")
 
-                col_accept, col_accept_edit, col_reject, col_revise = st.columns(4)
-                with col_accept:
-                    if st.button("Accept", key=f"accept-{current['proposal_id']}"):
-                        store.insert_review(
-                            {
-                                "review_id": current["proposal_id"],
-                                "proposal_id": current["proposal_id"],
-                                "decision": "accepted",
-                                "final_value": current.get("proposed_value"),
-                                "note": note,
-                            }
+                    evidence_items = current.get("evidence", [])
+                    evidence = None
+                    if evidence_items:
+                        evidence_choice = st.selectbox(
+                            "Evidence",
+                            list(range(len(evidence_items))),
+                            format_func=lambda idx: f"Page {evidence_items[idx].get('page')}",
+                            key=f"evidence-{current['proposal_id']}",
                         )
-                        st.success("Accepted")
-                with col_accept_edit:
-                    if st.button("Accept with manual edit", key=f"accept-edit-{current['proposal_id']}"):
-                        store.insert_review(
-                            {
-                                "review_id": current["proposal_id"],
-                                "proposal_id": current["proposal_id"],
-                                "decision": "accepted",
-                                "final_value": manual_value,
-                                "note": note,
-                            }
-                        )
-                        st.success("Accepted with manual edit")
-                with col_reject:
-                    if st.button("Reject", key=f"reject-{current['proposal_id']}"):
-                        store.insert_review(
-                            {
-                                "review_id": current["proposal_id"],
-                                "proposal_id": current["proposal_id"],
-                                "decision": "rejected",
-                                "final_value": "",
-                                "note": note,
-                            }
-                        )
-                        st.warning("Rejected")
-                with col_revise:
-                    if st.button("Revise", key=f"revise-{current['proposal_id']}"):
-                        store.insert_review(
-                            {
-                                "review_id": current["proposal_id"],
-                                "proposal_id": current["proposal_id"],
-                                "decision": "revise",
-                                "final_value": "",
-                                "note": note,
-                            }
-                        )
-                        store.record_event(
-                            "info",
-                            "revise_request",
-                            {
-                                "proposal_id": current["proposal_id"],
-                                "row_id": row_id,
-                                "column": current["column"],
-                                "note": note,
-                            },
-                        )
-                        st.info("Revision requested")
+                        evidence = evidence_items[evidence_choice]
+                        st.write("Quote:", evidence.get("quote"))
+                        st.write("Page:", evidence.get("page"))
 
-                pdf_map = {row["pdf_id"]: row["path"] for row in store.list_pdfs()}
-                with st.sidebar:
+                    review = reviews.get(current["proposal_id"])
+                    manual_value_default = (
+                        review["final_value"] if review and review["final_value"] else current.get("proposed_value") or ""
+                    )
+                    manual_value = st.text_input(
+                        "Proposed value (editable)",
+                        value=manual_value_default,
+                        key=f"manual-{current['proposal_id']}",
+                    )
+                    note = st.text_area(
+                        "Note",
+                        value=review["note"] if review else "",
+                        key=f"note-{current['proposal_id']}",
+                    )
+
+                    col_accept, col_accept_edit, col_reject = st.columns(3)
+                    with col_accept:
+                        if st.button("Accept", key=f"accept-{current['proposal_id']}"):
+                            store.insert_review(
+                                {
+                                    "review_id": current["proposal_id"],
+                                    "proposal_id": current["proposal_id"],
+                                    "decision": "accepted",
+                                    "final_value": current.get("proposed_value"),
+                                    "note": note,
+                                }
+                            )
+                            st.success("Accepted")
+                    with col_accept_edit:
+                        if st.button("Accept with manual edit", key=f"accept-edit-{current['proposal_id']}"):
+                            store.insert_review(
+                                {
+                                    "review_id": current["proposal_id"],
+                                    "proposal_id": current["proposal_id"],
+                                    "decision": "accepted",
+                                    "final_value": manual_value,
+                                    "note": note,
+                                }
+                            )
+                            st.success("Accepted with manual edit")
+                    with col_reject:
+                        if st.button("Reject", key=f"reject-{current['proposal_id']}"):
+                            store.insert_review(
+                                {
+                                    "review_id": current["proposal_id"],
+                                    "proposal_id": current["proposal_id"],
+                                    "decision": "rejected",
+                                    "final_value": "",
+                                    "note": note,
+                                }
+                            )
+                            st.warning("Rejected")
+
+                with right_col:
                     st.subheader("Evidence preview")
                     pdf_path = pdf_map.get(current.get("pdf_id"))
                     if pdf_path and evidence and evidence.get("page"):
                         rects = evidence.get("rects") or []
-                        if not rects:
-                            highlight = locate_quote(
-                                pdf_path,
-                                evidence.get("quote") or "",
-                                int(evidence["page"]),
-                                locator_hint=evidence.get("locator_hint"),
-                            )
-                            rects = highlight.rects
-                            if not rects:
-                                st.warning("No highlight rectangles available for this evidence.")
                         image = render_page_image(pdf_path, int(evidence["page"]), rects)
                         st.image(image, caption=f"PDF page {evidence['page']}")
+                        if not rects:
+                            st.warning("No highlight rectangles available for this evidence.")
                     else:
                         st.info("Select evidence with a page to preview the PDF.")
 

@@ -13,6 +13,8 @@
   "provider": {
     "base_url": "http://localhost:1234/v1",
     "api_key": null,
+    "model_header": "gpt-oss-20b",
+    "model_match": "gpt-oss-20b",
     "model_extract": "gpt-oss-20b",
     "model_query_helper": "gpt-oss-20b",
     "max_prompt_chars": 26000,
@@ -22,13 +24,16 @@
   "matching": {
     "top_k": 10,
     "confidence_threshold": 0.75,
+    "confidence_margin": 0.05,
     "year_tolerance": 1,
     "header_max_chars": 8000
   },
   "extraction": {
     "groups": [],
     "examples_per_col": 3,
-    "max_chunks": 20
+    "max_chunks": 20,
+    "retry_on_unclear": true,
+    "retry_extra_chunks": 6
   },
   "retrieval": {
     "top_k": 12,
@@ -38,11 +43,19 @@
     "query_variants": 4,
     "use_query_expansion": true,
     "use_hyde": true,
-    "rrf_k": 60
+    "rrf_k": 60,
+    "embedding_backend": "tfidf",
+    "reranker_backend": "tfidf",
+    "use_reranker": true
   },
   "ocr": {
     "enable_ocr": true,
     "ocr_trigger_min_chars_per_page": 400
+  },
+  "grobid": {
+    "enable_grobid": false,
+    "server_url": "http://localhost:8070",
+    "parse_references": false
   },
   "max_workers": 1
 }
