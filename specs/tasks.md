@@ -20,6 +20,105 @@ This tasks file is designed for spec-driven development:
 
 ---
 
+## v0.2 Improvements (stability + UX overhaul)
+
+### [x] T13.1 Streamlit startup stability + version pin
+
+**Work**
+
+* Launch Streamlit via subprocess (`python -m streamlit run`) instead of bootstrap.
+* Pin Streamlit to a known good version in `pyproject.toml`.
+* Document the startup workaround in README.
+
+**AC**
+
+* `paper-table-agent ui` launches without bootstrap errors.
+
+---
+
+### [x] T13.2 Two-pass matching updates (title+authors primary)
+
+**Work**
+
+* Pass A: RapidFuzz title scoring + author last-name overlap; year as low-weight tie-breaker.
+* Deterministic rule: exactly one candidate above threshold → matched.
+* Pass B: LLM adjudication (matched|ambiguous|unmatched) only when needed.
+* Store shortlist + LLM candidates for reporting.
+
+**AC**
+
+* Mapping report includes matched/ambiguous/unmatched counts and candidate tables.
+
+---
+
+### [x] T13.3 Unified proposal schema + persistence
+
+**Work**
+
+* Ensure one proposal record per column in each extraction group.
+* Store verify results in proposals with unified schema.
+* Add error proposals when LLM parsing fails (no silent drops).
+
+**AC**
+
+* Review tab always lists proposals for each extracted column.
+
+---
+
+### [x] T13.4 UI run registry + dropdown-only selections
+
+**Work**
+
+* Run registry listing available tables, PDF folders, and completed runs.
+* Dropdown-only selection for run/table/pdf/column/query.
+* Review row-by-row with Prev/Next navigation, manual edit, and PDF side panel.
+
+**AC**
+
+* Completed runs appear in Review tab automatically after run completion.
+
+---
+
+### [x] T13.5 Robust JSON repair + diagnostics
+
+**Work**
+
+* Validate JSON, retry with repair prompt if invalid.
+* Record parsing errors with diagnostics in errors/events.
+
+**AC**
+
+* LLM JSON failures are captured and do not silently drop results.
+
+---
+
+### [x] T13.6 Tests (matching, schema validation, UI registry)
+
+**Work**
+
+* Update matching unit tests for new scoring rules.
+* Add schema validation unit test.
+* Add integration smoke test for run registry listing.
+
+**AC**
+
+* `pytest -q` covers new tests.
+
+---
+
+### [x] T13.7 README + CHANGELOG refresh
+
+**Work**
+
+* Update README with new purpose, structure, run instructions, and reliability section.
+* Update CHANGELOG for v0.2 improvements.
+
+**AC**
+
+* Docs reflect current behavior and troubleshooting guidance.
+
+---
+
 ## 0) Repo setup & guardrails (foundation)
 
 ### [x] T0.1 Create project scaffold
@@ -741,7 +840,7 @@ This tasks file is designed for spec-driven development:
 **AC**
 
 * Decisions persist across UI refresh.
-* Revised values override proposed on export.
+* Accepted values (including manual edits) override proposed values on export.
 
 ---
 
@@ -777,7 +876,7 @@ This tasks file is designed for spec-driven development:
 
   * copy original table
   * apply accepted proposals
-  * apply revised proposals with final_value
+* apply accepted proposals with final_value when provided
   * never apply rejected
 * Values as text.
 

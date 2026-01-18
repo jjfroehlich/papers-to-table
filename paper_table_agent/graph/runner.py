@@ -1,19 +1,33 @@
 from __future__ import annotations
 
 import json
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from paper_table_agent.config import RunConfig, RunPaths, validate_schema_columns
-from paper_table_agent.graph.extraction import GroupContext, build_proposal_records, extract_group, verify_cells
-from paper_table_agent.graph.matching import adjudicate_match, build_match_record, extract_header, shortlist_candidates
+from paper_table_agent.graph.extraction import (
+    GroupContext,
+    build_error_records,
+    build_proposal_records,
+    build_verify_records,
+    extract_group,
+    verify_cells,
+)
+from paper_table_agent.graph.matching import (
+    adjudicate_match,
+    build_match_record,
+    deterministic_match,
+    extract_header,
+    shortlist_candidates,
+)
 from paper_table_agent.graph.reporting import write_mapping_report
 from paper_table_agent.io.examples import select_examples
 from paper_table_agent.io.locks import build_locks
 from paper_table_agent.io.schema import group_columns, load_schema
 from paper_table_agent.io.xlsx import load_table
-from paper_table_agent.llm.client import LlmClient, LlmConfig
+from paper_table_agent.llm.client import LlmClient, LlmConfig, LlmJsonError
 from paper_table_agent.pdf.highlight import locate_quote
 from paper_table_agent.pdf.ocr import run_ocr, should_trigger_ocr
 from paper_table_agent.pdf.parser import compute_sha1, parse_pdf, save_parsed
@@ -196,9 +210,80 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         context.config.matching.header_max_chars,
         context.logger,
     )
-    header = extract_header(context.client, header_text)
-    candidates = shortlist_candidates(header, context.rows_data, context.config.matching.top_k)
-    adjudication = adjudicate_match(context.client, header, candidates)
+    try:
+        header = extract_header(context.client, header_text)
+    except LlmJsonError as exc:
+        log_error(
+            context.error_path,
+            {"pdf_id": pdf.pdf_id, "error": str(exc), "stage": "match_header", "response": exc.response},
+        )
+        store.record_event(
+            "error",
+            "llm_json_error",
+            {"pdf_id": pdf.pdf_id, "stage": "match_header", "error": str(exc), "response": exc.response},
+        )
+        store.insert_match(
+            {
+                "match_id": str(uuid.uuid4()),
+                "pdf_id": pdf.pdf_id,
+                "row_id": None,
+                "confidence": 0.0,
+                "status": "unmatched",
+                "evidence": [],
+                "rationale": str(exc),
+            }
+        )
+        store.update_pdf_status(pdf.pdf_id, "failed", error=str(exc))
+        return False
+
+    candidates = shortlist_candidates(
+        header,
+        context.rows_data,
+        context.config.matching.top_k,
+        context.config.matching.year_tolerance,
+    )
+    store.insert_match_candidates(
+        [
+            {
+                "pdf_id": pdf.pdf_id,
+                "row_id": candidate.row_id,
+                "score": candidate.score,
+                "title": candidate.title,
+                "authors": candidate.authors,
+                "year": candidate.year,
+                "rank": idx + 1,
+                "source": "shortlist",
+            }
+            for idx, candidate in enumerate(candidates)
+        ]
+    )
+    adjudication = deterministic_match(header, candidates, context.config.matching.confidence_threshold)
+    if adjudication is None:
+        try:
+            adjudication = adjudicate_match(context.client, header, candidates)
+        except LlmJsonError as exc:
+            log_error(
+                context.error_path,
+                {"pdf_id": pdf.pdf_id, "error": str(exc), "stage": "match_adjudicate", "response": exc.response},
+            )
+            store.record_event(
+                "error",
+                "llm_json_error",
+                {"pdf_id": pdf.pdf_id, "stage": "match_adjudicate", "error": str(exc), "response": exc.response},
+            )
+            store.insert_match(
+                {
+                    "match_id": str(uuid.uuid4()),
+                    "pdf_id": pdf.pdf_id,
+                    "row_id": None,
+                    "confidence": 0.0,
+                    "status": "unmatched",
+                    "evidence": [item.model_dump(mode="json") for item in header.evidence],
+                    "rationale": str(exc),
+                }
+            )
+            store.update_pdf_status(pdf.pdf_id, "processed", error=str(exc))
+            return True
     match_record = build_match_record(pdf.pdf_id, adjudication)
     if adjudication.row_id and adjudication.status == "matched":
         previous = context.assigned_rows.get(adjudication.row_id)
@@ -217,8 +302,24 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 "confidence": adjudication.confidence,
             }
     store.insert_match(match_record)
+    if adjudication.top_candidates:
+        store.insert_match_candidates(
+            [
+                {
+                    "pdf_id": pdf.pdf_id,
+                    "row_id": candidate.get("row_id"),
+                    "score": candidate.get("score"),
+                    "title": candidate.get("title"),
+                    "authors": candidate.get("authors"),
+                    "year": candidate.get("year"),
+                    "rank": idx + 1,
+                    "source": "llm",
+                }
+                for idx, candidate in enumerate(adjudication.top_candidates)
+            ]
+        )
 
-    if not adjudication.row_id:
+    if not adjudication.row_id or adjudication.status != "matched":
         return True
 
     row_context = next((row for row in context.rows_data if row["row_id"] == adjudication.row_id), {})
@@ -240,8 +341,37 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         query = f"{group_name}: {', '.join(group.columns)}"
         context_result = retrieve_context(index, query, context.retrieval_config, helper_client=context.helper_client)
         chunk_payload = _format_chunks(context_result.chunks)
-        extraction = extract_group(context.client, row_context, group, chunk_payload, adjudication.status != "matched")
-        proposals = build_proposal_records(pdf.pdf_id, adjudication.row_id, extraction)
+        try:
+            extraction = extract_group(
+                context.client,
+                row_context,
+                group,
+                chunk_payload,
+                adjudication.status != "matched",
+            )
+            proposals = build_proposal_records(pdf.pdf_id, adjudication.row_id, extraction)
+        except LlmJsonError as exc:
+            log_error(
+                context.error_path,
+                {"pdf_id": pdf.pdf_id, "error": str(exc), "stage": "extract_group", "response": exc.response},
+            )
+            store.record_event(
+                "error",
+                "llm_json_error",
+                {
+                    "pdf_id": pdf.pdf_id,
+                    "stage": "extract_group",
+                    "error": str(exc),
+                    "response": exc.response,
+                },
+            )
+            proposals = build_error_records(
+                pdf.pdf_id,
+                adjudication.row_id,
+                group.columns,
+                str(exc),
+                adjudication.status != "matched",
+            )
         proposals = _resolve_evidence_locators(
             proposals,
             pdf.path,
@@ -256,15 +386,34 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 if col in context.table.dataframe.columns
             }
             if locked_values:
-                verify_results = verify_cells(context.client, row_context, locked_values, chunk_payload)
-                for result in verify_results:
-                    payload = result.model_dump(mode="json")
-                    payload["row_id"] = adjudication.row_id
-                    payload["pdf_id"] = pdf.pdf_id
+                try:
+                    verify_results = verify_cells(context.client, row_context, locked_values, chunk_payload)
+                    verify_proposals = build_verify_records(
+                        pdf.pdf_id,
+                        adjudication.row_id,
+                        verify_results,
+                        locked_values,
+                    )
+                    store.insert_proposals(verify_proposals)
+                except LlmJsonError as exc:
+                    log_error(
+                        context.error_path,
+                        {
+                            "pdf_id": pdf.pdf_id,
+                            "error": str(exc),
+                            "stage": "verify_cells",
+                            "response": exc.response,
+                        },
+                    )
                     store.record_event(
-                        "info",
-                        "verify_result",
-                        payload,
+                        "error",
+                        "llm_json_error",
+                        {
+                            "pdf_id": pdf.pdf_id,
+                            "stage": "verify_cells",
+                            "error": str(exc),
+                            "response": exc.response,
+                        },
                     )
 
     store.update_pdf_status(pdf.pdf_id, "processed")
@@ -309,10 +458,11 @@ def _resolve_evidence_locators(
         for evidence in evidence_items:
             quote = evidence.get("quote")
             page = evidence.get("page")
+            locator_hint = evidence.get("locator_hint")
             if not quote or not page:
                 proposal.setdefault("flags", {})["needs_more_evidence"] = True
                 continue
-            highlight = locate_quote(str(pdf_path), quote, int(page), tokens=tokens)
+            highlight = locate_quote(str(pdf_path), quote, int(page), locator_hint=locator_hint, tokens=tokens)
             evidence["rects"] = highlight.rects
             if not highlight.found:
                 proposal.setdefault("flags", {})["needs_more_evidence"] = True

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -96,6 +97,34 @@ class Store:
         )
         self.conn.commit()
 
+    def insert_match_candidates(self, candidates: Iterable[dict[str, Any]]) -> None:
+        payload = [
+            (
+                str(uuid.uuid4()),
+                candidate.get("pdf_id"),
+                candidate.get("row_id"),
+                candidate.get("score"),
+                candidate.get("title"),
+                candidate.get("authors"),
+                candidate.get("year"),
+                candidate.get("rank"),
+                candidate.get("source"),
+                datetime.utcnow().isoformat(),
+            )
+            for candidate in candidates
+        ]
+        if not payload:
+            return
+        self.conn.executemany(
+            """
+            INSERT OR REPLACE INTO match_candidates
+            (candidate_id, pdf_id, row_id, score, title, authors, year, rank, source, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            payload,
+        )
+        self.conn.commit()
+
     def update_match_status(self, match_id: str, status: str) -> None:
         self.conn.execute(
             "UPDATE matches SET status = ? WHERE match_id = ?",
@@ -155,6 +184,9 @@ class Store:
 
     def fetch_matches(self) -> list[sqlite3.Row]:
         return list(self.conn.execute("SELECT * FROM matches"))
+
+    def fetch_match_candidates(self) -> list[sqlite3.Row]:
+        return list(self.conn.execute("SELECT * FROM match_candidates"))
 
     def fetch_reviews(self) -> dict[str, sqlite3.Row]:
         rows = self.conn.execute("SELECT * FROM reviews")

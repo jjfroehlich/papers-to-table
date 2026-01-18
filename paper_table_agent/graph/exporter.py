@@ -23,7 +23,7 @@ def export_run(run_dir: Path) -> None:
         review = reviews.get(proposal["proposal_id"])
         if not review:
             continue
-        if review["decision"] not in {"accepted", "revised"}:
+        if review["decision"] != "accepted":
             continue
         row_index = int(proposal["row_id"])
         final_value = review["final_value"] or proposal["proposed_value"]

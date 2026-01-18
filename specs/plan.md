@@ -9,6 +9,7 @@ Implement the system described in `spec.md` as a local-first, easy-to-run app wi
 * a **Batch Run** phase (parse → match → retrieve → extract → store proposals)
 * a **Review** phase (row-by-row accept/reject/revise with PDF evidence highlighting)
 * **Exports** (updated table copy + audit + mapping report)
+* **Streamlit UI stability** (CLI launch via subprocess + pinned version)
 
 This plan is structured for spec-driven development and can be converted into `tasks.md` later.
 
@@ -21,6 +22,7 @@ This plan is structured for spec-driven development and can be converted into `t
 3. **Local-first**: Default runs offline (LM Studio / Ollama), but supports cloud (OpenAI-compatible) by configuration.
 4. **Two-phase UX**: Run everything → then review only at the end.
 5. **Make failures visible**: Clear status, counts, and reports (mapping report, failed PDFs, duplicates, needs-more-evidence).
+6. **JSON robustness**: validate, repair, and record parse failures with diagnostics.
 
 ---
 
@@ -33,6 +35,7 @@ This plan is structured for spec-driven development and can be converted into `t
 * Project scaffold with clear run folder layout
 * Config model(s) and default `run_config.json`
 * CLI entrypoint + Streamlit app skeleton with “Run / Review / Export” tabs
+* Streamlit launch via subprocess (`python -m streamlit run`) and version pin
 * SQLite schema created and migrations strategy defined
 
 **Key tasks**
@@ -66,6 +69,7 @@ This plan is structured for spec-driven development and can be converted into `t
 **Definition of done**
 
 * `streamlit run app.py` opens UI, creates a run directory, initializes DB.
+* `paper-table-agent ui` launches Streamlit without bootstrap errors.
 
 ---
 
@@ -144,7 +148,7 @@ This plan is structured for spec-driven development and can be converted into `t
 
 * LLM-based header metadata extraction (title/authors/year) with evidence quotes/pages
 * Pass 1 deterministic shortlist (fuzzy title + author overlap)
-* Pass 2 LLM adjudication (choose row_id or ambiguous)
+* Pass 2 LLM adjudication (matched/ambiguous/unmatched)
 * 1-to-1 enforcement + duplicate detection
 * Mapping report export (HTML + CSV)
 
@@ -163,12 +167,16 @@ This plan is structured for spec-driven development and can be converted into `t
   * normalize titles
   * RapidFuzz topK title match
   * optional author overlap score on last names
-  * year filter ±1 if year available
+  * year is a tie-breaker bonus only (missing year allowed)
+* Deterministic rule:
+
+  * exactly one candidate above threshold → matched (skip LLM)
+  * otherwise invoke LLM among top K
 * Adjudication prompt:
 
   * provide extracted header + evidence
   * provide candidate rows (id, title, authors, year)
-  * output: row_id or ambiguous + top candidates + confidence
+  * output: matched|ambiguous|unmatched + top candidates + confidence + evidence
 * Store in DB:
 
   * `matches` (status proposed/needs_review)
@@ -177,7 +185,8 @@ This plan is structured for spec-driven development and can be converted into `t
 
   * counts summary
   * table of PDF vs row side-by-side with confidence + snippets
-  * duplicates section + ambiguous section
+* per-PDF candidate table (shortlist + LLM)
+* duplicates section + ambiguous section + unmatched section
 
 **Definition of done**
 
@@ -237,7 +246,7 @@ This plan is structured for spec-driven development and can be converted into `t
 * Extraction per column group using retrieval context
 * Proposals written to SQLite with evidence objects + needs-more-evidence flag
 * Locked cells respected
-* Optional Verify mode produces verification items (no edits)
+* Optional Verify mode produces verification items stored in the proposals table
 
 **Key tasks**
 
@@ -254,7 +263,7 @@ This plan is structured for spec-driven development and can be converted into `t
   * group schema descriptions
   * examples (column → example value)
   * retrieved chunks (with page labels and chunk IDs)
-  * output: per-column proposal objects
+  * output: per-column proposal objects (always one record per column)
 * Evidence discipline:
 
   * require at least one quote + page for status=found
@@ -269,7 +278,7 @@ This plan is structured for spec-driven development and can be converted into `t
   * ensure JSON conforms
   * ensure not proposing for locked cells
   * ensure value is text (string) or null
-* Store proposals (and verification items if enabled)
+* Store proposals (and verification items if enabled) using a unified schema
 
 **Definition of done**
 
@@ -281,10 +290,11 @@ This plan is structured for spec-driven development and can be converted into `t
 
 **Deliverables**
 
-* Review tab shows one row at a time with all proposals
-* Accept/Reject/Revise stored in `reviews`
+* Review tab shows one row at a time with Prev/Next per proposal
+* Accept / Accept with manual edit / Reject / Revise stored in `reviews`
 * Evidence PDF viewer with highlight rectangles in most cases
 * Jump-to-page + show evidence snippets
+* Run registry-powered dropdowns for runs, PDFs, columns, and queries
 
 **Key tasks**
 
@@ -292,11 +302,12 @@ This plan is structured for spec-driven development and can be converted into `t
 
   * search by title/row_id
   * filters: needs_more_evidence, low confidence, ambiguous mapping, duplicates
+  * run registry dropdowns for run + PDF selection
 * Proposal cards per column:
 
   * current value, proposed value, status, confidence, flags
   * evidence quotes list with page
-  * Accept/Reject/Revise controls
+  * Accept / Accept with manual edit / Reject / Revise controls
 * Highlight engine:
 
   * primary: locate evidence substring on specified page using PyMuPDF search
@@ -318,7 +329,7 @@ This plan is structured for spec-driven development and can be converted into `t
 
 **Deliverables**
 
-* Export updated table XLSX (copy) applying accepted + revised proposals only
+* Export updated table XLSX (copy) applying accepted proposals only
 * Export audit log CSV
 * Export match map CSV and mapping report HTML
 
@@ -327,7 +338,7 @@ This plan is structured for spec-driven development and can be converted into `t
 * Apply logic:
 
   * accepted: write proposed value to output table
-  * revised: write reviewer value to output table
+  * accepted with manual edit: write reviewer value to output table
   * rejected: do nothing
 * Keep original table unchanged; output to `exports/updated_table.xlsx`
 * Audit log includes:

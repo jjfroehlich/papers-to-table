@@ -2,9 +2,8 @@
 
 ## Unreleased
 
-- Added project scaffold with CLI, Streamlit UI, SQLite persistence, and batch pipeline wiring.
-- Added PDF parsing, basic retrieval pipeline, matching, and proposal extraction with evidence hooks.
-- Added exports and basic review controls.
-- Added LangGraph checkpointed workflow with resume/stop controls, plus retrieval pipeline upgrades (query expansion, HyDE, reranking).
-- Expanded review UI with filters, evidence highlights, and verification summaries.
-- Relaxed Python requirement to >=3.10 for editable installs in this environment.
+- Fixed Streamlit startup stability by launching via subprocess and pinning Streamlit 1.32.2.
+- Updated two-pass matching to prioritize title/authors, add deterministic matching, and include candidate tables in mapping reports.
+- Unified proposal schema (one record per column) and persisted verify results in proposals for review.
+- Overhauled UI with run registry dropdowns, row-by-row Prev/Next review, and PDF side-panel highlighting.
+- Added JSON repair + diagnostics for LLM parsing failures and new tests for matching/schema/registry.

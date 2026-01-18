@@ -17,14 +17,20 @@ _REPORT_TEMPLATE = Template(
   <title>Mapping Report</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 24px; }
-    table { border-collapse: collapse; width: 100%; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 24px; }
     th, td { border: 1px solid #ddd; padding: 8px; }
     th { background-color: #f4f4f4; }
+    .candidates { margin-left: 16px; }
   </style>
-</head>
+  </head>
 <body>
   <h1>Mapping Report</h1>
-  <p>Matched: {{ matched }} | Ambiguous: {{ ambiguous }} | Duplicates: {{ duplicates }} | Failed: {{ failed }}</p>
+  <p>
+    Matched: {{ matched }} |
+    Ambiguous: {{ ambiguous }} |
+    Unmatched: {{ unmatched }} |
+    Duplicates: {{ duplicates }}
+  </p>
   <table>
     <thead>
       <tr>
@@ -48,6 +54,41 @@ _REPORT_TEMPLATE = Template(
         <td>{{ row.authors }}</td>
         <td>{{ row.year }}</td>
       </tr>
+      {% if row.candidates %}
+      <tr>
+        <td colspan=\"7\">
+          <div class=\"candidates\">
+            <strong>Top candidates</strong>
+            <table>
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Row ID</th>
+                  <th>Score</th>
+                  <th>Title</th>
+                  <th>Authors</th>
+                  <th>Year</th>
+                  <th>Source</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for candidate in row.candidates %}
+                <tr>
+                  <td>{{ candidate.rank }}</td>
+                  <td>{{ candidate.row_id }}</td>
+                  <td>{{ candidate.score }}</td>
+                  <td>{{ candidate.title }}</td>
+                  <td>{{ candidate.authors }}</td>
+                  <td>{{ candidate.year }}</td>
+                  <td>{{ candidate.source }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </td>
+      </tr>
+      {% endif %}
       {% endfor %}
     </tbody>
   </table>
@@ -61,26 +102,34 @@ def write_mapping_report(store: Store, output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     matches = store.fetch_matches()
     rows = {row["row_id"]: dict(row) for row in store.fetch_rows()}
+    candidates = store.fetch_match_candidates()
+    candidates_by_pdf: dict[str, list[dict[str, object]]] = {}
+    for candidate in candidates:
+        candidates_by_pdf.setdefault(candidate["pdf_id"], []).append(dict(candidate))
+    for pdf_id, items in candidates_by_pdf.items():
+        items.sort(key=lambda item: (item.get("rank") or 0, item.get("source") or ""))
+        candidates_by_pdf[pdf_id] = items
     report_rows = []
     for match in matches:
-            row = rows.get(match["row_id"], {})
-            report_rows.append(
-                {
-                    "pdf_id": match["pdf_id"],
-                    "row_id": match["row_id"],
-                    "status": match["status"],
-                    "confidence": match["confidence"],
-                    "title": row.get("title", ""),
-                    "authors": row.get("authors", ""),
-                    "year": row.get("year", ""),
-                }
-            )
+        row = rows.get(match["row_id"], {})
+        report_rows.append(
+            {
+                "pdf_id": match["pdf_id"],
+                "row_id": match["row_id"],
+                "status": match["status"],
+                "confidence": match["confidence"],
+                "title": row.get("title", ""),
+                "authors": row.get("authors", ""),
+                "year": row.get("year", ""),
+                "candidates": candidates_by_pdf.get(match["pdf_id"], []),
+            }
+        )
 
     summary = {
         "matched": sum(1 for match in matches if match["status"] == "matched"),
-        "ambiguous": sum(1 for match in matches if match["status"] not in {"matched", "duplicate"}),
+        "ambiguous": sum(1 for match in matches if match["status"] == "ambiguous"),
+        "unmatched": sum(1 for match in matches if match["status"] == "unmatched"),
         "duplicates": sum(1 for match in matches if match["status"] == "duplicate"),
-        "failed": 0,
     }
 
     html = _REPORT_TEMPLATE.render(rows=report_rows, **summary)

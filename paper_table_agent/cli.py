@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import subprocess
+import sys
 from pathlib import Path
 
 from paper_table_agent.config import RunConfig, RunPaths, capture_run_config, create_run_paths, load_prompt_versions
@@ -40,14 +42,18 @@ def _parse_args() -> argparse.Namespace:
 def main() -> None:
     args = _parse_args()
     if args.command == "ui":
-        import streamlit.web.bootstrap
-
-        streamlit.web.bootstrap.run(
+        cmd = [
+            sys.executable,
+            "-m",
+            "streamlit",
+            "run",
             "paper_table_agent/ui/app.py",
-            f"streamlit run paper_table_agent/ui/app.py",
-            [],
-            {"server.address": args.host, "server.port": args.port},
-        )
+            "--server.address",
+            args.host,
+            "--server.port",
+            str(args.port),
+        ]
+        subprocess.run(cmd, check=True)
         return
 
     if args.command == "init-db":
