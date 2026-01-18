@@ -51,7 +51,9 @@ class RetrievalConfig(BaseModel):
     use_hyde: bool = True
     rrf_k: int = 60
     embedding_backend: str = "tfidf"
+    embedding_model: str | None = None
     reranker_backend: str = "tfidf"
+    reranker_model: str | None = None
     use_reranker: bool = True
 
 

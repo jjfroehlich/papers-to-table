@@ -7,6 +7,7 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
 from paper_table_agent.retrieval.index import RetrievalIndex
+from paper_table_agent.llm.embeddings import EmbeddingClient
 
 
 @dataclass
@@ -31,9 +32,21 @@ class RerankedChunk:
     dense_score: float
 
 
-def retrieve(index: RetrievalIndex, query: str, top_k: int = 8) -> list[RetrievedChunk]:
+def retrieve(
+    index: RetrievalIndex,
+    query: str,
+    top_k: int = 8,
+    embedder: EmbeddingClient | None = None,
+) -> list[RetrievedChunk]:
     bm25_scores = index.bm25.get_scores(query.split())
-    query_vec = index.vectorizer.transform([query]).toarray()
+    if index.embedding_backend == "tfidf":
+        if index.vectorizer is None:
+            raise ValueError("Missing vectorizer for tfidf retrieval.")
+        query_vec = index.vectorizer.transform([query]).toarray()
+    else:
+        if embedder is None:
+            raise ValueError("Embedding client required for LM Studio retrieval.")
+        query_vec = embedder.embed_texts([query])
     dense_scores = cosine_similarity(query_vec, index.embeddings)[0]
     combined = 0.5 * np.array(bm25_scores) + 0.5 * np.array(dense_scores)
     top_indices = combined.argsort()[-top_k:][::-1]

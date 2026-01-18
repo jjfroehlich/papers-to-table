@@ -1,6 +1,6 @@
-# Spec: Paper Table Agent — UI/UX Iteration (v0.4)
+# Spec: Paper Table Agent — UI/UX Iteration (v0.5)
 
-This v0.4 spec updates the UI/UX to minimize friction, accelerate review, and make evidence trustworthiness explicit while keeping the app responsive for large runs.
+This v0.5 spec updates the UI/UX to minimize friction, accelerate review, and make evidence trustworthiness explicit while keeping the app responsive for large runs. It also aligns model selection with run configuration and available LM Studio models.
 
 ---
 
@@ -33,8 +33,8 @@ This v0.4 spec updates the UI/UX to minimize friction, accelerate review, and ma
 
 Required controls (click/select):
 
-- **Table input**: file uploader (XLSX/CSV), show filename + last modified.
-- **PDF folder**: folder picker OR text input with “browse” helper.
+- **Table input**: path input with “browse” helper, show filename + last modified.
+- **PDF folder**: path input with “browse” helper.
 - **Schema source**: dropdown:
   - Use schema sheet from XLSX (default)
   - Select separate schema XLSX (optional)
@@ -45,8 +45,8 @@ Required controls (click/select):
 - **Locked cells policy**: read-only display (non-empty except " " locked).
 - **Models**: dropdowns for
   - LLM for extraction
-  - Embedding model
-  - Reranker model (if enabled)
+  - Embedding backend + model (when LM Studio embeddings are enabled)
+  - Reranker backend + model (when LM Studio reranking is enabled)
 - **Retrieval strength**: preset
   - Fast | Balanced | Thorough
 - **OCR fallback**: checkbox (off by default)
@@ -58,18 +58,18 @@ Validation UX:
 
 ### 2.2 Run execution panel (main)
 
-- Progress display:
+- Progress display (visible after a run starts):
   - overall progress bar
   - current step label (parse → match → index → extract)
   - current PDF filename
-- Live logs (collapsible):
+- Live logs (collapsible, visible after a run starts):
   - recent events
   - filter toggles: errors only, warnings, info
 - Run actions:
   - Pause (graceful checkpoint)
   - Resume
   - Stop (graceful, keeps partial results)
-- Completion summary card:
+- Completion summary card (visible after a run starts):
   - matched / ambiguous / unmatched PDFs
   - proposals generated count
   - needs_more_evidence count
@@ -197,13 +197,13 @@ Provider selection:
 - Local: LM Studio | Ollama
 - Cloud: OpenAI-compatible URL + API key (masked)
 
-Model routing:
+Model routing (LM Studio lists only the models that are available):
 - Header extraction model
 - Match adjudication model
 - Extraction model
 - Query expansion model (optional)
-- Embedding model
-- Reranker model
+- Embedding backend + model
+- Reranker backend + model
 
 Performance controls:
 - Concurrency (PDFs in parallel)

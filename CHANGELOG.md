@@ -9,3 +9,4 @@
 - Introduced per-column retrieval with retry on unclear results and configurable embedding/reranker backends.
 - Added optional GROBID integration for structured metadata + section chunking (off by default).
 - Updated the UI with Run/Review/Advanced/Settings/Help tabs, run validation gates, and enhanced review filters + evidence tools.
+- Replaced table upload with path-based selection and added LM Studio model registry-aware embedding/reranker configuration.

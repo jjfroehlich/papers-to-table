@@ -7,12 +7,14 @@ from typing import Any
 
 import pandas as pd
 import streamlit as st
+import httpx
 
 from paper_table_agent.config import RunConfig, RunPaths, capture_run_config, create_run_paths, load_prompt_versions
 from paper_table_agent.graph.exporter import export_run
 from paper_table_agent.graph.workflow import run_workflow
 from paper_table_agent.io.schema import group_columns, load_schema
 from paper_table_agent.io.xlsx import load_table
+from paper_table_agent.llm.embeddings import EmbeddingClient, EmbeddingConfig
 from paper_table_agent.pdf.highlight import locate_quote, render_page_image
 from paper_table_agent.retrieval.index import load_index
 from paper_table_agent.retrieval.pipeline import RetrievalConfig, retrieve_context
@@ -144,6 +146,62 @@ def _persist_upload(upload: Any, folder: Path) -> Path | None:
     target = folder / safe_name
     target.write_bytes(upload.getbuffer())
     return target
+
+
+def _fetch_available_models(base_url: str, api_key: str | None) -> tuple[list[str], str | None]:
+    url = f"{base_url.rstrip('/')}/models"
+    headers = {}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    try:
+        response = httpx.get(url, headers=headers, timeout=10.0)
+        response.raise_for_status()
+        payload = response.json()
+    except Exception as exc:  # noqa: BLE001
+        return [], f"Failed to load models: {exc}"
+    models = sorted({item.get("id") for item in payload.get("data", []) if item.get("id")})
+    return models, None
+
+
+def _refresh_model_registry() -> None:
+    settings = st.session_state.get("settings", {})
+    models, error = _fetch_available_models(settings.get("base_url", ""), settings.get("api_key"))
+    st.session_state["available_models"] = models
+    st.session_state["model_registry_error"] = error
+    st.session_state["model_registry_loaded"] = True
+
+
+def _select_model(label: str, current: str | None, available: list[str], help_text: str | None = None) -> str:
+    if available:
+        if current and current in available:
+            index = available.index(current)
+        else:
+            index = 0
+            if current:
+                st.warning(f"{label} '{current}' not found in LM Studio model list.")
+        return st.selectbox(label, available, index=index, help=help_text)
+    return st.text_input(label, value=current or "", help=help_text)
+
+
+def _build_embedding_client(
+    base_url: str,
+    api_key: str | None,
+    backend: str,
+    model: str | None,
+) -> EmbeddingClient | None:
+    if backend == "tfidf":
+        return None
+    if backend != "lmstudio":
+        return None
+    if not model:
+        return None
+    return EmbeddingClient(
+        EmbeddingConfig(
+            base_url=base_url,
+            api_key=api_key,
+            model=model,
+        )
+    )
 
 
 def _normalize_column_name(value: object) -> str:
@@ -290,7 +348,9 @@ if "settings" not in st.session_state:
         "model_extract": provider_defaults.get("model_extract", "gpt-oss-20b"),
         "model_query_helper": provider_defaults.get("model_query_helper", "gpt-oss-20b"),
         "embedding_backend": retrieval_defaults.get("embedding_backend", "tfidf"),
+        "embedding_model": retrieval_defaults.get("embedding_model"),
         "reranker_backend": retrieval_defaults.get("reranker_backend", "tfidf"),
+        "reranker_model": retrieval_defaults.get("reranker_model"),
         "use_reranker": retrieval_defaults.get("use_reranker", True),
         "max_workers": defaults.get("max_workers", 1),
         "retry_on_unclear": defaults.get("extraction", {}).get("retry_on_unclear", True),
@@ -325,7 +385,23 @@ with settings_tab:
     settings["api_key"] = st.text_input("API key", value=settings["api_key"] or "", type="password")
 
     st.subheader("Model routing")
-    model_options = [
+    available_models = st.session_state.get("available_models", [])
+    if provider_type == "LM Studio" and not st.session_state.get("model_registry_loaded"):
+        _refresh_model_registry()
+        available_models = st.session_state.get("available_models", [])
+    if provider_type == "LM Studio":
+        if st.button("Refresh model list"):
+            _refresh_model_registry()
+            available_models = st.session_state.get("available_models", [])
+        registry_error = st.session_state.get("model_registry_error")
+        if registry_error:
+            st.warning(registry_error)
+        elif available_models:
+            st.caption(f"{len(available_models)} models available from LM Studio.")
+        else:
+            st.info("No LM Studio models detected yet. Refresh once LM Studio is running.")
+
+    fallback_models = [
         settings["model_header"],
         settings["model_match"],
         settings["model_extract"],
@@ -333,16 +409,44 @@ with settings_tab:
         "gpt-oss-20b",
         "gpt-4o-mini",
     ]
-    model_options = sorted({option for option in model_options if option})
-    settings["model_header"] = st.selectbox("Header extraction model", model_options, index=0)
-    settings["model_match"] = st.selectbox("Match adjudication model", model_options, index=0)
-    settings["model_extract"] = st.selectbox("Extraction model", model_options, index=0)
-    settings["model_query_helper"] = st.selectbox("Query expansion model", model_options, index=0)
+    fallback_models = sorted({option for option in fallback_models if option})
+    model_options = available_models if provider_type == "LM Studio" else fallback_models
 
-    embed_options = sorted({settings["embedding_backend"], "tfidf", "bge-small", "e5-small"})
-    rerank_options = sorted({settings["reranker_backend"], "tfidf", "bge-reranker"})
-    settings["embedding_backend"] = st.selectbox("Embedding model", embed_options, index=0)
-    settings["reranker_backend"] = st.selectbox("Reranker model", rerank_options, index=0)
+    settings["model_header"] = _select_model("Header extraction model", settings["model_header"], model_options)
+    settings["model_match"] = _select_model("Match adjudication model", settings["model_match"], model_options)
+    settings["model_extract"] = _select_model("Extraction model", settings["model_extract"], model_options)
+    settings["model_query_helper"] = _select_model("Query expansion model", settings["model_query_helper"], model_options)
+
+    backend_options = ["tfidf", "lmstudio"]
+    if settings["embedding_backend"] not in backend_options:
+        st.warning(f"Unsupported embedding backend '{settings['embedding_backend']}' reset to tfidf.")
+        settings["embedding_backend"] = "tfidf"
+    if settings["reranker_backend"] not in backend_options:
+        st.warning(f"Unsupported reranker backend '{settings['reranker_backend']}' reset to tfidf.")
+        settings["reranker_backend"] = "tfidf"
+    embed_index = backend_options.index(settings["embedding_backend"]) if settings["embedding_backend"] in backend_options else 0
+    rerank_index = backend_options.index(settings["reranker_backend"]) if settings["reranker_backend"] in backend_options else 0
+    settings["embedding_backend"] = st.selectbox("Embedding backend", backend_options, index=embed_index)
+    if settings["embedding_backend"] == "lmstudio":
+        settings["embedding_model"] = _select_model(
+            "Embedding model",
+            settings.get("embedding_model"),
+            available_models,
+            help_text="Select a model that supports embeddings in LM Studio.",
+        )
+    else:
+        settings["embedding_model"] = None
+
+    settings["reranker_backend"] = st.selectbox("Reranker backend", backend_options, index=rerank_index)
+    if settings["reranker_backend"] == "lmstudio":
+        settings["reranker_model"] = _select_model(
+            "Reranker model",
+            settings.get("reranker_model"),
+            available_models,
+            help_text="Select a model to compute rerank embeddings.",
+        )
+    else:
+        settings["reranker_model"] = None
     settings["use_reranker"] = st.checkbox("Use reranker", value=bool(settings["use_reranker"]))
 
     st.subheader("Performance controls")
@@ -376,13 +480,8 @@ with run_tab:
 
     with config_panel:
         st.subheader("Run configuration")
-        table_upload = st.file_uploader("Table input (XLSX/CSV)", type=["xlsx", "csv"], key="table-upload")
-        uploaded_table_path = _persist_upload(table_upload, UPLOADS_DIR / "tables")
-
         if "manual_table_path" not in st.session_state:
             st.session_state["manual_table_path"] = str(default_table_path) if default_table_path else ""
-        if uploaded_table_path:
-            st.session_state["manual_table_path"] = str(uploaded_table_path)
 
         col_table_path, col_table_browse = st.columns([4, 1])
         with col_table_path:
@@ -488,21 +587,34 @@ with run_tab:
 
         st.markdown("**Models**")
         settings = st.session_state["settings"]
-        extraction_model = st.selectbox(
-            "LLM for extraction",
-            [settings["model_extract"], settings["model_header"], settings["model_match"]],
-            index=0,
-        )
-        embedding_model = st.selectbox(
-            "Embedding model",
-            [settings["embedding_backend"], "tfidf", "bge-small", "e5-small"],
-            index=0,
-        )
-        reranker_model = st.selectbox(
-            "Reranker model",
-            [settings["reranker_backend"], "tfidf", "bge-reranker"],
-            index=0,
-        )
+        available_models = st.session_state.get("available_models", [])
+        fallback_models = [settings["model_extract"], settings["model_header"], settings["model_match"]]
+        if settings.get("provider_type") == "LM Studio" and available_models:
+            model_options = available_models
+        else:
+            model_options = sorted({option for option in fallback_models if option})
+        extraction_model = _select_model("LLM for extraction", settings["model_extract"], model_options)
+
+        backend_options = ["tfidf", "lmstudio"]
+        embed_index = backend_options.index(settings["embedding_backend"]) if settings["embedding_backend"] in backend_options else 0
+        rerank_index = backend_options.index(settings["reranker_backend"]) if settings["reranker_backend"] in backend_options else 0
+        embedding_backend = st.selectbox("Embedding backend", backend_options, index=embed_index)
+        embedding_model = None
+        if embedding_backend == "lmstudio":
+            embedding_model = _select_model(
+                "Embedding model",
+                settings.get("embedding_model"),
+                available_models,
+            )
+
+        reranker_backend = st.selectbox("Reranker backend", backend_options, index=rerank_index)
+        reranker_model = None
+        if reranker_backend == "lmstudio":
+            reranker_model = _select_model(
+                "Reranker model",
+                settings.get("reranker_model"),
+                available_models,
+            )
 
         st.markdown("**Retrieval strength**")
         retrieval_preset = st.radio("Preset", ["Fast", "Balanced", "Thorough"], horizontal=True)
@@ -548,10 +660,17 @@ with run_tab:
         valid_schema = bool(schema_source_path and schema_source_path.exists())
         if schema_mode == "sheet" and table_path and table_path.suffix.lower() != ".xlsx":
             valid_schema = False
+        valid_embedding = embedding_backend != "lmstudio" or bool(embedding_model)
+        valid_reranker = True
+        if settings["use_reranker"]:
+            valid_reranker = reranker_backend != "lmstudio" or bool(reranker_model)
         _render_validation_item("Table", valid_table)
         _render_validation_item("PDF folder", valid_pdf)
         _render_validation_item("Schema", valid_schema)
-        run_ready = valid_table and valid_pdf and valid_schema
+        _render_validation_item("Embedding model", valid_embedding, "Select a model" if not valid_embedding else None)
+        if settings["use_reranker"]:
+            _render_validation_item("Reranker model", valid_reranker, "Select a model" if not valid_reranker else None)
+        run_ready = valid_table and valid_pdf and valid_schema and valid_embedding and valid_reranker
 
         if st.button("Start run", disabled=not run_ready):
             if not run_ready:
@@ -572,8 +691,10 @@ with run_tab:
                 config.provider.model_match = settings["model_match"]
                 config.provider.model_extract = extraction_model
                 config.provider.model_query_helper = settings["model_query_helper"]
-                config.retrieval.embedding_backend = embedding_model
-                config.retrieval.reranker_backend = reranker_model
+                config.retrieval.embedding_backend = embedding_backend
+                config.retrieval.embedding_model = embedding_model
+                config.retrieval.reranker_backend = reranker_backend
+                config.retrieval.reranker_model = reranker_model
                 config.retrieval.use_reranker = settings["use_reranker"]
                 config.ocr.enable_ocr = ocr_enabled
                 config.grobid.enable_grobid = grobid_enabled
@@ -618,83 +739,94 @@ with run_tab:
 
     with exec_panel:
         st.subheader("Run execution")
-        st.caption("Progress updates appear after each PDF is processed.")
-        st.progress(0, text="Waiting to start")
-        st.write("Current step: idle")
-        st.write("Current PDF: —")
+        if not runs:
+            st.info("Start a run to see execution status, logs, and controls.")
+        else:
+            st.caption("Progress updates appear after each PDF is processed.")
+            st.progress(0, text="Waiting to start")
+            st.write("Current step: idle")
+            st.write("Current PDF: —")
 
-        run_options = {run.label: run for run in runs}
-        resume_label = st.selectbox("Select run", options=list(run_options.keys()), key="resume-run") if run_options else None
-        selected_run = run_options.get(resume_label) if resume_label else None
-
-        with st.expander("Live logs", expanded=False):
-            st.caption("Filters: errors | warnings | info")
-            show_errors = st.checkbox("Errors", value=True, key="log-errors")
-            show_warnings = st.checkbox("Warnings", value=True, key="log-warnings")
-            show_info = st.checkbox("Info", value=True, key="log-info")
-            if selected_run:
-                store = Store.init_db(selected_run.run_dir / "proposals.sqlite")
-                levels = []
-                if show_errors:
-                    levels.append("error")
-                if show_warnings:
-                    levels.append("warning")
-                if show_info:
-                    levels.append("info")
-                if levels:
-                    placeholders = ",".join("?" for _ in levels)
-                    query = f"SELECT level, event_type, payload_json, created_at FROM events WHERE level IN ({placeholders}) ORDER BY created_at DESC LIMIT 30"
-                    events = store.conn.execute(query, tuple(levels)).fetchall()
-                    for event in events:
-                        st.write(f"[{event['level']}] {event['event_type']} — {event['created_at']}")
-                        st.code(event["payload_json"])
-                else:
-                    st.info("Enable at least one log filter.")
-
-        st.markdown("**Run actions**")
-        action_col1, action_col2, action_col3 = st.columns(3)
-        with action_col1:
-            if st.button("Pause", disabled=not selected_run) and selected_run:
-                (selected_run.run_dir / "PAUSE").write_text("pause", encoding="utf-8")
-                _refresh_registry()
-                st.warning("Pause requested. The run will halt after the current PDF.")
-        with action_col2:
-            if st.button("Resume", disabled=not selected_run) and selected_run:
-                pause_path = selected_run.run_dir / "PAUSE"
-                if pause_path.exists():
-                    pause_path.unlink()
-                config_path = selected_run.run_dir / "run_config.json"
-                config = RunConfig.model_validate_json(config_path.read_text(encoding="utf-8"))
-                store = Store.init_db(selected_run.run_dir / "proposals.sqlite")
-                run_workflow(config=config, run_paths=RunPaths(run_dir=selected_run.run_dir), store=store, resume=True)
-                st.session_state["selected_run_dir"] = selected_run.run_dir
-                _refresh_registry()
-                st.success(f"Resumed run: {selected_run.run_dir}")
-        with action_col3:
-            if st.button("Stop", disabled=not selected_run) and selected_run:
-                (selected_run.run_dir / "STOP").write_text("stop", encoding="utf-8")
-                _refresh_registry()
-                st.warning("Stop requested. The run will halt after the current PDF.")
-
-        if selected_run:
-            st.subheader("Completion summary")
-            store = Store.init_db(selected_run.run_dir / "proposals.sqlite")
-            summary = _run_summary(store)
-            st.write(
-                {
-                    "Matched PDFs": summary["matched"],
-                    "Ambiguous": summary["ambiguous"],
-                    "Unmatched": summary["unmatched"],
-                    "Proposals": summary["proposals"],
-                    "Needs more evidence": summary["needs_more_evidence"],
-                    "Run duration": _run_duration(selected_run.run_dir),
-                }
+            run_options = {run.label: run for run in runs}
+            resume_label = (
+                st.selectbox("Select run", options=list(run_options.keys()), key="resume-run")
+                if run_options
+                else None
             )
-            st.markdown("**Artifacts**")
-            st.text_input("Run artifacts path", value=str(selected_run.run_dir), disabled=True)
-            if st.button("Go to Review"):
-                st.session_state["selected_run_dir"] = selected_run.run_dir
-                st.info("Switch to the Review tab to continue.")
+            selected_run = run_options.get(resume_label) if resume_label else None
+
+            with st.expander("Live logs", expanded=False):
+                st.caption("Filters: errors | warnings | info")
+                show_errors = st.checkbox("Errors", value=True, key="log-errors")
+                show_warnings = st.checkbox("Warnings", value=True, key="log-warnings")
+                show_info = st.checkbox("Info", value=True, key="log-info")
+                if selected_run:
+                    store = Store.init_db(selected_run.run_dir / "proposals.sqlite")
+                    levels = []
+                    if show_errors:
+                        levels.append("error")
+                    if show_warnings:
+                        levels.append("warning")
+                    if show_info:
+                        levels.append("info")
+                    if levels:
+                        placeholders = ",".join("?" for _ in levels)
+                        query = (
+                            "SELECT level, event_type, payload_json, created_at "
+                            f"FROM events WHERE level IN ({placeholders}) "
+                            "ORDER BY created_at DESC LIMIT 30"
+                        )
+                        events = store.conn.execute(query, tuple(levels)).fetchall()
+                        for event in events:
+                            st.write(f"[{event['level']}] {event['event_type']} — {event['created_at']}")
+                            st.code(event["payload_json"])
+                    else:
+                        st.info("Enable at least one log filter.")
+
+            st.markdown("**Run actions**")
+            action_col1, action_col2, action_col3 = st.columns(3)
+            with action_col1:
+                if st.button("Pause", disabled=not selected_run) and selected_run:
+                    (selected_run.run_dir / "PAUSE").write_text("pause", encoding="utf-8")
+                    _refresh_registry()
+                    st.warning("Pause requested. The run will halt after the current PDF.")
+            with action_col2:
+                if st.button("Resume", disabled=not selected_run) and selected_run:
+                    pause_path = selected_run.run_dir / "PAUSE"
+                    if pause_path.exists():
+                        pause_path.unlink()
+                    config_path = selected_run.run_dir / "run_config.json"
+                    config = RunConfig.model_validate_json(config_path.read_text(encoding="utf-8"))
+                    store = Store.init_db(selected_run.run_dir / "proposals.sqlite")
+                    run_workflow(config=config, run_paths=RunPaths(run_dir=selected_run.run_dir), store=store, resume=True)
+                    st.session_state["selected_run_dir"] = selected_run.run_dir
+                    _refresh_registry()
+                    st.success(f"Resumed run: {selected_run.run_dir}")
+            with action_col3:
+                if st.button("Stop", disabled=not selected_run) and selected_run:
+                    (selected_run.run_dir / "STOP").write_text("stop", encoding="utf-8")
+                    _refresh_registry()
+                    st.warning("Stop requested. The run will halt after the current PDF.")
+
+            if selected_run:
+                st.subheader("Completion summary")
+                store = Store.init_db(selected_run.run_dir / "proposals.sqlite")
+                summary = _run_summary(store)
+                st.write(
+                    {
+                        "Matched PDFs": summary["matched"],
+                        "Ambiguous": summary["ambiguous"],
+                        "Unmatched": summary["unmatched"],
+                        "Proposals": summary["proposals"],
+                        "Needs more evidence": summary["needs_more_evidence"],
+                        "Run duration": _run_duration(selected_run.run_dir),
+                    }
+                )
+                st.markdown("**Artifacts**")
+                st.text_input("Run artifacts path", value=str(selected_run.run_dir), disabled=True)
+                if st.button("Go to Review"):
+                    st.session_state["selected_run_dir"] = selected_run.run_dir
+                    st.info("Switch to the Review tab to continue.")
 
 
 with review_tab:
@@ -1197,7 +1329,49 @@ with advanced_tab:
             if not index:
                 st.error("Retrieval index not found for that PDF.")
             else:
-                context = retrieve_context(index, query, RetrievalConfig())
+                retrieval = run_config.get("retrieval", {})
+                retrieval_config = RetrievalConfig(
+                    top_k=retrieval.get("top_k", 12),
+                    rerank_k=retrieval.get("rerank_k", 12),
+                    max_context_chunks=retrieval.get("max_context_chunks", 16),
+                    max_context_tokens=retrieval.get("max_context_tokens", 1800),
+                    query_variants=retrieval.get("query_variants", 4),
+                    use_query_expansion=retrieval.get("use_query_expansion", True),
+                    use_hyde=retrieval.get("use_hyde", True),
+                    rrf_k=retrieval.get("rrf_k", 60),
+                    use_reranker=retrieval.get("use_reranker", True),
+                    embedding_backend=retrieval.get("embedding_backend", "tfidf"),
+                    embedding_model=retrieval.get("embedding_model"),
+                    reranker_backend=retrieval.get("reranker_backend", "tfidf"),
+                    reranker_model=retrieval.get("reranker_model"),
+                )
+                embedder = _build_embedding_client(
+                    run_config.get("provider", {}).get("base_url", ""),
+                    run_config.get("provider", {}).get("api_key"),
+                    retrieval_config.embedding_backend,
+                    retrieval_config.embedding_model,
+                )
+                reranker_embedder = None
+                if retrieval_config.use_reranker:
+                    reranker_embedder = _build_embedding_client(
+                        run_config.get("provider", {}).get("base_url", ""),
+                        run_config.get("provider", {}).get("api_key"),
+                        retrieval_config.reranker_backend,
+                        retrieval_config.reranker_model,
+                    )
+                if retrieval_config.embedding_backend == "lmstudio" and embedder is None:
+                    st.error("LM Studio embedding backend requires an embedding model.")
+                    st.stop()
+                if retrieval_config.use_reranker and retrieval_config.reranker_backend == "lmstudio" and reranker_embedder is None:
+                    st.error("LM Studio reranker backend requires a reranker model.")
+                    st.stop()
+                context = retrieve_context(
+                    index,
+                    query,
+                    retrieval_config,
+                    embedder=embedder,
+                    reranker_embedder=reranker_embedder,
+                )
                 for chunk in context.chunks:
                     st.write(
                         chunk.chunk_id,

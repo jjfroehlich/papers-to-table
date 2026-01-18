@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable
 
 from paper_table_agent.llm.client import LlmClient
+from paper_table_agent.llm.embeddings import EmbeddingClient
 from paper_table_agent.llm.models import HydeResult, QueryExpansionResult
 from paper_table_agent.llm.prompts import render_prompt
 from paper_table_agent.retrieval.index import RetrievalIndex
@@ -22,7 +23,10 @@ class RetrievalConfig:
     rrf_k: int = 60
     max_context_tokens: int = 1800
     use_reranker: bool = True
+    embedding_backend: str = "tfidf"
+    embedding_model: str | None = None
     reranker_backend: str = "tfidf"
+    reranker_model: str | None = None
 
 
 @dataclass
@@ -61,6 +65,8 @@ def retrieve_context(
     query: str,
     config: RetrievalConfig,
     helper_client: LlmClient | None = None,
+    embedder: EmbeddingClient | None = None,
+    reranker_embedder: EmbeddingClient | None = None,
 ) -> RetrievalContext:
     debug: dict[str, Any] = {"queries": [], "runs": []}
     queries = [query]
@@ -70,20 +76,27 @@ def retrieve_context(
 
     runs: list[list[RetrievedChunk]] = []
     for q in queries:
-        results = retrieve(index, q, top_k=config.top_k)
+        results = retrieve(index, q, top_k=config.top_k, embedder=embedder)
         runs.append(results)
         debug["runs"].append({"query": q, "results": results})
 
     if config.use_hyde:
         passage = build_hypothetical_passage(helper_client, query)
         if passage:
-            hyde_results = retrieve(index, passage, top_k=config.top_k)
+            hyde_results = retrieve(index, passage, top_k=config.top_k, embedder=embedder)
             runs.append(hyde_results)
             debug["runs"].append({"query": "[HyDE]", "results": hyde_results})
 
     fused = reciprocal_rank_fusion(runs, k=config.rrf_k)
     if config.use_reranker:
-        reranked = rerank(index, query, fused, top_k=config.rerank_k, backend=config.reranker_backend).chunks
+        reranked = rerank(
+            index,
+            query,
+            fused,
+            top_k=config.rerank_k,
+            backend=config.reranker_backend,
+            embedder=reranker_embedder,
+        ).chunks
     else:
         reranked = fused[: config.rerank_k]
     expanded = expand_with_neighbors(index, reranked, max_total=config.max_context_chunks)

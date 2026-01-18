@@ -45,7 +45,9 @@
     "use_hyde": true,
     "rrf_k": 60,
     "embedding_backend": "tfidf",
+    "embedding_model": null,
     "reranker_backend": "tfidf",
+    "reranker_model": null,
     "use_reranker": true
   },
   "ocr": {

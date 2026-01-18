@@ -28,6 +28,7 @@ from paper_table_agent.io.locks import build_locks
 from paper_table_agent.io.schema import group_columns, load_schema
 from paper_table_agent.io.xlsx import load_table
 from paper_table_agent.llm.client import LlmClient, LlmConfig, LlmJsonError
+from paper_table_agent.llm.embeddings import EmbeddingClient, EmbeddingConfig
 from paper_table_agent.pdf.highlight import locate_quote
 from paper_table_agent.pdf.grobid import extract_grobid, save_grobid
 from paper_table_agent.pdf.ocr import run_ocr, should_trigger_ocr
@@ -61,6 +62,8 @@ class RunContext:
     match_client: LlmClient
     extract_client: LlmClient
     helper_client: LlmClient
+    embedding_client: EmbeddingClient | None
+    reranker_client: EmbeddingClient | None
     retrieval_config: RetrievalConfig
     examples: dict[str, list[dict[str, Any]]]
     logger: Any
@@ -158,6 +161,20 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
             mock_payloads=mock_payloads,
         )
     )
+    embedding_client = _build_embedding_client(
+        config.provider.base_url,
+        config.provider.api_key,
+        config.retrieval.embedding_backend,
+        config.retrieval.embedding_model,
+    )
+    reranker_client = None
+    if config.retrieval.use_reranker:
+        reranker_client = _build_embedding_client(
+            config.provider.base_url,
+            config.provider.api_key,
+            config.retrieval.reranker_backend,
+            config.retrieval.reranker_model,
+        )
 
     rows_data = [dict(row) for row in store.fetch_rows()]
     examples = select_examples(
@@ -180,6 +197,8 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
         match_client=match_client,
         extract_client=extract_client,
         helper_client=helper_client,
+        embedding_client=embedding_client,
+        reranker_client=reranker_client,
         retrieval_config=_build_retrieval_config(config),
         examples=examples,
         logger=logger,
@@ -245,9 +264,15 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         context.run_paths.retrieval_dir / pdf.pdf_id,
         chunks,
         context.config.retrieval.embedding_backend,
+        context.config.retrieval.embedding_model,
     )
     if not index:
-        index = build_index(chunks, embedding_backend=context.config.retrieval.embedding_backend)
+        index = build_index(
+            chunks,
+            embedding_backend=context.config.retrieval.embedding_backend,
+            embedding_client=context.embedding_client,
+            embedding_model=context.config.retrieval.embedding_model,
+        )
         save_index(index, context.run_paths.retrieval_dir / pdf.pdf_id)
 
     header_text = "\n".join(parsed.page_text[:2])
@@ -403,6 +428,8 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 target_specs,
                 context.retrieval_config,
                 context.helper_client,
+                context.embedding_client,
+                context.reranker_client,
             )
             merged_context = _merge_column_contexts(column_contexts)
             extraction = extract_group(
@@ -557,7 +584,10 @@ def _build_retrieval_config(config: RunConfig) -> RetrievalConfig:
             use_hyde=False,
             rrf_k=retrieval.rrf_k,
             use_reranker=retrieval.use_reranker,
+            embedding_backend=retrieval.embedding_backend,
+            embedding_model=retrieval.embedding_model,
             reranker_backend=retrieval.reranker_backend,
+            reranker_model=retrieval.reranker_model,
         )
     return RetrievalConfig(
         top_k=retrieval.top_k,
@@ -569,7 +599,10 @@ def _build_retrieval_config(config: RunConfig) -> RetrievalConfig:
         use_hyde=retrieval.use_hyde,
         rrf_k=retrieval.rrf_k,
         use_reranker=retrieval.use_reranker,
+        embedding_backend=retrieval.embedding_backend,
+        embedding_model=retrieval.embedding_model,
         reranker_backend=retrieval.reranker_backend,
+        reranker_model=retrieval.reranker_model,
     )
 
 
@@ -606,6 +639,8 @@ def _retrieve_column_contexts(
     specs: list[Any],
     retrieval_config: RetrievalConfig,
     helper_client: LlmClient,
+    embedder: EmbeddingClient | None,
+    reranker_embedder: EmbeddingClient | None,
 ) -> dict[str, list[dict[str, Any]]]:
     contexts: dict[str, list[dict[str, Any]]] = {}
     for spec in specs:
@@ -613,9 +648,37 @@ def _retrieve_column_contexts(
         if spec.description:
             query_parts.append(spec.description)
         query = ": ".join(query_parts)
-        context_result = retrieve_context(index, query, retrieval_config, helper_client=helper_client)
+        context_result = retrieve_context(
+            index,
+            query,
+            retrieval_config,
+            helper_client=helper_client,
+            embedder=embedder,
+            reranker_embedder=reranker_embedder,
+        )
         contexts[spec.column_name] = _format_chunks(context_result.chunks)
     return contexts
+
+
+def _build_embedding_client(
+    base_url: str,
+    api_key: str | None,
+    backend: str,
+    model: str | None,
+) -> EmbeddingClient | None:
+    if backend == "tfidf":
+        return None
+    if backend != "lmstudio":
+        raise ValueError(f"Unsupported embedding backend: {backend}")
+    if not model:
+        raise ValueError("Embedding model must be set for LM Studio backend.")
+    return EmbeddingClient(
+        EmbeddingConfig(
+            base_url=base_url,
+            api_key=api_key,
+            model=model,
+        )
+    )
 
 
 def _retry_unclear_proposals(
@@ -652,7 +715,14 @@ def _retry_unclear_proposals(
             context.config.extraction.max_chunks,
         ),
     )
-    column_contexts = _retrieve_column_contexts(index, retry_specs, retry_config, context.helper_client)
+    column_contexts = _retrieve_column_contexts(
+        index,
+        retry_specs,
+        retry_config,
+        context.helper_client,
+        context.embedding_client,
+        context.reranker_client,
+    )
     try:
         retry_result = extract_group(
             context.extract_client,

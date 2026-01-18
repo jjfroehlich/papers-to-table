@@ -6,6 +6,7 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
 from paper_table_agent.retrieval.index import RetrievalIndex
+from paper_table_agent.llm.embeddings import EmbeddingClient
 from paper_table_agent.retrieval.retrieve import RetrievedChunk, RerankedChunk
 
 
@@ -20,14 +21,23 @@ def rerank(
     candidates: list[RetrievedChunk],
     top_k: int = 12,
     backend: str = "tfidf",
+    embedder: EmbeddingClient | None = None,
 ) -> RerankResult:
     if not candidates:
         return RerankResult(chunks=[])
-    if backend != "tfidf":
+    if backend not in {"tfidf", "lmstudio"}:
         raise ValueError(f"Unsupported reranker backend: {backend}")
     texts = [chunk.text for chunk in candidates]
-    candidate_vecs = index.vectorizer.transform(texts).toarray()
-    query_vec = index.vectorizer.transform([query]).toarray()
+    if backend == "tfidf":
+        if index.vectorizer is None:
+            raise ValueError("Missing vectorizer for tfidf reranking.")
+        candidate_vecs = index.vectorizer.transform(texts).toarray()
+        query_vec = index.vectorizer.transform([query]).toarray()
+    else:
+        if embedder is None:
+            raise ValueError("Embedding client required for LM Studio reranking.")
+        candidate_vecs = embedder.embed_texts(texts)
+        query_vec = embedder.embed_texts([query])
     scores = cosine_similarity(query_vec, candidate_vecs)[0]
     order = np.argsort(scores)[::-1][:top_k]
     reranked: list[RerankedChunk] = []
