@@ -12,6 +12,9 @@ Known gaps to improve in future iterations:
 - Retrieval quality tuning (swap in stronger dense embedding + reranker models).
 - Evidence locator robustness for complex PDFs and OCR-heavy scans.
 
+## Requirements
+- LM Studio installed. 
+
 ## Installation
 
 ```bash
@@ -21,7 +24,20 @@ source .venv/Scripts/activate
 pip install -e .
 ```
 
+## Configuration (use with LM Studio)
+Set the models in 
+```bash
+paper_table_agent/config.py
+```
+For example
+```bash
+    model_extract: str = "gpt-oss-20b"
+    model_query_helper: str = "gpt-oss-20b"
+```
+
 ## Usage
+
+### Start LM Studio and load required models (e.g. gpt-oss-20b)
 
 ### Run UI
 

@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class EvidenceQuote(BaseModel):
     quote: str
-    page: int
+    page: int | None = None
     locator_hint: str | None = None
 
 
@@ -17,6 +17,15 @@ class HeaderExtractionResult(BaseModel):
     year: str | None = None
     evidence: list[EvidenceQuote] = Field(default_factory=list)
     confidence: float = 0.0
+
+    @field_validator("year", mode="before")
+    @classmethod
+    def _coerce_year(cls, value: object) -> str | None:
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            return str(value)
+        return str(value) if isinstance(value, str) else None
 
 
 class AdjudicationResult(BaseModel):

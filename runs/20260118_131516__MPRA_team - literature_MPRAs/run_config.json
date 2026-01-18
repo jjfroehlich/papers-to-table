@@ -1,0 +1,103 @@
+{
+  "table_path": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table\\MPRA_team - literature_MPRAs.xlsx",
+  "schema_sheet_name": "schema",
+  "schema_mode": "sheet",
+  "pdf_folder": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table",
+  "title_col": "Title",
+  "authors_col": "Authors",
+  "year_col": "Publication Year",
+  "treat_single_space_as_empty": true,
+  "verify_mode": false,
+  "fast_mode": false,
+  "max_success_mode": true,
+  "provider": {
+    "base_url": "http://localhost:1234/v1",
+    "api_key": null,
+    "model_extract": "local-extract",
+    "model_query_helper": "local-helper",
+    "mock_mode": false,
+    "mock_payloads_path": null
+  },
+  "matching": {
+    "top_k": 10,
+    "confidence_threshold": 0.75,
+    "year_tolerance": 1
+  },
+  "extraction": {
+    "groups": [
+      {
+        "name": "ungrouped",
+        "columns": [
+          "Authors",
+          "Publication Year",
+          "Title",
+          "Abstract",
+          "Journal",
+          "Link",
+          "Date Added",
+          "MPRABase_datasets_id",
+          "Focus",
+          "Synthetic designs",
+          "Cloning",
+          "Bottlenecking",
+          "mean # Barcodes per sequence",
+          "Type of variants",
+          "Species",
+          "Model system",
+          "Episomal vs genomic",
+          "If episomal: Ori in backbone?",
+          "Integration method",
+          "Integration site",
+          "Readout",
+          "Promoter",
+          "MPRABase_Total_Variants_Tested",
+          "# Variants tested",
+          "Scale",
+          "length of sequences (bp)",
+          "Where is the BC?",
+          "BC length (bp)",
+          "General library design category",
+          "mean reads per sequence/variant",
+          "library construction",
+          "library composition",
+          "library seq",
+          "Delivery",
+          "RNA library",
+          "DNA library",
+          "UMI?",
+          "Approach",
+          "what predicts activity? (e.g. accessible -> active in MPRA?)",
+          "Other notes",
+          "Number of Conditions",
+          "Type of Condition"
+        ]
+      }
+    ],
+    "examples_per_col": 3,
+    "max_chunks": 20
+  },
+  "retrieval": {
+    "top_k": 12,
+    "rerank_k": 12,
+    "max_context_chunks": 16,
+    "max_context_tokens": 1800,
+    "query_variants": 4,
+    "use_query_expansion": true,
+    "use_hyde": true,
+    "rrf_k": 60
+  },
+  "ocr": {
+    "enable_ocr": true,
+    "ocr_trigger_min_chars_per_page": 400
+  },
+  "max_workers": 1,
+  "prompt_versions": {
+    "extract_group.md": "1768740397.9576929",
+    "hyde.md": "1768736059.3635087",
+    "match_adjudicate.md": "1768736059.3635087",
+    "match_header_extract.md": "1768736059.3635087",
+    "query_expand.md": "1768736059.3645146",
+    "verify_cell.md": "1768736059.3645146"
+  },
+  "git_commit": "68e30f1419d17b9064473acabea9e962a811fab3"
+}

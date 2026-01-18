@@ -15,8 +15,8 @@ DEFAULT_EMPTY_VALUES = ["", "NA", "N/A", "null", "-", " "]
 class ProviderConfig(BaseModel):
     base_url: str = "http://localhost:1234/v1"
     api_key: str | None = None
-    model_extract: str = "local-extract"
-    model_query_helper: str = "local-helper"
+    model_extract: str = "gpt-oss-20b"
+    model_query_helper: str = "gpt-oss-20b"
     mock_mode: bool = False
     mock_payloads_path: Path | None = None
 

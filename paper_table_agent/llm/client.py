@@ -30,6 +30,7 @@ class LlmClient:
     def complete_json(self, prompt: str, schema: type[T]) -> T:
         if self.config.mock_mode:
             return self._mock_response(prompt, schema)
+        schema_payload = schema.model_json_schema()
         payload = {
             "model": self.config.model,
             "messages": [
@@ -37,7 +38,13 @@ class LlmClient:
                 {"role": "user", "content": prompt},
             ],
             "temperature": 0.1,
-            "response_format": {"type": "json_object"},
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": schema.__name__,
+                    "schema": schema_payload,
+                },
+            },
         }
         headers = {}
         if self.config.api_key:
@@ -45,16 +52,42 @@ class LlmClient:
         url = f"{self.config.base_url}/chat/completions"
         for attempt in range(self.config.max_retries + 1):
             response = self._client.post(url, json=payload, headers=headers)
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                # Surface server response body for debugging
+                raise RuntimeError(
+                    f"LLM HTTP error {response.status_code}: {response.text}"
+                ) from exc
             content = response.json()["choices"][0]["message"]["content"]
             try:
-                parsed = json.loads(content)
+                parsed = self._parse_json(content)
                 return schema.model_validate(parsed)
             except Exception as exc:  # noqa: BLE001
                 if attempt >= self.config.max_retries:
                     raise ValueError(f"Failed to parse JSON after retries: {exc}") from exc
                 time.sleep(1 + attempt)
         raise RuntimeError("Unexpected JSON parsing failure")
+
+    def _parse_json(self, content: str) -> Any:
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            # Fallback: extract the first JSON object/array from mixed text
+            start_obj = content.find("{")
+            start_arr = content.find("[")
+            if start_obj == -1 and start_arr == -1:
+                raise
+            if start_arr != -1 and (start_obj == -1 or start_arr < start_obj):
+                start = start_arr
+                end = content.rfind("]")
+            else:
+                start = start_obj
+                end = content.rfind("}")
+            if end == -1:
+                raise
+            snippet = content[start : end + 1]
+            return json.loads(snippet)
 
     def _mock_response(self, prompt: str, schema: type[T]) -> T:
         payload = self.config.mock_payloads or {}

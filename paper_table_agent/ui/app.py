@@ -28,9 +28,9 @@ with run_tab:
     table_path = st.text_input('Table path', value='')
     pdf_folder = st.text_input('PDF folder', value='')
     schema_sheet = st.text_input('Schema sheet', value='schema')
-    title_col = st.text_input('Title column', value='')
-    authors_col = st.text_input('Authors column', value='')
-    year_col = st.text_input('Year column', value='')
+    title_col = st.text_input('Title column', value='Title')
+    authors_col = st.text_input('Authors column', value='Authors')
+    year_col = st.text_input('Year column', value='Publication Year')
     verify_mode = st.checkbox('Verify locked cells', value=False)
     fast_mode = st.checkbox('Fast mode (skip HyDE/query expansion)', value=False)
 
