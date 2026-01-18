@@ -21,6 +21,8 @@ class RetrievalConfig:
     use_query_expansion: bool = True
     rrf_k: int = 60
     max_context_tokens: int = 1800
+    use_reranker: bool = True
+    reranker_backend: str = "tfidf"
 
 
 @dataclass
@@ -80,7 +82,10 @@ def retrieve_context(
             debug["runs"].append({"query": "[HyDE]", "results": hyde_results})
 
     fused = reciprocal_rank_fusion(runs, k=config.rrf_k)
-    reranked = rerank(index, query, fused, top_k=config.rerank_k).chunks
+    if config.use_reranker:
+        reranked = rerank(index, query, fused, top_k=config.rerank_k, backend=config.reranker_backend).chunks
+    else:
+        reranked = fused[: config.rerank_k]
     expanded = expand_with_neighbors(index, reranked, max_total=config.max_context_chunks)
     trimmed = _trim_to_token_limit(expanded, config.max_context_tokens)
     debug["reranked"] = reranked

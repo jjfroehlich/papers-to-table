@@ -19,9 +19,12 @@ def rerank(
     query: str,
     candidates: list[RetrievedChunk],
     top_k: int = 12,
+    backend: str = "tfidf",
 ) -> RerankResult:
     if not candidates:
         return RerankResult(chunks=[])
+    if backend != "tfidf":
+        raise ValueError(f"Unsupported reranker backend: {backend}")
     texts = [chunk.text for chunk in candidates]
     candidate_vecs = index.vectorizer.transform(texts).toarray()
     query_vec = index.vectorizer.transform([query]).toarray()

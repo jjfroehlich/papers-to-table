@@ -117,16 +117,30 @@ def deterministic_match(
     header: HeaderExtractionResult,
     candidates: list[RowCandidate],
     threshold: float,
+    margin: float,
 ) -> AdjudicationResult | None:
     above = [candidate for candidate in candidates if candidate.score >= threshold]
     if len(above) == 1:
         best = above[0]
+        next_best = candidates[1].score if len(candidates) > 1 else 0.0
+        if best.score - next_best < margin:
+            return None
         return AdjudicationResult(
             row_id=best.row_id,
             status="matched",
             top_candidates=[candidate.to_payload() for candidate in candidates],
             confidence=best.score,
             rationale="Single candidate above threshold",
+            evidence=header.evidence,
+        )
+    if len(candidates) == 1 and candidates[0].score >= threshold:
+        best = candidates[0]
+        return AdjudicationResult(
+            row_id=best.row_id,
+            status="matched",
+            top_candidates=[candidate.to_payload() for candidate in candidates],
+            confidence=best.score,
+            rationale="Single candidate available and above threshold",
             evidence=header.evidence,
         )
     if not above:
@@ -147,7 +161,29 @@ def adjudicate_match(client: LlmClient, header: HeaderExtractionResult, candidat
         header=json.dumps(header.model_dump(mode="json")),
         candidates=json.dumps([candidate.to_payload() for candidate in candidates], indent=2),
     )
-    return client.complete_json(prompt, AdjudicationResult)
+    result = client.complete_json(prompt, AdjudicationResult)
+    valid, reason = _validate_adjudication(result, candidates)
+    if valid:
+        return _coerce_single_candidate(result, candidates)
+    repair_prompt = render_prompt(
+        "match_adjudicate_repair.md",
+        header=json.dumps(header.model_dump(mode="json")),
+        candidates=json.dumps([candidate.to_payload() for candidate in candidates], indent=2),
+        previous=json.dumps(result.model_dump(mode="json"), indent=2),
+        issue=reason,
+    )
+    repaired = client.complete_json(repair_prompt, AdjudicationResult)
+    valid, _ = _validate_adjudication(repaired, candidates)
+    if valid:
+        return _coerce_single_candidate(repaired, candidates)
+    return AdjudicationResult(
+        row_id=None,
+        status="unmatched",
+        top_candidates=[candidate.to_payload() for candidate in candidates],
+        confidence=0.0,
+        rationale=f"Invalid adjudication output: {reason}",
+        evidence=header.evidence,
+    )
 
 
 def build_match_record(pdf_id: str, result: AdjudicationResult) -> dict[str, Any]:
@@ -160,3 +196,32 @@ def build_match_record(pdf_id: str, result: AdjudicationResult) -> dict[str, Any
         "evidence": [item.model_dump(mode="json") for item in result.evidence],
         "rationale": result.rationale,
     }
+
+
+def _validate_adjudication(result: AdjudicationResult, candidates: list[RowCandidate]) -> tuple[bool, str]:
+    valid_status = {"matched", "ambiguous", "unmatched"}
+    if result.status not in valid_status:
+        return False, f"Invalid status {result.status}"
+    candidate_ids = {candidate.row_id for candidate in candidates}
+    if result.status == "matched":
+        if not result.row_id or result.row_id not in candidate_ids:
+            return False, "Matched status requires row_id from candidates"
+    if result.status == "unmatched" and result.row_id:
+        return False, "Unmatched status cannot include row_id"
+    if result.status == "ambiguous" and len(candidates) <= 1:
+        return False, "Ambiguous is invalid with a single candidate"
+    return True, ""
+
+
+def _coerce_single_candidate(result: AdjudicationResult, candidates: list[RowCandidate]) -> AdjudicationResult:
+    if len(candidates) == 1 and result.status == "ambiguous":
+        only = candidates[0]
+        return AdjudicationResult(
+            row_id=only.row_id,
+            status="matched",
+            top_candidates=result.top_candidates or [only.to_payload()],
+            confidence=max(result.confidence, only.score),
+            rationale="Single candidate coerced to matched",
+            evidence=result.evidence,
+        )
+    return result

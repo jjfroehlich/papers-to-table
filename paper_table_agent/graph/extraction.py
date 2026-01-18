@@ -22,7 +22,7 @@ def extract_group(
     client: LlmClient,
     row_context: dict[str, Any],
     group: GroupContext,
-    chunks: list[dict[str, Any]],
+    chunks_by_column: dict[str, list[dict[str, Any]]],
     mapping_dependent: bool,
 ) -> GroupExtractionResult:
     prompt = render_prompt(
@@ -30,7 +30,7 @@ def extract_group(
         row_context=json.dumps(row_context, indent=2),
         group_schema=json.dumps(group.schema, indent=2),
         examples=json.dumps(group.examples, indent=2),
-        chunks=json.dumps(chunks, indent=2),
+        chunks=json.dumps(chunks_by_column, indent=2),
     )
     result = client.complete_json(prompt, GroupExtractionResult)
     result = _ensure_group_coverage(result, group.columns)
@@ -64,15 +64,23 @@ def build_proposal_records(pdf_id: str, row_id: str, result: GroupExtractionResu
 
 
 def _apply_evidence_rules(proposal: Any) -> None:
-    if proposal.status == "found" and not proposal.evidence:
-        proposal.needs_more_evidence = True
-    if proposal.status in {"found", "inferred"}:
+    status = proposal.status or "unclear"
+    if status in {"found", "inferred"}:
+        has_evidence = bool(proposal.evidence)
         for evidence in proposal.evidence:
             if not evidence.quote or not evidence.page:
-                proposal.needs_more_evidence = True
+                has_evidence = False
                 break
+        if not has_evidence:
+            proposal.proposed_value = None
+            proposal.status = "unclear"
+            proposal.needs_more_evidence = True
+        else:
+            proposal.status = status
+    if proposal.status in {"not_found", "no_evidence", "unclear"}:
+        proposal.proposed_value = None
     if proposal.needs_more_evidence is None:
-        proposal.needs_more_evidence = False
+        proposal.needs_more_evidence = proposal.status in {"unclear", "no_evidence"}
 
 
 def build_error_records(
@@ -141,17 +149,21 @@ def build_verify_records(
 
 
 def _ensure_group_coverage(result: GroupExtractionResult, columns: list[str]) -> GroupExtractionResult:
-    by_column = {proposal.column: proposal for proposal in result.proposals}
+    by_column: dict[str, ProposalItem] = {}
+    for proposal in result.proposals:
+        by_column[proposal.column] = proposal
+        if proposal.column not in columns:
+            proposal.flags.setdefault("unknown_column", True)
     for column in columns:
         if column in by_column:
             continue
         by_column[column] = ProposalItem(
             column=column,
             proposed_value=None,
-            status="not_found",
+            status="no_evidence",
             confidence=0.0,
             evidence=[],
-            needs_more_evidence=False,
+            needs_more_evidence=True,
             rationale="No evidence located in retrieved context.",
             flags={},
         )

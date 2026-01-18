@@ -15,7 +15,7 @@ class Chunk:
     neighbors: list[str]
 
 
-def build_chunks(page_text: list[str]) -> list[Chunk]:
+def build_chunks(page_text: list[str], sections: list[dict[str, str]] | None = None) -> list[Chunk]:
     chunks: list[Chunk] = []
     for idx, text in enumerate(page_text):
         page_number = idx + 1
@@ -46,6 +46,25 @@ def build_chunks(page_text: list[str]) -> list[Chunk]:
                 )
             )
     _assign_neighbors(chunks)
+    if sections:
+        section_chunks: list[Chunk] = []
+        for idx, section in enumerate(sections):
+            text = section.get("text") or ""
+            if not text.strip():
+                continue
+            title = section.get("title") or "Section"
+            section_chunks.append(
+                Chunk(
+                    chunk_id=f"section-{idx + 1}",
+                    text=f"{title}\n{text.strip()}",
+                    page_start=1,
+                    page_end=1,
+                    source="section",
+                    neighbors=[],
+                )
+            )
+        _assign_neighbors(section_chunks)
+        chunks.extend(section_chunks)
     return chunks
 
 
