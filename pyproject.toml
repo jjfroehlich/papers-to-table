@@ -3,7 +3,7 @@ name = "paper-table-agent"
 version = "0.1.0"
 description = "Paper Table Agent"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [{name = "Paper Table Agent"}]
 
@@ -43,3 +43,7 @@ addopts = "-q"
 [build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["paper_table_agent*"]
+exclude = ["specs*", "docs*", "tests*", "scripts*"]

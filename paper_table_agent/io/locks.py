@@ -10,7 +10,7 @@ from paper_table_agent.config import DEFAULT_EMPTY_VALUES
 def is_empty(value: object, empty_values: Iterable[str] | None = None) -> bool:
     if value is None:
         return True
-    if isinstance(value, float) and pd.isna(value):
+    if pd.isna(value):
         return True
     text = str(value)
     empties = set(empty_values or DEFAULT_EMPTY_VALUES)

@@ -5,16 +5,17 @@ Local-first batch PDF → table proposals with evidence, plus post-run row revie
 ## Status
 
 - **Core scaffold**: package, CLI, Streamlit UI, and SQLite storage.
-- **Batch pipeline**: PDF parsing, matching, retrieval, and proposal extraction are wired end-to-end.
-- **Review/Export**: row review + export flow is available via UI and CLI.
+- **Batch pipeline**: PDF parsing, matching, retrieval (query expansion + HyDE + rerank), and proposal extraction are wired end-to-end with LangGraph checkpoints.
+- **Review/Export**: row review + export flow is available via UI and CLI, with PDF evidence highlights.
 
 Known gaps to improve in future iterations:
-- Retrieval quality tuning (dense embedding + reranker models).
-- Evidence locator robustness for complex PDFs.
+- Retrieval quality tuning (swap in stronger dense embedding + reranker models).
+- Evidence locator robustness for complex PDFs and OCR-heavy scans.
 
 ## Installation
 
 ```bash
+python --version  # requires >=3.10
 python -m venv .venv
 source .venv/Scripts/activate
 pip install -e .
@@ -29,6 +30,12 @@ paper-table-agent ui
 ```
 
 ### Run batch pipeline (CLI)
+
+Generate a starter config:
+
+```bash
+paper-table-agent init-config --output run_config.json
+```
 
 Create a run config JSON (example):
 
@@ -63,6 +70,16 @@ Create a run config JSON (example):
     "examples_per_col": 3,
     "max_chunks": 20
   },
+  "retrieval": {
+    "top_k": 12,
+    "rerank_k": 12,
+    "max_context_chunks": 16,
+    "max_context_tokens": 1800,
+    "query_variants": 4,
+    "use_query_expansion": true,
+    "use_hyde": true,
+    "rrf_k": 60
+  },
   "ocr": {
     "enable_ocr": true,
     "ocr_trigger_min_chars_per_page": 400
@@ -73,6 +90,13 @@ Create a run config JSON (example):
 
 ```bash
 paper-table-agent run --config run_config.json
+```
+
+### Resume or stop a run
+
+```bash
+paper-table-agent resume --run_dir runs/<timestamp>__<table>/
+paper-table-agent stop --run_dir runs/<timestamp>__<table>/
 ```
 
 ### Export decisions

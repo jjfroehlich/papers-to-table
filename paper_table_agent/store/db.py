@@ -29,11 +29,24 @@ class Store:
         )
         self.conn.commit()
 
-    def update_pdf_status(self, pdf_id: str, status: str, error: str | None = None, n_pages: int | None = None) -> None:
-        self.conn.execute(
-            "UPDATE pdfs SET status = ?, error = ?, n_pages = ? WHERE pdf_id = ?",
-            (status, error, n_pages, pdf_id),
-        )
+    def update_pdf_status(
+        self,
+        pdf_id: str,
+        status: str,
+        error: str | None = None,
+        n_pages: int | None = None,
+        parse_source: str | None = None,
+    ) -> None:
+        if parse_source is None:
+            self.conn.execute(
+                "UPDATE pdfs SET status = ?, error = ?, n_pages = ? WHERE pdf_id = ?",
+                (status, error, n_pages, pdf_id),
+            )
+        else:
+            self.conn.execute(
+                "UPDATE pdfs SET status = ?, error = ?, n_pages = ?, parse_source = ? WHERE pdf_id = ?",
+                (status, error, n_pages, parse_source, pdf_id),
+            )
         self.conn.commit()
 
     def list_pdfs(self) -> list[sqlite3.Row]:

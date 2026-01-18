@@ -31,7 +31,7 @@ def shortlist_candidates(header: HeaderExtractionResult, rows: list[dict[str, An
     matches = process.extract(header.title or "", titles, scorer=fuzz.token_sort_ratio, limit=top_k)
     header_authors = _author_last_names(header.authors)
     candidates: list[RowCandidate] = []
-    for row_id, score, _ in matches:
+    for _, score, row_id in matches:
         row = next(row for row in rows if row["row_id"] == row_id)
         year = str(row.get("year") or "")
         if header.year and year:

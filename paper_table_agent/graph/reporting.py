@@ -60,21 +60,21 @@ _REPORT_TEMPLATE = Template(
 def write_mapping_report(store: Store, output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     matches = store.fetch_matches()
-    rows = {row["row_id"]: row for row in store.fetch_rows()}
+    rows = {row["row_id"]: dict(row) for row in store.fetch_rows()}
     report_rows = []
     for match in matches:
-        row = rows.get(match["row_id"], {})
-        report_rows.append(
-            {
-                "pdf_id": match["pdf_id"],
-                "row_id": match["row_id"],
-                "status": match["status"],
-                "confidence": match["confidence"],
-                "title": row.get("title", ""),
-                "authors": row.get("authors", ""),
-                "year": row.get("year", ""),
-            }
-        )
+            row = rows.get(match["row_id"], {})
+            report_rows.append(
+                {
+                    "pdf_id": match["pdf_id"],
+                    "row_id": match["row_id"],
+                    "status": match["status"],
+                    "confidence": match["confidence"],
+                    "title": row.get("title", ""),
+                    "authors": row.get("authors", ""),
+                    "year": row.get("year", ""),
+                }
+            )
 
     summary = {
         "matched": sum(1 for match in matches if match["status"] == "matched"),
