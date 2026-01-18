@@ -60,6 +60,8 @@ def discover_pdf_folders(root: Path = Path(".")) -> list[Path]:
 
 
 def _infer_run_status(run_dir: Path) -> str:
+    if (run_dir / "PAUSE").exists():
+        return "paused"
     if (run_dir / "STOP").exists():
         return "stopped"
     if (run_dir / "COMPLETED").exists():

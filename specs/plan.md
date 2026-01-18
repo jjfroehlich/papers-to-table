@@ -1,75 +1,54 @@
-# plan.md — Paper Table Agent (v0.3)
+# plan.md — Paper Table Agent (v0.4)
 
-Batch PDF→Table proposals with evidence + post-run row review
+UI/UX iteration focused on lower friction, faster review, and explicit evidence handling.
 
 ## 1) Purpose
 
-Implement the v0.3 spec with stability, evidence discipline, and a redesigned row review UI.
+Deliver the v0.4 UI experience with Run/Review/Advanced/Settings/Help tabs, persistent session state, and optimized review flow.
 
 ---
 
 ## 2) Guiding principles
 
-1. **Durability first**: per-PDF + per-group checkpointing.
-2. **Evidence first**: no proposed value without quote+page.
-3. **Local-first**: offline defaults; cloud optional.
-4. **Click/select UX**: dropdown-driven selections; no free-text except filters.
-5. **Make failures visible**: needs_more_evidence flags, mapping report, OCR warnings.
+1. **Click-first UI**: prefer dropdowns and pickers over free text.
+2. **Trust by default**: show evidence + highlight status for every proposal.
+3. **Fast review loop**: stepper, auto-advance, row navigation.
+4. **Large-run safe**: lazy-load proposals per row; avoid rendering huge tables.
+5. **Never lose state**: decisions written immediately; selections stored in session state.
 
 ---
 
 ## 3) Implementation milestones
 
-### Milestone P0 — Stability & correctness
+### Milestone P0 — Run + Settings UX
 
-* Proposal persistence: store per-column records even if unclear/no_evidence.
-* Matching: title+authors primary, year tie-breaker only, deterministic margin rule.
-* Strict JSON adjudication with internal validator + single repair retry.
-* Evidence highlighting: PyMuPDF search, locator_hint fallback, page-only fallback with needs_more_evidence.
-* OCR-aware token/word-box highlighting when OCR enabled.
-* GROBID extraction (optional) with structured header + section segmentation.
+- Add Run tab validation, schema source selection, run naming, model selection, retrieval presets, OCR/GROBID toggles.
+- Add Settings tab for provider, model routing, performance controls.
+- Add run status top bar and artifact path visibility.
 
-### Milestone P1 — UX overhaul
+### Milestone P1 — Review UX overhaul
 
-* Review dropdowns for completed runs + PDF selection.
-* Row-by-row review with Prev/Next per proposal and side-by-side PDF panel.
-* Accept / Accept-with-edit / Reject decisions only.
+- Two-panel review layout with row context and proposal stepper.
+- Filters (status/confidence/columns/search), row navigation, completion indicators.
+- Evidence list with highlight status, re-locate action, OCR notes.
+- Auto-advance decisions and notes.
 
-### Milestone P2 — Extraction quality upgrades
+### Milestone P2 — Advanced + Help
 
-* Prompt upgrades (schema descriptions + examples + try-hard strategy).
-* Per-column retrieval, second attempt on unclear/no_evidence.
-* Embedding + reranker configuration with defaults; dense path test.
-* Retrieval debug view includes scores + source pages.
-
-### Milestone P3 — Optional GROBID integration
-
-* Off by default; enable via config.
-* Server URL option + Docker instructions in README.
+- Matching diagnostics + retrieval diagnostics.
+- Evidence locator tool.
+- Help/Troubleshooting content.
 
 ---
 
-## 4) LangGraph design
+## 4) Testing strategy
 
-Structured nodes:
-
-`parse_pdf → extract_header → match_row → build_index → extract_group(s) → persist_results`
-
-* Checkpoint after each PDF and each group.
-* Resume uses DB status + LangGraph checkpoints.
+- UI smoke: run tab renders, review tab shows proposals, evidence viewer renders.
+- Manual verification: decisions write immediately to DB and survive refresh.
 
 ---
 
-## 5) Testing strategy
+## 5) Documentation updates
 
-* Unit: matching margin rule, evidence rules, retrieval dense path.
-* Integration: mock LLM run end-to-end; completed runs appear in Review dropdown.
-* UI smoke: review panel shows proposals + PDF highlight.
-
----
-
-## 6) Documentation updates
-
-* README updated with model routing, config, caching, reliability rules.
-* Troubleshooting section updated for OCR and GROBID.
-* CHANGELOG updated for user-facing changes.
+- README updated with new UI workflow and settings.
+- CHANGELOG updated for user-facing UI changes.

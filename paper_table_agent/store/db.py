@@ -176,6 +176,33 @@ class Store:
         )
         self.conn.commit()
 
+    def update_proposal_evidence(
+        self,
+        proposal_id: str,
+        evidence: list[dict[str, Any]],
+        flags: dict[str, Any] | None = None,
+    ) -> None:
+        if flags is None:
+            existing = self.conn.execute(
+                "SELECT flags_json FROM proposals WHERE proposal_id = ?",
+                (proposal_id,),
+            ).fetchone()
+            flags_payload = json.loads(existing["flags_json"] or "{}") if existing else {}
+        else:
+            flags_payload = flags
+        self.conn.execute(
+            "UPDATE proposals SET evidence_json = ?, flags_json = ? WHERE proposal_id = ?",
+            (json.dumps(evidence), json.dumps(flags_payload), proposal_id),
+        )
+        self.conn.commit()
+
+    def update_proposal_flags(self, proposal_id: str, flags: dict[str, Any]) -> None:
+        self.conn.execute(
+            "UPDATE proposals SET flags_json = ? WHERE proposal_id = ?",
+            (json.dumps(flags), proposal_id),
+        )
+        self.conn.commit()
+
     def fetch_rows(self) -> list[sqlite3.Row]:
         return list(self.conn.execute("SELECT * FROM rows"))
 

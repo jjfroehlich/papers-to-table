@@ -85,7 +85,10 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
     error_path = run_paths.logs_dir / "errors.jsonl"
 
     table = load_table(config.table_path)
-    schema_specs = load_schema(config.table_path, config.schema_sheet_name)
+    schema_source = config.table_path
+    if config.schema_mode == "separate" and config.schema_path:
+        schema_source = config.schema_path
+    schema_specs = load_schema(schema_source, config.schema_sheet_name)
     validate_schema_columns([spec.column_name for spec in schema_specs], table.dataframe.columns)
     grouped = group_columns(schema_specs)
     if config.extraction.groups:
@@ -687,4 +690,4 @@ def _load_tokens(tokens_path: Path) -> list[dict[str, Any]]:
 
 
 def _stop_requested(run_paths: RunPaths) -> bool:
-    return (run_paths.run_dir / "STOP").exists()
+    return (run_paths.run_dir / "STOP").exists() or (run_paths.run_dir / "PAUSE").exists()

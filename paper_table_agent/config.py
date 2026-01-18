@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -69,6 +70,8 @@ class RunConfig(BaseModel):
     table_path: Path
     schema_sheet_name: str = "schema"
     schema_mode: str = "sheet"
+    schema_path: Path | None = None
+    run_name: str | None = None
     pdf_folder: Path
     title_col: str | None = None
     authors_col: str | None = None
@@ -88,6 +91,15 @@ class RunConfig(BaseModel):
     @field_validator("table_path", "pdf_folder")
     @classmethod
     def _path_exists(cls, value: Path) -> Path:
+        if not value.exists():
+            raise ValueError(f"Path does not exist: {value}")
+        return value
+
+    @field_validator("schema_path")
+    @classmethod
+    def _schema_path_exists(cls, value: Path | None) -> Path | None:
+        if value is None:
+            return None
         if not value.exists():
             raise ValueError(f"Path does not exist: {value}")
         return value
@@ -146,13 +158,21 @@ class RunPaths:
             path.mkdir(parents=True, exist_ok=True)
 
 
-def create_run_paths(table_path: Path, root: Path | None = None) -> RunPaths:
+def create_run_paths(table_path: Path, root: Path | None = None, run_name: str | None = None) -> RunPaths:
     root_dir = root or Path("runs")
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    run_dir = root_dir / f"{timestamp}__{table_path.stem}"
+    slug = _slugify_run_name(run_name) or table_path.stem
+    run_dir = root_dir / f"{timestamp}__{slug}"
     run_paths = RunPaths(run_dir=run_dir)
     run_paths.ensure()
     return run_paths
+
+
+def _slugify_run_name(value: str | None) -> str:
+    if not value:
+        return ""
+    cleaned = re.sub(r"[^0-9A-Za-z]+", "-", value.strip()).strip("-")
+    return cleaned.lower()
 
 
 def load_prompt_versions(prompt_dir: Path) -> dict[str, str]:
