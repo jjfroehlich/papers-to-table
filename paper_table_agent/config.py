@@ -33,6 +33,17 @@ class ExtractionConfig(BaseModel):
     max_chunks: int = 20
 
 
+class RetrievalConfig(BaseModel):
+    top_k: int = 12
+    rerank_k: int = 12
+    max_context_chunks: int = 16
+    max_context_tokens: int = 1800
+    query_variants: int = 4
+    use_query_expansion: bool = True
+    use_hyde: bool = True
+    rrf_k: int = 60
+
+
 class OcrConfig(BaseModel):
     enable_ocr: bool = True
     ocr_trigger_min_chars_per_page: int = 400
@@ -53,6 +64,7 @@ class RunConfig(BaseModel):
     provider: ProviderConfig = Field(default_factory=ProviderConfig)
     matching: MatchingConfig = Field(default_factory=MatchingConfig)
     extraction: ExtractionConfig = Field(default_factory=ExtractionConfig)
+    retrieval: RetrievalConfig = Field(default_factory=RetrievalConfig)
     ocr: OcrConfig = Field(default_factory=OcrConfig)
     max_workers: int = 1
 

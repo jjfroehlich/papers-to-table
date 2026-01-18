@@ -138,7 +138,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### [ ] T1.2 Checkpointing strategy (LangGraph + DB)
+### [x] T1.2 Checkpointing strategy (LangGraph + DB)
 
 **Work**
 
@@ -271,7 +271,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### [ ] T3.4 OCR fallback module (optional in MVP; plumbed end-to-end)
+### [x] T3.4 OCR fallback module (optional in MVP; plumbed end-to-end)
 
 **Work**
 
@@ -419,7 +419,7 @@ This tasks file is designed for spec-driven development:
 > Build retrieval as a standalone module with a debug interface early.
 > Retrieval quality is the biggest lever on extraction success.
 
-### [ ] T6.1 Chunking (multi-granularity) with page mapping
+### [x] T6.1 Chunking (multi-granularity) with page mapping
 
 **Work**
 
@@ -440,7 +440,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### [ ] T6.2 Sparse index (BM25) per PDF
+### [x] T6.2 Sparse index (BM25) per PDF
 
 **Work**
 
@@ -453,7 +453,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### [ ] T6.3 Dense embeddings per PDF (offline-friendly) + cache
+### [x] T6.3 Dense embeddings per PDF (offline-friendly) + cache
 
 **Work**
 
@@ -470,7 +470,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### [ ] T6.4 Reranker (cross-encoder) over topN
+### [x] T6.4 Reranker (cross-encoder) over topN
 
 **Work**
 
@@ -484,7 +484,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### [ ] T6.5 Multi-query expansion + RAG-Fusion
+### [x] T6.5 Multi-query expansion + RAG-Fusion
 
 **Work**
 
@@ -501,7 +501,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### [ ] T6.6 HyDE retrieval
+### [x] T6.6 HyDE retrieval
 
 **Work**
 
@@ -517,7 +517,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### [ ] T6.7 Context packaging + neighborhood expansion
+### [x] T6.7 Context packaging + neighborhood expansion
 
 **Work**
 
@@ -536,7 +536,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### [ ] T6.8 Retrieval debug panel in UI (developer tool)
+### [x] T6.8 Retrieval debug panel in UI (developer tool)
 
 **Work**
 
@@ -554,7 +554,7 @@ This tasks file is designed for spec-driven development:
 
 ## 7) Extraction engine (grouped) + evidence discipline
 
-### [ ] T7.1 Define extraction groups from schema
+### [x] T7.1 Define extraction groups from schema
 
 **Work**
 
@@ -567,7 +567,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### [ ] T7.2 Example selection from existing filled cells
+### [x] T7.2 Example selection from existing filled cells
 
 **Work**
 
@@ -582,7 +582,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### [ ] T7.3 Group extraction node (LLM) → proposals
+### [x] T7.3 Group extraction node (LLM) → proposals
 
 **Work**
 
@@ -612,7 +612,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### [ ] T7.4 Verify mode (optional) for locked cells
+### [x] T7.4 Verify mode (optional) for locked cells
 
 **Work**
 
@@ -631,7 +631,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### [ ] T7.5 Evidence locator resolution (precompute highlights)
+### [x] T7.5 Evidence locator resolution (precompute highlights)
 
 **Work**
 
@@ -654,7 +654,7 @@ This tasks file is designed for spec-driven development:
 
 ## 8) LangGraph workflow end-to-end
 
-### [ ] T8.1 Define graph state + node wiring
+### [x] T8.1 Define graph state + node wiring
 
 **Work**
 
@@ -680,7 +680,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### [ ] T8.2 Resume + stop controls
+### [x] T8.2 Resume + stop controls
 
 **Work**
 
@@ -700,7 +700,7 @@ This tasks file is designed for spec-driven development:
 
 ## 9) Review UI (row-by-row) with PDF highlight
 
-### [ ] T9.1 Review navigation and filters
+### [x] T9.1 Review navigation and filters
 
 **Work**
 
@@ -722,7 +722,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### [ ] T9.2 Proposal cards with Accept/Reject/Revise
+### [x] T9.2 Proposal cards with Accept/Reject/Revise
 
 **Work**
 
@@ -745,7 +745,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### [ ] T9.3 PDF viewer + highlight rendering
+### [x] T9.3 PDF viewer + highlight rendering
 
 **Work**
 
@@ -845,7 +845,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### [ ] T11.3 Retrieval sanity benchmark (developer workflow)
+### [x] T11.3 Retrieval sanity benchmark (developer workflow)
 
 **Work**
 
@@ -863,7 +863,7 @@ This tasks file is designed for spec-driven development:
 
 ## 12) Packaging & UX polish
 
-### [ ] T12.1 Single-command launch
+### [x] T12.1 Single-command launch
 
 **Work**
 

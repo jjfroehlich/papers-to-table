@@ -26,7 +26,8 @@ def export_run(run_dir: Path) -> None:
         if review["decision"] not in {"accepted", "revised"}:
             continue
         row_index = int(proposal["row_id"])
-        table.dataframe.at[row_index, proposal["column"]] = review["final_value"] or proposal["proposed_value"]
+        final_value = review["final_value"] or proposal["proposed_value"]
+        table.dataframe.at[row_index, proposal["column"]] = str(final_value) if final_value is not None else ""
 
     exports_dir = run_dir / "exports"
     write_table_copy(table, exports_dir / "updated_table.xlsx")

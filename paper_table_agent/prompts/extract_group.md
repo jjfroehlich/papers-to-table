@@ -4,5 +4,7 @@ Row context:
 {{row_context}}
 Group schema:
 {{group_schema}}
+Examples:
+{{examples}}
 Retrieved chunks:
 {{chunks}}

@@ -3,8 +3,9 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from paper_table_agent.config import RunConfig, capture_run_config, create_run_paths, load_prompt_versions
+from paper_table_agent.config import RunConfig, RunPaths, capture_run_config, create_run_paths, load_prompt_versions
 from paper_table_agent.graph.runner import run_pipeline
+from paper_table_agent.graph.workflow import run_workflow
 from paper_table_agent.store.db import Store
 
 
@@ -18,12 +19,20 @@ def _parse_args() -> argparse.Namespace:
 
     run_parser = sub.add_parser("run", help="Run batch pipeline")
     run_parser.add_argument("--config", required=True, type=Path)
+    resume_parser = sub.add_parser("resume", help="Resume a batch pipeline")
+    resume_parser.add_argument("--run_dir", required=True, type=Path)
+
+    stop_parser = sub.add_parser("stop", help="Stop a running batch pipeline")
+    stop_parser.add_argument("--run_dir", required=True, type=Path)
 
     export_parser = sub.add_parser("export", help="Export run outputs")
     export_parser.add_argument("--run_dir", required=True, type=Path)
 
     init_db_parser = sub.add_parser("init-db", help="Initialize run DB")
     init_db_parser.add_argument("--run_dir", required=True, type=Path)
+
+    config_parser = sub.add_parser("init-config", help="Write a sample run config")
+    config_parser.add_argument("--output", required=True, type=Path)
 
     return parser.parse_args()
 
@@ -51,13 +60,30 @@ def main() -> None:
         prompt_versions = load_prompt_versions(Path("paper_table_agent/prompts"))
         capture_run_config(config, run_paths, prompt_versions)
         store = Store.init_db(run_paths.db_path)
-        run_pipeline(config=config, run_paths=run_paths, store=store)
+        run_workflow(config=config, run_paths=run_paths, store=store)
+        return
+
+    if args.command == "resume":
+        run_dir = args.run_dir
+        config_path = run_dir / "run_config.json"
+        config = RunConfig.model_validate_json(config_path.read_text(encoding="utf-8"))
+        store = Store.init_db(run_dir / "proposals.sqlite")
+        run_workflow(config=config, run_paths=RunPaths(run_dir=run_dir), store=store, resume=True)
+        return
+
+    if args.command == "stop":
+        (args.run_dir / "STOP").write_text("stop", encoding="utf-8")
         return
 
     if args.command == "export":
         from paper_table_agent.graph.exporter import export_run
 
         export_run(args.run_dir)
+        return
+
+    if args.command == "init-config":
+        config = RunConfig(table_path=Path("table.xlsx"), pdf_folder=Path("pdfs"))
+        args.output.write_text(config.to_json(), encoding="utf-8")
         return
 
 

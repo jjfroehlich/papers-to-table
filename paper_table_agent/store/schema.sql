@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS pdfs (
     n_pages INTEGER,
     status TEXT,
     error TEXT,
+    parse_source TEXT,
     created_at TEXT
 );
 
