@@ -1,6 +1,6 @@
-# tasks.md — Paper Table Agent (v0.4)
+# tasks.md — Paper Table Agent (v0.5)
 
-UI/UX iteration with optimized review flow and settings.
+UI/UX iteration with model-aware configuration and embedding/reranker support.
 
 Conventions:
 * “AC” = Acceptance Criteria
@@ -10,86 +10,48 @@ Conventions:
 
 ## P0 — Run + Settings UX
 
-### [x] T0.1 Run tab controls + validation
+### [x] T0.1 Replace table upload with path + browse
 
 **Work**
-* Add table uploader, schema source selection, run naming, mode toggle, OCR/GROBID toggles.
-* Add retrieval presets and model dropdowns.
-* Validation indicators + Start disabled until valid.
+* Remove table file uploader from Run tab.
+* Keep text path input with browse button and known tables helper.
 
 **AC**
-* Run tab shows required controls and validates inputs before enabling Start.
+* Table input is path-driven with browse support; no upload control remains.
 
 ---
 
-### [x] T0.2 Settings tab model/provider routing
+### [x] T0.2 LM Studio model registry + model-aware dropdowns
 
 **Work**
-* Add provider selection (LM Studio/Ollama/OpenAI-compatible).
-* Add model routing dropdowns and performance controls.
+* Fetch available model IDs from LM Studio and store in session state.
+* Use registry-driven dropdowns for extraction, embedding, and reranking models.
+* Surface warnings when selected models are not available.
 
 **AC**
-* Settings tab updates session state used by Run tab.
+* Model dropdowns only list available LM Studio models and no longer offer unsupported defaults.
 
 ---
 
-## P1 — Review UX overhaul
-
-### [x] T1.1 Row review layout + filters
+### [x] T0.3 Run-config aligned embedding/reranker backends
 
 **Work**
-* Two-panel layout with row context + proposal stepper.
-* Status/confidence/column filters + search.
-* Row navigation and completion indicators.
+* Extend run_config.json schema to include embedding/reranker model fields.
+* Add embedding/reranker backend selection and model inputs in Settings/Run.
+* Wire LM Studio embedding + reranking backends into retrieval/indexing.
 
 **AC**
-* Review supports row-by-row navigation and filtering.
+* `run_config.json` captures embedding and reranker backend/model choices and runs do not fail on unsupported defaults.
 
 ---
 
-### [x] T1.2 Evidence viewer + decision controls
+## P1 — Docs
+
+### [x] T1.1 README + CHANGELOG update
 
 **Work**
-* PDF viewer with highlight status and evidence list.
-* Accept/Accept with edit/Reject + notes + needs-more-evidence toggle.
-* Auto-advance toggle.
+* Update README status, UI workflow, model setup instructions, and run_config guidance.
+* Update CHANGELOG with user-facing configuration changes.
 
 **AC**
-* Decisions persist immediately and evidence panel updates highlights.
-
----
-
-## P2 — Advanced + Help
-
-### [x] T2.1 Advanced diagnostics
-
-**Work**
-* Matching diagnostics table.
-* Retrieval diagnostics panel.
-* Evidence locator tool.
-
-**AC**
-* Advanced tab shows diagnostics for selected run.
-
----
-
-### [x] T2.2 Help/Troubleshooting content
-
-**Work**
-* Add 3-step startup guide and common failure modes.
-
-**AC**
-* Help tab contains required guidance and links.
-
----
-
-## P3 — Docs
-
-### [x] T3.1 README + CHANGELOG update
-
-**Work**
-* Update README status, UI workflow, and settings.
-* Update CHANGELOG with UI/UX changes.
-
-**AC**
-* Docs reflect v0.4 UI.
+* Docs reflect v0.5 UI and model-aware configuration.

@@ -19,18 +19,22 @@ Typical use-cases:
 ## Status
 
 - **Core pipeline**: PDF parsing, two-pass matching, retrieval (query expansion + HyDE + rerank), and proposal extraction run end-to-end with checkpoints.
-- **Run UX**: schema source selection, run naming, model presets, and validation gates reduce setup friction.
+- **Run UX**: schema source selection, run naming, model routing, and validation gates reduce setup friction.
 - **Review UX**: two-panel row review with filters, stepper navigation, and evidence highlights + re-locate tools.
-- **Settings/Advanced**: provider/model routing and diagnostics are available in the UI.
+- **Settings/Advanced**: provider/model routing with LM Studio model registry + diagnostics are available in the UI.
 
 Near-term to-do:
 
-- Retrieval quality tuning (swap in stronger dense embedding + reranker models).
+- Evaluate embedding + reranker model pairs for best retrieval quality.
 - Evidence locator robustness for complex PDFs and OCR-heavy scans.
 - Diagnostics surfacing for LLM I/O (prompt/response/validation errors).
 
 ## Installation
-- Have LM Studio installed and get a good model, for example gpt-oss-20b. Set the Context length, under settings, for instance change it from 4,096 to 32,000. 
+- Have LM Studio installed and download the models you want to use:
+  - **Extraction**: `gpt-oss-20b`
+  - **Embeddings**: `nomic-embed-text-v1.5`
+  - **Reranking**: another embedding-capable model such as `bge-small-en-v1.5`
+- In LM Studio settings, raise the context length (e.g., 4,096 → 32,000).
 
 ```bash
 python --version  # requires >=3.10
@@ -51,13 +55,15 @@ pip install -e .
 - **Ollama** (OpenAI-compatible): set `provider.base_url` to `http://localhost:11434/v1`.
 - **Cloud** (OpenAI-compatible): set `provider.base_url` + `provider.api_key` and model names.
 
+If you use LM Studio, open **Settings → Refresh model list** so dropdowns only show models that are currently loaded in LM Studio.
+
 ### 2) Start the UI
 
 ```bash
 paper-table-agent ui
 ```
 
-The Run tab uses uploaders, dropdowns, and validation indicators to configure runs. Completed runs appear in Review.
+The Run tab uses path inputs, dropdowns, and validation indicators to configure runs. Completed runs appear in Review.
 
 ### 3) Run the batch pipeline (CLI)
 
@@ -117,7 +123,9 @@ Example config:
     "use_hyde": true,
     "rrf_k": 60,
     "embedding_backend": "tfidf",
+    "embedding_model": null,
     "reranker_backend": "tfidf",
+    "reranker_model": null,
     "use_reranker": true
   },
   "ocr": {
@@ -163,9 +171,27 @@ paper-table-agent export --run_dir runs/<timestamp>__<table>/
 
 **Retrieval tuning**
 
-- `retrieval.embedding_backend`: embedding model family (default `tfidf`).
-- `retrieval.reranker_backend`: reranker backend (default `tfidf`).
+- `retrieval.embedding_backend`: `tfidf` or `lmstudio`.
+- `retrieval.embedding_model`: model ID used for LM Studio embeddings (required when backend is `lmstudio`).
+- `retrieval.reranker_backend`: `tfidf` or `lmstudio`.
+- `retrieval.reranker_model`: model ID used for LM Studio reranking embeddings (required when backend is `lmstudio`).
 - `retrieval.use_reranker`: enable/disable reranking.
+
+When using the LM Studio reranker backend, choose an embedding-capable model (reranking uses cosine similarity over embeddings).
+
+Example LM Studio retrieval settings:
+
+```json
+{
+  "retrieval": {
+    "embedding_backend": "lmstudio",
+    "embedding_model": "nomic-embed-text-v1.5",
+    "reranker_backend": "lmstudio",
+    "reranker_model": "bge-small-en-v1.5",
+    "use_reranker": true
+  }
+}
+```
 
 **Caching strategy**
 

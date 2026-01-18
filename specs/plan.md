@@ -1,10 +1,10 @@
-# plan.md — Paper Table Agent (v0.4)
+# plan.md — Paper Table Agent (v0.5)
 
-UI/UX iteration focused on lower friction, faster review, and explicit evidence handling.
+UI/UX iteration focused on lower friction, faster review, explicit evidence handling, and LM Studio model-aware configuration.
 
 ## 1) Purpose
 
-Deliver the v0.4 UI experience with Run/Review/Advanced/Settings/Help tabs, persistent session state, and optimized review flow.
+Deliver the v0.5 UI experience with Run/Review/Advanced/Settings/Help tabs, persistent session state, optimized review flow, and run-config-aligned model selection.
 
 ---
 
@@ -22,9 +22,10 @@ Deliver the v0.4 UI experience with Run/Review/Advanced/Settings/Help tabs, pers
 
 ### Milestone P0 — Run + Settings UX
 
-- Add Run tab validation, schema source selection, run naming, model selection, retrieval presets, OCR/GROBID toggles.
-- Add Settings tab for provider, model routing, performance controls.
-- Add run status top bar and artifact path visibility.
+- Replace table upload with path + browse selection in Run config.
+- Add model registry refresh and LM Studio-aware model dropdowns.
+- Align Run/Settings model options to run_config.json (including embedding/reranker backends/models).
+- Ensure run execution status is shown after a run starts and visually separated from configuration.
 
 ### Milestone P1 — Review UX overhaul
 
