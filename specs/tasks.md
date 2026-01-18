@@ -22,7 +22,7 @@ This tasks file is designed for spec-driven development:
 
 ## 0) Repo setup & guardrails (foundation)
 
-### T0.1 Create project scaffold
+### [x] T0.1 Create project scaffold
 
 **Work**
 
@@ -59,7 +59,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T0.2 Add run directory + logging + versioning
+### [x] T0.2 Add run directory + logging + versioning
 
 **Work**
 
@@ -85,7 +85,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T0.3 Define RunConfig (Pydantic) and config validation
+### [x] T0.3 Define RunConfig (Pydantic) and config validation
 
 **Work**
 
@@ -111,7 +111,7 @@ This tasks file is designed for spec-driven development:
 
 ## 1) Data store (SQLite) and persistence
 
-### T1.1 Implement SQLite schema + migrations
+### [x] T1.1 Implement SQLite schema + migrations
 
 **Work**
 
@@ -138,7 +138,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T1.2 Checkpointing strategy (LangGraph + DB)
+### [ ] T1.2 Checkpointing strategy (LangGraph + DB)
 
 **Work**
 
@@ -159,7 +159,7 @@ This tasks file is designed for spec-driven development:
 
 ## 2) Table + schema ingestion + locks
 
-### T2.1 XLSX table reader/writer (primary)
+### [x] T2.1 XLSX table reader/writer (primary)
 
 **Work**
 
@@ -178,7 +178,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T2.2 Schema sheet reader (separate sheet with colnames + description)
+### [x] T2.2 Schema sheet reader (separate sheet with colnames + description)
 
 **Work**
 
@@ -198,7 +198,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T2.3 Lock map generation
+### [x] T2.3 Lock map generation
 
 **Work**
 
@@ -222,7 +222,7 @@ This tasks file is designed for spec-driven development:
 
 ## 3) PDF ingestion + parsing + artifacts
 
-### T3.1 Enumerate PDFs and compute stable IDs
+### [x] T3.1 Enumerate PDFs and compute stable IDs
 
 **Work**
 
@@ -237,7 +237,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T3.2 Parse PDFs (fast text + page count) using PyMuPDF
+### [x] T3.2 Parse PDFs (fast text + page count) using PyMuPDF
 
 **Work**
 
@@ -254,7 +254,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T3.3 Layout tokens with bounding boxes using pdfplumber
+### [x] T3.3 Layout tokens with bounding boxes using pdfplumber
 
 **Work**
 
@@ -271,7 +271,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T3.4 OCR fallback module (optional in MVP; plumbed end-to-end)
+### [ ] T3.4 OCR fallback module (optional in MVP; plumbed end-to-end)
 
 **Work**
 
@@ -290,7 +290,7 @@ This tasks file is designed for spec-driven development:
 
 ## 4) LLM provider abstraction (local-first, cloud optional)
 
-### T4.1 OpenAI-compatible client wrapper
+### [x] T4.1 OpenAI-compatible client wrapper
 
 **Work**
 
@@ -312,7 +312,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T4.2 Prompt templates + versioning
+### [x] T4.2 Prompt templates + versioning
 
 **Work**
 
@@ -335,7 +335,7 @@ This tasks file is designed for spec-driven development:
 
 ## 5) Two-pass matching pipeline + mapping report
 
-### T5.1 Header extraction (title/authors/year) with evidence
+### [x] T5.1 Header extraction (title/authors/year) with evidence
 
 **Work**
 
@@ -356,7 +356,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T5.2 Pass 1 shortlist (RapidFuzz + author overlap)
+### [x] T5.2 Pass 1 shortlist (RapidFuzz + author overlap)
 
 **Work**
 
@@ -373,7 +373,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T5.3 Pass 2 LLM adjudication + 1-to-1 enforcement
+### [x] T5.3 Pass 2 LLM adjudication + 1-to-1 enforcement
 
 **Work**
 
@@ -396,7 +396,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T5.4 Generate mapping report (HTML + CSV)
+### [x] T5.4 Generate mapping report (HTML + CSV)
 
 **Work**
 
@@ -419,7 +419,7 @@ This tasks file is designed for spec-driven development:
 > Build retrieval as a standalone module with a debug interface early.
 > Retrieval quality is the biggest lever on extraction success.
 
-### T6.1 Chunking (multi-granularity) with page mapping
+### [ ] T6.1 Chunking (multi-granularity) with page mapping
 
 **Work**
 
@@ -440,7 +440,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T6.2 Sparse index (BM25) per PDF
+### [ ] T6.2 Sparse index (BM25) per PDF
 
 **Work**
 
@@ -453,7 +453,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T6.3 Dense embeddings per PDF (offline-friendly) + cache
+### [ ] T6.3 Dense embeddings per PDF (offline-friendly) + cache
 
 **Work**
 
@@ -470,7 +470,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T6.4 Reranker (cross-encoder) over topN
+### [ ] T6.4 Reranker (cross-encoder) over topN
 
 **Work**
 
@@ -484,7 +484,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T6.5 Multi-query expansion + RAG-Fusion
+### [ ] T6.5 Multi-query expansion + RAG-Fusion
 
 **Work**
 
@@ -501,7 +501,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T6.6 HyDE retrieval
+### [ ] T6.6 HyDE retrieval
 
 **Work**
 
@@ -517,7 +517,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T6.7 Context packaging + neighborhood expansion
+### [ ] T6.7 Context packaging + neighborhood expansion
 
 **Work**
 
@@ -536,7 +536,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T6.8 Retrieval debug panel in UI (developer tool)
+### [ ] T6.8 Retrieval debug panel in UI (developer tool)
 
 **Work**
 
@@ -554,7 +554,7 @@ This tasks file is designed for spec-driven development:
 
 ## 7) Extraction engine (grouped) + evidence discipline
 
-### T7.1 Define extraction groups from schema
+### [ ] T7.1 Define extraction groups from schema
 
 **Work**
 
@@ -567,7 +567,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T7.2 Example selection from existing filled cells
+### [ ] T7.2 Example selection from existing filled cells
 
 **Work**
 
@@ -582,7 +582,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T7.3 Group extraction node (LLM) → proposals
+### [ ] T7.3 Group extraction node (LLM) → proposals
 
 **Work**
 
@@ -612,7 +612,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T7.4 Verify mode (optional) for locked cells
+### [ ] T7.4 Verify mode (optional) for locked cells
 
 **Work**
 
@@ -631,7 +631,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T7.5 Evidence locator resolution (precompute highlights)
+### [ ] T7.5 Evidence locator resolution (precompute highlights)
 
 **Work**
 
@@ -654,7 +654,7 @@ This tasks file is designed for spec-driven development:
 
 ## 8) LangGraph workflow end-to-end
 
-### T8.1 Define graph state + node wiring
+### [ ] T8.1 Define graph state + node wiring
 
 **Work**
 
@@ -680,7 +680,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T8.2 Resume + stop controls
+### [ ] T8.2 Resume + stop controls
 
 **Work**
 
@@ -700,7 +700,7 @@ This tasks file is designed for spec-driven development:
 
 ## 9) Review UI (row-by-row) with PDF highlight
 
-### T9.1 Review navigation and filters
+### [ ] T9.1 Review navigation and filters
 
 **Work**
 
@@ -722,7 +722,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T9.2 Proposal cards with Accept/Reject/Revise
+### [ ] T9.2 Proposal cards with Accept/Reject/Revise
 
 **Work**
 
@@ -745,7 +745,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T9.3 PDF viewer + highlight rendering
+### [ ] T9.3 PDF viewer + highlight rendering
 
 **Work**
 
@@ -769,7 +769,7 @@ This tasks file is designed for spec-driven development:
 
 ## 10) Export/apply decisions + audit
 
-### T10.1 Apply decisions and produce updated XLSX copy
+### [x] T10.1 Apply decisions and produce updated XLSX copy
 
 **Work**
 
@@ -788,7 +788,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T10.2 Audit log + proposal dumps
+### [x] T10.2 Audit log + proposal dumps
 
 **Work**
 
@@ -812,7 +812,7 @@ This tasks file is designed for spec-driven development:
 
 ## 11) Quality, tests, and benchmarks
 
-### T11.1 Unit tests
+### [x] T11.1 Unit tests
 
 **Work**
 
@@ -829,7 +829,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T11.2 Integration test fixture
+### [x] T11.2 Integration test fixture
 
 **Work**
 
@@ -845,7 +845,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T11.3 Retrieval sanity benchmark (developer workflow)
+### [ ] T11.3 Retrieval sanity benchmark (developer workflow)
 
 **Work**
 
@@ -863,7 +863,7 @@ This tasks file is designed for spec-driven development:
 
 ## 12) Packaging & UX polish
 
-### T12.1 Single-command launch
+### [ ] T12.1 Single-command launch
 
 **Work**
 
@@ -880,7 +880,7 @@ This tasks file is designed for spec-driven development:
 
 ---
 
-### T12.2 Documentation
+### [x] T12.2 Documentation
 
 **Work**
 
@@ -900,19 +900,19 @@ This tasks file is designed for spec-driven development:
 
 ## 13) Stretch tasks (after MVP is stable)
 
-### S1 Add GROBID integration for richer structure
+### [ ] S1 Add GROBID integration for richer structure
 
 * Use GROBID TEI to enhance section chunking and header parsing.
 
-### S2 Add table structure extraction improvements
+### [ ] S2 Add table structure extraction improvements
 
 * Table extraction pipeline with Unstructured hi_res + fallback to Camelot.
 
-### S3 Concurrency
+### [ ] S3 Concurrency
 
 * Parallelize per-PDF parsing/indexing/extraction with rate-limit aware scheduling.
 
-### S4 “Fast mode” vs “Max success mode” tuning panel
+### [ ] S4 “Fast mode” vs “Max success mode” tuning panel
 
 * Provide clear speed/quality tradeoffs.
 

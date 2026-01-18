@@ -1,0 +1,45 @@
+[project]
+name = "paper-table-agent"
+version = "0.1.0"
+description = "Paper Table Agent"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{name = "Paper Table Agent"}]
+
+dependencies = [
+  "pydantic>=2.6",
+  "pydantic-settings>=2.2",
+  "pandas>=2.2",
+  "openpyxl>=3.1",
+  "streamlit>=1.32",
+  "pymupdf>=1.24",
+  "pdfplumber>=0.10",
+  "rapidfuzz>=3.9",
+  "rank-bm25>=0.2.2",
+  "numpy>=1.26",
+  "httpx>=0.27",
+  "jinja2>=3.1",
+  "langgraph>=0.2.14",
+  "tqdm>=4.66",
+  "scikit-learn>=1.4",
+]
+
+[project.optional-dependencies]
+ocr = [
+  "unstructured[local-inference]>=0.12.6",
+]
+
+test = [
+  "pytest>=8.0",
+]
+
+[project.scripts]
+paper-table-agent = "paper_table_agent.cli:main"
+
+[tool.pytest.ini_options]
+addopts = "-q"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"

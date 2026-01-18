@@ -31,6 +31,7 @@ Do not invent requirements. If requirements are missing, ask targeted questions 
 ## Progress tracking
 - If doing Spec-Kit feature work: treat `specs/tasks.md` as the canonical progress tracker.
 - If doing non-Spec-Kit work: keep a short, explicit plan in your final summary and validate with the most relevant scripts/tests.
+- When implementing tasks from `specs/tasks.md`, add checkboxes to every task and mark completed items when fully implemented.
 
 ## Definition of Done (DoD)
 - Dependency sync succeeds (for example, uv sync via the repo scripts).
