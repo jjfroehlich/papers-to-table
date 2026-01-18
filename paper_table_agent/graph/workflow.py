@@ -67,13 +67,21 @@ def run_workflow(config: RunConfig, run_paths: RunPaths, store: Store, resume: b
         try:
             compiled.invoke(None, config=config_payload)
             write_mapping_report(store, run_paths.exports_dir)
-            (run_paths.run_dir / "COMPLETED").write_text("done", encoding="utf-8")
+            _mark_run_finished(run_paths)
             return
         except Exception:
             compiled.invoke({"pdf_index": 0, "pdf_ids": pdf_ids, "done": False}, config=config_payload)
             write_mapping_report(store, run_paths.exports_dir)
-            (run_paths.run_dir / "COMPLETED").write_text("done", encoding="utf-8")
+            _mark_run_finished(run_paths)
             return
     compiled.invoke({"pdf_index": 0, "pdf_ids": pdf_ids, "done": False}, config=config_payload)
     write_mapping_report(store, run_paths.exports_dir)
+    _mark_run_finished(run_paths)
+
+
+def _mark_run_finished(run_paths: RunPaths) -> None:
+    if (run_paths.run_dir / "STOP").exists():
+        return
+    if (run_paths.run_dir / "PAUSE").exists():
+        return
     (run_paths.run_dir / "COMPLETED").write_text("done", encoding="utf-8")

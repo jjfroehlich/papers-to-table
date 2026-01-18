@@ -19,14 +19,15 @@ Typical use-cases:
 ## Status
 
 - **Core pipeline**: PDF parsing, two-pass matching, retrieval (query expansion + HyDE + rerank), and proposal extraction run end-to-end with checkpoints.
-- **Review/Export**: row review with Prev/Next navigation, evidence highlights, and export workflow.
-- **UI stability**: Streamlit launches through the CLI using subprocess (no bootstrap runtime errors).
+- **Run UX**: schema source selection, run naming, model presets, and validation gates reduce setup friction.
+- **Review UX**: two-panel row review with filters, stepper navigation, and evidence highlights + re-locate tools.
+- **Settings/Advanced**: provider/model routing and diagnostics are available in the UI.
 
 Near-term to-do:
 
 - Retrieval quality tuning (swap in stronger dense embedding + reranker models).
 - Evidence locator robustness for complex PDFs and OCR-heavy scans.
-- GROBID enrichment (optional flag) testing on a larger corpus.
+- Diagnostics surfacing for LLM I/O (prompt/response/validation errors).
 
 ## Installation
 - Have LM Studio installed and get a good model, for example gpt-oss-20b. Set the Context length, under settings, for instance change it from 4,096 to 32,000. 
@@ -56,7 +57,7 @@ pip install -e .
 paper-table-agent ui
 ```
 
-The Run tab uses dropdowns for tables and PDF folders. Completed runs automatically appear in Review and Export.
+The Run tab uses uploaders, dropdowns, and validation indicators to configure runs. Completed runs appear in Review.
 
 ### 3) Run the batch pipeline (CLI)
 
@@ -73,6 +74,8 @@ Example config:
   "table_path": "data/table.xlsx",
   "schema_sheet_name": "schema",
   "schema_mode": "sheet",
+  "schema_path": null,
+  "run_name": "sample-run",
   "pdf_folder": "data/pdfs",
   "title_col": "Title",
   "authors_col": "Authors",
@@ -182,6 +185,7 @@ runs/
     run_config.json
     proposals.sqlite
     COMPLETED
+    PAUSE
     exports/
     artifacts/
       parsed/

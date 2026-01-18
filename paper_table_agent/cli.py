@@ -62,7 +62,7 @@ def main() -> None:
 
     if args.command == "run":
         config = RunConfig.model_validate_json(Path(args.config).read_text(encoding="utf-8"))
-        run_paths = create_run_paths(config.table_path)
+        run_paths = create_run_paths(config.table_path, run_name=config.run_name)
         prompt_versions = load_prompt_versions(Path("paper_table_agent/prompts"))
         capture_run_config(config, run_paths, prompt_versions)
         store = Store.init_db(run_paths.db_path)
