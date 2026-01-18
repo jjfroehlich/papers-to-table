@@ -17,7 +17,7 @@ You always:
 
 ## Purpose
 Guidance for AI coding agents working in this repository.
-This repo builds a personal, modular, agentic research assistant using Spec-Driven Development.
+This repo builds Paper Table Agent: a local-first LangGraph app that batch-processes PDFs to propose table updates with evidence, then supports a post-run row-by-row review UI.
 
 ## Prime Directive (follow user intent; Spec-Kit when opted-in)
 1) Default rule: if the user asks you to do something and they are not invoking Spec-Kit, do the work directly (including large changes) without creating/updating `specs/` artifacts.
@@ -28,17 +28,22 @@ This repo builds a personal, modular, agentic research assistant using Spec-Driv
 
 Do not invent requirements. If requirements are missing, ask targeted questions or implement the simplest safe interpretation.
 
-## Progress tracking
-- If doing Spec-Kit feature work: treat `specs/tasks.md` as the canonical progress tracker.
-- If doing non-Spec-Kit work: keep a short, explicit plan in your final summary and validate with the most relevant scripts/tests.
-- When implementing tasks from `specs/tasks.md`, add checkboxes to every task and mark completed items when fully implemented.
+## Autonomy rules (work independently)
+### Work through as many tasks as possible without stopping.
+### Only pause if:
+ - a decision would irreversibly affect architecture/API, or
+ - a required input is missing and no safe default exists.
+### When you finish a chunk of work, leave an operator summary:
+ - what changed
+ - how to run (exact commands)
+ - what is done vs remaining (checkboxes in tasks.md)
 
-## Definition of Done (DoD)
-- Dependency sync succeeds (for example, uv sync via the repo scripts).
-- Imports succeed (catch import-time failures).
-- Tests pass (at least smoke tests; pytest when present).
-- Runbooks in docs/ updated if the command surface changed.
-- Docs consistent: update CHANGELOG.md for shipped behavior changes; update README.md for user-facing changes.
+## Progress tracking
+- Treat tasks.md as canonical.
+- For each implemented task:
+   - add a checkbox [x] in tasks.md
+   - ensure acceptance criteria are met
+- Do not mark tasks complete if they only partially work.
 
 ## Reproducibility + grounding (manifests, hashes, citations)
 
