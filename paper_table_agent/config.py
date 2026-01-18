@@ -17,6 +17,7 @@ class ProviderConfig(BaseModel):
     api_key: str | None = None
     model_extract: str = "gpt-oss-20b"
     model_query_helper: str = "gpt-oss-20b"
+    max_prompt_chars: int = 26000
     mock_mode: bool = False
     mock_payloads_path: Path | None = None
 

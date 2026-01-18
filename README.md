@@ -28,6 +28,7 @@ Near-term to-do:
 - Evidence locator robustness for complex PDFs and OCR-heavy scans.
 
 ## Installation
+- Have LM Studio installed and get a good model, for example gpt-oss-20b. Set the Context length, under settings, for instance change it from 4,096 to 32,000. 
 
 ```bash
 python --version  # requires >=3.10
@@ -41,8 +42,8 @@ pip install -e .
 > Streamlit is pinned to `1.32.2` to avoid runtime session errors. Use `paper-table-agent ui` (CLI launches Streamlit via `python -m streamlit run`).
 
 ## How to run
-
-### 1) Start the UI
+### 1) Start LM Studio
+### 2) Start the UI
 
 ```bash
 paper-table-agent ui
@@ -50,7 +51,7 @@ paper-table-agent ui
 
 The Run tab uses dropdowns for tables and PDF folders. Completed runs automatically appear in Review and Export.
 
-### 2) Run the batch pipeline (CLI)
+### 3) Run the batch pipeline (CLI)
 
 Generate a starter config:
 

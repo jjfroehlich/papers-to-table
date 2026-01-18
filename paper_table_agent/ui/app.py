@@ -18,6 +18,13 @@ from paper_table_agent.retrieval.pipeline import RetrievalConfig, retrieve_conte
 from paper_table_agent.store.db import Store
 from paper_table_agent.ui.registry import discover_pdf_folders, discover_runs, discover_tables
 
+try:
+    import tkinter as tk
+    from tkinter import filedialog
+except Exception:  # noqa: BLE001
+    tk = None
+    filedialog = None
+
 st.set_page_config(page_title="Paper Table Agent", layout="wide")
 
 st.title("Paper Table Agent")
@@ -25,24 +32,163 @@ st.title("Paper Table Agent")
 run_tab, review_tab, export_tab, debug_tab = st.tabs(["Run", "Review", "Export", "Advanced"])
 
 
-def _refresh_registry() -> None:
-    st.session_state["runs"] = discover_runs()
-    st.session_state["tables"] = discover_tables()
-    st.session_state["pdf_folders"] = discover_pdf_folders()
+DEFAULT_CONFIG_PATH = Path("run_config.json")
 
+
+def _load_default_config() -> dict[str, Any]:
+    if not DEFAULT_CONFIG_PATH.exists():
+        return {}
+    try:
+        return json.loads(DEFAULT_CONFIG_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        st.warning("Default run_config.json exists but could not be parsed.")
+        return {}
+
+
+def _refresh_registry(defaults: dict[str, Any] | None = None) -> None:
+    st.session_state["runs"] = discover_runs()
+
+    base_root = Path(".")
+    default_table = None
+    default_pdf = None
+    if defaults:
+        table_value = defaults.get("table_path")
+        pdf_value = defaults.get("pdf_folder")
+        if table_value:
+            default_table = Path(table_value)
+        if pdf_value:
+            default_pdf = Path(pdf_value)
+
+    table_roots = {base_root}
+    if default_table and default_table.exists():
+        table_roots.add(default_table.parent)
+
+    pdf_roots = {base_root}
+    if default_pdf and default_pdf.exists():
+        pdf_roots.add(default_pdf)
+
+    tables: set[Path] = set()
+    for root in table_roots:
+        tables.update(discover_tables(root))
+
+    pdf_folders: set[Path] = set()
+    for root in pdf_roots:
+        pdf_folders.update(discover_pdf_folders(root))
+
+    st.session_state["tables"] = sorted(tables)
+    st.session_state["pdf_folders"] = sorted(pdf_folders)
+
+
+def _choose_file(file_types: list[tuple[str, str]]) -> Path | None:
+    if tk is None or filedialog is None:
+        st.warning("File dialog is not available in this environment.")
+        return None
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+    try:
+        selected = filedialog.askopenfilename(filetypes=file_types)
+    finally:
+        root.destroy()
+    return Path(selected) if selected else None
+
+
+def _choose_folder() -> Path | None:
+    if tk is None or filedialog is None:
+        st.warning("Folder dialog is not available in this environment.")
+        return None
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+    try:
+        selected = filedialog.askdirectory()
+    finally:
+        root.destroy()
+    return Path(selected) if selected else None
+
+
+def _pick_table_path() -> None:
+    selected = _choose_file([
+        ("Tables", "*.xlsx *.csv"),
+        ("All files", "*.*"),
+    ])
+    if selected:
+        st.session_state["manual_table_path"] = str(selected)
+
+
+def _pick_pdf_folder() -> None:
+    selected = _choose_folder()
+    if selected:
+        st.session_state["manual_pdf_folder"] = str(selected)
+
+
+def _normalize_column_name(value: object) -> str:
+    return str(value).replace("\u00a0", " ").strip()
+
+
+def _build_column_map(columns: list[object]) -> dict[str, object]:
+    mapping: dict[str, object] = {}
+    for col in columns:
+        normalized = _normalize_column_name(col)
+        if normalized and normalized not in mapping:
+            mapping[normalized] = col
+    return mapping
+
+
+if "default_config" not in st.session_state:
+    st.session_state["default_config"] = _load_default_config()
 
 if "runs" not in st.session_state:
-    _refresh_registry()
+    _refresh_registry(st.session_state.get("default_config"))
 
 
 with run_tab:
     st.header("Start a Run")
     if st.button("Refresh registry"):
-        _refresh_registry()
+        _refresh_registry(st.session_state.get("default_config"))
 
     runs = st.session_state.get("runs", [])
     tables = st.session_state.get("tables", [])
     pdf_folders = st.session_state.get("pdf_folders", [])
+
+    default_config = st.session_state.get("default_config", {})
+    default_table_path = Path(default_config["table_path"]) if default_config.get("table_path") else None
+    default_pdf_folder = Path(default_config["pdf_folder"]) if default_config.get("pdf_folder") else None
+
+    st.subheader("Manual paths (optional)")
+    if "manual_table_path" not in st.session_state:
+        st.session_state["manual_table_path"] = str(default_table_path) if default_table_path else ""
+    if "manual_pdf_folder" not in st.session_state:
+        st.session_state["manual_pdf_folder"] = str(default_pdf_folder) if default_pdf_folder else ""
+
+    col_table_path, col_table_browse = st.columns([4, 1])
+    with col_table_path:
+        st.text_input("Table path", key="manual_table_path")
+    with col_table_browse:
+        st.button("Browse", key="browse-table", on_click=_pick_table_path)
+
+    col_pdf_path, col_pdf_browse = st.columns([4, 1])
+    with col_pdf_path:
+        st.text_input("PDF folder path", key="manual_pdf_folder")
+    with col_pdf_browse:
+        st.button("Browse", key="browse-pdf-folder", on_click=_pick_pdf_folder)
+
+    manual_table_path = st.session_state.get("manual_table_path", "").strip()
+    manual_pdf_folder = st.session_state.get("manual_pdf_folder", "").strip()
+    manual_table = Path(manual_table_path) if manual_table_path else None
+    manual_pdf = Path(manual_pdf_folder) if manual_pdf_folder else None
+
+    tables = list(tables)
+    if manual_table and manual_table not in tables:
+        tables.insert(0, manual_table)
+    if default_table_path and default_table_path.exists() and default_table_path not in tables:
+        tables.append(default_table_path)
+
+    pdf_folders = list(pdf_folders)
+    if manual_pdf and manual_pdf not in pdf_folders:
+        pdf_folders.insert(0, manual_pdf)
+    if default_pdf_folder and default_pdf_folder.exists() and default_pdf_folder not in pdf_folders:
+        pdf_folders.append(default_pdf_folder)
 
     with st.expander("Run registry", expanded=False):
         st.write("Available tables:", [str(path) for path in tables] or "None found")
@@ -51,24 +197,46 @@ with run_tab:
         for run in runs:
             st.write(f"- {run.label}")
 
+    table_default_index = 0
+    if manual_table in tables:
+        table_default_index = tables.index(manual_table)
+    elif default_table_path in tables:
+        table_default_index = tables.index(default_table_path)
+
     table_path = st.selectbox(
         "Table file",
         options=tables or [None],
         format_func=lambda path: str(path) if path else "No tables found",
+        index=table_default_index if tables else 0,
     )
+    pdf_default_index = 0
+    if manual_pdf in pdf_folders:
+        pdf_default_index = pdf_folders.index(manual_pdf)
+    elif default_pdf_folder in pdf_folders:
+        pdf_default_index = pdf_folders.index(default_pdf_folder)
+
     pdf_folder = st.selectbox(
         "PDF folder",
         options=pdf_folders or [None],
         format_func=lambda path: str(path) if path else "No PDF folders found",
+        index=pdf_default_index if pdf_folders else 0,
     )
 
-    schema_sheet = "schema"
+    if manual_table_path and not Path(manual_table_path).exists():
+        st.warning("Manual table path does not exist.")
+    if manual_pdf_folder and not Path(manual_pdf_folder).exists():
+        st.warning("Manual PDF folder path does not exist.")
+
+    schema_sheet = default_config.get("schema_sheet_name", "schema")
     table_columns: list[str] = []
     if table_path is not None:
         if table_path.suffix.lower() == ".xlsx":
             try:
                 sheet_names = pd.ExcelFile(table_path).sheet_names
-                schema_sheet = st.selectbox("Schema sheet", options=sheet_names)
+                schema_index = 0
+                if schema_sheet in sheet_names:
+                    schema_index = sheet_names.index(schema_sheet)
+                schema_sheet = st.selectbox("Schema sheet", options=sheet_names, index=schema_index)
             except Exception as exc:  # noqa: BLE001
                 st.error(f"Failed to read workbook sheets: {exc}")
         else:
@@ -80,12 +248,34 @@ with run_tab:
             st.error(f"Failed to load table: {exc}")
 
     column_options = ["(auto)"] + table_columns if table_columns else ["(auto)"]
-    title_col = st.selectbox("Title column", options=column_options)
-    authors_col = st.selectbox("Authors column", options=column_options)
-    year_col = st.selectbox("Year column", options=column_options)
+    default_title_col = default_config.get("title_col")
+    default_authors_col = default_config.get("authors_col")
+    default_year_col = default_config.get("year_col")
 
-    verify_mode = st.checkbox("Verify locked cells", value=False)
-    fast_mode = st.checkbox("Fast mode (skip HyDE/query expansion)", value=False)
+    title_index = 0
+    if default_title_col in column_options:
+        title_index = column_options.index(default_title_col)
+    authors_index = 0
+    if default_authors_col in column_options:
+        authors_index = column_options.index(default_authors_col)
+    year_index = 0
+    if default_year_col in column_options:
+        year_index = column_options.index(default_year_col)
+
+    title_col = st.selectbox("Title column", options=column_options, index=title_index)
+    authors_col = st.selectbox("Authors column", options=column_options, index=authors_index)
+    year_col = st.selectbox("Year column", options=column_options, index=year_index)
+
+    verify_mode = st.checkbox("Verify locked cells", value=bool(default_config.get("verify_mode", False)))
+    fast_mode = st.checkbox("Fast mode (skip HyDE/query expansion)", value=bool(default_config.get("fast_mode", False)))
+    default_max_prompt_chars = int(default_config.get("provider", {}).get("max_prompt_chars", 26000))
+    max_prompt_chars = st.number_input(
+        "Max prompt chars",
+        min_value=4000,
+        max_value=200000,
+        step=1000,
+        value=default_max_prompt_chars,
+    )
 
     if "group_mapping" not in st.session_state:
         st.session_state["group_mapping"] = {}
@@ -125,6 +315,7 @@ with run_tab:
                 verify_mode=verify_mode,
                 fast_mode=fast_mode,
             )
+            config.provider.max_prompt_chars = int(max_prompt_chars)
             if st.session_state["group_selection"] and st.session_state["group_mapping"]:
                 config.extraction.groups = [
                     {"name": group, "columns": st.session_state["group_mapping"][group]}
@@ -142,7 +333,9 @@ with run_tab:
     st.divider()
     st.subheader("Resume or stop a run")
     run_options = {run.label: run for run in runs}
-    resume_label = st.selectbox("Run", options=list(run_options.keys())) if run_options else None
+    resume_label = (
+        st.selectbox("Run", options=list(run_options.keys()), key="resume-run") if run_options else None
+    )
     selected_run = run_options.get(resume_label) if resume_label else None
     col_resume, col_stop = st.columns(2)
     with col_resume:
@@ -172,7 +365,9 @@ with review_tab:
             if run.run_dir == default_run_dir:
                 default_index = idx
                 break
-    selected_label = st.selectbox("Run", run_labels, index=default_index) if run_labels else None
+    selected_label = (
+        st.selectbox("Run", run_labels, index=default_index, key="review-run") if run_labels else None
+    )
     selected_run = runs[default_index] if run_labels else None
     if selected_label:
         selected_run = runs[run_labels.index(selected_label)]
@@ -182,6 +377,7 @@ with review_tab:
         store = Store.init_db(run_dir_path / "proposals.sqlite")
         run_config = json.loads((run_dir_path / "run_config.json").read_text(encoding="utf-8"))
         table = load_table(Path(run_config["table_path"]))
+        column_map = _build_column_map(list(table.dataframe.columns))
 
         rows = [dict(row) for row in store.fetch_rows()]
         proposals = [dict(row) for row in store.conn.execute("SELECT * FROM proposals")]
@@ -267,7 +463,12 @@ with review_tab:
 
                 st.markdown(f"### {current['column']}")
                 st.write("Status:", current.get("status"))
-                st.write("Current value:", table.dataframe.at[int(row_id), current["column"]])
+                current_value = ""
+                normalized_column = _normalize_column_name(current.get("column", ""))
+                resolved_column = column_map.get(normalized_column)
+                if resolved_column is not None and int(row_id) in table.dataframe.index:
+                    current_value = table.dataframe.loc[int(row_id), resolved_column]
+                st.write("Current value:", current_value)
                 st.write("Proposed value:", current.get("proposed_value"))
                 st.write("Confidence:", current.get("confidence"))
                 if current["flags"].get("needs_more_evidence"):
@@ -387,7 +588,7 @@ with export_tab:
     st.header("Export")
     runs = st.session_state.get("runs", [])
     run_labels = [run.label for run in runs]
-    selected_label = st.selectbox("Run", run_labels) if run_labels else None
+    selected_label = st.selectbox("Run", run_labels, key="export-run") if run_labels else None
     if st.button("Export") and selected_label:
         run_dir = runs[run_labels.index(selected_label)].run_dir
         export_run(Path(run_dir))

@@ -16,7 +16,7 @@ class Store:
     @classmethod
     def init_db(cls, path: Path) -> "Store":
         path.parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(path)
+        conn = sqlite3.connect(path, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         schema_path = Path(__file__).with_name("schema.sql")
         conn.executescript(schema_path.read_text(encoding="utf-8"))

@@ -25,6 +25,7 @@ class LlmConfig:
     model: str
     timeout_s: float = 60.0
     max_retries: int = 2
+    max_prompt_chars: int = 12000
     mock_mode: bool = False
     mock_payloads: dict[str, Any] | None = None
 
@@ -34,25 +35,19 @@ class LlmClient:
         self.config = config
         self._client = httpx.Client(timeout=self.config.timeout_s)
 
+    def _truncate_prompt(self, prompt: str) -> str:
+        max_chars = self.config.max_prompt_chars
+        if len(prompt) <= max_chars:
+            return prompt
+        head = max_chars // 2
+        tail = max_chars - head
+        return f"{prompt[:head]}\n\n...[TRUNCATED]...\n\n{prompt[-tail:]}"
+
     def complete_json(self, prompt: str, schema: type[T]) -> T:
         if self.config.mock_mode:
             return self._mock_response(prompt, schema)
         schema_payload = schema.model_json_schema()
-        payload = {
-            "model": self.config.model,
-            "messages": [
-                {"role": "system", "content": "Return strict JSON only."},
-                {"role": "user", "content": prompt},
-            ],
-            "temperature": 0.1,
-            "response_format": {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": schema.__name__,
-                    "schema": schema_payload,
-                },
-            },
-        }
+        prompt_working = prompt
         headers = {}
         if self.config.api_key:
             headers["Authorization"] = f"Bearer {self.config.api_key}"
@@ -60,10 +55,31 @@ class LlmClient:
         last_error: Exception | None = None
         content = ""
         for attempt in range(self.config.max_retries + 1):
+            payload = {
+                "model": self.config.model,
+                "messages": [
+                    {"role": "system", "content": "Return strict JSON only."},
+                    {"role": "user", "content": prompt_working},
+                ],
+                "temperature": 0.1,
+                "response_format": {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": schema.__name__,
+                        "schema": schema_payload,
+                    },
+                },
+            }
             response = self._client.post(url, json=payload, headers=headers)
             try:
                 response.raise_for_status()
             except httpx.HTTPStatusError as exc:
+                error_text = response.text
+                if response.status_code == 400 and "context length" in error_text.lower():
+                    truncated = self._truncate_prompt(prompt_working)
+                    if truncated != prompt_working:
+                        prompt_working = truncated
+                        continue
                 raise RuntimeError(
                     f"LLM HTTP error {response.status_code}: {response.text}"
                 ) from exc

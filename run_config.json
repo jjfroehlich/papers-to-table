@@ -1,0 +1,48 @@
+{
+  "table_path": "data/table.xlsx",
+  "schema_sheet_name": "schema",
+  "schema_mode": "sheet",
+  "pdf_folder": "data/pdfs",
+  "title_col": "Title",
+  "authors_col": "Authors",
+  "year_col": "Publication Year",
+  "treat_single_space_as_empty": true,
+  "verify_mode": false,
+  "fast_mode": false,
+  "max_success_mode": true,
+  "provider": {
+    "base_url": "http://localhost:1234/v1",
+    "api_key": null,
+    "model_extract": "gpt-oss-20b",
+    "model_query_helper": "gpt-oss-20b",
+    "max_prompt_chars": 26000,
+    "mock_mode": false,
+    "mock_payloads_path": null
+  },
+  "matching": {
+    "top_k": 10,
+    "confidence_threshold": 0.75,
+    "year_tolerance": 1,
+    "header_max_chars": 8000
+  },
+  "extraction": {
+    "groups": [],
+    "examples_per_col": 3,
+    "max_chunks": 20
+  },
+  "retrieval": {
+    "top_k": 12,
+    "rerank_k": 12,
+    "max_context_chunks": 16,
+    "max_context_tokens": 1800,
+    "query_variants": 4,
+    "use_query_expansion": true,
+    "use_hyde": true,
+    "rrf_k": 60
+  },
+  "ocr": {
+    "enable_ocr": true,
+    "ocr_trigger_min_chars_per_page": 400
+  },
+  "max_workers": 1
+}

@@ -3,6 +3,7 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Iterator, Sequence
 from pathlib import Path
+import threading
 from typing import Any
 
 from langgraph.checkpoint.base import (
@@ -21,13 +22,15 @@ class SqliteSaver(BaseCheckpointSaver[str]):
     def __init__(self, path: Path) -> None:
         super().__init__()
         self.path = path
-        self.conn = sqlite3.connect(path)
+        self.conn = sqlite3.connect(path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
+        self._lock = threading.Lock()
         self._init_tables()
 
     def _init_tables(self) -> None:
-        self.conn.executescript(
-            """
+        with self._lock:
+            self.conn.executescript(
+                """
             CREATE TABLE IF NOT EXISTS checkpoints (
                 thread_id TEXT,
                 checkpoint_ns TEXT,
@@ -62,9 +65,9 @@ class SqliteSaver(BaseCheckpointSaver[str]):
                 task_path TEXT,
                 PRIMARY KEY (thread_id, checkpoint_ns, checkpoint_id, task_id, write_idx)
             );
-            """
-        )
-        self.conn.commit()
+                """
+            )
+            self.conn.commit()
 
     def _load_blobs(self, thread_id: str, checkpoint_ns: str, versions: dict[str, Any]) -> dict[str, Any]:
         channel_values: dict[str, Any] = {}
@@ -86,19 +89,21 @@ class SqliteSaver(BaseCheckpointSaver[str]):
         checkpoint_ns: str = config["configurable"].get("checkpoint_ns", "")
         checkpoint_id = get_checkpoint_id(config)
         if checkpoint_id:
-            row = self.conn.execute(
-                """
+            with self._lock:
+                row = self.conn.execute(
+                    """
                 SELECT checkpoint_type, checkpoint_blob, metadata_type, metadata_blob, parent_checkpoint_id
                 FROM checkpoints
                 WHERE thread_id = ? AND checkpoint_ns = ? AND checkpoint_id = ?
                 """,
                 (thread_id, checkpoint_ns, checkpoint_id),
-            ).fetchone()
+                ).fetchone()
             if not row:
                 return None
         else:
-            row = self.conn.execute(
-                """
+            with self._lock:
+                row = self.conn.execute(
+                    """
                 SELECT checkpoint_id, checkpoint_type, checkpoint_blob, metadata_type, metadata_blob, parent_checkpoint_id
                 FROM checkpoints
                 WHERE thread_id = ? AND checkpoint_ns = ?
@@ -106,7 +111,7 @@ class SqliteSaver(BaseCheckpointSaver[str]):
                 LIMIT 1
                 """,
                 (thread_id, checkpoint_ns),
-            ).fetchone()
+                ).fetchone()
             if not row:
                 return None
             checkpoint_id = row["checkpoint_id"]
@@ -159,7 +164,8 @@ class SqliteSaver(BaseCheckpointSaver[str]):
             "SELECT checkpoint_id, checkpoint_type, checkpoint_blob, metadata_type, metadata_blob, parent_checkpoint_id "
             "FROM checkpoints WHERE thread_id = ? AND checkpoint_ns = ? ORDER BY checkpoint_id DESC"
         )
-        rows = self.conn.execute(query, params).fetchall()
+        with self._lock:
+            rows = self.conn.execute(query, params).fetchall()
         for row in rows[:limit or len(rows)]:
             checkpoint_id = row["checkpoint_id"]
             checkpoint = self.serde.loads_typed((row["checkpoint_type"], row["checkpoint_blob"]))
@@ -211,29 +217,31 @@ class SqliteSaver(BaseCheckpointSaver[str]):
                 value_type, value_blob = self.serde.dumps_typed(values[channel])
             else:
                 value_type, value_blob = ("empty", b"")
-            self.conn.execute(
-                """
+            with self._lock:
+                self.conn.execute(
+                    """
                 INSERT OR REPLACE INTO blobs
                 (thread_id, checkpoint_ns, channel, version, value_type, value_blob)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (thread_id, checkpoint_ns, channel, str(version), value_type, value_blob),
-            )
+                )
 
         checkpoint_data = checkpoint.copy()
         checkpoint_data.pop("channel_values", None)
         checkpoint_type, checkpoint_blob = self.serde.dumps_typed(checkpoint_data)
         metadata_type, metadata_blob = self.serde.dumps_typed(get_checkpoint_metadata(config, metadata))
         parent_id = config["configurable"].get("checkpoint_id")
-        self.conn.execute(
-            """
+        with self._lock:
+            self.conn.execute(
+                """
             INSERT OR REPLACE INTO checkpoints
             (thread_id, checkpoint_ns, checkpoint_id, checkpoint_type, checkpoint_blob, metadata_type, metadata_blob, parent_checkpoint_id)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (thread_id, checkpoint_ns, checkpoint_id, checkpoint_type, checkpoint_blob, metadata_type, metadata_blob, parent_id),
-        )
-        self.conn.commit()
+            )
+            self.conn.commit()
         return {
             "configurable": {
                 "thread_id": thread_id,
@@ -257,21 +265,24 @@ class SqliteSaver(BaseCheckpointSaver[str]):
             if write_idx < 0:
                 continue
             value_type, value_blob = self.serde.dumps_typed(value)
-            self.conn.execute(
-                """
+            with self._lock:
+                self.conn.execute(
+                    """
                 INSERT OR REPLACE INTO writes
                 (thread_id, checkpoint_ns, checkpoint_id, task_id, write_idx, channel, value_type, value_blob, task_path)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (thread_id, checkpoint_ns, checkpoint_id, task_id, write_idx, channel, value_type, value_blob, task_path),
-            )
-        self.conn.commit()
+                )
+        with self._lock:
+            self.conn.commit()
 
     def delete_thread(self, thread_id: str) -> None:
-        self.conn.execute("DELETE FROM checkpoints WHERE thread_id = ?", (thread_id,))
-        self.conn.execute("DELETE FROM blobs WHERE thread_id = ?", (thread_id,))
-        self.conn.execute("DELETE FROM writes WHERE thread_id = ?", (thread_id,))
-        self.conn.commit()
+        with self._lock:
+            self.conn.execute("DELETE FROM checkpoints WHERE thread_id = ?", (thread_id,))
+            self.conn.execute("DELETE FROM blobs WHERE thread_id = ?", (thread_id,))
+            self.conn.execute("DELETE FROM writes WHERE thread_id = ?", (thread_id,))
+            self.conn.commit()
 
     def _load_writes(
         self,
@@ -279,13 +290,14 @@ class SqliteSaver(BaseCheckpointSaver[str]):
         checkpoint_ns: str,
         checkpoint_id: str,
     ) -> list[tuple[str, str, tuple[str, bytes]]]:
-        rows = self.conn.execute(
-            """
+        with self._lock:
+            rows = self.conn.execute(
+                """
             SELECT task_id, channel, value_type, value_blob
             FROM writes
             WHERE thread_id = ? AND checkpoint_ns = ? AND checkpoint_id = ?
             ORDER BY write_idx
             """,
             (thread_id, checkpoint_ns, checkpoint_id),
-        ).fetchall()
+            ).fetchall()
         return [(row["task_id"], row["channel"], (row["value_type"], row["value_blob"])) for row in rows]

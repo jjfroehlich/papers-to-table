@@ -116,6 +116,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
             base_url=config.provider.base_url,
             api_key=config.provider.api_key,
             model=config.provider.model_extract,
+            max_prompt_chars=config.provider.max_prompt_chars,
             mock_mode=config.provider.mock_mode,
             mock_payloads=mock_payloads,
         )
@@ -125,6 +126,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
             base_url=config.provider.base_url,
             api_key=config.provider.api_key,
             model=config.provider.model_query_helper,
+            max_prompt_chars=config.provider.max_prompt_chars,
             mock_mode=config.provider.mock_mode,
             mock_payloads=mock_payloads,
         )
