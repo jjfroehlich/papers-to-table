@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -138,6 +138,14 @@ def _pick_pdf_folder() -> None:
         st.session_state["manual_pdf_folder"] = str(selected)
 
 
+def _use_known_table(selected: str) -> None:
+    st.session_state["manual_table_path"] = selected
+
+
+def _use_known_pdf_folder(selected: str) -> None:
+    st.session_state["manual_pdf_folder"] = selected
+
+
 def _persist_upload(upload: Any, folder: Path) -> Path | None:
     if not upload:
         return None
@@ -171,7 +179,13 @@ def _refresh_model_registry() -> None:
     st.session_state["model_registry_loaded"] = True
 
 
-def _select_model(label: str, current: str | None, available: list[str], help_text: str | None = None) -> str:
+def _select_model(
+    label: str,
+    current: str | None,
+    available: list[str],
+    help_text: str | None = None,
+    key: str | None = None,
+) -> str:
     if available:
         if current and current in available:
             index = available.index(current)
@@ -179,8 +193,8 @@ def _select_model(label: str, current: str | None, available: list[str], help_te
             index = 0
             if current:
                 st.warning(f"{label} '{current}' not found in LM Studio model list.")
-        return st.selectbox(label, available, index=index, help=help_text)
-    return st.text_input(label, value=current or "", help=help_text)
+        return st.selectbox(label, available, index=index, help=help_text, key=key)
+    return st.text_input(label, value=current or "", help=help_text, key=key)
 
 
 def _build_embedding_client(
@@ -497,9 +511,11 @@ with run_tab:
                 "Known tables",
                 options=[str(path) for path in tables],
             )
-            if st.button("Use selected table"):
-                st.session_state["manual_table_path"] = known_table
-                table_path = Path(known_table)
+            st.button(
+                "Use selected table",
+                on_click=_use_known_table,
+                args=(known_table,),
+            )
 
         if table_path and table_path.exists():
             st.caption(f"Selected: {table_path.name} (last modified {_format_time(table_path.stat().st_mtime)})")
@@ -518,9 +534,11 @@ with run_tab:
                 "Known PDF folders",
                 options=[str(path) for path in pdf_folders],
             )
-            if st.button("Use selected PDF folder"):
-                st.session_state["manual_pdf_folder"] = known_pdf
-                pdf_folder = Path(known_pdf)
+            st.button(
+                "Use selected PDF folder",
+                on_click=_use_known_pdf_folder,
+                args=(known_pdf,),
+            )
         manual_pdf_folder = st.session_state.get("manual_pdf_folder", "").strip()
         pdf_folder = Path(manual_pdf_folder) if manual_pdf_folder else None
 
@@ -577,7 +595,7 @@ with run_tab:
         st.markdown("**Run name**")
         if "run_name" not in st.session_state:
             fallback = table_path.stem if table_path else "new-run"
-            st.session_state["run_name"] = f"{fallback}-{datetime.utcnow().strftime('%Y%m%d')}"
+            st.session_state["run_name"] = f"{fallback}-{datetime.now(timezone.utc).strftime('%Y%m%d')}"
         st.text_input("Run name", key="run_name")
 
         st.markdown("**Mode**")
@@ -598,22 +616,34 @@ with run_tab:
         backend_options = ["tfidf", "lmstudio"]
         embed_index = backend_options.index(settings["embedding_backend"]) if settings["embedding_backend"] in backend_options else 0
         rerank_index = backend_options.index(settings["reranker_backend"]) if settings["reranker_backend"] in backend_options else 0
-        embedding_backend = st.selectbox("Embedding backend", backend_options, index=embed_index)
+        embedding_backend = st.selectbox(
+            "Embedding backend",
+            backend_options,
+            index=embed_index,
+            key="run-embedding-backend",
+        )
         embedding_model = None
         if embedding_backend == "lmstudio":
             embedding_model = _select_model(
                 "Embedding model",
                 settings.get("embedding_model"),
                 available_models,
+                key="run-embedding-model",
             )
 
-        reranker_backend = st.selectbox("Reranker backend", backend_options, index=rerank_index)
+        reranker_backend = st.selectbox(
+            "Reranker backend",
+            backend_options,
+            index=rerank_index,
+            key="run-reranker-backend",
+        )
         reranker_model = None
         if reranker_backend == "lmstudio":
             reranker_model = _select_model(
                 "Reranker model",
                 settings.get("reranker_model"),
                 available_models,
+                key="run-reranker-model",
             )
 
         st.markdown("**Retrieval strength**")

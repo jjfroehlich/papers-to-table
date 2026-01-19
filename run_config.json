@@ -44,10 +44,10 @@
     "use_query_expansion": true,
     "use_hyde": true,
     "rrf_k": 60,
-    "embedding_backend": "tfidf",
-    "embedding_model": null,
-    "reranker_backend": "tfidf",
-    "reranker_model": null,
+    "embedding_backend": "lmstudio",
+    "embedding_model": "text-embedding-nomic-embed-text-v1.5-embedding",
+    "reranker_backend": "lmstudio",
+    "reranker_model": "bge-small-en-v1.5-gguf",
     "use_reranker": true
   },
   "ocr": {
