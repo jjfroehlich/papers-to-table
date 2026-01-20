@@ -1,55 +1,70 @@
-# plan.md — Paper Table Agent (v0.5)
+# plan.md — Paper Table Agent (v0.6)
 
-UI/UX iteration focused on lower friction, faster review, explicit evidence handling, and LM Studio model-aware configuration.
+Unified functional + UI/UX plan that prioritizes accurate extraction with evidence and a streamlined row-review experience.
 
 ## 1) Purpose
 
-Deliver the v0.5 UI experience with Run/Review/Advanced/Settings/Help tabs, persistent session state, optimized review flow, and run-config-aligned model selection.
+Deliver a single cohesive system that:
+- Accurately matches PDFs to rows and extracts evidence-backed proposals.
+- Persists proposals and evidence for reliable review.
+- Provides a fast, low-friction UI for review and diagnostics.
 
 ---
 
 ## 2) Guiding principles
 
-1. **Click-first UI**: prefer dropdowns and pickers over free text.
-2. **Trust by default**: show evidence + highlight status for every proposal.
-3. **Fast review loop**: stepper, auto-advance, row navigation.
-4. **Large-run safe**: lazy-load proposals per row; avoid rendering huge tables.
-5. **Never lose state**: decisions written immediately; selections stored in session state.
+1. **Accuracy first**: evidence-backed values are mandatory.
+2. **Deterministic where possible**: deterministic matching before LLM adjudication.
+3. **Local-first & resumable**: checkpointing and cached artifacts for reliability.
+4. **Fast review**: stepper + auto-advance + minimal typing.
+5. **Large-run safe**: lazy-load, avoid massive table renders.
 
 ---
 
 ## 3) Implementation milestones
 
-### Milestone P0 — Run + Settings UX
+### Milestone P0 — Spec + data contracts
 
-- Replace table upload with path + browse selection in Run config.
-- Add model registry refresh and LM Studio-aware model dropdowns.
-- Align Run/Settings model options to run_config.json (including embedding/reranker backends/models).
-- Ensure run execution status is shown after a run starts and visually separated from configuration.
+- Consolidate unified spec and update plan/tasks.
+- Align proposal schema + evidence requirements with DB persistence.
+- Confirm run outputs and artifact layout.
 
-### Milestone P1 — Review UX overhaul
+### Milestone P1 — Matching + extraction accuracy
 
-- Two-panel review layout with row context and proposal stepper.
-- Filters (status/confidence/columns/search), row navigation, completion indicators.
-- Evidence list with highlight status, re-locate action, OCR notes.
-- Auto-advance decisions and notes.
+- Two-pass matching with deterministic margin rule and LLM adjudication fallback.
+- Duplicate detection + mapping report.
+- Evidence-first extraction with needs_more_evidence rules.
+- OCR fallback and highlight locator caching.
 
-### Milestone P2 — Advanced + Help
+### Milestone P2 — Retrieval + parsing upgrades
 
-- Matching diagnostics + retrieval diagnostics.
-- Evidence locator tool.
-- Help/Troubleshooting content.
+- Per-PDF micro-index with hybrid retrieval and reranking.
+- Multi-query + HyDE retrieval for high recall.
+- Optional GROBID + table extraction integration.
+
+### Milestone P3 — Review UI overhaul
+
+- Two-panel row review layout with stepper, filters, row navigation.
+- Evidence list + PDF highlights + relocate flow.
+- Immediate persistence of decisions and review state.
+
+### Milestone P4 — Advanced + Settings + Help
+
+- Matching/retrieval diagnostics and evidence locator.
+- Provider/model routing and performance controls.
+- Troubleshooting guide and onboarding steps.
 
 ---
 
 ## 4) Testing strategy
 
-- UI smoke: run tab renders, review tab shows proposals, evidence viewer renders.
-- Manual verification: decisions write immediately to DB and survive refresh.
+- Unit tests for matching logic and proposal persistence.
+- Integration tests for retrieval paths (dense + rerank enabled).
+- UI smoke checks: run tab, review stepper, evidence rendering.
 
 ---
 
 ## 5) Documentation updates
 
-- README updated with new UI workflow and settings.
-- CHANGELOG updated for user-facing UI changes.
+- README updated for workflow changes and model configuration.
+- CHANGELOG updated only for shipped user-facing changes.

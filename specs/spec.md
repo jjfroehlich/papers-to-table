@@ -1,248 +1,380 @@
-# Spec: Paper Table Agent — UI/UX Iteration (v0.5)
+# Spec: Paper Table Agent — Unified Functional + UI/UX Spec (v0.6)
 
-This v0.5 spec updates the UI/UX to minimize friction, accelerate review, and make evidence trustworthiness explicit while keeping the app responsive for large runs. It also aligns model selection with run configuration and available LM Studio models.
+This unified spec consolidates the best functional requirements from earlier versions with the latest UI/UX iteration. It prioritizes **accurate extraction with evidence** while keeping the app **fast, logical, and user-friendly** during row-by-row review.
 
 ---
 
 ## 0) Goals
 
-- **Minimize user friction**: click/select instead of typing.
-- **Optimize review**: fast, focused, low cognitive load.
-- **Trustworthy proposals**: every proposal shows evidence + source + highlight and failure states are explicit.
-- **Responsive on large runs**: avoid rendering huge tables, lazy-load row proposals, persist decisions immediately.
+- **High extraction accuracy**: prioritize evidence-backed values for most cells.
+- **Trustworthy proposals**: every proposal is traceable to page + quote + highlight (or clearly marked as weak/uncertain).
+- **Low-friction review**: row-by-row decisions with fast navigation and minimal typing.
+- **Local-first reliability**: resumable batch runs, deterministic pipelines, and durable storage.
+- **Scalable UI**: responsive even for large runs with thousands of rows/proposals.
 
 ---
 
-## 1) Global UI principles
+## 1) What we’re building
 
-- Two-level navigation: **Run | Review | Advanced | Settings | Help**.
-- Consistent layout:
-  - Top: app title + selected run indicator + status chip.
-  - Left: navigation + context selectors (run, row, PDF).
-  - Main: working panels.
-- Every screen supports:
-  - Back/forward actions without losing state.
-  - Persistent selection stored in session state (selected run, row, proposal index).
-  - No hard failures: missing data shows clear empty states.
+A local-first app that:
 
----
-
-## 2) Run tab (Batch execution)
-
-### 2.1 Run configuration panel (left)
-
-Required controls (click/select):
-
-- **Table input**: path input with “browse” helper, show filename + last modified.
-- **PDF folder**: path input with “browse” helper.
-- **Schema source**: dropdown:
-  - Use schema sheet from XLSX (default)
-  - Select separate schema XLSX (optional)
-- **Run name**: auto-generated, editable.
-- **Mode**: toggle
-  - Propose (default)
-  - Verify-only (optional)
-- **Locked cells policy**: read-only display (non-empty except " " locked).
-- **Models**: dropdowns for
-  - LLM for extraction
-  - Embedding backend + model (when LM Studio embeddings are enabled)
-  - Reranker backend + model (when LM Studio reranking is enabled)
-- **Retrieval strength**: preset
-  - Fast | Balanced | Thorough
-- **OCR fallback**: checkbox (off by default)
-- **GROBID**: checkbox (off by default) + URL field if enabled
-
-Validation UX:
-- Required fields show green check / red warning.
-- **Start run** disabled until minimum fields are valid.
-
-### 2.2 Run execution panel (main)
-
-- Progress display (visible after a run starts):
-  - overall progress bar
-  - current step label (parse → match → index → extract)
-  - current PDF filename
-- Live logs (collapsible, visible after a run starts):
-  - recent events
-  - filter toggles: errors only, warnings, info
-- Run actions:
-  - Pause (graceful checkpoint)
-  - Resume
-  - Stop (graceful, keeps partial results)
-- Completion summary card (visible after a run starts):
-  - matched / ambiguous / unmatched PDFs
-  - proposals generated count
-  - needs_more_evidence count
-  - run duration
-  - Button: **Go to Review** (run selected)
-- Post-run output visibility:
-  - Show artifacts path `runs/<run_id>/...`
-  - “Copy path” helper
+1. **Ingests a table** (XLSX/CSV), where each row is one publication (title/authors/year are required columns).
+2. **Ingests a folder of PDFs** (filenames are unreliable).
+3. **Extracts title/authors/year** from each PDF and matches it to a row via two-pass matching.
+4. **Extracts missing values** for schema-defined columns into **proposals** (never edits the original table during a run).
+5. Attaches **evidence** (quote + page + highlight rectangles) to proposals; weak evidence is flagged.
+6. Provides **post-run row-by-row review** with Accept / Accept-with-edit / Reject decisions.
+7. Exports an updated table copy + audit logs + mapping reports.
 
 ---
 
-## 3) Review tab (Optimized human review)
+## 2) Inputs & outputs
 
-### 3.1 High-level structure
+### 2.1 Inputs
 
-- Two-panel layout:
-  - **Left panel**: row context + proposal stepper + decisions
-  - **Right panel**: PDF viewer + evidence list
+- **Table**: XLSX preferred; CSV supported.
+- **Schema sheet** (within XLSX or separate file):
+  - `column_name`
+  - `description`
+  - optional `group`, `priority`
+  - optional `evidence_required` (default true)
+  - optional `empty_values` (default includes `""`, `"NA"`, `"N/A"`, `"null"`, `"-"`, `" "`)
+- **PDF folder**: user-provided; PDFs only.
 
-### 3.2 Top bar (always visible)
+### 2.2 Outputs (per run)
 
-- Run selector dropdown (completed runs only)
-- Filters:
-  - Status: proposed | unclear | needs_more_evidence | accepted | rejected
-  - Confidence range slider
-  - Columns (multi-select)
-- Search field:
-  - search within column names + proposed values + evidence quote
-- Row navigation:
-  - Prev row / Next row
-  - Row index jump
-  - “Row X of Y” + fully reviewed indicator
+```
+runs/
+  <timestamp>__<table_name>/
+    run_config.json
+    proposals.sqlite
+    exports/
+      updated_table.xlsx
+      audit_log.csv
+      pdf_row_matches.csv
+      proposals.jsonl
+      mapping_report.html
+    artifacts/
+      parsed/
+        <pdf_id>.json
+      ocr/
+        <pdf_id>/...
+      retrieval_indexes/
+        <pdf_id>/...
+      thumbnails/
+    logs/
+      run.log
+      errors.jsonl
+```
 
-### 3.3 Row context card (left, top)
+---
 
-- Displays locked cells relevant to understanding the row:
-  - Title, Authors, Year (always)
-  - Optional “key columns” from schema
-- Mapping status + confidence:
-  - matched row + PDF metadata side-by-side
-  - if ambiguous: show top candidates with mapping action (if allowed)
+## 3) Core policies
 
-### 3.4 Proposal stepper (left, middle)
+### 3.1 Locking (default)
 
-- Shows one proposal at a time for the selected row.
-- Buttons: Prev / Next
-- Keyboard shortcuts (optional):
-  - A accept
-  - E accept+edit
-  - R reject
-  - ←/→ stepper navigation
+- Any cell is **locked** if it is non-empty and not exactly `" "` (single space).
+- Locked cells are never overwritten during extraction.
 
-Proposal card contents:
-- Column name (large)
-- Current table value (read-only)
-- Proposed value (editable only when “accept+edit”)
-- Status chips:
-  - proposed / unclear / needs_more_evidence
-  - confidence (numeric)
-- Evidence summary:
-  - page number(s)
-  - short quote snippet(s)
-  - highlight status: highlighted | not found | ocr-only
+### 3.2 Verify-only mode (optional)
 
-### 3.5 Decision controls (left, bottom)
+- Locked cells are not changed, but the system produces **verification items**:
+  - status: `supports | contradicts | unclear`
+  - evidence quote(s) + page + highlight
+  - rationale (short)
+- Verification results are reviewed alongside proposals, row-by-row.
 
-Exactly three decisions:
-- **Accept** → accepted_value = proposed_value
-- **Accept with edit** → accepts edited text as accepted_value
-- **Reject** → sets rejected; cell stays empty in export
+### 3.3 Values as text
 
-Additional UI:
-- “Add note” textarea
-- “Mark as Needs more evidence” toggle
-  - allowed if highlight missing or evidence weak
-  - does not accept; tags for rerun targeting
-- Auto-advance to next proposal (default on, toggleable)
+- All proposals stored and exported as **text**, even if numeric.
 
-### 3.6 PDF panel (right)
+### 3.4 Evidence requirement (P0)
 
-Split into:
-- **PDF viewer**
-- **Evidence list**
+- **No proposed value without quote + page.**
+- If evidence is missing or cannot be located, mark as `unclear` and `needs_more_evidence=true`.
+- Every column in the target group produces a proposal record (even `unclear`/`no_evidence`).
 
-PDF viewer requirements:
-- Shows cited page by default.
-- Highlights rectangles if available.
-- Click evidence entry to jump/highlight.
+---
 
-Evidence list requirements:
-- Each entry shows:
+## 4) Matching PDF → Row (two-pass, deterministic-first)
+
+### 4.1 Header extraction
+
+- Extract title, full author list, and year from PDF content.
+- Evidence includes quote + page for title/authors.
+- Parsing uses structured extraction first; LLMs interpret but do not guess.
+
+### 4.2 Two-pass matching
+
+**Pass 1 — deterministic shortlist**
+
+- RapidFuzz title similarity + author last-name overlap score.
+- Year is optional, used as a small tie-breaker bonus (±1 tolerance).
+- Deterministic rule: if the top candidate is above threshold **by margin** and unique → `matched` without LLM.
+
+**Pass 2 — LLM adjudication (only when needed)**
+
+- Input: extracted metadata + evidence + candidate rows.
+- Output (strict JSON):
+  - `status`: `matched | ambiguous | unmatched`
+  - `row_id` when matched
+  - `top_candidates[]` (row_id, title, authors, year, score)
+  - confidence + evidence notes
+- LLM output is validated; one repair retry permitted.
+
+### 4.3 1-to-1 enforcement + duplicate detection
+
+- Default assumption: one PDF ↔ one row.
+- If multiple PDFs match the same row:
+  - keep highest-confidence assignment
+  - flag others as duplicates
+  - surface in mapping report + review UI
+- If ambiguous:
+  - store `needs_review` mapping
+  - extraction may proceed but proposals are `mapping_dependent`.
+
+### 4.4 Mapping report
+
+- PDFs processed / matched / ambiguous / unmatched.
+- Duplicates detected.
+- For each PDF: extracted metadata vs row metadata, confidence, evidence snippets, candidate table.
+
+---
+
+## 5) Extraction → proposals (missing cells only)
+
+### 5.1 Column grouping
+
+Split schema columns into groups (configurable) to improve extraction quality, e.g.:
+- Identity & system
+- Perturbation / intervention
+- Methods
+- Data types & readouts
+- Quantitative results
+- Notes / limitations
+
+### 5.2 Proposal record
+
+For each (row_id, column):
+
+- proposed_value (text or null)
+- status: `found | inferred | not_found` (or `supports | contradicts | unclear` for verify)
+- confidence (0–1)
+- evidence[]:
+  - quote (short)
   - page number
-  - quote
-  - “Go to location”
-  - if highlight failed: “Try re-locate” (local search)
-- If OCR enabled: show OCR confidence (if available) and note that highlight may be approximate.
+  - locator_hint (substring)
+  - highlight rectangles (bbox) when available
+- needs_more_evidence (boolean)
+- mapping_dependent (boolean)
+- rationale (short; required for inferred/derived)
 
-### 3.7 Completion indicators
+### 5.3 Needs-more-evidence rules
 
-- Row completion: % decided; optional “Mark row complete”.
-- Run completion: overall % decided; **Export updated table** enabled only after confirmation.
-
----
-
-## 4) Advanced tab (Debuggable but usable)
-
-Selectors (dropdown/multi-select):
-- Run selector
-- PDF selector
-- Row selector
-- Column selector
-- Retrieval query selector
-
-Panels:
-- **Matching diagnostics**: candidate table with component scores.
-- **Retrieval diagnostics**: top chunks with BM25/dense/fused/rerank scores + source page.
-- **LLM I/O**: prompt template name + parameters, JSON output, validation errors.
-- **Evidence locator**: input quote + page, output rectangles + preview.
+Flag if:
+- quote is indirect/ambiguous
+- highlight cannot be located
+- value is derived but support is weak
 
 ---
 
-## 5) Settings tab (Models, providers, performance)
+## 6) Parsing + retrieval pipeline (best-practice, accuracy-first)
 
-Provider selection:
-- Local: LM Studio | Ollama
-- Cloud: OpenAI-compatible URL + API key (masked)
+### 6.1 Parsing layers
 
-Model routing (LM Studio lists only the models that are available):
+- **GROBID (optional)**: structured header + sections + references.
+- **Layout-aware tokens**: pdfplumber words with coordinates for robust highlighting.
+- **PyMuPDF**: page text + `search_for()` for fast substring search.
+- **Table extraction (optional)**: Unstructured `partition_pdf` with table inference; fallback Camelot/Tabula where available.
+
+### 6.2 Indexing strategy
+
+- Build a **per-PDF micro-index** with multi-granularity chunks:
+  - token/line-level
+  - paragraph
+  - section
+  - optional hierarchical summaries
+
+### 6.3 Hybrid retrieval backbone
+
+- **Sparse**: BM25
+- **Dense**: multi-function embeddings (e.g., BGE-M3)
+- **Reranker**: cross-encoder reranking over top-N
+
+### 6.4 Query-time retrieval (max success rate)
+
+- Multi-query expansion (RAG-Fusion).
+- HyDE retrieval for semantic alignment.
+- Hybrid union + rerank to final top M.
+- Add context neighborhood to preserve adjacency.
+- Evidence-first extraction: LLM can only propose values tied to retrieved chunks.
+
+### 6.5 Hierarchical retrieval (optional “max recall” mode)
+
+- RAPTOR-style clustering + recursive summaries when PDFs are long or low-confidence.
+
+### 6.6 OCR fallback
+
+- If extraction fails or PDF is scanned:
+  - Unstructured `strategy="hi_res"` + OCR.
+  - OCR-derived proposals are flagged.
+
+---
+
+## 7) LangGraph orchestration
+
+Nodes:
+
+`load_table → parse_pdf → extract_header → match_row → build_index → extract_group(s) → persist_results → finalize`
+
+- Checkpoint after each PDF and each group extraction.
+- LLM calls use strict JSON validation + one repair retry.
+
+---
+
+## 8) Model/provider abstraction (local-first, cloud optional)
+
+- OpenAI-compatible provider interface for all LLM calls.
+- Local providers: **LM Studio**, **Ollama**.
+- Cloud providers: any OpenAI-compatible endpoint.
+
+Model roles:
 - Header extraction model
 - Match adjudication model
 - Extraction model
-- Query expansion model (optional)
+- Query expansion / HyDE model
 - Embedding backend + model
 - Reranker backend + model
 
-Performance controls:
-- Concurrency (PDFs in parallel)
-- Retry counts (JSON repair retries = 1 recommended)
-- Cache toggle (embeddings, parsed pages)
+---
+
+## 9) UI/UX requirements
+
+### 9.1 Global UI principles
+
+- Navigation: **Run | Review | Advanced | Settings | Help**.
+- Layout:
+  - Top bar: app title + selected run + status chip.
+  - Left rail: navigation + context selectors.
+  - Main: working panels.
+- Persistent session state for selected run/row/proposal index.
+- Clear empty states and no hard failures.
+
+### 9.2 Run tab (batch execution)
+
+**Run configuration panel**
+
+- Table input path with browse helper (show filename + last modified).
+- PDF folder path with browse helper.
+- Schema source: use schema sheet or separate schema file.
+- Run name: auto-generated, editable.
+- Mode: Propose (default) or Verify-only.
+- Locked cells policy: read-only display.
+- Model dropdowns: extraction LLM + embedding backend/model + reranker backend/model.
+- Retrieval strength: Fast | Balanced | Thorough.
+- OCR fallback toggle (off by default).
+- GROBID toggle + URL.
+
+**Validation UX**
+
+- Required fields show green check / red warning.
+- Start run disabled until minimum fields are valid.
+
+**Run execution panel**
+
+- Progress: overall bar, step label, current PDF.
+- Live logs: filter by errors/warnings/info.
+- Actions: Pause, Resume, Stop (graceful, keep partial results).
+- Completion summary: matched/ambiguous/unmatched counts, proposals count, needs_more_evidence count, run duration, “Go to Review”.
+- Artifacts path with “Copy path”.
+
+### 9.3 Review tab (row-by-row)
+
+**Top bar**
+
+- Run selector (completed runs only).
+- Filters: status, confidence range, columns (multi-select).
+- Search: column names + proposed values + evidence quote.
+- Row navigation: Prev/Next, jump, “Row X of Y”.
+
+**Left panel**
+
+- Row context card: Title/Authors/Year + key schema columns.
+- Mapping status: matched row + PDF metadata side-by-side; candidates if ambiguous.
+- Proposal stepper: Prev/Next + optional keyboard shortcuts.
+- Proposal card: column name, current value, proposed value (editable on accept+edit), status chips, evidence summary.
+- Decision controls: Accept / Accept-with-edit / Reject.
+- Add note + Needs-more-evidence toggle.
+- Auto-advance (default on).
+
+**Right panel**
+
+- PDF viewer shows cited page and highlights evidence rectangles when available.
+- Evidence list: quote, page, “Go to location”, “Try re-locate” when highlight fails.
+- OCR confidence shown when applicable.
+
+**Completion**
+
+- Row completion % + “Mark row complete”.
+- Run completion % + “Export updated table” gated by confirmation.
+
+### 9.4 Advanced tab
+
+- Dropdown selectors: run, PDF, row, column, retrieval query.
+- Panels: matching diagnostics, retrieval diagnostics, LLM I/O, evidence locator.
+
+### 9.5 Settings tab
+
+- Provider selection: LM Studio | Ollama | OpenAI-compatible cloud.
+- Model routing: header extraction, match adjudication, extraction, query expansion, embedding backend/model, reranker backend/model.
+- Performance: concurrency, JSON repair retries, caching toggles.
+
+### 9.6 Help / Troubleshooting
+
+- “How to get started in 3 steps”.
+- Common failure modes and checks.
+- Links to run folder, logs, DB.
 
 ---
 
-## 6) Help / Troubleshooting
-
-Required content:
-- “How to get started in 3 steps”
-- Common failure modes:
-  - No proposals appear → checks
-  - Highlight missing → locator rules
-  - Ambiguous mapping → resolve guidance
-- Link to run folder + logs + DB
-
----
-
-## 7) Non-functional UI requirements
+## 10) Non-functional requirements
 
 - Handles large runs:
-  - Lazy-load proposals per row
-  - Avoid rendering huge tables
-- Persist UI state across tab switches.
-- Never lose review decisions on refresh (write to DB immediately).
-- Good defaults:
-  - Filters default to show proposed first, hide unclear unless toggled
-  - Auto-advance enabled
-  - Review order: rows with highest count of proposed values → needs_more_evidence → unclear
+  - Lazy-load proposals per row.
+  - Avoid rendering huge tables.
+- Never lose decisions: persist to DB immediately.
+- Back/forward navigation without losing state.
+- Error-resilient: clear empty states, no hard crashes.
 
 ---
 
-## 8) Definition of done
+## 11) Export & audit
 
-- UI implements Run/Review/Advanced/Settings/Help layout with persistent session state.
-- Run tab validates required inputs and disables Start until valid.
-- Review tab supports row-by-row stepper, filters, PDF highlight panel, decisions stored immediately.
-- Advanced tab exposes matching + retrieval diagnostics and evidence locator.
-- Settings tab supports provider/model routing/performance controls.
-- README updated to reflect UI and workflow changes.
+Exports:
+- updated_table.xlsx (apply accepted/revised only)
+- audit_log.csv (proposal → decision lineage)
+- pdf_row_matches.csv (mapping + confidence + duplicates)
+- mapping_report.html
+
+Audit log includes:
+- run_id
+- pdf_id, row_id
+- column
+- old_value
+- proposed_value
+- evidence (quote/page)
+- decision + final_value
+- timestamps
+
+---
+
+## 12) Definition of done
+
+- Two-pass matching works when year is missing; duplicates flagged.
+- Every proposal has evidence or is clearly marked unclear/needs_more_evidence.
+- Proposals are persisted per-column and visible in Review.
+- Review UI supports stepper, filters, PDF highlights, immediate persistence.
+- Advanced tab exposes matching/retrieval/LLM diagnostics.
+- Settings tab supports provider/model routing + performance controls.
+- Help tab includes onboarding + troubleshooting.
+- README updated to reflect new workflow and configuration.
