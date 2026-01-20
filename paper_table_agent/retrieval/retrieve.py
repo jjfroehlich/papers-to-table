@@ -37,18 +37,25 @@ def retrieve(
     query: str,
     top_k: int = 8,
     embedder: EmbeddingClient | None = None,
+    use_dense: bool = True,
 ) -> list[RetrievedChunk]:
     bm25_scores = index.bm25.get_scores(query.split())
-    if index.embedding_backend == "tfidf":
-        if index.vectorizer is None:
-            raise ValueError("Missing vectorizer for tfidf retrieval.")
-        query_vec = index.vectorizer.transform([query]).toarray()
+    if use_dense:
+        if index.embedding_backend == "tfidf":
+            if index.vectorizer is None:
+                raise ValueError("Missing vectorizer for tfidf retrieval.")
+            query_vec = index.vectorizer.transform([query]).toarray()
+        else:
+            if embedder is None:
+                raise ValueError("Embedding client required for LM Studio retrieval.")
+            query_vec = embedder.embed_texts([query])
+        dense_scores = cosine_similarity(query_vec, index.embeddings)[0]
     else:
-        if embedder is None:
-            raise ValueError("Embedding client required for LM Studio retrieval.")
-        query_vec = embedder.embed_texts([query])
-    dense_scores = cosine_similarity(query_vec, index.embeddings)[0]
-    combined = 0.5 * np.array(bm25_scores) + 0.5 * np.array(dense_scores)
+        dense_scores = np.zeros(len(bm25_scores))
+    if use_dense:
+        combined = 0.5 * np.array(bm25_scores) + 0.5 * np.array(dense_scores)
+    else:
+        combined = np.array(bm25_scores)
     top_indices = combined.argsort()[-top_k:][::-1]
     results: list[RetrievedChunk] = []
     for idx in top_indices:

@@ -13,7 +13,16 @@ def test_apply_evidence_rules_rejects_missing_chunk_id():
         flags={},
         rationale="",
     )
-    _apply_evidence_rules(proposal, {"chunk-1": "42"})
+    _apply_evidence_rules(
+        proposal,
+        {
+            "chunk-1": {
+                "text": "42",
+                "page_start": 1,
+                "page_end": 1,
+            }
+        },
+    )
     assert proposal.status == "unclear"
     assert proposal.proposed_value is None
     assert "evidence_validation_errors" in proposal.flags
@@ -30,6 +39,16 @@ def test_apply_evidence_rules_accepts_valid_quote():
         flags={},
         rationale="",
     )
-    _apply_evidence_rules(proposal, {"chunk-1": "Value was 42 in the results."})
+    _apply_evidence_rules(
+        proposal,
+        {
+            "chunk-1": {
+                "text": "Value was 42 in the results.",
+                "page_start": 1,
+                "page_end": 1,
+            }
+        },
+    )
     assert proposal.status == "found"
     assert proposal.proposed_value == "42"
+    assert proposal.flags["validation_mode"] == "exact"

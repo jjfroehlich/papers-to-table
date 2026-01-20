@@ -624,9 +624,11 @@ def _ensure_retrieval_backends(config: RunConfig, logger: Any, store: Store) -> 
         store.record_event(
             "warning",
             "embedding_fallback",
-            {"backend": "lmstudio", "reason": "missing_model"},
+            {"backend": "lmstudio", "reason": "missing_model", "fallback_mode": "bm25_only"},
         )
         config.retrieval.embedding_backend = "tfidf"
+        config.retrieval.use_dense = False
+        config.retrieval.use_reranker = False
     if config.retrieval.use_reranker and config.retrieval.reranker_backend == "lmstudio" and not config.retrieval.reranker_model:
         logger.warning("reranker backend set to lmstudio without a model; disabling reranker")
         store.record_event(
@@ -680,6 +682,7 @@ def _build_retrieval_config(config: RunConfig) -> RetrievalConfig:
             use_hyde=False,
             rrf_k=retrieval.rrf_k,
             use_reranker=retrieval.use_reranker,
+            use_dense=retrieval.use_dense,
             embedding_backend=retrieval.embedding_backend,
             embedding_model=retrieval.embedding_model,
             reranker_backend=retrieval.reranker_backend,
@@ -695,6 +698,7 @@ def _build_retrieval_config(config: RunConfig) -> RetrievalConfig:
         use_hyde=retrieval.use_hyde,
         rrf_k=retrieval.rrf_k,
         use_reranker=retrieval.use_reranker,
+        use_dense=retrieval.use_dense,
         embedding_backend=retrieval.embedding_backend,
         embedding_model=retrieval.embedding_model,
         reranker_backend=retrieval.reranker_backend,

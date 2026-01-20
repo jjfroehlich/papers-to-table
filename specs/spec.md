@@ -49,6 +49,7 @@ runs/
     run_config.json
     proposals.sqlite
     run_report.json
+    run_bundle.zip
     exports/
       updated_table.xlsx
       audit_log.csv
@@ -83,7 +84,11 @@ runs/
   - status: `supports | contradicts | unclear`
   - evidence quote(s) + page + highlight
   - rationale (short)
-- Verification results are reviewed alongside proposals, row-by-row.
+- Verification results are reviewed alongside proposals, row-by-row, and shown as **Verify** items with the locked cell value displayed read-only.
+- Review decisions still use **exactly three actions** (Accept / Accept-with-edit / Reject):
+  - **Accept** confirms the model’s verification status (supports/contradicts/unclear) with no cell edits.
+  - **Accept-with-edit** allows overriding the verification status (supports/contradicts/unclear) and adding a note, while keeping the locked cell value unchanged.
+  - **Reject** marks the verification outcome as `unclear` and flags it for follow-up; locked cells are never edited.
 
 ### 3.3 Values as text
 
@@ -93,6 +98,11 @@ runs/
 
 - **No proposed value without quote + page + chunk_id.**
 - **Quote must be a verbatim substring of the referenced retrieved chunk** (chunk_id stored in DB).
+- Validation modes:
+  - `exact`: verbatim substring match.
+  - `normalized`: substring match after normalizing whitespace, hyphenation line breaks, and ligatures.
+- Persist `validation_mode` and `validation_reason` in the DB and summarize in run_report stats.
+- Each retrieved chunk stores a page range (page_start/page_end); **evidence.page must fall within the chunk range**, and locators operate on evidence.page.
 - If evidence is missing, invalid, or cannot be located, force `status=unclear` and `needs_more_evidence=true`.
 - Evidence validation errors are persisted (error_type, reason) with the proposal record.
 
@@ -103,7 +113,9 @@ runs/
 
 ### 3.6 Run diagnostics artifact (P0)
 
-- Each run writes a **run_report.json** (or run_bundle.zip) summarizing config, model routing, mapping stats, retrieval stats, extraction fill-rate, errors, and artifact paths.
+- Each run writes a **run_report.json** summarizing config, model routing, mapping stats, retrieval stats, extraction fill-rate, errors, and artifact paths.
+- `paper-table-agent bundle --run_dir <run_dir>` produces `run_bundle.zip` containing run_report, mapping report, logs, and exports.
+- run_report must include: fill rate, evidence validation pass rate, highlight success rate, ambiguous mapping rate, and per-column not_found rates.
 
 ---
 
@@ -171,7 +183,7 @@ Split schema columns into groups (configurable) to improve extraction quality, e
 ### 5.1.1 Prompting schema usage (P0)
 
 - Always include the **schema description per column** in prompts.
-- Include **1–3 existing non-empty values** as examples for each column (selection logic: first non-empty rows, capped per column).
+- Include **1–3 existing non-empty values** as examples for each column using a deterministic, representative selection (evenly spaced across non-empty rows, capped per column).
 - Include **row context** (Title/Authors/Year + key columns).
 
 ### 5.2 Proposal record
@@ -183,7 +195,7 @@ For each (row_id, column):
 - confidence (0–1)
 - evidence[]:
   - quote (short)
-  - page number
+  - page number (must be within chunk page range)
   - chunk_id (retrieved chunk reference)
   - locator_hint (substring)
   - highlight rectangles (bbox) when available
@@ -253,7 +265,7 @@ Flag if:
 - second-pass retry on unclear = **on** (extra_chunks=10)
 
 **Fallback behavior**
-- If embeddings or reranker are not configured, **fall back to BM25/TF-IDF** and disable reranking; log a warning and record in run_report.
+- If embeddings or reranker are not configured, fall back to **BM25-only + no rerank**; log a warning and record the fallback mode in run_report.
 
 ### 6.5 Hierarchical retrieval (optional “max recall” mode)
 
@@ -384,7 +396,7 @@ Decision rules:
 ### 9.4 Advanced tab
 
 - Dropdown selectors: run, PDF, row, column, retrieval query.
-- Panels: matching diagnostics, retrieval diagnostics, LLM I/O, evidence locator.
+- Panels: matching diagnostics, retrieval diagnostics, evidence locator. (LLM I/O can be added later.)
 
 ### 9.5 Settings tab
 
@@ -441,9 +453,11 @@ Audit log includes:
 - **Every column** persists a proposal record (even error/unclear/no_evidence).
 - Every proposal has evidence or is clearly marked unclear/needs_more_evidence.
 - Evidence validation enforces quote+page+chunk_id and substring match.
+- run_report includes fill rate, evidence validation pass rate, highlight success rate, ambiguous mapping rate, and per-column not_found rates.
 - Mapping report exists and includes side-by-side metadata + candidate table.
+- `paper-table-agent bundle --run_dir <run_dir>` produces `run_bundle.zip`.
 - Decisions persist immediately in Review.
-- Advanced tab exposes matching/retrieval/LLM diagnostics.
+- Advanced tab exposes matching/retrieval/evidence diagnostics.
 - Settings tab supports provider/model routing + performance controls.
 - Help tab includes onboarding + troubleshooting.
 - README updated to reflect workflow and configuration.

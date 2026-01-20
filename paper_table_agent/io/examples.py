@@ -17,10 +17,19 @@ def select_examples(
         if col not in dataframe.columns:
             continue
         non_empty = dataframe[~dataframe[col].isin(DEFAULT_EMPTY_VALUES)]
-        for _, row in non_empty.head(max_per_column).iterrows():
+        if non_empty.empty:
+            continue
+        indices = list(non_empty.index)
+        if len(indices) <= max_per_column:
+            selected = indices
+        else:
+            step = (len(indices) - 1) / max(1, max_per_column - 1)
+            selected = sorted({indices[int(round(i * step))] for i in range(max_per_column)})
+        for row_index in selected:
+            row = non_empty.loc[row_index]
             examples[col].append(
                 {
-                    "row_index": int(row.name),
+                    "row_index": int(row_index),
                     "value": str(row[col]),
                 }
             )

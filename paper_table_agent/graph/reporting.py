@@ -186,7 +186,10 @@ def write_run_report(store: Store, run_paths: Path | object) -> None:
     config_path = run_dir / "run_config.json"
     config_payload = json.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
     matches = [dict(row) for row in store.fetch_matches()]
-    proposals = [dict(row) for row in store.conn.execute("SELECT status, flags_json FROM proposals")]
+    proposals = [
+        dict(row)
+        for row in store.conn.execute("SELECT column, status, flags_json, evidence_json FROM proposals")
+    ]
     events = [dict(row) for row in store.conn.execute("SELECT level, event_type FROM events")]
     retrieval_chunks = [dict(row) for row in store.conn.execute("SELECT pdf_id FROM retrieval_chunks")]
     matched = sum(1 for row in matches if row.get("status") == "matched")
@@ -195,26 +198,87 @@ def write_run_report(store: Store, run_paths: Path | object) -> None:
     filled = sum(1 for row in proposals if row.get("status") in {"found", "inferred"})
     total = len(proposals)
     needs_more = 0
+    validation_total = 0
+    validation_passed = 0
+    validation_normalized = 0
+    validation_reasons: dict[str, int] = {}
+    highlight_attempts = 0
+    highlight_success = 0
+    not_found_by_column: dict[str, dict[str, float]] = {}
     for row in proposals:
         flags = json.loads(row.get("flags_json") or "{}")
+        evidence_items = json.loads(row.get("evidence_json") or "[]")
         if flags.get("needs_more_evidence"):
             needs_more += 1
+        mode = flags.get("validation_mode")
+        if mode:
+            validation_total += 1
+            if mode in {"exact", "normalized"}:
+                validation_passed += 1
+            if mode == "normalized":
+                validation_normalized += 1
+        reason = flags.get("validation_reason")
+        if reason:
+            validation_reasons[reason] = validation_reasons.get(reason, 0) + 1
+        for evidence in evidence_items:
+            status = evidence.get("highlight_status")
+            if status in {"highlighted", "not_found"}:
+                highlight_attempts += 1
+                if status == "highlighted":
+                    highlight_success += 1
+        column = row.get("column") or ""
+        if column:
+            not_found_by_column.setdefault(column, {"not_found": 0, "total": 0})
+            not_found_by_column[column]["total"] += 1
+            if row.get("status") == "not_found":
+                not_found_by_column[column]["not_found"] += 1
+    for column, stats in not_found_by_column.items():
+        total_for_column = stats["total"]
+        stats["rate"] = (stats["not_found"] / total_for_column) if total_for_column else 0.0
+    fallback_events = {
+        row["event_type"]: row["count"]
+        for row in store.conn.execute(
+            """
+            SELECT event_type, COUNT(*) as count
+            FROM events
+            WHERE event_type IN ('embedding_fallback', 'reranker_fallback')
+            GROUP BY event_type
+            """
+        )
+    }
+    fallback_mode = "bm25_only" if fallback_events.get("embedding_fallback") else None
     summary = {
         "mapping": {
             "matched": matched,
             "ambiguous": ambiguous,
             "unmatched": unmatched,
             "total": len(matches),
+            "ambiguous_rate": (ambiguous / len(matches)) if matches else 0.0,
         },
         "retrieval": {
             "config": config_payload.get("retrieval", {}),
             "chunk_count": len(retrieval_chunks),
+            "fallbacks": fallback_events,
+            "fallback_mode": fallback_mode,
         },
         "extraction": {
             "total_proposals": total,
             "filled": filled,
             "fill_rate": (filled / total) if total else 0.0,
             "needs_more_evidence": needs_more,
+            "evidence_validation": {
+                "total": validation_total,
+                "passed": validation_passed,
+                "pass_rate": (validation_passed / validation_total) if validation_total else 0.0,
+                "normalized_used": validation_normalized,
+                "reasons": validation_reasons,
+            },
+            "highlight": {
+                "attempted": highlight_attempts,
+                "success": highlight_success,
+                "success_rate": (highlight_success / highlight_attempts) if highlight_attempts else 0.0,
+            },
+            "not_found_by_column": not_found_by_column,
         },
         "errors": {
             "total_events": len(events),

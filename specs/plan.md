@@ -30,6 +30,20 @@ Phased implementation plan grounded in current repo state. Each phase includes m
 
 ---
 
+## Phase 1.5 — Spec consistency + verify semantics + evidence normalization
+
+**Focus**
+- Align verify-only review semantics with the three-decision rule.
+- Normalize evidence validation (exact vs normalized) and enforce chunk page ranges.
+- Ensure run_report metrics are comprehensive and logged.
+
+**Acceptance checks**
+- Verify-only review semantics are documented and map to Accept/Accept-with-edit/Reject.
+- Evidence validation supports exact vs normalized matching and enforces page-range checks.
+- run_report includes fill rate, evidence validation pass rate, highlight success rate, ambiguous mapping rate, and per-column not_found rates.
+
+---
+
 ## Phase 2 — Retrieval + prompting upgrades (“try hard”, multi-query, rerank) + metrics
 
 **Focus**
@@ -67,7 +81,7 @@ Phased implementation plan grounded in current repo state. Each phase includes m
 **Acceptance checks**
 - Review tab supports Accept/Accept-with-edit/Reject only.
 - Mapping diagnostics show side-by-side PDF metadata vs row metadata.
-- Advanced tab exposes matching/retrieval/LLM/evidence locator panels.
+- Advanced tab exposes matching/retrieval/evidence locator panels.
 
 ---
 

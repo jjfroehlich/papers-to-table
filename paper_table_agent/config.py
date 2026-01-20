@@ -50,6 +50,7 @@ class RetrievalConfig(BaseModel):
     use_query_expansion: bool = True
     use_hyde: bool = True
     rrf_k: int = 60
+    use_dense: bool = True
     embedding_backend: str = "tfidf"
     embedding_model: str | None = None
     reranker_backend: str = "tfidf"

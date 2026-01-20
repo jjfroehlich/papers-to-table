@@ -23,6 +23,7 @@ class RetrievalConfig:
     rrf_k: int = 60
     max_context_tokens: int = 1800
     use_reranker: bool = True
+    use_dense: bool = True
     embedding_backend: str = "tfidf"
     embedding_model: str | None = None
     reranker_backend: str = "tfidf"
@@ -76,14 +77,14 @@ def retrieve_context(
 
     runs: list[list[RetrievedChunk]] = []
     for q in queries:
-        results = retrieve(index, q, top_k=config.top_k, embedder=embedder)
+        results = retrieve(index, q, top_k=config.top_k, embedder=embedder, use_dense=config.use_dense)
         runs.append(results)
         debug["runs"].append({"query": q, "results": results})
 
     if config.use_hyde:
         passage = build_hypothetical_passage(helper_client, query)
         if passage:
-            hyde_results = retrieve(index, passage, top_k=config.top_k, embedder=embedder)
+            hyde_results = retrieve(index, passage, top_k=config.top_k, embedder=embedder, use_dense=config.use_dense)
             runs.append(hyde_results)
             debug["runs"].append({"query": "[HyDE]", "results": hyde_results})
 
