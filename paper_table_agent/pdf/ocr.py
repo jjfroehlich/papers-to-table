@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 
@@ -25,4 +26,6 @@ def run_ocr(path: Path, output_dir: Path) -> list[str]:
         pages.setdefault(page, []).append(element.text)
     page_text = ["\n".join(pages.get(idx + 1, [])) for idx in range(max(pages.keys(), default=0))]
     (output_dir / f"{path.stem}_ocr.txt").write_text("\n\n".join(page_text), encoding="utf-8")
+    meta = {"source": "unstructured", "page_count": len(page_text)}
+    (output_dir / f"{path.stem}_ocr_meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
     return page_text

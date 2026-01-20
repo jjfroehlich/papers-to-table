@@ -12,10 +12,11 @@ T = TypeVar("T", bound=BaseModel)
 
 
 class LlmJsonError(RuntimeError):
-    def __init__(self, message: str, prompt: str, response: str) -> None:
+    def __init__(self, message: str, prompt: str, response: str, repair_attempted: bool) -> None:
         super().__init__(message)
         self.prompt = prompt
         self.response = response
+        self.repair_attempted = repair_attempted
 
 
 @dataclass
@@ -53,6 +54,7 @@ class LlmClient:
             headers["Authorization"] = f"Bearer {self.config.api_key}"
         url = f"{self.config.base_url}/chat/completions"
         last_error: Exception | None = None
+        repair_attempted = False
         content = ""
         for attempt in range(self.config.max_retries + 1):
             payload = {
@@ -89,13 +91,19 @@ class LlmClient:
                 return schema.model_validate(parsed)
             except Exception as exc:  # noqa: BLE001
                 last_error = exc
+                repair_attempted = True
                 repair = self._repair_json(content, schema)
                 if repair is not None:
                     return repair
                 if attempt >= self.config.max_retries:
                     break
                 time.sleep(1 + attempt)
-        raise LlmJsonError(f"Failed to parse JSON after retries: {last_error}", prompt, content)
+        raise LlmJsonError(
+            f"Failed to parse JSON after retries: {last_error}",
+            prompt,
+            content,
+            repair_attempted,
+        )
 
     def _parse_json(self, content: str) -> Any:
         try:

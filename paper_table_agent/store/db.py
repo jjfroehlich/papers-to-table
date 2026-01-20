@@ -97,6 +97,33 @@ class Store:
         )
         self.conn.commit()
 
+    def insert_pdf_metadata(
+        self,
+        pdf_id: str,
+        title: str | None,
+        authors: list[str],
+        year: str | None,
+        evidence: list[dict[str, Any]],
+        confidence: float | None = None,
+    ) -> None:
+        self.conn.execute(
+            """
+            INSERT OR REPLACE INTO pdf_metadata
+            (pdf_id, title, authors, year, confidence, evidence_json, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                pdf_id,
+                title,
+                ", ".join(authors),
+                year,
+                confidence,
+                json.dumps(evidence),
+                datetime.utcnow().isoformat(),
+            ),
+        )
+        self.conn.commit()
+
     def insert_match_candidates(self, candidates: Iterable[dict[str, Any]]) -> None:
         payload = [
             (
@@ -120,6 +147,31 @@ class Store:
             INSERT OR REPLACE INTO match_candidates
             (candidate_id, pdf_id, row_id, score, title, authors, year, rank, source, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            payload,
+        )
+        self.conn.commit()
+
+    def insert_retrieval_chunks(self, pdf_id: str, chunks: Iterable[dict[str, Any]]) -> None:
+        payload = [
+            (
+                pdf_id,
+                chunk.get("chunk_id"),
+                chunk.get("text"),
+                chunk.get("page_start"),
+                chunk.get("page_end"),
+                chunk.get("source"),
+                datetime.utcnow().isoformat(),
+            )
+            for chunk in chunks
+        ]
+        if not payload:
+            return
+        self.conn.executemany(
+            """
+            INSERT OR REPLACE INTO retrieval_chunks
+            (pdf_id, chunk_id, text, page_start, page_end, source, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             payload,
         )
@@ -214,6 +266,9 @@ class Store:
 
     def fetch_match_candidates(self) -> list[sqlite3.Row]:
         return list(self.conn.execute("SELECT * FROM match_candidates"))
+
+    def fetch_pdf_metadata(self) -> list[sqlite3.Row]:
+        return list(self.conn.execute("SELECT * FROM pdf_metadata"))
 
     def fetch_reviews(self) -> dict[str, sqlite3.Row]:
         rows = self.conn.execute("SELECT * FROM reviews")

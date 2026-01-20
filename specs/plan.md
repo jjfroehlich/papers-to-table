@@ -1,70 +1,82 @@
-# plan.md — Paper Table Agent (v0.6)
+# plan.md — Paper Table Agent (forever spec execution plan)
 
-Unified functional + UI/UX plan that prioritizes accurate extraction with evidence and a streamlined row-review experience.
+Phased implementation plan grounded in current repo state. Each phase includes measurable acceptance checks.
 
-## 1) Purpose
+## Phase 0 — Packaging/install + tests + smoke run
 
-Deliver a single cohesive system that:
-- Accurately matches PDFs to rows and extracts evidence-backed proposals.
-- Persists proposals and evidence for reliable review.
-- Provides a fast, low-friction UI for review and diagnostics.
+**Focus**
+- Validate installability, test harness, and CLI/UI entrypoints.
 
----
-
-## 2) Guiding principles
-
-1. **Accuracy first**: evidence-backed values are mandatory.
-2. **Deterministic where possible**: deterministic matching before LLM adjudication.
-3. **Local-first & resumable**: checkpointing and cached artifacts for reliability.
-4. **Fast review**: stepper + auto-advance + minimal typing.
-5. **Large-run safe**: lazy-load, avoid massive table renders.
+**Acceptance checks**
+- `pip install -e ".[test]"` succeeds.
+- `pytest -q` passes.
+- `paper-table-agent ui` launches Streamlit without crashing.
+- `paper-table-agent run --config run_config.json` completes and writes a run folder.
 
 ---
 
-## 3) Implementation milestones
+## Phase 1 — Correctness regressions (matching consistency, evidence validation, proposal persistence)
 
-### Milestone P0 — Spec + data contracts
+**Focus**
+- Enforce matching consistency rules and deterministic-first behavior.
+- Enforce evidence validation (quote+page+chunk_id substring) and highlight status.
+- Persist per-column proposals even on malformed LLM output; record structured errors.
 
-- Consolidate unified spec and update plan/tasks.
-- Align proposal schema + evidence requirements with DB persistence.
-- Confirm run outputs and artifact layout.
-
-### Milestone P1 — Matching + extraction accuracy
-
-- Two-pass matching with deterministic margin rule and LLM adjudication fallback.
-- Duplicate detection + mapping report.
-- Evidence-first extraction with needs_more_evidence rules.
-- OCR fallback and highlight locator caching.
-
-### Milestone P2 — Retrieval + parsing upgrades
-
-- Per-PDF micro-index with hybrid retrieval and reranking.
-- Multi-query + HyDE retrieval for high recall.
-- Optional GROBID + table extraction integration.
-
-### Milestone P3 — Review UI overhaul
-
-- Two-panel row review layout with stepper, filters, row navigation.
-- Evidence list + PDF highlights + relocate flow.
-- Immediate persistence of decisions and review state.
-
-### Milestone P4 — Advanced + Settings + Help
-
-- Matching/retrieval diagnostics and evidence locator.
-- Provider/model routing and performance controls.
-- Troubleshooting guide and onboarding steps.
+**Acceptance checks**
+- Matching JSON rejects ambiguous+row_id and row_id without matched.
+- When only one plausible candidate exists, ambiguous is coerced to matched with warning.
+- Proposals exist for every requested column, even on LLM failure.
+- Evidence validation forces unclear when quote not in chunk; error metadata is persisted.
 
 ---
 
-## 4) Testing strategy
+## Phase 2 — Retrieval + prompting upgrades (“try hard”, multi-query, rerank) + metrics
 
-- Unit tests for matching logic and proposal persistence.
-- Integration tests for retrieval paths (dense + rerank enabled).
-- UI smoke checks: run tab, review stepper, evidence rendering.
+**Focus**
+- Implement explicit Fast/Balanced/Thorough retrieval presets.
+- Ensure multi-query + HyDE + rerank are active for Balanced/Thorough.
+- Track retrieval stats in run_report and Advanced diagnostics.
+
+**Acceptance checks**
+- Retrieval presets set explicit topK/query_variants/rerank values.
+- Balanced/Thorough use query expansion + HyDE; Fast does not.
+- run_report.json includes retrieval configuration and summary stats.
 
 ---
 
-## 5) Documentation updates
+## Phase 3 — Highlight locator robustness + caching + “try re-locate”
 
-- README updated for workflow changes and model configuration.
-- CHANGELOG updated only for shipped user-facing changes.
+**Focus**
+- Ordered locator steps (exact → normalized → hint → pdfplumber tokens → OCR tokens).
+- Cache highlight rectangles in DB and reuse in Review.
+- Add “Try re-locate” action for evidence in UI.
+
+**Acceptance checks**
+- Evidence records include highlight_status and strategy.
+- Cached rectangles are reused in Review without re-search.
+- “Try re-locate” updates evidence and flags immediately.
+
+---
+
+## Phase 4 — UI/UX improvements (review speed + diagnostics)
+
+**Focus**
+- Maintain v0.5/v0.6 review UX while surfacing mapping + evidence diagnostics.
+- Improve review filters and row navigation for large runs.
+
+**Acceptance checks**
+- Review tab supports Accept/Accept-with-edit/Reject only.
+- Mapping diagnostics show side-by-side PDF metadata vs row metadata.
+- Advanced tab exposes matching/retrieval/LLM/evidence locator panels.
+
+---
+
+## Phase 5 — Optional integrations (GROBID, OCR improvements)
+
+**Focus**
+- Optional GROBID metadata + sectioning.
+- OCR quality and token alignment improvements.
+
+**Acceptance checks**
+- Runs succeed with or without GROBID enabled.
+- OCR fallback triggers when pages are sparse and records OCR provenance.

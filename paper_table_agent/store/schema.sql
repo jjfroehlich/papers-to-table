@@ -37,6 +37,16 @@ CREATE TABLE IF NOT EXISTS matches (
     created_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS pdf_metadata (
+    pdf_id TEXT PRIMARY KEY,
+    title TEXT,
+    authors TEXT,
+    year TEXT,
+    confidence REAL,
+    evidence_json TEXT,
+    created_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS match_candidates (
     candidate_id TEXT PRIMARY KEY,
     pdf_id TEXT,
@@ -62,6 +72,17 @@ CREATE TABLE IF NOT EXISTS proposals (
     reasoning TEXT,
     flags_json TEXT,
     created_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS retrieval_chunks (
+    pdf_id TEXT,
+    chunk_id TEXT,
+    text TEXT,
+    page_start INTEGER,
+    page_end INTEGER,
+    source TEXT,
+    created_at TEXT,
+    PRIMARY KEY (pdf_id, chunk_id)
 );
 
 CREATE TABLE IF NOT EXISTS reviews (

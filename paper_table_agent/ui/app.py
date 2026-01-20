@@ -246,20 +246,38 @@ def _render_validation_item(label: str, ok: bool, message: str | None = None) ->
 def _apply_retrieval_preset(preset: str, config: RunConfig) -> None:
     if preset == "Fast":
         config.fast_mode = True
-        config.retrieval.top_k = min(8, config.retrieval.top_k)
-        config.retrieval.rerank_k = min(8, config.retrieval.rerank_k)
-        config.retrieval.max_context_chunks = min(10, config.retrieval.max_context_chunks)
-        config.retrieval.max_context_tokens = min(1200, config.retrieval.max_context_tokens)
-        config.retrieval.query_variants = 0
+        config.retrieval.top_k = 8
+        config.retrieval.rerank_k = 8
+        config.retrieval.max_context_chunks = 10
+        config.retrieval.max_context_tokens = 1200
+        config.retrieval.query_variants = 1
         config.retrieval.use_query_expansion = False
         config.retrieval.use_hyde = False
+        config.extraction.retry_on_unclear = False
+        config.extraction.retry_extra_chunks = 0
         return
     config.fast_mode = False
+    if preset == "Balanced":
+        config.retrieval.top_k = 12
+        config.retrieval.rerank_k = 12
+        config.retrieval.max_context_chunks = 16
+        config.retrieval.max_context_tokens = 1800
+        config.retrieval.query_variants = 4
+        config.retrieval.use_query_expansion = True
+        config.retrieval.use_hyde = True
+        config.extraction.retry_on_unclear = True
+        config.extraction.retry_extra_chunks = 6
+        return
     if preset == "Thorough":
-        config.retrieval.top_k = max(16, config.retrieval.top_k)
-        config.retrieval.rerank_k = max(16, config.retrieval.rerank_k)
-        config.retrieval.max_context_chunks = max(20, config.retrieval.max_context_chunks)
-        config.retrieval.query_variants = max(6, config.retrieval.query_variants)
+        config.retrieval.top_k = 20
+        config.retrieval.rerank_k = 20
+        config.retrieval.max_context_chunks = 24
+        config.retrieval.max_context_tokens = 2400
+        config.retrieval.query_variants = 6
+        config.retrieval.use_query_expansion = True
+        config.retrieval.use_hyde = True
+        config.extraction.retry_on_unclear = True
+        config.extraction.retry_extra_chunks = 10
 
 
 def _run_summary(store: Store) -> dict[str, Any]:
@@ -1177,6 +1195,7 @@ with review_tab:
                         value=st.session_state["review_auto_advance"],
                         key="review_auto_advance",
                     )
+                    st.caption("Shortcuts: A = Accept, E = Accept-with-edit, R = Reject, ←/→ = Prev/Next")
 
                     col_prev, col_next = st.columns(2)
                     with col_prev:
@@ -1314,6 +1333,13 @@ with advanced_tab:
         store = Store.init_db(run_dir / "proposals.sqlite")
 
         st.subheader("Matching diagnostics")
+        run_report_path = Path(run_dir) / "run_report.json"
+        if run_report_path.exists():
+            st.subheader("Run report summary")
+            run_report = json.loads(run_report_path.read_text(encoding="utf-8"))
+            st.json(run_report.get("summary", {}))
+        else:
+            st.info("run_report.json not found yet for this run.")
         rows = [dict(row) for row in store.fetch_rows()]
         row_options = [row["row_id"] for row in rows]
         row_filter = st.selectbox("Row", row_options, key="advanced-row") if row_options else None

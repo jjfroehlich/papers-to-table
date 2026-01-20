@@ -34,9 +34,10 @@ def extract_group(
     )
     result = client.complete_json(prompt, GroupExtractionResult)
     result = _ensure_group_coverage(result, group.columns)
+    chunk_lookup = _build_chunk_lookup(chunks_by_column)
     for proposal in result.proposals:
         proposal.flags.setdefault("mapping_dependent", mapping_dependent)
-        _apply_evidence_rules(proposal)
+        _apply_evidence_rules(proposal, chunk_lookup)
     return result
 
 
@@ -63,14 +64,12 @@ def build_proposal_records(pdf_id: str, row_id: str, result: GroupExtractionResu
     return records
 
 
-def _apply_evidence_rules(proposal: Any) -> None:
+def _apply_evidence_rules(proposal: Any, chunk_lookup: dict[str, str]) -> None:
     status = proposal.status or "unclear"
     if status in {"found", "inferred"}:
-        has_evidence = bool(proposal.evidence)
-        for evidence in proposal.evidence:
-            if not evidence.quote or not evidence.page:
-                has_evidence = False
-                break
+        has_evidence, errors = _validate_evidence_list(proposal.evidence, chunk_lookup)
+        if errors:
+            proposal.flags.setdefault("evidence_validation_errors", []).extend(errors)
         if not has_evidence:
             proposal.proposed_value = None
             proposal.status = "unclear"
@@ -89,9 +88,23 @@ def build_error_records(
     columns: list[str],
     error: str,
     mapping_dependent: bool,
+    error_type: str | None = None,
+    raw_output: str | None = None,
+    repair_attempted: bool | None = None,
 ) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for column in columns:
+        flags = {
+            "mapping_dependent": mapping_dependent,
+            "needs_more_evidence": True,
+            "error": True,
+        }
+        if error_type:
+            flags["error_type"] = error_type
+        if raw_output:
+            flags["raw_output"] = raw_output[:2000]
+        if repair_attempted is not None:
+            flags["repair_attempted"] = repair_attempted
         records.append(
             {
                 "proposal_id": str(uuid.uuid4()),
@@ -103,11 +116,7 @@ def build_error_records(
                 "confidence": 0.0,
                 "evidence": [],
                 "reasoning": error,
-                "flags": {
-                    "mapping_dependent": mapping_dependent,
-                    "needs_more_evidence": True,
-                    "error": True,
-                },
+                "flags": flags,
             }
         )
     return records
@@ -118,16 +127,18 @@ def build_verify_records(
     row_id: str,
     results: list[VerifyResult],
     locked_values: dict[str, str],
+    chunk_lookup: dict[str, str],
 ) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for result in results:
-        needs_more = False
-        for evidence in result.evidence:
-            if not evidence.quote or not evidence.page:
-                needs_more = True
-                break
-        if not result.evidence:
-            needs_more = True
+        has_evidence, errors = _validate_evidence_list(result.evidence, chunk_lookup)
+        needs_more = not has_evidence
+        flags: dict[str, Any] = {
+            "verify_only": True,
+            "needs_more_evidence": needs_more,
+        }
+        if errors:
+            flags["evidence_validation_errors"] = errors
         records.append(
             {
                 "proposal_id": str(uuid.uuid4()),
@@ -139,10 +150,7 @@ def build_verify_records(
                 "confidence": None,
                 "evidence": [e.model_dump(mode="json") for e in result.evidence],
                 "reasoning": result.rationale,
-                "flags": {
-                    "verify_only": True,
-                    "needs_more_evidence": needs_more,
-                },
+                "flags": flags,
             }
         )
     return records
@@ -187,3 +195,42 @@ def verify_cells(
         )
         results.append(client.complete_json(prompt, VerifyResult))
     return results
+
+
+def _build_chunk_lookup(chunks_by_column: dict[str, list[dict[str, Any]]]) -> dict[str, str]:
+    lookup: dict[str, str] = {}
+    for chunks in chunks_by_column.values():
+        for chunk in chunks:
+            chunk_id = str(chunk.get("chunk_id") or "")
+            text = str(chunk.get("text") or "")
+            if chunk_id and text:
+                lookup.setdefault(chunk_id, text)
+    return lookup
+
+
+def _validate_evidence_list(
+    evidence_list: list[Any],
+    chunk_lookup: dict[str, str] | None,
+) -> tuple[bool, list[str]]:
+    if not evidence_list:
+        return False, ["missing_evidence"]
+    errors: list[str] = []
+    for evidence in evidence_list:
+        quote = getattr(evidence, "quote", None)
+        page = getattr(evidence, "page", None)
+        chunk_id = getattr(evidence, "chunk_id", None)
+        if not quote or not page:
+            errors.append("missing_quote_or_page")
+            continue
+        if chunk_lookup is None:
+            continue
+        if not chunk_id:
+            errors.append("missing_chunk_id")
+            continue
+        chunk_text = chunk_lookup.get(str(chunk_id))
+        if not chunk_text:
+            errors.append("unknown_chunk_id")
+            continue
+        if str(quote) not in chunk_text:
+            errors.append("quote_not_in_chunk")
+    return (len(errors) == 0), errors

@@ -9,6 +9,8 @@ class EvidenceQuote(BaseModel):
     quote: str
     page: int | None = None
     locator_hint: str | None = None
+    chunk_id: str | None = None
+    highlight_status: str | None = None
 
 
 class HeaderExtractionResult(BaseModel):

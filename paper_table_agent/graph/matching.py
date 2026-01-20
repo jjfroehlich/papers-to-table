@@ -206,8 +206,10 @@ def _validate_adjudication(result: AdjudicationResult, candidates: list[RowCandi
     if result.status == "matched":
         if not result.row_id or result.row_id not in candidate_ids:
             return False, "Matched status requires row_id from candidates"
-    if result.status == "unmatched" and result.row_id:
-        return False, "Unmatched status cannot include row_id"
+    if result.status != "matched" and result.row_id:
+        return False, "row_id is only valid when status=matched"
+    if result.status == "ambiguous" and result.row_id:
+        return False, "Ambiguous status cannot include row_id"
     if result.status == "ambiguous" and len(candidates) <= 1:
         return False, "Ambiguous is invalid with a single candidate"
     return True, ""
