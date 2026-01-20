@@ -37,7 +37,7 @@ def test_end_to_end_with_mock_llm(tmp_path: Path):
             "title": "Test Paper",
             "authors": ["Ada"],
             "year": "2024",
-            "evidence": [{"quote": "Test Paper", "page": 1, "locator_hint": "Test Paper"}],
+            "evidence": [{"quote": "Test Paper", "page": 1, "chunk_id": "page-1", "locator_hint": "Test Paper"}],
             "confidence": 0.9,
         },
         "matching a PDF": {
@@ -45,7 +45,7 @@ def test_end_to_end_with_mock_llm(tmp_path: Path):
             "status": "matched",
             "top_candidates": [],
             "confidence": 0.9,
-            "evidence": [{"quote": "Test Paper", "page": 1, "locator_hint": "Test Paper"}],
+            "evidence": [{"quote": "Test Paper", "page": 1, "chunk_id": "page-1", "locator_hint": "Test Paper"}],
             "rationale": "Exact match",
         },
         "extracting values for a group": {
@@ -55,7 +55,7 @@ def test_end_to_end_with_mock_llm(tmp_path: Path):
                     "proposed_value": "method X",
                     "status": "found",
                     "confidence": 0.8,
-                    "evidence": [{"quote": "method X", "page": 1, "locator_hint": "method X"}],
+                    "evidence": [{"quote": "method X", "page": 1, "chunk_id": "page-1", "locator_hint": "method X"}],
                     "needs_more_evidence": False,
                     "rationale": "Quoted",
                 }

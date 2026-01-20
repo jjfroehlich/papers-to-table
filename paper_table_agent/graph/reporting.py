@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import csv
+import json
+import zipfile
 from pathlib import Path
 
 from jinja2 import Template
@@ -38,9 +40,12 @@ _REPORT_TEMPLATE = Template(
         <th>Row ID</th>
         <th>Status</th>
         <th>Confidence</th>
-        <th>Title</th>
-        <th>Authors</th>
-        <th>Year</th>
+        <th>PDF Title</th>
+        <th>PDF Authors</th>
+        <th>PDF Year</th>
+        <th>Row Title</th>
+        <th>Row Authors</th>
+        <th>Row Year</th>
       </tr>
     </thead>
     <tbody>
@@ -50,13 +55,16 @@ _REPORT_TEMPLATE = Template(
         <td>{{ row.row_id }}</td>
         <td>{{ row.status }}</td>
         <td>{{ row.confidence }}</td>
-        <td>{{ row.title }}</td>
-        <td>{{ row.authors }}</td>
-        <td>{{ row.year }}</td>
+        <td>{{ row.pdf_title }}</td>
+        <td>{{ row.pdf_authors }}</td>
+        <td>{{ row.pdf_year }}</td>
+        <td>{{ row.row_title }}</td>
+        <td>{{ row.row_authors }}</td>
+        <td>{{ row.row_year }}</td>
       </tr>
       {% if row.candidates %}
       <tr>
-        <td colspan=\"7\">
+        <td colspan=\"10\">
           <div class=\"candidates\">
             <strong>Top candidates</strong>
             <table>
@@ -102,6 +110,7 @@ def write_mapping_report(store: Store, output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     matches = store.fetch_matches()
     rows = {row["row_id"]: dict(row) for row in store.fetch_rows()}
+    pdf_metadata = {row["pdf_id"]: dict(row) for row in store.fetch_pdf_metadata()}
     candidates = store.fetch_match_candidates()
     candidates_by_pdf: dict[str, list[dict[str, object]]] = {}
     for candidate in candidates:
@@ -112,15 +121,19 @@ def write_mapping_report(store: Store, output_dir: Path) -> None:
     report_rows = []
     for match in matches:
         row = rows.get(match["row_id"], {})
+        pdf_meta = pdf_metadata.get(match["pdf_id"], {})
         report_rows.append(
             {
                 "pdf_id": match["pdf_id"],
                 "row_id": match["row_id"],
                 "status": match["status"],
                 "confidence": match["confidence"],
-                "title": row.get("title", ""),
-                "authors": row.get("authors", ""),
-                "year": row.get("year", ""),
+                "pdf_title": pdf_meta.get("title", ""),
+                "pdf_authors": pdf_meta.get("authors", ""),
+                "pdf_year": pdf_meta.get("year", ""),
+                "row_title": row.get("title", ""),
+                "row_authors": row.get("authors", ""),
+                "row_year": row.get("year", ""),
                 "candidates": candidates_by_pdf.get(match["pdf_id"], []),
             }
         )
@@ -137,7 +150,20 @@ def write_mapping_report(store: Store, output_dir: Path) -> None:
 
     with (output_dir / "pdf_row_matches.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
-        writer.writerow(["pdf_id", "row_id", "status", "confidence", "title", "authors", "year"])
+        writer.writerow(
+            [
+                "pdf_id",
+                "row_id",
+                "status",
+                "confidence",
+                "pdf_title",
+                "pdf_authors",
+                "pdf_year",
+                "row_title",
+                "row_authors",
+                "row_year",
+            ]
+        )
         for row in report_rows:
             writer.writerow(
                 [
@@ -145,8 +171,90 @@ def write_mapping_report(store: Store, output_dir: Path) -> None:
                     row["row_id"],
                     row["status"],
                     row["confidence"],
-                    row["title"],
-                    row["authors"],
-                    row["year"],
+                    row["pdf_title"],
+                    row["pdf_authors"],
+                    row["pdf_year"],
+                    row["row_title"],
+                    row["row_authors"],
+                    row["row_year"],
                 ]
             )
+
+
+def write_run_report(store: Store, run_paths: Path | object) -> None:
+    run_dir = run_paths.run_dir if hasattr(run_paths, "run_dir") else Path(run_paths)
+    config_path = run_dir / "run_config.json"
+    config_payload = json.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
+    matches = [dict(row) for row in store.fetch_matches()]
+    proposals = [dict(row) for row in store.conn.execute("SELECT status, flags_json FROM proposals")]
+    events = [dict(row) for row in store.conn.execute("SELECT level, event_type FROM events")]
+    retrieval_chunks = [dict(row) for row in store.conn.execute("SELECT pdf_id FROM retrieval_chunks")]
+    matched = sum(1 for row in matches if row.get("status") == "matched")
+    ambiguous = sum(1 for row in matches if row.get("status") == "ambiguous")
+    unmatched = sum(1 for row in matches if row.get("status") in {"unmatched", "duplicate"})
+    filled = sum(1 for row in proposals if row.get("status") in {"found", "inferred"})
+    total = len(proposals)
+    needs_more = 0
+    for row in proposals:
+        flags = json.loads(row.get("flags_json") or "{}")
+        if flags.get("needs_more_evidence"):
+            needs_more += 1
+    summary = {
+        "mapping": {
+            "matched": matched,
+            "ambiguous": ambiguous,
+            "unmatched": unmatched,
+            "total": len(matches),
+        },
+        "retrieval": {
+            "config": config_payload.get("retrieval", {}),
+            "chunk_count": len(retrieval_chunks),
+        },
+        "extraction": {
+            "total_proposals": total,
+            "filled": filled,
+            "fill_rate": (filled / total) if total else 0.0,
+            "needs_more_evidence": needs_more,
+        },
+        "errors": {
+            "total_events": len(events),
+            "error_events": sum(1 for row in events if row.get("level") == "error"),
+        },
+    }
+    payload = {
+        "run_config": config_payload,
+        "summary": summary,
+        "artifacts": {
+            "run_dir": str(run_dir),
+            "exports_dir": str(run_dir / "exports"),
+            "artifacts_dir": str(run_dir / "artifacts"),
+            "logs_dir": str(run_dir / "logs"),
+            "db_path": str(run_dir / "proposals.sqlite"),
+            "mapping_report": str(run_dir / "exports" / "mapping_report.html"),
+        },
+    }
+    (run_dir / "run_report.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def write_run_bundle(run_dir: Path) -> Path:
+    run_dir = Path(run_dir)
+    bundle_path = run_dir / "run_bundle.zip"
+    files = [
+        run_dir / "run_config.json",
+        run_dir / "run_report.json",
+        run_dir / "proposals.sqlite",
+        run_dir / "exports" / "mapping_report.html",
+        run_dir / "exports" / "pdf_row_matches.csv",
+        run_dir / "exports" / "audit_log.csv",
+        run_dir / "exports" / "updated_table.xlsx",
+    ]
+    logs_dir = run_dir / "logs"
+    with zipfile.ZipFile(bundle_path, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
+        for path in files:
+            if path.exists():
+                bundle.write(path, arcname=path.relative_to(run_dir))
+        if logs_dir.exists():
+            for log_path in logs_dir.glob("**/*"):
+                if log_path.is_file():
+                    bundle.write(log_path, arcname=log_path.relative_to(run_dir))
+    return bundle_path

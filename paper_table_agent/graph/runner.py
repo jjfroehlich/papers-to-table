@@ -22,7 +22,7 @@ from paper_table_agent.graph.matching import (
     extract_header,
     shortlist_candidates,
 )
-from paper_table_agent.graph.reporting import write_mapping_report
+from paper_table_agent.graph.reporting import write_mapping_report, write_run_report
 from paper_table_agent.io.examples import select_examples
 from paper_table_agent.io.locks import build_locks
 from paper_table_agent.io.schema import group_columns, load_schema
@@ -33,7 +33,7 @@ from paper_table_agent.pdf.highlight import locate_quote
 from paper_table_agent.pdf.grobid import extract_grobid, save_grobid
 from paper_table_agent.pdf.ocr import run_ocr, should_trigger_ocr
 from paper_table_agent.pdf.parser import compute_sha1, parse_pdf, save_parsed
-from paper_table_agent.retrieval.chunking import build_chunks
+from paper_table_agent.retrieval.chunking import build_chunks, to_dicts
 from paper_table_agent.retrieval.index import build_index, load_index_if_fresh, save_index
 from paper_table_agent.retrieval.pipeline import RetrievalConfig, retrieve_context
 from paper_table_agent.store.db import Store
@@ -80,6 +80,7 @@ def run_pipeline(config: RunConfig, run_paths: RunPaths, store: Store) -> None:
         if _process_pdf(context, pdf, existing_pdfs):
             context.logger.info("processed pdf %s", pdf.pdf_id)
     write_mapping_report(store, run_paths.exports_dir)
+    write_run_report(store, run_paths)
     (run_paths.run_dir / "COMPLETED").write_text("done", encoding="utf-8")
 
 
@@ -118,6 +119,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
     for pdf in pdfs:
         store.insert_pdf(pdf.pdf_id, str(pdf.path), pdf.sha1)
 
+    _ensure_retrieval_backends(config, logger, store)
     mock_payloads = None
     if config.provider.mock_mode and config.provider.mock_payloads_path:
         mock_payloads = json.loads(config.provider.mock_payloads_path.read_text(encoding="utf-8"))
@@ -237,10 +239,20 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
             try:
                 grobid_result = extract_grobid(pdf.path, context.config.grobid)
                 save_grobid(grobid_result, context.run_paths.parsed_dir, pdf.pdf_id)
+                store.record_event(
+                    "info",
+                    "grobid_success",
+                    {"pdf_id": pdf.pdf_id, "sections": len(grobid_result.sections)},
+                )
             except Exception as exc:  # noqa: BLE001
                 log_error(
                     context.error_path,
                     {"pdf_id": pdf.pdf_id, "error": str(exc), "stage": "grobid"},
+                )
+                store.record_event(
+                    "warning",
+                    "grobid_failed",
+                    {"pdf_id": pdf.pdf_id, "error": str(exc)},
                 )
         if context.config.ocr.enable_ocr and should_trigger_ocr(
             parsed.page_text,
@@ -249,8 +261,18 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
             try:
                 parsed.page_text = run_ocr(pdf.path, context.run_paths.ocr_dir / pdf.pdf_id)
                 parse_source = "ocr"
+                store.record_event(
+                    "info",
+                    "ocr_success",
+                    {"pdf_id": pdf.pdf_id, "source": "unstructured"},
+                )
             except RuntimeError as exc:
                 log_error(context.error_path, {"pdf_id": pdf.pdf_id, "error": str(exc), "stage": "ocr"})
+                store.record_event(
+                    "warning",
+                    "ocr_failed",
+                    {"pdf_id": pdf.pdf_id, "error": str(exc)},
+                )
         save_parsed(parsed, context.run_paths.parsed_dir)
         store.update_pdf_status(pdf.pdf_id, "parsed", n_pages=parsed.n_pages, parse_source=parse_source)
     except Exception as exc:  # noqa: BLE001
@@ -260,6 +282,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
 
     sections = grobid_result.sections if grobid_result else None
     chunks = build_chunks(parsed.page_text, sections=sections)
+    store.insert_retrieval_chunks(pdf.pdf_id, to_dicts(chunks))
     index = load_index_if_fresh(
         context.run_paths.retrieval_dir / pdf.pdf_id,
         chunks,
@@ -313,6 +336,14 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         )
         store.update_pdf_status(pdf.pdf_id, "failed", error=str(exc))
         return False
+    store.insert_pdf_metadata(
+        pdf.pdf_id,
+        title=header.title,
+        authors=header.authors,
+        year=header.year,
+        evidence=[item.model_dump(mode="json") for item in header.evidence],
+        confidence=header.confidence,
+    )
 
     candidates = shortlist_candidates(
         header,
@@ -367,6 +398,14 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
             )
             store.update_pdf_status(pdf.pdf_id, "processed", error=str(exc))
             return True
+    adjudication = _coerce_single_plausible(
+        adjudication,
+        candidates,
+        context.config.matching.confidence_threshold,
+        context.logger,
+        store,
+        pdf.pdf_id,
+    )
     match_record = build_match_record(pdf.pdf_id, adjudication)
     if adjudication.row_id and adjudication.status == "matched":
         previous = context.assigned_rows.get(adjudication.row_id)
@@ -408,6 +447,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
     row_context = next((row for row in context.rows_data if row["row_id"] == adjudication.row_id), {})
     locked_columns = context.lock_map.get(adjudication.row_id, set())
     for group_name, specs in context.grouped.items():
+        chunk_lookup: dict[str, str] = {}
         target_columns = [
             spec.column_name
             for spec in specs
@@ -432,6 +472,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 context.reranker_client,
             )
             merged_context = _merge_column_contexts(column_contexts)
+            chunk_lookup = {str(chunk["chunk_id"]): str(chunk["text"]) for chunk in merged_context}
             extraction = extract_group(
                 context.extract_client,
                 row_context,
@@ -470,6 +511,9 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 group.columns,
                 str(exc),
                 adjudication.status != "matched",
+                error_type="llm_json_error",
+                raw_output=exc.response,
+                repair_attempted=exc.repair_attempted,
             )
         proposals = _resolve_evidence_locators(
             proposals,
@@ -493,6 +537,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                         adjudication.row_id,
                         verify_results,
                         locked_values,
+                        chunk_lookup,
                     )
                     store.insert_proposals(verify_proposals)
                 except LlmJsonError as exc:
@@ -553,7 +598,7 @@ def _resolve_evidence_locators(
     tokens_path: Path,
     parse_source: str,
 ) -> list[dict[str, Any]]:
-    tokens = _load_tokens(tokens_path) if parse_source == "ocr" else []
+    tokens = _load_tokens(tokens_path)
     for proposal in proposals:
         evidence_items = proposal.get("evidence") or []
         for evidence in evidence_items:
@@ -562,12 +607,63 @@ def _resolve_evidence_locators(
             locator_hint = evidence.get("locator_hint")
             if not quote or not page:
                 proposal.setdefault("flags", {})["needs_more_evidence"] = True
+                evidence["highlight_status"] = "missing_quote_or_page"
                 continue
             highlight = locate_quote(str(pdf_path), quote, int(page), locator_hint=locator_hint, tokens=tokens)
             evidence["rects"] = highlight.rects
+            evidence["highlight_status"] = "highlighted" if highlight.found else "not_found"
+            evidence["highlight_strategy"] = highlight.strategy
             if not highlight.found:
                 proposal.setdefault("flags", {})["needs_more_evidence"] = True
     return proposals
+
+
+def _ensure_retrieval_backends(config: RunConfig, logger: Any, store: Store) -> None:
+    if config.retrieval.embedding_backend == "lmstudio" and not config.retrieval.embedding_model:
+        logger.warning("embedding backend set to lmstudio without a model; falling back to tfidf")
+        store.record_event(
+            "warning",
+            "embedding_fallback",
+            {"backend": "lmstudio", "reason": "missing_model"},
+        )
+        config.retrieval.embedding_backend = "tfidf"
+    if config.retrieval.use_reranker and config.retrieval.reranker_backend == "lmstudio" and not config.retrieval.reranker_model:
+        logger.warning("reranker backend set to lmstudio without a model; disabling reranker")
+        store.record_event(
+            "warning",
+            "reranker_fallback",
+            {"backend": "lmstudio", "reason": "missing_model"},
+        )
+        config.retrieval.use_reranker = False
+        config.retrieval.reranker_backend = "tfidf"
+
+
+def _coerce_single_plausible(
+    adjudication: Any,
+    candidates: list[Any],
+    threshold: float,
+    logger: Any,
+    store: Store,
+    pdf_id: str,
+) -> Any:
+    plausible = [candidate for candidate in candidates if candidate.score >= threshold]
+    if len(plausible) == 1 and adjudication.status in {"ambiguous", "unmatched"}:
+        winner = plausible[0]
+        logger.warning("coercing ambiguous match to single plausible candidate for pdf %s", pdf_id)
+        store.record_event(
+            "warning",
+            "match_coerced_single_candidate",
+            {"pdf_id": pdf_id, "row_id": winner.row_id, "score": winner.score},
+        )
+        return type(adjudication)(
+            row_id=winner.row_id,
+            status="matched",
+            top_candidates=adjudication.top_candidates or [candidate.to_payload() for candidate in candidates],
+            confidence=max(adjudication.confidence, winner.score),
+            rationale="Single plausible candidate coerced to matched",
+            evidence=adjudication.evidence,
+        )
+    return adjudication
 
 
 def _build_retrieval_config(config: RunConfig) -> RetrievalConfig:
@@ -708,13 +804,18 @@ def _retry_unclear_proposals(
         schema={spec.column_name: spec.description for spec in retry_specs},
         examples={col: context.examples.get(col, []) for col in retry_columns},
     )
-    retry_config = RetrievalConfig(
-        **context.retrieval_config.__dict__,
-        max_context_chunks=min(
-            context.retrieval_config.max_context_chunks + context.config.extraction.retry_extra_chunks,
-            context.config.extraction.max_chunks,
-        ),
+    retry_payload = dict(context.retrieval_config.__dict__)
+    retry_payload["max_context_chunks"] = min(
+        context.retrieval_config.max_context_chunks + context.config.extraction.retry_extra_chunks,
+        context.config.extraction.max_chunks,
     )
+    retry_config = RetrievalConfig(**retry_payload)
+    context.store.record_event(
+        "info",
+        "retry_extraction",
+        {"columns": retry_columns, "extra_chunks": context.config.extraction.retry_extra_chunks},
+    )
+    context.logger.info("retrying extraction for columns: %s", ", ".join(retry_columns))
     column_contexts = _retrieve_column_contexts(
         index,
         retry_specs,

@@ -2,8 +2,8 @@ import pytest
 
 pytest.importorskip("rapidfuzz")
 
-from paper_table_agent.graph.matching import deterministic_match, shortlist_candidates
-from paper_table_agent.llm.models import HeaderExtractionResult
+from paper_table_agent.graph.matching import deterministic_match, shortlist_candidates, _validate_adjudication
+from paper_table_agent.llm.models import AdjudicationResult, HeaderExtractionResult
 
 
 def test_shortlist_candidates():
@@ -37,3 +37,22 @@ def test_deterministic_match_margin():
     result = deterministic_match(header, candidates, threshold=0.5, margin=0.05)
     assert result is not None
     assert result.status == "matched"
+
+
+def test_adjudication_requires_row_id_only_for_matched():
+    candidates = [
+        type(
+            "Candidate",
+            (),
+            {"row_id": "1"},
+        )(),
+        type(
+            "Candidate",
+            (),
+            {"row_id": "2"},
+        )(),
+    ]
+    result = AdjudicationResult(row_id="1", status="ambiguous", confidence=0.5, top_candidates=[])
+    valid, reason = _validate_adjudication(result, candidates)
+    assert not valid
+    assert "row_id" in reason

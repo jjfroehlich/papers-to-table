@@ -30,6 +30,9 @@ def _parse_args() -> argparse.Namespace:
     export_parser = sub.add_parser("export", help="Export run outputs")
     export_parser.add_argument("--run_dir", required=True, type=Path)
 
+    bundle_parser = sub.add_parser("bundle", help="Create a run bundle zip")
+    bundle_parser.add_argument("--run_dir", required=True, type=Path)
+
     init_db_parser = sub.add_parser("init-db", help="Initialize run DB")
     init_db_parser.add_argument("--run_dir", required=True, type=Path)
 
@@ -85,6 +88,12 @@ def main() -> None:
         from paper_table_agent.graph.exporter import export_run
 
         export_run(args.run_dir)
+        return
+
+    if args.command == "bundle":
+        from paper_table_agent.graph.reporting import write_run_bundle
+
+        write_run_bundle(args.run_dir)
         return
 
     if args.command == "init-config":

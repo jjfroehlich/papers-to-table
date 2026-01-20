@@ -30,8 +30,8 @@ Near-term to-do:
 - Diagnostics surfacing for LLM I/O (prompt/response/validation errors).
 
 ## Installation
-- Have LM Studio installed and download the models you want to use:
-  - **Extraction**: `gpt-oss-20b`
+- Install **LM Studio** or **Ollama** and download the models you want to use:
+  - **Extraction**: `gpt-oss-20b` (or equivalent)
   - **Embeddings**: `nomic-embed-text-v1.5`
   - **Reranking**: another embedding-capable model such as `bge-small-en-v1.5`
 - In LM Studio settings, raise the context length (e.g., 4,096 → 32,000).
@@ -160,6 +160,12 @@ Export decisions:
 paper-table-agent export --run_dir runs/<timestamp>__<table>/
 ```
 
+Create a run bundle (report + exports + logs):
+
+```bash
+paper-table-agent bundle --run_dir runs/<timestamp>__<table>/
+```
+
 ## Configuration (models, embeddings, reranker)
 
 **Model routing**
@@ -177,7 +183,13 @@ paper-table-agent export --run_dir runs/<timestamp>__<table>/
 - `retrieval.reranker_model`: model ID used for LM Studio reranking embeddings (required when backend is `lmstudio`).
 - `retrieval.use_reranker`: enable/disable reranking.
 
-When using the LM Studio reranker backend, choose an embedding-capable model (reranking uses cosine similarity over embeddings).
+When using the LM Studio reranker backend, choose an embedding-capable model (reranking uses cosine similarity over embeddings). If embeddings or reranker models are missing, the system falls back to TF-IDF and disables reranking with a warning.
+
+**Retrieval presets**
+
+- **Fast**: topK=8, rerank=8, query_variants=1, HyDE off, no second-pass retry.
+- **Balanced**: topK=12, rerank=12, query_variants=4, HyDE on, second-pass retry on unclear.
+- **Thorough**: topK=20, rerank=20, query_variants=6, HyDE on, more aggressive retry.
 
 Example LM Studio retrieval settings:
 
@@ -210,6 +222,7 @@ runs/
   <timestamp>__<table_name>/
     run_config.json
     proposals.sqlite
+    run_report.json
     COMPLETED
     PAUSE
     exports/
@@ -240,8 +253,9 @@ Resume a run with `paper-table-agent resume --run_dir runs/<timestamp>__<table>/
    - Invalid JSON triggers a repair prompt and is recorded (no silent drops).
 
 4. **Quote substring constraint + highlights**
-   - Proposed values must cite evidence quotes + page numbers.
-   - Highlights use PyMuPDF `search_for`, fallback to `locator_hint`, then OCR token bounding boxes if OCR is enabled.
+   - Proposed values must cite evidence quotes + page numbers + `chunk_id`.
+   - Quotes must be a verbatim substring of the retrieved chunk.
+   - Highlights use PyMuPDF `search_for`, fallback to `locator_hint`, then token alignment.
    - If highlight resolution fails, the page is still shown and `needs_more_evidence=true` is set.
 
 5. **Needs-more-evidence semantics**

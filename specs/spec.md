@@ -48,6 +48,7 @@ runs/
   <timestamp>__<table_name>/
     run_config.json
     proposals.sqlite
+    run_report.json
     exports/
       updated_table.xlsx
       audit_log.csv
@@ -88,11 +89,21 @@ runs/
 
 - All proposals stored and exported as **text**, even if numeric.
 
-### 3.4 Evidence requirement (P0)
+### 3.4 Evidence requirement + validation (P0)
 
-- **No proposed value without quote + page.**
-- If evidence is missing or cannot be located, mark as `unclear` and `needs_more_evidence=true`.
-- Every column in the target group produces a proposal record (even `unclear`/`no_evidence`).
+- **No proposed value without quote + page + chunk_id.**
+- **Quote must be a verbatim substring of the referenced retrieved chunk** (chunk_id stored in DB).
+- If evidence is missing, invalid, or cannot be located, force `status=unclear` and `needs_more_evidence=true`.
+- Evidence validation errors are persisted (error_type, reason) with the proposal record.
+
+### 3.5 Proposal persistence (P0)
+
+- **Never drop records**: for every requested column, persist a proposal record even if unclear/no_evidence or model output malformed.
+- Persist structured error metadata: `error_type`, `raw_output` snippet, `repair_attempted`, and `validation_errors`.
+
+### 3.6 Run diagnostics artifact (P0)
+
+- Each run writes a **run_report.json** (or run_bundle.zip) summarizing config, model routing, mapping stats, retrieval stats, extraction fill-rate, errors, and artifact paths.
 
 ---
 
@@ -121,6 +132,10 @@ runs/
   - `top_candidates[]` (row_id, title, authors, year, score)
   - confidence + evidence notes
 - LLM output is validated; one repair retry permitted.
+- **Consistency guardrails (P0)**:
+  - If `status=ambiguous`, `row_id` must be null.
+  - If `row_id` is present, `status=matched`.
+  - Ambiguous is forbidden when only one plausible candidate exists; coerce to matched and log a warning.
 
 ### 4.3 1-to-1 enforcement + duplicate detection
 
@@ -137,7 +152,7 @@ runs/
 
 - PDFs processed / matched / ambiguous / unmatched.
 - Duplicates detected.
-- For each PDF: extracted metadata vs row metadata, confidence, evidence snippets, candidate table.
+- For each PDF: **side-by-side extracted metadata vs row metadata**, confidence, evidence snippets, candidate table.
 
 ---
 
@@ -153,6 +168,12 @@ Split schema columns into groups (configurable) to improve extraction quality, e
 - Quantitative results
 - Notes / limitations
 
+### 5.1.1 Prompting schema usage (P0)
+
+- Always include the **schema description per column** in prompts.
+- Include **1–3 existing non-empty values** as examples for each column (selection logic: first non-empty rows, capped per column).
+- Include **row context** (Title/Authors/Year + key columns).
+
 ### 5.2 Proposal record
 
 For each (row_id, column):
@@ -163,8 +184,10 @@ For each (row_id, column):
 - evidence[]:
   - quote (short)
   - page number
+  - chunk_id (retrieved chunk reference)
   - locator_hint (substring)
   - highlight rectangles (bbox) when available
+  - highlight_status (`highlighted | not_found | missing_quote_or_page`) + strategy
 - needs_more_evidence (boolean)
 - mapping_dependent (boolean)
 - rationale (short; required for inferred/derived)
@@ -209,6 +232,29 @@ Flag if:
 - Add context neighborhood to preserve adjacency.
 - Evidence-first extraction: LLM can only propose values tied to retrieved chunks.
 
+### 6.4.1 Retrieval presets (P0, operational)
+
+**Fast**
+- topK=8, rerank topN=8
+- query_variants=1, HyDE=off
+- max_context_chunks=10, max_context_tokens=1200
+- second-pass retry on unclear = **off**
+
+**Balanced**
+- topK=12, rerank topN=12
+- query_variants=4, HyDE=on
+- max_context_chunks=16, max_context_tokens=1800
+- second-pass retry on unclear = **on** (extra_chunks=6)
+
+**Thorough**
+- topK=20, rerank topN=20
+- query_variants=6, HyDE=on
+- max_context_chunks=24, max_context_tokens=2400
+- second-pass retry on unclear = **on** (extra_chunks=10)
+
+**Fallback behavior**
+- If embeddings or reranker are not configured, **fall back to BM25/TF-IDF** and disable reranking; log a warning and record in run_report.
+
 ### 6.5 Hierarchical retrieval (optional “max recall” mode)
 
 - RAPTOR-style clustering + recursive summaries when PDFs are long or low-confidence.
@@ -218,6 +264,18 @@ Flag if:
 - If extraction fails or PDF is scanned:
   - Unstructured `strategy="hi_res"` + OCR.
   - OCR-derived proposals are flagged.
+
+### 6.7 Highlight locator algorithm (P0)
+
+Ordered steps:
+1. Exact quote search on target page.
+2. Normalized whitespace search.
+3. Locator_hint keyword search (raw + normalized).
+4. **pdfplumber token alignment** (word-box search).
+5. **OCR token alignment** (when OCR tokens available).
+6. Fail with `not_found` and set `needs_more_evidence=true`.
+
+Highlight rectangles are cached in DB and reused in Review.
 
 ---
 
@@ -307,6 +365,11 @@ Model roles:
 - Add note + Needs-more-evidence toggle.
 - Auto-advance (default on).
 
+Decision rules:
+- **Exactly three decisions**: Accept / Accept-with-edit / Reject.
+- Reject keeps table cell empty and eligible for future runs.
+- `needs_more_evidence` is a tag/flag, **not** a fourth decision.
+
 **Right panel**
 
 - PDF viewer shows cited page and highlights evidence rectangles when available.
@@ -345,6 +408,7 @@ Model roles:
 - Never lose decisions: persist to DB immediately.
 - Back/forward navigation without losing state.
 - Error-resilient: clear empty states, no hard crashes.
+- Privacy/security: core flow runs **offline**; if internet is enabled, restrict to configured LLM endpoints only.
 
 ---
 
@@ -370,11 +434,16 @@ Audit log includes:
 
 ## 12) Definition of done
 
+- `pip install -e ".[test]"` works, and `pytest -q` passes.
+- Streamlit UI launches (`paper-table-agent ui`).
 - Two-pass matching works when year is missing; duplicates flagged.
+- Matching JSON is internally consistent (no ambiguous+row_id).
+- **Every column** persists a proposal record (even error/unclear/no_evidence).
 - Every proposal has evidence or is clearly marked unclear/needs_more_evidence.
-- Proposals are persisted per-column and visible in Review.
-- Review UI supports stepper, filters, PDF highlights, immediate persistence.
+- Evidence validation enforces quote+page+chunk_id and substring match.
+- Mapping report exists and includes side-by-side metadata + candidate table.
+- Decisions persist immediately in Review.
 - Advanced tab exposes matching/retrieval/LLM diagnostics.
 - Settings tab supports provider/model routing + performance controls.
 - Help tab includes onboarding + troubleshooting.
-- README updated to reflect new workflow and configuration.
+- README updated to reflect workflow and configuration.
