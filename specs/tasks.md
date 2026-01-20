@@ -42,12 +42,20 @@ Conventions:
 - Mapping report shows side-by-side PDF vs row metadata + candidates.
 - `run_report.json` summarizes config, stats, and artifact paths.
 
+### [x] **P0.T4a** Integration test fixture (tiny table + PDFs)
+**Paths**: `tests/test_integration.py`
+**Tests**: `pytest tests/test_integration.py::test_integration_run_report_and_validation -q`
+**AC**
+- Builds a tiny table + schema + 1–2 PDFs.
+- Runs pipeline in a temp run directory.
+- Asserts proposals per requested column, run_report exists, mapping report exists, and evidence validation passes at least one known case.
+
 ### [x] **P0.T5** Retrieval presets + backend fallback
 **Paths**: `paper_table_agent/ui/app.py`, `paper_table_agent/graph/runner.py`
 **Tests**: (add unit test for presets if feasible)
 **AC**
 - Fast/Balanced/Thorough set explicit topK/query variants/HyDE/second-pass.
-- Missing embeddings/reranker fall back to TF-IDF with warnings.
+- Missing embeddings/reranker fall back to BM25-only with warnings.
 
 ### [x] **P0.T6** README update (setup + retrieval configs)
 **Paths**: `README.md`
@@ -73,7 +81,7 @@ Conventions:
 ### [x] **P1.T3** UI diagnostics wiring
 **Paths**: `paper_table_agent/ui/app.py`
 **AC**
-- Advanced tab surfaces run_report summary + retrieval stats.
+- Advanced tab surfaces run_report summary + retrieval diagnostics + evidence locator.
 
 ---
 
@@ -84,7 +92,7 @@ Conventions:
 **AC**
 - Runs succeed with optional GROBID/OCR toggles.
 
-### [x] **P2.T2** Review speed polish
+### [ ] **P2.T2** Review speed polish
 **Paths**: `paper_table_agent/ui/app.py`
 **AC**
 - Keyboard shortcuts documented and consistent across sessions.
