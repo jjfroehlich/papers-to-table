@@ -1,6 +1,9 @@
-# Spec: Paper Table Agent — Unified Functional + UI/UX Spec (v0.7)
+# Spec: Paper Table Agent — Unified Spec
 
 This unified spec consolidates the best functional requirements from earlier versions with the latest UI/UX iteration. It prioritizes **accurate extraction with evidence** while keeping the app **fast, logical, and user-friendly** during row-by-row review.
+
+Paper Table Agent is a local-first PDF→Spreadsheet filling assistant for literature curation. You give it (1) one spreadsheet where each row is a paper and (2) a folder of PDFs. The agent matches PDFs to rows, then fills only missing cells by proposing values with evidence (page + verbatim quote + highlight). It never overwrites existing non-empty cells. After the run, you use a simple Review flow to step through only the rows where a PDF was matched and approve/reject each proposed cell while viewing the highlighted quote in the PDF.
+Under the hood, extraction is evidence-first retrieval + constrained generation (multi-query retrieval and query “hypothesis” techniques can improve recall/accuracy) and is designed to be resumable and auditable.
 
 ---
 

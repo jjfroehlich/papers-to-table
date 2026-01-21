@@ -1,6 +1,8 @@
 # Paper Table Agent
 
 Local-first batch PDF → table proposals with evidence, plus post-run row review.
+Paper Table Agent is a local-first PDF→Spreadsheet filling assistant for literature curation. You give it (1) one spreadsheet where each row is a paper and (2) a folder of PDFs. The agent matches PDFs to rows, then fills only missing cells by proposing values with evidence (page + verbatim quote + highlight). It never overwrites existing non-empty cells. After the run, you use a simple Review flow to step through only the rows where a PDF was matched and approve/reject each proposed cell while viewing the highlighted quote in the PDF.
+Under the hood, extraction is evidence-first retrieval + constrained generation (multi-query retrieval and query “hypothesis” techniques can improve recall/accuracy) and is designed to be resumable and auditable.
 
 ## Purpose + use-cases
 
@@ -201,9 +203,9 @@ Example LM Studio retrieval settings:
 {
   "retrieval": {
     "embedding_backend": "lmstudio",
-    "embedding_model": "nomic-embed-text-v1.5",
+    "embedding_model": "text-embedding-nomic-embed-text-v1.5-embedding",
     "reranker_backend": "lmstudio",
-    "reranker_model": "bge-small-en-v1.5",
+    "reranker_model": "text-embedding-bge-small-en-v1.5",
     "use_reranker": true
   }
 }

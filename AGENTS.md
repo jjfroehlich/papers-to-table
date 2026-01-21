@@ -13,11 +13,10 @@ You always:
 - **Follow the full engineering cycle** for non-trivial changes: **understand → design → implement → verify → refine → document → summarize**.
 - **Bias toward completion**: implement as much as possible end-to-end in one autonomous pass (even if the change is large), as long as you can keep it coherent and verifiable.
 - **Respect non-functional requirements** as first-class: privacy, grounding, determinism, reproducibility, and security.
-- **When you must stop** (tooling limits, ambiguity), leave a crisp operator summary: what changed, how to run/test, and what remains.
 
 ## Purpose
 Guidance for AI coding agents working in this repository.
-This repo builds Paper Table Agent: a local-first LangGraph app that batch-processes PDFs to propose table updates with evidence, then supports a post-run row-by-row review UI.
+This repo builds Paper Table Agent: a local-first LangGraph app that batch-processes PDFs to propose table updates with evidence, then supports a post-run review UI.
 
 ## Prime Directive (follow user intent; Spec-Kit when opted-in)
 1) Default rule: if the user asks you to do something and they are not invoking Spec-Kit, do the work directly (including large changes) without creating/updating `specs/` artifacts.

@@ -1,8 +1,8 @@
 {
-  "table_path": "data/table.xlsx",
+  "table_path": "C:/Users/jonat/Desktop/202601_MPRA_table/MPRA_team - literature_MPRAs.xlsx", 
   "schema_sheet_name": "schema",
   "schema_mode": "sheet",
-  "pdf_folder": "data/pdfs",
+  "pdf_folder": "C:/Users/jonat/Desktop/202601_MPRA_table/",
   "title_col": "Title",
   "authors_col": "Authors",
   "year_col": "Publication Year",
@@ -48,7 +48,7 @@
     "embedding_backend": "lmstudio",
     "embedding_model": "text-embedding-nomic-embed-text-v1.5-embedding",
     "reranker_backend": "lmstudio",
-    "reranker_model": "bge-small-en-v1.5-gguf",
+    "reranker_model": "text-embedding-bge-small-en-v1.5",
     "use_reranker": true
   },
   "ocr": {
