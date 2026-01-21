@@ -7,6 +7,7 @@ fitz = pytest.importorskip("fitz")
 pd = pytest.importorskip("pandas")
 
 from paper_table_agent.config import RunConfig, create_run_paths
+from paper_table_agent.graph.exporter import export_run
 from paper_table_agent.graph.runner import run_pipeline
 from paper_table_agent.store.db import Store
 from paper_table_agent.ui.registry import discover_runs
@@ -73,7 +74,7 @@ def test_end_to_end_with_mock_llm(tmp_path: Path):
         authors_col="Authors",
         year_col="Year",
     )
-    config.provider.mock_mode = True
+    config.provider.mode = "mock"
     config.provider.mock_payloads_path = mock_path
 
     run_paths = create_run_paths(config.table_path, root=tmp_path / "runs")
@@ -173,14 +174,14 @@ def test_integration_run_report_and_validation(tmp_path: Path):
         authors_col="Authors",
         year_col="Year",
     )
-    config.provider.mock_mode = True
+    config.provider.mode = "mock"
     config.provider.mock_payloads_path = mock_path
 
     run_paths = create_run_paths(config.table_path, root=tmp_path / "runs")
     store = Store.init_db(run_paths.db_path)
     run_pipeline(config, run_paths, store)
 
-    proposals = store.conn.execute("SELECT column, flags_json FROM proposals").fetchall()
+    proposals = store.conn.execute("SELECT column, flags_json, proposal_id FROM proposals").fetchall()
     columns = {row["column"] for row in proposals}
     assert columns == {"Method", "Outcome"}
     flags = [json.loads(row["flags_json"] or "{}") for row in proposals]
@@ -188,3 +189,19 @@ def test_integration_run_report_and_validation(tmp_path: Path):
 
     assert (run_paths.run_dir / "run_report.json").exists()
     assert (run_paths.exports_dir / "mapping_report.html").exists()
+
+    first_proposal = proposals[0]
+    store.insert_review(
+        {
+            "review_id": first_proposal["proposal_id"],
+            "proposal_id": first_proposal["proposal_id"],
+            "decision": "accepted",
+            "final_value": "method X",
+            "note": "ok",
+        }
+    )
+    export_run(run_paths.run_dir)
+    exported = pd.read_excel(run_paths.exports_dir / "updated_table.xlsx")
+    assert exported.loc[0, "Method"] == "method X"
+    assert (run_paths.exports_dir / "audit_log.csv").exists()
+    assert not (run_paths.exports_dir / "proposals.jsonl").exists()

@@ -33,7 +33,8 @@ def export_run(run_dir: Path) -> None:
     write_table_copy(table, exports_dir / "updated_table.xlsx")
 
     _export_audit(store, exports_dir / "audit_log.csv")
-    _export_proposals(store, exports_dir / "proposals.jsonl")
+    if config.get("output", {}).get("debug_reports"):
+        _export_proposals(store, exports_dir / "proposals.jsonl")
 
 
 def _export_audit(store: Store, output_path: Path) -> None:

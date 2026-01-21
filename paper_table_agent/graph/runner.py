@@ -6,7 +6,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from paper_table_agent.config import RunConfig, RunPaths, validate_schema_columns
+from paper_table_agent.config import (
+    RunConfig,
+    RunPaths,
+    capture_run_config,
+    load_prompt_versions,
+    validate_schema_columns,
+)
 from paper_table_agent.graph.extraction import (
     GroupContext,
     build_error_records,
@@ -71,6 +77,10 @@ class RunContext:
 
 
 def run_pipeline(config: RunConfig, run_paths: RunPaths, store: Store) -> None:
+    run_config_path = run_paths.run_dir / "run_config.json"
+    if not run_config_path.exists():
+        prompt_versions = load_prompt_versions(Path("paper_table_agent/prompts"))
+        capture_run_config(config, run_paths, prompt_versions)
     context, pdfs = _prepare_context(config, run_paths, store)
     existing_pdfs = {row["pdf_id"]: row for row in store.list_pdfs()}
     for pdf in pdfs:
@@ -79,7 +89,7 @@ def run_pipeline(config: RunConfig, run_paths: RunPaths, store: Store) -> None:
             break
         if _process_pdf(context, pdf, existing_pdfs):
             context.logger.info("processed pdf %s", pdf.pdf_id)
-    write_mapping_report(store, run_paths.exports_dir)
+    write_mapping_report(store, run_paths.exports_dir, write_csv=config.output.debug_reports)
     write_run_report(store, run_paths)
     (run_paths.run_dir / "COMPLETED").write_text("done", encoding="utf-8")
 
@@ -120,8 +130,9 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
         store.insert_pdf(pdf.pdf_id, str(pdf.path), pdf.sha1)
 
     _ensure_retrieval_backends(config, logger, store)
+    mock_mode = config.provider.mock_mode or config.provider.mode == "mock"
     mock_payloads = None
-    if config.provider.mock_mode and config.provider.mock_payloads_path:
+    if mock_mode and config.provider.mock_payloads_path:
         mock_payloads = json.loads(config.provider.mock_payloads_path.read_text(encoding="utf-8"))
     header_client = LlmClient(
         LlmConfig(
@@ -129,7 +140,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
             api_key=config.provider.api_key,
             model=config.provider.model_header,
             max_prompt_chars=config.provider.max_prompt_chars,
-            mock_mode=config.provider.mock_mode,
+            mock_mode=mock_mode,
             mock_payloads=mock_payloads,
         )
     )
@@ -139,7 +150,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
             api_key=config.provider.api_key,
             model=config.provider.model_match,
             max_prompt_chars=config.provider.max_prompt_chars,
-            mock_mode=config.provider.mock_mode,
+            mock_mode=mock_mode,
             mock_payloads=mock_payloads,
         )
     )
@@ -149,7 +160,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
             api_key=config.provider.api_key,
             model=config.provider.model_extract,
             max_prompt_chars=config.provider.max_prompt_chars,
-            mock_mode=config.provider.mock_mode,
+            mock_mode=mock_mode,
             mock_payloads=mock_payloads,
         )
     )
@@ -159,7 +170,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
             api_key=config.provider.api_key,
             model=config.provider.model_query_helper,
             max_prompt_chars=config.provider.max_prompt_chars,
-            mock_mode=config.provider.mock_mode,
+            mock_mode=mock_mode,
             mock_payloads=mock_payloads,
         )
     )
