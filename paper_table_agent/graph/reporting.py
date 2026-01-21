@@ -106,7 +106,7 @@ _REPORT_TEMPLATE = Template(
 )
 
 
-def write_mapping_report(store: Store, output_dir: Path) -> None:
+def write_mapping_report(store: Store, output_dir: Path, write_csv: bool = False) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     matches = store.fetch_matches()
     rows = {row["row_id"]: dict(row) for row in store.fetch_rows()}
@@ -148,37 +148,38 @@ def write_mapping_report(store: Store, output_dir: Path) -> None:
     html = _REPORT_TEMPLATE.render(rows=report_rows, **summary)
     (output_dir / "mapping_report.html").write_text(html, encoding="utf-8")
 
-    with (output_dir / "pdf_row_matches.csv").open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.writer(handle)
-        writer.writerow(
-            [
-                "pdf_id",
-                "row_id",
-                "status",
-                "confidence",
-                "pdf_title",
-                "pdf_authors",
-                "pdf_year",
-                "row_title",
-                "row_authors",
-                "row_year",
-            ]
-        )
-        for row in report_rows:
+    if write_csv:
+        with (output_dir / "pdf_row_matches.csv").open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.writer(handle)
             writer.writerow(
                 [
-                    row["pdf_id"],
-                    row["row_id"],
-                    row["status"],
-                    row["confidence"],
-                    row["pdf_title"],
-                    row["pdf_authors"],
-                    row["pdf_year"],
-                    row["row_title"],
-                    row["row_authors"],
-                    row["row_year"],
+                    "pdf_id",
+                    "row_id",
+                    "status",
+                    "confidence",
+                    "pdf_title",
+                    "pdf_authors",
+                    "pdf_year",
+                    "row_title",
+                    "row_authors",
+                    "row_year",
                 ]
             )
+            for row in report_rows:
+                writer.writerow(
+                    [
+                        row["pdf_id"],
+                        row["row_id"],
+                        row["status"],
+                        row["confidence"],
+                        row["pdf_title"],
+                        row["pdf_authors"],
+                        row["pdf_year"],
+                        row["row_title"],
+                        row["row_authors"],
+                        row["row_year"],
+                    ]
+                )
 
 
 def write_run_report(store: Store, run_paths: Path | object) -> None:

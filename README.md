@@ -19,9 +19,9 @@ Typical use-cases:
 ## Status
 
 - **Core pipeline**: PDF parsing, two-pass matching, retrieval (query expansion + HyDE + rerank), and proposal extraction run end-to-end with checkpoints.
-- **Run UX**: schema source selection, run naming, model routing, and validation gates reduce setup friction.
-- **Review UX**: two-panel row review with filters, stepper navigation, and evidence highlights + re-locate tools.
-- **Settings/Advanced**: provider/model routing with LM Studio model registry + diagnostics are available in the UI.
+- **Run UX**: minimal inputs (table path + PDF folder) with a built-in path picker.
+- **Review UX**: row → column step-through with three decisions and evidence highlights.
+- **Configuration**: single config file controls models, retrieval, OCR, and diagnostics; UI does not expose tuning knobs.
 
 Near-term to-do:
 
@@ -55,15 +55,13 @@ pip install -e .
 - **Ollama** (OpenAI-compatible): set `provider.base_url` to `http://localhost:11434/v1`.
 - **Cloud** (OpenAI-compatible): set `provider.base_url` + `provider.api_key` and model names.
 
-If you use LM Studio, open **Settings → Refresh model list** so dropdowns only show models that are currently loaded in LM Studio.
-
 ### 2) Start the UI
 
 ```bash
 paper-table-agent ui
 ```
 
-The Run tab uses path inputs, dropdowns, and validation indicators to configure runs. Completed runs appear in Review.
+The Run tab uses only table + PDF paths. Completed runs appear in Review.
 
 ### 3) Run the batch pipeline (CLI)
 
@@ -91,12 +89,14 @@ Example config:
   "fast_mode": false,
   "max_success_mode": true,
   "provider": {
+    "mode": "openai",
     "base_url": "http://localhost:1234/v1",
     "api_key": null,
     "model_header": "local-header",
     "model_match": "local-match",
     "model_extract": "local-extract",
     "model_query_helper": "local-helper",
+    "max_prompt_chars": 26000,
     "mock_mode": false,
     "mock_payloads_path": null
   },
@@ -111,14 +111,14 @@ Example config:
     "examples_per_col": 3,
     "max_chunks": 20,
     "retry_on_unclear": true,
-    "retry_extra_chunks": 6
+    "retry_extra_chunks": 10
   },
   "retrieval": {
-    "top_k": 12,
-    "rerank_k": 12,
-    "max_context_chunks": 16,
-    "max_context_tokens": 1800,
-    "query_variants": 4,
+    "top_k": 20,
+    "rerank_k": 20,
+    "max_context_chunks": 24,
+    "max_context_tokens": 2400,
+    "query_variants": 6,
     "use_query_expansion": true,
     "use_hyde": true,
     "rrf_k": 60,
@@ -136,6 +136,9 @@ Example config:
     "enable_grobid": false,
     "server_url": "http://localhost:8070",
     "parse_references": false
+  },
+  "output": {
+    "debug_reports": false
   },
   "max_workers": 1
 }
@@ -168,8 +171,11 @@ paper-table-agent bundle --run_dir runs/<timestamp>__<table>/
 
 ## Configuration (models, embeddings, reranker)
 
+All model/retrieval settings live in the single `run_config.json` file. The UI reads defaults but does not override them.
+
 **Model routing**
 
+- `provider.mode`: `openai` (default) or `mock` for deterministic test runs.
 - `provider.model_header`: header extraction (title/authors/year).
 - `provider.model_match`: match adjudication.
 - `provider.model_extract`: group extraction (proposals).
@@ -185,11 +191,9 @@ paper-table-agent bundle --run_dir runs/<timestamp>__<table>/
 
 When using the LM Studio reranker backend, choose an embedding-capable model (reranking uses cosine similarity over embeddings). If embeddings or reranker models are missing, the system falls back to TF-IDF and disables reranking with a warning.
 
-**Retrieval presets**
+**Retrieval profile**
 
-- **Fast**: topK=8, rerank=8, query_variants=1, HyDE off, no second-pass retry.
-- **Balanced**: topK=12, rerank=12, query_variants=4, HyDE on, second-pass retry on unclear.
-- **Thorough**: topK=20, rerank=20, query_variants=6, HyDE on, more aggressive retry.
+- Single “optimal” profile (topK=20, rerank=20, query_variants=6, HyDE on, retry on unclear).
 
 Example LM Studio retrieval settings:
 
@@ -260,7 +264,7 @@ Resume a run with `paper-table-agent resume --run_dir runs/<timestamp>__<table>/
 
 5. **Needs-more-evidence semantics**
    - Proposals are flagged if evidence is missing, indirect, or cannot be highlighted.
-   - These are surfaced prominently in review filters.
+   - Review shows a small badge but does not add a fourth decision.
 
 This aligns with state-of-the-art retrieval-augmented extraction: hybrid search, reranking, query expansion, and evidence-grounded generation.
 
@@ -297,4 +301,4 @@ paper_table_agent/
   ```bash
   docker run --rm -p 8070:8070 grobid/grobid:0.8.0
   ```
-- **LLM JSON failures**: enable `mock_mode` with canned JSON payloads for tests, or inspect errors in `runs/<...>/logs/errors.jsonl`.
+- **LLM JSON failures**: set `provider.mode` to `mock` with canned JSON payloads for tests, or inspect errors in `runs/<...>/logs/errors.jsonl`.

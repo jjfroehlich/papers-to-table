@@ -1,96 +1,57 @@
-# plan.md — Paper Table Agent (forever spec execution plan)
+# plan.md — Paper Table Agent (simplified product execution plan)
 
-Phased implementation plan grounded in current repo state. Each phase includes measurable acceptance checks.
+Phased implementation plan for the simplified “best possible extraction + simple review” product.
+Each phase includes acceptance checks aligned with the v0.7 spec.
 
-## Phase 0 — Packaging/install + tests + smoke run
+## Phase A — UI simplification (Run/Review only)
 
 **Focus**
-- Validate installability, test harness, and CLI/UI entrypoints.
+- Remove Advanced/Settings/Help tabs and all filtering widgets.
+- Keep only Run + Review screens with minimal controls.
+- Add in-app path picker (directory/file browser) for table/PDF paths.
 
 **Acceptance checks**
-- `pip install -e ".[test]"` succeeds.
-- `pytest -q` passes.
-- `paper-table-agent ui` launches Streamlit without crashing.
-- `paper-table-agent run --config run_config.json` completes and writes a run folder.
+- UI shows exactly **Run** and **Review**.
+- Run screen has only table path + PDF folder path inputs with in-app picker.
+- Review screen is step-through (row → column) with Accept / Accept-with-edit / Reject only.
+- No confidence filters, search, column multi-select, or tuning controls.
 
 ---
 
-## Phase 1 — Correctness regressions (matching consistency, evidence validation, proposal persistence)
+## Phase B — Config consolidation + best defaults
 
 **Focus**
-- Enforce matching consistency rules and deterministic-first behavior.
-- Enforce evidence validation (quote+page+chunk_id substring) and highlight status.
-- Persist per-column proposals even on malformed LLM output; record structured errors.
+- Single config object (pydantic settings/run_config.json) for models + retrieval params.
+- UI reads defaults but never overrides model/retrieval/ocr/grobid settings.
+- Use a single “optimal” retrieval profile and keep try-hard retry enabled.
 
 **Acceptance checks**
-- Matching JSON rejects ambiguous+row_id and row_id without matched.
-- When only one plausible candidate exists, ambiguous is coerced to matched with warning.
-- Proposals exist for every requested column, even on LLM failure.
-- Evidence validation forces unclear when quote not in chunk; error metadata is persisted.
+- No UI model dropdowns or preset selectors.
+- Retrieval config defaults match the single optimal profile.
+- CLI uses the same config object for runs and resume.
 
 ---
 
-## Phase 1.5 — Spec consistency + verify semantics + evidence normalization
+## Phase C — Output simplification
 
 **Focus**
-- Align verify-only review semantics with the three-decision rule.
-- Normalize evidence validation (exact vs normalized) and enforce chunk page ranges.
-- Ensure run_report metrics are comprehensive and logged.
+- Keep primary outputs: proposals.sqlite, updated_table.xlsx, audit_log.csv, run_report.json.
+- Keep mapping report for diagnostics but do not surface prominently in UI.
+- Gate extra exports behind a debug flag.
 
 **Acceptance checks**
-- Verify-only review semantics are documented and map to Accept/Accept-with-edit/Reject.
-- Evidence validation supports exact vs normalized matching and enforces page-range checks.
-- run_report includes fill rate, evidence validation pass rate, highlight success rate, ambiguous mapping rate, and per-column not_found rates.
+- Default runs write only primary artifacts.
+- Extra exports (proposals.jsonl, pdf_row_matches.csv) are only written when debug is enabled.
 
 ---
 
-## Phase 2 — Retrieval + prompting upgrades (“try hard”, multi-query, rerank) + metrics
+## Phase D — Testing strategy improvements
 
 **Focus**
-- Implement explicit Fast/Balanced/Thorough retrieval presets.
-- Ensure multi-query + HyDE + rerank are active for Balanced/Thorough.
-- Track retrieval stats in run_report and Advanced diagnostics.
+- Mock provider for deterministic JSON responses (matching, extraction, query expansion/HyDE).
+- End-to-end pytest fixture using mock provider + tiny XLSX/PDF.
+- Tests validate proposal persistence, evidence validation, export outputs, and review persistence.
 
 **Acceptance checks**
-- Retrieval presets set explicit topK/query_variants/rerank values.
-- Balanced/Thorough use query expansion + HyDE; Fast does not.
-- run_report.json includes retrieval configuration and summary stats.
-
----
-
-## Phase 3 — Highlight locator robustness + caching + “try re-locate”
-
-**Focus**
-- Ordered locator steps (exact → normalized → hint → pdfplumber tokens → OCR tokens).
-- Cache highlight rectangles in DB and reuse in Review.
-- Add “Try re-locate” action for evidence in UI.
-
-**Acceptance checks**
-- Evidence records include highlight_status and strategy.
-- Cached rectangles are reused in Review without re-search.
-- “Try re-locate” updates evidence and flags immediately.
-
----
-
-## Phase 4 — UI/UX improvements (review speed + diagnostics)
-
-**Focus**
-- Maintain v0.5/v0.6 review UX while surfacing mapping + evidence diagnostics.
-- Improve review filters and row navigation for large runs.
-
-**Acceptance checks**
-- Review tab supports Accept/Accept-with-edit/Reject only.
-- Mapping diagnostics show side-by-side PDF metadata vs row metadata.
-- Advanced tab exposes matching/retrieval/evidence locator panels.
-
----
-
-## Phase 5 — Optional integrations (GROBID, OCR improvements)
-
-**Focus**
-- Optional GROBID metadata + sectioning.
-- OCR quality and token alignment improvements.
-
-**Acceptance checks**
-- Runs succeed with or without GROBID enabled.
-- OCR fallback triggers when pages are sparse and records OCR provenance.
+- `pytest -q` passes in a mock-only environment.
+- Integration test asserts: proposals for requested columns, evidence validation passes, updated_table.xlsx produced, reviews persist.

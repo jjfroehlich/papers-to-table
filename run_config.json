@@ -11,6 +11,7 @@
   "fast_mode": false,
   "max_success_mode": true,
   "provider": {
+    "mode": "openai",
     "base_url": "http://localhost:1234/v1",
     "api_key": null,
     "model_header": "gpt-oss-20b",
@@ -33,14 +34,14 @@
     "examples_per_col": 3,
     "max_chunks": 20,
     "retry_on_unclear": true,
-    "retry_extra_chunks": 6
+    "retry_extra_chunks": 10
   },
   "retrieval": {
-    "top_k": 12,
-    "rerank_k": 12,
-    "max_context_chunks": 16,
-    "max_context_tokens": 1800,
-    "query_variants": 4,
+    "top_k": 20,
+    "rerank_k": 20,
+    "max_context_chunks": 24,
+    "max_context_tokens": 2400,
+    "query_variants": 6,
     "use_query_expansion": true,
     "use_hyde": true,
     "rrf_k": 60,
@@ -58,6 +59,9 @@
     "enable_grobid": false,
     "server_url": "http://localhost:8070",
     "parse_references": false
+  },
+  "output": {
+    "debug_reports": false
   },
   "max_workers": 1
 }

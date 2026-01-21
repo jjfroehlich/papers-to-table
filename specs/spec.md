@@ -1,4 +1,4 @@
-# Spec: Paper Table Agent — Unified Functional + UI/UX Spec (v0.6)
+# Spec: Paper Table Agent — Unified Functional + UI/UX Spec (v0.7)
 
 This unified spec consolidates the best functional requirements from earlier versions with the latest UI/UX iteration. It prioritizes **accurate extraction with evidence** while keeping the app **fast, logical, and user-friendly** during row-by-row review.
 
@@ -11,6 +11,12 @@ This unified spec consolidates the best functional requirements from earlier ver
 - **Low-friction review**: row-by-row decisions with fast navigation and minimal typing.
 - **Local-first reliability**: resumable batch runs, deterministic pipelines, and durable storage.
 - **Scalable UI**: responsive even for large runs with thousands of rows/proposals.
+
+## 0.1) Product philosophy
+
+- The app should do the **best possible job automatically** with fixed, high-quality defaults.
+- UI **does not expose tuning knobs** (models, retrieval presets, OCR/GROBID toggles).
+- All parameters are tuned in a single config file after testing, not in the UI.
 
 ---
 
@@ -43,30 +49,26 @@ A local-first app that:
 
 ### 2.2 Outputs (per run)
 
+Primary artifacts (always written):
+
 ```
 runs/
   <timestamp>__<table_name>/
     run_config.json
     proposals.sqlite
     run_report.json
-    run_bundle.zip
     exports/
       updated_table.xlsx
       audit_log.csv
-      pdf_row_matches.csv
-      proposals.jsonl
       mapping_report.html
-    artifacts/
-      parsed/
-        <pdf_id>.json
-      ocr/
-        <pdf_id>/...
-      retrieval_indexes/
-        <pdf_id>/...
-      thumbnails/
-    logs/
-      run.log
-      errors.jsonl
+```
+
+Optional/debug artifacts (behind a debug flag):
+
+```
+    exports/
+      proposals.jsonl
+      pdf_row_matches.csv
 ```
 
 ---
@@ -244,28 +246,15 @@ Flag if:
 - Add context neighborhood to preserve adjacency.
 - Evidence-first extraction: LLM can only propose values tied to retrieved chunks.
 
-### 6.4.1 Retrieval presets (P0, operational)
+### 6.4.1 Retrieval profile (P0, single “optimal”)
 
-**Fast**
-- topK=8, rerank topN=8
-- query_variants=1, HyDE=off
-- max_context_chunks=10, max_context_tokens=1200
-- second-pass retry on unclear = **off**
-
-**Balanced**
-- topK=12, rerank topN=12
-- query_variants=4, HyDE=on
-- max_context_chunks=16, max_context_tokens=1800
-- second-pass retry on unclear = **on** (extra_chunks=6)
-
-**Thorough**
-- topK=20, rerank topN=20
-- query_variants=6, HyDE=on
-- max_context_chunks=24, max_context_tokens=2400
-- second-pass retry on unclear = **on** (extra_chunks=10)
-
-**Fallback behavior**
-- If embeddings or reranker are not configured, fall back to **BM25-only + no rerank**; log a warning and record the fallback mode in run_report.
+- **Single optimal profile** (no UI presets):
+  - topK=20, rerank topN=20
+  - query_variants=6, HyDE=on
+  - max_context_chunks=24, max_context_tokens=2400
+  - second-pass retry on unclear = **on** (extra_chunks=10)
+- **Fallback behavior**:
+  - If embeddings or reranker are not configured, fall back to **BM25-only + no rerank**; log a warning and record the fallback mode in run_report.
 
 ### 6.5 Hierarchical retrieval (optional “max recall” mode)
 
@@ -316,99 +305,56 @@ Model roles:
 - Embedding backend + model
 - Reranker backend + model
 
+### 8.1 Configuration (single source of truth)
+
+- All settings live in **one config file** (pydantic settings/run_config.json).
+- UI reads defaults from the config file but **does not** expose model/parameter controls.
+- CLI uses the same config object; overrides must still pass through the single config file.
+
 ---
 
 ## 9) UI/UX requirements
 
 ### 9.1 Global UI principles
 
-- Navigation: **Run | Review | Advanced | Settings | Help**.
-- Layout:
-  - Top bar: app title + selected run + status chip.
-  - Left rail: navigation + context selectors.
-  - Main: working panels.
-- Persistent session state for selected run/row/proposal index.
-- Clear empty states and no hard failures.
+- Navigation: **Run | Review** only.
+- Minimal UI chrome with clear empty states.
+- Persistent session state for selected run/row/column index.
+- No tuning knobs or provider selectors in the UI.
 
-### 9.2 Run tab (batch execution)
+### 9.2 Run screen (minimal)
 
-**Run configuration panel**
+Inputs:
+- **Table path** (default from config file; editable text input).
+- **PDF folder path** (default from config file; editable text input).
+- “Browse” helper is an **in-app path picker** (directory/file browser widget), not an uploader.
 
-- Table input path with browse helper (show filename + last modified).
-- PDF folder path with browse helper.
-- Schema source: use schema sheet or separate schema file.
-- Run name: auto-generated, editable.
-- Mode: Propose (default) or Verify-only.
-- Locked cells policy: read-only display.
-- Model dropdowns: extraction LLM + embedding backend/model + reranker backend/model.
-- Retrieval strength: Fast | Balanced | Thorough.
-- OCR fallback toggle (off by default).
-- GROBID toggle + URL.
+Buttons:
+- **Start Run**
+- **Resume** (only when a resumable checkpoint exists)
 
-**Validation UX**
+Progress:
+- Minimal status line: **Run started / Running / Done**.
+- Optional “current PDF” display.
+- Single progress indicator.
 
-- Required fields show green check / red warning.
-- Start run disabled until minimum fields are valid.
+### 9.3 Review screen (minimal step-through)
 
-**Run execution panel**
+Primary interaction:
+- Step through **rows**, then **columns** for that row.
+- For each proposal: show **proposed value**, **evidence quote(s)+page**, and **PDF with highlight**.
+- Three decisions only: **Accept / Accept-with-edit / Reject**.
+- Auto-advance enabled by default.
 
-- Progress: overall bar, step label, current PDF.
-- Live logs: filter by errors/warnings/info.
-- Actions: Pause, Resume, Stop (graceful, keep partial results).
-- Completion summary: matched/ambiguous/unmatched counts, proposals count, needs_more_evidence count, run duration, “Go to Review”.
-- Artifacts path with “Copy path”.
+Navigation controls:
+- Prev/Next row, Prev/Next column, and **Next undecided**.
+- Small “remaining items” counter.
 
-### 9.3 Review tab (row-by-row)
-
-**Top bar**
-
-- Run selector (completed runs only).
-- Filters: status, confidence range, columns (multi-select).
-- Search: column names + proposed values + evidence quote.
-- Row navigation: Prev/Next, jump, “Row X of Y”.
-
-**Left panel**
-
-- Row context card: Title/Authors/Year + key schema columns.
-- Mapping status: matched row + PDF metadata side-by-side; candidates if ambiguous.
-- Proposal stepper: Prev/Next + optional keyboard shortcuts.
-- Proposal card: column name, current value, proposed value (editable on accept+edit), status chips, evidence summary.
-- Decision controls: Accept / Accept-with-edit / Reject.
-- Add note + Needs-more-evidence toggle.
-- Auto-advance (default on).
-
-Decision rules:
-- **Exactly three decisions**: Accept / Accept-with-edit / Reject.
-- Reject keeps table cell empty and eligible for future runs.
-- `needs_more_evidence` is a tag/flag, **not** a fourth decision.
-
-**Right panel**
-
-- PDF viewer shows cited page and highlights evidence rectangles when available.
-- Evidence list: quote, page, “Go to location”, “Try re-locate” when highlight fails.
-- OCR confidence shown when applicable.
-
-**Completion**
-
-- Row completion % + “Mark row complete”.
-- Run completion % + “Export updated table” gated by confirmation.
-
-### 9.4 Advanced tab
-
-- Dropdown selectors: run, PDF, row, column, retrieval query.
-- Panels: matching diagnostics, retrieval diagnostics, evidence locator. (LLM I/O can be added later.)
-
-### 9.5 Settings tab
-
-- Provider selection: LM Studio | Ollama | OpenAI-compatible cloud.
-- Model routing: header extraction, match adjudication, extraction, query expansion, embedding backend/model, reranker backend/model.
-- Performance: concurrency, JSON repair retries, caching toggles.
-
-### 9.6 Help / Troubleshooting
-
-- “How to get started in 3 steps”.
-- Common failure modes and checks.
-- Links to run folder, logs, DB.
+Constraints:
+- No confidence filtering.
+- No search.
+- No column multi-select.
+- `needs_more_evidence` stays internal (optional badge only).
 
 ---
 
@@ -429,8 +375,7 @@ Decision rules:
 Exports:
 - updated_table.xlsx (apply accepted/revised only)
 - audit_log.csv (proposal → decision lineage)
-- pdf_row_matches.csv (mapping + confidence + duplicates)
-- mapping_report.html
+- mapping_report.html (diagnostic)
 
 Audit log includes:
 - run_id
@@ -447,7 +392,7 @@ Audit log includes:
 ## 12) Definition of done
 
 - `pip install -e ".[test]"` works, and `pytest -q` passes.
-- Streamlit UI launches (`paper-table-agent ui`).
+- Streamlit UI launches (`paper-table-agent ui`) with **Run** and **Review** only.
 - Two-pass matching works when year is missing; duplicates flagged.
 - Matching JSON is internally consistent (no ambiguous+row_id).
 - **Every column** persists a proposal record (even error/unclear/no_evidence).
@@ -455,9 +400,7 @@ Audit log includes:
 - Evidence validation enforces quote+page+chunk_id and substring match.
 - run_report includes fill rate, evidence validation pass rate, highlight success rate, ambiguous mapping rate, and per-column not_found rates.
 - Mapping report exists and includes side-by-side metadata + candidate table.
-- `paper-table-agent bundle --run_dir <run_dir>` produces `run_bundle.zip`.
 - Decisions persist immediately in Review.
-- Advanced tab exposes matching/retrieval/evidence diagnostics.
-- Settings tab supports provider/model routing + performance controls.
-- Help tab includes onboarding + troubleshooting.
+- UI exposes **no** model/retrieval/OCR/GROBID knobs; config is single source of truth.
+- Outputs are simplified to proposals.sqlite + run_report.json + updated_table.xlsx + audit_log.csv.
 - README updated to reflect workflow and configuration.

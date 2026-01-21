@@ -14,6 +14,7 @@ DEFAULT_EMPTY_VALUES = ["", "NA", "N/A", "null", "-", " "]
 
 
 class ProviderConfig(BaseModel):
+    mode: str = "openai"
     base_url: str = "http://localhost:1234/v1"
     api_key: str | None = None
     model_header: str = "gpt-oss-20b"
@@ -38,15 +39,15 @@ class ExtractionConfig(BaseModel):
     examples_per_col: int = 3
     max_chunks: int = 20
     retry_on_unclear: bool = True
-    retry_extra_chunks: int = 6
+    retry_extra_chunks: int = 10
 
 
 class RetrievalConfig(BaseModel):
-    top_k: int = 12
-    rerank_k: int = 12
-    max_context_chunks: int = 16
-    max_context_tokens: int = 1800
-    query_variants: int = 4
+    top_k: int = 20
+    rerank_k: int = 20
+    max_context_chunks: int = 24
+    max_context_tokens: int = 2400
+    query_variants: int = 6
     use_query_expansion: bool = True
     use_hyde: bool = True
     rrf_k: int = 60
@@ -69,6 +70,10 @@ class GrobidConfig(BaseModel):
     parse_references: bool = False
 
 
+class OutputConfig(BaseModel):
+    debug_reports: bool = False
+
+
 class RunConfig(BaseModel):
     table_path: Path
     schema_sheet_name: str = "schema"
@@ -89,6 +94,7 @@ class RunConfig(BaseModel):
     retrieval: RetrievalConfig = Field(default_factory=RetrievalConfig)
     ocr: OcrConfig = Field(default_factory=OcrConfig)
     grobid: GrobidConfig = Field(default_factory=GrobidConfig)
+    output: OutputConfig = Field(default_factory=OutputConfig)
     max_workers: int = 1
 
     @field_validator("table_path", "pdf_folder")

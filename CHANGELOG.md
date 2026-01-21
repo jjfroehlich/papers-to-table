@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Simplified the UI to Run/Review only with minimal inputs and step-through review decisions.
+- Consolidated model/retrieval settings into a single config file with no UI tuning knobs.
+- Added mock provider mode for deterministic test runs and query expansion/HyDE fallbacks.
+- Simplified default outputs; extra exports are now gated behind a debug flag.
 - Added run_report.json diagnostics with mapping/extraction/retrieval summaries and artifact paths.
 - Mapping report now includes side-by-side PDF metadata vs row metadata.
 - Evidence validation now requires chunk_id and verifies quote substring against stored chunks, with structured error flags.
@@ -13,5 +17,4 @@
 - Added OCR-aware highlight fallback and cached highlight rectangles in stored evidence.
 - Introduced per-column retrieval with retry on unclear results and configurable embedding/reranker backends.
 - Added optional GROBID integration for structured metadata + section chunking (off by default).
-- Updated the UI with Run/Review/Advanced/Settings/Help tabs, run validation gates, and enhanced review filters + evidence tools.
-- Replaced table upload with path-based selection and added LM Studio model registry-aware embedding/reranker configuration.
+- Updated the UI to use a single config-driven Run/Review flow with minimal controls.

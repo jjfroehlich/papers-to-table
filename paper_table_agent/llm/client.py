@@ -130,6 +130,13 @@ class LlmClient:
         for key, value in payload.items():
             if key in prompt:
                 return schema.model_validate(value)
+        schema_name = schema.__name__
+        if schema_name == "QueryExpansionResult":
+            query = _extract_prompt_query(prompt)
+            return schema.model_validate({"queries": [query] if query else []})
+        if schema_name == "HydeResult":
+            query = _extract_prompt_query(prompt)
+            return schema.model_validate({"passage": query or ""})
         raise ValueError("Mock mode enabled but no matching payload provided")
 
     def _repair_json(self, content: str, schema: type[T]) -> T | None:
@@ -170,3 +177,16 @@ class LlmClient:
             return schema.model_validate(parsed)
         except Exception:  # noqa: BLE001
             return None
+
+
+def _extract_prompt_query(prompt: str) -> str | None:
+    lines = [line.strip() for line in prompt.splitlines() if line.strip()]
+    if not lines:
+        return None
+    for prefix in ("Base query:", "Prompt:"):
+        for idx, line in enumerate(lines):
+            if line.startswith(prefix):
+                if idx + 1 < len(lines):
+                    return lines[idx + 1]
+                return None
+    return lines[-1]
