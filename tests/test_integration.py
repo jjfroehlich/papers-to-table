@@ -114,7 +114,7 @@ def test_integration_run_report_and_validation(tmp_path: Path):
     assert columns == {"Method", "Outcome", "Dose"}
 
     assert (run_paths.run_dir / "run_report.json").exists()
-    assert (run_paths.exports_dir / "pdf_row_matches.csv").exists()
+    assert not (run_paths.exports_dir / "pdf_row_matches.csv").exists()
     report = (run_paths.run_dir / "run_report.json").read_text(encoding="utf-8")
     assert "\"status\": \"completed\"" in report
 

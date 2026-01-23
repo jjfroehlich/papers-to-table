@@ -66,18 +66,18 @@ def run_workflow(config: RunConfig, run_paths: RunPaths, store: Store, resume: b
     if resume:
         try:
             compiled.invoke(None, config=config_payload)
-            write_mapping_report(store, run_paths.exports_dir, write_html=config.output.debug_reports)
+            write_mapping_report(store, run_paths.exports_dir, write_reports=config.output.debug_reports)
             status = write_run_report(store, run_paths)
             _mark_run_finished(run_paths, status)
             return
         except Exception:
             compiled.invoke({"pdf_index": 0, "pdf_ids": pdf_ids, "done": False}, config=config_payload)
-            write_mapping_report(store, run_paths.exports_dir, write_html=config.output.debug_reports)
+            write_mapping_report(store, run_paths.exports_dir, write_reports=config.output.debug_reports)
             status = write_run_report(store, run_paths)
             _mark_run_finished(run_paths, status)
             return
     compiled.invoke({"pdf_index": 0, "pdf_ids": pdf_ids, "done": False}, config=config_payload)
-    write_mapping_report(store, run_paths.exports_dir, write_html=config.output.debug_reports)
+    write_mapping_report(store, run_paths.exports_dir, write_reports=config.output.debug_reports)
     status = write_run_report(store, run_paths)
     _mark_run_finished(run_paths, status)
 

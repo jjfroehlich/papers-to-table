@@ -110,7 +110,9 @@ _REPORT_TEMPLATE = Template(
 )
 
 
-def write_mapping_report(store: Store, output_dir: Path, write_html: bool = False) -> None:
+def write_mapping_report(store: Store, output_dir: Path, write_reports: bool = False) -> None:
+    if not write_reports:
+        return
     output_dir.mkdir(parents=True, exist_ok=True)
     matches = store.fetch_matches()
     rows = {row["row_id"]: dict(row) for row in store.fetch_rows()}
@@ -149,9 +151,8 @@ def write_mapping_report(store: Store, output_dir: Path, write_html: bool = Fals
         "duplicates": sum(1 for match in matches if match["status"] == "duplicate"),
     }
 
-    if write_html:
-        html = _REPORT_TEMPLATE.render(rows=report_rows, **summary)
-        (output_dir / "mapping_report.html").write_text(html, encoding="utf-8")
+    html = _REPORT_TEMPLATE.render(rows=report_rows, **summary)
+    (output_dir / "mapping_report.html").write_text(html, encoding="utf-8")
 
     with (output_dir / "pdf_row_matches.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
