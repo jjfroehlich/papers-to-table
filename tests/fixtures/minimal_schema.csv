@@ -1,0 +1,4 @@
+column_name,description,group
+Method,Method used,methods
+Outcome,Observed outcome,methods
+Dose,Dose administered,methods

@@ -21,6 +21,7 @@ class LlmJsonError(RuntimeError):
 
 @dataclass
 class LlmConfig:
+    mode: str
     base_url: str
     api_key: str | None
     model: str
@@ -45,7 +46,9 @@ class LlmClient:
         return f"{prompt[:head]}\n\n...[TRUNCATED]...\n\n{prompt[-tail:]}"
 
     def complete_json(self, prompt: str, schema: type[T]) -> T:
-        if self.config.mock_mode:
+        if self.config.mode == "stub":
+            return self._stub_response(prompt, schema)
+        if self.config.mock_mode or self.config.mode == "mock":
             return self._mock_response(prompt, schema)
         schema_payload = schema.model_json_schema()
         prompt_working = prompt
@@ -139,6 +142,121 @@ class LlmClient:
             return schema.model_validate({"passage": query or ""})
         raise ValueError("Mock mode enabled but no matching payload provided")
 
+    def _stub_response(self, prompt: str, schema: type[T]) -> T:
+        schema_name = schema.__name__
+        if schema_name == "HeaderExtractionResult":
+            header_lines = _extract_section_lines(prompt, "Text:")
+            title = header_lines[0] if header_lines else "Untitled"
+            authors = [header_lines[1]] if len(header_lines) > 1 else []
+            year = None
+            for line in header_lines:
+                if line.strip().isdigit():
+                    year = line.strip()
+                    break
+            return schema.model_validate(
+                {
+                    "title": title,
+                    "authors": authors,
+                    "year": year,
+                    "evidence": [
+                        {
+                            "quote": title,
+                            "page": 1,
+                            "chunk_id": "page-1",
+                            "locator_hint": title,
+                        }
+                    ],
+                    "confidence": 0.8,
+                }
+            )
+        if schema_name == "AdjudicationResult":
+            candidates = _extract_prompt_json(prompt, "Candidates:")
+            row_id = None
+            if isinstance(candidates, list) and candidates:
+                row_id = str(candidates[0].get("row_id"))
+            return schema.model_validate(
+                {
+                    "row_id": row_id,
+                    "status": "matched" if row_id else "unmatched",
+                    "top_candidates": candidates or [],
+                    "confidence": 0.9 if row_id else 0.0,
+                    "evidence": [],
+                    "rationale": "Fake adjudication",
+                }
+            )
+        if schema_name == "GroupExtractionResult":
+            group_schema = _extract_prompt_json(prompt, "Group schema:")
+            chunks = _extract_prompt_json(prompt, "Retrieved chunks by column:")
+            proposals = []
+            for column, description in (group_schema or {}).items():
+                column_chunks = (chunks or {}).get(column) or []
+                if column_chunks:
+                    chunk = column_chunks[0]
+                    quote = str(chunk.get("text", "")).strip()
+                    quote = quote.split(".")[0].strip() if quote else ""
+                    proposals.append(
+                        {
+                            "column": column,
+                            "proposed_value": quote or f"{column} value",
+                            "status": "found" if quote else "unclear",
+                            "confidence": 0.7,
+                            "evidence": [
+                                {
+                                    "quote": quote,
+                                    "page": chunk.get("page_start") or 1,
+                                    "chunk_id": chunk.get("chunk_id"),
+                                    "locator_hint": quote,
+                                }
+                            ]
+                            if quote
+                            else [],
+                            "needs_more_evidence": not bool(quote),
+                            "rationale": "Fake extraction",
+                        }
+                    )
+                else:
+                    proposals.append(
+                        {
+                            "column": column,
+                            "proposed_value": None,
+                            "status": "unclear",
+                            "confidence": 0.0,
+                            "evidence": [],
+                            "needs_more_evidence": True,
+                            "rationale": "No evidence located in stub retrieval.",
+                        }
+                    )
+            return schema.model_validate({"proposals": proposals})
+        if schema_name in {"VerifyResult", "ProposalVerificationResult"}:
+            cell_value_payload = _extract_prompt_json(prompt, "Cell value:") or {}
+            proposed_value = _extract_prompt_json(prompt, "Proposed value:")
+            if proposed_value is None:
+                proposed_value = cell_value_payload.get("value") if isinstance(cell_value_payload, dict) else None
+            evidence = _extract_prompt_json(prompt, "Evidence:") or []
+            if not evidence:
+                evidence = _extract_prompt_json(prompt, "Retrieved chunks:") or []
+            quotes = " ".join([str(item.get("quote", "")) for item in evidence if isinstance(item, dict)])
+            value_text = str(proposed_value or "")
+            status = "supports" if value_text and value_text.lower() in quotes.lower() else "unclear"
+            column_value = _extract_prompt_json(prompt, "Column:")
+            if column_value is None and isinstance(cell_value_payload, dict):
+                column_value = cell_value_payload.get("column")
+            payload = {
+                "column": column_value or "unknown",
+                "status": status,
+                "evidence": evidence if schema_name == "VerifyResult" else [],
+                "rationale": "Fake verification",
+                "needs_more_evidence": status != "supports",
+            }
+            return schema.model_validate(payload)
+        if schema_name == "QueryExpansionResult":
+            query = _extract_prompt_query(prompt)
+            return schema.model_validate({"queries": [query] if query else []})
+        if schema_name == "HydeResult":
+            query = _extract_prompt_query(prompt)
+            return schema.model_validate({"passage": query or ""})
+        raise ValueError(f"Stub mode missing handler for {schema_name}")
+
     def _repair_json(self, content: str, schema: type[T]) -> T | None:
         schema_payload = schema.model_json_schema()
         repair_prompt = (
@@ -190,3 +308,41 @@ def _extract_prompt_query(prompt: str) -> str | None:
                     return lines[idx + 1]
                 return None
     return lines[-1]
+
+
+def _extract_prompt_json(prompt: str, marker: str) -> Any:
+    idx = prompt.find(marker)
+    if idx == -1:
+        return None
+    snippet = prompt[idx + len(marker) :].strip()
+    first_line = snippet.splitlines()[0] if snippet else ""
+    if first_line:
+        try:
+            return json.loads(first_line)
+        except json.JSONDecodeError:
+            pass
+    start_obj = snippet.find("{")
+    start_arr = snippet.find("[")
+    if start_obj == -1 and start_arr == -1:
+        return None
+    if start_arr != -1 and (start_obj == -1 or start_arr < start_obj):
+        start = start_arr
+        end = snippet.rfind("]")
+    else:
+        start = start_obj
+        end = snippet.rfind("}")
+    if end == -1:
+        return None
+    try:
+        return json.loads(snippet[start : end + 1])
+    except json.JSONDecodeError:
+        return None
+
+
+def _extract_section_lines(prompt: str, marker: str) -> list[str]:
+    idx = prompt.find(marker)
+    if idx == -1:
+        return []
+    snippet = prompt[idx + len(marker) :].strip()
+    lines = [line.strip() for line in snippet.splitlines() if line.strip()]
+    return lines

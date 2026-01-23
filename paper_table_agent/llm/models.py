@@ -67,3 +67,10 @@ class VerifyResult(BaseModel):
     status: str
     evidence: list[EvidenceQuote] = Field(default_factory=list)
     rationale: str | None = None
+
+
+class ProposalVerificationResult(BaseModel):
+    column: str
+    status: str
+    rationale: str | None = None
+    needs_more_evidence: bool = False

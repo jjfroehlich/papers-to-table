@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 from typing import Iterable
+import hashlib
 
 import httpx
 import numpy as np
@@ -56,6 +57,21 @@ class EmbeddingClient:
                 raise RuntimeError("Embedding response missing expected indices.")
             return ordered
         raise RuntimeError(f"Embedding request failed: {last_error}")
+
+
+class StubEmbeddingClient:
+    def __init__(self, dimension: int = 8) -> None:
+        self.dimension = dimension
+
+    def embed_texts(self, texts: list[str]) -> np.ndarray:
+        if not texts:
+            return np.empty((0, self.dimension), dtype=np.float32)
+        vectors: list[list[float]] = []
+        for text in texts:
+            digest = hashlib.sha1(text.encode("utf-8")).digest()
+            values = [byte / 255.0 for byte in digest[: self.dimension]]
+            vectors.append(values)
+        return np.array(vectors, dtype=np.float32)
 
 
 def _order_embeddings(data: Iterable[dict[str, object]], expected_len: int) -> list[list[float]] | None:

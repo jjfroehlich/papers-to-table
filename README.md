@@ -65,6 +65,14 @@ paper-table-agent ui
 
 The Run tab uses only table + PDF paths. Completed runs appear in Review.
 
+### 2.5) Smoke test with stub providers (no external LLMs)
+
+```bash
+paper-table-agent run --config tests/fixtures/stub_run_config.json
+```
+
+This uses deterministic stub providers + tiny fixture data so you can verify proposals and review flow without LM Studio/Ollama.
+
 ### 3) Run the batch pipeline (CLI)
 
 Generate a starter config:
@@ -72,6 +80,8 @@ Generate a starter config:
 ```bash
 paper-table-agent init-config --output run_config.json
 ```
+
+All models/retrieval/OCR settings live in this single config file; the UI does not expose tuning knobs.
 
 Example config:
 
