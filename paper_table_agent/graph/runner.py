@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import json
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import httpx
 from paper_table_agent.config import (
     RunConfig,
     RunPaths,
@@ -35,6 +36,8 @@ from paper_table_agent.io.locks import build_locks
 from paper_table_agent.io.schema import group_columns, load_schema
 from paper_table_agent.io.xlsx import load_table
 from paper_table_agent.llm.client import LlmClient, LlmConfig, LlmJsonError
+from paper_table_agent.llm.models import QueryExpansionResult
+from paper_table_agent.llm.prompts import render_prompt
 from paper_table_agent.llm.embeddings import EmbeddingClient, EmbeddingConfig, StubEmbeddingClient
 from paper_table_agent.pdf.highlight import locate_quote
 from paper_table_agent.pdf.grobid import extract_grobid, save_grobid
@@ -77,12 +80,69 @@ class RunContext:
     error_path: Path
 
 
+@dataclass
+class DebugExtractionTracker:
+    pdf_id: str
+    chunks_indexed: int = 0
+    retrieval_hits: dict[str, int] = field(default_factory=dict)
+    extraction_attempts: dict[str, int] = field(default_factory=dict)
+    proposal_counts: dict[str, int] = field(
+        default_factory=lambda: {
+            "value_present": 0,
+            "evidence_present": 0,
+            "evidence_validation_failed": 0,
+        }
+    )
+    failure_reasons: dict[str, int] = field(default_factory=dict)
+
+    def record_retrieval_hits(self, column: str, count: int) -> None:
+        current = self.retrieval_hits.get(column, 0)
+        self.retrieval_hits[column] = max(current, count)
+
+    def record_attempts(self, columns: list[str]) -> None:
+        for column in columns:
+            self.extraction_attempts[column] = self.extraction_attempts.get(column, 0) + 1
+
+    def record_proposals(self, proposals: list[dict[str, Any]]) -> None:
+        for proposal in proposals:
+            if proposal.get("proposed_value") is not None:
+                self.proposal_counts["value_present"] += 1
+            evidence_items = proposal.get("evidence") or []
+            if evidence_items:
+                self.proposal_counts["evidence_present"] += 1
+            flags = proposal.get("flags") or {}
+            if flags.get("evidence_validation_errors"):
+                self.proposal_counts["evidence_validation_failed"] += 1
+            reason = flags.get("failure_reason")
+            if reason:
+                self.failure_reasons[reason] = self.failure_reasons.get(reason, 0) + 1
+
+    def to_payload(self) -> dict[str, Any]:
+        sorted_reasons = sorted(self.failure_reasons.items(), key=lambda item: item[1], reverse=True)
+        top_reasons = [{"reason": reason, "count": count} for reason, count in sorted_reasons[:3]]
+        return {
+            "pdf_id": self.pdf_id,
+            "chunks_indexed": self.chunks_indexed,
+            "retrieval_hits_per_column": self.retrieval_hits,
+            "extraction_attempts_per_column": self.extraction_attempts,
+            "proposal_counts": self.proposal_counts,
+            "top_failure_reasons": top_reasons,
+        }
+
+
 def run_pipeline(config: RunConfig, run_paths: RunPaths, store: Store) -> None:
     run_config_path = run_paths.run_dir / "run_config.json"
     if not run_config_path.exists():
         prompt_versions = load_prompt_versions(Path("paper_table_agent/prompts"))
         capture_run_config(config, run_paths, prompt_versions)
     context, pdfs = _prepare_context(config, run_paths, store)
+    health_status = _run_health_checks(context)
+    if health_status.get("status") == "failed":
+        write_mapping_report(store, run_paths.exports_dir, write_html=config.output.debug_reports)
+        status = write_run_report(store, run_paths)
+        if status == "failed":
+            (run_paths.run_dir / "FAILED").write_text("failed", encoding="utf-8")
+        return
     existing_pdfs = {row["pdf_id"]: row for row in store.list_pdfs()}
     for pdf in pdfs:
         if _stop_requested(run_paths):
@@ -92,7 +152,9 @@ def run_pipeline(config: RunConfig, run_paths: RunPaths, store: Store) -> None:
             context.logger.info("processed pdf %s", pdf.pdf_id)
     write_mapping_report(store, run_paths.exports_dir, write_html=config.output.debug_reports)
     status = write_run_report(store, run_paths)
-    if status != "failed":
+    if status == "completed_with_errors":
+        (run_paths.run_dir / "COMPLETED_WITH_ERRORS").write_text("done", encoding="utf-8")
+    elif status != "failed":
         (run_paths.run_dir / "COMPLETED").write_text("done", encoding="utf-8")
 
 
@@ -107,8 +169,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
     schema_specs = load_schema(schema_source, config.schema_sheet_name)
     validate_schema_columns([spec.column_name for spec in schema_specs], table.dataframe.columns)
     grouped = group_columns(schema_specs)
-    if config.extraction.groups:
-        grouped = _apply_group_override(grouped, config.extraction.groups)
+    grouped = _apply_group_override(grouped, config.extraction.groups)
     locks = build_locks(table.dataframe)
     store.insert_locks(locks)
     lock_map: dict[str, set[str]] = {}
@@ -135,7 +196,14 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
     mock_mode = config.provider.mock_mode or config.provider.mode in {"mock", "stub"}
     mock_payloads = None
     if mock_mode and config.provider.mock_payloads_path:
-        mock_payloads = json.loads(config.provider.mock_payloads_path.read_text(encoding="utf-8"))
+        if config.provider.mock_payloads_path.is_dir():
+            mock_payloads = {}
+            for path in config.provider.mock_payloads_path.glob("*.json"):
+                payload = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(payload, dict):
+                    mock_payloads.update(payload)
+        else:
+            mock_payloads = json.loads(config.provider.mock_payloads_path.read_text(encoding="utf-8"))
     header_client = LlmClient(
         LlmConfig(
             mode=config.provider.mode,
@@ -230,6 +298,8 @@ def _apply_group_override(
     grouped: dict[str, list[Any]],
     overrides: list[dict[str, Any]],
 ) -> dict[str, list[Any]]:
+    if not overrides:
+        return grouped if grouped else {"all_columns": [spec for specs in grouped.values() for spec in specs]}
     result: dict[str, list[Any]] = {}
     spec_map = {spec.column_name: spec for specs in grouped.values() for spec in specs}
     for group in overrides:
@@ -238,7 +308,9 @@ def _apply_group_override(
         specs = [spec_map[col] for col in columns if col in spec_map]
         if specs:
             result[name] = specs
-    return result or grouped
+    if result:
+        return result
+    return grouped if grouped else {"all_columns": [spec for spec in spec_map.values()]}
 
 
 def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, Any]) -> bool:
@@ -299,6 +371,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
 
     sections = grobid_result.sections if grobid_result else None
     chunks = build_chunks(parsed.page_text, sections=sections)
+    debug_tracker = DebugExtractionTracker(pdf_id=pdf.pdf_id, chunks_indexed=len(chunks))
     store.insert_retrieval_chunks(pdf.pdf_id, to_dicts(chunks))
     index = load_index_if_fresh(
         context.run_paths.retrieval_dir / pdf.pdf_id,
@@ -329,7 +402,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         context.logger,
     )
     try:
-        header = extract_header(context.header_client, header_text)
+        header = extract_header(context.header_client, header_text, pdf_id=pdf.pdf_id)
     except LlmJsonError as exc:
         log_error(
             context.error_path,
@@ -352,6 +425,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
             }
         )
         store.update_pdf_status(pdf.pdf_id, "failed", error=str(exc))
+        _finalize_debug_tracker(store, debug_tracker)
         return False
     store.insert_pdf_metadata(
         pdf.pdf_id,
@@ -391,7 +465,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
     )
     if adjudication is None:
         try:
-            adjudication = adjudicate_match(context.match_client, header, candidates)
+            adjudication = adjudicate_match(context.match_client, header, candidates, pdf_id=pdf.pdf_id)
         except LlmJsonError as exc:
             log_error(
                 context.error_path,
@@ -414,6 +488,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 }
             )
             store.update_pdf_status(pdf.pdf_id, "processed", error=str(exc))
+            _finalize_debug_tracker(store, debug_tracker)
             return True
     adjudication = _coerce_single_plausible(
         adjudication,
@@ -459,6 +534,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         )
 
     if not adjudication.row_id or adjudication.status != "matched":
+        _finalize_debug_tracker(store, debug_tracker)
         return True
 
     row_context = next((row for row in context.rows_data if row["row_id"] == adjudication.row_id), {})
@@ -485,6 +561,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 "extraction_invoked",
                 {"pdf_id": pdf.pdf_id, "group": group_name, "columns": target_columns},
             )
+            debug_tracker.record_attempts(target_columns)
             column_contexts = _retrieve_column_contexts(
                 index,
                 target_specs,
@@ -492,15 +569,26 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 context.helper_client,
                 context.embedding_client,
                 context.reranker_client,
+                debug_tracker=debug_tracker,
+                store=context.store,
             )
             merged_context = _merge_column_contexts(column_contexts)
-            chunk_lookup = {str(chunk["chunk_id"]): str(chunk["text"]) for chunk in merged_context}
+            chunk_lookup = {
+                str(chunk["chunk_id"]): {
+                    "text": chunk.get("text"),
+                    "text_raw": chunk.get("text_raw"),
+                    "page_start": chunk.get("page_start"),
+                    "page_end": chunk.get("page_end"),
+                }
+                for chunk in merged_context
+            }
             extraction = extract_group(
                 context.extract_client,
                 row_context,
                 group,
                 column_contexts,
                 adjudication.status != "matched",
+                pdf_id=pdf.pdf_id,
             )
             proposals = build_proposal_records(pdf.pdf_id, adjudication.row_id, extraction)
             proposals = _retry_unclear_proposals(
@@ -511,6 +599,8 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 group,
                 target_specs,
                 adjudication.status != "matched",
+                debug_tracker=debug_tracker,
+                pdf_id=pdf.pdf_id,
             )
         except LlmJsonError as exc:
             log_error(
@@ -534,9 +624,11 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 str(exc),
                 adjudication.status != "matched",
                 error_type="llm_json_error",
+                validation_errors=exc.validation_errors,
                 raw_output=exc.response,
                 repair_attempted=exc.repair_attempted,
             )
+        _annotate_failure_reasons(proposals, debug_tracker.retrieval_hits)
         proposals = _resolve_evidence_locators(
             proposals,
             pdf.path,
@@ -544,7 +636,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
             parse_source,
         )
         try:
-            proposals = verify_proposals(context.extract_client, proposals)
+            proposals = verify_proposals(context.extract_client, proposals, pdf_id=pdf.pdf_id)
         except LlmJsonError as exc:
             log_error(
                 context.error_path,
@@ -570,6 +662,8 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 flags["verification_status"] = "unclear"
                 flags["verification_needs_more_evidence"] = True
                 flags["verification_rationale"] = "Verification failed; see logs."
+                flags.setdefault("failure_reason", "verification_failed")
+        debug_tracker.record_proposals(proposals)
         store.insert_proposals(proposals)
 
         if context.config.verify_mode:
@@ -580,7 +674,13 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
             }
             if locked_values:
                 try:
-                    verify_results = verify_cells(context.extract_client, row_context, locked_values, merged_context)
+                    verify_results = verify_cells(
+                        context.extract_client,
+                        row_context,
+                        locked_values,
+                        merged_context,
+                        pdf_id=pdf.pdf_id,
+                    )
                     verify_records = build_verify_records(
                         pdf.pdf_id,
                         adjudication.row_id,
@@ -588,6 +688,8 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                         locked_values,
                         chunk_lookup,
                     )
+                    _annotate_failure_reasons(verify_records, debug_tracker.retrieval_hits)
+                    debug_tracker.record_proposals(verify_records)
                     store.insert_proposals(verify_records)
                 except LlmJsonError as exc:
                     log_error(
@@ -610,6 +712,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                         },
                     )
 
+    _finalize_debug_tracker(store, debug_tracker)
     store.update_pdf_status(pdf.pdf_id, "processed")
     return True
 
@@ -651,7 +754,7 @@ def _resolve_evidence_locators(
     for proposal in proposals:
         evidence_items = proposal.get("evidence") or []
         for evidence in evidence_items:
-            quote = evidence.get("quote")
+            quote = evidence.get("quote_raw") or evidence.get("quote")
             page = evidence.get("page")
             locator_hint = evidence.get("locator_hint")
             if not quote or not page:
@@ -687,6 +790,126 @@ def _ensure_retrieval_backends(config: RunConfig, logger: Any, store: Store) -> 
         )
         config.retrieval.use_reranker = False
         config.retrieval.reranker_backend = "tfidf"
+
+
+def _run_health_checks(context: RunContext) -> dict[str, Any]:
+    results: dict[str, Any] = {"status": "ok", "errors": []}
+    config = context.config
+    if config.provider.mode in {"stub", "mock"} or config.provider.mock_mode:
+        _record_retrieval_backend(context)
+        return results
+
+    errors: list[dict[str, Any]] = []
+    headers = {}
+    if config.provider.api_key:
+        headers["Authorization"] = f"Bearer {config.provider.api_key}"
+    models_endpoint = f"{config.provider.base_url}/models"
+    model_names = {
+        config.provider.model_header,
+        config.provider.model_match,
+        config.provider.model_extract,
+        config.provider.model_query_helper,
+    }
+    try:
+        response = httpx.get(models_endpoint, headers=headers, timeout=10.0)
+        response.raise_for_status()
+        payload = response.json()
+        data = payload.get("data", []) if isinstance(payload, dict) else []
+        available = {item.get("id") for item in data if isinstance(item, dict)}
+        missing = [model for model in model_names if model and model not in available]
+        if missing:
+            errors.append({"type": "missing_models", "missing": missing})
+    except Exception as exc:  # noqa: BLE001
+        errors.append({"type": "models_endpoint_failed", "error": str(exc)})
+
+    try:
+        health_client = LlmClient(
+            LlmConfig(
+                mode=config.provider.mode,
+                base_url=config.provider.base_url,
+                api_key=config.provider.api_key,
+                model=config.provider.model_header,
+                max_prompt_chars=config.provider.max_prompt_chars,
+            )
+        )
+        prompt = render_prompt("query_expand.md", query="health check")
+        health_client.complete_json(prompt, QueryExpansionResult)
+    except Exception as exc:  # noqa: BLE001
+        errors.append({"type": "llm_completion_failed", "error": str(exc)})
+
+    if config.retrieval.use_dense and config.retrieval.embedding_backend != "tfidf":
+        if context.embedding_client is None:
+            errors.append({"type": "embedding_client_missing"})
+            _apply_embedding_fallback(context, "missing_client")
+        else:
+            try:
+                context.embedding_client.embed_texts(["health check"])
+            except Exception as exc:  # noqa: BLE001
+                _apply_embedding_fallback(context, str(exc))
+    if config.retrieval.use_reranker and config.retrieval.reranker_backend != "tfidf":
+        if context.reranker_client is None:
+            errors.append({"type": "reranker_client_missing"})
+            _apply_reranker_fallback(context, "missing_client")
+        else:
+            try:
+                context.reranker_client.embed_texts(["health check"])
+            except Exception as exc:  # noqa: BLE001
+                _apply_reranker_fallback(context, str(exc))
+
+    _record_retrieval_backend(context)
+
+    if errors:
+        results["status"] = "failed"
+        results["errors"] = errors
+        context.store.record_event("error", "health_check_failed", results)
+        context.logger.error("health check failed: %s", errors)
+    else:
+        context.store.record_event("info", "health_check_passed", results)
+    return results
+
+
+def _apply_embedding_fallback(context: RunContext, reason: str) -> None:
+    context.logger.warning("embedding health check failed; falling back to tfidf: %s", reason)
+    context.store.record_event(
+        "warning",
+        "embedding_fallback",
+        {"backend": context.config.retrieval.embedding_backend, "reason": reason, "fallback_mode": "bm25_only"},
+    )
+    context.config.retrieval.embedding_backend = "tfidf"
+    context.config.retrieval.use_dense = False
+    context.config.retrieval.use_reranker = False
+    context.retrieval_config.embedding_backend = "tfidf"
+    context.retrieval_config.use_dense = False
+    context.retrieval_config.use_reranker = False
+    context.embedding_client = None
+    context.reranker_client = None
+
+
+def _apply_reranker_fallback(context: RunContext, reason: str) -> None:
+    context.logger.warning("reranker health check failed; disabling reranker: %s", reason)
+    context.store.record_event(
+        "warning",
+        "reranker_fallback",
+        {"backend": context.config.retrieval.reranker_backend, "reason": reason},
+    )
+    context.config.retrieval.use_reranker = False
+    context.retrieval_config.use_reranker = False
+    context.reranker_client = None
+
+
+def _record_retrieval_backend(context: RunContext) -> None:
+    context.store.record_event(
+        "info",
+        "retrieval_backend",
+        {
+            "embedding_backend": context.config.retrieval.embedding_backend,
+            "embedding_model": context.config.retrieval.embedding_model,
+            "use_dense": context.config.retrieval.use_dense,
+            "use_reranker": context.config.retrieval.use_reranker,
+            "reranker_backend": context.config.retrieval.reranker_backend,
+            "reranker_model": context.config.retrieval.reranker_model,
+        },
+    )
 
 
 def _coerce_single_plausible(
@@ -760,6 +983,7 @@ def _format_chunks(chunks: list[Any]) -> list[dict[str, Any]]:
         {
             "chunk_id": chunk.chunk_id,
             "text": chunk.text,
+            "text_raw": getattr(chunk, "text_raw", None),
             "page_start": chunk.page_start,
             "page_end": chunk.page_end,
             "score": chunk.score,
@@ -768,6 +992,41 @@ def _format_chunks(chunks: list[Any]) -> list[dict[str, Any]]:
         }
         for chunk in chunks
     ]
+
+
+def _annotate_failure_reasons(
+    proposals: list[dict[str, Any]],
+    retrieval_hits: dict[str, int],
+) -> None:
+    for proposal in proposals:
+        flags = proposal.setdefault("flags", {})
+        if flags.get("failure_reason"):
+            continue
+        status = proposal.get("status") or ""
+        proposed_value = proposal.get("proposed_value")
+        evidence_items = proposal.get("evidence") or []
+        column = proposal.get("column") or ""
+        if flags.get("error"):
+            flags["failure_reason"] = flags.get("error_type", "llm_error")
+            continue
+        if flags.get("evidence_validation_errors"):
+            flags["failure_reason"] = "evidence_validation_failed"
+            continue
+        if proposed_value is not None and not evidence_items:
+            flags["failure_reason"] = "evidence_missing"
+            continue
+        if proposed_value is None and not evidence_items:
+            hits = retrieval_hits.get(column, 0)
+            if hits == 0:
+                flags["failure_reason"] = "retrieval_no_chunks"
+            elif status in {"no_evidence", "unclear", "not_found"}:
+                flags["failure_reason"] = status
+            else:
+                flags["failure_reason"] = "no_value"
+
+
+def _finalize_debug_tracker(store: Store, tracker: DebugExtractionTracker) -> None:
+    store.insert_debug_extraction(tracker.pdf_id, tracker.to_payload())
 
 
 def _merge_column_contexts(chunks_by_column: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
@@ -790,6 +1049,8 @@ def _retrieve_column_contexts(
     helper_client: LlmClient,
     embedder: EmbeddingClient | None,
     reranker_embedder: EmbeddingClient | None,
+    debug_tracker: DebugExtractionTracker | None = None,
+    store: Store | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     contexts: dict[str, list[dict[str, Any]]] = {}
     for spec in specs:
@@ -806,6 +1067,18 @@ def _retrieve_column_contexts(
             reranker_embedder=reranker_embedder,
         )
         contexts[spec.column_name] = _format_chunks(context_result.chunks)
+        if debug_tracker is not None:
+            debug_tracker.record_retrieval_hits(spec.column_name, len(context_result.chunks))
+        if store is not None and context_result.debug.get("fallbacks"):
+            store.record_event(
+                "warning",
+                "retrieval_fallback",
+                {
+                    "column": spec.column_name,
+                    "fallbacks": context_result.debug.get("fallbacks"),
+                    "backend": context_result.debug.get("backend"),
+                },
+            )
     return contexts
 
 
@@ -840,6 +1113,8 @@ def _retry_unclear_proposals(
     group: GroupContext,
     specs: list[Any],
     mapping_dependent: bool,
+    debug_tracker: DebugExtractionTracker | None = None,
+    pdf_id: str | None = None,
 ) -> list[dict[str, Any]]:
     if not context.config.extraction.retry_on_unclear:
         return proposals
@@ -870,6 +1145,8 @@ def _retry_unclear_proposals(
         "retry_extraction",
         {"columns": retry_columns, "extra_chunks": context.config.extraction.retry_extra_chunks},
     )
+    if debug_tracker is not None:
+        debug_tracker.record_attempts(retry_columns)
     context.logger.info("retrying extraction for columns: %s", ", ".join(retry_columns))
     column_contexts = _retrieve_column_contexts(
         index,
@@ -878,6 +1155,8 @@ def _retry_unclear_proposals(
         context.helper_client,
         context.embedding_client,
         context.reranker_client,
+        debug_tracker=debug_tracker,
+        store=context.store,
     )
     try:
         retry_result = extract_group(
@@ -886,6 +1165,7 @@ def _retry_unclear_proposals(
             retry_group,
             column_contexts,
             mapping_dependent,
+            pdf_id=pdf_id,
         )
     except LlmJsonError:
         return proposals

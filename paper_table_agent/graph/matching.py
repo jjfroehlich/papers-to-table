@@ -36,8 +36,8 @@ class RowCandidate:
         }
 
 
-def extract_header(client: LlmClient, text: str) -> HeaderExtractionResult:
-    prompt = render_prompt("match_header_extract.md", text=text)
+def extract_header(client: LlmClient, text: str, pdf_id: str | None = None) -> HeaderExtractionResult:
+    prompt = render_prompt("match_header_extract.md", _prompt_meta={"pdf_id": pdf_id}, text=text)
     return client.complete_json(prompt, HeaderExtractionResult)
 
 
@@ -155,9 +155,15 @@ def deterministic_match(
     return None
 
 
-def adjudicate_match(client: LlmClient, header: HeaderExtractionResult, candidates: list[RowCandidate]) -> AdjudicationResult:
+def adjudicate_match(
+    client: LlmClient,
+    header: HeaderExtractionResult,
+    candidates: list[RowCandidate],
+    pdf_id: str | None = None,
+) -> AdjudicationResult:
     prompt = render_prompt(
         "match_adjudicate.md",
+        _prompt_meta={"pdf_id": pdf_id},
         header=json.dumps(header.model_dump(mode="json")),
         candidates=json.dumps([candidate.to_payload() for candidate in candidates], indent=2),
     )
@@ -167,6 +173,7 @@ def adjudicate_match(client: LlmClient, header: HeaderExtractionResult, candidat
         return _coerce_single_candidate(result, candidates)
     repair_prompt = render_prompt(
         "match_adjudicate_repair.md",
+        _prompt_meta={"pdf_id": pdf_id},
         header=json.dumps(header.model_dump(mode="json")),
         candidates=json.dumps([candidate.to_payload() for candidate in candidates], indent=2),
         previous=json.dumps(result.model_dump(mode="json"), indent=2),

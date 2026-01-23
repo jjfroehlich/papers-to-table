@@ -47,6 +47,7 @@ def rerank(
             RerankedChunk(
                 chunk_id=chunk.chunk_id,
                 text=chunk.text,
+                text_raw=chunk.text_raw,
                 page_start=chunk.page_start,
                 page_end=chunk.page_end,
                 score=float(scores[idx]),

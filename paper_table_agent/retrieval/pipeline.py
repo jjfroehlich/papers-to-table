@@ -69,35 +69,53 @@ def retrieve_context(
     embedder: EmbeddingClient | None = None,
     reranker_embedder: EmbeddingClient | None = None,
 ) -> RetrievalContext:
-    debug: dict[str, Any] = {"queries": [], "runs": []}
+    debug: dict[str, Any] = {"queries": [], "runs": [], "fallbacks": [], "backend": {}}
     queries = [query]
     if config.use_query_expansion:
         queries = build_query_variants(helper_client, query, config.query_variants)
     debug["queries"] = queries
+    debug["backend"] = {
+        "use_dense": config.use_dense,
+        "use_reranker": config.use_reranker,
+        "embedding_backend": config.embedding_backend,
+        "reranker_backend": config.reranker_backend,
+    }
 
     runs: list[list[RetrievedChunk]] = []
     for q in queries:
-        results = retrieve(index, q, top_k=config.top_k, embedder=embedder, use_dense=config.use_dense)
+        try:
+            results = retrieve(index, q, top_k=config.top_k, embedder=embedder, use_dense=config.use_dense)
+        except ValueError as exc:
+            debug["fallbacks"].append({"stage": "retrieve", "query": q, "error": str(exc)})
+            results = retrieve(index, q, top_k=config.top_k, embedder=None, use_dense=False)
         runs.append(results)
         debug["runs"].append({"query": q, "results": results})
 
     if config.use_hyde:
         passage = build_hypothetical_passage(helper_client, query)
         if passage:
-            hyde_results = retrieve(index, passage, top_k=config.top_k, embedder=embedder, use_dense=config.use_dense)
+            try:
+                hyde_results = retrieve(index, passage, top_k=config.top_k, embedder=embedder, use_dense=config.use_dense)
+            except ValueError as exc:
+                debug["fallbacks"].append({"stage": "retrieve", "query": "[HyDE]", "error": str(exc)})
+                hyde_results = retrieve(index, passage, top_k=config.top_k, embedder=None, use_dense=False)
             runs.append(hyde_results)
             debug["runs"].append({"query": "[HyDE]", "results": hyde_results})
 
     fused = reciprocal_rank_fusion(runs, k=config.rrf_k)
     if config.use_reranker:
-        reranked = rerank(
-            index,
-            query,
-            fused,
-            top_k=config.rerank_k,
-            backend=config.reranker_backend,
-            embedder=reranker_embedder,
-        ).chunks
+        try:
+            reranked = rerank(
+                index,
+                query,
+                fused,
+                top_k=config.rerank_k,
+                backend=config.reranker_backend,
+                embedder=reranker_embedder,
+            ).chunks
+        except ValueError as exc:
+            debug["fallbacks"].append({"stage": "rerank", "error": str(exc)})
+            reranked = fused[: config.rerank_k]
     else:
         reranked = fused[: config.rerank_k]
     expanded = expand_with_neighbors(index, reranked, max_total=config.max_context_chunks)

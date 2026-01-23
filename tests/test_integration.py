@@ -133,3 +133,44 @@ def test_integration_run_report_and_validation(tmp_path: Path):
     assert exported.loc[0, "Method"]
     assert (run_paths.exports_dir / "audit_log.csv").exists()
     assert not (run_paths.exports_dir / "proposals.jsonl").exists()
+
+
+def test_end_to_end_with_mock_mode(tmp_path: Path):
+    assets = Path(__file__).resolve().parent / "assets"
+    table_path = assets / "mock_table.csv"
+    schema_path = assets / "mock_schema.csv"
+    pdf_folder = assets / "mock_pdfs"
+    mock_payloads = Path(__file__).resolve().parent / "fixtures" / "mock_payloads" / "mock_payloads.json"
+
+    config = RunConfig(
+        table_path=table_path,
+        pdf_folder=pdf_folder,
+        schema_sheet_name="schema",
+        schema_mode="separate",
+        schema_path=schema_path,
+        title_col="Title",
+        authors_col="Authors",
+        year_col="Year",
+    )
+    config.provider.mock_mode = True
+    config.provider.mock_payloads_path = mock_payloads
+    config.retrieval.use_dense = False
+    config.retrieval.use_reranker = False
+    config.retrieval.use_query_expansion = False
+    config.retrieval.use_hyde = False
+
+    run_paths = create_run_paths(config.table_path, root=tmp_path / "runs")
+    store = Store.init_db(run_paths.db_path)
+    run_pipeline(config, run_paths, store)
+
+    proposals = store.conn.execute(
+        "SELECT proposed_value, evidence_json FROM proposals WHERE row_id = '0'"
+    ).fetchall()
+    assert proposals
+    assert sum(1 for row in proposals if row["proposed_value"]) >= 2
+    for row in proposals:
+        evidence = json.loads(row["evidence_json"] or "[]")
+        if row["proposed_value"]:
+            assert evidence
+            assert evidence[0].get("page") == 1
+            assert evidence[0].get("chunk_id")

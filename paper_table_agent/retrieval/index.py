@@ -116,6 +116,7 @@ def load_index(output_dir: Path) -> RetrievalIndex | None:
                 Chunk(
                     chunk_id=payload["chunk_id"],
                     text=payload["text"],
+                    text_raw=payload.get("text_raw", payload["text"]),
                     page_start=int(payload["page_start"]),
                     page_end=int(payload["page_end"]),
                     source=payload.get("source", "page"),

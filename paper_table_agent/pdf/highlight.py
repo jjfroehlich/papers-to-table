@@ -6,6 +6,7 @@ from typing import Iterable, Sequence
 
 import fitz
 
+from paper_table_agent.text.normalization import normalize_text
 
 @dataclass
 class HighlightResult:
@@ -28,7 +29,7 @@ def locate_quote(
     if rects:
         doc.close()
         return HighlightResult(rects=rects, found=True, strategy="exact")
-    normalized = " ".join(quote.split())
+    normalized = normalize_text(quote)
     hits = page.search_for(normalized)
     rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
     if rects:
@@ -40,7 +41,7 @@ def locate_quote(
         if rects:
             doc.close()
             return HighlightResult(rects=rects, found=True, strategy="locator_hint")
-        normalized_hint = " ".join(locator_hint.split())
+        normalized_hint = normalize_text(locator_hint)
         hits = page.search_for(normalized_hint)
         rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
         if rects:
@@ -113,5 +114,6 @@ def _match_tokens(
 
 
 def _normalize_words(text: str) -> list[str]:
-    cleaned = re.sub(r"[^0-9A-Za-z]+", " ", text).strip().lower()
+    cleaned = normalize_text(text)
+    cleaned = re.sub(r"[^0-9A-Za-z]+", " ", cleaned).strip().lower()
     return [word for word in cleaned.split() if word]

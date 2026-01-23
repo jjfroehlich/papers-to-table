@@ -6,17 +6,25 @@ from dataclasses import dataclass
 from typing import Any, TypeVar
 
 import httpx
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 T = TypeVar("T", bound=BaseModel)
 
 
 class LlmJsonError(RuntimeError):
-    def __init__(self, message: str, prompt: str, response: str, repair_attempted: bool) -> None:
+    def __init__(
+        self,
+        message: str,
+        prompt: str,
+        response: str,
+        repair_attempted: bool,
+        validation_errors: list[dict[str, Any]] | None = None,
+    ) -> None:
         super().__init__(message)
         self.prompt = prompt
         self.response = response
         self.repair_attempted = repair_attempted
+        self.validation_errors = validation_errors or []
 
 
 @dataclass
@@ -57,6 +65,7 @@ class LlmClient:
             headers["Authorization"] = f"Bearer {self.config.api_key}"
         url = f"{self.config.base_url}/chat/completions"
         last_error: Exception | None = None
+        validation_errors: list[dict[str, Any]] | None = None
         repair_attempted = False
         content = ""
         for attempt in range(self.config.max_retries + 1):
@@ -92,6 +101,16 @@ class LlmClient:
             try:
                 parsed = self._parse_json(content)
                 return schema.model_validate(parsed)
+            except ValidationError as exc:
+                last_error = exc
+                validation_errors = exc.errors()
+                repair_attempted = True
+                repair = self._repair_json(content, schema)
+                if repair is not None:
+                    return repair
+                if attempt >= self.config.max_retries:
+                    break
+                time.sleep(1 + attempt)
             except Exception as exc:  # noqa: BLE001
                 last_error = exc
                 repair_attempted = True
@@ -106,6 +125,7 @@ class LlmClient:
             prompt,
             content,
             repair_attempted,
+            validation_errors=validation_errors,
         )
 
     def _parse_json(self, content: str) -> Any:
@@ -130,6 +150,14 @@ class LlmClient:
 
     def _mock_response(self, prompt: str, schema: type[T]) -> T:
         payload = self.config.mock_payloads or {}
+        prompt_meta = _extract_prompt_meta(prompt)
+        if prompt_meta:
+            key = _build_mock_key(prompt_meta)
+            if key in payload:
+                return schema.model_validate(payload[key])
+            prompt_key = prompt_meta.get("prompt_name")
+            if prompt_key and prompt_key in payload:
+                return schema.model_validate(payload[prompt_key])
         for key, value in payload.items():
             if key in prompt:
                 return schema.model_validate(value)
@@ -346,3 +374,24 @@ def _extract_section_lines(prompt: str, marker: str) -> list[str]:
     snippet = prompt[idx + len(marker) :].strip()
     lines = [line.strip() for line in snippet.splitlines() if line.strip()]
     return lines
+
+
+def _extract_prompt_meta(prompt: str) -> dict[str, Any] | None:
+    marker = "PROMPT_META:"
+    for line in prompt.splitlines():
+        if line.startswith(marker):
+            payload = line[len(marker) :].strip()
+            try:
+                return json.loads(payload)
+            except json.JSONDecodeError:
+                return None
+    return None
+
+
+def _build_mock_key(meta: dict[str, Any]) -> str:
+    prompt_name = meta.get("prompt_name") or ""
+    pdf_id = meta.get("pdf_id") or ""
+    column = meta.get("column") or ""
+    group = meta.get("group") or ""
+    scope = column or group
+    return f"{prompt_name}|{pdf_id}|{scope}"

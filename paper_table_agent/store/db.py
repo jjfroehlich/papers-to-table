@@ -158,6 +158,7 @@ class Store:
                 pdf_id,
                 chunk.get("chunk_id"),
                 chunk.get("text"),
+                chunk.get("text_raw"),
                 chunk.get("page_start"),
                 chunk.get("page_end"),
                 chunk.get("source"),
@@ -170,8 +171,8 @@ class Store:
         self.conn.executemany(
             """
             INSERT OR REPLACE INTO retrieval_chunks
-            (pdf_id, chunk_id, text, page_start, page_end, source, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (pdf_id, chunk_id, text, text_raw, page_start, page_end, source, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             payload,
         )
@@ -289,3 +290,13 @@ class Store:
             ),
         )
         self.conn.commit()
+
+    def insert_debug_extraction(self, pdf_id: str, payload: dict[str, Any]) -> None:
+        self.conn.execute(
+            "INSERT OR REPLACE INTO debug_extraction (pdf_id, payload_json, created_at) VALUES (?, ?, ?)",
+            (pdf_id, json.dumps(payload), datetime.utcnow().isoformat()),
+        )
+        self.conn.commit()
+
+    def fetch_debug_extraction(self) -> list[sqlite3.Row]:
+        return list(self.conn.execute("SELECT * FROM debug_extraction"))

@@ -7,10 +7,13 @@ from pydantic import BaseModel, Field, field_validator
 
 class EvidenceQuote(BaseModel):
     quote: str
+    quote_raw: str | None = None
+    quote_normalized: str | None = None
     page: int | None = None
     locator_hint: str | None = None
     chunk_id: str | None = None
     highlight_status: str | None = None
+    validation_mode: str | None = None
 
 
 class HeaderExtractionResult(BaseModel):

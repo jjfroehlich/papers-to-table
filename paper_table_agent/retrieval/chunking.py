@@ -4,11 +4,14 @@ from dataclasses import dataclass
 import re
 from typing import Iterable
 
+from paper_table_agent.text.normalization import normalize_text
+
 
 @dataclass
 class Chunk:
     chunk_id: str
     text: str
+    text_raw: str
     page_start: int
     page_end: int
     source: str
@@ -20,11 +23,13 @@ def build_chunks(page_text: list[str], sections: list[dict[str, str]] | None = N
     for idx, text in enumerate(page_text):
         page_number = idx + 1
         cleaned = text.strip()
-        if cleaned:
+        normalized = normalize_text(cleaned)
+        if normalized:
             chunks.append(
                 Chunk(
                     chunk_id=f"page-{page_number}",
-                    text=cleaned,
+                    text=normalized,
+                    text_raw=cleaned,
                     page_start=page_number,
                     page_end=page_number,
                     source="page",
@@ -35,10 +40,14 @@ def build_chunks(page_text: list[str], sections: list[dict[str, str]] | None = N
             paragraph = paragraph.strip()
             if not paragraph:
                 continue
+            paragraph_normalized = normalize_text(paragraph)
+            if not paragraph_normalized:
+                continue
             chunks.append(
                 Chunk(
                     chunk_id=f"para-{page_number}-{para_index + 1}",
-                    text=paragraph,
+                    text=paragraph_normalized,
+                    text_raw=paragraph,
                     page_start=page_number,
                     page_end=page_number,
                     source="paragraph",
@@ -53,10 +62,15 @@ def build_chunks(page_text: list[str], sections: list[dict[str, str]] | None = N
             if not text.strip():
                 continue
             title = section.get("title") or "Section"
+            section_raw = f"{title}\n{text.strip()}"
+            section_normalized = normalize_text(section_raw)
+            if not section_normalized:
+                continue
             section_chunks.append(
                 Chunk(
                     chunk_id=f"section-{idx + 1}",
-                    text=f"{title}\n{text.strip()}",
+                    text=section_normalized,
+                    text_raw=section_raw,
                     page_start=1,
                     page_end=1,
                     source="section",
@@ -89,6 +103,7 @@ def to_dicts(chunks: Iterable[Chunk]) -> list[dict[str, object]]:
         {
             "chunk_id": chunk.chunk_id,
             "text": chunk.text,
+            "text_raw": chunk.text_raw,
             "page_start": chunk.page_start,
             "page_end": chunk.page_end,
             "source": chunk.source,
