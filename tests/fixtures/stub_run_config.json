@@ -1,0 +1,69 @@
+{
+  "table_path": "tests/fixtures/minimal_table.csv",
+  "schema_sheet_name": "schema",
+  "schema_mode": "separate",
+  "schema_path": "tests/fixtures/minimal_schema.csv",
+  "pdf_folder": "tests/fixtures/pdfs",
+  "title_col": "Title",
+  "authors_col": "Authors",
+  "year_col": "Year",
+  "treat_single_space_as_empty": true,
+  "verify_mode": false,
+  "fast_mode": false,
+  "max_success_mode": true,
+  "provider": {
+    "mode": "stub",
+    "base_url": "http://localhost:1234/v1",
+    "api_key": null,
+    "model_header": "stub",
+    "model_match": "stub",
+    "model_extract": "stub",
+    "model_query_helper": "stub",
+    "max_prompt_chars": 26000,
+    "mock_mode": false,
+    "mock_payloads_path": null
+  },
+  "matching": {
+    "top_k": 10,
+    "confidence_threshold": 0.75,
+    "confidence_margin": 0.05,
+    "year_tolerance": 1,
+    "header_max_chars": 8000
+  },
+  "extraction": {
+    "groups": [],
+    "examples_per_col": 3,
+    "max_chunks": 20,
+    "retry_on_unclear": true,
+    "retry_extra_chunks": 10
+  },
+  "retrieval": {
+    "top_k": 20,
+    "rerank_k": 20,
+    "max_context_chunks": 24,
+    "max_context_tokens": 2400,
+    "query_variants": 6,
+    "use_query_expansion": true,
+    "use_hyde": true,
+    "rrf_k": 60,
+    "use_dense": true,
+    "embedding_backend": "stub",
+    "embedding_model": null,
+    "reranker_backend": "stub",
+    "reranker_model": null,
+    "use_reranker": true
+  },
+  "ocr": {
+    "enable_ocr": true,
+    "ocr_trigger_min_chars_per_page": 400
+  },
+  "grobid": {
+    "enable_grobid": false,
+    "server_url": "http://localhost:8070",
+    "parse_references": false
+  },
+  "output": {
+    "debug_reports": false
+  },
+  "max_workers": 1
+}

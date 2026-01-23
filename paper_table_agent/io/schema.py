@@ -15,7 +15,10 @@ class ColumnSpec:
 
 
 def load_schema(path: Path, sheet_name: str) -> list[ColumnSpec]:
-    dataframe = pd.read_excel(path, sheet_name=sheet_name)
+    if path.suffix.lower() == ".csv":
+        dataframe = pd.read_csv(path)
+    else:
+        dataframe = pd.read_excel(path, sheet_name=sheet_name)
     required = {"column_name", "description"}
     missing = required - set(dataframe.columns)
     if missing:

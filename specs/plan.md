@@ -3,55 +3,38 @@
 Phased implementation plan for the simplified “best possible extraction + simple review” product.
 Each phase includes acceptance checks aligned with the v0.7 spec.
 
-## Phase A — UI simplification (Run/Review only)
+## Phase P0 — Proposals appear + review works end-to-end (stub providers)
 
 **Focus**
-- Remove Advanced/Settings/Help tabs and all filtering widgets.
-- Keep only Run + Review screens with minimal controls.
-- Add in-app path picker (directory/file browser) for table/PDF paths.
+- Stub LLM + stub embeddings/reranker to run without external providers.
+- Minimal UI: Run + Review only, matched rows, pending-only review queue.
+- Run-level sanity checks for zero-proposal failures with diagnostics.
 
 **Acceptance checks**
-- UI shows exactly **Run** and **Review**.
-- Run screen has only table path + PDF folder path inputs with in-app picker.
-- Review screen is step-through (row → column) with Accept / Accept-with-edit / Reject only.
-- No confidence filters, search, column multi-select, or tuning controls.
+- CLI run with stub settings produces proposals for matched rows.
+- Review UI loads a run and shows at least one proposal with evidence.
+- run_report marks FAILED on matched-but-zero-proposals and records diagnostics.
 
 ---
 
-## Phase B — Config consolidation + best defaults
+## Phase P1 — Real provider integration + retrieval pipeline
 
 **Focus**
-- Single config object (pydantic settings/run_config.json) for models + retrieval params.
-- UI reads defaults but never overrides model/retrieval/ocr/grobid settings.
-- Use a single “optimal” retrieval profile and keep try-hard retry enabled.
+- LM Studio/Ollama/OpenAI-compatible providers and dense retrieval when configured.
+- BEST retrieval preset with HyDE + multi-query + RRF + rerank fallback.
+- Robust evidence validation and retry-on-unclear behavior.
 
 **Acceptance checks**
-- No UI model dropdowns or preset selectors.
-- Retrieval config defaults match the single optimal profile.
-- CLI uses the same config object for runs and resume.
+- Real providers work with the same config file as stub mode.
+- Retrieval falls back cleanly to BM25/TF-IDF when dense backends are missing.
 
 ---
 
-## Phase C — Output simplification
+## Phase P2 — OCR/GROBID improvements (config-only)
 
 **Focus**
-- Keep primary outputs: proposals.sqlite, updated_table.xlsx, audit_log.csv, run_report.json.
-- Keep mapping report for diagnostics but do not surface prominently in UI.
-- Gate extra exports behind a debug flag.
+- Automatic OCR/GROBID triggering under config control (no UI knobs).
+- Improved diagnostics for scanned PDFs and text sparsity.
 
 **Acceptance checks**
-- Default runs write only primary artifacts.
-- Extra exports (proposals.jsonl, pdf_row_matches.csv) are only written when debug is enabled.
-
----
-
-## Phase D — Testing strategy improvements
-
-**Focus**
-- Mock provider for deterministic JSON responses (matching, extraction, query expansion/HyDE).
-- End-to-end pytest fixture using mock provider + tiny XLSX/PDF.
-- Tests validate proposal persistence, evidence validation, export outputs, and review persistence.
-
-**Acceptance checks**
-- `pytest -q` passes in a mock-only environment.
-- Integration test asserts: proposals for requested columns, evidence validation passes, updated_table.xlsx produced, reviews persist.
+- OCR/GROBID paths are configurable and recorded in run_report diagnostics.

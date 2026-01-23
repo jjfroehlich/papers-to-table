@@ -20,6 +20,11 @@ class TableData:
 
 
 def load_table(path: Path, sheet_name: str | None = None) -> TableData:
+    suffix = path.suffix.lower()
+    if suffix == ".csv":
+        dataframe = pd.read_csv(path)
+        resolved_sheet = sheet_name or path.stem
+        return TableData(dataframe=dataframe, sheet_name=resolved_sheet)
     sheet = sheet_name or 0
     dataframe = pd.read_excel(path, sheet_name=sheet)
     return TableData(dataframe=dataframe, sheet_name=sheet_name or str(sheet))
@@ -27,4 +32,7 @@ def load_table(path: Path, sheet_name: str | None = None) -> TableData:
 
 def write_table_copy(table: TableData, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    table.dataframe.to_excel(output_path, index=False)
+    if output_path.suffix.lower() == ".csv":
+        table.dataframe.to_csv(output_path, index=False)
+    else:
+        table.dataframe.to_excel(output_path, index=False)

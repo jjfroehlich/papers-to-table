@@ -19,6 +19,7 @@ from paper_table_agent.graph.extraction import (
     build_proposal_records,
     build_verify_records,
     extract_group,
+    verify_proposals,
     verify_cells,
 )
 from paper_table_agent.graph.matching import (
@@ -34,7 +35,7 @@ from paper_table_agent.io.locks import build_locks
 from paper_table_agent.io.schema import group_columns, load_schema
 from paper_table_agent.io.xlsx import load_table
 from paper_table_agent.llm.client import LlmClient, LlmConfig, LlmJsonError
-from paper_table_agent.llm.embeddings import EmbeddingClient, EmbeddingConfig
+from paper_table_agent.llm.embeddings import EmbeddingClient, EmbeddingConfig, StubEmbeddingClient
 from paper_table_agent.pdf.highlight import locate_quote
 from paper_table_agent.pdf.grobid import extract_grobid, save_grobid
 from paper_table_agent.pdf.ocr import run_ocr, should_trigger_ocr
@@ -89,9 +90,10 @@ def run_pipeline(config: RunConfig, run_paths: RunPaths, store: Store) -> None:
             break
         if _process_pdf(context, pdf, existing_pdfs):
             context.logger.info("processed pdf %s", pdf.pdf_id)
-    write_mapping_report(store, run_paths.exports_dir, write_csv=config.output.debug_reports)
-    write_run_report(store, run_paths)
-    (run_paths.run_dir / "COMPLETED").write_text("done", encoding="utf-8")
+    write_mapping_report(store, run_paths.exports_dir, write_html=config.output.debug_reports)
+    status = write_run_report(store, run_paths)
+    if status != "failed":
+        (run_paths.run_dir / "COMPLETED").write_text("done", encoding="utf-8")
 
 
 def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tuple[RunContext, list[PdfRecord]]:
@@ -130,12 +132,13 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
         store.insert_pdf(pdf.pdf_id, str(pdf.path), pdf.sha1)
 
     _ensure_retrieval_backends(config, logger, store)
-    mock_mode = config.provider.mock_mode or config.provider.mode == "mock"
+    mock_mode = config.provider.mock_mode or config.provider.mode in {"mock", "stub"}
     mock_payloads = None
     if mock_mode and config.provider.mock_payloads_path:
         mock_payloads = json.loads(config.provider.mock_payloads_path.read_text(encoding="utf-8"))
     header_client = LlmClient(
         LlmConfig(
+            mode=config.provider.mode,
             base_url=config.provider.base_url,
             api_key=config.provider.api_key,
             model=config.provider.model_header,
@@ -146,6 +149,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
     )
     match_client = LlmClient(
         LlmConfig(
+            mode=config.provider.mode,
             base_url=config.provider.base_url,
             api_key=config.provider.api_key,
             model=config.provider.model_match,
@@ -156,6 +160,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
     )
     extract_client = LlmClient(
         LlmConfig(
+            mode=config.provider.mode,
             base_url=config.provider.base_url,
             api_key=config.provider.api_key,
             model=config.provider.model_extract,
@@ -166,6 +171,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
     )
     helper_client = LlmClient(
         LlmConfig(
+            mode=config.provider.mode,
             base_url=config.provider.base_url,
             api_key=config.provider.api_key,
             model=config.provider.model_query_helper,
@@ -474,6 +480,11 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
             examples={col: context.examples.get(col, []) for col in target_columns},
         )
         try:
+            store.record_event(
+                "info",
+                "extraction_invoked",
+                {"pdf_id": pdf.pdf_id, "group": group_name, "columns": target_columns},
+            )
             column_contexts = _retrieve_column_contexts(
                 index,
                 target_specs,
@@ -532,6 +543,33 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
             context.run_paths.parsed_dir / f"{pdf.pdf_id}_tokens.jsonl",
             parse_source,
         )
+        try:
+            proposals = verify_proposals(context.extract_client, proposals)
+        except LlmJsonError as exc:
+            log_error(
+                context.error_path,
+                {
+                    "pdf_id": pdf.pdf_id,
+                    "error": str(exc),
+                    "stage": "verify_proposals",
+                    "response": exc.response,
+                },
+            )
+            store.record_event(
+                "error",
+                "llm_json_error",
+                {
+                    "pdf_id": pdf.pdf_id,
+                    "stage": "verify_proposals",
+                    "error": str(exc),
+                    "response": exc.response,
+                },
+            )
+            for proposal in proposals:
+                flags = proposal.setdefault("flags", {})
+                flags["verification_status"] = "unclear"
+                flags["verification_needs_more_evidence"] = True
+                flags["verification_rationale"] = "Verification failed; see logs."
         store.insert_proposals(proposals)
 
         if context.config.verify_mode:
@@ -543,14 +581,14 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
             if locked_values:
                 try:
                     verify_results = verify_cells(context.extract_client, row_context, locked_values, merged_context)
-                    verify_proposals = build_verify_records(
+                    verify_records = build_verify_records(
                         pdf.pdf_id,
                         adjudication.row_id,
                         verify_results,
                         locked_values,
                         chunk_lookup,
                     )
-                    store.insert_proposals(verify_proposals)
+                    store.insert_proposals(verify_records)
                 except LlmJsonError as exc:
                     log_error(
                         context.error_path,
@@ -779,6 +817,8 @@ def _build_embedding_client(
 ) -> EmbeddingClient | None:
     if backend == "tfidf":
         return None
+    if backend == "stub":
+        return StubEmbeddingClient()
     if backend != "lmstudio":
         raise ValueError(f"Unsupported embedding backend: {backend}")
     if not model:

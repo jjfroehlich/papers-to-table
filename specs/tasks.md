@@ -8,48 +8,47 @@ Conventions:
 
 ---
 
-## P0 — Simplified product (must not regress)
+## P0 — Proposals appear + review works end-to-end (stub providers)
 
 ### [x] **P0.T0** Update spec/plan/tasks artifacts (`specs/spec.md`, `specs/plan.md`, `specs/tasks.md`)
 
-### [x] **P0.T1** UI simplification: Run + Review only
-**Paths**: `paper_table_agent/ui/app.py`
+### [x] **P0.T1** Fix “no proposals” root cause + sanity check diagnostics
+**Paths**: `paper_table_agent/graph/reporting.py`, `paper_table_agent/graph/runner.py`
 **AC**
-- Exactly two screens (Run, Review).
-- No Settings/Advanced/Help tabs or filter/search widgets.
-- Review is row → column step-through with Accept / Accept-with-edit / Reject only.
+- If matched_pdfs > 0 and proposals == 0: run_report marks FAILED and stores diagnostics (schema load, missing cells, extraction invoked).
+- Diagnostic is logged and persisted in run_report.json.
 
-### [x] **P0.T2** In-app path picker (no upload)
-**Paths**: `paper_table_agent/ui/app.py`
+### [x] **P0.T2** Minimal Review queue (matched rows only, pending-only)
+**Paths**: `paper_table_agent/ui/app.py`, `paper_table_agent/ui/review_queue.py`
 **AC**
-- Table/PDF inputs use an in-app file/directory browser.
-- Last-used paths persist in `session_state`.
+- Review list only includes matched rows with pending proposals.
+- Each row shows “N proposals pending.”
+- Unclear/not_found proposals still appear when the cell is empty.
 
-### [x] **P0.T3** Config consolidation (single source)
-**Paths**: `paper_table_agent/config.py`, `paper_table_agent/graph/runner.py`, `paper_table_agent/ui/app.py`, `run_config.json`
+### [x] **P0.T3** Remove UI knobs + single settings source
+**Paths**: `paper_table_agent/ui/app.py`, `paper_table_agent/ui/defaults.py`, `README.md`
 **AC**
-- Models/params only in config file.
-- UI reads defaults but does not override model/retrieval/OCR/GROBID settings.
+- UI shows only Run + Review tabs with two path pickers.
+- No model/retrieval/OCR controls in UI.
+- README notes that configuration lives in a single settings file.
 
-### [x] **P0.T4** Output simplification
-**Paths**: `paper_table_agent/graph/exporter.py`, `paper_table_agent/graph/reporting.py`
+### [x] **P0.T4** Stub providers + fixtures + CLI integration test
+**Paths**: `paper_table_agent/llm/client.py`, `paper_table_agent/llm/embeddings.py`, `paper_table_agent/retrieval/*`, `tests/fixtures/*`, `tests/test_integration.py`
 **AC**
-- Default outputs: proposals.sqlite, updated_table.xlsx, audit_log.csv, run_report.json.
-- Extra exports (proposals.jsonl, pdf_row_matches.csv) gated behind a debug flag.
+- Stub LLM + embeddings/reranker run without external providers.
+- CLI run uses fixtures and produces proposals for matched rows.
 
-### [x] **P0.T5** Mock provider for deterministic tests
-**Paths**: `paper_table_agent/llm/client.py`, `paper_table_agent/config.py`
-**Tests**: `tests/test_integration.py`
+### [x] **P0.T5** Minimal export set
+**Paths**: `paper_table_agent/graph/reporting.py`
 **AC**
-- Mock provider supports matching/extraction/query expansion/HyDE deterministically.
-- Selectable via config (provider.mode = "mock").
+- Required exports: proposals.sqlite, updated_table.xlsx, audit_log.csv, pdf_row_matches.csv, run_report.json.
+- mapping_report.html only in debug mode.
 
-### [x] **P0.T6** Regression tests
-**Paths**: `tests/test_integration.py`, `tests/test_ui_defaults.py`
+### [x] **P0.T6** Streamlit AppTest for Review
+**Paths**: `tests/test_ui_streamlit.py`, `paper_table_agent/ui/app.py`
 **AC**
-- UI defaults load from config.
-- Pipeline writes minimal artifacts and export outputs.
-- Review decisions persist and update exports.
+- AppTest loads a completed run and renders a proposal in Review.
+- Keyboard shortcuts and highlight-missing indicator are present.
 
 ---
 

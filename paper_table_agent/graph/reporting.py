@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import csv
 import json
+import logging
 import zipfile
 from pathlib import Path
 
 from jinja2 import Template
 
+from paper_table_agent.io.schema import load_schema
 from paper_table_agent.store.db import Store
+
+LOGGER = logging.getLogger(__name__)
 
 
 _REPORT_TEMPLATE = Template(
@@ -106,7 +110,7 @@ _REPORT_TEMPLATE = Template(
 )
 
 
-def write_mapping_report(store: Store, output_dir: Path, write_csv: bool = False) -> None:
+def write_mapping_report(store: Store, output_dir: Path, write_html: bool = False) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     matches = store.fetch_matches()
     rows = {row["row_id"]: dict(row) for row in store.fetch_rows()}
@@ -145,160 +149,231 @@ def write_mapping_report(store: Store, output_dir: Path, write_csv: bool = False
         "duplicates": sum(1 for match in matches if match["status"] == "duplicate"),
     }
 
-    html = _REPORT_TEMPLATE.render(rows=report_rows, **summary)
-    (output_dir / "mapping_report.html").write_text(html, encoding="utf-8")
+    if write_html:
+        html = _REPORT_TEMPLATE.render(rows=report_rows, **summary)
+        (output_dir / "mapping_report.html").write_text(html, encoding="utf-8")
 
-    if write_csv:
-        with (output_dir / "pdf_row_matches.csv").open("w", newline="", encoding="utf-8") as handle:
-            writer = csv.writer(handle)
+    with (output_dir / "pdf_row_matches.csv").open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(
+            [
+                "pdf_id",
+                "row_id",
+                "status",
+                "confidence",
+                "pdf_title",
+                "pdf_authors",
+                "pdf_year",
+                "row_title",
+                "row_authors",
+                "row_year",
+            ]
+        )
+        for row in report_rows:
             writer.writerow(
                 [
-                    "pdf_id",
-                    "row_id",
-                    "status",
-                    "confidence",
-                    "pdf_title",
-                    "pdf_authors",
-                    "pdf_year",
-                    "row_title",
-                    "row_authors",
-                    "row_year",
+                    row["pdf_id"],
+                    row["row_id"],
+                    row["status"],
+                    row["confidence"],
+                    row["pdf_title"],
+                    row["pdf_authors"],
+                    row["pdf_year"],
+                    row["row_title"],
+                    row["row_authors"],
+                    row["row_year"],
                 ]
             )
-            for row in report_rows:
-                writer.writerow(
-                    [
-                        row["pdf_id"],
-                        row["row_id"],
-                        row["status"],
-                        row["confidence"],
-                        row["pdf_title"],
-                        row["pdf_authors"],
-                        row["pdf_year"],
-                        row["row_title"],
-                        row["row_authors"],
-                        row["row_year"],
-                    ]
-                )
 
 
-def write_run_report(store: Store, run_paths: Path | object) -> None:
+def write_run_report(store: Store, run_paths: Path | object) -> str:
     run_dir = run_paths.run_dir if hasattr(run_paths, "run_dir") else Path(run_paths)
     config_path = run_dir / "run_config.json"
     config_payload = json.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
     matches = [dict(row) for row in store.fetch_matches()]
     proposals = [
         dict(row)
-        for row in store.conn.execute("SELECT column, status, flags_json, evidence_json FROM proposals")
+        for row in store.conn.execute("SELECT column, status, flags_json FROM proposals")
     ]
     events = [dict(row) for row in store.conn.execute("SELECT level, event_type FROM events")]
-    retrieval_chunks = [dict(row) for row in store.conn.execute("SELECT pdf_id FROM retrieval_chunks")]
     matched = sum(1 for row in matches if row.get("status") == "matched")
     ambiguous = sum(1 for row in matches if row.get("status") == "ambiguous")
     unmatched = sum(1 for row in matches if row.get("status") in {"unmatched", "duplicate"})
-    filled = sum(1 for row in proposals if row.get("status") in {"found", "inferred"})
-    total = len(proposals)
-    needs_more = 0
-    validation_total = 0
-    validation_passed = 0
-    validation_normalized = 0
-    validation_reasons: dict[str, int] = {}
-    highlight_attempts = 0
-    highlight_success = 0
-    not_found_by_column: dict[str, dict[str, float]] = {}
-    for row in proposals:
-        flags = json.loads(row.get("flags_json") or "{}")
-        evidence_items = json.loads(row.get("evidence_json") or "[]")
-        if flags.get("needs_more_evidence"):
-            needs_more += 1
-        mode = flags.get("validation_mode")
-        if mode:
-            validation_total += 1
-            if mode in {"exact", "normalized"}:
-                validation_passed += 1
-            if mode == "normalized":
-                validation_normalized += 1
-        reason = flags.get("validation_reason")
-        if reason:
-            validation_reasons[reason] = validation_reasons.get(reason, 0) + 1
-        for evidence in evidence_items:
-            status = evidence.get("highlight_status")
-            if status in {"highlighted", "not_found"}:
-                highlight_attempts += 1
-                if status == "highlighted":
-                    highlight_success += 1
-        column = row.get("column") or ""
-        if column:
-            not_found_by_column.setdefault(column, {"not_found": 0, "total": 0})
-            not_found_by_column[column]["total"] += 1
-            if row.get("status") == "not_found":
-                not_found_by_column[column]["not_found"] += 1
-    for column, stats in not_found_by_column.items():
-        total_for_column = stats["total"]
-        stats["rate"] = (stats["not_found"] / total_for_column) if total_for_column else 0.0
-    fallback_events = {
-        row["event_type"]: row["count"]
-        for row in store.conn.execute(
-            """
-            SELECT event_type, COUNT(*) as count
-            FROM events
-            WHERE event_type IN ('embedding_fallback', 'reranker_fallback')
-            GROUP BY event_type
-            """
-        )
-    }
-    fallback_mode = "bm25_only" if fallback_events.get("embedding_fallback") else None
-    summary = {
-        "mapping": {
-            "matched": matched,
-            "ambiguous": ambiguous,
-            "unmatched": unmatched,
-            "total": len(matches),
-            "ambiguous_rate": (ambiguous / len(matches)) if matches else 0.0,
-        },
-        "retrieval": {
-            "config": config_payload.get("retrieval", {}),
-            "chunk_count": len(retrieval_chunks),
-            "fallbacks": fallback_events,
-            "fallback_mode": fallback_mode,
-        },
-        "extraction": {
-            "total_proposals": total,
-            "filled": filled,
-            "fill_rate": (filled / total) if total else 0.0,
-            "needs_more_evidence": needs_more,
-            "evidence_validation": {
-                "total": validation_total,
-                "passed": validation_passed,
-                "pass_rate": (validation_passed / validation_total) if validation_total else 0.0,
-                "normalized_used": validation_normalized,
-                "reasons": validation_reasons,
-            },
-            "highlight": {
-                "attempted": highlight_attempts,
-                "success": highlight_success,
-                "success_rate": (highlight_success / highlight_attempts) if highlight_attempts else 0.0,
-            },
-            "not_found_by_column": not_found_by_column,
-        },
-        "errors": {
-            "total_events": len(events),
-            "error_events": sum(1 for row in events if row.get("level") == "error"),
-        },
-    }
+    proposal_counts = _proposal_counts(proposals)
+    extractable_columns = _count_extractable_columns(store, config_payload, matched_rows=matches)
+    sanity_check = _run_sanity_check(
+        matched,
+        extractable_columns,
+        proposal_counts.get("total", 0),
+        store,
+        config_payload,
+        matches,
+        proposals,
+    )
+    run_status = "failed" if sanity_check.get("failed") else "completed"
+    if run_status == "failed":
+        (run_dir / "FAILED").write_text("failed", encoding="utf-8")
+        LOGGER.error("Run failed sanity check: %s", sanity_check)
     payload = {
-        "run_config": config_payload,
-        "summary": summary,
-        "artifacts": {
-            "run_dir": str(run_dir),
-            "exports_dir": str(run_dir / "exports"),
-            "artifacts_dir": str(run_dir / "artifacts"),
-            "logs_dir": str(run_dir / "logs"),
-            "db_path": str(run_dir / "proposals.sqlite"),
-            "mapping_report": str(run_dir / "exports" / "mapping_report.html"),
+        "run_id": run_dir.name,
+        "status": run_status,
+        "inputs": {
+            "table_path": config_payload.get("table_path"),
+            "pdf_folder": config_payload.get("pdf_folder"),
+        },
+        "summary": {
+            "mapping": {
+                "matched": matched,
+                "ambiguous": ambiguous,
+                "unmatched": unmatched,
+                "total": len(matches),
+            },
+            "proposals": proposal_counts,
+            "errors": {
+                "total_events": len(events),
+                "error_events": sum(1 for row in events if row.get("level") == "error"),
+            },
+            "sanity_check": sanity_check,
         },
     }
     (run_dir / "run_report.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return run_status
+
+
+def _count_extractable_columns(
+    store: Store,
+    config_payload: dict[str, object],
+    matched_rows: list[dict[str, object]],
+) -> int:
+    try:
+        table_path = Path(str(config_payload.get("table_path", "")))
+        schema_source = table_path
+        if config_payload.get("schema_mode") == "separate" and config_payload.get("schema_path"):
+            schema_source = Path(str(config_payload["schema_path"]))
+        specs = load_schema(schema_source, str(config_payload.get("schema_sheet_name", "schema")))
+    except Exception:
+        return 0
+    schema_columns = [spec.column_name for spec in specs]
+    if not schema_columns:
+        return 0
+    matched_row_ids = {
+        str(row.get("row_id"))
+        for row in matched_rows
+        if row.get("status") == "matched" and row.get("row_id") is not None
+    }
+    if not matched_row_ids:
+        return 0
+    locked_rows = store.list_locks()
+    locked_map: dict[str, set[str]] = {}
+    for lock in locked_rows:
+        if str(lock["row_id"]) in matched_row_ids:
+            locked_map.setdefault(str(lock["row_id"]), set()).add(str(lock["column"]))
+    extractable: set[str] = set()
+    for row_id in matched_row_ids:
+        locked = locked_map.get(row_id, set())
+        for column in schema_columns:
+            if column not in locked:
+                extractable.add(column)
+    return len(extractable)
+
+
+def _proposal_counts(proposals: list[dict[str, object]]) -> dict[str, int]:
+    counts: dict[str, int] = {"total": len(proposals)}
+    for row in proposals:
+        status = str(row.get("status") or "unknown")
+        counts[status] = counts.get(status, 0) + 1
+    return counts
+
+
+def _run_sanity_check(
+    matched: int,
+    extractable_columns: int,
+    proposals_count: int,
+    store: Store,
+    config_payload: dict[str, object],
+    matches: list[dict[str, object]],
+    proposals: list[dict[str, object]],
+) -> dict[str, object]:
+    failed = matched > 0 and proposals_count == 0
+    if not failed:
+        return {"failed": False}
+    schema_columns = _load_schema_columns(config_payload)
+    missing_cell_count = _missing_cell_count(store, schema_columns, matches)
+    extraction_events = _event_count(store, "extraction_invoked")
+    validation_drop_count = sum(
+        1
+        for proposal in proposals
+        if "evidence_validation_errors" in json.loads(proposal.get("flags_json") or "{}")
+    )
+    return {
+        "failed": True,
+        "reason": (
+            "Matched PDFs and extractable columns were detected, but zero proposals were stored. "
+            "This usually indicates extraction never ran or proposal persistence failed."
+        ),
+        "diagnostics": {
+            "schema_columns_loaded": schema_columns,
+            "schema_column_count": len(schema_columns),
+            "extractable_columns": extractable_columns,
+            "missing_cell_count": missing_cell_count,
+            "extraction_invoked_count": extraction_events,
+            "evidence_validation_drop_count": validation_drop_count,
+        },
+        "most_likely_causes": [
+            "Locked-cell detection treated empty cells as locked.",
+            "Schema loader produced zero columns or mismatched column names.",
+            "Extraction loop never ran for groups (no group targets).",
+            "UI/query filtering hid proposals despite DB entries.",
+        ],
+    }
+
+
+def _event_count(store: Store, event_type: str) -> int:
+    row = store.conn.execute(
+        "SELECT COUNT(*) as count FROM events WHERE event_type = ?",
+        (event_type,),
+    ).fetchone()
+    return int(row["count"]) if row else 0
+
+
+def _load_schema_columns(config_payload: dict[str, object]) -> list[str]:
+    try:
+        table_path = Path(str(config_payload.get("table_path", "")))
+        schema_source = table_path
+        if config_payload.get("schema_mode") == "separate" and config_payload.get("schema_path"):
+            schema_source = Path(str(config_payload["schema_path"]))
+        specs = load_schema(schema_source, str(config_payload.get("schema_sheet_name", "schema")))
+    except Exception:
+        return []
+    return [spec.column_name for spec in specs]
+
+
+def _missing_cell_count(
+    store: Store,
+    schema_columns: list[str],
+    matched_rows: list[dict[str, object]],
+) -> int:
+    if not schema_columns:
+        return 0
+    matched_row_ids = {
+        str(row.get("row_id"))
+        for row in matched_rows
+        if row.get("status") == "matched" and row.get("row_id") is not None
+    }
+    if not matched_row_ids:
+        return 0
+    locked_rows = store.list_locks()
+    locked_map: dict[str, set[str]] = {}
+    for lock in locked_rows:
+        if str(lock["row_id"]) in matched_row_ids:
+            locked_map.setdefault(str(lock["row_id"]), set()).add(str(lock["column"]))
+    missing = 0
+    for row_id in matched_row_ids:
+        locked = locked_map.get(row_id, set())
+        for column in schema_columns:
+            if column not in locked:
+                missing += 1
+    return missing
 
 
 def write_run_bundle(run_dir: Path) -> Path:

@@ -1,6 +1,10 @@
 # Spec: Paper Table Agent — Unified Spec
 
-This unified spec consolidates the best functional requirements from earlier versions with the latest UI/UX iteration. It prioritizes **accurate extraction with evidence** while keeping the app **fast, logical, and user-friendly** during row-by-row review.
+## Product summary
+
+Paper Table Agent is a local-first PDF→Spreadsheet assistant. You provide a table and a PDF folder; the agent matches PDFs to rows, proposes values for missing cells with evidence, and lets you review decisions row-by-row in a minimal Run/Review UI.
+
+This unified spec consolidates the best functional requirements from earlier versions with the latest minimal UI/UX iteration. It prioritizes **accurate extraction with evidence** while keeping the app **fast, logical, and user-friendly** during row-by-row review.
 
 Paper Table Agent is a local-first PDF→Spreadsheet filling assistant for literature curation. You give it (1) one spreadsheet where each row is a paper and (2) a folder of PDFs. The agent matches PDFs to rows, then fills only missing cells by proposing values with evidence (page + verbatim quote + highlight). It never overwrites existing non-empty cells. After the run, you use a simple Review flow to step through only the rows where a PDF was matched and approve/reject each proposed cell while viewing the highlighted quote in the PDF.
 Under the hood, extraction is evidence-first retrieval + constrained generation (multi-query retrieval and query “hypothesis” techniques can improve recall/accuracy) and is designed to be resumable and auditable.
@@ -63,7 +67,7 @@ runs/
     exports/
       updated_table.xlsx
       audit_log.csv
-      mapping_report.html
+      pdf_row_matches.csv
 ```
 
 Optional/debug artifacts (behind a debug flag):
@@ -71,7 +75,7 @@ Optional/debug artifacts (behind a debug flag):
 ```
     exports/
       proposals.jsonl
-      pdf_row_matches.csv
+      mapping_report.html
 ```
 
 ---
@@ -106,7 +110,7 @@ Optional/debug artifacts (behind a debug flag):
 - Validation modes:
   - `exact`: verbatim substring match.
   - `normalized`: substring match after normalizing whitespace, hyphenation line breaks, and ligatures.
-- Persist `validation_mode` and `validation_reason` in the DB and summarize in run_report stats.
+- Persist `validation_mode` and `validation_reason` in the DB and surface them via diagnostics when needed.
 - Each retrieved chunk stores a page range (page_start/page_end); **evidence.page must fall within the chunk range**, and locators operate on evidence.page.
 - If evidence is missing, invalid, or cannot be located, force `status=unclear` and `needs_more_evidence=true`.
 - Evidence validation errors are persisted (error_type, reason) with the proposal record.
@@ -118,9 +122,10 @@ Optional/debug artifacts (behind a debug flag):
 
 ### 3.6 Run diagnostics artifact (P0)
 
-- Each run writes a **run_report.json** summarizing config, model routing, mapping stats, retrieval stats, extraction fill-rate, errors, and artifact paths.
+- Each run writes a **run_report.json** with run_id, input paths, mapping counts, proposal counts, errors, and sanity-check diagnostics.
+- Run-level sanity check: if matched PDFs > 0 and proposals == 0, mark the run **FAILED** with a reason + likely causes.
 - `paper-table-agent bundle --run_dir <run_dir>` produces `run_bundle.zip` containing run_report, mapping report, logs, and exports.
-- run_report must include: fill rate, evidence validation pass rate, highlight success rate, ambiguous mapping rate, and per-column not_found rates.
+- run_report must include: matched counts, proposal counts, error counts, and the run status.
 
 ---
 
@@ -208,6 +213,9 @@ For each (row_id, column):
 - needs_more_evidence (boolean)
 - mapping_dependent (boolean)
 - rationale (short; required for inferred/derived)
+- verification_status (`supports | contradicts | unclear`)
+- verification_needs_more_evidence (boolean)
+- verification_rationale (short)
 
 ### 5.3 Needs-more-evidence rules
 
@@ -215,6 +223,12 @@ Flag if:
 - quote is indirect/ambiguous
 - highlight cannot be located
 - value is derived but support is weak
+
+### 5.4 Automatic verification (P0)
+
+- After proposal extraction, run a verification pass that checks whether evidence supports the proposed value.
+- Set `verification_status` to `supports | contradicts | unclear` and mark `verification_needs_more_evidence` accordingly.
+- Use verification status to prioritize review, but never hide proposals for empty cells.
 
 ---
 
@@ -251,13 +265,14 @@ Flag if:
 
 ### 6.4.1 Retrieval profile (P0, single “optimal”)
 
-- **Single optimal profile** (no UI presets):
+- **Single optimal profile (BEST)** (no UI presets):
   - topK=20, rerank topN=20
   - query_variants=6, HyDE=on
   - max_context_chunks=24, max_context_tokens=2400
   - second-pass retry on unclear = **on** (extra_chunks=10)
+- Rationale: HyDE + multi-query expansion with reciprocal rank fusion, plus optional hierarchical retrieval, improves retrieval recall/quality in evidence-first pipelines.【[HyDE](https://arxiv.org/abs/2212.10496)】【[RAG-Fusion/RRF](https://arxiv.org/abs/2305.14688)】【[RAPTOR](https://arxiv.org/abs/2307.11778)】
 - **Fallback behavior**:
-  - If embeddings or reranker are not configured, fall back to **BM25-only + no rerank**; log a warning and record the fallback mode in run_report.
+- If embeddings or reranker are not configured, fall back to **BM25-only + no rerank**; log a warning and record the fallback mode in events.
 
 ### 6.5 Hierarchical retrieval (optional “max recall” mode)
 
@@ -268,6 +283,7 @@ Flag if:
 - If extraction fails or PDF is scanned:
   - Unstructured `strategy="hi_res"` + OCR.
   - OCR-derived proposals are flagged.
+  - See Unstructured hi_res/OCR strategy docs for provenance and behavior.【[Unstructured hi_res](https://unstructured-io.github.io/unstructured/bricks/partition.html#hi-res-strategy)】
 
 ### 6.7 Highlight locator algorithm (P0)
 
@@ -291,6 +307,7 @@ Nodes:
 
 - Checkpoint after each PDF and each group extraction.
 - LLM calls use strict JSON validation + one repair retry.
+- LangGraph persistence/checkpointing enables resumable, human-in-the-loop workflows.【[LangGraph Persistence](https://langchain-ai.github.io/langgraph/how-tos/persistence/)】
 
 ---
 
@@ -324,6 +341,7 @@ Model roles:
 - Minimal UI chrome with clear empty states.
 - Persistent session state for selected run/row/column index.
 - No tuning knobs or provider selectors in the UI.
+- Explicitly de-scope Advanced/Settings/Help tabs and review filters (confidence range, column multi-select, heavy search).
 
 ### 9.2 Run screen (minimal)
 
@@ -334,26 +352,26 @@ Inputs:
 
 Buttons:
 - **Start Run**
-- **Resume** (only when a resumable checkpoint exists)
+- **Open run folder**
 
 Progress:
-- Minimal status line: **Run started / Running / Done**.
+- Minimal status line: **Running / Done / Failed**.
 - Optional “current PDF” display.
-- Single progress indicator.
 
 ### 9.3 Review screen (minimal step-through)
 
 Primary interaction:
-- Step through **rows**, then **columns** for that row.
-- For each proposal: show **proposed value**, **evidence quote(s)+page**, and **PDF with highlight**.
+- Step through **matched rows**, then **columns** needing decisions for that row.
+- For each proposal: show **column name**, **current value**, **proposed value**, **evidence quote(s)+page**, and **PDF with highlight**.
 - Three decisions only: **Accept / Accept-with-edit / Reject**.
 - Auto-advance enabled by default.
 
 Navigation controls:
-- Prev/Next row, Prev/Next column, and **Next undecided**.
+- Prev/Next row, Prev/Next column, **Next undecided**, and keyboard shortcuts (j/k/a/e/r).
 - Small “remaining items” counter.
 
 Constraints:
+- Only show columns that need a decision: empty cell OR verification contradicts/unclear.
 - No confidence filtering.
 - No search.
 - No column multi-select.
@@ -378,7 +396,8 @@ Constraints:
 Exports:
 - updated_table.xlsx (apply accepted/revised only)
 - audit_log.csv (proposal → decision lineage)
-- mapping_report.html (diagnostic)
+- pdf_row_matches.csv (diagnostic mapping summary)
+- mapping_report.html (debug-only)
 
 Audit log includes:
 - run_id
@@ -401,9 +420,9 @@ Audit log includes:
 - **Every column** persists a proposal record (even error/unclear/no_evidence).
 - Every proposal has evidence or is clearly marked unclear/needs_more_evidence.
 - Evidence validation enforces quote+page+chunk_id and substring match.
-- run_report includes fill rate, evidence validation pass rate, highlight success rate, ambiguous mapping rate, and per-column not_found rates.
-- Mapping report exists and includes side-by-side metadata + candidate table.
+- run_report includes run_id, inputs, mapping counts, proposal counts, error counts, and run status.
+- pdf_row_matches.csv exists and includes side-by-side metadata + candidate table; mapping_report.html only when debug is enabled.
 - Decisions persist immediately in Review.
 - UI exposes **no** model/retrieval/OCR/GROBID knobs; config is single source of truth.
-- Outputs are simplified to proposals.sqlite + run_report.json + updated_table.xlsx + audit_log.csv.
+- Outputs are simplified to proposals.sqlite + run_report.json + updated_table.xlsx + audit_log.csv + pdf_row_matches.csv.
 - README updated to reflect workflow and configuration.

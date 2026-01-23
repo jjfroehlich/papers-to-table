@@ -25,7 +25,7 @@ def rerank(
 ) -> RerankResult:
     if not candidates:
         return RerankResult(chunks=[])
-    if backend not in {"tfidf", "lmstudio"}:
+    if backend not in {"tfidf", "lmstudio", "stub"}:
         raise ValueError(f"Unsupported reranker backend: {backend}")
     texts = [chunk.text for chunk in candidates]
     if backend == "tfidf":
@@ -35,7 +35,7 @@ def rerank(
         query_vec = index.vectorizer.transform([query]).toarray()
     else:
         if embedder is None:
-            raise ValueError("Embedding client required for LM Studio reranking.")
+            raise ValueError("Embedding client required for dense reranking.")
         candidate_vecs = embedder.embed_texts(texts)
         query_vec = embedder.embed_texts([query])
     scores = cosine_similarity(query_vec, candidate_vecs)[0]

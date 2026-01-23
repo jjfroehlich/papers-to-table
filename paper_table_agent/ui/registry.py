@@ -64,6 +64,8 @@ def _infer_run_status(run_dir: Path) -> str:
         return "paused"
     if (run_dir / "STOP").exists():
         return "stopped"
+    if (run_dir / "FAILED").exists():
+        return "failed"
     if (run_dir / "COMPLETED").exists():
         return "completed"
     if (run_dir / "exports" / "updated_table.xlsx").exists():

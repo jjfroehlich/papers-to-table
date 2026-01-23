@@ -18,3 +18,7 @@
 - Introduced per-column retrieval with retry on unclear results and configurable embedding/reranker backends.
 - Added optional GROBID integration for structured metadata + section chunking (off by default).
 - Updated the UI to use a single config-driven Run/Review flow with minimal controls.
+- Added run-level sanity checks with diagnostics and FAILED status reporting when matched PDFs produce zero proposals.
+- Added stub LLM + stub embeddings/reranker for deterministic offline tests and fixtures.
+- Simplified run artifacts: pdf_row_matches.csv is required, mapping_report.html is debug-only.
+- Added keyboard shortcuts and pending-only review queues for faster Review navigation.

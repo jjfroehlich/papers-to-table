@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from paper_table_agent.llm.client import LlmClient
-from paper_table_agent.llm.models import GroupExtractionResult, ProposalItem, VerifyResult
+from paper_table_agent.llm.models import GroupExtractionResult, ProposalItem, ProposalVerificationResult, VerifyResult
 from paper_table_agent.llm.prompts import render_prompt
 
 
@@ -204,6 +204,33 @@ def verify_cells(
         )
         results.append(client.complete_json(prompt, VerifyResult))
     return results
+
+
+def verify_proposals(
+    client: LlmClient,
+    proposals: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    for proposal in proposals:
+        column = proposal.get("column")
+        proposed_value = proposal.get("proposed_value")
+        evidence = proposal.get("evidence") or []
+        flags = proposal.setdefault("flags", {})
+        if not proposed_value or not evidence:
+            flags["verification_status"] = "unclear"
+            flags["verification_needs_more_evidence"] = True
+            flags["verification_rationale"] = "Missing proposed value or evidence."
+            continue
+        prompt = render_prompt(
+            "verify_proposal.md",
+            column=json.dumps(column),
+            proposed_value=json.dumps(proposed_value),
+            evidence=json.dumps(evidence, indent=2),
+        )
+        result = client.complete_json(prompt, ProposalVerificationResult)
+        flags["verification_status"] = result.status
+        flags["verification_needs_more_evidence"] = result.needs_more_evidence
+        flags["verification_rationale"] = result.rationale
+    return proposals
 
 
 def _build_chunk_lookup(chunks_by_column: dict[str, list[dict[str, Any]]]) -> dict[str, dict[str, Any]]:

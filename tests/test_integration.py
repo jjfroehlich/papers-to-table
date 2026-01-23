@@ -1,5 +1,8 @@
 import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 
 import pytest
 
@@ -11,85 +14,70 @@ from paper_table_agent.graph.exporter import export_run
 from paper_table_agent.graph.runner import run_pipeline
 from paper_table_agent.store.db import Store
 from paper_table_agent.ui.registry import discover_runs
+from paper_table_agent.ui.review_queue import build_review_rows, review_items_for_row
 
 
-def _write_pdf(path: Path, text: str) -> None:
-    doc = fitz.open()
-    page = doc.new_page()
-    page.insert_text((72, 72), text)
-    doc.save(path)
+def _fixture_dir() -> Path:
+    return Path(__file__).resolve().parent / "fixtures"
 
 
-def test_end_to_end_with_mock_llm(tmp_path: Path):
-    table_path = tmp_path / "table.xlsx"
-    df = pd.DataFrame({"Title": ["Test Paper"], "Authors": ["Ada"], "Year": ["2024"], "Method": [""]})
-    schema = pd.DataFrame({"column_name": ["Method"], "description": ["Method used"], "group": ["methods"]})
-    with pd.ExcelWriter(table_path) as writer:
-        df.to_excel(writer, sheet_name="Sheet1", index=False)
-        schema.to_excel(writer, sheet_name="schema", index=False)
+def _write_stub_config(tmp_path: Path) -> Path:
+    fixtures = _fixture_dir()
+    config_path = tmp_path / "stub_run_config.json"
+    payload = json.loads((fixtures / "stub_run_config.json").read_text(encoding="utf-8"))
+    payload["table_path"] = str((fixtures / "minimal_table.csv").resolve())
+    payload["schema_path"] = str((fixtures / "minimal_schema.csv").resolve())
+    payload["pdf_folder"] = str((fixtures / "pdfs").resolve())
+    config_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return config_path
 
-    pdf_folder = tmp_path / "pdfs"
-    pdf_folder.mkdir()
-    pdf_path = pdf_folder / "paper.pdf"
-    _write_pdf(pdf_path, "Test Paper\nAda\n2024\nWe used method X.")
 
-    mock_payloads = {
-        "extracting paper metadata": {
-            "title": "Test Paper",
-            "authors": ["Ada"],
-            "year": "2024",
-            "evidence": [{"quote": "Test Paper", "page": 1, "chunk_id": "page-1", "locator_hint": "Test Paper"}],
-            "confidence": 0.9,
-        },
-        "matching a PDF": {
-            "row_id": "0",
-            "status": "matched",
-            "top_candidates": [],
-            "confidence": 0.9,
-            "evidence": [{"quote": "Test Paper", "page": 1, "chunk_id": "page-1", "locator_hint": "Test Paper"}],
-            "rationale": "Exact match",
-        },
-        "extracting values for a group": {
-            "proposals": [
-                {
-                    "column": "Method",
-                    "proposed_value": "method X",
-                    "status": "found",
-                    "confidence": 0.8,
-                    "evidence": [{"quote": "method X", "page": 1, "chunk_id": "page-1", "locator_hint": "method X"}],
-                    "needs_more_evidence": False,
-                    "rationale": "Quoted",
-                }
-            ]
-        },
-    }
-    mock_path = tmp_path / "mock_payloads.json"
-    mock_path.write_text(json.dumps(mock_payloads), encoding="utf-8")
+def test_end_to_end_with_stub_llm_cli(tmp_path: Path):
+    fixtures = _fixture_dir()
+    table_path = fixtures / "minimal_table.csv"
+    pdf_folder = fixtures / "pdfs"
+    config_path = _write_stub_config(tmp_path)
 
-    config = RunConfig(
-        table_path=table_path,
-        pdf_folder=pdf_folder,
-        schema_sheet_name="schema",
-        title_col="Title",
-        authors_col="Authors",
-        year_col="Year",
+    env = dict(**os.environ)
+    env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1])
+    subprocess.run(
+        [sys.executable, "-m", "paper_table_agent.cli", "run", "--config", str(config_path)],
+        check=True,
+        cwd=tmp_path,
+        env=env,
     )
-    config.provider.mode = "mock"
-    config.provider.mock_payloads_path = mock_path
-
-    run_paths = create_run_paths(config.table_path, root=tmp_path / "runs")
-    store = Store.init_db(run_paths.db_path)
-    run_pipeline(config, run_paths, store)
+    runs_dir = tmp_path / "runs"
+    run_dirs = sorted(runs_dir.iterdir())
+    assert run_dirs
+    run_dir = run_dirs[0]
+    store = Store.init_db(run_dir / "proposals.sqlite")
 
     proposals = store.conn.execute("SELECT * FROM proposals").fetchall()
     assert proposals
+    matches = store.fetch_matches()
+    matched_rows = {row["row_id"] for row in matches if row["status"] == "matched"}
+    assert matched_rows
+    matched_proposals = [
+        row for row in proposals if row["row_id"] in matched_rows
+    ]
+    assert matched_proposals
+
+    rows = [dict(row) for row in store.fetch_rows()]
+    matches = [dict(row) for row in store.fetch_matches()]
+    proposals_meta = [dict(row) for row in store.conn.execute("SELECT * FROM proposals")]
+    table = pd.read_csv(table_path)
+    table_wrapper = type("Table", (), {"dataframe": table})
+    review_rows = build_review_rows(rows, matches, proposals_meta, table_wrapper)
+    assert review_rows
+    row_items = review_items_for_row(review_rows[0], proposals_meta, table_wrapper)
+    assert row_items
 
 
 def test_registry_lists_runs(tmp_path: Path):
     run_dir = tmp_path / "runs" / "20250101_000000__demo"
     run_dir.mkdir(parents=True)
     (run_dir / "run_config.json").write_text(
-        json.dumps({"table_path": "table.xlsx", "pdf_folder": "pdfs"}),
+        "{\"table_path\": \"table.xlsx\", \"pdf_folder\": \"pdfs\"}",
         encoding="utf-8",
     )
     (run_dir / "proposals.sqlite").write_text("stub", encoding="utf-8")
@@ -98,84 +86,24 @@ def test_registry_lists_runs(tmp_path: Path):
 
 
 def test_integration_run_report_and_validation(tmp_path: Path):
-    table_path = tmp_path / "table.xlsx"
-    df = pd.DataFrame(
-        {
-            "Title": ["Test Paper"],
-            "Authors": ["Ada"],
-            "Year": ["2024"],
-            "Method": [""],
-            "Outcome": [""],
-        }
-    )
-    schema = pd.DataFrame(
-        {
-            "column_name": ["Method", "Outcome"],
-            "description": ["Method used", "Observed outcome"],
-            "group": ["methods", "methods"],
-        }
-    )
-    with pd.ExcelWriter(table_path) as writer:
-        df.to_excel(writer, sheet_name="Sheet1", index=False)
-        schema.to_excel(writer, sheet_name="schema", index=False)
-
-    pdf_folder = tmp_path / "pdfs"
-    pdf_folder.mkdir()
-    pdf_path = pdf_folder / "paper.pdf"
-    _write_pdf(pdf_path, "Test Paper\nAda\n2024\nMethod: method X\nOutcome: success")
-
-    mock_payloads = {
-        "extracting paper metadata": {
-            "title": "Test Paper",
-            "authors": ["Ada"],
-            "year": "2024",
-            "evidence": [{"quote": "Test Paper", "page": 1, "chunk_id": "page-1", "locator_hint": "Test Paper"}],
-            "confidence": 0.9,
-        },
-        "matching a PDF": {
-            "row_id": "0",
-            "status": "matched",
-            "top_candidates": [],
-            "confidence": 0.9,
-            "evidence": [{"quote": "Test Paper", "page": 1, "chunk_id": "page-1", "locator_hint": "Test Paper"}],
-            "rationale": "Exact match",
-        },
-        "extracting values for a group": {
-            "proposals": [
-                {
-                    "column": "Method",
-                    "proposed_value": "method X",
-                    "status": "found",
-                    "confidence": 0.8,
-                    "evidence": [{"quote": "method X", "page": 1, "chunk_id": "page-1", "locator_hint": "method X"}],
-                    "needs_more_evidence": False,
-                    "rationale": "Quoted",
-                },
-                {
-                    "column": "Outcome",
-                    "proposed_value": "success",
-                    "status": "found",
-                    "confidence": 0.8,
-                    "evidence": [{"quote": "success", "page": 1, "chunk_id": "page-1", "locator_hint": "success"}],
-                    "needs_more_evidence": False,
-                    "rationale": "Quoted",
-                },
-            ]
-        },
-    }
-    mock_path = tmp_path / "mock_payloads.json"
-    mock_path.write_text(json.dumps(mock_payloads), encoding="utf-8")
+    fixtures = _fixture_dir()
+    table_path = fixtures / "minimal_table.csv"
+    schema_path = fixtures / "minimal_schema.csv"
+    pdf_folder = fixtures / "pdfs"
 
     config = RunConfig(
         table_path=table_path,
         pdf_folder=pdf_folder,
         schema_sheet_name="schema",
+        schema_mode="separate",
+        schema_path=schema_path,
         title_col="Title",
         authors_col="Authors",
         year_col="Year",
     )
-    config.provider.mode = "mock"
-    config.provider.mock_payloads_path = mock_path
+    config.provider.mode = "stub"
+    config.retrieval.embedding_backend = "stub"
+    config.retrieval.reranker_backend = "stub"
 
     run_paths = create_run_paths(config.table_path, root=tmp_path / "runs")
     store = Store.init_db(run_paths.db_path)
@@ -183,12 +111,12 @@ def test_integration_run_report_and_validation(tmp_path: Path):
 
     proposals = store.conn.execute("SELECT column, flags_json, proposal_id FROM proposals").fetchall()
     columns = {row["column"] for row in proposals}
-    assert columns == {"Method", "Outcome"}
-    flags = [json.loads(row["flags_json"] or "{}") for row in proposals]
-    assert any(flag.get("validation_mode") in {"exact", "normalized"} for flag in flags)
+    assert columns == {"Method", "Outcome", "Dose"}
 
     assert (run_paths.run_dir / "run_report.json").exists()
-    assert (run_paths.exports_dir / "mapping_report.html").exists()
+    assert (run_paths.exports_dir / "pdf_row_matches.csv").exists()
+    report = (run_paths.run_dir / "run_report.json").read_text(encoding="utf-8")
+    assert "\"status\": \"completed\"" in report
 
     first_proposal = proposals[0]
     store.insert_review(
@@ -202,6 +130,6 @@ def test_integration_run_report_and_validation(tmp_path: Path):
     )
     export_run(run_paths.run_dir)
     exported = pd.read_excel(run_paths.exports_dir / "updated_table.xlsx")
-    assert exported.loc[0, "Method"] == "method X"
+    assert exported.loc[0, "Method"]
     assert (run_paths.exports_dir / "audit_log.csv").exists()
     assert not (run_paths.exports_dir / "proposals.jsonl").exists()

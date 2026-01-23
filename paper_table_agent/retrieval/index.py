@@ -30,9 +30,25 @@ def build_index(
     embedding_client: EmbeddingClient | None = None,
     embedding_model: str | None = None,
 ) -> RetrievalIndex:
-    if embedding_backend not in {"tfidf", "lmstudio"}:
+    if embedding_backend not in {"tfidf", "lmstudio", "stub"}:
         raise ValueError(f"Unsupported embedding backend: {embedding_backend}")
     texts = [chunk.text for chunk in chunks]
+    if not texts or not any(text.strip() for text in texts):
+        if embedding_backend != "tfidf" and embedding_client is None:
+            raise ValueError("Embedding client required for dense embeddings.")
+        embeddings = (
+            np.empty((0, 0), dtype=np.float32)
+            if embedding_backend == "tfidf"
+            else embedding_client.embed_texts([])  # type: ignore[union-attr]
+        )
+        return RetrievalIndex(
+            chunks=[],
+            bm25=BM25Okapi([["__empty__"]]),
+            vectorizer=None,
+            embeddings=embeddings,
+            embedding_backend=embedding_backend,
+            embedding_model=embedding_model,
+        )
     tokens = [text.split() for text in texts]
     bm25 = BM25Okapi(tokens)
     vectorizer: TfidfVectorizer | None = None
@@ -41,7 +57,7 @@ def build_index(
         embeddings = vectorizer.fit_transform(texts).toarray()
     else:
         if embedding_client is None:
-            raise ValueError("Embedding client required for LM Studio embeddings.")
+            raise ValueError("Embedding client required for dense embeddings.")
         embeddings = embedding_client.embed_texts(texts)
     return RetrievalIndex(
         chunks=chunks,
@@ -108,8 +124,11 @@ def load_index(output_dir: Path) -> RetrievalIndex | None:
             )
     embeddings = np.load(embeddings_path)
     vectorizer: TfidfVectorizer | None = None
-    tokens = [chunk.text.split() for chunk in chunks]
-    bm25 = BM25Okapi(tokens)
+    if chunks:
+        tokens = [chunk.text.split() for chunk in chunks]
+        bm25 = BM25Okapi(tokens)
+    else:
+        bm25 = BM25Okapi([["__empty__"]])
     embedding_backend = "tfidf"
     embedding_model = None
     meta_path = output_dir / "index_meta.json"

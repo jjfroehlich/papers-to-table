@@ -39,6 +39,8 @@ def retrieve(
     embedder: EmbeddingClient | None = None,
     use_dense: bool = True,
 ) -> list[RetrievedChunk]:
+    if not index.chunks or index.embeddings.size == 0:
+        return []
     bm25_scores = index.bm25.get_scores(query.split())
     if use_dense:
         if index.embedding_backend == "tfidf":
@@ -47,7 +49,7 @@ def retrieve(
             query_vec = index.vectorizer.transform([query]).toarray()
         else:
             if embedder is None:
-                raise ValueError("Embedding client required for LM Studio retrieval.")
+                raise ValueError("Embedding client required for dense retrieval.")
             query_vec = embedder.embed_texts([query])
         dense_scores = cosine_similarity(query_vec, index.embeddings)[0]
     else:
