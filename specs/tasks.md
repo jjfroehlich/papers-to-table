@@ -1,4 +1,4 @@
-# tasks.md — Paper Table Agent (simplified spec)
+# tasks.md — Paper Table Agent (current)
 
 Conventions:
 - Use checkboxes.
@@ -8,47 +8,35 @@ Conventions:
 
 ---
 
-## P0 — Proposals appear + review works end-to-end (stub providers)
+## P0 — Repo hygiene + docs/spec alignment
 
-### [x] **P0.T0** Update spec/plan/tasks artifacts (`specs/spec.md`, `specs/plan.md`, `specs/tasks.md`)
-
-### [x] **P0.T1** Fix “no proposals” root cause + sanity check diagnostics
-**Paths**: `paper_table_agent/graph/reporting.py`, `paper_table_agent/graph/runner.py`
+### [x] **P0.T1** Create repo audit inventory
+**Paths**: `docs/repo_audit.md`
 **AC**
-- If matched_pdfs > 0 and proposals == 0: run_report marks FAILED and stores diagnostics (schema load, missing cells, extraction invoked).
-- Diagnostic is logged and persisted in run_report.json.
+- Lists entrypoints, UI screens, persistence, run artifacts, docs map, and unused candidates.
 
-### [x] **P0.T2** Minimal Review queue (matched rows only, pending-only)
-**Paths**: `paper_table_agent/ui/app.py`, `paper_table_agent/ui/review_queue.py`
+### [x] **P0.T2** Gate debug-only outputs
+**Paths**: `paper_table_agent/graph/reporting.py`, `paper_table_agent/graph/runner.py`, `paper_table_agent/graph/workflow.py`, `tests/test_integration.py`
 **AC**
-- Review list only includes matched rows with pending proposals.
-- Each row shows “N proposals pending.”
-- Unclear/not_found proposals still appear when the cell is empty.
+- `pdf_row_matches.csv` and `mapping_report.html` only written when `output.debug_reports=true`.
+- Integration test updated to match default behavior.
 
-### [x] **P0.T3** Remove UI knobs + single settings source
-**Paths**: `paper_table_agent/ui/app.py`, `paper_table_agent/ui/defaults.py`, `README.md`
+### [x] **P0.T3** Docs + spec rewrite to match reality
+**Paths**: `README.md`, `specs/spec.md`, `specs/plan.md`, `specs/tasks.md`
 **AC**
-- UI shows only Run + Review tabs with two path pickers.
-- No model/retrieval/OCR controls in UI.
-- README notes that configuration lives in a single settings file.
+- README is shorter and matches CLI/UI.
+- Spec describes actual pipeline and outputs.
 
-### [x] **P0.T4** Stub providers + fixtures + CLI integration test
-**Paths**: `paper_table_agent/llm/client.py`, `paper_table_agent/llm/embeddings.py`, `paper_table_agent/retrieval/*`, `tests/fixtures/*`, `tests/test_integration.py`
+### [x] **P0.T4** Add doc/spec doctor command
+**Paths**: `paper_table_agent/doctor.py`, `paper_table_agent/cli.py`, `tests/test_doctor.py`
 **AC**
-- Stub LLM + embeddings/reranker run without external providers.
-- CLI run uses fixtures and produces proposals for matched rows.
+- `paper-table-agent doctor` validates README/spec references and exits non-zero on errors.
+- Test covers success path.
 
-### [x] **P0.T5** Minimal export set
-**Paths**: `paper_table_agent/graph/reporting.py`
+### [x] **P0.T5** Remove unused scripts
+**Paths**: scripts directory (removed)
 **AC**
-- Required exports: proposals.sqlite, updated_table.xlsx, audit_log.csv, pdf_row_matches.csv, run_report.json.
-- mapping_report.html only in debug mode.
-
-### [x] **P0.T6** Streamlit AppTest for Review
-**Paths**: `tests/test_ui_streamlit.py`, `paper_table_agent/ui/app.py`
-**AC**
-- AppTest loads a completed run and renders a proposal in Review.
-- Keyboard shortcuts and highlight-missing indicator are present.
+- Delete unreferenced helper scripts with no code/test usage.
 
 ---
 

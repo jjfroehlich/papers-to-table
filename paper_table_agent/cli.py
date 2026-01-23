@@ -6,7 +6,6 @@ import sys
 from pathlib import Path
 
 from paper_table_agent.config import RunConfig, RunPaths, capture_run_config, create_run_paths, load_prompt_versions
-from paper_table_agent.graph.runner import run_pipeline
 from paper_table_agent.graph.workflow import run_workflow
 from paper_table_agent.store.db import Store
 
@@ -38,6 +37,13 @@ def _parse_args() -> argparse.Namespace:
 
     config_parser = sub.add_parser("init-config", help="Write a sample run config")
     config_parser.add_argument("--output", required=True, type=Path)
+
+    snapshot_parser = sub.add_parser("snapshot", help="Capture a project snapshot bundle")
+    snapshot_parser.add_argument("--out", type=Path, default=None)
+    snapshot_parser.add_argument("--include-run", dest="include_run", type=Path, default=None)
+
+    doctor_parser = sub.add_parser("doctor", help="Validate docs/spec consistency")
+    doctor_parser.add_argument("--verbose", action="store_true")
 
     return parser.parse_args()
 
@@ -99,6 +105,21 @@ def main() -> None:
     if args.command == "init-config":
         config = RunConfig(table_path=Path("table.xlsx"), pdf_folder=Path("pdfs"))
         args.output.write_text(config.to_json(), encoding="utf-8")
+        return
+
+    if args.command == "snapshot":
+        from paper_table_agent.snapshot import DEFAULT_SNAPSHOT_DIR, write_snapshot
+
+        out_dir = args.out or DEFAULT_SNAPSHOT_DIR
+        write_snapshot(out_dir, include_run=args.include_run)
+        return
+
+    if args.command == "doctor":
+        from paper_table_agent.doctor import run_doctor
+
+        exit_code = run_doctor(verbose=args.verbose)
+        if exit_code:
+            sys.exit(exit_code)
         return
 
 

@@ -138,7 +138,7 @@ def run_pipeline(config: RunConfig, run_paths: RunPaths, store: Store) -> None:
     context, pdfs = _prepare_context(config, run_paths, store)
     health_status = _run_health_checks(context)
     if health_status.get("status") == "failed":
-        write_mapping_report(store, run_paths.exports_dir, write_html=config.output.debug_reports)
+        write_mapping_report(store, run_paths.exports_dir, write_reports=config.output.debug_reports)
         status = write_run_report(store, run_paths)
         if status == "failed":
             (run_paths.run_dir / "FAILED").write_text("failed", encoding="utf-8")
@@ -150,7 +150,7 @@ def run_pipeline(config: RunConfig, run_paths: RunPaths, store: Store) -> None:
             break
         if _process_pdf(context, pdf, existing_pdfs):
             context.logger.info("processed pdf %s", pdf.pdf_id)
-    write_mapping_report(store, run_paths.exports_dir, write_html=config.output.debug_reports)
+    write_mapping_report(store, run_paths.exports_dir, write_reports=config.output.debug_reports)
     status = write_run_report(store, run_paths)
     if status == "completed_with_errors":
         (run_paths.run_dir / "COMPLETED_WITH_ERRORS").write_text("done", encoding="utf-8")

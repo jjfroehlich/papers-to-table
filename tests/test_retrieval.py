@@ -35,7 +35,7 @@ def test_dense_retrieval_scores():
 
 
 def test_retrieval_smoke_fixture_pdf():
-    fixture_pdf = Path(__file__).resolve().parent / "assets" / "smoke_paper.pdf"
+    fixture_pdf = Path(__file__).resolve().parent / "fixtures" / "pdfs" / "minimal_paper.pdf"
     parsed = parse_pdf(fixture_pdf)
     chunks = build_chunks(parsed.page_text)
     index = build_index(chunks)
