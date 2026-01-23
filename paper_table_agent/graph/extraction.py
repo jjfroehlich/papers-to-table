@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import re
 import uuid
 from dataclasses import dataclass
 from typing import Any
@@ -9,6 +8,7 @@ from typing import Any
 from paper_table_agent.llm.client import LlmClient
 from paper_table_agent.llm.models import GroupExtractionResult, ProposalItem, ProposalVerificationResult, VerifyResult
 from paper_table_agent.llm.prompts import render_prompt
+from paper_table_agent.text.normalization import normalize_for_matching
 
 
 @dataclass
@@ -25,9 +25,11 @@ def extract_group(
     group: GroupContext,
     chunks_by_column: dict[str, list[dict[str, Any]]],
     mapping_dependent: bool,
+    pdf_id: str | None = None,
 ) -> GroupExtractionResult:
     prompt = render_prompt(
         "extract_group.md",
+        _prompt_meta={"pdf_id": pdf_id, "group": group.name},
         row_context=json.dumps(row_context, indent=2),
         group_schema=json.dumps(group.schema, indent=2),
         examples=json.dumps(group.examples, indent=2),
@@ -76,12 +78,13 @@ def _apply_evidence_rules(proposal: Any, chunk_lookup: dict[str, dict[str, Any]]
         if errors:
             proposal.flags.setdefault("evidence_validation_errors", []).extend(errors)
         if not has_evidence:
-            proposal.proposed_value = None
             proposal.status = "unclear"
             proposal.needs_more_evidence = True
+            proposal.flags["evidence_missing"] = True
+            proposal.flags["failure_reason"] = proposal.flags.get("failure_reason") or reason or "missing_evidence"
         else:
             proposal.status = status
-    if proposal.status in {"not_found", "no_evidence", "unclear"}:
+    if proposal.status in {"not_found", "no_evidence"}:
         proposal.proposed_value = None
     if proposal.needs_more_evidence is None:
         proposal.needs_more_evidence = proposal.status in {"unclear", "no_evidence"}
@@ -94,6 +97,7 @@ def build_error_records(
     error: str,
     mapping_dependent: bool,
     error_type: str | None = None,
+    validation_errors: list[dict[str, Any]] | None = None,
     raw_output: str | None = None,
     repair_attempted: bool | None = None,
 ) -> list[dict[str, Any]]:
@@ -106,6 +110,9 @@ def build_error_records(
         }
         if error_type:
             flags["error_type"] = error_type
+            flags["failure_reason"] = error_type
+        if validation_errors:
+            flags["validation_errors"] = validation_errors
         if raw_output:
             flags["raw_output"] = raw_output[:2000]
         if repair_attempted is not None:
@@ -182,7 +189,7 @@ def _ensure_group_coverage(result: GroupExtractionResult, columns: list[str]) ->
             evidence=[],
             needs_more_evidence=True,
             rationale="No evidence located in retrieved context.",
-            flags={},
+            flags={"failure_reason": "no_evidence"},
         )
     result.proposals = list(by_column.values())
     return result
@@ -193,11 +200,13 @@ def verify_cells(
     row_context: dict[str, Any],
     locked_values: dict[str, str],
     chunks: list[dict[str, Any]],
+    pdf_id: str | None = None,
 ) -> list[VerifyResult]:
     results: list[VerifyResult] = []
     for column, value in locked_values.items():
         prompt = render_prompt(
             "verify_cell.md",
+            _prompt_meta={"pdf_id": pdf_id, "column": column},
             row_context=json.dumps(row_context, indent=2),
             cell_value=json.dumps({"column": column, "value": value}, indent=2),
             chunks=json.dumps(chunks, indent=2),
@@ -209,6 +218,7 @@ def verify_cells(
 def verify_proposals(
     client: LlmClient,
     proposals: list[dict[str, Any]],
+    pdf_id: str | None = None,
 ) -> list[dict[str, Any]]:
     for proposal in proposals:
         column = proposal.get("column")
@@ -222,6 +232,7 @@ def verify_proposals(
             continue
         prompt = render_prompt(
             "verify_proposal.md",
+            _prompt_meta={"pdf_id": pdf_id, "column": column},
             column=json.dumps(column),
             proposed_value=json.dumps(proposed_value),
             evidence=json.dumps(evidence, indent=2),
@@ -244,6 +255,7 @@ def _build_chunk_lookup(chunks_by_column: dict[str, list[dict[str, Any]]]) -> di
                     chunk_id,
                     {
                         "text": text,
+                        "text_raw": chunk.get("text_raw") or text,
                         "page_start": chunk.get("page_start"),
                         "page_end": chunk.get("page_end"),
                     },
@@ -262,6 +274,10 @@ def _validate_evidence_list(
         quote = getattr(evidence, "quote", None)
         page = getattr(evidence, "page", None)
         chunk_id = getattr(evidence, "chunk_id", None)
+        if quote:
+            normalized_quote = normalize_for_matching(str(quote))
+            setattr(evidence, "quote_raw", str(quote))
+            setattr(evidence, "quote_normalized", normalized_quote)
         if not quote or not page:
             errors.append("missing_quote_or_page")
             continue
@@ -280,33 +296,14 @@ def _validate_evidence_list(
             if int(page) < int(page_start) or int(page) > int(page_end):
                 errors.append("page_outside_chunk")
                 continue
-        chunk_text = str(chunk_meta.get("text") or "")
-        if str(quote) in chunk_text:
+        chunk_text_raw = str(chunk_meta.get("text_raw") or chunk_meta.get("text") or "")
+        if str(quote) in chunk_text_raw:
+            setattr(evidence, "validation_mode", "exact")
             return True, [], "exact", "exact_match"
-        normalized_quote = _normalize_text(str(quote))
-        normalized_chunk = _normalize_text(chunk_text)
+        normalized_quote = normalize_for_matching(str(quote))
+        normalized_chunk = normalize_for_matching(str(chunk_meta.get("text") or chunk_text_raw))
         if normalized_quote and normalized_quote in normalized_chunk:
+            setattr(evidence, "validation_mode", "normalized")
             return True, [], "normalized", "normalized_match"
-        if str(quote) not in chunk_text:
-            errors.append("quote_not_in_chunk")
+        errors.append("quote_not_in_chunk")
     return False, errors, "failed", errors[0] if errors else None
-
-
-_LIGATURES = {
-    "\ufb00": "ff",
-    "\ufb01": "fi",
-    "\ufb02": "fl",
-    "\ufb03": "ffi",
-    "\ufb04": "ffl",
-    "\ufb05": "ft",
-    "\ufb06": "st",
-}
-
-
-def _normalize_text(text: str) -> str:
-    if not text:
-        return ""
-    normalized = text.translate(str.maketrans(_LIGATURES))
-    normalized = re.sub(r"-\s*\n\s*", "", normalized)
-    normalized = re.sub(r"\s+", " ", normalized)
-    return normalized.casefold().strip()

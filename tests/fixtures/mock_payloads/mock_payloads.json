@@ -1,0 +1,96 @@
+{
+  "match_header_extract.md|46b5c8cab74a5472909c3431cb4ae95a07d76617|": {
+    "title": "Mock Paper",
+    "authors": [
+      "Test Author"
+    ],
+    "year": "2024",
+    "evidence": [
+      {
+        "quote": "Mock Paper",
+        "page": 1,
+        "chunk_id": "page-1",
+        "locator_hint": "Mock Paper"
+      }
+    ],
+    "confidence": 0.9
+  },
+  "match_adjudicate.md|46b5c8cab74a5472909c3431cb4ae95a07d76617|": {
+    "row_id": "0",
+    "status": "matched",
+    "top_candidates": [],
+    "confidence": 0.95,
+    "rationale": "Mock adjudication",
+    "evidence": []
+  },
+  "extract_group.md|46b5c8cab74a5472909c3431cb4ae95a07d76617|all": {
+    "proposals": [
+      {
+        "column": "Method",
+        "proposed_value": "Method X",
+        "status": "found",
+        "confidence": 0.8,
+        "evidence": [
+          {
+            "quote": "Method X",
+            "page": 1,
+            "chunk_id": "page-1",
+            "locator_hint": "Method X"
+          }
+        ],
+        "needs_more_evidence": false,
+        "rationale": "Found method"
+      },
+      {
+        "column": "Outcome",
+        "proposed_value": "Improved survival",
+        "status": "found",
+        "confidence": 0.8,
+        "evidence": [
+          {
+            "quote": "Improved survival",
+            "page": 1,
+            "chunk_id": "page-1",
+            "locator_hint": "Improved survival"
+          }
+        ],
+        "needs_more_evidence": false,
+        "rationale": "Found outcome"
+      },
+      {
+        "column": "Dose",
+        "proposed_value": "10 mg daily",
+        "status": "found",
+        "confidence": 0.8,
+        "evidence": [
+          {
+            "quote": "10 mg daily",
+            "page": 1,
+            "chunk_id": "page-1",
+            "locator_hint": "10 mg daily"
+          }
+        ],
+        "needs_more_evidence": false,
+        "rationale": "Found dose"
+      }
+    ]
+  },
+  "verify_proposal.md|46b5c8cab74a5472909c3431cb4ae95a07d76617|Method": {
+    "column": "Method",
+    "status": "supports",
+    "rationale": "Evidence supports method",
+    "needs_more_evidence": false
+  },
+  "verify_proposal.md|46b5c8cab74a5472909c3431cb4ae95a07d76617|Outcome": {
+    "column": "Outcome",
+    "status": "supports",
+    "rationale": "Evidence supports outcome",
+    "needs_more_evidence": false
+  },
+  "verify_proposal.md|46b5c8cab74a5472909c3431cb4ae95a07d76617|Dose": {
+    "column": "Dose",
+    "status": "supports",
+    "rationale": "Evidence supports dose",
+    "needs_more_evidence": false
+  }
+}

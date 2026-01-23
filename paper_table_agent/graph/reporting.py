@@ -195,7 +195,10 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
         dict(row)
         for row in store.conn.execute("SELECT column, status, flags_json FROM proposals")
     ]
-    events = [dict(row) for row in store.conn.execute("SELECT level, event_type FROM events")]
+    events = [
+        dict(row)
+        for row in store.conn.execute("SELECT level, event_type, payload_json FROM events")
+    ]
     matched = sum(1 for row in matches if row.get("status") == "matched")
     ambiguous = sum(1 for row in matches if row.get("status") == "ambiguous")
     unmatched = sum(1 for row in matches if row.get("status") in {"unmatched", "duplicate"})
@@ -210,10 +213,31 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
         matches,
         proposals,
     )
-    run_status = "failed" if sanity_check.get("failed") else "completed"
+    health_events = [event for event in events if event.get("event_type") == "health_check_failed"]
+    run_status = "failed" if sanity_check.get("failed") or health_events else "completed"
+    if run_status != "failed":
+        error_events = [event for event in events if event.get("level") == "error"]
+        if error_events:
+            run_status = "completed_with_errors"
     if run_status == "failed":
         (run_dir / "FAILED").write_text("failed", encoding="utf-8")
-        LOGGER.error("Run failed sanity check: %s", sanity_check)
+        if sanity_check.get("failed"):
+            LOGGER.error("Run failed sanity check: %s", sanity_check)
+        elif health_events:
+            LOGGER.error("Run failed health check: %s", health_events)
+    retrieval_backend = next(
+        (
+            json.loads(event.get("payload_json") or "{}")
+            for event in reversed(events)
+            if event.get("event_type") == "retrieval_backend"
+        ),
+        {},
+    )
+    debug_extraction = []
+    for row in store.fetch_debug_extraction():
+        payload_json = row["payload_json"]
+        payload = json.loads(payload_json) if payload_json else {}
+        debug_extraction.append(payload)
     payload = {
         "run_id": run_dir.name,
         "status": run_status,
@@ -233,8 +257,14 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
                 "total_events": len(events),
                 "error_events": sum(1 for row in events if row.get("level") == "error"),
             },
+            "health_check": {
+                "failed": bool(health_events),
+                "errors": [json.loads(event.get("payload_json") or "{}") for event in health_events],
+            },
+            "retrieval": retrieval_backend,
             "sanity_check": sanity_check,
         },
+        "debug_extraction": debug_extraction,
     }
     (run_dir / "run_report.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return run_status

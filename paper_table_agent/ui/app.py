@@ -5,7 +5,7 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 import streamlit as st
 
@@ -36,19 +36,6 @@ if test_mode == "review":
 else:
     run_tab, review_tab = st.tabs(["Run", "Review"])
     show_run_tab = True
-
-
-def _normalize_column_name(value: object) -> str:
-    return str(value).replace("\u00a0", " ").strip()
-
-
-def _build_column_map(columns: Iterable[object]) -> dict[str, object]:
-    mapping: dict[str, object] = {}
-    for col in columns:
-        normalized = _normalize_column_name(col)
-        if normalized and normalized not in mapping:
-            mapping[normalized] = col
-    return mapping
 
 
 def _sort_proposals(proposals: list[dict[str, Any]], columns: list[str]) -> list[dict[str, Any]]:
@@ -174,6 +161,19 @@ def _evidence_label(evidence: dict[str, Any]) -> str:
     snippet = quote[:120] + ("…" if len(quote) > 120 else "")
     page = evidence.get("page")
     return f"Page {page}: {snippet}".strip()
+
+
+def _proposal_failure_reason(proposal: dict[str, Any]) -> str:
+    flags = proposal.get("flags", {})
+    reason = flags.get("failure_reason")
+    if reason:
+        return str(reason).replace("_", " ")
+    if flags.get("error_type"):
+        return str(flags["error_type"]).replace("_", " ")
+    validation_errors = flags.get("evidence_validation_errors") or []
+    if validation_errors:
+        return "evidence validation failed"
+    return "no evidence found"
 
 
 def _next_undecided_index(proposals: list[dict[str, Any]], reviews: dict[str, dict[str, Any]]) -> int | None:
@@ -323,6 +323,7 @@ with run_tab:
         else:
             status_map = {
                 "completed": "Done",
+                "completed_with_errors": "Completed (errors)",
                 "failed": "Failed",
                 "in_progress": "Running",
                 "paused": "Paused",
@@ -340,7 +341,11 @@ with run_tab:
 
 with review_tab:
     st.header("Review")
-    runs = [run for run in st.session_state.get("runs", []) if run.status == "completed"]
+    runs = [
+        run
+        for run in st.session_state.get("runs", [])
+        if run.status in {"completed", "completed_with_errors"}
+    ]
     if not runs:
         st.info("No completed runs yet.")
     else:
@@ -360,7 +365,6 @@ with review_tab:
         _log_review_debug(store)
         run_config = json.loads((selected_run.run_dir / "run_config.json").read_text(encoding="utf-8"))
         table = load_table(Path(run_config["table_path"]))
-        column_map = _build_column_map(list(table.dataframe.columns))
         schema_source = Path(run_config["table_path"])
         if run_config.get("schema_mode") == "separate" and run_config.get("schema_path"):
             schema_source = Path(run_config["schema_path"])
@@ -454,24 +458,27 @@ with review_tab:
                 if st.session_state[index_key] >= len(review_items):
                     st.session_state[index_key] = 0
 
-                current_index = st.session_state[index_key]
-                current = review_items[current_index]
-
                 col_left, col_right = st.columns([1.1, 1.4])
                 with col_left:
-                    st.subheader("Row context")
-                    context_payload = {
-                        "Title": row_data.get("title"),
-                        "Authors": row_data.get("authors"),
-                        "Year": row_data.get("year"),
-                    }
-                    for col in columns[:3]:
-                        normalized = _normalize_column_name(col)
-                        resolved = column_map.get(normalized)
-                        if resolved is not None:
-                            context_payload[col] = table.dataframe.loc[row_data["row_index"], resolved]
-                    st.write(context_payload)
-
+                    column_labels = [item.get("column", "Unknown") for item in review_items]
+                    current_index = st.session_state[index_key]
+                    selected_column = st.selectbox(
+                        "Column stepper",
+                        column_labels,
+                        index=current_index,
+                        key=f"column-stepper-{row_id}",
+                    )
+                    current_index = column_labels.index(selected_column)
+                    st.session_state[index_key] = current_index
+                    current = review_items[current_index]
+                    st.subheader("Row meta")
+                    st.write(
+                        {
+                            "Title": row_data.get("title"),
+                            "Authors": row_data.get("authors"),
+                            "Year": row_data.get("year"),
+                        }
+                    )
                     st.subheader("Proposal")
                     st.markdown(f"### {current['column']}")
                     review = reviews.get(current["proposal_id"])
@@ -483,12 +490,9 @@ with review_tab:
                     proposed_value = current.get("proposed_value")
                     if proposed_value is None:
                         st.write("Proposed value:", "No value proposed")
+                        st.caption(f"No proposal because: {_proposal_failure_reason(current)}")
                     else:
                         st.write("Proposed value:", proposed_value)
-                    st.write("Confidence:", current.get("confidence"))
-                    verification_status = current.get("flags", {}).get("verification_status")
-                    if verification_status:
-                        st.caption(f"Verification: {verification_status}")
 
                     evidence_items = current.get("evidence", [])
                     if evidence_items:
@@ -533,57 +537,22 @@ with review_tab:
                         st.session_state["selected_row_index"] = next_row
                         st.session_state[index_key] = next_col
 
-                    nav_col1, nav_col2, nav_col3 = st.columns([1, 1, 2])
-                    with nav_col1:
-                        if st.button("Prev column", key=f"prev-col-{row_id}"):
-                            st.session_state[index_key] = max(current_index - 1, 0)
-                    with nav_col2:
-                        if st.button("Next column", key=f"next-col-{row_id}"):
-                            st.session_state[index_key] = min(current_index + 1, len(review_items) - 1)
-                    with nav_col3:
-                        if st.button("Next undecided", key=f"next-undecided-{row_id}"):
-                            undecided = _next_undecided_index(review_items, reviews)
-                            if undecided is not None:
-                                st.session_state[index_key] = undecided
-
-                    st.caption("Keyboard shortcuts (focus here, then press j/k/a/e/r):")
-                    shortcut = st.text_input(
-                        "Keyboard shortcuts",
-                        key=f"shortcut-{row_id}",
-                        label_visibility="collapsed",
-                    )
-                    if shortcut:
-                        action = shortcut.strip().lower()
-                        st.session_state[f"shortcut-{row_id}"] = ""
-                        if action == "j":
-                            st.session_state[index_key] = min(current_index + 1, len(review_items) - 1)
-                        elif action == "k":
-                            st.session_state[index_key] = max(current_index - 1, 0)
-                        elif action == "a":
-                            _apply_review_decision("accepted", current.get("proposed_value"))
-                            st.success("Accepted")
-                        elif action == "e":
-                            _apply_review_decision("accepted", manual_value)
-                            st.success("Accepted with edit")
-                        elif action == "r":
-                            _apply_review_decision("rejected", "")
-                            st.warning("Rejected")
-
                     decision_cols = st.columns(3)
                     with decision_cols[0]:
-                        if st.button("Accept + Next", key=f"accept-{current['proposal_id']}"):
+                        if st.button("Accept", key=f"accept-{current['proposal_id']}"):
                             _apply_review_decision("accepted", current.get("proposed_value"))
                             st.success("Accepted")
                     with decision_cols[1]:
-                        if st.button("Accept with edit + Next", key=f"accept-edit-{current['proposal_id']}"):
+                        if st.button("Accept with edit", key=f"accept-edit-{current['proposal_id']}"):
                             _apply_review_decision("accepted", manual_value)
                             st.success("Accepted with edit")
                     with decision_cols[2]:
-                        if st.button("Reject + Next", key=f"reject-{current['proposal_id']}"):
+                        if st.button("Reject", key=f"reject-{current['proposal_id']}"):
                             _apply_review_decision("rejected", "")
                             st.warning("Rejected")
 
                 with col_right:
+                    current = review_items[current_index]
                     st.subheader("PDF viewer")
                     evidence_items = current.get("evidence", [])
                     if evidence_items:

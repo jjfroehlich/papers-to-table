@@ -14,6 +14,7 @@ from paper_table_agent.llm.embeddings import EmbeddingClient
 class RetrievedChunk:
     chunk_id: str
     text: str
+    text_raw: str
     page_start: int
     page_end: int
     score: float
@@ -25,6 +26,7 @@ class RetrievedChunk:
 class RerankedChunk:
     chunk_id: str
     text: str
+    text_raw: str
     page_start: int
     page_end: int
     score: float
@@ -66,6 +68,7 @@ def retrieve(
             RetrievedChunk(
                 chunk_id=chunk.chunk_id,
                 text=chunk.text,
+                text_raw=chunk.text_raw,
                 page_start=chunk.page_start,
                 page_end=chunk.page_end,
                 score=float(combined[idx]),
@@ -90,6 +93,7 @@ def expand_with_neighbors(index: RetrievalIndex, retrieved: list[RetrievedChunk]
                 RetrievedChunk(
                     chunk_id=original.chunk_id,
                     text=original.text,
+                    text_raw=original.text_raw,
                     page_start=original.page_start,
                     page_end=original.page_end,
                     score=chunk.score * 0.8,
@@ -122,6 +126,7 @@ def reciprocal_rank_fusion(
             RetrievedChunk(
                 chunk_id=chunk.chunk_id,
                 text=chunk.text,
+                text_raw=chunk.text_raw,
                 page_start=chunk.page_start,
                 page_end=chunk.page_end,
                 score=score,

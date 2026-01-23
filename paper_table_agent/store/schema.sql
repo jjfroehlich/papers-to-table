@@ -78,11 +78,18 @@ CREATE TABLE IF NOT EXISTS retrieval_chunks (
     pdf_id TEXT,
     chunk_id TEXT,
     text TEXT,
+    text_raw TEXT,
     page_start INTEGER,
     page_end INTEGER,
     source TEXT,
     created_at TEXT,
     PRIMARY KEY (pdf_id, chunk_id)
+);
+
+CREATE TABLE IF NOT EXISTS debug_extraction (
+    pdf_id TEXT PRIMARY KEY,
+    payload_json TEXT,
+    created_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS reviews (
