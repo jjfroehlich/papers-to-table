@@ -67,6 +67,8 @@ class RetrievalConfig(BaseModel):
 class OcrConfig(BaseModel):
     enable_ocr: bool = True
     ocr_trigger_min_chars_per_page: int = 400
+    whitespace_ratio_min: float = 0.06
+    avg_token_length_max: float = 18.0
 
 
 class GrobidConfig(BaseModel):
@@ -89,6 +91,7 @@ class RunConfig(BaseModel):
     title_col: str | None = None
     authors_col: str | None = None
     year_col: str | None = None
+    doi_col: str | None = None
     treat_single_space_as_empty: bool = True
     verify_mode: bool = False
     fast_mode: bool = False

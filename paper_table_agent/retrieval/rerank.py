@@ -25,7 +25,7 @@ def rerank(
 ) -> RerankResult:
     if not candidates:
         return RerankResult(chunks=[])
-    if backend not in {"tfidf", "lmstudio", "stub"}:
+    if backend not in {"tfidf", "lmstudio", "stub", "hash"}:
         raise ValueError(f"Unsupported reranker backend: {backend}")
     texts = [chunk.text for chunk in candidates]
     if backend == "tfidf":
@@ -48,11 +48,14 @@ def rerank(
         reranked.append(
             RerankedChunk(
                 chunk_id=chunk.chunk_id,
+                chunk_pk=chunk.chunk_pk,
                 chunk_idx=chunk.chunk_idx,
                 text=chunk.text,
                 text_raw=chunk.text_raw,
+                text_norm=chunk.text_norm,
                 page_start=chunk.page_start,
                 page_end=chunk.page_end,
+                chunk_type=chunk.chunk_type,
                 score=float(scores[idx]),
                 bm25_score=chunk.bm25_score,
                 dense_score=chunk.dense_score,

@@ -64,7 +64,8 @@ def review_items_for_row(
         evidence = proposal.get("evidence") or []
         has_value = proposed_value is not None and str(proposed_value).strip() not in empty_values
         has_evidence = bool(evidence)
-        if not (has_value or has_evidence):
+        needs_review = bool((proposal.get("flags") or {}).get("needs_review"))
+        if not (has_value or has_evidence or needs_review):
             continue
         if cell_empty or verification_status in {"contradicts", "unclear"}:
             review_items.append(proposal)
@@ -103,7 +104,8 @@ def remaining_review_count(
         evidence = proposal.get("evidence") or []
         has_value = proposed_value is not None and str(proposed_value).strip() not in (empty_values or DEFAULT_EMPTY_VALUES)
         has_evidence = bool(evidence)
-        if not (has_value or has_evidence):
+        needs_review = bool((proposal.get("flags") or {}).get("needs_review"))
+        if not (has_value or has_evidence or needs_review):
             continue
         if cell_empty or verification_status in {"contradicts", "unclear"}:
             count += 1

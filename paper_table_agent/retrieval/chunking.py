@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
 import re
 from typing import Iterable
 
@@ -11,12 +12,14 @@ from paper_table_agent.text.normalization import normalize_key
 @dataclass
 class Chunk:
     chunk_id: str
+    chunk_pk: str
     chunk_idx: int
     text: str
     text_raw: str
+    text_norm: str
     page_start: int
     page_end: int
-    source: str
+    chunk_type: str
     neighbors: list[str]
 
 
@@ -32,12 +35,14 @@ def build_chunks(page_text: list[str], sections: list[dict[str, str]] | None = N
             chunks.append(
                 Chunk(
                     chunk_id=normalize_key(f"page-{page_number}"),
+                    chunk_pk=_chunk_pk(f"page-{page_number}"),
                     chunk_idx=chunk_idx,
                     text=normalized,
                     text_raw=cleaned,
+                    text_norm=normalize_text(normalized),
                     page_start=page_number,
                     page_end=page_number,
-                    source="page",
+                    chunk_type="page",
                     neighbors=[],
                 )
             )
@@ -54,16 +59,20 @@ def build_chunks(page_text: list[str], sections: list[dict[str, str]] | None = N
                 if not segment.strip():
                     continue
                 chunk_idx += 1
+                chunk_id = normalize_key(f"para-{page_number}-{para_index + 1}-{segment_index}")
+                text_norm = normalize_text(segment)
                 raw_segment = raw_segments[min(segment_index - 1, len(raw_segments) - 1)] if raw_segments else segment
                 chunks.append(
                     Chunk(
-                        chunk_id=normalize_key(f"para-{page_number}-{para_index + 1}-{segment_index}"),
+                        chunk_id=chunk_id,
+                        chunk_pk=_chunk_pk(chunk_id),
                         chunk_idx=chunk_idx,
                         text=segment,
                         text_raw=raw_segment,
+                        text_norm=text_norm,
                         page_start=page_number,
                         page_end=page_number,
-                        source="paragraph",
+                        chunk_type="paragraph",
                         neighbors=[],
                     )
                 )
@@ -80,15 +89,18 @@ def build_chunks(page_text: list[str], sections: list[dict[str, str]] | None = N
             if not section_normalized:
                 continue
             chunk_idx += 1
+            chunk_id = normalize_key(f"section-{idx + 1}")
             section_chunks.append(
                 Chunk(
-                    chunk_id=normalize_key(f"section-{idx + 1}"),
+                    chunk_id=chunk_id,
+                    chunk_pk=_chunk_pk(chunk_id),
                     chunk_idx=chunk_idx,
                     text=section_normalized,
                     text_raw=section_raw,
+                    text_norm=normalize_text(section_normalized),
                     page_start=1,
                     page_end=1,
-                    source="section",
+                    chunk_type="section",
                     neighbors=[],
                 )
             )
@@ -136,13 +148,20 @@ def to_dicts(chunks: Iterable[Chunk]) -> list[dict[str, object]]:
     return [
         {
             "chunk_id": chunk.chunk_id,
+            "chunk_pk": chunk.chunk_pk,
             "chunk_idx": chunk.chunk_idx,
             "text": chunk.text,
             "text_raw": chunk.text_raw,
+            "text_norm": chunk.text_norm,
             "page_start": chunk.page_start,
             "page_end": chunk.page_end,
-            "source": chunk.source,
+            "chunk_type": chunk.chunk_type,
             "neighbors": chunk.neighbors,
         }
         for chunk in chunks
     ]
+
+
+def _chunk_pk(chunk_id: str) -> str:
+    normalized = normalize_key(chunk_id)
+    return hashlib.sha1(normalized.encode("utf-8")).hexdigest()

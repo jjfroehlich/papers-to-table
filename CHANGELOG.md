@@ -27,3 +27,12 @@
 - Added retrieval retries for low-quality context and locator improvements for evidence highlights.
 - Removed the `doctor` command and related docs/tests.
 - Added `paper-table-agent ui --smoke` headless UI check and CLI smoke script for quick validation.
+- Switched to propose-first extraction: evidence validation no longer clears proposed values and now annotates evidence strength.
+- Added parsing quality checks (whitespace ratio + token length) with OCR triggers and warnings.
+- Improved matching heuristics with DOI extraction + scoring bonuses when DOI columns are available.
+- Added Review field navigation controls, auto-advance decisions, and constrained PDF viewer height.
+- Highlight locator now supports ellipsis fragments and updated regression tests cover parsing quality and highlightable evidence.
+- Added an evidence finder pass to attach quotes/pages/highlights for weak or missing evidence.
+- Added chunk table metadata (chunk_pk, chunk_type, text_norm) and repair for unknown chunk references.
+- Added deterministic hash embedding/reranker backends for offline retrieval tests.
+- Added extraction attempt diagnostics in SQLite for per-column retrieval/extraction tracking.

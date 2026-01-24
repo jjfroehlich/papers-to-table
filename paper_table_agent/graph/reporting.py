@@ -215,7 +215,9 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
     matches = [dict(row) for row in store.fetch_matches()]
     proposals = [
         dict(row)
-        for row in store.conn.execute("SELECT column, status, flags_json FROM proposals")
+        for row in store.conn.execute(
+            "SELECT column, status, proposed_value, flags_json, evidence_json FROM proposals"
+        )
     ]
     events = [
         dict(row)
@@ -225,6 +227,8 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
     ambiguous = sum(1 for row in matches if row.get("status") == "ambiguous")
     unmatched = sum(1 for row in matches if row.get("status") in {"unmatched", "duplicate"})
     proposal_counts = _proposal_counts(proposals)
+    evidence_quality = _evidence_quality_breakdown(proposals)
+    highlight_stats = _highlight_stats(proposals)
     extractable_columns = _count_extractable_columns(store, config_payload, matched_rows=matches)
     sanity_check = _run_sanity_check(
         matched,
@@ -280,6 +284,8 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
                 "total": len(matches),
             },
             "proposals": proposal_counts,
+            "evidence_quality": evidence_quality,
+            "highlighting": highlight_stats,
             "errors": {
                 "total_events": len(events),
                 "error_events": sum(1 for row in events if row.get("level") == "error"),
@@ -340,7 +346,35 @@ def _proposal_counts(proposals: list[dict[str, object]]) -> dict[str, int]:
     for row in proposals:
         status = str(row.get("status") or "unknown")
         counts[status] = counts.get(status, 0) + 1
+        proposed_value = row.get("proposed_value")
+        if proposed_value is not None and str(proposed_value).strip():
+            counts["with_value"] = counts.get("with_value", 0) + 1
+        else:
+            counts["without_value"] = counts.get("without_value", 0) + 1
     return counts
+
+
+def _evidence_quality_breakdown(proposals: list[dict[str, object]]) -> dict[str, int]:
+    counts: dict[str, int] = {"strong": 0, "weak": 0, "none": 0}
+    for row in proposals:
+        flags = json.loads(row.get("flags_json") or "{}")
+        quality = flags.get("evidence_quality") or "none"
+        if quality not in counts:
+            counts[quality] = 0
+        counts[quality] += 1
+    return counts
+
+
+def _highlight_stats(proposals: list[dict[str, object]]) -> dict[str, int]:
+    total = 0
+    highlighted = 0
+    for row in proposals:
+        evidence = json.loads(row.get("evidence_json") or "[]")
+        for item in evidence:
+            total += 1
+            if item.get("highlight_status") == "highlighted":
+                highlighted += 1
+    return {"total_evidence_items": total, "highlighted": highlighted}
 
 
 def _run_sanity_check(

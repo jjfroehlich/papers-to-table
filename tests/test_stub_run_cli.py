@@ -60,21 +60,25 @@ def test_stub_run_produces_evidence(tmp_path: Path) -> None:
         assert rows, "No proposals recorded"
 
     proposals_with_value = 0
-    proposals_with_evidence = 0
+    proposals_with_strong_evidence = 0
+    proposals_with_highlight = 0
     for proposed_value, evidence_json, flags_json in rows:
         if proposed_value:
             proposals_with_value += 1
         evidence = json.loads(evidence_json) if evidence_json else []
         flags = json.loads(flags_json) if flags_json else {}
-        has_validation_errors = bool(flags.get("evidence_validation_errors"))
-        needs_more_evidence = bool(flags.get("needs_more_evidence"))
+        evidence_quality = flags.get("evidence_quality")
         for item in evidence:
             quote = (item.get("quote") or "").strip()
             page = item.get("page")
             chunk_ref = item.get("chunk_id") or item.get("chunk_idx")
-            if quote and isinstance(page, int) and chunk_ref and not has_validation_errors and not needs_more_evidence:
-                proposals_with_evidence += 1
+            rects = item.get("rects") or []
+            if quote and isinstance(page, int) and chunk_ref and evidence_quality == "strong":
+                proposals_with_strong_evidence += 1
+                if rects and item.get("highlight_status") == "highlighted":
+                    proposals_with_highlight += 1
                 break
 
-    assert proposals_with_value >= 1, "No proposal with non-empty proposed_value"
-    assert proposals_with_evidence >= 1, "No proposal with validated evidence"
+    assert proposals_with_value >= 3, "Expected at least 3 proposals with non-empty proposed_value"
+    assert proposals_with_strong_evidence >= 1, "No proposal with strong evidence quality"
+    assert proposals_with_highlight >= 1, "No proposal with highlightable evidence bbox"

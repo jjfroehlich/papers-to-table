@@ -30,7 +30,7 @@ def build_index(
     embedding_client: EmbeddingClient | None = None,
     embedding_model: str | None = None,
 ) -> RetrievalIndex:
-    if embedding_backend not in {"tfidf", "lmstudio", "stub"}:
+    if embedding_backend not in {"tfidf", "lmstudio", "stub", "hash"}:
         raise ValueError(f"Unsupported embedding backend: {embedding_backend}")
     texts = [chunk.text for chunk in chunks]
     if not texts or not any(text.strip() for text in texts):
@@ -117,12 +117,14 @@ def load_index(output_dir: Path) -> RetrievalIndex | None:
             chunks.append(
                 Chunk(
                     chunk_id=payload["chunk_id"],
+                    chunk_pk=payload.get("chunk_pk", ""),
                     chunk_idx=int(payload.get("chunk_idx", 0)),
                     text=payload["text"],
                     text_raw=payload.get("text_raw", payload["text"]),
+                    text_norm=payload.get("text_norm", payload["text"]),
                     page_start=int(payload["page_start"]),
                     page_end=int(payload["page_end"]),
-                    source=payload.get("source", "page"),
+                    chunk_type=payload.get("chunk_type", payload.get("source", "page")),
                     neighbors=payload.get("neighbors", []),
                 )
             )

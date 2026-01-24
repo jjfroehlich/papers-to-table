@@ -100,3 +100,74 @@ Conventions:
 **AC**
 - Script provisions venv, installs editable + tests, and runs help/UI-smoke/stub run.
 - README quickstart shows minimal Windows Git Bash path.
+
+---
+
+## P0 — Propose-first extraction + robust review UX
+
+### [x] **P0.T13** Evidence annotation (do not gate proposed values)
+**Paths**: `paper_table_agent/graph/extraction.py`, `paper_table_agent/prompts/extract_group.md`, `paper_table_agent/ui/app.py`
+**AC**
+- Proposed values are preserved even when evidence is missing/weak.
+- Evidence validation writes flags (`evidence_missing`, `quote_has_ellipsis`, `evidence_validation_errors`).
+- Review UI shows evidence-strength badge.
+
+### [x] **P0.T14** Parsing health checks + OCR fallback thresholds
+**Paths**: `paper_table_agent/pdf/parser.py`, `paper_table_agent/pdf/ocr.py`, `paper_table_agent/graph/runner.py`
+**AC**
+- Page text preserves spaces via word reconstruction.
+- Sanity metrics include whitespace ratio + avg token length.
+- OCR triggers on low whitespace or glued tokens and logs warnings.
+
+### [x] **P0.T15** Review navigation + constrained PDF pane
+**Paths**: `paper_table_agent/ui/app.py`, `paper_table_agent/ui/review_queue.py`
+**AC**
+- Review shows matched rows with proposed values/evidence/needs_review.
+- Prev/Next field navigation and auto-advance decisions.
+- PDF pane constrained to viewport height with scrolling.
+
+### [x] **P0.T16** DOI-aware matching bonus + header DOI extraction
+**Paths**: `paper_table_agent/graph/matching.py`, `paper_table_agent/config.py`, `paper_table_agent/store/schema.sql`
+**AC**
+- DOI extracted from header text when available.
+- DOI bonus improves deterministic candidate scoring when table has DOI column.
+
+### [x] **P0.T17** Evidence finder pass + chunk table repair
+**Paths**: `paper_table_agent/graph/evidence_finder.py`, `paper_table_agent/graph/extraction.py`, `paper_table_agent/store/schema.sql`
+**AC**
+- Evidence finder runs for weak/none evidence and attaches quotes/pages/highlights.
+- Chunk validation repairs unknown chunk references via fuzzy matching or quote search.
+
+### [x] **P0.T18** Chunk table canonicalization
+**Paths**: `paper_table_agent/retrieval/chunking.py`, `paper_table_agent/store/db.py`
+**AC**
+- Chunks persist chunk_pk, chunk_type, and text_norm in DB.
+- Evidence validation checks against full chunk table, not retrieved subset.
+
+### [x] **P0.T19** Deterministic hash retrieval backends
+**Paths**: `paper_table_agent/llm/embeddings.py`, `paper_table_agent/retrieval/*`, `tests/*`
+**AC**
+- embedding_backend/reranker_backend support `hash` for offline tests.
+- Retrieval tests validate hash backend end-to-end.
+
+### [x] **P0.T20** Extraction attempt diagnostics
+**Paths**: `paper_table_agent/store/schema.sql`, `paper_table_agent/graph/runner.py`
+**AC**
+- Per-column retrieval/extraction attempts persisted with queries, debug, and raw outputs.
+
+## P2 — Regression fixtures + highlight coverage
+
+### [x] **P2.T1** Parsing/tokenization regression test
+**Paths**: `tests/test_parsing_quality.py`
+**AC**
+- Fixture parsing meets whitespace ratio + token length thresholds.
+
+### [x] **P2.T2** Highlight locator handles ellipsis fragments
+**Paths**: `paper_table_agent/pdf/highlight.py`, `tests/test_highlight.py`
+**AC**
+- Ellipsis quote fragments still locate a bbox in fixtures.
+
+### [x] **P2.T3** Stub run produces multiple values + highlightable evidence
+**Paths**: `tests/test_stub_run_cli.py`
+**AC**
+- Stub run yields >=3 proposed values and at least one highlightable bbox.

@@ -17,12 +17,14 @@ from paper_table_agent.config import (
 from paper_table_agent.graph.extraction import (
     GroupContext,
     build_error_records,
+    build_chunk_lookup_from_list,
     build_proposal_records,
     build_verify_records,
     extract_group,
     verify_proposals,
     verify_cells,
 )
+from paper_table_agent.graph.evidence_finder import find_evidence_for_proposals
 from paper_table_agent.graph.matching import (
     adjudicate_match,
     build_match_record,
@@ -38,7 +40,12 @@ from paper_table_agent.io.xlsx import load_table
 from paper_table_agent.llm.client import LlmClient, LlmConfig, LlmJsonError
 from paper_table_agent.llm.models import AdjudicationResult, QueryExpansionResult
 from paper_table_agent.llm.prompts import render_prompt
-from paper_table_agent.llm.embeddings import EmbeddingClient, EmbeddingConfig, StubEmbeddingClient
+from paper_table_agent.llm.embeddings import (
+    EmbeddingClient,
+    EmbeddingConfig,
+    HashEmbeddingClient,
+    StubEmbeddingClient,
+)
 from paper_table_agent.pdf.highlight import locate_quote
 from paper_table_agent.pdf.grobid import extract_grobid, save_grobid
 from paper_table_agent.pdf.ocr import run_ocr, should_trigger_ocr
@@ -79,6 +86,7 @@ class RunContext:
     examples: dict[str, list[dict[str, Any]]]
     logger: Any
     error_path: Path
+    prompt_versions: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -195,6 +203,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
                 "title": str(row.get(config.title_col or "")) if config.title_col else "",
                 "authors": str(row.get(config.authors_col or "")) if config.authors_col else "",
                 "year": str(row.get(config.year_col or "")) if config.year_col else "",
+                "doi": str(row.get(config.doi_col or "")) if config.doi_col else "",
             }
         )
     store.insert_rows(rows_payload)
@@ -301,6 +310,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
         examples=examples,
         logger=logger,
         error_path=error_path,
+        prompt_versions=load_prompt_versions(Path("paper_table_agent/prompts")),
     )
     return context, pdfs
 
@@ -367,7 +377,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 )
         if context.config.ocr.enable_ocr and should_trigger_ocr(
             parsed.page_text,
-            context.config.ocr.ocr_trigger_min_chars_per_page,
+            context.config.ocr,
         ):
             try:
                 parsed.page_text = run_ocr(pdf.path, context.run_paths.ocr_dir / pdf.pdf_id)
@@ -389,6 +399,15 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         parse_metrics["pdf_id"] = pdf.pdf_id
         parse_metrics["ocr_triggered"] = parse_source == "ocr"
         store.record_event("info", "parse_sanity", parse_metrics)
+        if parse_metrics.get("quality_warnings"):
+            store.record_event(
+                "warning",
+                "parse_quality_warning",
+                {
+                    "pdf_id": pdf.pdf_id,
+                    "warnings": parse_metrics.get("quality_warnings"),
+                },
+            )
         store.update_pdf_status(pdf.pdf_id, "parsed", n_pages=parsed.n_pages, parse_source=parse_source)
     except Exception as exc:  # noqa: BLE001
         log_error(context.error_path, {"pdf_id": pdf.pdf_id, "error": str(exc)})
@@ -397,8 +416,10 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
 
     sections = grobid_result.sections if grobid_result else None
     chunks = build_chunks(parsed.page_text, sections=sections)
+    chunk_dicts = to_dicts(chunks)
+    full_chunk_lookup = build_chunk_lookup_from_list(chunk_dicts)
     debug_tracker = DebugExtractionTracker(pdf_id=pdf.pdf_id, chunks_indexed=len(chunks))
-    store.insert_retrieval_chunks(pdf.pdf_id, to_dicts(chunks))
+    store.insert_retrieval_chunks(pdf.pdf_id, chunk_dicts)
     index = load_index_if_fresh(
         context.run_paths.retrieval_dir / pdf.pdf_id,
         chunks,
@@ -472,6 +493,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         title=header.title,
         authors=header.authors,
         year=header.year,
+        doi=header.doi,
         evidence=[item.model_dump(mode="json") for item in header.evidence],
         confidence=header.confidence,
     )
@@ -671,6 +693,9 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 context.helper_client,
                 context.embedding_client,
                 context.reranker_client,
+                row_context=row_context,
+                pdf_id=pdf.pdf_id,
+                row_id=adjudication.row_id,
                 examples_map=context.examples,
                 debug_tracker=debug_tracker,
                 store=context.store,
@@ -691,8 +716,23 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 group,
                 column_contexts,
                 adjudication.status != "matched",
+                full_chunk_lookup=full_chunk_lookup,
                 pdf_id=pdf.pdf_id,
             )
+            raw_output = (context.extract_client.last_raw_response or "")[:2000]
+            prompt_version = context.prompt_versions.get("extract_group.md")
+            for proposal in extraction.proposals:
+                context.store.insert_extraction_attempt(
+                    {
+                        "pdf_id": pdf.pdf_id,
+                        "row_id": adjudication.row_id,
+                        "column": proposal.column,
+                        "stage": "extraction",
+                        "prompt_version": prompt_version,
+                        "raw_output": raw_output,
+                        "parsed_output": proposal.model_dump(mode="json"),
+                    }
+                )
             proposals = build_proposal_records(pdf.pdf_id, adjudication.row_id, extraction)
             proposals = _retry_unclear_proposals(
                 proposals,
@@ -702,6 +742,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 group,
                 target_specs,
                 adjudication.status != "matched",
+                full_chunk_lookup=full_chunk_lookup,
                 debug_tracker=debug_tracker,
                 pdf_id=pdf.pdf_id,
             )
@@ -732,10 +773,30 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 repair_attempted=exc.repair_attempted,
             )
         _annotate_failure_reasons(proposals, debug_tracker.retrieval_hits)
+        proposals = find_evidence_for_proposals(
+            proposals,
+            chunk_dicts,
+            parsed.page_text,
+            parsed.tokens,
+            str(pdf.path),
+        )
+        for proposal in proposals:
+            flags = proposal.get("flags") or {}
+            if flags.get("evidence_finder_used"):
+                context.store.insert_extraction_attempt(
+                    {
+                        "pdf_id": pdf.pdf_id,
+                        "row_id": proposal.get("row_id"),
+                        "column": proposal.get("column"),
+                        "stage": "evidence_finder",
+                        "evidence_quality": flags.get("evidence_quality"),
+                        "evidence": proposal.get("evidence"),
+                    }
+                )
         proposals = _resolve_evidence_locators(
             proposals,
             pdf.path,
-            context.run_paths.parsed_dir / f"{pdf.pdf_id}_tokens.jsonl",
+            parsed.tokens,
             parse_source,
         )
         try:
@@ -875,10 +936,9 @@ def _enumerate_pdfs(folder: Path) -> list[PdfRecord]:
 def _resolve_evidence_locators(
     proposals: list[dict[str, Any]],
     pdf_path: Path,
-    tokens_path: Path,
+    tokens: list[dict[str, Any]],
     parse_source: str,
 ) -> list[dict[str, Any]]:
-    tokens = _load_tokens(tokens_path)
     for proposal in proposals:
         evidence_items = proposal.get("evidence") or []
         for evidence in evidence_items:
@@ -888,6 +948,8 @@ def _resolve_evidence_locators(
             if not quote or not page:
                 proposal.setdefault("flags", {})["needs_more_evidence"] = True
                 evidence["highlight_status"] = "missing_quote_or_page"
+                continue
+            if evidence.get("rects"):
                 continue
             highlight = locate_quote(str(pdf_path), quote, int(page), locator_hint=locator_hint, tokens=tokens)
             evidence["rects"] = highlight.rects
@@ -1127,11 +1189,14 @@ def _format_chunks(chunks: list[Any]) -> list[dict[str, Any]]:
     return [
         {
             "chunk_id": chunk.chunk_id,
+            "chunk_pk": getattr(chunk, "chunk_pk", None),
             "chunk_idx": chunk.chunk_idx,
             "text": chunk.text,
             "text_raw": getattr(chunk, "text_raw", None),
+            "text_norm": getattr(chunk, "text_norm", None),
             "page_start": chunk.page_start,
             "page_end": chunk.page_end,
+            "chunk_type": getattr(chunk, "chunk_type", None),
             "score": chunk.score,
             "bm25_score": chunk.bm25_score,
             "dense_score": chunk.dense_score,
@@ -1210,16 +1275,16 @@ def _retrieve_column_contexts(
     helper_client: LlmClient,
     embedder: EmbeddingClient | None,
     reranker_embedder: EmbeddingClient | None,
+    row_context: dict[str, Any] | None = None,
+    pdf_id: str | None = None,
+    row_id: str | None = None,
     examples_map: dict[str, list[dict[str, Any]]] | None = None,
     debug_tracker: DebugExtractionTracker | None = None,
     store: Store | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     contexts: dict[str, list[dict[str, Any]]] = {}
     for spec in specs:
-        query_parts = [spec.column_name]
-        if spec.description:
-            query_parts.append(spec.description)
-        query = ": ".join(query_parts)
+        query = _build_column_query(spec, row_context, examples_map)
         context_result = retrieve_context(
             index,
             query,
@@ -1255,10 +1320,22 @@ def _retrieve_column_contexts(
                     "retrieval_retry",
                     {"column": spec.column_name, "query": retry_query},
                 )
-        contexts[spec.column_name] = _format_chunks(context_result.chunks)
+        formatted_chunks = _format_chunks(context_result.chunks)
+        contexts[spec.column_name] = formatted_chunks
         if debug_tracker is not None:
             debug_tracker.record_retrieval_hits(spec.column_name, len(context_result.chunks))
             debug_tracker.record_retrieval_debug(spec.column_name, context_result.debug)
+        if store is not None and pdf_id and row_id:
+            store.insert_extraction_attempt(
+                {
+                    "pdf_id": pdf_id,
+                    "row_id": row_id,
+                    "column": spec.column_name,
+                    "query": query,
+                    "retrieval_debug": context_result.debug,
+                    "retrieved_chunk_ids": [chunk.get("chunk_id") for chunk in formatted_chunks],
+                }
+            )
         if store is not None and context_result.debug.get("fallbacks"):
             store.record_event(
                 "warning",
@@ -1272,6 +1349,28 @@ def _retrieve_column_contexts(
     return contexts
 
 
+def _build_column_query(
+    spec: Any,
+    row_context: dict[str, Any] | None,
+    examples_map: dict[str, list[dict[str, Any]]] | None,
+) -> str:
+    examples = examples_map.get(spec.column_name, []) if examples_map else []
+    example_values = [example.get("value") for example in examples if example.get("value")]
+    row_bits = []
+    if row_context:
+        for key in ("title", "authors", "year"):
+            value = row_context.get(key)
+            if value:
+                row_bits.append(str(value))
+    query_parts = [
+        spec.column_name,
+        spec.description or "",
+        f"examples: {', '.join(example_values[:3])}" if example_values else "",
+        f"row: {' | '.join(row_bits)}" if row_bits else "",
+    ]
+    return " ".join(part for part in query_parts if part).strip()
+
+
 def _build_embedding_client(
     base_url: str,
     api_key: str | None,
@@ -1282,6 +1381,8 @@ def _build_embedding_client(
         return None
     if backend == "stub":
         return StubEmbeddingClient()
+    if backend == "hash":
+        return HashEmbeddingClient()
     if backend != "lmstudio":
         raise ValueError(f"Unsupported embedding backend: {backend}")
     if not model:
@@ -1303,6 +1404,7 @@ def _retry_unclear_proposals(
     group: GroupContext,
     specs: list[Any],
     mapping_dependent: bool,
+    full_chunk_lookup: dict[str, dict[str, Any]] | None = None,
     debug_tracker: DebugExtractionTracker | None = None,
     pdf_id: str | None = None,
 ) -> list[dict[str, Any]]:
@@ -1358,6 +1460,9 @@ def _retry_unclear_proposals(
         context.helper_client,
         context.embedding_client,
         context.reranker_client,
+        row_context=row_context,
+        pdf_id=pdf_id,
+        row_id=row_context.get("row_id") if row_context else None,
         examples_map=context.examples,
         debug_tracker=debug_tracker,
         store=context.store,
@@ -1369,6 +1474,7 @@ def _retry_unclear_proposals(
             retry_group,
             column_contexts,
             mapping_dependent,
+            full_chunk_lookup=full_chunk_lookup,
             pdf_id=pdf_id,
         )
     except LlmJsonError:
@@ -1410,15 +1516,27 @@ def _parse_sanity_metrics(
 ) -> dict[str, Any]:
     total_chars = sum(len(text.strip()) for text in page_text)
     total_tokens = len(tokens)
+    whitespace_chars = sum(sum(1 for char in text if char.isspace()) for text in page_text)
+    token_lengths = [len(token.get("text") or "") for token in tokens if token.get("text")]
+    avg_token_length = sum(token_lengths) / max(len(token_lengths), 1)
+    whitespace_ratio = whitespace_chars / max(sum(len(text) for text in page_text), 1)
     sparse_pages = [
         idx + 1
         for idx, text in enumerate(page_text)
         if len(text.strip()) < ocr_config.ocr_trigger_min_chars_per_page
     ]
+    quality_warnings: list[str] = []
+    if whitespace_ratio < ocr_config.whitespace_ratio_min:
+        quality_warnings.append("low_whitespace_ratio")
+    if avg_token_length > ocr_config.avg_token_length_max:
+        quality_warnings.append("avg_token_length_high")
     return {
         "n_pages": len(page_text),
         "total_chars_text": total_chars,
         "total_tokens": total_tokens,
+        "avg_token_length": round(avg_token_length, 2),
+        "whitespace_ratio": round(whitespace_ratio, 4),
         "sparse_pages_count": len(sparse_pages),
         "sparse_pages": sparse_pages,
+        "quality_warnings": quality_warnings,
     }

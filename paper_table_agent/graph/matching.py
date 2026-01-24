@@ -21,10 +21,12 @@ class RowCandidate:
     title: str
     authors: str
     year: str
+    doi: str
     score: float
     title_score: float
     author_score: float
     year_bonus: float
+    doi_bonus: float
 
     def to_payload(self) -> dict[str, Any]:
         return {
@@ -32,10 +34,12 @@ class RowCandidate:
             "title": self.title,
             "authors": self.authors,
             "year": self.year,
+            "doi": self.doi,
             "score": round(self.score, 4),
             "title_score": round(self.title_score, 4),
             "author_score": round(self.author_score, 4),
             "year_bonus": round(self.year_bonus, 4),
+            "doi_bonus": round(self.doi_bonus, 4),
         }
 
 
@@ -51,6 +55,8 @@ def extract_header_with_repair(
     pdf_id: str | None = None,
 ) -> HeaderExtractionResult:
     header = extract_header(client, text, pdf_id=pdf_id)
+    if not header.doi:
+        header.doi = _extract_doi(text)
     if _header_is_valid(header, text):
         return header
     repair_prompt = render_prompt(
@@ -60,6 +66,8 @@ def extract_header_with_repair(
         previous=json.dumps(header.model_dump(mode="json"), indent=2),
     )
     repaired = client.complete_json(repair_prompt, HeaderExtractionResult)
+    if not repaired.doi:
+        repaired.doi = _extract_doi(text)
     if _header_is_valid(repaired, text):
         return repaired
     fallback = _deterministic_header_from_pdf(pdf_path)
@@ -79,6 +87,7 @@ def shortlist_candidates(
     titles = {row["row_id"]: row.get("title", "") for row in rows}
     matches = process.extract(header.title, titles, scorer=fuzz.token_sort_ratio, limit=top_k)
     header_authors = {normalize_key(name).casefold() for name in _author_last_names(header.authors)}
+    header_doi = _normalize_doi(header.doi)
     candidates: list[RowCandidate] = []
     row_lookup = {row["row_id"]: row for row in rows}
     for _, score, row_id in matches:
@@ -86,20 +95,24 @@ def shortlist_candidates(
         if not row:
             continue
         year = str(row.get("year") or "")
+        doi = str(row.get("doi") or "")
         author_score = _author_overlap(header_authors, _author_last_names(_split_authors(row.get("authors", ""))))
         title_score = score / 100.0
         year_bonus = _year_bonus(header.year, year, year_tolerance)
-        combined = min(1.0, title_score * 0.8 + author_score * 0.2 + year_bonus)
+        doi_bonus = 0.12 if header_doi and _normalize_doi(doi) == header_doi else 0.0
+        combined = min(1.0, title_score * 0.75 + author_score * 0.15 + year_bonus + doi_bonus)
         candidates.append(
             RowCandidate(
                 row_id=row_id,
                 title=row.get("title") or "",
                 authors=row.get("authors") or "",
                 year=year,
+                doi=doi,
                 score=combined,
                 title_score=title_score,
                 author_score=author_score,
                 year_bonus=year_bonus,
+                doi_bonus=doi_bonus,
             )
         )
     return sorted(candidates, key=lambda item: item.score, reverse=True)[:top_k]
@@ -138,27 +151,32 @@ def _deterministic_header_from_pdf(pdf_path: str) -> HeaderExtractionResult:
         return HeaderExtractionResult(title=None, authors=[], year=None, evidence=[], confidence=0.0)
     page = doc.load_page(0)
     blocks = page.get_text("dict").get("blocks", [])
-    candidates: list[tuple[float, float, str]] = []
+    line_candidates: list[tuple[float, float, str]] = []
     for block in blocks:
         for line in block.get("lines", []):
-            for span in line.get("spans", []):
-                text = str(span.get("text") or "").strip()
-                size = float(span.get("size") or 0.0)
-                bbox = span.get("bbox") or [0, 0, 0, 0]
-                y = float(bbox[1])
-                if text:
-                    candidates.append((size, y, text))
-    candidates.sort(key=lambda item: (-item[0], item[1]))
-    title = " ".join([text for _, _, text in candidates[:2]]).strip()
-    author_lines = [text for _, _, text in candidates[2:5]]
+            line_text = " ".join(span.get("text", "").strip() for span in line.get("spans", [])).strip()
+            if not line_text:
+                continue
+            sizes = [float(span.get("size") or 0.0) for span in line.get("spans", [])]
+            size = max(sizes) if sizes else 0.0
+            bbox = line.get("bbox") or [0, 0, 0, 0]
+            y = float(bbox[1])
+            line_candidates.append((size, y, line_text))
+    line_candidates.sort(key=lambda item: (-item[0], item[1]))
+    title_lines = [text for _, _, text in line_candidates[:2]]
+    title = " ".join(title_lines).strip()
+    author_lines = [text for _, _, text in line_candidates[2:5]]
     authors = _split_authors(" ".join(author_lines))
-    year_matches = re.findall(r"\\b(?:19|20)\\d{2}\\b", page.get_text("text"))
+    page_text = page.get_text("text")
+    year_matches = re.findall(r"\\b(?:19|20)\\d{2}\\b", page_text)
     year = year_matches[0] if year_matches else None
+    doi = _extract_doi(page_text)
     doc.close()
     return HeaderExtractionResult(
         title=title or None,
         authors=authors,
         year=year,
+        doi=doi,
         evidence=[],
         confidence=0.4,
     )
@@ -197,6 +215,21 @@ def _year_bonus(header_year: str | None, row_year: str | None, tolerance: int) -
     if abs(header_value - row_value) <= tolerance:
         return 0.02
     return 0.0
+
+
+def _extract_doi(text: str) -> str | None:
+    if not text:
+        return None
+    match = re.search(r"10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+", text)
+    return match.group(0) if match else None
+
+
+def _normalize_doi(value: str | None) -> str:
+    if not value:
+        return ""
+    cleaned = value.strip().lower()
+    cleaned = cleaned.replace("https://doi.org/", "").replace("http://doi.org/", "")
+    return cleaned
 
 
 def deterministic_match(

@@ -66,14 +66,14 @@ paper-table-agent bundle --run_dir runs/<timestamp>__<table>/
 
 1. Parse PDFs into text + layout tokens, then chunk text for retrieval.
 2. Extract header metadata (title/authors/year) and match PDFs to table rows.
-3. Retrieve evidence chunks and propose values with quotes + pages.
+3. Retrieve evidence chunks and propose values with best-effort quotes + pages, then run an evidence finder pass for weak/none evidence.
 4. Review proposals row-by-row in the UI and export updates.
 
 ### Evidence + review
 
-- Proposals must include quote + page + chunk reference; missing evidence stays `unclear`.
-- Review shows only matched rows and columns with proposals or evidence.
-- Highlights are drawn on the PDF page when quotes are located.
+- Proposals always include a best-effort value when present; evidence is annotated, not a hard gate.
+- Review shows only matched rows and columns with proposed values, evidence, or explicit review flags.
+- Evidence badges show strength (strong/weak/missing), and highlights can be re-located in UI (evidence finder).
 
 ## Config (single source of truth)
 
@@ -84,7 +84,7 @@ Debug-only artifacts (mapping report, proposals JSONL) are gated by `output.debu
 ## Troubleshooting
 
 - **LLM endpoint errors**: confirm `provider.base_url` and models in `run_config.json` point to your backend (LM Studio/Ollama/OpenAI-compatible).
-- **No proposals**: check `run_report.json` and `logs/run.log` for sanity-check diagnostics.
+- **No proposals**: check `run_report.json` and `logs/run.log` for parsing/retrieval diagnostics, evidence-finder stats, and whitespace warnings.
 - **Need more debug output**: enable `output.debug_reports=true` in your config.
 
 ## Repo structure (short)
@@ -99,4 +99,9 @@ Debug-only artifacts (mapping report, proposals JSONL) are gated by `output.debu
 
 - Core pipeline runs end-to-end with stub providers and OpenAI-compatible backends.
 - UI is minimal (Run + Review only) with config-driven behavior.
-- Debug outputs are opt-in via config.
+- Evidence is best-effort (values are preserved even when evidence is weak), with in-UI re-location for highlights.
+
+## Near-term to-dos
+
+- Expand DOI-aware matching defaults based on real tables.
+- Add more fixture PDFs for multi-column/scanned edge cases.

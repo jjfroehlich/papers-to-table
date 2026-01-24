@@ -592,7 +592,7 @@ def _testing_status(repo_root: Path) -> str:
         pytest
         ```
 
-        Coverage gaps: Streamlit smoke test for app import remains TODO (see tasks).
+        Coverage gaps: none currently tracked in tasks.md.
         """
     ).strip()
 
