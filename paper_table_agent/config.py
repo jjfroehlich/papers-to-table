@@ -10,6 +10,8 @@ from typing import Any, Iterable
 
 from pydantic import BaseModel, Field, field_validator
 
+from paper_table_agent.text.normalization import normalize_key
+
 DEFAULT_EMPTY_VALUES = ["", "NA", "N/A", "null", "-", " "]
 
 
@@ -30,6 +32,9 @@ class MatchingConfig(BaseModel):
     top_k: int = 10
     confidence_threshold: float = 0.75
     confidence_margin: float = 0.05
+    fallback_min: float = 0.5
+    fallback_threshold: float = 0.45
+    fallback_margin: float = 0.1
     year_tolerance: int = 1
     header_max_chars: int = 8000
 
@@ -168,7 +173,8 @@ class RunPaths:
 
 
 def create_run_paths(table_path: Path, root: Path | None = None, run_name: str | None = None) -> RunPaths:
-    root_dir = root or Path("runs")
+    env_root = os.getenv("PAPER_TABLE_AGENT_RUNS_ROOT")
+    root_dir = Path(env_root) if env_root else (root or Path("runs"))
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     slug = _slugify_run_name(run_name) or table_path.stem
     run_dir = root_dir / f"{timestamp}__{slug}"
@@ -215,7 +221,11 @@ def _git_commit_hash() -> str | None:
 
 
 def validate_schema_columns(required: Iterable[str], columns: Iterable[str]) -> list[str]:
-    missing = [col for col in required if col not in columns]
+    required_list = list(required)
+    column_list = list(columns)
+    required_keys = {normalize_key(col): col for col in required_list}
+    column_keys = {normalize_key(col): col for col in column_list}
+    missing = [required_keys[key] for key in required_keys if key not in column_keys]
     if missing:
         raise ValueError(f"Schema columns missing from data: {missing}")
     return missing

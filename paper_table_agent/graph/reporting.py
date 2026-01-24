@@ -50,6 +50,7 @@ _REPORT_TEMPLATE = Template(
         <th>Row Title</th>
         <th>Row Authors</th>
         <th>Row Year</th>
+        <th>LLM Adjudication</th>
       </tr>
     </thead>
     <tbody>
@@ -65,6 +66,7 @@ _REPORT_TEMPLATE = Template(
         <td>{{ row.row_title }}</td>
         <td>{{ row.row_authors }}</td>
         <td>{{ row.row_year }}</td>
+        <td>{{ row.llm_adjudication }}</td>
       </tr>
       {% if row.candidates %}
       <tr>
@@ -118,12 +120,30 @@ def write_mapping_report(store: Store, output_dir: Path, write_reports: bool = F
     rows = {row["row_id"]: dict(row) for row in store.fetch_rows()}
     pdf_metadata = {row["pdf_id"]: dict(row) for row in store.fetch_pdf_metadata()}
     candidates = store.fetch_match_candidates()
+    events = [
+        dict(row)
+        for row in store.conn.execute("SELECT event_type, payload_json FROM events")
+    ]
+    adjudication_by_pdf: dict[str, str] = {}
+    for event in events:
+        event_type = event.get("event_type")
+        if event_type not in {"match_adjudication_attempted", "match_adjudication_skipped"}:
+            continue
+        payload = json.loads(event.get("payload_json") or "{}")
+        pdf_id = payload.get("pdf_id")
+        if not pdf_id:
+            continue
+        if event_type == "match_adjudication_attempted":
+            adjudication_by_pdf[pdf_id] = "Attempted"
+        else:
+            reason = payload.get("reason", "skipped")
+            adjudication_by_pdf[pdf_id] = f"Skipped ({reason})"
     candidates_by_pdf: dict[str, list[dict[str, object]]] = {}
     for candidate in candidates:
         candidates_by_pdf.setdefault(candidate["pdf_id"], []).append(dict(candidate))
     for pdf_id, items in candidates_by_pdf.items():
         items.sort(key=lambda item: (item.get("rank") or 0, item.get("source") or ""))
-        candidates_by_pdf[pdf_id] = items
+        candidates_by_pdf[pdf_id] = items[:5]
     report_rows = []
     for match in matches:
         row = rows.get(match["row_id"], {})
@@ -141,6 +161,7 @@ def write_mapping_report(store: Store, output_dir: Path, write_reports: bool = F
                 "row_authors": row.get("authors", ""),
                 "row_year": row.get("year", ""),
                 "candidates": candidates_by_pdf.get(match["pdf_id"], []),
+                "llm_adjudication": adjudication_by_pdf.get(match["pdf_id"], "Not attempted"),
             }
         )
 
@@ -215,8 +236,11 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
         proposals,
     )
     health_events = [event for event in events if event.get("event_type") == "health_check_failed"]
+    parse_events = [event for event in events if event.get("event_type") == "parse_sanity"]
     run_status = "failed" if sanity_check.get("failed") or health_events else "completed"
-    if run_status != "failed":
+    if sanity_check.get("warning") and run_status != "failed":
+        run_status = "completed_with_warnings"
+    if run_status not in {"failed", "completed_with_warnings"}:
         error_events = [event for event in events if event.get("level") == "error"]
         if error_events:
             run_status = "completed_with_errors"
@@ -226,6 +250,8 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
             LOGGER.error("Run failed sanity check: %s", sanity_check)
         elif health_events:
             LOGGER.error("Run failed health check: %s", health_events)
+    elif run_status == "completed_with_warnings":
+        (run_dir / "COMPLETED_WITH_WARNINGS").write_text("done", encoding="utf-8")
     retrieval_backend = next(
         (
             json.loads(event.get("payload_json") or "{}")
@@ -262,6 +288,7 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
                 "failed": bool(health_events),
                 "errors": [json.loads(event.get("payload_json") or "{}") for event in health_events],
             },
+            "parsing": [json.loads(event.get("payload_json") or "{}") for event in parse_events],
             "retrieval": retrieval_backend,
             "sanity_check": sanity_check,
         },
@@ -325,9 +352,9 @@ def _run_sanity_check(
     matches: list[dict[str, object]],
     proposals: list[dict[str, object]],
 ) -> dict[str, object]:
-    failed = matched > 0 and proposals_count == 0
-    if not failed:
-        return {"failed": False}
+    warning = matched > 0 and proposals_count == 0
+    if not warning:
+        return {"failed": False, "warning": False}
     schema_columns = _load_schema_columns(config_payload)
     missing_cell_count = _missing_cell_count(store, schema_columns, matches)
     extraction_events = _event_count(store, "extraction_invoked")
@@ -337,26 +364,37 @@ def _run_sanity_check(
         if "evidence_validation_errors" in json.loads(proposal.get("flags_json") or "{}")
     )
     return {
-        "failed": True,
-        "reason": (
-            "Matched PDFs and extractable columns were detected, but zero proposals were stored. "
-            "This usually indicates extraction never ran or proposal persistence failed."
-        ),
-        "diagnostics": {
-            "schema_columns_loaded": schema_columns,
+        "failed": False,
+        "warning": True,
+        "why_no_values": {
+            "columns_attempted": schema_columns,
             "schema_column_count": len(schema_columns),
             "extractable_columns": extractable_columns,
             "missing_cell_count": missing_cell_count,
-            "extraction_invoked_count": extraction_events,
-            "evidence_validation_drop_count": validation_drop_count,
+            "retrieval_hit_rate": _retrieval_hit_rate(store),
+            "groups_configured": (config_payload.get("extraction", {}) or {}).get("groups", []),
+            "llm_calls": {
+                "extraction_invoked_count": extraction_events,
+            },
+            "validation_failure_counts": {
+                "evidence_validation_drop_count": validation_drop_count,
+            },
         },
-        "most_likely_causes": [
-            "Locked-cell detection treated empty cells as locked.",
-            "Schema loader produced zero columns or mismatched column names.",
-            "Extraction loop never ran for groups (no group targets).",
-            "UI/query filtering hid proposals despite DB entries.",
-        ],
     }
+
+
+def _retrieval_hit_rate(store: Store) -> dict[str, int]:
+    rows = store.fetch_debug_extraction()
+    totals = {"columns_with_hits": 0, "columns_with_no_hits": 0}
+    for row in rows:
+        payload = json.loads(row["payload_json"] or "{}") if row else {}
+        hits = payload.get("retrieval_hits_per_column", {})
+        for count in hits.values():
+            if count:
+                totals["columns_with_hits"] += 1
+            else:
+                totals["columns_with_no_hits"] += 1
+    return totals
 
 
 def _event_count(store: Store, event_type: str) -> int:

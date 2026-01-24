@@ -78,3 +78,28 @@ def test_apply_evidence_rules_accepts_normalized_quote():
     )
     assert proposal.status == "found"
     assert proposal.flags["validation_mode"] == "normalized"
+
+
+def test_apply_evidence_rules_accepts_chunk_id_unicode_dash():
+    proposal = ProposalItem(
+        column="Metric",
+        proposed_value="42",
+        status="found",
+        confidence=0.9,
+        evidence=[EvidenceQuote(quote="42", page=1, chunk_id="chunk‑1")],
+        needs_more_evidence=None,
+        flags={},
+        rationale="",
+    )
+    _apply_evidence_rules(
+        proposal,
+        {
+            "chunk-1": {
+                "text": "Value was 42 in the results.",
+                "page_start": 1,
+                "page_end": 1,
+            }
+        },
+    )
+    assert proposal.status == "found"
+    assert proposal.flags["validation_mode"] == "exact"

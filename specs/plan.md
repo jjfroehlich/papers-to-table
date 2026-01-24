@@ -2,11 +2,14 @@
 
 ## Current focus
 
-- Keep the pipeline stable (match → retrieve → extract → review → export) with minimal UI.
-- Keep docs/specs aligned with the codebase.
-- Maintain a lightweight doctor check to catch drift.
+- P0 correctness: evidence-backed proposals and reliable highlights.
+- Robust matching: fallback adjudication and header grounding.
+- Retrieval resilience: sane chunking, embedding fallbacks, and debug traces.
+- Minimal UI: Run + Review only, with evidence-first review.
+- CLI/install ergonomics: working console script and headless UI smoke path.
+- Keep docs/specs aligned with actual behavior.
 
 ## Remaining work
 
-- Add a Streamlit smoke test that imports the UI module without crashing (see tasks).
-- Continue improving evidence robustness and retrieval quality as part of regular maintenance.
+- Monitor retrieval retry heuristics and adjust thresholds with real PDFs.
+- Expand fixture coverage for tricky PDFs (scanned pages, multi-column layouts).

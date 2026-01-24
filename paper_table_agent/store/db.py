@@ -157,6 +157,7 @@ class Store:
             (
                 pdf_id,
                 chunk.get("chunk_id"),
+                chunk.get("chunk_idx"),
                 chunk.get("text"),
                 chunk.get("text_raw"),
                 chunk.get("page_start"),
@@ -171,8 +172,8 @@ class Store:
         self.conn.executemany(
             """
             INSERT OR REPLACE INTO retrieval_chunks
-            (pdf_id, chunk_id, text, text_raw, page_start, page_end, source, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (pdf_id, chunk_id, chunk_idx, text, text_raw, page_start, page_end, source, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             payload,
         )

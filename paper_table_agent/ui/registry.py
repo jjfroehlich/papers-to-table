@@ -68,6 +68,8 @@ def _infer_run_status(run_dir: Path) -> str:
         return "failed"
     if (run_dir / "COMPLETED_WITH_ERRORS").exists():
         return "completed_with_errors"
+    if (run_dir / "COMPLETED_WITH_WARNINGS").exists():
+        return "completed_with_warnings"
     if (run_dir / "COMPLETED").exists():
         return "completed"
     if (run_dir / "exports" / "updated_table.xlsx").exists():

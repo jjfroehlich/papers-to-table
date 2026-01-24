@@ -89,7 +89,19 @@ def retrieve_context(
             debug["fallbacks"].append({"stage": "retrieve", "query": q, "error": str(exc)})
             results = retrieve(index, q, top_k=config.top_k, embedder=None, use_dense=False)
         runs.append(results)
-        debug["runs"].append({"query": q, "results": results})
+        debug["runs"].append(
+            {
+                "query": q,
+                "results": [
+                    {
+                        "chunk_id": item.chunk_id,
+                        "chunk_idx": item.chunk_idx,
+                        "score": item.score,
+                    }
+                    for item in results
+                ],
+            }
+        )
 
     if config.use_hyde:
         passage = build_hypothetical_passage(helper_client, query)
@@ -100,7 +112,19 @@ def retrieve_context(
                 debug["fallbacks"].append({"stage": "retrieve", "query": "[HyDE]", "error": str(exc)})
                 hyde_results = retrieve(index, passage, top_k=config.top_k, embedder=None, use_dense=False)
             runs.append(hyde_results)
-            debug["runs"].append({"query": "[HyDE]", "results": hyde_results})
+            debug["runs"].append(
+                {
+                    "query": "[HyDE]",
+                    "results": [
+                        {
+                            "chunk_id": item.chunk_id,
+                            "chunk_idx": item.chunk_idx,
+                            "score": item.score,
+                        }
+                        for item in hyde_results
+                    ],
+                }
+            )
 
     fused = reciprocal_rank_fusion(runs, k=config.rrf_k)
     if config.use_reranker:
@@ -120,7 +144,14 @@ def retrieve_context(
         reranked = fused[: config.rerank_k]
     expanded = expand_with_neighbors(index, reranked, max_total=config.max_context_chunks)
     trimmed = _trim_to_token_limit(expanded, config.max_context_tokens)
-    debug["reranked"] = reranked
+    debug["reranked"] = [
+        {
+            "chunk_id": item.chunk_id,
+            "chunk_idx": item.chunk_idx,
+            "score": item.score,
+        }
+        for item in reranked
+    ]
     return RetrievalContext(chunks=trimmed, debug=debug)
 
 

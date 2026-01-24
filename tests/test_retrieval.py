@@ -11,6 +11,7 @@ def test_dense_retrieval_scores():
     chunks = [
         Chunk(
             chunk_id="c1",
+            chunk_idx=1,
             text="gene editing method",
             text_raw="gene editing method",
             page_start=1,
@@ -20,6 +21,7 @@ def test_dense_retrieval_scores():
         ),
         Chunk(
             chunk_id="c2",
+            chunk_idx=2,
             text="control group",
             text_raw="control group",
             page_start=2,
@@ -41,10 +43,11 @@ def test_retrieval_smoke_fixture_pdf():
     index = build_index(chunks)
     context = retrieve_context(
         index,
-        "primary outcome",
+        "Minimal Paper",
         RetrievalConfig(use_dense=False, use_reranker=False, use_query_expansion=False, use_hyde=False),
         helper_client=None,
         embedder=None,
         reranker_embedder=None,
     )
     assert context.chunks
+    assert any("Minimal Paper" in chunk.text_raw for chunk in context.chunks)

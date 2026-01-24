@@ -21,21 +21,9 @@ from paper_table_agent.ui.defaults import load_default_run_config, resolve_defau
 from paper_table_agent.ui.registry import discover_runs
 from paper_table_agent.ui.review_queue import build_review_rows, remaining_review_count, review_items_for_row
 
-st.set_page_config(page_title="Paper Table Agent", layout="wide")
-
 DEFAULT_CONFIG_PATH = Path("run_config.json")
 LOGGER = logging.getLogger("paper_table_agent.ui")
 
-st.title("Paper Table Agent")
-
-test_mode = os.getenv("PAPER_TABLE_AGENT_TEST_MODE")
-if test_mode == "review":
-    run_tab = st.container()
-    review_tab = st.container()
-    show_run_tab = False
-else:
-    run_tab, review_tab = st.tabs(["Run", "Review"])
-    show_run_tab = True
 
 
 def _sort_proposals(proposals: list[dict[str, Any]], columns: list[str]) -> list[dict[str, Any]]:
@@ -243,379 +231,401 @@ def _log_review_debug(store: Store) -> None:
         LOGGER.info("Review debug: verify-only statuses=%s", verify_only_counts)
 
 
-if "default_config" not in st.session_state:
-    st.session_state["default_config"] = load_default_run_config(DEFAULT_CONFIG_PATH)
+def build_app() -> None:
+    st.set_page_config(page_title="Paper Table Agent", layout="wide")
+    st.title("Paper Table Agent")
 
-if "runs" not in st.session_state:
-    st.session_state["runs"] = discover_runs()
-
-if "selected_run_dir" not in st.session_state:
-    st.session_state["selected_run_dir"] = None
-
-default_config = st.session_state.get("default_config", {})
-config_table, config_pdf = resolve_default_paths(default_config)
-
-with run_tab:
-    if not show_run_tab:
-        pass
+    test_mode = os.getenv("PAPER_TABLE_AGENT_TEST_MODE")
+    if test_mode == "review":
+        run_tab = st.container()
+        review_tab = st.container()
+        show_run_tab = False
     else:
-        st.header("Run")
+        run_tab, review_tab = st.tabs(["Run", "Review"])
+        show_run_tab = True
 
-        if "manual_table_path" not in st.session_state:
-            st.session_state["manual_table_path"] = config_table or ""
-        if "manual_pdf_folder" not in st.session_state:
-            st.session_state["manual_pdf_folder"] = config_pdf or ""
+    if "default_config" not in st.session_state:
+        st.session_state["default_config"] = load_default_run_config(DEFAULT_CONFIG_PATH)
 
-        st.markdown("**Inputs**")
-        st.text_input("Table path", key="manual_table_path")
-        base_table = Path(config_table).parent if config_table else Path.cwd()
-        _path_browser(
-            "Browse tables",
-            "manual_table_path",
-            base_table,
-            allow_files=True,
-            allowed_suffixes={".xlsx", ".csv"},
-        )
+    if "runs" not in st.session_state:
+        st.session_state["runs"] = discover_runs()
 
-        st.text_input("PDF folder path", key="manual_pdf_folder")
-        base_pdf = Path(config_pdf) if config_pdf else Path.cwd()
-        _path_browser(
-            "Browse PDF folders",
-            "manual_pdf_folder",
-            base_pdf,
-            allow_files=False,
-            allowed_suffixes=set(),
-        )
+    if "selected_run_dir" not in st.session_state:
+        st.session_state["selected_run_dir"] = None
 
-        table_path = Path(st.session_state.get("manual_table_path", "")).expanduser()
-        pdf_folder = Path(st.session_state.get("manual_pdf_folder", "")).expanduser()
-        valid_table = table_path.exists()
-        valid_pdf = pdf_folder.exists()
+    default_config = st.session_state.get("default_config", {})
+    config_table, config_pdf = resolve_default_paths(default_config)
 
-        if valid_table:
-            st.caption(f"Selected table: {table_path.name} (last modified {_format_time(table_path.stat().st_mtime)})")
-        if valid_pdf:
-            st.caption(f"Selected PDF folder: {pdf_folder}")
-
-        if st.button("Start run", disabled=not (valid_table and valid_pdf)):
-            payload = dict(default_config)
-            payload["table_path"] = str(table_path)
-            payload["pdf_folder"] = str(pdf_folder)
-            config = RunConfig.model_validate(payload)
-            run_paths = create_run_paths(config.table_path, run_name=config.run_name)
-            prompt_versions = load_prompt_versions(Path("paper_table_agent/prompts"))
-            capture_run_config(config, run_paths, prompt_versions)
-            store = Store.init_db(run_paths.db_path)
-            run_workflow(config=config, run_paths=run_paths, store=store)
-            st.session_state["selected_run_dir"] = run_paths.run_dir
-            st.session_state["runs"] = discover_runs()
-            st.success(f"Run completed: {run_paths.run_dir}")
-
-        st.divider()
-        st.subheader("Run status")
-        runs = st.session_state.get("runs", [])
-        selected_run_dir = st.session_state.get("selected_run_dir")
-        selected_run = next((run for run in runs if run.run_dir == selected_run_dir), None)
-        if not selected_run and runs:
-            selected_run = runs[0]
-        if not selected_run:
-            st.info("No runs yet.")
+    with run_tab:
+        if not show_run_tab:
+            pass
         else:
-            status_map = {
-                "completed": "Done",
-                "completed_with_errors": "Completed (errors)",
-                "failed": "Failed",
-                "in_progress": "Running",
-                "paused": "Paused",
-                "stopped": "Stopped",
-            }
-            status_line = status_map.get(selected_run.status, selected_run.status.title())
-            st.write(f"Status: **{status_line}**")
-            store = Store.init_db(selected_run.run_dir / "proposals.sqlite")
-            _, _, current_pdf = _run_progress(store)
-            if current_pdf:
-                st.caption(f"Current PDF: {current_pdf}")
-            if selected_run.run_dir.exists():
-                st.link_button("Open run folder", f"file://{selected_run.run_dir}")
+            st.header("Run")
 
+            if "manual_table_path" not in st.session_state:
+                st.session_state["manual_table_path"] = config_table or ""
+            if "manual_pdf_folder" not in st.session_state:
+                st.session_state["manual_pdf_folder"] = config_pdf or ""
 
-with review_tab:
-    st.header("Review")
-    runs = [
-        run
-        for run in st.session_state.get("runs", [])
-        if run.status in {"completed", "completed_with_errors"}
-    ]
-    if not runs:
-        st.info("No completed runs yet.")
-    else:
-        run_labels = [run.label for run in runs]
-        default_run_dir = st.session_state.get("selected_run_dir")
-        default_index = 0
-        if default_run_dir:
-            for idx, run in enumerate(runs):
-                if run.run_dir == default_run_dir:
-                    default_index = idx
-                    break
-        selected_label = st.selectbox("Run", run_labels, index=default_index, key="review-run")
-        selected_run = runs[run_labels.index(selected_label)]
-        st.session_state["selected_run_dir"] = selected_run.run_dir
-
-        store = Store.init_db(selected_run.run_dir / "proposals.sqlite")
-        _log_review_debug(store)
-        run_config = json.loads((selected_run.run_dir / "run_config.json").read_text(encoding="utf-8"))
-        table = load_table(Path(run_config["table_path"]))
-        schema_source = Path(run_config["table_path"])
-        if run_config.get("schema_mode") == "separate" and run_config.get("schema_path"):
-            schema_source = Path(run_config["schema_path"])
-        specs = load_schema(schema_source, run_config["schema_sheet_name"])
-        columns = [spec.column_name for spec in specs]
-
-        proposals_meta = [
-            dict(row)
-            for row in store.conn.execute(
-            "SELECT proposal_id, row_id, pdf_id, column, status, confidence, proposed_value, flags_json, evidence_json "
-            "FROM proposals"
-            )
-        ]
-        for proposal in proposals_meta:
-            proposal["flags"] = json.loads(proposal.get("flags_json") or "{}")
-            proposal["evidence"] = json.loads(proposal.get("evidence_json") or "[]")
-
-        reviews = store.fetch_reviews()
-        rows = [dict(row) for row in store.fetch_rows()]
-        rows.sort(key=lambda row: row.get("row_index", 0))
-        matches = [dict(row) for row in store.fetch_matches()]
-
-        remaining = remaining_review_count(proposals_meta, reviews, rows, matches, table)
-        st.caption(f"Remaining items: {remaining}")
-
-        review_rows = build_review_rows(rows, matches, proposals_meta, table, reviews=reviews)
-        review_items_by_row = {}
-        for row in review_rows:
-            row_proposals = [
-                proposal for proposal in proposals_meta if proposal.get("row_id") == row.get("row_id")
-            ]
-            row_proposals = _sort_proposals(row_proposals, columns)
-            review_items_by_row[str(row.get("row_id"))] = review_items_for_row(
-                row,
-                row_proposals,
-                table,
-                reviews=reviews,
+            st.markdown("**Inputs**")
+            st.text_input("Table path", key="manual_table_path")
+            base_table = Path(config_table).parent if config_table else Path.cwd()
+            _path_browser(
+                "Browse tables",
+                "manual_table_path",
+                base_table,
+                allow_files=True,
+                allowed_suffixes={".xlsx", ".csv"},
             )
 
-        pending_counts = {
-            row_id: len(items)
-            for row_id, items in review_items_by_row.items()
-        }
+            st.text_input("PDF folder path", key="manual_pdf_folder")
+            base_pdf = Path(config_pdf) if config_pdf else Path.cwd()
+            _path_browser(
+                "Browse PDF folders",
+                "manual_pdf_folder",
+                base_pdf,
+                allow_files=False,
+                allowed_suffixes=set(),
+            )
 
-        if not review_rows:
-            st.info("No matched rows need review.")
-        else:
-            if "selected_row_index" not in st.session_state:
-                st.session_state["selected_row_index"] = _next_pending_row_index(review_rows, pending_counts)
-            if st.session_state["selected_row_index"] >= len(review_rows):
-                st.session_state["selected_row_index"] = 0
-            if pending_counts.get(str(review_rows[st.session_state["selected_row_index"]].get("row_id")), 0) == 0:
-                st.session_state["selected_row_index"] = _next_pending_row_index(review_rows, pending_counts)
+            table_path = Path(st.session_state.get("manual_table_path", "")).expanduser()
+            pdf_folder = Path(st.session_state.get("manual_pdf_folder", "")).expanduser()
+            valid_table = table_path.exists()
+            valid_pdf = pdf_folder.exists()
 
-            row_options = []
-            for idx, row in enumerate(review_rows):
-                pending = pending_counts.get(str(row.get("row_id")), 0)
-                row_label = f"Row {row.get('row_index', idx) + 1} — {pending} pending"
-                row_options.append(row_label)
-            selected_label = row_options[st.session_state["selected_row_index"]]
-            selected_label = st.selectbox("Row", row_options, index=st.session_state["selected_row_index"])
-            st.session_state["selected_row_index"] = row_options.index(selected_label)
+            if valid_table:
+                st.caption(f"Selected table: {table_path.name} (last modified {_format_time(table_path.stat().st_mtime)})")
+            if valid_pdf:
+                st.caption(f"Selected PDF folder: {pdf_folder}")
 
-            row_nav1, row_nav2, row_nav3 = st.columns([1, 1, 2])
-            with row_nav1:
-                if st.button("Prev row"):
-                    st.session_state["selected_row_index"] = max(0, st.session_state["selected_row_index"] - 1)
-            with row_nav2:
-                if st.button("Next row"):
-                    st.session_state["selected_row_index"] = min(
-                        len(review_rows) - 1,
-                        st.session_state["selected_row_index"] + 1,
-                    )
-            with row_nav3:
-                current_position = st.session_state["selected_row_index"] + 1
-                st.caption(f"Row {current_position} of {len(review_rows)}")
+            if st.button("Start run", disabled=not (valid_table and valid_pdf)):
+                payload = dict(default_config)
+                payload["table_path"] = str(table_path)
+                payload["pdf_folder"] = str(pdf_folder)
+                config = RunConfig.model_validate(payload)
+                run_paths = create_run_paths(config.table_path, run_name=config.run_name)
+                prompt_versions = load_prompt_versions(Path("paper_table_agent/prompts"))
+                capture_run_config(config, run_paths, prompt_versions)
+                store = Store.init_db(run_paths.db_path)
+                run_workflow(config=config, run_paths=run_paths, store=store)
+                st.session_state["selected_run_dir"] = run_paths.run_dir
+                st.session_state["runs"] = discover_runs()
+                st.success(f"Run completed: {run_paths.run_dir}")
 
-            row_data = review_rows[st.session_state["selected_row_index"]]
-            row_id = row_data["row_id"]
-
-            row_proposals = [proposal for proposal in proposals_meta if proposal.get("row_id") == row_id]
-            row_proposals = _sort_proposals(row_proposals, columns)
-            review_items = review_items_by_row.get(str(row_id), [])
-
-            if not review_items:
-                st.info("No proposals for this row.")
+            st.divider()
+            st.subheader("Run status")
+            runs = st.session_state.get("runs", [])
+            selected_run_dir = st.session_state.get("selected_run_dir")
+            selected_run = next((run for run in runs if run.run_dir == selected_run_dir), None)
+            if not selected_run and runs:
+                selected_run = runs[0]
+            if not selected_run:
+                st.info("No runs yet.")
             else:
-                index_key = f"proposal-index-{row_id}"
-                if index_key not in st.session_state:
-                    st.session_state[index_key] = 0
-                if st.session_state[index_key] >= len(review_items):
-                    st.session_state[index_key] = 0
+                status_map = {
+                    "completed": "Done",
+                    "completed_with_errors": "Completed (errors)",
+                    "completed_with_warnings": "Completed (warnings)",
+                    "failed": "Failed",
+                    "in_progress": "Running",
+                    "paused": "Paused",
+                    "stopped": "Stopped",
+                }
+                status_line = status_map.get(selected_run.status, selected_run.status.title())
+                st.write(f"Status: **{status_line}**")
+                store = Store.init_db(selected_run.run_dir / "proposals.sqlite")
+                _, _, current_pdf = _run_progress(store)
+                if current_pdf:
+                    st.caption(f"Current PDF: {current_pdf}")
+                if selected_run.run_dir.exists():
+                    st.link_button("Open run folder", f"file://{selected_run.run_dir}")
 
-                col_left, col_right = st.columns([1.1, 1.4])
-                with col_left:
-                    column_labels = [item.get("column", "Unknown") for item in review_items]
-                    current_index = st.session_state[index_key]
-                    selected_column = st.selectbox(
-                        "Column stepper",
-                        column_labels,
-                        index=current_index,
-                        key=f"column-stepper-{row_id}",
-                    )
-                    current_index = column_labels.index(selected_column)
-                    st.session_state[index_key] = current_index
-                    current = review_items[current_index]
-                    st.subheader("Row meta")
-                    st.write(
-                        {
-                            "Title": row_data.get("title"),
-                            "Authors": row_data.get("authors"),
-                            "Year": row_data.get("year"),
-                        }
-                    )
-                    st.subheader("Proposal")
-                    st.markdown(f"### {current['column']}")
-                    review = reviews.get(current["proposal_id"])
-                    state = _proposal_state(current, review)
-                    if state == "needs_more_evidence":
-                        st.caption("⚠️ Needs more evidence")
-                    current_value = table.dataframe.at[int(row_data["row_index"]), current["column"]]
-                    st.write("Current value:", "—" if is_empty(current_value) else current_value)
-                    proposed_value = current.get("proposed_value")
-                    if proposed_value is None:
-                        st.write("Proposed value:", "No value proposed")
-                        st.caption(f"No proposal because: {_proposal_failure_reason(current)}")
-                    else:
-                        st.write("Proposed value:", proposed_value)
 
-                    evidence_items = current.get("evidence", [])
-                    if evidence_items:
-                        st.markdown("**Evidence**")
-                        for evidence in evidence_items:
-                            st.write(_evidence_label(evidence))
-                    else:
-                        st.caption("No evidence recorded.")
+    with review_tab:
+        st.header("Review")
+        runs = [
+            run
+            for run in st.session_state.get("runs", [])
+            if run.status in {"completed", "completed_with_errors", "completed_with_warnings"}
+        ]
+        if not runs:
+            st.info("No completed runs yet.")
+        else:
+            run_labels = [run.label for run in runs]
+            default_run_dir = st.session_state.get("selected_run_dir")
+            default_index = 0
+            if default_run_dir:
+                for idx, run in enumerate(runs):
+                    if run.run_dir == default_run_dir:
+                        default_index = idx
+                        break
+            selected_label = st.selectbox("Run", run_labels, index=default_index, key="review-run")
+            selected_run = runs[run_labels.index(selected_label)]
+            st.session_state["selected_run_dir"] = selected_run.run_dir
 
-                    manual_value_default = (
-                        review["final_value"]
-                        if review and review["final_value"] is not None
-                        else current.get("proposed_value") or ""
-                    )
-                    manual_value = st.text_input(
-                        "Edited value",
-                        value=manual_value_default,
-                        key=f"manual-{current['proposal_id']}",
-                    )
-                    note = st.text_area(
-                        "Note",
-                        value=review["note"] if review else "",
-                        key=f"note-{current['proposal_id']}",
-                    )
+            store = Store.init_db(selected_run.run_dir / "proposals.sqlite")
+            _log_review_debug(store)
+            run_config = json.loads((selected_run.run_dir / "run_config.json").read_text(encoding="utf-8"))
+            table = load_table(Path(run_config["table_path"]))
+            schema_source = Path(run_config["table_path"])
+            if run_config.get("schema_mode") == "separate" and run_config.get("schema_path"):
+                schema_source = Path(run_config["schema_path"])
+            specs = load_schema(schema_source, run_config["schema_sheet_name"])
+            columns = [spec.column_name for spec in specs]
 
-                    def _apply_review_decision(decision: str, final_value: str | None) -> None:
-                        store.insert_review(
+            proposals_meta = [
+                dict(row)
+                for row in store.conn.execute(
+                "SELECT proposal_id, row_id, pdf_id, column, status, confidence, proposed_value, flags_json, evidence_json "
+                "FROM proposals"
+                )
+            ]
+            for proposal in proposals_meta:
+                proposal["flags"] = json.loads(proposal.get("flags_json") or "{}")
+                proposal["evidence"] = json.loads(proposal.get("evidence_json") or "[]")
+
+            reviews = store.fetch_reviews()
+            rows = [dict(row) for row in store.fetch_rows()]
+            rows.sort(key=lambda row: row.get("row_index", 0))
+            matches = [dict(row) for row in store.fetch_matches()]
+
+            remaining = remaining_review_count(proposals_meta, reviews, rows, matches, table)
+            st.caption(f"Remaining items: {remaining}")
+
+            review_rows = build_review_rows(rows, matches, proposals_meta, table, reviews=reviews)
+            review_items_by_row = {}
+            for row in review_rows:
+                row_proposals = [
+                    proposal for proposal in proposals_meta if proposal.get("row_id") == row.get("row_id")
+                ]
+                row_proposals = _sort_proposals(row_proposals, columns)
+                review_items_by_row[str(row.get("row_id"))] = review_items_for_row(
+                    row,
+                    row_proposals,
+                    table,
+                    reviews=reviews,
+                )
+
+            pending_counts = {
+                row_id: len(items)
+                for row_id, items in review_items_by_row.items()
+            }
+
+            if not review_rows:
+                st.info("No matched rows need review.")
+            else:
+                if "selected_row_index" not in st.session_state:
+                    st.session_state["selected_row_index"] = _next_pending_row_index(review_rows, pending_counts)
+                if st.session_state["selected_row_index"] >= len(review_rows):
+                    st.session_state["selected_row_index"] = 0
+                if pending_counts.get(str(review_rows[st.session_state["selected_row_index"]].get("row_id")), 0) == 0:
+                    st.session_state["selected_row_index"] = _next_pending_row_index(review_rows, pending_counts)
+
+                row_options = []
+                for idx, row in enumerate(review_rows):
+                    pending = pending_counts.get(str(row.get("row_id")), 0)
+                    row_label = f"Row {row.get('row_index', idx) + 1} — {pending} pending"
+                    row_options.append(row_label)
+                selected_label = row_options[st.session_state["selected_row_index"]]
+                selected_label = st.selectbox("Row", row_options, index=st.session_state["selected_row_index"])
+                st.session_state["selected_row_index"] = row_options.index(selected_label)
+
+                row_nav1, row_nav2, row_nav3 = st.columns([1, 1, 2])
+                with row_nav1:
+                    if st.button("Prev row"):
+                        st.session_state["selected_row_index"] = max(0, st.session_state["selected_row_index"] - 1)
+                with row_nav2:
+                    if st.button("Next row"):
+                        st.session_state["selected_row_index"] = min(
+                            len(review_rows) - 1,
+                            st.session_state["selected_row_index"] + 1,
+                        )
+                with row_nav3:
+                    current_position = st.session_state["selected_row_index"] + 1
+                    st.caption(f"Row {current_position} of {len(review_rows)}")
+
+                row_data = review_rows[st.session_state["selected_row_index"]]
+                row_id = row_data["row_id"]
+
+                row_proposals = [proposal for proposal in proposals_meta if proposal.get("row_id") == row_id]
+                row_proposals = _sort_proposals(row_proposals, columns)
+                review_items = review_items_by_row.get(str(row_id), [])
+
+                if not review_items:
+                    st.info("No proposals for this row.")
+                else:
+                    index_key = f"proposal-index-{row_id}"
+                    if index_key not in st.session_state:
+                        st.session_state[index_key] = 0
+                    if st.session_state[index_key] >= len(review_items):
+                        st.session_state[index_key] = 0
+
+                    col_left, col_right = st.columns([1.1, 1.4])
+                    with col_left:
+                        column_labels = [item.get("column", "Unknown") for item in review_items]
+                        current_index = st.session_state[index_key]
+                        selected_column = st.selectbox(
+                            "Column stepper",
+                            column_labels,
+                            index=current_index,
+                            key=f"column-stepper-{row_id}",
+                        )
+                        current_index = column_labels.index(selected_column)
+                        st.session_state[index_key] = current_index
+                        current = review_items[current_index]
+                        st.subheader("Row meta")
+                        st.write(
                             {
-                                "review_id": current["proposal_id"],
-                                "proposal_id": current["proposal_id"],
-                                "decision": decision,
-                                "final_value": final_value,
-                                "note": note,
+                                "Title": row_data.get("title"),
+                                "Authors": row_data.get("authors"),
+                                "Year": row_data.get("year"),
                             }
                         )
-                        next_row, next_col = _advance_review_position(
-                            st.session_state["selected_row_index"],
-                            current_index,
-                            review_rows,
-                            review_items_by_row,
+                        st.subheader("Proposal")
+                        st.markdown(f"### {current['column']}")
+                        review = reviews.get(current["proposal_id"])
+                        state = _proposal_state(current, review)
+                        if state == "needs_more_evidence":
+                            st.caption("⚠️ Needs more evidence")
+                        current_value = table.dataframe.at[int(row_data["row_index"]), current["column"]]
+                        st.write("Current value:", "—" if is_empty(current_value) else current_value)
+                        proposed_value = current.get("proposed_value")
+                        if proposed_value is None:
+                            st.write("Proposed value:", "No value proposed")
+                            st.caption(f"No proposal because: {_proposal_failure_reason(current)}")
+                        else:
+                            st.write("Proposed value:", proposed_value)
+
+                        evidence_items = current.get("evidence", [])
+                        if evidence_items:
+                            st.markdown("**Evidence**")
+                            for evidence in evidence_items:
+                                st.write(_evidence_label(evidence))
+                        else:
+                            st.caption("No evidence recorded.")
+
+                        manual_value_default = (
+                            review["final_value"]
+                            if review and review["final_value"] is not None
+                            else current.get("proposed_value") or ""
                         )
-                        st.session_state["selected_row_index"] = next_row
-                        st.session_state[index_key] = next_col
+                        manual_value = st.text_input(
+                            "Edited value",
+                            value=manual_value_default,
+                            key=f"manual-{current['proposal_id']}",
+                        )
+                        note = st.text_area(
+                            "Note",
+                            value=review["note"] if review else "",
+                            key=f"note-{current['proposal_id']}",
+                        )
 
-                    decision_cols = st.columns(3)
-                    with decision_cols[0]:
-                        if st.button("Accept", key=f"accept-{current['proposal_id']}"):
-                            _apply_review_decision("accepted", current.get("proposed_value"))
-                            st.success("Accepted")
-                    with decision_cols[1]:
-                        if st.button("Accept with edit", key=f"accept-edit-{current['proposal_id']}"):
-                            _apply_review_decision("accepted", manual_value)
-                            st.success("Accepted with edit")
-                    with decision_cols[2]:
-                        if st.button("Reject", key=f"reject-{current['proposal_id']}"):
-                            _apply_review_decision("rejected", "")
-                            st.warning("Rejected")
-
-                with col_right:
-                    current = review_items[current_index]
-                    st.subheader("PDF viewer")
-                    evidence_items = current.get("evidence", [])
-                    if evidence_items:
-                        if len(evidence_items) > 1:
-                            evidence_index = st.selectbox(
-                                "Evidence",
-                                list(range(len(evidence_items))),
-                                format_func=lambda idx: _evidence_label(evidence_items[idx]),
-                                key=f"evidence-{current['proposal_id']}",
+                        def _apply_review_decision(decision: str, final_value: str | None) -> None:
+                            store.insert_review(
+                                {
+                                    "review_id": current["proposal_id"],
+                                    "proposal_id": current["proposal_id"],
+                                    "decision": decision,
+                                    "final_value": final_value,
+                                    "note": note,
+                                }
                             )
-                        else:
-                            evidence_index = 0
-                        evidence = evidence_items[evidence_index]
-                        st.write("Quote:", evidence.get("quote"))
-                        st.write("Page:", evidence.get("page"))
-                        rects = evidence.get("rects") or []
-                        pdf_path = store.conn.execute(
-                            "SELECT path FROM pdfs WHERE pdf_id = ?",
-                            (current.get("pdf_id"),),
-                        ).fetchone()
-                        pdf_path = pdf_path["path"] if pdf_path else None
-                        if pdf_path and evidence.get("page"):
-                            image = render_page_image(pdf_path, int(evidence["page"]), rects)
-                            if not rects:
-                                st.caption("Highlight not found.")
-                            st.image(image, caption=f"PDF page {evidence['page']}")
-                            if not rects:
-                                if st.button("Try re-locate", key=f"relocate-{current['proposal_id']}"):
-                                    tokens_path = (
-                                        Path(selected_run.run_dir)
-                                        / "artifacts"
-                                        / "parsed"
-                                        / f"{current['pdf_id']}_tokens.jsonl"
-                                    )
-                                    tokens = []
-                                    if tokens_path.exists():
-                                        tokens = [
-                                            json.loads(line)
-                                            for line in tokens_path.read_text(encoding="utf-8").splitlines()
-                                            if line
-                                        ]
-                                    highlight = locate_quote(
-                                        pdf_path,
-                                        evidence.get("quote", ""),
-                                        int(evidence.get("page", 1)),
-                                        locator_hint=evidence.get("locator_hint"),
-                                        tokens=tokens,
-                                    )
-                                    evidence["rects"] = highlight.rects
-                                    store.update_proposal_evidence(
-                                        current["proposal_id"],
-                                        evidence_items,
-                                        current.get("flags", {}),
-                                    )
-                                    st.success("Re-locate attempted")
-                        else:
-                            st.info("Evidence missing a page number or PDF path.")
-                    else:
-                        st.info("No evidence available for this proposal.")
+                            next_row, next_col = _advance_review_position(
+                                st.session_state["selected_row_index"],
+                                current_index,
+                                review_rows,
+                                review_items_by_row,
+                            )
+                            st.session_state["selected_row_index"] = next_row
+                            st.session_state[index_key] = next_col
 
-                st.divider()
-                st.subheader("Export updated table")
-                if st.checkbox("I confirm export settings"):
-                    if st.button("Export updated table"):
-                        export_run(Path(selected_run.run_dir))
-                        st.success("Export completed")
+                        decision_cols = st.columns(3)
+                        with decision_cols[0]:
+                            if st.button("Accept", key=f"accept-{current['proposal_id']}"):
+                                _apply_review_decision("accepted", current.get("proposed_value"))
+                                st.success("Accepted")
+                        with decision_cols[1]:
+                            if st.button("Accept with edit", key=f"accept-edit-{current['proposal_id']}"):
+                                _apply_review_decision("accepted", manual_value)
+                                st.success("Accepted with edit")
+                        with decision_cols[2]:
+                            if st.button("Reject", key=f"reject-{current['proposal_id']}"):
+                                _apply_review_decision("rejected", "")
+                                st.warning("Rejected")
+
+                    with col_right:
+                        current = review_items[current_index]
+                        st.subheader("PDF viewer")
+                        evidence_items = current.get("evidence", [])
+                        if evidence_items:
+                            if len(evidence_items) > 1:
+                                evidence_index = st.selectbox(
+                                    "Evidence",
+                                    list(range(len(evidence_items))),
+                                    format_func=lambda idx: _evidence_label(evidence_items[idx]),
+                                    key=f"evidence-{current['proposal_id']}",
+                                )
+                            else:
+                                evidence_index = 0
+                            evidence = evidence_items[evidence_index]
+                            st.write("Quote:", evidence.get("quote"))
+                            st.write("Page:", evidence.get("page"))
+                            rects = evidence.get("rects") or []
+                            pdf_path = store.conn.execute(
+                                "SELECT path FROM pdfs WHERE pdf_id = ?",
+                                (current.get("pdf_id"),),
+                            ).fetchone()
+                            pdf_path = pdf_path["path"] if pdf_path else None
+                            if pdf_path and evidence.get("page"):
+                                image = render_page_image(pdf_path, int(evidence["page"]), rects)
+                                if not rects:
+                                    st.caption("Highlight not found.")
+                                st.image(image, caption=f"PDF page {evidence['page']}")
+                                if not rects:
+                                    if st.button("Locate highlight", key=f"relocate-{current['proposal_id']}"):
+                                        tokens_path = (
+                                            Path(selected_run.run_dir)
+                                            / "artifacts"
+                                            / "parsed"
+                                            / f"{current['pdf_id']}_tokens.jsonl"
+                                        )
+                                        tokens = []
+                                        if tokens_path.exists():
+                                            tokens = [
+                                                json.loads(line)
+                                                for line in tokens_path.read_text(encoding="utf-8").splitlines()
+                                                if line
+                                            ]
+                                        highlight = locate_quote(
+                                            pdf_path,
+                                            evidence.get("quote", ""),
+                                            int(evidence.get("page", 1)),
+                                            locator_hint=evidence.get("locator_hint"),
+                                            tokens=tokens,
+                                        )
+                                        evidence["rects"] = highlight.rects
+                                        store.update_proposal_evidence(
+                                            current["proposal_id"],
+                                            evidence_items,
+                                            current.get("flags", {}),
+                                        )
+                                        st.success("Re-locate attempted")
+                            else:
+                                st.info("Evidence missing a page number or PDF path.")
+                        else:
+                            st.info("No evidence available for this proposal.")
+
+                    st.divider()
+                    st.subheader("Export updated table")
+                    if st.checkbox("I confirm export settings"):
+                        if st.button("Export updated table"):
+                            export_run(Path(selected_run.run_dir))
+                            st.success("Export completed")
+
+
+if os.getenv("PAPER_TABLE_AGENT_UI_SMOKE") == "1":
+    st.set_page_config(page_title="Paper Table Agent", layout="wide")
+    st.title("Paper Table Agent")
+    st.write("UI smoke check complete.")
+else:
+    build_app()

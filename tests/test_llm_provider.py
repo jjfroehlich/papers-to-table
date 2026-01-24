@@ -17,10 +17,10 @@ def test_stub_llm_provider_returns_deterministic_json() -> None:
     assert header.year == "2024"
 
     extraction_prompt = (
-        "Group schema:\n"
-        "{\"Method\": \"Method used\"}\n"
-        "Retrieved chunks by column:\n"
-        "{\"Method\": [{\"chunk_id\": \"page-1\", \"text\": \"Method: method X.\", \"page_start\": 1}]}"
+        "Columns (use col_id in responses):\n"
+        "[{\"col_id\": 1, \"name\": \"Method\", \"description\": \"Method used\", \"examples\": []}]\n"
+        "Retrieved chunks:\n"
+        "[{\"chunk_id\": \"page-1\", \"chunk_idx\": 1, \"text\": \"Method: method X.\", \"page_start\": 1}]"
     )
     extraction = client.complete_json(extraction_prompt, GroupExtractionResult)
     assert extraction.proposals

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -17,6 +18,7 @@ def _parse_args() -> argparse.Namespace:
     ui_parser = sub.add_parser("ui", help="Launch Streamlit UI")
     ui_parser.add_argument("--host", default="0.0.0.0")
     ui_parser.add_argument("--port", default=8501, type=int)
+    ui_parser.add_argument("--smoke", action="store_true", help="Run UI import smoke test without launching server")
 
     run_parser = sub.add_parser("run", help="Run batch pipeline")
     run_parser.add_argument("--config", required=True, type=Path)
@@ -42,15 +44,17 @@ def _parse_args() -> argparse.Namespace:
     snapshot_parser.add_argument("--out", type=Path, default=None)
     snapshot_parser.add_argument("--include-run", dest="include_run", type=Path, default=None)
 
-    doctor_parser = sub.add_parser("doctor", help="Validate docs/spec consistency")
-    doctor_parser.add_argument("--verbose", action="store_true")
-
     return parser.parse_args()
 
 
 def main() -> None:
     args = _parse_args()
     if args.command == "ui":
+        if args.smoke:
+            os.environ.setdefault("PAPER_TABLE_AGENT_UI_SMOKE", "1")
+            import paper_table_agent.ui.app  # noqa: F401
+
+            return
         cmd = [
             sys.executable,
             "-m",
@@ -113,15 +117,6 @@ def main() -> None:
         out_dir = args.out or DEFAULT_SNAPSHOT_DIR
         write_snapshot(out_dir, include_run=args.include_run)
         return
-
-    if args.command == "doctor":
-        from paper_table_agent.doctor import run_doctor
-
-        exit_code = run_doctor(verbose=args.verbose)
-        if exit_code:
-            sys.exit(exit_code)
-        return
-
 
 if __name__ == "__main__":
     main()

@@ -6,14 +6,15 @@ Paper Table Agent is a local-first PDF→table pipeline. It matches PDFs to tabl
 
 ## Golden path
 
-1. Load a table (CSV/XLSX) + schema.
-2. Parse PDFs and extract header metadata (title/authors/year).
-3. Match PDFs to table rows (deterministic pass, then LLM adjudication if needed).
-4. Build retrieval index + retrieve evidence chunks.
-5. Extract proposals for missing cells and validate evidence.
-6. Persist proposals + evidence + diagnostics to SQLite.
-7. Review decisions (Accept / Accept-with-edit / Reject).
-8. Export updated table + audit log.
+1. Load a table (CSV/XLSX) + schema and normalize column keys for matching.
+2. Parse PDFs into text + tokens; collect parsing sanity metrics.
+3. Extract header metadata (title/authors/year) with strict grounding and repair/fallback.
+4. Match PDFs to table rows (deterministic pass, then LLM adjudication in fallback window).
+5. Build retrieval index + retrieve evidence chunks with stable chunk IDs + indices.
+6. Extract proposals with ID-based references (col_id + chunk_idx) and validate evidence.
+7. Persist proposals + evidence + diagnostics to SQLite.
+8. Review decisions (Accept / Accept-with-edit / Reject) with highlighted PDF evidence.
+9. Export updated table + audit log.
 
 ## Inputs
 
@@ -59,40 +60,49 @@ exports/proposals.jsonl
 - **Treat single-space as empty**: configurable via `treat_single_space_as_empty`.
 - **Verify mode** (optional): create verify-only items for locked cells instead of overwriting them.
 - **Evidence discipline**: proposals without valid evidence are downgraded to `unclear` and marked `needs_more_evidence`.
+- **Unicode/ID normalization**: column and chunk identifiers are normalized to prevent drift.
 
 ## Matching behavior
 
 - **Pass 1 (deterministic)**: title similarity + author overlap + year tolerance.
 - **Pass 2 (LLM adjudication)**: JSON output with `matched | ambiguous | unmatched`, `row_id`, confidence, and evidence.
+- **Fallback window**: if the top candidate is plausible (score ≥ 0.50, or ≥ 0.45 with strong margin), LLM adjudication is attempted before marking unmatched.
 - **Duplicates**: keep highest-confidence match, flag others as duplicates.
 
 ## Extraction behavior
 
-- Columns are grouped by schema and extracted with prompts that include row context and examples.
-- Each requested column yields a proposal record (including `no_evidence` or `error` records).
+- Columns are grouped by schema and extracted with prompts that include row context, examples, and column IDs.
+- Each requested column yields a proposal record (including `unclear` or `error` records).
 - Evidence validation enforces:
-  - `chunk_id` is present and known.
+  - `chunk_idx` maps to a known `chunk_id`.
   - quote must be a substring of the chunk text (exact or normalized).
   - if validation fails: mark `needs_more_evidence` and capture `evidence_validation_errors`.
 
 ## Retrieval behavior
 
-- Query expansion and HyDE are used when enabled.
+- Query expansion and HyDE are used when enabled (always on in max success mode).
 - Retrieval uses sparse + optional dense embeddings and reranking.
 - If dense or reranker backends fail, the pipeline falls back to TF-IDF and disables reranking with a logged warning.
+- Low-quality retrieval triggers a retry with broader query variants and example anchors.
 
 ## Review UX
 
 - **Run tab**: table + PDF folder inputs, Start Run button, run status.
-- **Review tab**: select completed run; step through matched rows/columns with proposals needing decisions.
+
+- **Review tab**: select completed run; step through matched rows/columns with proposals or evidence.
 - Decisions: **Accept / Accept-with-edit / Reject**.
+- Evidence highlights are shown on the PDF page when available; re-locate is available if missing.
 
 ## Operational defaults
 
 - UI has no tuning knobs; configuration is driven by `run_config.json`.
 - Health checks validate model endpoint reachability and embedding/reranker backends; failures are logged in `run_report.json`.
+- Parsing sanity metrics (text length, tokens, sparse pages, OCR trigger) are recorded per PDF.
+- CLI entrypoint `paper-table-agent` must install via console scripts and is verified in tests.
+- `paper-table-agent ui --smoke` provides a headless import/layout check for CI and non-interactive environments.
+- Stub run fixture produces a deterministic proposal with evidence and is validated in tests.
 
 ## Failure semantics
 
-- If matched PDFs > 0 and proposals == 0, the run report is marked **failed** with diagnostics.
+- If matched PDFs > 0 and proposals == 0, the run report is marked **completed_with_warnings** with “why_no_values” diagnostics.
 - Health check failures are surfaced in `run_report.json` and logs; the run is marked failed if they occur.

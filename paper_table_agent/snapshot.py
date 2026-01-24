@@ -212,7 +212,7 @@ def _build_project_state_md(repo_root: Path) -> str:
 
         ## 2. Current repo entrypoints
         - CLI entrypoint: `paper_table_agent/cli.py` (commands: `ui`, `run`, `resume`, `stop`, `export`, `bundle`,
-          `init-db`, `init-config`, `snapshot`, `doctor`).
+          `init-db`, `init-config`, `snapshot`).
         - Streamlit app entry: `paper_table_agent/ui/app.py` (`paper-table-agent ui`).
         - LangGraph initialization: `paper_table_agent/graph/workflow.py` (StateGraph + SqliteSaver checkpoints).
 

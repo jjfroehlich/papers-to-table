@@ -15,6 +15,22 @@
     ],
     "confidence": 0.9
   },
+  "match_header_repair.md|a06aa1d388c068c3854f484bb73a571ca0c57183|": {
+    "title": "Mock Paper",
+    "authors": [
+      "Test Author"
+    ],
+    "year": "2024",
+    "evidence": [
+      {
+        "quote": "Mock Paper",
+        "page": 1,
+        "chunk_id": "page-1",
+        "locator_hint": "Mock Paper"
+      }
+    ],
+    "confidence": 0.9
+  },
   "match_adjudicate.md|a06aa1d388c068c3854f484bb73a571ca0c57183|": {
     "row_id": "0",
     "status": "matched",
@@ -26,6 +42,7 @@
   "extract_group.md|a06aa1d388c068c3854f484bb73a571ca0c57183|all": {
     "proposals": [
       {
+        "col_id": 1,
         "column": "Method",
         "proposed_value": "Method X",
         "status": "found",
@@ -35,6 +52,7 @@
             "quote": "Method X",
             "page": 1,
             "chunk_id": "page-1",
+            "chunk_idx": 1,
             "locator_hint": "Method X"
           }
         ],
@@ -42,6 +60,7 @@
         "rationale": "Found method"
       },
       {
+        "col_id": 2,
         "column": "Outcome",
         "proposed_value": "Improved survival",
         "status": "found",
@@ -51,6 +70,7 @@
             "quote": "Improved survival",
             "page": 1,
             "chunk_id": "page-1",
+            "chunk_idx": 1,
             "locator_hint": "Improved survival"
           }
         ],
@@ -58,6 +78,7 @@
         "rationale": "Found outcome"
       },
       {
+        "col_id": 3,
         "column": "Dose",
         "proposed_value": "10 mg daily",
         "status": "found",
@@ -67,6 +88,7 @@
             "quote": "10 mg daily",
             "page": 1,
             "chunk_id": "page-1",
+            "chunk_idx": 1,
             "locator_hint": "10 mg daily"
           }
         ],

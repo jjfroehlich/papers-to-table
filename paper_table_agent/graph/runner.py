@@ -27,7 +27,7 @@ from paper_table_agent.graph.matching import (
     adjudicate_match,
     build_match_record,
     deterministic_match,
-    extract_header,
+    extract_header_with_repair,
     shortlist_candidates,
 )
 from paper_table_agent.graph.reporting import write_mapping_report, write_run_report
@@ -36,7 +36,7 @@ from paper_table_agent.io.locks import build_locks
 from paper_table_agent.io.schema import group_columns, load_schema
 from paper_table_agent.io.xlsx import load_table
 from paper_table_agent.llm.client import LlmClient, LlmConfig, LlmJsonError
-from paper_table_agent.llm.models import QueryExpansionResult
+from paper_table_agent.llm.models import AdjudicationResult, QueryExpansionResult
 from paper_table_agent.llm.prompts import render_prompt
 from paper_table_agent.llm.embeddings import EmbeddingClient, EmbeddingConfig, StubEmbeddingClient
 from paper_table_agent.pdf.highlight import locate_quote
@@ -48,6 +48,7 @@ from paper_table_agent.retrieval.index import build_index, load_index_if_fresh, 
 from paper_table_agent.retrieval.pipeline import RetrievalConfig, retrieve_context
 from paper_table_agent.store.db import Store
 from paper_table_agent.utils.logging import configure_logging, log_error
+from paper_table_agent.text.normalization import normalize_key
 
 
 @dataclass
@@ -85,6 +86,7 @@ class DebugExtractionTracker:
     pdf_id: str
     chunks_indexed: int = 0
     retrieval_hits: dict[str, int] = field(default_factory=dict)
+    retrieval_debug: dict[str, Any] = field(default_factory=dict)
     extraction_attempts: dict[str, int] = field(default_factory=dict)
     proposal_counts: dict[str, int] = field(
         default_factory=lambda: {
@@ -98,6 +100,9 @@ class DebugExtractionTracker:
     def record_retrieval_hits(self, column: str, count: int) -> None:
         current = self.retrieval_hits.get(column, 0)
         self.retrieval_hits[column] = max(current, count)
+
+    def record_retrieval_debug(self, column: str, debug: dict[str, Any]) -> None:
+        self.retrieval_debug[column] = debug
 
     def record_attempts(self, columns: list[str]) -> None:
         for column in columns:
@@ -120,7 +125,7 @@ class DebugExtractionTracker:
     def to_payload(self) -> dict[str, Any]:
         sorted_reasons = sorted(self.failure_reasons.items(), key=lambda item: item[1], reverse=True)
         top_reasons = [{"reason": reason, "count": count} for reason, count in sorted_reasons[:3]]
-        return {
+        payload = {
             "pdf_id": self.pdf_id,
             "chunks_indexed": self.chunks_indexed,
             "retrieval_hits_per_column": self.retrieval_hits,
@@ -128,6 +133,9 @@ class DebugExtractionTracker:
             "proposal_counts": self.proposal_counts,
             "top_failure_reasons": top_reasons,
         }
+        if self.retrieval_debug:
+            payload["retrieval_debug"] = self.retrieval_debug
+        return payload
 
 
 def run_pipeline(config: RunConfig, run_paths: RunPaths, store: Store) -> None:
@@ -154,6 +162,8 @@ def run_pipeline(config: RunConfig, run_paths: RunPaths, store: Store) -> None:
     status = write_run_report(store, run_paths)
     if status == "completed_with_errors":
         (run_paths.run_dir / "COMPLETED_WITH_ERRORS").write_text("done", encoding="utf-8")
+    elif status == "completed_with_warnings":
+        (run_paths.run_dir / "COMPLETED_WITH_WARNINGS").write_text("done", encoding="utf-8")
     elif status != "failed":
         (run_paths.run_dir / "COMPLETED").write_text("done", encoding="utf-8")
 
@@ -167,6 +177,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
     if config.schema_mode == "separate" and config.schema_path:
         schema_source = config.schema_path
     schema_specs = load_schema(schema_source, config.schema_sheet_name)
+    _align_schema_columns(schema_specs, table.dataframe.columns)
     validate_schema_columns([spec.column_name for spec in schema_specs], table.dataframe.columns)
     grouped = group_columns(schema_specs)
     grouped = _apply_group_override(grouped, config.extraction.groups)
@@ -301,16 +312,27 @@ def _apply_group_override(
     if not overrides:
         return grouped if grouped else {"all_columns": [spec for specs in grouped.values() for spec in specs]}
     result: dict[str, list[Any]] = {}
-    spec_map = {spec.column_name: spec for specs in grouped.values() for spec in specs}
+    spec_map = {spec.column_key or spec.column_name: spec for specs in grouped.values() for spec in specs}
     for group in overrides:
         name = group.get("name") or "ungrouped"
         columns = group.get("columns") or []
-        specs = [spec_map[col] for col in columns if col in spec_map]
+        specs = [spec_map.get(normalize_key(col) or col) for col in columns]
+        specs = [spec for spec in specs if spec is not None]
         if specs:
             result[name] = specs
     if result:
         return result
     return grouped if grouped else {"all_columns": [spec for spec in spec_map.values()]}
+
+
+def _align_schema_columns(schema_specs: list[Any], table_columns: list[str]) -> None:
+    column_map = {normalize_key(column): column for column in table_columns}
+    for spec in schema_specs:
+        raw_key = spec.column_key or spec.column_name
+        key = normalize_key(raw_key)
+        if key in column_map:
+            spec.column_name = column_map[key]
+            spec.column_key = key
 
 
 def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, Any]) -> bool:
@@ -363,6 +385,10 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                     {"pdf_id": pdf.pdf_id, "error": str(exc)},
                 )
         save_parsed(parsed, context.run_paths.parsed_dir)
+        parse_metrics = _parse_sanity_metrics(parsed.page_text, parsed.tokens, context.config.ocr)
+        parse_metrics["pdf_id"] = pdf.pdf_id
+        parse_metrics["ocr_triggered"] = parse_source == "ocr"
+        store.record_event("info", "parse_sanity", parse_metrics)
         store.update_pdf_status(pdf.pdf_id, "parsed", n_pages=parsed.n_pages, parse_source=parse_source)
     except Exception as exc:  # noqa: BLE001
         log_error(context.error_path, {"pdf_id": pdf.pdf_id, "error": str(exc)})
@@ -380,12 +406,21 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         context.config.retrieval.embedding_model,
     )
     if not index:
-        index = build_index(
-            chunks,
-            embedding_backend=context.config.retrieval.embedding_backend,
-            embedding_client=context.embedding_client,
-            embedding_model=context.config.retrieval.embedding_model,
-        )
+        try:
+            index = build_index(
+                chunks,
+                embedding_backend=context.config.retrieval.embedding_backend,
+                embedding_client=context.embedding_client,
+                embedding_model=context.config.retrieval.embedding_model,
+            )
+        except ValueError as exc:
+            _apply_embedding_fallback(context, str(exc))
+            index = build_index(
+                chunks,
+                embedding_backend=context.config.retrieval.embedding_backend,
+                embedding_client=context.embedding_client,
+                embedding_model=context.config.retrieval.embedding_model,
+            )
         save_index(index, context.run_paths.retrieval_dir / pdf.pdf_id)
 
     header_text = "\n".join(parsed.page_text[:2])
@@ -402,7 +437,12 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         context.logger,
     )
     try:
-        header = extract_header(context.header_client, header_text, pdf_id=pdf.pdf_id)
+        header = extract_header_with_repair(
+            context.header_client,
+            header_text,
+            str(pdf.path),
+            pdf_id=pdf.pdf_id,
+        )
     except LlmJsonError as exc:
         log_error(
             context.error_path,
@@ -425,7 +465,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
             }
         )
         store.update_pdf_status(pdf.pdf_id, "failed", error=str(exc))
-        _finalize_debug_tracker(store, debug_tracker)
+        _finalize_debug_tracker(store, debug_tracker, context.config.output.debug_reports)
         return False
     store.insert_pdf_metadata(
         pdf.pdf_id,
@@ -463,7 +503,20 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         context.config.matching.confidence_threshold,
         context.config.matching.confidence_margin,
     )
-    if adjudication is None:
+    if adjudication is None or (
+        adjudication.status in {"ambiguous", "unmatched"}
+        and _should_attempt_llm_match(candidates, context.config.matching)
+    ):
+        if adjudication is None or adjudication.status in {"ambiguous", "unmatched"}:
+            context.store.record_event(
+                "info",
+                "match_adjudication_attempted",
+                {
+                    "pdf_id": pdf.pdf_id,
+                    "top_score": _top_candidate_score(candidates),
+                    "margin": _top_score_margin(candidates),
+                },
+            )
         try:
             adjudication = adjudicate_match(context.match_client, header, candidates, pdf_id=pdf.pdf_id)
         except LlmJsonError as exc:
@@ -488,8 +541,38 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 }
             )
             store.update_pdf_status(pdf.pdf_id, "processed", error=str(exc))
-            _finalize_debug_tracker(store, debug_tracker)
+            _finalize_debug_tracker(store, debug_tracker, context.config.output.debug_reports)
             return True
+    elif adjudication is None:
+        context.store.record_event(
+            "info",
+            "match_adjudication_skipped",
+            {
+                "pdf_id": pdf.pdf_id,
+                "top_score": _top_candidate_score(candidates),
+                "margin": _top_score_margin(candidates),
+                "reason": "below_fallback_threshold",
+            },
+        )
+        adjudication = AdjudicationResult(
+            row_id=None,
+            status="unmatched",
+            top_candidates=[candidate.to_payload() for candidate in candidates],
+            confidence=0.0,
+            rationale="Below fallback threshold; LLM adjudication skipped",
+            evidence=header.evidence,
+        )
+    elif adjudication.status == "unmatched":
+        context.store.record_event(
+            "info",
+            "match_adjudication_skipped",
+            {
+                "pdf_id": pdf.pdf_id,
+                "top_score": _top_candidate_score(candidates),
+                "margin": _top_score_margin(candidates),
+                "reason": "deterministic_unmatched",
+            },
+        )
     adjudication = _coerce_single_plausible(
         adjudication,
         candidates,
@@ -534,7 +617,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         )
 
     if not adjudication.row_id or adjudication.status != "matched":
-        _finalize_debug_tracker(store, debug_tracker)
+        _finalize_debug_tracker(store, debug_tracker, context.config.output.debug_reports)
         return True
 
     row_context = next((row for row in context.rows_data if row["row_id"] == adjudication.row_id), {})
@@ -549,11 +632,30 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         if not target_columns:
             continue
         target_specs = [spec for spec in specs if spec.column_name in target_columns]
+        columns_payload = []
+        column_id_map: dict[int, str] = {}
+        column_key_map: dict[str, str] = {}
+        for idx, spec in enumerate(target_specs):
+            col_id = idx + 1
+            column_id_map[col_id] = spec.column_name
+            column_key = spec.column_key or normalize_key(spec.column_name)
+            column_key_map[column_key] = spec.column_name
+            columns_payload.append(
+                {
+                    "col_id": col_id,
+                    "name": spec.column_name,
+                    "description": spec.description,
+                    "examples": context.examples.get(spec.column_name, []),
+                }
+            )
         group = GroupContext(
             name=group_name,
             columns=target_columns,
             schema={spec.column_name: spec.description for spec in target_specs},
             examples={col: context.examples.get(col, []) for col in target_columns},
+            columns_payload=columns_payload,
+            column_id_map=column_id_map,
+            column_key_map=column_key_map,
         )
         try:
             store.record_event(
@@ -569,6 +671,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 context.helper_client,
                 context.embedding_client,
                 context.reranker_client,
+                examples_map=context.examples,
                 debug_tracker=debug_tracker,
                 store=context.store,
             )
@@ -712,7 +815,8 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                         },
                     )
 
-    _finalize_debug_tracker(store, debug_tracker)
+    include_debug = context.config.output.debug_reports or debug_tracker.proposal_counts["value_present"] == 0
+    _finalize_debug_tracker(store, debug_tracker, include_debug)
     store.update_pdf_status(pdf.pdf_id, "processed")
     return True
 
@@ -724,6 +828,30 @@ def _truncate_header_text(text: str, limit: int, logger: Any) -> str:
         return text
     logger.info("truncating header text from %s to %s chars", len(text), limit)
     return text[:limit]
+
+
+def _top_candidate_score(candidates: list[Any]) -> float:
+    if not candidates:
+        return 0.0
+    return float(candidates[0].score)
+
+
+def _top_score_margin(candidates: list[Any]) -> float:
+    if len(candidates) < 2:
+        return float(candidates[0].score) if candidates else 0.0
+    return float(candidates[0].score - candidates[1].score)
+
+
+def _should_attempt_llm_match(candidates: list[Any], config: Any) -> bool:
+    if not candidates:
+        return False
+    top_score = _top_candidate_score(candidates)
+    margin = _top_score_margin(candidates)
+    if top_score >= config.fallback_min:
+        return True
+    if top_score >= config.fallback_threshold and margin >= config.fallback_margin:
+        return True
+    return False
 
 
 def prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tuple[RunContext, list[PdfRecord]]:
@@ -960,6 +1088,23 @@ def _build_retrieval_config(config: RunConfig) -> RetrievalConfig:
             reranker_backend=retrieval.reranker_backend,
             reranker_model=retrieval.reranker_model,
         )
+    if config.max_success_mode:
+        return RetrievalConfig(
+            top_k=max(retrieval.top_k, 24),
+            rerank_k=max(retrieval.rerank_k, 24),
+            max_context_chunks=min(max(retrieval.max_context_chunks, 24), config.extraction.max_chunks),
+            max_context_tokens=max(retrieval.max_context_tokens, 2400),
+            query_variants=max(retrieval.query_variants, 6),
+            use_query_expansion=True,
+            use_hyde=True,
+            rrf_k=retrieval.rrf_k,
+            use_reranker=retrieval.use_reranker,
+            use_dense=retrieval.use_dense,
+            embedding_backend=retrieval.embedding_backend,
+            embedding_model=retrieval.embedding_model,
+            reranker_backend=retrieval.reranker_backend,
+            reranker_model=retrieval.reranker_model,
+        )
     return RetrievalConfig(
         top_k=retrieval.top_k,
         rerank_k=retrieval.rerank_k,
@@ -982,6 +1127,7 @@ def _format_chunks(chunks: list[Any]) -> list[dict[str, Any]]:
     return [
         {
             "chunk_id": chunk.chunk_id,
+            "chunk_idx": chunk.chunk_idx,
             "text": chunk.text,
             "text_raw": getattr(chunk, "text_raw", None),
             "page_start": chunk.page_start,
@@ -1025,8 +1171,11 @@ def _annotate_failure_reasons(
                 flags["failure_reason"] = "no_value"
 
 
-def _finalize_debug_tracker(store: Store, tracker: DebugExtractionTracker) -> None:
-    store.insert_debug_extraction(tracker.pdf_id, tracker.to_payload())
+def _finalize_debug_tracker(store: Store, tracker: DebugExtractionTracker, include_debug: bool) -> None:
+    payload = tracker.to_payload()
+    if not include_debug:
+        payload.pop("retrieval_debug", None)
+    store.insert_debug_extraction(tracker.pdf_id, payload)
 
 
 def _merge_column_contexts(chunks_by_column: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
@@ -1042,6 +1191,18 @@ def _merge_column_contexts(chunks_by_column: dict[str, list[dict[str, Any]]]) ->
     return merged
 
 
+def _needs_retrieval_retry(context_result: Any) -> bool:
+    chunks = context_result.chunks
+    if not chunks:
+        return True
+    top_chunk = chunks[0]
+    if top_chunk.score < 0.05:
+        return True
+    if len(top_chunk.text.split()) < 6:
+        return True
+    return False
+
+
 def _retrieve_column_contexts(
     index: Any,
     specs: list[Any],
@@ -1049,6 +1210,7 @@ def _retrieve_column_contexts(
     helper_client: LlmClient,
     embedder: EmbeddingClient | None,
     reranker_embedder: EmbeddingClient | None,
+    examples_map: dict[str, list[dict[str, Any]]] | None = None,
     debug_tracker: DebugExtractionTracker | None = None,
     store: Store | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
@@ -1066,9 +1228,37 @@ def _retrieve_column_contexts(
             embedder=embedder,
             reranker_embedder=reranker_embedder,
         )
+        if _needs_retrieval_retry(context_result):
+            examples = examples_map.get(spec.column_name, []) if examples_map else []
+            anchors = ", ".join(example.get("value") for example in examples if example.get("value"))
+            retry_query = " ".join(
+                part
+                for part in [
+                    spec.column_name,
+                    spec.description,
+                    f"Examples: {anchors}" if anchors else "",
+                    "results methods abstract conclusion",
+                ]
+                if part
+            )
+            context_result = retrieve_context(
+                index,
+                retry_query,
+                retrieval_config,
+                helper_client=helper_client,
+                embedder=embedder,
+                reranker_embedder=reranker_embedder,
+            )
+            if store is not None:
+                store.record_event(
+                    "info",
+                    "retrieval_retry",
+                    {"column": spec.column_name, "query": retry_query},
+                )
         contexts[spec.column_name] = _format_chunks(context_result.chunks)
         if debug_tracker is not None:
             debug_tracker.record_retrieval_hits(spec.column_name, len(context_result.chunks))
+            debug_tracker.record_retrieval_debug(spec.column_name, context_result.debug)
         if store is not None and context_result.debug.get("fallbacks"):
             store.record_event(
                 "warning",
@@ -1133,6 +1323,19 @@ def _retry_unclear_proposals(
         columns=retry_columns,
         schema={spec.column_name: spec.description for spec in retry_specs},
         examples={col: context.examples.get(col, []) for col in retry_columns},
+        columns_payload=[
+            {
+                "col_id": idx + 1,
+                "name": spec.column_name,
+                "description": spec.description,
+                "examples": context.examples.get(spec.column_name, []),
+            }
+            for idx, spec in enumerate(retry_specs)
+        ],
+        column_id_map={idx + 1: spec.column_name for idx, spec in enumerate(retry_specs)},
+        column_key_map={
+            (spec.column_key or normalize_key(spec.column_name)): spec.column_name for spec in retry_specs
+        },
     )
     retry_payload = dict(context.retrieval_config.__dict__)
     retry_payload["max_context_chunks"] = min(
@@ -1155,6 +1358,7 @@ def _retry_unclear_proposals(
         context.helper_client,
         context.embedding_client,
         context.reranker_client,
+        examples_map=context.examples,
         debug_tracker=debug_tracker,
         store=context.store,
     )
@@ -1197,3 +1401,24 @@ def _load_tokens(tokens_path: Path) -> list[dict[str, Any]]:
 
 def _stop_requested(run_paths: RunPaths) -> bool:
     return (run_paths.run_dir / "STOP").exists() or (run_paths.run_dir / "PAUSE").exists()
+
+
+def _parse_sanity_metrics(
+    page_text: list[str],
+    tokens: list[dict[str, Any]],
+    ocr_config: Any,
+) -> dict[str, Any]:
+    total_chars = sum(len(text.strip()) for text in page_text)
+    total_tokens = len(tokens)
+    sparse_pages = [
+        idx + 1
+        for idx, text in enumerate(page_text)
+        if len(text.strip()) < ocr_config.ocr_trigger_min_chars_per_page
+    ]
+    return {
+        "n_pages": len(page_text),
+        "total_chars_text": total_chars,
+        "total_tokens": total_tokens,
+        "sparse_pages_count": len(sparse_pages),
+        "sparse_pages": sparse_pages,
+    }

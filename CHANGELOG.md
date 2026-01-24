@@ -22,3 +22,8 @@
 - Added stub LLM + stub embeddings/reranker for deterministic offline tests and fixtures.
 - Simplified run artifacts: pdf_row_matches.csv is required, mapping_report.html is debug-only.
 - Added keyboard shortcuts and pending-only review queues for faster Review navigation.
+- Normalized column and chunk identifiers and switched extraction outputs to col_id + chunk_idx for evidence robustness.
+- Added matching fallback adjudication, header repair, and parsing sanity metrics in run reports.
+- Added retrieval retries for low-quality context and locator improvements for evidence highlights.
+- Removed the `doctor` command and related docs/tests.
+- Added `paper-table-agent ui --smoke` headless UI check and CLI smoke script for quick validation.
