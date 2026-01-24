@@ -11,6 +11,7 @@ class EvidenceQuote(BaseModel):
     quote_normalized: str | None = None
     page: int | None = None
     locator_hint: str | None = None
+    chunk_pk: str | None = None
     chunk_id: str | None = None
     chunk_idx: int | None = None
     highlight_status: str | None = None
@@ -21,6 +22,7 @@ class HeaderExtractionResult(BaseModel):
     title: str | None = None
     authors: list[str] = Field(default_factory=list)
     year: str | None = None
+    doi: str | None = None
     evidence: list[EvidenceQuote] = Field(default_factory=list)
     confidence: float = 0.0
 
@@ -58,7 +60,9 @@ class ProposalItem(BaseModel):
     status: str
     confidence: float
     evidence: list[EvidenceQuote] = Field(default_factory=list)
+    evidence_quality: str | None = None
     needs_more_evidence: bool | None = None
+    search_hints: list[str] = Field(default_factory=list)
     flags: dict[str, Any] = Field(default_factory=dict)
     rationale: str | None = None
 

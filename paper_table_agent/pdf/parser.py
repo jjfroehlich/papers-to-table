@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -29,7 +30,7 @@ def compute_sha1(path: Path) -> str:
 
 def parse_pdf(path: Path) -> ParsedPdf:
     doc = fitz.open(path)
-    page_text = [page.get_text("text") for page in doc]
+    page_text = [_build_page_text(page) for page in doc]
     n_pages = doc.page_count
     tokens: list[dict[str, Any]] = []
     with pdfplumber.open(path) as pdf:
@@ -43,6 +44,41 @@ def parse_pdf(path: Path) -> ParsedPdf:
                     }
                 )
     return ParsedPdf(pdf_id="", path=path, n_pages=n_pages, page_text=page_text, tokens=tokens)
+
+
+def _build_page_text(page: fitz.Page) -> str:
+    words = page.get_text("words")
+    if not words:
+        return page.get_text("text")
+    lines: dict[tuple[int, int], list[tuple[float, str]]] = {}
+    line_order: dict[tuple[int, int], float] = {}
+    for word in words:
+        x0, y0, _x1, _y1, text, block_no, line_no, _word_no = word
+        if not text:
+            continue
+        key = (int(block_no), int(line_no))
+        lines.setdefault(key, []).append((float(x0), str(text)))
+        line_order.setdefault(key, float(y0))
+    ordered_keys = sorted(lines.keys(), key=lambda key: (key[0], key[1], line_order.get(key, 0.0)))
+    rendered_lines = []
+    for key in ordered_keys:
+        entries = sorted(lines[key], key=lambda item: item[0])
+        rendered_lines.append(" ".join(word for _, word in entries).strip())
+    rendered_lines = _merge_hyphenated_lines(rendered_lines)
+    return "\n".join(line for line in rendered_lines if line)
+
+
+def _merge_hyphenated_lines(lines: list[str]) -> list[str]:
+    merged: list[str] = []
+    for line in lines:
+        if not merged:
+            merged.append(line)
+            continue
+        if re.search(r"[A-Za-z]-$", merged[-1]) and line and line[0].islower():
+            merged[-1] = merged[-1][:-1] + line
+        else:
+            merged.append(line)
+    return merged
 
 
 def save_parsed(parsed: ParsedPdf, output_dir: Path) -> None:

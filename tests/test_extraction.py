@@ -2,7 +2,7 @@ from paper_table_agent.graph.extraction import _apply_evidence_rules
 from paper_table_agent.llm.models import EvidenceQuote, ProposalItem
 
 
-def test_apply_evidence_rules_rejects_missing_chunk_id():
+def test_apply_evidence_rules_repairs_missing_chunk_id():
     proposal = ProposalItem(
         column="Metric",
         proposed_value="42",
@@ -23,9 +23,9 @@ def test_apply_evidence_rules_rejects_missing_chunk_id():
             }
         },
     )
-    assert proposal.status == "unclear"
+    assert proposal.status == "found"
     assert proposal.proposed_value == "42"
-    assert "evidence_validation_errors" in proposal.flags
+    assert proposal.flags.get("evidence_quality") == "strong"
 
 
 def test_apply_evidence_rules_accepts_valid_quote():

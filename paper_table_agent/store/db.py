@@ -55,7 +55,7 @@ class Store:
 
     def insert_rows(self, rows: Iterable[dict[str, Any]]) -> None:
         self.conn.executemany(
-            "INSERT OR REPLACE INTO rows (row_id, row_index, title, authors, year, status) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO rows (row_id, row_index, title, authors, year, doi, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
             [
                 (
                     row["row_id"],
@@ -63,6 +63,7 @@ class Store:
                     row.get("title"),
                     row.get("authors"),
                     row.get("year"),
+                    row.get("doi"),
                     row.get("status", "ready"),
                 )
                 for row in rows
@@ -103,20 +104,22 @@ class Store:
         title: str | None,
         authors: list[str],
         year: str | None,
+        doi: str | None,
         evidence: list[dict[str, Any]],
         confidence: float | None = None,
     ) -> None:
         self.conn.execute(
             """
             INSERT OR REPLACE INTO pdf_metadata
-            (pdf_id, title, authors, year, confidence, evidence_json, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (pdf_id, title, authors, year, doi, confidence, evidence_json, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 pdf_id,
                 title,
                 ", ".join(authors),
                 year,
+                doi,
                 confidence,
                 json.dumps(evidence),
                 datetime.utcnow().isoformat(),
@@ -157,12 +160,14 @@ class Store:
             (
                 pdf_id,
                 chunk.get("chunk_id"),
+                chunk.get("chunk_pk"),
                 chunk.get("chunk_idx"),
                 chunk.get("text"),
                 chunk.get("text_raw"),
+                chunk.get("text_norm"),
                 chunk.get("page_start"),
                 chunk.get("page_end"),
-                chunk.get("source"),
+                chunk.get("chunk_type"),
                 datetime.utcnow().isoformat(),
             )
             for chunk in chunks
@@ -172,8 +177,8 @@ class Store:
         self.conn.executemany(
             """
             INSERT OR REPLACE INTO retrieval_chunks
-            (pdf_id, chunk_id, chunk_idx, text, text_raw, page_start, page_end, source, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (pdf_id, chunk_id, chunk_pk, chunk_idx, text, text_raw, text_norm, page_start, page_end, chunk_type, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             payload,
         )
@@ -296,6 +301,24 @@ class Store:
         self.conn.execute(
             "INSERT OR REPLACE INTO debug_extraction (pdf_id, payload_json, created_at) VALUES (?, ?, ?)",
             (pdf_id, json.dumps(payload), datetime.utcnow().isoformat()),
+        )
+        self.conn.commit()
+
+    def insert_extraction_attempt(self, payload: dict[str, Any]) -> None:
+        self.conn.execute(
+            """
+            INSERT OR REPLACE INTO extraction_attempts
+            (attempt_id, pdf_id, row_id, column, payload_json, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                payload.get("attempt_id", str(uuid.uuid4())),
+                payload.get("pdf_id"),
+                payload.get("row_id"),
+                payload.get("column"),
+                json.dumps(payload),
+                datetime.utcnow().isoformat(),
+            ),
         )
         self.conn.commit()
 

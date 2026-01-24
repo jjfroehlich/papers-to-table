@@ -74,6 +74,21 @@ class StubEmbeddingClient:
         return np.array(vectors, dtype=np.float32)
 
 
+class HashEmbeddingClient:
+    def __init__(self, dimension: int = 32) -> None:
+        self.dimension = dimension
+
+    def embed_texts(self, texts: list[str]) -> np.ndarray:
+        if not texts:
+            return np.empty((0, self.dimension), dtype=np.float32)
+        vectors: list[list[float]] = []
+        for text in texts:
+            digest = hashlib.sha1(text.encode("utf-8")).digest()
+            values = [byte / 255.0 for byte in digest[: self.dimension]]
+            vectors.append(values)
+        return np.array(vectors, dtype=np.float32)
+
+
 def _order_embeddings(data: Iterable[dict[str, object]], expected_len: int) -> list[list[float]] | None:
     ordered: list[list[float] | None] = [None] * expected_len
     for item in data:

@@ -54,20 +54,24 @@ def test_matching_fallback_triggers_llm_adjudication() -> None:
             title="Test",
             authors="A",
             year="2020",
+            doi="",
             score=0.55,
             title_score=0.55,
             author_score=0.1,
             year_bonus=0.0,
+            doi_bonus=0.0,
         ),
         RowCandidate(
             row_id="2",
             title="Test 2",
             authors="B",
             year="2020",
+            doi="",
             score=0.42,
             title_score=0.42,
             author_score=0.0,
             year_bonus=0.0,
+            doi_bonus=0.0,
         ),
     ]
     assert _should_attempt_llm_match(candidates, config)
@@ -86,8 +90,8 @@ def test_matching_fallback_invokes_llm(monkeypatch, tmp_path: Path) -> None:
         year_col="Year",
     )
     config.provider.mode = "stub"
-    config.retrieval.embedding_backend = "stub"
-    config.retrieval.reranker_backend = "stub"
+    config.retrieval.embedding_backend = "hash"
+    config.retrieval.reranker_backend = "hash"
     run_paths = create_run_paths(config.table_path, root=tmp_path / "runs")
     store = Store.init_db(run_paths.db_path)
     context, pdfs = prepare_context(config, run_paths, store)

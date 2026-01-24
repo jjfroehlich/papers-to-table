@@ -47,9 +47,9 @@
     "use_hyde": true,
     "rrf_k": 60,
     "use_dense": true,
-    "embedding_backend": "stub",
+    "embedding_backend": "hash",
     "embedding_model": null,
-    "reranker_backend": "stub",
+    "reranker_backend": "hash",
     "reranker_model": null,
     "use_reranker": true
   },

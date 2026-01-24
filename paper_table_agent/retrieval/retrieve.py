@@ -13,11 +13,14 @@ from paper_table_agent.llm.embeddings import EmbeddingClient
 @dataclass
 class RetrievedChunk:
     chunk_id: str
+    chunk_pk: str
     chunk_idx: int
     text: str
     text_raw: str
+    text_norm: str
     page_start: int
     page_end: int
+    chunk_type: str
     score: float
     bm25_score: float
     dense_score: float
@@ -26,11 +29,14 @@ class RetrievedChunk:
 @dataclass
 class RerankedChunk:
     chunk_id: str
+    chunk_pk: str
     chunk_idx: int
     text: str
     text_raw: str
+    text_norm: str
     page_start: int
     page_end: int
+    chunk_type: str
     score: float
     bm25_score: float
     dense_score: float
@@ -71,11 +77,14 @@ def retrieve(
         results.append(
             RetrievedChunk(
                 chunk_id=chunk.chunk_id,
+                chunk_pk=chunk.chunk_pk,
                 chunk_idx=chunk.chunk_idx,
                 text=chunk.text,
                 text_raw=chunk.text_raw,
+                text_norm=chunk.text_norm,
                 page_start=chunk.page_start,
                 page_end=chunk.page_end,
+                chunk_type=chunk.chunk_type,
                 score=float(combined[idx]),
                 bm25_score=float(bm25_scores[idx]),
                 dense_score=float(dense_scores[idx]),
@@ -97,11 +106,14 @@ def expand_with_neighbors(index: RetrievalIndex, retrieved: list[RetrievedChunk]
             expanded.append(
                 RetrievedChunk(
                     chunk_id=original.chunk_id,
+                    chunk_pk=original.chunk_pk,
                     chunk_idx=original.chunk_idx,
                     text=original.text,
                     text_raw=original.text_raw,
+                    text_norm=original.text_norm,
                     page_start=original.page_start,
                     page_end=original.page_end,
+                    chunk_type=original.chunk_type,
                     score=chunk.score * 0.8,
                     bm25_score=chunk.bm25_score * 0.8,
                     dense_score=chunk.dense_score * 0.8,
@@ -131,11 +143,14 @@ def reciprocal_rank_fusion(
         results.append(
             RetrievedChunk(
                 chunk_id=chunk.chunk_id,
+                chunk_pk=chunk.chunk_pk,
                 chunk_idx=chunk.chunk_idx,
                 text=chunk.text,
                 text_raw=chunk.text_raw,
+                text_norm=chunk.text_norm,
                 page_start=chunk.page_start,
                 page_end=chunk.page_end,
+                chunk_type=chunk.chunk_type,
                 score=score,
                 bm25_score=chunk.bm25_score,
                 dense_score=chunk.dense_score,

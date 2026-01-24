@@ -11,6 +11,7 @@ import streamlit as st
 
 from paper_table_agent.config import RunConfig, RunPaths, capture_run_config, create_run_paths, load_prompt_versions
 from paper_table_agent.graph.exporter import export_run
+from paper_table_agent.graph.evidence_finder import find_evidence_for_proposals
 from paper_table_agent.graph.workflow import run_workflow
 from paper_table_agent.io.locks import is_empty
 from paper_table_agent.io.schema import load_schema
@@ -151,6 +152,18 @@ def _evidence_label(evidence: dict[str, Any]) -> str:
     return f"Page {page}: {snippet}".strip()
 
 
+def _evidence_badge(proposal: dict[str, Any]) -> str:
+    flags = proposal.get("flags") or {}
+    evidence = proposal.get("evidence") or []
+    evidence_quality = flags.get("evidence_quality")
+    if not evidence:
+        return "Evidence: missing"
+    if evidence_quality:
+        return f"Evidence: {evidence_quality}"
+    if flags.get("evidence_validation_errors") or flags.get("quote_has_ellipsis"):
+        return "Evidence: weak"
+    return "Evidence: strong"
+
 def _proposal_failure_reason(proposal: dict[str, Any]) -> str:
     flags = proposal.get("flags", {})
     reason = flags.get("failure_reason")
@@ -202,6 +215,8 @@ def _next_pending_row_index(
 
 
 def _log_review_debug(store: Store) -> None:
+    if os.getenv("PAPER_TABLE_AGENT_REVIEW_DEBUG") != "1":
+        return
     proposals = [
         dict(row)
         for row in store.conn.execute("SELECT status, flags_json FROM proposals")
@@ -393,6 +408,18 @@ def build_app() -> None:
             st.caption(f"Remaining items: {remaining}")
 
             review_rows = build_review_rows(rows, matches, proposals_meta, table, reviews=reviews)
+            matched_row_ids = {
+                str(match.get("row_id"))
+                for match in matches
+                if match.get("status") == "matched" and match.get("row_id") is not None
+            }
+            rows_with_proposals = {str(proposal.get("row_id")) for proposal in proposals_meta}
+            matched_without_proposals = matched_row_ids - rows_with_proposals
+            if matched_without_proposals:
+                st.info(
+                    f"{len(matched_without_proposals)} matched row(s) have no proposals yet. "
+                    "They are hidden from Review."
+                )
             review_items_by_row = {}
             for row in review_rows:
                 row_proposals = [
@@ -464,6 +491,17 @@ def build_app() -> None:
                     with col_left:
                         column_labels = [item.get("column", "Unknown") for item in review_items]
                         current_index = st.session_state[index_key]
+                        nav_cols = st.columns([1, 1, 2])
+                        with nav_cols[0]:
+                            if st.button("Prev field", key=f"prev-field-{row_id}"):
+                                st.session_state[index_key] = max(0, current_index - 1)
+                                st.experimental_rerun()
+                        with nav_cols[1]:
+                            if st.button("Next field", key=f"next-field-{row_id}"):
+                                st.session_state[index_key] = min(len(column_labels) - 1, current_index + 1)
+                                st.experimental_rerun()
+                        with nav_cols[2]:
+                            st.caption(f"Field {current_index + 1} of {len(column_labels)}")
                         selected_column = st.selectbox(
                             "Column stepper",
                             column_labels,
@@ -487,10 +525,14 @@ def build_app() -> None:
                         state = _proposal_state(current, review)
                         if state == "needs_more_evidence":
                             st.caption("⚠️ Needs more evidence")
+                        st.caption(_evidence_badge(current))
+                        search_hints = (current.get("flags") or {}).get("search_hints") or []
+                        if search_hints:
+                            st.caption(f"Search hints: {', '.join(search_hints)}")
                         current_value = table.dataframe.at[int(row_data["row_index"]), current["column"]]
                         st.write("Current value:", "—" if is_empty(current_value) else current_value)
                         proposed_value = current.get("proposed_value")
-                        if proposed_value is None:
+                        if proposed_value is None or is_empty(proposed_value):
                             st.write("Proposed value:", "No value proposed")
                             st.caption(f"No proposal because: {_proposal_failure_reason(current)}")
                         else:
@@ -556,64 +598,88 @@ def build_app() -> None:
                     with col_right:
                         current = review_items[current_index]
                         st.subheader("PDF viewer")
-                        evidence_items = current.get("evidence", [])
-                        if evidence_items:
-                            if len(evidence_items) > 1:
-                                evidence_index = st.selectbox(
-                                    "Evidence",
-                                    list(range(len(evidence_items))),
-                                    format_func=lambda idx: _evidence_label(evidence_items[idx]),
-                                    key=f"evidence-{current['proposal_id']}",
-                                )
-                            else:
-                                evidence_index = 0
-                            evidence = evidence_items[evidence_index]
-                            st.write("Quote:", evidence.get("quote"))
-                            st.write("Page:", evidence.get("page"))
-                            rects = evidence.get("rects") or []
-                            pdf_path = store.conn.execute(
-                                "SELECT path FROM pdfs WHERE pdf_id = ?",
-                                (current.get("pdf_id"),),
-                            ).fetchone()
-                            pdf_path = pdf_path["path"] if pdf_path else None
-                            if pdf_path and evidence.get("page"):
-                                image = render_page_image(pdf_path, int(evidence["page"]), rects)
-                                if not rects:
-                                    st.caption("Highlight not found.")
-                                st.image(image, caption=f"PDF page {evidence['page']}")
-                                if not rects:
-                                    if st.button("Locate highlight", key=f"relocate-{current['proposal_id']}"):
-                                        tokens_path = (
-                                            Path(selected_run.run_dir)
-                                            / "artifacts"
-                                            / "parsed"
-                                            / f"{current['pdf_id']}_tokens.jsonl"
-                                        )
-                                        tokens = []
-                                        if tokens_path.exists():
-                                            tokens = [
-                                                json.loads(line)
-                                                for line in tokens_path.read_text(encoding="utf-8").splitlines()
-                                                if line
+                        with st.container(height=650):
+                            evidence_items = current.get("evidence", [])
+                            if evidence_items:
+                                if len(evidence_items) > 1:
+                                    evidence_index = st.selectbox(
+                                        "Evidence",
+                                        list(range(len(evidence_items))),
+                                        format_func=lambda idx: _evidence_label(evidence_items[idx]),
+                                        key=f"evidence-{current['proposal_id']}",
+                                    )
+                                else:
+                                    evidence_index = 0
+                                evidence = evidence_items[evidence_index]
+                                st.write("Quote:", evidence.get("quote"))
+                                st.write("Page:", evidence.get("page"))
+                                rects = evidence.get("rects") or []
+                                pdf_path = store.conn.execute(
+                                    "SELECT path FROM pdfs WHERE pdf_id = ?",
+                                    (current.get("pdf_id"),),
+                                ).fetchone()
+                                pdf_path = pdf_path["path"] if pdf_path else None
+                                if pdf_path and evidence.get("page"):
+                                    image = render_page_image(pdf_path, int(evidence["page"]), rects)
+                                    if not rects:
+                                        st.caption("Highlight not found.")
+                                    st.image(image, caption=f"PDF page {evidence['page']}")
+                                    if not rects:
+                                        if st.button("Locate highlight", key=f"relocate-{current['proposal_id']}"):
+                                            tokens_path = (
+                                                Path(selected_run.run_dir)
+                                                / "artifacts"
+                                                / "parsed"
+                                                / f"{current['pdf_id']}_tokens.jsonl"
+                                            )
+                                            tokens = []
+                                            if tokens_path.exists():
+                                                tokens = [
+                                                    json.loads(line)
+                                                    for line in tokens_path.read_text(encoding="utf-8").splitlines()
+                                                    if line
+                                                ]
+                                            chunks = [
+                                                dict(row)
+                                                for row in store.conn.execute(
+                                                    """
+                                                    SELECT chunk_id, chunk_pk, chunk_idx, text, text_raw, text_norm, page_start, page_end, chunk_type
+                                                    FROM retrieval_chunks WHERE pdf_id = ?
+                                                    """,
+                                                    (current.get("pdf_id"),),
+                                                )
                                             ]
-                                        highlight = locate_quote(
-                                            pdf_path,
-                                            evidence.get("quote", ""),
-                                            int(evidence.get("page", 1)),
-                                            locator_hint=evidence.get("locator_hint"),
-                                            tokens=tokens,
-                                        )
-                                        evidence["rects"] = highlight.rects
-                                        store.update_proposal_evidence(
-                                            current["proposal_id"],
-                                            evidence_items,
-                                            current.get("flags", {}),
-                                        )
-                                        st.success("Re-locate attempted")
+                                            parsed_path = (
+                                                Path(selected_run.run_dir)
+                                                / "artifacts"
+                                                / "parsed"
+                                                / f"{current['pdf_id']}_pymupdf.json"
+                                            )
+                                            page_text = []
+                                            if parsed_path.exists():
+                                                parsed_payload = json.loads(parsed_path.read_text(encoding="utf-8"))
+                                                page_text = parsed_payload.get("page_text") or []
+                                            refreshed = find_evidence_for_proposals(
+                                                [current],
+                                                chunks,
+                                                page_text,
+                                                tokens,
+                                                pdf_path,
+                                            )
+                                            current = refreshed[0]
+                                            evidence_items = current.get("evidence", [])
+                                            if evidence_items:
+                                                evidence = evidence_items[evidence_index]
+                                            store.update_proposal_evidence(
+                                                current["proposal_id"],
+                                                evidence_items,
+                                                current.get("flags", {}),
+                                            )
+                                            st.success("Re-locate attempted")
+                                else:
+                                    st.info("Evidence missing a page number or PDF path.")
                             else:
-                                st.info("Evidence missing a page number or PDF path.")
-                        else:
-                            st.info("No evidence available for this proposal.")
+                                st.info("No evidence available for this proposal.")
 
                     st.divider()
                     st.subheader("Export updated table")

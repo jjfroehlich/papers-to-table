@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS rows (
     title TEXT,
     authors TEXT,
     year TEXT,
+    doi TEXT,
     status TEXT
 );
 
@@ -42,6 +43,7 @@ CREATE TABLE IF NOT EXISTS pdf_metadata (
     title TEXT,
     authors TEXT,
     year TEXT,
+    doi TEXT,
     confidence REAL,
     evidence_json TEXT,
     created_at TEXT
@@ -77,14 +79,25 @@ CREATE TABLE IF NOT EXISTS proposals (
 CREATE TABLE IF NOT EXISTS retrieval_chunks (
     pdf_id TEXT,
     chunk_id TEXT,
+    chunk_pk TEXT,
     chunk_idx INTEGER,
     text TEXT,
     text_raw TEXT,
+    text_norm TEXT,
     page_start INTEGER,
     page_end INTEGER,
-    source TEXT,
+    chunk_type TEXT,
     created_at TEXT,
     PRIMARY KEY (pdf_id, chunk_id)
+);
+
+CREATE TABLE IF NOT EXISTS extraction_attempts (
+    attempt_id TEXT PRIMARY KEY,
+    pdf_id TEXT,
+    row_id TEXT,
+    column TEXT,
+    payload_json TEXT,
+    created_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS debug_extraction (

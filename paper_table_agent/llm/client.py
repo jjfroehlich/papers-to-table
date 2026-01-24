@@ -44,6 +44,7 @@ class LlmClient:
     def __init__(self, config: LlmConfig) -> None:
         self.config = config
         self._client = httpx.Client(timeout=self.config.timeout_s)
+        self.last_raw_response: str | None = None
 
     def _truncate_prompt(self, prompt: str) -> str:
         max_chars = self.config.max_prompt_chars
@@ -55,9 +56,13 @@ class LlmClient:
 
     def complete_json(self, prompt: str, schema: type[T]) -> T:
         if self.config.mode == "stub":
-            return self._stub_response(prompt, schema)
+            result = self._stub_response(prompt, schema)
+            self.last_raw_response = _coerce_raw_response(result)
+            return result
         if self.config.mock_mode or self.config.mode == "mock":
-            return self._mock_response(prompt, schema)
+            result = self._mock_response(prompt, schema)
+            self.last_raw_response = _coerce_raw_response(result)
+            return result
         schema_payload = schema.model_json_schema()
         prompt_working = prompt
         headers = {}
@@ -98,6 +103,7 @@ class LlmClient:
                     f"LLM HTTP error {response.status_code}: {response.text}"
                 ) from exc
             content = response.json()["choices"][0]["message"]["content"]
+            self.last_raw_response = content
             try:
                 parsed = self._parse_json(content)
                 return schema.model_validate(parsed)
@@ -231,17 +237,20 @@ class LlmClient:
                             "proposed_value": quote or f"{column_name} value",
                             "status": "found" if quote else "unclear",
                             "confidence": 0.7,
+                            "evidence_quality": "strong" if quote else "none",
                             "evidence": [
                                 {
                                     "quote": quote,
                                     "page": first_chunk.get("page_start") or 1,
-                                    "chunk_idx": first_chunk.get("chunk_idx"),
                                     "chunk_id": first_chunk.get("chunk_id"),
+                                    "chunk_pk": first_chunk.get("chunk_pk"),
+                                    "chunk_idx": first_chunk.get("chunk_idx"),
                                     "locator_hint": quote,
                                 }
                             ]
                             if quote
                             else [],
+                            "search_hints": [column_name] if not quote else [],
                             "needs_more_evidence": not bool(quote),
                             "rationale": "Fake extraction",
                         }
@@ -254,7 +263,9 @@ class LlmClient:
                             "proposed_value": None,
                             "status": "unclear",
                             "confidence": 0.0,
+                            "evidence_quality": "none",
                             "evidence": [],
+                            "search_hints": [column_name],
                             "needs_more_evidence": True,
                             "rationale": "No evidence located in stub retrieval.",
                         }
@@ -401,6 +412,15 @@ def _extract_prompt_meta(prompt: str) -> dict[str, Any] | None:
             except json.JSONDecodeError:
                 return None
     return None
+
+
+def _coerce_raw_response(result: object) -> str:
+    if hasattr(result, "model_dump"):
+        return json.dumps(result.model_dump(mode="json"))
+    try:
+        return json.dumps(result)
+    except TypeError:
+        return str(result)
 
 
 def _build_mock_key(meta: dict[str, Any]) -> str:

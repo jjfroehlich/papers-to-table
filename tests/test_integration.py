@@ -113,8 +113,8 @@ def test_integration_run_report_and_validation(tmp_path: Path):
         year_col="Year",
     )
     config.provider.mode = "stub"
-    config.retrieval.embedding_backend = "stub"
-    config.retrieval.reranker_backend = "stub"
+    config.retrieval.embedding_backend = "hash"
+    config.retrieval.reranker_backend = "hash"
 
     run_paths = create_run_paths(config.table_path, root=tmp_path / "runs")
     store = Store.init_db(run_paths.db_path)
