@@ -13,6 +13,7 @@ from paper_table_agent.llm.embeddings import EmbeddingClient
 @dataclass
 class RetrievedChunk:
     chunk_id: str
+    chunk_idx: int
     text: str
     text_raw: str
     page_start: int
@@ -25,6 +26,7 @@ class RetrievedChunk:
 @dataclass
 class RerankedChunk:
     chunk_id: str
+    chunk_idx: int
     text: str
     text_raw: str
     page_start: int
@@ -53,6 +55,8 @@ def retrieve(
             if embedder is None:
                 raise ValueError("Embedding client required for dense retrieval.")
             query_vec = embedder.embed_texts([query])
+        if query_vec.size == 0:
+            raise ValueError("Embedding backend returned empty query embedding.")
         dense_scores = cosine_similarity(query_vec, index.embeddings)[0]
     else:
         dense_scores = np.zeros(len(bm25_scores))
@@ -67,6 +71,7 @@ def retrieve(
         results.append(
             RetrievedChunk(
                 chunk_id=chunk.chunk_id,
+                chunk_idx=chunk.chunk_idx,
                 text=chunk.text,
                 text_raw=chunk.text_raw,
                 page_start=chunk.page_start,
@@ -92,6 +97,7 @@ def expand_with_neighbors(index: RetrievalIndex, retrieved: list[RetrievedChunk]
             expanded.append(
                 RetrievedChunk(
                     chunk_id=original.chunk_id,
+                    chunk_idx=original.chunk_idx,
                     text=original.text,
                     text_raw=original.text_raw,
                     page_start=original.page_start,
@@ -125,6 +131,7 @@ def reciprocal_rank_fusion(
         results.append(
             RetrievedChunk(
                 chunk_id=chunk.chunk_id,
+                chunk_idx=chunk.chunk_idx,
                 text=chunk.text,
                 text_raw=chunk.text_raw,
                 page_start=chunk.page_start,

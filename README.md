@@ -4,19 +4,31 @@ Paper Table Agent is a local-first PDF→table pipeline that matches PDFs to tab
 
 ## Install
 
+On Windows Git Bash, activate the venv with `source .venv/Scripts/activate`.
+
 ```bash
 python --version  # requires >=3.10
 python -m venv .venv
 source .venv/Scripts/activate
-pip install -e .
+pip install -e ".[test]"
 ```
 
 ## Quickstart
+
+```bash
+paper-table-agent --help
+```
 
 ### Run the UI
 
 ```bash
 paper-table-agent ui
+```
+
+### Headless UI smoke check (CI/Codex safe)
+
+```bash
+paper-table-agent ui --smoke
 ```
 
 The UI has two tabs: **Run** (select table + PDF folder) and **Review** (approve/reject proposals).
@@ -26,6 +38,12 @@ The UI has two tabs: **Run** (select table + PDF folder) and **Review** (approve
 ```bash
 paper-table-agent init-config --output run_config.json
 paper-table-agent run --config run_config.json
+```
+
+### Deterministic stub run (no local LLM required)
+
+```bash
+paper-table-agent run --config tests/fixtures/stub_run_config.json
 ```
 
 ### Review + export
@@ -42,21 +60,26 @@ This writes `exports/updated_table.xlsx` and `exports/audit_log.csv` in the run 
 paper-table-agent bundle --run_dir runs/<timestamp>__<table>/
 ```
 
+## How it works
+
+### Pipeline flow
+
+1. Parse PDFs into text + layout tokens, then chunk text for retrieval.
+2. Extract header metadata (title/authors/year) and match PDFs to table rows.
+3. Retrieve evidence chunks and propose values with quotes + pages.
+4. Review proposals row-by-row in the UI and export updates.
+
+### Evidence + review
+
+- Proposals must include quote + page + chunk reference; missing evidence stays `unclear`.
+- Review shows only matched rows and columns with proposals or evidence.
+- Highlights are drawn on the PDF page when quotes are located.
+
 ## Config (single source of truth)
 
 All settings live in `run_config.json`. The UI reads defaults from this file but only overrides the table/PDF paths you select. Generate a starter config with `paper-table-agent init-config --output run_config.json`, or use `tests/fixtures/stub_run_config.json` for a deterministic, offline test run.
 
 Debug-only artifacts (mapping report, proposals JSONL) are gated by `output.debug_reports=true` in the config.
-
-## Diagnostics
-
-```bash
-paper-table-agent snapshot
-paper-table-agent doctor
-```
-
-- `snapshot` writes a shareable project snapshot bundle under `runs/_diagnostics/latest_snapshot/`.
-- `doctor` validates that README/specs reference real paths and CLI commands.
 
 ## Troubleshooting
 

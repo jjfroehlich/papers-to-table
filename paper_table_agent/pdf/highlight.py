@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import re
+import unicodedata
 from typing import Iterable, Sequence
 
 import fitz
@@ -29,7 +30,7 @@ def locate_quote(
     if rects:
         doc.close()
         return HighlightResult(rects=rects, found=True, strategy="exact")
-    normalized = normalize_text(quote)
+    normalized = _normalize_quote_search(quote)
     hits = page.search_for(normalized)
     rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
     if rects:
@@ -41,7 +42,7 @@ def locate_quote(
         if rects:
             doc.close()
             return HighlightResult(rects=rects, found=True, strategy="locator_hint")
-        normalized_hint = normalize_text(locator_hint)
+        normalized_hint = _normalize_quote_search(locator_hint)
         hits = page.search_for(normalized_hint)
         rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
         if rects:
@@ -117,3 +118,11 @@ def _normalize_words(text: str) -> list[str]:
     cleaned = normalize_text(text)
     cleaned = re.sub(r"[^0-9A-Za-z]+", " ", cleaned).strip().lower()
     return [word for word in cleaned.split() if word]
+
+
+def _normalize_quote_search(text: str) -> str:
+    normalized = unicodedata.normalize("NFKC", text)
+    normalized = normalized.replace("\u00a0", " ")
+    normalized = re.sub(r"[\u2010\u2011\u2012\u2013\u2014\u2015\u2212]", "-", normalized)
+    normalized = re.sub(r"\s+", " ", normalized)
+    return normalized.strip()

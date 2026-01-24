@@ -3,7 +3,7 @@
 ## Current entrypoints
 
 - CLI entrypoint: `paper_table_agent/cli.py`
-  - Commands: `ui`, `run`, `resume`, `stop`, `export`, `bundle`, `init-db`, `init-config`, `snapshot`, `doctor`.
+- Commands: `ui`, `run`, `resume`, `stop`, `export`, `bundle`, `init-db`, `init-config`, `snapshot`.
 - Streamlit UI entrypoint: `paper_table_agent/ui/app.py`
 - LangGraph initialization: `paper_table_agent/graph/workflow.py`
 

@@ -38,6 +38,8 @@ def rerank(
             raise ValueError("Embedding client required for dense reranking.")
         candidate_vecs = embedder.embed_texts(texts)
         query_vec = embedder.embed_texts([query])
+        if candidate_vecs.size == 0 or query_vec.size == 0:
+            raise ValueError("Embedding backend returned empty reranker embeddings.")
     scores = cosine_similarity(query_vec, candidate_vecs)[0]
     order = np.argsort(scores)[::-1][:top_k]
     reranked: list[RerankedChunk] = []
@@ -46,6 +48,7 @@ def rerank(
         reranked.append(
             RerankedChunk(
                 chunk_id=chunk.chunk_id,
+                chunk_idx=chunk.chunk_idx,
                 text=chunk.text,
                 text_raw=chunk.text_raw,
                 page_start=chunk.page_start,

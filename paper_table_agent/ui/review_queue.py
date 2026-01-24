@@ -60,6 +60,12 @@ def review_items_for_row(
         cell_value = table.dataframe.at[int(row_index), column]
         cell_empty = is_empty(cell_value, empty_values)
         verification_status = _verification_status(proposal)
+        proposed_value = proposal.get("proposed_value")
+        evidence = proposal.get("evidence") or []
+        has_value = proposed_value is not None and str(proposed_value).strip() not in empty_values
+        has_evidence = bool(evidence)
+        if not (has_value or has_evidence):
+            continue
         if cell_empty or verification_status in {"contradicts", "unclear"}:
             review_items.append(proposal)
     return review_items
@@ -93,6 +99,12 @@ def remaining_review_count(
         cell_value = table.dataframe.at[int(row_index), column]
         cell_empty = is_empty(cell_value, empty_values or DEFAULT_EMPTY_VALUES)
         verification_status = _verification_status(proposal)
+        proposed_value = proposal.get("proposed_value")
+        evidence = proposal.get("evidence") or []
+        has_value = proposed_value is not None and str(proposed_value).strip() not in (empty_values or DEFAULT_EMPTY_VALUES)
+        has_evidence = bool(evidence)
+        if not (has_value or has_evidence):
+            continue
         if cell_empty or verification_status in {"contradicts", "unclear"}:
             count += 1
     return count

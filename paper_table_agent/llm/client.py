@@ -213,26 +213,30 @@ class LlmClient:
                 }
             )
         if schema_name == "GroupExtractionResult":
-            group_schema = _extract_prompt_json(prompt, "Group schema:")
-            chunks = _extract_prompt_json(prompt, "Retrieved chunks by column:")
+            columns_payload = _extract_prompt_json(prompt, "Columns (use col_id in responses):")
+            chunks = _extract_prompt_json(prompt, "Retrieved chunks:")
             proposals = []
-            for column, description in (group_schema or {}).items():
-                column_chunks = (chunks or {}).get(column) or []
-                if column_chunks:
-                    chunk = column_chunks[0]
-                    quote = str(chunk.get("text", "")).strip()
+            chunks_list = chunks or []
+            first_chunk = chunks_list[0] if chunks_list else {}
+            for column in columns_payload or []:
+                col_id = column.get("col_id")
+                column_name = column.get("name") or column.get("column") or "unknown"
+                if first_chunk:
+                    quote = str(first_chunk.get("text", "")).strip()
                     quote = quote.split(".")[0].strip() if quote else ""
                     proposals.append(
                         {
-                            "column": column,
-                            "proposed_value": quote or f"{column} value",
+                            "col_id": col_id,
+                            "column": column_name,
+                            "proposed_value": quote or f"{column_name} value",
                             "status": "found" if quote else "unclear",
                             "confidence": 0.7,
                             "evidence": [
                                 {
                                     "quote": quote,
-                                    "page": chunk.get("page_start") or 1,
-                                    "chunk_id": chunk.get("chunk_id"),
+                                    "page": first_chunk.get("page_start") or 1,
+                                    "chunk_idx": first_chunk.get("chunk_idx"),
+                                    "chunk_id": first_chunk.get("chunk_id"),
                                     "locator_hint": quote,
                                 }
                             ]
@@ -245,7 +249,8 @@ class LlmClient:
                 else:
                     proposals.append(
                         {
-                            "column": column,
+                            "col_id": col_id,
+                            "column": column_name,
                             "proposed_value": None,
                             "status": "unclear",
                             "confidence": 0.0,
@@ -355,11 +360,21 @@ def _extract_prompt_json(prompt: str, marker: str) -> Any:
         return None
     if start_arr != -1 and (start_obj == -1 or start_arr < start_obj):
         start = start_arr
-        end = snippet.rfind("]")
+        opening, closing = "[", "]"
     else:
         start = start_obj
-        end = snippet.rfind("}")
-    if end == -1:
+        opening, closing = "{", "}"
+    depth = 0
+    end = None
+    for idx, char in enumerate(snippet[start:], start=start):
+        if char == opening:
+            depth += 1
+        elif char == closing:
+            depth -= 1
+            if depth == 0:
+                end = idx
+                break
+    if end is None:
         return None
     try:
         return json.loads(snippet[start : end + 1])

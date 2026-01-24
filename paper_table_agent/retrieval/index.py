@@ -59,6 +59,8 @@ def build_index(
         if embedding_client is None:
             raise ValueError("Embedding client required for dense embeddings.")
         embeddings = embedding_client.embed_texts(texts)
+        if embeddings.size == 0 or embeddings.shape[0] != len(texts):
+            raise ValueError("Embedding backend returned empty or mismatched embeddings.")
     return RetrievalIndex(
         chunks=chunks,
         bm25=bm25,
@@ -115,6 +117,7 @@ def load_index(output_dir: Path) -> RetrievalIndex | None:
             chunks.append(
                 Chunk(
                     chunk_id=payload["chunk_id"],
+                    chunk_idx=int(payload.get("chunk_idx", 0)),
                     text=payload["text"],
                     text_raw=payload.get("text_raw", payload["text"]),
                     page_start=int(payload["page_start"]),

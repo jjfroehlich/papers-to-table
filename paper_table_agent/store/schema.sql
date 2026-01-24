@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS proposals (
 CREATE TABLE IF NOT EXISTS retrieval_chunks (
     pdf_id TEXT,
     chunk_id TEXT,
+    chunk_idx INTEGER,
     text TEXT,
     text_raw TEXT,
     page_start INTEGER,

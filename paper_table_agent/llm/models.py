@@ -12,6 +12,7 @@ class EvidenceQuote(BaseModel):
     page: int | None = None
     locator_hint: str | None = None
     chunk_id: str | None = None
+    chunk_idx: int | None = None
     highlight_status: str | None = None
     validation_mode: str | None = None
 
@@ -51,7 +52,8 @@ class HydeResult(BaseModel):
 
 
 class ProposalItem(BaseModel):
-    column: str
+    col_id: int | None = None
+    column: str | None = None
     proposed_value: str | None
     status: str
     confidence: float

@@ -61,6 +61,17 @@ def test_end_to_end_with_stub_llm_cli(tmp_path: Path):
         row for row in proposals if row["row_id"] in matched_rows
     ]
     assert matched_proposals
+    evidence_found = False
+    for row in matched_proposals:
+        if not row["proposed_value"]:
+            continue
+        evidence = json.loads(row["evidence_json"] or "[]")
+        if not evidence:
+            continue
+        if evidence[0].get("highlight_status") != "missing_quote_or_page":
+            evidence_found = True
+            break
+    assert evidence_found
 
     rows = [dict(row) for row in store.fetch_rows()]
     matches = [dict(row) for row in store.fetch_matches()]

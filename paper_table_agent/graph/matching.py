@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import json
+import re
 import uuid
 from dataclasses import dataclass
 from typing import Any
 
+import fitz
 from rapidfuzz import fuzz, process
 
 from paper_table_agent.llm.client import LlmClient
 from paper_table_agent.llm.models import AdjudicationResult, HeaderExtractionResult
 from paper_table_agent.llm.prompts import render_prompt
+from paper_table_agent.text.normalization import normalize_key
 
 
 @dataclass
@@ -41,6 +44,30 @@ def extract_header(client: LlmClient, text: str, pdf_id: str | None = None) -> H
     return client.complete_json(prompt, HeaderExtractionResult)
 
 
+def extract_header_with_repair(
+    client: LlmClient,
+    text: str,
+    pdf_path: str,
+    pdf_id: str | None = None,
+) -> HeaderExtractionResult:
+    header = extract_header(client, text, pdf_id=pdf_id)
+    if _header_is_valid(header, text):
+        return header
+    repair_prompt = render_prompt(
+        "match_header_repair.md",
+        _prompt_meta={"pdf_id": pdf_id},
+        text=text,
+        previous=json.dumps(header.model_dump(mode="json"), indent=2),
+    )
+    repaired = client.complete_json(repair_prompt, HeaderExtractionResult)
+    if _header_is_valid(repaired, text):
+        return repaired
+    fallback = _deterministic_header_from_pdf(pdf_path)
+    if fallback.title or fallback.authors or fallback.year:
+        return fallback
+    return repaired
+
+
 def shortlist_candidates(
     header: HeaderExtractionResult,
     rows: list[dict[str, Any]],
@@ -51,7 +78,7 @@ def shortlist_candidates(
         return []
     titles = {row["row_id"]: row.get("title", "") for row in rows}
     matches = process.extract(header.title, titles, scorer=fuzz.token_sort_ratio, limit=top_k)
-    header_authors = _author_last_names(header.authors)
+    header_authors = {normalize_key(name).casefold() for name in _author_last_names(header.authors)}
     candidates: list[RowCandidate] = []
     row_lookup = {row["row_id"]: row for row in rows}
     for _, score, row_id in matches:
@@ -76,6 +103,65 @@ def shortlist_candidates(
             )
         )
     return sorted(candidates, key=lambda item: item.score, reverse=True)[:top_k]
+
+
+def _header_is_valid(header: HeaderExtractionResult, text: str) -> bool:
+    normalized_text = _normalize_header_text(text)
+    title_ok = False
+    if header.title:
+        title_ok = _normalize_header_text(header.title) in normalized_text
+    authors_ok = False
+    header_authors = _author_last_names(header.authors)
+    if header_authors:
+        authors_ok = any(name in normalized_text for name in header_authors)
+    year_ok = True
+    if header.year:
+        year_ok = header.year in _extract_years(text)
+    return title_ok and authors_ok and year_ok
+
+
+def _extract_years(text: str) -> set[str]:
+    return set(re.findall(r"\\b(?:19|20)\\d{2}\\b", text))
+
+
+def _normalize_header_text(text: str) -> str:
+    return normalize_key(text).casefold()
+
+
+def _deterministic_header_from_pdf(pdf_path: str) -> HeaderExtractionResult:
+    try:
+        doc = fitz.open(pdf_path)
+    except Exception:
+        return HeaderExtractionResult(title=None, authors=[], year=None, evidence=[], confidence=0.0)
+    if doc.page_count == 0:
+        doc.close()
+        return HeaderExtractionResult(title=None, authors=[], year=None, evidence=[], confidence=0.0)
+    page = doc.load_page(0)
+    blocks = page.get_text("dict").get("blocks", [])
+    candidates: list[tuple[float, float, str]] = []
+    for block in blocks:
+        for line in block.get("lines", []):
+            for span in line.get("spans", []):
+                text = str(span.get("text") or "").strip()
+                size = float(span.get("size") or 0.0)
+                bbox = span.get("bbox") or [0, 0, 0, 0]
+                y = float(bbox[1])
+                if text:
+                    candidates.append((size, y, text))
+    candidates.sort(key=lambda item: (-item[0], item[1]))
+    title = " ".join([text for _, _, text in candidates[:2]]).strip()
+    author_lines = [text for _, _, text in candidates[2:5]]
+    authors = _split_authors(" ".join(author_lines))
+    year_matches = re.findall(r"\\b(?:19|20)\\d{2}\\b", page.get_text("text"))
+    year = year_matches[0] if year_matches else None
+    doc.close()
+    return HeaderExtractionResult(
+        title=title or None,
+        authors=authors,
+        year=year,
+        evidence=[],
+        confidence=0.4,
+    )
 
 
 def _author_last_names(authors: list[str]) -> set[str]:
