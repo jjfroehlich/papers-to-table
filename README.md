@@ -83,6 +83,8 @@ Debug-only artifacts (mapping report, proposals JSONL) are gated by `output.debu
 
 To capture raw LLM requests/responses for replay debugging, set `provider.record_requests=true`. This writes `logs/llm_records.jsonl` in the run directory unless you override `provider.record_path`.
 
+Guided JSON (`provider.guided_json_mode`) uses response_format/json_schema when supported. In `auto`, guided mode is disabled for local/private endpoints or when health checks detect schema rejections, and prompt-only JSON remains the fallback.
+
 ## Troubleshooting
 
 - **LLM endpoint errors**: confirm `provider.base_url` and models in `run_config.json` point to your backend (LM Studio/Ollama/OpenAI-compatible).

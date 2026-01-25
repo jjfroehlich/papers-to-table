@@ -166,11 +166,22 @@ def _evidence_badge(proposal: dict[str, Any]) -> str:
 
 def _proposal_failure_reason(proposal: dict[str, Any]) -> str:
     flags = proposal.get("flags", {})
+    http_status = flags.get("http_status")
+    if http_status:
+        error_substring = flags.get("error_substring")
+        if error_substring:
+            return f"LLM HTTP error {http_status}: {error_substring}"
+        return f"LLM HTTP error {http_status}"
     reason = flags.get("failure_reason")
     if reason:
+        if reason == "json_parse_error":
+            return "JSON parse error"
         return str(reason).replace("_", " ")
-    if flags.get("error_type"):
-        return str(flags["error_type"]).replace("_", " ")
+    error_type = flags.get("error_type")
+    if error_type in {"json_parse_error", "llm_json_error"}:
+        return "JSON parse error"
+    if error_type:
+        return str(error_type).replace("_", " ")
     validation_errors = flags.get("evidence_validation_errors") or []
     if validation_errors:
         return "evidence validation failed"

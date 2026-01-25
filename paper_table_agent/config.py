@@ -26,7 +26,13 @@ class ProviderConfig(BaseModel):
     max_prompt_chars: int = 26000
     mock_mode: bool = False
     mock_payloads_path: Path | None = None
-    guided_json_mode: str = "auto"
+    guided_json_mode: str = Field(
+        default="auto",
+        description=(
+            "Guided JSON mode for response_format/json_schema. 'auto' disables guided mode for local/private "
+            "endpoints or when health checks detect schema rejections; prompt-only JSON remains the fallback."
+        ),
+    )
     record_requests: bool = False
     record_path: Path | None = None
 
