@@ -35,7 +35,7 @@ def test_empty_extraction_groups_default_to_schema(tmp_path: Path) -> None:
     grouped_columns = {
         spec.column_name for specs in context.grouped.values() for spec in specs
     }
-    assert grouped_columns == {"Method", "Outcome", "Dose"}
+    assert grouped_columns == {"Method", "Outcome", "Dose", "Population", "Setting"}
 
 
 def test_align_schema_columns_normalizes_nbsp() -> None:

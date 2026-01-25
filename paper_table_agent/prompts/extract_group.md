@@ -6,8 +6,36 @@ Evidence is best-effort: include quote + page + chunk_id/chunk_idx/chunk_pk when
 Quotes must be verbatim substrings of the chunk text. Avoid ellipses; if you cannot find a clean quote, leave evidence empty and set evidence_quality=weak/none with needs_more_evidence=true.
 Always set evidence_quality to strong | weak | none. When evidence_quality != strong, include search_hints (keywords/sections/phrases) to help locate evidence later.
 If status=inferred, include a rationale explaining the inference.
-Return strict JSON:
-{"proposals": [{"col_id": int, "proposed_value": string|null, "status": "found|inferred|not_found|unclear", "confidence": 0-1, "evidence_quality": "strong|weak|none", "evidence": [{"quote":string, "page":int, "chunk_id":string|null, "chunk_idx":int|null, "chunk_pk":string|null, "locator_hint":string|null}], "search_hints": [string], "needs_more_evidence": bool, "rationale": string}]}
+Return strict JSON only (no markdown).
+Rules:
+- Use the provided col_id values exactly as given.
+- Quote must be an exact substring of the chunk text (no ellipses, no stitched lines).
+- Use chunk_idx when available (1-based); chunk_id is optional but preferred when known.
+Example JSON:
+{
+  "proposals": [
+    {
+      "col_id": 2,
+      "proposed_value": "42",
+      "status": "found",
+      "confidence": 0.86,
+      "evidence_quality": "strong",
+      "evidence": [
+        {
+          "quote": "We report an accuracy of 42%.",
+          "page": 3,
+          "chunk_id": "para-3-2-1",
+          "chunk_idx": 17,
+          "chunk_pk": "4f1b6a65a8d0f2e67c6c1a1d9eac2f8c47ab1d55",
+          "locator_hint": "accuracy 42%"
+        }
+      ],
+      "search_hints": [],
+      "needs_more_evidence": false,
+      "rationale": "Value stated explicitly in results."
+    }
+  ]
+}
 Row context:
 {{row_context}}
 Columns (use col_id in responses):

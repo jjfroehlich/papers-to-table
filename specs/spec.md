@@ -55,6 +55,12 @@ exports/mapping_report.html
 exports/proposals.jsonl
 ```
 
+Optional when `provider.record_requests=true`:
+
+```
+logs/llm_records.jsonl
+```
+
 ## Guardrails
 
 - **Locked cells**: non-empty cells are never overwritten.
@@ -86,6 +92,7 @@ exports/proposals.jsonl
 
 - Query expansion and HyDE are used when enabled (always on in max success mode).
 - Retrieval uses sparse + optional dense embeddings and reranking.
+- Query construction drops NaN/empty examples and omits the examples section when none remain.
 - If dense or reranker backends fail, the pipeline falls back to TF-IDF and disables reranking with a logged warning.
 - Low-quality retrieval triggers a retry with broader query variants and example anchors.
 - Deterministic hash embedding/reranker backends are available for offline tests.
@@ -107,6 +114,7 @@ exports/proposals.jsonl
 - CLI entrypoint `paper-table-agent` must install via console scripts and is verified in tests.
 - `paper-table-agent ui --smoke` provides a headless import/layout check for CI and non-interactive environments.
 - Stub run fixture produces multiple proposed values, evidence, and at least one highlightable bbox.
+- Optional LLM record mode stores raw prompt/response pairs under `logs/llm_records.jsonl` for replay debugging.
 
 ## Failure semantics
 

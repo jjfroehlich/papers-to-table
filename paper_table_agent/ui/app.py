@@ -249,6 +249,17 @@ def _log_review_debug(store: Store) -> None:
 def build_app() -> None:
     st.set_page_config(page_title="Paper Table Agent", layout="wide")
     st.title("Paper Table Agent")
+    st.markdown(
+        """
+        <style>
+        .stImage img {
+          max-height: 70vh;
+          width: auto;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
     test_mode = os.getenv("PAPER_TABLE_AGENT_TEST_MODE")
     if test_mode == "review":
@@ -598,7 +609,7 @@ def build_app() -> None:
                     with col_right:
                         current = review_items[current_index]
                         st.subheader("PDF viewer")
-                        with st.container(height=700):
+                        with st.container(height=520):
                             evidence_items = current.get("evidence", [])
                             if evidence_items:
                                 if len(evidence_items) > 1:

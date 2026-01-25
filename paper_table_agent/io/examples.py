@@ -3,8 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 import pandas as pd
-
-from paper_table_agent.config import DEFAULT_EMPTY_VALUES
+from paper_table_agent.text.normalization import normalize_str_for_prompt
 
 
 def select_examples(
@@ -16,21 +15,20 @@ def select_examples(
     for col in columns:
         if col not in dataframe.columns:
             continue
-        non_empty = dataframe[~dataframe[col].isin(DEFAULT_EMPTY_VALUES)]
-        if non_empty.empty:
+        indices = []
+        for row_index, value in dataframe[col].items():
+            if normalize_str_for_prompt(value):
+                indices.append(row_index)
+        if not indices:
             continue
-        indices = list(non_empty.index)
         if len(indices) <= max_per_column:
             selected = indices
         else:
             step = (len(indices) - 1) / max(1, max_per_column - 1)
             selected = sorted({indices[int(round(i * step))] for i in range(max_per_column)})
         for row_index in selected:
-            row = non_empty.loc[row_index]
-            examples[col].append(
-                {
-                    "row_index": int(row_index),
-                    "value": str(row[col]),
-                }
-            )
+            value = normalize_str_for_prompt(dataframe.at[row_index, col])
+            if not value:
+                continue
+            examples[col].append({"row_index": int(row_index), "value": value})
     return examples

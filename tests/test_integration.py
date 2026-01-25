@@ -122,7 +122,7 @@ def test_integration_run_report_and_validation(tmp_path: Path):
 
     proposals = store.conn.execute("SELECT column, flags_json, proposal_id FROM proposals").fetchall()
     columns = {row["column"] for row in proposals}
-    assert columns == {"Method", "Outcome", "Dose"}
+    assert columns == {"Method", "Outcome", "Dose", "Population", "Setting"}
 
     assert (run_paths.run_dir / "run_report.json").exists()
     assert not (run_paths.exports_dir / "pdf_row_matches.csv").exists()

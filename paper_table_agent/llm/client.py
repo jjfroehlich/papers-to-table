@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, TypeVar
 
 import httpx
@@ -39,6 +40,7 @@ class LlmConfig:
     mock_mode: bool = False
     mock_payloads: dict[str, Any] | None = None
     guided_json_mode: str = "auto"
+    record_path: Path | None = None
 
 
 class LlmClient:
@@ -46,6 +48,8 @@ class LlmClient:
         self.config = config
         self._client = httpx.Client(timeout=self.config.timeout_s)
         self.last_raw_response: str | None = None
+        if self.config.record_path:
+            self.config.record_path.parent.mkdir(parents=True, exist_ok=True)
 
     def _truncate_prompt(self, prompt: str) -> str:
         max_chars = self.config.max_prompt_chars
@@ -113,6 +117,13 @@ class LlmClient:
                 ) from exc
             content = response.json()["choices"][0]["message"]["content"]
             self.last_raw_response = content
+            self._record_interaction(
+                prompt=prompt_working,
+                response=content,
+                stage="completion",
+                attempt=attempt,
+                model=self.config.model,
+            )
             try:
                 parsed = self._parse_json(content)
                 return schema.model_validate(parsed)
@@ -155,23 +166,13 @@ class LlmClient:
         return True
 
     def _parse_json(self, content: str) -> Any:
+        cleaned = _strip_markdown_fences(content)
         try:
-            return json.loads(content)
+            return json.loads(cleaned)
         except json.JSONDecodeError:
-            # Fallback: extract the first JSON object/array from mixed text
-            start_obj = content.find("{")
-            start_arr = content.find("[")
-            if start_obj == -1 and start_arr == -1:
+            snippet = _extract_first_json(cleaned)
+            if snippet is None:
                 raise
-            if start_arr != -1 and (start_obj == -1 or start_arr < start_obj):
-                start = start_arr
-                end = content.rfind("]")
-            else:
-                start = start_obj
-                end = content.rfind("}")
-            if end == -1:
-                raise
-            snippet = content[start : end + 1]
             return json.loads(snippet)
 
     def _mock_response(self, prompt: str, schema: type[T]) -> T:
@@ -364,11 +365,40 @@ class LlmClient:
             else:
                 return None
         content = response.json()["choices"][0]["message"]["content"]
+        self._record_interaction(
+            prompt=repair_prompt,
+            response=content,
+            stage="repair",
+            attempt=0,
+            model=self.config.model,
+        )
         try:
             parsed = self._parse_json(content)
             return schema.model_validate(parsed)
         except Exception:  # noqa: BLE001
             return None
+
+    def _record_interaction(
+        self,
+        prompt: str,
+        response: str,
+        stage: str,
+        attempt: int,
+        model: str,
+    ) -> None:
+        if not self.config.record_path:
+            return
+        payload = {
+            "timestamp": time.time(),
+            "stage": stage,
+            "attempt": attempt,
+            "model": model,
+            "prompt": prompt,
+            "response": response,
+            "prompt_meta": _extract_prompt_meta(prompt) or {},
+        }
+        with self.config.record_path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload) + "\n")
 
 
 def _extract_prompt_query(prompt: str) -> str | None:
@@ -465,3 +495,38 @@ def _build_mock_key(meta: dict[str, Any]) -> str:
 def _is_guided_json_error(error_text: str) -> bool:
     lowered = (error_text or "").lower()
     return "regex" in lowered or "grammar" in lowered or "guided" in lowered
+
+
+def _strip_markdown_fences(content: str) -> str:
+    text = content.strip()
+    if text.startswith("```"):
+        lines = text.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].startswith("```"):
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
+    return text
+
+
+def _extract_first_json(content: str) -> str | None:
+    start_positions = [pos for pos in (content.find("{"), content.find("[")) if pos != -1]
+    if not start_positions:
+        return None
+    start = min(start_positions)
+    stack = []
+    for idx in range(start, len(content)):
+        char = content[idx]
+        if char in "{[":
+            stack.append(char)
+        elif char in "}]":
+            if not stack:
+                continue
+            opening = stack.pop()
+            if opening == "{" and char != "}":
+                continue
+            if opening == "[" and char != "]":
+                continue
+            if not stack:
+                return content[start : idx + 1]
+    return None

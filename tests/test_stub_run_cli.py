@@ -79,6 +79,6 @@ def test_stub_run_produces_evidence(tmp_path: Path) -> None:
                     proposals_with_highlight += 1
                 break
 
-    assert proposals_with_value >= 3, "Expected at least 3 proposals with non-empty proposed_value"
+    assert proposals_with_value >= 5, "Expected at least 5 proposals with non-empty proposed_value"
     assert proposals_with_strong_evidence >= 1, "No proposal with strong evidence quality"
     assert proposals_with_highlight >= 1, "No proposal with highlightable evidence bbox"
