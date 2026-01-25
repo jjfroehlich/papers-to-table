@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+from rapidfuzz import fuzz
 from paper_table_agent.config import (
     RunConfig,
     RunPaths,
@@ -56,6 +57,7 @@ from paper_table_agent.retrieval.pipeline import RetrievalConfig, retrieve_conte
 from paper_table_agent.store.db import Store
 from paper_table_agent.utils.logging import configure_logging, log_error
 from paper_table_agent.text.normalization import normalize_key
+from paper_table_agent.text.normalization import normalize_for_matching
 
 
 @dataclass
@@ -710,6 +712,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 }
                 for chunk in merged_context
             }
+            prompt_meta: dict[str, Any] = {}
             extraction = extract_group(
                 context.extract_client,
                 row_context,
@@ -718,6 +721,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 adjudication.status != "matched",
                 full_chunk_lookup=full_chunk_lookup,
                 pdf_id=pdf.pdf_id,
+                prompt_meta=prompt_meta,
             )
             raw_output = (context.extract_client.last_raw_response or "")[:2000]
             prompt_version = context.prompt_versions.get("extract_group.md")
@@ -729,8 +733,14 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                         "column": proposal.column,
                         "stage": "extraction",
                         "prompt_version": prompt_version,
+                        "prompt_hash": prompt_meta.get("prompt_hash"),
+                        "prompt_chars": prompt_meta.get("prompt_chars"),
                         "raw_output": raw_output,
                         "parsed_output": proposal.model_dump(mode="json"),
+                        "validation_errors": proposal.flags.get("evidence_validation_errors"),
+                        "validation_reason": proposal.flags.get("validation_reason"),
+                        "failure_reason": proposal.flags.get("failure_reason"),
+                        "needs_more_evidence": proposal.flags.get("needs_more_evidence"),
                     }
                 )
             proposals = build_proposal_records(pdf.pdf_id, adjudication.row_id, extraction)
@@ -791,6 +801,12 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                         "stage": "evidence_finder",
                         "evidence_quality": flags.get("evidence_quality"),
                         "evidence": proposal.get("evidence"),
+                        "highlight_status": [
+                            item.get("highlight_status") for item in (proposal.get("evidence") or [])
+                        ],
+                        "highlight_strategy": [
+                            item.get("highlight_strategy") for item in (proposal.get("evidence") or [])
+                        ],
                     }
                 )
         proposals = _resolve_evidence_locators(
@@ -798,6 +814,8 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
             pdf.path,
             parsed.tokens,
             parse_source,
+            parsed.page_text,
+            chunk_dicts,
         )
         try:
             proposals = verify_proposals(context.extract_client, proposals, pdf_id=pdf.pdf_id)
@@ -850,7 +868,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                         adjudication.row_id,
                         verify_results,
                         locked_values,
-                        chunk_lookup,
+                        full_chunk_lookup,
                     )
                     _annotate_failure_reasons(verify_records, debug_tracker.retrieval_hits)
                     debug_tracker.record_proposals(verify_records)
@@ -938,7 +956,14 @@ def _resolve_evidence_locators(
     pdf_path: Path,
     tokens: list[dict[str, Any]],
     parse_source: str,
+    page_text: list[str] | None,
+    chunks: list[dict[str, Any]] | None,
 ) -> list[dict[str, Any]]:
+    chunk_lookup = {
+        normalize_key(str(chunk.get("chunk_id") or "")): chunk
+        for chunk in (chunks or [])
+        if chunk.get("chunk_id")
+    }
     for proposal in proposals:
         evidence_items = proposal.get("evidence") or []
         for evidence in evidence_items:
@@ -946,9 +971,19 @@ def _resolve_evidence_locators(
             page = evidence.get("page")
             locator_hint = evidence.get("locator_hint")
             if not quote or not page:
-                proposal.setdefault("flags", {})["needs_more_evidence"] = True
-                evidence["highlight_status"] = "missing_quote_or_page"
-                continue
+                if not page:
+                    page = _page_from_chunk_lookup(evidence, chunk_lookup)
+                    if page:
+                        evidence["page"] = page
+                if not page and page_text:
+                    page = _find_best_page_for_quote(quote or locator_hint, page_text)
+                    if page:
+                        evidence["page"] = page
+                if not quote or not page:
+                    proposal.setdefault("flags", {})["needs_more_evidence"] = True
+                    evidence["highlight_status"] = "missing_quote_or_page"
+                    evidence["highlight_strategy"] = "missing"
+                    continue
             if evidence.get("rects"):
                 continue
             highlight = locate_quote(str(pdf_path), quote, int(page), locator_hint=locator_hint, tokens=tokens)
@@ -958,6 +993,41 @@ def _resolve_evidence_locators(
             if not highlight.found:
                 proposal.setdefault("flags", {})["needs_more_evidence"] = True
     return proposals
+
+
+def _page_from_chunk_lookup(evidence: dict[str, Any], chunk_lookup: dict[str, dict[str, Any]]) -> int | None:
+    chunk_id = normalize_key(str(evidence.get("chunk_id") or ""))
+    if chunk_id and chunk_id in chunk_lookup:
+        page = chunk_lookup[chunk_id].get("page_start")
+        return int(page) if page is not None else None
+    chunk_idx = evidence.get("chunk_idx")
+    if chunk_idx is not None:
+        for chunk in chunk_lookup.values():
+            if chunk.get("chunk_idx") == chunk_idx:
+                page = chunk.get("page_start")
+                return int(page) if page is not None else None
+    return None
+
+
+def _find_best_page_for_quote(quote: str | None, page_text: list[str]) -> int | None:
+    if not quote:
+        return None
+    best_page = None
+    best_score = 0
+    for idx, text in enumerate(page_text):
+        score = fuzz.partial_ratio(quote, text)
+        if score > best_score:
+            best_score = score
+            best_page = idx + 1
+    if best_score < 60:
+        normalized_quote = normalize_for_matching(quote)
+        if not normalized_quote:
+            return None
+        for idx, text in enumerate(page_text):
+            if normalized_quote in normalize_for_matching(text):
+                return idx + 1
+        return None
+    return best_page
 
 
 def _ensure_retrieval_backends(config: RunConfig, logger: Any, store: Store) -> None:

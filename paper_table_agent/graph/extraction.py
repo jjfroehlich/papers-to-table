@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import uuid
@@ -32,6 +33,7 @@ def extract_group(
     mapping_dependent: bool,
     full_chunk_lookup: dict[str, dict[str, Any]] | None = None,
     pdf_id: str | None = None,
+    prompt_meta: dict[str, Any] | None = None,
 ) -> GroupExtractionResult:
     merged_chunks = _merge_chunks(chunks_by_column)
     prompt = render_prompt(
@@ -41,12 +43,17 @@ def extract_group(
         columns=json.dumps(group.columns_payload, indent=2),
         chunks=json.dumps(merged_chunks, indent=2),
     )
+    if prompt_meta is not None:
+        prompt_meta["prompt_hash"] = hashlib.sha1(prompt.encode("utf-8")).hexdigest()
+        prompt_meta["prompt_chars"] = len(prompt)
     result = client.complete_json(prompt, GroupExtractionResult)
     result = _coerce_group_columns(result, group)
     result = _ensure_group_coverage(result, group.columns)
     chunk_lookup = full_chunk_lookup or _build_chunk_lookup(chunks_by_column)
     for proposal in result.proposals:
         proposal.flags.setdefault("mapping_dependent", mapping_dependent)
+        if proposal.column and proposal.column in group.schema:
+            proposal.flags.setdefault("column_description", group.schema.get(proposal.column))
         _apply_evidence_rules(proposal, chunk_lookup)
     return result
 
@@ -93,10 +100,7 @@ def _apply_evidence_rules(proposal: Any, chunk_lookup: dict[str, dict[str, Any]]
         proposal.flags["evidence_missing"] = True
         proposal.flags["failure_reason"] = proposal.flags.get("failure_reason") or reason or "missing_evidence"
         proposal.needs_more_evidence = True
-        if status in {"found", "inferred"}:
-            proposal.status = "unclear"
-    else:
-        proposal.status = status
+    proposal.status = status
     if _has_ellipsis_quote(proposal.evidence):
         proposal.flags["quote_has_ellipsis"] = True
         proposal.needs_more_evidence = True
@@ -106,8 +110,17 @@ def _apply_evidence_rules(proposal: Any, chunk_lookup: dict[str, dict[str, Any]]
         proposal.flags.setdefault("needs_review", True)
     proposal.evidence_quality = _derive_evidence_quality(proposal.evidence, has_evidence, errors)
     proposal.flags["evidence_quality"] = proposal.evidence_quality
-    if proposal.evidence_quality != "strong" and proposal.proposed_value and not proposal.search_hints:
-        proposal.search_hints = [str(proposal.proposed_value)]
+    if proposal.evidence_quality != "strong":
+        if proposal.proposed_value and not proposal.search_hints:
+            proposal.search_hints = [str(proposal.proposed_value)]
+        if not proposal.search_hints:
+            proposal.search_hints = []
+        column_desc = proposal.flags.get("column_description")
+        if column_desc:
+            proposal.search_hints.append(str(column_desc))
+        if proposal.column:
+            proposal.search_hints.append(str(proposal.column))
+        proposal.search_hints = _dedupe_search_hints(proposal.search_hints)
 
 
 def build_error_records(
@@ -286,6 +299,7 @@ def _build_chunk_lookup(chunks_by_column: dict[str, list[dict[str, Any]]]) -> di
                         "page_start": chunk.get("page_start"),
                         "page_end": chunk.get("page_end"),
                         "chunk_pk": chunk.get("chunk_pk"),
+                        "chunk_idx": chunk_idx,
                     },
                 )
                 if isinstance(chunk_idx, int):
@@ -348,9 +362,6 @@ def _validate_evidence_list(
             normalized_quote = normalize_for_matching(str(quote))
             setattr(evidence, "quote_raw", str(quote))
             setattr(evidence, "quote_normalized", normalized_quote)
-        if not quote or not page:
-            errors.append("missing_quote_or_page")
-            continue
         if chunk_lookup is None:
             return True, [], "unvalidated", "no_chunk_lookup"
         chunk_idx_map = chunk_lookup.get("_chunk_idx_map", {})
@@ -387,6 +398,18 @@ def _validate_evidence_list(
         if not chunk_meta:
             errors.append("unknown_chunk_id")
             return True, errors, "weak", "unknown_chunk_id"
+        if not page and chunk_meta.get("page_start") is not None:
+            page = chunk_meta.get("page_start")
+            setattr(evidence, "page", page)
+        if not chunk_id:
+            setattr(evidence, "chunk_id", canonical_id)
+        if getattr(evidence, "chunk_pk", None) is None and chunk_meta.get("chunk_pk"):
+            setattr(evidence, "chunk_pk", chunk_meta.get("chunk_pk"))
+        if getattr(evidence, "chunk_idx", None) is None and chunk_meta.get("chunk_idx") is not None:
+            setattr(evidence, "chunk_idx", chunk_meta.get("chunk_idx"))
+        if not quote or not page:
+            errors.append("missing_quote_or_page")
+            continue
         page_start = chunk_meta.get("page_start")
         page_end = chunk_meta.get("page_end")
         if page_start is not None and page_end is not None:
@@ -450,6 +473,18 @@ def _derive_evidence_quality(
     if has_evidence and not errors:
         return "strong"
     return "weak"
+
+
+def _dedupe_search_hints(hints: list[str]) -> list[str]:
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for hint in hints:
+        normalized = str(hint).strip()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        deduped.append(normalized)
+    return deduped
 
 
 def _quote_has_ellipsis(quote: str) -> bool:

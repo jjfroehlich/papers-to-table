@@ -5,8 +5,7 @@ import hashlib
 import re
 from typing import Iterable
 
-from paper_table_agent.text.normalization import normalize_text
-from paper_table_agent.text.normalization import normalize_key
+from paper_table_agent.text.normalization import normalize_for_matching, normalize_key, normalize_text
 
 
 @dataclass
@@ -30,22 +29,22 @@ def build_chunks(page_text: list[str], sections: list[dict[str, str]] | None = N
         page_number = idx + 1
         cleaned = text.strip()
         normalized = normalize_text(cleaned)
-        if normalized:
-            chunk_idx += 1
-            chunks.append(
-                Chunk(
-                    chunk_id=normalize_key(f"page-{page_number}"),
-                    chunk_pk=_chunk_pk(f"page-{page_number}"),
-                    chunk_idx=chunk_idx,
-                    text=normalized,
-                    text_raw=cleaned,
-                    text_norm=normalize_text(normalized),
-                    page_start=page_number,
-                    page_end=page_number,
-                    chunk_type="page",
-                    neighbors=[],
-                )
+        chunk_idx += 1
+        chunk_id = normalize_key(f"page-{page_number}")
+        chunks.append(
+            Chunk(
+                chunk_id=chunk_id,
+                chunk_pk=_chunk_pk(chunk_id),
+                chunk_idx=chunk_idx,
+                text=normalized or cleaned,
+                text_raw=cleaned,
+                text_norm=normalize_for_matching(cleaned or normalized),
+                page_start=page_number,
+                page_end=page_number,
+                chunk_type="page",
+                neighbors=[],
             )
+        )
         for para_index, paragraph in enumerate(_split_paragraphs(cleaned)):
             paragraph = paragraph.strip()
             if not paragraph:
@@ -60,7 +59,7 @@ def build_chunks(page_text: list[str], sections: list[dict[str, str]] | None = N
                     continue
                 chunk_idx += 1
                 chunk_id = normalize_key(f"para-{page_number}-{para_index + 1}-{segment_index}")
-                text_norm = normalize_text(segment)
+                text_norm = normalize_for_matching(segment)
                 raw_segment = raw_segments[min(segment_index - 1, len(raw_segments) - 1)] if raw_segments else segment
                 chunks.append(
                     Chunk(

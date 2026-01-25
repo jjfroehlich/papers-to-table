@@ -11,11 +11,11 @@ Paper Table Agent is a local-first PDF→table pipeline. It matches PDFs to tabl
 3. Extract header metadata (title/authors/year) with strict grounding and repair/fallback.
 4. Match PDFs to table rows (deterministic pass, then LLM adjudication in fallback window).
 5. Build retrieval index + retrieve evidence chunks with stable chunk IDs + indices.
-6. Extract proposals with ID-based references (col_id + chunk_idx); validate evidence without suppressing values.
+6. Extract proposals with ID-based references (col_id + chunk_idx + chunk_pk); validate evidence without suppressing values.
 7. Run evidence finder for weak/none evidence to attach quotes, pages, and highlights.
-7. Persist proposals + evidence + diagnostics to SQLite.
-8. Review decisions (Accept / Accept-with-edit / Reject) with highlighted PDF evidence.
-9. Export updated table + audit log.
+8. Persist proposals + evidence + diagnostics to SQLite.
+9. Review decisions (Accept / Accept-with-edit / Reject) with highlighted PDF evidence.
+10. Export updated table + audit log.
 
 ## Inputs
 
@@ -61,7 +61,7 @@ exports/proposals.jsonl
 - **Treat single-space as empty**: configurable via `treat_single_space_as_empty`.
 - **Verify mode** (optional): create verify-only items for locked cells instead of overwriting them.
 - **Evidence discipline**: proposals keep proposed values; evidence validation only annotates flags and `needs_more_evidence`.
-- **Evidence finder**: weak/none evidence triggers a locator pass to search full chunks and tokens for supporting quotes.
+- **Evidence finder**: weak/none evidence triggers a locator pass to search full chunks, page text, and tokens for supporting quotes.
 - **Unicode/ID normalization**: column and chunk identifiers are normalized to prevent drift.
 
 ## Matching behavior
@@ -75,11 +75,12 @@ exports/proposals.jsonl
 
 - Columns are grouped by schema and extracted with prompts that include row context, examples, and column IDs.
 - Each requested column yields a proposal record (including `unclear` or `error` records).
+- Value-first extraction: propose a value whenever plausible; evidence quality is metadata.
 - Evidence validation annotates:
-  - `chunk_idx` maps to a known `chunk_id`.
+  - `chunk_pk`/`chunk_id`/`chunk_idx` map to a known chunk in the full chunk table.
   - quote must be a substring of the chunk text (exact or normalized).
   - if validation fails: mark `needs_more_evidence` and capture `evidence_validation_errors` without clearing values.
-- Evidence finder runs for weak/none evidence using full chunk tables, page text, and tokens to attach quotes and highlights.
+- Evidence finder runs for weak/none evidence using full chunk tables, page text, and tokens to attach quotes, pages, and highlights.
 
 ## Retrieval behavior
 
@@ -94,8 +95,9 @@ exports/proposals.jsonl
 - **Run tab**: table + PDF folder inputs, Start Run button, run status.
 
 - **Review tab**: select completed run; step through matched rows/columns with proposals or evidence.
-- Decisions: **Accept / Accept-with-edit / Reject**.
+- Decisions: **Accept / Accept-with-edit / Reject** with auto-advance.
 - Evidence highlights are shown on the PDF page when available; re-locate is available if missing.
+- Prev/Next proposal navigation supports skim mode.
 
 ## Operational defaults
 
