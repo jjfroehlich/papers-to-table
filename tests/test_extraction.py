@@ -103,3 +103,30 @@ def test_apply_evidence_rules_accepts_chunk_id_unicode_dash():
     )
     assert proposal.status == "found"
     assert proposal.flags["validation_mode"] == "exact"
+
+
+def test_apply_evidence_rules_salvages_quote_span():
+    chunk_text = "The accuracy was 42 percent in the results section."
+    proposal = ProposalItem(
+        column="Metric",
+        proposed_value="42%",
+        status="found",
+        confidence=0.9,
+        evidence=[EvidenceQuote(quote="accuracy ... 42%", page=1, chunk_id="chunk-1")],
+        needs_more_evidence=None,
+        flags={},
+        rationale="",
+    )
+    _apply_evidence_rules(
+        proposal,
+        {
+            "chunk-1": {
+                "text": chunk_text,
+                "text_raw": chunk_text,
+                "page_start": 1,
+                "page_end": 1,
+            }
+        },
+    )
+    assert proposal.evidence[0].quote in chunk_text
+    assert "quote_salvaged" in proposal.flags.get("evidence_validation_errors", [])

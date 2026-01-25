@@ -2,13 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import re
-import unicodedata
 from typing import Iterable, Sequence
 
 import fitz
 from rapidfuzz import fuzz
 
-from paper_table_agent.text.normalization import normalize_text
+from paper_table_agent.text.normalization import normalize_text, normalize_unicode
 
 @dataclass
 class HighlightResult:
@@ -68,6 +67,41 @@ def locate_quote(
             return HighlightResult(rects=[rect], found=True, strategy="token_fuzzy")
     doc.close()
     return HighlightResult(rects=[], found=False, strategy="missing")
+
+
+def salvage_quote_from_tokens(
+    quote: str,
+    page_number: int,
+    tokens: Sequence[dict[str, object]] | None,
+    threshold: int = 78,
+) -> tuple[str | None, list[float] | None, str]:
+    if not quote or not tokens:
+        return None, None, "missing"
+    page_tokens = [
+        token
+        for token in tokens
+        if int(token.get("page", 0)) == page_number and token.get("text")
+    ]
+    if not page_tokens:
+        return None, None, "missing"
+    quote_words = _normalize_words(quote)
+    if not quote_words:
+        return None, None, "missing"
+    normalized_tokens = [_normalize_words(str(token["text"])) for token in page_tokens]
+    flattened = [words[0] for words in normalized_tokens if words]
+    if not flattened:
+        return None, None, "missing"
+    exact_span = _find_exact_span(quote_words, flattened)
+    if exact_span:
+        rect = _token_span_rect(page_tokens, exact_span)
+        quote_text = " ".join(str(token["text"]) for token in page_tokens[exact_span[0] : exact_span[1]])
+        return quote_text, rect, "token_salvage_exact"
+    best_span, best_score = _find_fuzzy_span(quote_words, flattened, threshold)
+    if best_span is None:
+        return None, None, "missing"
+    rect = _token_span_rect(page_tokens, best_span)
+    quote_text = " ".join(str(token["text"]) for token in page_tokens[best_span[0] : best_span[1]])
+    return quote_text, rect, "token_salvage_fuzzy"
 
 
 def apply_highlights(pdf_path: str, page_number: int, rects: Iterable[list[float]]) -> bytes:
@@ -136,9 +170,7 @@ def _normalize_words(text: str) -> list[str]:
 
 
 def _normalize_quote_search(text: str) -> str:
-    normalized = unicodedata.normalize("NFKC", text)
-    normalized = normalized.replace("\u00a0", " ")
-    normalized = re.sub(r"[\u2010\u2011\u2012\u2013\u2014\u2015\u2212]", "-", normalized)
+    normalized = normalize_unicode(text)
     normalized = re.sub(r"\s+", " ", normalized)
     return normalized.strip()
 
@@ -211,6 +243,51 @@ def _match_tokens_fuzzy(
     if best_score < threshold or best_span is None:
         return None
     matched = page_tokens[best_span[0] : best_span[1]]
+    xs0 = [token["bbox"][0] for token in matched if token.get("bbox")]
+    ys0 = [token["bbox"][1] for token in matched if token.get("bbox")]
+    xs1 = [token["bbox"][2] for token in matched if token.get("bbox")]
+    ys1 = [token["bbox"][3] for token in matched if token.get("bbox")]
+    if not xs0 or not ys0 or not xs1 or not ys1:
+        return None
+    return [min(xs0), min(ys0), max(xs1), max(ys1)]
+
+
+def _find_exact_span(quote_words: list[str], tokens: list[str]) -> tuple[int, int] | None:
+    if not quote_words:
+        return None
+    window_size = len(quote_words)
+    for start in range(len(tokens) - window_size + 1):
+        if tokens[start : start + window_size] == quote_words:
+            return (start, start + window_size)
+    return None
+
+
+def _find_fuzzy_span(
+    quote_words: list[str],
+    tokens: list[str],
+    threshold: int,
+) -> tuple[tuple[int, int] | None, int]:
+    if not quote_words:
+        return None, 0
+    min_size = max(len(quote_words) - 2, 3)
+    max_size = min(len(quote_words) + 2, 12)
+    best_score = 0
+    best_span = None
+    target = " ".join(quote_words)
+    for window_size in range(min_size, max_size + 1):
+        for start in range(len(tokens) - window_size + 1):
+            window = tokens[start : start + window_size]
+            score = fuzz.ratio(target, " ".join(window))
+            if score > best_score:
+                best_score = score
+                best_span = (start, start + window_size)
+    if best_score < threshold:
+        return None, best_score
+    return best_span, best_score
+
+
+def _token_span_rect(tokens: Sequence[dict[str, object]], span: tuple[int, int]) -> list[float] | None:
+    matched = tokens[span[0] : span[1]]
     xs0 = [token["bbox"][0] for token in matched if token.get("bbox")]
     ys0 = [token["bbox"][1] for token in matched if token.get("bbox")]
     xs1 = [token["bbox"][2] for token in matched if token.get("bbox")]

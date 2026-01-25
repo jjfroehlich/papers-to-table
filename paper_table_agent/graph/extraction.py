@@ -11,7 +11,7 @@ from rapidfuzz import fuzz, process
 from paper_table_agent.llm.client import LlmClient
 from paper_table_agent.llm.models import GroupExtractionResult, ProposalItem, ProposalVerificationResult, VerifyResult
 from paper_table_agent.llm.prompts import render_prompt
-from paper_table_agent.text.normalization import normalize_for_matching, normalize_key
+from paper_table_agent.text.normalization import normalize_chunk_id, normalize_for_matching, normalize_key, normalize_unicode
 
 
 @dataclass
@@ -289,7 +289,7 @@ def _build_chunk_lookup(chunks_by_column: dict[str, list[dict[str, Any]]]) -> di
             chunk_idx = chunk.get("chunk_idx")
             text = str(chunk.get("text") or "")
             if chunk_id and text:
-                canonical_id = normalize_key(chunk_id)
+                canonical_id = normalize_chunk_id(chunk_id)
                 lookup.setdefault(
                     canonical_id,
                     {
@@ -321,7 +321,7 @@ def _merge_chunks(chunks_by_column: dict[str, list[dict[str, Any]]]) -> list[dic
     seen: set[str] = set()
     for chunks in chunks_by_column.values():
         for chunk in chunks:
-            chunk_id = normalize_key(str(chunk.get("chunk_id") or ""))
+            chunk_id = normalize_chunk_id(str(chunk.get("chunk_id") or ""))
             if not chunk_id or chunk_id in seen:
                 continue
             merged.append(chunk)
@@ -359,7 +359,7 @@ def _validate_evidence_list(
         chunk_id = getattr(evidence, "chunk_id", None)
         chunk_idx = getattr(evidence, "chunk_idx", None)
         if quote:
-            normalized_quote = normalize_for_matching(str(quote))
+            normalized_quote = normalize_for_matching(normalize_unicode(str(quote)))
             setattr(evidence, "quote_raw", str(quote))
             setattr(evidence, "quote_normalized", normalized_quote)
         if chunk_lookup is None:
@@ -368,7 +368,7 @@ def _validate_evidence_list(
         chunk_pk_map = chunk_lookup.get("_chunk_pk_map", {})
         canonical_id = ""
         if chunk_id:
-            canonical_id = normalize_key(str(chunk_id))
+            canonical_id = normalize_chunk_id(str(chunk_id))
         if not canonical_id and isinstance(chunk_idx, int):
             canonical_id = chunk_idx_map.get(chunk_idx, "")
             if canonical_id:
@@ -421,10 +421,18 @@ def _validate_evidence_list(
             setattr(evidence, "validation_mode", "exact")
             return True, [], "exact", "exact_match"
         normalized_quote = normalize_for_matching(str(quote))
-        normalized_chunk = normalize_for_matching(str(chunk_meta.get("text_norm") or chunk_meta.get("text") or chunk_text_raw))
+        normalized_chunk = normalize_for_matching(
+            normalize_unicode(str(chunk_meta.get("text_norm") or chunk_meta.get("text") or chunk_text_raw))
+        )
         if normalized_quote and normalized_quote in normalized_chunk:
             setattr(evidence, "validation_mode", "normalized")
             return True, [], "normalized", "normalized_match"
+        salvaged = _salvage_quote_from_chunk(str(quote), chunk_text_raw)
+        if salvaged:
+            setattr(evidence, "quote", salvaged)
+            setattr(evidence, "validation_mode", "salvaged")
+            errors.append("quote_salvaged")
+            return True, errors, "salvaged", "salvaged_quote"
         if _quote_has_ellipsis(str(quote)):
             fragments = _split_quote_fragments(str(quote))
             for fragment in fragments:
@@ -453,7 +461,7 @@ def _repair_chunk_reference(quote: str, chunk_lookup: dict[str, dict[str, Any]])
 
 
 def _fuzzy_match_chunk_id(chunk_id: str, chunk_lookup: dict[str, dict[str, Any]]) -> str | None:
-    normalized = normalize_key(chunk_id)
+    normalized = normalize_chunk_id(chunk_id)
     candidates = [key for key in chunk_lookup.keys() if not key.startswith("_")]
     if not candidates:
         return None
@@ -504,3 +512,45 @@ def _has_ellipsis_quote(evidence_list: list[Any]) -> bool:
         if quote and _quote_has_ellipsis(str(quote)):
             return True
     return False
+
+
+def _salvage_quote_from_chunk(quote: str, chunk_text: str, threshold: int = 78) -> str | None:
+    if not quote or not chunk_text:
+        return None
+    quote_words = _normalize_words(quote)
+    if not quote_words:
+        return None
+    tokens = list(re.finditer(r"\S+", chunk_text))
+    if not tokens:
+        return None
+    token_entries = []
+    for token in tokens:
+        words = _normalize_words(token.group(0))
+        if words:
+            token_entries.append((token, words[0]))
+    if not token_entries:
+        return None
+    normalized_tokens = [entry[1] for entry in token_entries]
+    min_size = max(len(quote_words) - 2, 3)
+    max_size = min(len(quote_words) + 2, 12)
+    best_score = 0
+    best_span: tuple[int, int] | None = None
+    target = " ".join(quote_words)
+    for window_size in range(min_size, max_size + 1):
+        for start in range(len(normalized_tokens) - window_size + 1):
+            window = normalized_tokens[start : start + window_size]
+            score = fuzz.ratio(target, " ".join(window))
+            if score > best_score:
+                best_score = score
+                best_span = (start, start + window_size)
+    if best_span is None or best_score < threshold:
+        return None
+    start_idx = token_entries[best_span[0]][0].start()
+    end_idx = token_entries[best_span[1] - 1][0].end()
+    return chunk_text[start_idx:end_idx].strip()
+
+
+def _normalize_words(text: str) -> list[str]:
+    cleaned = normalize_for_matching(normalize_unicode(text))
+    cleaned = re.sub(r"[^0-9a-z]+", " ", cleaned).strip().lower()
+    return [word for word in cleaned.split() if word]

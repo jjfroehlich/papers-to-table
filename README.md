@@ -81,10 +81,13 @@ All settings live in `run_config.json`. The UI reads defaults from this file but
 
 Debug-only artifacts (mapping report, proposals JSONL) are gated by `output.debug_reports=true` in the config.
 
+To capture raw LLM requests/responses for replay debugging, set `provider.record_requests=true`. This writes `logs/llm_records.jsonl` in the run directory unless you override `provider.record_path`.
+
 ## Troubleshooting
 
 - **LLM endpoint errors**: confirm `provider.base_url` and models in `run_config.json` point to your backend (LM Studio/Ollama/OpenAI-compatible).
 - **No proposals**: check `run_report.json` and `logs/run.log` for parsing/retrieval diagnostics, evidence-finder stats, and whitespace warnings.
+- **Retrieval queries polluted with NaN/empty examples**: ensure the table schema and data use empty strings or known sentinels so prompts can omit empty examples cleanly.
 - **Need more debug output**: enable `output.debug_reports=true` in your config.
 
 ## Repo structure (short)

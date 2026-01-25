@@ -47,7 +47,7 @@ from paper_table_agent.llm.embeddings import (
     HashEmbeddingClient,
     StubEmbeddingClient,
 )
-from paper_table_agent.pdf.highlight import locate_quote
+from paper_table_agent.pdf.highlight import locate_quote, salvage_quote_from_tokens
 from paper_table_agent.pdf.grobid import extract_grobid, save_grobid
 from paper_table_agent.pdf.ocr import run_ocr, should_trigger_ocr
 from paper_table_agent.pdf.parser import compute_sha1, parse_pdf, save_parsed
@@ -58,6 +58,8 @@ from paper_table_agent.store.db import Store
 from paper_table_agent.utils.logging import configure_logging, log_error
 from paper_table_agent.text.normalization import normalize_key
 from paper_table_agent.text.normalization import normalize_for_matching
+from paper_table_agent.text.normalization import normalize_chunk_id
+from paper_table_agent.text.normalization import normalize_str_for_prompt
 
 
 @dataclass
@@ -226,6 +228,9 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
                     mock_payloads.update(payload)
         else:
             mock_payloads = json.loads(config.provider.mock_payloads_path.read_text(encoding="utf-8"))
+    record_path = None
+    if config.provider.record_requests:
+        record_path = config.provider.record_path or (run_paths.logs_dir / "llm_records.jsonl")
     header_client = LlmClient(
         LlmConfig(
             mode=config.provider.mode,
@@ -236,6 +241,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
             mock_mode=mock_mode,
             mock_payloads=mock_payloads,
             guided_json_mode=config.provider.guided_json_mode,
+            record_path=record_path,
         )
     )
     match_client = LlmClient(
@@ -248,6 +254,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
             mock_mode=mock_mode,
             mock_payloads=mock_payloads,
             guided_json_mode=config.provider.guided_json_mode,
+            record_path=record_path,
         )
     )
     extract_client = LlmClient(
@@ -260,6 +267,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
             mock_mode=mock_mode,
             mock_payloads=mock_payloads,
             guided_json_mode=config.provider.guided_json_mode,
+            record_path=record_path,
         )
     )
     helper_client = LlmClient(
@@ -272,6 +280,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
             mock_mode=mock_mode,
             mock_payloads=mock_payloads,
             guided_json_mode=config.provider.guided_json_mode,
+            record_path=record_path,
         )
     )
     embedding_client = _build_embedding_client(
@@ -473,7 +482,14 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
     except LlmJsonError as exc:
         log_error(
             context.error_path,
-            {"pdf_id": pdf.pdf_id, "error": str(exc), "stage": "match_header", "response": exc.response},
+            {
+                "pdf_id": pdf.pdf_id,
+                "error": str(exc),
+                "stage": "match_header",
+                "response": exc.response,
+                "validation_errors": exc.validation_errors,
+                "repair_attempted": exc.repair_attempted,
+            },
         )
         store.record_event(
             "error",
@@ -550,7 +566,14 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         except LlmJsonError as exc:
             log_error(
                 context.error_path,
-                {"pdf_id": pdf.pdf_id, "error": str(exc), "stage": "match_adjudicate", "response": exc.response},
+                {
+                    "pdf_id": pdf.pdf_id,
+                    "error": str(exc),
+                    "stage": "match_adjudicate",
+                    "response": exc.response,
+                    "validation_errors": exc.validation_errors,
+                    "repair_attempted": exc.repair_attempted,
+                },
             )
             store.record_event(
                 "error",
@@ -763,7 +786,14 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         except LlmJsonError as exc:
             log_error(
                 context.error_path,
-                {"pdf_id": pdf.pdf_id, "error": str(exc), "stage": "extract_group", "response": exc.response},
+                {
+                    "pdf_id": pdf.pdf_id,
+                    "error": str(exc),
+                    "stage": "extract_group",
+                    "response": exc.response,
+                    "validation_errors": exc.validation_errors,
+                    "repair_attempted": exc.repair_attempted,
+                },
             )
             store.record_event(
                 "error",
@@ -831,6 +861,8 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                     "error": str(exc),
                     "stage": "verify_proposals",
                     "response": exc.response,
+                    "validation_errors": exc.validation_errors,
+                    "repair_attempted": exc.repair_attempted,
                 },
             )
             store.record_event(
@@ -885,6 +917,8 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                             "error": str(exc),
                             "stage": "verify_cells",
                             "response": exc.response,
+                            "validation_errors": exc.validation_errors,
+                            "repair_attempted": exc.repair_attempted,
                         },
                     )
                     store.record_event(
@@ -964,7 +998,7 @@ def _resolve_evidence_locators(
     chunks: list[dict[str, Any]] | None,
 ) -> list[dict[str, Any]]:
     chunk_lookup = {
-        normalize_key(str(chunk.get("chunk_id") or "")): chunk
+        normalize_chunk_id(str(chunk.get("chunk_id") or "")): chunk
         for chunk in (chunks or [])
         if chunk.get("chunk_id")
     }
@@ -991,16 +1025,28 @@ def _resolve_evidence_locators(
             if evidence.get("rects"):
                 continue
             highlight = locate_quote(str(pdf_path), quote, int(page), locator_hint=locator_hint, tokens=tokens)
-            evidence["rects"] = highlight.rects
-            evidence["highlight_status"] = "highlighted" if highlight.found else "not_found"
-            evidence["highlight_strategy"] = highlight.strategy
-            if not highlight.found:
+            rects = highlight.rects
+            strategy = highlight.strategy
+            if not rects and tokens:
+                salvage_quote, salvage_rect, salvage_strategy = salvage_quote_from_tokens(
+                    quote or locator_hint or "",
+                    int(page),
+                    tokens,
+                )
+                if salvage_quote and salvage_rect:
+                    evidence["quote"] = salvage_quote
+                    rects = [salvage_rect]
+                    strategy = salvage_strategy
+            evidence["rects"] = rects
+            evidence["highlight_status"] = "highlighted" if rects else "not_found"
+            evidence["highlight_strategy"] = strategy
+            if not rects:
                 proposal.setdefault("flags", {})["needs_more_evidence"] = True
     return proposals
 
 
 def _page_from_chunk_lookup(evidence: dict[str, Any], chunk_lookup: dict[str, dict[str, Any]]) -> int | None:
-    chunk_id = normalize_key(str(evidence.get("chunk_id") or ""))
+    chunk_id = normalize_chunk_id(str(evidence.get("chunk_id") or ""))
     if chunk_id and chunk_id in chunk_lookup:
         page = chunk_lookup[chunk_id].get("page_start")
         return int(page) if page is not None else None
@@ -1370,7 +1416,11 @@ def _retrieve_column_contexts(
         )
         if _needs_retrieval_retry(context_result):
             examples = examples_map.get(spec.column_name, []) if examples_map else []
-            anchors = ", ".join(example.get("value") for example in examples if example.get("value"))
+            anchors = ", ".join(
+                value
+                for value in (normalize_str_for_prompt(example.get("value")) for example in examples)
+                if value
+            )
             retry_query = " ".join(
                 part
                 for part in [
@@ -1430,13 +1480,17 @@ def _build_column_query(
     examples_map: dict[str, list[dict[str, Any]]] | None,
 ) -> str:
     examples = examples_map.get(spec.column_name, []) if examples_map else []
-    example_values = [example.get("value") for example in examples if example.get("value")]
+    example_values = [
+        value
+        for value in (normalize_str_for_prompt(example.get("value")) for example in examples)
+        if value
+    ]
     row_bits = []
     if row_context:
         for key in ("title", "authors", "year"):
-            value = row_context.get(key)
+            value = normalize_str_for_prompt(row_context.get(key))
             if value:
-                row_bits.append(str(value))
+                row_bits.append(value)
     query_parts = [
         spec.column_name,
         spec.description or "",

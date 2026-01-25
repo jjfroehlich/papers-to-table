@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Filtered NaN/empty examples from retrieval queries and prompts, omitting examples when none remain.
+- Added token-based quote salvage for evidence highlighting and normalized chunk ID handling.
+- Hardened JSON parsing (strip fences, first-object extraction) with richer error logging for validation failures.
+- Added optional LLM request/response recording to `logs/llm_records.jsonl` for replay debugging.
 - Simplified the UI to Run/Review only with minimal inputs and step-through review decisions.
 - Consolidated model/retrieval settings into a single config file with no UI tuning knobs.
 - Added mock provider mode for deterministic test runs and query expansion/HyDE fallbacks.

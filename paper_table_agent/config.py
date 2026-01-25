@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from paper_table_agent.text.normalization import normalize_key
 
-DEFAULT_EMPTY_VALUES = ["", "NA", "N/A", "null", "-", " "]
+DEFAULT_EMPTY_VALUES = ["", "NA", "N/A", "null", "-", " ", "nan", "NaN", "—"]
 
 
 class ProviderConfig(BaseModel):
@@ -27,6 +27,8 @@ class ProviderConfig(BaseModel):
     mock_mode: bool = False
     mock_payloads_path: Path | None = None
     guided_json_mode: str = "auto"
+    record_requests: bool = False
+    record_path: Path | None = None
 
 
 class MatchingConfig(BaseModel):

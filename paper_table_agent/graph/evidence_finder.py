@@ -5,8 +5,8 @@ from typing import Any, Iterable, Sequence
 
 from rapidfuzz import fuzz, process
 
-from paper_table_agent.pdf.highlight import locate_quote
-from paper_table_agent.text.normalization import normalize_for_matching, normalize_key
+from paper_table_agent.pdf.highlight import locate_quote, salvage_quote_from_tokens
+from paper_table_agent.text.normalization import normalize_for_matching, normalize_chunk_id
 
 
 @dataclass
@@ -169,10 +169,22 @@ def _ensure_highlights(
             locator_hint=evidence.get("locator_hint"),
             tokens=tokens,
         )
-        evidence["rects"] = highlight.rects
-        evidence["highlight_status"] = "highlighted" if highlight.found else "not_found"
-        evidence["highlight_strategy"] = highlight.strategy
-        highlight_success = highlight_success or highlight.found
+        rects = highlight.rects
+        strategy = highlight.strategy
+        if not highlight.found and tokens:
+            salvage_quote, salvage_rect, salvage_strategy = salvage_quote_from_tokens(
+                quote or evidence.get("locator_hint") or "",
+                int(page),
+                tokens,
+            )
+            if salvage_quote and salvage_rect:
+                evidence["quote"] = salvage_quote
+                rects = [salvage_rect]
+                strategy = salvage_strategy
+        evidence["rects"] = rects
+        evidence["highlight_status"] = "highlighted" if rects else "not_found"
+        evidence["highlight_strategy"] = strategy
+        highlight_success = highlight_success or bool(rects)
     return highlight_success
 
 
@@ -204,7 +216,7 @@ def _find_best_page_for_quote(quote: str | None, page_text: Sequence[str]) -> in
 def _build_chunk_lookup(chunks: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     lookup: dict[str, dict[str, Any]] = {}
     for chunk in chunks:
-        chunk_id = normalize_key(str(chunk.get("chunk_id") or ""))
+        chunk_id = normalize_chunk_id(str(chunk.get("chunk_id") or ""))
         if not chunk_id:
             continue
         lookup[chunk_id] = chunk
@@ -212,7 +224,7 @@ def _build_chunk_lookup(chunks: list[dict[str, Any]]) -> dict[str, dict[str, Any
 
 
 def _page_from_chunk(evidence: dict[str, Any], chunk_lookup: dict[str, dict[str, Any]]) -> int | None:
-    chunk_id = normalize_key(str(evidence.get("chunk_id") or ""))
+    chunk_id = normalize_chunk_id(str(evidence.get("chunk_id") or ""))
     if chunk_id and chunk_id in chunk_lookup:
         page = chunk_lookup[chunk_id].get("page_start")
         return int(page) if page is not None else None
