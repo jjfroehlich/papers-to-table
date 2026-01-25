@@ -133,6 +133,9 @@ def build_error_records(
     validation_errors: list[dict[str, Any]] | None = None,
     raw_output: str | None = None,
     repair_attempted: bool | None = None,
+    http_status: int | None = None,
+    error_substring: str | None = None,
+    guided_json_active: bool | None = None,
 ) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for column in columns:
@@ -150,6 +153,12 @@ def build_error_records(
             flags["raw_output"] = raw_output[:2000]
         if repair_attempted is not None:
             flags["repair_attempted"] = repair_attempted
+        if http_status is not None:
+            flags["http_status"] = http_status
+        if error_substring:
+            flags["error_substring"] = error_substring
+        if guided_json_active is not None:
+            flags["guided_json_active"] = guided_json_active
         records.append(
             {
                 "proposal_id": str(uuid.uuid4()),

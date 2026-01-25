@@ -43,3 +43,4 @@
 - Evidence locator now infers missing pages from chunk metadata or page text before attempting highlights.
 - Chunking now emits page chunks for every page and stores compact text normalization for matching.
 - Run report now includes embedding/reranker/retrieval fallback events for diagnostics.
+- Added guided JSON fallback + health check overrides for schema rejection errors, and exposed HTTP error details in Review.

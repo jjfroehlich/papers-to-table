@@ -21,7 +21,8 @@
     "model_query_helper": "stub",
     "max_prompt_chars": 26000,
     "mock_mode": false,
-    "mock_payloads_path": null
+    "mock_payloads_path": null,
+    "guided_json_mode": "auto"
   },
   "matching": {
     "top_k": 10,

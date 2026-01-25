@@ -93,6 +93,27 @@ class RunContext:
     prompt_versions: dict[str, str] = field(default_factory=dict)
 
 
+def _llm_error_metadata(exc: LlmJsonError) -> dict[str, Any]:
+    return {
+        "http_status": exc.http_status,
+        "error_substring": exc.error_substring,
+        "guided_json_active": exc.guided_json_active,
+    }
+
+
+def _disable_guided_json_for_run(context: RunContext, reason: dict[str, Any]) -> None:
+    context.config.provider.guided_json_mode = "off"
+    for client in (
+        context.header_client,
+        context.match_client,
+        context.extract_client,
+        context.helper_client,
+    ):
+        client.config.guided_json_mode = "off"
+    context.store.record_event("warning", "health_check_guided_json_disabled", reason)
+    context.logger.warning("disabling guided JSON for this run: %s", reason)
+
+
 @dataclass
 class DebugExtractionTracker:
     pdf_id: str
@@ -489,12 +510,21 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 "response": exc.response,
                 "validation_errors": exc.validation_errors,
                 "repair_attempted": exc.repair_attempted,
+                "http_status": exc.http_status,
+                "error_substring": exc.error_substring,
+                "guided_json_active": exc.guided_json_active,
             },
         )
         store.record_event(
             "error",
             "llm_json_error",
-            {"pdf_id": pdf.pdf_id, "stage": "match_header", "error": str(exc), "response": exc.response},
+            {
+                "pdf_id": pdf.pdf_id,
+                "stage": "match_header",
+                "error": str(exc),
+                "response": exc.response,
+                **_llm_error_metadata(exc),
+            },
         )
         store.insert_match(
             {
@@ -566,20 +596,29 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         except LlmJsonError as exc:
             log_error(
                 context.error_path,
-                {
-                    "pdf_id": pdf.pdf_id,
-                    "error": str(exc),
-                    "stage": "match_adjudicate",
-                    "response": exc.response,
-                    "validation_errors": exc.validation_errors,
-                    "repair_attempted": exc.repair_attempted,
-                },
-            )
-            store.record_event(
-                "error",
-                "llm_json_error",
-                {"pdf_id": pdf.pdf_id, "stage": "match_adjudicate", "error": str(exc), "response": exc.response},
-            )
+            {
+                "pdf_id": pdf.pdf_id,
+                "error": str(exc),
+                "stage": "match_adjudicate",
+                "response": exc.response,
+                "validation_errors": exc.validation_errors,
+                "repair_attempted": exc.repair_attempted,
+                "http_status": exc.http_status,
+                "error_substring": exc.error_substring,
+                "guided_json_active": exc.guided_json_active,
+            },
+        )
+        store.record_event(
+            "error",
+            "llm_json_error",
+            {
+                "pdf_id": pdf.pdf_id,
+                "stage": "match_adjudicate",
+                "error": str(exc),
+                "response": exc.response,
+                **_llm_error_metadata(exc),
+            },
+        )
             store.insert_match(
                 {
                     "match_id": str(uuid.uuid4()),
@@ -784,6 +823,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 pdf_id=pdf.pdf_id,
             )
         except LlmJsonError as exc:
+            error_type = "llm_http_error" if exc.http_status else "json_parse_error"
             log_error(
                 context.error_path,
                 {
@@ -793,6 +833,9 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                     "response": exc.response,
                     "validation_errors": exc.validation_errors,
                     "repair_attempted": exc.repair_attempted,
+                    "http_status": exc.http_status,
+                    "error_substring": exc.error_substring,
+                    "guided_json_active": exc.guided_json_active,
                 },
             )
             store.record_event(
@@ -803,6 +846,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                     "stage": "extract_group",
                     "error": str(exc),
                     "response": exc.response,
+                    **_llm_error_metadata(exc),
                 },
             )
             proposals = build_error_records(
@@ -811,10 +855,13 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 group.columns,
                 str(exc),
                 adjudication.status != "matched",
-                error_type="llm_json_error",
+                error_type=error_type,
                 validation_errors=exc.validation_errors,
                 raw_output=exc.response,
                 repair_attempted=exc.repair_attempted,
+                http_status=exc.http_status,
+                error_substring=exc.error_substring,
+                guided_json_active=exc.guided_json_active,
             )
         _annotate_failure_reasons(proposals, debug_tracker.retrieval_hits)
         proposals = find_evidence_for_proposals(
@@ -863,6 +910,9 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                     "response": exc.response,
                     "validation_errors": exc.validation_errors,
                     "repair_attempted": exc.repair_attempted,
+                    "http_status": exc.http_status,
+                    "error_substring": exc.error_substring,
+                    "guided_json_active": exc.guided_json_active,
                 },
             )
             store.record_event(
@@ -873,6 +923,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                     "stage": "verify_proposals",
                     "error": str(exc),
                     "response": exc.response,
+                    **_llm_error_metadata(exc),
                 },
             )
             for proposal in proposals:
@@ -881,6 +932,12 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 flags["verification_needs_more_evidence"] = True
                 flags["verification_rationale"] = "Verification failed; see logs."
                 flags.setdefault("failure_reason", "verification_failed")
+                if exc.http_status is not None:
+                    flags["http_status"] = exc.http_status
+                if exc.error_substring:
+                    flags["error_substring"] = exc.error_substring
+                if exc.guided_json_active is not None:
+                    flags["guided_json_active"] = exc.guided_json_active
         debug_tracker.record_proposals(proposals)
         store.insert_proposals(proposals)
 
@@ -919,6 +976,9 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                             "response": exc.response,
                             "validation_errors": exc.validation_errors,
                             "repair_attempted": exc.repair_attempted,
+                            "http_status": exc.http_status,
+                            "error_substring": exc.error_substring,
+                            "guided_json_active": exc.guided_json_active,
                         },
                     )
                     store.record_event(
@@ -929,6 +989,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                             "stage": "verify_cells",
                             "error": str(exc),
                             "response": exc.response,
+                            **_llm_error_metadata(exc),
                         },
                     )
 
@@ -1147,6 +1208,44 @@ def _run_health_checks(context: RunContext) -> dict[str, Any]:
         health_client.complete_json(prompt, QueryExpansionResult)
     except Exception as exc:  # noqa: BLE001
         errors.append({"type": "llm_completion_failed", "error": str(exc)})
+
+    if (config.provider.guided_json_mode or "auto").lower() != "off":
+        guided_client = LlmClient(
+            LlmConfig(
+                mode=config.provider.mode,
+                base_url=config.provider.base_url,
+                api_key=config.provider.api_key,
+                model=config.provider.model_extract,
+                max_prompt_chars=config.provider.max_prompt_chars,
+                guided_json_mode=config.provider.guided_json_mode,
+            )
+        )
+        if guided_client._should_use_guided_json():
+            try:
+                prompt = render_prompt("query_expand.md", query="guided health check")
+                guided_client.complete_json(prompt, QueryExpansionResult)
+            except LlmJsonError as exc:
+                if exc.http_status and exc.guided_json_active:
+                    _disable_guided_json_for_run(
+                        context,
+                        {
+                            "stage": "guided_json_probe",
+                            "http_status": exc.http_status,
+                            "error_substring": exc.error_substring,
+                            "guided_json_active": exc.guided_json_active,
+                        },
+                    )
+            else:
+                if guided_client.last_guided_json_error:
+                    _disable_guided_json_for_run(
+                        context,
+                        {
+                            "stage": "guided_json_probe",
+                            "http_status": guided_client.last_guided_json_status,
+                            "error_substring": guided_client.last_guided_json_error,
+                            "guided_json_active": guided_client.last_guided_json_active,
+                        },
+                    )
 
     if config.retrieval.use_dense and config.retrieval.embedding_backend != "tfidf":
         if context.embedding_client is None:
