@@ -12,7 +12,6 @@
 - Retrieval presets (Fast/Balanced/Thorough) are explicit; missing embedding/reranker configs fall back to TF-IDF.
 - Added a run bundle zip command and OCR metadata artifacts for easier diagnostics.
 - Added completion markers so finished runs appear in Review dropdowns without exporting.
-- Enforced evidence-first proposals: no proposed value without quote+page; unclear/no_evidence records persist per column.
 - Strengthened matching with margin-based deterministic rule, adjudication validation, and repair retry.
 - Added OCR-aware highlight fallback and cached highlight rectangles in stored evidence.
 - Introduced per-column retrieval with retry on unclear results and configurable embedding/reranker backends.
@@ -36,3 +35,7 @@
 - Added chunk table metadata (chunk_pk, chunk_type, text_norm) and repair for unknown chunk references.
 - Added deterministic hash embedding/reranker backends for offline retrieval tests.
 - Added extraction attempt diagnostics in SQLite for per-column retrieval/extraction tracking.
+- Updated extraction to remain value-first while annotating evidence quality and search hints for weak/none evidence.
+- Evidence locator now infers missing pages from chunk metadata or page text before attempting highlights.
+- Chunking now emits page chunks for every page and stores compact text normalization for matching.
+- Run report now includes embedding/reranker/retrieval fallback events for diagnostics.

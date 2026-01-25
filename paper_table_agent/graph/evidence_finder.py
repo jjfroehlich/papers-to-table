@@ -6,7 +6,7 @@ from typing import Any, Iterable, Sequence
 from rapidfuzz import fuzz, process
 
 from paper_table_agent.pdf.highlight import locate_quote
-from paper_table_agent.text.normalization import normalize_for_matching
+from paper_table_agent.text.normalization import normalize_for_matching, normalize_key
 
 
 @dataclass
@@ -23,14 +23,20 @@ def find_evidence_for_proposals(
     tokens: Sequence[dict[str, object]] | None,
     pdf_path: str,
 ) -> list[dict[str, Any]]:
+    chunk_lookup = _build_chunk_lookup(chunks)
     for proposal in proposals:
         flags = proposal.setdefault("flags", {})
         evidence_quality = flags.get("evidence_quality") or proposal.get("evidence_quality")
         evidence_items = proposal.get("evidence") or []
         if evidence_quality == "strong" and evidence_items:
-            _ensure_highlights(evidence_items, tokens, pdf_path)
+            _ensure_highlights(evidence_items, tokens, pdf_path, page_text, chunk_lookup)
             continue
         search_hints = flags.get("search_hints") or proposal.get("search_hints") or []
+        if proposal.get("column"):
+            search_hints = [proposal["column"]] + list(search_hints)
+        column_description = flags.get("column_description")
+        if column_description:
+            search_hints = [column_description] + list(search_hints)
         if proposal.get("proposed_value"):
             search_hints = [proposal["proposed_value"]] + list(search_hints)
         search_hints = _dedupe([hint for hint in search_hints if str(hint).strip()])
@@ -75,9 +81,7 @@ def _search_evidence(
             "locator_hint": best_hint,
         }
     ]
-    highlight_success = _ensure_highlights(evidence, tokens, pdf_path)
-    if not highlight_success and page_text:
-        evidence[0]["page"] = evidence[0].get("page") or _find_page_from_text(quote, page_text)
+    highlight_success = _ensure_highlights(evidence, tokens, pdf_path, page_text, _build_chunk_lookup(chunks))
     return EvidenceSearchResult(
         evidence=evidence,
         evidence_quality="strong" if quality == "exact" else "weak",
@@ -103,6 +107,14 @@ def _find_best_chunk(hints: list[str], chunks: list[dict[str, Any]]) -> tuple[di
             best_score = float(match[1]) / 100.0
             best_chunk = next((chunk for chunk in chunks if str(chunk.get("chunk_id")) == match[2]), None)
             best_hint = hint
+        if best_score < 0.85:
+            for chunk in chunks:
+                chunk_text = str(chunk.get("text_norm") or chunk.get("text") or "")
+                score = fuzz.partial_ratio(hint, chunk_text) / 100.0
+                if score > best_score:
+                    best_score = score
+                    best_chunk = chunk
+                    best_hint = hint
     return best_chunk, best_hint, best_score
 
 
@@ -131,12 +143,24 @@ def _ensure_highlights(
     evidence_items: list[dict[str, Any]],
     tokens: Sequence[dict[str, object]] | None,
     pdf_path: str,
+    page_text: Sequence[str] | None,
+    chunk_lookup: dict[str, dict[str, Any]],
 ) -> bool:
     highlight_success = False
     for evidence in evidence_items:
         quote = evidence.get("quote") or ""
         page = evidence.get("page")
+        if not page:
+            page = _page_from_chunk(evidence, chunk_lookup)
+            if page:
+                evidence["page"] = page
+        if not page and page_text:
+            page = _find_best_page_for_quote(quote or evidence.get("locator_hint"), page_text)
+            if page:
+                evidence["page"] = page
         if not quote or not page:
+            evidence["highlight_status"] = "missing_quote_or_page"
+            evidence["highlight_strategy"] = "missing"
             continue
         highlight = locate_quote(
             pdf_path,
@@ -159,6 +183,45 @@ def _find_page_from_text(quote: str, page_text: Sequence[str]) -> int | None:
     for idx, text in enumerate(page_text):
         if normalized_quote in normalize_for_matching(text):
             return idx + 1
+    return None
+
+
+def _find_best_page_for_quote(quote: str | None, page_text: Sequence[str]) -> int | None:
+    if not quote:
+        return None
+    best_page = None
+    best_score = 0
+    for idx, text in enumerate(page_text):
+        score = fuzz.partial_ratio(quote, text)
+        if score > best_score:
+            best_score = score
+            best_page = idx + 1
+    if best_score < 60:
+        return _find_page_from_text(quote, page_text)
+    return best_page
+
+
+def _build_chunk_lookup(chunks: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    lookup: dict[str, dict[str, Any]] = {}
+    for chunk in chunks:
+        chunk_id = normalize_key(str(chunk.get("chunk_id") or ""))
+        if not chunk_id:
+            continue
+        lookup[chunk_id] = chunk
+    return lookup
+
+
+def _page_from_chunk(evidence: dict[str, Any], chunk_lookup: dict[str, dict[str, Any]]) -> int | None:
+    chunk_id = normalize_key(str(evidence.get("chunk_id") or ""))
+    if chunk_id and chunk_id in chunk_lookup:
+        page = chunk_lookup[chunk_id].get("page_start")
+        return int(page) if page is not None else None
+    chunk_idx = evidence.get("chunk_idx")
+    if chunk_idx:
+        for chunk in chunk_lookup.values():
+            if chunk.get("chunk_idx") == chunk_idx:
+                page = chunk.get("page_start")
+                return int(page) if page is not None else None
     return None
 
 

@@ -264,6 +264,15 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
         ),
         {},
     )
+    fallback_events = {
+        "embedding_fallback": [],
+        "reranker_fallback": [],
+        "retrieval_fallback": [],
+    }
+    for event in events:
+        event_type = event.get("event_type")
+        if event_type in fallback_events:
+            fallback_events[event_type].append(json.loads(event.get("payload_json") or "{}"))
     debug_extraction = []
     for row in store.fetch_debug_extraction():
         payload_json = row["payload_json"]
@@ -296,6 +305,11 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
             },
             "parsing": [json.loads(event.get("payload_json") or "{}") for event in parse_events],
             "retrieval": retrieval_backend,
+            "fallbacks": {
+                "embedding": fallback_events["embedding_fallback"],
+                "reranker": fallback_events["reranker_fallback"],
+                "retrieval": fallback_events["retrieval_fallback"],
+            },
             "sanity_check": sanity_check,
         },
         "debug_extraction": debug_extraction,

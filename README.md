@@ -71,7 +71,7 @@ paper-table-agent bundle --run_dir runs/<timestamp>__<table>/
 
 ### Evidence + review
 
-- Proposals always include a best-effort value when present; evidence is annotated, not a hard gate.
+- Proposals are value-first: infer a proposed value when plausible; evidence quality is metadata, not a hard gate.
 - Review shows only matched rows and columns with proposed values, evidence, or explicit review flags.
 - Evidence badges show strength (strong/weak/missing), and highlights can be re-located in UI (evidence finder).
 
@@ -100,8 +100,10 @@ Debug-only artifacts (mapping report, proposals JSONL) are gated by `output.debu
 - Core pipeline runs end-to-end with stub providers and OpenAI-compatible backends.
 - UI is minimal (Run + Review only) with config-driven behavior.
 - Evidence is best-effort (values are preserved even when evidence is weak), with in-UI re-location for highlights.
+- Evidence locator fills missing pages when possible and tries token-based highlight alignment.
 
 ## Near-term to-dos
 
 - Expand DOI-aware matching defaults based on real tables.
 - Add more fixture PDFs for multi-column/scanned edge cases.
+- Tune evidence search hints with more domain-specific phrases.

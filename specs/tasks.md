@@ -155,6 +155,37 @@ Conventions:
 **AC**
 - Per-column retrieval/extraction attempts persisted with queries, debug, and raw outputs.
 
+### [x] **P0.T21** Value-first extraction + inferred rationale
+**Paths**: `paper_table_agent/prompts/extract_group.md`, `paper_table_agent/graph/extraction.py`
+**AC**
+- Extraction keeps proposed values even when evidence is missing.
+- Inferred proposals include rationale and search hints.
+- Evidence quality is metadata, not a hard gate.
+
+### [x] **P0.T22** Evidence locator fallbacks + page inference
+**Paths**: `paper_table_agent/graph/evidence_finder.py`, `paper_table_agent/graph/runner.py`
+**AC**
+- Evidence finder uses column description + hints to search full chunk table.
+- Missing page numbers are inferred from chunk metadata or page text.
+- Highlight attempts record strategy + status even when missing.
+
+### [x] **P0.T23** Chunk table stability + page chunks for every page
+**Paths**: `paper_table_agent/retrieval/chunking.py`
+**AC**
+- Always create page chunks, even for sparse pages.
+- Store compact normalization for matching in `text_norm`.
+
+### [x] **P0.T24** Review skim navigation + PDF pane sizing
+**Paths**: `paper_table_agent/ui/app.py`
+**AC**
+- Prev/Next proposal navigation available without decision.
+- PDF pane scrolls within a constrained height.
+
+### [x] **P0.T25** Run report fallback visibility
+**Paths**: `paper_table_agent/graph/reporting.py`
+**AC**
+- Run report includes embedding/reranker/retrieval fallback events.
+
 ## P2 — Regression fixtures + highlight coverage
 
 ### [x] **P2.T1** Parsing/tokenization regression test

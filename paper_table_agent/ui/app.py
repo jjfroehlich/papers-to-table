@@ -487,21 +487,21 @@ def build_app() -> None:
                     if st.session_state[index_key] >= len(review_items):
                         st.session_state[index_key] = 0
 
-                    col_left, col_right = st.columns([1.1, 1.4])
+                    col_left, col_right = st.columns([0.95, 1.75])
                     with col_left:
                         column_labels = [item.get("column", "Unknown") for item in review_items]
                         current_index = st.session_state[index_key]
                         nav_cols = st.columns([1, 1, 2])
                         with nav_cols[0]:
-                            if st.button("Prev field", key=f"prev-field-{row_id}"):
+                            if st.button("Prev proposal", key=f"prev-field-{row_id}"):
                                 st.session_state[index_key] = max(0, current_index - 1)
                                 st.experimental_rerun()
                         with nav_cols[1]:
-                            if st.button("Next field", key=f"next-field-{row_id}"):
+                            if st.button("Next proposal", key=f"next-field-{row_id}"):
                                 st.session_state[index_key] = min(len(column_labels) - 1, current_index + 1)
                                 st.experimental_rerun()
                         with nav_cols[2]:
-                            st.caption(f"Field {current_index + 1} of {len(column_labels)}")
+                            st.caption(f"Proposal {current_index + 1} of {len(column_labels)}")
                         selected_column = st.selectbox(
                             "Column stepper",
                             column_labels,
@@ -598,7 +598,7 @@ def build_app() -> None:
                     with col_right:
                         current = review_items[current_index]
                         st.subheader("PDF viewer")
-                        with st.container(height=650):
+                        with st.container(height=700):
                             evidence_items = current.get("evidence", [])
                             if evidence_items:
                                 if len(evidence_items) > 1:
