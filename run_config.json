@@ -2,10 +2,13 @@
   "table_path": "C:/Users/jonat/Desktop/202601_MPRA_table/MPRA_team - literature_MPRAs.xlsx", 
   "schema_sheet_name": "schema",
   "schema_mode": "sheet",
+  "schema_path": null,
+  "run_name": null,
   "pdf_folder": "C:/Users/jonat/Desktop/202601_MPRA_table/",
   "title_col": "Title",
   "authors_col": "Authors",
   "year_col": "Publication Year",
+  "doi_col": null,
   "treat_single_space_as_empty": true,
   "verify_mode": false,
   "fast_mode": false,
@@ -20,12 +23,18 @@
     "model_query_helper": "gpt-oss-20b",
     "max_prompt_chars": 26000,
     "mock_mode": false,
-    "mock_payloads_path": null
+    "mock_payloads_path": null,
+    "guided_json_mode": "off",
+    "record_requests": false,
+    "record_path": null
   },
   "matching": {
     "top_k": 10,
     "confidence_threshold": 0.75,
     "confidence_margin": 0.05,
+    "fallback_min": 0.5,
+    "fallback_threshold": 0.45,
+    "fallback_margin": 0.1,
     "year_tolerance": 1,
     "header_max_chars": 8000
   },
@@ -45,6 +54,7 @@
     "use_query_expansion": true,
     "use_hyde": true,
     "rrf_k": 60,
+    "use_dense": true,
     "embedding_backend": "lmstudio",
     "embedding_model": "text-embedding-nomic-embed-text-v1.5-embedding",
     "reranker_backend": "lmstudio",
@@ -53,7 +63,9 @@
   },
   "ocr": {
     "enable_ocr": true,
-    "ocr_trigger_min_chars_per_page": 400
+    "ocr_trigger_min_chars_per_page": 400,
+    "whitespace_ratio_min": 0.06,
+    "avg_token_length_max": 18.0
   },
   "grobid": {
     "enable_grobid": false,

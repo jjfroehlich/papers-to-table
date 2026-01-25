@@ -596,29 +596,29 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         except LlmJsonError as exc:
             log_error(
                 context.error_path,
-            {
-                "pdf_id": pdf.pdf_id,
-                "error": str(exc),
-                "stage": "match_adjudicate",
-                "response": exc.response,
-                "validation_errors": exc.validation_errors,
-                "repair_attempted": exc.repair_attempted,
-                "http_status": exc.http_status,
-                "error_substring": exc.error_substring,
-                "guided_json_active": exc.guided_json_active,
-            },
-        )
-        store.record_event(
-            "error",
-            "llm_json_error",
-            {
-                "pdf_id": pdf.pdf_id,
-                "stage": "match_adjudicate",
-                "error": str(exc),
-                "response": exc.response,
-                **_llm_error_metadata(exc),
-            },
-        )
+                {
+                    "pdf_id": pdf.pdf_id,
+                    "error": str(exc),
+                    "stage": "match_adjudicate",
+                    "response": exc.response,
+                    "validation_errors": exc.validation_errors,
+                    "repair_attempted": exc.repair_attempted,
+                    "http_status": exc.http_status,
+                    "error_substring": exc.error_substring,
+                    "guided_json_active": exc.guided_json_active,
+                },
+            )
+            store.record_event(
+                "error",
+                "llm_json_error",
+                {
+                    "pdf_id": pdf.pdf_id,
+                    "stage": "match_adjudicate",
+                    "error": str(exc),
+                    "response": exc.response,
+                    **_llm_error_metadata(exc),
+                },
+            )
             store.insert_match(
                 {
                     "match_id": str(uuid.uuid4()),
