@@ -26,6 +26,7 @@ class ProviderConfig(BaseModel):
     max_prompt_chars: int = 26000
     mock_mode: bool = False
     mock_payloads_path: Path | None = None
+    guided_json_mode: str = "auto"
 
 
 class MatchingConfig(BaseModel):

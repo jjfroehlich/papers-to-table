@@ -235,6 +235,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
             max_prompt_chars=config.provider.max_prompt_chars,
             mock_mode=mock_mode,
             mock_payloads=mock_payloads,
+            guided_json_mode=config.provider.guided_json_mode,
         )
     )
     match_client = LlmClient(
@@ -246,6 +247,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
             max_prompt_chars=config.provider.max_prompt_chars,
             mock_mode=mock_mode,
             mock_payloads=mock_payloads,
+            guided_json_mode=config.provider.guided_json_mode,
         )
     )
     extract_client = LlmClient(
@@ -257,6 +259,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
             max_prompt_chars=config.provider.max_prompt_chars,
             mock_mode=mock_mode,
             mock_payloads=mock_payloads,
+            guided_json_mode=config.provider.guided_json_mode,
         )
     )
     helper_client = LlmClient(
@@ -268,6 +271,7 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
             max_prompt_chars=config.provider.max_prompt_chars,
             mock_mode=mock_mode,
             mock_payloads=mock_payloads,
+            guided_json_mode=config.provider.guided_json_mode,
         )
     )
     embedding_client = _build_embedding_client(
@@ -1090,6 +1094,7 @@ def _run_health_checks(context: RunContext) -> dict[str, Any]:
                 api_key=config.provider.api_key,
                 model=config.provider.model_header,
                 max_prompt_chars=config.provider.max_prompt_chars,
+                guided_json_mode=config.provider.guided_json_mode,
             )
         )
         prompt = render_prompt("query_expand.md", query="health check")

@@ -38,6 +38,7 @@ class LlmConfig:
     max_prompt_chars: int = 12000
     mock_mode: bool = False
     mock_payloads: dict[str, Any] | None = None
+    guided_json_mode: str = "auto"
 
 
 class LlmClient:
@@ -73,22 +74,24 @@ class LlmClient:
         validation_errors: list[dict[str, Any]] | None = None
         repair_attempted = False
         content = ""
+        guided_allowed = self._should_use_guided_json()
         for attempt in range(self.config.max_retries + 1):
-            payload = {
+            payload: dict[str, Any] = {
                 "model": self.config.model,
                 "messages": [
                     {"role": "system", "content": "Return strict JSON only."},
                     {"role": "user", "content": prompt_working},
                 ],
                 "temperature": 0.1,
-                "response_format": {
+            }
+            if guided_allowed:
+                payload["response_format"] = {
                     "type": "json_schema",
                     "json_schema": {
                         "name": schema.__name__,
                         "schema": schema_payload,
                     },
-                },
-            }
+                }
             response = self._client.post(url, json=payload, headers=headers)
             try:
                 response.raise_for_status()
@@ -99,8 +102,14 @@ class LlmClient:
                     if truncated != prompt_working:
                         prompt_working = truncated
                         continue
-                raise RuntimeError(
-                    f"LLM HTTP error {response.status_code}: {response.text}"
+                if response.status_code == 400 and guided_allowed and _is_guided_json_error(error_text):
+                    guided_allowed = False
+                    continue
+                raise LlmJsonError(
+                    f"LLM HTTP error {response.status_code}: {response.text}",
+                    prompt,
+                    error_text,
+                    repair_attempted=False,
                 ) from exc
             content = response.json()["choices"][0]["message"]["content"]
             self.last_raw_response = content
@@ -133,6 +142,17 @@ class LlmClient:
             repair_attempted,
             validation_errors=validation_errors,
         )
+
+    def _should_use_guided_json(self) -> bool:
+        mode = (self.config.guided_json_mode or "auto").lower()
+        if mode == "on":
+            return True
+        if mode == "off":
+            return False
+        base_url = (self.config.base_url or "").lower()
+        if any(token in base_url for token in ("localhost", "127.0.0.1", "ollama", "lm-studio", "lmstudio")):
+            return False
+        return True
 
     def _parse_json(self, content: str) -> Any:
         try:
@@ -309,21 +329,23 @@ class LlmClient:
             f"Schema:\n{json.dumps(schema_payload, indent=2)}\n\n"
             f"Content:\n{content}"
         )
-        payload = {
+        guided_allowed = self._should_use_guided_json()
+        payload: dict[str, Any] = {
             "model": self.config.model,
             "messages": [
                 {"role": "system", "content": "You are a JSON repair tool. Return strict JSON only."},
                 {"role": "user", "content": repair_prompt},
             ],
             "temperature": 0.0,
-            "response_format": {
+        }
+        if guided_allowed:
+            payload["response_format"] = {
                 "type": "json_schema",
                 "json_schema": {
                     "name": f"{schema.__name__}Repair",
                     "schema": schema_payload,
                 },
-            },
-        }
+            }
         headers = {}
         if self.config.api_key:
             headers["Authorization"] = f"Bearer {self.config.api_key}"
@@ -332,7 +354,15 @@ class LlmClient:
         try:
             response.raise_for_status()
         except httpx.HTTPStatusError:
-            return None
+            if response.status_code == 400 and guided_allowed and _is_guided_json_error(response.text):
+                payload.pop("response_format", None)
+                response = self._client.post(url, json=payload, headers=headers)
+                try:
+                    response.raise_for_status()
+                except httpx.HTTPStatusError:
+                    return None
+            else:
+                return None
         content = response.json()["choices"][0]["message"]["content"]
         try:
             parsed = self._parse_json(content)
@@ -430,3 +460,8 @@ def _build_mock_key(meta: dict[str, Any]) -> str:
     group = meta.get("group") or ""
     scope = column or group
     return f"{prompt_name}|{pdf_id}|{scope}"
+
+
+def _is_guided_json_error(error_text: str) -> bool:
+    lowered = (error_text or "").lower()
+    return "regex" in lowered or "grammar" in lowered or "guided" in lowered
