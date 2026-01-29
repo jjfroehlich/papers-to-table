@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import ipaddress
 import json
+import logging
+import os
+import re
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -43,32 +46,60 @@ class LlmConfig:
     api_key: str | None
     model: str
     timeout_s: float = 60.0
+    read_timeout_s: float | None = None
     max_retries: int = 2
     max_prompt_chars: int = 12000
+    max_prompt_tokens: int | None = None
     mock_mode: bool = False
     mock_payloads: dict[str, Any] | None = None
     guided_json_mode: str = "auto"
     record_path: Path | None = None
+    payload_record_path: Path | None = None
+    llm_debug: bool = False
+    log_snippet_chars: int = 240
+    logger: logging.Logger | None = None
 
 
 class LlmClient:
     def __init__(self, config: LlmConfig) -> None:
         self.config = config
-        self._client = httpx.Client(timeout=self.config.timeout_s)
+        self._client = httpx.Client(timeout=_build_timeout(config))
         self.last_raw_response: str | None = None
         self.last_guided_json_error: str | None = None
         self.last_guided_json_status: int | None = None
         self.last_guided_json_active: bool | None = None
         if self.config.record_path:
             self.config.record_path.parent.mkdir(parents=True, exist_ok=True)
+        if self.config.payload_record_path:
+            self.config.payload_record_path.parent.mkdir(parents=True, exist_ok=True)
 
-    def _truncate_prompt(self, prompt: str) -> str:
+    def _truncate_prompt(self, prompt: str, max_tokens: int | None = None) -> str:
         max_chars = self.config.max_prompt_chars
-        if len(prompt) <= max_chars:
-            return prompt
+        max_tokens = max_tokens if max_tokens is not None else self.config.max_prompt_tokens
+        prompt_working = prompt
+        if max_tokens:
+            prompt_working = _truncate_by_tokens(prompt_working, max_tokens)
+        if len(prompt_working) <= max_chars:
+            return prompt_working
         head = max_chars // 2
         tail = max_chars - head
-        return f"{prompt[:head]}\n\n...[TRUNCATED]...\n\n{prompt[-tail:]}"
+        return f"{prompt_working[:head]}\n\n...[TRUNCATED]...\n\n{prompt_working[-tail:]}"
+
+    def _debug_enabled(self) -> bool:
+        if self.config.llm_debug:
+            return True
+        return _env_truthy("PAPER_TABLE_AGENT_LLM_DEBUG")
+
+    def _log_debug(self, message: str, payload: dict[str, Any] | None = None) -> None:
+        if not self._debug_enabled():
+            return
+        logger = self.config.logger
+        if logger is None:
+            return
+        if payload:
+            logger.info("LLM DEBUG %s: %s", message, payload)
+        else:
+            logger.info("LLM DEBUG %s", message)
 
     def complete_json(self, prompt: str, schema: type[T]) -> T:
         if self.config.mode == "stub":
@@ -81,7 +112,18 @@ class LlmClient:
             return result
         schema_payload = schema.model_json_schema()
         guided_schema_payload = strip_regex_from_json_schema(schema_payload)
-        prompt_working = prompt
+        prompt_working = self._truncate_prompt(prompt)
+        if prompt_working != prompt:
+            self._log_debug(
+                "prompt_truncated",
+                {
+                    "model": self.config.model,
+                    "original_chars": len(prompt),
+                    "original_tokens_est": _estimate_tokens(prompt),
+                    "truncated_chars": len(prompt_working),
+                    "truncated_tokens_est": _estimate_tokens(prompt_working),
+                },
+            )
         headers = {}
         if self.config.api_key:
             headers["Authorization"] = f"Bearer {self.config.api_key}"
@@ -111,20 +153,87 @@ class LlmClient:
                         "schema": guided_schema_payload,
                     },
                 }
-            response = self._client.post(url, json=payload, headers=headers)
+            self._record_payload(
+                payload,
+                stage="completion",
+                attempt=attempt,
+            )
+            self._log_debug(
+                "request",
+                _build_request_log(
+                    payload,
+                    url=url,
+                    timeout=self.config.timeout_s,
+                    read_timeout=_effective_read_timeout(self.config),
+                    attempt=attempt,
+                    snippet_chars=self.config.log_snippet_chars,
+                ),
+            )
+            try:
+                response = self._client.post(url, json=payload, headers=headers)
+            except httpx.TimeoutException as exc:
+                self._log_debug(
+                    "timeout",
+                    {
+                        "model": self.config.model,
+                        "url": url,
+                        "attempt": attempt,
+                        "error": str(exc),
+                    },
+                )
+                last_error = exc
+                if attempt >= self.config.max_retries:
+                    raise LlmJsonError(
+                        "LLM request timed out.",
+                        prompt,
+                        "",
+                        repair_attempted=False,
+                        http_status=408,
+                        error_substring=str(exc),
+                        guided_json_active=guided_allowed,
+                    ) from exc
+                time.sleep(1 + attempt)
+                continue
             try:
                 response.raise_for_status()
             except httpx.HTTPStatusError as exc:
                 error_text = response.text
-                if response.status_code == 400 and "context length" in error_text.lower():
-                    truncated = self._truncate_prompt(prompt_working)
-                    if truncated != prompt_working:
-                        prompt_working = truncated
-                        continue
+                if response.status_code == 400:
+                    self._log_debug(
+                        "http_400",
+                        {
+                            "model": self.config.model,
+                            "url": url,
+                            "attempt": attempt,
+                            "response_body": error_text,
+                        },
+                    )
+                    if _is_context_limit_error(error_text):
+                        max_tokens = _infer_context_max_tokens(error_text)
+                        if max_tokens is not None and self.config.max_prompt_tokens is not None:
+                            max_tokens = min(max_tokens, self.config.max_prompt_tokens)
+                        truncated = self._truncate_prompt(prompt_working, max_tokens=max_tokens)
+                        if truncated != prompt_working:
+                            prompt_working = truncated
+                            self._log_debug(
+                                "prompt_truncated_context",
+                                {
+                                    "model": self.config.model,
+                                    "max_tokens": max_tokens,
+                                    "truncated_chars": len(prompt_working),
+                                    "truncated_tokens_est": _estimate_tokens(prompt_working),
+                                },
+                            )
+                            continue
                 if response.status_code == 400 and guided_allowed and _is_guided_json_error(error_text):
                     self.last_guided_json_error = _extract_error_substring(error_text)
                     self.last_guided_json_status = response.status_code
                     self.last_guided_json_active = True
+                    if self.config.logger is not None:
+                        self.config.logger.warning(
+                            "guided JSON rejected; retrying without response_format: %s",
+                            self.last_guided_json_error,
+                        )
                     guided_allowed = False
                     continue
                 raise LlmJsonError(
@@ -385,10 +494,48 @@ class LlmClient:
         if self.config.api_key:
             headers["Authorization"] = f"Bearer {self.config.api_key}"
         url = f"{self.config.base_url}/chat/completions"
-        response = self._client.post(url, json=payload, headers=headers)
+        self._record_payload(
+            payload,
+            stage="repair",
+            attempt=0,
+        )
+        self._log_debug(
+            "request_repair",
+            _build_request_log(
+                payload,
+                url=url,
+                timeout=self.config.timeout_s,
+                read_timeout=_effective_read_timeout(self.config),
+                attempt=0,
+                snippet_chars=self.config.log_snippet_chars,
+            ),
+        )
+        try:
+            response = self._client.post(url, json=payload, headers=headers)
+        except httpx.TimeoutException as exc:
+            self._log_debug(
+                "timeout_repair",
+                {
+                    "model": self.config.model,
+                    "url": url,
+                    "attempt": 0,
+                    "error": str(exc),
+                },
+            )
+            return None
         try:
             response.raise_for_status()
         except httpx.HTTPStatusError:
+            if response.status_code == 400:
+                self._log_debug(
+                    "http_400_repair",
+                    {
+                        "model": self.config.model,
+                        "url": url,
+                        "attempt": 0,
+                        "response_body": response.text,
+                    },
+                )
             if response.status_code == 400 and guided_allowed and _is_guided_json_error(response.text):
                 self.last_guided_json_error = _extract_error_substring(response.text)
                 self.last_guided_json_status = response.status_code
@@ -436,6 +583,21 @@ class LlmClient:
         }
         with self.config.record_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(payload) + "\n")
+
+    def _record_payload(self, payload: dict[str, Any], stage: str, attempt: int) -> None:
+        if not self.config.payload_record_path:
+            return
+        record = {
+            "timestamp": time.time(),
+            "stage": stage,
+            "attempt": attempt,
+            "model": self.config.model,
+            "url": f"{self.config.base_url}/chat/completions",
+            "payload": payload,
+            "prompt_meta": _extract_prompt_meta(payload.get("messages", [{}])[-1].get("content", "")) or {},
+        }
+        with self.config.payload_record_path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(record) + "\n")
 
 
 def _extract_prompt_query(prompt: str) -> str | None:
@@ -605,3 +767,129 @@ def _extract_first_json(content: str) -> str | None:
             if not stack:
                 return content[start : idx + 1]
     return None
+
+
+def _build_timeout(config: LlmConfig) -> httpx.Timeout:
+    read_timeout = _effective_read_timeout(config)
+    return httpx.Timeout(timeout=config.timeout_s, read=read_timeout)
+
+
+def _effective_read_timeout(config: LlmConfig) -> float:
+    return config.read_timeout_s if config.read_timeout_s is not None else config.timeout_s
+
+
+def _env_truthy(key: str) -> bool:
+    value = os.getenv(key)
+    if value is None:
+        return False
+    return value.strip().lower() not in {"0", "false", "no", "off", ""}
+
+
+def _estimate_tokens(text: str) -> int:
+    if not text:
+        return 0
+    return max(1, int((len(text) / 4) + 0.999))
+
+
+def _truncate_by_tokens(text: str, max_tokens: int) -> str:
+    tokens = _estimate_tokens(text)
+    if tokens <= max_tokens:
+        return text
+    ratio = max_tokens / max(tokens, 1)
+    target_chars = max(1, int(len(text) * ratio))
+    head = target_chars // 2
+    tail = target_chars - head
+    return f"{text[:head]}\n\n...[TRUNCATED]...\n\n{text[-tail:]}"
+
+
+def _is_context_limit_error(error_text: str) -> bool:
+    lowered = (error_text or "").lower()
+    return "context length" in lowered or "n_ctx" in lowered or "n_keep" in lowered
+
+
+def _infer_context_max_tokens(error_text: str) -> int | None:
+    match = re.search(r"n_ctx\\s*\\(?\\s*(\\d+)", error_text or "")
+    if not match:
+        return None
+    try:
+        n_ctx = int(match.group(1))
+    except ValueError:
+        return None
+    return max(1, n_ctx - 256)
+
+
+def _build_request_log(
+    payload: dict[str, Any],
+    *,
+    url: str,
+    timeout: float,
+    read_timeout: float,
+    attempt: int,
+    snippet_chars: int,
+) -> dict[str, Any]:
+    messages = payload.get("messages", [])
+    message_chars = 0
+    message_tokens = 0
+    prompt_snippet = ""
+    prompt_chars = 0
+    prompt_tokens = 0
+    for message in messages:
+        if not isinstance(message, dict):
+            continue
+        content = str(message.get("content") or "")
+        message_chars += len(content)
+        message_tokens += _estimate_tokens(content)
+        if message.get("role") == "user" and not prompt_snippet:
+            prompt_snippet = content[:snippet_chars]
+            prompt_chars = len(content)
+            prompt_tokens = _estimate_tokens(content)
+    response_format = payload.get("response_format")
+    response_format_summary: dict[str, Any] | None = None
+    if isinstance(response_format, dict):
+        response_format_summary = {"type": response_format.get("type")}
+        schema_payload = response_format.get("json_schema")
+        if isinstance(schema_payload, dict):
+            response_format_summary["schema_name"] = schema_payload.get("name")
+    flags = {}
+    for key in (
+        "stop",
+        "max_tokens",
+        "temperature",
+        "seed",
+        "n_keep",
+        "truncate",
+        "stream",
+        "grammar",
+        "guided_regex",
+        "regex",
+        "json_schema",
+    ):
+        if key in payload:
+            flags[key] = _summarize_flag_value(payload.get(key))
+    if response_format_summary:
+        flags["response_format"] = response_format_summary
+    return {
+        "model": payload.get("model"),
+        "url": url,
+        "attempt": attempt,
+        "timeout_s": timeout,
+        "read_timeout_s": read_timeout,
+        "prompt_chars": prompt_chars,
+        "prompt_tokens_est": prompt_tokens,
+        "message_chars": message_chars,
+        "message_tokens_est": message_tokens,
+        "prompt_snippet": prompt_snippet,
+        "payload_flags": flags,
+    }
+
+
+def _summarize_flag_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {"keys": list(value.keys())[:6]}
+    if isinstance(value, list):
+        return f"list(len={len(value)})"
+    return value
+
+
+def estimate_tokens(text: str) -> int:
+    return _estimate_tokens(text)

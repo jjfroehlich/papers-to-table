@@ -250,19 +250,28 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
         else:
             mock_payloads = json.loads(config.provider.mock_payloads_path.read_text(encoding="utf-8"))
     record_path = None
+    payload_record_path = None
     if config.provider.record_requests:
         record_path = config.provider.record_path or (run_paths.logs_dir / "llm_records.jsonl")
+    if config.provider.record_payloads:
+        payload_record_path = config.provider.payload_record_path or (run_paths.logs_dir / "llm_payloads.jsonl")
     header_client = LlmClient(
         LlmConfig(
             mode=config.provider.mode,
             base_url=config.provider.base_url,
             api_key=config.provider.api_key,
             model=config.provider.model_header,
+            timeout_s=config.provider.timeout_s,
+            read_timeout_s=config.provider.read_timeout_s,
             max_prompt_chars=config.provider.max_prompt_chars,
+            max_prompt_tokens=config.provider.max_prompt_tokens,
             mock_mode=mock_mode,
             mock_payloads=mock_payloads,
             guided_json_mode=config.provider.guided_json_mode,
             record_path=record_path,
+            payload_record_path=payload_record_path,
+            llm_debug=config.provider.llm_debug,
+            logger=logger,
         )
     )
     match_client = LlmClient(
@@ -271,11 +280,17 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
             base_url=config.provider.base_url,
             api_key=config.provider.api_key,
             model=config.provider.model_match,
+            timeout_s=config.provider.timeout_s,
+            read_timeout_s=config.provider.read_timeout_s,
             max_prompt_chars=config.provider.max_prompt_chars,
+            max_prompt_tokens=config.provider.max_prompt_tokens,
             mock_mode=mock_mode,
             mock_payloads=mock_payloads,
             guided_json_mode=config.provider.guided_json_mode,
             record_path=record_path,
+            payload_record_path=payload_record_path,
+            llm_debug=config.provider.llm_debug,
+            logger=logger,
         )
     )
     extract_client = LlmClient(
@@ -284,11 +299,17 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
             base_url=config.provider.base_url,
             api_key=config.provider.api_key,
             model=config.provider.model_extract,
+            timeout_s=config.provider.timeout_s,
+            read_timeout_s=config.provider.read_timeout_s,
             max_prompt_chars=config.provider.max_prompt_chars,
+            max_prompt_tokens=config.provider.max_prompt_tokens,
             mock_mode=mock_mode,
             mock_payloads=mock_payloads,
             guided_json_mode=config.provider.guided_json_mode,
             record_path=record_path,
+            payload_record_path=payload_record_path,
+            llm_debug=config.provider.llm_debug,
+            logger=logger,
         )
     )
     helper_client = LlmClient(
@@ -297,11 +318,17 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
             base_url=config.provider.base_url,
             api_key=config.provider.api_key,
             model=config.provider.model_query_helper,
+            timeout_s=config.provider.timeout_s,
+            read_timeout_s=config.provider.read_timeout_s,
             max_prompt_chars=config.provider.max_prompt_chars,
+            max_prompt_tokens=config.provider.max_prompt_tokens,
             mock_mode=mock_mode,
             mock_payloads=mock_payloads,
             guided_json_mode=config.provider.guided_json_mode,
             record_path=record_path,
+            payload_record_path=payload_record_path,
+            llm_debug=config.provider.llm_debug,
+            logger=logger,
         )
     )
     embedding_client = _build_embedding_client(
@@ -789,6 +816,18 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 pdf_id=pdf.pdf_id,
                 prompt_meta=prompt_meta,
             )
+            if prompt_meta.get("prompt_trimmed"):
+                context.store.record_event(
+                    "warning",
+                    "prompt_trimmed",
+                    {
+                        "pdf_id": pdf.pdf_id,
+                        "row_id": adjudication.row_id,
+                        "group": group.name,
+                        "trimmed_chunks": prompt_meta.get("trimmed_chunks"),
+                        "total_chunks": prompt_meta.get("trimmed_total_chunks"),
+                    },
+                )
             raw_output = (context.extract_client.last_raw_response or "")[:2000]
             prompt_version = context.prompt_versions.get("extract_group.md")
             for proposal in extraction.proposals:
@@ -801,6 +840,10 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                         "prompt_version": prompt_version,
                         "prompt_hash": prompt_meta.get("prompt_hash"),
                         "prompt_chars": prompt_meta.get("prompt_chars"),
+                        "prompt_tokens": prompt_meta.get("prompt_tokens"),
+                        "prompt_trimmed": prompt_meta.get("prompt_trimmed"),
+                        "trimmed_chunks": prompt_meta.get("trimmed_chunks"),
+                        "trimmed_total_chunks": prompt_meta.get("trimmed_total_chunks"),
                         "raw_output": raw_output,
                         "parsed_output": proposal.model_dump(mode="json"),
                         "validation_errors": proposal.flags.get("evidence_validation_errors"),
@@ -1200,8 +1243,18 @@ def _run_health_checks(context: RunContext) -> dict[str, Any]:
                 base_url=config.provider.base_url,
                 api_key=config.provider.api_key,
                 model=config.provider.model_header,
+                timeout_s=config.provider.timeout_s,
+                read_timeout_s=config.provider.read_timeout_s,
                 max_prompt_chars=config.provider.max_prompt_chars,
+                max_prompt_tokens=config.provider.max_prompt_tokens,
                 guided_json_mode=config.provider.guided_json_mode,
+                payload_record_path=(
+                    config.provider.payload_record_path
+                    if config.provider.record_payloads
+                    else None
+                ),
+                llm_debug=config.provider.llm_debug,
+                logger=context.logger,
             )
         )
         prompt = render_prompt("query_expand.md", query="health check")
@@ -1216,8 +1269,18 @@ def _run_health_checks(context: RunContext) -> dict[str, Any]:
                 base_url=config.provider.base_url,
                 api_key=config.provider.api_key,
                 model=config.provider.model_extract,
+                timeout_s=config.provider.timeout_s,
+                read_timeout_s=config.provider.read_timeout_s,
                 max_prompt_chars=config.provider.max_prompt_chars,
+                max_prompt_tokens=config.provider.max_prompt_tokens,
                 guided_json_mode=config.provider.guided_json_mode,
+                payload_record_path=(
+                    config.provider.payload_record_path
+                    if config.provider.record_payloads
+                    else None
+                ),
+                llm_debug=config.provider.llm_debug,
+                logger=context.logger,
             )
         )
         if guided_client._should_use_guided_json():

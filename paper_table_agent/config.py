@@ -24,6 +24,9 @@ class ProviderConfig(BaseModel):
     model_extract: str = "gpt-oss-20b"
     model_query_helper: str = "gpt-oss-20b"
     max_prompt_chars: int = 26000
+    max_prompt_tokens: int | None = 3200
+    timeout_s: float = 60.0
+    read_timeout_s: float = 180.0
     mock_mode: bool = False
     mock_payloads_path: Path | None = None
     guided_json_mode: str = Field(
@@ -33,8 +36,11 @@ class ProviderConfig(BaseModel):
             "endpoints or when health checks detect schema rejections; prompt-only JSON remains the fallback."
         ),
     )
+    llm_debug: bool = False
     record_requests: bool = False
     record_path: Path | None = None
+    record_payloads: bool = False
+    payload_record_path: Path | None = None
 
 
 class MatchingConfig(BaseModel):

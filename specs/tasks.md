@@ -73,6 +73,13 @@ Conventions:
 **AC**
 - Import app module without crash (skip if Streamlit test utils unavailable).
 
+### [x] **P1.T2** LLM provider compatibility logging + prompt budgets
+**Paths**: `paper_table_agent/llm/client.py`, `paper_table_agent/graph/extraction.py`, `paper_table_agent/graph/runner.py`, `tests/test_llm_prompt_budget.py`
+**AC**
+- LLM requests can record exact payloads for debugging.
+- Prompt budgets trim retrieved chunks before requests to avoid context overflow.
+- Regression test verifies extract prompt trimming under tight budgets.
+
 ---
 
 ## P0 — CLI install + smoke coverage

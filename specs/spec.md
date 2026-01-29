@@ -61,6 +61,12 @@ Optional when `provider.record_requests=true`:
 logs/llm_records.jsonl
 ```
 
+Optional when `provider.record_payloads=true`:
+
+```
+logs/llm_payloads.jsonl
+```
+
 ## Guardrails
 
 - **Locked cells**: non-empty cells are never overwritten.
@@ -115,6 +121,8 @@ logs/llm_records.jsonl
 - `paper-table-agent ui --smoke` provides a headless import/layout check for CI and non-interactive environments.
 - Stub run fixture produces multiple proposed values, evidence, and at least one highlightable bbox.
 - Optional LLM record mode stores raw prompt/response pairs under `logs/llm_records.jsonl` for replay debugging.
+- Optional LLM payload logging writes exact request JSON under `logs/llm_payloads.jsonl` for provider debugging.
+- Prompt budgets trim retrieved chunks before LLM requests to stay within model context limits.
 
 ## Failure semantics
 
