@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from rapidfuzz import fuzz, process
-from paper_table_agent.llm.client import LlmClient
+from paper_table_agent.llm.client import LlmClient, estimate_tokens
 from paper_table_agent.llm.models import GroupExtractionResult, ProposalItem, ProposalVerificationResult, VerifyResult
 from paper_table_agent.llm.prompts import render_prompt
 from paper_table_agent.text.normalization import normalize_chunk_id, normalize_for_matching, normalize_key, normalize_unicode
@@ -36,16 +36,16 @@ def extract_group(
     prompt_meta: dict[str, Any] | None = None,
 ) -> GroupExtractionResult:
     merged_chunks = _merge_chunks(chunks_by_column)
-    prompt = render_prompt(
-        "extract_group.md",
-        _prompt_meta={"pdf_id": pdf_id, "group": group.name},
-        row_context=json.dumps(row_context, indent=2),
-        columns=json.dumps(group.columns_payload, indent=2),
-        chunks=json.dumps(merged_chunks, indent=2),
+    prompt, trimmed_chunks = _build_extract_prompt(
+        client,
+        row_context,
+        group,
+        merged_chunks,
+        pdf_id=pdf_id,
+        prompt_meta=prompt_meta,
     )
-    if prompt_meta is not None:
-        prompt_meta["prompt_hash"] = hashlib.sha1(prompt.encode("utf-8")).hexdigest()
-        prompt_meta["prompt_chars"] = len(prompt)
+    if trimmed_chunks is not None:
+        merged_chunks = trimmed_chunks
     result = client.complete_json(prompt, GroupExtractionResult)
     result = _coerce_group_columns(result, group)
     result = _ensure_group_coverage(result, group.columns)
@@ -56,6 +56,127 @@ def extract_group(
             proposal.flags.setdefault("column_description", group.schema.get(proposal.column))
         _apply_evidence_rules(proposal, chunk_lookup)
     return result
+
+
+def build_extract_prompt(
+    client: LlmClient,
+    row_context: dict[str, Any],
+    group: GroupContext,
+    chunks_by_column: dict[str, list[dict[str, Any]]],
+    pdf_id: str | None = None,
+    prompt_meta: dict[str, Any] | None = None,
+) -> tuple[str, list[dict[str, Any]]]:
+    merged_chunks = _merge_chunks(chunks_by_column)
+    prompt, trimmed_chunks = _build_extract_prompt(
+        client,
+        row_context,
+        group,
+        merged_chunks,
+        pdf_id=pdf_id,
+        prompt_meta=prompt_meta,
+    )
+    return prompt, trimmed_chunks or merged_chunks
+
+
+def _build_extract_prompt(
+    client: LlmClient,
+    row_context: dict[str, Any],
+    group: GroupContext,
+    merged_chunks: list[dict[str, Any]],
+    pdf_id: str | None = None,
+    prompt_meta: dict[str, Any] | None = None,
+) -> tuple[str, list[dict[str, Any]] | None]:
+    trimmed_chunks = _trim_chunks_for_prompt(
+        client,
+        row_context,
+        group,
+        merged_chunks,
+        pdf_id=pdf_id,
+        prompt_meta=prompt_meta,
+    )
+    prompt = render_prompt(
+        "extract_group.md",
+        _prompt_meta={"pdf_id": pdf_id, "group": group.name},
+        row_context=json.dumps(row_context, indent=2),
+        columns=json.dumps(group.columns_payload, indent=2),
+        chunks=json.dumps(trimmed_chunks or merged_chunks, indent=2),
+    )
+    if prompt_meta is not None:
+        prompt_meta["prompt_hash"] = hashlib.sha1(prompt.encode("utf-8")).hexdigest()
+        prompt_meta["prompt_chars"] = len(prompt)
+        prompt_meta["prompt_tokens"] = estimate_tokens(prompt)
+    return prompt, trimmed_chunks
+
+
+def _trim_chunks_for_prompt(
+    client: LlmClient,
+    row_context: dict[str, Any],
+    group: GroupContext,
+    merged_chunks: list[dict[str, Any]],
+    pdf_id: str | None = None,
+    prompt_meta: dict[str, Any] | None = None,
+) -> list[dict[str, Any]] | None:
+    max_tokens = client.config.max_prompt_tokens
+    max_chars = client.config.max_prompt_chars
+    if not max_tokens and not max_chars:
+        return None
+    if not merged_chunks:
+        return None
+    trimmed = list(merged_chunks)
+    prompt = render_prompt(
+        "extract_group.md",
+        _prompt_meta={"pdf_id": pdf_id, "group": group.name},
+        row_context=json.dumps(row_context, indent=2),
+        columns=json.dumps(group.columns_payload, indent=2),
+        chunks=json.dumps(trimmed, indent=2),
+    )
+    prompt_tokens = estimate_tokens(prompt)
+    while trimmed and _prompt_exceeds_budget(prompt_tokens, len(prompt), max_tokens, max_chars):
+        trimmed.pop()
+        prompt = render_prompt(
+            "extract_group.md",
+            _prompt_meta={"pdf_id": pdf_id, "group": group.name},
+            row_context=json.dumps(row_context, indent=2),
+            columns=json.dumps(group.columns_payload, indent=2),
+            chunks=json.dumps(trimmed, indent=2),
+        )
+        prompt_tokens = estimate_tokens(prompt)
+    if len(trimmed) == len(merged_chunks):
+        return None
+    trimmed_count = len(merged_chunks) - len(trimmed)
+    if client.config.logger is not None:
+        client.config.logger.warning(
+            "prompt budget trimmed %s chunks for group %s (pdf=%s)",
+            trimmed_count,
+            group.name,
+            pdf_id,
+        )
+    if _prompt_exceeds_budget(prompt_tokens, len(prompt), max_tokens, max_chars) and client.config.logger is not None:
+        client.config.logger.warning(
+            "prompt budget still exceeded after trimming all chunks for group %s (pdf=%s)",
+            group.name,
+            pdf_id,
+        )
+    if prompt_meta is not None:
+        prompt_meta["prompt_trimmed"] = True
+        prompt_meta["trimmed_chunks"] = trimmed_count
+        prompt_meta["trimmed_total_chunks"] = len(merged_chunks)
+        if _prompt_exceeds_budget(prompt_tokens, len(prompt), max_tokens, max_chars):
+            prompt_meta["prompt_budget_exceeded"] = True
+    return trimmed
+
+
+def _prompt_exceeds_budget(
+    token_count: int,
+    char_count: int,
+    max_tokens: int | None,
+    max_chars: int | None,
+) -> bool:
+    if max_tokens and token_count > max_tokens:
+        return True
+    if max_chars and char_count > max_chars:
+        return True
+    return False
 
 
 def build_proposal_records(pdf_id: str, row_id: str, result: GroupExtractionResult) -> list[dict[str, Any]]:

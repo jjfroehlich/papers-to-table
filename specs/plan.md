@@ -9,6 +9,7 @@
 - Review UX: matched rows only, prev/next proposal navigation, auto-advance decisions, constrained PDF pane.
 - Deterministic hash retrieval backends for offline validation.
 - JSON extraction/repair hardening with prompt sanitization (drop NaN examples) and optional LLM request/response recording.
+- Provider compatibility: prompt budgets + payload capture for local OpenAI-compatible servers.
 
 ## Remaining work
 
