@@ -7,6 +7,21 @@
 - Streamlit UI entrypoint: `paper_table_agent/ui/app.py`
 - LangGraph initialization: `paper_table_agent/graph/workflow.py`
 
+## Main pipeline stages
+
+1. Load table + schema, build lock map, and validate column configuration.
+2. Parse PDFs (text/tokens) + compute parsing sanity metrics.
+3. Extract header metadata (title/authors/year/DOI) and shortlist candidate rows.
+4. Match PDFs to rows (deterministic + LLM adjudication fallback).
+5. Build retrieval index and assemble context (summary/whole-text/memory).
+6. Extract proposals with evidence and run evidence-finder backfill.
+7. Persist proposals, diagnostics, and events to SQLite; emit run report.
+
+## Config definition + validation
+
+- Pydantic models in `paper_table_agent/config.py` (`RunConfig`, `ProviderConfig`, `MatchingConfig`, etc.).
+- `RunConfig` validators enforce existence of `table_path`, `pdf_folder`, and optional schema path.
+
 ## Current UI screens (Streamlit)
 
 - **Run** tab
@@ -46,11 +61,15 @@ Run directories are created in `runs/<timestamp>__<table>/` with:
 - `artifacts/retrieval_indexes/*`
 - `artifacts/ocr/*`
 - `artifacts/thumbnails/*`
-- `exports/updated_table.xlsx`
-- `exports/audit_log.csv`
 - Debug-only (when `output.debug_reports=true`):
   - `exports/pdf_row_matches.csv`
   - `exports/mapping_report.html`
+
+Exports written after `paper-table-agent export`:
+
+- `exports/updated_table.xlsx`
+- `exports/audit_log.csv`
+- Debug-only (when `output.debug_reports=true`):
   - `exports/proposals.jsonl`
 
 ## Docs map

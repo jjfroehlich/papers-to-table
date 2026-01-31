@@ -38,7 +38,13 @@ from paper_table_agent.io.examples import select_examples
 from paper_table_agent.io.locks import build_locks
 from paper_table_agent.io.schema import group_columns, load_schema
 from paper_table_agent.io.xlsx import load_table
-from paper_table_agent.llm.client import LlmClient, LlmConfig, LlmJsonError, estimate_tokens
+from paper_table_agent.llm.client import (
+    LlmClient,
+    LlmConfig,
+    LlmJsonError,
+    estimate_tokens,
+    get_capability_cache,
+)
 from paper_table_agent.llm.models import AdjudicationResult, ContextSummaryResult, PaperMemoryResult, QueryExpansionResult
 from paper_table_agent.llm.prompts import render_prompt
 from paper_table_agent.llm.embeddings import (
@@ -1427,12 +1433,17 @@ def _probe_llm_capabilities(context: RunContext) -> None:
                 {"model": model, "label": label, "error": str(exc)},
             )
             continue
+        cached = get_capability_cache(probe_client.config)
+        payload: dict[str, Any] = {"model": model, "label": label}
         if results:
-            context.store.record_event(
-                "info",
-                "llm_capabilities",
-                {"model": model, "label": label, **results},
-            )
+            payload.update(results)
+            payload["cached"] = False
+        elif cached:
+            payload.update(cached)
+            payload["cached"] = True
+        else:
+            continue
+        context.store.record_event("info", "llm_capabilities", payload)
 
 
 def _apply_fallback_model(

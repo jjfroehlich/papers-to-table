@@ -80,6 +80,18 @@ Conventions:
 - Prompt budgets trim retrieved chunks before requests to avoid context overflow.
 - Regression test verifies extract prompt trimming under tight budgets.
 
+### [x] **P1.T3** Spec compliance documentation refresh
+**Paths**: `specs/spec.md`, `docs/repo_audit.md`, `docs/spec_compliance_report.md`
+**AC**
+- Spec outputs align with actual run/export behavior.
+- Repo audit includes pipeline stages + config validation locations.
+- Spec compliance report exists and reflects current codebase.
+
+### [x] **P1.T4** Implementation summary artifact
+**Paths**: `exports/implementation_summary.md`
+**AC**
+- Summary documents changes, remaining tasks (if any), and how to run smoke/stub tests.
+
 ---
 
 ## P0 — CLI install + smoke coverage
@@ -292,3 +304,10 @@ Conventions:
 - Per-stage LLM metadata (model, tokens, truncation) recorded per attempt.
 - Per-proposal provenance records which anchors/chunks were supplied.
 - Debug flag gates full response capture for reproducibility.
+
+### [x] **P0.T37** Run report includes capability probe summaries
+**Paths**: `paper_table_agent/llm/client.py`, `paper_table_agent/graph/runner.py`, `paper_table_agent/graph/reporting.py`, `tests/test_run_report_capabilities.py`
+**AC**
+- LLM capability probe results (cached or fresh) are recorded per model.
+- `run_report.json` surfaces `summary.llm_capabilities`.
+- Test validates run report includes the capability summary.

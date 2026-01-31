@@ -241,6 +241,11 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
     )
     health_events = [event for event in events if event.get("event_type") == "health_check_failed"]
     parse_events = [event for event in events if event.get("event_type") == "parse_sanity"]
+    llm_capabilities = [
+        json.loads(event.get("payload_json") or "{}")
+        for event in events
+        if event.get("event_type") == "llm_capabilities"
+    ]
     run_status = "failed" if sanity_check.get("failed") or health_events else "completed"
     if sanity_check.get("warning") and run_status != "failed":
         run_status = "completed_with_warnings"
@@ -305,6 +310,7 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
                 "failed": bool(health_events),
                 "errors": [json.loads(event.get("payload_json") or "{}") for event in health_events],
             },
+            "llm_capabilities": llm_capabilities,
             "parsing": [json.loads(event.get("payload_json") or "{}") for event in parse_events],
             "retrieval": retrieval_backend,
             "fallbacks": {

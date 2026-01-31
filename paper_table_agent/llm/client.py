@@ -783,6 +783,10 @@ def _set_capability(config: LlmConfig, name: str, value: bool) -> None:
     _CAPABILITY_CACHE.setdefault(key, {})[name] = value
 
 
+def get_capability_cache(config: LlmConfig) -> dict[str, bool]:
+    return dict(_get_capabilities(config))
+
+
 def _extract_prompt_query(prompt: str) -> str | None:
     lines = [line.strip() for line in prompt.splitlines() if line.strip()]
     if not lines:
