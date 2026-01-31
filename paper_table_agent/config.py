@@ -23,6 +23,13 @@ class ProviderConfig(BaseModel):
     model_match: str = "gpt-oss-20b"
     model_extract: str = "gpt-oss-20b"
     model_query_helper: str = "gpt-oss-20b"
+    fallback_enabled: bool = False
+    fallback_base_url: str | None = None
+    fallback_api_key: str | None = None
+    fallback_model_header: str | None = None
+    fallback_model_match: str | None = None
+    fallback_model_extract: str | None = None
+    fallback_model_query_helper: str | None = None
     max_prompt_chars: int = 26000
     max_prompt_tokens: int | None = 3200
     timeout_s: float = 60.0
@@ -60,6 +67,10 @@ class ExtractionConfig(BaseModel):
     max_chunks: int = 20
     retry_on_unclear: bool = True
     retry_extra_chunks: int = 10
+    whole_text_enabled: bool = False
+    whole_text_max_tokens: int = 6000
+    paper_memory_enabled: bool = True
+    paper_memory_max_tokens: int = 1200
 
 
 class RetrievalConfig(BaseModel):
@@ -67,6 +78,12 @@ class RetrievalConfig(BaseModel):
     rerank_k: int = 20
     max_context_chunks: int = 24
     max_context_tokens: int = 2400
+    context_window: int = 1
+    include_section_chunks: bool = True
+    section_chunk_limit: int = 6
+    summary_enabled: bool = True
+    summary_max_chunks: int = 12
+    summary_max_tokens: int = 1000
     query_variants: int = 6
     use_query_expansion: bool = True
     use_hyde: bool = True

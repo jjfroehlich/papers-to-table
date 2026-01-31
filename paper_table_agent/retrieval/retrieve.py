@@ -125,6 +125,49 @@ def expand_with_neighbors(index: RetrievalIndex, retrieved: list[RetrievedChunk]
     return expanded
 
 
+def expand_with_window(
+    index: RetrievalIndex,
+    retrieved: list[RetrievedChunk],
+    window: int = 1,
+    max_total: int = 12,
+) -> list[RetrievedChunk]:
+    if window <= 0:
+        return retrieved
+    idx_map = {chunk.chunk_idx: chunk for chunk in index.chunks}
+    seen = {chunk.chunk_id for chunk in retrieved}
+    expanded = list(retrieved)
+    for chunk in retrieved:
+        for offset in range(-window, window + 1):
+            if offset == 0:
+                continue
+            neighbor_idx = chunk.chunk_idx + offset
+            if neighbor_idx not in idx_map:
+                continue
+            original = idx_map[neighbor_idx]
+            if original.chunk_id in seen:
+                continue
+            expanded.append(
+                RetrievedChunk(
+                    chunk_id=original.chunk_id,
+                    chunk_pk=original.chunk_pk,
+                    chunk_idx=original.chunk_idx,
+                    text=original.text,
+                    text_raw=original.text_raw,
+                    text_norm=original.text_norm,
+                    page_start=original.page_start,
+                    page_end=original.page_end,
+                    chunk_type=original.chunk_type,
+                    score=chunk.score * 0.7,
+                    bm25_score=chunk.bm25_score * 0.7,
+                    dense_score=chunk.dense_score * 0.7,
+                )
+            )
+            seen.add(original.chunk_id)
+            if len(expanded) >= max_total:
+                return expanded
+    return expanded
+
+
 def reciprocal_rank_fusion(
     runs: Iterable[list[RetrievedChunk]],
     k: int = 60,

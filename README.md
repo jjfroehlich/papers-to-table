@@ -73,7 +73,7 @@ paper-table-agent bundle --run_dir runs/<timestamp>__<table>/
 
 - Proposals are value-first: infer a proposed value when plausible; evidence quality is metadata, not a hard gate.
 - Review shows only matched rows and columns with proposed values, evidence, or explicit review flags.
-- Evidence badges show strength (strong/weak/missing), and highlights can be re-located in UI (evidence finder).
+- Evidence supports argumentation with multiple snippets when needed, and highlights can be re-located in UI (evidence finder).
 
 ## Config (single source of truth)
 
@@ -106,6 +106,8 @@ Guided JSON (`provider.guided_json_mode`) uses response_format/json_schema when 
 - UI is minimal (Run + Review only) with config-driven behavior.
 - Evidence is best-effort (values are preserved even when evidence is weak), with in-UI re-location for highlights.
 - Evidence locator fills missing pages when possible and tries token-based highlight alignment.
+- LLM capability probes route structured vs prompt-only JSON and retry on regex-constrained failures.
+- Whole-text + paper-memory extraction is available behind config flags for proposal models that need broader context.
 
 ## Near-term to-dos
 

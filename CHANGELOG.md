@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added whole-text/paper-memory extraction flags, backend compatibility probes, and anchor-based evidence fields.
+- Added robust JSON extraction from mixed LLM output (last fenced block + balanced span) and regex-400 fallback to prompt-only mode with capability probing.
+- Expanded evidence schema to support multi-snippet argumentation and improved highlight fallbacks using page-text matching.
+- Added context assembly (neighbor windows + section chunks) plus optional section summaries for extraction prompts.
 - Filtered NaN/empty examples from retrieval queries and prompts, omitting examples when none remain.
 - Added token-based quote salvage for evidence highlighting and normalized chunk ID handling.
 - Hardened JSON parsing (strip fences, first-object extraction) with richer error logging for validation failures.

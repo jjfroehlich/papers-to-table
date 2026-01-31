@@ -41,3 +41,5 @@ def test_guided_json_fallback_on_regex_error() -> None:
     assert fake_client.calls == 2
     assert "response_format" in fake_client.payloads[0]
     assert "response_format" not in fake_client.payloads[1]
+    messages = fake_client.payloads[1]["messages"]
+    assert messages[0]["content"] == "Return ONLY JSON. No markdown. No preamble."

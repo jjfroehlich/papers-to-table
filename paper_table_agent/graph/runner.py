@@ -38,8 +38,8 @@ from paper_table_agent.io.examples import select_examples
 from paper_table_agent.io.locks import build_locks
 from paper_table_agent.io.schema import group_columns, load_schema
 from paper_table_agent.io.xlsx import load_table
-from paper_table_agent.llm.client import LlmClient, LlmConfig, LlmJsonError
-from paper_table_agent.llm.models import AdjudicationResult, QueryExpansionResult
+from paper_table_agent.llm.client import LlmClient, LlmConfig, LlmJsonError, estimate_tokens
+from paper_table_agent.llm.models import AdjudicationResult, ContextSummaryResult, PaperMemoryResult, QueryExpansionResult
 from paper_table_agent.llm.prompts import render_prompt
 from paper_table_agent.llm.embeddings import (
     EmbeddingClient,
@@ -98,6 +98,7 @@ def _llm_error_metadata(exc: LlmJsonError) -> dict[str, Any]:
         "http_status": exc.http_status,
         "error_substring": exc.error_substring,
         "guided_json_active": exc.guided_json_active,
+        "error_class": exc.error_class,
     }
 
 
@@ -255,81 +256,41 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
         record_path = config.provider.record_path or (run_paths.logs_dir / "llm_records.jsonl")
     if config.provider.record_payloads:
         payload_record_path = config.provider.payload_record_path or (run_paths.logs_dir / "llm_payloads.jsonl")
-    header_client = LlmClient(
-        LlmConfig(
-            mode=config.provider.mode,
-            base_url=config.provider.base_url,
-            api_key=config.provider.api_key,
-            model=config.provider.model_header,
-            timeout_s=config.provider.timeout_s,
-            read_timeout_s=config.provider.read_timeout_s,
-            max_prompt_chars=config.provider.max_prompt_chars,
-            max_prompt_tokens=config.provider.max_prompt_tokens,
-            mock_mode=mock_mode,
-            mock_payloads=mock_payloads,
-            guided_json_mode=config.provider.guided_json_mode,
-            record_path=record_path,
-            payload_record_path=payload_record_path,
-            llm_debug=config.provider.llm_debug,
-            logger=logger,
-        )
+    header_client = _build_llm_client(
+        config.provider,
+        model=config.provider.model_header,
+        logger=logger,
+        record_path=record_path,
+        payload_record_path=payload_record_path,
+        mock_mode=mock_mode,
+        mock_payloads=mock_payloads,
     )
-    match_client = LlmClient(
-        LlmConfig(
-            mode=config.provider.mode,
-            base_url=config.provider.base_url,
-            api_key=config.provider.api_key,
-            model=config.provider.model_match,
-            timeout_s=config.provider.timeout_s,
-            read_timeout_s=config.provider.read_timeout_s,
-            max_prompt_chars=config.provider.max_prompt_chars,
-            max_prompt_tokens=config.provider.max_prompt_tokens,
-            mock_mode=mock_mode,
-            mock_payloads=mock_payloads,
-            guided_json_mode=config.provider.guided_json_mode,
-            record_path=record_path,
-            payload_record_path=payload_record_path,
-            llm_debug=config.provider.llm_debug,
-            logger=logger,
-        )
+    match_client = _build_llm_client(
+        config.provider,
+        model=config.provider.model_match,
+        logger=logger,
+        record_path=record_path,
+        payload_record_path=payload_record_path,
+        mock_mode=mock_mode,
+        mock_payloads=mock_payloads,
     )
-    extract_client = LlmClient(
-        LlmConfig(
-            mode=config.provider.mode,
-            base_url=config.provider.base_url,
-            api_key=config.provider.api_key,
-            model=config.provider.model_extract,
-            timeout_s=config.provider.timeout_s,
-            read_timeout_s=config.provider.read_timeout_s,
-            max_prompt_chars=config.provider.max_prompt_chars,
-            max_prompt_tokens=config.provider.max_prompt_tokens,
-            mock_mode=mock_mode,
-            mock_payloads=mock_payloads,
-            guided_json_mode=config.provider.guided_json_mode,
-            record_path=record_path,
-            payload_record_path=payload_record_path,
-            llm_debug=config.provider.llm_debug,
-            logger=logger,
-        )
+    extract_client = _build_llm_client(
+        config.provider,
+        model=config.provider.model_extract,
+        logger=logger,
+        record_path=record_path,
+        payload_record_path=payload_record_path,
+        mock_mode=mock_mode,
+        mock_payloads=mock_payloads,
     )
-    helper_client = LlmClient(
-        LlmConfig(
-            mode=config.provider.mode,
-            base_url=config.provider.base_url,
-            api_key=config.provider.api_key,
-            model=config.provider.model_query_helper,
-            timeout_s=config.provider.timeout_s,
-            read_timeout_s=config.provider.read_timeout_s,
-            max_prompt_chars=config.provider.max_prompt_chars,
-            max_prompt_tokens=config.provider.max_prompt_tokens,
-            mock_mode=mock_mode,
-            mock_payloads=mock_payloads,
-            guided_json_mode=config.provider.guided_json_mode,
-            record_path=record_path,
-            payload_record_path=payload_record_path,
-            llm_debug=config.provider.llm_debug,
-            logger=logger,
-        )
+    helper_client = _build_llm_client(
+        config.provider,
+        model=config.provider.model_query_helper,
+        logger=logger,
+        record_path=record_path,
+        payload_record_path=payload_record_path,
+        mock_mode=mock_mode,
+        mock_payloads=mock_payloads,
     )
     embedding_client = _build_embedding_client(
         config.provider.base_url,
@@ -376,6 +337,47 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
         prompt_versions=load_prompt_versions(Path("paper_table_agent/prompts")),
     )
     return context, pdfs
+
+
+def _build_llm_client(
+    provider: Any,
+    *,
+    model: str,
+    logger: Any,
+    record_path: Path | None,
+    payload_record_path: Path | None,
+    mock_mode: bool,
+    mock_payloads: dict[str, Any] | None,
+) -> LlmClient:
+    return LlmClient(
+        LlmConfig(
+            mode=provider.mode,
+            base_url=provider.base_url,
+            api_key=provider.api_key,
+            model=model,
+            timeout_s=provider.timeout_s,
+            read_timeout_s=provider.read_timeout_s,
+            max_prompt_chars=provider.max_prompt_chars,
+            max_prompt_tokens=provider.max_prompt_tokens,
+            mock_mode=mock_mode,
+            mock_payloads=mock_payloads,
+            guided_json_mode=provider.guided_json_mode,
+            record_path=record_path,
+            payload_record_path=payload_record_path,
+            llm_debug=provider.llm_debug,
+            logger=logger,
+        )
+    )
+
+
+def _record_llm_request(store: Store, stage: str, client: LlmClient) -> None:
+    if not client.last_request_log:
+        return
+    store.record_event(
+        "info",
+        "llm_request_meta",
+        {"stage": stage, "request": client.last_request_log},
+    )
 
 
 def _apply_group_override(
@@ -527,6 +529,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
             str(pdf.path),
             pdf_id=pdf.pdf_id,
         )
+        _record_llm_request(context.store, "match_header", context.header_client)
     except LlmJsonError as exc:
         log_error(
             context.error_path,
@@ -620,6 +623,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
             )
         try:
             adjudication = adjudicate_match(context.match_client, header, candidates, pdf_id=pdf.pdf_id)
+            _record_llm_request(context.store, "match_adjudicate", context.match_client)
         except LlmJsonError as exc:
             log_error(
                 context.error_path,
@@ -739,6 +743,13 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
 
     row_context = next((row for row in context.rows_data if row["row_id"] == adjudication.row_id), {})
     locked_columns = context.lock_map.get(adjudication.row_id, set())
+    context_summary = _build_context_summary(context, chunk_dicts, pdf.pdf_id)
+    document_anchors = _build_document_anchors(parsed.page_text, context.config.extraction)
+    if document_anchors:
+        _write_document_anchors(context.run_paths.parsed_dir, pdf.pdf_id, document_anchors)
+    paper_memory = ""
+    if context.config.extraction.whole_text_enabled and not document_anchors:
+        paper_memory = _build_paper_memory(context, parsed.page_text, pdf.pdf_id)
     for group_name, specs in context.grouped.items():
         chunk_lookup: dict[str, str] = {}
         target_columns = [
@@ -814,6 +825,9 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 adjudication.status != "matched",
                 full_chunk_lookup=full_chunk_lookup,
                 pdf_id=pdf.pdf_id,
+                context_summary=context_summary,
+                paper_memory=paper_memory,
+                document_anchors=json.dumps(document_anchors, indent=2) if document_anchors else "",
                 prompt_meta=prompt_meta,
             )
             if prompt_meta.get("prompt_trimmed"):
@@ -844,6 +858,10 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                         "prompt_trimmed": prompt_meta.get("prompt_trimmed"),
                         "trimmed_chunks": prompt_meta.get("trimmed_chunks"),
                         "trimmed_total_chunks": prompt_meta.get("trimmed_total_chunks"),
+                        "llm_request": context.extract_client.last_request_log,
+                        "context_chunk_ids": [chunk.get("chunk_id") for chunk in merged_context],
+                        "document_anchor_ids": [anchor.get("anchor_id") for anchor in (document_anchors or [])],
+                        "paper_memory_used": bool(paper_memory),
                         "raw_output": raw_output,
                         "parsed_output": proposal.model_dump(mode="json"),
                         "validation_errors": proposal.flags.get("evidence_validation_errors"),
@@ -864,6 +882,9 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 full_chunk_lookup=full_chunk_lookup,
                 debug_tracker=debug_tracker,
                 pdf_id=pdf.pdf_id,
+                context_summary=context_summary,
+                paper_memory=paper_memory,
+                document_anchors=json.dumps(document_anchors, indent=2) if document_anchors else "",
             )
         except LlmJsonError as exc:
             error_type = "llm_http_error" if exc.http_status else "json_parse_error"
@@ -905,6 +926,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 http_status=exc.http_status,
                 error_substring=exc.error_substring,
                 guided_json_active=exc.guided_json_active,
+                error_class=exc.error_class,
             )
         _annotate_failure_reasons(proposals, debug_tracker.retrieval_hits)
         proposals = find_evidence_for_proposals(
@@ -981,6 +1003,8 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                     flags["error_substring"] = exc.error_substring
                 if exc.guided_json_active is not None:
                     flags["guided_json_active"] = exc.guided_json_active
+                if exc.error_class:
+                    flags["error_class"] = exc.error_class
         debug_tracker.record_proposals(proposals)
         store.insert_proposals(proposals)
 
@@ -1109,9 +1133,21 @@ def _resolve_evidence_locators(
     for proposal in proposals:
         evidence_items = proposal.get("evidence") or []
         for evidence in evidence_items:
-            quote = evidence.get("quote_raw") or evidence.get("quote")
+            _apply_anchor_id(evidence, chunk_lookup, page_text)
+            _apply_source_ref(evidence, chunk_lookup)
+            quote = _get_quote_text(evidence)
             page = evidence.get("page")
             locator_hint = evidence.get("locator_hint")
+            if not evidence.get("source_ref"):
+                if evidence.get("chunk_id"):
+                    evidence["source_ref"] = f"chunk_id:{evidence.get('chunk_id')}"
+                elif page:
+                    evidence["source_ref"] = f"page:{page}"
+            if not evidence.get("anchor_id"):
+                if evidence.get("chunk_id"):
+                    evidence["anchor_id"] = evidence.get("chunk_id")
+                elif page:
+                    evidence["anchor_id"] = f"page-{page}"
             if not quote or not page:
                 if not page:
                     page = _page_from_chunk_lookup(evidence, chunk_lookup)
@@ -1138,7 +1174,7 @@ def _resolve_evidence_locators(
                     tokens,
                 )
                 if salvage_quote and salvage_rect:
-                    evidence["quote"] = salvage_quote
+                    _set_quote_text(evidence, salvage_quote)
                     rects = [salvage_rect]
                     strategy = salvage_strategy
             evidence["rects"] = rects
@@ -1161,6 +1197,60 @@ def _page_from_chunk_lookup(evidence: dict[str, Any], chunk_lookup: dict[str, di
                 page = chunk.get("page_start")
                 return int(page) if page is not None else None
     return None
+
+
+def _apply_source_ref(evidence: dict[str, Any], chunk_lookup: dict[str, dict[str, Any]]) -> None:
+    source_ref = str(evidence.get("source_ref") or "").strip()
+    if not source_ref:
+        return
+    if source_ref.startswith("page:"):
+        try:
+            evidence["page"] = int(source_ref.split(":", 1)[1])
+        except ValueError:
+            return
+        return
+    if source_ref.startswith("chunk_id:"):
+        evidence["chunk_id"] = source_ref.split(":", 1)[1]
+        return
+    if source_ref.startswith("chunk:"):
+        evidence["chunk_id"] = source_ref.split(":", 1)[1]
+        return
+    if source_ref in chunk_lookup:
+        evidence["chunk_id"] = source_ref
+
+
+def _get_quote_text(evidence: dict[str, Any]) -> str:
+    return str(evidence.get("quote_text") or evidence.get("quote") or evidence.get("quote_raw") or "").strip()
+
+
+def _set_quote_text(evidence: dict[str, Any], quote: str) -> None:
+    evidence["quote"] = quote
+    evidence["quote_text"] = quote
+
+
+def _apply_anchor_id(
+    evidence: dict[str, Any],
+    chunk_lookup: dict[str, dict[str, Any]],
+    page_text: list[str] | None,
+) -> None:
+    anchor_id = str(evidence.get("anchor_id") or "").strip()
+    if not anchor_id:
+        return
+    if anchor_id.startswith("page-"):
+        try:
+            page = int(anchor_id.split("-", 1)[1])
+        except ValueError:
+            return
+        evidence.setdefault("page", page)
+        if page_text and not _get_quote_text(evidence):
+            if 0 < page <= len(page_text):
+                _set_quote_text(evidence, page_text[page - 1][:240])
+        return
+    if anchor_id in chunk_lookup:
+        chunk = chunk_lookup[anchor_id]
+        evidence.setdefault("chunk_id", anchor_id)
+        if chunk.get("page_start") and not evidence.get("page"):
+            evidence["page"] = chunk.get("page_start")
 
 
 def _find_best_page_for_quote(quote: str | None, page_text: list[str]) -> int | None:
@@ -1262,53 +1352,7 @@ def _run_health_checks(context: RunContext) -> dict[str, Any]:
     except Exception as exc:  # noqa: BLE001
         errors.append({"type": "llm_completion_failed", "error": str(exc)})
 
-    if (config.provider.guided_json_mode or "auto").lower() != "off":
-        guided_client = LlmClient(
-            LlmConfig(
-                mode=config.provider.mode,
-                base_url=config.provider.base_url,
-                api_key=config.provider.api_key,
-                model=config.provider.model_extract,
-                timeout_s=config.provider.timeout_s,
-                read_timeout_s=config.provider.read_timeout_s,
-                max_prompt_chars=config.provider.max_prompt_chars,
-                max_prompt_tokens=config.provider.max_prompt_tokens,
-                guided_json_mode=config.provider.guided_json_mode,
-                payload_record_path=(
-                    config.provider.payload_record_path
-                    if config.provider.record_payloads
-                    else None
-                ),
-                llm_debug=config.provider.llm_debug,
-                logger=context.logger,
-            )
-        )
-        if guided_client._should_use_guided_json():
-            try:
-                prompt = render_prompt("query_expand.md", query="guided health check")
-                guided_client.complete_json(prompt, QueryExpansionResult)
-            except LlmJsonError as exc:
-                if exc.http_status and exc.guided_json_active:
-                    _disable_guided_json_for_run(
-                        context,
-                        {
-                            "stage": "guided_json_probe",
-                            "http_status": exc.http_status,
-                            "error_substring": exc.error_substring,
-                            "guided_json_active": exc.guided_json_active,
-                        },
-                    )
-            else:
-                if guided_client.last_guided_json_error:
-                    _disable_guided_json_for_run(
-                        context,
-                        {
-                            "stage": "guided_json_probe",
-                            "http_status": guided_client.last_guided_json_status,
-                            "error_substring": guided_client.last_guided_json_error,
-                            "guided_json_active": guided_client.last_guided_json_active,
-                        },
-                    )
+    _probe_llm_capabilities(context)
 
     if config.retrieval.use_dense and config.retrieval.embedding_backend != "tfidf":
         if context.embedding_client is None:
@@ -1339,6 +1383,103 @@ def _run_health_checks(context: RunContext) -> dict[str, Any]:
     else:
         context.store.record_event("info", "health_check_passed", results)
     return results
+
+
+def _probe_llm_capabilities(context: RunContext) -> None:
+    config = context.config
+    model_map = {
+        "header": ("model_header", config.provider.model_header),
+        "match": ("model_match", config.provider.model_match),
+        "extract": ("model_extract", config.provider.model_extract),
+        "helper": ("model_query_helper", config.provider.model_query_helper),
+    }
+    for label, (field_name, model) in model_map.items():
+        if not model:
+            continue
+        probe_client = _build_llm_client(
+            config.provider,
+            model=model,
+            logger=context.logger,
+            record_path=None,
+            payload_record_path=(
+                config.provider.payload_record_path
+                if config.provider.record_payloads
+                else None
+            ),
+            mock_mode=False,
+            mock_payloads=None,
+        )
+        backend_probe = probe_client.probe_backend()
+        if not backend_probe.get("ok", False):
+            context.store.record_event(
+                "warning",
+                "llm_backend_incompatible",
+                {"model": model, "label": label, **backend_probe},
+            )
+            _apply_fallback_model(context, label, field_name, backend_probe)
+            continue
+        try:
+            results = probe_client.probe_json_capabilities(QueryExpansionResult)
+        except Exception as exc:  # noqa: BLE001
+            context.store.record_event(
+                "warning",
+                "llm_capability_probe_failed",
+                {"model": model, "label": label, "error": str(exc)},
+            )
+            continue
+        if results:
+            context.store.record_event(
+                "info",
+                "llm_capabilities",
+                {"model": model, "label": label, **results},
+            )
+
+
+def _apply_fallback_model(
+    context: RunContext,
+    label: str,
+    field_name: str,
+    backend_probe: dict[str, Any],
+) -> None:
+    provider = context.config.provider
+    if not provider.fallback_enabled:
+        return
+    fallback_model = getattr(provider, f"fallback_{field_name}", None)
+    if not fallback_model:
+        return
+    fallback_base_url = provider.fallback_base_url or provider.base_url
+    fallback_api_key = provider.fallback_api_key or provider.api_key
+    fallback_provider = provider.model_copy()
+    fallback_provider.base_url = fallback_base_url
+    fallback_provider.api_key = fallback_api_key
+    setattr(fallback_provider, field_name, fallback_model)
+    replacement = _build_llm_client(
+        fallback_provider,
+        model=fallback_model,
+        logger=context.logger,
+        record_path=provider.record_path if provider.record_requests else None,
+        payload_record_path=provider.payload_record_path if provider.record_payloads else None,
+        mock_mode=False,
+        mock_payloads=None,
+    )
+    if label == "header":
+        context.header_client = replacement
+    elif label == "match":
+        context.match_client = replacement
+    elif label == "extract":
+        context.extract_client = replacement
+    elif label == "helper":
+        context.helper_client = replacement
+    context.store.record_event(
+        "warning",
+        "llm_fallback_applied",
+        {
+            "label": label,
+            "fallback_model": fallback_model,
+            "fallback_base_url": fallback_base_url,
+            "backend_probe": backend_probe,
+        },
+    )
 
 
 def _apply_embedding_fallback(context: RunContext, reason: str) -> None:
@@ -1422,6 +1563,12 @@ def _build_retrieval_config(config: RunConfig) -> RetrievalConfig:
             rerank_k=min(8, retrieval.rerank_k),
             max_context_chunks=min(10, max_chunks),
             max_context_tokens=min(1200, retrieval.max_context_tokens),
+            context_window=retrieval.context_window,
+            include_section_chunks=retrieval.include_section_chunks,
+            section_chunk_limit=retrieval.section_chunk_limit,
+            summary_enabled=retrieval.summary_enabled,
+            summary_max_chunks=retrieval.summary_max_chunks,
+            summary_max_tokens=retrieval.summary_max_tokens,
             query_variants=0,
             use_query_expansion=False,
             use_hyde=False,
@@ -1439,6 +1586,12 @@ def _build_retrieval_config(config: RunConfig) -> RetrievalConfig:
             rerank_k=max(retrieval.rerank_k, 24),
             max_context_chunks=min(max(retrieval.max_context_chunks, 24), config.extraction.max_chunks),
             max_context_tokens=max(retrieval.max_context_tokens, 2400),
+            context_window=retrieval.context_window,
+            include_section_chunks=retrieval.include_section_chunks,
+            section_chunk_limit=retrieval.section_chunk_limit,
+            summary_enabled=retrieval.summary_enabled,
+            summary_max_chunks=retrieval.summary_max_chunks,
+            summary_max_tokens=retrieval.summary_max_tokens,
             query_variants=max(retrieval.query_variants, 6),
             use_query_expansion=True,
             use_hyde=True,
@@ -1455,6 +1608,12 @@ def _build_retrieval_config(config: RunConfig) -> RetrievalConfig:
         rerank_k=retrieval.rerank_k,
         max_context_chunks=max_chunks,
         max_context_tokens=retrieval.max_context_tokens,
+        context_window=retrieval.context_window,
+        include_section_chunks=retrieval.include_section_chunks,
+        section_chunk_limit=retrieval.section_chunk_limit,
+        summary_enabled=retrieval.summary_enabled,
+        summary_max_chunks=retrieval.summary_max_chunks,
+        summary_max_tokens=retrieval.summary_max_tokens,
         query_variants=retrieval.query_variants,
         use_query_expansion=retrieval.use_query_expansion,
         use_hyde=retrieval.use_hyde,
@@ -1636,6 +1795,153 @@ def _retrieve_column_contexts(
     return contexts
 
 
+def _build_context_summary(
+    context: RunContext,
+    chunks: list[dict[str, Any]],
+    pdf_id: str,
+) -> str:
+    retrieval_config = context.retrieval_config
+    if not retrieval_config.summary_enabled:
+        return ""
+    if context.helper_client.config.mode in {"stub", "mock"} or context.helper_client.config.mock_mode:
+        return ""
+    summary_chunks = _select_summary_chunks(chunks, retrieval_config)
+    if not summary_chunks:
+        return ""
+    prompt = render_prompt(
+        "summarize_sections.md",
+        _prompt_meta={"pdf_id": pdf_id, "prompt_name": "summarize_sections"},
+        chunks=json.dumps(summary_chunks, indent=2),
+    )
+    try:
+        result = context.helper_client.complete_json(prompt, ContextSummaryResult)
+    except LlmJsonError as exc:
+        context.store.record_event(
+            "warning",
+            "context_summary_failed",
+            {
+                "pdf_id": pdf_id,
+                "error": str(exc),
+                "http_status": exc.http_status,
+                "error_substring": exc.error_substring,
+            },
+        )
+        return ""
+    summary = (result.summary or "").strip()
+    if summary:
+        context.store.record_event(
+            "info",
+            "context_summary_generated",
+            {"pdf_id": pdf_id, "summary_chars": len(summary), "key_points": len(result.key_points)},
+        )
+    return summary
+
+
+def _select_summary_chunks(
+    chunks: list[dict[str, Any]],
+    retrieval_config: RetrievalConfig,
+) -> list[dict[str, Any]]:
+    section_chunks = [chunk for chunk in chunks if chunk.get("chunk_type") == "section"]
+    page_chunks = [chunk for chunk in chunks if chunk.get("chunk_type") == "page"]
+    candidates = section_chunks or page_chunks or chunks
+    selected: list[dict[str, Any]] = []
+    total_tokens = 0
+    for chunk in candidates:
+        if len(selected) >= retrieval_config.summary_max_chunks:
+            break
+        text = str(chunk.get("text") or "")
+        if not text.strip():
+            continue
+        tokens = estimate_tokens(text)
+        if total_tokens + tokens > retrieval_config.summary_max_tokens:
+            break
+        selected.append(
+            {
+                "chunk_id": chunk.get("chunk_id"),
+                "chunk_type": chunk.get("chunk_type"),
+                "page_start": chunk.get("page_start"),
+                "page_end": chunk.get("page_end"),
+                "text": text,
+            }
+        )
+        total_tokens += tokens
+    return selected
+
+
+def _build_document_anchors(
+    page_text: list[str],
+    extraction_config: Any,
+) -> list[dict[str, Any]] | None:
+    if not extraction_config.whole_text_enabled:
+        return None
+    anchors: list[dict[str, Any]] = []
+    total_tokens = 0
+    for page_idx, text in enumerate(page_text, start=1):
+        if not text.strip():
+            continue
+        tokens = estimate_tokens(text)
+        if total_tokens + tokens > extraction_config.whole_text_max_tokens:
+            return None
+        anchors.append(
+            {
+                "anchor_id": f"page-{page_idx}",
+                "page": page_idx,
+                "text": text,
+            }
+        )
+        total_tokens += tokens
+    return anchors
+
+
+def _write_document_anchors(parsed_dir: Path, pdf_id: str, anchors: list[dict[str, Any]]) -> None:
+    if not anchors:
+        return
+    path = parsed_dir / f"{pdf_id}_anchors.json"
+    path.write_text(json.dumps(anchors, indent=2), encoding="utf-8")
+
+
+def _build_paper_memory(
+    context: RunContext,
+    page_text: list[str],
+    pdf_id: str,
+) -> str:
+    if not context.config.extraction.paper_memory_enabled:
+        return ""
+    anchors: list[dict[str, Any]] = []
+    total_tokens = 0
+    for page_idx, text in enumerate(page_text, start=1):
+        if not text.strip():
+            continue
+        tokens = estimate_tokens(text)
+        if total_tokens + tokens > context.config.extraction.paper_memory_max_tokens:
+            break
+        anchors.append({"anchor_id": f"page-{page_idx}", "page": page_idx, "text": text})
+        total_tokens += tokens
+    if not anchors:
+        return ""
+    prompt = render_prompt(
+        "paper_memory.md",
+        _prompt_meta={"pdf_id": pdf_id, "prompt_name": "paper_memory"},
+        document_anchors=json.dumps(anchors, indent=2),
+    )
+    try:
+        result = context.helper_client.complete_json(prompt, PaperMemoryResult)
+    except LlmJsonError as exc:
+        context.store.record_event(
+            "warning",
+            "paper_memory_failed",
+            {"pdf_id": pdf_id, "error": str(exc), "error_class": exc.error_class},
+        )
+        return ""
+    payload = {"summary": result.summary, "notes": result.notes}
+    context.store.record_event(
+        "info",
+        "paper_memory_generated",
+        {"pdf_id": pdf_id, "notes": len(result.notes)},
+    )
+    return json.dumps(payload, indent=2)
+
+
 def _build_column_query(
     spec: Any,
     row_context: dict[str, Any] | None,
@@ -1698,6 +2004,9 @@ def _retry_unclear_proposals(
     full_chunk_lookup: dict[str, dict[str, Any]] | None = None,
     debug_tracker: DebugExtractionTracker | None = None,
     pdf_id: str | None = None,
+    context_summary: str | None = None,
+    paper_memory: str | None = None,
+    document_anchors: str | None = None,
 ) -> list[dict[str, Any]]:
     if not context.config.extraction.retry_on_unclear:
         return proposals
@@ -1706,6 +2015,7 @@ def _retry_unclear_proposals(
         for proposal in proposals
         if proposal.get("status") in {"unclear", "no_evidence", "not_found"}
         or proposal.get("flags", {}).get("needs_more_evidence")
+        or proposal.get("flags", {}).get("needs_more_context")
     ]
     retry_columns = [col for col in retry_columns if col in group.columns]
     if not retry_columns:
@@ -1767,6 +2077,9 @@ def _retry_unclear_proposals(
             mapping_dependent,
             full_chunk_lookup=full_chunk_lookup,
             pdf_id=pdf_id,
+            context_summary=context_summary,
+            paper_memory=paper_memory,
+            document_anchors=document_anchors,
         )
     except LlmJsonError:
         return proposals
