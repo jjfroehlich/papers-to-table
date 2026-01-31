@@ -33,7 +33,7 @@ Paper Table Agent is a local-first PDF→table pipeline. It matches PDFs to tabl
 
 ## Outputs (per run)
 
-Always written:
+Always written (run pipeline):
 
 ```
 run_config.json
@@ -41,8 +41,6 @@ proposals.sqlite
 run_report.json
 logs/run.log
 checkpoints.sqlite
-exports/updated_table.xlsx
-exports/audit_log.csv
 ```
 
 Artifacts for parsing/retrieval (written as the pipeline runs):
@@ -52,6 +50,13 @@ artifacts/parsed/*
 artifacts/retrieval_indexes/*
 artifacts/ocr/*
 artifacts/thumbnails/*
+```
+
+Exports (after `paper-table-agent export`):
+
+```
+exports/updated_table.xlsx
+exports/audit_log.csv
 ```
 
 Debug-only outputs (when `output.debug_reports=true`):
@@ -106,7 +111,7 @@ logs/llm_payloads.jsonl
 
 ### Whole-text + paper memory mode (feature-flagged)
 
-- If the document fits the model context budget, pass whole text (minus references when configured) to the proposal model.
+- If the document fits the model context budget, pass whole text to the proposal model.
 - If not, run a map-reduce style “paper memory” step that summarizes anchored notes by section/page, then propose values using the memory + targeted retrieval.
 - Evidence anchors must include an anchor_id or page + quote to enable deterministic highlight mapping.
 
@@ -134,6 +139,7 @@ logs/llm_payloads.jsonl
 - UI has no tuning knobs; configuration is driven by `run_config.json`.
 - Health checks validate model endpoint reachability and embedding/reranker backends; failures are logged in `run_report.json`.
 - LLM capability probes cache structured-output support per model and route between guided JSON and prompt-only JSON.
+- Run reports include a summary of per-model capability probe results.
 - Compatibility probes validate backend/model support and classify regex/grammar errors as backend incompatibilities with recommended next actions.
 - Optional fallback models can be configured per role (header/match/extract/helper) and are swapped in when probes fail.
 - Parsing sanity metrics (text length, tokens, whitespace ratio, sparse pages, OCR trigger) are recorded per PDF.
