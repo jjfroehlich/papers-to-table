@@ -33,6 +33,9 @@ def extract_group(
     mapping_dependent: bool,
     full_chunk_lookup: dict[str, dict[str, Any]] | None = None,
     pdf_id: str | None = None,
+    context_summary: str | None = None,
+    paper_memory: str | None = None,
+    document_anchors: str | None = None,
     prompt_meta: dict[str, Any] | None = None,
 ) -> GroupExtractionResult:
     merged_chunks = _merge_chunks(chunks_by_column)
@@ -42,6 +45,9 @@ def extract_group(
         group,
         merged_chunks,
         pdf_id=pdf_id,
+        context_summary=context_summary,
+        paper_memory=paper_memory,
+        document_anchors=document_anchors,
         prompt_meta=prompt_meta,
     )
     if trimmed_chunks is not None:
@@ -64,6 +70,9 @@ def build_extract_prompt(
     group: GroupContext,
     chunks_by_column: dict[str, list[dict[str, Any]]],
     pdf_id: str | None = None,
+    context_summary: str | None = None,
+    paper_memory: str | None = None,
+    document_anchors: str | None = None,
     prompt_meta: dict[str, Any] | None = None,
 ) -> tuple[str, list[dict[str, Any]]]:
     merged_chunks = _merge_chunks(chunks_by_column)
@@ -73,6 +82,9 @@ def build_extract_prompt(
         group,
         merged_chunks,
         pdf_id=pdf_id,
+        context_summary=context_summary,
+        paper_memory=paper_memory,
+        document_anchors=document_anchors,
         prompt_meta=prompt_meta,
     )
     return prompt, trimmed_chunks or merged_chunks
@@ -84,6 +96,9 @@ def _build_extract_prompt(
     group: GroupContext,
     merged_chunks: list[dict[str, Any]],
     pdf_id: str | None = None,
+    context_summary: str | None = None,
+    paper_memory: str | None = None,
+    document_anchors: str | None = None,
     prompt_meta: dict[str, Any] | None = None,
 ) -> tuple[str, list[dict[str, Any]] | None]:
     trimmed_chunks = _trim_chunks_for_prompt(
@@ -99,6 +114,9 @@ def _build_extract_prompt(
         _prompt_meta={"pdf_id": pdf_id, "group": group.name},
         row_context=json.dumps(row_context, indent=2),
         columns=json.dumps(group.columns_payload, indent=2),
+        context_summary=context_summary or "",
+        paper_memory=paper_memory or "",
+        document_anchors=document_anchors or "",
         chunks=json.dumps(trimmed_chunks or merged_chunks, indent=2),
     )
     if prompt_meta is not None:
@@ -191,6 +209,8 @@ def build_proposal_records(pdf_id: str, row_id: str, result: GroupExtractionResu
             flags["search_hints"] = proposal.search_hints
         if proposal.col_id is not None:
             flags["col_id"] = proposal.col_id
+        if proposal.needs_more_context is not None:
+            flags["needs_more_context"] = proposal.needs_more_context
         records.append(
             {
                 "proposal_id": str(uuid.uuid4()),
@@ -201,7 +221,7 @@ def build_proposal_records(pdf_id: str, row_id: str, result: GroupExtractionResu
                 "status": proposal.status,
                 "confidence": proposal.confidence,
                 "evidence": [e.model_dump(mode="json") for e in proposal.evidence],
-                "reasoning": proposal.rationale,
+                "reasoning": proposal.reasoning,
                 "flags": flags,
             }
         )
@@ -220,6 +240,9 @@ def _apply_evidence_rules(proposal: Any, chunk_lookup: dict[str, dict[str, Any]]
     if not has_evidence:
         proposal.flags["evidence_missing"] = True
         proposal.flags["failure_reason"] = proposal.flags.get("failure_reason") or reason or "missing_evidence"
+        proposal.needs_more_evidence = True
+    if getattr(proposal, "needs_more_context", None):
+        proposal.flags["needs_more_context"] = True
         proposal.needs_more_evidence = True
     proposal.status = status
     if _has_ellipsis_quote(proposal.evidence):
@@ -257,6 +280,7 @@ def build_error_records(
     http_status: int | None = None,
     error_substring: str | None = None,
     guided_json_active: bool | None = None,
+    error_class: str | None = None,
 ) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for column in columns:
@@ -280,6 +304,8 @@ def build_error_records(
             flags["error_substring"] = error_substring
         if guided_json_active is not None:
             flags["guided_json_active"] = guided_json_active
+        if error_class:
+            flags["error_class"] = error_class
         records.append(
             {
                 "proposal_id": str(uuid.uuid4()),
@@ -488,6 +514,24 @@ def _validate_evidence_list(
         page = getattr(evidence, "page", None)
         chunk_id = getattr(evidence, "chunk_id", None)
         chunk_idx = getattr(evidence, "chunk_idx", None)
+        source_ref = getattr(evidence, "source_ref", None)
+        anchor_id = getattr(evidence, "anchor_id", None)
+        if anchor_id and not chunk_id:
+            anchor_payload = _parse_anchor_id(anchor_id)
+            if anchor_payload.get("chunk_id"):
+                chunk_id = anchor_payload["chunk_id"]
+                setattr(evidence, "chunk_id", chunk_id)
+            if anchor_payload.get("page") and not page:
+                page = anchor_payload["page"]
+                setattr(evidence, "page", page)
+        if source_ref and not chunk_id:
+            parsed_chunk = _parse_source_ref(source_ref)
+            if parsed_chunk.get("chunk_id"):
+                chunk_id = parsed_chunk["chunk_id"]
+                setattr(evidence, "chunk_id", chunk_id)
+            if parsed_chunk.get("page") and not page:
+                page = parsed_chunk["page"]
+                setattr(evidence, "page", page)
         if quote:
             normalized_quote = normalize_for_matching(normalize_unicode(str(quote)))
             setattr(evidence, "quote_raw", str(quote))
@@ -544,8 +588,10 @@ def _validate_evidence_list(
         page_end = chunk_meta.get("page_end")
         if page_start is not None and page_end is not None:
             if int(page) < int(page_start) or int(page) > int(page_end):
-                errors.append("page_outside_chunk")
-                return True, errors, "weak", "page_outside_chunk"
+                corrected_page = int(page_start)
+                setattr(evidence, "page", corrected_page)
+                page = corrected_page
+                errors.append("page_outside_chunk_corrected")
         chunk_text_raw = str(chunk_meta.get("text_raw") or chunk_meta.get("text") or "")
         if str(quote) in chunk_text_raw:
             setattr(evidence, "validation_mode", "exact")
@@ -573,6 +619,42 @@ def _validate_evidence_list(
             errors.append("quote_has_ellipsis")
         errors.append("quote_not_in_chunk")
     return True, errors, "weak", errors[0] if errors else None
+
+
+def _parse_source_ref(source_ref: str) -> dict[str, Any]:
+    parsed: dict[str, Any] = {}
+    if not source_ref:
+        return parsed
+    ref = str(source_ref).strip()
+    if ref.startswith("page:"):
+        try:
+            parsed["page"] = int(ref.split(":", 1)[1])
+        except ValueError:
+            return parsed
+    if ref.startswith("chunk_id:"):
+        parsed["chunk_id"] = ref.split(":", 1)[1]
+    if ref.startswith("chunk:"):
+        parsed["chunk_id"] = ref.split(":", 1)[1]
+    return parsed
+
+
+def _parse_anchor_id(anchor_id: str) -> dict[str, Any]:
+    parsed: dict[str, Any] = {}
+    if not anchor_id:
+        return parsed
+    anchor = str(anchor_id).strip()
+    if anchor.startswith("page-"):
+        try:
+            parsed["page"] = int(anchor.split("-", 1)[1])
+        except ValueError:
+            return parsed
+    if anchor.startswith("chunk-"):
+        parsed["chunk_id"] = anchor.split("-", 1)[1]
+    if anchor.startswith("chunk_id:"):
+        parsed["chunk_id"] = anchor.split(":", 1)[1]
+    if anchor.startswith("para-") or anchor.startswith("section-"):
+        parsed["chunk_id"] = anchor
+    return parsed
 
 
 def _repair_chunk_reference(quote: str, chunk_lookup: dict[str, dict[str, Any]]) -> str | None:

@@ -2,14 +2,12 @@
 
 ## Current focus
 
-- P0 correctness: proposals always keep values; evidence is annotated and a finder pass adds highlights when possible.
-- Value-first extraction with inference rationale, plus evidence finder repair/locator pass.
-- Robust matching: header heuristics + DOI-aware bonuses with deterministic fallback.
-- Parsing resilience: whitespace/token health checks with OCR fallback and normalized chunk tables.
-- Review UX: matched rows only, prev/next proposal navigation, auto-advance decisions, constrained PDF pane.
-- Deterministic hash retrieval backends for offline validation.
-- JSON extraction/repair hardening with prompt sanitization (drop NaN examples) and optional LLM request/response recording.
-- Provider compatibility: prompt budgets + payload capture for local OpenAI-compatible servers.
+- Proposal-model behavior: inference-first extraction with anchored evidence and graded confidence.
+- Whole-text + paper-memory mode (feature-flagged) to provide broader context when retrieval-only snippets are insufficient.
+- JSON robustness for mapping + extraction: prompt hardening, wrapper stripping, and parsing fallbacks.
+- Backend compatibility probes + regex/grammar incompatibility classification with graceful fallbacks.
+- Evidence anchoring + highlight reliability improvements (page/chunk alignment and quote-to-page matching).
+- Diagnostics + provenance artifacts for LLM requests, truncation decisions, and evidence anchors.
 
 ## Remaining work
 

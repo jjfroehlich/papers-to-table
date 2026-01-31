@@ -268,6 +268,8 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
         "embedding_fallback": [],
         "reranker_fallback": [],
         "retrieval_fallback": [],
+        "llm_backend_incompatible": [],
+        "llm_fallback_applied": [],
     }
     for event in events:
         event_type = event.get("event_type")
@@ -309,6 +311,8 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
                 "embedding": fallback_events["embedding_fallback"],
                 "reranker": fallback_events["reranker_fallback"],
                 "retrieval": fallback_events["retrieval_fallback"],
+                "llm_backend_incompatible": fallback_events["llm_backend_incompatible"],
+                "llm_fallback_applied": fallback_events["llm_fallback_applied"],
             },
             "sanity_check": sanity_check,
         },

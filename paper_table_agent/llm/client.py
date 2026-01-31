@@ -16,6 +16,8 @@ from pydantic import BaseModel, ValidationError
 
 T = TypeVar("T", bound=BaseModel)
 
+_CAPABILITY_CACHE: dict[tuple[str, str], dict[str, bool]] = {}
+
 
 class LlmJsonError(RuntimeError):
     def __init__(
@@ -28,6 +30,7 @@ class LlmJsonError(RuntimeError):
         http_status: int | None = None,
         error_substring: str | None = None,
         guided_json_active: bool | None = None,
+        error_class: str | None = None,
     ) -> None:
         super().__init__(message)
         self.prompt = prompt
@@ -37,6 +40,7 @@ class LlmJsonError(RuntimeError):
         self.http_status = http_status
         self.error_substring = error_substring
         self.guided_json_active = guided_json_active
+        self.error_class = error_class
 
 
 @dataclass
@@ -65,6 +69,7 @@ class LlmClient:
         self.config = config
         self._client = httpx.Client(timeout=_build_timeout(config))
         self.last_raw_response: str | None = None
+        self.last_request_log: dict[str, Any] | None = None
         self.last_guided_json_error: str | None = None
         self.last_guided_json_status: int | None = None
         self.last_guided_json_active: bool | None = None
@@ -89,6 +94,9 @@ class LlmClient:
         if self.config.llm_debug:
             return True
         return _env_truthy("PAPER_TABLE_AGENT_LLM_DEBUG")
+
+    def _record_capability(self, name: str, value: bool) -> None:
+        _set_capability(self.config, name, value)
 
     def _log_debug(self, message: str, payload: dict[str, Any] | None = None) -> None:
         if not self._debug_enabled():
@@ -136,16 +144,25 @@ class LlmClient:
         self.last_guided_json_status = None
         self.last_guided_json_active = None
         guided_allowed = self._should_use_guided_json()
+        constraint_mode = "guided" if guided_allowed else "prompt_only"
+        prompt_only_retry = False
         for attempt in range(self.config.max_retries + 1):
             payload: dict[str, Any] = {
                 "model": self.config.model,
                 "messages": [
-                    {"role": "system", "content": "Return strict JSON only."},
+                    {
+                        "role": "system",
+                        "content": (
+                            "Return strict JSON only."
+                            if constraint_mode == "guided"
+                            else "Return ONLY JSON. No markdown. No preamble."
+                        ),
+                    },
                     {"role": "user", "content": prompt_working},
                 ],
-                "temperature": 0.1,
+                "temperature": 0.0 if prompt_only_retry and constraint_mode == "prompt_only" else 0.1,
             }
-            if guided_allowed:
+            if constraint_mode == "guided":
                 payload["response_format"] = {
                     "type": "json_schema",
                     "json_schema": {
@@ -158,17 +175,17 @@ class LlmClient:
                 stage="completion",
                 attempt=attempt,
             )
-            self._log_debug(
-                "request",
-                _build_request_log(
-                    payload,
-                    url=url,
-                    timeout=self.config.timeout_s,
-                    read_timeout=_effective_read_timeout(self.config),
-                    attempt=attempt,
-                    snippet_chars=self.config.log_snippet_chars,
-                ),
+            request_log = _build_request_log(
+                payload,
+                url=url,
+                timeout=self.config.timeout_s,
+                read_timeout=_effective_read_timeout(self.config),
+                attempt=attempt,
+                snippet_chars=self.config.log_snippet_chars,
+                constraint_mode=constraint_mode,
             )
+            self.last_request_log = request_log
+            self._log_debug("request", request_log)
             try:
                 response = self._client.post(url, json=payload, headers=headers)
             except httpx.TimeoutException as exc:
@@ -225,17 +242,24 @@ class LlmClient:
                                 },
                             )
                             continue
-                if response.status_code == 400 and guided_allowed and _is_guided_json_error(error_text):
+                if response.status_code == 400 and _is_guided_json_error(error_text):
                     self.last_guided_json_error = _extract_error_substring(error_text)
                     self.last_guided_json_status = response.status_code
-                    self.last_guided_json_active = True
+                    self.last_guided_json_active = constraint_mode == "guided"
+                    if constraint_mode == "guided":
+                        self._record_capability("guided_json", False)
                     if self.config.logger is not None:
                         self.config.logger.warning(
-                            "guided JSON rejected; retrying without response_format: %s",
+                            "guided JSON rejected; retrying without constraints: %s",
                             self.last_guided_json_error,
                         )
-                    guided_allowed = False
-                    continue
+                    if constraint_mode == "guided":
+                        constraint_mode = "prompt_only"
+                        prompt_only_retry = True
+                        continue
+                    if not prompt_only_retry:
+                        prompt_only_retry = True
+                        continue
                 raise LlmJsonError(
                     f"LLM HTTP error {response.status_code}: {response.text}",
                     prompt,
@@ -243,10 +267,15 @@ class LlmClient:
                     repair_attempted=False,
                     http_status=response.status_code,
                     error_substring=_extract_error_substring(error_text),
-                    guided_json_active=guided_allowed,
+                    guided_json_active=constraint_mode == "guided",
+                    error_class=_classify_error(error_text),
                 ) from exc
             content = response.json()["choices"][0]["message"]["content"]
             self.last_raw_response = content
+            if constraint_mode == "guided":
+                self._record_capability("guided_json", True)
+            else:
+                self._record_capability("prompt_json", True)
             self._record_interaction(
                 prompt=prompt_working,
                 response=content,
@@ -286,10 +315,15 @@ class LlmClient:
 
     def _should_use_guided_json(self) -> bool:
         mode = (self.config.guided_json_mode or "auto").lower()
-        if mode == "on":
-            return True
         if mode == "off":
             return False
+        capabilities = _get_capabilities(self.config)
+        if capabilities.get("guided_json") is False:
+            return False
+        if capabilities.get("guided_json") is True:
+            return True
+        if mode == "on":
+            return True
         base_url = self.config.base_url or ""
         base_url_lower = base_url.lower()
         if any(token in base_url_lower for token in ("localhost", "127.0.0.1", "ollama", "lm-studio", "lmstudio")):
@@ -308,7 +342,19 @@ class LlmClient:
         return True
 
     def _parse_json(self, content: str) -> Any:
-        cleaned = _strip_markdown_fences(content)
+        text = _strip_think_blocks(content.strip())
+        blocks = _extract_json_blocks_from_markdown(text)
+        for block in reversed(blocks):
+            block = block.strip()
+            if not block:
+                continue
+            try:
+                return json.loads(block)
+            except json.JSONDecodeError:
+                snippet = _extract_first_json(block)
+                if snippet:
+                    return json.loads(snippet)
+        cleaned = _strip_markdown_fences(text)
         try:
             return json.loads(cleaned)
         except json.JSONDecodeError:
@@ -468,6 +514,8 @@ class LlmClient:
         schema_payload = schema.model_json_schema()
         guided_schema_payload = strip_regex_from_json_schema(schema_payload)
         guided_allowed = self._should_use_guided_json()
+        constraint_mode = "guided" if guided_allowed else "prompt_only"
+        prompt_only_retry = False
         repair_prompt = (
             "Repair the following content into strict JSON that matches the schema. "
             "Return JSON only, no markdown.\n\n"
@@ -477,12 +525,19 @@ class LlmClient:
         payload: dict[str, Any] = {
             "model": self.config.model,
             "messages": [
-                {"role": "system", "content": "You are a JSON repair tool. Return strict JSON only."},
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a JSON repair tool. Return strict JSON only."
+                        if constraint_mode == "guided"
+                        else "Return ONLY JSON. No markdown. No preamble."
+                    ),
+                },
                 {"role": "user", "content": repair_prompt},
             ],
-            "temperature": 0.0,
+            "temperature": 0.0 if constraint_mode == "prompt_only" else 0.0,
         }
-        if guided_allowed:
+        if constraint_mode == "guided":
             payload["response_format"] = {
                 "type": "json_schema",
                 "json_schema": {
@@ -499,17 +554,17 @@ class LlmClient:
             stage="repair",
             attempt=0,
         )
-        self._log_debug(
-            "request_repair",
-            _build_request_log(
-                payload,
-                url=url,
-                timeout=self.config.timeout_s,
-                read_timeout=_effective_read_timeout(self.config),
-                attempt=0,
-                snippet_chars=self.config.log_snippet_chars,
-            ),
+        request_log = _build_request_log(
+            payload,
+            url=url,
+            timeout=self.config.timeout_s,
+            read_timeout=_effective_read_timeout(self.config),
+            attempt=0,
+            snippet_chars=self.config.log_snippet_chars,
+            constraint_mode=constraint_mode,
         )
+        self.last_request_log = request_log
+        self._log_debug("request_repair", request_log)
         try:
             response = self._client.post(url, json=payload, headers=headers)
         except httpx.TimeoutException as exc:
@@ -536,19 +591,31 @@ class LlmClient:
                         "response_body": response.text,
                     },
                 )
-            if response.status_code == 400 and guided_allowed and _is_guided_json_error(response.text):
+            if response.status_code == 400 and _is_guided_json_error(response.text):
                 self.last_guided_json_error = _extract_error_substring(response.text)
                 self.last_guided_json_status = response.status_code
-                self.last_guided_json_active = True
-                payload.pop("response_format", None)
-                response = self._client.post(url, json=payload, headers=headers)
-                try:
-                    response.raise_for_status()
-                except httpx.HTTPStatusError:
+                self.last_guided_json_active = constraint_mode == "guided"
+                if constraint_mode == "guided":
+                    self._record_capability("guided_json", False)
+                if not prompt_only_retry:
+                    payload.pop("response_format", None)
+                    payload["messages"][0]["content"] = "Return ONLY JSON. No markdown. No preamble."
+                    constraint_mode = "prompt_only"
+                    prompt_only_retry = True
+                    response = self._client.post(url, json=payload, headers=headers)
+                    try:
+                        response.raise_for_status()
+                    except httpx.HTTPStatusError:
+                        return None
+                else:
                     return None
             else:
                 return None
         content = response.json()["choices"][0]["message"]["content"]
+        if constraint_mode == "guided":
+            self._record_capability("guided_json", True)
+        else:
+            self._record_capability("prompt_json", True)
         self._record_interaction(
             prompt=repair_prompt,
             response=content,
@@ -561,6 +628,108 @@ class LlmClient:
             return schema.model_validate(parsed)
         except Exception:  # noqa: BLE001
             return None
+
+    def probe_json_capabilities(self, schema: type[T]) -> dict[str, bool]:
+        prompt = "Return JSON for a test response."
+        results: dict[str, bool] = {}
+        capabilities = _get_capabilities(self.config)
+        if capabilities.get("guided_json") is None:
+            results["guided_json"] = self._probe_json(prompt, schema, use_guided=True)
+        if capabilities.get("prompt_json") is None:
+            results["prompt_json"] = self._probe_json(prompt, schema, use_guided=False)
+        return results
+
+    def probe_backend(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "model": self.config.model,
+            "messages": [{"role": "user", "content": "ping"}],
+            "temperature": 0.0,
+        }
+        headers = {}
+        if self.config.api_key:
+            headers["Authorization"] = f"Bearer {self.config.api_key}"
+        url = f"{self.config.base_url}/chat/completions"
+        try:
+            response = self._client.post(url, json=payload, headers=headers)
+        except Exception as exc:  # noqa: BLE001
+            return {"ok": False, "error": str(exc), "error_class": "backend_unreachable"}
+        if response.status_code >= 400:
+            error_text = response.text
+            return {
+                "ok": False,
+                "http_status": response.status_code,
+                "error_substring": _extract_error_substring(error_text),
+                "error_class": _classify_error(error_text) or "backend_error",
+            }
+        return {"ok": True}
+
+    def _probe_json(self, prompt: str, schema: type[T], *, use_guided: bool) -> bool:
+        schema_payload = schema.model_json_schema()
+        guided_schema_payload = strip_regex_from_json_schema(schema_payload)
+        payload: dict[str, Any] = {
+            "model": self.config.model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "Return strict JSON only."
+                        if use_guided
+                        else "Return ONLY JSON. No markdown. No preamble."
+                    ),
+                },
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": 0.0,
+        }
+        if use_guided:
+            payload["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": f"{schema.__name__}Probe",
+                    "schema": guided_schema_payload,
+                },
+            }
+        headers = {}
+        if self.config.api_key:
+            headers["Authorization"] = f"Bearer {self.config.api_key}"
+        url = f"{self.config.base_url}/chat/completions"
+        try:
+            response = self._client.post(url, json=payload, headers=headers)
+        except Exception as exc:  # noqa: BLE001
+            self._log_debug(
+                "probe_failed",
+                {"model": self.config.model, "error": str(exc), "use_guided": use_guided},
+            )
+            if use_guided:
+                self._record_capability("guided_json", False)
+            else:
+                self._record_capability("prompt_json", False)
+            return False
+        if response.status_code == 400 and _is_guided_json_error(response.text):
+            if use_guided:
+                self._record_capability("guided_json", False)
+            return False
+        if response.status_code >= 400:
+            if use_guided:
+                self._record_capability("guided_json", False)
+            else:
+                self._record_capability("prompt_json", False)
+            return False
+        try:
+            content = response.json()["choices"][0]["message"]["content"]
+            parsed = self._parse_json(content)
+            schema.model_validate(parsed)
+        except Exception:  # noqa: BLE001
+            if use_guided:
+                self._record_capability("guided_json", False)
+            else:
+                self._record_capability("prompt_json", False)
+            return False
+        if use_guided:
+            self._record_capability("guided_json", True)
+        else:
+            self._record_capability("prompt_json", True)
+        return True
 
     def _record_interaction(
         self,
@@ -598,6 +767,20 @@ class LlmClient:
         }
         with self.config.payload_record_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(record) + "\n")
+
+
+def _capability_key(config: LlmConfig) -> tuple[str, str]:
+    return (config.base_url or "", config.model or "")
+
+
+def _get_capabilities(config: LlmConfig) -> dict[str, bool]:
+    key = _capability_key(config)
+    return _CAPABILITY_CACHE.setdefault(key, {})
+
+
+def _set_capability(config: LlmConfig, name: str, value: bool) -> None:
+    key = _capability_key(config)
+    _CAPABILITY_CACHE.setdefault(key, {})[name] = value
 
 
 def _extract_prompt_query(prompt: str) -> str | None:
@@ -734,6 +917,15 @@ def _extract_error_substring(error_text: str) -> str:
     return text
 
 
+def _classify_error(error_text: str) -> str | None:
+    lowered = (error_text or "").lower()
+    if "failed to process regex" in lowered or "regex" in lowered:
+        return "model_incompatible_backend_regex"
+    if "grammar" in lowered or "json_schema" in lowered or "response_format" in lowered:
+        return "model_incompatible_backend_constraints"
+    return None
+
+
 def _strip_markdown_fences(content: str) -> str:
     text = content.strip()
     if text.startswith("```"):
@@ -744,6 +936,23 @@ def _strip_markdown_fences(content: str) -> str:
             lines = lines[:-1]
         text = "\n".join(lines).strip()
     return text
+
+
+def _extract_json_blocks_from_markdown(content: str) -> list[str]:
+    blocks: list[str] = []
+    for match in re.finditer(r"```(?:json)?\s*([\s\S]*?)```", content, re.IGNORECASE):
+        block = match.group(1).strip()
+        if block:
+            blocks.append(block)
+    return blocks
+
+
+def _strip_think_blocks(content: str) -> str:
+    if not content:
+        return content
+    text = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL | re.IGNORECASE)
+    text = re.sub(r"<analysis>.*?</analysis>", "", text, flags=re.DOTALL | re.IGNORECASE)
+    return text.strip()
 
 
 def _extract_first_json(content: str) -> str | None:
@@ -826,6 +1035,7 @@ def _build_request_log(
     read_timeout: float,
     attempt: int,
     snippet_chars: int,
+    constraint_mode: str | None = None,
 ) -> dict[str, Any]:
     messages = payload.get("messages", [])
     message_chars = 0
@@ -874,6 +1084,7 @@ def _build_request_log(
         "attempt": attempt,
         "timeout_s": timeout,
         "read_timeout_s": read_timeout,
+        "constraint_mode": constraint_mode,
         "prompt_chars": prompt_chars,
         "prompt_tokens_est": prompt_tokens,
         "message_chars": message_chars,

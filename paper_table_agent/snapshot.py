@@ -505,6 +505,7 @@ def _config_overview() -> str:
         - `provider.model_header`/`model_match`/`model_extract`/`model_query_helper`: `{provider.model_header}`
         - `provider.max_prompt_chars`: {provider.max_prompt_chars}
         - `provider.mock_mode`: {provider.mock_mode}
+        - `provider.fallback_enabled`: {provider.fallback_enabled}
 
         **Matching defaults**
         - `top_k`: {matching.top_k}, `confidence_threshold`: {matching.confidence_threshold},
@@ -513,10 +514,15 @@ def _config_overview() -> str:
         **Extraction defaults**
         - `examples_per_col`: {extraction.examples_per_col}, `max_chunks`: {extraction.max_chunks},
           `retry_on_unclear`: {extraction.retry_on_unclear}, `retry_extra_chunks`: {extraction.retry_extra_chunks}
+        - `whole_text_enabled`: {extraction.whole_text_enabled}, `whole_text_max_tokens`: {extraction.whole_text_max_tokens}
+        - `paper_memory_enabled`: {extraction.paper_memory_enabled}, `paper_memory_max_tokens`: {extraction.paper_memory_max_tokens}
 
         **Retrieval defaults**
         - `top_k`: {retrieval.top_k}, `rerank_k`: {retrieval.rerank_k}, `max_context_chunks`: {retrieval.max_context_chunks}
-        - `max_context_tokens`: {retrieval.max_context_tokens}, `query_variants`: {retrieval.query_variants}
+        - `max_context_tokens`: {retrieval.max_context_tokens}, `context_window`: {retrieval.context_window}
+        - `include_section_chunks`: {retrieval.include_section_chunks}, `section_chunk_limit`: {retrieval.section_chunk_limit}
+        - `summary_enabled`: {retrieval.summary_enabled}, `summary_max_chunks`: {retrieval.summary_max_chunks}
+        - `summary_max_tokens`: {retrieval.summary_max_tokens}, `query_variants`: {retrieval.query_variants}
         - `use_query_expansion`: {retrieval.use_query_expansion}, `use_hyde`: {retrieval.use_hyde}
         - `embedding_backend`: {retrieval.embedding_backend}, `reranker_backend`: {retrieval.reranker_backend}
         - `use_reranker`: {retrieval.use_reranker}

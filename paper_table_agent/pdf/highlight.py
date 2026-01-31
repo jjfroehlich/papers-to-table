@@ -40,6 +40,14 @@ def locate_quote(
     if fragment_hit:
         doc.close()
         return HighlightResult(rects=fragment_hit, found=True, strategy="fragment")
+    page_match = _best_page_text_match(quote, page.get_text("text"))
+    if page_match:
+        match_text, strategy = page_match
+        hits = page.search_for(match_text)
+        rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
+        if rects:
+            doc.close()
+            return HighlightResult(rects=rects, found=True, strategy=strategy)
     if locator_hint:
         hits = page.search_for(locator_hint)
         rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
@@ -295,3 +303,28 @@ def _token_span_rect(tokens: Sequence[dict[str, object]], span: tuple[int, int])
     if not xs0 or not ys0 or not xs1 or not ys1:
         return None
     return [min(xs0), min(ys0), max(xs1), max(ys1)]
+
+
+def _best_page_text_match(quote: str, page_text: str, threshold: int = 80) -> tuple[str, str] | None:
+    if not quote or not page_text:
+        return None
+    lines = [line.strip() for line in page_text.splitlines() if line.strip()]
+    if not lines:
+        return None
+    for line in lines:
+        if quote in line:
+            return line, "page_text_exact"
+    normalized_quote = _normalize_quote_search(quote)
+    for line in lines:
+        if normalized_quote and normalized_quote in _normalize_quote_search(line):
+            return line, "page_text_normalized"
+    best_line = ""
+    best_score = 0
+    for line in lines:
+        score = fuzz.partial_ratio(normalized_quote, _normalize_quote_search(line))
+        if score > best_score:
+            best_score = score
+            best_line = line
+    if best_score >= threshold and best_line:
+        return best_line, "page_text_fuzzy"
+    return None

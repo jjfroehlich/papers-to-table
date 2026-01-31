@@ -9,7 +9,13 @@ from paper_table_agent.llm.models import HydeResult, QueryExpansionResult
 from paper_table_agent.llm.prompts import render_prompt
 from paper_table_agent.retrieval.index import RetrievalIndex
 from paper_table_agent.retrieval.rerank import rerank
-from paper_table_agent.retrieval.retrieve import RetrievedChunk, reciprocal_rank_fusion, expand_with_neighbors, retrieve
+from paper_table_agent.retrieval.retrieve import (
+    RetrievedChunk,
+    reciprocal_rank_fusion,
+    expand_with_neighbors,
+    expand_with_window,
+    retrieve,
+)
 
 
 @dataclass
@@ -22,6 +28,12 @@ class RetrievalConfig:
     use_query_expansion: bool = True
     rrf_k: int = 60
     max_context_tokens: int = 1800
+    context_window: int = 1
+    include_section_chunks: bool = True
+    section_chunk_limit: int = 6
+    summary_enabled: bool = True
+    summary_max_chunks: int = 12
+    summary_max_tokens: int = 1000
     use_reranker: bool = True
     use_dense: bool = True
     embedding_backend: str = "tfidf"
@@ -143,6 +155,9 @@ def retrieve_context(
     else:
         reranked = fused[: config.rerank_k]
     expanded = expand_with_neighbors(index, reranked, max_total=config.max_context_chunks)
+    expanded = expand_with_window(index, expanded, window=config.context_window, max_total=config.max_context_chunks)
+    if config.include_section_chunks:
+        expanded = _include_section_chunks(index, query, expanded, limit=config.section_chunk_limit)
     trimmed = _trim_to_token_limit(expanded, config.max_context_tokens)
     debug["reranked"] = [
         {
@@ -153,6 +168,52 @@ def retrieve_context(
         for item in reranked
     ]
     return RetrievalContext(chunks=trimmed, debug=debug)
+
+
+def _include_section_chunks(
+    index: RetrievalIndex,
+    query: str,
+    chunks: list[RetrievedChunk],
+    limit: int,
+) -> list[RetrievedChunk]:
+    if limit <= 0:
+        return chunks
+    scores = index.bm25.get_scores(query.split()) if index.bm25 else []
+    section_candidates: list[tuple[float, RetrievedChunk]] = []
+    for idx, chunk in enumerate(index.chunks):
+        if chunk.chunk_type != "section":
+            continue
+        score = float(scores[idx]) if idx < len(scores) else 0.0
+        section_candidates.append(
+            (
+                score,
+                RetrievedChunk(
+                    chunk_id=chunk.chunk_id,
+                    chunk_pk=chunk.chunk_pk,
+                    chunk_idx=chunk.chunk_idx,
+                    text=chunk.text,
+                    text_raw=chunk.text_raw,
+                    text_norm=chunk.text_norm,
+                    page_start=chunk.page_start,
+                    page_end=chunk.page_end,
+                    chunk_type=chunk.chunk_type,
+                    score=score,
+                    bm25_score=score,
+                    dense_score=0.0,
+                ),
+            )
+        )
+    if not section_candidates:
+        return chunks
+    section_candidates.sort(key=lambda item: item[0], reverse=True)
+    seen = {chunk.chunk_id for chunk in chunks}
+    expanded = list(chunks)
+    for _score, section in section_candidates[:limit]:
+        if section.chunk_id in seen:
+            continue
+        expanded.append(section)
+        seen.add(section.chunk_id)
+    return expanded
 
 
 def _trim_to_token_limit(chunks: Iterable[RetrievedChunk], max_tokens: int) -> list[RetrievedChunk]:

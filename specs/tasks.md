@@ -209,3 +209,86 @@ Conventions:
 **Paths**: `tests/test_stub_run_cli.py`
 **AC**
 - Stub run yields >=3 proposed values and at least one highlightable bbox.
+
+---
+
+## P0 — LLM robustness + evidence upgrades
+
+### [x] **P0.T26** JSON extraction hardening for messy model outputs
+**Paths**: `paper_table_agent/llm/client.py`, `tests/test_llm_json_parsing.py`
+**AC**
+- JSON parsing extracts last fenced block or balanced span before repair.
+- Leading commentary does not block header/mapping parsing.
+- Unit tests cover GLM-style output with leading text.
+
+### [x] **P0.T27** Regex-400 fallback + capability probes
+**Paths**: `paper_table_agent/llm/client.py`, `paper_table_agent/graph/runner.py`, `tests/test_llm_guided_json_fallback.py`
+**AC**
+- HTTP 400 regex/grammar errors retry with constraints-off prompt-only mode.
+- Per-model capability probes cache guided vs prompt-only JSON support.
+- Debug logs include constraint mode and payload flags.
+
+### [x] **P0.T28** Context assembly + summaries for extraction
+**Paths**: `paper_table_agent/retrieval/pipeline.py`, `paper_table_agent/graph/runner.py`, `paper_table_agent/prompts/summarize_sections.md`
+**AC**
+- Retrieval expands neighbor windows and optional section chunks before token trimming.
+- Summary prompt provides broader paper context for extraction.
+- Retry-on-unclear uses expanded context with summaries.
+
+### [x] **P0.T29** Evidence schema upgrades + highlight robustness
+**Paths**: `paper_table_agent/llm/models.py`, `paper_table_agent/prompts/extract_group.md`, `paper_table_agent/pdf/highlight.py`, `paper_table_agent/graph/evidence_finder.py`, `paper_table_agent/ui/app.py`
+**AC**
+- Proposal evidence supports multi-snippet `evidence_items` with quote_text/source_ref/why_it_matters.
+- Highlighting falls back to page-text normalized/fuzzy matches when exact fails.
+- UI surfaces per-evidence why_it_matters + numeric_value.
+
+### [x] **P0.T30** Proposal evaluation harness
+**Paths**: `scripts/dev/eval_proposals.py`
+**AC**
+- Script reports proposal count, evidence coverage, and highlight rate from proposals.sqlite.
+
+---
+
+## P0 — Whole-text proposals + backend compatibility
+
+### [x] **P0.T31** Spec-driven proposal model + anchored evidence contract
+**Paths**: `specs/spec.md`, `paper_table_agent/llm/models.py`, `paper_table_agent/prompts/extract_group.md`
+**AC**
+- Spec defines proposal model inference behavior + anchored evidence requirements.
+- Proposal schema includes rationale, confidence grading, and anchored evidence_items.
+- Prompts explicitly ban wrappers (`<think>`, code fences) for JSON outputs.
+
+### [x] **P0.T32** GLM-safe header extraction parsing + prompt hardening
+**Paths**: `paper_table_agent/prompts/match_header_extract.md`, `paper_table_agent/llm/client.py`, `tests/test_llm_json_parsing.py`
+**AC**
+- Header extraction prompt requires JSON-only output with no `<think>` or code fences.
+- Parser tolerates wrapped outputs (strip `<think>` blocks + fenced JSON).
+- Test covers GLM-style wrapped output for header extraction.
+
+### [x] **P0.T33** Backend compatibility probe + regex incompat classification
+**Paths**: `paper_table_agent/graph/runner.py`, `paper_table_agent/llm/client.py`, `paper_table_agent/graph/reporting.py`
+**AC**
+- Startup probe validates model/backend compatibility and records failures in run report.
+- Regex/grammar 400 errors are classified as `model_incompatible_backend_regex`.
+- UX surfaces actionable fallback guidance.
+
+### [x] **P0.T34** Whole-text + paper-memory extraction (feature-flagged)
+**Paths**: `paper_table_agent/config.py`, `paper_table_agent/graph/runner.py`, `paper_table_agent/graph/extraction.py`
+**AC**
+- Feature flag enables whole-text packaging or memory+retrieval fallback when context is too large.
+- Evidence anchors include page + quote text for deterministic highlighting.
+- Retry-on-unclear uses expanded anchors or memory refresh.
+
+### [x] **P0.T35** Evidence anchoring + highlight reliability improvements
+**Paths**: `paper_table_agent/graph/evidence_finder.py`, `paper_table_agent/pdf/highlight.py`, `paper_table_agent/graph/runner.py`
+**AC**
+- Fix page_outside_chunk occurrences via anchor/page resolution.
+- Evidence finder avoids irrelevant evidence with term/units filters or anchor matching.
+- Missing highlights record clear status and retry paths.
+
+### [x] **P0.T36** Diagnostics + provenance artifacts
+**Paths**: `paper_table_agent/store/schema.sql`, `paper_table_agent/graph/runner.py`, `paper_table_agent/graph/reporting.py`
+**AC**
+- Per-stage LLM metadata (model, tokens, truncation) recorded per attempt.
+- Per-proposal provenance records which anchors/chunks were supplied.
+- Debug flag gates full response capture for reproducibility.

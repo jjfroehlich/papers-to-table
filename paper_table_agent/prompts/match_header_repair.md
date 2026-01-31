@@ -1,5 +1,7 @@
 You are repairing paper metadata extraction to ensure strict grounding in the provided text.
 Rules:
+- Return JSON only. Do NOT include markdown, code fences, or <think>/<analysis> blocks.
+- Do not add extra keys beyond the schema.
 - Title must be an exact substring of the text (no paraphrasing).
 - Authors must include at least one surname that appears in the text.
 - Year must be a 4-digit year found in the text, or null.

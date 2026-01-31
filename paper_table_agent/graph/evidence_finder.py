@@ -71,11 +71,23 @@ def _search_evidence(
     if not best_chunk or not best_hint:
         return EvidenceSearchResult(evidence=[], evidence_quality="none", highlight_success=False)
     quote, quality = _extract_quote(best_hint, best_chunk)
+    if quality != "exact" and not _quote_matches_hints(quote, hints):
+        return EvidenceSearchResult(evidence=[], evidence_quality="none", highlight_success=False)
+    page = best_chunk.get("page_start")
+    chunk_id = best_chunk.get("chunk_id")
+    source_ref = None
+    if chunk_id:
+        source_ref = f"chunk_id:{chunk_id}"
+    elif page:
+        source_ref = f"page:{page}"
     evidence = [
         {
             "quote": quote,
-            "page": best_chunk.get("page_start"),
-            "chunk_id": best_chunk.get("chunk_id"),
+            "quote_text": quote,
+            "source_ref": source_ref,
+            "anchor_id": chunk_id or (f"page-{page}" if page else None),
+            "page": page,
+            "chunk_id": chunk_id,
             "chunk_idx": best_chunk.get("chunk_idx"),
             "chunk_pk": best_chunk.get("chunk_pk"),
             "locator_hint": best_hint,
@@ -148,8 +160,20 @@ def _ensure_highlights(
 ) -> bool:
     highlight_success = False
     for evidence in evidence_items:
-        quote = evidence.get("quote") or ""
+        _apply_anchor_id(evidence, chunk_lookup, page_text)
+        _apply_source_ref(evidence, chunk_lookup)
+        quote = _get_quote_text(evidence)
         page = evidence.get("page")
+        if not evidence.get("source_ref"):
+            if evidence.get("chunk_id"):
+                evidence["source_ref"] = f"chunk_id:{evidence.get('chunk_id')}"
+            elif page:
+                evidence["source_ref"] = f"page:{page}"
+        if not evidence.get("anchor_id"):
+            if evidence.get("chunk_id"):
+                evidence["anchor_id"] = evidence.get("chunk_id")
+            elif page:
+                evidence["anchor_id"] = f"page-{page}"
         if not page:
             page = _page_from_chunk(evidence, chunk_lookup)
             if page:
@@ -178,7 +202,7 @@ def _ensure_highlights(
                 tokens,
             )
             if salvage_quote and salvage_rect:
-                evidence["quote"] = salvage_quote
+                _set_quote_text(evidence, salvage_quote)
                 rects = [salvage_rect]
                 strategy = salvage_strategy
         evidence["rects"] = rects
@@ -237,6 +261,60 @@ def _page_from_chunk(evidence: dict[str, Any], chunk_lookup: dict[str, dict[str,
     return None
 
 
+def _apply_anchor_id(
+    evidence: dict[str, Any],
+    chunk_lookup: dict[str, dict[str, Any]],
+    page_text: Sequence[str] | None,
+) -> None:
+    anchor_id = str(evidence.get("anchor_id") or "").strip()
+    if not anchor_id:
+        return
+    if anchor_id.startswith("page-"):
+        try:
+            page = int(anchor_id.split("-", 1)[1])
+        except ValueError:
+            return
+        evidence.setdefault("page", page)
+        if page_text and not _get_quote_text(evidence):
+            if 0 < page <= len(page_text):
+                _set_quote_text(evidence, page_text[page - 1][:240])
+        return
+    if anchor_id in chunk_lookup:
+        chunk = chunk_lookup[anchor_id]
+        evidence.setdefault("chunk_id", anchor_id)
+        if chunk.get("page_start") and not evidence.get("page"):
+            evidence["page"] = chunk.get("page_start")
+
+
+def _apply_source_ref(evidence: dict[str, Any], chunk_lookup: dict[str, dict[str, Any]]) -> None:
+    source_ref = str(evidence.get("source_ref") or "").strip()
+    if not source_ref:
+        return
+    if source_ref.startswith("page:"):
+        try:
+            evidence["page"] = int(source_ref.split(":", 1)[1])
+        except ValueError:
+            return
+        return
+    if source_ref.startswith("chunk_id:"):
+        evidence["chunk_id"] = source_ref.split(":", 1)[1]
+        return
+    if source_ref.startswith("chunk:"):
+        evidence["chunk_id"] = source_ref.split(":", 1)[1]
+        return
+    if source_ref in chunk_lookup:
+        evidence["chunk_id"] = source_ref
+
+
+def _get_quote_text(evidence: dict[str, Any]) -> str:
+    return str(evidence.get("quote_text") or evidence.get("quote") or evidence.get("quote_raw") or "").strip()
+
+
+def _set_quote_text(evidence: dict[str, Any], quote: str) -> None:
+    evidence["quote"] = quote
+    evidence["quote_text"] = quote
+
+
 def _dedupe(items: Iterable[str]) -> list[str]:
     seen: set[str] = set()
     result: list[str] = []
@@ -247,3 +325,21 @@ def _dedupe(items: Iterable[str]) -> list[str]:
         seen.add(normalized)
         result.append(normalized)
     return result
+
+
+def _quote_matches_hints(quote: str, hints: list[str]) -> bool:
+    if not quote:
+        return False
+    normalized_quote = normalize_for_matching(quote)
+    if not normalized_quote:
+        return False
+    for hint in hints:
+        hint_norm = normalize_for_matching(str(hint))
+        if not hint_norm:
+            continue
+        tokens = [token for token in hint_norm.split() if len(token) >= 4]
+        if not tokens:
+            continue
+        if any(token in normalized_quote for token in tokens):
+            return True
+    return False

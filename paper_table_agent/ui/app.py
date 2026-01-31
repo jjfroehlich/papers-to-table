@@ -145,11 +145,17 @@ def _proposal_state(proposal: dict[str, Any], review: dict[str, Any] | None) -> 
     return status
 
 
+def _evidence_quote(evidence: dict[str, Any]) -> str:
+    return (evidence.get("quote_text") or evidence.get("quote") or evidence.get("quote_raw") or "").strip()
+
+
 def _evidence_label(evidence: dict[str, Any]) -> str:
-    quote = (evidence.get("quote") or "").strip()
+    quote = _evidence_quote(evidence)
     snippet = quote[:120] + ("…" if len(quote) > 120 else "")
     page = evidence.get("page")
-    return f"Page {page}: {snippet}".strip()
+    if page:
+        return f"Page {page}: {snippet}".strip()
+    return snippet or "Evidence"
 
 
 def _evidence_badge(proposal: dict[str, Any]) -> str:
@@ -166,6 +172,11 @@ def _evidence_badge(proposal: dict[str, Any]) -> str:
 
 def _proposal_failure_reason(proposal: dict[str, Any]) -> str:
     flags = proposal.get("flags", {})
+    error_class = flags.get("error_class")
+    if error_class == "model_incompatible_backend_regex":
+        return "Model incompatible with backend regex/grammar. Try another backend or model."
+    if error_class == "model_incompatible_backend_constraints":
+        return "Model rejected structured decoding. Try prompt-only mode or a different backend."
     http_status = flags.get("http_status")
     if http_status:
         error_substring = flags.get("error_substring")
@@ -633,8 +644,12 @@ def build_app() -> None:
                                 else:
                                     evidence_index = 0
                                 evidence = evidence_items[evidence_index]
-                                st.write("Quote:", evidence.get("quote"))
+                                st.write("Quote:", _evidence_quote(evidence))
                                 st.write("Page:", evidence.get("page"))
+                                if evidence.get("numeric_value") is not None:
+                                    st.write("Numeric value:", evidence.get("numeric_value"))
+                                if evidence.get("why_it_matters"):
+                                    st.write("Why it matters:", evidence.get("why_it_matters"))
                                 rects = evidence.get("rects") or []
                                 pdf_path = store.conn.execute(
                                     "SELECT path FROM pdfs WHERE pdf_id = ?",
