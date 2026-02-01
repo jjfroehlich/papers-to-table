@@ -1,43 +1,76 @@
-# Paper Table Agent
+# Paper-table-agent
 
-Paper Table Agent is a local-first PDF→table pipeline that matches PDFs to table rows, proposes values for missing cells with evidence, and lets you review each proposal in a minimal Run/Review UI before exporting updates.
+Paper-table-agent is an experimental local-first pipeline to extract and organize information from research papers using large language models. 
 
-## Install
+## How to use it
+Input: 
+ - a .xlsx table with one row per paper, columns Title, Authors, Year and a column for each of the desired information. Optionally an extra tab with a brief description of what each column should capture, and optionally some cells in the main table can contain information which will be used as examples in the instructions for the extraction model. 
+ - a folder with .pdf files of papers. 
+ 
+ The app first matches .pdfs to rows, then extracts values for each cell, and lets you review each proposed value in a minimal Run/Review UI together with reasoning and evidence.
 
-On Windows Git Bash, activate the venv with `source .venv/Scripts/activate`.
+## Installation
 
+1. Clone the repo:
 ```bash
-python --version  # requires >=3.10
+git clone https://github.com/jjfroehlich/paper-table-agent
+cd paper-table-agent
+```
+2. Create the virtual environment and install dependencies:
+```bash
+# Verify python version (requires >=3.10)
+python --version  
+
+# Create virtual environment (run once)
 python -m venv .venv
+
+# Activate the environment (Windows Git Bash)
 source .venv/Scripts/activate
+# Note: For PowerShell use: .venv\Scripts\Activate.ps1
+
+# Install package and dependencies (run once)
 pip install -e ".[test]"
 ```
 
+You also need LM Studio, models specialized in embedding (e.g. text-embedding-nomic-embed-text-v1.5, text-embedding-bge-small-en-v1.5), a capable model for extraction and reasoning (e.g. qwen/qwen3-30b-a3b-2507, ). Optionally, LM Studio can also be connected to more capable cloud-based models (e.g. Gemini Pro 3, GPT-5.2) with API keys.
+
 ## Quickstart
-
 ```bash
-paper-table-agent --help
-```
+# Activate Environment
+source .venv/Scripts/activate
 
-### Run the UI
-
-```bash
+# Run the UI
 paper-table-agent ui
-```
-
-### Headless UI smoke check (CI/Codex safe)
-
-```bash
-paper-table-agent ui --smoke
 ```
 
 The UI has two tabs: **Run** (select table + PDF folder) and **Review** (approve/reject proposals).
 
-### Run the CLI
 
+## Terminal CLI 
+### Help
+```bash
+paper-table-agent --help
+```
+
+### Run 
 ```bash
 paper-table-agent init-config --output run_config.json
 paper-table-agent run --config run_config.json
+```
+
+### Review + export
+```bash
+paper-table-agent export --run_dir runs/<timestamp>__<table>/
+```
+
+This writes `exports/updated_table.xlsx` and `exports/audit_log.csv` in the run directory.
+
+
+## Development and debugging
+### Headless UI smoke check (CI/Codex safe)
+
+```bash
+paper-table-agent ui --smoke
 ```
 
 ### Deterministic stub run (no local LLM required)
@@ -46,21 +79,19 @@ paper-table-agent run --config run_config.json
 paper-table-agent run --config tests/fixtures/stub_run_config.json
 ```
 
-### Review + export
-
-```bash
-paper-table-agent export --run_dir runs/<timestamp>__<table>/
-```
-
-This writes `exports/updated_table.xlsx` and `exports/audit_log.csv` in the run directory.
-
-### Bundle a run (optional)
+### Bundle a run 
 
 ```bash
 paper-table-agent bundle --run_dir runs/<timestamp>__<table>/
 ```
 
-## How it works
+### Bundle a snapshot of the app
+
+```bash
+paper-table-agent bundle --run_dir runs/<timestamp>__<table>/
+```
+
+## How it works technically
 
 ### Pipeline flow
 
@@ -77,7 +108,9 @@ paper-table-agent bundle --run_dir runs/<timestamp>__<table>/
 
 ## Config (single source of truth)
 
-All settings live in `run_config.json`. The UI reads defaults from this file but only overrides the table/PDF paths you select. Generate a starter config with `paper-table-agent init-config --output run_config.json`, or use `tests/fixtures/stub_run_config.json` for a deterministic, offline test run.
+All settings live in `run_config.json`. The UI reads defaults from this file but only overrides the table/PDF paths you select. 
+
+Generate a starter config with `paper-table-agent init-config --output run_config.json`.
 
 Debug-only artifacts (mapping report, proposals JSONL) are gated by `output.debug_reports=true` in the config.
 
@@ -85,12 +118,6 @@ To capture raw LLM requests/responses for replay debugging, set `provider.record
 
 Guided JSON (`provider.guided_json_mode`) uses response_format/json_schema when supported. In `auto`, guided mode is disabled for local/private endpoints or when health checks detect schema rejections, and prompt-only JSON remains the fallback.
 
-## Troubleshooting
-
-- **LLM endpoint errors**: confirm `provider.base_url` and models in `run_config.json` point to your backend (LM Studio/Ollama/OpenAI-compatible).
-- **No proposals**: check `run_report.json` and `logs/run.log` for parsing/retrieval diagnostics, evidence-finder stats, and whitespace warnings.
-- **Retrieval queries polluted with NaN/empty examples**: ensure the table schema and data use empty strings or known sentinels so prompts can omit empty examples cleanly.
-- **Need more debug output**: enable `output.debug_reports=true` in your config.
 
 ## Repo structure (short)
 
@@ -108,9 +135,3 @@ Guided JSON (`provider.guided_json_mode`) uses response_format/json_schema when 
 - Evidence locator fills missing pages when possible and tries token-based highlight alignment.
 - LLM capability probes route structured vs prompt-only JSON and retry on regex-constrained failures.
 - Whole-text + paper-memory extraction is available behind config flags for proposal models that need broader context.
-
-## Near-term to-dos
-
-- Expand DOI-aware matching defaults based on real tables.
-- Add more fixture PDFs for multi-column/scanned edge cases.
-- Tune evidence search hints with more domain-specific phrases.

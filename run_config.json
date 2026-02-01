@@ -17,15 +17,17 @@
     "mode": "openai",
     "base_url": "http://localhost:1234/v1",
     "api_key": null,
-    "model_header": "qwen/qwen3-30b-a3b-2507",
-    "model_match": "qwen/qwen3-30b-a3b-2507",
-    "model_extract": "qwen/qwen3-30b-a3b-2507",
-    "model_query_helper": "qwen/qwen3-30b-a3b-2507",
+    "model_header": "zai-org/glm-4.7-flash",
+    "model_match": "zai-org/glm-4.7-flash",
+    "model_extract": "zai-org/glm-4.7-flash",
+    "model_query_helper": "zai-org/glm-4.7-flash",
     "max_prompt_chars": 26000,
     "mock_mode": false,
     "mock_payloads_path": null,
     "guided_json_mode": "off",
-    "record_requests": false,
+    "record_requests": true,
+    "record_payloads": true,
+    "llm_debug": true,
     "record_path": null
   },
   "matching": {
@@ -73,7 +75,7 @@
     "parse_references": false
   },
   "output": {
-    "debug_reports": false
+    "debug_reports": true
   },
   "max_workers": 1
 }
