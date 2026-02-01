@@ -4,7 +4,7 @@ Paper-table-agent is an experimental local-first pipeline to extract and organiz
 
 ## How to use it
 Input: 
- - a .xlsx table with one row per paper, columns Title, Authors, Year and a column for each of the desired information. Optionally an extra tab with a brief description of what each column should capture, and optionally some cells in the main table can contain information which will be used as examples in the instructions for the extraction model. 
+ - a .xlsx table with one row per paper, columns Title/Authors/Year and a column for each of the desired information. Optional: an extra tab with a brief description of what each column should capture. Optional: some cells in the main table manually populated, as examples for the extraction language model. 
  - a folder with .pdf files of papers. 
  
  The app first matches .pdfs to rows, then extracts values for each cell, and lets you review each proposed value in a minimal Run/Review UI together with reasoning and evidence.
@@ -32,7 +32,7 @@ source .venv/Scripts/activate
 pip install -e ".[test]"
 ```
 
-You also need LM Studio, models specialized in embedding (e.g. text-embedding-nomic-embed-text-v1.5, text-embedding-bge-small-en-v1.5), a capable model for extraction and reasoning (e.g. qwen/qwen3-30b-a3b-2507, ). Optionally, LM Studio can also be connected to more capable cloud-based models (e.g. Gemini Pro 3, GPT-5.2) with API keys.
+You also need LM Studio, models specialized in embedding (e.g. text-embedding-nomic-embed-text-v1.5, text-embedding-bge-small-en-v1.5), and a capable model for extraction and reasoning (e.g. qwen/qwen3-30b-a3b-2507). Optional: LM Studio can also be connected to more capable cloud-based models (e.g. Gemini Pro 3, GPT-5.2) with API keys.
 
 ## Quickstart
 ```bash
@@ -65,30 +65,19 @@ paper-table-agent export --run_dir runs/<timestamp>__<table>/
 
 This writes `exports/updated_table.xlsx` and `exports/audit_log.csv` in the run directory.
 
-
-## Development and debugging
-### Headless UI smoke check (CI/Codex safe)
-
+###  For development
 ```bash
+# Headless UI smoke check
 paper-table-agent ui --smoke
-```
 
-### Deterministic stub run (no local LLM required)
-
-```bash
+# Stub run, no LLM required
 paper-table-agent run --config tests/fixtures/stub_run_config.json
-```
 
-### Bundle a run 
-
-```bash
+# Bundle a run 
 paper-table-agent bundle --run_dir runs/<timestamp>__<table>/
-```
 
-### Bundle a snapshot of the app
-
-```bash
-paper-table-agent bundle --run_dir runs/<timestamp>__<table>/
+# Bundle a snapshot of the app
+paper-table-agent snapshot
 ```
 
 ## How it works technically
