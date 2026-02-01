@@ -67,7 +67,6 @@ Do not invent requirements. If requirements are missing, ask targeted questions 
 - README.md: repo overview and high-level entrypoints.
 - CHANGELOG.md: user-facing behavior changes.
 - specs/: feature directories.
-- docs/runbooks/: operator setup + workflow runbooks.
 
 ## Documentation hygiene (README + CHANGELOG)
 - Keep **README.md** aligned with the current project state: reflect the latest project review/status, per-feature health/gaps, and near-term to-do items. When status changes or new gaps are identified, update the README’s status/to-do sections instead of creating new standalone “project review” docs.
@@ -77,4 +76,3 @@ Do not invent requirements. If requirements are missing, ask targeted questions 
 ## Compounding
 - Write a compounding lesson when you fix a non-trivial bug, hit a surprising edge case, change a workflow behavior, or spend a long time debugging.
 - Place lessons under docs/compounding/
-- Afterward: ask whether the lesson implies a durable rule; if yes, propose a small update here.
