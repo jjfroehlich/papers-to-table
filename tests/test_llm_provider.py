@@ -93,14 +93,17 @@ def test_strip_regex_from_json_schema_removes_pattern_keys() -> None:
         "type": "object",
         "pattern": "^root$",
         "properties": {
-            "name": {"type": "string", "pattern": "^[a-z]+$"},
+            "name": {"type": "string", "pattern": "^[a-z]+$", "format": "uuid"},
             "meta": {
                 "type": "object",
                 "patternProperties": {"^x-": {"type": "string"}},
             },
+            "variant": {"oneOf": [{"type": "string"}, {"type": "number"}]},
         },
     }
     cleaned = strip_regex_from_json_schema(schema)
     assert "pattern" not in cleaned
     assert "patternProperties" not in cleaned["properties"]["meta"]
     assert "pattern" not in cleaned["properties"]["name"]
+    assert "format" not in cleaned["properties"]["name"]
+    assert "oneOf" not in cleaned["properties"]["variant"]

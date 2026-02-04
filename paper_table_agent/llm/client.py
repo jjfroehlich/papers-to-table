@@ -77,6 +77,18 @@ class LlmClient:
             self.config.record_path.parent.mkdir(parents=True, exist_ok=True)
         if self.config.payload_record_path:
             self.config.payload_record_path.parent.mkdir(parents=True, exist_ok=True)
+        self._seed_backend_capabilities()
+
+    def _seed_backend_capabilities(self) -> None:
+        inferred = _infer_backend_capabilities(self.config)
+        if not inferred:
+            return
+        capabilities = _get_capabilities(self.config)
+        for key, value in inferred.items():
+            if key not in capabilities:
+                _set_capability(self.config, key, value)
+        if inferred.get("supports_response_format_json_schema") is False and "guided_json" not in capabilities:
+            _set_capability(self.config, "guided_json", False)
 
     def _truncate_prompt(self, prompt: str, max_tokens: int | None = None) -> str:
         max_chars = self.config.max_prompt_chars
@@ -97,6 +109,17 @@ class LlmClient:
 
     def _record_capability(self, name: str, value: bool) -> None:
         _set_capability(self.config, name, value)
+
+    def _constraints_off(self) -> bool:
+        capabilities = _get_capabilities(self.config)
+        for key in (
+            "supports_response_format_json_schema",
+            "supports_grammar_constraints",
+            "supports_regex_patterns",
+        ):
+            if capabilities.get(key) is False:
+                return True
+        return False
 
     def _log_debug(self, message: str, payload: dict[str, Any] | None = None) -> None:
         if not self._debug_enabled():
@@ -143,8 +166,11 @@ class LlmClient:
         self.last_guided_json_error = None
         self.last_guided_json_status = None
         self.last_guided_json_active = None
+        constraints_off = self._constraints_off()
         guided_allowed = self._should_use_guided_json()
         constraint_mode = "guided" if guided_allowed else "prompt_only"
+        if constraints_off:
+            constraint_mode = "constraints_off"
         prompt_only_retry = False
         for attempt in range(self.config.max_retries + 1):
             payload: dict[str, Any] = {
@@ -316,6 +342,8 @@ class LlmClient:
     def _should_use_guided_json(self) -> bool:
         mode = (self.config.guided_json_mode or "auto").lower()
         if mode == "off":
+            return False
+        if self._constraints_off():
             return False
         capabilities = _get_capabilities(self.config)
         if capabilities.get("guided_json") is False:
@@ -513,8 +541,11 @@ class LlmClient:
     def _repair_json(self, content: str, schema: type[T]) -> T | None:
         schema_payload = schema.model_json_schema()
         guided_schema_payload = strip_regex_from_json_schema(schema_payload)
+        constraints_off = self._constraints_off()
         guided_allowed = self._should_use_guided_json()
         constraint_mode = "guided" if guided_allowed else "prompt_only"
+        if constraints_off:
+            constraint_mode = "constraints_off"
         prompt_only_retry = False
         repair_prompt = (
             "Repair the following content into strict JSON that matches the schema. "
@@ -633,6 +664,12 @@ class LlmClient:
         prompt = "Return JSON for a test response."
         results: dict[str, bool] = {}
         capabilities = _get_capabilities(self.config)
+        if self._constraints_off():
+            if capabilities.get("guided_json") is None:
+                self._record_capability("guided_json", False)
+            if capabilities.get("prompt_json") is None:
+                results["prompt_json"] = self._probe_json(prompt, schema, use_guided=False)
+            return results
         if capabilities.get("guided_json") is None:
             results["guided_json"] = self._probe_json(prompt, schema, use_guided=True)
         if capabilities.get("prompt_json") is None:
@@ -664,6 +701,9 @@ class LlmClient:
         return {"ok": True}
 
     def _probe_json(self, prompt: str, schema: type[T], *, use_guided: bool) -> bool:
+        if use_guided and self._constraints_off():
+            self._record_capability("guided_json", False)
+            return False
         schema_payload = schema.model_json_schema()
         guided_schema_payload = strip_regex_from_json_schema(schema_payload)
         payload: dict[str, Any] = {
@@ -897,7 +937,7 @@ def strip_regex_from_json_schema(schema: Any) -> Any:
     if isinstance(schema, dict):
         cleaned = {}
         for key, value in schema.items():
-            if key in {"pattern", "patternProperties"}:
+            if key in {"pattern", "patternProperties", "format", "oneOf", "anyOf", "allOf"}:
                 continue
             cleaned[key] = strip_regex_from_json_schema(value)
         return cleaned
@@ -1104,6 +1144,27 @@ def _summarize_flag_value(value: Any) -> Any:
     if isinstance(value, list):
         return f"list(len={len(value)})"
     return value
+
+
+def _infer_backend_capabilities(config: LlmConfig) -> dict[str, bool]:
+    base_url = config.base_url or ""
+    base_url_lower = base_url.lower()
+    host = urlparse(base_url).hostname or ""
+    port = urlparse(base_url).port
+    host_lower = host.lower()
+    if "lm-studio" in base_url_lower or "lmstudio" in base_url_lower:
+        return {
+            "supports_response_format_json_schema": False,
+            "supports_grammar_constraints": False,
+            "supports_regex_patterns": False,
+        }
+    if host_lower in {"localhost", "127.0.0.1"} and port == 1234:
+        return {
+            "supports_response_format_json_schema": False,
+            "supports_grammar_constraints": False,
+            "supports_regex_patterns": False,
+        }
+    return {}
 
 
 def estimate_tokens(text: str) -> int:

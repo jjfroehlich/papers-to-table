@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added constraints-off routing for LM Studio/gpt-oss, ensuring no schema/grammar/regex payloads are sent to incompatible backends.
+- Added chunk_pk scoping with pdf_id to prevent evidence chunk collisions across PDFs.
+- Added deterministic weak-evidence backfill plus evidence finder attempt/coverage metrics in run_report.json.
+- Added highlight guardrails that reject low-quality matches (short quotes, page-spanning rects, low match scores) with failure reasons.
 - Added whole-text/paper-memory extraction flags, backend compatibility probes, and anchor-based evidence fields.
 - Added robust JSON extraction from mixed LLM output (last fenced block + balanced span) and regex-400 fallback to prompt-only mode with capability probing.
 - Expanded evidence schema to support multi-snippet argumentation and improved highlight fallbacks using page-text matching.

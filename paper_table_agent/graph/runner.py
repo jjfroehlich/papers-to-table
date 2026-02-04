@@ -53,7 +53,7 @@ from paper_table_agent.llm.embeddings import (
     HashEmbeddingClient,
     StubEmbeddingClient,
 )
-from paper_table_agent.pdf.highlight import locate_quote, salvage_quote_from_tokens
+from paper_table_agent.pdf.highlight import assess_highlight_rects, locate_quote, salvage_quote_from_tokens
 from paper_table_agent.pdf.grobid import extract_grobid, save_grobid
 from paper_table_agent.pdf.ocr import run_ocr, should_trigger_ocr
 from paper_table_agent.pdf.parser import compute_sha1, parse_pdf, save_parsed
@@ -486,7 +486,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         return False
 
     sections = grobid_result.sections if grobid_result else None
-    chunks = build_chunks(parsed.page_text, sections=sections)
+    chunks = build_chunks(parsed.page_text, sections=sections, pdf_id=pdf.pdf_id)
     chunk_dicts = to_dicts(chunks)
     full_chunk_lookup = build_chunk_lookup_from_list(chunk_dicts)
     debug_tracker = DebugExtractionTracker(pdf_id=pdf.pdf_id, chunks_indexed=len(chunks))
@@ -941,6 +941,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
             parsed.page_text,
             parsed.tokens,
             str(pdf.path),
+            column_chunks=column_contexts,
         )
         for proposal in proposals:
             flags = proposal.get("flags") or {}
@@ -1170,11 +1171,20 @@ def _resolve_evidence_locators(
                     continue
             if evidence.get("rects"):
                 continue
+            allowed, reason = _quote_quality_floor(quote, evidence)
+            if not allowed:
+                evidence["rects"] = []
+                evidence["highlight_status"] = "failed"
+                evidence["highlight_strategy"] = "skipped_low_quality"
+                evidence["highlight_rejection_reason"] = reason
+                proposal.setdefault("flags", {})["needs_more_evidence"] = True
+                continue
             highlight = locate_quote(str(pdf_path), quote, int(page), locator_hint=locator_hint, tokens=tokens)
             rects = highlight.rects
             strategy = highlight.strategy
+            match_score = highlight.match_score
             if not rects and tokens:
-                salvage_quote, salvage_rect, salvage_strategy = salvage_quote_from_tokens(
+                salvage_quote, salvage_rect, salvage_strategy, salvage_score = salvage_quote_from_tokens(
                     quote or locator_hint or "",
                     int(page),
                     tokens,
@@ -1183,6 +1193,21 @@ def _resolve_evidence_locators(
                     _set_quote_text(evidence, salvage_quote)
                     rects = [salvage_rect]
                     strategy = salvage_strategy
+                    match_score = salvage_score
+            accept, rejection_reason = assess_highlight_rects(
+                quote,
+                rects,
+                highlight.page_height,
+                match_score,
+            )
+            evidence["highlight_match_score"] = match_score
+            if not accept:
+                evidence["rects"] = []
+                evidence["highlight_status"] = "failed"
+                evidence["highlight_strategy"] = strategy
+                evidence["highlight_rejection_reason"] = rejection_reason
+                proposal.setdefault("flags", {})["needs_more_evidence"] = True
+                continue
             evidence["rects"] = rects
             evidence["highlight_status"] = "highlighted" if rects else "not_found"
             evidence["highlight_strategy"] = strategy
@@ -1278,6 +1303,29 @@ def _find_best_page_for_quote(quote: str | None, page_text: list[str]) -> int | 
                 return idx + 1
         return None
     return best_page
+
+
+def _quote_quality_floor(quote: str, evidence: dict[str, Any]) -> tuple[bool, str | None]:
+    if not quote:
+        return False, "missing_quote"
+    cleaned = quote.strip()
+    if len(cleaned) < 20 or len(cleaned.split()) < 5:
+        return False, "quote_too_short"
+    alnum = sum(1 for char in cleaned if char.isalnum())
+    if alnum / max(len(cleaned), 1) < 0.3:
+        return False, "quote_low_alnum"
+    if _evidence_needs_numeric(evidence) and not any(char.isdigit() for char in cleaned):
+        return False, "quote_missing_numeric"
+    return True, None
+
+
+def _evidence_needs_numeric(evidence: dict[str, Any]) -> bool:
+    quote = str(evidence.get("quote") or "")
+    if any(char.isdigit() for char in quote):
+        return False
+    locator_hint = str(evidence.get("locator_hint") or "").lower()
+    numeric_tokens = ("percent", "%", "rate", "ratio", "dose", "mg", "ml", "kg", "count", "score")
+    return any(token in locator_hint for token in numeric_tokens)
 
 
 def _ensure_retrieval_backends(config: RunConfig, logger: Any, store: Store) -> None:
@@ -1435,6 +1483,15 @@ def _probe_llm_capabilities(context: RunContext) -> None:
             continue
         cached = get_capability_cache(probe_client.config)
         payload: dict[str, Any] = {"model": model, "label": label}
+        backend_caps = {
+            key: cached.get(key)
+            for key in (
+                "supports_response_format_json_schema",
+                "supports_grammar_constraints",
+                "supports_regex_patterns",
+            )
+            if key in cached
+        }
         if results:
             payload.update(results)
             payload["cached"] = False
@@ -1443,6 +1500,8 @@ def _probe_llm_capabilities(context: RunContext) -> None:
             payload["cached"] = True
         else:
             continue
+        if backend_caps:
+            payload.update(backend_caps)
         context.store.record_event("info", "llm_capabilities", payload)
 
 

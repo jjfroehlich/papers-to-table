@@ -311,3 +311,35 @@ Conventions:
 - LLM capability probe results (cached or fresh) are recorded per model.
 - `run_report.json` surfaces `summary.llm_capabilities`.
 - Test validates run report includes the capability summary.
+
+---
+
+## P0 — Constraints-off routing + evidence guardrails
+
+### [x] **P0.T38** Constraints-off routing for LM Studio
+**Paths**: `paper_table_agent/llm/client.py`, `paper_table_agent/graph/runner.py`, `tests/test_llm_guided_json_fallback.py`
+**AC**
+- LM Studio base URLs force constraints-off mode (no response_format/json_schema/grammar/regex fields).
+- Capability cache records supports_response_format_json_schema/grammar/regex as false and is written to run_report.
+- Unit test asserts payloads omit response_format under constraints-off.
+
+### [x] **P0.T39** Chunk identity uniqueness across PDFs
+**Paths**: `paper_table_agent/retrieval/chunking.py`, `paper_table_agent/graph/extraction.py`, `tests/test_retrieval.py`
+**AC**
+- chunk_pk uses hash(pdf_id::chunk_id) to avoid collisions.
+- Evidence stores pdf_id + chunk_id/chunk_idx for unambiguous lookups.
+- Test validates chunk_pk differs across PDFs with identical chunk_id values.
+
+### [x] **P0.T40** Evidence backfill + finder flags + run report metrics
+**Paths**: `paper_table_agent/graph/evidence_finder.py`, `paper_table_agent/graph/reporting.py`, `paper_table_agent/graph/runner.py`, `tests/test_evidence_finder.py`, `tests/test_integration.py`
+**AC**
+- Proposed values always carry at least one evidence item (strong or weak) via deterministic fallback.
+- Evidence finder runs when missing/invalid/failed highlights and records attempted/succeeded/backfilled flags.
+- run_report includes evidence coverage metrics and evidence_finder attempted rate.
+
+### [x] **P0.T41** Highlight guardrails + rejection reasons
+**Paths**: `paper_table_agent/pdf/highlight.py`, `paper_table_agent/graph/evidence_finder.py`, `paper_table_agent/graph/runner.py`, `tests/test_highlight.py`, `tests/test_evidence_finder.py`
+**AC**
+- Reject too-short quotes, excessive rect counts, and page-spanning rectangles with actionable reasons.
+- Evidence records include highlight_strategy, match_score, and rejection reason when failed.
+- Unit tests cover short-quote rejection and page-spanning rect rejection.

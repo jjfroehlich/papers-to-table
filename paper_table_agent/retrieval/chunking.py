@@ -22,7 +22,11 @@ class Chunk:
     neighbors: list[str]
 
 
-def build_chunks(page_text: list[str], sections: list[dict[str, str]] | None = None) -> list[Chunk]:
+def build_chunks(
+    page_text: list[str],
+    sections: list[dict[str, str]] | None = None,
+    pdf_id: str | None = None,
+) -> list[Chunk]:
     chunks: list[Chunk] = []
     chunk_idx = 0
     for idx, text in enumerate(page_text):
@@ -34,7 +38,7 @@ def build_chunks(page_text: list[str], sections: list[dict[str, str]] | None = N
         chunks.append(
             Chunk(
                 chunk_id=chunk_id,
-                chunk_pk=_chunk_pk(chunk_id),
+                chunk_pk=_chunk_pk(chunk_id, pdf_id),
                 chunk_idx=chunk_idx,
                 text=normalized or cleaned,
                 text_raw=cleaned,
@@ -64,7 +68,7 @@ def build_chunks(page_text: list[str], sections: list[dict[str, str]] | None = N
                 chunks.append(
                     Chunk(
                         chunk_id=chunk_id,
-                        chunk_pk=_chunk_pk(chunk_id),
+                        chunk_pk=_chunk_pk(chunk_id, pdf_id),
                         chunk_idx=chunk_idx,
                         text=segment,
                         text_raw=raw_segment,
@@ -92,7 +96,7 @@ def build_chunks(page_text: list[str], sections: list[dict[str, str]] | None = N
             section_chunks.append(
                 Chunk(
                     chunk_id=chunk_id,
-                    chunk_pk=_chunk_pk(chunk_id),
+                    chunk_pk=_chunk_pk(chunk_id, pdf_id),
                     chunk_idx=chunk_idx,
                     text=section_normalized,
                     text_raw=section_raw,
@@ -161,6 +165,7 @@ def to_dicts(chunks: Iterable[Chunk]) -> list[dict[str, object]]:
     ]
 
 
-def _chunk_pk(chunk_id: str) -> str:
+def _chunk_pk(chunk_id: str, pdf_id: str | None = None) -> str:
     normalized = normalize_key(chunk_id)
-    return hashlib.sha1(normalized.encode("utf-8")).hexdigest()
+    scoped = f"{pdf_id}::{normalized}" if pdf_id else normalized
+    return hashlib.sha1(scoped.encode("utf-8")).hexdigest()

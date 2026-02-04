@@ -17,11 +17,14 @@ class EvidenceQuote(BaseModel):
     quote_normalized: str | None = None
     page: int | None = None
     locator_hint: str | None = None
+    pdf_id: str | None = None
     chunk_pk: str | None = None
     chunk_id: str | None = None
     chunk_idx: int | None = None
     highlight_status: str | None = None
     highlight_strategy: str | None = None
+    highlight_match_score: float | None = None
+    highlight_rejection_reason: str | None = None
     rects: list[list[float]] | None = None
     validation_mode: str | None = None
 

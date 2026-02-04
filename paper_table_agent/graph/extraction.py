@@ -200,6 +200,7 @@ def _prompt_exceeds_budget(
 def build_proposal_records(pdf_id: str, row_id: str, result: GroupExtractionResult) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for proposal in result.proposals:
+        _ensure_evidence_pdf_id(proposal.evidence, pdf_id)
         flags = dict(proposal.flags)
         if proposal.needs_more_evidence is not None:
             flags["needs_more_evidence"] = proposal.needs_more_evidence
@@ -332,6 +333,7 @@ def build_verify_records(
 ) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for result in results:
+        _ensure_evidence_pdf_id(result.evidence, pdf_id)
         has_evidence, errors, mode, reason = _validate_evidence_list(result.evidence, chunk_lookup)
         needs_more = not has_evidence
         flags: dict[str, Any] = {
@@ -463,6 +465,9 @@ def _build_chunk_lookup(chunks_by_column: dict[str, list[dict[str, Any]]]) -> di
                 chunk_pk = chunk.get("chunk_pk")
                 if chunk_pk:
                     pk_lookup[str(chunk_pk)] = canonical_id
+                legacy_pk = _legacy_chunk_pk(chunk_id)
+                if legacy_pk:
+                    pk_lookup.setdefault(legacy_pk, canonical_id)
     lookup["_chunk_idx_map"] = idx_lookup
     lookup["_chunk_pk_map"] = pk_lookup
     return lookup
@@ -766,3 +771,18 @@ def _normalize_words(text: str) -> list[str]:
     cleaned = normalize_for_matching(normalize_unicode(text))
     cleaned = re.sub(r"[^0-9a-z]+", " ", cleaned).strip().lower()
     return [word for word in cleaned.split() if word]
+
+
+def _ensure_evidence_pdf_id(evidence_list: list[Any], pdf_id: str) -> None:
+    for evidence in evidence_list:
+        if getattr(evidence, "pdf_id", None) is None:
+            setattr(evidence, "pdf_id", pdf_id)
+
+
+def _legacy_chunk_pk(chunk_id: str) -> str | None:
+    if not chunk_id:
+        return None
+    normalized = normalize_chunk_id(chunk_id)
+    if not normalized:
+        return None
+    return hashlib.sha1(normalized.encode("utf-8")).hexdigest()

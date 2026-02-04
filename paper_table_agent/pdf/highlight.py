@@ -14,6 +14,8 @@ class HighlightResult:
     rects: list[list[float]]
     found: bool
     strategy: str
+    match_score: float | None = None
+    page_height: float | None = None
 
 
 def locate_quote(
@@ -25,21 +27,29 @@ def locate_quote(
 ) -> HighlightResult:
     doc = fitz.open(pdf_path)
     page = doc.load_page(page_number - 1)
+    page_height = float(page.rect.height)
     hits = page.search_for(quote)
     rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
     if rects:
         doc.close()
-        return HighlightResult(rects=rects, found=True, strategy="exact")
+        return HighlightResult(rects=rects, found=True, strategy="exact", match_score=1.0, page_height=page_height)
     normalized = _normalize_quote_search(quote)
     hits = page.search_for(normalized)
     rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
     if rects:
         doc.close()
-        return HighlightResult(rects=rects, found=True, strategy="normalized")
-    fragment_hit = _search_fragments(page, quote)
+        return HighlightResult(rects=rects, found=True, strategy="normalized", match_score=1.0, page_height=page_height)
+    fragment_hit, fragment_text = _search_fragments(page, quote)
     if fragment_hit:
         doc.close()
-        return HighlightResult(rects=fragment_hit, found=True, strategy="fragment")
+        match_score = fuzz.partial_ratio(quote, fragment_text) / 100.0 if fragment_text else None
+        return HighlightResult(
+            rects=fragment_hit,
+            found=True,
+            strategy="fragment",
+            match_score=match_score,
+            page_height=page_height,
+        )
     page_match = _best_page_text_match(quote, page.get_text("text"))
     if page_match:
         match_text, strategy = page_match
@@ -47,34 +57,74 @@ def locate_quote(
         rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
         if rects:
             doc.close()
-            return HighlightResult(rects=rects, found=True, strategy=strategy)
+            match_score = fuzz.partial_ratio(quote, match_text) / 100.0 if match_text else None
+            return HighlightResult(
+                rects=rects,
+                found=True,
+                strategy=strategy,
+                match_score=match_score,
+                page_height=page_height,
+            )
     if locator_hint:
         hits = page.search_for(locator_hint)
         rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
         if rects:
             doc.close()
-            return HighlightResult(rects=rects, found=True, strategy="locator_hint")
+            match_score = fuzz.partial_ratio(quote, locator_hint) / 100.0 if quote else None
+            return HighlightResult(
+                rects=rects,
+                found=True,
+                strategy="locator_hint",
+                match_score=match_score,
+                page_height=page_height,
+            )
         normalized_hint = _normalize_quote_search(locator_hint)
         hits = page.search_for(normalized_hint)
         rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
         if rects:
             doc.close()
-            return HighlightResult(rects=rects, found=True, strategy="locator_hint_normalized")
-        fragment_hit = _search_fragments(page, locator_hint)
+            match_score = fuzz.partial_ratio(quote, locator_hint) / 100.0 if quote else None
+            return HighlightResult(
+                rects=rects,
+                found=True,
+                strategy="locator_hint_normalized",
+                match_score=match_score,
+                page_height=page_height,
+            )
+        fragment_hit, fragment_text = _search_fragments(page, locator_hint)
         if fragment_hit:
             doc.close()
-            return HighlightResult(rects=fragment_hit, found=True, strategy="locator_hint_fragment")
+            match_score = fuzz.partial_ratio(quote, fragment_text) / 100.0 if fragment_text else None
+            return HighlightResult(
+                rects=fragment_hit,
+                found=True,
+                strategy="locator_hint_fragment",
+                match_score=match_score,
+                page_height=page_height,
+            )
     if tokens:
-        rect = _match_tokens(quote, page_number, tokens)
+        rect, score = _match_tokens(quote, page_number, tokens)
         if rect:
             doc.close()
-            return HighlightResult(rects=[rect], found=True, strategy="tokens")
-        rect = _match_tokens_fuzzy(quote, page_number, tokens)
+            return HighlightResult(
+                rects=[rect],
+                found=True,
+                strategy="tokens",
+                match_score=score,
+                page_height=page_height,
+            )
+        rect, score = _match_tokens_fuzzy(quote, page_number, tokens)
         if rect:
             doc.close()
-            return HighlightResult(rects=[rect], found=True, strategy="token_fuzzy")
+            return HighlightResult(
+                rects=[rect],
+                found=True,
+                strategy="token_fuzzy",
+                match_score=score,
+                page_height=page_height,
+            )
     doc.close()
-    return HighlightResult(rects=[], found=False, strategy="missing")
+    return HighlightResult(rects=[], found=False, strategy="missing", match_score=None, page_height=page_height)
 
 
 def salvage_quote_from_tokens(
@@ -82,34 +132,34 @@ def salvage_quote_from_tokens(
     page_number: int,
     tokens: Sequence[dict[str, object]] | None,
     threshold: int = 78,
-) -> tuple[str | None, list[float] | None, str]:
+) -> tuple[str | None, list[float] | None, str, float | None]:
     if not quote or not tokens:
-        return None, None, "missing"
+        return None, None, "missing", None
     page_tokens = [
         token
         for token in tokens
         if int(token.get("page", 0)) == page_number and token.get("text")
     ]
     if not page_tokens:
-        return None, None, "missing"
+        return None, None, "missing", None
     quote_words = _normalize_words(quote)
     if not quote_words:
-        return None, None, "missing"
+        return None, None, "missing", None
     normalized_tokens = [_normalize_words(str(token["text"])) for token in page_tokens]
     flattened = [words[0] for words in normalized_tokens if words]
     if not flattened:
-        return None, None, "missing"
+        return None, None, "missing", None
     exact_span = _find_exact_span(quote_words, flattened)
     if exact_span:
         rect = _token_span_rect(page_tokens, exact_span)
         quote_text = " ".join(str(token["text"]) for token in page_tokens[exact_span[0] : exact_span[1]])
-        return quote_text, rect, "token_salvage_exact"
+        return quote_text, rect, "token_salvage_exact", 1.0
     best_span, best_score = _find_fuzzy_span(quote_words, flattened, threshold)
     if best_span is None:
-        return None, None, "missing"
+        return None, None, "missing", None
     rect = _token_span_rect(page_tokens, best_span)
     quote_text = " ".join(str(token["text"]) for token in page_tokens[best_span[0] : best_span[1]])
-    return quote_text, rect, "token_salvage_fuzzy"
+    return quote_text, rect, "token_salvage_fuzzy", best_score / 100.0
 
 
 def apply_highlights(pdf_path: str, page_number: int, rects: Iterable[list[float]]) -> bytes:
@@ -139,7 +189,7 @@ def _match_tokens(
     quote: str,
     page_number: int,
     tokens: Sequence[dict[str, object]],
-) -> list[float] | None:
+) -> tuple[list[float] | None, float | None]:
     quote_words = _normalize_words(quote)
     if not quote_words:
         return _match_token_fragments(quote, page_number, tokens)
@@ -151,7 +201,7 @@ def _match_tokens(
     normalized_tokens = [_normalize_words(str(token["text"])) for token in page_tokens]
     flattened = [words[0] for words in normalized_tokens if words]
     if not flattened:
-        return None
+        return None, None
     for start in range(len(flattened)):
         if flattened[start] != quote_words[0]:
             continue
@@ -164,11 +214,11 @@ def _match_tokens(
         xs1 = [token["bbox"][2] for token in matched if token.get("bbox")]
         ys1 = [token["bbox"][3] for token in matched if token.get("bbox")]
         if not xs0 or not ys0 or not xs1 or not ys1:
-            return None
-        return [min(xs0), min(ys0), max(xs1), max(ys1)]
+            return None, None
+        return [min(xs0), min(ys0), max(xs1), max(ys1)], 1.0
     if _split_quote_fragments(quote):
         return _match_token_fragments(quote, page_number, tokens)
-    return None
+    return None, None
 
 
 def _normalize_words(text: str) -> list[str]:
@@ -190,35 +240,35 @@ def _split_quote_fragments(text: str) -> list[str]:
     return [part.strip() for part in parts if len(part.strip()) >= 6]
 
 
-def _search_fragments(page: fitz.Page, text: str) -> list[list[float]]:
+def _search_fragments(page: fitz.Page, text: str) -> tuple[list[list[float]], str]:
     fragments = _split_quote_fragments(text)
     for fragment in fragments:
         hits = page.search_for(fragment)
         rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
         if rects:
-            return rects
+            return rects, fragment
         normalized_fragment = _normalize_quote_search(fragment)
         if normalized_fragment and normalized_fragment != fragment:
             hits = page.search_for(normalized_fragment)
             rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
             if rects:
-                return rects
-    return []
+                return rects, fragment
+    return [], ""
 
 
 def _match_token_fragments(
     quote: str,
     page_number: int,
     tokens: Sequence[dict[str, object]],
-) -> list[float] | None:
+) -> tuple[list[float] | None, float | None]:
     fragments = _split_quote_fragments(quote)
     if not fragments:
-        return None
+        return None, None
     for fragment in fragments:
-        rect = _match_tokens(fragment, page_number, tokens)
+        rect, score = _match_tokens(fragment, page_number, tokens)
         if rect:
-            return rect
-    return None
+            return rect, score
+    return None, None
 
 
 def _match_tokens_fuzzy(
@@ -226,10 +276,10 @@ def _match_tokens_fuzzy(
     page_number: int,
     tokens: Sequence[dict[str, object]],
     threshold: int = 78,
-) -> list[float] | None:
+) -> tuple[list[float] | None, float | None]:
     quote_words = _normalize_words(quote)
     if not quote_words:
-        return None
+        return None, None
     page_tokens = [
         token
         for token in tokens
@@ -238,7 +288,7 @@ def _match_tokens_fuzzy(
     normalized_tokens = [_normalize_words(str(token["text"])) for token in page_tokens]
     flattened = [words[0] for words in normalized_tokens if words]
     if not flattened:
-        return None
+        return None, None
     window_size = min(max(len(quote_words), 3), 12)
     best_score = 0
     best_span = None
@@ -249,15 +299,15 @@ def _match_tokens_fuzzy(
             best_score = score
             best_span = (start, start + window_size)
     if best_score < threshold or best_span is None:
-        return None
+        return None, None
     matched = page_tokens[best_span[0] : best_span[1]]
     xs0 = [token["bbox"][0] for token in matched if token.get("bbox")]
     ys0 = [token["bbox"][1] for token in matched if token.get("bbox")]
     xs1 = [token["bbox"][2] for token in matched if token.get("bbox")]
     ys1 = [token["bbox"][3] for token in matched if token.get("bbox")]
     if not xs0 or not ys0 or not xs1 or not ys1:
-        return None
-    return [min(xs0), min(ys0), max(xs1), max(ys1)]
+        return None, None
+    return [min(xs0), min(ys0), max(xs1), max(ys1)], best_score / 100.0
 
 
 def _find_exact_span(quote_words: list[str], tokens: list[str]) -> tuple[int, int] | None:
@@ -328,3 +378,25 @@ def _best_page_text_match(quote: str, page_text: str, threshold: int = 80) -> tu
     if best_score >= threshold and best_line:
         return best_line, "page_text_fuzzy"
     return None
+
+
+def assess_highlight_rects(
+    quote: str,
+    rects: list[list[float]],
+    page_height: float | None,
+    match_score: float | None,
+) -> tuple[bool, str | None]:
+    if not rects:
+        return False, "no_rects"
+    if match_score is not None and match_score < 0.6:
+        return False, "match_score_too_low"
+    quote_words = _normalize_words(quote)
+    word_count = len(quote_words)
+    if word_count and len(rects) > max(12, word_count * 4):
+        return False, "too_many_rects"
+    if page_height:
+        y0 = min(rect[1] for rect in rects)
+        y1 = max(rect[3] for rect in rects)
+        if (y1 - y0) / page_height > 0.3:
+            return False, "page_span_too_large"
+    return True, None

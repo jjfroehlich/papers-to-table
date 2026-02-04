@@ -34,6 +34,7 @@ The implementation is done when the current codebase satisfies every section of 
 - Keep spec outputs aligned with the actual run/export behavior.
 - Ensure run reports include LLM capability probe summaries.
 - Maintain evidence anchoring and highlight reliability contracts.
+- Enforce backend capability routing so constraints-off backends never receive schema/grammar/regex payloads.
 
 ### P1 — Reliability & usability polish
 

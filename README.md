@@ -121,6 +121,6 @@ Guided JSON (`provider.guided_json_mode`) uses response_format/json_schema when 
 - Core pipeline runs end-to-end with stub providers and OpenAI-compatible backends.
 - UI is minimal (Run + Review only) with config-driven behavior.
 - Evidence is best-effort (values are preserved even when evidence is weak), with in-UI re-location for highlights.
-- Evidence locator fills missing pages when possible and tries token-based highlight alignment.
-- LLM capability probes route structured vs prompt-only JSON and retry on regex-constrained failures.
+- Evidence locator fills missing pages when possible, backfills weak evidence snippets, and rejects low-quality highlight candidates.
+- LLM capability probes route structured vs prompt-only JSON, with constraints-off mode for LM Studio-style backends.
 - Whole-text + paper-memory extraction is available behind config flags for proposal models that need broader context.
