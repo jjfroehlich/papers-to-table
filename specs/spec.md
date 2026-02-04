@@ -10,6 +10,7 @@ Paper Table Agent is a local-first PDF→table pipeline. It matches PDFs to tabl
 - Evidence is an anchored rationale: multiple snippets may support a proposal (statement + number + context).
 - Evidence strength is graded (strong/weak/none) and is not a hard gate on proposing values.
 - When inference is used, the model must return a concise rationale (not chain-of-thought) plus at least one anchored snippet when feasible.
+- When proposed_value is non-empty, the model must return at least one evidence_item (strong or weak); missing evidence triggers deterministic backfill.
 
 ## Golden path
 
@@ -85,7 +86,8 @@ logs/llm_payloads.jsonl
 - **Treat single-space as empty**: configurable via `treat_single_space_as_empty`.
 - **Verify mode** (optional): create verify-only items for locked cells instead of overwriting them.
 - **Evidence discipline**: proposals keep proposed values; evidence validation only annotates flags and `needs_more_evidence`.
-- **Evidence finder**: weak/none evidence triggers a locator pass to search full chunks, page text, and tokens for supporting quotes.
+- **Evidence finder**: weak/none evidence or invalid highlights trigger a locator pass to search full chunks, page text, and tokens for supporting quotes.
+- **Highlight guardrails**: reject too-short/low-signal quotes, overly large page-spanning rectangles, and low-confidence matches; mark highlights failed with reasons instead of showing garbage.
 - **Unicode/ID normalization**: column and chunk identifiers are normalized to prevent drift.
 
 ## Matching behavior
@@ -107,7 +109,9 @@ logs/llm_payloads.jsonl
   - if validation fails: mark `needs_more_evidence` and capture `evidence_validation_errors` without clearing values.
 - Proposal evidence uses multi-snippet `evidence_items` (quote_text + source_ref + anchor_id + optional why_it_matters/numeric_value) to support argumentation.
 - Models can flag `needs_more_context` to trigger a retry with expanded context chunks.
-- Evidence finder runs for weak/none evidence using full chunk tables, page text, and tokens to attach quotes, pages, and highlights.
+- Evidence finder runs for weak/none evidence or highlight failures using full chunk tables, page text, and tokens to attach quotes, pages, and highlights.
+- Evidence backfill: when proposed_value is present but evidence_items empty after extraction/repair, attach a deterministic weak snippet from top retrieval chunks.
+- Evidence records store `pdf_id` + `chunk_id`/`chunk_idx` to keep chunk identity unambiguous across PDFs.
 
 ### Whole-text + paper memory mode (feature-flagged)
 
@@ -124,6 +128,7 @@ logs/llm_payloads.jsonl
 - If dense or reranker backends fail, the pipeline falls back to TF-IDF and disables reranking with a logged warning.
 - Low-quality retrieval triggers a retry with broader query variants and example anchors.
 - Deterministic hash embedding/reranker backends are available for offline tests.
+- Chunk identity uses `chunk_pk=hash(pdf_id::chunk_id)` so evidence never collides across PDFs.
 
 ## Review UX
 
@@ -141,6 +146,7 @@ logs/llm_payloads.jsonl
 - LLM capability probes cache structured-output support per model and route between guided JSON and prompt-only JSON.
 - Run reports include a summary of per-model capability probe results.
 - Compatibility probes validate backend/model support and classify regex/grammar errors as backend incompatibilities with recommended next actions.
+- Backends that do not support constrained decoding (e.g., LM Studio + gpt-oss) must run in constraints-off mode with prompt-only JSON (no response_format/json_schema/grammar/regex fields).
 - Optional fallback models can be configured per role (header/match/extract/helper) and are swapped in when probes fail.
 - Parsing sanity metrics (text length, tokens, whitespace ratio, sparse pages, OCR trigger) are recorded per PDF.
 - CLI entrypoint `paper-table-agent` must install via console scripts and is verified in tests.

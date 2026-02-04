@@ -4,7 +4,8 @@ Value-first: propose a concise proposed_value whenever the paper plausibly conta
 Do not gate proposed_value on evidence availability. Evidence quality is metadata for review.
 Evidence should support reasoning: use multiple evidence_items when needed (e.g., statement + number) and explain why each snippet matters.
 Evidence is best-effort: include quote_text + source_ref + anchor_id + page + chunk_id/chunk_idx/chunk_pk when available, but do not omit proposed_value when evidence is missing.
-Quotes must be verbatim substrings of the chunk text. Avoid ellipses; if you cannot find a clean quote, leave evidence_items empty and set evidence_quality=weak/none with needs_more_evidence=true.
+Quotes must be verbatim substrings of the chunk text. Avoid ellipses; if you cannot find a clean quote, still provide a best nearby anchor snippet from the PDF text and set evidence_quality=weak with needs_more_evidence=true.
+When proposed_value is non-empty, always return at least one evidence_item (strong or weak). Never leave evidence_items empty for a proposed_value.
 Always set evidence_quality to strong | weak | none. When evidence_quality != strong, include search_hints (keywords/sections/phrases) to help locate evidence later.
 If status=inferred, include a concise reasoning argument (no chain-of-thought) explaining how the evidence supports the inference.
 If you need more context, set needs_more_context=true and include search_hints.

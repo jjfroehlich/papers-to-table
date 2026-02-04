@@ -44,7 +44,7 @@ def test_dense_retrieval_scores():
 def test_retrieval_smoke_fixture_pdf():
     fixture_pdf = Path(__file__).resolve().parent / "fixtures" / "pdfs" / "minimal_paper.pdf"
     parsed = parse_pdf(fixture_pdf)
-    chunks = build_chunks(parsed.page_text)
+    chunks = build_chunks(parsed.page_text, pdf_id="fixture-pdf")
     index = build_index(chunks)
     context = retrieve_context(
         index,
@@ -56,6 +56,14 @@ def test_retrieval_smoke_fixture_pdf():
     )
     assert context.chunks
     assert any("Minimal Paper" in chunk.text_raw for chunk in context.chunks)
+
+
+def test_chunk_pk_is_unique_across_pdfs():
+    chunks_a = build_chunks(["Alpha"], pdf_id="pdf-a")
+    chunks_b = build_chunks(["Alpha"], pdf_id="pdf-b")
+    page_pk_a = next(chunk.chunk_pk for chunk in chunks_a if chunk.chunk_id == "page-1")
+    page_pk_b = next(chunk.chunk_pk for chunk in chunks_b if chunk.chunk_id == "page-1")
+    assert page_pk_a != page_pk_b
 
 
 def test_hash_embedding_backend_retrieval():

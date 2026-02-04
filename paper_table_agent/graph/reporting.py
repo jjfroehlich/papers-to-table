@@ -228,7 +228,9 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
     unmatched = sum(1 for row in matches if row.get("status") in {"unmatched", "duplicate"})
     proposal_counts = _proposal_counts(proposals)
     evidence_quality = _evidence_quality_breakdown(proposals)
+    evidence_coverage = _evidence_coverage_metrics(proposals)
     highlight_stats = _highlight_stats(proposals)
+    evidence_finder_stats = _evidence_finder_stats(proposals)
     extractable_columns = _count_extractable_columns(store, config_payload, matched_rows=matches)
     sanity_check = _run_sanity_check(
         matched,
@@ -301,7 +303,9 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
             },
             "proposals": proposal_counts,
             "evidence_quality": evidence_quality,
+            "evidence_coverage": evidence_coverage,
             "highlighting": highlight_stats,
+            "evidence_finder": evidence_finder_stats,
             "errors": {
                 "total_events": len(events),
                 "error_events": sum(1 for row in events if row.get("level") == "error"),
@@ -392,13 +396,72 @@ def _evidence_quality_breakdown(proposals: list[dict[str, object]]) -> dict[str,
 def _highlight_stats(proposals: list[dict[str, object]]) -> dict[str, int]:
     total = 0
     highlighted = 0
+    failed = 0
     for row in proposals:
         evidence = json.loads(row.get("evidence_json") or "[]")
         for item in evidence:
             total += 1
             if item.get("highlight_status") == "highlighted":
                 highlighted += 1
-    return {"total_evidence_items": total, "highlighted": highlighted}
+            if item.get("highlight_status") == "failed":
+                failed += 1
+    ok_rate = (highlighted / total) if total else 0
+    failed_rate = (failed / total) if total else 0
+    return {
+        "total_evidence_items": total,
+        "highlighted": highlighted,
+        "failed": failed,
+        "ok_rate": ok_rate,
+        "failed_rate": failed_rate,
+    }
+
+
+def _evidence_coverage_metrics(proposals: list[dict[str, object]]) -> dict[str, float | int]:
+    total_with_value = 0
+    with_evidence = 0
+    weak_count = 0
+    needs_more = 0
+    for row in proposals:
+        proposed_value = row.get("proposed_value")
+        has_value = proposed_value is not None and str(proposed_value).strip() != ""
+        flags = json.loads(row.get("flags_json") or "{}")
+        evidence_items = json.loads(row.get("evidence_json") or "[]")
+        if has_value:
+            total_with_value += 1
+            if evidence_items:
+                with_evidence += 1
+        if flags.get("evidence_quality") == "weak":
+            weak_count += 1
+        if flags.get("needs_more_evidence"):
+            needs_more += 1
+    coverage_rate = (with_evidence / total_with_value) if total_with_value else 0
+    return {
+        "proposals_with_value": total_with_value,
+        "proposals_with_evidence": with_evidence,
+        "coverage_rate": coverage_rate,
+        "weak_evidence_count": weak_count,
+        "needs_more_evidence_count": needs_more,
+    }
+
+
+def _evidence_finder_stats(proposals: list[dict[str, object]]) -> dict[str, float | int]:
+    attempted = 0
+    succeeded = 0
+    backfilled = 0
+    for row in proposals:
+        flags = json.loads(row.get("flags_json") or "{}")
+        if flags.get("evidence_finder_attempted"):
+            attempted += 1
+        if flags.get("evidence_finder_succeeded"):
+            succeeded += 1
+        backfilled += int(flags.get("evidence_backfilled_count") or 0)
+    attempted_rate = (attempted / len(proposals)) if proposals else 0
+    return {
+        "attempted": attempted,
+        "succeeded": succeeded,
+        "backfilled_count": backfilled,
+        "attempted_rate": attempted_rate,
+    }
 
 
 def _run_sanity_check(
