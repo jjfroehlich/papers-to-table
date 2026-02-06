@@ -20,11 +20,13 @@ from paper_table_agent.graph.extraction import (
     build_error_records,
     build_chunk_lookup_from_list,
     build_proposal_records,
+    build_extract_prompt_batches,
     build_verify_records,
     extract_group,
     verify_proposals,
     verify_cells,
 )
+from paper_table_agent.graph.context_planner import ContextPlan, plan_context
 from paper_table_agent.graph.evidence_finder import find_evidence_for_proposals
 from paper_table_agent.graph.matching import (
     adjudicate_match,
@@ -53,7 +55,12 @@ from paper_table_agent.llm.embeddings import (
     HashEmbeddingClient,
     StubEmbeddingClient,
 )
-from paper_table_agent.pdf.highlight import assess_highlight_rects, locate_quote, salvage_quote_from_tokens
+from paper_table_agent.pdf.highlight import (
+    assess_highlight_rects,
+    locate_quote,
+    locate_quote_span,
+    salvage_quote_from_tokens,
+)
 from paper_table_agent.pdf.grobid import extract_grobid, save_grobid
 from paper_table_agent.pdf.ocr import run_ocr, should_trigger_ocr
 from paper_table_agent.pdf.parser import compute_sha1, parse_pdf, save_parsed
@@ -372,6 +379,7 @@ def _build_llm_client(
             payload_record_path=payload_record_path,
             llm_debug=provider.llm_debug,
             logger=logger,
+            measure_prompt_tokens=provider.measure_prompt_tokens,
         )
     )
 
@@ -749,13 +757,41 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
 
     row_context = next((row for row in context.rows_data if row["row_id"] == adjudication.row_id), {})
     locked_columns = context.lock_map.get(adjudication.row_id, set())
-    context_summary = _build_context_summary(context, chunk_dicts, pdf.pdf_id)
-    document_anchors = _build_document_anchors(parsed.page_text, context.config.extraction)
-    if document_anchors:
-        _write_document_anchors(context.run_paths.parsed_dir, pdf.pdf_id, document_anchors)
-    paper_memory = ""
-    if context.config.extraction.whole_text_enabled and not document_anchors:
-        paper_memory = _build_paper_memory(context, parsed.page_text, pdf.pdf_id)
+    missing_specs = [spec for spec in context.schema_specs if spec.column_name not in locked_columns]
+    max_examples = min(1, context.config.extraction.examples_per_col)
+    context_columns_payload = [
+        {
+            "col_id": idx + 1,
+            "name": spec.column_name,
+            "description": spec.description,
+            "examples": context.examples.get(spec.column_name, [])[:max_examples],
+        }
+        for idx, spec in enumerate(missing_specs)
+    ]
+    context_plan, context_payload = plan_context(
+        pdf.pdf_id,
+        parsed.page_text,
+        context_columns_payload,
+        row_context,
+        context.extract_client,
+        context.helper_client,
+        context.config.extraction,
+        context.run_paths.run_dir,
+    )
+    context.store.record_event(
+        "info",
+        "context_plan",
+        {
+            "pdf_id": pdf.pdf_id,
+            "mode": context_plan.mode,
+            "included_sections": context_plan.included_sections,
+            "token_estimate": context_plan.token_estimate,
+            "ctx_window_tokens": context_plan.ctx_window_tokens,
+            "column_batches": context_plan.column_batches,
+            "memory_stats": context_plan.memory_stats,
+            "context_path": str(context_plan.page_marked_text_path) if context_plan.page_marked_text_path else None,
+        },
+    )
     for group_name, specs in context.grouped.items():
         chunk_lookup: dict[str, str] = {}
         target_columns = [
@@ -779,7 +815,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                     "col_id": col_id,
                     "name": spec.column_name,
                     "description": spec.description,
-                    "examples": context.examples.get(spec.column_name, []),
+                    "examples": context.examples.get(spec.column_name, [])[:max_examples],
                 }
             )
         group = GroupContext(
@@ -797,7 +833,6 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 "extraction_invoked",
                 {"pdf_id": pdf.pdf_id, "group": group_name, "columns": target_columns},
             )
-            debug_tracker.record_attempts(target_columns)
             column_contexts = _retrieve_column_contexts(
                 index,
                 target_specs,
@@ -822,61 +857,124 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 }
                 for chunk in merged_context
             }
-            prompt_meta: dict[str, Any] = {}
-            extraction = extract_group(
-                context.extract_client,
-                row_context,
-                group,
-                column_contexts,
-                adjudication.status != "matched",
-                full_chunk_lookup=full_chunk_lookup,
-                pdf_id=pdf.pdf_id,
-                context_summary=context_summary,
-                paper_memory=paper_memory,
-                document_anchors=json.dumps(document_anchors, indent=2) if document_anchors else "",
-                prompt_meta=prompt_meta,
-            )
-            if prompt_meta.get("prompt_trimmed"):
-                context.store.record_event(
-                    "warning",
-                    "prompt_trimmed",
-                    {
-                        "pdf_id": pdf.pdf_id,
-                        "row_id": adjudication.row_id,
-                        "group": group.name,
-                        "trimmed_chunks": prompt_meta.get("trimmed_chunks"),
-                        "total_chunks": prompt_meta.get("trimmed_total_chunks"),
+            group_batches = _filter_context_batches(context_plan.column_batches, target_columns)
+            if not group_batches:
+                group_batches = [[column] for column in target_columns]
+            proposals: list[dict[str, Any]] = []
+            for batch_columns in group_batches:
+                batch_specs = [spec for spec in target_specs if spec.column_name in batch_columns]
+                batch_payloads = [
+                    payload for payload in columns_payload if payload.get("name") in batch_columns
+                ]
+                batch_group = GroupContext(
+                    name=group_name,
+                    columns=batch_columns,
+                    schema={spec.column_name: spec.description for spec in batch_specs},
+                    examples={col: context.examples.get(col, []) for col in batch_columns},
+                    columns_payload=batch_payloads,
+                    column_id_map={
+                        payload["col_id"]: payload.get("name")
+                        for payload in batch_payloads
+                        if payload.get("col_id") is not None
                     },
+                    column_key_map={normalize_key(col): col for col in batch_columns},
                 )
-            raw_output = (context.extract_client.last_raw_response or "")[:2000]
-            prompt_version = context.prompt_versions.get("extract_group.md")
-            for proposal in extraction.proposals:
-                context.store.insert_extraction_attempt(
-                    {
-                        "pdf_id": pdf.pdf_id,
-                        "row_id": adjudication.row_id,
-                        "column": proposal.column,
-                        "stage": "extraction",
-                        "prompt_version": prompt_version,
-                        "prompt_hash": prompt_meta.get("prompt_hash"),
-                        "prompt_chars": prompt_meta.get("prompt_chars"),
-                        "prompt_tokens": prompt_meta.get("prompt_tokens"),
-                        "prompt_trimmed": prompt_meta.get("prompt_trimmed"),
-                        "trimmed_chunks": prompt_meta.get("trimmed_chunks"),
-                        "trimmed_total_chunks": prompt_meta.get("trimmed_total_chunks"),
-                        "llm_request": context.extract_client.last_request_log,
-                        "context_chunk_ids": [chunk.get("chunk_id") for chunk in merged_context],
-                        "document_anchor_ids": [anchor.get("anchor_id") for anchor in (document_anchors or [])],
-                        "paper_memory_used": bool(paper_memory),
-                        "raw_output": raw_output,
-                        "parsed_output": proposal.model_dump(mode="json"),
-                        "validation_errors": proposal.flags.get("evidence_validation_errors"),
-                        "validation_reason": proposal.flags.get("validation_reason"),
-                        "failure_reason": proposal.flags.get("failure_reason"),
-                        "needs_more_evidence": proposal.flags.get("needs_more_evidence"),
-                    }
+                batch_contexts = {col: column_contexts.get(col, []) for col in batch_columns}
+                batch_chunks = _merge_column_contexts(batch_contexts) if context_plan.mode == "retrieval" else []
+                prompt_batches = build_extract_prompt_batches(
+                    context.extract_client,
+                    row_context,
+                    batch_group,
+                    batch_chunks,
+                    pdf_id=pdf.pdf_id,
+                    context_mode=context_plan.mode,
+                    context_payload=context_payload if context_plan.mode != "retrieval" else None,
                 )
-            proposals = build_proposal_records(pdf.pdf_id, adjudication.row_id, extraction)
+                if not prompt_batches:
+                    prompt_batches = []
+                batch_total = len(prompt_batches)
+                for batch_idx, batch in enumerate(prompt_batches, start=1):
+                    batch_columns = batch.group.columns
+                    debug_tracker.record_attempts(batch_columns)
+                    context.logger.info(
+                        "extract_group batch %s/%s col_ids=%s",
+                        batch_idx,
+                        batch_total,
+                        batch.col_ids,
+                    )
+                    context.store.record_event(
+                        "info",
+                        "extract_group_batch",
+                        {
+                            "pdf_id": pdf.pdf_id,
+                            "row_id": adjudication.row_id,
+                            "group": group.name,
+                            "batch_idx": batch_idx,
+                            "batch_total": batch_total,
+                            "col_ids": batch.col_ids,
+                            "columns": batch_columns,
+                            "total_missing_columns": len(target_columns),
+                            "batch_has_chunks": bool(batch.chunks),
+                            "prompt_trimmed": batch.prompt_meta.get("prompt_trimmed"),
+                            "prompt_budget_exceeded": batch.prompt_meta.get("prompt_budget_exceeded"),
+                            "context_mode": context_plan.mode,
+                        },
+                    )
+                    if batch.prompt_meta.get("prompt_trimmed"):
+                        context.store.record_event(
+                            "warning",
+                            "prompt_trimmed",
+                            {
+                                "pdf_id": pdf.pdf_id,
+                                "row_id": adjudication.row_id,
+                                "group": group.name,
+                                "trimmed_chunks": batch.prompt_meta.get("trimmed_chunks"),
+                                "total_chunks": batch.prompt_meta.get("trimmed_total_chunks"),
+                            },
+                        )
+                    extraction = extract_group(
+                        context.extract_client,
+                        row_context,
+                        batch.group,
+                        batch_contexts,
+                        adjudication.status != "matched",
+                        full_chunk_lookup=full_chunk_lookup if context_plan.mode == "retrieval" else None,
+                        pdf_id=pdf.pdf_id,
+                        context_mode=context_plan.mode,
+                        context_payload=context_payload if context_plan.mode != "retrieval" else None,
+                        page_text=parsed.page_text,
+                        prompt_meta=batch.prompt_meta,
+                        prompt_override=batch.prompt,
+                        trimmed_chunks=batch.chunks,
+                    )
+                    raw_output = (context.extract_client.last_raw_response or "")[:2000]
+                    prompt_version = context.prompt_versions.get("extract_column.md")
+                    for proposal in extraction.proposals:
+                        context.store.insert_extraction_attempt(
+                            {
+                                "pdf_id": pdf.pdf_id,
+                                "row_id": adjudication.row_id,
+                                "column": proposal.column,
+                                "stage": "extraction",
+                                "prompt_version": prompt_version,
+                                "prompt_hash": batch.prompt_meta.get("prompt_hash"),
+                                "prompt_chars": batch.prompt_meta.get("prompt_chars"),
+                                "prompt_tokens": batch.prompt_meta.get("prompt_tokens"),
+                                "prompt_trimmed": batch.prompt_meta.get("prompt_trimmed"),
+                                "trimmed_chunks": batch.prompt_meta.get("trimmed_chunks"),
+                                "trimmed_total_chunks": batch.prompt_meta.get("trimmed_total_chunks"),
+                                "llm_request": context.extract_client.last_request_log,
+                                "context_chunk_ids": [chunk.get("chunk_id") for chunk in merged_context],
+                                "paper_memory_used": context_plan.mode == "memory",
+                                "raw_output": raw_output,
+                                "parsed_output": proposal.model_dump(mode="json"),
+                                "validation_errors": proposal.flags.get("evidence_validation_errors"),
+                                "validation_reason": proposal.flags.get("validation_reason"),
+                                "failure_reason": proposal.flags.get("failure_reason"),
+                                "needs_more_evidence": proposal.flags.get("needs_more_evidence"),
+                            }
+                        )
+                    proposals.extend(build_proposal_records(pdf.pdf_id, adjudication.row_id, extraction))
             proposals = _retry_unclear_proposals(
                 proposals,
                 context,
@@ -888,9 +986,8 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 full_chunk_lookup=full_chunk_lookup,
                 debug_tracker=debug_tracker,
                 pdf_id=pdf.pdf_id,
-                context_summary=context_summary,
-                paper_memory=paper_memory,
-                document_anchors=json.dumps(document_anchors, indent=2) if document_anchors else "",
+                context_mode=context_plan.mode,
+                context_payload=context_payload if context_plan.mode != "retrieval" else None,
             )
         except LlmJsonError as exc:
             error_type = "llm_http_error" if exc.http_status else "json_parse_error"
@@ -1169,6 +1266,13 @@ def _resolve_evidence_locators(
                     evidence["highlight_status"] = "missing_quote_or_page"
                     evidence["highlight_strategy"] = "missing"
                     continue
+            if page_text and isinstance(page, int) and 0 < page <= len(page_text):
+                span = locate_quote_span(page_text[page - 1], quote)
+                if span:
+                    start_char, end_char, span_strategy, _score = span
+                    evidence["quote_start"] = start_char
+                    evidence["quote_end"] = end_char
+                    evidence["highlight_strategy"] = span_strategy
             if evidence.get("rects"):
                 continue
             allowed, reason = _quote_quality_floor(quote, evidence)
@@ -1179,7 +1283,14 @@ def _resolve_evidence_locators(
                 evidence["highlight_rejection_reason"] = reason
                 proposal.setdefault("flags", {})["needs_more_evidence"] = True
                 continue
-            highlight = locate_quote(str(pdf_path), quote, int(page), locator_hint=locator_hint, tokens=tokens)
+            highlight = locate_quote(
+                str(pdf_path),
+                quote,
+                int(page),
+                locator_hint=locator_hint,
+                tokens=tokens,
+                allow_fuzzy=evidence.get("quote_start") is None,
+            )
             rects = highlight.rects
             strategy = highlight.strategy
             match_score = highlight.match_score
@@ -1492,6 +1603,8 @@ def _probe_llm_capabilities(context: RunContext) -> None:
             )
             if key in cached
         }
+        if backend_caps:
+            payload["constraints_off"] = any(value is False for value in backend_caps.values())
         if results:
             payload.update(results)
             payload["cached"] = False
@@ -2074,9 +2187,8 @@ def _retry_unclear_proposals(
     full_chunk_lookup: dict[str, dict[str, Any]] | None = None,
     debug_tracker: DebugExtractionTracker | None = None,
     pdf_id: str | None = None,
-    context_summary: str | None = None,
-    paper_memory: str | None = None,
-    document_anchors: str | None = None,
+    context_mode: str = "retrieval",
+    context_payload: str | None = None,
 ) -> list[dict[str, Any]]:
     if not context.config.extraction.retry_on_unclear:
         return proposals
@@ -2095,13 +2207,13 @@ def _retry_unclear_proposals(
         name=group.name,
         columns=retry_columns,
         schema={spec.column_name: spec.description for spec in retry_specs},
-        examples={col: context.examples.get(col, []) for col in retry_columns},
+        examples={col: context.examples.get(col, [])[:1] for col in retry_columns},
         columns_payload=[
             {
                 "col_id": idx + 1,
                 "name": spec.column_name,
                 "description": spec.description,
-                "examples": context.examples.get(spec.column_name, []),
+                "examples": context.examples.get(spec.column_name, [])[:1],
             }
             for idx, spec in enumerate(retry_specs)
         ],
@@ -2147,9 +2259,9 @@ def _retry_unclear_proposals(
             mapping_dependent,
             full_chunk_lookup=full_chunk_lookup,
             pdf_id=pdf_id,
-            context_summary=context_summary,
-            paper_memory=paper_memory,
-            document_anchors=document_anchors,
+            context_mode=context_mode,
+            context_payload=context_payload,
+            page_text=None,
         )
     except LlmJsonError:
         return proposals
@@ -2177,6 +2289,12 @@ def _load_tokens(tokens_path: Path) -> list[dict[str, Any]]:
             continue
         tokens.append(json.loads(line))
     return tokens
+
+
+def _filter_context_batches(batches: list[list[str]], columns: list[str]) -> list[list[str]]:
+    if not batches:
+        return []
+    return [batch for batch in batches if any(column in batch for column in columns)]
 
 
 def _stop_requested(run_paths: RunPaths) -> bool:

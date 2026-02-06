@@ -48,6 +48,7 @@ class ProviderConfig(BaseModel):
     record_path: Path | None = None
     record_payloads: bool = False
     payload_record_path: Path | None = None
+    measure_prompt_tokens: bool = False
 
 
 class MatchingConfig(BaseModel):
@@ -64,13 +65,17 @@ class MatchingConfig(BaseModel):
 class ExtractionConfig(BaseModel):
     groups: list[dict[str, Any]] = Field(default_factory=list)
     examples_per_col: int = 3
+    column_batch_size: int = 1
     max_chunks: int = 20
     retry_on_unclear: bool = True
     retry_extra_chunks: int = 10
-    whole_text_enabled: bool = False
+    whole_text_enabled: bool = True
     whole_text_max_tokens: int = 6000
+    fulltext_target_ratio: float = 0.85
+    fulltext_caption_max_chars: int = 240
     paper_memory_enabled: bool = True
     paper_memory_max_tokens: int = 1200
+    thinking_models: list[str] = Field(default_factory=lambda: ["gpt-oss", "qwen"])
 
 
 class RetrievalConfig(BaseModel):

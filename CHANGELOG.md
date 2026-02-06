@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added a context planner that selects fulltext/memory/retrieval modes per PDF and drives column-first extraction with anchored evidence and span-based highlights.
+- Added structured prompt budgeting with batching to keep retrieved chunks present while ensuring all missing columns are attempted.
+- Evidence quotes now always come from space-preserving chunk text, and found values are downgraded to inferred when no quote anchors the value.
+- Constraints-off routing now strips all response_format/json_schema/grammar/regex/pattern payload fields for incompatible backends, including retries.
+- Run report now includes extraction batch diagnostics and found-but-unanchored downgrade counts.
 - Added constraints-off routing for LM Studio/gpt-oss, ensuring no schema/grammar/regex payloads are sent to incompatible backends.
 - Added chunk_pk scoping with pdf_id to prevent evidence chunk collisions across PDFs.
 - Added deterministic weak-evidence backfill plus evidence finder attempt/coverage metrics in run_report.json.

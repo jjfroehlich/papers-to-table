@@ -1,5 +1,5 @@
 You are extracting values for a group of columns from retrieved chunks.
-Always follow the schema descriptions and mimic the examples.
+Always follow the schema descriptions. Examples are formatting hints from OTHER rows; never reuse example values unless the paper text supports them.
 Value-first: propose a concise proposed_value whenever the paper plausibly contains the information or it can be reasonably inferred.
 Do not gate proposed_value on evidence availability. Evidence quality is metadata for review.
 Evidence should support reasoning: use multiple evidence_items when needed (e.g., statement + number) and explain why each snippet matters.
@@ -54,5 +54,5 @@ Row context:
 {{row_context}}
 Columns (use col_id in responses):
 {{columns}}
-Retrieved chunks:
+Retrieved chunks (always present; quotes must come from these chunks):
 {{chunks}}

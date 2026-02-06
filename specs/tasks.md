@@ -343,3 +343,38 @@ Conventions:
 - Reject too-short quotes, excessive rect counts, and page-spanning rectangles with actionable reasons.
 - Evidence records include highlight_strategy, match_score, and rejection reason when failed.
 - Unit tests cover short-quote rejection and page-spanning rect rejection.
+
+### [x] **P0.T42** Structured prompt budgeting + batching guarantees
+**Paths**: `paper_table_agent/graph/extraction.py`, `paper_table_agent/graph/runner.py`, `paper_table_agent/prompts/extract_group.md`, `tests/test_llm_prompt_budget.py`
+**AC**
+- Prompt builder always includes retrieved chunks, trimming in order (chunk count → chunk text length → examples → column batching).
+- All missing columns are attempted across batches (no silent drops).
+- Unit test verifies chunk section presence under tiny budgets and batch coverage of col_ids.
+
+### [x] **P0.T43** Evidence anchoring validation + quote source rules
+**Paths**: `paper_table_agent/graph/extraction.py`, `paper_table_agent/graph/evidence_finder.py`, `tests/test_evidence_anchor.py`
+**AC**
+- quote_text for evidence comes from space-preserving text (`text`/`text_raw`) and not `text_norm`.
+- status=`found` requires at least one evidence quote containing the proposed value (normalized equivalence allowed), else downgrade to inferred with needs_more_evidence.
+- Unit test covers anchor downgrade and quote source.
+
+### [x] **P0.T44** Constraints-off payload stripping + run diagnostics
+**Paths**: `paper_table_agent/llm/client.py`, `paper_table_agent/graph/runner.py`, `paper_table_agent/graph/reporting.py`, `tests/test_llm_guided_json_fallback.py`
+**AC**
+- Constraints-off backends never receive response_format/json_schema/grammar/regex/pattern fields (including retries).
+- Capability probes record constraints_off flags in run_report.
+- run_report includes extraction batch diagnostics + found-unanchored downgrade counts.
+
+### [x] **P0.T45** Context planner + fulltext/memory/retrieval modes
+**Paths**: `paper_table_agent/graph/context_planner.py`, `paper_table_agent/graph/runner.py`, `paper_table_agent/prompts/paper_memory.md`, `tests/test_context_planner.py`, `tests/test_context_plan_integration.py`
+**AC**
+- Context planner selects fulltext/memory/retrieval per PDF and batches columns column-first.
+- Fulltext trimming ladder drops References first, then Acknowledgements, trims captions, and removes appendix/table blocks.
+- Memory notes include page + verbatim quotes + why_it_supports and are logged in run_report.
+
+### [x] **P0.T46** Column-first extraction + anchored evidence + span highlights
+**Paths**: `paper_table_agent/graph/extraction.py`, `paper_table_agent/prompts/extract_column.md`, `paper_table_agent/pdf/highlight.py`, `paper_table_agent/graph/evidence_finder.py`, `paper_table_agent/graph/reporting.py`, `tests/test_llm_prompt_budget.py`, `tests/test_evidence_anchor.py`, `tests/test_context_plan_integration.py`
+**AC**
+- Extraction prompts operate column-first (or small batches) with context payloads and evidence-required outputs.
+- Evidence quotes store span anchors (quote_start/quote_end) and use span-first highlighting with strict guardrails.
+- Tests verify prompt batching under small budgets, quote span locating, and fulltext mode extraction produces evidence items.
