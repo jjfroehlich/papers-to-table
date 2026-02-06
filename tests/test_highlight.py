@@ -40,4 +40,4 @@ def test_rejects_page_spanning_rects() -> None:
     quote = "This is a sufficiently long quote for the highlight guard check."
     accept, reason = assess_highlight_rects(quote, rects, page_height=500.0, match_score=0.9)
     assert not accept
-    assert reason == "page_span_too_large"
+    assert reason == "rejected_page_span"

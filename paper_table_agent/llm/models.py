@@ -12,9 +12,12 @@ class EvidenceQuote(BaseModel):
     source_ref: str | None = None
     anchor_id: str | None = None
     why_it_matters: str | None = None
+    why_it_supports: str | None = Field(default=None, alias="why_it_supports")
     numeric_value: str | float | None = None
     quote_raw: str | None = None
     quote_normalized: str | None = None
+    quote_start: int | None = None
+    quote_end: int | None = None
     page: int | None = None
     locator_hint: str | None = None
     pdf_id: str | None = None

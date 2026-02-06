@@ -6,7 +6,12 @@ from typing import Any, Iterable, Sequence
 
 from rapidfuzz import fuzz, process
 
-from paper_table_agent.pdf.highlight import assess_highlight_rects, locate_quote, salvage_quote_from_tokens
+from paper_table_agent.pdf.highlight import (
+    assess_highlight_rects,
+    locate_quote,
+    locate_quote_span,
+    salvage_quote_from_tokens,
+)
 from paper_table_agent.text.normalization import normalize_for_matching, normalize_chunk_id
 
 
@@ -85,6 +90,7 @@ def find_evidence_for_proposals(
             flags["evidence_quality"] = result.evidence_quality
             flags["needs_more_evidence"] = result.evidence_quality != "strong"
             flags["evidence_finder_used"] = True
+            _sync_proposal_status_with_evidence(proposal, result.evidence_quality)
             succeeded = True
             backfilled += len(result.evidence)
         else:
@@ -102,6 +108,7 @@ def find_evidence_for_proposals(
                 flags["evidence_quality"] = "weak"
                 flags["needs_more_evidence"] = True
                 flags["evidence_finder_used"] = True
+                _sync_proposal_status_with_evidence(proposal, "weak")
                 succeeded = True
                 backfilled += len(fallback)
             else:
@@ -202,14 +209,15 @@ def _extract_quote(
             return numeric_quote, "numeric"
     if hint in text_raw:
         return _trim_quote(text_raw, hint), "exact"
-    text_norm = str(chunk.get("text_norm") or chunk.get("text") or "")
     if numeric_required:
-        numeric_quote = _extract_numeric_snippet(text_norm, numeric_hint)
+        numeric_quote = _extract_numeric_snippet(text_raw, numeric_hint)
         if numeric_quote:
             return numeric_quote, "numeric"
-    if hint in text_norm:
-        return _trim_quote(text_norm, hint), "normalized"
-    return _trim_quote(text_raw or text_norm, hint), "approx"
+    normalized_hint = normalize_for_matching(hint)
+    normalized_raw = normalize_for_matching(text_raw)
+    if normalized_hint and normalized_hint in normalized_raw:
+        return _trim_quote(text_raw, hint), "normalized"
+    return _trim_quote(text_raw, hint), "approx"
 
 
 def _trim_quote(text: str, hint: str, max_len: int = 240) -> str:
@@ -259,6 +267,13 @@ def _ensure_highlights(
             evidence["highlight_status"] = "missing_quote_or_page"
             evidence["highlight_strategy"] = "missing"
             continue
+        if page_text and isinstance(page, int) and 0 < page <= len(page_text):
+            span = locate_quote_span(page_text[page - 1], quote)
+            if span:
+                start_char, end_char, span_strategy, _score = span
+                evidence["quote_start"] = start_char
+                evidence["quote_end"] = end_char
+                evidence["highlight_strategy"] = span_strategy
         allowed, reason = _quote_quality_floor(quote, proposal)
         if not allowed:
             evidence["highlight_status"] = "failed"
@@ -272,6 +287,7 @@ def _ensure_highlights(
             int(page),
             locator_hint=evidence.get("locator_hint"),
             tokens=tokens,
+            allow_fuzzy=evidence.get("quote_start") is None,
         )
         rects = highlight.rects
         strategy = highlight.strategy
@@ -524,3 +540,16 @@ def _extract_numeric_snippet(text: str, proposal: dict[str, Any] | None = None) 
         return None
     snippet = text[max(0, match.start() - 40) : min(len(text), match.end() + 40)].strip()
     return snippet if snippet else None
+
+
+def _sync_proposal_status_with_evidence(proposal: dict[str, Any], evidence_quality: str) -> None:
+    status = str(proposal.get("status") or "")
+    proposed_value = proposal.get("proposed_value")
+    if proposed_value is None or str(proposed_value).strip() == "":
+        return
+    if status in {"no_evidence", "unclear"}:
+        proposal["status"] = "inferred"
+    if status == "no_evidence":
+        proposal["reasoning"] = "Evidence backfilled; value requires review."
+    if evidence_quality != "strong":
+        proposal.setdefault("flags", {})["needs_more_evidence"] = True

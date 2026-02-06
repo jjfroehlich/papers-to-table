@@ -25,6 +25,15 @@ class GroupContext:
     column_key_map: dict[str, str]
 
 
+@dataclass
+class ExtractPromptBatch:
+    group: GroupContext
+    prompt: str
+    chunks: list[dict[str, Any]]
+    prompt_meta: dict[str, Any]
+    col_ids: list[int]
+
+
 def extract_group(
     client: LlmClient,
     row_context: dict[str, Any],
@@ -33,34 +42,38 @@ def extract_group(
     mapping_dependent: bool,
     full_chunk_lookup: dict[str, dict[str, Any]] | None = None,
     pdf_id: str | None = None,
-    context_summary: str | None = None,
-    paper_memory: str | None = None,
-    document_anchors: str | None = None,
+    context_mode: str = "retrieval",
+    context_payload: str | None = None,
+    page_text: list[str] | None = None,
     prompt_meta: dict[str, Any] | None = None,
+    prompt_override: str | None = None,
+    trimmed_chunks: list[dict[str, Any]] | None = None,
 ) -> GroupExtractionResult:
     merged_chunks = _merge_chunks(chunks_by_column)
-    prompt, trimmed_chunks = _build_extract_prompt(
-        client,
-        row_context,
-        group,
-        merged_chunks,
-        pdf_id=pdf_id,
-        context_summary=context_summary,
-        paper_memory=paper_memory,
-        document_anchors=document_anchors,
-        prompt_meta=prompt_meta,
-    )
+    if prompt_override:
+        prompt = prompt_override
+    else:
+        prompt, trimmed_chunks = _build_extract_prompt(
+            client,
+            row_context,
+            group,
+            merged_chunks,
+            pdf_id=pdf_id,
+            context_mode=context_mode,
+            context_payload=context_payload,
+            prompt_meta=prompt_meta,
+        )
     if trimmed_chunks is not None:
         merged_chunks = trimmed_chunks
     result = client.complete_json(prompt, GroupExtractionResult)
     result = _coerce_group_columns(result, group)
     result = _ensure_group_coverage(result, group.columns)
-    chunk_lookup = full_chunk_lookup or _build_chunk_lookup(chunks_by_column)
+    chunk_lookup = None if context_mode != "retrieval" else (full_chunk_lookup or _build_chunk_lookup(chunks_by_column))
     for proposal in result.proposals:
         proposal.flags.setdefault("mapping_dependent", mapping_dependent)
         if proposal.column and proposal.column in group.schema:
             proposal.flags.setdefault("column_description", group.schema.get(proposal.column))
-        _apply_evidence_rules(proposal, chunk_lookup)
+        _apply_evidence_rules(proposal, chunk_lookup, page_text=page_text)
     return result
 
 
@@ -70,24 +83,34 @@ def build_extract_prompt(
     group: GroupContext,
     chunks_by_column: dict[str, list[dict[str, Any]]],
     pdf_id: str | None = None,
-    context_summary: str | None = None,
-    paper_memory: str | None = None,
-    document_anchors: str | None = None,
+    context_mode: str = "retrieval",
+    context_payload: str | None = None,
     prompt_meta: dict[str, Any] | None = None,
 ) -> tuple[str, list[dict[str, Any]]]:
     merged_chunks = _merge_chunks(chunks_by_column)
-    prompt, trimmed_chunks = _build_extract_prompt(
+    batches = build_extract_prompt_batches(
         client,
         row_context,
         group,
         merged_chunks,
         pdf_id=pdf_id,
-        context_summary=context_summary,
-        paper_memory=paper_memory,
-        document_anchors=document_anchors,
+        context_mode=context_mode,
+        context_payload=context_payload,
         prompt_meta=prompt_meta,
     )
-    return prompt, trimmed_chunks or merged_chunks
+    if not batches:
+        prompt, trimmed_chunks = _build_extract_prompt(
+            client,
+            row_context,
+            group,
+            merged_chunks,
+            pdf_id=pdf_id,
+            context_mode=context_mode,
+            context_payload=context_payload,
+            prompt_meta=prompt_meta,
+        )
+        return prompt, trimmed_chunks or merged_chunks
+    return batches[0].prompt, batches[0].chunks
 
 
 def _build_extract_prompt(
@@ -96,92 +119,349 @@ def _build_extract_prompt(
     group: GroupContext,
     merged_chunks: list[dict[str, Any]],
     pdf_id: str | None = None,
-    context_summary: str | None = None,
-    paper_memory: str | None = None,
-    document_anchors: str | None = None,
+    context_mode: str = "retrieval",
+    context_payload: str | None = None,
     prompt_meta: dict[str, Any] | None = None,
 ) -> tuple[str, list[dict[str, Any]] | None]:
-    trimmed_chunks = _trim_chunks_for_prompt(
+    batches = build_extract_prompt_batches(
         client,
         row_context,
         group,
         merged_chunks,
         pdf_id=pdf_id,
+        context_mode=context_mode,
+        context_payload=context_payload,
         prompt_meta=prompt_meta,
     )
-    prompt = render_prompt(
-        "extract_group.md",
-        _prompt_meta={"pdf_id": pdf_id, "group": group.name},
-        row_context=json.dumps(row_context, indent=2),
-        columns=json.dumps(group.columns_payload, indent=2),
-        context_summary=context_summary or "",
-        paper_memory=paper_memory or "",
-        document_anchors=document_anchors or "",
-        chunks=json.dumps(trimmed_chunks or merged_chunks, indent=2),
-    )
+    if not batches:
+        prompt = _render_extract_prompt(
+            row_context,
+            group.columns_payload,
+            _sanitize_chunks_for_prompt(merged_chunks),
+            group.name,
+            pdf_id=pdf_id,
+            context_mode=context_mode,
+            context_payload=context_payload,
+        )[0]
+        if prompt_meta is not None:
+            prompt_meta["prompt_hash"] = hashlib.sha1(prompt.encode("utf-8")).hexdigest()
+            prompt_meta["prompt_chars"] = len(prompt)
+            prompt_meta["prompt_tokens"] = estimate_tokens(prompt)
+        return prompt, None
+    batch = batches[0]
     if prompt_meta is not None:
-        prompt_meta["prompt_hash"] = hashlib.sha1(prompt.encode("utf-8")).hexdigest()
-        prompt_meta["prompt_chars"] = len(prompt)
-        prompt_meta["prompt_tokens"] = estimate_tokens(prompt)
-    return prompt, trimmed_chunks
+        prompt_meta.update(batch.prompt_meta)
+    return batch.prompt, batch.chunks
 
 
-def _trim_chunks_for_prompt(
+def build_extract_prompt_batches(
     client: LlmClient,
     row_context: dict[str, Any],
     group: GroupContext,
     merged_chunks: list[dict[str, Any]],
     pdf_id: str | None = None,
+    context_mode: str = "retrieval",
+    context_payload: str | None = None,
     prompt_meta: dict[str, Any] | None = None,
-) -> list[dict[str, Any]] | None:
+) -> list[ExtractPromptBatch]:
+    sanitized_chunks = _sanitize_chunks_for_prompt(merged_chunks)
+    columns_payload = json.loads(json.dumps(group.columns_payload))
+    batches = _build_prompt_batches_for_columns(
+        client,
+        row_context,
+        group,
+        columns_payload,
+        sanitized_chunks,
+        pdf_id=pdf_id,
+        context_mode=context_mode,
+        context_payload=context_payload,
+    )
+    batch_total = len(batches)
+    for idx, batch in enumerate(batches):
+        batch.prompt_meta.setdefault("prompt_batch_idx", idx + 1)
+        batch.prompt_meta.setdefault("prompt_batch_total", batch_total)
+        batch.prompt_meta.setdefault("prompt_has_chunks", bool(batch.chunks))
+        if prompt_meta is not None and idx == 0:
+            prompt_meta.update(batch.prompt_meta)
+    return batches
+
+
+def _build_prompt_batches_for_columns(
+    client: LlmClient,
+    row_context: dict[str, Any],
+    group: GroupContext,
+    columns_payload: list[dict[str, Any]],
+    chunks: list[dict[str, Any]],
+    pdf_id: str | None = None,
+    context_mode: str = "retrieval",
+    context_payload: str | None = None,
+) -> list[ExtractPromptBatch]:
+    prompt, adjusted_columns, adjusted_chunks, meta, exceeds = _fit_prompt_budget(
+        client,
+        row_context,
+        columns_payload,
+        chunks,
+        group.name,
+        pdf_id=pdf_id,
+        context_mode=context_mode,
+        context_payload=context_payload,
+    )
+    columns = [column.get("name") for column in adjusted_columns]
+    if not exceeds or len(columns) <= 1:
+        batch_group = _build_group_subset(group, adjusted_columns)
+        col_ids = [column.get("col_id") for column in adjusted_columns if column.get("col_id") is not None]
+        return [
+            ExtractPromptBatch(
+                group=batch_group,
+                prompt=prompt,
+                chunks=adjusted_chunks,
+                prompt_meta=meta,
+                col_ids=col_ids,
+            )
+        ]
+    mid = max(1, len(columns_payload) // 2)
+    first = columns_payload[:mid]
+    second = columns_payload[mid:]
+    batches: list[ExtractPromptBatch] = []
+    batches.extend(
+        _build_prompt_batches_for_columns(
+            client,
+            row_context,
+            group,
+            first,
+            chunks,
+            pdf_id=pdf_id,
+            context_mode=context_mode,
+            context_payload=context_payload,
+        )
+    )
+    batches.extend(
+        _build_prompt_batches_for_columns(
+            client,
+            row_context,
+            group,
+            second,
+            chunks,
+            pdf_id=pdf_id,
+            context_mode=context_mode,
+            context_payload=context_payload,
+        )
+    )
+    return batches
+
+
+def _fit_prompt_budget(
+    client: LlmClient,
+    row_context: dict[str, Any],
+    columns_payload: list[dict[str, Any]],
+    chunks: list[dict[str, Any]],
+    group_name: str,
+    *,
+    pdf_id: str | None = None,
+    context_mode: str = "retrieval",
+    context_payload: str | None = None,
+) -> tuple[str, list[dict[str, Any]], list[dict[str, Any]], dict[str, Any], bool]:
     max_tokens = client.config.max_prompt_tokens
     max_chars = client.config.max_prompt_chars
-    if not max_tokens and not max_chars:
-        return None
-    if not merged_chunks:
-        return None
-    trimmed = list(merged_chunks)
-    prompt = render_prompt(
-        "extract_group.md",
-        _prompt_meta={"pdf_id": pdf_id, "group": group.name},
-        row_context=json.dumps(row_context, indent=2),
-        columns=json.dumps(group.columns_payload, indent=2),
-        chunks=json.dumps(trimmed, indent=2),
+    meta: dict[str, Any] = {
+        "prompt_trimmed": False,
+        "trimmed_chunks": 0,
+        "trimmed_total_chunks": len(chunks),
+        "trimmed_chunk_chars": None,
+        "trimmed_examples": None,
+        "prompt_budget_exceeded": False,
+    }
+    adjusted_columns = json.loads(json.dumps(columns_payload))
+    adjusted_chunks = list(chunks)
+    prompt, prompt_tokens = _render_extract_prompt(
+        row_context,
+        adjusted_columns,
+        adjusted_chunks,
+        group_name,
+        pdf_id=pdf_id,
+        context_mode=context_mode,
+        context_payload=context_payload,
     )
-    prompt_tokens = estimate_tokens(prompt)
-    while trimmed and _prompt_exceeds_budget(prompt_tokens, len(prompt), max_tokens, max_chars):
-        trimmed.pop()
-        prompt = render_prompt(
-            "extract_group.md",
-            _prompt_meta={"pdf_id": pdf_id, "group": group.name},
-            row_context=json.dumps(row_context, indent=2),
-            columns=json.dumps(group.columns_payload, indent=2),
-            chunks=json.dumps(trimmed, indent=2),
-        )
-        prompt_tokens = estimate_tokens(prompt)
-    if len(trimmed) == len(merged_chunks):
-        return None
-    trimmed_count = len(merged_chunks) - len(trimmed)
-    if client.config.logger is not None:
-        client.config.logger.warning(
-            "prompt budget trimmed %s chunks for group %s (pdf=%s)",
-            trimmed_count,
-            group.name,
-            pdf_id,
-        )
-    if _prompt_exceeds_budget(prompt_tokens, len(prompt), max_tokens, max_chars) and client.config.logger is not None:
-        client.config.logger.warning(
-            "prompt budget still exceeded after trimming all chunks for group %s (pdf=%s)",
-            group.name,
-            pdf_id,
-        )
-    if prompt_meta is not None:
-        prompt_meta["prompt_trimmed"] = True
-        prompt_meta["trimmed_chunks"] = trimmed_count
-        prompt_meta["trimmed_total_chunks"] = len(merged_chunks)
+    if context_mode == "retrieval":
+        while len(adjusted_chunks) > 1 and _prompt_exceeds_budget(prompt_tokens, len(prompt), max_tokens, max_chars):
+            adjusted_chunks.pop()
+            meta["prompt_trimmed"] = True
+            meta["trimmed_chunks"] = meta["trimmed_chunks"] + 1
+            prompt, prompt_tokens = _render_extract_prompt(
+                row_context,
+                adjusted_columns,
+                adjusted_chunks,
+                group_name,
+                pdf_id=pdf_id,
+                context_mode=context_mode,
+                context_payload=context_payload,
+            )
         if _prompt_exceeds_budget(prompt_tokens, len(prompt), max_tokens, max_chars):
-            prompt_meta["prompt_budget_exceeded"] = True
+            adjusted_chunks, max_chunk_chars = _trim_chunk_text_until_fit(
+                row_context,
+                adjusted_columns,
+                adjusted_chunks,
+                group_name,
+                pdf_id=pdf_id,
+                max_tokens=max_tokens,
+                max_chars=max_chars,
+                context_mode=context_mode,
+                context_payload=context_payload,
+            )
+            if max_chunk_chars is not None:
+                meta["prompt_trimmed"] = True
+                meta["trimmed_chunk_chars"] = max_chunk_chars
+            prompt, prompt_tokens = _render_extract_prompt(
+                row_context,
+                adjusted_columns,
+                adjusted_chunks,
+                group_name,
+                pdf_id=pdf_id,
+                context_mode=context_mode,
+                context_payload=context_payload,
+            )
+    if _prompt_exceeds_budget(prompt_tokens, len(prompt), max_tokens, max_chars):
+        for max_examples in (1, 0):
+            adjusted_columns = _trim_examples_per_column(adjusted_columns, max_examples)
+            meta["prompt_trimmed"] = True
+            meta["trimmed_examples"] = max_examples
+            prompt, prompt_tokens = _render_extract_prompt(
+                row_context,
+                adjusted_columns,
+                adjusted_chunks,
+                group_name,
+                pdf_id=pdf_id,
+                context_mode=context_mode,
+                context_payload=context_payload,
+            )
+            if not _prompt_exceeds_budget(prompt_tokens, len(prompt), max_tokens, max_chars):
+                break
+    if _prompt_exceeds_budget(prompt_tokens, len(prompt), max_tokens, max_chars):
+        meta["prompt_budget_exceeded"] = True
+    meta["prompt_hash"] = hashlib.sha1(prompt.encode("utf-8")).hexdigest()
+    meta["prompt_chars"] = len(prompt)
+    meta["prompt_tokens"] = prompt_tokens
+    return prompt, adjusted_columns, adjusted_chunks, meta, meta["prompt_budget_exceeded"]
+
+
+def _render_extract_prompt(
+    row_context: dict[str, Any],
+    columns_payload: list[dict[str, Any]],
+    chunks: list[dict[str, Any]],
+    group_name: str,
+    *,
+    pdf_id: str | None = None,
+    context_mode: str = "retrieval",
+    context_payload: str | None = None,
+) -> tuple[str, int]:
+    payload = context_payload if context_payload is not None else json.dumps(chunks, indent=2)
+    prompt = render_prompt(
+        "extract_column.md",
+        _prompt_meta={"pdf_id": pdf_id, "group": group_name},
+        row_context=json.dumps(row_context, indent=2),
+        columns=json.dumps(columns_payload, indent=2),
+        context_mode=context_mode,
+        context_payload=payload,
+    )
+    return prompt, estimate_tokens(prompt)
+
+
+def _trim_chunk_text_until_fit(
+    row_context: dict[str, Any],
+    columns_payload: list[dict[str, Any]],
+    chunks: list[dict[str, Any]],
+    group_name: str,
+    *,
+    pdf_id: str | None = None,
+    max_tokens: int | None = None,
+    max_chars: int | None = None,
+    context_mode: str = "retrieval",
+    context_payload: str | None = None,
+) -> tuple[list[dict[str, Any]], int | None]:
+    if not chunks:
+        return chunks, None
+    max_text_len = max(len(str(chunk.get("text") or "")) for chunk in chunks)
+    if max_text_len <= 0:
+        return chunks, None
+    max_chars_limit = max(max_text_len, 200)
+    min_chars_limit = 120
+    step = max(40, max_text_len // 10)
+    trimmed_chunks = chunks
+    while max_chars_limit >= min_chars_limit:
+        trimmed_chunks = _trim_chunk_text(trimmed_chunks, max_chars_limit)
+        prompt, prompt_tokens = _render_extract_prompt(
+            row_context,
+            columns_payload,
+            trimmed_chunks,
+            group_name,
+            pdf_id=pdf_id,
+            context_mode=context_mode,
+            context_payload=context_payload,
+        )
+        if not _prompt_exceeds_budget(prompt_tokens, len(prompt), max_tokens, max_chars):
+            return trimmed_chunks, max_chars_limit
+        max_chars_limit -= step
+    return trimmed_chunks, max_chars_limit
+
+
+def _trim_chunk_text(chunks: list[dict[str, Any]], max_chars: int) -> list[dict[str, Any]]:
+    trimmed: list[dict[str, Any]] = []
+    for chunk in chunks:
+        entry = dict(chunk)
+        text = str(entry.get("text") or "")
+        if text and len(text) > max_chars:
+            entry["text"] = text[:max_chars].strip()
+        trimmed.append(entry)
     return trimmed
+
+
+def _trim_examples_per_column(columns_payload: list[dict[str, Any]], max_examples: int) -> list[dict[str, Any]]:
+    trimmed: list[dict[str, Any]] = []
+    for column in columns_payload:
+        entry = dict(column)
+        examples = entry.get("examples") or []
+        if isinstance(examples, list) and max_examples >= 0:
+            entry["examples"] = examples[:max_examples]
+        trimmed.append(entry)
+    return trimmed
+
+
+def _sanitize_chunks_for_prompt(chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    sanitized: list[dict[str, Any]] = []
+    for chunk in chunks:
+        text = chunk.get("text") or chunk.get("text_raw") or ""
+        sanitized.append(
+            {
+                "chunk_id": chunk.get("chunk_id"),
+                "chunk_idx": chunk.get("chunk_idx"),
+                "chunk_pk": chunk.get("chunk_pk"),
+                "page_start": chunk.get("page_start"),
+                "page_end": chunk.get("page_end"),
+                "text": text,
+            }
+        )
+    return sanitized
+
+
+def _build_group_subset(group: GroupContext, columns_payload: list[dict[str, Any]]) -> GroupContext:
+    columns = [column.get("name") for column in columns_payload if column.get("name")]
+    schema = {name: group.schema.get(name, "") for name in columns}
+    examples = {name: group.examples.get(name, []) for name in columns}
+    column_id_map = {
+        int(column["col_id"]): str(column.get("name"))
+        for column in columns_payload
+        if column.get("col_id") is not None
+    }
+    column_key_map = {normalize_key(name): name for name in columns}
+    return GroupContext(
+        name=group.name,
+        columns=columns,
+        schema=schema,
+        examples=examples,
+        columns_payload=columns_payload,
+        column_id_map=column_id_map,
+        column_key_map=column_key_map,
+    )
 
 
 def _prompt_exceeds_budget(
@@ -229,9 +509,14 @@ def build_proposal_records(pdf_id: str, row_id: str, result: GroupExtractionResu
     return records
 
 
-def _apply_evidence_rules(proposal: Any, chunk_lookup: dict[str, dict[str, Any]]) -> None:
+def _apply_evidence_rules(
+    proposal: Any,
+    chunk_lookup: dict[str, dict[str, Any]] | None,
+    *,
+    page_text: list[str] | None = None,
+) -> None:
     status = proposal.status or "unclear"
-    has_evidence, errors, mode, reason = _validate_evidence_list(proposal.evidence, chunk_lookup)
+    has_evidence, errors, mode, reason = _validate_evidence_list(proposal.evidence, chunk_lookup, page_text=page_text)
     if mode:
         proposal.flags["validation_mode"] = mode
     if reason:
@@ -255,6 +540,13 @@ def _apply_evidence_rules(proposal: Any, chunk_lookup: dict[str, dict[str, Any]]
         proposal.flags.setdefault("needs_review", True)
     proposal.evidence_quality = _derive_evidence_quality(proposal.evidence, has_evidence, errors)
     proposal.flags["evidence_quality"] = proposal.evidence_quality
+    if _should_downgrade_unanchored_found(proposal):
+        proposal.status = "inferred"
+        proposal.needs_more_evidence = True
+        proposal.flags["found_unanchored_downgraded"] = True
+        proposal.flags.setdefault("failure_reason", "found_value_unanchored")
+        if not proposal.reasoning:
+            proposal.reasoning = "Value inferred; no evidence quote contains the proposed value."
     if proposal.evidence_quality != "strong":
         if proposal.proposed_value and not proposal.search_hints:
             proposal.search_hints = [str(proposal.proposed_value)]
@@ -510,6 +802,8 @@ def _coerce_group_columns(result: GroupExtractionResult, group: GroupContext) ->
 def _validate_evidence_list(
     evidence_list: list[Any],
     chunk_lookup: dict[str, dict[str, Any]] | None,
+    *,
+    page_text: list[str] | None = None,
 ) -> tuple[bool, list[str], str | None, str | None]:
     if not evidence_list:
         return False, ["missing_evidence"], "missing", "missing_evidence"
@@ -542,6 +836,21 @@ def _validate_evidence_list(
             setattr(evidence, "quote_raw", str(quote))
             setattr(evidence, "quote_normalized", normalized_quote)
         if chunk_lookup is None:
+            if page_text and quote and page:
+                page_idx = int(page) - 1
+                if 0 <= page_idx < len(page_text) and str(quote) in page_text[page_idx]:
+                    setattr(evidence, "validation_mode", "page_text_exact")
+                    return True, [], "page_text_exact", "page_text_exact"
+                normalized_quote = normalize_for_matching(str(quote))
+                if (
+                    0 <= page_idx < len(page_text)
+                    and normalized_quote
+                    and normalized_quote in normalize_for_matching(page_text[page_idx])
+                ):
+                    setattr(evidence, "validation_mode", "page_text_normalized")
+                    return True, [], "page_text_normalized", "page_text_normalized"
+                errors.append("quote_not_in_page_text")
+                return True, errors, "weak", "quote_not_in_page_text"
             return True, [], "unvalidated", "no_chunk_lookup"
         chunk_idx_map = chunk_lookup.get("_chunk_idx_map", {})
         chunk_pk_map = chunk_lookup.get("_chunk_pk_map", {})
@@ -786,3 +1095,24 @@ def _legacy_chunk_pk(chunk_id: str) -> str | None:
     if not normalized:
         return None
     return hashlib.sha1(normalized.encode("utf-8")).hexdigest()
+
+
+def _should_downgrade_unanchored_found(proposal: Any) -> bool:
+    status = str(getattr(proposal, "status", "") or "")
+    if status != "found":
+        return False
+    proposed_value = getattr(proposal, "proposed_value", None)
+    if proposed_value is None or str(proposed_value).strip() == "":
+        return False
+    evidence_list = getattr(proposal, "evidence", None) or []
+    if not evidence_list:
+        return True
+    value_norm = normalize_for_matching(str(proposed_value))
+    if not value_norm:
+        return False
+    for evidence in evidence_list:
+        quote = getattr(evidence, "quote", None) or getattr(evidence, "quote_text", None) or ""
+        quote_norm = normalize_for_matching(str(quote))
+        if value_norm and value_norm in quote_norm:
+            return False
+    return True

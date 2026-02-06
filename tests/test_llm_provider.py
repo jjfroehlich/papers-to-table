@@ -24,7 +24,7 @@ def test_stub_llm_provider_returns_deterministic_json() -> None:
     extraction_prompt = (
         "Columns (use col_id in responses):\n"
         "[{\"col_id\": 1, \"name\": \"Method\", \"description\": \"Method used\", \"examples\": []}]\n"
-        "Retrieved chunks:\n"
+        "Context payload:\n"
         "[{\"chunk_id\": \"page-1\", \"chunk_idx\": 1, \"text\": \"Method: method X.\", \"page_start\": 1}]"
     )
     extraction = client.complete_json(extraction_prompt, GroupExtractionResult)

@@ -35,6 +35,8 @@ The implementation is done when the current codebase satisfies every section of 
 - Ensure run reports include LLM capability probe summaries.
 - Maintain evidence anchoring and highlight reliability contracts.
 - Enforce backend capability routing so constraints-off backends never receive schema/grammar/regex payloads.
+- Guarantee structured prompt budgeting and batching so retrieved chunks are never dropped by truncation and all missing columns are attempted.
+- Add context planning to select fulltext/memory/retrieval with column-first extraction and deterministic quote anchoring.
 
 ### P1 — Reliability & usability polish
 

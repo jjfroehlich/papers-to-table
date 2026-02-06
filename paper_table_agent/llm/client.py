@@ -62,6 +62,7 @@ class LlmConfig:
     llm_debug: bool = False
     log_snippet_chars: int = 240
     logger: logging.Logger | None = None
+    measure_prompt_tokens: bool = False
 
 
 class LlmClient:
@@ -196,6 +197,8 @@ class LlmClient:
                         "schema": guided_schema_payload,
                     },
                 }
+            else:
+                _strip_constraint_fields(payload)
             self._record_payload(
                 payload,
                 stage="completion",
@@ -274,6 +277,7 @@ class LlmClient:
                     self.last_guided_json_active = constraint_mode == "guided"
                     if constraint_mode == "guided":
                         self._record_capability("guided_json", False)
+                    _record_constraint_failure(self.config)
                     if self.config.logger is not None:
                         self.config.logger.warning(
                             "guided JSON rejected; retrying without constraints: %s",
@@ -338,6 +342,33 @@ class LlmClient:
             repair_attempted,
             validation_errors=validation_errors,
         )
+
+    def measure_prompt_tokens(self, prompt: str) -> int | None:
+        if self.config.mode in {"stub", "mock"} or self.config.mock_mode:
+            return None
+        headers = {}
+        if self.config.api_key:
+            headers["Authorization"] = f"Bearer {self.config.api_key}"
+        payload: dict[str, Any] = {
+            "model": self.config.model,
+            "messages": [
+                {"role": "system", "content": "Return OK."},
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": 0.0,
+            "max_tokens": 1,
+        }
+        _strip_constraint_fields(payload)
+        url = f"{self.config.base_url}/chat/completions"
+        try:
+            response = self._client.post(url, json=payload, headers=headers)
+            response.raise_for_status()
+        except Exception:  # noqa: BLE001
+            return None
+        usage = response.json().get("usage") if isinstance(response.json(), dict) else None
+        if isinstance(usage, dict) and "prompt_tokens" in usage:
+            return int(usage.get("prompt_tokens") or 0)
+        return None
 
     def _should_use_guided_json(self) -> bool:
         mode = (self.config.guided_json_mode or "auto").lower()
@@ -457,10 +488,19 @@ class LlmClient:
             )
         if schema_name == "GroupExtractionResult":
             columns_payload = _extract_prompt_json(prompt, "Columns (use col_id in responses):")
-            chunks = _extract_prompt_json(prompt, "Retrieved chunks:")
+            chunks = _extract_prompt_json(prompt, "Context payload:")
             proposals = []
-            chunks_list = chunks or []
+            chunks_list = chunks if isinstance(chunks, list) else []
             first_chunk = chunks_list[0] if chunks_list else {}
+            if not chunks_list:
+                context_lines = _extract_section_lines(prompt, "Context payload:")
+                context_text = ""
+                for line in context_lines:
+                    if line.startswith("## Page"):
+                        continue
+                    context_text = line
+                    break
+                first_chunk = {"text": context_text, "page_start": 1, "chunk_id": "page-1", "chunk_idx": 1}
             for column in columns_payload or []:
                 col_id = column.get("col_id")
                 column_name = column.get("name") or column.get("column") or "unknown"
@@ -576,6 +616,8 @@ class LlmClient:
                     "schema": guided_schema_payload,
                 },
             }
+        else:
+            _strip_constraint_fields(payload)
         headers = {}
         if self.config.api_key:
             headers["Authorization"] = f"Bearer {self.config.api_key}"
@@ -628,9 +670,11 @@ class LlmClient:
                 self.last_guided_json_active = constraint_mode == "guided"
                 if constraint_mode == "guided":
                     self._record_capability("guided_json", False)
+                _record_constraint_failure(self.config)
                 if not prompt_only_retry:
                     payload.pop("response_format", None)
                     payload["messages"][0]["content"] = "Return ONLY JSON. No markdown. No preamble."
+                    _strip_constraint_fields(payload)
                     constraint_mode = "prompt_only"
                     prompt_only_retry = True
                     response = self._client.post(url, json=payload, headers=headers)
@@ -729,6 +773,8 @@ class LlmClient:
                     "schema": guided_schema_payload,
                 },
             }
+        else:
+            _strip_constraint_fields(payload)
         headers = {}
         if self.config.api_key:
             headers["Authorization"] = f"Bearer {self.config.api_key}"
@@ -748,6 +794,7 @@ class LlmClient:
         if response.status_code == 400 and _is_guided_json_error(response.text):
             if use_guided:
                 self._record_capability("guided_json", False)
+            _record_constraint_failure(self.config)
             return False
         if response.status_code >= 400:
             if use_guided:
@@ -944,6 +991,20 @@ def strip_regex_from_json_schema(schema: Any) -> Any:
     if isinstance(schema, list):
         return [strip_regex_from_json_schema(item) for item in schema]
     return schema
+
+
+def _strip_constraint_fields(payload: dict[str, Any]) -> None:
+    payload.pop("response_format", None)
+    payload.pop("json_schema", None)
+    payload.pop("grammar", None)
+    payload.pop("regex", None)
+    payload.pop("pattern", None)
+
+
+def _record_constraint_failure(config: LlmConfig) -> None:
+    _set_capability(config, "supports_response_format_json_schema", False)
+    _set_capability(config, "supports_grammar_constraints", False)
+    _set_capability(config, "supports_regex_patterns", False)
 
 
 def _extract_error_substring(error_text: str) -> str:

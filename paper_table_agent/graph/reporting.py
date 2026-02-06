@@ -231,6 +231,10 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
     evidence_coverage = _evidence_coverage_metrics(proposals)
     highlight_stats = _highlight_stats(proposals)
     evidence_finder_stats = _evidence_finder_stats(proposals)
+    extraction_batch_stats = _extract_group_batch_stats(events)
+    found_unanchored_downgraded = _found_unanchored_downgraded(proposals)
+    context_plan_summary = _context_plan_summary(events)
+    column_completion = _column_completion_stats(proposals, extraction_batch_stats)
     extractable_columns = _count_extractable_columns(store, config_payload, matched_rows=matches)
     sanity_check = _run_sanity_check(
         matched,
@@ -306,6 +310,15 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
             "evidence_coverage": evidence_coverage,
             "highlighting": highlight_stats,
             "evidence_finder": evidence_finder_stats,
+            "extraction_batches": extraction_batch_stats,
+            "extraction_diagnostics": {
+                "evidence_coverage_rate": evidence_coverage.get("coverage_rate", 0),
+                "highlight_success_rate": highlight_stats.get("ok_rate", 0),
+                "found_unanchored_downgraded": found_unanchored_downgraded,
+                "columns_missing": column_completion.get("columns_missing"),
+                "columns_attempted": column_completion.get("columns_attempted"),
+                "columns_completed": column_completion.get("columns_completed"),
+            },
             "errors": {
                 "total_events": len(events),
                 "error_events": sum(1 for row in events if row.get("level") == "error"),
@@ -315,6 +328,7 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
                 "errors": [json.loads(event.get("payload_json") or "{}") for event in health_events],
             },
             "llm_capabilities": llm_capabilities,
+            "context_plan": context_plan_summary,
             "parsing": [json.loads(event.get("payload_json") or "{}") for event in parse_events],
             "retrieval": retrieval_backend,
             "fallbacks": {
@@ -461,6 +475,83 @@ def _evidence_finder_stats(proposals: list[dict[str, object]]) -> dict[str, floa
         "succeeded": succeeded,
         "backfilled_count": backfilled,
         "attempted_rate": attempted_rate,
+    }
+
+
+def _extract_group_batch_stats(events: list[dict[str, object]]) -> dict[str, object]:
+    batch_events = [
+        json.loads(event.get("payload_json") or "{}")
+        for event in events
+        if event.get("event_type") == "extract_group_batch"
+    ]
+    total_batches = len(batch_events)
+    prompt_trims = sum(1 for event in batch_events if event.get("prompt_trimmed"))
+    columns_attempted = sum(len(event.get("columns", []) or []) for event in batch_events)
+    missing_by_row: dict[tuple[str, str, str], int] = {}
+    for event in batch_events:
+        key = (
+            str(event.get("pdf_id") or ""),
+            str(event.get("row_id") or ""),
+            str(event.get("group") or ""),
+        )
+        missing_by_row[key] = max(int(event.get("total_missing_columns") or 0), missing_by_row.get(key, 0))
+    total_missing_columns = sum(missing_by_row.values()) if missing_by_row else 0
+    chunks_present = sum(1 for event in batch_events if event.get("batch_has_chunks"))
+    chunks_missing = total_batches - chunks_present
+    return {
+        "total_batches": total_batches,
+        "columns_attempted": columns_attempted,
+        "total_missing_columns": total_missing_columns,
+        "prompt_trims": prompt_trims,
+        "chunks_present_batches": chunks_present,
+        "chunks_missing_batches": chunks_missing,
+        "batch_details": batch_events,
+    }
+
+
+def _found_unanchored_downgraded(proposals: list[dict[str, object]]) -> int:
+    count = 0
+    for row in proposals:
+        flags = json.loads(row.get("flags_json") or "{}")
+        if flags.get("found_unanchored_downgraded"):
+            count += 1
+    return count
+
+
+def _context_plan_summary(events: list[dict[str, object]]) -> dict[str, object]:
+    plans = [
+        json.loads(event.get("payload_json") or "{}")
+        for event in events
+        if event.get("event_type") == "context_plan"
+    ]
+    by_pdf: dict[str, dict[str, object]] = {}
+    for plan in plans:
+        pdf_id = str(plan.get("pdf_id") or "")
+        if not pdf_id:
+            continue
+        by_pdf[pdf_id] = plan
+    return {
+        "total": len(by_pdf),
+        "modes": {pdf_id: payload.get("mode") for pdf_id, payload in by_pdf.items()},
+        "plans": list(by_pdf.values()),
+    }
+
+
+def _column_completion_stats(
+    proposals: list[dict[str, object]],
+    extraction_batch_stats: dict[str, object],
+) -> dict[str, int]:
+    columns_missing = int(extraction_batch_stats.get("total_missing_columns") or 0)
+    columns_attempted = int(extraction_batch_stats.get("columns_attempted") or 0)
+    columns_completed = 0
+    for row in proposals:
+        value = row.get("proposed_value")
+        if value is not None and str(value).strip():
+            columns_completed += 1
+    return {
+        "columns_missing": columns_missing,
+        "columns_attempted": columns_attempted,
+        "columns_completed": columns_completed,
     }
 
 

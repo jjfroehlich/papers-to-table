@@ -124,3 +124,4 @@ Guided JSON (`provider.guided_json_mode`) uses response_format/json_schema when 
 - Evidence locator fills missing pages when possible, backfills weak evidence snippets, and rejects low-quality highlight candidates.
 - LLM capability probes route structured vs prompt-only JSON, with constraints-off mode for LM Studio-style backends.
 - Whole-text + paper-memory extraction is available behind config flags for proposal models that need broader context.
+- Context planning chooses fulltext/memory/retrieval per PDF and drives column-first extraction with anchored evidence.

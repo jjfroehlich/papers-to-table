@@ -24,6 +24,8 @@ def locate_quote(
     page_number: int,
     locator_hint: str | None = None,
     tokens: Sequence[dict[str, object]] | None = None,
+    *,
+    allow_fuzzy: bool = True,
 ) -> HighlightResult:
     doc = fitz.open(pdf_path)
     page = doc.load_page(page_number - 1)
@@ -33,6 +35,20 @@ def locate_quote(
     if rects:
         doc.close()
         return HighlightResult(rects=rects, found=True, strategy="exact", match_score=1.0, page_height=page_height)
+    if tokens:
+        rect, score = _match_tokens(quote, page_number, tokens)
+        if rect:
+            doc.close()
+            return HighlightResult(
+                rects=[rect],
+                found=True,
+                strategy="tokens_exact",
+                match_score=score,
+                page_height=page_height,
+            )
+    if not allow_fuzzy:
+        doc.close()
+        return HighlightResult(rects=[], found=False, strategy="missing", match_score=None, page_height=page_height)
     normalized = _normalize_quote_search(quote)
     hits = page.search_for(normalized)
     rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
@@ -103,16 +119,6 @@ def locate_quote(
                 page_height=page_height,
             )
     if tokens:
-        rect, score = _match_tokens(quote, page_number, tokens)
-        if rect:
-            doc.close()
-            return HighlightResult(
-                rects=[rect],
-                found=True,
-                strategy="tokens",
-                match_score=score,
-                page_height=page_height,
-            )
         rect, score = _match_tokens_fuzzy(quote, page_number, tokens)
         if rect:
             doc.close()
@@ -125,6 +131,24 @@ def locate_quote(
             )
     doc.close()
     return HighlightResult(rects=[], found=False, strategy="missing", match_score=None, page_height=page_height)
+
+
+def locate_quote_span(page_text: str, quote: str) -> tuple[int, int, str, float] | None:
+    if not page_text or not quote:
+        return None
+    exact_idx = page_text.find(quote)
+    if exact_idx != -1:
+        return exact_idx, exact_idx + len(quote), "text_exact", 1.0
+    normalized_page, mapping = _normalize_with_mapping(page_text)
+    normalized_quote = _normalize_quote_search(quote)
+    if not normalized_quote:
+        return None
+    normalized_idx = normalized_page.find(normalized_quote)
+    if normalized_idx != -1:
+        start = mapping[normalized_idx]
+        end = mapping[min(normalized_idx + len(normalized_quote) - 1, len(mapping) - 1)] + 1
+        return start, end, "text_normalized", 0.9
+    return None
 
 
 def salvage_quote_from_tokens(
@@ -231,6 +255,23 @@ def _normalize_quote_search(text: str) -> str:
     normalized = normalize_unicode(text)
     normalized = re.sub(r"\s+", " ", normalized)
     return normalized.strip()
+
+
+def _normalize_with_mapping(text: str) -> tuple[str, list[int]]:
+    normalized_chars: list[str] = []
+    mapping: list[int] = []
+    for idx, char in enumerate(text):
+        normalized = normalize_unicode(char)
+        if normalized.isspace():
+            if normalized_chars and normalized_chars[-1] != " ":
+                normalized_chars.append(" ")
+                mapping.append(idx)
+            continue
+        for normalized_char in normalized:
+            normalized_chars.append(normalized_char)
+            mapping.append(idx)
+    normalized_text = "".join(normalized_chars)
+    return normalized_text, mapping
 
 
 def _split_quote_fragments(text: str) -> list[str]:
@@ -393,10 +434,10 @@ def assess_highlight_rects(
     quote_words = _normalize_words(quote)
     word_count = len(quote_words)
     if word_count and len(rects) > max(12, word_count * 4):
-        return False, "too_many_rects"
+        return False, "rejected_rect_explosion"
     if page_height:
         y0 = min(rect[1] for rect in rects)
         y1 = max(rect[3] for rect in rects)
         if (y1 - y0) / page_height > 0.3:
-            return False, "page_span_too_large"
+            return False, "rejected_page_span"
     return True, None

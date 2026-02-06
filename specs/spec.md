@@ -88,6 +88,7 @@ logs/llm_payloads.jsonl
 - **Evidence discipline**: proposals keep proposed values; evidence validation only annotates flags and `needs_more_evidence`.
 - **Evidence finder**: weak/none evidence or invalid highlights trigger a locator pass to search full chunks, page text, and tokens for supporting quotes.
 - **Highlight guardrails**: reject too-short/low-signal quotes, overly large page-spanning rectangles, and low-confidence matches; mark highlights failed with reasons instead of showing garbage.
+- **Highlight anchoring**: use page+quote spans (start/end) as primary anchors; fuzzy matching is a last resort with strict thresholds.
 - **Unicode/ID normalization**: column and chunk identifiers are normalized to prevent drift.
 
 ## Matching behavior
@@ -99,13 +100,15 @@ logs/llm_payloads.jsonl
 
 ## Extraction behavior
 
-- Columns are grouped by schema and extracted with prompts that include row context, examples, and column IDs.
-- Extraction prompts include an optional context summary to provide broader paper understanding when available.
+- Context planner selects a per-PDF mode: **fulltext**, **memory**, or **retrieval**.
+- Columns are extracted column-first (or in small related batches) with prompts that include row context, the column definition, and the ContextPlan payload.
+- Prompt budgeting is structured: prompts always include row context, column definitions, and the ContextPlan payload. If trimming is needed in retrieval mode, trim (a) number of chunks, (b) chunk text length per chunk, (c) number of examples per column, then (d) number of columns by batching so every missing column is still attempted exactly once.
 - Each requested column yields a proposal record (including `unclear` or `error` records).
 - Value-first extraction: propose a value whenever plausible; evidence quality is metadata.
 - Evidence validation annotates:
   - `chunk_pk`/`chunk_id`/`chunk_idx` map to a known chunk in the full chunk table.
-  - quote must be a substring of the chunk text (exact or normalized).
+  - quote must be a substring of the chunk text (exact or normalized), and quote_text must come from space-preserving text (`text` or `text_raw`), not `text_norm`.
+  - status=`found` requires at least one evidence quote containing the proposed value (or normalized equivalent); otherwise downgrade to `inferred` and mark `needs_more_evidence=true`.
   - if validation fails: mark `needs_more_evidence` and capture `evidence_validation_errors` without clearing values.
 - Proposal evidence uses multi-snippet `evidence_items` (quote_text + source_ref + anchor_id + optional why_it_matters/numeric_value) to support argumentation.
 - Models can flag `needs_more_context` to trigger a retry with expanded context chunks.
@@ -115,8 +118,8 @@ logs/llm_payloads.jsonl
 
 ### Whole-text + paper memory mode (feature-flagged)
 
-- If the document fits the model context budget, pass whole text to the proposal model.
-- If not, run a map-reduce style “paper memory” step that summarizes anchored notes by section/page, then propose values using the memory + targeted retrieval.
+- If the document fits the model context budget (~85% of ctx window), pass page-marked full text to the proposal model after applying the trimming ladder (drop References, drop Acknowledgements, trim captions, drop appendix blocks).
+- If not, run a map-reduce style “paper memory” step that summarizes anchored notes by page/section with 1–2 verbatim quotes each, then propose values using the memory + targeted retrieval.
 - Evidence anchors must include an anchor_id or page + quote to enable deterministic highlight mapping.
 
 ## Retrieval behavior
@@ -146,7 +149,7 @@ logs/llm_payloads.jsonl
 - LLM capability probes cache structured-output support per model and route between guided JSON and prompt-only JSON.
 - Run reports include a summary of per-model capability probe results.
 - Compatibility probes validate backend/model support and classify regex/grammar errors as backend incompatibilities with recommended next actions.
-- Backends that do not support constrained decoding (e.g., LM Studio + gpt-oss) must run in constraints-off mode with prompt-only JSON (no response_format/json_schema/grammar/regex fields).
+- Backends that do not support constrained decoding (e.g., LM Studio + gpt-oss) must run in constraints-off mode with prompt-only JSON (no response_format/json_schema/grammar/regex/pattern fields) across all pipeline stages.
 - Optional fallback models can be configured per role (header/match/extract/helper) and are swapped in when probes fail.
 - Parsing sanity metrics (text length, tokens, whitespace ratio, sparse pages, OCR trigger) are recorded per PDF.
 - CLI entrypoint `paper-table-agent` must install via console scripts and is verified in tests.
@@ -155,6 +158,7 @@ logs/llm_payloads.jsonl
 - Optional LLM record mode stores raw prompt/response pairs under `logs/llm_records.jsonl` for replay debugging.
 - Optional LLM payload logging writes exact request JSON under `logs/llm_payloads.jsonl` for provider debugging.
 - Prompt budgets trim retrieved chunks before LLM requests to stay within model context limits.
+- Run reports include context plan diagnostics (mode, token estimates, memory stats), extraction batch diagnostics (batch counts, columns attempted vs total missing, per-batch chunk presence, prompt trim counts), evidence coverage %, highlight success %, and counts of found-but-unanchored downgrades.
 
 ## Failure semantics
 

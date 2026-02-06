@@ -59,6 +59,8 @@ def test_guided_json_fallback_on_regex_error() -> None:
     assert "response_format" not in fake_client.payloads[1]
     messages = fake_client.payloads[1]["messages"]
     assert messages[0]["content"] == "Return ONLY JSON. No markdown. No preamble."
+    for key in ("response_format", "grammar", "regex", "pattern", "json_schema"):
+        assert key not in fake_client.payloads[1]
 
 
 def test_constraints_off_for_lm_studio_disables_response_format() -> None:
@@ -77,3 +79,5 @@ def test_constraints_off_for_lm_studio_disables_response_format() -> None:
     assert isinstance(result, QueryExpansionResult)
     assert fake_client.calls == 1
     assert "response_format" not in fake_client.payloads[0]
+    for key in ("response_format", "grammar", "regex", "pattern", "json_schema"):
+        assert key not in fake_client.payloads[0]
