@@ -20,6 +20,9 @@ def export_run(run_dir: Path) -> None:
     reviews = store.fetch_reviews()
     proposals = store.conn.execute("SELECT * FROM proposals").fetchall()
     for proposal in proposals:
+        flags = json.loads(proposal["flags_json"] or "{}")
+        if flags.get("proposal_kind") == "audit" or flags.get("verify_only"):
+            continue
         review = reviews.get(proposal["proposal_id"])
         if not review:
             continue

@@ -252,6 +252,17 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
         for event in events
         if event.get("event_type") == "llm_capabilities"
     ]
+    audit_events = [
+        json.loads(event.get("payload_json") or "{}")
+        for event in events
+        if event.get("event_type") == "audit_plan"
+    ]
+    audit_summary = audit_events[-1] if audit_events else {}
+    eval_summary = {}
+    eval_path = run_dir / "proposal_eval.json"
+    if eval_path.exists():
+        eval_payload = json.loads(eval_path.read_text(encoding="utf-8"))
+        eval_summary = eval_payload.get("summary", {})
     run_status = "failed" if sanity_check.get("failed") or health_events else "completed"
     if sanity_check.get("warning") and run_status != "failed":
         run_status = "completed_with_warnings"
@@ -319,6 +330,14 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
                 "columns_attempted": column_completion.get("columns_attempted"),
                 "columns_completed": column_completion.get("columns_completed"),
             },
+            "audit": {
+                "enabled": bool((config_payload.get("audit") or {}).get("use_filled_cells_as_gold")),
+                "audited_cells_count": audit_summary.get("audited_cells_count", 0),
+                "audited_columns_count": audit_summary.get("audited_columns_count", 0),
+                "audited_rows_count": audit_summary.get("audited_rows_count", 0),
+                "audited_match_rate": eval_summary.get("match_rate", 0),
+            },
+            "evaluation": eval_summary,
             "errors": {
                 "total_events": len(events),
                 "error_events": sum(1 for row in events if row.get("level") == "error"),
@@ -328,6 +347,20 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
                 "errors": [json.loads(event.get("payload_json") or "{}") for event in health_events],
             },
             "llm_capabilities": llm_capabilities,
+            "llm": {
+                "mode": (config_payload.get("provider") or {}).get("mode"),
+                "base_url": (config_payload.get("provider") or {}).get("base_url"),
+                "models": {
+                    "header": (config_payload.get("provider") or {}).get("model_header"),
+                    "match": (config_payload.get("provider") or {}).get("model_match"),
+                    "extract": (config_payload.get("provider") or {}).get("model_extract"),
+                    "query_helper": (config_payload.get("provider") or {}).get("model_query_helper"),
+                },
+                "live_llm": not (
+                    (config_payload.get("provider") or {}).get("mock_mode")
+                    or (config_payload.get("provider") or {}).get("mode") in {"stub", "mock"}
+                ),
+            },
             "context_plan": context_plan_summary,
             "parsing": [json.loads(event.get("payload_json") or "{}") for event in parse_events],
             "retrieval": retrieval_backend,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import uuid
+import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -104,6 +105,8 @@ class RunContext:
     logger: Any
     error_path: Path
     prompt_versions: dict[str, str] = field(default_factory=dict)
+    audit_targets: dict[str, set[str]] = field(default_factory=dict)
+    audit_stats: dict[str, Any] = field(default_factory=dict)
 
 
 def _llm_error_metadata(exc: LlmJsonError) -> dict[str, Any]:
@@ -233,6 +236,14 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
     lock_map: dict[str, set[str]] = {}
     for lock in locks:
         lock_map.setdefault(lock["row_id"], set()).add(lock["column"])
+    audit_targets, audit_stats = _build_audit_targets(
+        table.dataframe,
+        schema_specs,
+        lock_map,
+        config.audit,
+    )
+    if audit_stats:
+        store.record_event("info", "audit_plan", audit_stats)
     rows_payload = []
     for row_index, row in table.dataframe.iterrows():
         rows_payload.append(
@@ -348,6 +359,8 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
         logger=logger,
         error_path=error_path,
         prompt_versions=load_prompt_versions(Path("paper_table_agent/prompts")),
+        audit_targets=audit_targets,
+        audit_stats=audit_stats,
     )
     return context, pdfs
 
@@ -412,6 +425,108 @@ def _apply_group_override(
     if result:
         return result
     return grouped if grouped else {"all_columns": [spec for spec in spec_map.values()]}
+
+
+def _build_audit_targets(
+    dataframe: Any,
+    schema_specs: list[Any],
+    lock_map: dict[str, set[str]],
+    audit_config: Any,
+) -> tuple[dict[str, set[str]], dict[str, Any]]:
+    if not getattr(audit_config, "use_filled_cells_as_gold", False):
+        return {}, {}
+    schema_columns = [spec.column_name for spec in schema_specs]
+    allowlist = {normalize_key(col) for col in (audit_config.columns_allowlist or [])}
+    denylist = {normalize_key(col) for col in (audit_config.columns_denylist or [])}
+    column_lookup = {normalize_key(col): col for col in schema_columns}
+    allowed_columns = set(schema_columns)
+    if allowlist:
+        allowed_columns = {column_lookup[key] for key in allowlist if key in column_lookup}
+    if denylist:
+        allowed_columns = {col for col in allowed_columns if normalize_key(col) not in denylist}
+    if not allowed_columns:
+        return {}, {
+            "enabled": True,
+            "audited_cells_count": 0,
+            "audited_columns_count": 0,
+            "reason": "no_allowed_columns",
+        }
+
+    candidates: list[tuple[float, str, str]] = []
+    total_locked = 0
+    for row_id, locked_columns in lock_map.items():
+        for column in locked_columns:
+            total_locked += 1
+            if column not in allowed_columns:
+                continue
+            score = _stable_sample_score(f"{row_id}::{column}")
+            if audit_config.sample_rate is not None and audit_config.sample_rate < 1:
+                if score > float(audit_config.sample_rate):
+                    continue
+            candidates.append((score, row_id, column))
+
+    if audit_config.max_cells is not None and audit_config.max_cells > 0:
+        candidates.sort(key=lambda item: item[0])
+        candidates = candidates[: int(audit_config.max_cells)]
+    else:
+        candidates.sort(key=lambda item: (item[1], item[2]))
+
+    audit_targets: dict[str, set[str]] = {}
+    for _score, row_id, column in candidates:
+        audit_targets.setdefault(row_id, set()).add(column)
+
+    audited_columns = {column for _score, _row_id, column in candidates}
+    stats = {
+        "enabled": True,
+        "total_locked_cells": total_locked,
+        "eligible_cells": len(candidates),
+        "audited_cells_count": sum(len(cols) for cols in audit_targets.values()),
+        "audited_rows_count": len(audit_targets),
+        "audited_columns_count": len(audited_columns),
+        "sample_rate": audit_config.sample_rate,
+        "max_cells": audit_config.max_cells,
+        "columns_allowlist": list(allowed_columns),
+        "columns_denylist": list(denylist),
+    }
+    return audit_targets, stats
+
+
+def _stable_sample_score(key: str) -> float:
+    digest = hashlib.md5(key.encode("utf-8")).hexdigest()
+    return int(digest[:8], 16) / 0xFFFFFFFF
+
+
+def _apply_audit_flags(
+    proposals: list[dict[str, Any]],
+    audit_columns: set[str],
+    gold_values: dict[str, str],
+) -> list[dict[str, Any]]:
+    if not audit_columns:
+        return proposals
+    for proposal in proposals:
+        column = proposal.get("column")
+        if column in audit_columns:
+            flags = proposal.setdefault("flags", {})
+            flags["proposal_kind"] = "audit"
+            if column in gold_values:
+                flags["audit_gold_value"] = gold_values[column]
+    return proposals
+
+
+def _locked_values_for_audit(context: RunContext, row_id: str, audit_columns: set[str]) -> dict[str, str]:
+    if not audit_columns:
+        return {}
+    try:
+        row_index = int(row_id)
+    except (TypeError, ValueError):
+        return {}
+    values: dict[str, str] = {}
+    for column in audit_columns:
+        if column in context.table.dataframe.columns:
+            value = context.table.dataframe.at[row_index, column]
+            if value is not None:
+                values[column] = str(value)
+    return values
 
 
 def _align_schema_columns(schema_specs: list[Any], table_columns: list[str]) -> None:
@@ -757,7 +872,12 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
 
     row_context = next((row for row in context.rows_data if row["row_id"] == adjudication.row_id), {})
     locked_columns = context.lock_map.get(adjudication.row_id, set())
-    missing_specs = [spec for spec in context.schema_specs if spec.column_name not in locked_columns]
+    audit_columns = context.audit_targets.get(adjudication.row_id, set())
+    target_specs = [
+        spec
+        for spec in context.schema_specs
+        if spec.column_name not in locked_columns or spec.column_name in audit_columns
+    ]
     max_examples = min(1, context.config.extraction.examples_per_col)
     context_columns_payload = [
         {
@@ -766,7 +886,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
             "description": spec.description,
             "examples": context.examples.get(spec.column_name, [])[:max_examples],
         }
-        for idx, spec in enumerate(missing_specs)
+        for idx, spec in enumerate(target_specs)
     ]
     context_plan, context_payload = plan_context(
         pdf.pdf_id,
@@ -797,7 +917,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         target_columns = [
             spec.column_name
             for spec in specs
-            if spec.column_name not in locked_columns
+            if spec.column_name not in locked_columns or spec.column_name in audit_columns
         ]
         if not target_columns:
             continue
@@ -988,6 +1108,11 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 pdf_id=pdf.pdf_id,
                 context_mode=context_plan.mode,
                 context_payload=context_payload if context_plan.mode != "retrieval" else None,
+            )
+            proposals = _apply_audit_flags(
+                proposals,
+                audit_columns,
+                gold_values=_locked_values_for_audit(context, adjudication.row_id, audit_columns),
             )
         except LlmJsonError as exc:
             error_type = "llm_http_error" if exc.http_status else "json_parse_error"

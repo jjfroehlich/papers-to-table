@@ -378,3 +378,29 @@ Conventions:
 - Extraction prompts operate column-first (or small batches) with context payloads and evidence-required outputs.
 - Evidence quotes store span anchors (quote_start/quote_end) and use span-first highlighting with strict guardrails.
 - Tests verify prompt batching under small budgets, quote span locating, and fulltext mode extraction produces evidence items.
+
+---
+
+## P0 — Two-tier testing + audit evaluation
+
+### [x] **P0.T47** Audit mode extraction + evaluation harness
+**Paths**: `paper_table_agent/config.py`, `paper_table_agent/graph/runner.py`, `paper_table_agent/graph/evaluation.py`, `paper_table_agent/graph/reporting.py`, `paper_table_agent/graph/exporter.py`, `paper_table_agent/cli.py`, `tests/test_eval_harness.py`
+**AC**
+- Audit mode re-extracts filled cells and tags proposals with `proposal_kind=audit`.
+- Audit proposals never export to tables.
+- `paper-table-agent eval` writes proposal_eval.json/MD and updates run_report.json with audit/eval summaries.
+- Tests cover evaluation metrics and audit export skip behavior.
+
+### [x] **P0.T48** Live LM Studio E2E tests + synthetic fixtures
+**Paths**: `tests/fixtures/build_fixture_pdfs.py`, `tests/test_live_llm_e2e.py`, `pyproject.toml`, `scripts/dev/live_llm_tests.sh`
+**AC**
+- Synthetic PDFs are generated at test time and include known facts.
+- Live tests run only with `PTA_LIVE_LLM=1` and validate evidence anchoring + highlight guardrails.
+- Pytest marker `live_llm` is registered and a convenience script runs live tests.
+
+### [x] **P0.T49** Docs + spec updates for testing/eval workflows
+**Paths**: `specs/spec.md`, `specs/plan.md`, `specs/tasks.md`, `README.md`, `docs/runbooks/TESTING.md`, `CHANGELOG.md`
+**AC**
+- Spec reflects two-tier testing, audit mode, eval artifacts, and run_report additions.
+- README/runbook document hermetic vs live tests and eval usage.
+- Changelog notes new eval command and audit-mode workflow.
