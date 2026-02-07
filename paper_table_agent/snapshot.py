@@ -5,7 +5,6 @@ import hashlib
 import json
 import os
 import shutil
-import sqlite3
 import subprocess
 import sys
 import textwrap
@@ -39,7 +38,7 @@ class SnapshotModule:
     purpose: str
 
 
-def write_snapshot(out_dir: Path, include_run: Path | None = None) -> Path:
+def write_snapshot(out_dir: Path) -> Path:
     repo_root = _repo_root()
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -52,11 +51,6 @@ def write_snapshot(out_dir: Path, include_run: Path | None = None) -> Path:
     _write_sanity_checks(out_dir / "sanity_checks.md")
     _copy_snapshot_docs(repo_root, out_dir)
 
-    included_run_dir = None
-    if include_run is not None:
-        included_run_dir = out_dir / "included_run"
-        _include_run_artifacts(Path(include_run), included_run_dir)
-
     project_state_md = _build_project_state_md(repo_root)
     (out_dir / "PROJECT_STATE.md").write_text(project_state_md, encoding="utf-8")
     project_state_json = _build_project_state_json(repo_root)
@@ -64,11 +58,9 @@ def write_snapshot(out_dir: Path, include_run: Path | None = None) -> Path:
         json.dumps(project_state_json, indent=2, sort_keys=True),
         encoding="utf-8",
     )
-    _write_snapshot_manifest(out_dir, include_run)
+    _write_snapshot_manifest(out_dir)
 
     bundle_path = _write_snapshot_bundle(out_dir)
-    if included_run_dir and not included_run_dir.exists():
-        included_run_dir.mkdir(parents=True, exist_ok=True)
     return bundle_path
 
 
@@ -148,29 +140,6 @@ def _write_sanity_checks(out_path: Path) -> None:
     out_path.write_text(content + "\n", encoding="utf-8")
 
 
-def _include_run_artifacts(run_dir: Path, out_dir: Path) -> None:
-    out_dir.mkdir(parents=True, exist_ok=True)
-    allowed_files = [
-        run_dir / "run_config.json",
-        run_dir / "run_report.json",
-        run_dir / "proposal_eval.json",
-        run_dir / "proposal_eval.md",
-        run_dir / "logs" / "run.log",
-        run_dir / "logs" / "llm_records.jsonl",
-        run_dir / "exports" / "pdf_row_matches.csv",
-        run_dir / "exports" / "mapping_report.html",
-    ]
-    for path in allowed_files:
-        if path.exists() and path.is_file():
-            target = out_dir / path.name
-            shutil.copy2(path, target)
-
-    db_path = run_dir / "proposals.sqlite"
-    if db_path.exists():
-        schema_out = out_dir / "db_schema.sql"
-        _write_sqlite_schema(db_path, schema_out)
-
-
 def _copy_snapshot_docs(repo_root: Path, out_dir: Path) -> None:
     files_to_copy = [
         repo_root / "README.md",
@@ -197,7 +166,7 @@ def _copy_snapshot_docs(repo_root: Path, out_dir: Path) -> None:
             shutil.copy2(src, dest / src.name)
 
 
-def _write_snapshot_manifest(out_dir: Path, include_run: Path | None) -> None:
+def _write_snapshot_manifest(out_dir: Path) -> None:
     entries: list[str] = []
     for path in sorted(out_dir.rglob("*")):
         if path.is_dir():
@@ -206,23 +175,12 @@ def _write_snapshot_manifest(out_dir: Path, include_run: Path | None) -> None:
             continue
         entries.append(path.relative_to(out_dir).as_posix())
     manifest = {
-        "include_run": str(include_run) if include_run else None,
         "files": entries,
     }
     (out_dir / "SNAPSHOT_MANIFEST.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True),
         encoding="utf-8",
     )
-
-
-def _write_sqlite_schema(db_path: Path, out_path: Path) -> None:
-    conn = sqlite3.connect(db_path)
-    try:
-        rows = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' ORDER BY name;").fetchall()
-        statements = [row[0] for row in rows if row[0]]
-    finally:
-        conn.close()
-    out_path.write_text("\n\n".join(statements) + "\n", encoding="utf-8")
 
 
 def _build_project_state_md(repo_root: Path) -> str:

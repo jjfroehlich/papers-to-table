@@ -51,7 +51,6 @@ def _parse_args() -> argparse.Namespace:
 
     snapshot_parser = sub.add_parser("snapshot", help="Capture a project snapshot bundle")
     snapshot_parser.add_argument("--out", type=Path, default=None)
-    snapshot_parser.add_argument("--include-run", dest="include_run", type=Path, default=None)
 
     return parser.parse_args()
 
@@ -174,7 +173,7 @@ def main() -> None:
         from paper_table_agent.snapshot import DEFAULT_SNAPSHOT_DIR, write_snapshot
 
         out_dir = args.out or DEFAULT_SNAPSHOT_DIR
-        write_snapshot(out_dir, include_run=args.include_run)
+        write_snapshot(out_dir)
         return
 
 if __name__ == "__main__":

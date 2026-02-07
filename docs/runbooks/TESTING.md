@@ -64,12 +64,12 @@ paper-table-agent snapshot
 
 The snapshot bundle includes specs/runbooks, run config, prompt templates, and a manifest of bundled files.
 
-Include a run when needed:
-```bash
-paper-table-agent snapshot --include-run runs/<timestamp>__<table>/
-```
-
 To bundle run artifacts only (defaults to latest run):
 ```bash
 paper-table-agent bundle
+```
+
+To bundle a specific run:
+```bash
+paper-table-agent bundle --run_dir runs/<timestamp>__<table>/
 ```

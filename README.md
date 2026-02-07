@@ -84,14 +84,8 @@ paper-table-agent bundle
 # Bundle a specific run
 paper-table-agent bundle --run_dir runs/<timestamp>__<table>/
 
-# Bundle a snapshot of the app state (no run included)
+# Bundle a snapshot of the app state (recommended)
 paper-table-agent snapshot
-
-# Snapshot + include a run
-paper-table-agent snapshot --include-run runs/<timestamp>__<table>/
-```
-
-## Testing & evaluation
 
 For a complete local workflow, see docs/runbooks/TESTING.md.
 
