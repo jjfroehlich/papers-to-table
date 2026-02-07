@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added audit-mode extraction for filled cells plus a `paper-table-agent eval` command that generates proposal_eval.json/MD and updates run_report.json with evaluation metrics.
+- Added two-tier testing with hermetic defaults and opt-in live LM Studio integration tests, including synthetic PDF fixtures for deterministic live runs.
+- Run reports now capture audit/evaluation summaries and LLM metadata (model identifiers + live usage flag).
 - Added a context planner that selects fulltext/memory/retrieval modes per PDF and drives column-first extraction with anchored evidence and span-based highlights.
 - Added structured prompt budgeting with batching to keep retrieved chunks present while ensuring all missing columns are attempted.
 - Evidence quotes now always come from space-preserving chunk text, and found values are downgraded to inferred when no quote anchors the value.

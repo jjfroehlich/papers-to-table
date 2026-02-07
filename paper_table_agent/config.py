@@ -118,6 +118,17 @@ class OutputConfig(BaseModel):
     debug_reports: bool = False
 
 
+class AuditConfig(BaseModel):
+    use_filled_cells_as_gold: bool = False
+    sample_rate: float | None = None
+    max_cells: int | None = None
+    columns_allowlist: list[str] = Field(default_factory=list)
+    columns_denylist: list[str] = Field(default_factory=list)
+    numeric_tolerance_by_column: dict[str, float] = Field(default_factory=dict)
+    categorical_aliases_by_column: dict[str, dict[str, list[str]]] = Field(default_factory=dict)
+    text_similarity_threshold: float = 0.6
+
+
 class RunConfig(BaseModel):
     table_path: Path
     schema_sheet_name: str = "schema"
@@ -140,6 +151,7 @@ class RunConfig(BaseModel):
     ocr: OcrConfig = Field(default_factory=OcrConfig)
     grobid: GrobidConfig = Field(default_factory=GrobidConfig)
     output: OutputConfig = Field(default_factory=OutputConfig)
+    audit: AuditConfig = Field(default_factory=AuditConfig)
     max_workers: int = 1
 
     @field_validator("table_path", "pdf_folder")

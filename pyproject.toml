@@ -40,6 +40,9 @@ paper-table-agent = "paper_table_agent.cli:main"
 
 [tool.pytest.ini_options]
 addopts = "-q"
+markers = [
+  "live_llm: live LM Studio integration tests (requires PTA_LIVE_LLM=1)",
+]
 
 [build-system]
 requires = ["setuptools>=68", "wheel"]

@@ -65,6 +65,11 @@ paper-table-agent export --run_dir runs/<timestamp>__<table>/
 
 This writes `exports/updated_table.xlsx` and `exports/audit_log.csv` in the run directory.
 
+### Eval (audit proposals vs filled cells)
+```bash
+paper-table-agent eval --run_dir runs/<timestamp>__<table>/
+```
+
 ###  For development
 ```bash
 # Headless UI smoke check
@@ -78,6 +83,26 @@ paper-table-agent bundle --run_dir runs/<timestamp>__<table>/
 
 # Bundle a snapshot of the app
 paper-table-agent snapshot
+```
+
+## Testing & evaluation
+
+Hermetic tests (no network/LLM):
+```bash
+pytest
+```
+
+Live LM Studio tests (opt-in):
+```bash
+export PTA_LIVE_LLM=1
+export PTA_LMSTUDIO_BASE_URL="http://localhost:1234/v1"
+export PTA_LIVE_MODEL="qwen/qwen3-30b-a3b-2507"
+pytest -m live_llm
+```
+
+Evaluate audit proposals against filled cells (writes proposal_eval.json + updates run_report.json):
+```bash
+paper-table-agent eval --run_dir runs/<timestamp>__<table>/
 ```
 
 ## How it works technically
@@ -125,3 +150,4 @@ Guided JSON (`provider.guided_json_mode`) uses response_format/json_schema when 
 - LLM capability probes route structured vs prompt-only JSON, with constraints-off mode for LM Studio-style backends.
 - Whole-text + paper-memory extraction is available behind config flags for proposal models that need broader context.
 - Context planning chooses fulltext/memory/retrieval per PDF and drives column-first extraction with anchored evidence.
+- Audit-mode extraction supports evaluation against filled cells, producing proposal_eval artifacts and run_report summaries.

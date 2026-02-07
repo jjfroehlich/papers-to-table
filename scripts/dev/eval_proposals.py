@@ -1,72 +1,43 @@
 from __future__ import annotations
 
 import argparse
-import json
-import sqlite3
 from pathlib import Path
+import json
 
-
-def _load_proposals(db_path: Path) -> list[dict[str, object]]:
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    rows = list(conn.execute("SELECT evidence_json, flags_json, proposed_value FROM proposals"))
-    conn.close()
-    proposals = []
-    for row in rows:
-        evidence = json.loads(row["evidence_json"] or "[]")
-        flags = json.loads(row["flags_json"] or "{}")
-        proposals.append(
-            {
-                "evidence": evidence,
-                "flags": flags,
-                "proposed_value": row["proposed_value"],
-            }
-        )
-    return proposals
-
-
-def _metrics(proposals: list[dict[str, object]]) -> dict[str, object]:
-    total = len(proposals)
-    evidence_items_total = 0
-    highlighted_items = 0
-    proposals_with_evidence = 0
-    proposals_with_highlight = 0
-    proposals_with_value = 0
-    for proposal in proposals:
-        evidence = proposal.get("evidence") or []
-        if proposal.get("proposed_value"):
-            proposals_with_value += 1
-        if evidence:
-            proposals_with_evidence += 1
-        has_highlight = False
-        for item in evidence:
-            evidence_items_total += 1
-            status = item.get("highlight_status")
-            rects = item.get("rects") or []
-            if status == "highlighted" or rects:
-                highlighted_items += 1
-                has_highlight = True
-        if has_highlight:
-            proposals_with_highlight += 1
-    highlight_rate = (highlighted_items / evidence_items_total) if evidence_items_total else 0.0
-    return {
-        "proposals_total": total,
-        "proposals_with_value": proposals_with_value,
-        "proposals_with_evidence": proposals_with_evidence,
-        "proposals_with_highlight": proposals_with_highlight,
-        "evidence_items_total": evidence_items_total,
-        "highlight_rate": round(highlight_rate, 4),
-        "avg_evidence_items_per_proposal": round((evidence_items_total / total), 3) if total else 0.0,
-    }
+from paper_table_agent.graph.evaluation import evaluate_run
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Evaluate proposal evidence + highlight coverage.")
-    parser.add_argument("db", type=Path, help="Path to proposals.sqlite")
+    parser = argparse.ArgumentParser(description="Evaluate audit proposals against filled cells.")
+    parser.add_argument("--run_dir", type=Path, help="Run directory containing run_config.json")
+    parser.add_argument("--db_path", type=Path, help="Path to proposals.sqlite")
+    parser.add_argument("--table_path", type=Path, help="Path to table CSV/XLSX")
+    parser.add_argument("--schema_sheet_name", type=str, default=None)
+    parser.add_argument("--pdf_folder", type=Path, default=None)
+    parser.add_argument("--output_dir", type=Path, default=None)
     args = parser.parse_args()
-    proposals = _load_proposals(args.db)
-    metrics = _metrics(proposals)
-    print(json.dumps(metrics, indent=2))
+    if args.run_dir:
+        run_dir = args.run_dir
+        config = json.loads((run_dir / "run_config.json").read_text(encoding="utf-8"))
+        evaluate_run(
+            run_dir=run_dir,
+            db_path=run_dir / "proposals.sqlite",
+            table_path=Path(config["table_path"]),
+            schema_sheet_name=config.get("schema_sheet_name"),
+            pdf_folder=Path(config["pdf_folder"]) if config.get("pdf_folder") else args.pdf_folder,
+            output_dir=args.output_dir,
+        )
+        return
+    if not args.db_path or not args.table_path:
+        raise SystemExit("Provide --run_dir or both --db_path and --table_path")
+    evaluate_run(
+        run_dir=None,
+        db_path=args.db_path,
+        table_path=args.table_path,
+        schema_sheet_name=args.schema_sheet_name,
+        pdf_folder=args.pdf_folder,
+        output_dir=args.output_dir,
+    )
 
 
 if __name__ == "__main__":

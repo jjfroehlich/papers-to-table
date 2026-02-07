@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -33,6 +34,14 @@ def _parse_args() -> argparse.Namespace:
 
     bundle_parser = sub.add_parser("bundle", help="Create a run bundle zip")
     bundle_parser.add_argument("--run_dir", required=True, type=Path)
+
+    eval_parser = sub.add_parser("eval", help="Evaluate proposals against filled cells")
+    eval_parser.add_argument("--run_dir", type=Path, help="Run directory (uses run_config.json + proposals.sqlite)")
+    eval_parser.add_argument("--db_path", type=Path, help="Path to proposals.sqlite")
+    eval_parser.add_argument("--table_path", type=Path, help="Table path (CSV/XLSX)")
+    eval_parser.add_argument("--schema_sheet_name", type=str, default=None)
+    eval_parser.add_argument("--pdf_folder", type=Path, default=None)
+    eval_parser.add_argument("--output_dir", type=Path, default=None)
 
     init_db_parser = sub.add_parser("init-db", help="Initialize run DB")
     init_db_parser.add_argument("--run_dir", required=True, type=Path)
@@ -104,6 +113,37 @@ def main() -> None:
         from paper_table_agent.graph.reporting import write_run_bundle
 
         write_run_bundle(args.run_dir)
+        return
+
+    if args.command == "eval":
+        from paper_table_agent.graph.evaluation import evaluate_run
+
+        run_dir = args.run_dir
+        if run_dir:
+            run_config = json.loads((run_dir / "run_config.json").read_text(encoding="utf-8"))
+            db_path = run_dir / "proposals.sqlite"
+            table_path = Path(run_config["table_path"])
+            schema_sheet_name = run_config.get("schema_sheet_name")
+            pdf_folder = Path(run_config["pdf_folder"]) if run_config.get("pdf_folder") else None
+            evaluate_run(
+                run_dir=run_dir,
+                db_path=db_path,
+                table_path=table_path,
+                schema_sheet_name=schema_sheet_name,
+                pdf_folder=pdf_folder,
+                output_dir=args.output_dir,
+            )
+            return
+        if not args.db_path or not args.table_path:
+            raise SystemExit("eval requires --run_dir or both --db_path and --table_path")
+        evaluate_run(
+            run_dir=None,
+            db_path=args.db_path,
+            table_path=args.table_path,
+            schema_sheet_name=args.schema_sheet_name,
+            pdf_folder=args.pdf_folder,
+            output_dir=args.output_dir,
+        )
         return
 
     if args.command == "init-config":

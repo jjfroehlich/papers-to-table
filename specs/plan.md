@@ -60,6 +60,8 @@ The implementation is done when the current codebase satisfies every section of 
 - **Integration tests**: stub run + UI smoke + export verification.
 - **Deterministic offline tests**: hash embedding/reranker for retrieval.
 - **Smoke commands**: `paper-table-agent ui --smoke` + stub run config.
+- **Two-tier tests**: hermetic default suite plus opt-in `pytest -m live_llm` for LM Studio E2E runs on synthetic PDFs.
+- **Evaluation harness**: audit proposals compared to filled cells with proposal_eval artifacts and run_report updates.
 
 ## Rollout strategy
 
