@@ -50,6 +50,7 @@ def write_snapshot(out_dir: Path, include_run: Path | None = None) -> Path:
     _copy_prompt_templates(prompt_dir, out_dir / "prompt_templates")
     _write_test_inventory(out_dir / "test_inventory.md", repo_root / "tests")
     _write_sanity_checks(out_dir / "sanity_checks.md")
+    _copy_snapshot_docs(repo_root, out_dir)
 
     included_run_dir = None
     if include_run is not None:
@@ -63,6 +64,7 @@ def write_snapshot(out_dir: Path, include_run: Path | None = None) -> Path:
         json.dumps(project_state_json, indent=2, sort_keys=True),
         encoding="utf-8",
     )
+    _write_snapshot_manifest(out_dir, include_run)
 
     bundle_path = _write_snapshot_bundle(out_dir)
     if included_run_dir and not included_run_dir.exists():
@@ -149,8 +151,12 @@ def _write_sanity_checks(out_path: Path) -> None:
 def _include_run_artifacts(run_dir: Path, out_dir: Path) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     allowed_files = [
+        run_dir / "run_config.json",
         run_dir / "run_report.json",
+        run_dir / "proposal_eval.json",
+        run_dir / "proposal_eval.md",
         run_dir / "logs" / "run.log",
+        run_dir / "logs" / "llm_records.jsonl",
         run_dir / "exports" / "pdf_row_matches.csv",
         run_dir / "exports" / "mapping_report.html",
     ]
@@ -163,6 +169,50 @@ def _include_run_artifacts(run_dir: Path, out_dir: Path) -> None:
     if db_path.exists():
         schema_out = out_dir / "db_schema.sql"
         _write_sqlite_schema(db_path, schema_out)
+
+
+def _copy_snapshot_docs(repo_root: Path, out_dir: Path) -> None:
+    files_to_copy = [
+        repo_root / "README.md",
+        repo_root / "AGENTS.md",
+        repo_root / "CHANGELOG.md",
+        repo_root / "run_config.json",
+    ]
+    for src in files_to_copy:
+        if src.exists() and src.is_file():
+            shutil.copy2(src, out_dir / src.name)
+
+    specs_dir = repo_root / "specs"
+    if specs_dir.exists():
+        dest = out_dir / "specs"
+        dest.mkdir(parents=True, exist_ok=True)
+        for src in specs_dir.glob("*.md"):
+            shutil.copy2(src, dest / src.name)
+
+    runbooks_dir = repo_root / "docs" / "runbooks"
+    if runbooks_dir.exists():
+        dest = out_dir / "runbooks"
+        dest.mkdir(parents=True, exist_ok=True)
+        for src in runbooks_dir.glob("*.md"):
+            shutil.copy2(src, dest / src.name)
+
+
+def _write_snapshot_manifest(out_dir: Path, include_run: Path | None) -> None:
+    entries: list[str] = []
+    for path in sorted(out_dir.rglob("*")):
+        if path.is_dir():
+            continue
+        if path.name == "snapshot_bundle.zip":
+            continue
+        entries.append(path.relative_to(out_dir).as_posix())
+    manifest = {
+        "include_run": str(include_run) if include_run else None,
+        "files": entries,
+    }
+    (out_dir / "SNAPSHOT_MANIFEST.json").write_text(
+        json.dumps(manifest, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
 
 
 def _write_sqlite_schema(db_path: Path, out_path: Path) -> None:

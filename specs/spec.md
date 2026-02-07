@@ -130,6 +130,7 @@ logs/llm_payloads.jsonl
 
 - If the document fits the model context budget (~85% of ctx window), pass page-marked full text to the proposal model after applying the trimming ladder (drop References, drop Acknowledgements, trim captions, drop appendix blocks).
 - If not, run a map-reduce style “paper memory” step that summarizes anchored notes by page/section with 1–2 verbatim quotes each, then propose values using the memory + targeted retrieval.
+- The extraction payload for memory mode includes only anchored notes (quote_text + page), while the summary is stored in artifacts for review and is not quoteable.
 - Evidence anchors must include an anchor_id or page + quote to enable deterministic highlight mapping.
 
 ## Retrieval behavior

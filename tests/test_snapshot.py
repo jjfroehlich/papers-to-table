@@ -25,9 +25,12 @@ def test_snapshot_command_creates_expected_files(tmp_path: Path, monkeypatch) ->
     assert (out_dir / "prompt_templates").is_dir()
     assert (out_dir / "test_inventory.md").exists()
     assert (out_dir / "sanity_checks.md").exists()
+    assert (out_dir / "SNAPSHOT_MANIFEST.json").exists()
+    assert (out_dir / "README.md").exists()
     assert bundle_path.exists()
 
     with zipfile.ZipFile(bundle_path, "r") as bundle:
         names = set(bundle.namelist())
     assert "PROJECT_STATE.md" in names
     assert "PROJECT_STATE.json" in names
+    assert "SNAPSHOT_MANIFEST.json" in names

@@ -242,7 +242,8 @@ def _build_memory_payload(
     memory_path.parent.mkdir(parents=True, exist_ok=True)
     memory_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     stats = {"pages": len(anchors), "anchors": len(anchors), "notes": len(result.notes)}
-    return json.dumps(payload, indent=2), stats, memory_path
+    extraction_payload = {"notes": result.notes}
+    return json.dumps(extraction_payload, indent=2), stats, memory_path
 
 
 def _estimate_prompt_tokens(

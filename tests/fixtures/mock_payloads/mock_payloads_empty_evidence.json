@@ -116,6 +116,80 @@
       }
     ]
   },
+  "extract_column.md|a06aa1d388c068c3854f484bb73a571ca0c57183|methods": {
+    "proposals": [
+      {
+        "col_id": 1,
+        "column": "Method",
+        "proposed_value": "Method X",
+        "status": "found",
+        "confidence": 0.8,
+        "evidence": [],
+        "evidence_quality": "none",
+        "needs_more_evidence": true,
+        "rationale": "Found method"
+      },
+      {
+        "col_id": 2,
+        "column": "Outcome",
+        "proposed_value": "Improved survival",
+        "status": "found",
+        "confidence": 0.8,
+        "evidence": [],
+        "evidence_quality": "none",
+        "needs_more_evidence": true,
+        "rationale": "Found outcome"
+      },
+      {
+        "col_id": 3,
+        "column": "Dose",
+        "proposed_value": "10 mg daily",
+        "status": "found",
+        "confidence": 0.8,
+        "evidence": [],
+        "evidence_quality": "none",
+        "needs_more_evidence": true,
+        "rationale": "Found dose"
+      }
+    ]
+  },
+  "extract_column.md": {
+    "proposals": [
+      {
+        "col_id": 1,
+        "column": "Method",
+        "proposed_value": "Method X",
+        "status": "found",
+        "confidence": 0.8,
+        "evidence": [],
+        "evidence_quality": "none",
+        "needs_more_evidence": true,
+        "rationale": "Found method"
+      },
+      {
+        "col_id": 2,
+        "column": "Outcome",
+        "proposed_value": "Improved survival",
+        "status": "found",
+        "confidence": 0.8,
+        "evidence": [],
+        "evidence_quality": "none",
+        "needs_more_evidence": true,
+        "rationale": "Found outcome"
+      },
+      {
+        "col_id": 3,
+        "column": "Dose",
+        "proposed_value": "10 mg daily",
+        "status": "found",
+        "confidence": 0.8,
+        "evidence": [],
+        "evidence_quality": "none",
+        "needs_more_evidence": true,
+        "rationale": "Found dose"
+      }
+    ]
+  },
   "extract_group.md": {
     "proposals": [
       {

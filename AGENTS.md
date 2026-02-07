@@ -49,7 +49,6 @@ Do not invent requirements. If requirements are missing, ask targeted questions 
 ### Grounding + citations (scientific integrity)
 - Implement verifiable citations when required (page/quote, figure provenance, API refs).
 - Never fabricate citations.
-- If a claim cannot be supported: label it uncertain/hypothesis.
 
 ### Figures/vision: observation vs interpretation
 - Always output a dedicated Observation block (observation-only, no conclusions).
@@ -61,6 +60,15 @@ Do not invent requirements. If requirements are missing, ask targeted questions 
 - Development environment is Windows.
 - Use bash commands suitable for Git Bash (or WSL bash). Do not use PowerShell in docs, scripts, or commands.
 - Prefer relative paths; if absolute paths are needed, document Git Bash form (/d/...) and Windows form (D:\...).
+
+## Local live iteration (LM Studio)
+Agents should support a local “live LLM” loop (opt-in):
+- LM Studio OpenAI-compatible base URL: http://localhost:1234/v1 (use /v1/models to verify model IDs).
+- Prefer running commands via `uv run ...` when `uv` is available (no manual venv activation; still reproducible).
+- Live tests must be opt-in only (e.g., pytest -m live_llm gated by PTA_LIVE_LLM=1).
+
+Operational note:
+- LM Studio may unload models via Idle TTL / Auto-Evict; if “model unloaded” occurs, suggest increasing TTL or disabling auto-evict.
 
 ## Repo map (key paths)
 - AGENTS.md: this file (agent operating rules; keep short and canonical).

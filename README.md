@@ -87,6 +87,8 @@ paper-table-agent snapshot
 
 ## Testing & evaluation
 
+For a complete local workflow, see docs/runbooks/TESTING.md.
+
 Hermetic tests (no network/LLM):
 ```bash
 pytest

@@ -115,7 +115,7 @@ Conventions:
 - CLI run invoked in tests using temp output directory.
 
 ### [x] **P0.T12** Operator smoke script + docs update
-**Paths**: `scripts/dev/smoke_cli.sh`, `README.md`, `specs/*`
+**Paths**: `scripts/tools/smoke_cli.sh`, `README.md`, `specs/*`
 **AC**
 - Script provisions venv, installs editable + tests, and runs help/UI-smoke/stub run.
 - README quickstart shows minimal Windows Git Bash path.
@@ -238,6 +238,13 @@ Conventions:
 **AC**
 - HTTP 400 regex/grammar errors retry with constraints-off prompt-only mode.
 - Per-model capability probes cache guided vs prompt-only JSON support.
+
+### [x] **P0.T28** Memory payload anchored to notes only
+**Paths**: `paper_table_agent/graph/context_planner.py`, `tests/test_context_plan_integration.py`
+**AC**
+- Memory-mode extraction payload omits the summary and includes anchored notes only.
+- Full paper-memory summary remains in artifacts for review.
+- Test covers memory payload shape.
 - Debug logs include constraint mode and payload flags.
 
 ### [x] **P0.T28** Context assembly + summaries for extraction
@@ -255,9 +262,9 @@ Conventions:
 - UI surfaces per-evidence why_it_matters + numeric_value.
 
 ### [x] **P0.T30** Proposal evaluation harness
-**Paths**: `scripts/dev/eval_proposals.py`
+**Paths**: `paper_table_agent/cli.py`, `paper_table_agent/graph/evaluation.py`
 **AC**
-- Script reports proposal count, evidence coverage, and highlight rate from proposals.sqlite.
+- `paper-table-agent eval` reports proposal count, evidence coverage, and highlight rate from proposals.sqlite.
 
 ---
 
@@ -392,7 +399,7 @@ Conventions:
 - Tests cover evaluation metrics and audit export skip behavior.
 
 ### [x] **P0.T48** Live LM Studio E2E tests + synthetic fixtures
-**Paths**: `tests/fixtures/build_fixture_pdfs.py`, `tests/test_live_llm_e2e.py`, `pyproject.toml`, `scripts/dev/live_llm_tests.sh`
+**Paths**: `tests/fixtures/build_fixture_pdfs.py`, `tests/test_live_llm_e2e.py`, `pyproject.toml`, `scripts/tools/live_llm_tests.sh`
 **AC**
 - Synthetic PDFs are generated at test time and include known facts.
 - Live tests run only with `PTA_LIVE_LLM=1` and validate evidence anchoring + highlight guardrails.

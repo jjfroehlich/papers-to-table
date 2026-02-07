@@ -288,7 +288,7 @@ class Store:
         self.conn.execute(
             "INSERT INTO events (event_id, level, event_type, payload_json, created_at) VALUES (?, ?, ?, ?, ?)",
             (
-                f"{event_type}-{datetime.utcnow().timestamp()}",
+                f"{event_type}-{uuid.uuid4()}",
                 level,
                 event_type,
                 json.dumps(payload),

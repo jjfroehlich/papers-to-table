@@ -26,7 +26,7 @@ pytest -m live_llm
 
 Optional convenience script (writes run reports under `runs/live_llm`):
 ```bash
-scripts/dev/live_llm_tests.sh
+scripts/tools/live_llm_tests.sh
 ```
 
 ## 5) Run a sample extraction locally
@@ -56,3 +56,10 @@ To generate audit proposals during extraction, set in `run_config.json`:
 ## 7) Iterate
 - Adjust schema definitions/examples or prompts as needed.
 - Re-run the pipeline, then `paper-table-agent eval` to track improvements.
+
+## 8) Capture a project snapshot
+```bash
+paper-table-agent snapshot --include-run runs/<timestamp>__<table>/
+```
+
+The snapshot bundle includes specs/runbooks, run config, prompt templates, and a manifest of bundled files.

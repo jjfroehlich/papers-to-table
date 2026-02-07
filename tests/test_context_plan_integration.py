@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from paper_table_agent.config import ExtractionConfig
@@ -73,3 +74,61 @@ def test_fulltext_context_plan_and_extraction_with_spans(tmp_path: Path) -> None
     assert span is not None
     result = locate_quote(str(fixture_pdf), quote, 1, tokens=parsed.tokens, allow_fuzzy=False)
     assert result.found
+
+
+def test_memory_context_payload_notes_only(tmp_path: Path) -> None:
+    fixture_pdf = Path(__file__).resolve().parent / "fixtures" / "pdfs" / "minimal_paper.pdf"
+    parsed = parse_pdf(fixture_pdf)
+    extract_client = LlmClient(
+        LlmConfig(
+            mode="stub",
+            base_url="http://localhost:1234/v1",
+            api_key=None,
+            model="gpt-oss-test",
+            max_prompt_tokens=8000,
+        )
+    )
+    helper_client = LlmClient(
+        LlmConfig(
+            mode="mock",
+            base_url="http://localhost:1234/v1",
+            api_key=None,
+            model="gpt-oss-test",
+            mock_payloads={
+                "paper_memory": {
+                    "summary": "Synthetic summary for memory mode.",
+                    "notes": [
+                        {
+                            "anchor_id": "page-1",
+                            "page": 1,
+                            "quote_text": "Minimal Paper",
+                            "why_it_supports": "Stub note for memory payload tests.",
+                        }
+                    ],
+                }
+            },
+        )
+    )
+    extraction_config = ExtractionConfig()
+    extraction_config.thinking_models = ["gpt-oss-test"]
+    extraction_config.whole_text_enabled = False
+    extraction_config.paper_memory_enabled = True
+    column_payloads = [{"col_id": 1, "name": "Title", "description": "Paper title", "examples": []}]
+    row_context = {"row_id": "1", "title": ""}
+    plan, context_payload = plan_context(
+        pdf_id="pdf-1",
+        page_text=parsed.page_text,
+        column_payloads=column_payloads,
+        row_context=row_context,
+        extract_client=extract_client,
+        helper_client=helper_client,
+        extraction_config=extraction_config,
+        run_dir=tmp_path,
+    )
+    assert plan.mode == "memory"
+    payload = json.loads(context_payload)
+    assert "summary" not in payload
+    assert "notes" in payload
+    assert plan.page_marked_text_path is not None
+    full_payload = json.loads(plan.page_marked_text_path.read_text(encoding="utf-8"))
+    assert "summary" in full_payload

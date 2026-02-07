@@ -77,5 +77,8 @@
   "output": {
     "debug_reports": true
   },
+  "audit": {
+    "use_filled_cells_as_gold": true
+  },
   "max_workers": 1
 }

@@ -37,6 +37,7 @@ The implementation is done when the current codebase satisfies every section of 
 - Enforce backend capability routing so constraints-off backends never receive schema/grammar/regex payloads.
 - Guarantee structured prompt budgeting and batching so retrieved chunks are never dropped by truncation and all missing columns are attempted.
 - Add context planning to select fulltext/memory/retrieval with column-first extraction and deterministic quote anchoring.
+- Keep memory-mode extraction payloads anchored to notes-only content while storing summaries in artifacts.
 
 ### P1 — Reliability & usability polish
 

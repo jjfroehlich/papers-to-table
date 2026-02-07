@@ -8,7 +8,7 @@
 
 - Added an entrypoint metadata test using `importlib.metadata` to assert the `paper-table-agent` console script points to `paper_table_agent.cli:main`.
 - Added a headless `paper-table-agent ui --smoke` path for non-interactive environments.
-- Added a `scripts/dev/smoke_cli.sh` operator script to validate install + smoke commands.
+- Added a `scripts/tools/smoke_cli.sh` operator script to validate install + smoke commands.
 
 ## Why it worked
 
