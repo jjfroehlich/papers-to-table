@@ -57,9 +57,19 @@ To generate audit proposals during extraction, set in `run_config.json`:
 - Adjust schema definitions/examples or prompts as needed.
 - Re-run the pipeline, then `paper-table-agent eval` to track improvements.
 
-## 8) Capture a project snapshot
+## 8) Capture a project snapshot (app state only)
+```bash
+paper-table-agent snapshot
+```
+
+The snapshot bundle includes specs/runbooks, run config, prompt templates, and a manifest of bundled files.
+
+Include a run when needed:
 ```bash
 paper-table-agent snapshot --include-run runs/<timestamp>__<table>/
 ```
 
-The snapshot bundle includes specs/runbooks, run config, prompt templates, and a manifest of bundled files.
+To bundle run artifacts only (defaults to latest run):
+```bash
+paper-table-agent bundle
+```

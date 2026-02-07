@@ -33,7 +33,7 @@ def _parse_args() -> argparse.Namespace:
     export_parser.add_argument("--run_dir", required=True, type=Path)
 
     bundle_parser = sub.add_parser("bundle", help="Create a run bundle zip")
-    bundle_parser.add_argument("--run_dir", required=True, type=Path)
+    bundle_parser.add_argument("--run_dir", type=Path, help="Run directory (defaults to latest in runs)")
 
     eval_parser = sub.add_parser("eval", help="Evaluate proposals against filled cells")
     eval_parser.add_argument("--run_dir", type=Path, help="Run directory (uses run_config.json + proposals.sqlite)")
@@ -54,6 +54,24 @@ def _parse_args() -> argparse.Namespace:
     snapshot_parser.add_argument("--include-run", dest="include_run", type=Path, default=None)
 
     return parser.parse_args()
+
+
+def _resolve_latest_run_dir() -> Path:
+    runs_root = Path(os.getenv("PAPER_TABLE_AGENT_RUNS_ROOT", "runs"))
+    if not runs_root.exists():
+        raise SystemExit(f"Runs root not found: {runs_root}")
+    candidates = []
+    for path in runs_root.iterdir():
+        if not path.is_dir():
+            continue
+        if path.name.startswith("_"):
+            continue
+        if not (path / "run_config.json").exists():
+            continue
+        candidates.append(path)
+    if not candidates:
+        raise SystemExit(f"No runs found under {runs_root}")
+    return max(candidates, key=lambda p: p.stat().st_mtime)
 
 
 def main() -> None:
@@ -112,7 +130,8 @@ def main() -> None:
     if args.command == "bundle":
         from paper_table_agent.graph.reporting import write_run_bundle
 
-        write_run_bundle(args.run_dir)
+        run_dir = args.run_dir or _resolve_latest_run_dir()
+        write_run_bundle(run_dir)
         return
 
     if args.command == "eval":

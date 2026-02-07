@@ -78,11 +78,17 @@ paper-table-agent ui --smoke
 # Stub run, no LLM required
 paper-table-agent run --config tests/fixtures/stub_run_config.json
 
-# Bundle a run 
+# Bundle a run (defaults to latest run)
+paper-table-agent bundle
+
+# Bundle a specific run
 paper-table-agent bundle --run_dir runs/<timestamp>__<table>/
 
-# Bundle a snapshot of the app
+# Bundle a snapshot of the app state (no run included)
 paper-table-agent snapshot
+
+# Snapshot + include a run
+paper-table-agent snapshot --include-run runs/<timestamp>__<table>/
 ```
 
 ## Testing & evaluation
