@@ -144,6 +144,7 @@ logs/llm_payloads.jsonl
 
 - Query expansion and HyDE are used when enabled (always on in max success mode).
 - Retrieval caches per (pdf_id, column_batch) and reuses results across column batches.
+- Query expansion/HyDE caches are scoped per (pdf_id, column) or (pdf_id, column_batch) and record hit/miss stats.
 - Columns flagged metadata-only or not-in-paper (e.g., `metadata_only=true` or `in_paper=false` in the schema) skip HyDE/query expansion.
 - Retrieval uses sparse + optional dense embeddings and reranking.
 - Context assembly expands retrieval with neighbor windows and optional section chunks, then trims by token budgets.
