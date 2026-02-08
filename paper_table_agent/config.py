@@ -15,6 +15,31 @@ from paper_table_agent.text.normalization import normalize_key
 DEFAULT_EMPTY_VALUES = ["", "NA", "N/A", "null", "-", " ", "nan", "NaN", "—"]
 
 
+def _env_int(key: str, default: int) -> int:
+    value = os.getenv(key)
+    if value is None or not value.strip():
+        return default
+    try:
+        parsed = int(value)
+    except ValueError:
+        return default
+    return parsed if parsed > 0 else default
+
+
+def _env_optional_int(key: str, default: int | None) -> int | None:
+    value = os.getenv(key)
+    if value is None or not value.strip():
+        return default
+    lowered = value.strip().lower()
+    if lowered in {"none", "null", "off"}:
+        return None
+    try:
+        parsed = int(value)
+    except ValueError:
+        return default
+    return parsed if parsed > 0 else None
+
+
 class ProviderConfig(BaseModel):
     mode: str = "openai"
     base_url: str = "http://localhost:1234/v1"
@@ -30,8 +55,10 @@ class ProviderConfig(BaseModel):
     fallback_model_match: str | None = None
     fallback_model_extract: str | None = None
     fallback_model_query_helper: str | None = None
-    max_prompt_chars: int = 26000
-    max_prompt_tokens: int | None = 3200
+    max_prompt_chars: int = Field(default_factory=lambda: _env_int("PAPER_TABLE_AGENT_MAX_PROMPT_CHARS", 64000))
+    max_prompt_tokens: int | None = Field(
+        default_factory=lambda: _env_optional_int("PAPER_TABLE_AGENT_MAX_PROMPT_TOKENS", 32000)
+    )
     timeout_s: float = 60.0
     read_timeout_s: float = 180.0
     mock_mode: bool = False
@@ -65,7 +92,7 @@ class MatchingConfig(BaseModel):
 class ExtractionConfig(BaseModel):
     groups: list[dict[str, Any]] = Field(default_factory=list)
     examples_per_col: int = 3
-    column_batch_size: int = 1
+    column_batch_size: int = 2
     max_chunks: int = 20
     retry_on_unclear: bool = True
     retry_extra_chunks: int = 10

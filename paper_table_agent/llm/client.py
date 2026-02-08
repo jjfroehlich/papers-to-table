@@ -52,8 +52,8 @@ class LlmConfig:
     timeout_s: float = 60.0
     read_timeout_s: float | None = None
     max_retries: int = 2
-    max_prompt_chars: int = 12000
-    max_prompt_tokens: int | None = None
+    max_prompt_chars: int = 64000
+    max_prompt_tokens: int | None = 32000
     mock_mode: bool = False
     mock_payloads: dict[str, Any] | None = None
     guided_json_mode: str = "auto"

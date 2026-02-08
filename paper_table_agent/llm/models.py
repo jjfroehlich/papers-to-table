@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -61,6 +62,60 @@ class AdjudicationResult(BaseModel):
     confidence: float = 0.0
     rationale: str | None = None
     evidence: list[EvidenceQuote] = Field(default_factory=list, alias="evidence_items")
+
+    @field_validator("top_candidates", mode="before")
+    @classmethod
+    def _coerce_top_candidates(cls, value: object) -> list[dict[str, Any]]:
+        if value is None:
+            return []
+        payload = value
+        if isinstance(value, str):
+            payload = _parse_jsonish(value) or [value]
+        if isinstance(payload, dict):
+            payload = [payload]
+        if not isinstance(payload, list):
+            return []
+        results: list[dict[str, Any]] = []
+        for item in payload:
+            if isinstance(item, dict):
+                results.append(item)
+                continue
+            if isinstance(item, str):
+                parsed = _parse_jsonish(item)
+                if isinstance(parsed, dict):
+                    results.append(parsed)
+                else:
+                    results.append({"row_id": item})
+        return results
+
+    @field_validator("evidence", mode="before")
+    @classmethod
+    def _coerce_evidence(cls, value: object) -> list[EvidenceQuote]:
+        if value is None:
+            return []
+        payload = value
+        if isinstance(value, str):
+            payload = _parse_jsonish(value) or [value]
+        if isinstance(payload, dict):
+            payload = [payload]
+        if not isinstance(payload, list):
+            return []
+        results: list[EvidenceQuote] = []
+        for item in payload:
+            if isinstance(item, EvidenceQuote):
+                results.append(item)
+            elif isinstance(item, dict):
+                results.append(EvidenceQuote.model_validate(item))
+            elif isinstance(item, str):
+                results.append(EvidenceQuote.model_validate({"quote_text": item}))
+        return results
+
+
+def _parse_jsonish(value: str) -> object | None:
+    try:
+        return json.loads(value)
+    except Exception:
+        return None
 
 
 class QueryExpansionResult(BaseModel):

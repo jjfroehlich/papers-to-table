@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import uuid
 import hashlib
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -107,6 +107,7 @@ class RunContext:
     prompt_versions: dict[str, str] = field(default_factory=dict)
     audit_targets: dict[str, set[str]] = field(default_factory=dict)
     audit_stats: dict[str, Any] = field(default_factory=dict)
+    retrieval_cache: dict[tuple[str, tuple[str, ...]], list[dict[str, Any]]] = field(default_factory=dict)
 
 
 def _llm_error_metadata(exc: LlmJsonError) -> dict[str, Any]:
@@ -407,6 +408,13 @@ def _record_llm_request(store: Store, stage: str, client: LlmClient) -> None:
     )
 
 
+def _record_llm_call(store: Store, stage: str, payload: dict[str, Any] | None = None) -> None:
+    event_payload = {"stage": stage}
+    if payload:
+        event_payload.update(payload)
+    store.record_event("info", "llm_call", event_payload)
+
+
 def _apply_group_override(
     grouped: dict[str, list[Any]],
     overrides: list[dict[str, Any]],
@@ -652,6 +660,13 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         context.logger,
     )
     try:
+        _record_llm_call(
+            context.store,
+            "match_header",
+            {
+                "pdf_id": pdf.pdf_id,
+            },
+        )
         header = extract_header_with_repair(
             context.header_client,
             header_text,
@@ -751,6 +766,14 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 },
             )
         try:
+            _record_llm_call(
+                context.store,
+                "match_adjudicate",
+                {
+                    "pdf_id": pdf.pdf_id,
+                    "candidate_count": len(candidates),
+                },
+            )
             adjudication = adjudicate_match(context.match_client, header, candidates, pdf_id=pdf.pdf_id)
             _record_llm_request(context.store, "match_adjudicate", context.match_client)
         except LlmJsonError as exc:
@@ -897,6 +920,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         context.helper_client,
         context.config.extraction,
         context.run_paths.run_dir,
+        call_recorder=lambda stage, payload: _record_llm_call(context.store, stage, payload),
     )
     context.store.record_event(
         "info",
@@ -907,6 +931,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
             "included_sections": context_plan.included_sections,
             "token_estimate": context_plan.token_estimate,
             "ctx_window_tokens": context_plan.ctx_window_tokens,
+            "ctx_window_chars": context_plan.ctx_window_chars,
             "column_batches": context_plan.column_batches,
             "memory_stats": context_plan.memory_stats,
             "context_path": str(context_plan.page_marked_text_path) if context_plan.page_marked_text_path else None,
@@ -953,20 +978,31 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 "extraction_invoked",
                 {"pdf_id": pdf.pdf_id, "group": group_name, "columns": target_columns},
             )
-            column_contexts = _retrieve_column_contexts(
-                index,
-                target_specs,
-                context.retrieval_config,
-                context.helper_client,
-                context.embedding_client,
-                context.reranker_client,
-                row_context=row_context,
-                pdf_id=pdf.pdf_id,
-                row_id=adjudication.row_id,
-                examples_map=context.examples,
-                debug_tracker=debug_tracker,
-                store=context.store,
-            )
+            group_batches = _filter_context_batches(context_plan.column_batches, target_columns)
+            if not group_batches:
+                group_batches = [[column] for column in target_columns]
+            column_contexts: dict[str, list[dict[str, Any]]] = {}
+            for batch_columns in group_batches:
+                batch_specs = [spec for spec in target_specs if spec.column_name in batch_columns]
+                if not batch_specs:
+                    continue
+                batch_contexts = _retrieve_column_contexts(
+                    index,
+                    batch_specs,
+                    context.retrieval_config,
+                    context.helper_client,
+                    context.embedding_client,
+                    context.reranker_client,
+                    row_context=row_context,
+                    pdf_id=pdf.pdf_id,
+                    row_id=adjudication.row_id,
+                    examples_map=context.examples,
+                    debug_tracker=debug_tracker,
+                    store=context.store,
+                    retrieval_cache=context.retrieval_cache,
+                    batch_columns=batch_columns,
+                )
+                column_contexts.update(batch_contexts)
             merged_context = _merge_column_contexts(column_contexts)
             chunk_lookup = {
                 str(chunk["chunk_id"]): {
@@ -977,9 +1013,6 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                 }
                 for chunk in merged_context
             }
-            group_batches = _filter_context_batches(context_plan.column_batches, target_columns)
-            if not group_batches:
-                group_batches = [[column] for column in target_columns]
             proposals: list[dict[str, Any]] = []
             for batch_columns in group_batches:
                 batch_specs = [spec for spec in target_specs if spec.column_name in batch_columns]
@@ -1052,6 +1085,19 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                                 "total_chunks": batch.prompt_meta.get("trimmed_total_chunks"),
                             },
                         )
+                    _record_llm_call(
+                        context.store,
+                        "extract_group",
+                        {
+                            "pdf_id": pdf.pdf_id,
+                            "row_id": adjudication.row_id,
+                            "group": group.name,
+                            "batch_idx": batch_idx,
+                            "batch_total": batch_total,
+                            "columns": batch_columns,
+                            "context_mode": context_plan.mode,
+                        },
+                    )
                     extraction = extract_group(
                         context.extract_client,
                         row_context,
@@ -1638,6 +1684,13 @@ def _run_health_checks(context: RunContext) -> dict[str, Any]:
             )
         )
         prompt = render_prompt("query_expand.md", query="health check")
+        _record_llm_call(
+            context.store,
+            "health_check",
+            {
+                "model": config.provider.model_header,
+            },
+        )
         health_client.complete_json(prompt, QueryExpansionResult)
     except Exception as exc:  # noqa: BLE001
         errors.append({"type": "llm_completion_failed", "error": str(exc)})
@@ -2031,54 +2084,108 @@ def _retrieve_column_contexts(
     examples_map: dict[str, list[dict[str, Any]]] | None = None,
     debug_tracker: DebugExtractionTracker | None = None,
     store: Store | None = None,
+    retrieval_cache: dict[tuple[str, tuple[str, ...]], list[dict[str, Any]]] | None = None,
+    batch_columns: list[str] | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     contexts: dict[str, list[dict[str, Any]]] = {}
-    for spec in specs:
-        query = _build_column_query(spec, row_context, examples_map)
+    if not specs:
+        return contexts
+    column_names = [spec.column_name for spec in specs]
+    cache_key = None
+    if retrieval_cache is not None and pdf_id:
+        cache_key = (pdf_id, tuple(sorted(batch_columns or column_names)))
+        if cache_key in retrieval_cache:
+            cached = retrieval_cache[cache_key]
+            for spec in specs:
+                contexts[spec.column_name] = cached
+                if debug_tracker is not None:
+                    debug_tracker.record_retrieval_hits(spec.column_name, len(cached))
+                    debug_tracker.record_retrieval_debug(
+                        spec.column_name,
+                        {"cache_hit": True, "query_mode": "batch", "columns": column_names},
+                    )
+            return contexts
+
+    all_metadata_only = all(_is_metadata_only(spec) for spec in specs)
+    effective_config = retrieval_config
+    if all_metadata_only:
+        effective_config = _override_retrieval_config(retrieval_config, use_query_expansion=False, use_hyde=False)
+
+    query = (
+        _build_batch_query(specs, row_context, examples_map)
+        if len(specs) > 1
+        else _build_column_query(specs[0], row_context, examples_map)
+    )
+    context_result = retrieve_context(
+        index,
+        query,
+        effective_config,
+        helper_client=helper_client,
+        embedder=embedder,
+        reranker_embedder=reranker_embedder,
+        call_recorder=(
+            lambda stage, payload: _record_llm_call(
+                store,
+                stage,
+                {
+                    "pdf_id": pdf_id,
+                    "row_id": row_id,
+                    "columns": column_names,
+                    "query": query,
+                    **payload,
+                },
+            )
+            if store is not None
+            else None
+        ),
+    )
+    if _needs_retrieval_retry(context_result):
+        retry_query = _build_retry_query(specs, row_context, examples_map)
         context_result = retrieve_context(
             index,
-            query,
-            retrieval_config,
+            retry_query,
+            effective_config,
             helper_client=helper_client,
             embedder=embedder,
             reranker_embedder=reranker_embedder,
-        )
-        if _needs_retrieval_retry(context_result):
-            examples = examples_map.get(spec.column_name, []) if examples_map else []
-            anchors = ", ".join(
-                value
-                for value in (normalize_str_for_prompt(example.get("value")) for example in examples)
-                if value
-            )
-            retry_query = " ".join(
-                part
-                for part in [
-                    spec.column_name,
-                    spec.description,
-                    f"Examples: {anchors}" if anchors else "",
-                    "results methods abstract conclusion",
-                ]
-                if part
-            )
-            context_result = retrieve_context(
-                index,
-                retry_query,
-                retrieval_config,
-                helper_client=helper_client,
-                embedder=embedder,
-                reranker_embedder=reranker_embedder,
-            )
-            if store is not None:
-                store.record_event(
-                    "info",
-                    "retrieval_retry",
-                    {"column": spec.column_name, "query": retry_query},
+            call_recorder=(
+                lambda stage, payload: _record_llm_call(
+                    store,
+                    stage,
+                    {
+                        "pdf_id": pdf_id,
+                        "row_id": row_id,
+                        "columns": column_names,
+                        "query": retry_query,
+                        **payload,
+                    },
                 )
-        formatted_chunks = _format_chunks(context_result.chunks)
+                if store is not None
+                else None
+            ),
+        )
+        if store is not None:
+            store.record_event(
+                "info",
+                "retrieval_retry",
+                {"columns": column_names, "query": retry_query},
+            )
+    formatted_chunks = _format_chunks(context_result.chunks)
+    if retrieval_cache is not None and cache_key is not None:
+        retrieval_cache[cache_key] = formatted_chunks
+    for spec in specs:
         contexts[spec.column_name] = formatted_chunks
         if debug_tracker is not None:
             debug_tracker.record_retrieval_hits(spec.column_name, len(context_result.chunks))
-            debug_tracker.record_retrieval_debug(spec.column_name, context_result.debug)
+            debug_tracker.record_retrieval_debug(
+                spec.column_name,
+                {
+                    **context_result.debug,
+                    "query_mode": "batch" if len(specs) > 1 else "column",
+                    "batch_columns": column_names if len(specs) > 1 else None,
+                    "metadata_only": _is_metadata_only(spec),
+                },
+            )
         if store is not None and pdf_id and row_id:
             store.insert_extraction_attempt(
                 {
@@ -2122,6 +2229,14 @@ def _build_context_summary(
         chunks=json.dumps(summary_chunks, indent=2),
     )
     try:
+        _record_llm_call(
+            context.store,
+            "context_summary",
+            {
+                "pdf_id": pdf_id,
+                "chunk_count": len(summary_chunks),
+            },
+        )
         result = context.helper_client.complete_json(prompt, ContextSummaryResult)
     except LlmJsonError as exc:
         context.store.record_event(
@@ -2233,6 +2348,14 @@ def _build_paper_memory(
         document_anchors=json.dumps(anchors, indent=2),
     )
     try:
+        _record_llm_call(
+            context.store,
+            "paper_memory",
+            {
+                "pdf_id": pdf_id,
+                "anchor_count": len(anchors),
+            },
+        )
         result = context.helper_client.complete_json(prompt, PaperMemoryResult)
     except LlmJsonError as exc:
         context.store.record_event(
@@ -2248,6 +2371,77 @@ def _build_paper_memory(
         {"pdf_id": pdf_id, "notes": len(result.notes)},
     )
     return json.dumps(payload, indent=2)
+
+
+def _is_metadata_only(spec: Any) -> bool:
+    if getattr(spec, "metadata_only", None) is True:
+        return True
+    in_paper = getattr(spec, "in_paper", None)
+    if in_paper is False:
+        return True
+    source = str(getattr(spec, "source", "") or "").casefold()
+    if source and any(token in source for token in ("metadata", "not in paper", "not_in_paper", "external")):
+        return True
+    priority = str(getattr(spec, "priority", "") or "").casefold()
+    if priority and any(token in priority for token in ("metadata", "not in paper", "not_in_paper")):
+        return True
+    return False
+
+
+def _override_retrieval_config(
+    retrieval_config: RetrievalConfig,
+    *,
+    use_query_expansion: bool,
+    use_hyde: bool,
+) -> RetrievalConfig:
+    return replace(
+        retrieval_config,
+        use_query_expansion=use_query_expansion,
+        use_hyde=use_hyde,
+    )
+
+
+def _build_batch_query(
+    specs: list[Any],
+    row_context: dict[str, Any] | None,
+    examples_map: dict[str, list[dict[str, Any]]] | None,
+) -> str:
+    row_bits = []
+    if row_context:
+        for key in ("title", "authors", "year"):
+            value = normalize_str_for_prompt(row_context.get(key))
+            if value:
+                row_bits.append(value)
+    parts: list[str] = []
+    for spec in specs:
+        examples = examples_map.get(spec.column_name, []) if examples_map else []
+        example_values = [
+            value
+            for value in (normalize_str_for_prompt(example.get("value")) for example in examples)
+            if value
+        ]
+        spec_bits = [
+            spec.column_name,
+            spec.description or "",
+            f"examples: {', '.join(example_values[:2])}" if example_values else "",
+        ]
+        parts.append(" ".join(bit for bit in spec_bits if bit))
+    if row_bits:
+        parts.append(f"row: {' | '.join(row_bits)}")
+    query = " ".join(part for part in parts if part).strip()
+    return query[:1200].strip()
+
+
+def _build_retry_query(
+    specs: list[Any],
+    row_context: dict[str, Any] | None,
+    examples_map: dict[str, list[dict[str, Any]]] | None,
+) -> str:
+    retry = _build_batch_query(specs, row_context, examples_map)
+    suffix = "results methods abstract conclusion"
+    if suffix not in retry:
+        retry = f"{retry} {suffix}".strip()
+    return retry
 
 
 def _build_column_query(

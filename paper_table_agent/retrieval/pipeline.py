@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 from paper_table_agent.llm.client import LlmClient
 from paper_table_agent.llm.embeddings import EmbeddingClient
@@ -48,11 +48,19 @@ class RetrievalContext:
     debug: dict[str, Any]
 
 
-def build_query_variants(client: LlmClient | None, query: str, n: int) -> list[str]:
+def build_query_variants(
+    client: LlmClient | None,
+    query: str,
+    n: int,
+    *,
+    call_recorder: Callable[[str, dict[str, Any]], None] | None = None,
+) -> list[str]:
     if not client or n <= 0:
         return [query]
     prompt = render_prompt("query_expand.md", query=query)
     try:
+        if call_recorder:
+            call_recorder("query_expand", {"query": query, "variants": n})
         result = client.complete_json(prompt, QueryExpansionResult)
     except Exception:
         return [query]
@@ -62,11 +70,18 @@ def build_query_variants(client: LlmClient | None, query: str, n: int) -> list[s
     return queries[:n]
 
 
-def build_hypothetical_passage(client: LlmClient | None, query: str) -> str | None:
+def build_hypothetical_passage(
+    client: LlmClient | None,
+    query: str,
+    *,
+    call_recorder: Callable[[str, dict[str, Any]], None] | None = None,
+) -> str | None:
     if not client:
         return None
     prompt = render_prompt("hyde.md", query=query)
     try:
+        if call_recorder:
+            call_recorder("hyde", {"query": query})
         result = client.complete_json(prompt, HydeResult)
     except Exception:
         return None
@@ -80,11 +95,17 @@ def retrieve_context(
     helper_client: LlmClient | None = None,
     embedder: EmbeddingClient | None = None,
     reranker_embedder: EmbeddingClient | None = None,
+    call_recorder: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> RetrievalContext:
     debug: dict[str, Any] = {"queries": [], "runs": [], "fallbacks": [], "backend": {}}
     queries = [query]
     if config.use_query_expansion:
-        queries = build_query_variants(helper_client, query, config.query_variants)
+        queries = build_query_variants(
+            helper_client,
+            query,
+            config.query_variants,
+            call_recorder=call_recorder,
+        )
     debug["queries"] = queries
     debug["backend"] = {
         "use_dense": config.use_dense,
@@ -116,7 +137,7 @@ def retrieve_context(
         )
 
     if config.use_hyde:
-        passage = build_hypothetical_passage(helper_client, query)
+        passage = build_hypothetical_passage(helper_client, query, call_recorder=call_recorder)
         if passage:
             try:
                 hyde_results = retrieve(index, passage, top_k=config.top_k, embedder=embedder, use_dense=config.use_dense)

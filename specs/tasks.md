@@ -411,3 +411,40 @@ Conventions:
 - Spec reflects two-tier testing, audit mode, eval artifacts, and run_report additions.
 - README/runbook document hermetic vs live tests and eval usage.
 - Changelog notes new eval command and audit-mode workflow.
+
+---
+
+## P0 — Qwen evidence + call efficiency
+
+### [x] **P0.T50** Prompt caps + context planner alignment
+**Paths**: `paper_table_agent/config.py`, `paper_table_agent/graph/context_planner.py`, `paper_table_agent/graph/reporting.py`
+**AC**
+- Provider prompt caps default to 32k tokens / 64k chars with env overrides.
+- Context planner uses effective caps (tokens + chars) consistently.
+- Run report includes effective prompt cap summary.
+
+### [x] **P0.T51** Evidence quality floor + strict verifier
+**Paths**: `paper_table_agent/graph/extraction.py`
+**AC**
+- Header/footer-like quotes and short/low-signal evidence are flagged weak and retried.
+- `found` proposals with weak evidence downgrade to `inferred` with needs_more_evidence.
+- Verifier checks only stored quote_texts for overlap (numeric/unit required when applicable).
+
+### [x] **P0.T52** Highlight fallback + strategy logging
+**Paths**: `paper_table_agent/pdf/highlight.py`
+**AC**
+- Highlight locator falls back to normalized/dehyphenated search and logs strategy.
+- No-rect failures retry with normalized chunk-style text.
+
+### [x] **P0.T53** Retrieval caching + metadata-only skip
+**Paths**: `paper_table_agent/graph/runner.py`, `paper_table_agent/retrieval/pipeline.py`, `paper_table_agent/io/schema.py`
+**AC**
+- Retrieval cached per (pdf_id, column_batch) and reused across batch columns.
+- HyDE/query expansion skipped for metadata-only or not-in-paper columns.
+- Column batching increases when prompt budget allows.
+
+### [x] **P0.T54** Match adjudication tolerant parsing + tests
+**Paths**: `paper_table_agent/llm/models.py`, `tests/test_match_adjudication_parsing.py`
+**AC**
+- Adjudication parsing tolerates string evidence/top_candidates.
+- Tests cover tolerant parsing behavior.

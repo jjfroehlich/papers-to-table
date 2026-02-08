@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Raised default prompt caps (32k tokens / 64k chars) with env overrides, and run reports now include effective prompt limits plus per-stage LLM call counts.
+- Strengthened evidence validation with header/footer rejection, strict quote-only verification, and found→inferred downgrades for weak evidence.
+- Added normalized/dehyphenated highlight fallbacks and batch-level retrieval caching with metadata-only HyDE/query-expansion skips.
 - Added audit-mode extraction for filled cells plus a `paper-table-agent eval` command that generates proposal_eval.json/MD and updates run_report.json with evaluation metrics.
 - Added two-tier testing with hermetic defaults and opt-in live LM Studio integration tests, including synthetic PDF fixtures for deterministic live runs.
 - Run reports now capture audit/evaluation summaries and LLM metadata (model identifiers + live usage flag).
