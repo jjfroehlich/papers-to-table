@@ -25,26 +25,32 @@ def evaluate_run(
         output_dir = (run_dir / "exports") if run_dir else db_path.parent
     output_dir.mkdir(parents=True, exist_ok=True)
     run_config = _load_run_config(run_dir) if run_dir else {}
-    proposals = _load_proposals(db_path, proposal_kind="audit")
+    proposals = _load_proposals(db_path)
+    audit_proposals = [proposal for proposal in proposals if proposal.get("flags", {}).get("proposal_kind") == "audit"]
+    fill_missing_count = sum(
+        1 for proposal in proposals if proposal.get("flags", {}).get("proposal_kind") != "audit"
+    )
     table = load_table(table_path, sheet_name=schema_sheet_name)
     page_text_by_pdf = _load_page_text(run_dir, pdf_folder)
     eval_config = _eval_settings(run_config)
-    if not proposals:
+    if not audit_proposals:
         payload = _empty_eval_payload(
             run_id=run_dir.name if run_dir else None,
             eval_config=eval_config,
             reason="no_audit_proposals",
             note=(
-                "No audit proposals found. Set audit.use_filled_cells_as_gold=true and rerun."
+                "No audit proposals found. Enable audit.use_filled_cells_as_gold to evaluate filled cells."
             ),
+            fill_missing_cells=fill_missing_count,
         )
     else:
         payload = _evaluate_proposals(
-            proposals,
+            audit_proposals,
             table.dataframe,
             eval_config,
             page_text_by_pdf,
             run_id=run_dir.name if run_dir else None,
+            fill_missing_cells=fill_missing_count,
         )
     output_path = output_dir / "proposal_eval.json"
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -61,14 +67,18 @@ def _empty_eval_payload(
     eval_config: dict[str, Any],
     reason: str,
     note: str,
+    fill_missing_cells: int,
 ) -> dict[str, Any]:
     return {
         "run_id": run_id,
         "generated_at": datetime.utcnow().isoformat(),
         "summary": {
             "total_cells": 0,
+            "audited_cells": 0,
+            "fill_missing_cells": fill_missing_cells,
             "matched": 0,
             "match_rate": 0.0,
+            "overall_score": 0.0,
             "columns_evaluated": 0,
             "proposals_with_value": 0,
             "proposals_with_evidence": 0,
@@ -77,6 +87,14 @@ def _empty_eval_payload(
             "highlight_ok_rate": 0.0,
             "highlight_failed_rate": 0.0,
             "found_unanchored_downgraded": 0,
+            "per_column_summary": {},
+            "evidence_metrics_summary": {
+                "evidence_coverage_rate": 0.0,
+                "anchorable_quote_rate": 0.0,
+                "highlight_ok_rate": 0.0,
+                "highlight_failed_rate": 0.0,
+                "found_unanchored_downgraded": 0,
+            },
             "status": reason,
             "note": note,
         },
@@ -99,7 +117,7 @@ def update_run_report(run_dir: Path, eval_payload: dict[str, Any]) -> None:
     summary.setdefault("audit", {})
     summary["audit"].update(
         {
-            "audited_cells_count": eval_payload.get("summary", {}).get("total_cells", 0),
+            "audited_cells_count": eval_payload.get("summary", {}).get("audited_cells", 0),
             "audited_columns_count": eval_payload.get("summary", {}).get("columns_evaluated", 0),
             "audited_match_rate": eval_payload.get("summary", {}).get("match_rate", 0),
         }
@@ -186,6 +204,7 @@ def _evaluate_proposals(
     page_text_by_pdf: dict[str, list[str]],
     *,
     run_id: str | None,
+    fill_missing_cells: int,
 ) -> dict[str, Any]:
     per_column: dict[str, dict[str, Any]] = {}
     records: list[dict[str, Any]] = []
@@ -202,7 +221,7 @@ def _evaluate_proposals(
     for proposal in proposals:
         column = proposal["column"]
         row_id = proposal["row_id"]
-        gold_value = _get_table_value(table_df, row_id, column)
+        gold_value = _gold_value_for_proposal(table_df, proposal, row_id, column)
         gold_norm = normalize_str_for_prompt(gold_value)
         if not gold_norm:
             continue
@@ -282,10 +301,14 @@ def _evaluate_proposals(
             "highlight_failed_rate": _safe_div(stats["failed_items"], stats["evidence_items"]),
         }
 
+    match_rate = _safe_div(matched, total)
     summary = {
         "total_cells": total,
+        "audited_cells": total,
+        "fill_missing_cells": fill_missing_cells,
         "matched": matched,
-        "match_rate": _safe_div(matched, total),
+        "match_rate": match_rate,
+        "overall_score": match_rate,
         "columns_evaluated": len(per_column_payload),
         "proposals_with_value": proposals_with_value,
         "proposals_with_evidence": proposals_with_evidence,
@@ -294,6 +317,14 @@ def _evaluate_proposals(
         "highlight_ok_rate": _safe_div(highlighted_items, total_evidence_items),
         "highlight_failed_rate": _safe_div(highlight_failed, total_evidence_items),
         "found_unanchored_downgraded": found_unanchored,
+        "per_column_summary": per_column_payload,
+        "evidence_metrics_summary": {
+            "evidence_coverage_rate": _safe_div(proposals_with_evidence, proposals_with_value),
+            "anchorable_quote_rate": _safe_div(anchorable_items, total_evidence_items),
+            "highlight_ok_rate": _safe_div(highlighted_items, total_evidence_items),
+            "highlight_failed_rate": _safe_div(highlight_failed, total_evidence_items),
+            "found_unanchored_downgraded": found_unanchored,
+        },
     }
     if total == 0:
         summary["status"] = "no_audit_cells"
@@ -323,6 +354,19 @@ def _get_table_value(table_df: Any, row_id: str, column: str) -> str | None:
     if value is None:
         return None
     return str(value)
+
+
+def _gold_value_for_proposal(
+    table_df: Any,
+    proposal: dict[str, Any],
+    row_id: str,
+    column: str,
+) -> str | None:
+    flags = proposal.get("flags") or {}
+    gold_value = flags.get("audit_gold_value")
+    if gold_value is not None:
+        return str(gold_value)
+    return _get_table_value(table_df, row_id, column)
 
 
 def _compare_values(
@@ -432,7 +476,9 @@ def _render_eval_md(payload: dict[str, Any]) -> str:
         "## Summary",
         f"- Status: {status}" if status else "- Status: ok",
         f"- Note: {note}" if note else "- Note: none",
-        f"- Total audited cells: {summary.get('total_cells', 0)}",
+        f"- Total audited cells: {summary.get('audited_cells', summary.get('total_cells', 0))}",
+        f"- Fill-missing cells proposed: {summary.get('fill_missing_cells', 0)}",
+        f"- Overall score: {summary.get('overall_score', 0):.2%}",
         f"- Match rate: {summary.get('match_rate', 0):.2%}",
         f"- Evidence coverage rate: {summary.get('evidence_coverage_rate', 0):.2%}",
         f"- Anchorable quote rate: {summary.get('anchorable_quote_rate', 0):.2%}",

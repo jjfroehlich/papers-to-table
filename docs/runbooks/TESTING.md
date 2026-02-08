@@ -34,6 +34,9 @@ scripts/tools/live_llm_tests.sh
 paper-table-agent run --config run_config.json
 ```
 
+Note: `paper-table-agent run` now runs audit evaluation by default and writes
+`exports/proposal_eval.json` + `exports/proposal_eval.md` alongside `run_report.json`.
+
 ## 6) Evaluate audit proposals against filled cells
 ```bash
 paper-table-agent eval --run_dir runs/<timestamp>__<table>/
@@ -73,4 +76,10 @@ paper-table-agent bundle
 To bundle a specific run:
 ```bash
 paper-table-agent bundle --run_dir runs/<timestamp>__<table>/
+```
+
+## Optional: uv-based workflow
+If you have `uv` installed, you can run the CLI without activating a venv:
+```bash
+uv run paper-table-agent run --config run_config.json
 ```

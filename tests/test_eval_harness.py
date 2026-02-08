@@ -92,10 +92,12 @@ def test_eval_harness_metrics_and_run_report_update(tmp_path: Path) -> None:
     )
 
     assert payload["summary"]["match_rate"] == 1.0
+    assert payload["summary"]["audited_cells"] == 1
     assert payload["summary"]["anchorable_quote_rate"] == 1.0
 
     run_report = json.loads((run_dir / "run_report.json").read_text(encoding="utf-8"))
     assert run_report["summary"]["evaluation"]["match_rate"] == 1.0
+    assert run_report["summary"]["evaluation"]["audited_cells"] == 1
     assert (run_dir / "exports" / "proposal_eval.json").exists()
     assert (run_dir / "exports" / "proposal_eval.md").exists()
 

@@ -6,8 +6,14 @@ from langgraph.graph import END, StateGraph
 
 from paper_table_agent.config import RunConfig, RunPaths
 from paper_table_agent.graph.checkpoint import SqliteSaver
-from paper_table_agent.graph.reporting import write_mapping_report, write_run_report
-from paper_table_agent.graph.runner import PdfRecord, prepare_context, process_pdf, _stop_requested
+from paper_table_agent.graph.runner import (
+    PdfRecord,
+    prepare_context,
+    process_pdf,
+    _stop_requested,
+    _finalize_run,
+    _record_cache_stats,
+)
 from paper_table_agent.store.db import Store
 
 
@@ -66,27 +72,14 @@ def run_workflow(config: RunConfig, run_paths: RunPaths, store: Store, resume: b
     if resume:
         try:
             compiled.invoke(None, config=config_payload)
-            write_mapping_report(store, run_paths.exports_dir, write_reports=config.output.debug_reports)
-            status = write_run_report(store, run_paths)
-            _mark_run_finished(run_paths, status)
+            _record_cache_stats(context)
+            _finalize_run(config, run_paths, store)
             return
         except Exception:
             compiled.invoke({"pdf_index": 0, "pdf_ids": pdf_ids, "done": False}, config=config_payload)
-            write_mapping_report(store, run_paths.exports_dir, write_reports=config.output.debug_reports)
-            status = write_run_report(store, run_paths)
-            _mark_run_finished(run_paths, status)
+            _record_cache_stats(context)
+            _finalize_run(config, run_paths, store)
             return
     compiled.invoke({"pdf_index": 0, "pdf_ids": pdf_ids, "done": False}, config=config_payload)
-    write_mapping_report(store, run_paths.exports_dir, write_reports=config.output.debug_reports)
-    status = write_run_report(store, run_paths)
-    _mark_run_finished(run_paths, status)
-
-
-def _mark_run_finished(run_paths: RunPaths, status: str) -> None:
-    if (run_paths.run_dir / "STOP").exists():
-        return
-    if (run_paths.run_dir / "PAUSE").exists():
-        return
-    if status == "failed" or (run_paths.run_dir / "FAILED").exists():
-        return
-    (run_paths.run_dir / "COMPLETED").write_text("done", encoding="utf-8")
+    _record_cache_stats(context)
+    _finalize_run(config, run_paths, store)

@@ -80,12 +80,12 @@ Conventions:
 - Prompt budgets trim retrieved chunks before requests to avoid context overflow.
 - Regression test verifies extract prompt trimming under tight budgets.
 
-### [x] **P1.T3** Spec compliance documentation refresh
-**Paths**: `specs/spec.md`, `docs/repo_audit.md`, `docs/spec_compliance_report.md`
+### [x] **P1.T3** Default audit+eval on run
+**Paths**: `paper_table_agent/config.py`, `paper_table_agent/graph/runner.py`, `paper_table_agent/graph/evaluation.py`, `specs/spec.md`
 **AC**
-- Spec outputs align with actual run/export behavior.
-- Repo audit includes pipeline stages + config validation locations.
-- Spec compliance report exists and reflects current codebase.
+- `paper-table-agent run` proposes values for missing cells and audit proposals for filled cells by default.
+- Eval artifacts (`exports/proposal_eval.*`) are written at end of run and summarized in `run_report.json`.
+- Audit sampling is deterministic and bounded by default (`audit.max_cells`).
 
 ### [x] **P1.T4** Implementation summary artifact
 **Paths**: `exports/implementation_summary.md`
@@ -93,6 +93,33 @@ Conventions:
 - Summary documents changes, remaining tasks (if any), and how to run smoke/stub tests.
 
 ---
+
+## P0 — Post-run consistency + instrumentation
+
+### [x] **P0.T55** Post-run finalize hook to avoid entrypoint drift
+**Paths**: `paper_table_agent/graph/runner.py`, `paper_table_agent/graph/workflow.py`
+**AC**
+- Run finalization (eval + run_report + markers) is shared across run entrypoints.
+- Eval runs without additional LLM calls and always emits proposal_eval artifacts.
+
+### [x] **P0.T56** Retrieval helper cache + call instrumentation
+**Paths**: `paper_table_agent/graph/runner.py`, `paper_table_agent/retrieval/pipeline.py`, `paper_table_agent/graph/reporting.py`
+**AC**
+- Query expansion + HyDE caches are bounded and record hit/miss stats.
+- Run report includes helper cache stats and per-stage LLM call counts.
+
+### [x] **P1.T5** Hermetic tests for default audit+eval
+**Paths**: `tests/test_integration.py`, `tests/test_eval_harness.py`, `tests/fixtures/*`
+**AC**
+- Stub run produces audit proposals for filled cells and fill-missing proposals for empty cells.
+- `proposal_eval.json` is always written with non-zero audited cell counts when gold exists.
+- Export does not overwrite filled cells by default.
+
+### [x] **P1.T6** Docs update for default audit+eval loop
+**Paths**: `README.md`, `docs/runbooks/TESTING.md`
+**AC**
+- README documents the default audit+eval behavior and where to find metrics.
+- Runbook documents hermetic vs live LM Studio tests and Git Bash commands.
 
 ## P0 — CLI install + smoke coverage
 

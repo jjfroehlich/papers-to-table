@@ -129,6 +129,8 @@ class RetrievalConfig(BaseModel):
     reranker_backend: str = "tfidf"
     reranker_model: str | None = None
     use_reranker: bool = True
+    query_cache_max_entries: int = 256
+    hyde_cache_max_entries: int = 256
 
 
 class OcrConfig(BaseModel):
@@ -149,9 +151,9 @@ class OutputConfig(BaseModel):
 
 
 class AuditConfig(BaseModel):
-    use_filled_cells_as_gold: bool = False
+    use_filled_cells_as_gold: bool = True
     sample_rate: float | None = None
-    max_cells: int | None = None
+    max_cells: int | None = 500
     columns_allowlist: list[str] = Field(default_factory=list)
     columns_denylist: list[str] = Field(default_factory=list)
     numeric_tolerance_by_column: dict[str, float] = Field(default_factory=dict)
