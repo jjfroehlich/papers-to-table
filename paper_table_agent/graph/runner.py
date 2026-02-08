@@ -118,17 +118,17 @@ class RunContext:
 @dataclass
 class BoundedCache:
     max_entries: int
-    _data: "OrderedDict[str, Any]" = field(default_factory=OrderedDict)
+    _data: "OrderedDict[object, Any]" = field(default_factory=OrderedDict)
 
-    def __contains__(self, key: str) -> bool:
+    def __contains__(self, key: object) -> bool:
         return key in self._data
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: object) -> Any:
         value = self._data.pop(key)
         self._data[key] = value
         return value
 
-    def __setitem__(self, key: str, value: Any) -> None:
+    def __setitem__(self, key: object, value: Any) -> None:
         if key in self._data:
             self._data.pop(key, None)
         elif self.max_entries > 0 and len(self._data) >= self.max_entries:
@@ -2234,8 +2234,8 @@ def _retrieve_column_contexts(
     store: Store | None = None,
     retrieval_cache: dict[tuple[str, tuple[str, ...]], list[dict[str, Any]]] | None = None,
     batch_columns: list[str] | None = None,
-    query_cache: BoundedCache[str, list[str]] | None = None,
-    hyde_cache: BoundedCache[str, str] | None = None,
+    query_cache: BoundedCache | None = None,
+    hyde_cache: BoundedCache | None = None,
     cache_stats: dict[str, int] | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     contexts: dict[str, list[dict[str, Any]]] = {}
@@ -2271,6 +2271,10 @@ def _retrieve_column_contexts(
         if len(specs) > 1
         else _build_column_query(specs[0], row_context, examples_map)
     )
+    cache_scope = (
+        ("batch", tuple(sorted(column_names))) if len(specs) > 1 else ("column", column_names[0])
+    )
+    scoped_key = (pdf_id, cache_scope, query)
     context_result = retrieve_context(
         index,
         query,
@@ -2295,10 +2299,13 @@ def _retrieve_column_contexts(
         ),
         query_cache=query_cache,
         hyde_cache=hyde_cache,
+        query_cache_key=scoped_key,
+        hyde_cache_key=scoped_key,
         cache_stats=cache_stats,
     )
     if _needs_retrieval_retry(context_result):
         retry_query = _build_retry_query(specs, row_context, examples_map)
+        retry_key = (pdf_id, cache_scope, retry_query)
         context_result = retrieve_context(
             index,
             retry_query,
@@ -2323,6 +2330,8 @@ def _retrieve_column_contexts(
             ),
             query_cache=query_cache,
             hyde_cache=hyde_cache,
+            query_cache_key=retry_key,
+            hyde_cache_key=retry_key,
             cache_stats=cache_stats,
         )
         if store is not None:
