@@ -40,8 +40,8 @@ paper-table-agent eval --run_dir runs/<timestamp>__<table>/
 ```
 
 Artifacts written:
-- `proposal_eval.json`: summary + per-column metrics + bounded per-cell records.
-- `proposal_eval.md`: human-readable summary report.
+- `exports/proposal_eval.json`: summary + per-column metrics + bounded per-cell records.
+- `exports/proposal_eval.md`: human-readable summary report.
 - `run_report.json`: updated with evaluation + audit summary.
 
 To generate audit proposals during extraction, set in `run_config.json`:
@@ -56,6 +56,7 @@ To generate audit proposals during extraction, set in `run_config.json`:
 ## 7) Iterate
 - Adjust schema definitions/examples or prompts as needed.
 - Re-run the pipeline, then `paper-table-agent eval` to track improvements.
+- Inspect `run_report.json` and `exports/proposal_eval.md` between iterations.
 
 ## 8) Capture a project snapshot (app state only)
 ```bash

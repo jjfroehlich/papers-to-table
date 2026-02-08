@@ -70,6 +70,11 @@ This writes `exports/updated_table.xlsx` and `exports/audit_log.csv` in the run 
 paper-table-agent eval --run_dir runs/<timestamp>__<table>/
 ```
 
+Artifacts written:
+- `exports/proposal_eval.json`
+- `exports/proposal_eval.md`
+- `run_report.json` (evaluation summary injected)
+
 ###  For development
 ```bash
 # Headless UI smoke check
@@ -102,9 +107,17 @@ export PTA_LIVE_MODEL="qwen/qwen3-30b-a3b-2507"
 pytest -m live_llm
 ```
 
-Evaluate audit proposals against filled cells (writes proposal_eval.json + updates run_report.json):
+Evaluate audit proposals against filled cells (writes exports/proposal_eval.* + updates run_report.json):
 ```bash
 paper-table-agent eval --run_dir runs/<timestamp>__<table>/
+```
+
+Local iteration loop:
+```bash
+paper-table-agent run --config run_config.json
+paper-table-agent eval --run_dir runs/<timestamp>__<table>/
+cat runs/<timestamp>__<table>/run_report.json
+cat runs/<timestamp>__<table>/exports/proposal_eval.md
 ```
 
 ## How it works technically
@@ -134,8 +147,9 @@ To capture raw LLM requests/responses for replay debugging, set `provider.record
 
 Guided JSON (`provider.guided_json_mode`) uses response_format/json_schema when supported. In `auto`, guided mode is disabled for local/private endpoints or when health checks detect schema rejections, and prompt-only JSON remains the fallback.
 
-Prompt caps can be set in `run_config.json` (`provider.max_prompt_tokens`, `provider.max_prompt_chars`) or via
-`PAPER_TABLE_AGENT_MAX_PROMPT_TOKENS` / `PAPER_TABLE_AGENT_MAX_PROMPT_CHARS` environment variables to unlock whole-text
+Prompt caps can be set in `run_config.json` (`provider.max_prompt_tokens`, `provider.max_prompt_chars`,
+`provider.ctx_window_tokens_override`) or via `PAPER_TABLE_AGENT_MAX_PROMPT_TOKENS` /
+`PAPER_TABLE_AGENT_MAX_PROMPT_CHARS` / `PAPER_TABLE_AGENT_CTX_WINDOW_TOKENS` environment variables to unlock whole-text
 and paper-memory modes for long documents. Optional schema columns like `metadata_only` or `in_paper=false` flag
 columns that should skip HyDE/query expansion during retrieval.
 

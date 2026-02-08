@@ -16,7 +16,7 @@ from pydantic import BaseModel, ValidationError
 
 T = TypeVar("T", bound=BaseModel)
 
-_CAPABILITY_CACHE: dict[tuple[str, str], dict[str, bool]] = {}
+_CAPABILITY_CACHE: dict[tuple[str, str], dict[str, Any]] = {}
 
 
 class LlmJsonError(RuntimeError):
@@ -54,6 +54,7 @@ class LlmConfig:
     max_retries: int = 2
     max_prompt_chars: int = 64000
     max_prompt_tokens: int | None = 32000
+    ctx_window_tokens_override: int | None = None
     mock_mode: bool = False
     mock_payloads: dict[str, Any] | None = None
     guided_json_mode: str = "auto"
@@ -744,6 +745,39 @@ class LlmClient:
             }
         return {"ok": True}
 
+    def probe_context_window(self) -> dict[str, Any]:
+        if self.config.mode in {"stub", "mock"} or self.config.mock_mode:
+            return {}
+        cached = _get_capabilities(self.config)
+        cached_tokens = cached.get("ctx_window_tokens")
+        if isinstance(cached_tokens, int) and cached_tokens > 0:
+            return {"ctx_window_tokens": cached_tokens, "ctx_window_cached": True}
+        headers = {}
+        if self.config.api_key:
+            headers["Authorization"] = f"Bearer {self.config.api_key}"
+        url = f"{self.config.base_url}/models"
+        try:
+            response = self._client.get(url, headers=headers)
+            response.raise_for_status()
+        except Exception as exc:  # noqa: BLE001
+            self._log_debug("ctx_window_probe_failed", {"model": self.config.model, "error": str(exc)})
+            return {}
+        payload = response.json()
+        data = payload.get("data", []) if isinstance(payload, dict) else []
+        if not isinstance(data, list):
+            return {}
+        model_payload = next(
+            (item for item in data if isinstance(item, dict) and item.get("id") == self.config.model),
+            None,
+        )
+        if not model_payload:
+            return {}
+        ctx_tokens = _extract_context_window_tokens(model_payload)
+        if not ctx_tokens:
+            return {}
+        _set_capability(self.config, "ctx_window_tokens", int(ctx_tokens))
+        return {"ctx_window_tokens": int(ctx_tokens), "ctx_window_cached": False}
+
     def _probe_json(self, prompt: str, schema: type[T], *, use_guided: bool) -> bool:
         if use_guided and self._constraints_off():
             self._record_capability("guided_json", False)
@@ -860,18 +894,39 @@ def _capability_key(config: LlmConfig) -> tuple[str, str]:
     return (config.base_url or "", config.model or "")
 
 
-def _get_capabilities(config: LlmConfig) -> dict[str, bool]:
+def _get_capabilities(config: LlmConfig) -> dict[str, Any]:
     key = _capability_key(config)
     return _CAPABILITY_CACHE.setdefault(key, {})
 
 
-def _set_capability(config: LlmConfig, name: str, value: bool) -> None:
+def _set_capability(config: LlmConfig, name: str, value: Any) -> None:
     key = _capability_key(config)
     _CAPABILITY_CACHE.setdefault(key, {})[name] = value
 
 
-def get_capability_cache(config: LlmConfig) -> dict[str, bool]:
+def get_capability_cache(config: LlmConfig) -> dict[str, Any]:
     return dict(_get_capabilities(config))
+
+
+def _extract_context_window_tokens(payload: dict[str, Any]) -> int | None:
+    for key in (
+        "context_length",
+        "context_length_tokens",
+        "max_context_length",
+        "max_context_tokens",
+        "n_ctx",
+        "context_window",
+    ):
+        value = payload.get(key)
+        if isinstance(value, (int, float)) and value > 0:
+            return int(value)
+    for container_key in ("meta", "metadata", "params", "parameters"):
+        nested = payload.get(container_key)
+        if isinstance(nested, dict):
+            nested_value = _extract_context_window_tokens(nested)
+            if nested_value:
+                return nested_value
+    return None
 
 
 def _extract_prompt_query(prompt: str) -> str | None:

@@ -1,0 +1,65 @@
+# Changelog
+
+## Unreleased
+
+- Raised default prompt caps (32k tokens / 64k chars) with env overrides, and run reports now include effective prompt limits plus per-stage LLM call counts.
+- Strengthened evidence validation with header/footer rejection, strict quote-only verification, and found→inferred downgrades for weak evidence.
+- Added normalized/dehyphenated highlight fallbacks and batch-level retrieval caching with metadata-only HyDE/query-expansion skips.
+- Added audit-mode extraction for filled cells plus a `paper-table-agent eval` command that generates proposal_eval.json/MD and updates run_report.json with evaluation metrics.
+- Added two-tier testing with hermetic defaults and opt-in live LM Studio integration tests, including synthetic PDF fixtures for deterministic live runs.
+- Run reports now capture audit/evaluation summaries and LLM metadata (model identifiers + live usage flag).
+- Added a context planner that selects fulltext/memory/retrieval modes per PDF and drives column-first extraction with anchored evidence and span-based highlights.
+- Added structured prompt budgeting with batching to keep retrieved chunks present while ensuring all missing columns are attempted.
+- Evidence quotes now always come from space-preserving chunk text, and found values are downgraded to inferred when no quote anchors the value.
+- Constraints-off routing now strips all response_format/json_schema/grammar/regex/pattern payload fields for incompatible backends, including retries.
+- Run report now includes extraction batch diagnostics and found-but-unanchored downgrade counts.
+- Added constraints-off routing for LM Studio/gpt-oss, ensuring no schema/grammar/regex payloads are sent to incompatible backends.
+- Added chunk_pk scoping with pdf_id to prevent evidence chunk collisions across PDFs.
+- Added deterministic weak-evidence backfill plus evidence finder attempt/coverage metrics in run_report.json.
+- Added highlight guardrails that reject low-quality matches (short quotes, page-spanning rects, low match scores) with failure reasons.
+- Added whole-text/paper-memory extraction flags, backend compatibility probes, and anchor-based evidence fields.
+- Added robust JSON extraction from mixed LLM output (last fenced block + balanced span) and regex-400 fallback to prompt-only mode with capability probing.
+- Expanded evidence schema to support multi-snippet argumentation and improved highlight fallbacks using page-text matching.
+- Added context assembly (neighbor windows + section chunks) plus optional section summaries for extraction prompts.
+- Filtered NaN/empty examples from retrieval queries and prompts, omitting examples when none remain.
+- Added token-based quote salvage for evidence highlighting and normalized chunk ID handling.
+- Hardened JSON parsing (strip fences, first-object extraction) with richer error logging for validation failures.
+- Added optional LLM request/response recording to `logs/llm_records.jsonl` for replay debugging.
+- Simplified the UI to Run/Review only with minimal inputs and step-through review decisions.
+- Consolidated model/retrieval settings into a single config file with no UI tuning knobs.
+- Added mock provider mode for deterministic test runs and query expansion/HyDE fallbacks.
+- Simplified default outputs; extra exports are now gated behind a debug flag.
+- Added run_report.json diagnostics with mapping/extraction/retrieval summaries and artifact paths.
+- Mapping report now includes side-by-side PDF metadata vs row metadata.
+- Evidence validation now requires chunk_id and verifies quote substring against stored chunks, with structured error flags.
+- Retrieval presets (Fast/Balanced/Thorough) are explicit; missing embedding/reranker configs fall back to TF-IDF.
+- Added a run bundle zip command and OCR metadata artifacts for easier diagnostics.
+- Added completion markers so finished runs appear in Review dropdowns without exporting.
+- Strengthened matching with margin-based deterministic rule, adjudication validation, and repair retry.
+- Added OCR-aware highlight fallback and cached highlight rectangles in stored evidence.
+- Introduced per-column retrieval with retry on unclear results and configurable embedding/reranker backends.
+- Added optional GROBID integration for structured metadata + section chunking (off by default).
+- Updated the UI to use a single config-driven Run/Review flow with minimal controls.
+- Added run-level sanity checks with diagnostics and FAILED status reporting when matched PDFs produce zero proposals.
+- Added stub LLM + stub embeddings/reranker for deterministic offline tests and fixtures.
+- Simplified run artifacts: pdf_row_matches.csv is required, mapping_report.html is debug-only.
+- Added keyboard shortcuts and pending-only review queues for faster Review navigation.
+- Normalized column and chunk identifiers and switched extraction outputs to col_id + chunk_idx for evidence robustness.
+- Added matching fallback adjudication, header repair, and parsing sanity metrics in run reports.
+- Added retrieval retries for low-quality context and locator improvements for evidence highlights.
+- Removed the `doctor` command and related docs/tests.
+- Added `paper-table-agent ui --smoke` headless UI check and CLI smoke script for quick validation.
+- Switched to propose-first extraction: evidence validation no longer clears proposed values and now annotates evidence strength.
+- Added parsing quality checks (whitespace ratio + token length) with OCR triggers and warnings.
+- Improved matching heuristics with DOI extraction + scoring bonuses when DOI columns are available.
+- Added Review field navigation controls, auto-advance decisions, and constrained PDF viewer height.
+- Highlight locator now supports ellipsis fragments and updated regression tests cover parsing quality and highlightable evidence.
+- Added an evidence finder pass to attach quotes/pages/highlights for weak or missing evidence.
+- Added chunk table metadata (chunk_pk, chunk_type, text_norm) and repair for unknown chunk references.
+- Added deterministic hash embedding/reranker backends for offline retrieval tests.
+- Added extraction attempt diagnostics in SQLite for per-column retrieval/extraction tracking.
+- Updated extraction to remain value-first while annotating evidence quality and search hints for weak/none evidence.
+- Evidence locator now infers missing pages from chunk metadata or page text before attempting highlights.
+- Chunking now emits page chunks for every page and stores compact text normalization for matching.
+- Run report now includes embedding/reranker/retrieval fallback events for diagnostics.
+- Added guided JSON fallback + health check overrides for schema rejection errors, and exposed HTTP error details in Review.

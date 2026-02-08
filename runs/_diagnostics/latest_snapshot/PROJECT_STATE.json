@@ -1,0 +1,706 @@
+{
+  "cli_version": "0.1.0",
+  "git_commit": "ab4c70e0cb3edfa3bf2a427616a9aa6320d5ce0e",
+  "git_dirty": true,
+  "important_files": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "be3f625766cb5998864ed5fbfcf9d6120d5fcd32bd6579b0a1c388641dbe0b36"
+    },
+    {
+      "path": "paper_table_agent/__init__.py",
+      "sha256": "4d4729624c9609b1e29794823b4b4a727f7883eb3d9061b62a2dd51b6395e0f8"
+    },
+    {
+      "path": "paper_table_agent/__pycache__/__init__.cpython-312.pyc",
+      "sha256": "6fbb0cf9fa13b41dc162c561f2d01e7d4d3d457cbe832e17b8d5341d32f673b2"
+    },
+    {
+      "path": "paper_table_agent/__pycache__/cli.cpython-312.pyc",
+      "sha256": "c952d58f20987fa243cb425a8afadf71db6619a61e79bb415020ac6857ca7661"
+    },
+    {
+      "path": "paper_table_agent/__pycache__/config.cpython-312.pyc",
+      "sha256": "cfc8e9f6918c3f729fd14fd8c88b421764b916d42619032448ca984f77151e33"
+    },
+    {
+      "path": "paper_table_agent/__pycache__/snapshot.cpython-312.pyc",
+      "sha256": "a814a2294b38dcb2452763dd6e8cc66476af9a55976d3eed465090afe6f5314d"
+    },
+    {
+      "path": "paper_table_agent/cli.py",
+      "sha256": "a9a263720c60801a5be136e2709b1323dff3ef9858037e839c36cb52aa63e809"
+    },
+    {
+      "path": "paper_table_agent/config.py",
+      "sha256": "1ee2c34d632f4ca2acb8ee384b47a4de52bcbd61b8f4e213398b8af3d3cd3d35"
+    },
+    {
+      "path": "paper_table_agent/graph/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "paper_table_agent/graph/__pycache__/__init__.cpython-312.pyc",
+      "sha256": "b5f3c64664793c2a0b2e501198f65267b21a2e1beb3741e695c94092d3d9c3a1"
+    },
+    {
+      "path": "paper_table_agent/graph/__pycache__/checkpoint.cpython-312.pyc",
+      "sha256": "86430a6c1ae7cc43c7be7512e025312bbe47846470f12b9599d34c8a1717403a"
+    },
+    {
+      "path": "paper_table_agent/graph/__pycache__/context_planner.cpython-312.pyc",
+      "sha256": "05765ab1cbb91bbfd12938db6e21dbe9747f4a60c275f198227fd88a9cb827a9"
+    },
+    {
+      "path": "paper_table_agent/graph/__pycache__/evaluation.cpython-312.pyc",
+      "sha256": "6d25fd7c1e7da8e232512a53d4542a7a1d3bf533a7bb1948bc4bbda5c421e38e"
+    },
+    {
+      "path": "paper_table_agent/graph/__pycache__/evidence_finder.cpython-312.pyc",
+      "sha256": "3468e96fcce559126a34f375486013d1ec9b9fea692fb649a62368a1076f9a25"
+    },
+    {
+      "path": "paper_table_agent/graph/__pycache__/exporter.cpython-312.pyc",
+      "sha256": "fbee8c6ac09d07a3644c9a7aa26d861fc92f01b9682cb7e684dc10964e9492e7"
+    },
+    {
+      "path": "paper_table_agent/graph/__pycache__/extraction.cpython-312.pyc",
+      "sha256": "7e5c6cb088ec060e0aae03f0040008a12777034b092b03fbc4873e1a786cdb46"
+    },
+    {
+      "path": "paper_table_agent/graph/__pycache__/matching.cpython-312.pyc",
+      "sha256": "7cba80e99d543c44c57d67b34ad15c396d71ddc368cd1de5f53ed8bbf8f9e42c"
+    },
+    {
+      "path": "paper_table_agent/graph/__pycache__/reporting.cpython-312.pyc",
+      "sha256": "725df1c6082423dddfccd2c9986992839cb82132ffb3ebfcd6e663444017276a"
+    },
+    {
+      "path": "paper_table_agent/graph/__pycache__/runner.cpython-312.pyc",
+      "sha256": "80e8992cfc0e8cad5c4fd0216093586a8e6baa5e8957d63432181e4579a9089d"
+    },
+    {
+      "path": "paper_table_agent/graph/__pycache__/workflow.cpython-312.pyc",
+      "sha256": "0d81772c582397554570b346d756dabfa8a0e39388268db907608fab5a9fc4f9"
+    },
+    {
+      "path": "paper_table_agent/graph/checkpoint.py",
+      "sha256": "b2565051ffe2f07d5a77f7aa04b981ebc3d62c9d789b93fd0ed622ca2cd6c270"
+    },
+    {
+      "path": "paper_table_agent/graph/context_planner.py",
+      "sha256": "db34af611f1dde601ba7690c75360058ac1be4d1f1fe6a2f4da75352d263e6c0"
+    },
+    {
+      "path": "paper_table_agent/graph/evaluation.py",
+      "sha256": "7ba43d576535072e84f277004b3da4f07b347bead06137c2253babfe6b3b443a"
+    },
+    {
+      "path": "paper_table_agent/graph/evidence_finder.py",
+      "sha256": "849b753d771aef70dfed02e99eb97c36a7fbc388cfa10429d152d6a8d0b280fc"
+    },
+    {
+      "path": "paper_table_agent/graph/exporter.py",
+      "sha256": "d3f96dee5606edc27c12120e943ac3a4f6ca5d9eb35c2039623d224e47152bc1"
+    },
+    {
+      "path": "paper_table_agent/graph/extraction.py",
+      "sha256": "53f7e3bddf3c8d832dc85d4289f5e88ba3557eda06116e49d45f9d0778499073"
+    },
+    {
+      "path": "paper_table_agent/graph/matching.py",
+      "sha256": "505772135039e7f195ff2010d7bef9ddc7016e08c78aa21b96c45b3760333df9"
+    },
+    {
+      "path": "paper_table_agent/graph/reporting.py",
+      "sha256": "bb2b5087fa697e536f6d599fdfe72f8508e5acb93520b93eaa9da6ba7936d52b"
+    },
+    {
+      "path": "paper_table_agent/graph/runner.py",
+      "sha256": "4b149e751713bde0ec4a2f837f8e132224a9aff9a4fa9d0f9c17f455bbec78fd"
+    },
+    {
+      "path": "paper_table_agent/graph/workflow.py",
+      "sha256": "e5f46b13dc9bc06d0a9f78adfa48a97bed8eba00fefa89b65255a18e54b68463"
+    },
+    {
+      "path": "paper_table_agent/io/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "paper_table_agent/io/__pycache__/__init__.cpython-312.pyc",
+      "sha256": "c41ebb459e92b9b3dcd0f0cbf7fd1b309f527a7ffced2d7eb07ddbd380477258"
+    },
+    {
+      "path": "paper_table_agent/io/__pycache__/examples.cpython-312.pyc",
+      "sha256": "9b92fa55851fc953853c0816dada8d39f11e68ecb3028429b298f41b0cf1eea5"
+    },
+    {
+      "path": "paper_table_agent/io/__pycache__/locks.cpython-312.pyc",
+      "sha256": "681bfa2d008b88a89e43681283d2f332c909f7fc1ee718ab16f6b21ebceb67fa"
+    },
+    {
+      "path": "paper_table_agent/io/__pycache__/schema.cpython-312.pyc",
+      "sha256": "106f990f6eefd9956579dc153c9a2552723df94ff9fe0d3850b162aabf176317"
+    },
+    {
+      "path": "paper_table_agent/io/__pycache__/xlsx.cpython-312.pyc",
+      "sha256": "548d5e2700a9287499f0406d9397441e16ff768103401a44147db12227a7da69"
+    },
+    {
+      "path": "paper_table_agent/io/examples.py",
+      "sha256": "5446857969c7cd1851e357a04cdd854c34029b220bb5963183458ed84a4ec798"
+    },
+    {
+      "path": "paper_table_agent/io/locks.py",
+      "sha256": "4f73b74999eb8a54bebd1bbd4db37b2c699ccfbf33a129ec4209552e0ade121a"
+    },
+    {
+      "path": "paper_table_agent/io/schema.py",
+      "sha256": "7b7c0a50e4bc31b925a1358f36a486d20f857fb0f4af1aa91507a56805636af9"
+    },
+    {
+      "path": "paper_table_agent/io/xlsx.py",
+      "sha256": "91180847f166a5ac32b69b6faa899453eb3f5289897dd209f88de38dd405d46f"
+    },
+    {
+      "path": "paper_table_agent/llm/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "paper_table_agent/llm/__pycache__/__init__.cpython-312.pyc",
+      "sha256": "0d797316bd68b0dc2e744e690d31c3a6590cb37a5a991617ad7827345ace4996"
+    },
+    {
+      "path": "paper_table_agent/llm/__pycache__/client.cpython-312.pyc",
+      "sha256": "fe7bfdc514139254025f4516ab12b12117013acb8ed9d8c8a27cc3cad18edee2"
+    },
+    {
+      "path": "paper_table_agent/llm/__pycache__/embeddings.cpython-312.pyc",
+      "sha256": "688471715f93557c74e18eb34139df4fad64d730ce6c6c9a6ceb5121bdc9216b"
+    },
+    {
+      "path": "paper_table_agent/llm/__pycache__/models.cpython-312.pyc",
+      "sha256": "3bb672b87545f87ed8855e3077f51939c6f2371216203fcc85db324e2c15d7c7"
+    },
+    {
+      "path": "paper_table_agent/llm/__pycache__/prompts.cpython-312.pyc",
+      "sha256": "2cbdc756e5ee6eb8e998d5376be10b25113cdf8180fa3c033684d8acbfd06485"
+    },
+    {
+      "path": "paper_table_agent/llm/client.py",
+      "sha256": "ace01f23b069f86d6287e07bceccada96c97390133635913c0d53595a9e90ecc"
+    },
+    {
+      "path": "paper_table_agent/llm/embeddings.py",
+      "sha256": "152df02001a80a27ef3cc47653ae643794e855e0c10a20dc4e52c8bfc4e8497f"
+    },
+    {
+      "path": "paper_table_agent/llm/models.py",
+      "sha256": "26b9b33074044c3b030a0c8db928b6109d5cc1b5856f099220b15d0e3db39232"
+    },
+    {
+      "path": "paper_table_agent/llm/prompts.py",
+      "sha256": "7d523e0b95d33188fb273435b71d6d346e2d493b94779c24046085c72c4ec476"
+    },
+    {
+      "path": "paper_table_agent/pdf/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "paper_table_agent/pdf/__pycache__/__init__.cpython-312.pyc",
+      "sha256": "4d226afc6dbb02403697ed8afd2c7e8d37330969cfd3c4883884aceae7ce7796"
+    },
+    {
+      "path": "paper_table_agent/pdf/__pycache__/grobid.cpython-312.pyc",
+      "sha256": "4a6b04e1a671801322a888c0a4e52f7600e60db540dec217f0f3da54815a5f87"
+    },
+    {
+      "path": "paper_table_agent/pdf/__pycache__/highlight.cpython-312.pyc",
+      "sha256": "790490ef42c28c7dfddabe519f8a80c44cafaae5bfe820789431207bc7e7edcf"
+    },
+    {
+      "path": "paper_table_agent/pdf/__pycache__/ocr.cpython-312.pyc",
+      "sha256": "391b050bdea6f582de428fd2637b8beb4b0cdb84d9ec5558bc488c26d604cf71"
+    },
+    {
+      "path": "paper_table_agent/pdf/__pycache__/parser.cpython-312.pyc",
+      "sha256": "18bc6593ea9ceb3481e0a33933022cff586ce54ae55a57bef1f5dc814fde3355"
+    },
+    {
+      "path": "paper_table_agent/pdf/grobid.py",
+      "sha256": "9ee8f994ed6108f4c2bf5459c90f43551e7f8ef62de4ecf6190921f18bd9c547"
+    },
+    {
+      "path": "paper_table_agent/pdf/highlight.py",
+      "sha256": "c182d8d514dac2aa7059a110544b322af1342ca917d3bb3eb92e987ce287c165"
+    },
+    {
+      "path": "paper_table_agent/pdf/ocr.py",
+      "sha256": "55e131ffe79ffbbf01619abf31c9465a656e3c95427de44ac5b69eebf6a1041c"
+    },
+    {
+      "path": "paper_table_agent/pdf/parser.py",
+      "sha256": "e6934246a643b5cd01adc5ef34e406ec695860687199b47741f332b9c2fd518f"
+    },
+    {
+      "path": "paper_table_agent/prompts/extract_column.md",
+      "sha256": "ee285b8f1c1dacdd12f41659085993699da07058e102c61bf85058036dcfdaba"
+    },
+    {
+      "path": "paper_table_agent/prompts/extract_group.md",
+      "sha256": "3d4ab6b25ff04a711e58ca315332d8dcb4594441cc62837c1a9484d032888cd3"
+    },
+    {
+      "path": "paper_table_agent/prompts/hyde.md",
+      "sha256": "4343328e6af9261c02fa09ad324461ca63c22d9dadfd4947749835b96996e0f2"
+    },
+    {
+      "path": "paper_table_agent/prompts/match_adjudicate.md",
+      "sha256": "f3c2c139e051b4f2817f88eb65dd0f7a00d415d63075a736cfca6f458ef3105f"
+    },
+    {
+      "path": "paper_table_agent/prompts/match_adjudicate_repair.md",
+      "sha256": "e0a2b5ad5104a3d0abc3b84990aba2fcb462c59883e01ce4bc572112ae146872"
+    },
+    {
+      "path": "paper_table_agent/prompts/match_header_extract.md",
+      "sha256": "4896342240d9684ede4283e817809edd495f7111145065bdf19063cae063767e"
+    },
+    {
+      "path": "paper_table_agent/prompts/match_header_repair.md",
+      "sha256": "6ea57c7e25c06405b6c6dddd5c60de617761672e348b39f385141c88a5447d5c"
+    },
+    {
+      "path": "paper_table_agent/prompts/paper_memory.md",
+      "sha256": "05d86dcb62be42bbb0353b9c817ae17e0f6b80ec546e3f3e69224310f27bb244"
+    },
+    {
+      "path": "paper_table_agent/prompts/query_expand.md",
+      "sha256": "1b2580d22a14230abdc5d850a8c88e8a2dfb1c421428b6aa9a78c8b9599637d5"
+    },
+    {
+      "path": "paper_table_agent/prompts/summarize_sections.md",
+      "sha256": "6852875a35a08f83a3768eb72176986fcdf8597340ff87769bc7e261631abb46"
+    },
+    {
+      "path": "paper_table_agent/prompts/verify_cell.md",
+      "sha256": "e9c3b97b453fdf19a66eb09247ca4fff3eb6f8c45b3148a23ba7edaccbb563c0"
+    },
+    {
+      "path": "paper_table_agent/prompts/verify_proposal.md",
+      "sha256": "10e50d35a18398474cb44166c69a619abbd027373248668e0fa82bdbdb263d0d"
+    },
+    {
+      "path": "paper_table_agent/retrieval/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "paper_table_agent/retrieval/__pycache__/__init__.cpython-312.pyc",
+      "sha256": "bd524095a25a9c7a6e872da906cabd3cfd0db6af7c01fd97efaf26f82477f7c3"
+    },
+    {
+      "path": "paper_table_agent/retrieval/__pycache__/chunking.cpython-312.pyc",
+      "sha256": "6e58ce066313cba693f2b5cff82c189273bd55c0f846c00d1349c439e2edfdab"
+    },
+    {
+      "path": "paper_table_agent/retrieval/__pycache__/index.cpython-312.pyc",
+      "sha256": "4e7ee01620e361a94dbe2458ea9cd1acb5b7424e319f7adbf96c5d409bdd8d83"
+    },
+    {
+      "path": "paper_table_agent/retrieval/__pycache__/pipeline.cpython-312.pyc",
+      "sha256": "26b145af911e70f0990e151277f0c2c6ea14192979036aa7172c491688700c8b"
+    },
+    {
+      "path": "paper_table_agent/retrieval/__pycache__/rerank.cpython-312.pyc",
+      "sha256": "464e1e4bb961200aac5ff4a566ad8adbf08457276a877c9d5ceb610645409afe"
+    },
+    {
+      "path": "paper_table_agent/retrieval/__pycache__/retrieve.cpython-312.pyc",
+      "sha256": "1279ae0400fa340714b27ba00818a00d99f685a5b2c096604eb1ecc392d33afe"
+    },
+    {
+      "path": "paper_table_agent/retrieval/chunking.py",
+      "sha256": "53114b7af2d033328835adf14acf0e4bf99293df02a811382cbb99469ae07cab"
+    },
+    {
+      "path": "paper_table_agent/retrieval/index.py",
+      "sha256": "50725a2afa286a15f990bfcf1898c4d6534e2a27021d1270a5e2ef219c157457"
+    },
+    {
+      "path": "paper_table_agent/retrieval/pipeline.py",
+      "sha256": "682d8af8e301477386c755946b3455a3b31da1460f30cf2f96189c01209c23a0"
+    },
+    {
+      "path": "paper_table_agent/retrieval/rerank.py",
+      "sha256": "d77f48289c431cf04c41b52de8d906e39196b6897e05639fb25b5fbca0e9b3f5"
+    },
+    {
+      "path": "paper_table_agent/retrieval/retrieve.py",
+      "sha256": "44108f14af791d0a783b4cfdad81dcf2badeac691d374427dddff6f0f0baace1"
+    },
+    {
+      "path": "paper_table_agent/snapshot.py",
+      "sha256": "f803bc615ef531c413843c845975384ea1df16f8315ca20856576730effa8623"
+    },
+    {
+      "path": "paper_table_agent/store/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "paper_table_agent/store/__pycache__/__init__.cpython-312.pyc",
+      "sha256": "70157f3bd48da383a2210f2d646bd29cee80dbdc0b4cc5da85cd89cf5a7ecfc5"
+    },
+    {
+      "path": "paper_table_agent/store/__pycache__/db.cpython-312.pyc",
+      "sha256": "9c23b05f673e82f7fc4772d8f69737b19fc55ec9296917d0f985d973004f7d6e"
+    },
+    {
+      "path": "paper_table_agent/store/db.py",
+      "sha256": "624bf4b5c50ad8503851839e665376668412b1ad77bb26f9bbf95e400652041e"
+    },
+    {
+      "path": "paper_table_agent/store/schema.sql",
+      "sha256": "989210ab61414ea1aaff0cb912d57fd546fab9a8b96710a192941210f74f13d6"
+    },
+    {
+      "path": "paper_table_agent/text/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "paper_table_agent/text/__pycache__/__init__.cpython-312.pyc",
+      "sha256": "be9bdf4dfb79e196e51893d3722bf4a05a6d30dab3eac2cacc1a151298849c10"
+    },
+    {
+      "path": "paper_table_agent/text/__pycache__/normalization.cpython-312.pyc",
+      "sha256": "9a3543a23581787148e847e535e4cdd7ab92c2654c9d460b343c7e8723a62585"
+    },
+    {
+      "path": "paper_table_agent/text/normalization.py",
+      "sha256": "03af97bfd062e66d9c8707cb1a29b82ca63aa8d471122f032a86937411eda18f"
+    },
+    {
+      "path": "paper_table_agent/ui/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "paper_table_agent/ui/__pycache__/__init__.cpython-312.pyc",
+      "sha256": "02e6d41e50d3b337a671fad2ad1705991940617df3d00891041d838afcecb440"
+    },
+    {
+      "path": "paper_table_agent/ui/__pycache__/app.cpython-312.pyc",
+      "sha256": "97ee299052588936303e7dc1898f5a8688121b3a6248a3f5adda177762d56ac5"
+    },
+    {
+      "path": "paper_table_agent/ui/__pycache__/defaults.cpython-312.pyc",
+      "sha256": "755705ad562d5e7ff55953b6b31647594f016c7d7962639f73a0d38823a58b5c"
+    },
+    {
+      "path": "paper_table_agent/ui/__pycache__/registry.cpython-312.pyc",
+      "sha256": "fb055fbcd91dd9ddf56be7932ed2a7195b99a2e19d78a296e101515d4ea66efd"
+    },
+    {
+      "path": "paper_table_agent/ui/__pycache__/review_queue.cpython-312.pyc",
+      "sha256": "40e89cc110c545a286baff7258c044491a6cca400c1cf97e8e2f7e3a49227f68"
+    },
+    {
+      "path": "paper_table_agent/ui/app.py",
+      "sha256": "02a3bd200c8560fd215038ce646121f9e8b019efe4a7ba27419eb92d6a05f6fc"
+    },
+    {
+      "path": "paper_table_agent/ui/defaults.py",
+      "sha256": "eeada20fb8e6b05b7539adc1d24234e180bd3a514c9ac68008f916934f839985"
+    },
+    {
+      "path": "paper_table_agent/ui/registry.py",
+      "sha256": "6c79e29d4759f56b7b2772260d0f0e31ee7a1eb2a8d1e717cc706e3b09a93e8a"
+    },
+    {
+      "path": "paper_table_agent/ui/review_queue.py",
+      "sha256": "53209098d13620d90e8fb3cff206086401f27239b32d7ecb2df0480e44ac1def"
+    },
+    {
+      "path": "paper_table_agent/utils/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "paper_table_agent/utils/__pycache__/__init__.cpython-312.pyc",
+      "sha256": "406f7edc08b5d4f5c3f737cb2f7b94ab407af1c01b71dc34b28c8618cb910610"
+    },
+    {
+      "path": "paper_table_agent/utils/__pycache__/logging.cpython-312.pyc",
+      "sha256": "c8e32890c6cda5d826e33571ea2787b4fa46eb0d72050693f1a3e4e9bd53de2c"
+    },
+    {
+      "path": "paper_table_agent/utils/logging.py",
+      "sha256": "a18efaca07e3366e0283a8adf718b6a8c5c6b00c8b7412edc0153de2759f3e6d"
+    },
+    {
+      "path": "pyproject.toml",
+      "sha256": "4dcca85e176f454f0e6aa3016ebfee5167676905e563fbfee616e3393d31ffaa"
+    },
+    {
+      "path": "README.md",
+      "sha256": "44c089cac92710909e5db126f813ece6b0dc29c7d375b76508a2e8c7ff01ae7b"
+    },
+    {
+      "path": "specs/plan.md",
+      "sha256": "8f865cd3af91d0c81bbc3bbe246970eb51a691431e62b1223d6d7a89737774f6"
+    },
+    {
+      "path": "specs/spec.md",
+      "sha256": "feb8894a7de32d44ce17b5c8d61cdeef8c7a9144d91fc91fc8c701326581e5e6"
+    },
+    {
+      "path": "specs/tasks.md",
+      "sha256": "46430fde60f2065cf18e5399e765b70c18d2a5a54247a2a3f6138471a16ad473"
+    }
+  ],
+  "module_index": [
+    {
+      "path": "paper_table_agent/graph/matching.py",
+      "purpose": "Header extraction + match adjudication between PDFs and table rows."
+    },
+    {
+      "path": "paper_table_agent/pdf/parser.py",
+      "purpose": "PDF parsing with text extraction and metadata handling."
+    },
+    {
+      "path": "paper_table_agent/pdf/ocr.py",
+      "purpose": "OCR fallback for low-text PDFs."
+    },
+    {
+      "path": "paper_table_agent/retrieval/pipeline.py",
+      "purpose": "Query expansion/HyDE and retrieval pipeline for evidence chunks."
+    },
+    {
+      "path": "paper_table_agent/graph/extraction.py",
+      "purpose": "Group extraction, proposal verification, and evidence validation."
+    },
+    {
+      "path": "paper_table_agent/store/db.py",
+      "purpose": "SQLite persistence for PDFs, matches, proposals, reviews, and events."
+    },
+    {
+      "path": "paper_table_agent/ui/app.py",
+      "purpose": "Streamlit run + review UI."
+    },
+    {
+      "path": "paper_table_agent/graph/runner.py",
+      "purpose": "Pipeline orchestration + health checks + report generation."
+    }
+  ],
+  "package_versions": [
+    "altair==5.5.0",
+    "annotated-types==0.7.0",
+    "anyio==4.12.1",
+    "attrs==25.4.0",
+    "blinker==1.9.0",
+    "cachetools==5.5.2",
+    "certifi==2026.1.4",
+    "cffi==2.0.0",
+    "charset-normalizer==3.4.4",
+    "click==8.3.1",
+    "colorama==0.4.6",
+    "cryptography==46.0.3",
+    "et_xmlfile==2.0.0",
+    "gitdb==4.0.12",
+    "GitPython==3.1.46",
+    "h11==0.16.0",
+    "httpcore==1.0.9",
+    "httpx==0.28.1",
+    "idna==3.11",
+    "importlib_metadata==7.2.1",
+    "iniconfig==2.3.0",
+    "Jinja2==3.1.6",
+    "joblib==1.5.3",
+    "jsonpatch==1.33",
+    "jsonpointer==3.0.0",
+    "jsonschema-specifications==2025.9.1",
+    "jsonschema==4.26.0",
+    "langchain-core==1.2.7",
+    "langgraph-checkpoint==4.0.0",
+    "langgraph-prebuilt==1.0.6",
+    "langgraph-sdk==0.3.3",
+    "langgraph==1.0.6",
+    "langsmith==0.6.4",
+    "markdown-it-py==4.0.0",
+    "MarkupSafe==3.0.3",
+    "mdurl==0.1.2",
+    "narwhals==2.15.0",
+    "numpy==1.26.4",
+    "openpyxl==3.1.5",
+    "orjson==3.11.5",
+    "ormsgpack==1.12.1",
+    "packaging==23.2",
+    "pandas==2.3.3",
+    "paper-table-agent==0.1.0",
+    "pdfminer.six==20251230",
+    "pdfplumber==0.11.9",
+    "pillow==10.4.0",
+    "pip==24.2",
+    "pluggy==1.6.0",
+    "protobuf==4.23.4",
+    "pyarrow==22.0.0",
+    "pycparser==2.23",
+    "pydantic-settings==2.12.0",
+    "pydantic==2.12.5",
+    "pydantic_core==2.41.5",
+    "pydeck==0.9.1",
+    "Pygments==2.19.2",
+    "PyMuPDF==1.26.7",
+    "pypdfium2==5.3.0",
+    "pytest==9.0.2",
+    "python-dateutil==2.9.0.post0",
+    "python-dotenv==1.2.1",
+    "pytz==2025.2",
+    "PyYAML==6.0.3",
+    "rank-bm25==0.2.2",
+    "RapidFuzz==3.14.3",
+    "referencing==0.37.0",
+    "requests-toolbelt==1.0.0",
+    "requests==2.32.5",
+    "rich==13.9.4",
+    "rpds-py==0.30.0",
+    "scikit-learn==1.8.0",
+    "scipy==1.17.0",
+    "six==1.17.0",
+    "smmap==5.0.2",
+    "streamlit==1.32.2",
+    "tenacity==8.5.0",
+    "threadpoolctl==3.6.0",
+    "toml==0.10.2",
+    "tomli==2.4.0",
+    "tornado==6.5.4",
+    "tqdm==4.67.1",
+    "typing-inspection==0.4.2",
+    "typing_extensions==4.15.0",
+    "tzdata==2025.3",
+    "tzlocal==5.3.1",
+    "urllib3==2.6.3",
+    "uuid_utils==0.13.0",
+    "validators==0.35.0",
+    "watchdog==6.0.0",
+    "xxhash==3.6.0",
+    "zipp==3.23.0",
+    "zstandard==0.25.0"
+  ],
+  "python_version": "3.12.6 (tags/v3.12.6:a4a2d2b, Sep  6 2024, 20:11:23) [MSC v.1940 64 bit (AMD64)]",
+  "run_config_schema": {
+    "audit": {
+      "categorical_aliases_by_column": "dict[str, dict[str, list[str]]]",
+      "columns_allowlist": "list[str]",
+      "columns_denylist": "list[str]",
+      "max_cells": "int | NoneType",
+      "numeric_tolerance_by_column": "dict[str, float]",
+      "sample_rate": "float | NoneType",
+      "text_similarity_threshold": "float",
+      "use_filled_cells_as_gold": "bool"
+    },
+    "authors_col": "str | NoneType",
+    "doi_col": "str | NoneType",
+    "extraction": {
+      "column_batch_size": "int",
+      "examples_per_col": "int",
+      "fulltext_caption_max_chars": "int",
+      "fulltext_target_ratio": "float",
+      "groups": "list[dict[str, Any]]",
+      "max_chunks": "int",
+      "paper_memory_enabled": "bool",
+      "paper_memory_max_tokens": "int",
+      "retry_extra_chunks": "int",
+      "retry_on_unclear": "bool",
+      "thinking_models": "list[str]",
+      "whole_text_enabled": "bool",
+      "whole_text_max_tokens": "int"
+    },
+    "fast_mode": "bool",
+    "grobid": {
+      "enable_grobid": "bool",
+      "parse_references": "bool",
+      "server_url": "str"
+    },
+    "matching": {
+      "confidence_margin": "float",
+      "confidence_threshold": "float",
+      "fallback_margin": "float",
+      "fallback_min": "float",
+      "fallback_threshold": "float",
+      "header_max_chars": "int",
+      "top_k": "int",
+      "year_tolerance": "int"
+    },
+    "max_success_mode": "bool",
+    "max_workers": "int",
+    "ocr": {
+      "avg_token_length_max": "float",
+      "enable_ocr": "bool",
+      "ocr_trigger_min_chars_per_page": "int",
+      "whitespace_ratio_min": "float"
+    },
+    "output": {
+      "debug_reports": "bool"
+    },
+    "pdf_folder": "Path",
+    "provider": {
+      "api_key": "str | NoneType",
+      "base_url": "str",
+      "fallback_api_key": "str | NoneType",
+      "fallback_base_url": "str | NoneType",
+      "fallback_enabled": "bool",
+      "fallback_model_extract": "str | NoneType",
+      "fallback_model_header": "str | NoneType",
+      "fallback_model_match": "str | NoneType",
+      "fallback_model_query_helper": "str | NoneType",
+      "guided_json_mode": "str",
+      "llm_debug": "bool",
+      "max_prompt_chars": "int",
+      "max_prompt_tokens": "int | NoneType",
+      "measure_prompt_tokens": "bool",
+      "mock_mode": "bool",
+      "mock_payloads_path": "Path | NoneType",
+      "mode": "str",
+      "model_extract": "str",
+      "model_header": "str",
+      "model_match": "str",
+      "model_query_helper": "str",
+      "payload_record_path": "Path | NoneType",
+      "read_timeout_s": "float",
+      "record_path": "Path | NoneType",
+      "record_payloads": "bool",
+      "record_requests": "bool",
+      "timeout_s": "float"
+    },
+    "retrieval": {
+      "context_window": "int",
+      "embedding_backend": "str",
+      "embedding_model": "str | NoneType",
+      "include_section_chunks": "bool",
+      "max_context_chunks": "int",
+      "max_context_tokens": "int",
+      "query_variants": "int",
+      "rerank_k": "int",
+      "reranker_backend": "str",
+      "reranker_model": "str | NoneType",
+      "rrf_k": "int",
+      "section_chunk_limit": "int",
+      "summary_enabled": "bool",
+      "summary_max_chunks": "int",
+      "summary_max_tokens": "int",
+      "top_k": "int",
+      "use_dense": "bool",
+      "use_hyde": "bool",
+      "use_query_expansion": "bool",
+      "use_reranker": "bool"
+    },
+    "run_name": "str | NoneType",
+    "schema_mode": "str",
+    "schema_path": "Path | NoneType",
+    "schema_sheet_name": "str",
+    "table_path": "Path",
+    "title_col": "str | NoneType",
+    "treat_single_space_as_empty": "bool",
+    "verify_mode": "bool",
+    "year_col": "str | NoneType"
+  }
+}

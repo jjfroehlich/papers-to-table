@@ -237,7 +237,12 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
     context_plan_summary = _context_plan_summary(events)
     column_completion = _column_completion_stats(proposals, extraction_batch_stats)
     extractable_columns = _count_extractable_columns(store, config_payload, matched_rows=matches)
-    prompt_limits = _prompt_limit_summary(config_payload)
+    llm_capabilities = [
+        json.loads(event.get("payload_json") or "{}")
+        for event in events
+        if event.get("event_type") == "llm_capabilities"
+    ]
+    prompt_limits = _prompt_limit_summary(config_payload, llm_capabilities)
     llm_call_summary = _llm_call_summary(events)
     sanity_check = _run_sanity_check(
         matched,
@@ -250,11 +255,6 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
     )
     health_events = [event for event in events if event.get("event_type") == "health_check_failed"]
     parse_events = [event for event in events if event.get("event_type") == "parse_sanity"]
-    llm_capabilities = [
-        json.loads(event.get("payload_json") or "{}")
-        for event in events
-        if event.get("event_type") == "llm_capabilities"
-    ]
     audit_events = [
         json.loads(event.get("payload_json") or "{}")
         for event in events
@@ -262,7 +262,7 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
     ]
     audit_summary = audit_events[-1] if audit_events else {}
     eval_summary = {}
-    eval_path = run_dir / "proposal_eval.json"
+    eval_path = run_dir / "exports" / "proposal_eval.json"
     if eval_path.exists():
         eval_payload = json.loads(eval_path.read_text(encoding="utf-8"))
         eval_summary = eval_payload.get("summary", {})
@@ -647,26 +647,59 @@ def _retrieval_hit_rate(store: Store) -> dict[str, int]:
     return totals
 
 
-def _prompt_limit_summary(config_payload: dict[str, object]) -> dict[str, int | None]:
+def _prompt_limit_summary(
+    config_payload: dict[str, object],
+    llm_capabilities: list[dict[str, object]] | None = None,
+) -> dict[str, int | None | str | list[str]]:
     provider = config_payload.get("provider") or {}
     max_prompt_tokens = provider.get("max_prompt_tokens")
     max_prompt_chars = provider.get("max_prompt_chars")
+    override_tokens = provider.get("ctx_window_tokens_override")
     tokens_cap = None
     if isinstance(max_prompt_tokens, int):
         tokens_cap = max_prompt_tokens
     chars_cap = max_prompt_chars if isinstance(max_prompt_chars, int) else None
     char_tokens = estimate_tokens("x" * chars_cap) if chars_cap else None
+    probed_tokens = None
+    if llm_capabilities:
+        for payload in reversed(llm_capabilities):
+            if payload.get("label") == "extract":
+                candidate = payload.get("ctx_window_tokens")
+                if isinstance(candidate, int) and candidate > 0:
+                    probed_tokens = candidate
+                    break
     effective_tokens = None
-    if tokens_cap and char_tokens:
-        effective_tokens = min(tokens_cap, char_tokens)
+    reasons: list[str] = []
+    source = None
+    if isinstance(override_tokens, int) and override_tokens > 0:
+        effective_tokens = override_tokens
+        source = "override"
+        reasons.append("ctx_window_override")
     elif tokens_cap:
         effective_tokens = tokens_cap
-    elif char_tokens:
-        effective_tokens = char_tokens
+        source = "max_prompt_tokens"
+        reasons.append("max_prompt_tokens")
+    elif probed_tokens:
+        effective_tokens = probed_tokens
+        source = "model_probe"
+        reasons.append("ctx_window_probe")
+    if char_tokens:
+        if effective_tokens:
+            if char_tokens < effective_tokens:
+                reasons.append("max_prompt_chars")
+            effective_tokens = min(effective_tokens, char_tokens)
+        else:
+            effective_tokens = char_tokens
+            source = "max_prompt_chars"
+            reasons.append("max_prompt_chars")
     return {
         "max_prompt_tokens": tokens_cap,
         "max_prompt_chars": chars_cap,
+        "ctx_window_tokens_override": override_tokens if isinstance(override_tokens, int) else None,
+        "ctx_window_tokens_probe": probed_tokens,
         "effective_max_prompt_tokens": effective_tokens,
+        "effective_source": source,
+        "effective_reason": reasons,
     }
 
 

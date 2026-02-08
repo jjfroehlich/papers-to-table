@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from paper_table_agent.config import ExtractionConfig
-from paper_table_agent.llm.client import LlmClient, LlmJsonError, estimate_tokens
+from paper_table_agent.llm.client import LlmClient, LlmJsonError, estimate_tokens, get_capability_cache
 from paper_table_agent.llm.models import PaperMemoryResult
 from paper_table_agent.llm.prompts import render_prompt
 
@@ -25,6 +25,8 @@ class ContextPlan:
     ctx_window_tokens: int
     ctx_window_chars: int
     column_batches: list[list[str]]
+    ctx_window_source: str | None = None
+    ctx_window_reason: list[str] | None = None
     memory_stats: dict[str, Any] | None = None
 
 
@@ -39,7 +41,7 @@ def plan_context(
     run_dir: Path,
     call_recorder: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> tuple[ContextPlan, str]:
-    ctx_window, ctx_window_chars = _effective_prompt_caps(extract_client)
+    ctx_window, ctx_window_chars, cap_meta = _effective_prompt_caps(extract_client)
     thinking_mode = _is_thinking_model(extract_client.config.model, extraction_config)
     fulltext = _assemble_page_marked_text(page_text)
     trimmed_text, included_sections, trim_steps = _trim_fulltext(fulltext, extraction_config)
@@ -79,6 +81,8 @@ def plan_context(
             token_estimate=prompt_tokens,
             ctx_window_tokens=ctx_window,
             ctx_window_chars=ctx_window_chars,
+            ctx_window_source=cap_meta.get("source"),
+            ctx_window_reason=cap_meta.get("reasons"),
             column_batches=column_batches,
         )
         return plan, trimmed_text
@@ -117,6 +121,8 @@ def plan_context(
                 token_estimate=prompt_tokens,
                 ctx_window_tokens=ctx_window,
                 ctx_window_chars=ctx_window_chars,
+                ctx_window_source=cap_meta.get("source"),
+                ctx_window_reason=cap_meta.get("reasons"),
                 column_batches=column_batches,
                 memory_stats=memory_stats,
             )
@@ -140,6 +146,8 @@ def plan_context(
         token_estimate=prompt_tokens,
         ctx_window_tokens=ctx_window,
         ctx_window_chars=ctx_window_chars,
+        ctx_window_source=cap_meta.get("source"),
+        ctx_window_reason=cap_meta.get("reasons"),
         column_batches=column_batches,
         memory_stats={"trim_steps": trim_steps},
     )
@@ -162,15 +170,53 @@ def _build_column_batches(column_payloads: list[dict[str, Any]], batch_size: int
     return batches
 
 
-def _effective_prompt_caps(client: LlmClient) -> tuple[int, int]:
+def _effective_prompt_caps(client: LlmClient) -> tuple[int, int, dict[str, Any]]:
     max_tokens = client.config.max_prompt_tokens
+    override_tokens = client.config.ctx_window_tokens_override
     max_chars = client.config.max_prompt_chars
     char_tokens = estimate_tokens("x" * max_chars) if max_chars else 0
-    if max_tokens:
-        if char_tokens:
-            return min(max_tokens, char_tokens), max_chars
-        return max_tokens, max_chars
-    return char_tokens, max_chars
+    capabilities = get_capability_cache(client.config)
+    probed_tokens = capabilities.get("ctx_window_tokens") if capabilities else None
+
+    ctx_window = None
+    source = None
+    reasons: list[str] = []
+    if override_tokens:
+        ctx_window = int(override_tokens)
+        source = "override"
+        reasons.append("ctx_window_override")
+    elif max_tokens:
+        ctx_window = int(max_tokens)
+        source = "max_prompt_tokens"
+        reasons.append("max_prompt_tokens")
+    elif isinstance(probed_tokens, int) and probed_tokens > 0:
+        ctx_window = int(probed_tokens)
+        source = "model_probe"
+        reasons.append("ctx_window_probe")
+
+    if char_tokens:
+        if ctx_window:
+            if char_tokens < ctx_window:
+                reasons.append("max_prompt_chars")
+            ctx_window = min(ctx_window, char_tokens)
+        else:
+            ctx_window = char_tokens
+            source = "max_prompt_chars"
+            reasons.append("max_prompt_chars")
+
+    if not ctx_window:
+        ctx_window = 0
+        source = source or "unknown"
+
+    meta = {
+        "source": source,
+        "reasons": reasons,
+        "probe_tokens": probed_tokens,
+        "max_prompt_tokens": max_tokens,
+        "override_tokens": override_tokens,
+        "char_tokens": char_tokens,
+    }
+    return int(ctx_window), max_chars, meta
 
 
 def _resolve_batch_size(

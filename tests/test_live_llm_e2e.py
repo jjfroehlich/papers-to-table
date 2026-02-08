@@ -126,7 +126,7 @@ def test_live_llm_smoke_e2e(tmp_path: Path) -> None:
 
     with sqlite3.connect(db_path) as conn:
         conn.row_factory = sqlite3.Row
-        rows = conn.execute("SELECT proposed_value, evidence_json, flags_json, status FROM proposals").fetchall()
+        rows = conn.execute("SELECT pdf_id, proposed_value, evidence_json, flags_json, status FROM proposals").fetchall()
         assert rows, "No proposals recorded"
 
     proposals_with_value = 0
@@ -146,6 +146,9 @@ def test_live_llm_smoke_e2e(tmp_path: Path) -> None:
             anchorable = False
             for item in evidence:
                 quote = (item.get("quote") or item.get("quote_text") or "").strip()
+                assert item.get("pdf_id") != "retry"
+                assert item.get("pdf_id") == row["pdf_id"]
+                assert (item.get("quote_text") or "").strip()
                 page = item.get("page")
                 if quote and isinstance(page, int) and 0 < page <= len(page_text):
                     if quote in page_text[page - 1]:

@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +18,7 @@ class ParsedPdf:
     n_pages: int
     page_text: list[str]
     tokens: list[dict[str, Any]]
+    header_footer_stats: dict[str, Any] = field(default_factory=dict)
 
 
 def compute_sha1(path: Path) -> str:
@@ -31,6 +32,7 @@ def compute_sha1(path: Path) -> str:
 def parse_pdf(path: Path) -> ParsedPdf:
     doc = fitz.open(path)
     page_text = [_build_page_text(page) for page in doc]
+    page_text, header_footer_stats = _strip_repeated_headers(page_text)
     n_pages = doc.page_count
     tokens: list[dict[str, Any]] = []
     with pdfplumber.open(path) as pdf:
@@ -43,7 +45,14 @@ def parse_pdf(path: Path) -> ParsedPdf:
                         "bbox": [word.get("x0"), word.get("top"), word.get("x1"), word.get("bottom")],
                     }
                 )
-    return ParsedPdf(pdf_id="", path=path, n_pages=n_pages, page_text=page_text, tokens=tokens)
+    return ParsedPdf(
+        pdf_id="",
+        path=path,
+        n_pages=n_pages,
+        page_text=page_text,
+        tokens=tokens,
+        header_footer_stats=header_footer_stats,
+    )
 
 
 def _build_page_text(page: fitz.Page) -> str:
@@ -79,6 +88,84 @@ def _merge_hyphenated_lines(lines: list[str]) -> list[str]:
         else:
             merged.append(line)
     return merged
+
+
+def _strip_repeated_headers(page_text: list[str]) -> tuple[list[str], dict[str, Any]]:
+    if len(page_text) < 2:
+        return page_text, {"removed_lines": [], "removed_count": 0}
+    top_lines: list[list[str]] = []
+    bottom_lines: list[list[str]] = []
+    for text in page_text:
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        top_lines.append(lines[:2])
+        bottom_lines.append(lines[-2:] if len(lines) > 2 else [])
+    counts: dict[str, int] = {}
+    originals: dict[str, str] = {}
+    for lines in top_lines + bottom_lines:
+        for line in lines:
+            normalized = _normalize_header_line(line)
+            if not normalized:
+                continue
+            counts[normalized] = counts.get(normalized, 0) + 1
+            originals.setdefault(normalized, line)
+    min_count = max(2, int(len(page_text) * 0.4))
+    repeated = {
+        key
+        for key, count in counts.items()
+        if count >= min_count and _is_headerish_line(originals.get(key, ""))
+    }
+    if not repeated:
+        return page_text, {"removed_lines": [], "removed_count": 0}
+    cleaned_pages: list[str] = []
+    removed_lines: list[str] = []
+    for text in page_text:
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        kept: list[str] = []
+        for line in lines:
+            normalized = _normalize_header_line(line)
+            if normalized in repeated:
+                removed_lines.append(line)
+                continue
+            kept.append(line)
+        cleaned_pages.append("\n".join(kept))
+    return cleaned_pages, {"removed_lines": sorted(set(removed_lines)), "removed_count": len(removed_lines)}
+
+
+def _normalize_header_line(line: str) -> str:
+    normalized = re.sub(r"\s+", " ", line.strip().lower())
+    normalized = re.sub(r"\d+", "0", normalized)
+    normalized = re.sub(r"[^a-z0-9\s:/.-]", "", normalized)
+    return normalized[:140].strip()
+
+
+def _is_headerish_line(line: str) -> bool:
+    if not line:
+        return False
+    if len(line) > 160:
+        return False
+    tokens = (
+        "doi",
+        "journal",
+        "volume",
+        "vol.",
+        "issue",
+        "pages",
+        "page ",
+        "copyright",
+        "preprint",
+        "arxiv",
+        "biorxiv",
+        "medrxiv",
+        "issn",
+        "www.",
+        "http",
+    )
+    lowered = line.lower()
+    if any(token in lowered for token in tokens):
+        return True
+    if re.match(r"(?i)^page\s*\d+\s*(of\s*\d+)?", line.strip()):
+        return True
+    return len(lowered.split()) <= 6
 
 
 def save_parsed(parsed: ParsedPdf, output_dir: Path) -> None:

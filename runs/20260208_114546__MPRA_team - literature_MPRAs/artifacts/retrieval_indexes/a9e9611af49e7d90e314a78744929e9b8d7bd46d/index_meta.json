@@ -1,0 +1,5 @@
+{
+  "chunks_hash": "a8847f22b1ad7c7a17c9238a1e17d331c04d8467",
+  "embedding_backend": "lmstudio",
+  "embedding_model": "text-embedding-nomic-embed-text-v1.5@q8_0"
+}

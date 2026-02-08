@@ -1,0 +1,17 @@
+{
+  "summary": "This study presents a systematic design and optimization of transcriptional reporters for 86 transcription factors (TFs), identifying 62 'prime' TF reporters with optimized performance. The researchers developed a library of reporters to enable multiplexed detection of TF activity, addressing the lack of reliable reporters for many mammalian TFs. They characterized TF-specific reporter design rules and evaluated reporter specificity across diverse TF perturbations. The work provides a resource for direct measurement of TF activity in cell signaling, developmental biology, and disease models. The optimized reporters improve accuracy and reliability in detecting TF activity. The findings support the development of robust tools for functional genomics and systems biology.",
+  "notes": [
+    {
+      "anchor_id": "page-1",
+      "page": 1,
+      "quote_text": "Systematic design and optimization of transcriptional reporters for 86 TFs",
+      "why_it_supports": "This quote highlights the core objective of the study, demonstrating the comprehensive scale and methodological rigor applied to reporter development."
+    },
+    {
+      "anchor_id": "page-1",
+      "page": 1,
+      "quote_text": "Identification of a collection of 62 'prime' TF reporters with optimized performance",
+      "why_it_supports": "This quote confirms the key outcome of the study\u2014providing a validated set of high-performing reporters for downstream applications."
+    }
+  ]
+}

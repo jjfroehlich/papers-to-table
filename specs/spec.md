@@ -61,11 +61,11 @@ exports/updated_table.xlsx
 exports/audit_log.csv
 ```
 
-Evaluation artifacts (when audit/eval is run):
+Evaluation artifacts (always written; includes status note when no audit cells are available):
 
 ```
-proposal_eval.json
-proposal_eval.md
+exports/proposal_eval.json
+exports/proposal_eval.md
 ```
 
 Debug-only outputs (when `output.debug_reports=true`):
@@ -97,8 +97,10 @@ logs/llm_payloads.jsonl
 - **Evidence discipline**: proposals keep proposed values; evidence validation only annotates flags and `needs_more_evidence`.
 - **Evidence finder**: weak/none evidence or invalid highlights trigger a locator pass to search full chunks, page text, and tokens for supporting quotes.
 - **Highlight guardrails**: reject too-short/low-signal quotes, overly large page-spanning rectangles, and low-confidence matches; mark highlights failed with reasons instead of showing garbage.
-- **Highlight anchoring**: use page+quote spans (start/end) as primary anchors; fall back to normalized/dehyphenated search (PyMuPDF) and token-based salvage with recorded highlight strategy for debugging.
+- **Highlight anchoring**: use page+quote spans (start/end) as primary anchors; prefer normalized spans or token-based salvage, and clip quotes to a single-page window before highlight attempts.
 - **Evidence quality floor**: quotes that look like headers/footers (e.g., quote_start=0 with header-like patterns or high newline density) or are too short/low-signal are marked weak and retried via evidence finder; proposed values are preserved.
+- **Header/footer stripping**: repeated page headers/footers (e.g., DOI/journal/page counters) are removed from page_text and chunk text before retrieval.
+- **Evidence schema invariants**: every evidence item carries `pdf_id` matching the proposal, has `quote_text`, and includes `anchor_id`/`chunk_id` or a `page`.
 - **Unicode/ID normalization**: column and chunk identifiers are normalized to prevent drift.
 
 ## Matching behavior
@@ -124,6 +126,7 @@ logs/llm_payloads.jsonl
 - Proposal evidence uses multi-snippet `evidence_items` (quote_text + source_ref + anchor_id + optional why_it_matters/numeric_value) to support argumentation.
 - Models can flag `needs_more_context` to trigger a retry with expanded context chunks.
 - Verifier uses only stored `quote_text` fields: for `status=found`, it requires minimal overlap between key terms and quotes (and digit/unit overlap for numeric values); failures downgrade to `inferred` with `needs_more_evidence=true`.
+- Final `needs_more_evidence` is derived from the latest validation + verification outputs (supports + strong evidence clears sticky flags unless a hard validation rule applies).
 - Evidence finder runs for weak/none evidence or highlight failures using full chunk tables, page text, and tokens to attach quotes, pages, and highlights.
 - Evidence backfill: when proposed_value is present but evidence_items empty after extraction/repair, attach a deterministic weak snippet from top retrieval chunks.
 - Evidence records store `pdf_id` + `chunk_id`/`chunk_idx` to keep chunk identity unambiguous across PDFs.
@@ -163,6 +166,7 @@ logs/llm_payloads.jsonl
 - UI has no tuning knobs; configuration is driven by `run_config.json`.
 - Health checks validate model endpoint reachability and embedding/reranker backends; failures are logged in `run_report.json`.
 - LLM capability probes cache structured-output support per model and route between guided JSON and prompt-only JSON.
+- Context window sizing prefers model capability probes (cached per base_url/model), with explicit overrides from `provider.max_prompt_tokens` or `provider.ctx_window_tokens_override`.
 - Run reports include a summary of per-model capability probe results.
 - Compatibility probes validate backend/model support and classify regex/grammar errors as backend incompatibilities with recommended next actions.
 - Backends that do not support constrained decoding (e.g., LM Studio + gpt-oss) must run in constraints-off mode with prompt-only JSON (no response_format/json_schema/grammar/regex/pattern fields) across all pipeline stages.
@@ -182,7 +186,7 @@ logs/llm_payloads.jsonl
 - Hermetic tests use stub/mock LLM clients with no network calls.
 - Live integration tests are opt-in via `pytest -m live_llm` and only run when `PTA_LIVE_LLM=1` is set.
 - Live tests rely on synthetic fixture PDFs generated in-repo for deterministic evidence anchoring.
-- Evaluation runs via `paper-table-agent eval` and writes `proposal_eval.json`/`proposal_eval.md`, updating `run_report.json` with metrics.
+- Evaluation runs via `paper-table-agent eval` and writes `exports/proposal_eval.json`/`exports/proposal_eval.md`, updating `run_report.json` with metrics. If no audit cells are available, the eval report records a status + note instead of silent all-zero metrics.
 
 ## Failure semantics
 

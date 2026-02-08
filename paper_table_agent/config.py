@@ -57,7 +57,10 @@ class ProviderConfig(BaseModel):
     fallback_model_query_helper: str | None = None
     max_prompt_chars: int = Field(default_factory=lambda: _env_int("PAPER_TABLE_AGENT_MAX_PROMPT_CHARS", 64000))
     max_prompt_tokens: int | None = Field(
-        default_factory=lambda: _env_optional_int("PAPER_TABLE_AGENT_MAX_PROMPT_TOKENS", 32000)
+        default_factory=lambda: _env_optional_int("PAPER_TABLE_AGENT_MAX_PROMPT_TOKENS", None)
+    )
+    ctx_window_tokens_override: int | None = Field(
+        default_factory=lambda: _env_optional_int("PAPER_TABLE_AGENT_CTX_WINDOW_TOKENS", None)
     )
     timeout_s: float = 60.0
     read_timeout_s: float = 180.0

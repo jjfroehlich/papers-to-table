@@ -729,20 +729,39 @@ def verify_proposals(
             flags["verification_needs_more_evidence"] = True
             flags["verification_rationale"] = "Missing proposed value or evidence quotes."
             proposal["status"] = "inferred" if proposed_value else proposal.get("status")
-            proposal.setdefault("flags", {})["needs_more_evidence"] = True
+            flags["needs_more_evidence"] = True
             continue
         supports = _evidence_supports_value(proposed_value, quote_texts, column=column)
         if supports:
             flags["verification_status"] = "supports"
             flags["verification_needs_more_evidence"] = False
             flags["verification_rationale"] = "Evidence quote contains the proposed value or key terms."
-            continue
-        flags["verification_status"] = "unclear"
-        flags["verification_needs_more_evidence"] = True
-        flags["verification_rationale"] = "Evidence quotes lack key terms or numeric overlap."
-        proposal["status"] = "inferred"
-        proposal.setdefault("flags", {})["needs_more_evidence"] = True
+        else:
+            flags["verification_status"] = "unclear"
+            flags["verification_needs_more_evidence"] = True
+            flags["verification_rationale"] = "Evidence quotes lack key terms or numeric overlap."
+            proposal["status"] = "inferred"
+        flags["needs_more_evidence"] = _reconcile_needs_more_evidence(proposal)
     return proposals
+
+
+def _reconcile_needs_more_evidence(proposal: dict[str, Any]) -> bool:
+    flags = proposal.get("flags", {})
+    evidence = proposal.get("evidence") or []
+    evidence_quality = flags.get("evidence_quality") or proposal.get("evidence_quality")
+    verification_status = flags.get("verification_status")
+    hard_rule = bool(
+        flags.get("evidence_missing")
+        or flags.get("evidence_validation_errors")
+        or flags.get("needs_more_context")
+    )
+    if verification_status == "supports" and evidence_quality == "strong" and not hard_rule:
+        return False
+    if not evidence:
+        return True
+    if evidence_quality in {"weak", "none"}:
+        return True
+    return bool(flags.get("verification_needs_more_evidence"))
 
 
 def _build_chunk_lookup(chunks_by_column: dict[str, list[dict[str, Any]]]) -> dict[str, dict[str, Any]]:
@@ -1070,6 +1089,13 @@ def _looks_like_header_footer(
             page_start = page_text[page - 1][:200]
             if page_start and header_tokens.search(page_start):
                 return True
+            lines = [line.strip() for line in page_text[page - 1].splitlines() if line.strip()]
+            edges = lines[:2] + lines[-2:]
+            normalized_quote = normalize_for_matching(quote)
+            for line in edges:
+                line_norm = normalize_for_matching(line)
+                if normalized_quote and (normalized_quote in line_norm or line_norm in normalized_quote):
+                    return True
     return False
 
 
@@ -1166,8 +1192,11 @@ def _normalize_words(text: str) -> list[str]:
 
 def _ensure_evidence_pdf_id(evidence_list: list[Any], pdf_id: str) -> None:
     for evidence in evidence_list:
-        if getattr(evidence, "pdf_id", None) is None:
+        if getattr(evidence, "pdf_id", None) != pdf_id:
             setattr(evidence, "pdf_id", pdf_id)
+        quote = getattr(evidence, "quote", None) or getattr(evidence, "quote_text", None) or getattr(evidence, "quote_raw", None)
+        if quote and not getattr(evidence, "quote", None):
+            setattr(evidence, "quote", str(quote))
 
 
 def _legacy_chunk_pk(chunk_id: str) -> str | None:

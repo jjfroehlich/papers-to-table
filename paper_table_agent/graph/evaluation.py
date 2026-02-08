@@ -21,20 +21,31 @@ def evaluate_run(
     pdf_folder: Path | None = None,
     output_dir: Path | None = None,
 ) -> dict[str, Any]:
-    output_dir = output_dir or (run_dir if run_dir else db_path.parent)
+    if output_dir is None:
+        output_dir = (run_dir / "exports") if run_dir else db_path.parent
     output_dir.mkdir(parents=True, exist_ok=True)
     run_config = _load_run_config(run_dir) if run_dir else {}
     proposals = _load_proposals(db_path, proposal_kind="audit")
     table = load_table(table_path, sheet_name=schema_sheet_name)
     page_text_by_pdf = _load_page_text(run_dir, pdf_folder)
     eval_config = _eval_settings(run_config)
-    payload = _evaluate_proposals(
-        proposals,
-        table.dataframe,
-        eval_config,
-        page_text_by_pdf,
-        run_id=run_dir.name if run_dir else None,
-    )
+    if not proposals:
+        payload = _empty_eval_payload(
+            run_id=run_dir.name if run_dir else None,
+            eval_config=eval_config,
+            reason="no_audit_proposals",
+            note=(
+                "No audit proposals found. Set audit.use_filled_cells_as_gold=true and rerun."
+            ),
+        )
+    else:
+        payload = _evaluate_proposals(
+            proposals,
+            table.dataframe,
+            eval_config,
+            page_text_by_pdf,
+            run_id=run_dir.name if run_dir else None,
+        )
     output_path = output_dir / "proposal_eval.json"
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     md_path = output_dir / "proposal_eval.md"
@@ -42,6 +53,40 @@ def evaluate_run(
     if run_dir:
         update_run_report(run_dir, payload)
     return payload
+
+
+def _empty_eval_payload(
+    *,
+    run_id: str | None,
+    eval_config: dict[str, Any],
+    reason: str,
+    note: str,
+) -> dict[str, Any]:
+    return {
+        "run_id": run_id,
+        "generated_at": datetime.utcnow().isoformat(),
+        "summary": {
+            "total_cells": 0,
+            "matched": 0,
+            "match_rate": 0.0,
+            "columns_evaluated": 0,
+            "proposals_with_value": 0,
+            "proposals_with_evidence": 0,
+            "evidence_coverage_rate": 0.0,
+            "anchorable_quote_rate": 0.0,
+            "highlight_ok_rate": 0.0,
+            "highlight_failed_rate": 0.0,
+            "found_unanchored_downgraded": 0,
+            "status": reason,
+            "note": note,
+        },
+        "per_column": {},
+        "cells": [],
+        "config": {
+            "model_extract": eval_config.get("model_extract"),
+            "ctx_window": eval_config.get("ctx_window"),
+        },
+    }
 
 
 def update_run_report(run_dir: Path, eval_payload: dict[str, Any]) -> None:
@@ -250,6 +295,9 @@ def _evaluate_proposals(
         "highlight_failed_rate": _safe_div(highlight_failed, total_evidence_items),
         "found_unanchored_downgraded": found_unanchored,
     }
+    if total == 0:
+        summary["status"] = "no_audit_cells"
+        summary["note"] = "No filled cells were available for audit evaluation."
     payload = {
         "run_id": run_id,
         "generated_at": datetime.utcnow().isoformat(),
@@ -374,12 +422,16 @@ def _safe_avg(values: list[float]) -> float:
 
 def _render_eval_md(payload: dict[str, Any]) -> str:
     summary = payload.get("summary", {})
+    status = summary.get("status")
+    note = summary.get("note")
     lines = [
         "# Proposal Evaluation",
         "",
         f"Generated at: {payload.get('generated_at')}",
         "",
         "## Summary",
+        f"- Status: {status}" if status else "- Status: ok",
+        f"- Note: {note}" if note else "- Note: none",
         f"- Total audited cells: {summary.get('total_cells', 0)}",
         f"- Match rate: {summary.get('match_rate', 0):.2%}",
         f"- Evidence coverage rate: {summary.get('evidence_coverage_rate', 0):.2%}",

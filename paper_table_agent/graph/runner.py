@@ -29,6 +29,7 @@ from paper_table_agent.graph.extraction import (
 )
 from paper_table_agent.graph.context_planner import ContextPlan, plan_context
 from paper_table_agent.graph.evidence_finder import find_evidence_for_proposals
+from paper_table_agent.graph.evaluation import evaluate_run
 from paper_table_agent.graph.matching import (
     adjudicate_match,
     build_match_record,
@@ -211,6 +212,17 @@ def run_pipeline(config: RunConfig, run_paths: RunPaths, store: Store) -> None:
             context.logger.info("processed pdf %s", pdf.pdf_id)
     write_mapping_report(store, run_paths.exports_dir, write_reports=config.output.debug_reports)
     status = write_run_report(store, run_paths)
+    try:
+        evaluate_run(
+            run_dir=run_paths.run_dir,
+            db_path=run_paths.db_path,
+            table_path=config.table_path,
+            schema_sheet_name=config.schema_sheet_name,
+            pdf_folder=config.pdf_folder,
+            output_dir=run_paths.exports_dir,
+        )
+    except Exception as exc:  # noqa: BLE001
+        store.record_event("warning", "eval_failed", {"error": str(exc)})
     if status == "completed_with_errors":
         (run_paths.run_dir / "COMPLETED_WITH_ERRORS").write_text("done", encoding="utf-8")
     elif status == "completed_with_warnings":
@@ -386,6 +398,7 @@ def _build_llm_client(
             read_timeout_s=provider.read_timeout_s,
             max_prompt_chars=provider.max_prompt_chars,
             max_prompt_tokens=provider.max_prompt_tokens,
+            ctx_window_tokens_override=provider.ctx_window_tokens_override,
             mock_mode=mock_mode,
             mock_payloads=mock_payloads,
             guided_json_mode=provider.guided_json_mode,
@@ -600,6 +613,8 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         parse_metrics = _parse_sanity_metrics(parsed.page_text, parsed.tokens, context.config.ocr)
         parse_metrics["pdf_id"] = pdf.pdf_id
         parse_metrics["ocr_triggered"] = parse_source == "ocr"
+        if getattr(parsed, "header_footer_stats", None):
+            parse_metrics["header_footer"] = parsed.header_footer_stats
         store.record_event("info", "parse_sanity", parse_metrics)
         if parse_metrics.get("quality_warnings"):
             store.record_event(
@@ -932,6 +947,8 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
             "token_estimate": context_plan.token_estimate,
             "ctx_window_tokens": context_plan.ctx_window_tokens,
             "ctx_window_chars": context_plan.ctx_window_chars,
+            "ctx_window_source": context_plan.ctx_window_source,
+            "ctx_window_reason": context_plan.ctx_window_reason,
             "column_batches": context_plan.column_batches,
             "memory_stats": context_plan.memory_stats,
             "context_path": str(context_plan.page_marked_text_path) if context_plan.page_marked_text_path else None,
@@ -1408,11 +1425,14 @@ def _resolve_evidence_locators(
     for proposal in proposals:
         evidence_items = proposal.get("evidence") or []
         for evidence in evidence_items:
+            evidence["pdf_id"] = proposal.get("pdf_id")
             _apply_anchor_id(evidence, chunk_lookup, page_text)
             _apply_source_ref(evidence, chunk_lookup)
             quote = _get_quote_text(evidence)
             page = evidence.get("page")
             locator_hint = evidence.get("locator_hint")
+            if quote and not evidence.get("quote_text"):
+                _set_quote_text(evidence, quote)
             if not evidence.get("source_ref"):
                 if evidence.get("chunk_id"):
                     evidence["source_ref"] = f"chunk_id:{evidence.get('chunk_id')}"
@@ -1438,12 +1458,17 @@ def _resolve_evidence_locators(
                     evidence["highlight_strategy"] = "missing"
                     continue
             if page_text and isinstance(page, int) and 0 < page <= len(page_text):
-                span = locate_quote_span(page_text[page - 1], quote)
-                if span:
-                    start_char, end_char, span_strategy, _score = span
-                    evidence["quote_start"] = start_char
-                    evidence["quote_end"] = end_char
-                    evidence["highlight_strategy"] = span_strategy
+                stabilized = _stabilize_quote_for_page(quote, locator_hint, page_text, int(page))
+                if stabilized:
+                    quote, start_char, end_char, span_strategy = stabilized
+                    if quote:
+                        _set_quote_text(evidence, quote)
+                    if start_char is not None:
+                        evidence["quote_start"] = start_char
+                    if end_char is not None:
+                        evidence["quote_end"] = end_char
+                    if span_strategy:
+                        evidence["quote_span_strategy"] = span_strategy
             if evidence.get("rects"):
                 continue
             allowed, reason = _quote_quality_floor(quote, evidence)
@@ -1599,6 +1624,50 @@ def _quote_quality_floor(quote: str, evidence: dict[str, Any]) -> tuple[bool, st
     if _evidence_needs_numeric(evidence) and not any(char.isdigit() for char in cleaned):
         return False, "quote_missing_numeric"
     return True, None
+
+
+def _stabilize_quote_for_page(
+    quote: str | None,
+    locator_hint: str | None,
+    page_text: list[str],
+    page: int,
+    *,
+    max_len: int = 240,
+) -> tuple[str | None, int | None, int | None, str | None] | None:
+    if not page_text or page <= 0 or page > len(page_text):
+        return None
+    text = page_text[page - 1]
+    span = locate_quote_span(text, quote or "") if quote else None
+    if not span and locator_hint:
+        span = locate_quote_span(text, locator_hint)
+    if not span:
+        if quote and len(quote) > max_len:
+            clipped = quote[:max_len].strip()
+            return clipped, None, None, None
+        return None
+    start, end, strategy, _score = span
+    clipped_quote, new_start, new_end = _clip_quote_span(text, start, end, max_len)
+    if new_start == 0 and locator_hint and locator_hint != (quote or ""):
+        alt_span = locate_quote_span(text, locator_hint)
+        if alt_span:
+            alt_start, alt_end, alt_strategy, _ = alt_span
+            alt_quote, alt_start, alt_end = _clip_quote_span(text, alt_start, alt_end, max_len)
+            if alt_start > 0:
+                return alt_quote, alt_start, alt_end, alt_strategy
+    return clipped_quote, new_start, new_end, strategy
+
+
+def _clip_quote_span(text: str, start: int, end: int, max_len: int) -> tuple[str, int, int]:
+    if end <= start:
+        snippet = text[start : min(len(text), start + max_len)].strip()
+        return snippet, start, min(len(text), start + len(snippet))
+    if end - start <= max_len:
+        snippet = text[start:end].strip()
+        return snippet, start, start + len(snippet)
+    new_start = start
+    new_end = min(len(text), start + max_len)
+    snippet = text[new_start:new_end].strip()
+    return snippet, new_start, new_start + len(snippet)
 
 
 def _evidence_needs_numeric(evidence: dict[str, Any]) -> bool:
@@ -1770,6 +1839,7 @@ def _probe_llm_capabilities(context: RunContext) -> None:
                 {"model": model, "label": label, "error": str(exc)},
             )
             continue
+        ctx_window_probe = probe_client.probe_context_window()
         cached = get_capability_cache(probe_client.config)
         payload: dict[str, Any] = {"model": model, "label": label}
         backend_caps = {
@@ -1791,6 +1861,8 @@ def _probe_llm_capabilities(context: RunContext) -> None:
             payload["cached"] = True
         else:
             continue
+        if ctx_window_probe:
+            payload.update(ctx_window_probe)
         if backend_caps:
             payload.update(backend_caps)
         context.store.record_event("info", "llm_capabilities", payload)
@@ -2584,7 +2656,10 @@ def _retry_unclear_proposals(
         )
     except LlmJsonError:
         return proposals
-    retry_records = build_proposal_records("retry", "retry", retry_result)
+    retry_row_id = None
+    if row_context:
+        retry_row_id = row_context.get("row_id")
+    retry_records = build_proposal_records(pdf_id or "retry", retry_row_id or "retry", retry_result)
     retry_by_column = {proposal["column"]: proposal for proposal in retry_records}
     merged: list[dict[str, Any]] = []
     for proposal in proposals:
@@ -2593,6 +2668,8 @@ def _retry_unclear_proposals(
             replacement = retry_by_column[column]
             replacement["pdf_id"] = proposal["pdf_id"]
             replacement["row_id"] = proposal["row_id"]
+            for evidence in replacement.get("evidence") or []:
+                evidence["pdf_id"] = proposal["pdf_id"]
             merged.append(replacement)
         else:
             merged.append(proposal)

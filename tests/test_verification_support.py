@@ -40,9 +40,10 @@ def test_verify_proposals_accepts_numeric_match() -> None:
             "proposed_value": "12 mg",
             "status": "found",
             "evidence": [{"quote_text": "We used a dose of 12 mg for all mice."}],
-            "flags": {},
+            "flags": {"needs_more_evidence": True, "evidence_quality": "strong"},
         }
     ]
     updated = verify_proposals(None, proposals)
     assert updated[0]["status"] == "found"
     assert updated[0]["flags"]["verification_needs_more_evidence"] is False
+    assert updated[0]["flags"]["needs_more_evidence"] is False

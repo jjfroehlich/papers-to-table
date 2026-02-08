@@ -36,7 +36,9 @@ def find_evidence_for_proposals(
         evidence_quality = flags.get("evidence_quality") or proposal.get("evidence_quality")
         evidence_items = proposal.get("evidence") or []
         for evidence in evidence_items:
-            evidence.setdefault("pdf_id", proposal.get("pdf_id"))
+            evidence["pdf_id"] = proposal.get("pdf_id")
+            if evidence.get("quote") and not evidence.get("quote_text"):
+                evidence["quote_text"] = evidence.get("quote")
         highlight_success = False
         highlight_failure = False
         if evidence_items:
@@ -86,7 +88,7 @@ def find_evidence_for_proposals(
         if result.evidence:
             proposal["evidence"] = result.evidence
             for evidence in proposal["evidence"]:
-                evidence.setdefault("pdf_id", proposal.get("pdf_id"))
+                evidence["pdf_id"] = proposal.get("pdf_id")
             flags["evidence_quality"] = result.evidence_quality
             flags["needs_more_evidence"] = result.evidence_quality != "strong"
             flags["evidence_finder_used"] = True
@@ -245,6 +247,8 @@ def _ensure_highlights(
         _apply_source_ref(evidence, chunk_lookup)
         quote = _get_quote_text(evidence)
         page = evidence.get("page")
+        if quote and not evidence.get("quote_text"):
+            _set_quote_text(evidence, quote)
         if not evidence.get("source_ref"):
             if evidence.get("chunk_id"):
                 evidence["source_ref"] = f"chunk_id:{evidence.get('chunk_id')}"
@@ -268,12 +272,17 @@ def _ensure_highlights(
             evidence["highlight_strategy"] = "missing"
             continue
         if page_text and isinstance(page, int) and 0 < page <= len(page_text):
-            span = locate_quote_span(page_text[page - 1], quote)
-            if span:
-                start_char, end_char, span_strategy, _score = span
-                evidence["quote_start"] = start_char
-                evidence["quote_end"] = end_char
-                evidence["highlight_strategy"] = span_strategy
+            stabilized = _stabilize_quote_for_page(quote, evidence.get("locator_hint"), page_text, int(page))
+            if stabilized:
+                quote, start_char, end_char, span_strategy = stabilized
+                if quote:
+                    _set_quote_text(evidence, quote)
+                if start_char is not None:
+                    evidence["quote_start"] = start_char
+                if end_char is not None:
+                    evidence["quote_end"] = end_char
+                if span_strategy:
+                    evidence["quote_span_strategy"] = span_strategy
         allowed, reason = _quote_quality_floor(quote, proposal)
         if not allowed:
             evidence["highlight_status"] = "failed"
@@ -514,6 +523,50 @@ def _quote_quality_floor(quote: str, proposal: dict[str, Any] | None = None) -> 
     if _needs_numeric_snippet(proposal) and not any(char.isdigit() for char in cleaned):
         return False, "quote_missing_numeric"
     return True, None
+
+
+def _stabilize_quote_for_page(
+    quote: str | None,
+    locator_hint: str | None,
+    page_text: Sequence[str],
+    page: int,
+    *,
+    max_len: int = 240,
+) -> tuple[str | None, int | None, int | None, str | None] | None:
+    if not page_text or page <= 0 or page > len(page_text):
+        return None
+    text = page_text[page - 1]
+    span = locate_quote_span(text, quote or "") if quote else None
+    if not span and locator_hint:
+        span = locate_quote_span(text, locator_hint)
+    if not span:
+        if quote and len(quote) > max_len:
+            clipped = quote[:max_len].strip()
+            return clipped, None, None, None
+        return None
+    start, end, strategy, _score = span
+    clipped_quote, new_start, new_end = _clip_quote_span(text, start, end, max_len)
+    if new_start == 0 and locator_hint and locator_hint != (quote or ""):
+        alt_span = locate_quote_span(text, locator_hint)
+        if alt_span:
+            alt_start, alt_end, alt_strategy, _ = alt_span
+            alt_quote, alt_start, alt_end = _clip_quote_span(text, alt_start, alt_end, max_len)
+            if alt_start > 0:
+                return alt_quote, alt_start, alt_end, alt_strategy
+    return clipped_quote, new_start, new_end, strategy
+
+
+def _clip_quote_span(text: str, start: int, end: int, max_len: int) -> tuple[str, int, int]:
+    if end <= start:
+        snippet = text[start : min(len(text), start + max_len)].strip()
+        return snippet, start, min(len(text), start + len(snippet))
+    if end - start <= max_len:
+        snippet = text[start:end].strip()
+        return snippet, start, start + len(snippet)
+    new_start = start
+    new_end = min(len(text), start + max_len)
+    snippet = text[new_start:new_end].strip()
+    return snippet, new_start, new_start + len(snippet)
 
 
 def _needs_numeric_snippet(proposal: dict[str, Any] | None) -> bool:
