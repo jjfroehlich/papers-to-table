@@ -289,6 +289,14 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
         ),
         {},
     )
+    retrieval_cache_stats = next(
+        (
+            json.loads(event.get("payload_json") or "{}")
+            for event in reversed(events)
+            if event.get("event_type") == "retrieval_cache_stats"
+        ),
+        {},
+    )
     fallback_events = {
         "embedding_fallback": [],
         "reranker_fallback": [],
@@ -369,6 +377,7 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
             "context_plan": context_plan_summary,
             "parsing": [json.loads(event.get("payload_json") or "{}") for event in parse_events],
             "retrieval": retrieval_backend,
+            "retrieval_cache": retrieval_cache_stats,
             "fallbacks": {
                 "embedding": fallback_events["embedding_fallback"],
                 "reranker": fallback_events["reranker_fallback"],

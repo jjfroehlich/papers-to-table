@@ -25,13 +25,15 @@ The implementation is done when the current codebase satisfies every section of 
   - Retrieval + chunking: `paper_table_agent/retrieval/*`.
   - Evidence + highlighting: `paper_table_agent/graph/evidence_finder.py`, `paper_table_agent/pdf/highlight.py`.
   - Persistence: `paper_table_agent/store/schema.sql` + `paper_table_agent/store/db.py`.
-- **Run artifacts**: emitted under `runs/<timestamp>__<table>/` (see `docs/repo_audit.md`).
+- **Run artifacts**: emitted under `runs/<timestamp>__<table>/` (see `README.md`).
 
 ## Implementation strategy
 
 ### P0 — Spec compliance alignment
 
 - Keep spec outputs aligned with the actual run/export behavior.
+- Default runs generate audit proposals for filled cells and always emit eval artifacts.
+- Centralize post-run finalization (eval + run_report + markers) to avoid entrypoint drift.
 - Ensure run reports include LLM capability probe summaries.
 - Surface effective prompt caps and per-stage LLM call counts in run reports.
 - Maintain evidence anchoring and highlight reliability contracts.

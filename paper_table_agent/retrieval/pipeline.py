@@ -96,16 +96,30 @@ def retrieve_context(
     embedder: EmbeddingClient | None = None,
     reranker_embedder: EmbeddingClient | None = None,
     call_recorder: Callable[[str, dict[str, Any]], None] | None = None,
+    query_cache: dict[str, list[str]] | None = None,
+    hyde_cache: dict[str, str] | None = None,
+    cache_stats: dict[str, int] | None = None,
 ) -> RetrievalContext:
-    debug: dict[str, Any] = {"queries": [], "runs": [], "fallbacks": [], "backend": {}}
+    debug: dict[str, Any] = {"queries": [], "runs": [], "fallbacks": [], "backend": {}, "cache": {}}
     queries = [query]
     if config.use_query_expansion:
-        queries = build_query_variants(
-            helper_client,
-            query,
-            config.query_variants,
-            call_recorder=call_recorder,
-        )
+        if query_cache is not None and query in query_cache:
+            queries = query_cache[query]
+            debug["cache"]["query_expand"] = "hit"
+            if cache_stats is not None:
+                cache_stats["query_expand_hits"] = cache_stats.get("query_expand_hits", 0) + 1
+        else:
+            queries = build_query_variants(
+                helper_client,
+                query,
+                config.query_variants,
+                call_recorder=call_recorder,
+            )
+            if query_cache is not None:
+                query_cache[query] = queries
+            debug["cache"]["query_expand"] = "miss"
+            if cache_stats is not None:
+                cache_stats["query_expand_misses"] = cache_stats.get("query_expand_misses", 0) + 1
     debug["queries"] = queries
     debug["backend"] = {
         "use_dense": config.use_dense,
@@ -137,7 +151,19 @@ def retrieve_context(
         )
 
     if config.use_hyde:
-        passage = build_hypothetical_passage(helper_client, query, call_recorder=call_recorder)
+        passage = None
+        if hyde_cache is not None and query in hyde_cache:
+            passage = hyde_cache[query]
+            debug["cache"]["hyde"] = "hit"
+            if cache_stats is not None:
+                cache_stats["hyde_hits"] = cache_stats.get("hyde_hits", 0) + 1
+        else:
+            passage = build_hypothetical_passage(helper_client, query, call_recorder=call_recorder)
+            if hyde_cache is not None and passage:
+                hyde_cache[query] = passage
+            debug["cache"]["hyde"] = "miss"
+            if cache_stats is not None:
+                cache_stats["hyde_misses"] = cache_stats.get("hyde_misses", 0) + 1
         if passage:
             try:
                 hyde_results = retrieve(index, passage, top_k=config.top_k, embedder=embedder, use_dense=config.use_dense)

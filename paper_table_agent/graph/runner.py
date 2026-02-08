@@ -4,6 +4,7 @@ import json
 import uuid
 import hashlib
 from dataclasses import dataclass, field, replace
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any
 
@@ -109,6 +110,30 @@ class RunContext:
     audit_targets: dict[str, set[str]] = field(default_factory=dict)
     audit_stats: dict[str, Any] = field(default_factory=dict)
     retrieval_cache: dict[tuple[str, tuple[str, ...]], list[dict[str, Any]]] = field(default_factory=dict)
+    query_expansion_cache: "BoundedCache | None" = None
+    hyde_cache: "BoundedCache | None" = None
+    cache_stats: dict[str, int] = field(default_factory=dict)
+
+
+@dataclass
+class BoundedCache:
+    max_entries: int
+    _data: "OrderedDict[str, Any]" = field(default_factory=OrderedDict)
+
+    def __contains__(self, key: str) -> bool:
+        return key in self._data
+
+    def __getitem__(self, key: str) -> Any:
+        value = self._data.pop(key)
+        self._data[key] = value
+        return value
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        if key in self._data:
+            self._data.pop(key, None)
+        elif self.max_entries > 0 and len(self._data) >= self.max_entries:
+            self._data.popitem(last=False)
+        self._data[key] = value
 
 
 def _llm_error_metadata(exc: LlmJsonError) -> dict[str, Any]:
@@ -198,10 +223,8 @@ def run_pipeline(config: RunConfig, run_paths: RunPaths, store: Store) -> None:
     context, pdfs = _prepare_context(config, run_paths, store)
     health_status = _run_health_checks(context)
     if health_status.get("status") == "failed":
-        write_mapping_report(store, run_paths.exports_dir, write_reports=config.output.debug_reports)
-        status = write_run_report(store, run_paths)
-        if status == "failed":
-            (run_paths.run_dir / "FAILED").write_text("failed", encoding="utf-8")
+        _record_cache_stats(context)
+        _finalize_run(config, run_paths, store)
         return
     existing_pdfs = {row["pdf_id"]: row for row in store.list_pdfs()}
     for pdf in pdfs:
@@ -210,8 +233,12 @@ def run_pipeline(config: RunConfig, run_paths: RunPaths, store: Store) -> None:
             break
         if _process_pdf(context, pdf, existing_pdfs):
             context.logger.info("processed pdf %s", pdf.pdf_id)
+    _record_cache_stats(context)
+    _finalize_run(config, run_paths, store)
+
+
+def _finalize_run(config: RunConfig, run_paths: RunPaths, store: Store) -> str:
     write_mapping_report(store, run_paths.exports_dir, write_reports=config.output.debug_reports)
-    status = write_run_report(store, run_paths)
     try:
         evaluate_run(
             run_dir=run_paths.run_dir,
@@ -223,13 +250,38 @@ def run_pipeline(config: RunConfig, run_paths: RunPaths, store: Store) -> None:
         )
     except Exception as exc:  # noqa: BLE001
         store.record_event("warning", "eval_failed", {"error": str(exc)})
-    if status == "completed_with_errors":
-        (run_paths.run_dir / "COMPLETED_WITH_ERRORS").write_text("done", encoding="utf-8")
-    elif status == "completed_with_warnings":
-        (run_paths.run_dir / "COMPLETED_WITH_WARNINGS").write_text("done", encoding="utf-8")
-    elif status != "failed":
-        (run_paths.run_dir / "COMPLETED").write_text("done", encoding="utf-8")
+    status = write_run_report(store, run_paths)
+    _mark_run_dir(run_paths.run_dir, status)
+    return status
 
+
+def _mark_run_dir(run_dir: Path, status: str) -> None:
+    if (run_dir / "STOP").exists() or (run_dir / "PAUSE").exists():
+        return
+    if status == "failed":
+        (run_dir / "FAILED").write_text("failed", encoding="utf-8")
+        return
+    if status == "completed_with_errors":
+        (run_dir / "COMPLETED_WITH_ERRORS").write_text("done", encoding="utf-8")
+        return
+    if status == "completed_with_warnings":
+        (run_dir / "COMPLETED_WITH_WARNINGS").write_text("done", encoding="utf-8")
+        return
+    (run_dir / "COMPLETED").write_text("done", encoding="utf-8")
+
+
+def _record_cache_stats(context: RunContext) -> None:
+    stats = dict(context.cache_stats)
+    stats.update(
+        {
+            "batch_cache_size": len(context.retrieval_cache),
+            "query_cache_size": len(context.query_expansion_cache._data)
+            if context.query_expansion_cache
+            else 0,
+            "hyde_cache_size": len(context.hyde_cache._data) if context.hyde_cache else 0,
+        }
+    )
+    context.store.record_event("info", "retrieval_cache_stats", stats)
 
 def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tuple[RunContext, list[PdfRecord]]:
     logger, _ = configure_logging(run_paths.logs_dir)
@@ -374,6 +426,17 @@ def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tu
         prompt_versions=load_prompt_versions(Path("paper_table_agent/prompts")),
         audit_targets=audit_targets,
         audit_stats=audit_stats,
+        query_expansion_cache=(
+            BoundedCache(config.retrieval.query_cache_max_entries)
+            if config.retrieval.query_cache_max_entries and config.retrieval.query_cache_max_entries > 0
+            else None
+        ),
+        hyde_cache=(
+            BoundedCache(config.retrieval.hyde_cache_max_entries)
+            if config.retrieval.hyde_cache_max_entries and config.retrieval.hyde_cache_max_entries > 0
+            else None
+        ),
+        cache_stats={},
     )
     return context, pdfs
 
@@ -1018,6 +1081,9 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
                     store=context.store,
                     retrieval_cache=context.retrieval_cache,
                     batch_columns=batch_columns,
+                    query_cache=context.query_expansion_cache,
+                    hyde_cache=context.hyde_cache,
+                    cache_stats=context.cache_stats,
                 )
                 column_contexts.update(batch_contexts)
             merged_context = _merge_column_contexts(column_contexts)
@@ -1256,6 +1322,11 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
             chunk_dicts,
         )
         try:
+            _record_llm_call(
+                context.store,
+                "verify_proposals",
+                {"pdf_id": pdf.pdf_id, "row_id": adjudication.row_id},
+            )
             proposals = verify_proposals(context.extract_client, proposals, pdf_id=pdf.pdf_id)
         except LlmJsonError as exc:
             log_error(
@@ -1308,6 +1379,11 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
             }
             if locked_values:
                 try:
+                    _record_llm_call(
+                        context.store,
+                        "verify_cells",
+                        {"pdf_id": pdf.pdf_id, "row_id": adjudication.row_id},
+                    )
                     verify_results = verify_cells(
                         context.extract_client,
                         row_context,
@@ -2158,6 +2234,9 @@ def _retrieve_column_contexts(
     store: Store | None = None,
     retrieval_cache: dict[tuple[str, tuple[str, ...]], list[dict[str, Any]]] | None = None,
     batch_columns: list[str] | None = None,
+    query_cache: BoundedCache[str, list[str]] | None = None,
+    hyde_cache: BoundedCache[str, str] | None = None,
+    cache_stats: dict[str, int] | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     contexts: dict[str, list[dict[str, Any]]] = {}
     if not specs:
@@ -2168,6 +2247,8 @@ def _retrieve_column_contexts(
         cache_key = (pdf_id, tuple(sorted(batch_columns or column_names)))
         if cache_key in retrieval_cache:
             cached = retrieval_cache[cache_key]
+            if cache_stats is not None:
+                cache_stats["batch_cache_hits"] = cache_stats.get("batch_cache_hits", 0) + 1
             for spec in specs:
                 contexts[spec.column_name] = cached
                 if debug_tracker is not None:
@@ -2177,6 +2258,8 @@ def _retrieve_column_contexts(
                         {"cache_hit": True, "query_mode": "batch", "columns": column_names},
                     )
             return contexts
+        if cache_stats is not None:
+            cache_stats["batch_cache_misses"] = cache_stats.get("batch_cache_misses", 0) + 1
 
     all_metadata_only = all(_is_metadata_only(spec) for spec in specs)
     effective_config = retrieval_config
@@ -2210,6 +2293,9 @@ def _retrieve_column_contexts(
             if store is not None
             else None
         ),
+        query_cache=query_cache,
+        hyde_cache=hyde_cache,
+        cache_stats=cache_stats,
     )
     if _needs_retrieval_retry(context_result):
         retry_query = _build_retry_query(specs, row_context, examples_map)
@@ -2235,6 +2321,9 @@ def _retrieve_column_contexts(
                 if store is not None
                 else None
             ),
+            query_cache=query_cache,
+            hyde_cache=hyde_cache,
+            cache_stats=cache_stats,
         )
         if store is not None:
             store.record_event(
@@ -2640,6 +2729,10 @@ def _retry_unclear_proposals(
         examples_map=context.examples,
         debug_tracker=debug_tracker,
         store=context.store,
+        retrieval_cache=context.retrieval_cache,
+        query_cache=context.query_expansion_cache,
+        hyde_cache=context.hyde_cache,
+        cache_stats=context.cache_stats,
     )
     try:
         retry_result = extract_group(

@@ -51,6 +51,7 @@ def test_end_to_end_with_stub_llm_cli(tmp_path: Path):
     assert run_dirs
     run_dir = run_dirs[0]
     store = Store.init_db(run_dir / "proposals.sqlite")
+    assert (run_dir / "exports" / "proposal_eval.json").exists()
 
     proposals = store.conn.execute("SELECT * FROM proposals").fetchall()
     assert proposals
@@ -125,6 +126,7 @@ def test_integration_run_report_and_validation(tmp_path: Path):
     assert columns == {"Method", "Outcome", "Dose", "Population", "Setting"}
 
     assert (run_paths.run_dir / "run_report.json").exists()
+    assert (run_paths.exports_dir / "proposal_eval.json").exists()
     assert not (run_paths.exports_dir / "pdf_row_matches.csv").exists()
     report = (run_paths.run_dir / "run_report.json").read_text(encoding="utf-8")
     assert "\"status\": \"completed\"" in report
@@ -144,6 +146,42 @@ def test_integration_run_report_and_validation(tmp_path: Path):
     assert exported.loc[0, "Method"]
     assert (run_paths.exports_dir / "audit_log.csv").exists()
     assert not (run_paths.exports_dir / "proposals.jsonl").exists()
+
+
+def test_default_audit_eval_artifacts(tmp_path: Path):
+    fixtures = _fixture_dir()
+    table_path = fixtures / "audit_table.csv"
+    schema_path = fixtures / "minimal_schema.csv"
+    pdf_folder = fixtures / "pdfs"
+
+    config = RunConfig(
+        table_path=table_path,
+        pdf_folder=pdf_folder,
+        schema_sheet_name="schema",
+        schema_mode="separate",
+        schema_path=schema_path,
+        title_col="Title",
+        authors_col="Authors",
+        year_col="Year",
+    )
+    config.provider.mode = "stub"
+    config.retrieval.embedding_backend = "hash"
+    config.retrieval.reranker_backend = "hash"
+
+    run_paths = create_run_paths(config.table_path, root=tmp_path / "runs")
+    store = Store.init_db(run_paths.db_path)
+    run_pipeline(config, run_paths, store)
+
+    proposals = store.conn.execute("SELECT flags_json FROM proposals").fetchall()
+    audit_flags = [
+        json.loads(row["flags_json"] or "{}")
+        for row in proposals
+        if json.loads(row["flags_json"] or "{}").get("proposal_kind") == "audit"
+    ]
+    assert audit_flags
+    assert (run_paths.exports_dir / "proposal_eval.json").exists()
+    report = json.loads((run_paths.run_dir / "run_report.json").read_text(encoding="utf-8"))
+    assert report["summary"]["evaluation"]["audited_cells"] >= 1
 
 
 def test_end_to_end_with_mock_mode(tmp_path: Path):

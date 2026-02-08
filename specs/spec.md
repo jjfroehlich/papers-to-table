@@ -31,7 +31,8 @@ Paper Table Agent is a local-first PDF→table pipeline. It matches PDFs to tabl
 - **Schema**: `schema_sheet_name` within the table or a separate CSV/XLSX when `schema_mode=separate`.
 - **PDF folder**: directory of PDFs.
 - **Config**: `run_config.json` (single source of truth).
-- **Audit config**: `audit.use_filled_cells_as_gold` enables diagnostic extraction of already-filled cells for evaluation.
+- **Audit config**: `audit.use_filled_cells_as_gold` (default on) enables diagnostic extraction of already-filled cells for evaluation.
+- **Audit sampling**: `audit.max_cells` defaults to 500 with deterministic sampling (stable hash) when the table is larger.
 
 ## Outputs (per run)
 
@@ -61,7 +62,7 @@ exports/updated_table.xlsx
 exports/audit_log.csv
 ```
 
-Evaluation artifacts (always written; includes status note when no audit cells are available):
+Evaluation artifacts (always written at end of run and by `paper-table-agent eval`; includes a status note when no audit cells are available):
 
 ```
 exports/proposal_eval.json
@@ -93,7 +94,7 @@ logs/llm_payloads.jsonl
 - **Locked cells**: non-empty cells are never overwritten.
 - **Treat single-space as empty**: configurable via `treat_single_space_as_empty`.
 - **Verify mode** (optional): create verify-only items for locked cells instead of overwriting them.
-- **Audit mode** (optional): extract already-filled cells as diagnostic proposals with `proposal_kind=audit`, never exported to tables.
+- **Audit mode** (default on, optional to disable): extract already-filled cells as diagnostic proposals with `proposal_kind=audit`, never exported to tables unless explicitly accepted.
 - **Evidence discipline**: proposals keep proposed values; evidence validation only annotates flags and `needs_more_evidence`.
 - **Evidence finder**: weak/none evidence or invalid highlights trigger a locator pass to search full chunks, page text, and tokens for supporting quotes.
 - **Highlight guardrails**: reject too-short/low-signal quotes, overly large page-spanning rectangles, and low-confidence matches; mark highlights failed with reasons instead of showing garbage.
@@ -130,7 +131,7 @@ logs/llm_payloads.jsonl
 - Evidence finder runs for weak/none evidence or highlight failures using full chunk tables, page text, and tokens to attach quotes, pages, and highlights.
 - Evidence backfill: when proposed_value is present but evidence_items empty after extraction/repair, attach a deterministic weak snippet from top retrieval chunks.
 - Evidence records store `pdf_id` + `chunk_id`/`chunk_idx` to keep chunk identity unambiguous across PDFs.
-- **Audit extraction**: when enabled, already-filled cells are re-extracted for comparison and tagged `proposal_kind=audit` (never exported).
+- **Audit extraction**: enabled by default; already-filled cells are re-extracted for comparison and tagged `proposal_kind=audit` (never exported).
 
 ### Whole-text + paper memory mode (feature-flagged)
 
@@ -179,6 +180,8 @@ logs/llm_payloads.jsonl
 - Optional LLM payload logging writes exact request JSON under `logs/llm_payloads.jsonl` for provider debugging.
 - Prompt budgets trim retrieved chunks before LLM requests to stay within model context limits.
 - Run reports include context plan diagnostics (mode, token estimates, memory stats), extraction batch diagnostics (batch counts, columns attempted vs total missing, per-batch chunk presence, prompt trim counts), evidence coverage %, highlight success %, counts of found-but-unanchored downgrades, prompt caps, and per-stage LLM call counts.
+- Run reports embed evaluation summaries (audited cell counts, fill-missing counts, overall score, per-column summary, and evidence metrics) after each run.
+- Run reports include retrieval cache stats for batch/query/HyDE caching.
 - Run reports capture audit/evaluation summaries and LLM metadata (model identifiers + live usage flag) when available.
 
 ## Testing & evaluation
@@ -186,7 +189,7 @@ logs/llm_payloads.jsonl
 - Hermetic tests use stub/mock LLM clients with no network calls.
 - Live integration tests are opt-in via `pytest -m live_llm` and only run when `PTA_LIVE_LLM=1` is set.
 - Live tests rely on synthetic fixture PDFs generated in-repo for deterministic evidence anchoring.
-- Evaluation runs via `paper-table-agent eval` and writes `exports/proposal_eval.json`/`exports/proposal_eval.md`, updating `run_report.json` with metrics. If no audit cells are available, the eval report records a status + note instead of silent all-zero metrics.
+- Evaluation runs automatically at the end of `paper-table-agent run` and via `paper-table-agent eval`, writing `exports/proposal_eval.json`/`exports/proposal_eval.md` and updating `run_report.json` with metrics. If no audit cells are available, the eval report records a status + note instead of silent all-zero metrics.
 
 ## Failure semantics
 

@@ -70,6 +70,8 @@ This writes `exports/updated_table.xlsx` and `exports/audit_log.csv` in the run 
 paper-table-agent eval --run_dir runs/<timestamp>__<table>/
 ```
 
+Runs automatically at the end of `paper-table-agent run` and can be re-run with `eval`.
+
 Artifacts written:
 - `exports/proposal_eval.json`
 - `exports/proposal_eval.md`
@@ -112,7 +114,7 @@ Evaluate audit proposals against filled cells (writes exports/proposal_eval.* + 
 paper-table-agent eval --run_dir runs/<timestamp>__<table>/
 ```
 
-Local iteration loop:
+Local iteration loop (default run includes audit + eval):
 ```bash
 paper-table-agent run --config run_config.json
 paper-table-agent eval --run_dir runs/<timestamp>__<table>/
@@ -146,6 +148,8 @@ Debug-only artifacts (mapping report, proposals JSONL) are gated by `output.debu
 To capture raw LLM requests/responses for replay debugging, set `provider.record_requests=true`. This writes `logs/llm_records.jsonl` in the run directory unless you override `provider.record_path`.
 
 Guided JSON (`provider.guided_json_mode`) uses response_format/json_schema when supported. In `auto`, guided mode is disabled for local/private endpoints or when health checks detect schema rejections, and prompt-only JSON remains the fallback.
+
+Audit evaluation runs by default (`audit.use_filled_cells_as_gold=true`) and is bounded with deterministic sampling (`audit.max_cells=500`). Disable audit when you want speed over eval metrics.
 
 Prompt caps can be set in `run_config.json` (`provider.max_prompt_tokens`, `provider.max_prompt_chars`,
 `provider.ctx_window_tokens_override`) or via `PAPER_TABLE_AGENT_MAX_PROMPT_TOKENS` /
