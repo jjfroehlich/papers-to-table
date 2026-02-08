@@ -10,6 +10,7 @@ from jinja2 import Template
 
 from paper_table_agent.io.schema import load_schema
 from paper_table_agent.store.db import Store
+from paper_table_agent.llm.client import estimate_tokens
 
 LOGGER = logging.getLogger(__name__)
 
@@ -236,6 +237,8 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
     context_plan_summary = _context_plan_summary(events)
     column_completion = _column_completion_stats(proposals, extraction_batch_stats)
     extractable_columns = _count_extractable_columns(store, config_payload, matched_rows=matches)
+    prompt_limits = _prompt_limit_summary(config_payload)
+    llm_call_summary = _llm_call_summary(events)
     sanity_check = _run_sanity_check(
         matched,
         extractable_columns,
@@ -360,7 +363,9 @@ def write_run_report(store: Store, run_paths: Path | object) -> str:
                     (config_payload.get("provider") or {}).get("mock_mode")
                     or (config_payload.get("provider") or {}).get("mode") in {"stub", "mock"}
                 ),
+                "prompt_limits": prompt_limits,
             },
+            "llm_calls": llm_call_summary,
             "context_plan": context_plan_summary,
             "parsing": [json.loads(event.get("payload_json") or "{}") for event in parse_events],
             "retrieval": retrieval_backend,
@@ -640,6 +645,40 @@ def _retrieval_hit_rate(store: Store) -> dict[str, int]:
             else:
                 totals["columns_with_no_hits"] += 1
     return totals
+
+
+def _prompt_limit_summary(config_payload: dict[str, object]) -> dict[str, int | None]:
+    provider = config_payload.get("provider") or {}
+    max_prompt_tokens = provider.get("max_prompt_tokens")
+    max_prompt_chars = provider.get("max_prompt_chars")
+    tokens_cap = None
+    if isinstance(max_prompt_tokens, int):
+        tokens_cap = max_prompt_tokens
+    chars_cap = max_prompt_chars if isinstance(max_prompt_chars, int) else None
+    char_tokens = estimate_tokens("x" * chars_cap) if chars_cap else None
+    effective_tokens = None
+    if tokens_cap and char_tokens:
+        effective_tokens = min(tokens_cap, char_tokens)
+    elif tokens_cap:
+        effective_tokens = tokens_cap
+    elif char_tokens:
+        effective_tokens = char_tokens
+    return {
+        "max_prompt_tokens": tokens_cap,
+        "max_prompt_chars": chars_cap,
+        "effective_max_prompt_tokens": effective_tokens,
+    }
+
+
+def _llm_call_summary(events: list[dict[str, object]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for event in events:
+        if event.get("event_type") != "llm_call":
+            continue
+        payload = json.loads(event.get("payload_json") or "{}")
+        stage = str(payload.get("stage") or "unknown")
+        counts[stage] = counts.get(stage, 0) + 1
+    return counts
 
 
 def _event_count(store: Store, event_type: str) -> int:

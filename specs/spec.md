@@ -97,7 +97,8 @@ logs/llm_payloads.jsonl
 - **Evidence discipline**: proposals keep proposed values; evidence validation only annotates flags and `needs_more_evidence`.
 - **Evidence finder**: weak/none evidence or invalid highlights trigger a locator pass to search full chunks, page text, and tokens for supporting quotes.
 - **Highlight guardrails**: reject too-short/low-signal quotes, overly large page-spanning rectangles, and low-confidence matches; mark highlights failed with reasons instead of showing garbage.
-- **Highlight anchoring**: use page+quote spans (start/end) as primary anchors; fuzzy matching is a last resort with strict thresholds.
+- **Highlight anchoring**: use page+quote spans (start/end) as primary anchors; fall back to normalized/dehyphenated search (PyMuPDF) and token-based salvage with recorded highlight strategy for debugging.
+- **Evidence quality floor**: quotes that look like headers/footers (e.g., quote_start=0 with header-like patterns or high newline density) or are too short/low-signal are marked weak and retried via evidence finder; proposed values are preserved.
 - **Unicode/ID normalization**: column and chunk identifiers are normalized to prevent drift.
 
 ## Matching behavior
@@ -110,7 +111,7 @@ logs/llm_payloads.jsonl
 ## Extraction behavior
 
 - Context planner selects a per-PDF mode: **fulltext**, **memory**, or **retrieval**.
-- Columns are extracted column-first (or in small related batches) with prompts that include row context, the column definition, and the ContextPlan payload.
+- Columns are extracted column-first (or in small related batches) with prompts that include row context, the column definition, and the ContextPlan payload. Batch size can grow beyond the default when the prompt budget allows.
 - Prompt budgeting is structured: prompts always include row context, column definitions, and the ContextPlan payload. If trimming is needed in retrieval mode, trim (a) number of chunks, (b) chunk text length per chunk, (c) number of examples per column, then (d) number of columns by batching so every missing column is still attempted exactly once.
 - Each requested column yields a proposal record (including `unclear` or `error` records).
 - Value-first extraction: propose a value whenever plausible; evidence quality is metadata.
@@ -118,9 +119,11 @@ logs/llm_payloads.jsonl
   - `chunk_pk`/`chunk_id`/`chunk_idx` map to a known chunk in the full chunk table.
   - quote must be a substring of the chunk text (exact or normalized), and quote_text must come from space-preserving text (`text` or `text_raw`), not `text_norm`.
   - status=`found` requires at least one evidence quote containing the proposed value (or normalized equivalent); otherwise downgrade to `inferred` and mark `needs_more_evidence=true`.
-  - if validation fails: mark `needs_more_evidence` and capture `evidence_validation_errors` without clearing values.
+  - evidence that fails quality floor checks is downgraded to weak and triggers evidence-finder retries; `found` proposals with weak evidence are downgraded to `inferred`.
+- if validation fails: mark `needs_more_evidence` and capture `evidence_validation_errors` without clearing values.
 - Proposal evidence uses multi-snippet `evidence_items` (quote_text + source_ref + anchor_id + optional why_it_matters/numeric_value) to support argumentation.
 - Models can flag `needs_more_context` to trigger a retry with expanded context chunks.
+- Verifier uses only stored `quote_text` fields: for `status=found`, it requires minimal overlap between key terms and quotes (and digit/unit overlap for numeric values); failures downgrade to `inferred` with `needs_more_evidence=true`.
 - Evidence finder runs for weak/none evidence or highlight failures using full chunk tables, page text, and tokens to attach quotes, pages, and highlights.
 - Evidence backfill: when proposed_value is present but evidence_items empty after extraction/repair, attach a deterministic weak snippet from top retrieval chunks.
 - Evidence records store `pdf_id` + `chunk_id`/`chunk_idx` to keep chunk identity unambiguous across PDFs.
@@ -136,6 +139,8 @@ logs/llm_payloads.jsonl
 ## Retrieval behavior
 
 - Query expansion and HyDE are used when enabled (always on in max success mode).
+- Retrieval caches per (pdf_id, column_batch) and reuses results across column batches.
+- Columns flagged metadata-only or not-in-paper (e.g., `metadata_only=true` or `in_paper=false` in the schema) skip HyDE/query expansion.
 - Retrieval uses sparse + optional dense embeddings and reranking.
 - Context assembly expands retrieval with neighbor windows and optional section chunks, then trims by token budgets.
 - Query construction drops NaN/empty examples and omits the examples section when none remain.
@@ -169,7 +174,7 @@ logs/llm_payloads.jsonl
 - Optional LLM record mode stores raw prompt/response pairs under `logs/llm_records.jsonl` for replay debugging.
 - Optional LLM payload logging writes exact request JSON under `logs/llm_payloads.jsonl` for provider debugging.
 - Prompt budgets trim retrieved chunks before LLM requests to stay within model context limits.
-- Run reports include context plan diagnostics (mode, token estimates, memory stats), extraction batch diagnostics (batch counts, columns attempted vs total missing, per-batch chunk presence, prompt trim counts), evidence coverage %, highlight success %, and counts of found-but-unanchored downgrades.
+- Run reports include context plan diagnostics (mode, token estimates, memory stats), extraction batch diagnostics (batch counts, columns attempted vs total missing, per-batch chunk presence, prompt trim counts), evidence coverage %, highlight success %, counts of found-but-unanchored downgrades, prompt caps, and per-stage LLM call counts.
 - Run reports capture audit/evaluation summaries and LLM metadata (model identifiers + live usage flag) when available.
 
 ## Testing & evaluation

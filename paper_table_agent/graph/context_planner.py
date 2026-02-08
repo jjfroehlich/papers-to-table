@@ -4,7 +4,7 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from paper_table_agent.config import ExtractionConfig
 from paper_table_agent.llm.client import LlmClient, LlmJsonError, estimate_tokens
@@ -23,6 +23,7 @@ class ContextPlan:
     page_marked_text_path: Path | None
     token_estimate: int
     ctx_window_tokens: int
+    ctx_window_chars: int
     column_batches: list[list[str]]
     memory_stats: dict[str, Any] | None = None
 
@@ -36,10 +37,10 @@ def plan_context(
     helper_client: LlmClient,
     extraction_config: ExtractionConfig,
     run_dir: Path,
+    call_recorder: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> tuple[ContextPlan, str]:
-    ctx_window = extract_client.config.max_prompt_tokens or 0
+    ctx_window, ctx_window_chars = _effective_prompt_caps(extract_client)
     thinking_mode = _is_thinking_model(extract_client.config.model, extraction_config)
-    column_batches = _build_column_batches(column_payloads, extraction_config.column_batch_size)
     fulltext = _assemble_page_marked_text(page_text)
     trimmed_text, included_sections, trim_steps = _trim_fulltext(fulltext, extraction_config)
     prompt_tokens = _estimate_prompt_tokens(
@@ -59,6 +60,17 @@ def plan_context(
         and ctx_window
         and prompt_tokens <= int(ctx_window * extraction_config.fulltext_target_ratio)
     ):
+        batch_size = _resolve_batch_size(
+            column_payloads,
+            extraction_config,
+            row_context,
+            trimmed_text,
+            "fulltext",
+            ctx_window,
+            extract_client,
+            pdf_id,
+        )
+        column_batches = _build_column_batches(column_payloads, batch_size)
         plan = ContextPlan(
             pdf_id=pdf_id,
             mode="fulltext",
@@ -66,6 +78,7 @@ def plan_context(
             page_marked_text_path=fulltext_path,
             token_estimate=prompt_tokens,
             ctx_window_tokens=ctx_window,
+            ctx_window_chars=ctx_window_chars,
             column_batches=column_batches,
         )
         return plan, trimmed_text
@@ -76,6 +89,7 @@ def plan_context(
             extraction_config,
             helper_client,
             run_dir,
+            call_recorder=call_recorder,
         )
         if memory_payload:
             prompt_tokens = _estimate_prompt_tokens(
@@ -84,6 +98,17 @@ def plan_context(
                 _render_prompt_for_estimate(row_context, column_payloads, memory_payload, "memory"),
                 extract_client,
             )
+            batch_size = _resolve_batch_size(
+                column_payloads,
+                extraction_config,
+                row_context,
+                memory_payload,
+                "memory",
+                ctx_window,
+                extract_client,
+                pdf_id,
+            )
+            column_batches = _build_column_batches(column_payloads, batch_size)
             plan = ContextPlan(
                 pdf_id=pdf_id,
                 mode="memory",
@@ -91,10 +116,22 @@ def plan_context(
                 page_marked_text_path=memory_path,
                 token_estimate=prompt_tokens,
                 ctx_window_tokens=ctx_window,
+                ctx_window_chars=ctx_window_chars,
                 column_batches=column_batches,
                 memory_stats=memory_stats,
             )
             return plan, memory_payload
+    batch_size = _resolve_batch_size(
+        column_payloads,
+        extraction_config,
+        row_context,
+        "",
+        "retrieval",
+        ctx_window,
+        extract_client,
+        pdf_id,
+    )
+    column_batches = _build_column_batches(column_payloads, batch_size)
     plan = ContextPlan(
         pdf_id=pdf_id,
         mode="retrieval",
@@ -102,6 +139,7 @@ def plan_context(
         page_marked_text_path=None,
         token_estimate=prompt_tokens,
         ctx_window_tokens=ctx_window,
+        ctx_window_chars=ctx_window_chars,
         column_batches=column_batches,
         memory_stats={"trim_steps": trim_steps},
     )
@@ -122,6 +160,46 @@ def _build_column_batches(column_payloads: list[dict[str, Any]], batch_size: int
     for idx in range(0, len(names), batch_size):
         batches.append(names[idx : idx + batch_size])
     return batches
+
+
+def _effective_prompt_caps(client: LlmClient) -> tuple[int, int]:
+    max_tokens = client.config.max_prompt_tokens
+    max_chars = client.config.max_prompt_chars
+    char_tokens = estimate_tokens("x" * max_chars) if max_chars else 0
+    if max_tokens:
+        if char_tokens:
+            return min(max_tokens, char_tokens), max_chars
+        return max_tokens, max_chars
+    return char_tokens, max_chars
+
+
+def _resolve_batch_size(
+    column_payloads: list[dict[str, Any]],
+    extraction_config: ExtractionConfig,
+    row_context: dict[str, Any],
+    context_payload: str,
+    context_mode: str,
+    ctx_window: int,
+    extract_client: LlmClient,
+    pdf_id: str,
+) -> int:
+    base = max(1, extraction_config.column_batch_size)
+    if base > 1 or not column_payloads:
+        return base
+    if not ctx_window:
+        return base
+    for candidate in (2, 3):
+        if len(column_payloads) < candidate:
+            break
+        estimate = _estimate_prompt_tokens(
+            pdf_id,
+            f"{context_mode}_{candidate}",
+            _render_prompt_for_estimate(row_context, column_payloads[:candidate], context_payload, context_mode),
+            extract_client,
+        )
+        if estimate <= int(ctx_window * extraction_config.fulltext_target_ratio):
+            return candidate
+    return base
 
 
 def _assemble_page_marked_text(page_text: list[str]) -> str:
@@ -212,6 +290,7 @@ def _build_memory_payload(
     extraction_config: ExtractionConfig,
     helper_client: LlmClient,
     run_dir: Path,
+    call_recorder: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> tuple[str, dict[str, Any], Path | None]:
     anchors: list[dict[str, Any]] = []
     total_tokens = 0
@@ -231,6 +310,14 @@ def _build_memory_payload(
         document_anchors=json.dumps(anchors, indent=2),
     )
     try:
+        if call_recorder:
+            call_recorder(
+                "paper_memory",
+                {
+                    "pdf_id": pdf_id,
+                    "anchor_count": len(anchors),
+                },
+            )
         result = helper_client.complete_json(prompt, PaperMemoryResult)
     except LlmJsonError:
         return "", {"pages": len(anchors), "anchors": len(anchors), "notes": 0, "failed": True}, None

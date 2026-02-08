@@ -134,6 +134,11 @@ To capture raw LLM requests/responses for replay debugging, set `provider.record
 
 Guided JSON (`provider.guided_json_mode`) uses response_format/json_schema when supported. In `auto`, guided mode is disabled for local/private endpoints or when health checks detect schema rejections, and prompt-only JSON remains the fallback.
 
+Prompt caps can be set in `run_config.json` (`provider.max_prompt_tokens`, `provider.max_prompt_chars`) or via
+`PAPER_TABLE_AGENT_MAX_PROMPT_TOKENS` / `PAPER_TABLE_AGENT_MAX_PROMPT_CHARS` environment variables to unlock whole-text
+and paper-memory modes for long documents. Optional schema columns like `metadata_only` or `in_paper=false` flag
+columns that should skip HyDE/query expansion during retrieval.
+
 
 ## Repo structure (short)
 

@@ -33,6 +33,7 @@ The implementation is done when the current codebase satisfies every section of 
 
 - Keep spec outputs aligned with the actual run/export behavior.
 - Ensure run reports include LLM capability probe summaries.
+- Surface effective prompt caps and per-stage LLM call counts in run reports.
 - Maintain evidence anchoring and highlight reliability contracts.
 - Enforce backend capability routing so constraints-off backends never receive schema/grammar/regex payloads.
 - Guarantee structured prompt budgeting and batching so retrieved chunks are never dropped by truncation and all missing columns are attempted.

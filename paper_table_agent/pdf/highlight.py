@@ -30,7 +30,7 @@ def locate_quote(
     doc = fitz.open(pdf_path)
     page = doc.load_page(page_number - 1)
     page_height = float(page.rect.height)
-    hits = page.search_for(quote)
+    hits = page.search_for(quote, flags=_search_flags())
     rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
     if rects:
         doc.close()
@@ -50,11 +50,30 @@ def locate_quote(
         doc.close()
         return HighlightResult(rects=[], found=False, strategy="missing", match_score=None, page_height=page_height)
     normalized = _normalize_quote_search(quote)
-    hits = page.search_for(normalized)
+    hits = page.search_for(normalized, flags=_search_flags())
     rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
     if rects:
         doc.close()
-        return HighlightResult(rects=rects, found=True, strategy="normalized", match_score=1.0, page_height=page_height)
+        return HighlightResult(
+            rects=rects,
+            found=True,
+            strategy="normalized",
+            match_score=1.0,
+            page_height=page_height,
+        )
+    normalized_chunk = _normalize_chunk_quote(quote)
+    if normalized_chunk and normalized_chunk != normalized:
+        hits = page.search_for(normalized_chunk, flags=_search_flags())
+        rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
+        if rects:
+            doc.close()
+            return HighlightResult(
+                rects=rects,
+                found=True,
+                strategy="normalized_chunk_text",
+                match_score=1.0,
+                page_height=page_height,
+            )
     fragment_hit, fragment_text = _search_fragments(page, quote)
     if fragment_hit:
         doc.close()
@@ -82,7 +101,7 @@ def locate_quote(
                 page_height=page_height,
             )
     if locator_hint:
-        hits = page.search_for(locator_hint)
+        hits = page.search_for(locator_hint, flags=_search_flags())
         rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
         if rects:
             doc.close()
@@ -95,7 +114,7 @@ def locate_quote(
                 page_height=page_height,
             )
         normalized_hint = _normalize_quote_search(locator_hint)
-        hits = page.search_for(normalized_hint)
+        hits = page.search_for(normalized_hint, flags=_search_flags())
         rects = [[hit.x0, hit.y0, hit.x1, hit.y1] for hit in hits]
         if rects:
             doc.close()
@@ -253,8 +272,21 @@ def _normalize_words(text: str) -> list[str]:
 
 def _normalize_quote_search(text: str) -> str:
     normalized = normalize_unicode(text)
+    normalized = normalized.replace("\u00ad", "")
     normalized = re.sub(r"\s+", " ", normalized)
     return normalized.strip()
+
+
+def _normalize_chunk_quote(text: str) -> str:
+    normalized = normalize_text(text)
+    return normalized.replace("\u00ad", "").strip()
+
+
+def _search_flags() -> int:
+    flags = 0
+    for name in ("TEXT_DEHYPHENATE", "TEXT_PRESERVE_LIGATURES", "TEXT_PRESERVE_WHITESPACE"):
+        flags |= getattr(fitz, name, 0)
+    return flags
 
 
 def _normalize_with_mapping(text: str) -> tuple[str, list[int]]:

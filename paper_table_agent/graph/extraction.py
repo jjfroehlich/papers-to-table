@@ -9,7 +9,7 @@ from typing import Any
 
 from rapidfuzz import fuzz, process
 from paper_table_agent.llm.client import LlmClient, estimate_tokens
-from paper_table_agent.llm.models import GroupExtractionResult, ProposalItem, ProposalVerificationResult, VerifyResult
+from paper_table_agent.llm.models import GroupExtractionResult, ProposalItem, VerifyResult
 from paper_table_agent.llm.prompts import render_prompt
 from paper_table_agent.text.normalization import normalize_chunk_id, normalize_for_matching, normalize_key, normalize_unicode
 
@@ -517,6 +517,9 @@ def _apply_evidence_rules(
 ) -> None:
     status = proposal.status or "unclear"
     has_evidence, errors, mode, reason = _validate_evidence_list(proposal.evidence, chunk_lookup, page_text=page_text)
+    quality_errors = _evidence_quality_floor(proposal, page_text=page_text)
+    if quality_errors:
+        errors.extend(quality_errors)
     if mode:
         proposal.flags["validation_mode"] = mode
     if reason:
@@ -540,6 +543,8 @@ def _apply_evidence_rules(
         proposal.flags.setdefault("needs_review", True)
     proposal.evidence_quality = _derive_evidence_quality(proposal.evidence, has_evidence, errors)
     proposal.flags["evidence_quality"] = proposal.evidence_quality
+    if proposal.evidence_quality != "strong":
+        proposal.needs_more_evidence = True
     if _should_downgrade_unanchored_found(proposal):
         proposal.status = "inferred"
         proposal.needs_more_evidence = True
@@ -547,6 +552,10 @@ def _apply_evidence_rules(
         proposal.flags.setdefault("failure_reason", "found_value_unanchored")
         if not proposal.reasoning:
             proposal.reasoning = "Value inferred; no evidence quote contains the proposed value."
+    if proposal.status == "found" and proposal.evidence_quality != "strong":
+        proposal.status = "inferred"
+        proposal.needs_more_evidence = True
+        proposal.flags["found_weak_evidence_downgraded"] = True
     if proposal.evidence_quality != "strong":
         if proposal.proposed_value and not proposal.search_hints:
             proposal.search_hints = [str(proposal.proposed_value)]
@@ -701,7 +710,7 @@ def verify_cells(
 
 
 def verify_proposals(
-    client: LlmClient,
+    client: LlmClient | None,
     proposals: list[dict[str, Any]],
     pdf_id: str | None = None,
 ) -> list[dict[str, Any]]:
@@ -710,22 +719,29 @@ def verify_proposals(
         proposed_value = proposal.get("proposed_value")
         evidence = proposal.get("evidence") or []
         flags = proposal.setdefault("flags", {})
-        if not proposed_value or not evidence:
+        quote_texts = [
+            str(item.get("quote") or item.get("quote_text") or "")
+            for item in evidence
+            if str(item.get("quote") or item.get("quote_text") or "").strip()
+        ]
+        if not proposed_value or not quote_texts:
             flags["verification_status"] = "unclear"
             flags["verification_needs_more_evidence"] = True
-            flags["verification_rationale"] = "Missing proposed value or evidence."
+            flags["verification_rationale"] = "Missing proposed value or evidence quotes."
+            proposal["status"] = "inferred" if proposed_value else proposal.get("status")
+            proposal.setdefault("flags", {})["needs_more_evidence"] = True
             continue
-        prompt = render_prompt(
-            "verify_proposal.md",
-            _prompt_meta={"pdf_id": pdf_id, "column": column},
-            column=json.dumps(column),
-            proposed_value=json.dumps(proposed_value),
-            evidence=json.dumps(evidence, indent=2),
-        )
-        result = client.complete_json(prompt, ProposalVerificationResult)
-        flags["verification_status"] = result.status
-        flags["verification_needs_more_evidence"] = result.needs_more_evidence
-        flags["verification_rationale"] = result.rationale
+        supports = _evidence_supports_value(proposed_value, quote_texts, column=column)
+        if supports:
+            flags["verification_status"] = "supports"
+            flags["verification_needs_more_evidence"] = False
+            flags["verification_rationale"] = "Evidence quote contains the proposed value or key terms."
+            continue
+        flags["verification_status"] = "unclear"
+        flags["verification_needs_more_evidence"] = True
+        flags["verification_rationale"] = "Evidence quotes lack key terms or numeric overlap."
+        proposal["status"] = "inferred"
+        proposal.setdefault("flags", {})["needs_more_evidence"] = True
     return proposals
 
 
@@ -1009,6 +1025,72 @@ def _derive_evidence_quality(
     return "weak"
 
 
+def _evidence_quality_floor(proposal: Any, *, page_text: list[str] | None = None) -> list[str]:
+    errors: list[str] = []
+    column = str(getattr(proposal, "column", "") or "")
+    bibliographic = _is_bibliographic_column(column)
+    for evidence in getattr(proposal, "evidence", None) or []:
+        quote = str(getattr(evidence, "quote", None) or getattr(evidence, "quote_text", None) or "").strip()
+        if not quote:
+            errors.append("missing_quote")
+            continue
+        if len(quote) < 8 or len(quote.split()) < 2:
+            errors.append("quote_too_short")
+        alnum = sum(1 for char in quote if char.isalnum())
+        if alnum / max(len(quote), 1) < 0.25:
+            errors.append("quote_low_signal")
+        quote_start = getattr(evidence, "quote_start", None)
+        page = getattr(evidence, "page", None)
+        if _looks_like_header_footer(quote, quote_start, page_text, page):
+            errors.append("quote_header_footer")
+            if quote_start == 0 and not bibliographic:
+                errors.append("quote_start_header_footer")
+        if quote_start == 0 and not bibliographic:
+            errors.append("quote_start_disallowed")
+    return errors
+
+
+def _looks_like_header_footer(
+    quote: str,
+    quote_start: int | None,
+    page_text: list[str] | None,
+    page: int | None,
+) -> bool:
+    header_tokens = re.compile(
+        r"(?i)\\b(?:doi|vol\\.?|volume|issue|no\\.|pages?|journal|published|copyright|"
+        r"preprint|correspondence|supplementary|issn|www\\.|http|of\\s+\\d+)\\b"
+    )
+    if header_tokens.search(quote):
+        return True
+    if quote_start == 0:
+        newline_density = quote.count("\n") / max(len(quote), 1)
+        if newline_density > 0.02 or quote.count("\n") >= 2:
+            return True
+        if page_text and page and 0 < page <= len(page_text):
+            page_start = page_text[page - 1][:200]
+            if page_start and header_tokens.search(page_start):
+                return True
+    return False
+
+
+def _is_bibliographic_column(column: str) -> bool:
+    normalized = normalize_for_matching(column)
+    tokens = (
+        "doi",
+        "title",
+        "author",
+        "journal",
+        "volume",
+        "issue",
+        "page",
+        "year",
+        "publisher",
+        "citation",
+        "reference",
+    )
+    return any(token in normalized for token in tokens)
+
+
 def _dedupe_search_hints(hints: list[str]) -> list[str]:
     seen: set[str] = set()
     deduped: list[str] = []
@@ -1107,12 +1189,64 @@ def _should_downgrade_unanchored_found(proposal: Any) -> bool:
     evidence_list = getattr(proposal, "evidence", None) or []
     if not evidence_list:
         return True
-    value_norm = normalize_for_matching(str(proposed_value))
+    quotes = [
+        str(getattr(evidence, "quote", None) or getattr(evidence, "quote_text", None) or "")
+        for evidence in evidence_list
+    ]
+    return not _evidence_supports_value(proposed_value, quotes, column=getattr(proposal, "column", None))
+
+
+def _evidence_supports_value(
+    proposed_value: str | object,
+    quotes: list[str],
+    *,
+    column: str | None = None,
+) -> bool:
+    value = str(proposed_value).strip()
+    if not value or not quotes:
+        return False
+    value_norm = normalize_for_matching(value)
     if not value_norm:
         return False
-    for evidence in evidence_list:
-        quote = getattr(evidence, "quote", None) or getattr(evidence, "quote_text", None) or ""
-        quote_norm = normalize_for_matching(str(quote))
-        if value_norm and value_norm in quote_norm:
-            return False
-    return True
+    numeric_parts = _extract_numeric_parts(value)
+    units = _extract_units(value)
+    for quote in quotes:
+        quote_text = str(quote or "")
+        quote_norm = normalize_for_matching(quote_text)
+        if not quote_norm:
+            continue
+        if value_norm in quote_norm:
+            return True
+        if numeric_parts:
+            if any(part in quote_text for part in numeric_parts):
+                if units:
+                    if any(unit in quote_text.lower() for unit in units):
+                        return True
+                else:
+                    return True
+        else:
+            key_terms = _extract_key_terms(value)
+            if key_terms and any(term in quote_norm for term in key_terms):
+                return True
+    return False
+
+
+def _extract_numeric_parts(text: str) -> list[str]:
+    return re.findall(r"\\d+(?:\\.\\d+)?", text)
+
+
+def _extract_units(text: str) -> list[str]:
+    units: list[str] = []
+    for match in re.finditer(r"\\d+(?:\\.\\d+)?\\s*([a-zA-Z%µμ°]+)", text):
+        unit = match.group(1).lower()
+        if unit:
+            units.append(unit)
+    return units
+
+
+def _extract_key_terms(text: str) -> list[str]:
+    normalized = normalize_for_matching(normalize_unicode(text))
+    if not normalized:
+        return []
+    tokens = re.findall(r"[a-z0-9]{3,}", normalized)
+    return tokens[:6]

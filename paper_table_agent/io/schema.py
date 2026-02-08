@@ -14,6 +14,22 @@ class ColumnSpec:
     group: str = "ungrouped"
     priority: str | None = None
     column_key: str = ""
+    source: str | None = None
+    in_paper: bool | None = None
+    metadata_only: bool | None = None
+
+
+def _coerce_bool(value: object) -> bool | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    if text in {"true", "yes", "1", "y"}:
+        return True
+    if text in {"false", "no", "0", "n"}:
+        return False
+    return None
 
 
 def load_schema(path: Path, sheet_name: str) -> list[ColumnSpec]:
@@ -28,6 +44,7 @@ def load_schema(path: Path, sheet_name: str) -> list[ColumnSpec]:
     specs: list[ColumnSpec] = []
     for _, row in dataframe.iterrows():
         column_name = str(row["column_name"]).strip()
+        source = str(row.get("source") or "").strip() or None
         specs.append(
             ColumnSpec(
                 column_name=column_name,
@@ -35,6 +52,11 @@ def load_schema(path: Path, sheet_name: str) -> list[ColumnSpec]:
                 group=str(row.get("group", "ungrouped") or "ungrouped"),
                 priority=str(row.get("priority") or ""),
                 column_key=normalize_key(column_name),
+                source=source,
+                in_paper=_coerce_bool(row.get("in_paper")) if "in_paper" in dataframe.columns else None,
+                metadata_only=_coerce_bool(row.get("metadata_only"))
+                if "metadata_only" in dataframe.columns
+                else None,
             )
         )
     return specs
