@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Tuned the shipped defaults toward quality-first extraction: guided JSON auto-routing, single-column extraction start, larger fulltext/paper-memory budgets, broader retrieval context, and real retry headroom above baseline context size.
 - Raised default prompt caps (32k tokens / 64k chars) with env overrides, and run reports now include effective prompt limits plus per-stage LLM call counts.
 - Strengthened evidence validation with header/footer rejection, strict quote-only verification, and found→inferred downgrades for weak evidence.
 - Added normalized/dehyphenated highlight fallbacks and batch-level retrieval caching with metadata-only HyDE/query-expansion skips.

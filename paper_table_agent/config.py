@@ -94,31 +94,31 @@ class MatchingConfig(BaseModel):
 
 class ExtractionConfig(BaseModel):
     groups: list[dict[str, Any]] = Field(default_factory=list)
-    examples_per_col: int = 3
-    column_batch_size: int = 2
-    max_chunks: int = 20
+    examples_per_col: int = 1
+    column_batch_size: int = 1
+    max_chunks: int = 32
     retry_on_unclear: bool = True
-    retry_extra_chunks: int = 10
+    retry_extra_chunks: int = 8
     whole_text_enabled: bool = True
-    whole_text_max_tokens: int = 6000
+    whole_text_max_tokens: int = 8000
     fulltext_target_ratio: float = 0.85
     fulltext_caption_max_chars: int = 240
     paper_memory_enabled: bool = True
-    paper_memory_max_tokens: int = 1200
+    paper_memory_max_tokens: int = 2400
     thinking_models: list[str] = Field(default_factory=lambda: ["gpt-oss", "qwen"])
 
 
 class RetrievalConfig(BaseModel):
-    top_k: int = 20
-    rerank_k: int = 20
+    top_k: int = 24
+    rerank_k: int = 24
     max_context_chunks: int = 24
-    max_context_tokens: int = 2400
-    context_window: int = 1
+    max_context_tokens: int = 3200
+    context_window: int = 2
     include_section_chunks: bool = True
-    section_chunk_limit: int = 6
+    section_chunk_limit: int = 8
     summary_enabled: bool = True
-    summary_max_chunks: int = 12
-    summary_max_tokens: int = 1000
+    summary_max_chunks: int = 16
+    summary_max_tokens: int = 1400
     query_variants: int = 6
     use_query_expansion: bool = True
     use_hyde: bool = True
@@ -129,8 +129,8 @@ class RetrievalConfig(BaseModel):
     reranker_backend: str = "tfidf"
     reranker_model: str | None = None
     use_reranker: bool = True
-    query_cache_max_entries: int = 256
-    hyde_cache_max_entries: int = 256
+    query_cache_max_entries: int = 512
+    hyde_cache_max_entries: int = 512
 
 
 class OcrConfig(BaseModel):

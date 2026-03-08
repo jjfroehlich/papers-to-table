@@ -149,7 +149,11 @@ To capture raw LLM requests/responses for replay debugging, set `provider.record
 
 Guided JSON (`provider.guided_json_mode`) uses response_format/json_schema when supported. In `auto`, guided mode is disabled for local/private endpoints or when health checks detect schema rejections, and prompt-only JSON remains the fallback.
 
+The shipped defaults now favor extraction quality over throughput: `guided_json_mode=auto`, single-column extraction by default (`extraction.column_batch_size=1`), broader retrieval context (`retrieval.max_context_tokens=3200`, `retrieval.context_window=2`), and larger whole-text/paper-memory budgets with retry headroom (`extraction.max_chunks=32`, `retry_extra_chunks=8`, `whole_text_max_tokens=8000`, `paper_memory_max_tokens=2400`).
+
 Audit evaluation runs by default (`audit.use_filled_cells_as_gold=true`) and is bounded with deterministic sampling (`audit.max_cells=500`). Disable audit when you want speed over eval metrics.
+
+For benchmark runs, avoid leakage from the same verified table into prompts. The simplest safe option is `extraction.examples_per_col=0`, or use split-aware examples from non-eval rows only.
 
 Prompt caps can be set in `run_config.json` (`provider.max_prompt_tokens`, `provider.max_prompt_chars`,
 `provider.ctx_window_tokens_override`) or via `PAPER_TABLE_AGENT_MAX_PROMPT_TOKENS` /
@@ -176,3 +180,4 @@ columns that should skip HyDE/query expansion during retrieval.
 - Whole-text + paper-memory extraction is available behind config flags for proposal models that need broader context.
 - Context planning chooses fulltext/memory/retrieval per PDF and drives column-first extraction with anchored evidence.
 - Audit-mode extraction supports evaluation against filled cells, producing proposal_eval artifacts and run_report summaries.
+- The checked-in default config is tuned for quality-first runs: guided JSON auto-routing, single-column extraction start, wider retrieval context, and explicit retry headroom for evidence recovery.

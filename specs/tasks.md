@@ -121,6 +121,13 @@ Conventions:
 - README documents the default audit+eval behavior and where to find metrics.
 - Runbook documents hermetic vs live LM Studio tests and Git Bash commands.
 
+### [x] **P1.T7** Quality-first default tuning
+**Paths**: `paper_table_agent/config.py`, `run_config.json`, `README.md`, `CHANGELOG.md`, `tests/test_config.py`
+**AC**
+- Default config favors single-column extraction, wider retrieval context, larger whole-text/paper-memory budgets, and retry headroom above baseline retrieval size.
+- Checked-in `run_config.json` exposes the same quality-first defaults instead of a narrower sample.
+- Tests cover the tuned defaults.
+
 ## P0 — CLI install + smoke coverage
 
 ### [x] **P0.T9** Console script entrypoint verified
@@ -475,3 +482,99 @@ Conventions:
 **AC**
 - Adjudication parsing tolerates string evidence/top_candidates.
 - Tests cover tolerant parsing behavior.
+
+---
+
+## P0 — Structure-aware parsing and retrieval upgrades
+
+### [ ] **P0.T57** Parsed-document contract + parser normalization
+**Paths**: `paper_table_agent/pdf/parser.py`, `paper_table_agent/pdf/grobid.py`, `paper_table_agent/graph/runner.py`, `paper_table_agent/pdf/__init__.py`, `tests/test_parsed_document.py`
+**AC**
+- Introduce a normalized parsed-document representation that carries typed elements, reading order, page provenance, and geometry when available.
+- Current parser output and GROBID output normalize into the same downstream contract.
+- Existing run flow still produces chunks/evidence without breaking current CLI/UI behavior.
+
+### [ ] **P0.T58** Contextualized retrieval text on chunks
+**Paths**: `paper_table_agent/retrieval/chunking.py`, `paper_table_agent/retrieval/index.py`, `paper_table_agent/retrieval/retrieve.py`, `paper_table_agent/store/db.py`, `tests/test_retrieval.py`
+**AC**
+- Chunks persist `retrieval_text` separately from `text`/`text_raw`.
+- Sparse and dense retrieval index `retrieval_text`, while evidence validation and highlighting continue to use space-preserving text.
+- Tests verify retrieval uses contextualized text without regressing quote anchoring.
+
+### [ ] **P0.T59** Typed structural chunk generation
+**Paths**: `paper_table_agent/retrieval/chunking.py`, `paper_table_agent/pdf/parser.py`, `paper_table_agent/graph/runner.py`, `tests/test_chunking.py`, `tests/test_parsing_quality.py`
+**AC**
+- Retrieval emits typed chunks when structure is available, including at least `abstract`, `section_header`, `paragraph`, `figure_caption`, `table_region`, and `reference_block`.
+- Chunk metadata records source element type and provenance.
+- Fallback behavior remains compatible for PDFs where only page/paragraph chunking is available.
+
+### [ ] **P0.T60** Table-aware parsing artifacts + retrieval units
+**Paths**: `paper_table_agent/pdf/parser.py`, `paper_table_agent/retrieval/chunking.py`, `paper_table_agent/retrieval/pipeline.py`, `paper_table_agent/graph/context_planner.py`, `tests/test_table_chunks.py`, `tests/test_context_plan_integration.py`
+**AC**
+- Detect table-like regions or summaries as dedicated parse artifacts.
+- Retrieval can surface table-aware units alongside paragraph chunks.
+- Context assembly can include coarse table summaries for likely table-derived columns without breaking ordinary text retrieval.
+
+### [ ] **P0.T61** Schema-aware retrieval and context hints
+**Paths**: `paper_table_agent/io/schema.py`, `paper_table_agent/retrieval/pipeline.py`, `paper_table_agent/graph/context_planner.py`, `paper_table_agent/graph/runner.py`, `tests/test_schema_retrieval_hints.py`
+**AC**
+- Schema definitions can specify deterministic hints for preferred evidence sources or context modes.
+- Retrieval/context assembly can bias toward table, caption, section, fulltext, or memory sources when hints are present.
+- Unhinted columns continue using the current quality-first defaults.
+
+### [ ] **P0.T62** Structured whole-text and memory payloads
+**Paths**: `paper_table_agent/graph/context_planner.py`, `paper_table_agent/graph/extraction.py`, `paper_table_agent/prompts/paper_memory.md`, `tests/test_context_planner.py`, `tests/test_context_plan_integration.py`
+**AC**
+- Whole-text payloads preserve typed element boundaries when available.
+- Memory payloads can include relevant typed elements such as captions and table summaries while staying anchorable.
+- Run diagnostics record the element types and counts included by each context mode.
+
+---
+
+## P1 — Presets, parser backends, and review workflow
+
+### [ ] **P1.T8** Quality presets + `max_success_mode` alignment
+**Paths**: `paper_table_agent/config.py`, `paper_table_agent/cli.py`, `run_config.json`, `README.md`, `tests/test_config.py`
+**AC**
+- Add explicit presets such as `quality`, `balanced`, and `fast`.
+- `max_success_mode` either aliases the quality preset or resolves through the same code path without breaking existing configs.
+- Effective resolved config is written to run artifacts and documented.
+
+### [ ] **P1.T9** Review triage and risk reasons
+**Paths**: `paper_table_agent/ui/review_queue.py`, `paper_table_agent/ui/app.py`, `paper_table_agent/graph/reporting.py`, `tests/test_review_queue.py`
+**AC**
+- Review queue can order proposals by a deterministic triage score.
+- UI shows risk reasons derived from evidence quality, retrieval behavior, and highlight status.
+- Review supports filters for weak-evidence, inferred, or table-derived proposals.
+
+### [ ] **P1.T10** Parser adapter layer for stronger backends
+**Paths**: `paper_table_agent/config.py`, `paper_table_agent/pdf/parser.py`, `paper_table_agent/pdf/grobid.py`, `paper_table_agent/graph/runner.py`, `tests/test_parser_adapters.py`
+**AC**
+- Parser backend selection is explicit in config and normalizes all supported backends into the parsed-document contract.
+- The default local parser path remains stable.
+- Tests cover adapter parity for at least the current parser path and the GROBID-enhanced path.
+
+### [ ] **P1.T11** Chunk and parser observability artifacts
+**Paths**: `paper_table_agent/graph/reporting.py`, `paper_table_agent/graph/runner.py`, `paper_table_agent/retrieval/pipeline.py`, `paper_table_agent/pdf/parser.py`, `tests/test_run_report_capabilities.py`
+**AC**
+- Debug artifacts can show chunk type, retrieval_text, source text, and provenance.
+- Parser artifacts summarize detected sections, captions, and table-like regions.
+- Context assembly diagnostics explain why chunks entered the final payload.
+
+---
+
+## P2 — Follow-on improvements
+
+### [ ] **P2.T4** Acceptance-informed example banks
+**Paths**: `paper_table_agent/io/examples.py`, `paper_table_agent/store/db.py`, `paper_table_agent/graph/runner.py`, `tests/test_examples.py`
+**AC**
+- Accepted outputs can feed curated reusable example banks.
+- Example banks remain explicit and reviewable rather than implicit prompt leakage.
+- Retrieval and parsing improvements remain the primary signal; example banks are strictly additive.
+
+### [ ] **P2.T5** Multi-column and table-heavy regression fixtures
+**Paths**: `tests/fixtures/*`, `tests/test_parsing_quality.py`, `tests/test_table_chunks.py`, `tests/test_context_plan_integration.py`
+**AC**
+- Add fixture coverage for multi-column scholarly layouts, table-heavy pages, and caption-heavy pages.
+- Regression tests cover typed chunk generation, table summaries, and schema-aware context behavior.
+- Failures are attributable to parser normalization vs retrieval assembly where practical.

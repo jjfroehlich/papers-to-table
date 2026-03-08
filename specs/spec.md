@@ -2,7 +2,7 @@
 
 ## Product summary
 
-Paper Table Agent is a local-first PDF→table pipeline. It matches PDFs to table rows, proposes values for missing cells with evidence, and lets you review decisions in a minimal Run/Review UI before exporting updates.
+Paper Table Agent is a local-first PDF→table pipeline. It matches PDFs to table rows, proposes values for missing cells with evidence, and lets you review decisions in a minimal Run/Review UI before exporting updates. The pipeline is increasingly structure-aware: it should preserve more document structure upstream, retrieve over contextualized typed chunks, and treat table-like content as first-class input when possible.
 
 ## Proposal model behavior (inference-first)
 
@@ -15,14 +15,14 @@ Paper Table Agent is a local-first PDF→table pipeline. It matches PDFs to tabl
 ## Golden path
 
 1. Load a table (CSV/XLSX) + schema and normalize column keys for matching.
-2. Parse PDFs into text + tokens; collect parsing sanity metrics.
+2. Parse PDFs into normalized parsed-document artifacts (typed elements + page/token provenance when available) and collect parsing sanity metrics.
 3. Extract header metadata (title/authors/year) with strict grounding and repair/fallback.
 4. Match PDFs to table rows (deterministic pass, then LLM adjudication in fallback window).
-5. Build retrieval index + retrieve evidence chunks with stable chunk IDs + indices.
-6. Assemble context (whole-text when possible, otherwise memory + retrieval), then extract proposals with ID-based references; validate evidence without suppressing values.
+5. Build retrieval indexes from contextualized, typed chunks with stable chunk IDs + indices, including table-aware units when available.
+6. Assemble context (whole-text when possible, otherwise memory + retrieval) using schema-aware and chunk-type-aware preferences when available, then extract proposals with ID-based references; validate evidence without suppressing values.
 7. Run evidence finder for weak/none evidence to attach quotes, pages, and highlights.
 8. Persist proposals + evidence + diagnostics to SQLite.
-9. Review decisions (Accept / Accept-with-edit / Reject) with highlighted PDF evidence.
+9. Review decisions (Accept / Accept-with-edit / Reject) with highlighted PDF evidence and deterministic risk cues when proposals need extra scrutiny.
 10. Export updated table + audit log.
 
 ## Inputs
@@ -101,8 +101,17 @@ logs/llm_payloads.jsonl
 - **Highlight anchoring**: use page+quote spans (start/end) as primary anchors; prefer normalized spans or token-based salvage, and clip quotes to a single-page window before highlight attempts.
 - **Evidence quality floor**: quotes that look like headers/footers (e.g., quote_start=0 with header-like patterns or high newline density) or are too short/low-signal are marked weak and retried via evidence finder; proposed values are preserved.
 - **Header/footer stripping**: repeated page headers/footers (e.g., DOI/journal/page counters) are removed from page_text and chunk text before retrieval.
+- **Retrieval/display text split**: retrieval may use contextualized `retrieval_text`, but quote validation, evidence display, and highlighting must continue using raw or space-preserving text fields.
 - **Evidence schema invariants**: every evidence item carries `pdf_id` matching the proposal, has `quote_text`, and includes `anchor_id`/`chunk_id` or a `page`.
 - **Unicode/ID normalization**: column and chunk identifiers are normalized to prevent drift.
+
+## Document representation behavior
+
+- PDFs normalize into a common parsed-document contract before retrieval whenever possible, preserving typed elements, reading order, and page provenance.
+- Parser backends may vary (current parser path, GROBID-enhanced path, or stronger layout-aware backends), but downstream retrieval/extraction consume one normalized representation.
+- Parsed elements should distinguish at least when detectable: title, abstract, section headers, paragraphs, figure captions, table-like regions, and reference-like blocks.
+- Retrieval chunks are derived from parsed elements when available and may retain both source text and contextualized retrieval text.
+- Table-like regions are first-class parse artifacts when detected; fallback behavior remains page/paragraph-based when structured detection is unavailable.
 
 ## Matching behavior
 
@@ -114,7 +123,8 @@ logs/llm_payloads.jsonl
 ## Extraction behavior
 
 - Context planner selects a per-PDF mode: **fulltext**, **memory**, or **retrieval**.
-- Columns are extracted column-first (or in small related batches) with prompts that include row context, the column definition, and the ContextPlan payload. Batch size can grow beyond the default when the prompt budget allows.
+- Columns are extracted column-first (or in small related batches) with prompts that include row context, the column definition, and the ContextPlan payload. Default extraction starts with single-column batches and may grow beyond the default when the prompt budget allows.
+- Schema hints may bias extraction toward preferred evidence sources or context strategies such as table-first, caption-aware, section-aware, fulltext-favored, or memory-favored behavior.
 - Prompt budgeting is structured: prompts always include row context, column definitions, and the ContextPlan payload. If trimming is needed in retrieval mode, trim (a) number of chunks, (b) chunk text length per chunk, (c) number of examples per column, then (d) number of columns by batching so every missing column is still attempted exactly once.
 - Each requested column yields a proposal record (including `unclear` or `error` records).
 - Value-first extraction: propose a value whenever plausible; evidence quality is metadata.
@@ -133,20 +143,24 @@ logs/llm_payloads.jsonl
 - Evidence records store `pdf_id` + `chunk_id`/`chunk_idx` to keep chunk identity unambiguous across PDFs.
 - **Audit extraction**: enabled by default; already-filled cells are re-extracted for comparison and tagged `proposal_kind=audit` (never exported).
 
-### Whole-text + paper memory mode (feature-flagged)
+### Whole-text + paper memory mode (feature-flagged, enabled by default)
 
-- If the document fits the model context budget (~85% of ctx window), pass page-marked full text to the proposal model after applying the trimming ladder (drop References, drop Acknowledgements, trim captions, drop appendix blocks).
+- If the document fits the model context budget (~85% of ctx window), pass page-marked full text to the proposal model after applying the trimming ladder (drop References, drop Acknowledgements, trim captions, drop appendix blocks) while preserving element boundaries when available.
 - If not, run a map-reduce style “paper memory” step that summarizes anchored notes by page/section with 1–2 verbatim quotes each, then propose values using the memory + targeted retrieval.
 - The extraction payload for memory mode includes only anchored notes (quote_text + page), while the summary is stored in artifacts for review and is not quoteable.
+- Whole-text and memory payloads may incorporate typed elements such as captions or table summaries when they are relevant to the requested columns.
 - Evidence anchors must include an anchor_id or page + quote to enable deterministic highlight mapping.
 
 ## Retrieval behavior
 
 - Query expansion and HyDE are used when enabled (always on in max success mode).
+- Retrieval may contextualize chunks before indexing by prepending deterministic document context such as title, section, page marker, or chunk type.
 - Retrieval caches per (pdf_id, column_batch) and reuses results across column batches.
 - Query expansion/HyDE caches are scoped per (pdf_id, column) or (pdf_id, column_batch) and record hit/miss stats.
 - Columns flagged metadata-only or not-in-paper (e.g., `metadata_only=true` or `in_paper=false` in the schema) skip HyDE/query expansion.
-- Retrieval uses sparse + optional dense embeddings and reranking.
+- Retrieval uses sparse + optional dense embeddings and reranking over contextualized chunk text while keeping raw text for evidence operations.
+- Retrieval chunks may be typed (e.g., abstract, section_header, paragraph, figure_caption, table_region, table_cell_summary, reference_block) when parsed structure is available.
+- Table-aware retrieval units coexist with paragraph chunks and can be preferred for likely table-derived columns.
 - Context assembly expands retrieval with neighbor windows and optional section chunks, then trims by token budgets.
 - Query construction drops NaN/empty examples and omits the examples section when none remain.
 - If dense or reranker backends fail, the pipeline falls back to TF-IDF and disables reranking with a logged warning.
@@ -160,12 +174,15 @@ logs/llm_payloads.jsonl
 
 - **Review tab**: select completed run; step through matched rows/columns with proposals or evidence.
 - Decisions: **Accept / Accept-with-edit / Reject** with auto-advance.
+- Review can prioritize or filter risky proposals using deterministic triage cues derived from evidence quality, retrieval behavior, and highlight status.
 - Evidence highlights are shown per evidence item on the PDF page when available; re-locate is available if missing.
 - Prev/Next proposal navigation supports skim mode.
 
 ## Operational defaults
 
 - UI has no tuning knobs; configuration is driven by `run_config.json`.
+- The shipped defaults are quality-first rather than speed-first: guided JSON stays in `auto`, extraction starts with single-column batches, retrieval uses a wider context window, and extraction reserves headroom above baseline retrieval size so retry-on-unclear can actually expand context.
+- Quality-first behavior may be exposed through explicit presets or a resolved `max_success_mode` alias, but the effective config written to the run directory remains the source of truth for what actually ran.
 - Health checks validate model endpoint reachability and embedding/reranker backends; failures are logged in `run_report.json`.
 - LLM capability probes cache structured-output support per model and route between guided JSON and prompt-only JSON.
 - Context window sizing prefers model capability probes (cached per base_url/model), with explicit overrides from `provider.max_prompt_tokens` or `provider.ctx_window_tokens_override`.
