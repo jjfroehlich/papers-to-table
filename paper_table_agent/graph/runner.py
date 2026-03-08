@@ -64,7 +64,7 @@ from paper_table_agent.pdf.highlight import (
     locate_quote_span,
     salvage_quote_from_tokens,
 )
-from paper_table_agent.pdf.grobid import extract_grobid, save_grobid
+from paper_table_agent.pdf.grobid import extract_grobid, save_grobid, grobid_to_parsed_document
 from paper_table_agent.pdf.ocr import run_ocr, should_trigger_ocr
 from paper_table_agent.pdf.parser import compute_sha1, parse_pdf, save_parsed
 from paper_table_agent.retrieval.chunking import build_chunks, to_dicts
@@ -284,6 +284,7 @@ def _record_cache_stats(context: RunContext) -> None:
     context.store.record_event("info", "retrieval_cache_stats", stats)
 
 def _prepare_context(config: RunConfig, run_paths: RunPaths, store: Store) -> tuple[RunContext, list[PdfRecord]]:
+    config.apply_quality_preset()
     logger, _ = configure_logging(run_paths.logs_dir)
     error_path = run_paths.logs_dir / "errors.jsonl"
 
@@ -632,12 +633,17 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
     try:
         parsed = parse_pdf(pdf.path)
         parsed.pdf_id = pdf.pdf_id
+        if parsed.parsed_document is not None:
+            parsed.parsed_document.pdf_id = pdf.pdf_id
         parse_source = "pymupdf"
         grobid_result = None
         if context.config.grobid.enable_grobid:
             try:
                 grobid_result = extract_grobid(pdf.path, context.config.grobid)
                 save_grobid(grobid_result, context.run_paths.parsed_dir, pdf.pdf_id)
+                if context.config.parser_backend in {"grobid", "grobid_enhanced"}:
+                    parsed.parsed_document = grobid_to_parsed_document(grobid_result, pdf.pdf_id, parsed.page_text)
+                    parse_source = "grobid"
                 store.record_event(
                     "info",
                     "grobid_success",
@@ -695,7 +701,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         return False
 
     sections = grobid_result.sections if grobid_result else None
-    chunks = build_chunks(parsed.page_text, sections=sections, pdf_id=pdf.pdf_id)
+    chunks = build_chunks(parsed.page_text, sections=sections, pdf_id=pdf.pdf_id, parsed_document=parsed.parsed_document)
     chunk_dicts = to_dicts(chunks)
     full_chunk_lookup = build_chunk_lookup_from_list(chunk_dicts)
     debug_tracker = DebugExtractionTracker(pdf_id=pdf.pdf_id, chunks_indexed=len(chunks))
@@ -999,6 +1005,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
         context.config.extraction,
         context.run_paths.run_dir,
         call_recorder=lambda stage, payload: _record_llm_call(context.store, stage, payload),
+        parsed_document=parsed.parsed_document,
     )
     context.store.record_event(
         "info",
@@ -1014,6 +1021,7 @@ def _process_pdf(context: RunContext, pdf: PdfRecord, existing_pdfs: dict[str, A
             "ctx_window_reason": context_plan.ctx_window_reason,
             "column_batches": context_plan.column_batches,
             "memory_stats": context_plan.memory_stats,
+            "element_diagnostics": context_plan.element_diagnostics,
             "context_path": str(context_plan.page_marked_text_path) if context_plan.page_marked_text_path else None,
         },
     )
@@ -2066,7 +2074,8 @@ def _coerce_single_plausible(
 def _build_retrieval_config(config: RunConfig) -> RetrievalConfig:
     retrieval = config.retrieval
     max_chunks = min(retrieval.max_context_chunks, config.extraction.max_chunks)
-    if config.fast_mode:
+    preset = "quality" if config.max_success_mode else config.quality_preset
+    if config.fast_mode or preset == "fast":
         return RetrievalConfig(
             top_k=min(8, retrieval.top_k),
             rerank_k=min(8, retrieval.rerank_k),
@@ -2089,7 +2098,7 @@ def _build_retrieval_config(config: RunConfig) -> RetrievalConfig:
             reranker_backend=retrieval.reranker_backend,
             reranker_model=retrieval.reranker_model,
         )
-    if config.max_success_mode:
+    if preset == "quality":
         return RetrievalConfig(
             top_k=max(retrieval.top_k, 24),
             rerank_k=max(retrieval.rerank_k, 24),
@@ -2144,7 +2153,9 @@ def _format_chunks(chunks: list[Any]) -> list[dict[str, Any]]:
             "chunk_idx": chunk.chunk_idx,
             "text": chunk.text,
             "text_raw": getattr(chunk, "text_raw", None),
+            "retrieval_text": getattr(chunk, "retrieval_text", chunk.text),
             "text_norm": getattr(chunk, "text_norm", None),
+            "metadata": getattr(chunk, "metadata", {}),
             "page_start": chunk.page_start,
             "page_end": chunk.page_end,
             "chunk_type": getattr(chunk, "chunk_type", None),
@@ -2265,6 +2276,14 @@ def _retrieve_column_contexts(
     effective_config = retrieval_config
     if all_metadata_only:
         effective_config = _override_retrieval_config(retrieval_config, use_query_expansion=False, use_hyde=False)
+    hint_values = {getattr(spec, "retrieval_hint", None) for spec in specs}
+    hint_values.discard(None)
+    if "metadata-only" in hint_values or "not-in-paper" in hint_values:
+        effective_config = _override_retrieval_config(effective_config, use_query_expansion=False, use_hyde=False)
+    if "fulltext-favored" in hint_values:
+        effective_config = _override_retrieval_config(effective_config, include_section_chunks=True, section_chunk_limit=max(8, effective_config.section_chunk_limit))
+    if "table-first" in hint_values:
+        effective_config = _override_retrieval_config(effective_config, include_section_chunks=True, section_chunk_limit=max(10, effective_config.section_chunk_limit))
 
     query = (
         _build_batch_query(specs, row_context, examples_map)
@@ -2354,6 +2373,7 @@ def _retrieve_column_contexts(
                     "query_mode": "batch" if len(specs) > 1 else "column",
                     "batch_columns": column_names if len(specs) > 1 else None,
                     "metadata_only": _is_metadata_only(spec),
+                    "retrieval_hint": getattr(spec, "retrieval_hint", None),
                 },
             )
         if store is not None and pdf_id and row_id:
@@ -2560,15 +2580,9 @@ def _is_metadata_only(spec: Any) -> bool:
 
 def _override_retrieval_config(
     retrieval_config: RetrievalConfig,
-    *,
-    use_query_expansion: bool,
-    use_hyde: bool,
+    **updates: Any,
 ) -> RetrievalConfig:
-    return replace(
-        retrieval_config,
-        use_query_expansion=use_query_expansion,
-        use_hyde=use_hyde,
-    )
+    return replace(retrieval_config, **updates)
 
 
 def _build_batch_query(

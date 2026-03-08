@@ -17,6 +17,7 @@ class RetrievedChunk:
     chunk_idx: int
     text: str
     text_raw: str
+    retrieval_text: str
     text_norm: str
     page_start: int
     page_end: int
@@ -33,6 +34,7 @@ class RerankedChunk:
     chunk_idx: int
     text: str
     text_raw: str
+    retrieval_text: str
     text_norm: str
     page_start: int
     page_end: int
@@ -81,6 +83,7 @@ def retrieve(
                 chunk_idx=chunk.chunk_idx,
                 text=chunk.text,
                 text_raw=chunk.text_raw,
+                retrieval_text=chunk.retrieval_text,
                 text_norm=chunk.text_norm,
                 page_start=chunk.page_start,
                 page_end=chunk.page_end,
@@ -110,6 +113,7 @@ def expand_with_neighbors(index: RetrievalIndex, retrieved: list[RetrievedChunk]
                     chunk_idx=original.chunk_idx,
                     text=original.text,
                     text_raw=original.text_raw,
+                    retrieval_text=original.retrieval_text,
                     text_norm=original.text_norm,
                     page_start=original.page_start,
                     page_end=original.page_end,
@@ -153,6 +157,7 @@ def expand_with_window(
                     chunk_idx=original.chunk_idx,
                     text=original.text,
                     text_raw=original.text_raw,
+                    retrieval_text=original.retrieval_text,
                     text_norm=original.text_norm,
                     page_start=original.page_start,
                     page_end=original.page_end,
@@ -190,6 +195,7 @@ def reciprocal_rank_fusion(
                 chunk_idx=chunk.chunk_idx,
                 text=chunk.text,
                 text_raw=chunk.text_raw,
+                retrieval_text=chunk.retrieval_text,
                 text_norm=chunk.text_norm,
                 page_start=chunk.page_start,
                 page_end=chunk.page_end,

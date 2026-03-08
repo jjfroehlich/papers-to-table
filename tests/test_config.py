@@ -32,3 +32,16 @@ def test_run_config_quality_defaults(tmp_path: Path):
     assert config.retrieval.max_context_tokens == 3200
     assert config.retrieval.context_window == 2
     assert config.retrieval.section_chunk_limit == 8
+
+
+def test_quality_presets_and_max_success_alias(tmp_path: Path):
+    table_path = tmp_path / "table.xlsx"
+    table_path.write_text("stub", encoding="utf-8")
+    pdf_folder = tmp_path / "pdfs"
+    pdf_folder.mkdir()
+    cfg = RunConfig(table_path=table_path, pdf_folder=pdf_folder, quality_preset="fast", max_success_mode=False)
+    cfg.apply_quality_preset()
+    assert cfg.quality_preset == "fast"
+    cfg2 = RunConfig(table_path=table_path, pdf_folder=pdf_folder, quality_preset="fast", max_success_mode=True)
+    cfg2.apply_quality_preset()
+    assert cfg2.quality_preset == "quality"

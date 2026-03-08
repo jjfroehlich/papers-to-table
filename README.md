@@ -159,6 +159,8 @@ Prompt caps can be set in `run_config.json` (`provider.max_prompt_tokens`, `prov
 `provider.ctx_window_tokens_override`) or via `PAPER_TABLE_AGENT_MAX_PROMPT_TOKENS` /
 `PAPER_TABLE_AGENT_MAX_PROMPT_CHARS` / `PAPER_TABLE_AGENT_CTX_WINDOW_TOKENS` environment variables to unlock whole-text
 and paper-memory modes for long documents. Optional schema columns like `metadata_only` or `in_paper=false` flag
+columns that should skip expensive retrieval, and `retrieval_hint` can bias context assembly (`table-first`, `caption-aware`, `section-aware`, `fulltext-favored`, `memory-favored`, `metadata-only`).
+Run config now also supports explicit `quality_preset` (`quality`/`balanced`/`fast`), with `max_success_mode` resolving to the same quality path, plus explicit `parser_backend` selection (`local`, `grobid`, `grobid_enhanced`).
 columns that should skip HyDE/query expansion during retrieval.
 
 

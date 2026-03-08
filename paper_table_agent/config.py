@@ -162,6 +162,7 @@ class AuditConfig(BaseModel):
 
 
 class RunConfig(BaseModel):
+    quality_preset: str = "quality"
     table_path: Path
     schema_sheet_name: str = "schema"
     schema_mode: str = "sheet"
@@ -176,6 +177,7 @@ class RunConfig(BaseModel):
     verify_mode: bool = False
     fast_mode: bool = False
     max_success_mode: bool = True
+    parser_backend: str = "local"
     provider: ProviderConfig = Field(default_factory=ProviderConfig)
     matching: MatchingConfig = Field(default_factory=MatchingConfig)
     extraction: ExtractionConfig = Field(default_factory=ExtractionConfig)
@@ -185,6 +187,30 @@ class RunConfig(BaseModel):
     output: OutputConfig = Field(default_factory=OutputConfig)
     audit: AuditConfig = Field(default_factory=AuditConfig)
     max_workers: int = 1
+
+
+    @field_validator("quality_preset")
+    @classmethod
+    def _validate_quality_preset(cls, value: str) -> str:
+        allowed = {"quality", "balanced", "fast"}
+        lowered = (value or "quality").strip().lower()
+        if lowered not in allowed:
+            raise ValueError(f"Unsupported quality_preset: {value}")
+        return lowered
+
+    def apply_quality_preset(self) -> None:
+        preset = "quality" if self.max_success_mode else self.quality_preset
+        if preset == "fast":
+            self.extraction.max_chunks = min(self.extraction.max_chunks, 16)
+            self.retrieval.top_k = min(self.retrieval.top_k, 12)
+            self.retrieval.rerank_k = min(self.retrieval.rerank_k, 12)
+            self.retrieval.max_context_tokens = min(self.retrieval.max_context_tokens, 1800)
+        elif preset == "balanced":
+            self.extraction.max_chunks = min(self.extraction.max_chunks, 24)
+            self.retrieval.top_k = min(self.retrieval.top_k, 18)
+            self.retrieval.rerank_k = min(self.retrieval.rerank_k, 18)
+            self.retrieval.max_context_tokens = min(self.retrieval.max_context_tokens, 2400)
+        self.quality_preset = preset
 
     @field_validator("table_path", "pdf_folder")
     @classmethod

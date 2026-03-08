@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added parsed-document normalization + parser backend adapters, contextualized `retrieval_text`, typed structural chunks (including table summaries), schema retrieval hints, and structured context diagnostics across fulltext/memory/retrieval modes.
+- Added review triage scoring/risk reasons with minimal weak-evidence/inferred/table-derived filters, plus new quality presets (`quality`/`balanced`/`fast`) aligned with `max_success_mode`.
 - Tuned the shipped defaults toward quality-first extraction: guided JSON auto-routing, single-column extraction start, larger fulltext/paper-memory budgets, broader retrieval context, and real retry headroom above baseline context size.
 - Raised default prompt caps (32k tokens / 64k chars) with env overrides, and run reports now include effective prompt limits plus per-stage LLM call counts.
 - Strengthened evidence validation with header/footer rejection, strict quote-only verification, and found→inferred downgrades for weak evidence.
