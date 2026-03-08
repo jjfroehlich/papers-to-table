@@ -9,6 +9,7 @@ from xml.etree import ElementTree
 import httpx
 
 from paper_table_agent.config import GrobidConfig
+from paper_table_agent.pdf.parsed_document import ParsedDocument, ParsedElement
 
 
 @dataclass
@@ -90,3 +91,28 @@ def _collapse_text(node: ElementTree.Element) -> str:
         if cleaned:
             parts.append(cleaned)
     return " ".join(parts).strip()
+
+
+def grobid_to_parsed_document(result: GrobidResult, pdf_id: str, page_text: list[str]) -> ParsedDocument:
+    elements: list[ParsedElement] = []
+    order = 0
+    if result.abstract:
+        order += 1
+        elements.append(ParsedElement(element_id=f"grobid-{order}", element_type="abstract", text=result.abstract, page_start=1, page_end=1, order=order, heading="Abstract", provenance={"source": "grobid"}))
+    for section in result.sections:
+        title = section.get("title") or "Section"
+        body = section.get("text") or ""
+        if title:
+            order += 1
+            elements.append(ParsedElement(element_id=f"grobid-{order}", element_type="section_header", text=title, page_start=1, page_end=1, order=order, heading=title, provenance={"source": "grobid"}))
+        if body:
+            order += 1
+            elements.append(ParsedElement(element_id=f"grobid-{order}", element_type="paragraph", text=body, page_start=1, page_end=1, order=order, heading=title, provenance={"source": "grobid"}))
+    for ref in result.references:
+        order += 1
+        elements.append(ParsedElement(element_id=f"grobid-{order}", element_type="reference_block", text=ref, page_start=max(1, len(page_text)), page_end=max(1, len(page_text)), order=order, provenance={"source": "grobid"}))
+    if not elements:
+        for idx, text in enumerate(page_text, start=1):
+            order += 1
+            elements.append(ParsedElement(element_id=f"grobid-{order}", element_type="paragraph", text=text, page_start=idx, page_end=idx, order=order, provenance={"source": "grobid_fallback"}))
+    return ParsedDocument(pdf_id=pdf_id, title=result.title, page_text=page_text, elements=elements)

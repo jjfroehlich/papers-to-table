@@ -10,6 +10,8 @@ from typing import Any
 import fitz
 import pdfplumber
 
+from paper_table_agent.pdf.parsed_document import ParsedDocument, ParsedElement
+
 
 @dataclass
 class ParsedPdf:
@@ -18,6 +20,7 @@ class ParsedPdf:
     n_pages: int
     page_text: list[str]
     tokens: list[dict[str, Any]]
+    parsed_document: ParsedDocument | None = None
     header_footer_stats: dict[str, Any] = field(default_factory=dict)
 
 
@@ -51,8 +54,72 @@ def parse_pdf(path: Path) -> ParsedPdf:
         n_pages=n_pages,
         page_text=page_text,
         tokens=tokens,
+        parsed_document=_build_parsed_document("", page_text),
         header_footer_stats=header_footer_stats,
     )
+
+
+def _build_parsed_document(pdf_id: str, page_text: list[str]) -> ParsedDocument:
+    title = None
+    elements: list[ParsedElement] = []
+    order = 0
+    current_heading = None
+    for page_idx, text in enumerate(page_text, start=1):
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        if title is None and lines:
+            title = lines[0][:240]
+        paragraphs = [chunk.strip() for chunk in re.split(r"\n\s*\n+", text) if chunk.strip()]
+        for paragraph in paragraphs:
+            lowered = paragraph.lower()
+            element_type = "paragraph"
+            if _looks_like_section_header(paragraph):
+                element_type = "section_header"
+                current_heading = paragraph[:120]
+            elif lowered.startswith("abstract"):
+                element_type = "abstract"
+            elif re.match(r"(?i)^\s*(figure|fig\.)\s*\d+", paragraph):
+                element_type = "figure_caption"
+            elif re.match(r"(?i)^\s*table\s*\d+", paragraph):
+                element_type = "table_region"
+            elif _looks_like_reference_block(paragraph):
+                element_type = "reference_block"
+            elif _looks_like_table_region(paragraph):
+                element_type = "table_region"
+            order += 1
+            elements.append(
+                ParsedElement(
+                    element_id=f"el-{page_idx}-{order}",
+                    element_type=element_type,
+                    text=paragraph,
+                    page_start=page_idx,
+                    page_end=page_idx,
+                    order=order,
+                    heading=current_heading,
+                    provenance={"source": "pymupdf"},
+                )
+            )
+    return ParsedDocument(pdf_id=pdf_id, title=title, page_text=page_text, elements=elements)
+
+
+def _looks_like_table_region(text: str) -> bool:
+    lines = [line for line in text.splitlines() if line.strip()]
+    if len(lines) < 2:
+        return False
+    numeric_lines = sum(1 for line in lines if sum(char.isdigit() for char in line) >= 3)
+    pipe_lines = sum(1 for line in lines if "|" in line or "\t" in line)
+    return numeric_lines >= 2 or pipe_lines >= 1
+
+
+def _looks_like_reference_block(text: str) -> bool:
+    lowered = text.lower()
+    return lowered.startswith("references") or bool(re.match(r"^\s*\[\d+\]", text))
+
+
+def _looks_like_section_header(text: str) -> bool:
+    if len(text) > 120:
+        return False
+    tokens = text.split()
+    return 1 <= len(tokens) <= 10 and text == text.upper() or bool(re.match(r"^\d+(\.\d+)*\s+[A-Z]", text))
 
 
 def _build_page_text(page: fitz.Page) -> str:
@@ -175,8 +242,37 @@ def save_parsed(parsed: ParsedPdf, output_dir: Path) -> None:
         "path": str(parsed.path),
         "n_pages": parsed.n_pages,
         "page_text": parsed.page_text,
+        "parsed_document": {
+            "title": parsed.parsed_document.title if parsed.parsed_document else None,
+            "element_counts": parsed.parsed_document.element_type_counts() if parsed.parsed_document else {},
+        },
     }
     (output_dir / f"{parsed.pdf_id}_pymupdf.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    if parsed.parsed_document:
+        parsed_doc_path = output_dir / f"{parsed.pdf_id}_parsed_document.json"
+        parsed_doc_path.write_text(
+            json.dumps(
+                {
+                    "pdf_id": parsed.parsed_document.pdf_id,
+                    "title": parsed.parsed_document.title,
+                    "elements": [
+                        {
+                            "element_id": e.element_id,
+                            "element_type": e.element_type,
+                            "text": e.text,
+                            "page_start": e.page_start,
+                            "page_end": e.page_end,
+                            "order": e.order,
+                            "heading": e.heading,
+                            "provenance": e.provenance,
+                        }
+                        for e in parsed.parsed_document.elements
+                    ],
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
     tokens_path = output_dir / f"{parsed.pdf_id}_tokens.jsonl"
     with tokens_path.open("w", encoding="utf-8") as handle:
         for token in parsed.tokens:

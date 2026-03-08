@@ -117,3 +117,53 @@ def _verification_status(proposal: dict[str, Any]) -> str:
     if flags.get("verify_only"):
         return proposal.get("status") or "unclear"
     return flags.get("verification_status") or "unclear"
+
+
+def triage_score(proposal: dict[str, Any]) -> float:
+    score = 0.0
+    flags = proposal.get("flags") or {}
+    if proposal.get("status") == "inferred":
+        score += 3.0
+    if flags.get("needs_more_evidence") or flags.get("evidence_missing"):
+        score += 2.0
+    if flags.get("highlight_missing"):
+        score += 1.5
+    if flags.get("evidence_repaired"):
+        score += 1.0
+    if flags.get("table_derived") and not flags.get("table_evidence_present"):
+        score += 2.5
+    if flags.get("retrieval_low_confidence"):
+        score += 1.0
+    return score
+
+
+def risk_reasons(proposal: dict[str, Any]) -> list[str]:
+    flags = proposal.get("flags") or {}
+    reasons: list[str] = []
+    if proposal.get("status") == "inferred":
+        reasons.append("inferred_status")
+    if flags.get("needs_more_evidence") or flags.get("evidence_missing"):
+        reasons.append("weak_evidence")
+    if flags.get("highlight_missing"):
+        reasons.append("highlight_failed")
+    if flags.get("evidence_repaired"):
+        reasons.append("evidence_repaired")
+    if flags.get("table_derived") and not flags.get("table_evidence_present"):
+        reasons.append("table_without_table_evidence")
+    if flags.get("retrieval_low_confidence"):
+        reasons.append("retrieval_low_confidence")
+    return reasons
+
+
+def apply_review_filters(proposals: list[dict[str, Any]], weak_evidence: bool = False, inferred: bool = False, table_derived: bool = False) -> list[dict[str, Any]]:
+    filtered: list[dict[str, Any]] = []
+    for proposal in proposals:
+        flags = proposal.get("flags") or {}
+        if weak_evidence and not (flags.get("needs_more_evidence") or flags.get("evidence_missing")):
+            continue
+        if inferred and proposal.get("status") != "inferred":
+            continue
+        if table_derived and not flags.get("table_derived"):
+            continue
+        filtered.append(proposal)
+    return sorted(filtered, key=triage_score, reverse=True)

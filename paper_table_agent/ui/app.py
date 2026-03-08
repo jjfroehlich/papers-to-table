@@ -20,7 +20,7 @@ from paper_table_agent.pdf.highlight import locate_quote, render_page_image
 from paper_table_agent.store.db import Store
 from paper_table_agent.ui.defaults import load_default_run_config, resolve_default_paths
 from paper_table_agent.ui.registry import discover_runs
-from paper_table_agent.ui.review_queue import build_review_rows, remaining_review_count, review_items_for_row
+from paper_table_agent.ui.review_queue import apply_review_filters, build_review_rows, remaining_review_count, review_items_for_row, risk_reasons, triage_score
 
 DEFAULT_CONFIG_PATH = Path("run_config.json")
 LOGGER = logging.getLogger("paper_table_agent.ui")
@@ -441,6 +441,13 @@ def build_app() -> None:
             st.caption(f"Remaining items: {remaining}")
 
             review_rows = build_review_rows(rows, matches, proposals_meta, table, reviews=reviews)
+            filter_cols = st.columns(3)
+            with filter_cols[0]:
+                weak_filter = st.checkbox("Weak evidence", value=False, key="review-filter-weak")
+            with filter_cols[1]:
+                inferred_filter = st.checkbox("Inferred", value=False, key="review-filter-inferred")
+            with filter_cols[2]:
+                table_filter = st.checkbox("Table-derived", value=False, key="review-filter-table")
             matched_row_ids = {
                 str(match.get("row_id"))
                 for match in matches
@@ -459,12 +466,14 @@ def build_app() -> None:
                     proposal for proposal in proposals_meta if proposal.get("row_id") == row.get("row_id")
                 ]
                 row_proposals = _sort_proposals(row_proposals, columns)
-                review_items_by_row[str(row.get("row_id"))] = review_items_for_row(
+                items = review_items_for_row(
                     row,
                     row_proposals,
                     table,
                     reviews=reviews,
                 )
+                items = apply_review_filters(items, weak_evidence=weak_filter, inferred=inferred_filter, table_derived=table_filter)
+                review_items_by_row[str(row.get("row_id"))] = items
 
             pending_counts = {
                 row_id: len(items)
@@ -559,6 +568,10 @@ def build_app() -> None:
                         if state == "needs_more_evidence":
                             st.caption("⚠️ Needs more evidence")
                         st.caption(_evidence_badge(current))
+                        st.caption(f"Triage score: {triage_score(current):.1f}")
+                        reasons = risk_reasons(current)
+                        if reasons:
+                            st.caption("Risk reasons: " + ", ".join(reasons))
                         search_hints = (current.get("flags") or {}).get("search_hints") or []
                         if search_hints:
                             st.caption(f"Search hints: {', '.join(search_hints)}")

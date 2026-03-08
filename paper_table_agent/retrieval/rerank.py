@@ -27,7 +27,7 @@ def rerank(
         return RerankResult(chunks=[])
     if backend not in {"tfidf", "lmstudio", "stub", "hash"}:
         raise ValueError(f"Unsupported reranker backend: {backend}")
-    texts = [chunk.text for chunk in candidates]
+    texts = [chunk.retrieval_text for chunk in candidates]
     if backend == "tfidf":
         if index.vectorizer is None:
             raise ValueError("Missing vectorizer for tfidf reranking.")
@@ -52,6 +52,7 @@ def rerank(
                 chunk_idx=chunk.chunk_idx,
                 text=chunk.text,
                 text_raw=chunk.text_raw,
+                retrieval_text=chunk.retrieval_text,
                 text_norm=chunk.text_norm,
                 page_start=chunk.page_start,
                 page_end=chunk.page_end,

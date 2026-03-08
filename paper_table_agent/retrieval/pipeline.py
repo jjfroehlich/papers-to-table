@@ -210,6 +210,15 @@ def retrieve_context(
     if config.include_section_chunks:
         expanded = _include_section_chunks(index, query, expanded, limit=config.section_chunk_limit)
     trimmed = _trim_to_token_limit(expanded, config.max_context_tokens)
+    type_counts: dict[str, int] = {}
+    for item in trimmed:
+        type_counts[item.chunk_type] = type_counts.get(item.chunk_type, 0) + 1
+    debug["context_assembly"] = {
+        "selected_chunk_count": len(trimmed),
+        "selected_type_counts": type_counts,
+        "included_section_chunks": config.include_section_chunks,
+        "context_window": config.context_window,
+    }
     debug["reranked"] = [
         {
             "chunk_id": item.chunk_id,
@@ -244,6 +253,7 @@ def _include_section_chunks(
                     chunk_idx=chunk.chunk_idx,
                     text=chunk.text,
                     text_raw=chunk.text_raw,
+                    retrieval_text=chunk.retrieval_text,
                     text_norm=chunk.text_norm,
                     page_start=chunk.page_start,
                     page_end=chunk.page_end,

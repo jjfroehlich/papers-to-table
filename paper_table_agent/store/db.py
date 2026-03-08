@@ -164,7 +164,9 @@ class Store:
                 chunk.get("chunk_idx"),
                 chunk.get("text"),
                 chunk.get("text_raw"),
+                chunk.get("retrieval_text"),
                 chunk.get("text_norm"),
+                json.dumps(chunk.get("metadata", {})),
                 chunk.get("page_start"),
                 chunk.get("page_end"),
                 chunk.get("chunk_type"),
@@ -177,8 +179,8 @@ class Store:
         self.conn.executemany(
             """
             INSERT OR REPLACE INTO retrieval_chunks
-            (pdf_id, chunk_id, chunk_pk, chunk_idx, text, text_raw, text_norm, page_start, page_end, chunk_type, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (pdf_id, chunk_id, chunk_pk, chunk_idx, text, text_raw, retrieval_text, text_norm, metadata_json, page_start, page_end, chunk_type, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             payload,
         )

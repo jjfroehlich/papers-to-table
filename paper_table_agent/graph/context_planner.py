@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from paper_table_agent.config import ExtractionConfig
+from paper_table_agent.pdf.parsed_document import ParsedDocument, format_elements_for_context
 from paper_table_agent.llm.client import LlmClient, LlmJsonError, estimate_tokens, get_capability_cache
 from paper_table_agent.llm.models import PaperMemoryResult
 from paper_table_agent.llm.prompts import render_prompt
@@ -28,6 +29,7 @@ class ContextPlan:
     ctx_window_source: str | None = None
     ctx_window_reason: list[str] | None = None
     memory_stats: dict[str, Any] | None = None
+    element_diagnostics: dict[str, Any] | None = None
 
 
 def plan_context(
@@ -40,10 +42,12 @@ def plan_context(
     extraction_config: ExtractionConfig,
     run_dir: Path,
     call_recorder: Callable[[str, dict[str, Any]], None] | None = None,
+    parsed_document: ParsedDocument | None = None,
 ) -> tuple[ContextPlan, str]:
     ctx_window, ctx_window_chars, cap_meta = _effective_prompt_caps(extract_client)
     thinking_mode = _is_thinking_model(extract_client.config.model, extraction_config)
-    fulltext = _assemble_page_marked_text(page_text)
+    fulltext = _assemble_page_marked_text(page_text, parsed_document=parsed_document)
+    element_counts = parsed_document.element_type_counts() if parsed_document else {}
     trimmed_text, included_sections, trim_steps = _trim_fulltext(fulltext, extraction_config)
     prompt_tokens = _estimate_prompt_tokens(
         pdf_id,
@@ -84,6 +88,7 @@ def plan_context(
             ctx_window_source=cap_meta.get("source"),
             ctx_window_reason=cap_meta.get("reasons"),
             column_batches=column_batches,
+            element_diagnostics={"mode": "fulltext", "element_counts": element_counts},
         )
         return plan, trimmed_text
     if thinking_mode and extraction_config.paper_memory_enabled:
@@ -125,6 +130,7 @@ def plan_context(
                 ctx_window_reason=cap_meta.get("reasons"),
                 column_batches=column_batches,
                 memory_stats=memory_stats,
+            element_diagnostics={"mode": "memory", "element_counts": element_counts},
             )
             return plan, memory_payload
     batch_size = _resolve_batch_size(
@@ -150,6 +156,7 @@ def plan_context(
         ctx_window_reason=cap_meta.get("reasons"),
         column_batches=column_batches,
         memory_stats={"trim_steps": trim_steps},
+        element_diagnostics={"mode": "retrieval", "element_counts": element_counts},
     )
     return plan, ""
 
@@ -248,7 +255,9 @@ def _resolve_batch_size(
     return base
 
 
-def _assemble_page_marked_text(page_text: list[str]) -> str:
+def _assemble_page_marked_text(page_text: list[str], parsed_document: ParsedDocument | None = None) -> str:
+    if parsed_document and parsed_document.elements:
+        return format_elements_for_context(parsed_document.elements)
     parts: list[str] = []
     for idx, text in enumerate(page_text, start=1):
         if not text.strip():

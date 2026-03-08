@@ -32,23 +32,10 @@ def build_index(
 ) -> RetrievalIndex:
     if embedding_backend not in {"tfidf", "lmstudio", "stub", "hash"}:
         raise ValueError(f"Unsupported embedding backend: {embedding_backend}")
-    texts = [chunk.text for chunk in chunks]
+    texts = [chunk.retrieval_text for chunk in chunks]
     if not texts or not any(text.strip() for text in texts):
-        if embedding_backend != "tfidf" and embedding_client is None:
-            raise ValueError("Embedding client required for dense embeddings.")
-        embeddings = (
-            np.empty((0, 0), dtype=np.float32)
-            if embedding_backend == "tfidf"
-            else embedding_client.embed_texts([])  # type: ignore[union-attr]
-        )
-        return RetrievalIndex(
-            chunks=[],
-            bm25=BM25Okapi([["__empty__"]]),
-            vectorizer=None,
-            embeddings=embeddings,
-            embedding_backend=embedding_backend,
-            embedding_model=embedding_model,
-        )
+        embeddings = np.empty((0, 0), dtype=np.float32) if embedding_backend == "tfidf" else embedding_client.embed_texts([])  # type: ignore[union-attr]
+        return RetrievalIndex(chunks=[], bm25=BM25Okapi([["__empty__"]]), vectorizer=None, embeddings=embeddings, embedding_backend=embedding_backend, embedding_model=embedding_model)
     tokens = [text.split() for text in texts]
     bm25 = BM25Okapi(tokens)
     vectorizer: TfidfVectorizer | None = None
@@ -59,23 +46,14 @@ def build_index(
         if embedding_client is None:
             raise ValueError("Embedding client required for dense embeddings.")
         embeddings = embedding_client.embed_texts(texts)
-        if embeddings.size == 0 or embeddings.shape[0] != len(texts):
-            raise ValueError("Embedding backend returned empty or mismatched embeddings.")
-    return RetrievalIndex(
-        chunks=chunks,
-        bm25=bm25,
-        vectorizer=vectorizer,
-        embeddings=embeddings,
-        embedding_backend=embedding_backend,
-        embedding_model=embedding_model,
-    )
+    return RetrievalIndex(chunks=chunks, bm25=bm25, vectorizer=vectorizer, embeddings=embeddings, embedding_backend=embedding_backend, embedding_model=embedding_model)
 
 
 def chunks_hash(chunks: list[Chunk]) -> str:
     hasher = hashlib.sha1()
     for chunk in chunks:
         hasher.update(chunk.chunk_id.encode("utf-8"))
-        hasher.update(chunk.text.encode("utf-8"))
+        hasher.update(chunk.retrieval_text.encode("utf-8"))
         hasher.update(str(chunk.page_start).encode("utf-8"))
         hasher.update(str(chunk.page_end).encode("utf-8"))
     return hasher.hexdigest()
@@ -83,25 +61,14 @@ def chunks_hash(chunks: list[Chunk]) -> str:
 
 def save_index(index: RetrievalIndex, output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
-    chunks_path = output_dir / "chunks.jsonl"
-    with chunks_path.open("w", encoding="utf-8") as handle:
+    with (output_dir / "chunks.jsonl").open("w", encoding="utf-8") as handle:
         for chunk in to_dicts(index.chunks):
             handle.write(json.dumps(chunk) + "\n")
     np.save(output_dir / "embeddings.npy", index.embeddings)
     if index.vectorizer is not None:
         with (output_dir / "vectorizer.pkl").open("wb") as handle:
             pickle.dump(index.vectorizer, handle)
-    (output_dir / "index_meta.json").write_text(
-        json.dumps(
-            {
-                "chunks_hash": chunks_hash(index.chunks),
-                "embedding_backend": index.embedding_backend,
-                "embedding_model": index.embedding_model,
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
+    (output_dir / "index_meta.json").write_text(json.dumps({"chunks_hash": chunks_hash(index.chunks), "embedding_backend": index.embedding_backend, "embedding_model": index.embedding_model}, indent=2), encoding="utf-8")
 
 
 def load_index(output_dir: Path) -> RetrievalIndex | None:
@@ -114,70 +81,39 @@ def load_index(output_dir: Path) -> RetrievalIndex | None:
     with chunks_path.open("r", encoding="utf-8") as handle:
         for line in handle:
             payload = json.loads(line)
-            chunks.append(
-                Chunk(
-                    chunk_id=payload["chunk_id"],
-                    chunk_pk=payload.get("chunk_pk", ""),
-                    chunk_idx=int(payload.get("chunk_idx", 0)),
-                    text=payload["text"],
-                    text_raw=payload.get("text_raw", payload["text"]),
-                    text_norm=payload.get("text_norm", payload["text"]),
-                    page_start=int(payload["page_start"]),
-                    page_end=int(payload["page_end"]),
-                    chunk_type=payload.get("chunk_type", payload.get("source", "page")),
-                    neighbors=payload.get("neighbors", []),
-                )
-            )
+            chunks.append(Chunk(
+                chunk_id=payload["chunk_id"], chunk_pk=payload.get("chunk_pk", ""), chunk_idx=int(payload.get("chunk_idx", 0)),
+                text=payload["text"], text_raw=payload.get("text_raw", payload["text"]), retrieval_text=payload.get("retrieval_text", payload["text"]),
+                text_norm=payload.get("text_norm", payload["text"]), page_start=int(payload["page_start"]), page_end=int(payload["page_end"]),
+                chunk_type=payload.get("chunk_type", payload.get("source", "page")), neighbors=payload.get("neighbors", []), metadata=payload.get("metadata", {}),
+            ))
     embeddings = np.load(embeddings_path)
-    vectorizer: TfidfVectorizer | None = None
-    if chunks:
-        tokens = [chunk.text.split() for chunk in chunks]
-        bm25 = BM25Okapi(tokens)
-    else:
-        bm25 = BM25Okapi([["__empty__"]])
-    embedding_backend = "tfidf"
-    embedding_model = None
+    bm25 = BM25Okapi([c.retrieval_text.split() for c in chunks]) if chunks else BM25Okapi([["__empty__"]])
     meta_path = output_dir / "index_meta.json"
+    backend, model = "tfidf", None
     if meta_path.exists():
         try:
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
-            embedding_backend = meta.get("embedding_backend", "tfidf")
-            embedding_model = meta.get("embedding_model")
+            backend, model = meta.get("embedding_backend", "tfidf"), meta.get("embedding_model")
         except json.JSONDecodeError:
-            embedding_backend = "tfidf"
-            embedding_model = None
-    if embedding_backend == "tfidf":
+            pass
+    vectorizer = None
+    if backend == "tfidf":
         if not vectorizer_path.exists():
             return None
         with vectorizer_path.open("rb") as handle:
             vectorizer = pickle.load(handle)
-    return RetrievalIndex(
-        chunks=chunks,
-        bm25=bm25,
-        vectorizer=vectorizer,
-        embeddings=embeddings,
-        embedding_backend=embedding_backend,
-        embedding_model=embedding_model,
-    )
+    return RetrievalIndex(chunks=chunks, bm25=bm25, vectorizer=vectorizer, embeddings=embeddings, embedding_backend=backend, embedding_model=model)
 
 
-def load_index_if_fresh(
-    output_dir: Path,
-    chunks: list[Chunk],
-    embedding_backend: str,
-    embedding_model: str | None = None,
-) -> RetrievalIndex | None:
-    meta_path = output_dir / "index_meta.json"
-    if not meta_path.exists():
+def load_index_if_fresh(output_dir: Path, chunks: list[Chunk], embedding_backend: str = "tfidf", embedding_model: str | None = None) -> RetrievalIndex | None:
+    index = load_index(output_dir)
+    if index is None:
         return None
-    try:
-        meta = json.loads(meta_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
+    if chunks_hash(chunks) != chunks_hash(index.chunks):
         return None
-    if meta.get("chunks_hash") != chunks_hash(chunks):
+    if index.embedding_backend != embedding_backend:
         return None
-    if meta.get("embedding_backend", "tfidf") != embedding_backend:
+    if (index.embedding_model or None) != (embedding_model or None):
         return None
-    if meta.get("embedding_model") != embedding_model:
-        return None
-    return load_index(output_dir)
+    return index

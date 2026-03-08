@@ -17,6 +17,7 @@ class ColumnSpec:
     source: str | None = None
     in_paper: bool | None = None
     metadata_only: bool | None = None
+    retrieval_hint: str | None = None
 
 
 def _coerce_bool(value: object) -> bool | None:
@@ -56,6 +57,9 @@ def load_schema(path: Path, sheet_name: str) -> list[ColumnSpec]:
                 in_paper=_coerce_bool(row.get("in_paper")) if "in_paper" in dataframe.columns else None,
                 metadata_only=_coerce_bool(row.get("metadata_only"))
                 if "metadata_only" in dataframe.columns
+                else None,
+                retrieval_hint=str(row.get("retrieval_hint") or "").strip().lower() or None
+                if "retrieval_hint" in dataframe.columns
                 else None,
             )
         )

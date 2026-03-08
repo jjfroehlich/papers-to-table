@@ -16,6 +16,7 @@ def test_dense_retrieval_scores():
             chunk_idx=1,
             text="gene editing method",
             text_raw="gene editing method",
+            retrieval_text="type:paragraph | page:1\ngene editing method",
             text_norm="gene editing method",
             page_start=1,
             page_end=1,
@@ -28,6 +29,7 @@ def test_dense_retrieval_scores():
             chunk_idx=2,
             text="control group",
             text_raw="control group",
+            retrieval_text="type:paragraph | page:2\ncontrol group",
             text_norm="control group",
             page_start=2,
             page_end=2,
@@ -74,6 +76,7 @@ def test_hash_embedding_backend_retrieval():
             chunk_idx=1,
             text="gene editing method",
             text_raw="gene editing method",
+            retrieval_text="type:paragraph | page:1\ngene editing method",
             text_norm="gene editing method",
             page_start=1,
             page_end=1,
@@ -86,6 +89,7 @@ def test_hash_embedding_backend_retrieval():
             chunk_idx=2,
             text="control group",
             text_raw="control group",
+            retrieval_text="type:paragraph | page:2\ncontrol group",
             text_norm="control group",
             page_start=2,
             page_end=2,
@@ -96,3 +100,39 @@ def test_hash_embedding_backend_retrieval():
     index = build_index(chunks, embedding_backend="hash", embedding_client=HashEmbeddingClient())
     results = retrieve(index, "gene editing", top_k=2, embedder=HashEmbeddingClient(), use_dense=True)
     assert results
+
+
+def test_retrieval_prefers_retrieval_text_contextual_terms():
+    chunks = [
+        Chunk(
+            chunk_id="c1",
+            chunk_pk="pk1",
+            chunk_idx=1,
+            text="alpha",
+            text_raw="alpha",
+            retrieval_text="type:figure_caption | page:1\nrare_marker",
+            text_norm="alpha",
+            page_start=1,
+            page_end=1,
+            chunk_type="figure_caption",
+            neighbors=[],
+        ),
+        Chunk(
+            chunk_id="c2",
+            chunk_pk="pk2",
+            chunk_idx=2,
+            text="beta",
+            text_raw="beta",
+            retrieval_text="type:paragraph | page:1\ncommon",
+            text_norm="beta",
+            page_start=1,
+            page_end=1,
+            chunk_type="paragraph",
+            neighbors=[],
+        ),
+    ]
+    index = build_index(chunks)
+    assert index.vectorizer is not None
+    vocab = set(index.vectorizer.vocabulary_.keys())
+    assert "rare_marker" in vocab
+    assert "alpha" not in vocab
