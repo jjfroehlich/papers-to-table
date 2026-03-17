@@ -112,7 +112,7 @@ A developer or advanced user who inspects diagnostics to understand matching, ex
 - Accept, accept-with-edit, reject, and guarded bulk acceptance of the currently visible filtered proposal subset.
 - Navigation through proposals without recording a decision.
 - Exporting an updated XLSX table and an audit log.
-- Preserving formatting for the main table sheet in the exported table and visually marking updated cells with distinct background coloring.
+- Preserving cell content in the exported table and visually marking updated cells with distinct background coloring.
 - Writing run diagnostics and evaluation outputs.
 - Keeping unmatched or ambiguous PDFs visible for manual inspection.
 
@@ -172,7 +172,7 @@ For each run, the system must produce:
 - No spreadsheet cell is updated automatically without an explicit human decision.
 - All exported changes are traceable back to reviewed proposals.
 - The exported table must remain in XLSX format, even when the input table is CSV.
-- The exported XLSX table should preserve the formatting and layout of the main table sheet of the input table.
+- The exported XLSX table should preserve cell content, but workbook formatting, layout, formulas, filters, frozen panes, hidden rows/columns, merged cells, conditional formatting, comments, named ranges, and similar workbook behavior are out of guarantee for MVP.
 - Cells changed through accepted proposals must be visually highlighted in the exported XLSX table.
 - Diagnostic outputs remain available after the run finishes.
 - Evaluation outputs remain available even when there are no verified cells, with a clear status or explanation instead of silent empty metrics.
@@ -359,7 +359,7 @@ The original input table must remain unchanged.
 
 Changed cells must be visually highlighted in the exported table.
 
-Formatting preservation is required for the main table sheet only.
+The export guarantee is content-only fidelity plus changed-cell highlighting. Workbook formatting, formulas, filters, frozen panes, hidden rows/columns, merged cells, conditional formatting, comments, named ranges, and similar workbook behavior are out of guarantee for MVP.
 
 The audit log must include, at minimum:
 - row identifier
@@ -577,11 +577,11 @@ Given accepted proposals,
 when the user exports results,  
 then the system produces an updated XLSX table and an audit log containing only approved changes, while leaving the original input table unchanged.
 
-### AC-10 Export formatting
+### AC-10 Export fidelity
 
 Given an exported XLSX table,  
 when the export is opened,  
-then the table preserves the formatting of the main table sheet from the input table and highlights cells changed through accepted proposals.
+then the table preserves accepted and unchanged cell content correctly, highlights cells changed through accepted proposals, and does not promise preservation of workbook formatting or other workbook behavior.
 
 ### AC-11 Diagnostic transparency
 

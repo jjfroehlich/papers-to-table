@@ -63,23 +63,23 @@ The main research questions for this phase were:
 - Retrieval should operate over **typed chunks** and may use contextualized `retrieval_text`, but reviewer-visible evidence must remain anchored to source-preserving text.
 - Table-aware retrieval looks like a likely structural improvement for this product, but more advanced retrieval helpers must prove lift before becoming baseline.
 - The review experience requires a **dedicated Run/Review UI**, and the strongest current MVP recommendation is a **queue-first / list-detail review workflow** rather than a spreadsheet-first or wizard-only design. :contentReference[oaicite:7]{index=7}
-- The strongest current UI stack recommendation is a **desktop wrapper around a web app**, specifically **Tauri 2 + React + TypeScript + Vite + PDF.js + TanStack Table/Virtual + a Python FastAPI sidecar + SQLite**. :contentReference[oaicite:8]{index=8}
-- The system should use **filesystem run artifacts as the canonical run bundle** and **SQLite as the operational review/query store**.
-- Export should generate a **new updated XLSX workbook plus audit log**, not patch arbitrary workbooks in place, and **openpyxl** is the most realistic Python round-trip engine for that MVP behavior. Advanced workbook artifacts should remain best-effort or out of guarantee. :contentReference[oaicite:9]{index=9}
+- The strongest current UI stack recommendation is a **local browser app**, specifically **React + TypeScript + Vite + raw/custom PDF.js + TanStack Table/Virtual + a small Python FastAPI service**, with no desktop shell required for MVP.
+- The system should use **filesystem run artifacts as the canonical and sufficient MVP state**, with proposals, review state, diagnostics, and summaries stored as JSON files inside each run bundle.
+- Export should generate a **new updated XLSX workbook plus audit log**, not patch arbitrary workbooks in place, and **openpyxl** is the most realistic Python engine for that MVP behavior. The fidelity promise should be **content-only plus changed-cell highlighting**, with workbook behavior and advanced sheet features out of guarantee.
 - The implementation should use a **deterministic staged pipeline first**, with only targeted LLM-assisted stages.
-- The strongest current MVP runtime recommendation is **an app-owned staged runner plus Huey with SqliteHuey** for background execution, rather than graph-first orchestration or a heavier workflow platform. :contentReference[oaicite:10]{index=10}
+- The strongest current MVP runtime recommendation is **an app-owned staged runner executed synchronously inside the FastAPI service first**, with any background-job layer deferred until UI responsiveness proves it necessary.
 - Structured outputs should be the **default contract path**, with capability probes and graceful fallback for weaker providers.
 - Heavy orchestration or graph-first agent systems should be **deferred** unless measured workflow complexity clearly justifies them.
 - In MVP, evaluation should be based primarily on **reviewer-outcome statistics**, not on a single automated “correctness score” over heterogeneous field types.
-- Existing filled spreadsheet cells should **not** be used as free-form semantic few-shot examples by default. If used at all, they should act as **format/style guidance only**, with explicit safeguards against hallucination and evaluation leakage. :contentReference[oaicite:11]{index=11}
-- Figure-derived proposals should be monitored as a **separate evidence lane** with their own reviewer-outcome and reviewer-effort metrics from day one. :contentReference[oaicite:12]{index=12}
+- Existing filled spreadsheet cells should be processed through a **per-column preprocessing LLM** that produces a structured style/format profile. Raw filled cells should **not** be passed into extraction prompts as semantic exemplars by default.
+- Figure-aware fallback should remain available, but the heavier reasoning-plus-vision path should be triggered only when the field is likely figure- or table-derived, text retrieval failed, or the user explicitly requests fallback. Human review remains the only MVP evaluation path.
 
 ### Provisional conclusions
 
 - GROBID may still be useful, but it should be optional or deferred unless measured lift justifies making it part of the default shipping path.
 - Dense retrieval, reranking, HyDE, query expansion, and memory-style context modes may still be useful, but they must prove lift before becoming baseline behavior.
-- Automated per-run scoring for Verify mode may still be useful later, but it is not necessary for MVP.
-- A paid PDF-viewer layer may still be attractive later for faster delivery or richer annotation ergonomics, but the default recommendation remains a custom PDF.js-based evidence viewer. :contentReference[oaicite:13]{index=13}
+- Automated per-run scoring for Verify mode may still be useful later, but it is explicitly deferred beyond MVP.
+- A desktop shell such as Tauri may still be attractive later for packaging, but the MVP recommendation is a local browser app with a custom PDF.js-based evidence viewer.
 
 ### Immediate planning impact
 
@@ -276,7 +276,7 @@ GROBID remains a plausible enrichment path because it is specialized for scienti
 - [TODO: Confirm pypdfium2/PDFium as the final low-level PDF default after licensing posture review.]
 - [TODO: Decide whether GROBID is in first shipping scope or deferred until measured lift is shown.]
 - [TODO: Evaluate whether a table-specific rescue parser should be included in v1 or deferred to a later phase.]
-- [TODO: Decide the OCR sidecar choice for image-only/scanned pages.]
+- [TODO: Validate OCRmyPDF + Tesseract on a small scanned-paper fixture set and confirm the artifact flow is sufficient for MVP.]
 
 ---
 
@@ -324,7 +324,7 @@ This research directly supports:
 
 ## TODO / open follow-up
 
-- [TODO: Decide whether full `ParsedElement` records need to be persisted in the operational DB or whether parser artifacts plus derived chunks are enough for v1.]
+- [TODO: Decide whether full `ParsedElement` records should appear in stable JSON artifacts or remain parser-native debug artifacts in MVP.]
 - [TODO: Define the exact normalized contract versioning strategy.]
 
 ---
@@ -478,7 +478,7 @@ This research supports:
 
 ## TODO / open follow-up
 
-- [TODO: Finalize the frontend PDF-viewer choice and document the coordinate system used in highlight anchors.]
+- [TODO: Document the coordinate system used between PDFium anchors and the PDF.js overlay layer.]
 - [TODO: Decide whether bulk acceptance should apply to all remaining proposals or only to the currently visible filtered subset.]
 - [TODO: Define the minimum MVP review filters, counters, and keyboard actions.]
 - [TODO: Define the reviewer-facing labels for support states, e.g. “Direct evidence” vs “Inferred from evidence”.]
@@ -500,23 +500,19 @@ The product needs not only the right interaction model, but also the right imple
 
 The strongest current MVP stack recommendation is:
 
-- **Tauri 2** as the desktop shell
-- **React + TypeScript + Vite** for the frontend
+- **React + TypeScript + Vite** for a local browser UI
 - **Tailwind + shadcn/ui** or a similarly lightweight custom component layer
 - **TanStack Table + TanStack Virtual** for the review queue
-- **PDF.js** as the core PDF evidence viewer
-- **Python + FastAPI** packaged as a sidecar for extraction/review backend logic
-- **SQLite** for local persistence :contentReference[oaicite:22]{index=22}
+- **raw/custom PDF.js** as the core PDF evidence viewer
+- **Python + FastAPI** for extraction and review backend logic
+- **filesystem artifact bundles plus JSON files** for local persistence
+- **LM Studio localhost API** as the initial LLM provider
 
 ## Why this conclusion won
 
-### Desktop wrapper around a web app beats browser-only MVP
+### Local browser app is sufficient for MVP
 
-A local browser app is fine for rapid prototyping, but a packaged desktop shell provides cleaner file handling, a more controlled runtime environment, and a more dedicated work-tool experience. :contentReference[oaicite:23]{index=23}
-
-### Tauri is a better fit than Electron for this MVP
-
-Tauri provides a strong local desktop shell without bundling a full Chromium runtime into every build, which better matches a local-first single-user scientific workbench. :contentReference[oaicite:24]{index=24}
+Because the app is single-user, local-first, and artifact-based, a local browser UI plus a small FastAPI service is sufficient for MVP. It removes packaging complexity without weakening the core workflow.
 
 ### React ecosystem fit is strongest for this UI
 
@@ -544,8 +540,8 @@ This research supports:
 
 ## TODO / open follow-up
 
-- [TODO: Decide whether MVP uses raw PDF.js with a custom evidence viewer or a paid wrapper/SDK for faster delivery.]
-- [TODO: Decide whether AG Grid Community should be kept as a fallback if the queue becomes more spreadsheet-like than expected.]
+- [TODO: Decide whether the first viewer overlay implementation is entirely custom or borrows specific interaction patterns from react-pdf-highlighter-style tooling.]
+- [TODO: Decide how much frontend keyboard navigation should ship in the first review UI slice versus the second pass.]
 - [TODO: Decide how much of the backend remains in Python versus any future Rust/desktop-native pieces.]
 
 ---
@@ -565,7 +561,7 @@ The product should generate a **new updated workbook plus an audit log**, not pa
 The current product direction is:
 
 - export to a **new XLSX workbook**
-- preserve formatting for the **main table sheet**
+- preserve **cell content only**
 - visually highlight cells changed through accepted proposals
 - keep the original input workbook unchanged
 
@@ -573,29 +569,27 @@ The most realistic Python round-trip engine for this is **openpyxl**. XlsxWriter
 
 ## Practical expectation for v1
 
-Preserving the main table sheet layout and ordinary cell formatting is part of the product promise. Perfect preservation of all advanced workbook features across arbitrary workbooks should not be assumed unless explicitly proven and documented.
+The MVP promise is content-only fidelity, not workbook-behavior fidelity.
 
-The strongest current product boundary is:
+### Guaranteed
+- accepted cell values are written into the exported XLSX
+- unchanged cell content is carried forward
+- changed cells are visually highlighted
 
-### Realistic to guarantee on the main table sheet
-- ordinary cell values and formulas on untouched cells
-- ordinary cell formatting on untouched cells
-- row/column sizing and hidden state
-- freeze panes
-- existing filters
-- merged ranges, as long as the app does not structurally rewrite them
-
-### Best-effort only
+### Out of guarantee
+- formulas
+- filters
+- frozen panes
+- hidden rows or columns
+- merged cells
 - conditional formatting
 - comments
 - named ranges
-
-### Out of scope / no guarantee
 - charts
 - shapes
 - images/drawings
 - macros
-- arbitrary workbook-wide advanced artifacts outside the main table sheet :contentReference[oaicite:27]{index=27}
+- arbitrary workbook-wide advanced artifacts outside plain cell content
 
 ## Consequences for implementation
 
@@ -603,8 +597,7 @@ This research directly supports the `plan.md` export strategy and the current pr
 
 ## TODO / open follow-up
 
-- [TODO: Define the exact scope of workbook fidelity promised for the main table sheet, especially for formulas, filters, frozen panes, hidden columns, merged cells, conditional formatting, comments, and named ranges.]
-- [TODO: Decide whether workbooks with charts/shapes should be warn-only or hard-blocked in MVP.]
+- [TODO: Decide whether workbooks with heavy non-cell artifacts should be warn-only or hard-blocked in MVP.]
 - [TODO: Decide whether CSV export parity needs to be documented separately.]
 
 ---
@@ -625,10 +618,10 @@ A single storage approach does not serve all of those equally well.
 
 ## Main conclusion
 
-Use a hybrid model:
+Use a filesystem-only MVP model:
 
-- **filesystem run artifacts** as the canonical audit/reproducibility bundle
-- **SQLite** as the operational state/query/checkpoint store
+- **filesystem run artifacts** as the canonical audit, reproducibility, and operational state bundle
+- **JSON files** inside each run directory for proposals, evidence, review state, diagnostics, summaries, and export bookkeeping
 
 ## Why this combination won
 
@@ -639,17 +632,19 @@ Use a hybrid model:
 - preserving parser outputs and logs
 - reproducibility
 
-### SQLite is best for
+### JSON artifacts are sufficient for MVP
+
+For a single-user local app, JSON files inside a per-run bundle are sufficient for:
 
 - proposal lists
 - review state
-- filtering/triage
-- checkpoints
+- filtering and triage support
+- checkpoints at stage boundaries
 - export bookkeeping
 
 ## Consequences for implementation
 
-This directly supports the distinction in `plan.md` between canonical artifacts and operational DB state.
+This directly supports the simplified artifact-only persistence strategy in `plan.md`.
 
 ## TODO / open follow-up
 
@@ -668,14 +663,14 @@ The question was whether v1 should be built around a heavyweight orchestration/a
 
 ## Main conclusion
 
-The app should use a **deterministic app-owned staged runner first** with a lightweight background job library. The strongest current MVP recommendation is **Huey + SqliteHuey**, with the queue library used only to execute stages, not to own workflow logic. :contentReference[oaicite:28]{index=28}
+The app should use a **deterministic app-owned staged runner first**, executed synchronously in the FastAPI service. A lightweight background job library may be added later, but it is not required for MVP.
 
 ## Why this conclusion won
 
 - It preserves a simple staged pipeline.
 - It avoids graph-first orchestration.
-- It avoids requiring Redis or heavier workflow servers for MVP.
-- It still provides retries, scheduling, locks, revocation/rescheduling, and background execution. :contentReference[oaicite:29]{index=29}
+- It avoids requiring a queue system before the app proves it needs one.
+- It keeps the first implementation easier to inspect and debug.
 
 ### Why not heavier orchestrators
 
@@ -697,15 +692,14 @@ The queue library should only run stage jobs in the background. :contentReferenc
 This research supports:
 
 - simple stage-based pipeline execution
-- background execution through Huey
+- synchronous execution first, with background execution deferred unless needed
 - explicit checkpoints at stage boundaries
 - “resume from last committed stage” semantics rather than durable replay of arbitrary mid-stage execution
 
 ## TODO / open follow-up
 
-- [TODO: Confirm Huey + SqliteHuey as the final MVP runtime choice.]
-- [TODO: Decide whether RQ becomes the fallback if Redis is acceptable and more queue visibility is desired.]
-- [TODO: Decide whether the narrow evidence-location step should run inline in extraction or as a separate queued stage.]
+- [TODO: Decide which lightweight background-job mechanism to add first if synchronous execution proves insufficient.]
+- [TODO: Decide whether the narrow evidence-location step should run inline in extraction or as a separate later stage.]
 
 ---
 
@@ -742,6 +736,10 @@ This supports:
 - `ProviderProbe` records
 - typed extraction contracts
 - optional prompt/response logging
+
+## Current MVP provider choice
+
+The initial MVP provider should be **LM Studio via its localhost API**. This keeps the default path local-first while preserving the same structured-output contract for future providers.
 
 ## TODO / open follow-up
 
@@ -795,9 +793,7 @@ They align directly with the product’s purpose: reducing reviewer effort while
 
 ## Evaluation hygiene and leakage
 
-If filled cells from the same table are used both as prompt examples and as evaluation/verification targets, scores can be inflated.
-
-The rewrite should therefore plan for leakage-safe evaluation rules, including split-aware example exclusion or equivalent safeguards, before treating any verify-mode metric as strong evidence of product quality.
+Leakage-safe benchmark design is deferred because MVP does not depend on automated verification scoring. If a future automated Verify-mode benchmark is added, prompt-shaping inputs and evaluation targets will need explicit separation rules.
 
 ## Measurement integrity requirements
 
@@ -835,7 +831,7 @@ The question was whether to use already-filled cells as examples in extraction p
 
 Do **not** use existing filled cells as free-form semantic few-shot examples by default.
 
-The strongest current recommendation is to use them, if at all, only as **non-binding format/style guidance**, not as semantic evidence for what the answer should be. :contentReference[oaicite:32]{index=32}
+Instead, run a **per-column preprocessing LLM** over existing filled cells to create a structured style/format profile. That profile may guide extraction output shape, tone, and level of detail, but not likely scientific content.
 
 ## Why this conclusion won
 
@@ -859,31 +855,30 @@ Using real existing entries as semantic examples can create:
 
 The research supports a safer design:
 - use schema descriptions first
-- optionally derive a style/format profile from existing cells
+- derive a structured style/format profile from existing cells using a preprocessing LLM
+- avoid heuristic-only format inference
 - avoid feeding raw semantic examples by default
-- if examples are ever used, constrain them to low-risk field types and exclude them from evaluation targets :contentReference[oaicite:33]{index=33}
 
 ## Recommended MVP design
 
 - Use `column_name` and `description` as the primary specification.
-- Allow optional **format/style guidance** derived from existing column entries.
-- Keep that guidance limited to output shape and formatting, not semantic content.
-- Avoid using raw existing cells as few-shot semantic exemplars in Verify mode.
+- Use a preprocessing LLM for every column to derive a structured style/format profile from existing entries.
+- Keep that profile limited to output shape and formatting, not semantic content.
+- Avoid using raw existing cells as few-shot semantic exemplars by default.
 - Do not allow example-derived guidance to override evidence from the current PDF.
 
 ## Consequences for implementation
 
 This supports:
 - schema-first extraction
-- optional column style profiling
+- preprocessing-LLM column style profiling
 - stronger distinction between format guidance and semantic evidence
-- leakage-aware Verify mode design
+- future leakage-aware Verify mode design if automated scoring is ever added
 
 ## TODO / open follow-up
 
-- [TODO: Decide which field types may use format/style guidance in v1, e.g. numeric, boolean, categorical, ranges, templated short text.]
-- [TODO: Decide whether format/style guidance should be derived heuristically or generated by a preprocessing model.]
-- [TODO: Define the minimum safeguards if real existing entries are ever used more directly in prompts.]
+- [TODO: Define the JSON schema for the per-column style/format profile artifact.]
+- [TODO: Define the minimum safeguards if real existing entries are ever used more directly in prompts later.]
 
 ---
 
@@ -1025,26 +1020,9 @@ Multi-panel figures with shared captions and panel-specific meanings are signifi
 
 These are difficult, but they are in the current product scope. That means the product must rely heavily on human review and evidence display rather than implying broad fully automatic reliability.
 
-## Figure-derived proposal monitoring
+## Figure evaluation boundary
 
-The strongest current monitoring recommendation is to treat figure-derived proposals as a **separate assistance lane** with their own metrics, rather than folding them into overall extraction metrics. Useful MVP metrics include:
-
-- figure proposal count/share
-- accept-as-is rate
-- accept-with-edit rate
-- reject rate
-- median review time
-- evidence-open rate
-- edit burden
-- figure-only fill contribution
-- failure-code breakdown
-- sampling-based second-review precision on accepted figure proposals :contentReference[oaicite:34]{index=34}
-
-Figure classes should be tracked separately in a small taxonomy, such as:
-- chart / quantitative plot
-- diagram / schematic
-- image-based scientific figure
-- composite / mixed / other :contentReference[oaicite:35]{index=35}
+MVP does not require a separate automated evaluation track for figure-derived proposals. Figure-based evidence should remain visible and reviewable, but usefulness is assessed through the same human reviewer outcomes used elsewhere in the product.
 
 ## Useful tools and how they could help
 
@@ -1095,14 +1073,14 @@ This research suggests that both `spec.md` and `plan.md` should acknowledge:
 - vision fallback as a non-default extraction path
 - broader figure support in the current product scope
 - figure-based review evidence in the UI
-- monitoring of figure-derived proposal outcomes separately enough to validate the broad MVP scope
+- human review as the governing evaluation path for figure-derived proposals
 
 ## TODO / open follow-up
 
 - [TODO: Define the minimum figure evidence object needed in `data-model.md` and `contracts/`.]
 - [TODO: Decide whether a first-class `FigureItem` entity is needed or whether figure support can begin as parser/caption metadata plus evidence anchors.]
 - [TODO: Evaluate whether chart-to-table enrichment is stable enough to include in the first shipping parser path.]
-- [TODO: Define how figure-derived proposal outcomes should be tracked separately enough to monitor whether the broad MVP scope is working.]
+- [TODO: Define which figure-derived metadata fields must be retained in proposal artifacts for review and debugging.]
 
 ---
 
@@ -1220,15 +1198,9 @@ It would add substantial complexity around authentication, concurrency, and revi
 
 These questions remain open and should be resolved explicitly rather than assumed away.
 
-- [NEEDS MORE RESEARCH: What exact workbook fidelity guarantees should be promised for the main table sheet in v1 documentation?]
-- [NEEDS MORE RESEARCH: Which background job/runtime library is the final concrete fit for v1, and is Huey + SqliteHuey sufficient once packaging and failure semantics are tested?]
-- [NEEDS MORE RESEARCH: Which UI component stack best supports queue-first review, PDF highlighting, figure crop/full-page display, and efficient local-first desktop use?]
 - [NEEDS MORE RESEARCH: Should a future automated Verify-mode score exist in addition to reviewer-outcome metrics, and if so, how should it be designed?]
-- [NEEDS MORE RESEARCH: Which field types may safely use style/format guidance derived from existing filled cells in MVP?]
-- [NEEDS MORE RESEARCH: What is the most robust way to monitor figure-derived proposal quality separately enough to validate the broad MVP figure scope?]
 - [NEEDS MORE RESEARCH: Should a table-specific rescue parser be included in v1 or deferred?]
-- [NEEDS MORE RESEARCH: Should full parsed elements be persisted in the operational database or only in artifacts with chunk projections stored in DB?]
-- [NEEDS MORE RESEARCH: What exact provider/model transparency must appear in the normal run summary versus only in advanced logs?]
+- [NEEDS MORE RESEARCH: Which JSON artifacts should be considered stable external interfaces versus internal implementation details in MVP?]
 
 ---
 
@@ -1266,18 +1238,19 @@ The current research supports a clear implementation direction:
 
 Paper Table Agent should be built as a **local-first, workflow-centered paper-to-table review system** with:
 
-- a dedicated queue-first Run/Review UI
+- a dedicated queue-first local browser UI
 - a parser-contract-first ingestion stack
 - one main parser first, with optional later enrichments if they prove lift
 - PDFium/pypdfium2 as the low-level PDF backend for rendering/anchoring/crops
+- OCRmyPDF plus Tesseract as the scanned-PDF fallback
 - typed retrieval units with source-preserving evidence display
-- filesystem artifacts plus SQLite operational state
-- a deterministic staged runner with lightweight background jobs
-- structured-output-first extraction with provider fallbacks
+- filesystem artifact bundles and JSON files as the complete MVP persistence model
+- a deterministic staged runner executed synchronously first inside FastAPI
+- LM Studio localhost API as the default structured-output provider
 - reviewer-outcome-based MVP evaluation
-- optional style/format guidance rather than semantic few-shot examples
-- figure-aware fallback plus separate monitoring of figure-derived proposal quality
-- reviewed export into a new workbook and audit log
+- preprocessing-LLM-derived style profiles rather than raw semantic examples
+- figure-aware fallback with tightly scoped reasoning-plus-vision escalation
+- reviewed export into a new workbook and audit log with content-only fidelity
 
 It also needs explicit measurement integrity requirements so empty or non-interpretable evaluation states cannot quietly masquerade as normal results.
 
