@@ -37,7 +37,7 @@ The main research questions for this phase were:
 2. How should parsed outputs be normalized for retrieval and reviewer-visible evidence?
 3. What retrieval design best supports schema-driven extraction from papers?
 4. What UI shape best supports proposal review with PDF evidence?
-5. Which technical stack best fits a local-first desktop review UI?
+5. Which technical stack best fits a local-first review UI delivered as a browser app?
 6. How should spreadsheet export work, and what are the realistic fidelity limits?
 7. What should be canonical state: filesystem artifacts, database state, or both?
 8. Does v1 need an orchestration/agent framework, or is a deterministic pipeline enough?
@@ -64,15 +64,15 @@ The main research questions for this phase were:
 - Table-aware retrieval looks like a likely structural improvement for this product, but more advanced retrieval helpers must prove lift before becoming baseline.
 - The review experience requires a **dedicated Run/Review UI**, and the strongest current MVP recommendation is a **queue-first / list-detail review workflow** rather than a spreadsheet-first or wizard-only design. :contentReference[oaicite:7]{index=7}
 - The strongest current UI stack recommendation is a **local browser app**, specifically **React + TypeScript + Vite + raw/custom PDF.js + TanStack Table/Virtual + a small Python FastAPI service**, with no desktop shell required for MVP.
-- The system should use **filesystem run artifacts as the canonical and sufficient MVP state**, with proposals, review state, diagnostics, and summaries stored as JSON files inside each run bundle.
-- Export should generate a **new updated XLSX workbook plus audit log**, not patch arbitrary workbooks in place, and **openpyxl** is the most realistic Python engine for that MVP behavior. The fidelity promise should be **content-only plus changed-cell highlighting**, with workbook behavior and advanced sheet features out of guarantee.
+- The system should use **filesystem artifact bundles plus JSON files as the canonical and sufficient MVP state**, with no database required for MVP.
+- Export should generate a **new updated XLSX workbook plus audit log**, not patch arbitrary workbooks in place, and **openpyxl** is the most realistic Python engine for that MVP behavior. The fidelity promise should be **cell-content preservation only plus changed-cell highlighting**, with workbook behavior and advanced sheet features out of guarantee.
 - The implementation should use a **deterministic staged pipeline first**, with only targeted LLM-assisted stages.
-- The strongest current MVP runtime recommendation is **an app-owned staged runner executed synchronously inside the FastAPI service first**, with any background-job layer deferred until UI responsiveness proves it necessary.
+- The strongest current MVP runtime recommendation is **an app-owned staged runner executed synchronously inside the FastAPI service first**, with **Huey + SqliteHuey** as the first likely background-job layer if UI responsiveness later proves async execution necessary.
 - Structured outputs should be the **default contract path**, with capability probes and graceful fallback for weaker providers.
 - Heavy orchestration or graph-first agent systems should be **deferred** unless measured workflow complexity clearly justifies them.
-- In MVP, evaluation should be based primarily on **reviewer-outcome statistics**, not on a single automated “correctness score” over heterogeneous field types.
-- Existing filled spreadsheet cells should be processed through a **per-column preprocessing LLM** that produces a structured style/format profile. Raw filled cells should **not** be passed into extraction prompts as semantic exemplars by default.
-- Figure-aware fallback should remain available, but the heavier reasoning-plus-vision path should be triggered only when the field is likely figure- or table-derived, text retrieval failed, or the user explicitly requests fallback. Human review remains the only MVP evaluation path.
+- In MVP, evaluation should be based primarily on **reviewer-outcome summaries**, not on a single automated “correctness score” over heterogeneous field types.
+- Existing filled spreadsheet cells should be processed through a **per-column preprocessing LLM** that produces a structured style/format profile. Heuristic-only default shaping is not sufficient, and raw filled cells should **not** be passed into extraction prompts as semantic exemplars by default.
+- Figure-aware fallback should remain available, but the heavier reasoning-plus-vision path should be triggered only when the field is likely figure- or table-derived, text retrieval failed or remained insufficient, or the user explicitly requests fallback. Human review remains the only MVP evaluation path.
 
 ### Provisional conclusions
 
@@ -273,7 +273,7 @@ GROBID remains a plausible enrichment path because it is specialized for scienti
 
 ## TODO / open follow-up
 
-- [TODO: Confirm pypdfium2/PDFium as the final low-level PDF default after licensing posture review.]
+- [RESOLVED: MVP uses PDFium via pypdfium2 as the low-level PDF backend, while a small internal abstraction preserves future flexibility.]
 - [TODO: Decide whether GROBID is in first shipping scope or deferred until measured lift is shown.]
 - [TODO: Evaluate whether a table-specific rescue parser should be included in v1 or deferred to a later phase.]
 - [TODO: Validate OCRmyPDF + Tesseract on a small scanned-paper fixture set and confirm the artifact flow is sufficient for MVP.]
@@ -512,7 +512,7 @@ The strongest current MVP stack recommendation is:
 
 ### Local browser app is sufficient for MVP
 
-Because the app is single-user, local-first, and artifact-based, a local browser UI plus a small FastAPI service is sufficient for MVP. It removes packaging complexity without weakening the core workflow.
+Because the app is single-user, local-first, and artifact-based, a local browser app plus a small FastAPI service is sufficient for MVP. It removes packaging complexity without weakening the core workflow. Tauri remains a possible future packaging option rather than an MVP requirement.
 
 ### React ecosystem fit is strongest for this UI
 
@@ -569,7 +569,7 @@ The most realistic Python round-trip engine for this is **openpyxl**. XlsxWriter
 
 ## Practical expectation for v1
 
-The MVP promise is content-only fidelity, not workbook-behavior fidelity.
+The MVP promise is cell-content preservation only plus changed-cell highlighting, not workbook-behavior fidelity.
 
 ### Guaranteed
 - accepted cell values are written into the exported XLSX
@@ -663,7 +663,7 @@ The question was whether v1 should be built around a heavyweight orchestration/a
 
 ## Main conclusion
 
-The app should use a **deterministic app-owned staged runner first**, executed synchronously in the FastAPI service. A lightweight background job library may be added later, but it is not required for MVP.
+The app should use a **deterministic app-owned staged runner first**, executed synchronously in the FastAPI service. No job queue is required for MVP. If async execution becomes necessary later, **Huey + SqliteHuey** is the first likely queue layer.
 
 ## Why this conclusion won
 
@@ -759,20 +759,20 @@ The key question was whether MVP should attempt an automated Verify-mode score a
 
 ## Main conclusion
 
-For MVP, evaluation should be based primarily on **reviewer-outcome statistics**, not on a single automated “correctness score” over heterogeneous field types.
+For MVP, evaluation should be based primarily on **reviewer-outcome summaries**, not on a single automated “correctness score” over heterogeneous field types.
 
 ## Recommended MVP measurement model
 
 The strongest current recommendation is to measure:
 
 - proposal coverage
-- reviewed proposal count
+- reviewed verified-cell count
 - accepted as-is count/rate
 - accepted with edit count/rate
 - rejected count/rate
 - per-column reviewer outcome breakdown
 - evidence coverage
-- evidence display / highlight success
+- anchorable/highlightable evidence rates where applicable
 - matched / unmatched / ambiguous PDF counts :contentReference[oaicite:31]{index=31}
 
 This is more trustworthy and easier to interpret than an automated aggregate score over free text, numeric, categorical, range, and reasoning-heavy fields.
@@ -793,7 +793,7 @@ They align directly with the product’s purpose: reducing reviewer effort while
 
 ## Evaluation hygiene and leakage
 
-Leakage-safe benchmark design is deferred because MVP does not depend on automated verification scoring. If a future automated Verify-mode benchmark is added, prompt-shaping inputs and evaluation targets will need explicit separation rules.
+Leakage-safe benchmark design is deferred because MVP does not depend on automated verification scoring. Future automated Verify-mode scoring is deferred and may be added later; if it is added, prompt-shaping inputs and evaluation targets will need explicit separation rules.
 
 ## Measurement integrity requirements
 
@@ -831,7 +831,7 @@ The question was whether to use already-filled cells as examples in extraction p
 
 Do **not** use existing filled cells as free-form semantic few-shot examples by default.
 
-Instead, run a **per-column preprocessing LLM** over existing filled cells to create a structured style/format profile. That profile may guide extraction output shape, tone, and level of detail, but not likely scientific content.
+Instead, run a **per-column preprocessing LLM** over existing filled cells to create a structured style/format profile. Heuristic-only default shaping is not sufficient. That profile may guide extraction output shape, tone, and level of detail, but not likely scientific content.
 
 ## Why this conclusion won
 
@@ -908,6 +908,7 @@ The current product direction is broader than the narrowest research recommendat
 - figure-aware fallback is in MVP
 - all figure types are in scope
 - all target field types may trigger figure fallback
+- the heavier reasoning-plus-vision path still uses scoped triggers
 - complex image-heavy figures are not excluded from scope
 
 This is a valid product choice, but it is broader and riskier than the most conservative research recommendation. It increases the importance of:
@@ -938,9 +939,9 @@ The app should add a **figure fallback stage** after normal text/table extractio
 
 Trigger the figure fallback when one or more of these are true:
 
-- no proposal was produced from text/tables
-- a proposal exists but `needs_more_evidence=true`
-- the schema or product policy indicates figure-based information is plausible
+- the field appears likely figure- or table-derived
+- text/table extraction failed or remained insufficient
+- the user explicitly requested fallback
 - retrieved chunks mention figures, panels, or captions prominently
 - the parser identified candidate figure-bearing regions/pages
 
@@ -1097,7 +1098,7 @@ Licensing must remain visible in planning, especially for the low-level PDF laye
 ## Current conclusion
 
 - The parser stack choice is technically sound.
-- The exact default low-level PDF implementation should remain somewhat provisional until licensing posture is explicitly documented.
+- PDFium via pypdfium2 is the chosen low-level PDF backend for MVP, while the small backend abstraction preserves future flexibility.
 
 ## Deployment conclusions
 
@@ -1198,7 +1199,7 @@ It would add substantial complexity around authentication, concurrency, and revi
 
 These questions remain open and should be resolved explicitly rather than assumed away.
 
-- [NEEDS MORE RESEARCH: Should a future automated Verify-mode score exist in addition to reviewer-outcome metrics, and if so, how should it be designed?]
+- [NEEDS MORE RESEARCH: If a future automated Verify-mode score is added beyond reviewer-outcome metrics, how should it be designed?]
 - [NEEDS MORE RESEARCH: Should a table-specific rescue parser be included in v1 or deferred?]
 - [NEEDS MORE RESEARCH: Which JSON artifacts should be considered stable external interfaces versus internal implementation details in MVP?]
 
@@ -1238,19 +1239,18 @@ The current research supports a clear implementation direction:
 
 Paper Table Agent should be built as a **local-first, workflow-centered paper-to-table review system** with:
 
-- a dedicated queue-first local browser UI
-- a parser-contract-first ingestion stack
-- one main parser first, with optional later enrichments if they prove lift
-- PDFium/pypdfium2 as the low-level PDF backend for rendering/anchoring/crops
+- a dedicated queue-first React local browser app with a raw/custom PDF.js review viewer
+- a FastAPI backend
+- Docling as the main parser with PDFium/pypdfium2 as the low-level PDF backend for rendering/anchoring/crops
 - OCRmyPDF plus Tesseract as the scanned-PDF fallback
 - typed retrieval units with source-preserving evidence display
 - filesystem artifact bundles and JSON files as the complete MVP persistence model
-- a deterministic staged runner executed synchronously first inside FastAPI
+- a deterministic app-owned staged runner executed synchronously first inside FastAPI
 - LM Studio localhost API as the default structured-output provider
 - reviewer-outcome-based MVP evaluation
-- preprocessing-LLM-derived style profiles rather than raw semantic examples
-- figure-aware fallback with tightly scoped reasoning-plus-vision escalation
-- reviewed export into a new workbook and audit log with content-only fidelity
+- preprocessing-LLM-derived style/format profiles rather than raw semantic examples
+- figure-aware fallback with scoped triggers for the heavier reasoning-plus-vision path
+- reviewed XLSX export into a new workbook and audit log with cell-content preservation only plus changed-cell highlighting
 
 It also needs explicit measurement integrity requirements so empty or non-interpretable evaluation states cannot quietly masquerade as normal results.
 
