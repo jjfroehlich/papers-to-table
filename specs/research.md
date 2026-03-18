@@ -15,7 +15,8 @@ This document supports:
 
 - `spec.md` by clarifying constraints and feasibility
 - `plan.md` by justifying technical decisions
-- `data-model.md` by explaining why certain entities and boundaries exist
+
+It can also inform future implementation notes or runbooks if those become useful.
 
 Where a conclusion is still provisional, it is marked clearly with `TODO` or `[NEEDS MORE RESEARCH]`.
 
@@ -274,9 +275,6 @@ GROBID remains a plausible enrichment path because it is specialized for scienti
 ## TODO / open follow-up
 
 - [RESOLVED: MVP uses PDFium via pypdfium2 as the low-level PDF backend, while a small internal abstraction preserves future flexibility.]
-- [TODO: Decide whether GROBID is in first shipping scope or deferred until measured lift is shown.]
-- [TODO: Evaluate whether a table-specific rescue parser should be included in v1 or deferred to a later phase.]
-- [TODO: Validate OCRmyPDF + Tesseract on a small scanned-paper fixture set and confirm the artifact flow is sufficient for MVP.]
 
 ---
 
@@ -321,11 +319,6 @@ This research directly supports:
 - `ParsedElement`
 - `Chunk`
 - retrieval/display text separation
-
-## TODO / open follow-up
-
-- [TODO: Decide whether full `ParsedElement` records should appear in stable JSON artifacts or remain parser-native debug artifacts in MVP.]
-- [TODO: Define the exact normalized contract versioning strategy.]
 
 ---
 
@@ -393,14 +386,6 @@ This research supports:
 - `found` vs `inferred` proposal states
 - a narrow evidence validator plus a simple locator path
 - weak-evidence triage cues
-
-## TODO / open follow-up
-
-- [TODO: Decide the minimal retrieval stack for v1 before optional helpers are reconsidered.]
-- [TODO: Decide the default context strategy and fallback for v1.]
-- [TODO: Define the minimum required evidence states for the stable contracts.]
-- [TODO: Define the first simple locator path for evidence anchoring and review.]
-- [TODO: Decide whether table-cell summary chunks are part of v1 or introduced in P1.]
 
 ---
 
@@ -478,10 +463,8 @@ This research supports:
 
 ## TODO / open follow-up
 
-- [TODO: Document the coordinate system used between PDFium anchors and the PDF.js overlay layer.]
-- [TODO: Decide whether bulk acceptance should apply to all remaining proposals or only to the currently visible filtered subset.]
-- [TODO: Define the minimum MVP review filters, counters, and keyboard actions.]
-- [TODO: Define the reviewer-facing labels for support states, e.g. “Direct evidence” vs “Inferred from evidence”.]
+- [RESOLVED: Bulk acceptance in MVP applies only to the currently visible filtered subset, with explicit confirmation.]
+- [RESOLVED: Reviewer-facing support labels should use clear human-readable wording such as “Direct evidence” and “Inferred from evidence”, consistent with `spec.md`.]
 
 ---
 
@@ -541,8 +524,6 @@ This research supports:
 ## TODO / open follow-up
 
 - [TODO: Decide whether the first viewer overlay implementation is entirely custom or borrows specific interaction patterns from react-pdf-highlighter-style tooling.]
-- [TODO: Decide how much frontend keyboard navigation should ship in the first review UI slice versus the second pass.]
-- [TODO: Decide how much of the backend remains in Python versus any future Rust/desktop-native pieces.]
 
 ---
 
@@ -597,8 +578,9 @@ This research directly supports the `plan.md` export strategy and the current pr
 
 ## TODO / open follow-up
 
-- [TODO: Decide whether workbooks with heavy non-cell artifacts should be warn-only or hard-blocked in MVP.]
 - [TODO: Decide whether CSV export parity needs to be documented separately.]
+
+Current MVP decision: do not add special warn/block behavior for workbooks with heavy non-cell artifacts. The product boundary remains content-only fidelity plus changed-cell highlighting, with other workbook features simply out of guarantee.
 
 ---
 
@@ -609,7 +591,6 @@ This research directly supports the `plan.md` export strategy and the current pr
 The app needs:
 
 - reproducibility
-- resumability
 - inspectability
 - efficient review queries
 - auditability
@@ -639,17 +620,13 @@ For a single-user local app, JSON files inside a per-run bundle are sufficient f
 - proposal lists
 - review state
 - filtering and triage support
-- checkpoints at stage boundaries
 - export bookkeeping
+
+The MVP does not need pause/resume semantics within a run. If a run is interrupted, the simplest behavior is to leave the partial artifacts in place and create a fresh run directory for the next attempt.
 
 ## Consequences for implementation
 
 This directly supports the simplified artifact-only persistence strategy in `plan.md`.
-
-## TODO / open follow-up
-
-- [TODO: Decide whether every parser artifact should be registered explicitly as a first-class `RunArtifact`, or only stable artifact categories.]
-- [TODO: Document the exact resume/checkpoint model in a later technical note or contract.]
 
 ---
 
@@ -683,7 +660,6 @@ The reports strongly recommend that the app own:
 - progress semantics
 - artifacts
 - retries
-- resume logic
 
 The queue library should only run stage jobs in the background. :contentReference[oaicite:30]{index=30}
 
@@ -693,13 +669,8 @@ This research supports:
 
 - simple stage-based pipeline execution
 - synchronous execution first, with background execution deferred unless needed
-- explicit checkpoints at stage boundaries
-- “resume from last committed stage” semantics rather than durable replay of arbitrary mid-stage execution
 
-## TODO / open follow-up
-
-- [TODO: Decide which lightweight background-job mechanism to add first if synchronous execution proves insufficient.]
-- [TODO: Decide whether the narrow evidence-location step should run inline in extraction or as a separate later stage.]
+For MVP, that staged runner can remain single-pass. It does not need pause/resume support or in-place rerun semantics; interrupted runs can simply be replaced by a new run.
 
 ---
 
@@ -740,12 +711,6 @@ This supports:
 ## Current MVP provider choice
 
 The initial MVP provider should be **LM Studio via its localhost API**. This keeps the default path local-first while preserving the same structured-output contract for future providers.
-
-## TODO / open follow-up
-
-- [TODO: Define the minimum provider capability matrix required for supported local-first operation.]
-- [TODO: Decide whether provider fallback by role is required in v1 or optional for later.]
-- [TODO: Define what provider/model transparency must appear in the normal run summary versus only in advanced logs.]
 
 ---
 
@@ -810,13 +775,6 @@ This supports the current split between:
 - first-class run-level metrics that keep proposal rate, evidence rate, and reviewer acceptance separate
 - explicit warning states when evaluation is empty, skipped, or otherwise non-interpretable
 
-## TODO / open follow-up
-
-- [TODO: Define the initial run-level required metrics for proposal production, evidence coverage, reviewer outcomes, and review effort.]
-- [TODO: Define leakage-safe verify/evaluation rules when existing cells are also used for prompt shaping.]
-- [TODO: Decide whether a future automated score should exist in addition to reviewer-outcome metrics.]
-- [TODO: Decide which public datasets, if any, become part of regular regression testing rather than one-time research.]
-
 ---
 
 ## Research topic 11 — Existing filled cells as prompt examples or format guidance
@@ -874,11 +832,6 @@ This supports:
 - preprocessing-LLM column style profiling
 - stronger distinction between format guidance and semantic evidence
 - future leakage-aware Verify mode design if automated scoring is ever added
-
-## TODO / open follow-up
-
-- [TODO: Define the JSON schema for the per-column style/format profile artifact.]
-- [TODO: Define the minimum safeguards if real existing entries are ever used more directly in prompts later.]
 
 ---
 
@@ -944,6 +897,8 @@ Trigger the figure fallback when one or more of these are true:
 - the user explicitly requested fallback
 - retrieved chunks mention figures, panels, or captions prominently
 - the parser identified candidate figure-bearing regions/pages
+
+The routing decision can be made by the extraction path itself, including an LLM-assisted decision, as long as it stays within these scoped triggers and does not make vision the default path for all fields.
 
 ## Suggested figure-fallback inputs
 
@@ -1076,13 +1031,6 @@ This research suggests that both `spec.md` and `plan.md` should acknowledge:
 - figure-based review evidence in the UI
 - human review as the governing evaluation path for figure-derived proposals
 
-## TODO / open follow-up
-
-- [TODO: Define the minimum figure evidence object needed in `data-model.md` and `contracts/`.]
-- [TODO: Decide whether a first-class `FigureItem` entity is needed or whether figure support can begin as parser/caption metadata plus evidence anchors.]
-- [TODO: Evaluate whether chart-to-table enrichment is stable enough to include in the first shipping parser path.]
-- [TODO: Define which figure-derived metadata fields must be retained in proposal artifacts for review and debugging.]
-
 ---
 
 ## Research topic 13 — Licensing and deployment constraints
@@ -1113,11 +1061,6 @@ This supports:
 - local-first default behavior
 - provider transparency in summaries, logs, and config
 - keeping the low-level PDF layer swappable
-
-## TODO / open follow-up
-
-- [TODO: Write a short licensing posture note covering internal use, open-source release, and possible future commercial/distributed scenarios.]
-- [TODO: Confirm whether any cloud rescue paths should be completely out of scope for v1.]
 
 ---
 
@@ -1199,33 +1142,20 @@ It would add substantial complexity around authentication, concurrency, and revi
 
 These questions remain open and should be resolved explicitly rather than assumed away.
 
-- [NEEDS MORE RESEARCH: If a future automated Verify-mode score is added beyond reviewer-outcome metrics, how should it be designed?]
-- [NEEDS MORE RESEARCH: Should a table-specific rescue parser be included in v1 or deferred?]
-- [NEEDS MORE RESEARCH: Which JSON artifacts should be considered stable external interfaces versus internal implementation details in MVP?]
-
 ---
 
 ## Recommendations for next documents
 
-This research supports the current direction of `plan.md` and suggests the following next deliverables:
+This research supports the current direction of `plan.md` and suggests the following next deliverables when they become useful:
 
-1. `contracts/`
-   - run create/status
-   - proposal list/detail
-   - review decision submission
-   - export status/result
-
-2. `tasks.md`
-   - executable implementation sequence derived from the plan
-
-3. optional ADRs
+1. optional ADRs
    - low-level PDF library and licensing posture
    - background-job/runtime choice
    - workbook fidelity policy
    - parser baseline decision
    - UI shell/stack decision
 
-4. quickstart / fixture design
+2. quickstart / fixture design
    - a small real-example set
    - stub/synthetic PDFs for deterministic testing
    - figure-heavy test examples

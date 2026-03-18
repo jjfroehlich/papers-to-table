@@ -8,7 +8,7 @@ It is the technical counterpart to the product specification:
 
 - `spec.md` defines **what** the product must do and **why**.
 - `plan.md` defines **how** the system will satisfy those requirements.
-- `data-model.md`, `contracts/`, `research.md`, and `tasks.md` hold supporting detail that should not overload either the product spec or this plan.
+- `research.md` holds supporting detail that should not overload either the product spec or this plan.
 
 This plan is intentionally opinionated. It chooses a concrete MVP architecture so implementation can proceed without drifting into a general-purpose RAG platform, a chat product, or an overcomplicated agent framework.
 
@@ -18,9 +18,8 @@ This plan is intentionally opinionated. It chooses a concrete MVP architecture s
 
 - `spec.md` is the source of truth for user-facing requirements and acceptance criteria.
 - `research.md` records the research and tradeoffs behind the decisions in this plan.
-- `data-model.md` defines the core entities, relationships, and invariants.
-- `contracts/` will define API and payload contracts derived from the data model.
-- `tasks.md` will break this plan into executable implementation work.
+
+Additional supporting notes, runbooks, or a future task breakdown may be added later if they become useful, but they are not required MVP artifacts.
 
 ---
 
@@ -101,7 +100,7 @@ The initial system will use a mostly deterministic staged pipeline with a few LL
 - optional figure fallback
 
 **Rationale:**
-The workflow is structured and auditable. The prior implementation showed that graph orchestration added less value than expected around a mostly sequential loop. The rewrite should preserve resumability and checkpoints without making a graph framework central.
+The workflow is structured and auditable. The prior implementation showed that graph orchestration added less value than expected around a mostly sequential loop. The rewrite should stay simple for MVP: one run executes straight through, and an interrupted run is restarted as a new run rather than resumed in place.
 
 ---
 
@@ -200,6 +199,9 @@ Figure-aware fallback is in MVP, but the heavier reasoning-plus-vision path shou
 **Rationale:**
 This keeps visual extraction available where it is likely to help while avoiding multimodal escalation as a baseline behavior.
 
+**Implementation direction:**
+The routing decision may be made by the extraction path itself, including an LLM-assisted decision, provided it stays within those scoped triggers and does not escalate all pages or all fields to vision by default.
+
 ---
 
 ## Alternatives considered
@@ -249,16 +251,9 @@ Workbook fidelity risks are too high for arbitrary real-world workbooks.
 
 ---
 
-## Supporting documents generated from this plan
+## Supporting notes
 
-This plan assumes the following supporting documents exist or will be created:
-
-- `research.md` — tool comparisons, export constraints, UI choices, measurement rationale, licensing notes
-- `data-model.md` — core entities and relationships
-- `contracts/` — API and JSON schemas
-- `quickstart.md` — end-to-end manual validation flows
-- `tasks.md` — executable implementation tasks derived from this plan
-- optional ADRs for decisions that may evolve, especially:
+This plan depends on `research.md` for supporting tradeoffs and decisions. Additional implementation notes, runbooks, or a future task breakdown can be added later if they become useful. Optional ADRs may still be useful for decisions that evolve, especially:
   - low-level PDF backend
   - runtime/background jobs
   - workbook fidelity policy
@@ -810,7 +805,7 @@ This boundary should be documented explicitly and treated as the stable MVP cont
 
 ## Objective
 
-Support local-first resumability, auditability, and inspectability.
+Support local-first auditability and inspectability with the smallest coherent persistence model.
 
 ## Canonical persistence model
 
@@ -831,19 +826,20 @@ Canonical run bundle:
 
 The run directory is the canonical audit bundle and the only required MVP persistence mechanism.
 
+The MVP does not need pause/resume semantics within a run. If a run is interrupted, the partial artifacts may remain for inspection, and a new attempt should create a new run directory.
+
 ---
 
 ## Runtime and background jobs
 
 ## Objective
 
-Run long stages asynchronously without reintroducing graph-runtime complexity.
+Run the pipeline simply and predictably without reintroducing graph-runtime complexity.
 
 ## Recommended MVP shape
 
 - app-owned staged runner
 - execute synchronously inside the FastAPI service first
-- use stage boundaries as checkpoint boundaries
 - no job queue required by default
 - add **Huey + SqliteHuey** first if async execution becomes a practical necessity
 
@@ -856,6 +852,8 @@ It keeps:
 - queue complexity low
 
 while keeping the first implementation simple and inspectable.
+
+For MVP, the runner is single-pass: once started, it runs until completion or interruption. Interrupted runs remain as incomplete artifacts, and a new attempt creates a new run directory.
 
 ---
 
@@ -1038,8 +1036,6 @@ Maintain a compact fixture set that covers:
 ## Open technical questions
 
 - [RESOLVED: MVP uses PDFium via pypdfium2 as the low-level PDF backend, wrapped behind a small internal abstraction layer so backend-specific code stays isolated.]
-- [NEEDS CLARIFICATION: Should the parser abstraction expose a single normalized geometry model immediately, or can some parser-native geometry remain artifact-only in MVP?]
-- [NEEDS CLARIFICATION: What exact JSON artifact layout should be treated as stable for external tooling versus internal-only for MVP?]
 - [RESOLVED: If synchronous execution proves insufficient, Huey + SqliteHuey is the first background-job layer to add.]
 
 ---

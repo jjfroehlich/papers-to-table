@@ -203,7 +203,7 @@ Write a compounding lesson when you:
 - spend a long time debugging something subtle
 - discover a repeated failure mode worth preventing
 
-Store compounding notes in a dedicated, clearly documented location under `specs/`, and keep the location consistent across the repo.
+Store compounding notes in a dedicated, clearly documented location under `docs/`, and keep the location consistent across the repo.
 
 If the repo does not yet have a canonical location, create one and document it rather than leaving this ambiguous.
 
