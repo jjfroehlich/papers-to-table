@@ -61,7 +61,7 @@ Implementation for this phase is complete when the system satisfies the function
 ### Constraints
 
 - Local-first operation in this phase.
-- Single-user desktop/local operation is sufficient for MVP.
+- Single-user local browser app operation is sufficient for MVP.
 - Human review is required before spreadsheet updates.
 - UI remains minimal and task-focused.
 - Pipeline must preserve auditable run artifacts.
@@ -85,7 +85,7 @@ Implementation for this phase is complete when the system satisfies the function
 
 The system will be implemented as a focused workflow service plus review UI, not as a conversational RAG product.
 
-**Rationale:**  
+**Rationale:**
 The core user journey is table ingestion, proposal generation, review, and audited export. A chat-centric architecture would add surface area without helping the main task.
 
 ---
@@ -100,7 +100,7 @@ The initial system will use a mostly deterministic staged pipeline with a few LL
 - optional evidence recovery
 - optional figure fallback
 
-**Rationale:**  
+**Rationale:**
 The workflow is structured and auditable. The prior implementation showed that graph orchestration added less value than expected around a mostly sequential loop. The rewrite should preserve resumability and checkpoints without making a graph framework central.
 
 ---
@@ -109,22 +109,23 @@ The workflow is structured and auditable. The prior implementation showed that g
 
 All parser outputs must normalize into a shared `ParsedDocument` contract, but the shipping MVP should begin with one main parser rather than a multi-parser runtime.
 
-**Rationale:**  
+**Rationale:**
 Parser abstraction is valuable; multi-parser runtime complexity is not justified as a baseline. The parser contract prevents lock-in while preserving a simpler default path.
 
 ---
 
-### TD-4: Parser baseline is Docling + PDFium fallback
+### TD-4: Parser baseline is Docling + PDFium via pypdfium2
 
 The primary ingestion stack for MVP will be:
 
 - **Docling** as the main parser
-- **PDFium via pypdfium2** as the low-level PDF layer for rendering, crop extraction, and evidence anchoring fallback
+- **PDFium via pypdfium2** as the low-level PDF backend for rendering, crop extraction, text search, and evidence anchoring
+- a small internal abstraction layer that isolates backend-specific code
 
-**Rationale:**  
+**Rationale:**
 Docling is currently the strongest main parser candidate for structured scientific PDF parsing, layout awareness, figure handling, and table support. PDFium provides a strong low-level foundation for page rendering, geometry, and evidence display with a more favorable licensing posture than MuPDF/PyMuPDF.
 
-**Note:**  
+**Note:**
 GROBID remains an optional later enrichment path if measured lift justifies it.
 
 ---
@@ -136,7 +137,7 @@ The system will use:
 - per-run artifact folders in the output directory as the canonical run record
 - JSON files inside each run bundle for proposals, review state, diagnostics, summaries, and export bookkeeping
 
-**Rationale:**  
+**Rationale:**
 For a local-first, single-user MVP, artifact bundles are simpler, easier to inspect, and easier to debug than introducing a database. This keeps state reproducible without adding operational complexity that the product does not yet need.
 
 ---
@@ -145,11 +146,11 @@ For a local-first, single-user MVP, artifact bundles are simpler, easier to insp
 
 The system will export a new updated workbook plus audit log rather than mutating arbitrary workbooks in place.
 
-**Rationale:**  
+**Rationale:**
 Workbook fidelity is difficult to guarantee across complex Excel features. A generated export is safer, easier to validate, and more auditable.
 
-**Implementation direction:**  
-Use `openpyxl` as the main XLSX round-trip engine. Guarantee content-only fidelity plus changed-cell highlighting. Do not promise preservation of workbook behavior or advanced sheet structure.
+**Implementation direction:**
+Use `openpyxl` as the main XLSX round-trip engine. Guarantee cell-content preservation only plus changed-cell highlighting. Do not promise preservation of workbook behavior or advanced sheet structure.
 
 ---
 
@@ -157,19 +158,19 @@ Use `openpyxl` as the main XLSX round-trip engine. Guarantee content-only fideli
 
 LLM interaction will be schema-first using typed contracts. The initial supported provider path is LM Studio via its localhost API, with each cell request returning structured JSON plus page-grounded evidence. Other providers can be added later behind the same contract.
 
-**Rationale:**  
+**Rationale:**
 The extraction path depends on predictable proposal and evidence objects. LM Studio matches the local-first MVP boundary while preserving a clean contract for future provider expansion.
 
 ---
 
-### TD-8: Review requires a dedicated queue-first local web UI
+### TD-8: Review requires a dedicated queue-first local browser app
 
-The review product surface will be a dedicated Run/Review application delivered as a local browser app, not a notebook or chat interface.
+The review product surface will be a dedicated Run/Review application delivered as a local browser app, not a notebook or chat interface. Tauri is only a possible future packaging option, not an MVP shell requirement.
 
-**Rationale:**  
+**Rationale:**
 The main value of the product is human verification of proposed spreadsheet updates with visible evidence.
 
-**Interaction model:**  
+**Interaction model:**
 Queue/list of proposals + focused detail pane + custom PDF.js evidence viewer.
 
 ---
@@ -178,7 +179,7 @@ Queue/list of proposals + focused detail pane + custom PDF.js evidence viewer.
 
 The MVP will evaluate performance primarily through reviewer outcomes rather than an automated correctness score across heterogeneous field types.
 
-**Rationale:**  
+**Rationale:**
 The product already requires human review. Reviewer decisions are the most trustworthy MVP measure of usefulness, while automated verify-mode scoring across mixed field types is still an open research problem.
 
 ---
@@ -187,7 +188,7 @@ The product already requires human review. Reviewer decisions are the most trust
 
 Existing filled cells should be processed per column through a preprocessing LLM that generates a structured style/format profile. That profile may guide output shape, tone, and detail level, but raw filled cells must not be passed as semantic few-shot exemplars to extraction prompts by default.
 
-**Rationale:**  
+**Rationale:**
 This keeps the benefit of column-specific output shaping while avoiding heuristic-only format inference and avoiding direct semantic anchoring to historical cell content.
 
 ---
@@ -196,7 +197,7 @@ This keeps the benefit of column-specific output shaping while avoiding heuristi
 
 Figure-aware fallback is in MVP, but the heavier reasoning-plus-vision path should run only when the field is likely figure- or table-derived, text retrieval failed, or the user explicitly requests a fallback. Figure-derived proposals remain review-first and are evaluated through normal human reviewer outcomes rather than separate automated figure scoring.
 
-**Rationale:**  
+**Rationale:**
 This keeps visual extraction available where it is likely to help while avoiding multimodal escalation as a baseline behavior.
 
 ---
@@ -207,7 +208,7 @@ This keeps visual extraction available where it is likely to help while avoiding
 
 **Alternative:** Build on a generic RAG/chat platform and extend it.
 
-**Rejected because:**  
+**Rejected because:**
 The review/export workflow would become an awkward extension rather than the product core.
 
 ---
@@ -216,7 +217,7 @@ The review/export workflow would become an awkward extension rather than the pro
 
 **Alternative:** Use LangGraph or an equivalent orchestration layer as the center of the architecture.
 
-**Rejected because:**  
+**Rejected because:**
 The initial workflow is mostly sequential and structured. Heavy orchestration would add complexity before it improves quality.
 
 ---
@@ -225,7 +226,7 @@ The initial workflow is mostly sequential and structured. Heavy orchestration wo
 
 **Alternative:** Use a parser matrix from day one.
 
-**Rejected because:**  
+**Rejected because:**
 A clean parser abstraction is valuable, but baseline multi-parser runtime complexity is not yet justified.
 
 ---
@@ -234,7 +235,7 @@ A clean parser abstraction is valuable, but baseline multi-parser runtime comple
 
 **Alternative:** Store all intermediate state only in a database.
 
-**Rejected because:**  
+**Rejected because:**
 Filesystem artifacts are too important for reproducibility, debugging, and export packaging.
 
 ---
@@ -243,7 +244,7 @@ Filesystem artifacts are too important for reproducibility, debugging, and expor
 
 **Alternative:** Patch the original workbook directly.
 
-**Rejected because:**  
+**Rejected because:**
 Workbook fidelity risks are too high for arbitrary real-world workbooks.
 
 ---
@@ -322,11 +323,13 @@ The system will consist of five major layers:
 
 ### Background jobs
 - no queue by default in MVP
-- optional lightweight background job layer later if UI responsiveness requires it
+- app-owned staged execution first
+- optional **Huey + SqliteHuey** background jobs later if UI responsiveness requires async execution
 
 ### Persistence
 - filesystem artifact directories
 - JSON files for proposals, reviews, diagnostics, summaries, and run metadata
+- no database required for MVP
 
 ### Initial LLM provider
 - **LM Studio localhost API**
@@ -360,12 +363,12 @@ The system will consist of five major layers:
 11. Select a context strategy for each matched PDF.
 12. Run schema-driven extraction to produce one best proposal per target cell.
 13. Validate evidence and run one narrow evidence-location pass where needed.
-14. Run figure-aware fallback where appropriate.
+14. Run figure-aware fallback only when the field is likely figure- or table-derived, text retrieval failed or remained insufficient, or the user explicitly requested fallback.
 15. Persist proposals, evidence, diagnostics, and review state as JSON artifacts.
 16. Present proposals in the review UI with queue, filters, and evidence display.
 17. Record review decisions.
 18. Export accepted changes into a new XLSX workbook and audit log.
-19. Compute reviewer-outcome run summaries and Verify-mode reporting outputs.
+19. Compute reviewer-outcome run summaries and Verify-mode reviewer-outcome summaries.
 20. Write final run diagnostics and artifacts.
 
 ---
@@ -482,7 +485,7 @@ The pipeline should be **stage-based and explicit**, with a clear default path a
 - load table/schema/config
 - validate metadata columns
 - fingerprint inputs
-- build per-column style/format profiles from existing filled cells using a preprocessing LLM
+- build per-column style/format profiles from existing filled cells using a preprocessing LLM before extraction prompts are assembled
 - create run record
 
 ### Stage 2 — Parse
@@ -740,7 +743,7 @@ Support figure-derived proposals in MVP while keeping visual extraction explicit
 
 Figure fallback should run when:
 - the field is likely figure- or table-derived
-- text retrieval produced nothing useful or left evidence weak
+- text retrieval failed or remained insufficient
 - the user explicitly requests a fallback
 - parser output identified candidate figure-bearing regions
 
@@ -777,12 +780,13 @@ Produce safe, review-authorized outputs without mutating the original source wor
 
 ## Workbook fidelity policy
 
-The MVP export promise is content-only fidelity, not workbook-behavior fidelity.
+The MVP export promise is cell-content preservation only plus highlighting of changed cells, not workbook-behavior fidelity.
 
 Guaranteed:
 - accepted cell values are written into the exported XLSX
 - unchanged cell content is carried forward
 - changed cells are visually highlighted
+- formulas, filters, frozen panes, hidden rows/columns, merged cells, conditional formatting, comments, named ranges, and similar workbook features are not guaranteed
 
 Out of guarantee:
 - formulas
@@ -840,7 +844,8 @@ Run long stages asynchronously without reintroducing graph-runtime complexity.
 - app-owned staged runner
 - execute synchronously inside the FastAPI service first
 - use stage boundaries as checkpoint boundaries
-- add a lightweight background job layer only if UI responsiveness becomes a practical problem
+- no job queue required by default
+- add **Huey + SqliteHuey** first if async execution becomes a practical necessity
 
 ## Why this shape
 
@@ -1032,10 +1037,10 @@ Maintain a compact fixture set that covers:
 
 ## Open technical questions
 
-- [NEEDS CLARIFICATION: Is pypdfium2/PDFium the final locked-in low-level PDF backend, or do we keep a formal pluggable abstraction from day one?]
+- [RESOLVED: MVP uses PDFium via pypdfium2 as the low-level PDF backend, wrapped behind a small internal abstraction layer so backend-specific code stays isolated.]
 - [NEEDS CLARIFICATION: Should the parser abstraction expose a single normalized geometry model immediately, or can some parser-native geometry remain artifact-only in MVP?]
 - [NEEDS CLARIFICATION: What exact JSON artifact layout should be treated as stable for external tooling versus internal-only for MVP?]
-- [NEEDS CLARIFICATION: Which optional background-job mechanism should be adopted first if synchronous execution proves insufficient?]
+- [RESOLVED: If synchronous execution proves insufficient, Huey + SqliteHuey is the first background-job layer to add.]
 
 ---
 
@@ -1043,16 +1048,16 @@ Maintain a compact fixture set that covers:
 
 Paper Table Agent will be implemented as a local-first workflow application with:
 
-- a React local web UI
+- a React local browser UI
 - PDF.js in the frontend and PDFium/pypdfium2 in the backend
 - one main parser first, behind a normalized parser contract
 - OCRmyPDF plus Tesseract as the scanned-PDF fallback
 - typed retrieval units and source-preserving evidence
-- a deterministic staged runner executed synchronously first inside FastAPI
-- filesystem artifacts and JSON state files as the canonical MVP persistence layer
+- a deterministic app-owned staged runner executed synchronously first inside FastAPI, with Huey + SqliteHuey as the first likely async addition if needed
+- filesystem artifact bundles and JSON state files as the complete MVP persistence layer, with no database required
 - reviewer-outcome-based MVP evaluation
 - a preprocessing LLM that turns existing filled cells into structured style profiles
 - figure-aware fallback with tightly scoped reasoning-plus-vision escalation
-- new XLSX export plus audit log with content-only fidelity and changed-cell highlighting
+- new XLSX export plus audit log with cell-content preservation only and changed-cell highlighting
 
 This keeps the system aligned with its real purpose: trustworthy, human-reviewed extraction from scientific papers into structured tables.

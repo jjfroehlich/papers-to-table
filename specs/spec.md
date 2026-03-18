@@ -8,9 +8,9 @@ Draft
 
 Paper Table Agent helps a researcher turn a folder of scientific PDFs plus a structured spreadsheet into reviewed spreadsheet updates.
 
-The system matches PDFs to spreadsheet rows, proposes values for missing cells using grounded evidence from the papers, and provides a review interface where a human can accept, edit, reject, or bulk-accept a filtered proposal subset before any spreadsheet is updated.
+The system matches PDFs to spreadsheet rows, proposes values for missing cells using grounded evidence from the papers, and provides a review interface where a human can accept, edit, reject, or bulk-accept the currently visible filtered subset before any spreadsheet is updated.
 
-The system primarily extracts from text and tables, and may automatically use figure-aware fallback extraction when a target field is not reliably supported elsewhere.
+The system primarily extracts from text and tables, and may automatically use figure-aware fallback extraction when text or table extraction is insufficient and the field appears likely figure- or table-derived or fallback is explicitly requested.
 
 The product is designed for high-trust extraction workflows where proposed values must remain inspectable, auditable, reversible, and clearly distinguishable by support level.
 
@@ -113,7 +113,7 @@ A developer or advanced user who inspects diagnostics to understand matching, ex
 - Navigation through proposals without recording a decision.
 - Exporting an updated XLSX table and an audit log.
 - Preserving cell content in the exported table and visually marking updated cells with distinct background coloring.
-- Writing run diagnostics and evaluation outputs.
+- Writing run diagnostics and reviewer-outcome summaries.
 - Keeping unmatched or ambiguous PDFs visible for manual inspection.
 
 ### Out of scope
@@ -151,7 +151,7 @@ The system accepts:
 
 ### Input guidance from existing cells
 
-- The system may derive non-binding column style or format guidance from existing filled cells for all field types, but such guidance must be used only to influence output shape, detail level, and formatting, not as semantic evidence for the current paper.
+- The system may derive a non-binding style or format profile from existing filled cells for all field types through a preprocessing LLM, but such guidance must be used only to influence output shape, detail level, and formatting. Raw existing cells are not passed as semantic exemplars by default, and proposal content must remain grounded in the current PDF.
 
 ---
 
@@ -165,18 +165,18 @@ For each run, the system must produce:
 - Review decisions.
 - An exportable updated XLSX table.
 - An audit log of accepted changes.
-- Run diagnostics and evaluation summaries.
+- Run diagnostics and reviewer-outcome summaries.
 
 ### Output expectations
 
 - No spreadsheet cell is updated automatically without an explicit human decision.
 - All exported changes are traceable back to reviewed proposals.
 - The exported table must remain in XLSX format, even when the input table is CSV.
-- The exported XLSX table should preserve cell content, but workbook formatting, layout, formulas, filters, frozen panes, hidden rows/columns, merged cells, conditional formatting, comments, named ranges, and similar workbook behavior are out of guarantee for MVP.
+- The exported XLSX table guarantees cell-content preservation only, plus highlighting of changed cells. Workbook formatting, layout, formulas, filters, frozen panes, hidden rows/columns, merged cells, conditional formatting, comments, named ranges, and similar workbook behavior are out of guarantee for MVP.
 - Cells changed through accepted proposals must be visually highlighted in the exported XLSX table.
 - Diagnostic outputs remain available after the run finishes.
-- Evaluation outputs remain available even when there are no verified cells, with a clear status or explanation instead of silent empty metrics.
-- Evaluation summaries must not silently report an all-zero result when no targets were actually evaluated.
+- Verify-mode reviewer-outcome summaries remain available even when there are no verified cells, with a clear status or explanation instead of silent empty metrics.
+- Verify-mode reviewer-outcome summaries must not silently report an all-zero result when no targets were actually reviewed.
 - Unreviewed proposals must not appear as accepted changes in the exported table.
 - A concise run summary must report provider/model names used, whether processing stayed local or used cloud providers, and key run metrics.
 
@@ -287,7 +287,7 @@ Failure to recover a highlight for a text-derived proposal must not by itself mo
 
 ### FR-8 Figure-aware fallback
 
-The system must support automatic figure-aware fallback extraction when text or table extraction is missing, unclear, or weakly supported.
+The system must support automatic figure-aware fallback extraction when text or table extraction is insufficient and the field appears likely figure- or table-derived, or when fallback is explicitly requested.
 
 Figure-aware fallback may use scoped visual context such as:
 - figure crops
@@ -295,7 +295,7 @@ Figure-aware fallback may use scoped visual context such as:
 - captions
 - nearby narrative text
 
-Figure-aware extraction is in scope for all figure types and all target field types, including complex image-heavy scientific figures, but all figure-derived proposals remain subject to human review.
+Figure-aware extraction is in scope for all figure types and all target field types, including complex image-heavy scientific figures, but reliability varies by figure type and all figure-derived proposals remain subject to human review.
 
 Figure-derived proposals must remain clearly marked as figure-based evidence in review.
 
@@ -353,13 +353,13 @@ The system may treat single-space or similarly trivial placeholders as empty whe
 The system must export:
 - an updated XLSX table containing the original retained values plus only explicitly accepted changes
 - an audit log of changes
-- evaluation summaries and run diagnostics
+- reviewer-outcome summaries and run diagnostics
 
 The original input table must remain unchanged.
 
 Changed cells must be visually highlighted in the exported table.
 
-The export guarantee is content-only fidelity plus changed-cell highlighting. Workbook formatting, formulas, filters, frozen panes, hidden rows/columns, merged cells, conditional formatting, comments, named ranges, and similar workbook behavior are out of guarantee for MVP.
+The export guarantee is cell-content preservation only plus highlighting of changed cells. Workbook formatting, formulas, filters, frozen panes, hidden rows/columns, merged cells, conditional formatting, comments, named ranges, and similar workbook behavior are out of guarantee for MVP.
 
 The audit log must include, at minimum:
 - row identifier
@@ -394,10 +394,10 @@ The system must provide a normal user-facing run summary with at least:
 
 Detailed logs and deeper diagnostics may exist as advanced outputs for development and troubleshooting.
 
-In MVP, evaluation must be based primarily on reviewer-outcome statistics rather than automated per-run scoring across heterogeneous field types.
+In MVP, evaluation must be based primarily on reviewer-outcome statistics rather than automated correctness scoring across heterogeneous field types.
 
-Evaluation outputs must include, at minimum:
-- reviewed proposal count
+Reviewer-outcome summaries must include, at minimum:
+- reviewed verified-cell count
 - accepted as-is count and rate
 - accepted with edit count and rate
 - rejected count and rate
@@ -406,7 +406,7 @@ Evaluation outputs must include, at minimum:
 - evidence coverage
 - anchorable or highlightable evidence rates when applicable
 
-Verify mode may still compare proposals against already-filled cells, but automated scoring over heterogeneous field types is not required for MVP.
+Verify mode may still compare proposals against already-filled cells, but future automated Verify-mode scoring is deferred and may be added later.
 
 If there are too few reviewed proposals or verified proposals for meaningful interpretation, the system must warn explicitly.
 
@@ -525,87 +525,87 @@ The review interface should be visually clear, efficient for repeated review wor
 
 ### AC-1 Import readiness
 
-Given a valid table, schema, PDF folder, and run configuration with standardized `Title`, `Authors`, and `Publication Year` columns,  
-when the user starts a run,  
+Given a valid table, schema, PDF folder, and run configuration with standardized `Title`, `Authors`, and `Publication Year` columns,
+when the user starts a run,
 then the system records the run inputs and identifies missing versus already-filled target cells.
 
 ### AC-2 Matched extraction path
 
-Given a PDF that can be matched to a row,  
-when extraction is run,  
+Given a PDF that can be matched to a row,
+when extraction is run,
 then the system attempts each eligible target column and stores one best outcome for each attempted target cell.
 
 ### AC-3 Ambiguous matching blocking
 
-Given a PDF that cannot be matched confidently to a single row, or two PDFs that match the same row,  
-when matching completes,  
+Given a PDF that cannot be matched confidently to a single row, or two PDFs that match the same row,
+when matching completes,
 then the system records the outcome as ambiguous, unmatched, or duplicate-row conflict as applicable, blocks extraction for the affected PDF or PDFs, and keeps them visible for manual inspection and cleanup.
 
 ### AC-4 Proposal evidence requirement
 
-Given a non-empty proposed value,  
-when the proposal is stored,  
+Given a non-empty proposed value,
+when the proposal is stored,
 then the proposal includes at least one evidence item when feasible or is flagged as needing more evidence.
 
 ### AC-5 Reviewability
 
-Given a stored proposal,  
-when a reviewer opens it in the review interface,  
+Given a stored proposal,
+when a reviewer opens it in the review interface,
 then the reviewer can inspect the proposed value, proposal state, relevant row and column context, primary evidence, and concise rationale or calculation when applicable, including quote-plus-page evidence when a text highlight could not be recovered.
 
 ### AC-6 Decision control
 
-Given a proposal under review,  
-when the reviewer accepts, edits, rejects, or bulk-accepts the currently visible filtered proposal subset after confirmation,  
+Given a proposal under review,
+when the reviewer accepts, edits, rejects, or bulk-accepts the currently visible filtered subset after confirmation,
 then the system stores that decision and preserves the prior proposal state for auditability.
 
 ### AC-7 Locked-cell safety
 
-Given an already-filled input cell,  
-when the run completes and exports are generated outside Verify mode,  
+Given an already-filled input cell,
+when the run completes and exports are generated outside Verify mode,
 then that cell is not overwritten unless explicit review behavior has authorized the change.
 
 ### AC-8 Verify mode behavior
 
-Given Verify mode is enabled, and Verify mode is on by default unless disabled in configuration,  
-when the system processes already-filled cells,  
+Given Verify mode is enabled, and Verify mode is on by default unless disabled in configuration,
+when the system processes already-filled cells,
 then it generates reviewable proposals for those cells, allows explicit accept/edit/reject decisions, and uses those reviewer decisions in reviewer-outcome statistics and per-column review summaries.
 
 ### AC-9 Export integrity
 
-Given accepted proposals,  
-when the user exports results,  
+Given accepted proposals,
+when the user exports results,
 then the system produces an updated XLSX table and an audit log containing only approved changes, while leaving the original input table unchanged.
 
 ### AC-10 Export fidelity
 
-Given an exported XLSX table,  
-when the export is opened,  
-then the table preserves accepted and unchanged cell content correctly, highlights cells changed through accepted proposals, and does not promise preservation of workbook formatting or other workbook behavior.
+Given an exported XLSX table,
+when the export is opened,
+then the table preserves accepted and unchanged cell content correctly, guarantees only cell-content preservation plus highlighting of changed cells, and does not promise preservation of workbook formatting or other workbook behavior.
 
 ### AC-11 Diagnostic transparency
 
-Given a run with matched PDFs but no usable accepted values,  
-when the run finishes,  
+Given a run with matched PDFs but no usable accepted values,
+when the run finishes,
 then the system provides diagnostics explaining why no values were produced or accepted and marks the run as completed with warnings rather than silently successful.
 
 ### AC-12 Weak-evidence handling
 
-Given a plausible proposal with weak, missing, or initially unusable evidence,  
-when proposal processing completes,  
+Given a plausible proposal with weak, missing, or initially unusable evidence,
+when proposal processing completes,
 then the system makes one recovery attempt, keeps the proposal reviewable if appropriate, and marks it accordingly, including quote-plus-page review when text highlighting could not be recovered.
 
 ### AC-13 Figure fallback
 
-Given a target field that remains unresolved after text or table extraction,  
-when the system identifies relevant figure evidence,  
+Given a target field that remains unresolved after text or table extraction,
+when the system identifies relevant figure evidence,
 then it may produce a figure-based proposal with clearly labeled visual evidence, including a crop and caption, for review.
 
 ### AC-14 Evaluation integrity
 
-Given Verify mode is enabled but too few verified proposals were reviewed to support meaningful interpretation,  
-when reviewer-outcome summaries are generated,  
-then the system emits a warning or explicit limited-review status rather than a misleading normal metric summary.
+Given Verify mode is enabled but too few verified proposals were reviewed to support meaningful interpretation,
+when reviewer-outcome summaries are generated,
+then the system emits a warning or explicit limited-review status rather than a misleading normal reviewer-outcome summary.
 
 ---
 
@@ -628,7 +628,7 @@ The following behaviors are required for the MVP represented by this spec:
 The following behaviors are important but may ship as progressive quality improvements so long as they do not weaken the core review workflow:
 
 - improved figure reasoning quality
-- stronger automated comparison methods for free-text or reasoning-heavy fields
+- future automated Verify-mode scoring research for free-text or reasoning-heavy fields
 - more sophisticated diagnostics in the UI
 
 ---
@@ -685,4 +685,4 @@ Technical architecture, parser strategy, retrieval strategy, model behavior, per
 
 ## Appendix: concise product statement
 
-Paper Table Agent is a local-first paper-to-table review system. It matches papers to spreadsheet rows, proposes values for missing or verified cells with anchored evidence, and lets a human reviewer accept, edit, reject, or bulk-accept a filtered proposal subset before exporting an audited XLSX table update.
+Paper Table Agent is a local-first paper-to-table review system. It matches papers to spreadsheet rows, proposes values for missing or verified cells with anchored evidence, and lets a human reviewer accept, edit, reject, or bulk-accept the currently visible filtered subset before exporting an audited XLSX table update.
