@@ -18,7 +18,7 @@ This document supports:
 
 It can also inform future implementation notes or runbooks if those become useful.
 
-Where a conclusion is still provisional, it is marked clearly with `TODO` or `[NEEDS MORE RESEARCH]`.
+Where a conclusion is not fully settled, it should be marked clearly using the confidence levels defined below or called out as an open question.
 
 ---
 
@@ -27,6 +27,14 @@ Where a conclusion is still provisional, it is marked clearly with `TODO` or `[N
 Draft
 
 This document contains current conclusions plus explicit open questions. It should be updated whenever a major implementation decision changes.
+
+### Decision confidence levels
+
+To keep this document actionable, conclusions should be read with these confidence levels in mind:
+
+- **Baseline**: recommended for MVP unless new evidence overturns it.
+- **Provisional**: favored today, but still worth re-checking during implementation.
+- **Deferred**: intentionally out of the MVP baseline unless later evidence justifies promotion.
 
 ---
 
@@ -42,7 +50,7 @@ The main research questions for this phase were:
 6. How should spreadsheet export work, and what are the realistic fidelity limits?
 7. What should be canonical state: filesystem artifacts, database state, or both?
 8. Does v1 need an orchestration/agent framework, or is a deterministic pipeline enough?
-9. What background-job model best fits a local-first app?
+9. If synchronous execution proves insufficient, what background-job model should be adopted first for a local-first app?
 10. How reliable is structured output across likely model providers?
 11. How should the product evaluate quality in MVP, and what should be deferred?
 12. Should existing filled spreadsheet cells be used as examples in extraction prompts?
@@ -59,21 +67,21 @@ The main research questions for this phase were:
 - The postmortem indicates that the prior implementation validated the **core product loop**, but also accumulated too much adaptive runtime complexity around brittle PDFs, model outputs, retrieval, and evidence anchoring.
 - The rewrite should carry forward conceptually, not by copying implementation: the core workflow, operator-facing evidence, hermetic end-to-end tests, parsed-document normalization, and typed/contextualized retrieval artifacts.
 - The first shipping parser approach should be **one main parser plus low-level PDF fallback**, while preserving a parser abstraction for later measured expansion.
-- The current best low-level PDF recommendation is **PDFium via pypdfium2** as the authoritative low-level PDF backend for MVP because it balances rendering/highlight/crop capabilities with a safer licensing posture than PyMuPDF/MuPDF. :contentReference[oaicite:6]{index=6}
+- The current best low-level PDF recommendation is **PDFium via pypdfium2** as the authoritative low-level PDF backend for MVP because it balances rendering/highlight/crop capabilities with a safer licensing posture than PyMuPDF/MuPDF.
 - The system should normalize parser outputs into one internal **parsed-document contract**.
 - Retrieval should operate over **typed chunks** and may use contextualized `retrieval_text`, but reviewer-visible evidence must remain anchored to source-preserving text.
 - Table-aware retrieval looks like a likely structural improvement for this product, but more advanced retrieval helpers must prove lift before becoming baseline.
-- The review experience requires a **dedicated Run/Review UI**, and the strongest current MVP recommendation is a **queue-first / list-detail review workflow** rather than a spreadsheet-first or wizard-only design. :contentReference[oaicite:7]{index=7}
+- The review experience requires a **dedicated Run/Review UI**, and the strongest current MVP recommendation is a **queue-first / list-detail review workflow** rather than a spreadsheet-first or wizard-only design.
 - The strongest current UI stack recommendation is a **local browser app**, specifically **React + TypeScript + Vite + raw/custom PDF.js + TanStack Table/Virtual + a small Python FastAPI service**, with no desktop shell required for MVP.
 - The system should use **filesystem artifact bundles plus JSON files as the canonical and sufficient MVP state**, with no database required for MVP.
-- Export should generate a **new updated XLSX workbook plus audit log**, not patch arbitrary workbooks in place, and **openpyxl** is the most realistic Python engine for that MVP behavior. The fidelity promise should be **cell-content preservation only plus changed-cell highlighting**, with workbook behavior and advanced sheet features out of guarantee.
+- Export should generate a **new updated XLSX workbook plus audit log**, not patch arbitrary workbooks in place, and **openpyxl** is the most realistic Python engine for that MVP behavior. The fidelity promise should be **content-only fidelity plus changed-cell highlighting**, with workbook behavior and advanced sheet features out of guarantee.
 - The implementation should use a **deterministic staged pipeline first**, with only targeted LLM-assisted stages.
-- The strongest current MVP runtime recommendation is **an app-owned staged runner executed synchronously inside the FastAPI service first**, with **Huey + SqliteHuey** as the first likely background-job layer if UI responsiveness later proves async execution necessary.
+- The strongest current MVP runtime recommendation is **an app-owned staged runner executed synchronously inside the FastAPI service first**, with **Huey + SqliteHuey** as the first candidate background-job layer only if UI responsiveness later proves async execution necessary.
 - Structured outputs should be the **default contract path**, with capability probes and graceful fallback for weaker providers.
 - Heavy orchestration or graph-first agent systems should be **deferred** unless measured workflow complexity clearly justifies them.
 - In MVP, evaluation should be based primarily on **reviewer-outcome summaries**, not on a single automated “correctness score” over heterogeneous field types.
 - Existing filled spreadsheet cells should be processed through a **per-column preprocessing LLM** that produces a structured style/format profile. Heuristic-only default shaping is not sufficient, and raw filled cells should **not** be passed into extraction prompts as semantic exemplars by default.
-- Figure-aware fallback should remain available, but the heavier reasoning-plus-vision path should be triggered only when the field is likely figure- or table-derived, text retrieval failed or remained insufficient, or the user explicitly requests fallback. Human review remains the only MVP evaluation path.
+- Figure-aware fallback should remain available, but the heavier reasoning-plus-vision path should remain a scoped escalation triggered only when the field is likely figure- or table-derived, text retrieval failed or remained insufficient, or the user explicitly requests fallback. Human review remains the only MVP evaluation path.
 
 ### Provisional conclusions
 
@@ -232,7 +240,7 @@ The most important criteria were:
 
 - **one main parser** as the primary parser for v1
 - **PDFium via pypdfium2** as the low-level PDF layer for page rendering, text search, coordinate mapping, highlighting support, and crop generation
-- **parser abstraction preserved** so additional parsers can be added later if measured lift justifies it :contentReference[oaicite:14]{index=14}
+- **parser abstraction preserved** so additional parsers can be added later if measured lift justifies it
 
 ## Why this combination won
 
@@ -251,15 +259,15 @@ The current strongest recommendation is PDFium via pypdfium2 because it provides
 - text extraction/search with boxes/rectangles
 - page-to-bitmap coordinate conversion
 - page/image object access
-- a more product-friendly licensing posture than PyMuPDF/MuPDF :contentReference[oaicite:15]{index=15}
+- a more product-friendly licensing posture than PyMuPDF/MuPDF
 
 ### Why PyMuPDF is not the default
 
-PyMuPDF/MuPDF looks excellent technically, but the AGPL/commercial licensing model makes it a riskier default for an MVP that may later want flexible distribution options. :contentReference[oaicite:16]{index=16}
+PyMuPDF/MuPDF looks excellent technically, but the AGPL/commercial licensing model makes it a riskier default for an MVP that may later want flexible distribution options.
 
 ### Why PDF.js is not the backend source of truth
 
-PDF.js is the strongest open viewer foundation in the browser layer, but it is not the best sole backend source of truth for persistent anchoring, crop generation, and geometry authority. :contentReference[oaicite:17]{index=17}
+PDF.js is the strongest open viewer foundation in the browser layer, but it is not the best sole backend source of truth for persistent anchoring, crop generation, and geometry authority.
 
 ### GROBID
 
@@ -270,11 +278,11 @@ GROBID remains a plausible enrichment path because it is specialized for scienti
 - Parser outputs must normalize into one internal format.
 - The parser layer should be adapter-based even if only one main parser ships initially.
 - The low-level PDF layer should be wrapped behind a small internal interface.
-- Evidence anchors should be stored in canonical page coordinates, not viewer pixel coordinates. :contentReference[oaicite:18]{index=18}
+- Evidence anchors should be stored in canonical page coordinates, not viewer pixel coordinates.
 
-## TODO / open follow-up
+## Follow-up status
 
-- [RESOLVED: MVP uses PDFium via pypdfium2 as the low-level PDF backend, while a small internal abstraction preserves future flexibility.]
+- Resolved for MVP: use PDFium via pypdfium2 as the low-level PDF backend behind a small internal abstraction.
 
 ---
 
@@ -397,7 +405,7 @@ The product’s core value is not just extraction. It is the ability for a human
 
 ## Main conclusion
 
-A dedicated **Run/Review UI** is required, and the strongest current recommendation is a **queue-first / list-detail review workflow**. :contentReference[oaicite:19]{index=19}
+A dedicated **Run/Review UI** is required, and the strongest current recommendation is a **queue-first / list-detail review workflow**.
 
 ## Why generic chat interfaces are not enough
 
@@ -422,7 +430,7 @@ The strongest current recommendation is:
 - a **proposal queue** or list on one side
 - a **focused detail pane** for the currently selected proposal
 - a **document/evidence viewer** showing the highlighted PDF page or figure crop/full page
-- progress counters and filter controls visible in the main review workspace :contentReference[oaicite:20]{index=20}
+- progress counters and filter controls visible in the main review workspace
 
 This is preferable to:
 - a pure spreadsheet-first UI as the main review surface
@@ -434,7 +442,7 @@ This is preferable to:
 - It supports filtering and triage.
 - It supports evidence-heavy decision making.
 - It scales better when many proposals exist.
-- It allows step-by-step review without forcing a rigid path. :contentReference[oaicite:21]{index=21}
+- It allows step-by-step review without forcing a rigid path.
 
 ### Spreadsheet-first interaction remains useful as a secondary context mode
 
@@ -461,10 +469,10 @@ This research supports:
 - crop-first figure review with full-page access
 - progress counters and filtering as core review affordances
 
-## TODO / open follow-up
+## Follow-up status
 
-- [RESOLVED: Bulk acceptance in MVP applies only to the currently visible filtered subset, with explicit confirmation.]
-- [RESOLVED: Reviewer-facing support labels should use clear human-readable wording such as “Direct evidence” and “Inferred from evidence”, consistent with `spec.md`.]
+- Resolved for MVP: bulk acceptance applies only to the currently visible filtered subset, with explicit confirmation.
+- Resolved for MVP: reviewer-facing support labels should use clear human-readable wording such as `Direct evidence` and `Inferred from evidence`, consistent with `spec.md`.
 
 ---
 
@@ -476,7 +484,7 @@ The product needs not only the right interaction model, but also the right imple
 - local-first file handling
 - queue-based review UI
 - PDF evidence rendering
-- modern desktop UX
+- modern local review UX
 - integration with Python-heavy extraction logic
 
 ## Main conclusion
@@ -509,21 +517,21 @@ That ecosystem fit is strongest in React.
 
 ### PDF.js should remain the evidence-viewer foundation
 
-PDF.js is the best open-source foundation for a browser/webview PDF evidence viewer, even if a more opinionated wrapper or commercial SDK could accelerate later implementation. :contentReference[oaicite:25]{index=25}
+PDF.js is the best open-source foundation for a browser/webview PDF evidence viewer, even if a more opinionated wrapper or commercial SDK could accelerate later implementation.
 
 ## Consequences for implementation
 
 This research supports:
 
-- a desktop-web hybrid architecture
+- a local browser-app architecture
 - a React-first frontend
 - Python extraction logic remaining in the architecture
 - queue-first review implemented with headless table logic rather than a spreadsheet-first enterprise grid
 - PDF evidence modeled in normalized page coordinates independent of the viewer implementation
 
-## TODO / open follow-up
+## Follow-up status
 
-- [TODO: Decide whether the first viewer overlay implementation is entirely custom or borrows specific interaction patterns from react-pdf-highlighter-style tooling.]
+- Open implementation detail: decide whether the first viewer overlay is entirely custom or borrows limited interaction patterns from react-pdf-highlighter-style tooling.
 
 ---
 
@@ -546,11 +554,11 @@ The current product direction is:
 - visually highlight cells changed through accepted proposals
 - keep the original input workbook unchanged
 
-The most realistic Python round-trip engine for this is **openpyxl**. XlsxWriter is excellent for generating new files from scratch but cannot read/modify an existing workbook. xlwings can achieve higher fidelity through native Excel automation, but it is too platform- and installation-dependent to be the default MVP boundary. :contentReference[oaicite:26]{index=26}
+The most realistic Python round-trip engine for this is **openpyxl**. XlsxWriter is excellent for generating new files from scratch but cannot read/modify an existing workbook. xlwings can achieve higher fidelity through native Excel automation, but it is too platform- and installation-dependent to be the default MVP boundary.
 
 ## Practical expectation for v1
 
-The MVP promise is cell-content preservation only plus changed-cell highlighting, not workbook-behavior fidelity.
+The MVP promise is content-only fidelity plus changed-cell highlighting, not workbook-behavior fidelity.
 
 ### Guaranteed
 - accepted cell values are written into the exported XLSX
@@ -576,9 +584,9 @@ The MVP promise is cell-content preservation only plus changed-cell highlighting
 
 This research directly supports the `plan.md` export strategy and the current product requirement that changed cells be visually highlighted.
 
-## TODO / open follow-up
+## Follow-up status
 
-- [TODO: Decide whether CSV export parity needs to be documented separately.]
+- Open documentation detail: decide whether CSV import and export parity deserves its own explicit note in product docs.
 
 Current MVP decision: do not add special warn/block behavior for workbooks with heavy non-cell artifacts. The product boundary remains content-only fidelity plus changed-cell highlighting, with other workbook features simply out of guarantee.
 
@@ -661,7 +669,7 @@ The reports strongly recommend that the app own:
 - artifacts
 - retries
 
-The queue library should only run stage jobs in the background. :contentReference[oaicite:30]{index=30}
+The queue library should only run stage jobs in the background.
 
 ## Consequences for implementation
 
@@ -738,7 +746,7 @@ The strongest current recommendation is to measure:
 - per-column reviewer outcome breakdown
 - evidence coverage
 - anchorable/highlightable evidence rates where applicable
-- matched / unmatched / ambiguous PDF counts :contentReference[oaicite:31]{index=31}
+- matched / unmatched / ambiguous PDF counts
 
 This is more trustworthy and easier to interpret than an automated aggregate score over free text, numeric, categorical, range, and reasoning-heavy fields.
 
@@ -1052,7 +1060,7 @@ Licensing must remain visible in planning, especially for the low-level PDF laye
 
 - Local-first deployment remains the correct v1 assumption.
 - Optional cloud fallbacks must be clearly disclosed in configuration and documentation.
-- Provider/model transparency should appear in a concise run summary, not only in deep logs. :contentReference[oaicite:36]{index=36}
+- Provider/model transparency should appear in a concise run summary, not only in deep logs.
 
 ## Consequences for implementation
 
@@ -1140,22 +1148,29 @@ It would add substantial complexity around authentication, concurrency, and revi
 
 ## Open research questions
 
-These questions remain open and should be resolved explicitly rather than assumed away.
+These questions remain open and should be resolved explicitly rather than assumed away:
+
+- How much measured lift does table-aware retrieval provide over simpler typed chunk retrieval on realistic paper batches?
+- Which figure categories deliver enough reviewer value to justify deeper visual tooling beyond the scoped fallback path?
+- At what point does synchronous execution become unacceptable for the target batch sizes, justifying the first background-job layer?
+- Which provider capability probes are sufficient to distinguish reliable structured-output support from prompt-only JSON behavior?
+- What is the minimum saved-view or queue-preset feature set that materially improves review speed without adding UI complexity?
+- Which JSON files inside the artifact bundle are safe to treat as stable interfaces for tooling and tests in MVP, and which should remain internal implementation details?
 
 ---
 
 ## Recommendations for next documents
 
-This research supports the current direction of `plan.md` and suggests the following next deliverables when they become useful:
+This research supports the current direction of `plan.md` and suggests the following documentation additions only when they become useful:
 
 1. optional ADRs
    - low-level PDF library and licensing posture
-   - background-job/runtime choice
+   - background-job/runtime choice if synchronous execution becomes insufficient
    - workbook fidelity policy
    - parser baseline decision
-   - UI shell/stack decision
+   - UI shell or viewer-stack decision
 
-2. quickstart / fixture design
+2. README or runbook additions
    - a small real-example set
    - stub/synthetic PDFs for deterministic testing
    - figure-heavy test examples
@@ -1180,7 +1195,7 @@ Paper Table Agent should be built as a **local-first, workflow-centered paper-to
 - reviewer-outcome-based MVP evaluation
 - preprocessing-LLM-derived style/format profiles rather than raw semantic examples
 - figure-aware fallback with scoped triggers for the heavier reasoning-plus-vision path
-- reviewed XLSX export into a new workbook and audit log with cell-content preservation only plus changed-cell highlighting
+- reviewed XLSX export into a new workbook and audit log with content-only fidelity plus changed-cell highlighting
 
 It also needs explicit measurement integrity requirements so empty or non-interpretable evaluation states cannot quietly masquerade as normal results.
 
