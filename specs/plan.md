@@ -19,7 +19,7 @@ This plan is intentionally opinionated. It chooses a concrete MVP architecture s
 - `spec.md` is the source of truth for user-facing requirements and acceptance criteria.
 - `research.md` records the research and tradeoffs behind the decisions in this plan.
 
-Additional supporting notes, runbooks, or a future task breakdown may be added later if they become useful, but they are not required MVP artifacts.
+The core documentation set for this phase is `spec.md`, `plan.md`, and `research.md`. `tasks.md` becomes useful when implementation starts, and optional ADRs or runbooks should be added only if a concrete decision or operator workflow needs them.
 
 ---
 
@@ -149,7 +149,7 @@ The system will export a new updated workbook plus audit log rather than mutatin
 Workbook fidelity is difficult to guarantee across complex Excel features. A generated export is safer, easier to validate, and more auditable.
 
 **Implementation direction:**
-Use `openpyxl` as the main XLSX round-trip engine. Guarantee cell-content preservation only plus changed-cell highlighting. Do not promise preservation of workbook behavior or advanced sheet structure.
+Use `openpyxl` as the main XLSX round-trip engine. Guarantee content-only fidelity plus changed-cell highlighting. Do not promise preservation of workbook behavior or advanced sheet structure.
 
 ---
 
@@ -296,75 +296,124 @@ The system will consist of five major layers:
 
 ---
 
-## Proposed implementation stack
+## MVP implementation stack
 
-### Frontend
-- **React**
-- **TypeScript**
-- **Vite**
-- **Tailwind CSS**
-- **shadcn/ui** or similarly lightweight component approach
-- **TanStack Table**
-- **TanStack Virtual**
+The MVP implementation stack is:
 
-### PDF viewer
-- **Raw/custom PDF.js** in the UI layer
-- app-managed overlay system for highlights and evidence regions
-- optional overlay behavior modeled after tools such as react-pdf-highlighter
+- **Frontend UI**: React local browser app
+- **Frontend language/build**: TypeScript + Vite
+- **UI components/layout**: Tailwind CSS + lightweight component layer
+- **Review queue/table**: TanStack Table
+- **Backend API**: small Python FastAPI service
+- **PDF ingestion/parser**: Docling
+- **Low-level PDF rendering/geometry**: PDFium via `pypdfium2`
+- **PDF review viewer**: raw/custom PDF.js viewer with app-owned evidence/highlight overlays
+- **LLM provider (MVP default)**: LM Studio localhost API
+- **Persistence**: filesystem artifact bundles + JSON files only
+- **Spreadsheet export**: `openpyxl`
+- **OCR fallback**: OCR fallback path enabled for scanned/text-inaccessible PDFs
+- **No database in MVP**
+- **No desktop wrapper in MVP**
+- **No background job framework by default in MVP**
 
-### Backend / service layer
-- **Python**
-- **FastAPI**
-
-### Background jobs
-- no queue by default in MVP
-- app-owned staged execution first
-- optional **Huey + SqliteHuey** background jobs later if UI responsiveness requires async execution
-
-### Persistence
-- filesystem artifact directories
-- JSON files for proposals, reviews, diagnostics, summaries, and run metadata
-- no database required for MVP
-
-### Initial LLM provider
-- **LM Studio localhost API**
-
-### Main parser
-- **Docling**
-
-### Low-level PDF layer
-- **pypdfium2 / PDFium**
-
-### OCR fallback
-- **OCRmyPDF** with **Tesseract**, producing a searchable PDF artifact before normal parsing when a PDF is scanned or text-inaccessible
-
-### XLSX export
-- **openpyxl**
+This section is intentionally explicit so the MVP does not drift back toward Tauri, SQLite, Huey, or other optional components as baseline requirements.
 
 ---
 
-## End-to-end technical flow
+## One-config-file control model
 
-1. Load table, schema, PDF folder, and configuration.
-2. Validate standardized metadata columns (`Title`, `Authors`, `Publication Year`).
-3. Normalize schema, identify missing/already-filled/verify-eligible cells, and build per-column style profiles from existing filled cells.
-4. Inventory PDFs and create run records.
-5. Detect scanned or text-inaccessible PDFs and run OCR fallback when needed.
-6. Parse PDFs through the parser stack and normalize outputs into `ParsedDocument`.
-7. Extract grounded metadata for row matching.
-8. Match PDFs to rows using deterministic scoring and fallback adjudication.
-9. Block ambiguous or duplicate-row conflicts from extraction.
-10. Build retrieval indexes from typed chunks and table-aware units where available.
-11. Select a context strategy for each matched PDF.
-12. Run schema-driven extraction to produce one best proposal per target cell.
-13. Validate evidence and run one narrow evidence-location pass where needed.
-14. Run figure-aware fallback only when the field is likely figure- or table-derived, text retrieval failed or remained insufficient, or the user explicitly requested fallback.
-15. Persist proposals, evidence, diagnostics, and review state as JSON artifacts.
-16. Present proposals in the review UI with queue, filters, and evidence display.
-17. Record review decisions.
-18. Export accepted changes into a new XLSX workbook and audit log.
-19. Compute reviewer-outcome run summaries and Verify-mode reviewer-outcome summaries.
-20. Write final run diagnostics and artifacts.
+The MVP uses a single JSON config file as the main control surface.
+
+This config file is the source of truth for:
+
+- inputs
+- parser settings
+- matching settings
+- style-profile preprocessing
+- retrieval settings
+- model/provider settings
+- figure fallback settings
+- review settings
+- export settings
+
+The UI should not expose a large parameter-tuning surface in MVP. Advanced behavior is configured by editing the config file directly.
+
+The config file should be sufficient to reproduce a run together with the input files and output artifact bundle.
+
+---
+
+## Pipeline stages
+
+The MVP pipeline should run in these explicit stages:
+
+1. **Load config and inputs**
+   - read config
+   - load spreadsheet and schema
+   - validate required metadata columns
+   - detect missing and already-filled cells
+2. **Build per-column style profiles**
+   - read existing filled cells per column
+   - run a preprocessing LLM step per column
+   - produce a structured style/format profile for each column
+3. **Parse PDFs once**
+   - parse each PDF with Docling
+   - generate normalized parsed-document artifacts
+   - generate page/crop artifacts needed for review and figure fallback
+   - trigger OCR fallback only when PDF text is inaccessible or clearly insufficient
+4. **Match PDFs to rows**
+   - extract grounded publication metadata
+   - run deterministic matching
+   - run fallback adjudication only for plausible ambiguous cases
+   - block ambiguous matches
+   - block duplicate-row PDF conflicts
+5. **Build retrieval artifacts**
+   - generate typed chunks
+   - generate contextualized retrieval text
+   - generate table-aware retrieval units when available
+6. **Extract proposals per target cell**
+   - gather row context, column definition, style profile, and retrieved context
+   - prompt the model once per target cell
+   - require structured JSON output
+   - store one best proposal per target cell
+7. **Validate and recover evidence**
+   - validate page-grounded evidence
+   - run one narrow recovery step if evidence is missing/weak/unusable
+   - preserve weak-but-reviewable proposals
+8. **Run scoped figure fallback when needed**
+   - only when figure/table-derived evidence is likely, text retrieval failed, or fallback is explicitly requested
+   - use crop + caption + nearby text + full page as needed
+9. **Write proposal artifacts**
+   - write proposals, evidence, diagnostics, and run summaries as JSON artifacts
+10. **Review in UI**
+   - queue-first review
+   - record accept / accept-with-edit / reject / bulk-accept-visible-subset decisions
+11. **Export**
+   - generate new XLSX
+   - apply accepted changes
+   - highlight changed cells
+   - write audit log
+12. **Write reviewer-outcome summaries**
+   - reviewed count
+   - accepted-as-is
+   - accepted-with-edit
+   - rejected
+   - per-column breakdown
+
+This explicit stage list is the canonical implementation sequence for MVP.
+
+---
+
+## Traceability from product requirements to implementation
+
+This plan should remain easy to audit against `spec.md`. The main requirement group to implementation mapping is:
+
+- **FR-1 to FR-4** → ingest, parse, match, retrieval, and extraction stages plus parser and provider contracts.
+- **FR-5 to FR-8** → extraction contracts, evidence validation, rationale display, and figure-fallback routing.
+- **FR-9 to FR-11** → queue-first review UI, review-state persistence, export engine, and audit-log generation.
+- **FR-12 to FR-14** → run summaries, diagnostics, completion semantics, and warning states for empty or weak runs.
+- **NFRs / trust requirements** → local-first architecture, filesystem artifact bundles, provider transparency, inspectable evidence, and deterministic testing strategy.
+
+When implementation changes one side of this mapping, the corresponding section in `spec.md` or `plan.md` should be updated in the same work pass.
 
 ---
 
@@ -372,18 +421,14 @@ The system will consist of five major layers:
 
 ## MVP interaction model
 
-The review UI will use a **queue-first / list-detail** design.
+The review UI will use a **queue-first / list-detail** design with an explicit three-pane layout plus a top bar.
 
-### Main review workspace
+### Layout
 
-The main review surface should include:
-
-- a proposal queue or list
-- a selected proposal detail pane
-- a PDF evidence viewer
-- progress counters
-- filters
-- decision controls
+- **Left pane**: proposal queue
+- **Center pane**: proposal detail
+- **Right pane**: evidence viewer
+- **Top bar**: progress counters and filters
 
 ### Proposal queue
 
@@ -395,9 +440,9 @@ The queue should support filtering by:
 - figure-based evidence
 - ambiguous/unmatched match status
 
-### Detail pane
+### Proposal detail
 
-The detail view should show:
+The detail pane should show:
 - row context
 - target column definition
 - current cell value if in Verify mode
@@ -420,9 +465,19 @@ For figure evidence:
 - show caption directly attached
 - allow full-page inspection
 
+### Actions
+
+The main review actions should be:
+- accept
+- accept with edit
+- reject
+- next
+- previous
+- bulk accept visible subset
+
 ### Progress and decision affordances
 
-The UI should show:
+The top bar should show:
 - total proposals
 - reviewed proposals
 - accepted as-is
@@ -439,13 +494,13 @@ The MVP should support:
 - focus proposed-value edit control
 - open or focus the evidence viewer
 
-### Bulk actions
+## Bulk review behavior
 
-MVP should support a bulk accept action, but the safest product interpretation is:
-- apply bulk acceptance to a visible, filtered subset
-- require explicit confirmation
+The MVP should support bulk acceptance only for the currently visible filtered subset of undecided proposals.
 
-The default MVP behavior should apply bulk acceptance only to the currently visible filtered subset.
+Bulk acceptance should require explicit user confirmation.
+
+A global “accept everything blindly” action should not be the default MVP behavior.
 
 ---
 
@@ -461,7 +516,7 @@ The FastAPI layer should expose a small stable set of application-facing endpoin
 - inspect unmatched/ambiguous PDFs
 - request export
 - fetch export bundle
-- fetch evaluation/reviewer summary
+- fetch reviewer-outcome summary
 - fetch document pages/crops/highlights
 
 The service layer should remain thin and should not duplicate pipeline logic. It should read and update per-run JSON artifacts rather than depending on a database.
@@ -474,63 +529,7 @@ The service layer should remain thin and should not duplicate pipeline logic. It
 
 The pipeline should be **stage-based and explicit**, with a clear default path and a small number of limited fallbacks.
 
-## Main stages
-
-### Stage 1 — Ingest
-- load table/schema/config
-- validate metadata columns
-- fingerprint inputs
-- build per-column style/format profiles from existing filled cells using a preprocessing LLM before extraction prompts are assembled
-- create run record
-
-### Stage 2 — Parse
-- run OCR fallback for scanned/text-inaccessible PDFs when needed
-- parse PDFs using the main parser
-- generate normalized parsed-document artifacts
-- generate low-level page render/crop support as needed
-- compute parsing diagnostics
-
-### Stage 3 — Match
-- extract header/paper metadata
-- perform deterministic matching
-- run fallback adjudication only for plausible ambiguous cases
-- block ambiguous and duplicate-row conflicts
-
-### Stage 4 — Build retrieval context
-- create typed chunks
-- create contextualized `retrieval_text`
-- create table-aware retrieval units if available
-- cache per-document retrieval artifacts
-
-### Stage 5 — Extract
-- run schema-driven extraction
-- one best proposal per target cell
-- structured-output-first
-- one primary context strategy plus one fallback only
-
-### Stage 6 — Validate evidence
-- validate evidence anchors
-- if needed, run one narrow evidence-location step
-- preserve weak-but-reviewable proposals
-
-### Stage 7 — Figure fallback
-- run only when needed
-- use scoped visual context
-- produce figure-marked evidence
-
-### Stage 8 — Review persistence
-- proposals available in UI
-- decisions stored as JSON artifacts in an append-only audit-friendly format
-
-### Stage 9 — Export
-- generate new XLSX workbook
-- write audit log
-- preserve original workbook untouched
-
-### Stage 10 — Summaries
-- write reviewer-outcome summaries
-- write Verify-mode summaries
-- write run diagnostics
+The canonical stage list is defined in `## Pipeline stages` above. The sections that follow describe the main contracts and policies that each stage must obey.
 
 ---
 
@@ -550,6 +549,16 @@ Create a robust scientific-PDF ingestion layer that preserves structure for retr
 
 ### OCR fallback
 - OCRmyPDF + Tesseract, writing searchable-PDF artifacts before the normal parse path when needed
+
+## OCR fallback policy
+
+OCR is fallback-only in MVP and should run only when PDF text is inaccessible or clearly insufficient.
+
+The default OCR fallback is **OCRmyPDF**.
+
+Born-digital PDFs remain the primary target and should not go through OCR unnecessarily.
+
+OCR outputs must still be normalized into the same parsed-document contract as non-OCR documents.
 
 ### Optional later enrichment
 - GROBID if measured lift justifies it
@@ -611,14 +620,14 @@ Improve extraction quality by retrieving over contextualized typed chunks while 
 
 ## Retrieval units
 
-The retrieval layer may index:
-- abstract chunks
-- section header chunks
+The MVP retrieval defaults are:
 - paragraph chunks
-- figure-caption chunks
+- section chunks
+- caption chunks
 - table-region chunks
-- table-cell summary units when available
-- reference blocks when useful
+- `top_k = 6`
+- include captions/tables when relevant
+- one neighbor window around selected text chunks
 
 ## Retrieval text versus display text
 
@@ -632,14 +641,11 @@ The default retrieval stack should be intentionally narrow:
 - contextualized text
 - sparse or simple baseline retrieval
 - table-aware units where useful
+- no reranker in the MVP baseline
+- no HyDE in the MVP baseline
+- no query expansion in the MVP baseline
 
-Advanced helpers such as:
-- dense embeddings
-- reranking
-- HyDE
-- query expansion
-
-should remain optional and must prove lift before becoming baseline.
+Advanced helpers must prove lift before becoming baseline behavior.
 
 ## Context strategy
 
@@ -665,31 +671,65 @@ Generate schema-driven proposals with enough context to maximize usefulness whil
 
 - column-driven extraction
 - at most one best proposal per target cell per run
+- one proposal JSON object per target cell per run
 - value-first behavior retained
 - structured-output-first
 - concise rationale/calculation when the value is derived
+- proposal states should include at least `found`, `inferred`, `unclear`, `blocked`, and `error`
 
 ## LLM interaction model
 
-The extraction path should be:
+The MVP LLM interaction model is:
 
-- parse once per paper
-- retrieve relevant passages or figure context
+- parse once
+- retrieve relevant passages
 - ask the model per target cell
-- require structured JSON output per proposal
-- store page-grounded evidence with each proposal
+- require structured JSON output
+- store page-grounded evidence
+
+The extraction model should receive, at minimum:
+
+- row context
+- column name
+- column description
+- per-column style/format profile
+- retrieved evidence context
+- instructions for proposal state and evidence output
+
+The model is allowed to:
+
+- extract directly supported values
+- derive values from calculations
+- provide concise reviewer-facing rationale when inference or calculation is required
+
+The model must not rely on hidden chain-of-thought as a product feature.
+
+The MVP should use:
+
+- one primary text-capable reasoning model through LM Studio
+- one vision-capable model through LM Studio for figure fallback when needed
 
 ## Verify mode
 
 Verify mode is not a separate extraction architecture. It is the same extraction flow applied to already-filled cells with different review/export/evaluation semantics.
 
-## Format/style guidance
+## Style-profile preprocessing
 
-The extraction layer should use a per-column preprocessing LLM step that turns existing filled cells into a structured style/format profile. Extraction should consume only that profile, not raw examples. The profile may guide output shape, tone, and level of detail, but:
-- content must remain grounded in the current PDF
-- style guidance must not act as semantic evidence
-- raw filled cells must not be injected into extraction prompts by default
-- heuristic-only format inference is not the baseline path
+Before extraction, the system should run a preprocessing LLM step per schema column over existing filled cells.
+
+This step must produce a structured style/format profile that may include:
+
+- expected output type
+- expected length/detail level
+- tone/style
+- unit conventions
+- whether outputs are terse, categorical, numeric, or explanatory
+
+This profile is used only to shape output form.
+
+It must not encode likely scientific content for the target cell.
+
+Raw existing filled cells must not be injected into extraction prompts as semantic few-shot exemplars by default.
 
 ---
 
@@ -701,7 +741,29 @@ Preserve plausible values while making evidence quality visible, recoverable, an
 
 ## MVP evidence contract
 
-The evidence model should be narrower and stricter than in the old system.
+The evidence model should be narrower and stricter than in the old system. Each proposal should link to separate evidence objects rather than embedding every evidence detail directly into the proposal object.
+
+### Proposal object shape in prose
+
+Each proposal JSON object should include, at minimum:
+- run identifier
+- row identifier
+- column identifier
+- proposal state
+- proposed value
+- rationale field
+- calculation field when the value is derived
+- primary evidence identifier
+- secondary evidence identifiers when additional evidence exists
+
+### Evidence object shape in prose
+
+Each evidence object should capture, at minimum:
+- evidence identifier
+- source PDF
+- page reference
+- evidence type such as text quote, highlight, figure crop, or caption
+- enough anchor information for the UI to render or fall back gracefully
 
 ### Text proposals
 Preferred:
@@ -717,6 +779,7 @@ Preferred minimum:
 ### Review emphasis
 - one primary evidence item by default
 - expandable secondary evidence items
+- separate rationale and calculation fields for derived values
 
 ## Validation and recovery
 
@@ -728,26 +791,31 @@ Do not build a broad salvage ladder by default.
 
 ---
 
-## Figure strategy
+## Table and figure handling strategy
 
-## Objective
+### Tables
 
-Support figure-derived proposals in MVP while keeping visual extraction explicitly review-first.
+Tables are first-class evidence sources.
 
-## Trigger policy
+The system should:
+- preserve table structure where possible during parsing
+- generate table-aware retrieval units
+- prefer table-derived context for fields likely to be answered from tabular results
+- include nearby captions or narrative context when useful
 
-Figure fallback should run when:
-- the field is likely figure- or table-derived
-- text retrieval failed or remained insufficient
-- the user explicitly requests a fallback
-- parser output identified candidate figure-bearing regions
+### Figures
 
-## Review policy
+Figures are also first-class evidence sources, but figure reasoning is a scoped fallback path.
 
-Figure-derived proposals must:
-- be clearly labeled as figure-based
-- display crop + caption + full-page access
-- remain subject to human review
+The MVP should:
+- extract figure/caption relationships when available
+- generate crops and page references for review
+- use a vision-capable model only when:
+  - the field appears likely figure/table-derived
+  - text retrieval failed or remained insufficient
+  - or fallback is explicitly requested
+
+Figure-derived proposals remain normal proposals, but their evidence source must be marked as figure-based.
 
 ## Evaluation boundary
 
@@ -775,7 +843,7 @@ Produce safe, review-authorized outputs without mutating the original source wor
 
 ## Workbook fidelity policy
 
-The MVP export promise is cell-content preservation only plus highlighting of changed cells, not workbook-behavior fidelity.
+The MVP export promise is content-only fidelity plus highlighting of changed cells, not workbook-behavior fidelity.
 
 Guaranteed:
 - accepted cell values are written into the exported XLSX
@@ -821,6 +889,46 @@ Canonical run bundle:
 - diagnostics JSON
 - exports
 - summary/report JSON
+
+## Artifact bundle layout
+
+The MVP persists state as a run-specific artifact bundle in the output directory.
+
+The bundle should contain stable top-level categories such as:
+
+- `run.json`
+- `config.snapshot.json`
+- `inputs/`
+- `style_profiles/`
+- `parsed/`
+- `matching/`
+- `retrieval/`
+- `proposals/proposals.jsonl`
+- `evidence/evidence.jsonl`
+- `review/decisions.jsonl`
+- `review/reviewer_summary.json`
+- `exports/updated_table.xlsx`
+- `exports/audit_log.csv`
+- `logs/`
+
+This artifact bundle is the canonical persisted state for MVP.
+
+---
+
+## Artifact bundle contract
+
+The bundle layout is the canonical persistence mechanism, but not every JSON file needs to be treated as a stable interface. For MVP, the stable artifact categories for tooling, tests, and operator inspection are:
+
+- run metadata and configuration snapshots
+- parsed-document artifacts and parser diagnostics
+- proposal and evidence JSON
+- review decisions and decision history
+- reviewer-outcome and run-summary JSON
+- exported workbook and audit-log outputs
+
+Lower-level intermediate files may still evolve as implementation details so long as these categories remain discoverable and semantically consistent.
+
+---
 
 ## Ownership rule
 
@@ -902,6 +1010,25 @@ The normal run summary should include:
 ## Objective
 
 Measure usefulness honestly in MVP without overcommitting to brittle automated scoring.
+
+## Reviewer-outcome summaries
+
+MVP run quality should be summarized primarily through reviewer outcomes rather than automated correctness scoring.
+
+At minimum, the run summary should include:
+
+- PDFs processed
+- matched / unmatched / ambiguous PDFs
+- target cells
+- proposals generated
+- reviewed proposals
+- accepted-as-is
+- accepted-with-edit
+- rejected
+- changed cells exported
+- Verify mode on/off
+- provider/model names
+- local vs cloud status
 
 ## MVP measurement model
 
@@ -1035,8 +1162,14 @@ Maintain a compact fixture set that covers:
 
 ## Open technical questions
 
-- [RESOLVED: MVP uses PDFium via pypdfium2 as the low-level PDF backend, wrapped behind a small internal abstraction layer so backend-specific code stays isolated.]
-- [RESOLVED: If synchronous execution proves insufficient, Huey + SqliteHuey is the first background-job layer to add.]
+Most previously blocking architecture questions are resolved for MVP. The remaining implementation-level questions to validate during delivery are:
+
+- whether the first PDF evidence overlay should be fully custom or should borrow limited interaction patterns from existing highlighter libraries while keeping normalized anchors internal
+- whether CSV input should receive additional import warnings when workbook-only fidelity expectations could confuse users
+- how much saved-view or preset support is necessary in the first review queue without expanding into a large personalization surface
+- if synchronous execution proves insufficient, whether Huey + SqliteHuey remains the right first background-job layer to adopt
+
+These are intentionally narrow questions. They should not reopen the larger architectural choices already recorded in this plan.
 
 ---
 
@@ -1054,6 +1187,6 @@ Paper Table Agent will be implemented as a local-first workflow application with
 - reviewer-outcome-based MVP evaluation
 - a preprocessing LLM that turns existing filled cells into structured style profiles
 - figure-aware fallback with tightly scoped reasoning-plus-vision escalation
-- new XLSX export plus audit log with cell-content preservation only and changed-cell highlighting
+- new XLSX export plus audit log with content-only fidelity plus changed-cell highlighting
 
 This keeps the system aligned with its real purpose: trustworthy, human-reviewed extraction from scientific papers into structured tables.

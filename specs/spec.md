@@ -10,9 +10,26 @@ Paper Table Agent helps a researcher turn a folder of scientific PDFs plus a str
 
 The system matches PDFs to spreadsheet rows, proposes values for missing cells using grounded evidence from the papers, and provides a review interface where a human can accept, edit, reject, or bulk-accept the currently visible filtered subset before any spreadsheet is updated.
 
-The system primarily extracts from text and tables, and may automatically use figure-aware fallback extraction when text or table extraction is insufficient and the field appears likely figure- or table-derived or fallback is explicitly requested.
+The system primarily extracts from text and tables, and may use scoped figure-aware fallback extraction when the field appears likely figure- or table-derived, text or table retrieval remains insufficient, or fallback is explicitly requested.
 
 The product is designed for high-trust extraction workflows where proposed values must remain inspectable, auditable, reversible, and clearly distinguishable by support level.
+
+---
+
+## End-to-end workflow
+
+The intended MVP workflow is:
+
+1. Load a table, schema, PDF folder, and run configuration.
+2. Normalize table columns and determine which cells are missing versus already filled.
+3. Parse PDFs and extract paper-level metadata needed for row matching.
+4. Match each PDF to at most one row, while surfacing unmatched, ambiguous, and duplicate-row conflicts.
+5. Generate one best proposal per eligible target cell, with evidence and support labeling.
+6. Let a human reviewer inspect, filter, accept, edit, reject, or bulk-accept the currently visible filtered subset.
+7. Export a new XLSX workbook containing only explicitly accepted changes plus an audit log and run summaries.
+8. Preserve diagnostics and artifacts so the run can be inspected later.
+
+This workflow is intentionally linear from the operator’s perspective even if the implementation uses multiple internal stages.
 
 ---
 
@@ -59,7 +76,7 @@ A lab member or assistant who reviews proposed spreadsheet updates with supporti
 
 ### Supporting actor
 
-A developer or advanced user who inspects diagnostics to understand matching, extraction, evidence, or evaluation failures.
+A developer or advanced user who inspects diagnostics to understand matching, extraction, evidence, or reviewer-outcome reporting failures.
 
 ---
 
@@ -85,7 +102,7 @@ A developer or advanced user who inspects diagnostics to understand matching, ex
 4. As a reviewer, I want to inspect the PDF page with a highlight of the most relevant quoted evidence, or at minimum the quote plus page when highlighting fails, and see a concise rationale or calculation when the value is derived, so that I can accept, edit, or reject it confidently.
 5. As a curator, I want non-empty spreadsheet cells to remain protected unless I explicitly choose otherwise so that previously curated data is not overwritten accidentally.
 6. As a curator, I want an updated export file and audit log after review so that I can update my master table safely and trace what changed.
-7. As a developer or advanced user, I want diagnostic outputs about matching, extraction, evidence quality, and evaluation so that I can troubleshoot poor runs.
+7. As a developer or advanced user, I want diagnostic outputs about matching, extraction, evidence quality, and reviewer-outcome reporting so that I can troubleshoot poor runs.
 8. As a reviewer, I want verify mode to compare proposals against already-filled cells so that I can review disagreements, make decisions on them, and assess how well the app is performing through reviewer outcomes.
 
 ---
@@ -172,13 +189,28 @@ For each run, the system must produce:
 - No spreadsheet cell is updated automatically without an explicit human decision.
 - All exported changes are traceable back to reviewed proposals.
 - The exported table must remain in XLSX format, even when the input table is CSV.
-- The exported XLSX table guarantees cell-content preservation only, plus highlighting of changed cells. Workbook formatting, layout, formulas, filters, frozen panes, hidden rows/columns, merged cells, conditional formatting, comments, named ranges, and similar workbook behavior are out of guarantee for MVP.
+- The exported XLSX table guarantees content-only fidelity plus highlighting of changed cells. Workbook formatting, layout, formulas, filters, frozen panes, hidden rows/columns, merged cells, conditional formatting, comments, named ranges, and similar workbook behavior are out of guarantee for MVP.
 - Cells changed through accepted proposals must be visually highlighted in the exported XLSX table.
 - Diagnostic outputs remain available after the run finishes.
 - Verify-mode reviewer-outcome summaries remain available even when there are no verified cells, with a clear status or explanation instead of silent empty metrics.
 - Verify-mode reviewer-outcome summaries must not silently report an all-zero result when no targets were actually reviewed.
 - Unreviewed proposals must not appear as accepted changes in the exported table.
 - A concise run summary must report provider/model names used, whether processing stayed local or used cloud providers, and key run metrics.
+
+---
+
+## Proposal and review terminology
+
+The product uses the following reviewer-facing concepts consistently across the UI, exports, and diagnostics:
+
+- **Match outcome**: whether a PDF is `matched`, `ambiguous`, `unmatched`, or blocked by a duplicate-row conflict.
+- **Proposal**: the one best attempted value for a specific row/column cell in a specific run.
+- **Support level**: how strongly the system believes the evidence supports the proposal, such as direct evidence, inferred from evidence, weak evidence, or figure-based evidence.
+- **Evidence item**: the reviewer-visible text quote, page anchor, highlight, figure crop, caption, or related source reference used to justify the proposal.
+- **Review decision**: accept as-is, accept with edit, reject, or no decision yet.
+- **Diagnostics-only outcome**: a recorded extraction result that should appear in diagnostics even when there is no reviewable proposal.
+
+This terminology is normative for the MVP even if internal implementation names differ.
 
 ---
 
@@ -285,9 +317,9 @@ If strong evidence still cannot be recovered, the proposal may remain available 
 
 Failure to recover a highlight for a text-derived proposal must not by itself move the proposal to diagnostics-only if quote plus page evidence is available.
 
-### FR-8 Figure-aware fallback
+### FR-8 Scoped figure-aware fallback
 
-The system must support automatic figure-aware fallback extraction when text or table extraction is insufficient and the field appears likely figure- or table-derived, or when fallback is explicitly requested.
+The system must support scoped figure-aware fallback extraction when the field appears likely figure- or table-derived, when text or table retrieval or extraction remains insufficient, or when fallback is explicitly requested.
 
 Figure-aware fallback may use scoped visual context such as:
 - figure crops
@@ -359,7 +391,7 @@ The original input table must remain unchanged.
 
 Changed cells must be visually highlighted in the exported table.
 
-The export guarantee is cell-content preservation only plus highlighting of changed cells. Workbook formatting, formulas, filters, frozen panes, hidden rows/columns, merged cells, conditional formatting, comments, named ranges, and similar workbook behavior are out of guarantee for MVP.
+The export guarantee is content-only fidelity plus highlighting of changed cells. Workbook formatting, formulas, filters, frozen panes, hidden rows/columns, merged cells, conditional formatting, comments, named ranges, and similar workbook behavior are out of guarantee for MVP.
 
 The audit log must include, at minimum:
 - row identifier
@@ -370,7 +402,7 @@ The audit log must include, at minimum:
 - reviewer decision
 - decision timestamp
 
-### FR-12 Diagnostics and evaluation
+### FR-12 Diagnostics and reviewer-outcome summaries
 
 The system must preserve diagnostics that help explain:
 - why a PDF was matched, left unmatched, or marked ambiguous
@@ -394,7 +426,7 @@ The system must provide a normal user-facing run summary with at least:
 
 Detailed logs and deeper diagnostics may exist as advanced outputs for development and troubleshooting.
 
-In MVP, evaluation must be based primarily on reviewer-outcome statistics rather than automated correctness scoring across heterogeneous field types.
+In MVP, reviewer-outcome summaries are the primary reporting mechanism, and automated correctness scoring across heterogeneous field types is deferred.
 
 Reviewer-outcome summaries must include, at minimum:
 - reviewed verified-cell count
@@ -410,11 +442,11 @@ Verify mode may still compare proposals against already-filled cells, but future
 
 If there are too few reviewed proposals or verified proposals for meaningful interpretation, the system must warn explicitly.
 
-If evaluation may be biased or leakage-prone, the system should warn explicitly.
+If reviewer-outcome reporting may be biased or if any future automated evaluation would be leakage-prone, the system should warn explicitly.
 
 ### FR-13 Structured-document support
 
-The system must work with PDFs whose useful evidence may appear in prose, captions, table-like content, or figure-aware fallback evidence.
+The system must work with PDFs whose useful evidence may appear in prose, captions, table-like content, or scoped figure-aware fallback evidence.
 
 When document structure can be detected, the system should preserve enough of that structure to improve proposal quality and evidence review without changing the user-facing workflow.
 
@@ -473,7 +505,7 @@ Bit-for-bit deterministic replay is not required for the MVP.
 
 ### NFR-3 Inspectability
 
-Intermediate and final outputs should remain inspectable by an advanced user for debugging and evaluation.
+Intermediate and final outputs should remain inspectable by an advanced user for debugging and reviewer-outcome analysis.
 
 ### NFR-4 Robustness to partial failure
 
@@ -581,7 +613,7 @@ then the system produces an updated XLSX table and an audit log containing only 
 
 Given an exported XLSX table,
 when the export is opened,
-then the table preserves accepted and unchanged cell content correctly, guarantees only cell-content preservation plus highlighting of changed cells, and does not promise preservation of workbook formatting or other workbook behavior.
+then the table preserves accepted and unchanged cell content correctly, guarantees content-only fidelity plus highlighting of changed cells, and does not promise preservation of workbook formatting or other workbook behavior.
 
 ### AC-11 Diagnostic transparency
 
@@ -606,6 +638,18 @@ then it may produce a figure-based proposal with clearly labeled visual evidence
 Given Verify mode is enabled but too few verified proposals were reviewed to support meaningful interpretation,
 when reviewer-outcome summaries are generated,
 then the system emits a warning or explicit limited-review status rather than a misleading normal reviewer-outcome summary.
+
+### AC-15 Partial-review export behavior
+
+Given some proposals remain unreviewed,
+when the user exports results,
+then only explicitly accepted proposals appear in the exported workbook and audit log, and unreviewed proposals remain excluded.
+
+### AC-16 Provider transparency
+
+Given a run used one or more model or parsing providers,
+when the run summary is shown or exported,
+then the summary identifies the provider or model names used and whether processing stayed local or used external services.
 
 ---
 
@@ -647,6 +691,8 @@ The following are candidate success metrics:
 - evidence display success rate
 - match accuracy on a labeled sample
 - median review time or time saved per curated paper or per completed row
+
+Metrics should be interpreted together rather than in isolation. For example, a high proposal count with low reviewer acceptance or weak evidence coverage is not a successful run.
 
 ---
 
