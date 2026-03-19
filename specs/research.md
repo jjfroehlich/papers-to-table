@@ -24,9 +24,9 @@ Where a conclusion is not fully settled, it should be marked clearly using the c
 
 ## Status
 
-Draft
+Finalized baseline
 
-This document contains current conclusions plus explicit open questions. It should be updated whenever a major implementation decision changes.
+This document contains the current baseline conclusions plus explicit open questions. It should be updated whenever a major implementation decision changes.
 
 ### Decision confidence levels
 
@@ -67,12 +67,12 @@ The main research questions for this phase were:
 - The postmortem indicates that the prior implementation validated the **core product loop**, but also accumulated too much adaptive runtime complexity around brittle PDFs, model outputs, retrieval, and evidence anchoring.
 - The rewrite should carry forward conceptually, not by copying implementation: the core workflow, operator-facing evidence, hermetic end-to-end tests, parsed-document normalization, and typed/contextualized retrieval artifacts.
 - The first shipping parser approach should be **one main parser plus low-level PDF fallback**, while preserving a parser abstraction for later measured expansion.
-- The current best low-level PDF recommendation is **PDFium via pypdfium2** as the authoritative low-level PDF backend for MVP because it balances rendering/highlight/crop capabilities with a safer licensing posture than PyMuPDF/MuPDF.
+- The current practical low-level PDF direction is **PDFium via pypdfium2** as the complementary backend for rendering/highlight/crop and geometry-sensitive evidence operations because it balances those capabilities with a safer licensing posture than PyMuPDF/MuPDF.
 - The system should normalize parser outputs into one internal **parsed-document contract**.
 - Retrieval should operate over **typed chunks** and may use contextualized `retrieval_text`, but reviewer-visible evidence must remain anchored to source-preserving text.
 - Table-aware retrieval looks like a likely structural improvement for this product, but more advanced retrieval helpers must prove lift before becoming baseline.
-- The review experience requires a **dedicated Run/Review UI**, and the strongest current MVP recommendation is a **queue-first / list-detail review workflow** rather than a spreadsheet-first or wizard-only design.
-- The strongest current UI stack recommendation is a **local browser app**, specifically **React + TypeScript + Vite + raw/custom PDF.js + TanStack Table/Virtual + a small Python FastAPI service**, with no desktop shell required for MVP.
+- The review experience requires a **dedicated Run/Review UI**, and the current practical MVP direction is a **queue-first / list-detail review workflow** rather than a spreadsheet-first or wizard-only design.
+- The current practical MVP implementation direction is a **local browser app** centered on a **React frontend**, a **small Python FastAPI backend**, and a **raw/custom PDF.js evidence viewer**, with no desktop shell required for MVP. TypeScript, Vite, Tailwind, shadcn/ui, TanStack Table, and TanStack Virtual are sensible practical defaults rather than architectural requirements.
 - The system should use **filesystem artifact bundles plus JSON files as the canonical and sufficient MVP state**, with no database required for MVP.
 - Export should generate a **new updated XLSX workbook plus audit log**, not patch arbitrary workbooks in place, and **openpyxl** is the most realistic Python engine for that MVP behavior. The fidelity promise should be **content-only fidelity plus changed-cell highlighting**, with workbook behavior and advanced sheet features out of guarantee.
 - The implementation should use a **deterministic staged pipeline first**, with only targeted LLM-assisted stages.
@@ -238,9 +238,11 @@ The most important criteria were:
 
 ### Recommended parser stack for the rewrite baseline
 
-- **one main parser** as the primary parser for v1
-- **PDFium via pypdfium2** as the low-level PDF layer for page rendering, text search, coordinate mapping, highlighting support, and crop generation
+- **Docling is the main parser** for v1
+- **PDFium via pypdfium2 is the complementary low-level PDF backend** for page rendering, text search, coordinate mapping, highlighting support, crop generation, and fallback page/image access
 - **parser abstraction preserved** so additional parsers can be added later if measured lift justifies it
+
+Docling and PDFium/pypdfium2 are not competing parser choices in this baseline. Docling is responsible for primary document parsing and structured extraction, while PDFium/pypdfium2 complements it with low-level PDF capabilities needed for rendering, geometry, crops, highlight support, and fallback page/image access.
 
 ## Why this combination won
 
@@ -248,17 +250,19 @@ The most important criteria were:
 
 The prior implementation suggests that multi-parser runtime complexity should not be baseline behavior. The rewrite should start with one main parser that is good enough for the product loop and keep the contract stable around it.
 
-### Likely initial main parser
+### Main parser choice
 
-Docling still looks like the strongest initial candidate because it is strong on structured document conversion, layout-aware parsing, figure/image extraction, and chart/table support.
+Docling is the main parser in the current baseline because it is strong on structured document conversion, layout-aware parsing, figure/image extraction, and chart/table support.
 
-### Low-level PDF layer choice
+### Complementary low-level PDF backend
 
-The current strongest recommendation is PDFium via pypdfium2 because it provides:
-- page rendering with cropping
-- text extraction/search with boxes/rectangles
-- page-to-bitmap coordinate conversion
-- page/image object access
+PDFium via pypdfium2 does not replace the parser. It complements Docling by providing:
+- rendering
+- geometry and coordinate mapping
+- crops
+- highlight support
+- fallback page/image access
+- text extraction/search with boxes/rectangles when low-level access is needed
 - a more product-friendly licensing posture than PyMuPDF/MuPDF
 
 ### Why PyMuPDF is not the default
@@ -405,7 +409,7 @@ The product’s core value is not just extraction. It is the ability for a human
 
 ## Main conclusion
 
-A dedicated **Run/Review UI** is required, and the strongest current recommendation is a **queue-first / list-detail review workflow**.
+A dedicated **Run/Review UI** is required, and the current practical MVP direction is a **queue-first / list-detail review workflow**.
 
 ## Why generic chat interfaces are not enough
 
@@ -425,7 +429,7 @@ This is a workflow interface, not a chat conversation.
 
 ### Recommended MVP interaction model
 
-The strongest current recommendation is:
+The current practical MVP direction is:
 
 - a **proposal queue** or list on one side
 - a **focused detail pane** for the currently selected proposal
@@ -489,15 +493,25 @@ The product needs not only the right interaction model, but also the right imple
 
 ## Main conclusion
 
-The strongest current MVP stack recommendation is:
+A sensible current MVP stack is best understood in two layers.
 
-- **React + TypeScript + Vite** for a local browser UI
-- **Tailwind + shadcn/ui** or a similarly lightweight custom component layer
-- **TanStack Table + TanStack Virtual** for the review queue
-- **raw/custom PDF.js** as the core PDF evidence viewer
-- **Python + FastAPI** for extraction and review backend logic
+### Core MVP architecture
+
+- **local browser UI**
+- **React frontend**
+- **Python + FastAPI backend**
+- **raw/custom PDF.js evidence viewer**
 - **filesystem artifact bundles plus JSON files** for local persistence
 - **LM Studio localhost API** as the initial LLM provider
+
+### Practical default implementation choices
+
+- **TypeScript**
+- **Vite**
+- **Tailwind**
+- **shadcn/ui** or a similarly lightweight component layer
+- **TanStack Table** for the review queue
+- **TanStack Virtual** as an optional add-on only if proposal-list size makes virtualization useful
 
 ## Why this conclusion won
 
@@ -524,9 +538,12 @@ PDF.js is the best open-source foundation for a browser/webview PDF evidence vie
 This research supports:
 
 - a local browser-app architecture
-- a React-first frontend
+- a React-first frontend paired with a FastAPI backend
+- PDF.js as the evidence-viewer foundation
 - Python extraction logic remaining in the architecture
 - queue-first review implemented with headless table logic rather than a spreadsheet-first enterprise grid
+- practical default libraries such as Vite, Tailwind, shadcn/ui, and TanStack Table being treated as replaceable defaults rather than strict architectural requirements
+- TanStack Virtual being optional and only introduced if proposal volume makes virtualization worthwhile
 - PDF evidence modeled in normalized page coordinates independent of the viewer implementation
 
 ## Follow-up status
@@ -1184,9 +1201,8 @@ The current research supports a clear implementation direction:
 
 Paper Table Agent should be built as a **local-first, workflow-centered paper-to-table review system** with:
 
-- a dedicated queue-first React local browser app with a raw/custom PDF.js review viewer
-- a FastAPI backend
-- Docling as the main parser with PDFium/pypdfium2 as the low-level PDF backend for rendering/anchoring/crops
+- a dedicated queue-first local browser app built around a React frontend, a FastAPI backend, and a raw/custom PDF.js review viewer
+- Docling as the main parser with PDFium/pypdfium2 as the complementary low-level PDF backend for rendering/geometry/crops/highlight support and fallback page/image access
 - OCRmyPDF plus Tesseract as the scanned-PDF fallback
 - typed retrieval units with source-preserving evidence display
 - filesystem artifact bundles and JSON files as the complete MVP persistence model

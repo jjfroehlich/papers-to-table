@@ -1,5 +1,9 @@
 # Paper Table Agent — `plan.md`
 
+## Status
+
+Finalized baseline
+
 ## Purpose
 
 This document defines the technical approach for implementing the product requirements in `spec.md`.
@@ -298,12 +302,11 @@ The system will consist of five major layers:
 
 ## MVP implementation stack
 
-The MVP implementation stack is:
+The MVP implementation stack is best understood in two layers.
+
+### Core MVP architecture
 
 - **Frontend UI**: React local browser app
-- **Frontend language/build**: TypeScript + Vite
-- **UI components/layout**: Tailwind CSS + lightweight component layer
-- **Review queue/table**: TanStack Table
 - **Backend API**: small Python FastAPI service
 - **PDF ingestion/parser**: Docling
 - **Low-level PDF rendering/geometry**: PDFium via `pypdfium2`
@@ -315,6 +318,13 @@ The MVP implementation stack is:
 - **No database in MVP**
 - **No desktop wrapper in MVP**
 - **No background job framework by default in MVP**
+
+### Practical default implementation choices
+
+- **Frontend language/build**: TypeScript + Vite
+- **UI components/layout**: Tailwind CSS + lightweight component layer
+- **Review queue/table**: TanStack Table
+- **Proposal-list virtualization**: TanStack Virtual only if proposal volume makes virtualization worthwhile
 
 This section is intentionally explicit so the MVP does not drift back toward Tauri, SQLite, Huey, or other optional components as baseline requirements.
 
