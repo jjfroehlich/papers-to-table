@@ -25,7 +25,7 @@ In plain language, the workflow is:
 1. Loads your config, table, schema, and PDF folder.
 2. Matches each PDF to at most one spreadsheet row.
 3. Extracts one best proposal per eligible cell, with evidence and support labels.
-4. Lets you review proposals in the browser with reasoning and evidence display.
+4. Lets you review proposals in the browser with a queue/detail/evidence workspace, run metrics, and export downloads.
 5. Exports a new workbook containing only the changes you explicitly accepted.
 
 **Typical review loop**
@@ -34,7 +34,7 @@ In plain language, the workflow is:
 3. Create or inspect a run.
 4. Review the queue of proposed cell updates.
 5. Accept, edit, or reject proposals.
-6. Download the updated workbook and audit log from the run artifacts.
+6. Download the updated workbook and audit log from the review workspace or the run artifacts.
 
 ## Repo structure
 

@@ -46,5 +46,8 @@ logs/
 
 # # runs
 # runs/
+artifacts/
 # playwright runtime
 .playwright-runtime/
+frontend/test-results/
+frontend/tsconfig.tsbuildinfo

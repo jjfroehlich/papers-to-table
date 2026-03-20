@@ -50,18 +50,32 @@ def test_api_review_and_bulk_accept_flow(tmp_path: Path):
 
     proposals = client.get(f'/api/runs/{run_id}/proposals').json()['proposals']
     assert proposals
+    actionable_proposal = next(
+        (
+            proposal
+            for proposal in proposals
+            if proposal['proposal_state'] not in {'blocked', 'error', 'skipped'} and proposal['proposed_value']
+        ),
+        None,
+    )
+    assert actionable_proposal is not None
     detail = client.get(f"/api/runs/{run_id}/proposals/{proposals[0]['proposal_id']}")
     assert detail.status_code == 200
     assert 'row_context' in detail.json()
 
-    review = client.post(f'/api/runs/{run_id}/reviews', json={'proposal_id': proposals[0]['proposal_id'], 'decision': ReviewDecisionType.ACCEPT.value})
+    review = client.post(f'/api/runs/{run_id}/reviews', json={'proposal_id': actionable_proposal['proposal_id'], 'decision': ReviewDecisionType.ACCEPT.value})
     assert review.status_code == 200
     refreshed = client.get(f'/api/runs/{run_id}/summary').json()
     assert refreshed['reviewed_proposals'] >= 1
 
-    pending_ids = [proposal['proposal_id'] for proposal in proposals[1:3]]
+    pending_ids = [proposal['proposal_id'] for proposal in proposals[:5]]
     bulk = client.post(f'/api/runs/{run_id}/bulk-accept', json={'proposal_ids': pending_ids})
     assert bulk.status_code == 200
+    decisions_path = tmp_path / 'artifacts' / run_id / 'review' / 'decisions.jsonl'
+    decisions_text = decisions_path.read_text(encoding='utf-8')
+    assert '"decided_at"' in decisions_text
+    audit_log = (tmp_path / 'artifacts' / run_id / 'exports' / 'audit_log.csv').read_text(encoding='utf-8')
+    assert 'recorded_in_review_log' not in audit_log
     workbook = client.get(f'/api/runs/{run_id}/downloads/workbook')
     assert workbook.status_code == 200
 

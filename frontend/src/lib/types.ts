@@ -34,10 +34,34 @@ export interface RunSummary {
 }
 
 export interface ReviewerSummary {
+  run_id: string
+  proposals_generated: number
+  reviewed_proposals: number
+  accepted_as_is: number
+  accepted_with_edit: number
+  rejected: number
+  pending: number
+  changed_cells_exported: number
+  matched_pdfs: number
+  unmatched_pdfs: number
+  ambiguous_pdfs: number
+  verify_mode: boolean
+  provider_name: string
+  provider_model: string
+  provider_locality: string
   reviewed_verified_cell_count: number
   proposal_coverage: number
   evidence_coverage: number
   anchorable_evidence_rate: number
+  per_column: Array<{
+    column_name: string
+    reviewed_verified_cell_count: number
+    accepted_as_is: number
+    accepted_with_edit: number
+    rejected: number
+    evidence_coverage: number
+    anchorable_evidence_rate: number
+  }>
   warnings: string[]
 }
 
@@ -59,6 +83,14 @@ export interface ProposalRecord {
   reviewed_value?: string | null
   pdf_name: string
   source_mode: 'text' | 'vision'
+}
+
+export interface MatchRecord {
+  pdf_id: string
+  pdf_name: string
+  outcome: 'matched' | 'ambiguous' | 'unmatched' | 'duplicate_row_conflict'
+  row_id: string | null
+  rationale: string
 }
 
 export interface EvidenceRecord {
