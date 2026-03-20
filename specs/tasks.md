@@ -184,6 +184,7 @@ If the repo already uses different names, preserve the existing structure and ma
 - [x] **T015** Set up backend unit/integration/contract test tooling, including provider stubs/fakes and fixture helpers.
 
 - [x] **T016** Set up frontend test tooling and Playwright e2e scaffolding for the review workflow.
+- [x] **T016a** Harden the Playwright harness so fixture preparation is separate from server startup and browser/server processes start without shell-dependent heredocs or command chaining.
 
 ---
 
@@ -618,6 +619,7 @@ If the repo already uses different names, preserve the existing structure and ma
   - where artifacts and exports are written
   - how Verify mode behaves
   - what the export fidelity boundary is
+- [x] **T107a** Preserve user-facing onboarding in `README`, including clone/install steps, config-file purpose, LM Studio expectations, backend/frontend run commands, testing commands, artifact locations, and the export fidelity boundary.
 
 ---
 

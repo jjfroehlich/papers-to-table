@@ -46,3 +46,5 @@ logs/
 
 # # runs
 # runs/
+# playwright runtime
+.playwright-runtime/

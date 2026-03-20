@@ -54,6 +54,7 @@ If requirements are missing, either:
 The documentation under `specs/` must always reflect the **current complete app**, not a partial plan, not an outdated architecture, and not remnants from older versions.
 
 When you change code or behavior, update the relevant documents in the same work pass.
+When the user directly asks for code, behavior, workflow, onboarding, testing, or documentation changes, also check whether `README.md`, `spec.md`, `plan.md`, `research.md`, and `tasks.md` need updating in that same pass.
 
 ### Required sync rules
 

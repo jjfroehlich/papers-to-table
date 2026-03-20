@@ -1192,6 +1192,12 @@ This research supports the current direction of `plan.md` and suggests the follo
    - stub/synthetic PDFs for deterministic testing
    - figure-heavy test examples
    - Verify-mode review outcome tracking examples
+   - explicit clone/install/config/LM Studio onboarding so future README edits do not collapse back to architecture-only notes
+
+3. test harness hardening
+   - keep Playwright startup shell-independent
+   - separate fixture preparation from backend/frontend server startup
+   - report missing browser runtimes as environment limitations rather than application regressions
 
 ---
 
