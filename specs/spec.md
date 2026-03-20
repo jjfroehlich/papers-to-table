@@ -10,7 +10,7 @@ Paper Table Agent helps a researcher turn a folder of scientific PDFs plus a str
 
 The system matches PDFs to spreadsheet rows, proposes values for missing cells using grounded evidence from the papers, and provides a review interface where a human can accept, edit, reject, or bulk-accept the currently visible filtered subset before any spreadsheet is updated.
 
-The system primarily extracts from text and tables, and may use scoped figure-aware fallback extraction when the field appears likely figure- or table-derived, text or table retrieval remains insufficient, or fallback is explicitly requested.
+The system primarily extracts from text and tables, and may use scoped figure-aware fallback extraction when the field appears likely figure- or table-derived, text or table retrieval remains insufficient, or text-first extraction remains insufficient after evidence recovery.
 
 The product is designed for high-trust extraction workflows where proposed values must remain inspectable, auditable, reversible, and clearly distinguishable by support level.
 
@@ -319,7 +319,7 @@ Failure to recover a highlight for a text-derived proposal must not by itself mo
 
 ### FR-8 Scoped figure-aware fallback
 
-The system must support scoped figure-aware fallback extraction when the field appears likely figure- or table-derived, when text or table retrieval or extraction remains insufficient, or when fallback is explicitly requested.
+The system must support scoped figure-aware fallback extraction when the field appears likely figure- or table-derived, when text or table retrieval or extraction remains insufficient, or when text-first extraction remains insufficient after evidence recovery.
 
 Figure-aware fallback may use scoped visual context such as:
 - figure crops

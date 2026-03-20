@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "title": "Completely unrelated fisheries survey",
+    "authors": [
+      "Doe"
+    ],
+    "publication_year": "1999"
+  },
+  "pages": [
+    {
+      "page_number": 1,
+      "text": "A fisheries survey unrelated to the table.",
+      "blocks": [
+        {
+          "block_type": "paragraph",
+          "text": "A fisheries survey unrelated to the table.",
+          "bbox": {
+            "x": 50,
+            "y": 100,
+            "width": 500,
+            "height": 40
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "paths": {
+    "table_path": "tests/fixtures/tables/literature_fixture.csv",
+    "schema_path": "tests/fixtures/schema/literature_schema.csv",
+    "pdf_dir": "tests/fixtures/papers",
+    "output_dir": "artifacts"
+  },
+  "provider": {
+    "provider": "stub",
+    "model": "stub-model"
+  },
+  "review": {
+    "verify_mode": true,
+    "placeholder_values": ["", " ", "NA", "N/A", "-"]
+  }
+}
