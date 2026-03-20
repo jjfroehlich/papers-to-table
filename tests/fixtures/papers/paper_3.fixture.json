@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "title": "Multiplex assessment of protein variant abundance by massively parallel sequencing",
+    "authors": [
+      "Matreyek",
+      "Fowler"
+    ],
+    "publication_year": "2018"
+  },
+  "pages": [
+    {
+      "page_number": 1,
+      "text": "Model system: HEK293T\nIntegration method: Bxb1\nAssay readout: abundance by sequencing",
+      "blocks": [
+        {
+          "block_type": "paragraph",
+          "text": "Model system: HEK293T. Integration method: Bxb1. Assay readout: abundance by sequencing.",
+          "bbox": {
+            "x": 40,
+            "y": 80,
+            "width": 520,
+            "height": 60
+          }
+        }
+      ]
+    }
+  ]
+}

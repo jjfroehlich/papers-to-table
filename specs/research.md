@@ -81,7 +81,7 @@ The main research questions for this phase were:
 - Heavy orchestration or graph-first agent systems should be **deferred** unless measured workflow complexity clearly justifies them.
 - In MVP, evaluation should be based primarily on **reviewer-outcome summaries**, not on a single automated “correctness score” over heterogeneous field types.
 - Existing filled spreadsheet cells should be processed through a **per-column preprocessing LLM** that produces a structured style/format profile. Heuristic-only default shaping is not sufficient, and raw filled cells should **not** be passed into extraction prompts as semantic exemplars by default.
-- Figure-aware fallback should remain available, but the heavier reasoning-plus-vision path should remain a scoped escalation triggered only when the field is likely figure- or table-derived, text retrieval failed or remained insufficient, or the user explicitly requests fallback. Human review remains the only MVP evaluation path.
+- Figure-aware fallback should remain available, but the heavier reasoning-plus-vision path should remain a scoped escalation triggered only when the field is likely figure- or table-derived, text retrieval failed or remained insufficient, after text-first extraction remains insufficient after evidence recovery. Human review remains the only MVP evaluation path.
 
 ### Provisional conclusions
 
@@ -919,7 +919,7 @@ Trigger the figure fallback when one or more of these are true:
 
 - the field appears likely figure- or table-derived
 - text/table extraction failed or remained insufficient
-- the user explicitly requested fallback
+- the user text-first extraction remained insufficient after evidence recovery
 - retrieved chunks mention figures, panels, or captions prominently
 - the parser identified candidate figure-bearing regions/pages
 

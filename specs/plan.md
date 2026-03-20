@@ -198,7 +198,7 @@ This keeps the benefit of column-specific output shaping while avoiding heuristi
 
 ### TD-11: Figure support is in scope, but the heavier reasoning-plus-vision path is tightly scoped
 
-Figure-aware fallback is in MVP, but the heavier reasoning-plus-vision path should run only when the field is likely figure- or table-derived, text retrieval failed, or the user explicitly requests a fallback. Figure-derived proposals remain review-first and are evaluated through normal human reviewer outcomes rather than separate automated figure scoring.
+Figure-aware fallback is in MVP, but the heavier reasoning-plus-vision path should run only when the field is likely figure- or table-derived, text retrieval failed, after text-first extraction remains insufficient after evidence recovery. Figure-derived proposals remain review-first and are evaluated through normal human reviewer outcomes rather than separate automated figure scoring.
 
 **Rationale:**
 This keeps visual extraction available where it is likely to help while avoiding multimodal escalation as a baseline behavior.
@@ -390,7 +390,7 @@ The MVP pipeline should run in these explicit stages:
    - run one narrow recovery step if evidence is missing/weak/unusable
    - preserve weak-but-reviewable proposals
 8. **Run scoped figure fallback when needed**
-   - only when figure/table-derived evidence is likely, text retrieval failed, or fallback is explicitly requested
+   - only when figure/table-derived evidence is likely, text retrieval failed, or text-first extraction remains insufficient after evidence recovery
    - use crop + caption + nearby text + full page as needed
 9. **Write proposal artifacts**
    - write proposals, evidence, diagnostics, and run summaries as JSON artifacts
@@ -823,7 +823,7 @@ The MVP should:
 - use a vision-capable model only when:
   - the field appears likely figure/table-derived
   - text retrieval failed or remained insufficient
-  - or fallback is explicitly requested
+  - or text-first extraction remains insufficient after evidence recovery
 
 Figure-derived proposals remain normal proposals, but their evidence source must be marked as figure-based.
 
