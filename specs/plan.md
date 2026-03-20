@@ -257,7 +257,7 @@ Workbook fidelity risks are too high for arbitrary real-world workbooks.
 
 ## Supporting notes
 
-This plan depends on `research.md` for supporting tradeoffs and decisions. Additional implementation notes, runbooks, or a future task breakdown can be added later if they become useful. Optional ADRs may still be useful for decisions that evolve, especially:
+This plan depends on `research.md` for supporting tradeoffs and decisions. Additional implementation notes, runbooks, or a future task breakdown can be added later if they become useful. The operator-facing README should preserve both architecture truth and practical onboarding steps so a new user can install dependencies, configure LM Studio, run the app, and understand artifact/export boundaries without reconstructing that flow from source. Optional ADRs may still be useful for decisions that evolve, especially:
   - low-level PDF backend
   - runtime/background jobs
   - workbook fidelity policy
@@ -1096,6 +1096,8 @@ Never let zero-evaluable-target runs masquerade as normal scored runs. Leakage-s
 
 ### Deterministic offline tests
 Use stub/mock providers and deterministic fixtures by default.
+
+Playwright/browser-based e2e startup should remain shell-independent: prepare fixture run data in a dedicated script first, then start backend and frontend with direct process spawning or Playwright global setup/teardown rather than shell heredocs or shell command chaining.
 
 ### Live integration tests
 Keep opt-in only.

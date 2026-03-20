@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
@@ -31,7 +32,8 @@ from .summaries import build_reviewer_summary, build_run_summary
 from .exporter import export_reviewed_changes
 
 
-def create_app(output_root: str | Path = "artifacts") -> FastAPI:
+def create_app(output_root: str | Path | None = None) -> FastAPI:
+    output_root = output_root or os.getenv("PAPER_TABLE_AGENT_OUTPUT_ROOT", "artifacts")
     app = FastAPI(title="Paper Table Agent")
     app.add_middleware(
         CORSMiddleware,
