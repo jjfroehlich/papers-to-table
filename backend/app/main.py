@@ -19,6 +19,8 @@ from .models import (
     MatchRecord,
     ProposalListResponse,
     ProposalRecord,
+    ReviewDecisionRecord,
+    ReviewDecisionType,
     ReviewDecisionRequest,
     ReviewerSummary,
     RunInspectionResponse,
@@ -27,7 +29,7 @@ from .models import (
     RunSummary,
 )
 from .review import apply_review_decision
-from .runner import Runner, sort_proposals
+from .runner import Runner, is_review_actionable, sort_proposals
 from .summaries import build_reviewer_summary, build_run_summary
 from .exporter import export_reviewed_changes
 
@@ -65,11 +67,25 @@ def create_app(output_root: str | Path | None = None) -> FastAPI:
     def read_rows(store: ArtifactStore) -> list[dict]:
         return store.read_json(store.path("inputs", "rows.json"))
 
+    def read_review_decisions(store: ArtifactStore) -> list[ReviewDecisionRecord]:
+        path = store.path("review", "decisions.jsonl")
+        if not path.exists():
+            return []
+        return store.read_models_jsonl(path, ReviewDecisionRecord)
+
     def persist_summaries(store: ArtifactStore, run: RunRecord, proposals: list[ProposalRecord]) -> tuple[RunSummary, ReviewerSummary]:
         matches = read_matches(store)
         config = read_config(store)
         changed = sum(1 for proposal in proposals if proposal.review_decision.value.startswith("accept"))
-        workbook_name, audit_name, changed, warnings = export_reviewed_changes(config.paths.table_path, read_rows(store), proposals, store.path("exports"), config.export.highlight_hex)
+        decision_lookup = {decision.proposal_id: decision for decision in read_review_decisions(store)}
+        workbook_name, audit_name, changed, warnings = export_reviewed_changes(
+            config.paths.table_path,
+            read_rows(store),
+            proposals,
+            store.path("exports"),
+            config.export.highlight_hex,
+            decision_lookup,
+        )
         diagnostics = store.read_json(store.path("logs", "diagnostics.json")) if store.path("logs", "diagnostics.json").exists() else {}
         diagnostics["exports"] = {"workbook": workbook_name, "audit_log": audit_name}
         diagnostics["warnings"] = warnings
@@ -191,6 +207,7 @@ def create_app(output_root: str | Path | None = None) -> FastAPI:
                 updated, decision = apply_review_decision(proposal, request)
                 updated_proposals.append(updated)
                 store.append_jsonl(history_path, {"proposal_before": proposal.model_dump(mode="json"), "decision": decision.model_dump(mode="json")})
+                store.append_jsonl(store.path("review", "decisions.jsonl"), decision.model_dump(mode="json"))
             else:
                 updated_proposals.append(proposal)
         if target is None:
@@ -205,9 +222,16 @@ def create_app(output_root: str | Path | None = None) -> FastAPI:
         run = read_run(store)
         proposals = read_proposals(store)
         updated = []
+        history_path = store.path("review", "history.jsonl")
         for proposal in proposals:
-            if proposal.proposal_id in request.proposal_ids and proposal.review_decision.value == "no_decision":
-                proposal = proposal.model_copy(update={"review_decision": 'accept', "reviewed_value": proposal.proposed_value})
+            if proposal.proposal_id in request.proposal_ids and proposal.review_decision == ReviewDecisionType.NONE and is_review_actionable(proposal):
+                original = proposal
+                proposal, decision = apply_review_decision(
+                    proposal,
+                    ReviewDecisionRequest(proposal_id=proposal.proposal_id, decision=ReviewDecisionType.ACCEPT),
+                )
+                store.append_jsonl(history_path, {"proposal_before": original.model_dump(mode="json"), "decision": decision.model_dump(mode="json")})
+                store.append_jsonl(store.path("review", "decisions.jsonl"), decision.model_dump(mode="json"))
             updated.append(proposal)
         store.write_models_jsonl(store.path("proposals", "proposals.jsonl"), updated)
         run_summary, reviewer_summary = persist_summaries(store, run, updated)

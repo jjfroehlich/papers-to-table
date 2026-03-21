@@ -49,7 +49,7 @@ class ExtractionOrchestrator:
             cell = eligibility_by_column.get(column.column_name)
             if not cell:
                 continue
-            proposal_id = make_proposal_id(run_id, cell.cell_id)
+            proposal_id = make_proposal_id(run_id, match.pdf_id, cell.cell_id)
             if match.outcome != MatchOutcome.MATCHED:
                 proposal = ProposalRecord(
                     proposal_id=proposal_id,

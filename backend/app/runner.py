@@ -12,6 +12,7 @@ from .models import (
     MatchRecord,
     MatchOutcome,
     ProposalRecord,
+    ProposalState,
     ReviewDecisionType,
     ReviewerSummary,
     RunRecord,
@@ -121,6 +122,14 @@ class Runner:
             raise
 
 
+def is_review_actionable(proposal: ProposalRecord) -> bool:
+    return bool(proposal.proposed_value) and proposal.proposal_state not in {
+        ProposalState.BLOCKED,
+        ProposalState.ERROR,
+        ProposalState.SKIPPED,
+    }
+
+
 def sort_proposals(proposals: list[ProposalRecord]) -> list[ProposalRecord]:
     decision_rank = {
         ReviewDecisionType.NONE: 0,
@@ -132,6 +141,8 @@ def sort_proposals(proposals: list[ProposalRecord]) -> list[ProposalRecord]:
         proposals,
         key=lambda proposal: (
             decision_rank[proposal.review_decision],
+            0 if is_review_actionable(proposal) else 1,
+            proposal.support_sort_bucket,
             proposal.row_index,
             proposal.column_order,
             proposal.proposal_id,

@@ -188,6 +188,7 @@ For each run, the system must produce:
 
 - No spreadsheet cell is updated automatically without an explicit human decision.
 - All exported changes are traceable back to reviewed proposals.
+- Proposal identifiers must remain unique within a run, including cases where multiple PDFs target the same row/cell context.
 - The exported table must remain in XLSX format, even when the input table is CSV.
 - The exported XLSX table guarantees content-only fidelity plus highlighting of changed cells. Workbook formatting, layout, formulas, filters, frozen panes, hidden rows/columns, merged cells, conditional formatting, comments, named ranges, and similar workbook behavior are out of guarantee for MVP.
 - Cells changed through accepted proposals must be visually highlighted in the exported XLSX table.
@@ -266,7 +267,7 @@ Each attempted target cell must result in one of:
 - an error outcome
 - a skipped outcome with reason
 
-Targets with no proposed value do not need to appear in normal proposal review, but they must appear in diagnostics.
+Targets with no proposed value do not need to appear as normal actionable proposals, but blocked or otherwise unresolved records should remain inspectable in review surfaces and they must appear in diagnostics.
 
 The system may use schema descriptions and non-binding format or style guidance to shape the expected output format, but proposal content must be grounded in the current PDF evidence.
 
@@ -337,11 +338,19 @@ Figure-derived proposals remain subject to heightened reviewer scrutiny and may 
 
 The system must provide a review interface where a human can inspect proposals and supporting evidence.
 
-The review interface must support a queue-first workflow with a proposal list or queue and a focused detail view for the selected proposal.
+The review interface must support a queue-first workflow with:
+- a proposal list or queue
+- a focused detail pane for the selected proposal
+- an evidence viewer pane
+- visible run-summary and reviewer-summary context in the main review workspace
 
 Review must be nonlinear: selecting a proposal for inspection must not itself record a decision.
 
 The UI should support one visible master queue with filtering, reusable saved views or equivalent presets, and progress indicators.
+
+The default queue ordering should prioritize actionable review items ahead of blocked or otherwise unresolved records.
+
+Blocked, unresolved, unmatched, ambiguous, or duplicate-row-conflict records must remain visible for inspection, but they should not dominate the main actionable review flow by default.
 
 The reviewer must be able to:
 - accept a proposal
@@ -358,11 +367,17 @@ Unreviewed proposals that have not been explicitly accepted must be discarded fr
 
 The review interface must show enough row context, column context, proposal state, evidence context, and rationale context for a meaningful decision.
 
+Proposal status, evidence source, and warning state must be visually distinguishable at a glance.
+
+Accept actions must not be available for blocked items or items without a reviewable proposal value.
+
 Figure-derived evidence should be displayed crop-first, with caption directly attached and the full page accessible on demand.
 
 The review interface must support filtering by row, column, PDF, evidence status, figure-based evidence, and ambiguous or unmatched match status.
 
 Any stored proposal must be reviewable in the interface, including proposals whose text evidence is shown as quote plus page without a reliable highlight.
+
+The review workspace must expose direct access to the main run artifacts needed by a reviewer after decisions are made, including the exported workbook, audit log, run summary, and reviewer summary.
 
 ### FR-10 Spreadsheet protection and verify mode
 
@@ -401,6 +416,8 @@ The audit log must include, at minimum:
 - proposal source
 - reviewer decision
 - decision timestamp
+
+When a persisted review-decision record exists, the audit-log timestamp must come from that stored decision record rather than from a placeholder string.
 
 ### FR-12 Diagnostics and reviewer-outcome summaries
 
@@ -443,6 +460,8 @@ Verify mode may still compare proposals against already-filled cells, but future
 If there are too few reviewed proposals or verified proposals for meaningful interpretation, the system must warn explicitly.
 
 If reviewer-outcome reporting may be biased or if any future automated evaluation would be leakage-prone, the system should warn explicitly.
+
+Run summaries and reviewer summaries must remain derivable from persisted artifact data so they can be recomputed and inspected later.
 
 ### FR-13 Structured-document support
 
@@ -546,6 +565,7 @@ The review interface should be visually clear, efficient for repeated review wor
 - Diagnostic-only outcomes must remain clearly distinct from reviewable proposals.
 - Any stored proposal remains reviewable, even when text highlighting fails and only quote plus page evidence is available.
 - One target cell receives at most one best proposal per run.
+- Proposal identifiers remain unique within a run even when multiple PDFs surface the same row/column target.
 - Ambiguous PDF-to-row matches block extraction rather than silently proceeding.
 - Duplicate PDF matches to the same row block all conflicting PDFs until manual cleanup.
 - Verify mode is the only product-level mode for reviewing already-filled cells and generating reviewer-outcome summaries for those comparisons.
@@ -583,13 +603,13 @@ then the proposal includes at least one evidence item when feasible or is flagge
 
 Given a stored proposal,
 when a reviewer opens it in the review interface,
-then the reviewer can inspect the proposed value, proposal state, relevant row and column context, primary evidence, and concise rationale or calculation when applicable, including quote-plus-page evidence when a text highlight could not be recovered.
+then the reviewer can inspect the proposed value, proposal state, relevant row and column context, primary evidence, and concise rationale or calculation when applicable, including quote-plus-page evidence when a text highlight could not be recovered, while also seeing visually distinct status/evidence/warning cues and the surrounding run-summary context.
 
 ### AC-6 Decision control
 
 Given a proposal under review,
 when the reviewer accepts, edits, rejects, or bulk-accepts the currently visible filtered subset after confirmation,
-then the system stores that decision and preserves the prior proposal state for auditability.
+then the system stores that decision as an explicit persisted review record, preserves the prior proposal state for auditability, and does not offer accept actions for blocked or non-reviewable items.
 
 ### AC-7 Locked-cell safety
 
@@ -607,7 +627,7 @@ then it generates reviewable proposals for those cells, allows explicit accept/e
 
 Given accepted proposals,
 when the user exports results,
-then the system produces an updated XLSX table and an audit log containing only approved changes, while leaving the original input table unchanged.
+then the system produces an updated XLSX table and an audit log containing only approved changes, while leaving the original input table unchanged, and any available audit timestamp comes from the persisted review-decision record for that change.
 
 ### AC-10 Export fidelity
 

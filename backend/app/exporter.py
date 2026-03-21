@@ -2,18 +2,27 @@ from __future__ import annotations
 
 import csv
 from pathlib import Path
+from typing import Mapping
 
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import PatternFill
 
-from .models import ProposalRecord, ReviewDecisionType
+from .models import ProposalRecord, ReviewDecisionRecord, ReviewDecisionType
 
 UNSUPPORTED_FEATURE_WARNINGS = [
     "Workbook export is content-only; formulas, charts, comments, merged cells, filters, hidden rows/columns, and conditional formatting are not preserved.",
 ]
+DECISION_TIMESTAMP_NOT_RECORDED = "not_recorded"
 
 
-def export_reviewed_changes(table_path: str, rows: list[dict], proposals: list[ProposalRecord], export_dir: Path, highlight_hex: str) -> tuple[str, str, int, list[str]]:
+def export_reviewed_changes(
+    table_path: str,
+    rows: list[dict],
+    proposals: list[ProposalRecord],
+    export_dir: Path,
+    highlight_hex: str,
+    decision_lookup: Mapping[str, ReviewDecisionRecord] | None = None,
+) -> tuple[str, str, int, list[str]]:
     export_dir.mkdir(parents=True, exist_ok=True)
     accepted = [proposal for proposal in proposals if proposal.review_decision in {ReviewDecisionType.ACCEPT, ReviewDecisionType.ACCEPT_EDIT}]
     accepted_map = {proposal.cell_id: proposal.reviewed_value or proposal.proposed_value or "" for proposal in accepted}
@@ -69,6 +78,7 @@ def export_reviewed_changes(table_path: str, rows: list[dict], proposals: list[P
         writer = csv.DictWriter(handle, fieldnames=["row_identifier", "column_identifier", "old_value", "new_value", "proposal_source", "reviewer_decision", "decision_timestamp"])
         writer.writeheader()
         for proposal in accepted:
+            decision = decision_lookup.get(proposal.proposal_id) if decision_lookup else None
             writer.writerow(
                 {
                     "row_identifier": proposal.row_id,
@@ -77,7 +87,7 @@ def export_reviewed_changes(table_path: str, rows: list[dict], proposals: list[P
                     "new_value": proposal.reviewed_value or proposal.proposed_value or "",
                     "proposal_source": proposal.source_mode,
                     "reviewer_decision": proposal.review_decision.value,
-                    "decision_timestamp": "recorded_in_review_log",
+                    "decision_timestamp": decision.decided_at.isoformat() if decision else DECISION_TIMESTAMP_NOT_RECORDED,
                 }
             )
     return workbook_path.name, audit_path.name, changed, UNSUPPORTED_FEATURE_WARNINGS

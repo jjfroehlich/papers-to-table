@@ -32,8 +32,8 @@ def make_cell_id(row_id: str, column_name: str) -> str:
     return f"cell-{row_id}-{_slug(column_name)}"
 
 
-def make_proposal_id(run_id: str, cell_id: str) -> str:
-    return f"proposal-{stable_hash(run_id, cell_id, length=14)}"
+def make_proposal_id(run_id: str, pdf_id: str, cell_id: str) -> str:
+    return f"proposal-{stable_hash(run_id, pdf_id, cell_id, length=14)}"
 
 
 def make_evidence_id(proposal_id: str, page: int, source_type: str) -> str:

@@ -82,7 +82,7 @@ If the repo already uses different names, preserve the existing structure and ma
 - [x] **T003** Define and implement stable identifier generation for runs, PDFs, rows, cells, proposals, evidence items, and review decisions, including at minimum:
   - deterministic `cell_id`
   - stable `pdf_id` assignment within a run
-  - proposal and evidence ids that are unique and traceable
+  - proposal and evidence ids that are unique and traceable, including cases where multiple PDFs target the same row/cell within one run
   - stable review-decision ids linked back to proposal and cell context
 
 - [x] **T004** Implement the stable run artifact bundle layout with at least:
@@ -141,6 +141,7 @@ If the repo already uses different names, preserve the existing structure and ma
   - `anchor_confidence`
 
 - [x] **T008** Define the review-decision JSON schema plus the run-summary and reviewer-summary JSON schemas.
+  - review decisions must remain persistable as explicit records, not only as in-place proposal mutations
 
 - [x] **T009** Define the single JSON config schema covering:
   - input table and schema paths
@@ -185,6 +186,8 @@ If the repo already uses different names, preserve the existing structure and ma
 
 - [x] **T016** Set up frontend test tooling and Playwright e2e scaffolding for the review workflow.
 - [x] **T016a** Harden the Playwright harness so fixture preparation is separate from server startup and browser/server processes start without shell-dependent heredocs or command chaining.
+  - distinguish missing browser/runtime dependencies from application failures when practical
+  - retain screenshots, traces, or similarly useful browser-failure artifacts when practical
 
 ---
 
@@ -442,6 +445,7 @@ If the repo already uses different names, preserve the existing structure and ma
   - accept with edit
   - reject
   - no decision yet
+  - persist explicit review-decision records that can later drive audit logs and summary recomputation
 
 - [x] **T073** Preserve prior proposal state and review history for auditability when a review decision is recorded.
 
@@ -502,20 +506,25 @@ If the repo already uses different names, preserve the existing structure and ma
   - Verify mode on/off
   - provider/model names
   - local vs cloud status
+  - direct links or equivalent access to workbook, audit-log, run-summary, and reviewer-summary downloads
 
 - [x] **T083** Implement the three-pane review workspace:
   - left pane = proposal queue/list
   - center pane = proposal detail
   - right pane = evidence viewer
-  - top bar = counters, filters, and warnings
+  - visible run/reviewer summary context in the main workspace
+  - top bar or equivalent queue controls = counters, filters, and warnings
 
 - [x] **T084** Implement the proposal queue pane with the full MVP filter set, stable selection behavior, and explicit proposal ordering rules:
   - default pending / undecided proposals before reviewed proposals
+  - within undecided proposals, actionable proposals before blocked or unresolved items
   - within the same decision-status bucket, preserve stable spreadsheet row order, then column order, then `proposal_id`
   - do not auto-promote figure-derived or quote+page-fallback proposals unless the user applies filters
+  - keep blocked, ambiguous, unmatched, and duplicate-row-conflict items visible without letting them dominate the main actionable queue by default
   - do not record review decisions implicitly from navigation or selection changes
 
 - [x] **T085** Implement the proposal detail pane showing row context, target column definition, current value in Verify mode, proposed value, support label, rationale, calculation, warning/status flags, and primary/secondary evidence.
+  - status, evidence source, and warning state should be distinguishable at a glance
 
 - [x] **T086** Implement the evidence viewer pane using a raw/custom PDF.js viewer for text evidence and attached reviewable figure evidence.
 
@@ -535,6 +544,7 @@ If the repo already uses different names, preserve the existing structure and ma
   - next
   - previous
   - bulk accept visible subset
+  - disable accept actions for blocked items or items without a reviewable proposal value
 
 - [x] **T091** Implement keyboard shortcuts for next/previous navigation, accept current proposal, reject current proposal, focus edit control, and focus/open evidence viewer.
 
@@ -572,6 +582,7 @@ If the repo already uses different names, preserve the existing structure and ma
   - proposal source
   - reviewer decision
   - decision timestamp
+  - derive decision timestamps from persisted review-decision records when available instead of placeholder strings
 
 - [x] **T099** Implement diagnostics JSON for:
   - matching failures
@@ -620,6 +631,7 @@ If the repo already uses different names, preserve the existing structure and ma
   - how Verify mode behaves
   - what the export fidelity boundary is
 - [x] **T107a** Preserve user-facing onboarding in `README`, including clone/install steps, config-file purpose, LM Studio expectations, backend/frontend run commands, testing commands, artifact locations, and the export fidelity boundary.
+  - do not remove useful onboarding content unless it is obsolete and replaced with something clearer in the same work pass
 
 ---
 
