@@ -54,7 +54,7 @@ If requirements are missing, either:
 The documentation under `specs/` must always reflect the **current complete app**, not a partial plan, not an outdated architecture, and not remnants from older versions.
 
 When you change code or behavior, update the relevant documents in the same work pass.
-When the user directly asks for code, behavior, workflow, onboarding, testing, or documentation changes, also check whether `README.md`, `spec.md`, `plan.md`, `research.md`, and `tasks.md` need updating in that same pass.
+When the user directly asks for code, behavior, workflow, onboarding, testing, or documentation changes, explicitly check whether `README.md`, `spec.md`, `plan.md`, `research.md`, and `tasks.md` need updating in that same pass, even if the request did not mention docs by name.
 
 ### Required sync rules
 
@@ -189,6 +189,7 @@ If the real repo structure differs, update this section rather than leaving misl
 ## README and CHANGELOG hygiene
 
 - Keep `README.md` aligned with the current project state and actual architecture.
+- Preserve useful user-facing onboarding content in `README.md` unless it is obsolete and replaced with something clearer in the same pass.
 - Use `CHANGELOG.md` for shipped, user-facing changes only.
 - Do not put backlog items, speculative ideas, or architecture brainstorming into `CHANGELOG.md`.
 - When updating README or CHANGELOG, ensure consistency with relevant files in `specs/`.

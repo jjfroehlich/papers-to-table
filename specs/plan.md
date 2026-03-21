@@ -138,7 +138,7 @@ GROBID remains an optional later enrichment path if measured lift justifies it.
 The system will use:
 
 - per-run artifact folders in the output directory as the canonical run record
-- JSON files inside each run bundle for proposals, review state, diagnostics, summaries, and export bookkeeping
+- JSON files inside each run bundle for proposals, explicit review-decision records, diagnostics, summaries, and export bookkeeping
 
 **Rationale:**
 For a local-first, single-user MVP, artifact bundles are simpler, easier to inspect, and easier to debug than introducing a database. This keeps state reproducible without adding operational complexity that the product does not yet need.
@@ -174,7 +174,7 @@ The review product surface will be a dedicated Run/Review application delivered 
 The main value of the product is human verification of proposed spreadsheet updates with visible evidence.
 
 **Interaction model:**
-Queue/list of proposals + focused detail pane + custom PDF.js evidence viewer.
+Queue/list of proposals + focused detail pane + custom PDF.js evidence viewer, with visible run/reviewer summary context in the main review workspace.
 
 ---
 
@@ -431,14 +431,15 @@ When implementation changes one side of this mapping, the corresponding section 
 
 ## MVP interaction model
 
-The review UI will use a **queue-first / list-detail** design with an explicit three-pane layout plus a top bar.
+The review UI will use a **queue-first / list-detail** design with an explicit three-pane layout plus visible run/reviewer summary context.
 
 ### Layout
 
 - **Left pane**: proposal queue
 - **Center pane**: proposal detail
 - **Right pane**: evidence viewer
-- **Top bar**: progress counters and filters
+- **Summary/top context area**: run metrics, reviewer-outcome context, and direct artifact downloads
+- **Top bar / queue controls**: progress counters, filters, and warning cues
 
 ### Proposal queue
 
@@ -449,6 +450,12 @@ The queue should support filtering by:
 - evidence status
 - figure-based evidence
 - ambiguous/unmatched match status
+
+Default ordering should prioritize actionable undecided proposals before blocked, unresolved, or otherwise non-reviewable records.
+
+Blocked and unresolved records should remain visible through queue ordering, filters, or dedicated warning/inspection surfaces, but they should not displace the main actionable review slice by default.
+
+Proposal status, evidence source, and warning state should be distinguishable at a glance through clear labels, badges, or equivalent visual treatments.
 
 ### Proposal detail
 
@@ -462,6 +469,8 @@ The detail pane should show:
 - primary evidence item
 - expandable secondary evidence items
 
+The action area should disable accept paths for blocked items or items without a reviewable proposed value while still allowing inspection and rejection.
+
 ### Evidence viewer
 
 For text evidence:
@@ -474,6 +483,13 @@ For figure evidence:
 - show crop first
 - show caption directly attached
 - allow full-page inspection
+
+### Summary and download context
+
+The main review workspace should expose:
+- run-summary context
+- reviewer-summary context
+- direct access to workbook, audit-log, run-summary, and reviewer-summary downloads
 
 ### Actions
 
@@ -526,6 +542,7 @@ The FastAPI layer should expose a small stable set of application-facing endpoin
 - inspect unmatched/ambiguous PDFs
 - request export
 - fetch export bundle
+- fetch direct run artifact downloads
 - fetch reviewer-outcome summary
 - fetch document pages/crops/highlights
 
@@ -757,6 +774,7 @@ The evidence model should be narrower and stricter than in the old system. Each 
 
 Each proposal JSON object should include, at minimum:
 - run identifier
+- proposal identifier that remains unique within the run even if more than one PDF targets the same row/cell context
 - row identifier
 - column identifier
 - proposal state
@@ -946,6 +964,12 @@ The run directory is the canonical audit bundle and the only required MVP persis
 
 The MVP does not need pause/resume semantics within a run. If a run is interrupted, the partial artifacts may remain for inspection, and a new attempt should create a new run directory.
 
+Proposal identifiers must remain unique within a run, including blocked or unresolved cases where multiple PDFs may surface the same row/cell context.
+
+Review decisions should be persisted as explicit records rather than only as proposal-state mutations so audit logs and summaries remain derivable from artifact data.
+
+When an audit log includes a decision timestamp, that timestamp should come from the persisted review-decision record when one exists.
+
 ---
 
 ## Runtime and background jobs
@@ -1098,6 +1122,10 @@ Never let zero-evaluable-target runs masquerade as normal scored runs. Leakage-s
 Use stub/mock providers and deterministic fixtures by default.
 
 Playwright/browser-based e2e startup should remain shell-independent: prepare fixture run data in a dedicated script first, then start backend and frontend with direct process spawning or Playwright global setup/teardown rather than shell heredocs or shell command chaining.
+
+Browser-based test failures should distinguish environment/runtime problems from application failures whenever practical.
+
+Screenshots, traces, or equivalent browser-failure artifacts are desirable where practical so review-workflow regressions are easier to diagnose.
 
 ### Live integration tests
 Keep opt-in only.

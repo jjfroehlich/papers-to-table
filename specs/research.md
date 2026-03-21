@@ -434,7 +434,10 @@ The current practical MVP direction is:
 - a **proposal queue** or list on one side
 - a **focused detail pane** for the currently selected proposal
 - a **document/evidence viewer** showing the highlighted PDF page or figure crop/full page
+- visible run/reviewer summary context plus direct artifact-download affordances in the main review workspace
 - progress counters and filter controls visible in the main review workspace
+
+The default queue should favor actionable proposals over blocked or unresolved records, while still keeping blocked/unresolved items visible through warnings, filters, or dedicated inspection surfaces.
 
 This is preferable to:
 - a pure spreadsheet-first UI as the main review surface
@@ -468,6 +471,7 @@ This research supports:
 
 - dedicated review views
 - a queue-first review model
+- actionable-first queue ordering with blocked-item visibility preserved separately
 - `HighlightAnchor`
 - quote + page + highlight evidence model
 - crop-first figure review with full-page access
@@ -652,6 +656,8 @@ The MVP does not need pause/resume semantics within a run. If a run is interrupt
 ## Consequences for implementation
 
 This directly supports the simplified artifact-only persistence strategy in `plan.md`.
+
+Within that artifact model, proposal identifiers still need to remain unique even when more than one PDF points at the same row/cell context, and review decisions should remain explicit persisted records so audit/export data can be reconstructed from artifacts rather than inferred from UI state alone.
 
 ---
 
@@ -1198,6 +1204,7 @@ This research supports the current direction of `plan.md` and suggests the follo
    - keep Playwright startup shell-independent
    - separate fixture preparation from backend/frontend server startup
    - report missing browser runtimes as environment limitations rather than application regressions
+   - capture screenshots, traces, or similarly useful browser-failure artifacts when practical
 
 ---
 
