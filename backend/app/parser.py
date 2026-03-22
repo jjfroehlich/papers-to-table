@@ -123,7 +123,10 @@ class DoclingParserAdapter:
         blocks: list[ParsedBlock] = []
         for index, text in enumerate(text_pages, start=1):
             image_path = self._render_pdfium_page(pdf_path, parsed_dir / f"page-{index}.png", index)
-            pages.append(ParsedPage(page_number=index, width=612, height=792, image_path=str(image_path.relative_to(store.root)), text=text))
+            pdf_page = reader.pages[index - 1]
+            page_width = float(pdf_page.mediabox.width) if pdf_page.mediabox else 612.0
+            page_height = float(pdf_page.mediabox.height) if pdf_page.mediabox else 792.0
+            pages.append(ParsedPage(page_number=index, width=page_width, height=page_height, image_path=str(image_path.relative_to(store.root)), text=text))
             paragraph_text = " ".join(text.split())
             blocks.append(
                 ParsedBlock(
@@ -133,7 +136,7 @@ class DoclingParserAdapter:
                     text=paragraph_text,
                     source_text=paragraph_text,
                     retrieval_text=paragraph_text,
-                    bbox=HighlightBox(x=40, y=80, width=520, height=110),
+                    bbox=None,
                 )
             )
         metadata = self._metadata_from_text(pdf_path.name, extracted_text)

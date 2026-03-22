@@ -1,0 +1,51 @@
+{
+  "paths": {
+    "table_path": "tests/fixtures/tables/literature_fixture.csv",
+    "schema_path": "tests/fixtures/schema/literature_schema.csv",
+    "pdf_dir": "tests/fixtures/papers",
+    "output_dir": "artifacts"
+  },
+  "parser": {
+    "prefer_docling": true,
+    "sidecar_fixture_overrides": true,
+    "render_dpi": 72
+  },
+  "ocr": {
+    "enabled": true,
+    "command": "ocrmypdf",
+    "min_text_chars": 20
+  },
+  "matching": {
+    "title_threshold": 0.72,
+    "ambiguous_margin": 0.08,
+    "year_bonus": 0.1,
+    "author_bonus": 0.1
+  },
+  "style_profiles": {
+    "enabled": true,
+    "max_examples_analyzed": 5
+  },
+  "retrieval": {
+    "top_k": 6,
+    "neighbor_window": 1
+  },
+  "provider": {
+    "provider": "stub",
+    "base_url": "http://127.0.0.1:1234/v1",
+    "model": "stub-model",
+    "timeout_seconds": 15.0,
+    "live_smoke_enabled": false
+  },
+  "figure_fallback": {
+    "enabled": true,
+    "trigger_keywords": ["image", "figure", "microscopy", "diagram", "plot"]
+  },
+  "review": {
+    "verify_mode": true,
+    "placeholder_values": ["", " ", "NA", "N/A", "-"]
+  },
+  "export": {
+    "highlight_hex": "FFF3B0",
+    "changed_sheet_name": "Updated"
+  }
+}

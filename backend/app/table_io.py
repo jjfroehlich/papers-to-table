@@ -115,18 +115,22 @@ def classify_cells(
 
 
 def build_input_summary(
+    config_path: str,
     table_path: str,
     schema_path: str | None,
     pdf_dir: str,
+    output_dir: str,
     rows: list[dict[str, Any]],
     schema: list[SchemaColumn],
     verify_mode: bool,
 ) -> InputSummary:
     pdf_count = len(list(Path(pdf_dir).glob("*.pdf")))
     return InputSummary(
+        config_path=config_path,
         table_path=table_path,
         schema_path=schema_path,
         pdf_dir=pdf_dir,
+        output_dir=output_dir,
         row_count=len(rows),
         pdf_count=pdf_count,
         target_columns=[column.column_name for column in schema],

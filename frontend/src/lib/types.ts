@@ -1,13 +1,18 @@
 export type ReviewDecision = 'accept' | 'accept_with_edit' | 'reject' | 'no_decision'
 
+export type RunStatus = 'created' | 'validating' | 'running' | 'completed' | 'completed_with_warnings' | 'failed' | 'interrupted'
+
 export interface RunRecord {
   run_id: string
-  status: string
+  created_at: string
+  updated_at: string
+  status: RunStatus
   provider_name: string
   provider_model: string
   provider_locality: string
   verify_mode: boolean
   warnings: string[]
+  config_path: string
   message: string
 }
 
@@ -96,6 +101,8 @@ export interface MatchRecord {
 export interface EvidenceRecord {
   evidence_id: string
   page: number
+  page_width?: number | null
+  page_height?: number | null
   quote_text: string
   highlight: Array<{ x: number; y: number; width: number; height: number }>
   caption_text: string
@@ -110,4 +117,48 @@ export interface ProposalDetail {
   row_context: Record<string, string>
   primary_evidence: EvidenceRecord | null
   secondary_evidence: EvidenceRecord[]
+}
+
+export interface InputSummary {
+  config_path: string
+  table_path: string
+  schema_path: string | null
+  pdf_dir: string
+  output_dir: string
+  row_count: number
+  pdf_count: number
+  target_columns: string[]
+  verify_mode: boolean
+}
+
+export interface ConfigSnapshot {
+  paths: {
+    table_path: string
+    schema_path: string | null
+    pdf_dir: string
+    output_dir: string
+  }
+  provider: {
+    provider: string
+    base_url: string
+    model: string
+    timeout_seconds: number
+    live_smoke_enabled: boolean
+  }
+  review: {
+    verify_mode: boolean
+    placeholder_values: string[]
+  }
+}
+
+export interface RunDiagnostics {
+  status?: string
+  message?: string
+  error?: string
+  warnings?: string[]
+  exports?: {
+    workbook: string
+    audit_log: string
+  }
+  match_outcomes?: MatchRecord[]
 }

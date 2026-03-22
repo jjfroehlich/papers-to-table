@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import shutil
 import tempfile
+import time
 from pathlib import Path
 from typing import Any, Iterable, TypeVar
 
@@ -44,7 +45,16 @@ class ArtifactStore:
             json.dump(payload, handle, indent=2, ensure_ascii=False, default=str)
             handle.flush()
             temp_name = handle.name
-        Path(temp_name).replace(path)
+        temp_path = Path(temp_name)
+        for attempt in range(8):
+            try:
+                temp_path.replace(path)
+                return
+            except PermissionError:
+                if attempt == 7:
+                    temp_path.unlink(missing_ok=True)
+                    raise
+                time.sleep(0.05 * (attempt + 1))
 
     def append_jsonl(self, path: Path, payload: Any) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)

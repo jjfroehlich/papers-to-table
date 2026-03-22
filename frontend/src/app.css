@@ -89,6 +89,10 @@ button {
   background: #f9fbff;
 }
 
+.launcher-panel {
+  width: min(34rem, 100%);
+}
+
 .topbar-controls {
   display: flex;
   flex-wrap: wrap;
@@ -121,6 +125,19 @@ button {
   background: #fff;
   padding: 0.65rem 0.8rem;
   color: #172033;
+}
+
+.field-input:focus,
+.field-select:focus {
+  outline: none;
+  border-color: #4d73d9;
+  box-shadow: 0 0 0 3px rgba(77, 115, 217, 0.14);
+}
+
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
 }
 
 .workspace-grid {
@@ -376,6 +393,11 @@ button {
   font-weight: 700;
 }
 
+.subtle-detail {
+  color: #607089;
+  font-size: 0.86rem;
+}
+
 .warning-list,
 .column-summary-list {
   margin: 0;
@@ -439,6 +461,41 @@ button {
   margin: 0;
   color: #607089;
   font-size: 0.88rem;
+}
+
+.status-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.compact-status-panel {
+  min-width: 17rem;
+}
+
+.status-lead {
+  margin: 0;
+  font-size: 0.98rem;
+  color: #24344d;
+}
+
+.inline-alert {
+  border-width: 1px;
+}
+
+.inline-alert-danger {
+  border-color: #f5c2c7;
+  background: #fff4f5;
+}
+
+.inline-error {
+  margin: 0;
+  padding: 0.7rem 0.8rem;
+  border-radius: 12px;
+  border: 1px solid #f5c2c7;
+  background: #fff4f5;
+  color: #a23b45;
+  font-size: 0.9rem;
 }
 
 .viewer-stage {
@@ -513,8 +570,13 @@ button {
 
   .downloads,
   .action-row,
-  .nav-row {
+  .nav-row,
+  .quick-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .launcher-panel {
+    width: 100%;
   }
 }

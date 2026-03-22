@@ -108,7 +108,8 @@ class ExtractionOrchestrator:
                 primary_chunk = selected_chunks[0] if selected_chunks else None
                 quote_text = response.payload.get("evidence_quote", "")
                 page = int(response.payload.get("page", primary_chunk.page if primary_chunk else 1))
-                highlight = [HighlightBox(x=40, y=80, width=500, height=95)] if primary_chunk and primary_chunk.block_type != BlockType.CAPTION else []
+                page_record = next((item for item in parsed_doc.pages if item.page_number == page), None)
+                highlight = [primary_chunk.bbox] if primary_chunk and primary_chunk.bbox else []
                 source_type = EvidenceSourceType.TEXT
                 caption_text = ""
                 crop_path = None
@@ -136,6 +137,8 @@ class ExtractionOrchestrator:
                         pdf_id=match.pdf_id,
                         source_type=source_type,
                         page=page,
+                        page_width=page_record.width if page_record else None,
+                        page_height=page_record.height if page_record else None,
                         quote_text=quote_text,
                         highlight=highlight,
                         figure_ref=parsed_doc.figures[0].figure_id if figure_based and parsed_doc.figures else None,

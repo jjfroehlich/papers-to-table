@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import json
 import os
+import threading
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
@@ -35,7 +35,7 @@ from .exporter import export_reviewed_changes
 
 
 def create_app(output_root: str | Path | None = None) -> FastAPI:
-    output_root = output_root or os.getenv("PAPER_TABLE_AGENT_OUTPUT_ROOT", "artifacts")
+    output_root = Path(output_root or os.getenv("PAPER_TABLE_AGENT_OUTPUT_ROOT", "artifacts")).resolve()
     app = FastAPI(title="Paper Table Agent")
     app.add_middleware(
         CORSMiddleware,
@@ -44,11 +44,18 @@ def create_app(output_root: str | Path | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    runner = Runner(Path(output_root))
+    runner = Runner(output_root)
+
+    def iter_run_dirs() -> list[Path]:
+        runs: list[Path] = []
+        for run_dir in output_root.parent.rglob("run-*"):
+            if run_dir.is_dir() and (run_dir / "run.json").exists():
+                runs.append(run_dir)
+        return runs
 
     def store_for(run_id: str) -> ArtifactStore:
-        root = Path(output_root) / run_id
-        if not root.exists():
+        root = next((run_dir for run_dir in iter_run_dirs() if run_dir.name == run_id), None)
+        if root is None:
             raise HTTPException(status_code=404, detail="Run not found")
         return ArtifactStore(root)
 
@@ -98,15 +105,28 @@ def create_app(output_root: str | Path | None = None) -> FastAPI:
 
     @app.post("/api/runs", response_model=RunRecord)
     def create_run(request: CreateRunRequest) -> RunRecord:
-        config = load_config(request.config_path, request.config.model_dump(mode="json") if request.config else None)
-        return runner.execute(config)
+        try:
+            config = load_config(request.config_path, request.config.model_dump(mode="json") if request.config else None)
+            run, store, resolved = runner.prepare_run(config, config_path=request.config_path or "inline-request")
+        except (FileNotFoundError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        def execute_in_background() -> None:
+            try:
+                runner.execute_prepared(run, store, resolved)
+            except Exception:
+                return
+
+        threading.Thread(target=execute_in_background, daemon=True).start()
+        return run
 
     @app.get("/api/runs", response_model=list[RunRecord])
     def list_runs() -> list[RunRecord]:
         runs: list[RunRecord] = []
-        for run_dir in sorted(Path(output_root).glob("run-*")):
+        for run_dir in iter_run_dirs():
             store = ArtifactStore(run_dir)
             runs.append(read_run(store))
+        runs.sort(key=lambda run: run.created_at, reverse=True)
         return runs
 
     @app.get("/api/runs/{run_id}", response_model=RunInspectionResponse)
@@ -122,22 +142,42 @@ def create_app(output_root: str | Path | None = None) -> FastAPI:
     @app.get("/api/runs/{run_id}/summary", response_model=RunSummary)
     def get_run_summary(run_id: str) -> RunSummary:
         store = store_for(run_id)
-        return store.read_model(store.path("summaries", "run_summary.json"), RunSummary)
+        path = store.path("summaries", "run_summary.json")
+        if not path.exists():
+            raise HTTPException(status_code=409, detail="Run summary is not ready yet")
+        return store.read_model(path, RunSummary)
 
     @app.get("/api/runs/{run_id}/reviewer-summary", response_model=ReviewerSummary)
     def get_reviewer_summary(run_id: str) -> ReviewerSummary:
         store = store_for(run_id)
-        return store.read_model(store.path("summaries", "reviewer_summary.json"), ReviewerSummary)
+        path = store.path("summaries", "reviewer_summary.json")
+        if not path.exists():
+            raise HTTPException(status_code=409, detail="Reviewer summary is not ready yet")
+        return store.read_model(path, ReviewerSummary)
 
     @app.get("/api/runs/{run_id}/config")
     def get_config_snapshot(run_id: str) -> dict:
         store = store_for(run_id)
-        return store.read_json(store.path("config.snapshot.json"))
+        path = store.path("config.snapshot.json")
+        if not path.exists():
+            raise HTTPException(status_code=409, detail="Config snapshot is not ready yet")
+        return store.read_json(path)
 
     @app.get("/api/runs/{run_id}/input-summary")
     def get_input_summary(run_id: str) -> dict:
         store = store_for(run_id)
-        return store.read_json(store.path("inputs", "input_summary.json"))
+        path = store.path("inputs", "input_summary.json")
+        if not path.exists():
+            raise HTTPException(status_code=409, detail="Input summary is not ready yet")
+        return store.read_json(path)
+
+    @app.get("/api/runs/{run_id}/diagnostics")
+    def get_diagnostics(run_id: str) -> dict:
+        store = store_for(run_id)
+        path = store.path("logs", "diagnostics.json")
+        if not path.exists():
+            return {}
+        return store.read_json(path)
 
     @app.get("/api/runs/{run_id}/matches", response_model=MatchListResponse)
     def get_matches(run_id: str, outcome: MatchOutcome | None = None) -> MatchListResponse:
@@ -273,6 +313,7 @@ def create_app(output_root: str | Path | None = None) -> FastAPI:
             "audit-log": store.path("exports", "audit_log.csv"),
             "run-summary": store.path("summaries", "run_summary.json"),
             "reviewer-summary": store.path("summaries", "reviewer_summary.json"),
+            "config-snapshot": store.path("config.snapshot.json"),
             "artifacts": store.root,
         }
         path = mapping.get(download_name)

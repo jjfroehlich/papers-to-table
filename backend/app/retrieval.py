@@ -18,6 +18,7 @@ def build_retrieval_chunks(doc: ParsedDocument) -> list[RetrievalChunk]:
                 retrieval_text=block.retrieval_text or block.text,
                 display_text=block.source_text or block.text,
                 score=0,
+                bbox=block.bbox,
                 neighbor_ids=block.neighbors,
                 metadata=block.metadata,
             )

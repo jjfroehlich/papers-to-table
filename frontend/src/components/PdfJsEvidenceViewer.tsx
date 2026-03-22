@@ -14,6 +14,7 @@ interface Props {
 export function PdfJsEvidenceViewer({ runId, detail }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [renderFailed, setRenderFailed] = useState(false)
+  const [pageImageFailed, setPageImageFailed] = useState(false)
 
   useEffect(() => {
     async function renderPdf() {
@@ -32,6 +33,7 @@ export function PdfJsEvidenceViewer({ runId, detail }: Props) {
         canvas.height = viewport.height
         await page.render({ canvasContext: context, viewport }).promise
         setRenderFailed(false)
+        setPageImageFailed(false)
       } catch {
         setRenderFailed(true)
       }
@@ -64,6 +66,9 @@ export function PdfJsEvidenceViewer({ runId, detail }: Props) {
 
   const evidence = detail.primary_evidence
   const pageSrc = api.pageAsset(runId, detail.proposal.pdf_id, evidence.page)
+  const hasAnchoredHighlight = evidence.highlight.length > 0
+  const pageWidth = evidence.page_width && evidence.page_width > 0 ? evidence.page_width : 612
+  const pageHeight = evidence.page_height && evidence.page_height > 0 ? evidence.page_height : 792
 
   return (
     <section className="panel" aria-label="evidence-viewer">
@@ -76,8 +81,8 @@ export function PdfJsEvidenceViewer({ runId, detail }: Props) {
           <span className={evidence.source_type === 'figure' ? 'badge badge-accent' : 'badge badge-neutral'}>
             {evidence.source_type}
           </span>
-          <span className={evidence.highlight.length > 0 ? 'badge badge-success' : 'badge badge-warning'}>
-            {evidence.highlight.length > 0 ? 'Highlight anchored' : 'Quote + page fallback'}
+          <span className={hasAnchoredHighlight ? 'badge badge-success' : 'badge badge-warning'}>
+            {hasAnchoredHighlight ? 'Highlight anchored' : 'Quote + page fallback'}
           </span>
         </div>
       </div>
@@ -102,18 +107,18 @@ export function PdfJsEvidenceViewer({ runId, detail }: Props) {
             {!renderFailed ? (
               <canvas ref={canvasRef} className="viewer-canvas" />
             ) : (
-              <img className="viewer-image" src={pageSrc} alt={`Page ${evidence.page}`} />
+              <img className="viewer-image" src={pageSrc} alt={`Page ${evidence.page}`} onError={() => setPageImageFailed(true)} />
             )}
-            {evidence.highlight.map((box, index) => (
+            {hasAnchoredHighlight && evidence.highlight.map((box, index) => (
               <div
                 key={index}
                 data-testid="highlight-overlay"
                 style={{
                   position: 'absolute',
-                  left: `${(box.x / 612) * 100}%`,
-                  top: `${(box.y / 792) * 100}%`,
-                  width: `${(box.width / 612) * 100}%`,
-                  height: `${(box.height / 792) * 100}%`,
+                  left: `${(box.x / pageWidth) * 100}%`,
+                  top: `${(box.y / pageHeight) * 100}%`,
+                  width: `${(box.width / pageWidth) * 100}%`,
+                  height: `${(box.height / pageHeight) * 100}%`,
                   border: '2px solid #d97706',
                   background: 'rgba(251, 191, 36, 0.18)',
                   borderRadius: '6px',
@@ -122,10 +127,16 @@ export function PdfJsEvidenceViewer({ runId, detail }: Props) {
             ))}
           </div>
           <p className="viewer-note">
-            {evidence.highlight.length > 0
+            {hasAnchoredHighlight
               ? 'The overlay marks the current evidence anchor on the PDF page.'
-              : 'Highlight geometry was unavailable, so the reviewer falls back to quote + page context.'}
+              : 'Highlight geometry was unavailable or unreliable, so the reviewer falls back to quote + page context instead of a guessed overlay.'}
           </p>
+          {renderFailed && !pageImageFailed && (
+            <p className="support-note">The embedded PDF render fell back to the stored page image for this evidence item.</p>
+          )}
+          {pageImageFailed && (
+            <p className="inline-error">The stored page image could not be loaded. Use the quote, page number, and run diagnostics to inspect this evidence item.</p>
+          )}
         </div>
       )}
 

@@ -36,7 +36,8 @@ export function ProposalDetailPane({ detail, onDecision, onNext, onPrevious }: P
 
   const { proposal, row_context: rowContext, primary_evidence: primaryEvidence } = detail
   const actionable = isActionableProposal(proposal)
-  const shouldDisableAcceptEdit = !editedValue.trim()
+  const baseAcceptedValue = proposal.reviewed_value ?? proposal.proposed_value ?? ''
+  const shouldDisableAcceptEdit = !editedValue.trim() || editedValue.trim() === baseAcceptedValue.trim()
 
   return (
     <section className="panel" aria-label="proposal-detail">
@@ -119,6 +120,7 @@ export function ProposalDetailPane({ detail, onDecision, onNext, onPrevious }: P
             placeholder="Edit the accepted value before saving"
           />
         </label>
+        <p className="support-note">Edit the accepted value only when the proposal is close but needs a curator fix. Saving an edited acceptance requires a non-empty value that differs from the proposed value.</p>
         {!actionable && (
           <p className="support-note">
             This record is blocked or missing a proposed value, so accept actions stay disabled. You can still inspect the context and reject it explicitly.
@@ -127,7 +129,7 @@ export function ProposalDetailPane({ detail, onDecision, onNext, onPrevious }: P
         <div className="action-row">
           <button className="button-primary" onClick={() => onDecision('accept')} disabled={!actionable}>Accept as-is</button>
           <button className="button-secondary" onClick={() => onDecision('accept_with_edit', editedValue)} disabled={!actionable || shouldDisableAcceptEdit}>
-            Accept with edit
+            Save edited value
           </button>
           <button className="button-danger" onClick={() => onDecision('reject')}>Reject</button>
         </div>

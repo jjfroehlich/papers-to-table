@@ -13,6 +13,7 @@ def utc_now() -> datetime:
 
 class RunStatus(str, Enum):
     CREATED = "created"
+    VALIDATING = "validating"
     RUNNING = "running"
     COMPLETED = "completed"
     COMPLETED_WITH_WARNINGS = "completed_with_warnings"
@@ -151,6 +152,7 @@ class RunRecord(BaseModel):
     provider_locality: ProviderLocality = ProviderLocality.LOCAL
     verify_mode: bool = True
     artifact_root: str
+    config_path: str = ""
     message: str = ""
 
 
@@ -162,9 +164,11 @@ class SchemaColumn(BaseModel):
 
 
 class InputSummary(BaseModel):
+    config_path: str = ""
     table_path: str
     schema_path: str | None = None
     pdf_dir: str
+    output_dir: str
     row_count: int
     pdf_count: int
     target_columns: list[str]
@@ -221,6 +225,7 @@ class RetrievalChunk(BaseModel):
     retrieval_text: str
     display_text: str
     score: float
+    bbox: HighlightBox | None = None
     neighbor_ids: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -231,6 +236,8 @@ class EvidenceRecord(BaseModel):
     pdf_id: str
     source_type: EvidenceSourceType
     page: int
+    page_width: float | None = None
+    page_height: float | None = None
     quote_text: str = ""
     highlight: list[HighlightBox] = Field(default_factory=list)
     figure_ref: str | None = None

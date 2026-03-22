@@ -18,6 +18,7 @@ from .models import (
     RunRecord,
     RunStatus,
     WarningCategory,
+    utc_now,
 )
 from .parser import DoclingParserAdapter
 from .retrieval import build_retrieval_chunks
@@ -33,39 +34,75 @@ class Runner:
         self.output_root = output_root
         self.output_root.mkdir(parents=True, exist_ok=True)
 
-    def create_run(self, config: AppConfig) -> tuple[RunRecord, ArtifactStore]:
-        resolved = resolve_config_defaults(config)
-        validate_config(resolved)
-        run_id = make_run_id(json.dumps(resolved.model_dump(mode="json"), sort_keys=True))
-        store = ArtifactStore(self.output_root / run_id)
-        run = RunRecord(run_id=run_id, artifact_root=str(store.root), verify_mode=resolved.review.verify_mode)
+    def _write_run(self, store: ArtifactStore, run: RunRecord) -> None:
+        run.updated_at = utc_now()
         store.write_model(store.path("run.json"), run)
-        store.write_model(store.path("config.snapshot.json"), resolved)
-        return run, store
 
-    def execute(self, config: AppConfig) -> RunRecord:
-        run, store = self.create_run(config)
+    def _set_run_state(self, store: ArtifactStore, run: RunRecord, status: RunStatus, message: str) -> None:
+        run.status = status
+        run.message = message
+        self._write_run(store, run)
+
+    def _write_diagnostics(self, store: ArtifactStore, payload: dict) -> None:
+        path = store.path("logs", "diagnostics.json")
+        diagnostics = store.read_json(path) if path.exists() else {}
+        diagnostics.update(payload)
+        store.write_json(path, diagnostics)
+
+    def prepare_run(self, config: AppConfig, config_path: str = "") -> tuple[RunRecord, ArtifactStore, AppConfig]:
         resolved = resolve_config_defaults(config)
+        run_id = make_run_id(json.dumps(resolved.model_dump(mode="json"), sort_keys=True))
+        store = ArtifactStore(Path(resolved.paths.output_dir) / run_id)
+        run = RunRecord(
+            run_id=run_id,
+            artifact_root=str(store.root),
+            verify_mode=resolved.review.verify_mode,
+            config_path=config_path,
+            message="Queued for validation.",
+        )
+        self._write_run(store, run)
+        store.write_model(store.path("config.snapshot.json"), resolved)
+        return run, store, resolved
+
+    def execute(self, config: AppConfig, config_path: str = "") -> RunRecord:
+        run, store, resolved = self.prepare_run(config, config_path=config_path)
+        return self.execute_prepared(run, store, resolved)
+
+    def execute_prepared(self, run: RunRecord, store: ArtifactStore, resolved: AppConfig) -> RunRecord:
         try:
-            run.status = RunStatus.RUNNING
-            store.write_model(store.path("run.json"), run)
+            self._set_run_state(store, run, RunStatus.VALIDATING, "Validating config paths and loading table inputs.")
+            validate_config(resolved)
             rows, headers, _ = load_table(resolved.paths.table_path)
             validate_metadata_columns(headers)
             schema = load_schema(resolved.paths.table_path, resolved.paths.schema_path)
             normalized_rows, eligibility = classify_cells(rows, schema, resolved.review.placeholder_values, resolved.review.verify_mode)
-            input_summary = build_input_summary(resolved.paths.table_path, resolved.paths.schema_path, resolved.paths.pdf_dir, normalized_rows, schema, resolved.review.verify_mode)
+            input_summary = build_input_summary(
+                run.config_path,
+                resolved.paths.table_path,
+                resolved.paths.schema_path,
+                resolved.paths.pdf_dir,
+                resolved.paths.output_dir,
+                normalized_rows,
+                schema,
+                resolved.review.verify_mode,
+            )
             store.write_model(store.path("inputs", "input_summary.json"), input_summary)
             store.write_json(store.path("inputs", "rows.json"), normalized_rows)
             store.write_json(store.path("inputs", "eligibility.json"), [item.model_dump(mode="json") for item in eligibility])
+            pdf_paths = sorted(Path(resolved.paths.pdf_dir).glob("*.pdf"))
             parser = DoclingParserAdapter(resolved.parser, resolved.ocr)
             parsed_docs = []
-            for pdf_path in sorted(Path(resolved.paths.pdf_dir).glob("*.pdf")):
+            self._set_run_state(store, run, RunStatus.RUNNING, f"Parsing PDFs (0/{len(pdf_paths)}).")
+            for index, pdf_path in enumerate(pdf_paths, start=1):
+                self._set_run_state(store, run, RunStatus.RUNNING, f"Parsing PDFs ({index}/{len(pdf_paths)}): {pdf_path.name}")
                 parsed = parser.parse(run.run_id, pdf_path, store)
                 parsed_docs.append(parsed)
                 store.write_model(store.path("parsed", parsed.pdf_id, "parsed_document.json"), parsed)
                 store.write_json(store.path("parsed", parsed.pdf_id, "parser_diagnostics.json"), parsed.diagnostics)
+            self._set_run_state(store, run, RunStatus.RUNNING, "Matching PDFs to table rows.")
             matches = match_documents(parsed_docs, normalized_rows, resolved.matching)
             store.write_models_jsonl(store.path("matching", "matches.jsonl"), matches)
+            self._set_run_state(store, run, RunStatus.RUNNING, "Building style profiles.")
             style_profiles = build_style_profiles(normalized_rows, schema)
             for profile in style_profiles:
                 store.write_model(store.path("style_profiles", f"{profile.column_name}.json"), profile)
@@ -76,7 +113,9 @@ class Runner:
             all_proposals: list[ProposalRecord] = []
             all_evidence = []
             extractor = ExtractionOrchestrator(resolved)
-            for match in matches:
+            total_matches = len(matches)
+            for index, match in enumerate(matches, start=1):
+                self._set_run_state(store, run, RunStatus.RUNNING, f"Generating proposals ({index}/{total_matches}): {match.pdf_name}")
                 if match.row_id:
                     row = row_by_id[match.row_id]
                     eligibility_by_column = {column.column_name: eligibility_map[(match.row_id, column.column_name)] for column in schema}
@@ -91,6 +130,7 @@ class Runner:
                 all_evidence.extend(evidence)
             store.write_models_jsonl(store.path("proposals", "proposals.jsonl"), all_proposals)
             store.write_models_jsonl(store.path("evidence", "evidence.jsonl"), all_evidence)
+            self._set_run_state(store, run, RunStatus.RUNNING, "Writing exports, diagnostics, and summaries.")
             workbook_name, audit_name, changed, warnings = export_reviewed_changes(resolved.paths.table_path, normalized_rows, all_proposals, store.path("exports"), resolved.export.highlight_hex)
             run.provider_name = extractor.provider.settings.provider if extractor.provider.settings.provider != "stub" else "stub-lmstudio"
             run.provider_model = extractor.provider.settings.model
@@ -103,22 +143,23 @@ class Runner:
             reviewer_summary = build_reviewer_summary(run, matches, all_proposals, changed)
             store.write_model(store.path("summaries", "run_summary.json"), run_summary)
             store.write_model(store.path("summaries", "reviewer_summary.json"), reviewer_summary)
-            store.write_json(store.path("logs", "diagnostics.json"), {
+            self._write_diagnostics(store, {
                 "match_outcomes": [item.model_dump(mode="json") for item in matches],
                 "warnings": warnings,
                 "exports": {"workbook": workbook_name, "audit_log": audit_name},
+                "status": run.status.value,
+                "message": "Run completed and is ready for review.",
             })
-            run.updated_at = run.updated_at
-            store.write_model(store.path("run.json"), run)
+            run.message = "Run completed and is ready for review."
+            self._write_run(store, run)
             return run
         except KeyboardInterrupt:
-            run.status = RunStatus.INTERRUPTED
-            store.write_model(store.path("run.json"), run)
+            self._write_diagnostics(store, {"status": RunStatus.INTERRUPTED.value, "message": "Run interrupted before completion."})
+            self._set_run_state(store, run, RunStatus.INTERRUPTED, "Run interrupted before completion.")
             raise
         except Exception as exc:  # noqa: BLE001
-            run.status = RunStatus.FAILED
-            run.message = str(exc)
-            store.write_model(store.path("run.json"), run)
+            self._write_diagnostics(store, {"status": RunStatus.FAILED.value, "message": str(exc), "error": str(exc)})
+            self._set_run_state(store, run, RunStatus.FAILED, str(exc))
             raise
 
 

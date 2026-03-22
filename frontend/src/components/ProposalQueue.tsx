@@ -9,6 +9,8 @@ interface Props {
   onBulkAccept: () => void
   filter: ProposalFilter
   setFilter: (value: ProposalFilter) => void
+  reviewReady: boolean
+  emptyMessage: string
 }
 
 function badgeClass(proposal: ProposalRecord): string {
@@ -26,7 +28,7 @@ function filterLabel(filter: ProposalFilter): string {
   return 'all'
 }
 
-export function ProposalQueue({ proposals, visible, selectedId, onSelect, onBulkAccept, filter, setFilter }: Props) {
+export function ProposalQueue({ proposals, visible, selectedId, onSelect, onBulkAccept, filter, setFilter, reviewReady, emptyMessage }: Props) {
   const pendingCount = proposals.filter((proposal) => proposal.review_decision === 'no_decision').length
   const figureCount = proposals.filter((proposal) => proposal.source_mode === 'vision').length
   const needsEvidenceCount = proposals.filter((proposal) => proposal.needs_more_evidence).length
@@ -50,6 +52,7 @@ export function ProposalQueue({ proposals, visible, selectedId, onSelect, onBulk
             aria-label="Filter"
             value={filter}
             onChange={(event) => setFilter(event.target.value as ProposalFilter)}
+            disabled={!reviewReady}
           >
             <option value="all">All proposals ({proposals.length})</option>
             <option value="pending">Pending ({pendingCount})</option>
@@ -57,7 +60,7 @@ export function ProposalQueue({ proposals, visible, selectedId, onSelect, onBulk
             <option value="needs_evidence">Needs more evidence ({needsEvidenceCount})</option>
           </select>
         </div>
-        <button className="button-secondary" onClick={onBulkAccept} disabled={actionableVisible.length === 0}>
+        <button className="button-secondary" onClick={onBulkAccept} disabled={!reviewReady || actionableVisible.length === 0}>
           Bulk accept {filterLabel(filter)} subset ({actionableVisible.length})
         </button>
       </div>
@@ -101,7 +104,7 @@ export function ProposalQueue({ proposals, visible, selectedId, onSelect, onBulk
           </li>
         ))}
       </ul>
-      {visible.length === 0 && <p className="queue-empty">No proposals match the current filter.</p>}
+      {visible.length === 0 && <p className="queue-empty">{emptyMessage}</p>}
     </section>
   )
 }

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import re
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -16,7 +18,8 @@ def stable_hash(*parts: object, length: int = 10) -> str:
 
 
 def make_run_id(seed: str) -> str:
-    return f"run-{stable_hash(seed, length=12)}"
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    return f"run-{timestamp}-{stable_hash(seed, time.time_ns(), length=8)}"
 
 
 def make_pdf_id(run_id: str, pdf_path: str | Path) -> str:
