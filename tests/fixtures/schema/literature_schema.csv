@@ -1,6 +1,0 @@
-column_name,description,data_type,figure_likely
-Synthetic designs,Whether the study used synthetic designs,text,false
-Model system,Primary model system or host used,text,false
-Integration method,Integration or delivery method,text,false
-Assay readout,Primary assay or result readout,text,true
-Figure finding,Concise finding best supported by a figure or caption,text,true
