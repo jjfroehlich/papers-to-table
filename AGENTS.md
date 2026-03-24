@@ -13,7 +13,7 @@ You always:
 - **Take full ownership** of the task. Do not abandon work because it is complex or tedious. Only pause when requirements are contradictory or when a critical clarification is truly blocking.
 - **Move proactively**. Do not repeatedly ask “Should I proceed?” Make the best repo-consistent choice and ask only focused questions that unblock progress.
 - **Follow the full engineering cycle** for non-trivial changes: **understand → design → implement → verify → refine → document → summarize**.
-- **Bias toward completion**. Implement as much as possible end-to-end in one autonomous pass (even if the change is large) as long as the result remains verifiable and maintainable.
+- **Bias toward completion**. Implement as much as possible end-to-end in one autonomous pass when the request is broad, but if the work is explicitly batched, finish one coherent batch deeply rather than touching many batches shallowly.
 - **Treat non-functional requirements as first-class**: privacy, grounding, determinism, reproducibility, maintainability, and security.
 
 ---
@@ -48,6 +48,8 @@ If requirements are missing, either:
 - implement the simplest safe interpretation and clearly document the assumption.
 
 For this repository, "simplest safe interpretation" does **not** mean the thinnest possible UI, the fewest visible states, or a workflow that assumes the operator will fall back to ad hoc CLI steps. Favor the smallest implementation that still delivers a coherent operator happy path, clear empty/loading/error states, and truthful workflow guidance.
+
+For this repository, "smallest coherent implementation" means the smallest implementation that a normal local operator can actually use from install/startup through run launch, run-state visibility, review, and export. It does **not** mean a backend-complete but operator-confusing slice, placeholder UI, cryptic status copy, or documentation that quietly depends on undeclared helper steps.
 
 When deciding whether something is "done," do not stop at architectural correctness or API completeness. The operator must be able to understand how to start the workflow, what state the run is in, why review is or is not available yet, and what to do next without reading source code.
 
@@ -117,10 +119,18 @@ Treat `tasks.md` as canonical for implementation progress.
 
 Checked tasks are evidence of intended scope, not proof that the current implementation is still strong, complete, or user-ready. Validate the actual behavior against `spec.md`, `plan.md`, and the current app before treating a checked item as finished.
 
+`tasks.md` may be exhaustive while still being intended for batch-by-batch execution. If the task stack defines explicit batches, treat those batches as the normal implementation unit. Do not use the existence of a long checklist as permission to deliver a thin cross-section of many later tasks in one pass.
+
 For each implemented task:
 - mark it `[x]` in `tasks.md`
 - ensure its acceptance criteria are actually met
 - do not mark tasks complete if they only partially work
+
+### Batch discipline
+
+- When asked to implement `Batch N`, keep the work centered on that batch and make it polished enough that a future batch can build on it cleanly.
+- Do not claim a batch is complete if onboarding, startup, run-state visibility, empty/loading/warning/failure states, review safety, or docs truth for that slice are still obviously rough.
+- If a batch changes the operator workflow, update `README.md` and the relevant files under `specs/` in the same pass.
 
 ### When not working under spec-driven execution
 Do not create fake task bookkeeping just for the sake of process. Keep summaries concise and grounded in the user’s actual request.
@@ -136,6 +146,7 @@ Do not create fake task bookkeeping just for the sake of process. Keep summaries
 - Do not quietly add broad config surfaces, multi-path runtime complexity, or speculative architecture.
 - Preserve the config file as the advanced control surface, but treat the browser UI as the primary operator surface for starting runs, monitoring lifecycle state, reviewing proposals, and downloading outputs.
 - When building user-facing workflow surfaces, deliver the full slice of usability needed for the feature to work in practice: onboarding cues, actionable validation errors, status visibility, loading states, and safe completion semantics.
+- Treat install/startup ergonomics, pre-review guidance, review usability, run-state clarity, and export/download truthfulness as first-class requirements, not polish that can wait until after the feature technically exists.
 
 For this repository specifically, avoid these low-quality interpretations unless the spec explicitly permits them:
 - controls that technically exist but do not make the next operator action obvious
@@ -160,6 +171,7 @@ When making non-trivial technical choices:
 - If a change touches a documented workflow, update docs and verify commands accordingly.
 - If a change affects the operator path, do not stop at checking that controls exist. Confirm the flow is understandable and usable from startup through review/export, including empty, warning, and failure states.
 - If spec-driven work changes what "done" means for the operator workflow, update `spec.md`, `plan.md`, `tasks.md`, and `README.md` together rather than leaving the stronger quality bar implicit.
+- For UI-affecting work, prefer browser-level verification or equivalent end-to-end coverage. A rendered component tree or a passing API test is not enough if the operator workflow can still feel broken or unclear.
 
 ---
 

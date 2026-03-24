@@ -4,10 +4,22 @@ Paper Table Agent is a local-first browser application for turning a spreadsheet
 
 The MVP in this repository uses:
 - a **React** frontend for run inspection and queue-first review
-- a small **FastAPI** backend with an app-owned staged runner that the UI launches asynchronously
+- a small **FastAPI** backend with an app-owned staged runner that the UI starts through the API and that the backend executes with a lightweight in-process background mechanism
 - **filesystem artifact bundles + JSON files** as the canonical state
 - **LM Studio localhost API** as the live provider path, with a deterministic stub path for default tests
 - **content-only XLSX export** with changed-cell highlighting and an audit log
+
+## Quickstart
+
+The primary local happy path is:
+
+1. Install the backend and frontend dependencies.
+2. Copy `config.example.json` to `my-config.json` and edit it for your table, schema, PDFs, and artifact output root.
+3. Start the backend.
+4. Start the frontend.
+5. Open the browser UI, enter the config path, start the run, wait for the run to become reviewable, then review/export from that same app surface.
+
+This browser-first workflow is the normal operator path for MVP. Lower-level runners and helper scripts remain useful for development and debugging, but they are not the primary product workflow described by this repository.
 
 ## How to use it
 
@@ -47,6 +59,8 @@ The intended operator path for MVP is:
 5. In the run launcher, enter the config path and click `Start run`.
 6. Watch the run move through `validating` and `running` states.
 7. Once the run is `completed` or `completed with warnings`, review the queue and export accepted changes.
+
+If the selected run is not yet reviewable, the same UI should still explain what is happening now, whether review will become available automatically, and what the next valid operator action is.
 
 If you switch from one run to another, the app may keep your queue filter, but it reloads proposal detail and evidence for the newly selected run instead of carrying over stale review state from the previous run.
 
@@ -141,6 +155,8 @@ Optional note: LM Studio can also proxy some cloud-backed providers if you confi
 
 Create or edit a config based on `config.example.json`, then start the backend and frontend.
 
+This is the primary local start path that the rest of this README assumes.
+
 ### Start the backend
 
 ```bash
@@ -169,6 +185,8 @@ After the frontend loads:
 The config snapshot is available early in the run lifecycle. Workbook, audit-log, and summary downloads only become meaningful after the run has written those artifacts.
 
 During `running`, expect coarse progress messages such as the current pipeline stage and current item when available, not a full resumable job monitor.
+
+If no run exists yet, or the selected run is still validating, running, failed, or completed without actionable proposals, the browser UI should still guide you with explicit setup/status/warning messaging rather than an unexplained empty review shell.
 
 ## Sample workflow on the fixture corpus
 

@@ -44,6 +44,23 @@ The UI must make run lifecycle state explicit. The operator-visible states are:
 
 These states are reviewer-facing UX requirements, not merely backend implementation details.
 
+Internal lifecycle states may include additional values such as `created` or `interrupted`, but the UI must map them onto these normative operator-visible states rather than exposing an inconsistent second state model.
+
+### Config authority and operator surface
+
+The JSON config file is the authoritative control surface for advanced run behavior, reproducibility, and resolved runtime parameters.
+
+The browser UI is the normal operator-facing workflow surface for:
+
+- entering or selecting the config path
+- confirming the resolved input/output context for the run
+- starting a run
+- understanding lifecycle state and warnings
+- reviewing proposals and unresolved matching issues
+- exporting and downloading outputs
+
+The UI may expose the config path, resolved paths, Verify-mode status, and provider/model context, but broad parameter editing in the UI is not an MVP requirement and must not become the default control surface.
+
 ---
 
 ## Problem statement
@@ -118,6 +135,8 @@ That means:
 - loading, empty, warning, and failure states are explicit and actionable rather than silent or generic
 - review surfaces stay clearly gated until the run is actually reviewable, while still exposing useful setup, progress, and diagnostics context
 - review ergonomics support confident human decisions instead of forcing the operator to infer workflow intent from raw implementation details
+- “minimal” or “task-focused” means legible, guided, and trustworthy rather than barebones, cryptic, or developer-centric
+- the browser UI feels like one coherent run-launch, status, review, and export workflow rather than a thin shell over artifact files
 - documentation reflects the actual happy path and the actual limits of the product
 
 ---
@@ -255,6 +274,8 @@ The system must normalize column identifiers and detect which cells are missing,
 
 The system must validate that the table includes standardized metadata columns named `Title`, `Authors`, and `Publication Year` before row matching begins.
 
+The product must preserve one clear primary local happy path: install dependencies, start backend and frontend, open the browser UI, provide a config path, launch the run, monitor state, review proposals, and export accepted changes. Developer shortcuts may exist for debugging, but they must not replace this documented operator path.
+
 Advanced run behavior must be controlled through the run configuration rather than through extensive tuning controls in the UI.
 
 The UI must show the config path plus a concise resolved-input summary, including at least the table path, schema path when present, PDF directory, output directory, target-column count or list, and Verify-mode status.
@@ -385,6 +406,8 @@ The review interface must support a queue-first workflow with:
 - a focused detail pane for the selected proposal
 - an evidence viewer pane
 - visible run-summary and reviewer-summary context in the main review workspace
+
+Launching runs, understanding status, reviewing proposals, and exporting outputs must feel like one connected workflow in the same browser app rather than separate utilities that the operator has to stitch together mentally.
 
 Review must be nonlinear: selecting a proposal for inspection must not itself record a decision.
 
@@ -623,6 +646,12 @@ The product should allow future replacement or addition of parser, retrieval, an
 
 The review interface should be visually clear, efficient for repeated review work, and suitable for modern desktop use.
 
+### NFR-9 Workflow and documentation truthfulness
+
+The README, in-app labels, status text, and normal startup commands must describe the same real local workflow.
+
+Developer-only shortcuts, helper scripts, or partial implementation paths must not be presented as the primary operator path unless they truly are the intended MVP workflow.
+
 ---
 
 ## Key behavioral rules
@@ -739,6 +768,12 @@ then only explicitly accepted proposals appear in the exported workbook and audi
 Given a run used one or more model or parsing providers,
 when the run summary is shown or exported,
 then the summary identifies the provider or model names used and whether processing stayed local or used external services.
+
+### AC-17 Onboarding and workflow truth
+
+Given a new local operator following the documented primary happy path,
+when they install dependencies, start the backend and frontend, open the browser UI, enter a config path, and launch a run,
+then the app and docs agree on the same workflow, the operator can understand pre-review and in-progress states without consulting source code, and the same app surface remains the normal place to review proposals and export outputs.
 
 ---
 

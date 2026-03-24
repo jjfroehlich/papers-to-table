@@ -25,6 +25,17 @@ This plan is intentionally opinionated. It chooses a concrete MVP architecture s
 
 The core documentation set for this phase is `spec.md`, `plan.md`, and `research.md`. `tasks.md` becomes useful when implementation starts, and optional ADRs or runbooks should be added only if a concrete decision or operator workflow needs them.
 
+## Implementation handoff rules
+
+The intended implementation model for this repository is:
+
+- `tasks.md` remains exhaustive, but execution should happen in the explicit batches defined there rather than as one giant undifferentiated pass.
+- Each batch should be delivered as a polished, coherent slice that a later batch can safely build on.
+- The JSON config file remains authoritative for advanced behavior and reproducibility.
+- The browser UI owns the normal operator workflow for launch, status visibility, review, and export.
+- The local onboarding path should stay clear and singular: start backend, start frontend, open the browser UI, supply a config path, start the run.
+- If a batch changes operator-facing truth, update `README.md`, `spec.md`, `plan.md`, and `tasks.md` together in the same work pass.
+
 ---
 
 ## Definition of done
@@ -62,6 +73,8 @@ Implementation for this phase is complete when the system satisfies the function
 
 8. The first shipping system remains focused on the paper-to-table review workflow and does not expand into a chat-first, multi-user, or SaaS platform.
 
+9. The documented local startup path, browser-first operator workflow, and artifact/export behavior remain truthful and usable rather than drifting behind the implementation.
+
 ---
 
 ## Constraints and non-goals
@@ -72,6 +85,7 @@ Implementation for this phase is complete when the system satisfies the function
 - Single-user local browser app operation is sufficient for MVP.
 - Human review is required before spreadsheet updates.
 - UI remains minimal and task-focused, but not thin to the point that startup, lifecycle visibility, or review/export workflow becomes guesswork.
+- The product must preserve one primary local onboarding/start path instead of expecting users to infer a preferred route from multiple equivalent but differently documented commands.
 - Pipeline must preserve auditable run artifacts.
 - Parser, model, and retrieval backends must remain replaceable behind stable contracts.
 - Provider/model behavior must be transparent enough for users to know whether a run stayed local or used cloud services.
@@ -112,7 +126,7 @@ The initial system will use a mostly deterministic staged pipeline with a few LL
 The workflow is structured and auditable. The prior implementation showed that graph orchestration added less value than expected around a mostly sequential loop. The rewrite should stay simple for MVP: one run executes straight through, and an interrupted run is restarted as a new run rather than resumed in place.
 
 **Operator consequence:**
-The backend may execute a run in an app-owned background thread or equivalent lightweight mechanism so the UI can remain the primary operator surface for creation and status tracking, but this does not justify introducing a full background-job framework for MVP.
+Runs are started through the API and executed under app-owned backend control using a lightweight in-process background mechanism for MVP, so the UI can remain the primary operator surface for launch and status tracking without requiring an external job framework.
 
 ---
 
@@ -279,6 +293,8 @@ This plan depends on `research.md` for supporting tradeoffs and decisions. Addit
   - runtime/background jobs
   - workbook fidelity policy
   - UI stack
+
+Implementation should normally proceed batch-by-batch according to `tasks.md`. The detailed task list remains exhaustive, but the practical implementation unit is a coherent batch with its own verification and doc-sync expectations.
 
 ---
 
@@ -1012,7 +1028,7 @@ Run the pipeline simply and predictably without reintroducing graph-runtime comp
 ## Recommended MVP shape
 
 - app-owned staged runner
-- execute synchronously inside the FastAPI service first
+- runs started through the API and executed under app-owned backend control using a lightweight in-process background mechanism
 - no job queue required by default
 - add **Huey + SqliteHuey** first if async execution becomes a practical necessity
 
