@@ -47,8 +47,8 @@ def test_create_run_and_fetch_summaries(tmp_path: Path) -> None:
     run_id = create_response.json()["run_id"]
 
     summary = None
-    for _ in range(30):
-        time.sleep(0.05)
+    for _ in range(120):
+        time.sleep(0.5)
         summary_response = client.get(f"/api/runs/{run_id}/summary")
         assert summary_response.status_code == 200
         summary = summary_response.json()

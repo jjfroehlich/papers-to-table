@@ -2,7 +2,19 @@
 
 ## Status
 
-Finalized baseline
+Batch 2 complete — parsing and row-matching baseline implemented.
+
+**Implemented modules (Batch 1 + Batch 2):**
+- `backend/app/schemas.py` — all enums and Pydantic models
+- `backend/app/ids.py` — deterministic ID generation
+- `backend/app/artifacts.py` — run artifact bundle layout + I/O
+- `backend/app/config.py` — RunConfig, load/validate/snapshot
+- `backend/app/ingest.py` — table/schema loading and cell classification
+- `backend/app/lifecycle.py` — run state transitions
+- `backend/app/runner.py` — staged runner, parse + match stages
+- `backend/app/main.py` — FastAPI endpoints including matching APIs
+- `backend/app/parsing.py` — ParsedDocument contract, DoclingParserAdapter (with BasicTextParser fallback), PDFiumBackend, OCR gate
+- `backend/app/matching.py` — metadata extraction, deterministic scoring, match outcome assignment, duplicate-row conflict detection, artifact persistence
 
 ## Purpose
 
