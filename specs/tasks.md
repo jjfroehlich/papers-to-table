@@ -75,6 +75,7 @@ Future coding-agent implementation should normally proceed by the canonical batc
 - Finish the current batch deeply enough that a normal operator can use that slice without guesswork.
 - Do not satisfy a user-facing batch with backend support alone; verify the actual browser or operator-visible behavior for that slice.
 - When a batch changes workflow truth, update `README.md`, `spec.md`, `plan.md`, and this file in the same pass.
+- End each operator-facing batch by generating or updating the user-facing `README.md` and any other operator docs needed for that slice so they truthfully match the implemented behavior before the next batch begins.
 - Do not mark tasks complete merely because code exists already. Re-check current behavior against the spec and batch completion standard.
 
 ## Canonical implementation batches
@@ -153,6 +154,7 @@ Future coding-agent implementation should normally proceed by the canonical batc
 - proposal ordering, filtering, selection, and run switching behave predictably without stale state leakage
 - text highlights, quote-plus-page fallback, figure evidence, bulk acceptance, edited acceptance, keyboard navigation, and unresolved-match inspection are all actually usable
 - download surfaces are truthful about what is ready versus not yet written
+- end of Batch 5: generate or update `README.md` so it truthfully matches the implemented app’s startup path, config workflow, run lifecycle, review workflow, current download/export behavior, and known MVP limitations at that stage
 - frontend tests and Playwright coverage verify real user-facing behavior, not just component presence
 
 ### Batch 6 — Export, hardening, regression protection, and docs truth
@@ -169,6 +171,7 @@ Future coding-agent implementation should normally proceed by the canonical batc
 - unsupported workbook feature warnings and diagnostics remain explicit rather than implied
 - hermetic end-to-end coverage protects the core workflow, with separate opt-in live-provider smoke coverage and performance smoke tests
 - `README.md` reflects the real primary happy path, artifact locations, config authority, UI-driven launch/status/review/export workflow, and export fidelity boundary
+- the final user-facing docs set is audited against the implemented MVP so README and related docs do not mention speculative helpers, stale commands, obsolete architecture, or workflows that do not exist
 
 The detailed task inventory below remains the source of truth for exact implementation work inside each batch.
 
@@ -762,14 +765,18 @@ The detailed task inventory below remains the source of truth for exact implemen
   - where artifacts and exports are written
   - how Verify mode behaves
   - what the export fidelity boundary is
+  - make every documented command and workflow match the implementation that currently ships
 - [ ] **T107a** Preserve user-facing onboarding in `README`, including clone/install steps, config-file purpose, LM Studio expectations, backend/frontend run commands, testing commands, artifact locations, and the export fidelity boundary.
   - do not remove useful onboarding content unless it is obsolete and replaced with something clearer in the same work pass
+  - do not keep obsolete onboarding text, superseded commands, or alternate startup paths that are not real supported workflows
 
 - [ ] **T107b** Keep README aligned with the real primary happy path:
   - start backend and frontend
   - launch a run from the browser using a config path
   - observe run lifecycle state in the UI
   - review/export from the same surface
+  - document the real config workflow, run lifecycle, review flow, export behavior, and limitations of the implemented MVP
+  - do not document speculative helpers or workflows that do not exist
 
 ---
 
@@ -806,4 +813,5 @@ This task list is complete enough when it can drive implementation toward a syst
 - exports a new XLSX plus audit log within the explicit content-only fidelity boundary
 - applies scoped automatic figure fallback without adding a user-triggered fallback workflow
 - keeps loading, empty, warning, failure, and not-yet-reviewable states explicit and actionable in the operator workflow
+- ships with a truthful user-facing `README.md` and related operator docs that match the implemented commands, architecture, workflow, exports, and limitations
 - stays inside the MVP architecture boundary defined by `spec.md`, `research.md`, and `plan.md`

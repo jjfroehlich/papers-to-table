@@ -138,6 +138,10 @@ That means:
 - “minimal” or “task-focused” means legible, guided, and trustworthy rather than barebones, cryptic, or developer-centric
 - the browser UI feels like one coherent run-launch, status, review, and export workflow rather than a thin shell over artifact files
 - documentation reflects the actual happy path and the actual limits of the product
+- the user-facing `README.md` is treated as a product surface, not as post-hoc cleanup
+- the `README.md` and other operator-facing docs must describe the real startup path, config workflow, run lifecycle, review workflow, export behavior, artifact locations, and known MVP limitations that the implementation actually supports
+- documentation must match actual commands, actual architecture, and actual UI flow at the time of shipping
+- documentation must not describe speculative helpers, obsolete commands, aspirational workflows, or convenience scripts that are not part of the implemented MVP
 
 ---
 

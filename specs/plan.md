@@ -35,6 +35,8 @@ The intended implementation model for this repository is:
 - The browser UI owns the normal operator workflow for launch, status visibility, review, and export.
 - The local onboarding path should stay clear and singular: start backend, start frontend, open the browser UI, supply a config path, start the run.
 - If a batch changes operator-facing truth, update `README.md`, `spec.md`, `plan.md`, and `tasks.md` together in the same work pass.
+- End-of-batch documentation updates are mandatory for operator-facing changes; `README.md` must trail implementation by zero batches, not by a later cleanup pass.
+- `README.md` and any other user-facing docs must only describe commands, config behavior, lifecycle states, review actions, downloads, exports, and limitations that exist in the implemented slice.
 
 ---
 
@@ -74,6 +76,14 @@ Implementation for this phase is complete when the system satisfies the function
 8. The first shipping system remains focused on the paper-to-table review workflow and does not expand into a chat-first, multi-user, or SaaS platform.
 
 9. The documented local startup path, browser-first operator workflow, and artifact/export behavior remain truthful and usable rather than drifting behind the implementation.
+
+10. The shipped `README.md` and operator-facing documentation truthfully match the implemented app:
+   - real startup commands
+   - real config preparation and launch flow
+   - real run lifecycle and review flow
+   - real artifact, export, and download behavior
+   - real limitations and unsupported cases
+   - no speculative helpers or unimplemented workflows
 
 ---
 
