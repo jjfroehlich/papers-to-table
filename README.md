@@ -14,10 +14,10 @@ Later batches (parsing/matching/extraction/review queue/export) are intentionall
 
 ## Repository layout
 
-- `/home/runner/work/paper-table-agent/paper-table-agent/backend` — FastAPI app and staged runner foundation
-- `/home/runner/work/paper-table-agent/paper-table-agent/frontend` — React+Vite UI shell (Run + Review baseline)
-- `/home/runner/work/paper-table-agent/paper-table-agent/tests` — backend tests + fixtures
-- `/home/runner/work/paper-table-agent/paper-table-agent/specs` — spec/plan/tasks source of truth
+- `backend/` — FastAPI app and staged runner foundation
+- `frontend/` — React+Vite UI shell (Run + Review baseline)
+- `tests/` — backend tests + fixtures
+- `specs/` — spec/plan/tasks source of truth
 
 ## Requirements
 
@@ -29,14 +29,14 @@ Later batches (parsing/matching/extraction/review queue/export) are intentionall
 ### Backend
 
 ```bash
-cd /home/runner/work/paper-table-agent/paper-table-agent
+cd .
 python -m pip install -e ./backend[dev]
 ```
 
 ### Frontend
 
 ```bash
-cd /home/runner/work/paper-table-agent/paper-table-agent/frontend
+cd frontend
 npm install
 ```
 
@@ -44,7 +44,7 @@ npm install
 
 Use the example config as a starting point:
 
-- `/home/runner/work/paper-table-agent/paper-table-agent/backend/config.example.json`
+- `backend/config.example.json`
 
 Key fields used in Batch 1:
 - `paths.table_path`
@@ -59,14 +59,14 @@ Key fields used in Batch 1:
 ### Start backend
 
 ```bash
-cd /home/runner/work/paper-table-agent/paper-table-agent
+cd .
 python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
 ```
 
 ### Start frontend
 
 ```bash
-cd /home/runner/work/paper-table-agent/paper-table-agent/frontend
+cd frontend
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
