@@ -1,0 +1,39 @@
+{
+  "paths": {
+    "table_path": "tests/fixtures/tables/literature_fixture.xlsx",
+    "pdf_dir": "tests/fixtures/papers",
+    "output_dir": "artifacts"
+  },
+  "parser": {
+    "parser_name": "docling"
+  },
+  "ocr": {
+    "enabled": true,
+    "engine": "ocrmypdf"
+  },
+  "matching": {
+    "enabled": true
+  },
+  "style_profiles": {
+    "enabled": true
+  },
+  "retrieval": {
+    "top_k": 6
+  },
+  "provider": {
+    "provider_name": "lm_studio",
+    "model_name": "local-model",
+    "base_url": "http://localhost:1234/v1",
+    "locality": "local"
+  },
+  "figure_fallback": {
+    "enabled": true
+  },
+  "review": {
+    "verify_mode": false,
+    "placeholder_values": ["n/a", "na", "-"]
+  },
+  "export": {
+    "highlight_color": "FFF59D"
+  }
+}

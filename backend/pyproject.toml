@@ -1,0 +1,20 @@
+[project]
+name = "paper-table-agent-backend"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.116.0",
+  "uvicorn>=0.35.0",
+  "pydantic>=2.11.0",
+  "pandas>=2.3.0",
+  "openpyxl>=3.1.5"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.4.0",
+  "httpx>=0.28.0"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["../tests/backend"]
