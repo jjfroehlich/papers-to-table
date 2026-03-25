@@ -241,7 +241,8 @@ class PDFiumBackend:
         y0, y1 = max(0, min(y0, h_px)), max(0, min(y1, h_px))
         if x0 >= x1 or y0 >= y1:
             import io
-            pil_image.save(buf := io.BytesIO(), format="PNG")
+            buf = io.BytesIO()
+            pil_image.save(buf, format="PNG")
             page.close()
             return buf.getvalue()
 

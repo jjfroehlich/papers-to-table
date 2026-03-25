@@ -5,10 +5,12 @@ deterministic match success, ambiguous-block, unmatched, duplicate-row conflict.
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from typing import Any
 
 import pytest
+from fastapi.testclient import TestClient
 
 from backend.app.matching import (
     MatchResult,
@@ -368,9 +370,6 @@ def test_load_unresolved_empty_when_no_file(tmp_path: Path) -> None:
 
 def test_matching_api_after_run(tmp_path: Path) -> None:
     """After a run completes, matching summary and unresolved endpoints must respond."""
-    import json
-    import time
-    from fastapi.testclient import TestClient
     from backend.app.main import app
 
     REPO_ROOT = Path(__file__).resolve().parents[2]

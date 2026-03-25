@@ -205,7 +205,8 @@ class RunStore:
         if not table_rows:
             try:
                 table_rows = load_table(config.paths.table_path)
-            except Exception:
+            except Exception as exc:
+                logger.warning("Could not reload table rows for matching: %s; proceeding with empty row list", exc)
                 table_rows = []
 
         self._transition(
