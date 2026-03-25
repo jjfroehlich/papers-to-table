@@ -1,0 +1,40 @@
+{
+  "paths": {
+    "table_path": "tests/fixtures/tables/literature_fixture.csv",
+    "schema_path": "tests/fixtures/schema/schema_fixture.csv",
+    "pdf_dir": "tests/fixtures/papers",
+    "output_dir": "runs"
+  },
+  "parser": {
+    "name": "docling"
+  },
+  "ocr_fallback": {
+    "enabled": true,
+    "tool": "ocrmypdf"
+  },
+  "matching": {
+    "strategy": "deterministic"
+  },
+  "style_profiles": {
+    "enabled": true
+  },
+  "retrieval": {
+    "top_k": 6
+  },
+  "provider": {
+    "provider_name": "lm_studio",
+    "model_name": "local-model",
+    "locality": "local"
+  },
+  "figure_fallback": {
+    "enabled": true
+  },
+  "review": {
+    "bulk_accept_confirmation": true
+  },
+  "export": {
+    "format": "xlsx"
+  },
+  "verify_mode": true,
+  "placeholders_treated_as_empty": ["", " "]
+}

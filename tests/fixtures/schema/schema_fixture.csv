@@ -1,0 +1,4 @@
+column_name,description
+Method,Primary method used in the paper
+Dataset,Main dataset evaluated
+Accuracy,Reported accuracy metric
