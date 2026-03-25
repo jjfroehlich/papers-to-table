@@ -7,7 +7,10 @@ dependencies = [
   "uvicorn>=0.35.0",
   "pydantic>=2.11.0",
   "pandas>=2.3.0",
-  "openpyxl>=3.1.5"
+  "openpyxl>=3.1.5",
+  "pypdf>=5.9.0",
+  "pypdfium2>=4.30.0",
+  "Pillow>=11.3.0"
 ]
 
 [project.optional-dependencies]
