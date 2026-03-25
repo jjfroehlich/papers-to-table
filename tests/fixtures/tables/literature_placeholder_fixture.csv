@@ -1,0 +1,4 @@
+Title,Authors,Publication Year,Method,Dataset,Accuracy
+Paper A,"Author One",2021,,MNIST,
+Paper B,"Author Two",2020, ,CIFAR-10,95
+Paper C,"Author Three",2022,Transformer,,
