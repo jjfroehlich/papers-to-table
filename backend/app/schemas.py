@@ -139,6 +139,73 @@ class InputSummary(BaseModel):
     placeholders_treated_as_empty: list[str] = Field(default_factory=list)
 
 
+class ProposalRecord(BaseModel):
+    proposal_id: str
+    run_id: str
+    pdf_id: str
+    row_id: str
+    column_name: str
+    cell_id: str
+    source_mode: str = "text"
+    proposal_state: ProposalState
+    support_label: SupportLabel
+    proposed_value: str | None = None
+    rationale: str | None = None
+    calculation: str | None = None
+    needs_more_evidence: bool = False
+    primary_evidence_id: str | None = None
+    evidence_ids: list[str] = Field(default_factory=list)
+
+
+class EvidenceHighlight(BaseModel):
+    x0: float
+    y0: float
+    x1: float
+    y1: float
+
+
+class EvidenceRecord(BaseModel):
+    evidence_id: str
+    proposal_id: str
+    pdf_id: str
+    source_type: EvidenceSourceType
+    page: int | None = None
+    quote_text: str | None = None
+    highlight: EvidenceHighlight | None = None
+    figure_ref: str | None = None
+    caption_text: str | None = None
+    crop_path: str | None = None
+    full_page_path: str | None = None
+    anchor_confidence: float | None = None
+
+
+class ReviewDecisionRecord(BaseModel):
+    decision_id: str
+    run_id: str
+    proposal_id: str
+    cell_id: str
+    decision: ReviewDecision
+    edited_value: str | None = None
+    decided_at: datetime
+
+
+class SummaryCounts(BaseModel):
+    proposals_generated: int = 0
+    reviewed_proposals: int = 0
+    accepted_as_is: int = 0
+    accepted_with_edit: int = 0
+    rejected: int = 0
+    pending: int = 0
+    changed_cells_exported: int = 0
+
+
+class ReviewerSummary(BaseModel):
+    run_id: str
+    counts: SummaryCounts = Field(default_factory=SummaryCounts)
+    verify_mode: bool = True
+    provider_locality: ProviderLocality = ProviderLocality.LOCAL
+
+
 class ErrorResponse(BaseModel):
     detail: str
 

@@ -24,6 +24,7 @@ class RunStore:
         self._artifacts: dict[str, RunArtifacts] = {}
 
     def create_run(self, config_path: str) -> RunCreateResponse:
+        self._mark_incomplete_runs_interrupted()
         run_id = generate_run_id()
         now = datetime.now(timezone.utc)
 
@@ -42,6 +43,31 @@ class RunStore:
         )
 
         artifacts.write_json("run.json", record.model_dump(mode="json"))
+        artifacts.write_json(
+            "summaries/run_summary.json",
+            {
+                "run_id": run_id,
+                "status": "created",
+                "operator_status": "ready",
+                "message": "Run created.",
+                "progress": {"stage": "created", "item": "run"},
+            },
+        )
+        artifacts.write_json(
+            "summaries/reviewer_summary.json",
+            {
+                "run_id": run_id,
+                "counts": {
+                    "proposals_generated": 0,
+                    "reviewed_proposals": 0,
+                    "accepted_as_is": 0,
+                    "accepted_with_edit": 0,
+                    "rejected": 0,
+                    "pending": 0,
+                    "changed_cells_exported": 0,
+                },
+            },
+        )
 
         with self._lock:
             self._runs[run_id] = record
@@ -110,6 +136,7 @@ class RunStore:
                 message="Batch 1 foundation complete: run-start baseline is ready; later extraction stages are not yet implemented.",
                 progress=RunProgress(stage="batch1_complete", item="foundation"),
             )
+            artifacts.recompute_summaries(run_id=run_id, verify_mode=config.verify_mode)
         except (ConfigError, IngestError, Exception) as error:
             self._transition(
                 run_id,
@@ -117,6 +144,7 @@ class RunStore:
                 message=f"Run failed during startup validation: {error}",
                 progress=RunProgress(stage="failed", item="startup"),
             )
+            artifacts.recompute_summaries(run_id=run_id, verify_mode=True)
 
     def list_runs(self) -> list[RunRecord]:
         with self._lock:
@@ -168,3 +196,22 @@ class RunStore:
         if run_id not in self._artifacts:
             raise RunnerError(f"Run not found: {run_id}")
         return self._artifacts[run_id].read_json(relative_path)
+
+    def _mark_incomplete_runs_interrupted(self) -> None:
+        with self._lock:
+            stale_ids = [
+                run_id
+                for run_id, run in self._runs.items()
+                if run.status in {RunStatus.CREATED, RunStatus.VALIDATING, RunStatus.RUNNING}
+            ]
+
+        for run_id in stale_ids:
+            try:
+                self._transition(
+                    run_id,
+                    RunStatus.INTERRUPTED,
+                    message="Run marked interrupted because a newer run was started.",
+                    progress=RunProgress(stage="interrupted", item="stale_run"),
+                )
+            except RunnerError:
+                continue
