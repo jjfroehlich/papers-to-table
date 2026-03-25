@@ -35,7 +35,7 @@ def _config(tmp_path: Path, table: Path, schema: Path | None, pdf_dir: Path, ver
 
 
 def _wait_for_terminal(run_id: str) -> dict:
-    for _ in range(60):
+    for _ in range(400):
         res = client.get(f"/api/runs/{run_id}")
         payload = res.json()
         if payload["status"] in {"completed", "completed_with_warnings", "failed"}:

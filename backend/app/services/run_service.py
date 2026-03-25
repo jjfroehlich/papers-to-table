@@ -10,12 +10,16 @@ from ..artifacts import ArtifactStore
 from ..ids import new_run_id
 from ..models import CreateRunResponse, RunRecord, RunStatus
 from .config_service import ConfigValidationError, load_and_resolve_config, validate_inputs
+from .matching_service import MatchingService
+from .parser_service import ParseService
 
 
 class RunService:
     def __init__(self, base_dir: Path) -> None:
         self.base_dir = base_dir
         self.store = ArtifactStore(base_dir)
+        self.parse_service = ParseService(self.store)
+        self.matching_service = MatchingService(self.store)
         self.executor = ThreadPoolExecutor(max_workers=2)
         self._lock = Lock()
 
@@ -78,6 +82,17 @@ class RunService:
                 pdf_count=input_summary["pdf_count"],
             )
             self.store.append_jsonl(run_dir / "logs" / "events.jsonl", {"stage": "phase1", "message": "Input preparation complete"})
+            parsed = self.parse_service.parse_run(run_id, run_dir, config)
+            self.store.append_jsonl(
+                run_dir / "logs" / "events.jsonl",
+                {"stage": "phase2", "message": f"Parsed {len(parsed['documents'])} PDFs"},
+            )
+            self.matching_service.match(
+                run_dir=run_dir,
+                parsed_docs=parsed["documents"],
+                table_path=Path(config.paths.table_path),
+            )
+            self.store.append_jsonl(run_dir / "logs" / "events.jsonl", {"stage": "phase3", "message": "Matching complete"})
             self._update_run(run_dir, RunStatus.COMPLETED)
             self.store.recompute_summaries(run_dir)
         except ConfigValidationError as exc:
@@ -103,3 +118,12 @@ class RunService:
 
     def get_input_summary(self, run_id: str) -> dict[str, Any]:
         return self.store.read_json(self.base_dir / run_id / "inputs" / "summary.json")
+
+    def get_matching_issues(self, run_id: str) -> dict[str, list[dict[str, Any]]]:
+        data = self.store.read_json(self.base_dir / run_id / "matching" / "summary.json")
+        results = data.get("results", [])
+        return {
+            "unmatched": [item for item in results if item.get("match_outcome") == "unmatched"],
+            "ambiguous": [item for item in results if item.get("match_outcome") == "ambiguous"],
+            "duplicate_row_conflicts": [item for item in results if item.get("match_outcome") == "duplicate_row_conflict"],
+        }

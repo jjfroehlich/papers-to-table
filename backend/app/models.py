@@ -233,3 +233,47 @@ class RunConfig(BaseModel):
     figure_fallback: FigureFallbackSettings = Field(default_factory=FigureFallbackSettings)
     review: ReviewSettings = Field(default_factory=ReviewSettings)
     export: ExportSettings = Field(default_factory=ExportSettings)
+
+
+class ParsedMetadata(BaseModel):
+    title: str | None = None
+    authors: list[str] = Field(default_factory=list)
+    publication_year: int | None = None
+    identifiers: dict[str, str] = Field(default_factory=dict)
+
+
+class ParsedBlock(BaseModel):
+    block_id: str
+    block_type: str
+    page: int
+    text: str = ""
+    normalized_text: str = ""
+    reading_order: int
+    bbox: dict[str, float] | None = None
+    source_span: dict[str, int] | None = None
+    provenance: dict[str, str] = Field(default_factory=dict)
+
+
+class ParsedPage(BaseModel):
+    page_number: int
+    width: float
+    height: float
+    full_page_path: str | None = None
+    text_length: int = 0
+    has_text: bool = False
+
+
+class ParsedDocument(BaseModel):
+    run_id: str
+    pdf_id: str
+    source_pdf_path: str
+    parser_name: str
+    ocr_used: bool = False
+    metadata: ParsedMetadata
+    pages: list[ParsedPage] = Field(default_factory=list)
+    blocks: list[ParsedBlock] = Field(default_factory=list)
+    source_text: str = ""
+    normalized_text: str = ""
+    figure_caption_links: list[dict[str, str]] = Field(default_factory=list)
+    table_regions: list[dict[str, float]] = Field(default_factory=list)
+    diagnostics: dict[str, Any] = Field(default_factory=dict)

@@ -58,3 +58,11 @@ def get_run_inputs(run_id: str) -> dict:
         return run_service.get_input_summary(run_id)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Input summary not found") from exc
+
+
+@app.get("/api/runs/{run_id}/matching/issues")
+def get_run_matching_issues(run_id: str) -> dict:
+    try:
+        return run_service.get_matching_issues(run_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Matching summary not found") from exc
