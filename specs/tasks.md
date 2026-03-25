@@ -181,9 +181,9 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 **Goal:** establish stable schemas, stable identifiers, filesystem persistence, config behavior, and test scaffolding for the full MVP.
 
-- [ ] **T001** Create the base project skeleton for `backend/`, `frontend/`, and `tests/`, plus a short root-level development note that describes the local-first architecture and canonical pipeline stages.
+- [x] **T001** Create the base project skeleton for `backend/`, `frontend/`, and `tests/`, plus a short root-level development note that describes the local-first architecture and canonical pipeline stages.
 
-- [ ] **T002** Define the shared domain enums and common JSON/Pydantic/TypeScript schemas for at least:
+- [x] **T002** Define the shared domain enums and common JSON/Pydantic/TypeScript schemas for at least:
   - run status
   - match outcome
   - proposal state
@@ -193,13 +193,13 @@ The detailed task inventory below remains the source of truth for exact implemen
   - warning/status category
   - provider locality (`local` vs `cloud`)
 
-- [ ] **T003** Define and implement stable identifier generation for runs, PDFs, rows, cells, proposals, evidence items, and review decisions, including at minimum:
+- [x] **T003** Define and implement stable identifier generation for runs, PDFs, rows, cells, proposals, evidence items, and review decisions, including at minimum:
   - deterministic `cell_id`
   - stable `pdf_id` assignment within a run
   - proposal and evidence ids that are unique and traceable, including cases where multiple PDFs target the same row/cell within one run
   - stable review-decision ids linked back to proposal and cell context
 
-- [ ] **T004** Implement the stable run artifact bundle layout with at least:
+- [x] **T004** Implement the stable run artifact bundle layout with at least:
   - `run.json`
   - `config.snapshot.json`
   - `inputs/`
@@ -215,7 +215,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - `exports/`
   - `logs/`
 
-- [ ] **T005** Implement the artifact I/O helper layer:
+- [x] **T005** Implement the artifact I/O helper layer:
   - shared helpers for writing and reading JSON snapshot files
   - shared helpers for appending and reading JSONL files
   - stable artifact-path generation inside a run bundle
@@ -223,7 +223,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - run-summary and reviewer-summary recomputation from artifact files
   - write behavior that is atomic enough for local single-user reliability
 
-- [ ] **T006** Define the proposal JSON schema and contract for one proposal object per target cell per run, including at least:
+- [x] **T006** Define the proposal JSON schema and contract for one proposal object per target cell per run, including at least:
   - `proposal_id`
   - `run_id`
   - `pdf_id`
@@ -240,7 +240,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - `primary_evidence_id`
   - `evidence_ids`
 
-- [ ] **T007** Define the evidence JSON schema and contract for separate evidence records linked to proposals, including at least:
+- [x] **T007** Define the evidence JSON schema and contract for separate evidence records linked to proposals, including at least:
   - `evidence_id`
   - `proposal_id`
   - `pdf_id`
@@ -254,10 +254,10 @@ The detailed task inventory below remains the source of truth for exact implemen
   - `full_page_path`
   - `anchor_confidence`
 
-- [ ] **T008** Define the review-decision JSON schema plus the run-summary and reviewer-summary JSON schemas.
+- [x] **T008** Define the review-decision JSON schema plus the run-summary and reviewer-summary JSON schemas.
   - review decisions must remain persistable as explicit records, not only as in-place proposal mutations
 
-- [ ] **T009** Define the single JSON config schema covering:
+- [x] **T009** Define the single JSON config schema covering:
   - input table and schema paths
   - PDF directory path
   - parser settings
@@ -270,22 +270,22 @@ The detailed task inventory below remains the source of truth for exact implemen
   - review settings
   - export settings
 
-- [ ] **T010** Implement config default resolution into one effective runtime config before any run work starts.
+- [x] **T010** Implement config default resolution into one effective runtime config before any run work starts.
 
-- [ ] **T011** Create `config.example.json` as a minimal but complete example config file for the full MVP.
+- [x] **T011** Create `config.example.json` as a minimal but complete example config file for the full MVP.
 
-- [ ] **T012** Implement config/path validation and required metadata/schema validation:
+- [x] **T012** Implement config/path validation and required metadata/schema validation:
   - validate that configured paths exist and are readable
   - validate that schema columns include at least `column_name` and `description`
   - validate that the source table contains `Title`, `Authors`, and `Publication Year`
   - fail early with actionable diagnostics when validation fails
 
-- [ ] **T013** Implement config snapshotting into run artifacts:
+- [x] **T013** Implement config snapshotting into run artifacts:
   - validate config at run start
   - persist the resolved effective config as `config.snapshot.json`
   - ensure the run can later be explained from the snapshot
 
-- [ ] **T014** Build a deterministic fixture corpus in `tests/fixtures/` containing at minimum:
+- [x] **T014** Build a deterministic fixture corpus in `tests/fixtures/` containing at minimum:
   - one clean born-digital paper that should match and extract successfully
   - one scanned or text-inaccessible paper for OCR fallback
   - one unmatched paper
@@ -296,10 +296,10 @@ The detailed task inventory below remains the source of truth for exact implemen
   - one CSV fixture
   - one schema fixture
 
-- [ ] **T015** Set up backend unit/integration/contract test tooling, including provider stubs/fakes and fixture helpers.
+- [x] **T015** Set up backend unit/integration/contract test tooling, including provider stubs/fakes and fixture helpers.
 
-- [ ] **T016** Set up frontend test tooling and Playwright e2e scaffolding for the review workflow.
-- [ ] **T016a** Harden the Playwright harness so fixture preparation is separate from server startup and browser/server processes start without shell-dependent heredocs or command chaining.
+- [x] **T016** Set up frontend test tooling and Playwright e2e scaffolding for the review workflow.
+- [x] **T016a** Harden the Playwright harness so fixture preparation is separate from server startup and browser/server processes start without shell-dependent heredocs or command chaining.
   - distinguish missing browser/runtime dependencies from application failures when practical
   - retain screenshots, traces, or similarly useful browser-failure artifacts when practical
 
@@ -309,21 +309,21 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 **Goal:** the system can start a run, validate and snapshot inputs, and compute which cells are eligible for extraction or verification.
 
-- [ ] **T017** Implement spreadsheet loading for CSV and XLSX inputs.
+- [x] **T017** Implement spreadsheet loading for CSV and XLSX inputs.
 
-- [ ] **T018** Implement schema loading from workbook or separate schema file.
+- [x] **T018** Implement schema loading from workbook or separate schema file.
 
-- [ ] **T019** Implement table normalization and required metadata-column validation for `Title`, `Authors`, and `Publication Year`.
+- [x] **T019** Implement table normalization and required metadata-column validation for `Title`, `Authors`, and `Publication Year`.
 
-- [ ] **T020** Implement cell eligibility classification for at least:
+- [x] **T020** Implement cell eligibility classification for at least:
   - empty / missing
   - already-filled
   - trivial placeholder treated as empty when configured
   - skipped / ineligible
 
-- [ ] **T021** Implement Verify mode semantics so already-filled cells become eligible targets when Verify mode is enabled.
+- [x] **T021** Implement Verify mode semantics so already-filled cells become eligible targets when Verify mode is enabled.
 
-- [ ] **T022** Implement run lifecycle state transitions for at least:
+- [x] **T022** Implement run lifecycle state transitions for at least:
   - `created`
   - `validating`
   - `running`
@@ -333,16 +333,16 @@ The detailed task inventory below remains the source of truth for exact implemen
   - `interrupted`
   - treat `created` and `interrupted` as internal or artifact-level states when useful, but map UI state to the normative operator-visible lifecycle defined in `spec.md`
 
-- [ ] **T023** Implement run creation and inspection API endpoints for:
+- [x] **T023** Implement run creation and inspection API endpoints for:
   - create run
   - list runs
   - get run summary
   - fetch config snapshot
   - fetch input summary
 
-- [ ] **T023a** Keep run creation UI-driven in practice by returning a created run immediately, then executing the staged runner under app-owned backend control with a lightweight in-process background mechanism while exposing validating/running/terminal state transitions, actionable failure messaging, and diagnostics/config access.
+- [x] **T023a** Keep run creation UI-driven in practice by returning a created run immediately, then executing the staged runner under app-owned backend control with a lightweight in-process background mechanism while exposing validating/running/terminal state transitions, actionable failure messaging, and diagnostics/config access.
 
-- [ ] **T024** Add tests covering valid input readiness, metadata-column rejection, missing-path rejection, placeholder handling, and Verify mode behavior.
+- [x] **T024** Add tests covering valid input readiness, metadata-column rejection, missing-path rejection, placeholder handling, and Verify mode behavior.
 
 ---
 
@@ -610,7 +610,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 **Goal:** implement the dedicated queue-first local browser review application required by the MVP.
 
-- [ ] **T081** Build the React frontend shell with Run and Review views.
+- [x] **T081** Build the React frontend shell with Run and Review views.
 
 - [ ] **T082** Implement the concise run summary view showing at least:
   - PDFs processed
@@ -626,7 +626,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - local vs cloud status
   - direct links or equivalent access to workbook, audit-log, run-summary, and reviewer-summary downloads
 
-- [ ] **T082a** Implement a run-launch and setup context surface in the UI that:
+- [x] **T082a** Implement a run-launch and setup context surface in the UI that:
   - starts a run from a config-file path without exposing a broad advanced-settings editor
   - shows the config path and concise resolved input summary
   - keeps empty/loading/warning/failure states explicit before the review queue is ready
@@ -742,9 +742,9 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 **Goal:** prove the full MVP workflow works end to end and stays inside the intended architecture boundary.
 
-- [ ] **T102** Implement the app-owned staged runner that executes the canonical pipeline stages under backend control while the API remains responsive enough for UI-driven launch, polling, diagnostics, and review-state loading.
+- [x] **T102** Implement the app-owned staged runner that executes the canonical pipeline stages under backend control while the API remains responsive enough for UI-driven launch, polling, diagnostics, and review-state loading.
 
-- [ ] **T103** Ensure interrupted or failed runs leave inspectable partial artifacts and that a new run creates a new run directory rather than resuming in place by default.
+- [x] **T103** Ensure interrupted or failed runs leave inspectable partial artifacts and that a new run creates a new run directory rather than resuming in place by default.
 
 - [ ] **T104** Add hermetic end-to-end tests using stub providers over the fixture corpus for:
   - successful matched extraction

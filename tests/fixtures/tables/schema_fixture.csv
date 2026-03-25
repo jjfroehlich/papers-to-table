@@ -1,0 +1,4 @@
+column_name,description
+Material,Material composition
+Temperature C,Operating temperature in celsius
+Efficiency %,Efficiency value percent
