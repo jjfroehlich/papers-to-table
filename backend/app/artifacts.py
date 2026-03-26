@@ -11,8 +11,8 @@ from .schemas import (
     ReviewDecision,
     ReviewDecisionRecord,
     ReviewerSummary,
-    RunSummary,
     SummaryCounts,
+    WarningStatusCategory,
 )
 
 
@@ -91,9 +91,32 @@ class RunArtifacts:
     def find_review_decision(self, decision_id: str) -> dict[str, Any] | None:
         return self.find_by_id("review/decisions.jsonl", "decision_id", decision_id)
 
-    def recompute_summaries(self, run_id: str, verify_mode: bool = True) -> tuple[dict[str, Any], dict[str, Any]]:
+    def recompute_summaries(self, run_id: str, verify_mode: bool = True) -> tuple[dict[str, Any], dict[str, Any]]:  # noqa: C901
         proposal_rows = self.read_jsonl("proposals/proposals.jsonl")
         decision_rows = self.read_jsonl("review/decisions.jsonl")
+
+        # Load matching summary if available
+        matching_summary: dict[str, Any] = {}
+        try:
+            matching_summary = self.read_json("matching/matching_summary.json")
+        except (FileNotFoundError, KeyError):
+            pass
+
+        # Load config snapshot for provider/run info
+        snapshot: dict[str, Any] = {}
+        try:
+            snapshot = self.read_json("config.snapshot.json")
+        except (FileNotFoundError, KeyError):
+            pass
+
+        # Load input summary for paths / verify_mode
+        input_summary: dict[str, Any] = {}
+        try:
+            input_summary = self.read_json("inputs/input_summary.json")
+        except (FileNotFoundError, KeyError):
+            pass
+
+        effective_verify_mode = input_summary.get("verify_mode", snapshot.get("verify_mode", verify_mode))
 
         proposals: list[ProposalRecord] = []
         decisions: list[ReviewDecisionRecord] = []
@@ -139,22 +162,54 @@ class RunArtifacts:
             pending=max(len(proposals) - reviewed, 0),
             changed_cells_exported=0,
         )
-        reviewer_summary = ReviewerSummary(run_id=run_id, counts=counts, verify_mode=verify_mode)
-        run_summary = RunSummary.model_validate(
-            {
-                "run_id": run_id,
-                "status": "completed_with_warnings",
-                "operator_status": "completed with warnings",
-                "message": "Summary recomputed from artifact files.",
-                "progress": {"stage": "summary_recompute", "item": "artifacts"},
-                "config_path": "",
-                "artifact_dir": str(self.root),
-                "verify_mode": verify_mode,
-            }
-        )
-        run_summary_payload = run_summary.model_dump(mode="json")
-        run_summary_payload["counts"] = counts.model_dump(mode="json")
+        reviewer_summary = ReviewerSummary(run_id=run_id, counts=counts, verify_mode=effective_verify_mode)
+
+        # Compute run-level status flags
+        run_status_flags: list[str] = []
+        if matching_summary.get("ambiguous", 0) > 0:
+            run_status_flags.append(WarningStatusCategory.AMBIGUOUS_MATCH)
+        if matching_summary.get("duplicate_row_conflict", 0) > 0:
+            run_status_flags.append(WarningStatusCategory.DUPLICATE_ROW_CONFLICT)
+        if proposals and accepted == 0 and accepted_with_edit == 0:
+            run_status_flags.append(WarningStatusCategory.NO_REVIEWED_VERIFIED_CELLS)
+
+        provider = snapshot.get("provider", {})
+        provider_name = provider.get("provider_name") or provider.get("name")
+        model_name = provider.get("model_name") or provider.get("model")
+        provider_locality = provider.get("locality", "local")
+
+        run_summary_payload: dict[str, Any] = {
+            "run_id": run_id,
+            "status": "completed_with_warnings",
+            "operator_status": "completed with warnings",
+            "message": "Summary recomputed from artifact files.",
+            "progress": {"stage": "summary_recompute", "item": "artifacts"},
+            "config_path": snapshot.get("paths", {}).get("config_path", ""),
+            "artifact_dir": str(self.root),
+            "verify_mode": effective_verify_mode,
+            "table_path": input_summary.get("table_path"),
+            "schema_path": input_summary.get("schema_path"),
+            "pdf_dir": input_summary.get("pdf_dir"),
+            "output_dir": input_summary.get("output_dir"),
+            "target_columns": input_summary.get("target_columns", []),
+            "provider_name": provider_name,
+            "model_name": model_name,
+            "provider_locality": provider_locality,
+            "counts": counts.model_dump(mode="json"),
+            "pdfs_processed": matching_summary.get("total", 0),
+            "pdfs_matched": matching_summary.get("matched", 0),
+            "pdfs_unmatched": matching_summary.get("unmatched", 0),
+            "pdfs_ambiguous": matching_summary.get("ambiguous", 0),
+            "run_status_flags": run_status_flags,
+        }
+
         reviewer_payload = reviewer_summary.model_dump(mode="json")
+        reviewer_payload["provider_name"] = provider_name
+        reviewer_payload["model_name"] = model_name
+        reviewer_payload["provider_locality"] = provider_locality
+        reviewer_payload["pdfs_matched"] = matching_summary.get("matched", 0)
+        reviewer_payload["pdfs_unmatched"] = matching_summary.get("unmatched", 0)
+        reviewer_payload["pdfs_ambiguous"] = matching_summary.get("ambiguous", 0)
 
         self.write_json("summaries/run_summary.json", run_summary_payload)
         self.write_json("summaries/reviewer_summary.json", reviewer_payload)

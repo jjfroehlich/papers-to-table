@@ -36,6 +36,7 @@ from .schemas import (
     ProposalRecord,
     ProposalState,
     SupportLabel,
+    WarningStatusCategory,
 )
 
 if TYPE_CHECKING:
@@ -524,12 +525,49 @@ def _make_evidence_record(
     )
 
 
+def _compute_proposal_status_flags(
+    proposal: ProposalRecord,
+    evidence_list: list[EvidenceRecord],
+) -> list[WarningStatusCategory]:
+    """T068: Compute per-proposal warning/status flags from proposal state and evidence."""
+    flags: list[WarningStatusCategory] = []
+
+    if proposal.support_label == SupportLabel.WEAK_EVIDENCE:
+        flags.append(WarningStatusCategory.WEAK_EVIDENCE)
+
+    is_figure = (
+        proposal.source_mode == "figure"
+        or proposal.support_label == SupportLabel.FIGURE_BASED_EVIDENCE
+        or any(
+            ev.source_type in (EvidenceSourceType.FIGURE_CROP, EvidenceSourceType.CAPTION)
+            for ev in evidence_list
+        )
+    )
+    if is_figure:
+        flags.append(WarningStatusCategory.FIGURE_DERIVED)
+
+    # Quote+page fallback: has quote/page evidence but no highlight
+    has_text_evidence = any(
+        ev.source_type in (EvidenceSourceType.TEXT_QUOTE, EvidenceSourceType.TEXT_HIGHLIGHT, EvidenceSourceType.FULL_PAGE)
+        for ev in evidence_list
+    )
+    has_highlight = any(ev.highlight is not None for ev in evidence_list)
+    if has_text_evidence and not has_highlight and not is_figure:
+        flags.append(WarningStatusCategory.QUOTE_PAGE_FALLBACK)
+
+    return flags
+
+
 def persist_proposal_and_evidence(
     artifacts: "RunArtifacts",
     proposal: ProposalRecord,
     evidence_list: list[EvidenceRecord],
 ) -> None:
     """T056: Persist proposal and evidence records to stable bundle locations."""
+    # T068: compute and attach status flags before persisting
+    flags = _compute_proposal_status_flags(proposal, evidence_list)
+    if flags and not proposal.status_flags:
+        proposal = proposal.model_copy(update={"status_flags": flags})
     artifacts.append_jsonl("proposals/proposals.jsonl", proposal.model_dump(mode="json"))
     for ev in evidence_list:
         artifacts.append_jsonl("evidence/evidence.jsonl", ev.model_dump(mode="json"))

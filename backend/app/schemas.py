@@ -155,6 +155,7 @@ class ProposalRecord(BaseModel):
     needs_more_evidence: bool = False
     primary_evidence_id: str | None = None
     evidence_ids: list[str] = Field(default_factory=list)
+    status_flags: list[WarningStatusCategory] = Field(default_factory=list)
 
 
 class EvidenceHighlight(BaseModel):
@@ -212,3 +213,102 @@ class ErrorResponse(BaseModel):
 
 class GenericPayload(BaseModel):
     data: dict[str, Any]
+
+
+# ---------------------------------------------------------------------------
+# Batch 4 — Review backend schemas
+# ---------------------------------------------------------------------------
+
+
+class RecordDecisionRequest(BaseModel):
+    decision: ReviewDecision
+    edited_value: str | None = None
+
+
+class BulkAcceptRequest(BaseModel):
+    """Filter that scopes bulk-accept to the currently visible subset."""
+    row_id: str | None = None
+    column_name: str | None = None
+    pdf_id: str | None = None
+
+
+class ProposalProgress(BaseModel):
+    total: int = 0
+    accepted_as_is: int = 0
+    accepted_with_edit: int = 0
+    rejected: int = 0
+    pending: int = 0
+
+
+class ProposalListItem(BaseModel):
+    proposal_id: str
+    run_id: str
+    pdf_id: str
+    row_id: str
+    column_name: str
+    cell_id: str
+    source_mode: str
+    proposal_state: ProposalState
+    support_label: SupportLabel
+    proposed_value: str | None = None
+    status_flags: list[WarningStatusCategory] = Field(default_factory=list)
+    latest_decision: ReviewDecision = ReviewDecision.UNDECIDED
+
+
+class ProposalDetail(BaseModel):
+    proposal_id: str
+    run_id: str
+    pdf_id: str
+    row_id: str
+    column_name: str
+    cell_id: str
+    source_mode: str
+    proposal_state: ProposalState
+    support_label: SupportLabel
+    proposed_value: str | None = None
+    rationale: str | None = None
+    calculation: str | None = None
+    needs_more_evidence: bool = False
+    status_flags: list[WarningStatusCategory] = Field(default_factory=list)
+    row_context: dict[str, Any] = Field(default_factory=dict)
+    column_definition: dict[str, Any] = Field(default_factory=dict)
+    current_cell_value: str | None = None
+    evidence: list[dict[str, Any]] = Field(default_factory=list)
+    latest_decision: ReviewDecision = ReviewDecision.UNDECIDED
+    latest_decision_record: dict[str, Any] | None = None
+
+
+class ExportCandidate(BaseModel):
+    proposal_id: str
+    run_id: str
+    pdf_id: str
+    row_id: str
+    column_name: str
+    cell_id: str
+    accepted_value: str | None = None
+    decision: ReviewDecision
+
+
+class RunSummaryFull(BaseModel):
+    run_id: str
+    status: RunStatus
+    operator_status: OperatorRunStatus
+    message: str | None = None
+    progress: RunProgress = Field(default_factory=RunProgress)
+    config_path: str = ""
+    artifact_dir: str = ""
+    verify_mode: bool = True
+    table_path: str | None = None
+    schema_path: str | None = None
+    pdf_dir: str | None = None
+    output_dir: str | None = None
+    target_columns: list[str] = Field(default_factory=list)
+    provider_name: str | None = None
+    model_name: str | None = None
+    provider_locality: ProviderLocality = ProviderLocality.LOCAL
+    counts: SummaryCounts = Field(default_factory=SummaryCounts)
+    pdfs_processed: int = 0
+    pdfs_matched: int = 0
+    pdfs_unmatched: int = 0
+    pdfs_ambiguous: int = 0
+    run_status_flags: list[WarningStatusCategory] = Field(default_factory=list)

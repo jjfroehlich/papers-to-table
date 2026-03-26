@@ -402,6 +402,13 @@ class RunStore:
             raise RunnerError("Matching summary not yet available for this run")
         return summary.model_dump(mode="json")
 
+    def get_artifacts(self, run_id: str) -> RunArtifacts:
+        """Return the RunArtifacts bundle for the given run."""
+        with self._lock:
+            if run_id not in self._artifacts:
+                raise RunnerError(f"Run not found: {run_id}")
+            return self._artifacts[run_id]
+
     def list_runs(self) -> list[RunRecord]:
         with self._lock:
             runs = list(self._runs.values())
