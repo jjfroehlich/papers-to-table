@@ -2,23 +2,24 @@
 
 ## Status
 
-Batch 3 complete — style profiles, retrieval artifacts, provider abstraction, and extraction baseline implemented.
+Batch 4 complete — review backend, summaries, export gating, and proposal filtering implemented.
 
-**Implemented modules (Batch 1 + Batch 2 + Batch 3):**
-- `backend/app/schemas.py` — all enums and Pydantic models
+**Implemented modules (Batch 1 + Batch 2 + Batch 3 + Batch 4):**
+- `backend/app/schemas.py` — all enums and Pydantic models, including `status_flags` on `ProposalRecord`, `ProposalListItem`, `ProposalDetail`, `RecordDecisionRequest`, `BulkAcceptRequest`, `ProposalProgress`, `ExportCandidate`, `RunSummaryFull`
 - `backend/app/ids.py` — deterministic ID generation
-- `backend/app/artifacts.py` — run artifact bundle layout + I/O
+- `backend/app/artifacts.py` — run artifact bundle layout + I/O; `recompute_summaries` derives full counts, matching stats, provider info, and run-level status flags from artifact files
 - `backend/app/config.py` — RunConfig, load/validate/snapshot
 - `backend/app/ingest.py` — table/schema loading and cell classification
 - `backend/app/lifecycle.py` — run state transitions
-- `backend/app/runner.py` — staged runner, parse + match + style-profile + retrieval + extraction stages
-- `backend/app/main.py` — FastAPI endpoints including matching APIs
+- `backend/app/runner.py` — staged runner, parse + match + style-profile + retrieval + extraction stages; `get_artifacts` helper
+- `backend/app/main.py` — FastAPI endpoints including matching APIs, proposal-list/filter/detail, review-asset serving, decision recording, bulk-accept, progress, summary, recompute, export-candidates
 - `backend/app/parsing.py` — ParsedDocument contract, DoclingParserAdapter (with BasicTextParser fallback), PDFiumBackend, OCR gate
 - `backend/app/matching.py` — metadata extraction, deterministic scoring, match outcome assignment, duplicate-row conflict detection, artifact persistence
 - `backend/app/style_profiles.py` — StyleProfile schema, per-column heuristic + optional LLM preprocessing, no-leakage enforcement, artifact persistence
 - `backend/app/retrieval.py` — typed chunk generation (paragraph/section/caption/table), contextualized retrieval text, BM25-lite retrieval (top_k=6, neighbor window), artifact persistence
 - `backend/app/provider.py` — ProviderAdapter ABC, LMStudioProvider (localhost API, capability probe, retry/error handling, vision support)
-- `backend/app/extraction.py` — ExtractionRequest builder, text/vision JSON schemas, per-cell orchestrator, proposal+evidence serialization, evidence anchoring, recovery pass, figure fallback trigger/package, support-label mapping, Verify mode
+- `backend/app/extraction.py` — ExtractionRequest builder, text/vision JSON schemas, per-cell orchestrator, proposal+evidence serialization, evidence anchoring, recovery pass, figure fallback trigger/package, support-label mapping, Verify mode; `_compute_proposal_status_flags` (T068)
+- `backend/app/review.py` — review decision persistence and audit history, `list_proposals` with filters, `bulk_accept`, `get_progress`, `get_export_candidates`
 
 ## Purpose
 
