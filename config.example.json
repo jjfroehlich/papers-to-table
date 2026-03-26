@@ -30,8 +30,12 @@
     "enabled": true
   },
   "review": {
-    "verify_mode": false,
-    "placeholder_values": ["n/a", "na", "-"]
+    "verify_mode": true,
+    "placeholder_values": [
+      "n/a",
+      "na",
+      "-"
+    ]
   },
   "export": {
     "highlight_color": "FFF59D"

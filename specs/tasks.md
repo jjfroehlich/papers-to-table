@@ -413,7 +413,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 **Goal:** generate safe per-column style guidance and bounded retrieval artifacts without semantic example leakage.
 
-- [ ] **T041** Define the style-profile JSON schema with at least:
+- [x] **T041** Define the style-profile JSON schema with at least:
   - `field_type_guess`
   - `expected_length`
   - `tone`
@@ -423,32 +423,32 @@ The detailed task inventory below remains the source of truth for exact implemen
   - `format_notes`
   - `example_risk`
 
-- [ ] **T042** Implement the per-column preprocessing LLM step that analyzes existing filled cells and produces one structured style profile per schema column.
+- [x] **T042** Implement the per-column preprocessing LLM step that analyzes existing filled cells and produces one structured style profile per schema column.
 
-- [ ] **T043** Persist style profiles under `style_profiles/` and ensure they guide only output form, not semantic content.
+- [x] **T043** Persist style profiles under `style_profiles/` and ensure they guide only output form, not semantic content.
 
-- [ ] **T044** Enforce the no-leakage baseline for style profiles:
+- [x] **T044** Enforce the no-leakage baseline for style profiles:
   - do not inject raw filled cells as semantic exemplars by default
   - keep the preprocessing output limited to style/format guidance
   - keep any leakage-risk markers visible in artifacts and diagnostics
 
-- [ ] **T045** Create MVP retrieval chunks for at least:
+- [x] **T045** Create MVP retrieval chunks for at least:
   - paragraphs
   - section blocks
   - captions
   - table regions
 
-- [ ] **T046** Implement contextualized retrieval text while preserving separate source-preserving display text for review.
+- [x] **T046** Implement contextualized retrieval text while preserving separate source-preserving display text for review.
 
-- [ ] **T047** Implement MVP retrieval assembly defaults:
+- [x] **T047** Implement MVP retrieval assembly defaults:
   - `top_k = 6`
   - include captions and tables when relevant
   - include one neighbor window around selected text chunks
   - do **not** implement reranking, HyDE, or query expansion in the MVP baseline
 
-- [ ] **T048** Persist retrieval artifacts and diagnostics so selected chunks, contextualized text, and source-preserving review text remain inspectable.
+- [x] **T048** Persist retrieval artifacts and diagnostics so selected chunks, contextualized text, and source-preserving review text remain inspectable.
 
-- [ ] **T049** Add tests covering style-profile generation, no raw-example leakage into extraction inputs, typed chunk generation, retrieval-text/display-text separation, and retrieval defaults.
+- [x] **T049** Add tests covering style-profile generation, no raw-example leakage into extraction inputs, typed chunk generation, retrieval-text/display-text separation, and retrieval defaults.
 
 ---
 
@@ -456,11 +456,11 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 **Goal:** produce one best proposal per eligible target cell with inspectable evidence and stable structured contracts.
 
-- [ ] **T050** Implement the provider abstraction and capability-probe model for structured-output support.
+- [x] **T050** Implement the provider abstraction and capability-probe model for structured-output support.
 
-- [ ] **T051** Implement **LM Studio localhost API** integration as the initial MVP provider path.
+- [x] **T051** Implement **LM Studio localhost API** integration as the initial MVP provider path.
 
-- [ ] **T052** Implement provider error handling and structured-output failure policy for LM Studio, including:
+- [x] **T052** Implement provider error handling and structured-output failure policy for LM Studio, including:
   - timeout handling
   - model-unavailable handling
   - capability checks for required structured-output behavior
@@ -468,18 +468,18 @@ The detailed task inventory below remains the source of truth for exact implemen
   - explicit retry or fail-fast rules with no silent corruption
   - request/response logging policy with actionable diagnostics
 
-- [ ] **T053** Implement the extraction request builder for LM Studio structured JSON:
+- [x] **T053** Implement the extraction request builder for LM Studio structured JSON:
   - assemble per-cell extraction requests from row context, column name, column description, style profile, retrieved passages, and relevant table/caption context
   - keep prompt/request construction separate from orchestration logic
   - support rationale and calculation fields in the response contract
 
-- [ ] **T054** Build the structured JSON schema/request payload for the text model path.
+- [x] **T054** Build the structured JSON schema/request payload for the text model path.
 
-- [ ] **T055** Build the structured JSON schema/request payload for the vision-capable model path.
+- [x] **T055** Build the structured JSON schema/request payload for the vision-capable model path.
 
-- [ ] **T056** Implement proposal/evidence serialization using the shared artifact I/O layer so proposals and evidence are stored as separate linked records under stable bundle locations.
+- [x] **T056** Implement proposal/evidence serialization using the shared artifact I/O layer so proposals and evidence are stored as separate linked records under stable bundle locations.
 
-- [ ] **T057** Implement the per-target-cell extraction orchestrator that assembles:
+- [x] **T057** Implement the per-target-cell extraction orchestrator that assembles:
   - row context
   - column definition
   - current cell value when relevant
@@ -488,7 +488,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - Verify mode state
   - text-model or vision-model request path as routed
 
-- [ ] **T058** Implement proposal-state handling for at least:
+- [x] **T058** Implement proposal-state handling for at least:
   - `found`
   - `inferred`
   - `unclear`
@@ -496,30 +496,30 @@ The detailed task inventory below remains the source of truth for exact implemen
   - `error`
   - `skipped`
 
-- [ ] **T059** Implement text-evidence anchoring and validation for quote + page + highlight when possible.
+- [x] **T059** Implement text-evidence anchoring and validation for quote + page + highlight when possible.
 
-- [ ] **T060** Implement the single narrow evidence-recovery pass when evidence is weak, missing, or unusable for display.
+- [x] **T060** Implement the single narrow evidence-recovery pass when evidence is weak, missing, or unusable for display.
 
-- [ ] **T061** Keep weak-but-reviewable proposals available when quote + page evidence exists even if precise highlighting fails.
+- [x] **T061** Keep weak-but-reviewable proposals available when quote + page evidence exists even if precise highlighting fails.
 
-- [ ] **T062** Implement scoped automatic figure fallback trigger logic:
+- [x] **T062** Implement scoped automatic figure fallback trigger logic:
   - trigger only when the field is likely figure/table-derived
   - and text/table retrieval failed or remained insufficient
   - no user-triggered fallback control is part of MVP
 
-- [ ] **T063** Build the figure-fallback input package containing:
+- [x] **T063** Build the figure-fallback input package containing:
   - crop
   - caption
   - nearby text
   - full-page reference
 
-- [ ] **T064** Persist figure-derived evidence records distinctly from text evidence while keeping figure-derived proposals as normal proposals with figure-marked evidence.
+- [x] **T064** Persist figure-derived evidence records distinctly from text evidence while keeping figure-derived proposals as normal proposals with figure-marked evidence.
 
-- [ ] **T065** Implement reviewer-facing support-label mapping from internal states, including figure-derived evidence labeling and weak-evidence labeling.
+- [x] **T065** Implement reviewer-facing support-label mapping from internal states, including figure-derived evidence labeling and weak-evidence labeling.
 
-- [ ] **T066** Ensure Verify mode uses the same extraction path for already-filled cells and persists reviewable proposals for them.
+- [x] **T066** Ensure Verify mode uses the same extraction path for already-filled cells and persists reviewable proposals for them.
 
-- [ ] **T067** Add tests covering structured-output parsing, provider failure handling, proposal/evidence serialization, blocked outcomes, unclear outcomes, evidence recovery, quote-plus-page fallback, figure fallback triggers, and Verify mode extraction on filled cells.
+- [x] **T067** Add tests covering structured-output parsing, provider failure handling, proposal/evidence serialization, blocked outcomes, unclear outcomes, evidence recovery, quote-plus-page fallback, figure fallback triggers, and Verify mode extraction on filled cells.
 
 ---
 
