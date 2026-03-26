@@ -10,7 +10,7 @@ export default defineConfig({
   webServer: [
     {
       command: 'python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000',
-      cwd: '..',
+      cwd: '../..',
       url: 'http://127.0.0.1:8000/health',
       reuseExistingServer: true,
       timeout: 60_000,

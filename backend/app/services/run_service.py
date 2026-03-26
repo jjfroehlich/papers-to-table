@@ -77,7 +77,7 @@ class RunService:
     def _execute_pipeline(self, run_id: str, config_path: str) -> None:
         run_dir = self.base_dir / run_id
         try:
-            self._update_run(run_dir, RunStatus.VALIDATING)
+            self._update_run(run_dir, RunStatus.VALIDATING, current_stage='validating_config')
             config = load_and_resolve_config(Path(config_path))
             input_summary = validate_inputs(config)
             self.store.write_json(run_dir / "config.snapshot.json", config.model_dump())
@@ -85,6 +85,8 @@ class RunService:
             self._update_run(
                 run_dir,
                 RunStatus.RUNNING,
+                current_stage='loading_inputs',
+                current_item='config and table validation complete',
                 verify_mode=config.review.verify_mode,
                 provider_name=config.provider.provider_name,
                 model_name=config.provider.model_name,
@@ -92,11 +94,13 @@ class RunService:
                 pdf_count=input_summary["pdf_count"],
             )
             self.store.append_jsonl(run_dir / "logs" / "events.jsonl", {"stage": "phase1", "message": "Input preparation complete"})
+            self._update_run(run_dir, RunStatus.RUNNING, current_stage='parsing_pdfs')
             parsed = self.parse_service.parse_run(run_id, run_dir, config)
             self.store.append_jsonl(
                 run_dir / "logs" / "events.jsonl",
                 {"stage": "phase2", "message": f"Parsed {len(parsed['documents'])} PDFs"},
             )
+            self._update_run(run_dir, RunStatus.RUNNING, current_stage='matching_rows')
             matching = self.matching_service.match(
                 run_dir=run_dir,
                 parsed_docs=parsed["documents"],
@@ -109,9 +113,11 @@ class RunService:
             schema_path = Path(config.paths.schema_path) if config.paths.schema_path else table_path
             schema_df = pd.read_excel(schema_path, sheet_name="schema") if config.paths.schema_path is None else (pd.read_excel(schema_path) if schema_path.suffix.lower() in {".xlsx", ".xls", ".xlsm"} else pd.read_csv(schema_path))
 
+            self._update_run(run_dir, RunStatus.RUNNING, current_stage='building_style_profiles')
             profiles = self.style_profile_service.build_profiles(run_dir, table_df, schema_df)
             self.store.append_jsonl(run_dir / "logs" / "events.jsonl", {"stage": "phase4", "message": "Style profiles generated"})
 
+            self._update_run(run_dir, RunStatus.RUNNING, current_stage='retrieval')
             retrieval = self.retrieval_service.build_retrieval_artifacts(
                 run_dir=run_dir,
                 parsed_docs=parsed["documents"],
@@ -119,6 +125,7 @@ class RunService:
             )
             self.store.append_jsonl(run_dir / "logs" / "events.jsonl", {"stage": "phase5", "message": "Retrieval artifacts generated"})
 
+            self._update_run(run_dir, RunStatus.RUNNING, current_stage='extraction')
             extraction = self.extraction_service.run(
                 run_id=run_id,
                 run_dir=run_dir,
@@ -134,8 +141,9 @@ class RunService:
                 run_dir / "logs" / "events.jsonl",
                 {"stage": "phase6", "message": f"Extraction complete ({extraction['proposal_count']} proposals)"},
             )
+            self._update_run(run_dir, RunStatus.RUNNING, current_stage='refreshing_review_index')
             self.review_service.refresh_review_index(run_dir)
-            self._update_run(run_dir, RunStatus.COMPLETED)
+            self._update_run(run_dir, RunStatus.COMPLETED, current_stage='completed')
             self.store.recompute_summaries(run_dir)
         except ConfigValidationError as exc:
             self._update_run(run_dir, RunStatus.FAILED, error=str(exc))
@@ -160,6 +168,13 @@ class RunService:
 
     def get_input_summary(self, run_id: str) -> dict[str, Any]:
         return self.store.read_json(self.base_dir / run_id / "inputs" / "summary.json")
+
+
+    def get_run_summary(self, run_id: str) -> dict[str, Any]:
+        return self.store.read_json(self.base_dir / run_id / "summaries" / "run_summary.json")
+
+    def get_reviewer_summary(self, run_id: str) -> dict[str, Any]:
+        return self.store.read_json(self.base_dir / run_id / "summaries" / "reviewer_summary.json")
 
     def get_matching_issues(self, run_id: str) -> dict[str, list[dict[str, Any]]]:
         data = self.store.read_json(self.base_dir / run_id / "matching" / "summary.json")

@@ -1,55 +1,30 @@
 # Paper Table Agent
 
-Batch 4 implementation from the spec baseline is now in place.
+Batch 5 implementation from the spec baseline is now in place.
 
-## What works in Batch 1 + Batch 2 + Batch 3 + Batch 4
+## What works through Batch 5
 
-- FastAPI backend run creation/list/inspection APIs.
-- Config loading, validation, and resolved config snapshotting.
-- Input summary generation (table/schema/pdf counts + eligibility counts).
-- Deterministic run artifact bundle creation per run.
-- In-process staged runner with lifecycle transitions (`ready`, `validating`, `running`, `completed`/`failed`).
-- Parse pipeline with a normalized `ParsedDocument` contract and per-PDF diagnostics.
-- Docling-registered parser adapter with PDFium (`pypdfium2`) page rendering/crop helpers.
-- Narrow OCR fallback attempt path (`ocrmypdf`) for text-insufficient PDFs, including artifact diagnostics.
-- Deterministic metadata-based PDF-to-row matching with explicit outcomes:
-  - `matched`
-  - `ambiguous`
-  - `unmatched`
-  - `duplicate_row_conflict`
-- Matching issue API endpoint for unmatched/ambiguous/duplicate conflict inspection.
-- Per-column style-profile generation persisted to `style_profiles/` with leakage-safe guidance only.
-- Retrieval artifact generation with typed chunks, contextualized retrieval text, and source-preserving display text.
-- Proposal/evidence generation across eligible target cells with:
-  - proposal states (`found`, `inferred`, `unclear`, `blocked`, `error`, `skipped`)
-  - separate proposal and evidence records
-  - quote+page fallback behavior when highlight anchoring is unavailable
-  - scoped automatic figure fallback labeling (`figure_based_evidence`)
-  - verify-mode support for already-filled target cells
-- Review backend APIs with:
-  - proposal list filtering by row/column/PDF/evidence strength/figure-derived/match status/review decision
-  - proposal detail payloads including row context, column definition, evidence, and warning flags
-  - explicit review-decision persistence (`accept`, `accept_edited`, `reject`, `undecided`) and decision history audit records
-  - guarded bulk-accept for the currently visible filtered undecided subset
-  - progress counters and run warning-category surfaces
-- Review asset APIs for:
-  - original PDF serving
-  - rendered page-image serving
-  - figure asset serving scoped to run artifacts
-  - evidence metadata lookup
-- Summary + export gating behavior:
-  - run/reviewer summaries recomputed from artifacts
-  - warning/status categories persisted and exposed via review status index
-  - accepted-only export candidate selection in `exports/export_candidates.json`
-- React frontend shell with:
-  - **Run view** for config-path launch and setup context
-  - **Review view** with explicit pre-review gating states
-- Backend and frontend test scaffolding plus Batch-1/2/3 backend behavior tests.
+- FastAPI backend run creation/list/inspection APIs plus review APIs and download manifest endpoints.
+- Config loading, validation, resolved config snapshotting, and deterministic run artifact bundle creation.
+- In-process staged runner with lifecycle transitions and coarse stage progress (`current_stage` + `current_item`).
+- Parse + matching + style-profile + retrieval + extraction pipeline with persisted proposal/evidence artifacts.
+- Review decision persistence (`accept`, `accept_edited`, `reject`), decision history, bulk-accept-visible subset semantics, and recomputable run/reviewer summaries.
+- Browser review workspace with:
+  - queue pane
+  - proposal detail pane
+  - evidence viewer pane
+  - run/reviewer summary context
+  - unresolved match inspection data
+  - keyboard shortcuts (`j`/`k`/`a`/`r`/`e`/`v`)
+- Proposal filtering by review decision, evidence strength, match status, and figure-derived status.
+- Quote + page fallback display when highlight geometry is unavailable.
+- Figure evidence display when figure crop/full-page paths are present in evidence records.
+- Download endpoints for run summary, reviewer summary, and run artifacts zip; workbook/audit endpoints are exposed and truthfully report not-ready before Batch 6 export writing.
 
 ## Repository layout
 
 - `backend/` — FastAPI app, staged runner, config validation, artifact persistence
-- `frontend/` — React run/review shell and test harness
+- `frontend/` — React run/review workspace and test harness
 - `tests/` — fixtures and backend tests
 - `specs/` — product + architecture + implementation tasks
 
@@ -75,15 +50,17 @@ npm run dev -- --host 127.0.0.1 --port 5173
 
 Open `http://127.0.0.1:5173`.
 
-## Run flow (through Batch 4)
+## Operator flow (Batch 5)
 
 1. In **Run** view, enter a config path (default: `config.example.json`).
 2. Click **Start run**.
-3. Track lifecycle from `ready` → `validating` → `running` → terminal state.
-4. Run advances through parsing + matching + style profile + retrieval + extraction automatically.
-5. Review resolved input summary after validation.
-6. If run failed, use the explicit failure reason shown in UI and `artifacts/<run_id>/run.json`.
-7. Use review APIs to list/filter proposals, record decisions, and inspect summary counters.
+3. Track lifecycle from `ready` → `validating` → `running` → terminal state and watch coarse stage updates.
+4. Switch to **Review** when run is `completed` or `completed_with_warnings`.
+5. Use queue filters and select proposals in the left pane.
+6. Inspect row/column context and proposed value in center pane.
+7. Inspect evidence in right pane (highlight metadata + page image, quote+page fallback, and figure assets when available).
+8. Record decisions (`Accept`, `Save edited value`, `Reject`) or use **Bulk accept visible subset** with confirmation.
+9. Download summaries or artifacts from run summary links.
 
 ## Artifacts
 
@@ -93,16 +70,10 @@ Each run writes a bundle at `artifacts/<run_id>/` including:
 - `config.snapshot.json`
 - `inputs/summary.json`
 - `parsed/documents.jsonl`
-- `parsed/native/*.json`
-- `parsed/diagnostics.json`
-- `parsed/pages/<pdf_id>/page_*.png`
 - `matching/summary.json`
 - `style_profiles/profiles.json`
-- `style_profiles/diagnostics.json`
 - `retrieval/chunks.jsonl`
-- `retrieval/diagnostics.json`
 - `proposals/proposals.jsonl`
-- `proposals/diagnostics.json`
 - `evidence/evidence.jsonl`
 - `review/status_index.json`
 - `review/decisions.jsonl`
@@ -118,9 +89,11 @@ pytest tests/backend/test_batch1.py
 pytest tests/backend/test_batch2.py
 pytest tests/backend/test_batch3.py
 pytest tests/backend/test_batch4.py
+pytest tests/backend/test_batch5.py
 cd frontend && npm test
+cd frontend && npm run test:e2e
 ```
 
 ## Current limit
 
-Batch 4 still does **not** include the full three-pane browser review workspace, queue ergonomics, and export download UX polish from later batches.
+Batch 5 does not yet write final updated workbook/audit-log exports (Batch 6 scope), so workbook/audit download endpoints can return not-ready.

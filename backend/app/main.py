@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
@@ -69,6 +70,85 @@ def get_run_matching_issues(run_id: str) -> dict:
         return run_service.get_matching_issues(run_id)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Matching summary not found") from exc
+
+
+@app.get("/api/runs/{run_id}/summaries/run")
+def get_run_summary_file(run_id: str) -> dict:
+    try:
+        return run_service.get_run_summary(run_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Run summary not found") from exc
+
+
+@app.get("/api/runs/{run_id}/summaries/reviewer")
+def get_reviewer_summary_file(run_id: str) -> dict:
+    try:
+        return run_service.get_reviewer_summary(run_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Reviewer summary not found") from exc
+
+
+@app.get("/api/runs/{run_id}/downloads")
+def list_downloads(run_id: str) -> dict:
+    run_dir = ARTIFACT_ROOT / run_id
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail="Run not found")
+    workbook = run_dir / "exports" / "updated.xlsx"
+    audit = run_dir / "exports" / "audit_log.jsonl"
+    run_summary = run_dir / "summaries" / "run_summary.json"
+    reviewer_summary = run_dir / "summaries" / "reviewer_summary.json"
+    return {
+        "run_id": run_id,
+        "downloads": {
+            "updated_workbook": {"ready": workbook.exists(), "path": str(workbook)},
+            "audit_log": {"ready": audit.exists(), "path": str(audit)},
+            "run_summary": {"ready": run_summary.exists(), "url": f"/api/runs/{run_id}/downloads/run-summary"},
+            "reviewer_summary": {"ready": reviewer_summary.exists(), "url": f"/api/runs/{run_id}/downloads/reviewer-summary"},
+            "artifacts_zip": {"ready": True, "url": f"/api/runs/{run_id}/downloads/artifacts"},
+        },
+    }
+
+
+@app.get("/api/runs/{run_id}/downloads/run-summary")
+def download_run_summary(run_id: str) -> FileResponse:
+    target = ARTIFACT_ROOT / run_id / "summaries" / "run_summary.json"
+    if not target.exists():
+        raise HTTPException(status_code=404, detail="Run summary not available")
+    return FileResponse(target, filename=f"{run_id}-run-summary.json")
+
+
+@app.get("/api/runs/{run_id}/downloads/reviewer-summary")
+def download_reviewer_summary(run_id: str) -> FileResponse:
+    target = ARTIFACT_ROOT / run_id / "summaries" / "reviewer_summary.json"
+    if not target.exists():
+        raise HTTPException(status_code=404, detail="Reviewer summary not available")
+    return FileResponse(target, filename=f"{run_id}-reviewer-summary.json")
+
+
+@app.get("/api/runs/{run_id}/downloads/workbook")
+def download_workbook(run_id: str) -> FileResponse:
+    target = ARTIFACT_ROOT / run_id / "exports" / "updated.xlsx"
+    if not target.exists():
+        raise HTTPException(status_code=404, detail="Updated workbook not available yet")
+    return FileResponse(target, filename=f"{run_id}-updated.xlsx")
+
+
+@app.get("/api/runs/{run_id}/downloads/audit-log")
+def download_audit(run_id: str) -> FileResponse:
+    target = ARTIFACT_ROOT / run_id / "exports" / "audit_log.jsonl"
+    if not target.exists():
+        raise HTTPException(status_code=404, detail="Audit log not available yet")
+    return FileResponse(target, filename=f"{run_id}-audit-log.jsonl")
+
+
+@app.get("/api/runs/{run_id}/downloads/artifacts")
+def download_artifacts_zip(run_id: str) -> FileResponse:
+    run_dir = ARTIFACT_ROOT / run_id
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail="Run not found")
+    zip_base = run_dir / "exports" / f"{run_id}-artifacts"
+    archive_path = shutil.make_archive(str(zip_base), "zip", root_dir=run_dir)
+    return FileResponse(archive_path, filename=f"{run_id}-artifacts.zip")
 
 
 @app.get("/api/runs/{run_id}/proposals")

@@ -612,7 +612,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T081** Build the React frontend shell with Run and Review views.
 
-- [ ] **T082** Implement the concise run summary view showing at least:
+- [x] **T082** Implement the concise run summary view showing at least:
   - PDFs processed
   - matched / unmatched / ambiguous PDFs
   - proposals generated
@@ -632,14 +632,14 @@ The detailed task inventory below remains the source of truth for exact implemen
   - keeps empty/loading/warning/failure states explicit before the review queue is ready
   - makes the next operator action obvious when no run exists yet or when the selected run is not reviewable
 
-- [ ] **T083** Implement the three-pane review workspace:
+- [x] **T083** Implement the three-pane review workspace:
   - left pane = proposal queue/list
   - center pane = proposal detail
   - right pane = evidence viewer
   - visible run/reviewer summary context in the main workspace
   - top bar or equivalent queue controls = counters, filters, and warnings
 
-- [ ] **T084** Implement the proposal queue pane with the full MVP filter set, stable selection behavior, and explicit proposal ordering rules:
+- [x] **T084** Implement the proposal queue pane with the full MVP filter set, stable selection behavior, and explicit proposal ordering rules:
   - default pending / undecided proposals before reviewed proposals
   - within undecided proposals, actionable proposals before blocked or unresolved items
   - within the same decision-status bucket, preserve stable spreadsheet row order, then column order, then `proposal_id`
@@ -648,22 +648,22 @@ The detailed task inventory below remains the source of truth for exact implemen
   - do not record review decisions implicitly from navigation or selection changes
   - allow filter continuity across run switches when practical, but do not preserve stale proposal/detail/evidence state across runs
 
-- [ ] **T085** Implement the proposal detail pane showing row context, target column definition, current value in Verify mode, proposed value, support label, rationale, calculation, warning/status flags, and primary/secondary evidence.
+- [x] **T085** Implement the proposal detail pane showing row context, target column definition, current value in Verify mode, proposed value, support label, rationale, calculation, warning/status flags, and primary/secondary evidence.
   - status, evidence source, and warning state should be distinguishable at a glance
 
-- [ ] **T086** Implement the evidence viewer pane using a raw/custom PDF.js viewer for text evidence and attached reviewable figure evidence.
+- [x] **T086** Implement the evidence viewer pane using a raw/custom PDF.js viewer for text evidence and attached reviewable figure evidence.
 
-- [ ] **T087** Implement backend-to-viewer highlight coordinate conversion:
+- [x] **T087** Implement backend-to-viewer highlight coordinate conversion:
   - map canonical PDF/page coordinates from backend evidence records into PDF.js viewer overlay coordinates
   - render stable text highlight overlays
   - handle zoom and viewport changes correctly
   - do not emit fabricated placeholder highlight boxes when reliable anchor geometry is unavailable
 
-- [ ] **T088** Implement graceful quote + page fallback display when highlight coordinates are missing or invalid.
+- [x] **T088** Implement graceful quote + page fallback display when highlight coordinates are missing or invalid.
 
-- [ ] **T089** Implement the figure-evidence viewer with crop-first display, attached caption, figure-derived warning/status markers, and full-page access.
+- [x] **T089** Implement the figure-evidence viewer with crop-first display, attached caption, figure-derived warning/status markers, and full-page access.
 
-- [ ] **T090** Implement the review action area with:
+- [x] **T090** Implement the review action area with:
   - accept
   - accept with edit
   - reject
@@ -672,23 +672,23 @@ The detailed task inventory below remains the source of truth for exact implemen
   - bulk accept visible subset
   - disable accept actions for blocked items or items without a reviewable proposal value
 
-- [ ] **T090a** Make bulk acceptance and edited acceptance behavior explicit and reviewer-safe:
+- [x] **T090a** Make bulk acceptance and edited acceptance behavior explicit and reviewer-safe:
   - confirm bulk acceptance against the currently visible filtered subset
   - present accept-with-edit as a distinct save-edited-value action rather than a vague duplicate of plain acceptance
 
-- [ ] **T091** Implement keyboard shortcuts for next/previous navigation, accept current proposal, reject current proposal, focus edit control, and focus/open evidence viewer.
+- [x] **T091** Implement keyboard shortcuts for next/previous navigation, accept current proposal, reject current proposal, focus edit control, and focus/open evidence viewer.
 
-- [ ] **T092** Implement unmatched, ambiguous, and duplicate-row-conflict inspection views in the UI.
+- [x] **T092** Implement unmatched, ambiguous, and duplicate-row-conflict inspection views in the UI.
   - identify the affected PDF, unresolved outcome, and rationale directly in the review workspace without requiring raw artifact inspection
   - keep this surface inspect-only for MVP rather than adding direct rematch or reassignment actions
 
-- [ ] **T093** Surface warnings/statuses, run-summary fields, reviewer-summary fields, provider/model names, and local-vs-cloud status consistently across the review UI and run-summary UI.
+- [x] **T093** Surface warnings/statuses, run-summary fields, reviewer-summary fields, provider/model names, and local-vs-cloud status consistently across the review UI and run-summary UI.
   - show coarse running progress as current stage plus current item when available
   - if zero verified cells have been reviewed, keep per-column lines visible only as evidence-coverage context with explicit wording that reviewer outcomes are not yet meaningful
 
-- [ ] **T094** Add frontend tests for queue filtering, ordering rules, nonlinear review, quote+page fallback rendering, figure-evidence rendering, run-summary display, and bulk-accept confirmation flow.
+- [x] **T094** Add frontend tests for queue filtering, ordering rules, nonlinear review, quote+page fallback rendering, figure-evidence rendering, run-summary display, and bulk-accept confirmation flow.
 
-- [ ] **T095** Add Playwright e2e tests for the core review loop from proposal selection through decision recording and summary updates.
+- [x] **T095** Add Playwright e2e tests for the core review loop from proposal selection through decision recording and summary updates.
 
 ---
 
@@ -726,7 +726,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - unsupported workbook feature warnings
   - completed-with-warnings runs
 
-- [ ] **T100** Implement final download endpoints for:
+- [x] **T100** Implement final download endpoints for:
   - updated workbook
   - audit log
   - `summaries/run_summary.json`
