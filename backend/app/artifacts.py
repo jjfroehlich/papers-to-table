@@ -72,11 +72,17 @@ class ArtifactStore:
         decisions = self.read_jsonl(run_dir / "review" / "decisions.jsonl")
         proposals = self.read_jsonl(run_dir / "proposals" / "proposals.jsonl")
         run_data = self.read_json(run_dir / "run.json")
+        matching_summary = self.read_json(run_dir / "matching" / "summary.json") if (run_dir / "matching" / "summary.json").exists() else {"results": []}
+        status_index = self.read_json(run_dir / "review" / "status_index.json") if (run_dir / "review" / "status_index.json").exists() else {}
+        warning_categories = status_index.get("run_warning_categories", [])
         accepted = sum(1 for d in decisions if d.get("decision") == ReviewDecisionType.ACCEPT.value)
         accepted_edit = sum(1 for d in decisions if d.get("decision") == ReviewDecisionType.ACCEPT_EDITED.value)
         rejected = sum(1 for d in decisions if d.get("decision") == ReviewDecisionType.REJECT.value)
         reviewed = accepted + accepted_edit + rejected
         pending = max(len(proposals) - reviewed, 0)
+        matched_pdfs = sum(1 for item in matching_summary.get("results", []) if item.get("match_outcome") == "matched")
+        unmatched_pdfs = sum(1 for item in matching_summary.get("results", []) if item.get("match_outcome") == "unmatched")
+        ambiguous_pdfs = sum(1 for item in matching_summary.get("results", []) if item.get("match_outcome") in {"ambiguous", "duplicate_row_conflict"})
         summary = RunSummary(
             run_id=run_data["run_id"],
             run_status=run_data["status"],
@@ -84,6 +90,9 @@ class ArtifactStore:
             provider_name=run_data.get("provider_name", "lm_studio"),
             model_name=run_data.get("model_name", "unconfigured"),
             pdfs_processed=run_data.get("pdf_count", 0),
+            matched_pdfs=matched_pdfs,
+            unmatched_pdfs=unmatched_pdfs,
+            ambiguous_pdfs=ambiguous_pdfs,
             proposals_generated=len(proposals),
             reviewed_proposals=reviewed,
             accepted_as_is=accepted,
@@ -92,6 +101,7 @@ class ArtifactStore:
             pending=pending,
             changed_cells_exported=accepted + accepted_edit,
             verify_mode=run_data.get("verify_mode", False),
+            warning_categories=warning_categories,
         )
         reviewer = ReviewerSummary(**summary.model_dump(exclude={"run_status"}))
         self.write_json(run_dir / "summaries" / "run_summary.json", summary.model_dump())

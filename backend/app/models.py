@@ -118,6 +118,9 @@ class RunSummary(BaseModel):
     provider_name: str = "lm_studio"
     model_name: str = "unconfigured"
     pdfs_processed: int = 0
+    matched_pdfs: int = 0
+    unmatched_pdfs: int = 0
+    ambiguous_pdfs: int = 0
     proposals_generated: int = 0
     reviewed_proposals: int = 0
     accepted_as_is: int = 0
@@ -126,6 +129,7 @@ class RunSummary(BaseModel):
     pending: int = 0
     changed_cells_exported: int = 0
     verify_mode: bool = False
+    warning_categories: list[WarningCategory] = Field(default_factory=list)
 
 
 class ReviewerSummary(BaseModel):
@@ -137,10 +141,14 @@ class ReviewerSummary(BaseModel):
     rejected: int = 0
     pending: int = 0
     changed_cells_exported: int = 0
+    matched_pdfs: int = 0
+    unmatched_pdfs: int = 0
+    ambiguous_pdfs: int = 0
     verify_mode: bool = False
     provider_locality: ProviderLocality = ProviderLocality.LOCAL
     provider_name: str = "lm_studio"
     model_name: str = "unconfigured"
+    warning_categories: list[WarningCategory] = Field(default_factory=list)
 
 
 class RunRecord(BaseModel):
