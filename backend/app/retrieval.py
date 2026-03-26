@@ -155,6 +155,7 @@ def build_chunks(doc: "ParsedDocument") -> list[RetrievalChunk]:
 
 
 def _tokenize(text: str) -> list[str]:
+    """Tokenize text into lowercase alphanumeric tokens for BM25 retrieval scoring."""
     return re.findall(r"[a-z0-9]+", text.lower())
 
 

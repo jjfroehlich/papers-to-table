@@ -778,26 +778,26 @@ def test_run_extraction_with_provider_generates_proposals(tmp_path: Path) -> Non
 
 def test_lmstudio_provider_parse_valid_json() -> None:
     provider = LMStudioProvider()
-    result = provider._parse_json_response('{"key": "value"}', {})
+    result = provider._parse_json_response('{"key": "value"}', TEXT_EXTRACTION_SCHEMA)
     assert result == {"key": "value"}
 
 
 def test_lmstudio_provider_parse_json_with_surrounding_text() -> None:
     provider = LMStudioProvider()
-    result = provider._parse_json_response('Sure! Here is the JSON:\n{"key": "value"}\nDone.', {})
+    result = provider._parse_json_response('Sure! Here is the JSON:\n{"key": "value"}\nDone.', TEXT_EXTRACTION_SCHEMA)
     assert result == {"key": "value"}
 
 
 def test_lmstudio_provider_parse_invalid_json_raises() -> None:
     provider = LMStudioProvider()
     with pytest.raises(StructuredOutputError):
-        provider._parse_json_response("not json at all", {})
+        provider._parse_json_response("not json at all", TEXT_EXTRACTION_SCHEMA)
 
 
 def test_lmstudio_provider_parse_non_object_raises() -> None:
     provider = LMStudioProvider()
     with pytest.raises(StructuredOutputError):
-        provider._parse_json_response("[1, 2, 3]", {})
+        provider._parse_json_response("[1, 2, 3]", TEXT_EXTRACTION_SCHEMA)
 
 
 def test_provider_unavailable_returns_false_capabilities() -> None:

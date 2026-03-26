@@ -287,7 +287,14 @@ class LMStudioProvider(ProviderAdapter):
         raise ProviderError(f"LM Studio request failed after {self._max_retries + 1} attempt(s): {last_exc}") from last_exc
 
     def _parse_json_response(self, raw_text: str, schema: dict[str, Any]) -> dict[str, Any]:
-        """T052: Parse and validate a JSON response. Raises StructuredOutputError on failure."""
+        """
+        T052: Parse and validate a JSON response. Raises StructuredOutputError on failure.
+
+        Extracts the first `{...}` JSON object block from the response text, which handles
+        common cases where models add preamble or postamble text around the JSON object.
+        Note: this approach assumes the model returns a single top-level JSON object, as
+        required by the schema-guided prompt. JSON arrays are not supported.
+        """
         text = raw_text.strip()
         # Try to extract JSON block if model added surrounding text
         if not text.startswith("{"):

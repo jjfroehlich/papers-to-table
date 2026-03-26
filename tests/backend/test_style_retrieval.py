@@ -11,7 +11,7 @@ import pytest
 
 from backend.app.style_profiles import (
     StyleProfile,
-    _assess_example_risk,
+    _assess_semantic_leakage_risk,
     _infer_field_type,
     _infer_length,
     _infer_tone,
@@ -164,8 +164,9 @@ def test_extract_signals_medium_length() -> None:
 
 
 def test_infer_unit_style_found() -> None:
-    unit = _infer_unit_style(["10 mg/kg bw", "5 mg/kg bw", "20 mg/kg"])
-    assert "mg" in unit or unit == ""
+    unit = _infer_unit_style(["10 mg/kg bw", "5 mg/kg bw", "20 mg/kg bw"])
+    # Should detect 'mg' or 'kg' as the dominant unit
+    assert unit != "" and ("mg" in unit or "kg" in unit)
 
 
 def test_assess_example_risk_high_diversity() -> None:
@@ -181,12 +182,12 @@ def test_assess_example_risk_high_diversity() -> None:
         "phase 3 trial examining dose-response relationship in cancer",
         "longitudinal survey of quality of life and depression scores",
     ]
-    assert _assess_example_risk(cells) is True
+    assert _assess_semantic_leakage_risk(cells) is True
 
 
 def test_assess_example_risk_low_diversity() -> None:
     cells = ["Yes"] * 10
-    assert _assess_example_risk(cells) is False
+    assert _assess_semantic_leakage_risk(cells) is False
 
 
 # ---------------------------------------------------------------------------

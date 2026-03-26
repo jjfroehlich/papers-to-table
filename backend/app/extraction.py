@@ -46,6 +46,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Minimum prefix length used when matching evidence quotes against document text
+QUOTE_MATCH_PREFIX_LENGTH = 40
+
 
 # ---------------------------------------------------------------------------
 # T054 — Text-model structured JSON schema
@@ -290,11 +293,11 @@ def _find_quote_in_text(quote: str, full_text: str, page_texts: dict[int, str]) 
     # Search per page
     for page_no, page_text in sorted(page_texts.items()):
         normalized_page = re.sub(r"\s+", " ", page_text.lower())
-        if normalized_quote[:40] in normalized_page:
+        if normalized_quote[:QUOTE_MATCH_PREFIX_LENGTH] in normalized_page:
             return page_no, quote
     # Try full-document fallback
     normalized_full = re.sub(r"\s+", " ", full_text.lower())
-    if normalized_quote[:40] in normalized_full:
+    if normalized_quote[:QUOTE_MATCH_PREFIX_LENGTH] in normalized_full:
         # Try to determine page number from context
         return None, quote
 
@@ -383,7 +386,7 @@ def attempt_evidence_recovery(
 # T062 — Figure fallback trigger
 # ---------------------------------------------------------------------------
 
-_FIGURE_FIELD_KEYWORDS = frozenset([
+_VISUAL_ELEMENT_FIELD_KEYWORDS = frozenset([
     "figure", "fig", "chart", "plot", "image", "diagram", "graph",
     "table", "tbl", "illustration", "panel",
 ])
@@ -406,7 +409,7 @@ def should_trigger_figure_fallback(
         return False
 
     combined = f"{column_name} {column_description}".lower()
-    field_suggests_figure = any(kw in combined for kw in _FIGURE_FIELD_KEYWORDS)
+    field_suggests_figure = any(kw in combined for kw in _VISUAL_ELEMENT_FIELD_KEYWORDS)
     if not field_suggests_figure:
         return False
 

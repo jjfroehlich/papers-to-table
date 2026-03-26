@@ -135,8 +135,11 @@ def _infer_value_shape(field_type: str, samples: list[str]) -> str:
     return ""
 
 
-def _assess_example_risk(samples: list[str]) -> bool:
-    """Return True when values are semantically diverse, i.e. harder to sanitize."""
+def _assess_semantic_leakage_risk(samples: list[str]) -> bool:
+    """
+    Return True when the sample values are semantically diverse, indicating higher
+    risk of leaking semantic content if used as stylistic examples.
+    """
     if len(samples) < 3:
         return False
     distinct_ratio = len(set(s.lower()[:20] for s in samples)) / len(samples)
@@ -166,7 +169,7 @@ def _extract_style_signals_from_cells(
         "detail_level": "concise" if _infer_length(samples) == "short" else "moderate",
         "unit_style": _infer_unit_style(samples),
         "value_shape": _infer_value_shape(field_type, samples),
-        "example_risk": _assess_example_risk(samples),
+        "example_risk": _assess_semantic_leakage_risk(samples),
     }
 
 
