@@ -443,3 +443,117 @@ def get_proposal_evidence(run_id: str, proposal_id: str) -> list[dict]:
         if row.get("proposal_id") == proposal_id
     ]
 
+
+# ---------------------------------------------------------------------------
+# T100 — Final download endpoints
+# ---------------------------------------------------------------------------
+
+
+@app.get(
+    "/api/runs/{run_id}/downloads/run-summary",
+    responses={404: {"model": ErrorResponse}},
+)
+def download_run_summary(run_id: str) -> FileResponse:
+    """T100: Download the run summary JSON for a run."""
+    try:
+        artifacts = run_store.get_artifacts(run_id)
+    except RunnerError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+    summary_path = artifacts.root / "summaries" / "run_summary.json"
+    if not summary_path.is_file():
+        raise HTTPException(status_code=404, detail="Run summary not yet available")
+    return FileResponse(
+        path=str(summary_path),
+        media_type="application/json",
+        filename=f"{run_id}_run_summary.json",
+    )
+
+
+@app.get(
+    "/api/runs/{run_id}/downloads/reviewer-summary",
+    responses={404: {"model": ErrorResponse}},
+)
+def download_reviewer_summary(run_id: str) -> FileResponse:
+    """T100: Download the reviewer summary JSON for a run."""
+    try:
+        artifacts = run_store.get_artifacts(run_id)
+    except RunnerError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+    summary_path = artifacts.root / "summaries" / "reviewer_summary.json"
+    if not summary_path.is_file():
+        raise HTTPException(status_code=404, detail="Reviewer summary not yet available")
+    return FileResponse(
+        path=str(summary_path),
+        media_type="application/json",
+        filename=f"{run_id}_reviewer_summary.json",
+    )
+
+
+@app.get(
+    "/api/runs/{run_id}/downloads/workbook",
+    responses={404: {"model": ErrorResponse}},
+)
+def download_workbook(run_id: str) -> FileResponse:
+    """T100: Download the exported XLSX workbook for a run. Only available after export (Batch 6)."""
+    try:
+        artifacts = run_store.get_artifacts(run_id)
+    except RunnerError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+    workbook_path = artifacts.root / "export" / "updated_workbook.xlsx"
+    if not workbook_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Exported workbook not yet available — export has not been run for this run",
+        )
+    return FileResponse(
+        path=str(workbook_path),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename=f"{run_id}_updated_workbook.xlsx",
+    )
+
+
+@app.get(
+    "/api/runs/{run_id}/downloads/audit-log",
+    responses={404: {"model": ErrorResponse}},
+)
+def download_audit_log(run_id: str) -> FileResponse:
+    """T100: Download the audit log CSV for a run. Only available after export (Batch 6)."""
+    try:
+        artifacts = run_store.get_artifacts(run_id)
+    except RunnerError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+    audit_path = artifacts.root / "export" / "audit_log.csv"
+    if not audit_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Audit log not yet available — export has not been run for this run",
+        )
+    return FileResponse(
+        path=str(audit_path),
+        media_type="text/csv",
+        filename=f"{run_id}_audit_log.csv",
+    )
+
+
+@app.get(
+    "/api/runs/{run_id}/downloads/available",
+    responses={404: {"model": ErrorResponse}},
+)
+def get_available_downloads(run_id: str) -> dict[str, bool]:
+    """T100: Return which downloads are currently available (file exists) for a run."""
+    try:
+        artifacts = run_store.get_artifacts(run_id)
+    except RunnerError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+    return {
+        "run_summary": (artifacts.root / "summaries" / "run_summary.json").is_file(),
+        "reviewer_summary": (artifacts.root / "summaries" / "reviewer_summary.json").is_file(),
+        "workbook": (artifacts.root / "export" / "updated_workbook.xlsx").is_file(),
+        "audit_log": (artifacts.root / "export" / "audit_log.csv").is_file(),
+    }
+

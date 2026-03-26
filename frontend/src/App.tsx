@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createRun, getInputSummary, getRunSummary, listRuns } from './api'
+import { ReviewWorkspace } from './components/ReviewWorkspace'
 import type { InputSummary, RunRecord, RunSummary } from './types'
 import './App.css'
 
@@ -18,15 +19,21 @@ function guidanceMessage(summary: RunSummary | null, runs: RunRecord[]): string 
     return 'Run is validating paths and inputs. Wait for validation to complete.'
   }
   if (summary.operator_status === 'running') {
-    return 'Run is processing. Review stays locked until the run reaches a terminal state.'
+    const stage = summary.progress.stage
+    const item = summary.progress.item
+    const detail = stage ? ` — stage: ${stage}${item ? ` (${item})` : ''}` : ''
+    return `Run is processing${detail}. Review stays locked until the run reaches a terminal state.`
   }
   if (summary.status === 'failed') {
     return 'Run failed. Inspect the failure message and config/input summary before retrying.'
   }
   if (summary.status === 'completed_with_warnings') {
-    return 'Run finished with warnings. Batch 1 does not include proposal review yet; continue with diagnostics and later batches.'
+    return 'Run finished with warnings. Switch to the Review tab to inspect proposals and unresolved matches.'
   }
-  return 'Run is complete. Review workspace foundations are present; proposal queue arrives in later batches.'
+  if (summary.status === 'completed') {
+    return 'Run is complete. Switch to the Review tab to review proposals and export accepted changes.'
+  }
+  return 'Run is ready.'
 }
 
 function App() {
@@ -98,17 +105,23 @@ function App() {
 
   const showProgress = summary?.operator_status === 'running' || summary?.operator_status === 'validating'
   const isTerminal = summary ? TERMINAL.has(summary.status) : false
+  const isReviewable = isTerminal && summary?.status !== 'failed'
 
   return (
     <div className="app-shell">
       <header className="header">
         <h1>Paper Table Agent</h1>
-        <p>Batch 1 foundation: UI-driven run launch, setup context, and lifecycle guidance.</p>
+        <p className="header-sub">Local-first paper-to-table review system.</p>
       </header>
 
       <nav className="tabs" aria-label="Primary views">
         <button className={tab === 'run' ? 'active' : ''} onClick={() => setTab('run')}>Run</button>
-        <button className={tab === 'review' ? 'active' : ''} onClick={() => setTab('review')}>Review</button>
+        <button
+          className={tab === 'review' ? 'active' : ''}
+          onClick={() => setTab('review')}
+        >
+          Review{isReviewable ? ' ●' : ''}
+        </button>
       </nav>
 
       {error ? <div className="error">{error}</div> : null}
@@ -131,7 +144,7 @@ function App() {
               </button>
             </form>
             <p className="hint">
-              Advanced settings stay in the JSON config file; this UI intentionally keeps launch concise.
+              Advanced settings stay in the JSON config file; this UI keeps launch concise.
             </p>
           </section>
 
@@ -145,7 +158,8 @@ function App() {
                     className={selectedRunId === run.run_id ? 'active-row' : ''}
                     onClick={() => setSelectedRunId(run.run_id)}
                   >
-                    {run.run_id} — {run.operator_status}
+                    <span className="run-id-short">{run.run_id.slice(0, 20)}…</span>
+                    <span className={`run-status-badge status-${run.status}`}>{run.operator_status}</span>
                   </button>
                 </li>
               ))}
@@ -159,11 +173,12 @@ function App() {
             {summary ? (
               <dl className="summary-grid">
                 <dt>Run ID</dt>
-                <dd>{summary.run_id}</dd>
+                <dd className="mono">{summary.run_id}</dd>
                 <dt>Status</dt>
-                <dd>{summary.operator_status}</dd>
-                <dt>Message</dt>
-                <dd>{summary.message ?? '—'}</dd>
+                <dd>
+                  <span className={`run-status-badge status-${summary.status}`}>{summary.operator_status}</span>
+                </dd>
+                {summary.message ? (<><dt>Message</dt><dd>{summary.message}</dd></>) : null}
                 <dt>Config path</dt>
                 <dd>{summary.config_path}</dd>
                 <dt>Table path</dt>
@@ -176,6 +191,12 @@ function App() {
                 <dd>{summary.output_dir ?? 'Not available yet'}</dd>
                 <dt>Verify mode</dt>
                 <dd>{summary.verify_mode ? 'On' : 'Off'}</dd>
+                <dt>Provider</dt>
+                <dd>
+                  {summary.provider_name ?? '—'}
+                  {summary.model_name ? ` / ${summary.model_name}` : ''}
+                  {' '}({summary.provider_locality ?? 'local'})
+                </dd>
                 <dt>Target columns</dt>
                 <dd>{summary.target_columns.length > 0 ? summary.target_columns.join(', ') : 'Not available yet'}</dd>
               </dl>
@@ -199,26 +220,24 @@ function App() {
                 <p>Ineligible cells: {inputSummary.ineligible_cells}</p>
               </div>
             ) : null}
+
+            {isReviewable && (
+              <div className="run-action-hint">
+                <button onClick={() => setTab('review')}>Go to Review →</button>
+              </div>
+            )}
           </section>
         </main>
       ) : (
-        <main className="panel-grid">
-          <section className="panel full-width">
-            <h2>Review</h2>
-            <p>
-              Batch 1 review baseline: proposal queue is not implemented yet. This view intentionally explains pre-review state
-              and keeps next actions explicit.
-            </p>
-            <p>{guidance}</p>
-            {!summary ? <p>Next action: create or select a run in the Run view.</p> : null}
-            {summary?.operator_status === 'running' || summary?.operator_status === 'validating' ? (
-              <p>Next action: wait for run completion; review stays gated until terminal state.</p>
-            ) : null}
-            {summary?.status === 'failed' ? <p>Next action: fix config/input issues and start a new run.</p> : null}
-            {summary?.status === 'completed_with_warnings' ? (
-              <p>Run is complete with warnings. Later batches add proposal inspection and unresolved-match surfaces.</p>
-            ) : null}
-          </section>
+        <main className="review-tab-main">
+          {selectedRunId && summary ? (
+            <ReviewWorkspace runId={selectedRunId} runSummary={summary} />
+          ) : (
+            <div className="panel full-width">
+              <h2>Review</h2>
+              <p>Select or create a run in the Run tab to start reviewing.</p>
+            </div>
+          )}
         </main>
       )}
     </div>
