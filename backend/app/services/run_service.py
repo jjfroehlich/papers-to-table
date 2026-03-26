@@ -17,6 +17,7 @@ from .parser_service import ParseService
 from .retrieval_service import RetrievalService
 from .style_profile_service import StyleProfileService
 from .extraction_service import ExtractionService
+from .review_service import ReviewService
 
 
 class RunService:
@@ -28,6 +29,7 @@ class RunService:
         self.style_profile_service = StyleProfileService(self.store)
         self.retrieval_service = RetrievalService(self.store)
         self.extraction_service = ExtractionService(self.store)
+        self.review_service = ReviewService(self.store)
         self.executor = ThreadPoolExecutor(max_workers=2)
         self._lock = Lock()
 
@@ -132,6 +134,7 @@ class RunService:
                 run_dir / "logs" / "events.jsonl",
                 {"stage": "phase6", "message": f"Extraction complete ({extraction['proposal_count']} proposals)"},
             )
+            self.review_service.refresh_review_index(run_dir)
             self._update_run(run_dir, RunStatus.COMPLETED)
             self.store.recompute_summaries(run_dir)
         except ConfigValidationError as exc:

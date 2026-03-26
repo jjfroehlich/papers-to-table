@@ -1,8 +1,8 @@
 # Paper Table Agent
 
-Batch 3 implementation from the spec baseline is now in place.
+Batch 4 implementation from the spec baseline is now in place.
 
-## What works in Batch 1 + Batch 2 + Batch 3
+## What works in Batch 1 + Batch 2 + Batch 3 + Batch 4
 
 - FastAPI backend run creation/list/inspection APIs.
 - Config loading, validation, and resolved config snapshotting.
@@ -26,6 +26,21 @@ Batch 3 implementation from the spec baseline is now in place.
   - quote+page fallback behavior when highlight anchoring is unavailable
   - scoped automatic figure fallback labeling (`figure_based_evidence`)
   - verify-mode support for already-filled target cells
+- Review backend APIs with:
+  - proposal list filtering by row/column/PDF/evidence strength/figure-derived/match status/review decision
+  - proposal detail payloads including row context, column definition, evidence, and warning flags
+  - explicit review-decision persistence (`accept`, `accept_edited`, `reject`, `undecided`) and decision history audit records
+  - guarded bulk-accept for the currently visible filtered undecided subset
+  - progress counters and run warning-category surfaces
+- Review asset APIs for:
+  - original PDF serving
+  - rendered page-image serving
+  - figure asset serving scoped to run artifacts
+  - evidence metadata lookup
+- Summary + export gating behavior:
+  - run/reviewer summaries recomputed from artifacts
+  - warning/status categories persisted and exposed via review status index
+  - accepted-only export candidate selection in `exports/export_candidates.json`
 - React frontend shell with:
   - **Run view** for config-path launch and setup context
   - **Review view** with explicit pre-review gating states
@@ -60,7 +75,7 @@ npm run dev -- --host 127.0.0.1 --port 5173
 
 Open `http://127.0.0.1:5173`.
 
-## Run flow (through Batch 3)
+## Run flow (through Batch 4)
 
 1. In **Run** view, enter a config path (default: `config.example.json`).
 2. Click **Start run**.
@@ -68,6 +83,7 @@ Open `http://127.0.0.1:5173`.
 4. Run advances through parsing + matching + style profile + retrieval + extraction automatically.
 5. Review resolved input summary after validation.
 6. If run failed, use the explicit failure reason shown in UI and `artifacts/<run_id>/run.json`.
+7. Use review APIs to list/filter proposals, record decisions, and inspect summary counters.
 
 ## Artifacts
 
@@ -88,8 +104,12 @@ Each run writes a bundle at `artifacts/<run_id>/` including:
 - `proposals/proposals.jsonl`
 - `proposals/diagnostics.json`
 - `evidence/evidence.jsonl`
+- `review/status_index.json`
+- `review/decisions.jsonl`
+- `review/decision_history.jsonl`
 - `summaries/run_summary.json`
 - `summaries/reviewer_summary.json`
+- `exports/export_candidates.json`
 
 ## Tests
 
@@ -97,10 +117,10 @@ Each run writes a bundle at `artifacts/<run_id>/` including:
 pytest tests/backend/test_batch1.py
 pytest tests/backend/test_batch2.py
 pytest tests/backend/test_batch3.py
+pytest tests/backend/test_batch4.py
 cd frontend && npm test
 ```
 
 ## Current limit
 
-Batch 3 still does **not** include review decision APIs, run/reviewer summary filtering surfaces, or accepted-only XLSX export/audit workflows.
-Those remain intentionally scoped to later batches in `specs/tasks.md`.
+Batch 4 still does **not** include the full three-pane browser review workspace, queue ergonomics, and export download UX polish from later batches.
