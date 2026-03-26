@@ -26,7 +26,7 @@ from .schemas import (
     parse_status_flags,
 )
 
-app = FastAPI(title="Paper Table Agent API", version="0.4.0")
+app = FastAPI(title="Paper Table Agent API", version="0.5.0")
 run_store = RunStore()
 
 app.add_middleware(
@@ -331,6 +331,27 @@ def get_export_candidates(run_id: str) -> list[ExportCandidate]:
     return _get_export_candidates(artifacts)
 
 
+@app.post(
+    "/api/runs/{run_id}/export",
+    responses={404: {"model": ErrorResponse}, 400: {"model": ErrorResponse}},
+)
+def trigger_export(run_id: str) -> dict:
+    """T096–T099: Generate the updated workbook, audit log, and diagnostics for a run."""
+    try:
+        artifacts = run_store.get_artifacts(run_id)
+    except RunnerError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+    from .export import ExportError, run_export
+
+    try:
+        result = run_export(artifacts, run_id)
+    except ExportError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+    return result
+
+
 # ---------------------------------------------------------------------------
 # T071 — Review-asset serving endpoints
 # ---------------------------------------------------------------------------
@@ -502,7 +523,7 @@ def download_workbook(run_id: str) -> FileResponse:
     except RunnerError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
 
-    workbook_path = artifacts.root / "export" / "updated_workbook.xlsx"
+    workbook_path = artifacts.root / "exports" / "updated_workbook.xlsx"
     if not workbook_path.is_file():
         raise HTTPException(
             status_code=404,
@@ -526,7 +547,7 @@ def download_audit_log(run_id: str) -> FileResponse:
     except RunnerError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
 
-    audit_path = artifacts.root / "export" / "audit_log.csv"
+    audit_path = artifacts.root / "exports" / "audit_log.csv"
     if not audit_path.is_file():
         raise HTTPException(
             status_code=404,
@@ -553,7 +574,7 @@ def get_available_downloads(run_id: str) -> dict[str, bool]:
     return {
         "run_summary": (artifacts.root / "summaries" / "run_summary.json").is_file(),
         "reviewer_summary": (artifacts.root / "summaries" / "reviewer_summary.json").is_file(),
-        "workbook": (artifacts.root / "export" / "updated_workbook.xlsx").is_file(),
-        "audit_log": (artifacts.root / "export" / "audit_log.csv").is_file(),
+        "workbook": (artifacts.root / "exports" / "updated_workbook.xlsx").is_file(),
+        "audit_log": (artifacts.root / "exports" / "audit_log.csv").is_file(),
     }
 

@@ -2,9 +2,9 @@
 
 ## Status
 
-Batch 4 complete — review backend, summaries, export gating, and proposal filtering implemented.
+Batch 6 complete — export engine, audit log, diagnostics, hermetic E2E tests, performance smoke tests, and README updated.
 
-**Implemented modules (Batch 1 + Batch 2 + Batch 3 + Batch 4):**
+**Implemented modules (Batch 1 + Batch 2 + Batch 3 + Batch 4 + Batch 5 + Batch 6):**
 - `backend/app/schemas.py` — all enums and Pydantic models, including `status_flags` on `ProposalRecord`, `ProposalListItem`, `ProposalDetail`, `RecordDecisionRequest`, `BulkAcceptRequest`, `ProposalProgress`, `ExportCandidate`, `RunSummaryFull`
 - `backend/app/ids.py` — deterministic ID generation
 - `backend/app/artifacts.py` — run artifact bundle layout + I/O; `recompute_summaries` derives full counts, matching stats, provider info, and run-level status flags from artifact files
@@ -12,7 +12,7 @@ Batch 4 complete — review backend, summaries, export gating, and proposal filt
 - `backend/app/ingest.py` — table/schema loading and cell classification
 - `backend/app/lifecycle.py` — run state transitions
 - `backend/app/runner.py` — staged runner, parse + match + style-profile + retrieval + extraction stages; `get_artifacts` helper
-- `backend/app/main.py` — FastAPI endpoints including matching APIs, proposal-list/filter/detail, review-asset serving, decision recording, bulk-accept, progress, summary, recompute, export-candidates
+- `backend/app/main.py` — FastAPI endpoints including matching APIs, proposal-list/filter/detail, review-asset serving, decision recording, bulk-accept, progress, summary, recompute, export-candidates, export trigger (`POST /api/runs/{run_id}/export`), and download endpoints
 - `backend/app/parsing.py` — ParsedDocument contract, DoclingParserAdapter (with BasicTextParser fallback), PDFiumBackend, OCR gate
 - `backend/app/matching.py` — metadata extraction, deterministic scoring, match outcome assignment, duplicate-row conflict detection, artifact persistence
 - `backend/app/style_profiles.py` — StyleProfile schema, per-column heuristic + optional LLM preprocessing, no-leakage enforcement, artifact persistence
@@ -20,6 +20,7 @@ Batch 4 complete — review backend, summaries, export gating, and proposal filt
 - `backend/app/provider.py` — ProviderAdapter ABC, LMStudioProvider (localhost API, capability probe, retry/error handling, vision support)
 - `backend/app/extraction.py` — ExtractionRequest builder, text/vision JSON schemas, per-cell orchestrator, proposal+evidence serialization, evidence anchoring, recovery pass, figure fallback trigger/package, support-label mapping, Verify mode; `_compute_proposal_status_flags` (T068)
 - `backend/app/review.py` — review decision persistence and audit history, `list_proposals` with filters, `bulk_accept`, `get_progress`, `get_export_candidates`
+- `backend/app/export.py` — content-only XLSX export with accepted-only changes and changed-cell highlighting, unsupported-feature detection (T096–T097), audit-log CSV generation (T098), diagnostics JSON (T099), `run_export` orchestrator
 
 ## Purpose
 
@@ -1009,8 +1010,9 @@ The bundle should contain stable top-level categories such as:
 - `evidence/evidence.jsonl`
 - `review/decisions.jsonl`
 - `review/reviewer_summary.json`
-- `exports/updated_table.xlsx`
+- `exports/updated_workbook.xlsx`
 - `exports/audit_log.csv`
+- `exports/diagnostics.json`
 - `logs/`
 
 This artifact bundle is the canonical persisted state for MVP.

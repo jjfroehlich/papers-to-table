@@ -2,8 +2,6 @@
 
 A local-first paper-to-table review system. Ingests scientific PDFs and a structured spreadsheet, matches papers to rows, proposes cell updates with evidence, supports human review, and exports audited spreadsheet updates.
 
-> **Batch 5 implementation**: browser review workspace is complete. Export (XLSX + audit log) is implemented in Batch 6.
-
 ## Repository layout
 
 - `backend/` — FastAPI app, staged runner, parsing, matching, extraction, review logic, export
@@ -100,7 +98,8 @@ Open `http://127.0.0.1:5173`.
 10. Use keyboard shortcuts: `←`/`p` prev, `→`/`n` next, `a` accept, `r` reject, `e` focus edit, `v` focus evidence.
 11. Open the **Run summary** tab to view PDF/proposal counts, decisions, verify mode, and provider info.
 12. Open the **Unresolved** tab to inspect unmatched, ambiguous, or duplicate-row-conflict PDFs (read-only in MVP).
-13. Download links for `run_summary.json` and `reviewer_summary.json` appear in the **Run summary** tab when available. Workbook and audit log downloads appear after export runs (Batch 6).
+13. When you have reviewed proposals, click **Export** in the Review tab to generate the updated workbook and audit log.
+14. Download links for the exported workbook, audit log, run summary, and reviewer summary appear in the **Run summary** tab once the respective files are ready.
 
 ## Run lifecycle states
 
@@ -138,7 +137,9 @@ evidence/evidence.jsonl           # evidence records with anchors
 review/decisions.jsonl            # reviewer decisions (append-only audit log)
 summaries/run_summary.json        # aggregated run statistics
 summaries/reviewer_summary.json   # reviewer outcome summary
-export/                           # output files (Batch 6)
+exports/updated_workbook.xlsx     # exported workbook (after export)
+exports/audit_log.csv             # audit log (after export)
+exports/diagnostics.json          # diagnostics and warning details (after export)
 ```
 
 ## Export fidelity boundary
@@ -146,8 +147,19 @@ export/                           # output files (Batch 6)
 The exported workbook is **content-only**:
 - Only explicitly accepted cell values are written.
 - Formulas, filters, frozen panes, hidden rows/columns, merged cells, conditional formatting, comments, named ranges, charts, shapes, and macros are **not** preserved.
-- Changed cells are highlighted.
+- Changed cells are highlighted in yellow.
 - Only accepted proposals appear in the audit log.
+- If the source workbook contains unsupported features, warnings are recorded in `exports/diagnostics.json`.
+
+## Export endpoint
+
+To trigger export after review, call:
+
+```
+POST /api/runs/{run_id}/export
+```
+
+This writes `exports/updated_workbook.xlsx`, `exports/audit_log.csv`, and `exports/diagnostics.json` to the run artifact directory. The browser UI exposes an **Export** button in the Review tab that calls this endpoint.
 
 ## Known MVP limitations
 
@@ -155,8 +167,8 @@ The exported workbook is **content-only**:
 - No user-triggered figure fallback; figure fallback is applied automatically by the extraction stage.
 - No rematch or reassignment actions for unresolved PDFs — inspection-only.
 - No multi-user review or collaboration.
-- Export (Batch 6) is not yet implemented; workbook and audit log downloads are not yet available.
 - LM Studio must be running and reachable at the configured `base_url` before a run is launched.
+- Export is content-only: formulas, merged cells, and workbook formatting are not preserved.
 
 ## Testing
 
@@ -182,6 +194,13 @@ cd frontend
 npx playwright test
 ```
 
+### Live provider smoke test (opt-in)
+
+```bash
+PAPER_TABLE_AGENT_LIVE_TEST=1 PAPER_TABLE_AGENT_LIVE_CONFIG_PATH=/path/to/config.json \
+  python -m pytest tests/backend/test_smoke_live.py -v
+```
+
 ## Development
 
 ### Lint
@@ -197,3 +216,4 @@ npm run lint
 cd frontend
 npm run build
 ```
+
