@@ -233,20 +233,152 @@ class RunStore:
             + matching_summary.duplicate_row_conflict
         )
 
+        # Build matched_pdfs dict: pdf_id -> row_id for cleanly matched PDFs only
+        matched_pdfs: dict[str, str] = {}
+        try:
+            match_records_path = matching_dir / "matching_results.jsonl"
+            if match_records_path.exists():
+                import json as _json
+                with match_records_path.open("r", encoding="utf-8") as fh:
+                    for line in fh:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        rec = _json.loads(line)
+                        if rec.get("outcome") == "matched" and rec.get("matched_row_id"):
+                            matched_pdfs[rec["pdf_id"]] = rec["matched_row_id"]
+        except Exception as exc:
+            logger.warning("Could not load match results for extraction: %s", exc)
+
+        # Phase 4: Style profiles
+        schema_rows_for_profiles: list[dict[str, Any]] = []
+        try:
+            input_details = artifacts.read_json("inputs/input_details.json")
+            schema_rows_for_profiles = input_details.get("schema_rows", [])
+        except FileNotFoundError:
+            pass
+
+        from .provider import build_provider_from_config
+        from .style_profiles import generate_and_persist_style_profiles, load_style_profiles
+
+        provider_config = config.provider if hasattr(config, "provider") else {}
+        provider = build_provider_from_config(provider_config)
+
+        style_profiles: dict[str, Any] = {}
+        if schema_rows_for_profiles:
+            self._transition(
+                run_id,
+                RunStatus.RUNNING,
+                message="Generating style profiles…",
+                progress=RunProgress(stage="style_profiles", item="all_columns"),
+            )
+            try:
+                style_profiles = generate_and_persist_style_profiles(
+                    artifacts=artifacts,
+                    schema_rows=schema_rows_for_profiles,
+                    table_rows=table_rows,
+                    provider=provider,
+                )
+            except Exception as exc:
+                logger.warning("Style profile generation failed (non-fatal): %s", exc)
+                style_profiles = load_style_profiles(artifacts)
+
+        # Phase 4: Retrieval chunks + retrieval per matched PDF × column
+        from .retrieval import (
+            build_chunks,
+            build_retrieval_result,
+            persist_chunks,
+            persist_retrieval_result,
+        )
+
+        all_chunks_by_pdf: dict[str, list[Any]] = {}
+        retrieval_results: dict[str, dict[str, Any]] = {}
+
+        retrieval_cfg = config.retrieval if hasattr(config, "retrieval") else {}
+        top_k = int(retrieval_cfg.get("top_k", 6))
+
+        for pdf_id, doc in parsed_docs.items():
+            if pdf_id not in matched_pdfs:
+                continue
+            self._transition(
+                run_id,
+                RunStatus.RUNNING,
+                message=f"Building retrieval chunks for {pdf_id}…",
+                progress=RunProgress(stage="retrieval", item=pdf_id),
+            )
+            chunks = build_chunks(doc)
+            persist_chunks(artifacts, pdf_id, chunks)
+            all_chunks_by_pdf[pdf_id] = chunks
+
+            retrieval_results[pdf_id] = {}
+            for schema_row in schema_rows_for_profiles:
+                col_name = str(schema_row.get("column_name", ""))
+                col_desc = str(schema_row.get("description", ""))
+                if not col_name:
+                    continue
+                result = build_retrieval_result(
+                    doc=doc,
+                    chunks=chunks,
+                    column_name=col_name,
+                    column_description=col_desc,
+                    top_k=top_k,
+                )
+                persist_retrieval_result(artifacts, result)
+                retrieval_results[pdf_id][col_name] = result
+
+        # Phase 5: Extraction
+        from .extraction import run_extraction_for_run
+
+        if matched_pdfs and schema_rows_for_profiles:
+            self._transition(
+                run_id,
+                RunStatus.RUNNING,
+                message=f"Extracting proposals for {len(matched_pdfs)} matched PDF(s)…",
+                progress=RunProgress(stage="extraction", item="all_cells"),
+            )
+            try:
+                extraction_summary = run_extraction_for_run(
+                    run_id=run_id,
+                    artifacts=artifacts,
+                    config=config,
+                    matched_pdfs=matched_pdfs,
+                    parsed_docs=parsed_docs,
+                    schema_rows=schema_rows_for_profiles,
+                    table_rows=table_rows,
+                    provider=provider,
+                    style_profiles=style_profiles,
+                    all_chunks_by_pdf=all_chunks_by_pdf,
+                    retrieval_results=retrieval_results,
+                )
+            except Exception as exc:
+                logger.error("Extraction stage failed: %s", exc)
+                extraction_summary = {"proposals_generated": 0, "skipped_no_provider": 0}
+        else:
+            extraction_summary = {"proposals_generated": 0, "skipped_no_provider": 0}
+
+        # Compose final run message
         msg_parts = [
             f"Parsed {len(parsed_docs)} PDF(s)",
             f"{matching_summary.matched} matched",
             f"{unresolved_count} unresolved",
+            f"{extraction_summary['proposals_generated']} proposals generated",
         ]
         if parse_errors:
             msg_parts.append(f"{len(parse_errors)} parse error(s)")
-        msg = "; ".join(msg_parts) + ". Extraction stages not yet implemented."
+        if extraction_summary.get("skipped_no_provider"):
+            msg_parts.append("no LLM provider configured — cells skipped")
+        msg = "; ".join(msg_parts) + "."
 
+        final_status = (
+            RunStatus.COMPLETED
+            if unresolved_count == 0 and not parse_errors
+            else RunStatus.COMPLETED_WITH_WARNINGS
+        )
         self._transition(
             run_id,
-            RunStatus.COMPLETED_WITH_WARNINGS,
+            final_status,
             message=msg,
-            progress=RunProgress(stage="batch2_complete", item="parse_match"),
+            progress=RunProgress(stage="extraction_complete", item="all_cells"),
         )
 
     def get_matching_unresolved(self, run_id: str) -> list[dict[str, Any]]:

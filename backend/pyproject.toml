@@ -1,7 +1,7 @@
 [project]
 name = "paper-table-agent-backend"
 version = "0.2.0"
-description = "Batch 2 backend: parsing and row-matching baseline for Paper Table Agent"
+description = "Batch 3 backend: style profiles, retrieval, provider abstraction, and extraction for Paper Table Agent"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115.0",
