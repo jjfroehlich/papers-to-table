@@ -115,6 +115,15 @@ def _write_evidence(
     return record
 
 
+def _wait_for_run(client: TestClient, run_id: str, max_polls: int = 120) -> None:
+    """Poll until the run reaches a terminal state."""
+    for _ in range(max_polls):
+        time.sleep(0.5)
+        s = client.get(f"/api/runs/{run_id}/summary").json()
+        if s["status"] in {"completed", "completed_with_warnings", "failed"}:
+            break
+
+
 def _config_path(tmp_path: Path) -> Path:
     output_dir = tmp_path / "out"
     payload = {
@@ -555,13 +564,7 @@ def test_serve_pdf_not_found_returns_404(tmp_path: Path) -> None:
     create_resp = client.post("/api/runs", json={"config_path": str(config_path)})
     assert create_resp.status_code == 200
     run_id = create_resp.json()["run_id"]
-
-    # Wait for run to complete
-    for _ in range(120):
-        time.sleep(0.5)
-        s = client.get(f"/api/runs/{run_id}/summary").json()
-        if s["status"] in {"completed", "completed_with_warnings", "failed"}:
-            break
+    _wait_for_run(client, run_id)
 
     response = client.get(f"/api/runs/{run_id}/assets/pdf/nonexistent_pdf_id")
     assert response.status_code == 404
@@ -573,11 +576,7 @@ def test_serve_page_image_not_found_returns_404(tmp_path: Path) -> None:
 
     create_resp = client.post("/api/runs", json={"config_path": str(config_path)})
     run_id = create_resp.json()["run_id"]
-    for _ in range(120):
-        time.sleep(0.5)
-        s = client.get(f"/api/runs/{run_id}/summary").json()
-        if s["status"] in {"completed", "completed_with_warnings", "failed"}:
-            break
+    _wait_for_run(client, run_id)
 
     response = client.get(f"/api/runs/{run_id}/assets/pages/nonexistent_pdf/1")
     assert response.status_code == 404
@@ -596,13 +595,7 @@ def test_api_proposals_and_progress(tmp_path: Path) -> None:
     create_resp = client.post("/api/runs", json={"config_path": str(config_path)})
     assert create_resp.status_code == 200
     run_id = create_resp.json()["run_id"]
-
-    # Wait for run to complete
-    for _ in range(120):
-        time.sleep(0.5)
-        s = client.get(f"/api/runs/{run_id}/summary").json()
-        if s["status"] in {"completed", "completed_with_warnings", "failed"}:
-            break
+    _wait_for_run(client, run_id)
 
     # Proposal list
     proposals_resp = client.get(f"/api/runs/{run_id}/proposals")
@@ -679,13 +672,7 @@ def test_bulk_accept_endpoint(tmp_path: Path) -> None:
 
     create_resp = client.post("/api/runs", json={"config_path": str(config_path)})
     run_id = create_resp.json()["run_id"]
-    for _ in range(120):
-        time.sleep(0.5)
-        s = client.get(f"/api/runs/{run_id}/summary").json()
-        if s["status"] in {"completed", "completed_with_warnings", "failed"}:
-            break
-
-    # Bulk-accept all undecided
+    _wait_for_run(client, run_id)
     bulk_resp = client.post(f"/api/runs/{run_id}/proposals/bulk-accept", json={})
     assert bulk_resp.status_code == 200
     bulk_decisions = bulk_resp.json()
@@ -703,11 +690,7 @@ def test_proposal_not_found_returns_404(tmp_path: Path) -> None:
 
     create_resp = client.post("/api/runs", json={"config_path": str(config_path)})
     run_id = create_resp.json()["run_id"]
-    for _ in range(120):
-        time.sleep(0.5)
-        s = client.get(f"/api/runs/{run_id}/summary").json()
-        if s["status"] in {"completed", "completed_with_warnings", "failed"}:
-            break
+    _wait_for_run(client, run_id)
 
     resp = client.get(f"/api/runs/{run_id}/proposals/proposal_doesnotexist")
     assert resp.status_code == 404

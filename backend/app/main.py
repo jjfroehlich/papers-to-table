@@ -22,6 +22,8 @@ from .schemas import (
     RunCreateResponse,
     RunRecord,
     RunSummary,
+    WarningStatusCategory,
+    parse_status_flags,
 )
 
 app = FastAPI(title="Paper Table Agent API", version="0.4.0")
@@ -182,8 +184,7 @@ def get_proposal_detail(run_id: str, proposal_id: str) -> ProposalDetail:
     decision_record_dict = decision_rec.model_dump(mode="json") if decision_rec else None
 
     flags_raw = proposal_row.get("status_flags", [])
-    from .schemas import WarningStatusCategory
-    flags = [WarningStatusCategory(f) for f in flags_raw if f in WarningStatusCategory._value2member_map_]
+    flags = parse_status_flags(flags_raw)
 
     return ProposalDetail(
         proposal_id=pid,

@@ -289,6 +289,17 @@ class ExportCandidate(BaseModel):
     decision: ReviewDecision
 
 
+def parse_status_flags(raw_flags: list[str]) -> list[WarningStatusCategory]:
+    """Safely parse a list of raw flag strings into WarningStatusCategory values, ignoring unknowns."""
+    result: list[WarningStatusCategory] = []
+    for f in raw_flags:
+        try:
+            result.append(WarningStatusCategory(f))
+        except ValueError:
+            pass
+    return result
+
+
 class RunSummaryFull(BaseModel):
     run_id: str
     status: RunStatus

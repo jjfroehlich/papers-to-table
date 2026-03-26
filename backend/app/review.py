@@ -21,6 +21,7 @@ from .schemas import (
     ReviewDecision,
     ReviewDecisionRecord,
     WarningStatusCategory,
+    parse_status_flags,
 )
 
 if TYPE_CHECKING:
@@ -163,7 +164,7 @@ def list_proposals(
                 proposal_state=row.get("proposal_state", "unclear"),
                 support_label=row.get("support_label", "weak_evidence"),
                 proposed_value=row.get("proposed_value"),
-                status_flags=[WarningStatusCategory(f) for f in flags if f in WarningStatusCategory._value2member_map_],
+            status_flags=parse_status_flags(flags),
                 latest_decision=latest_decision,
             )
             items.append(item)
