@@ -6,12 +6,17 @@ from pathlib import Path
 from threading import Lock
 from typing import Any
 
+import pandas as pd
+
 from ..artifacts import ArtifactStore
 from ..ids import new_run_id
 from ..models import CreateRunResponse, RunRecord, RunStatus
 from .config_service import ConfigValidationError, load_and_resolve_config, validate_inputs
 from .matching_service import MatchingService
 from .parser_service import ParseService
+from .retrieval_service import RetrievalService
+from .style_profile_service import StyleProfileService
+from .extraction_service import ExtractionService
 
 
 class RunService:
@@ -20,6 +25,9 @@ class RunService:
         self.store = ArtifactStore(base_dir)
         self.parse_service = ParseService(self.store)
         self.matching_service = MatchingService(self.store)
+        self.style_profile_service = StyleProfileService(self.store)
+        self.retrieval_service = RetrievalService(self.store)
+        self.extraction_service = ExtractionService(self.store)
         self.executor = ThreadPoolExecutor(max_workers=2)
         self._lock = Lock()
 
@@ -87,12 +95,43 @@ class RunService:
                 run_dir / "logs" / "events.jsonl",
                 {"stage": "phase2", "message": f"Parsed {len(parsed['documents'])} PDFs"},
             )
-            self.matching_service.match(
+            matching = self.matching_service.match(
                 run_dir=run_dir,
                 parsed_docs=parsed["documents"],
                 table_path=Path(config.paths.table_path),
             )
             self.store.append_jsonl(run_dir / "logs" / "events.jsonl", {"stage": "phase3", "message": "Matching complete"})
+
+            table_path = Path(config.paths.table_path)
+            table_df = pd.read_excel(table_path) if table_path.suffix.lower() in {".xlsx", ".xls", ".xlsm"} else pd.read_csv(table_path)
+            schema_path = Path(config.paths.schema_path) if config.paths.schema_path else table_path
+            schema_df = pd.read_excel(schema_path, sheet_name="schema") if config.paths.schema_path is None else (pd.read_excel(schema_path) if schema_path.suffix.lower() in {".xlsx", ".xls", ".xlsm"} else pd.read_csv(schema_path))
+
+            profiles = self.style_profile_service.build_profiles(run_dir, table_df, schema_df)
+            self.store.append_jsonl(run_dir / "logs" / "events.jsonl", {"stage": "phase4", "message": "Style profiles generated"})
+
+            retrieval = self.retrieval_service.build_retrieval_artifacts(
+                run_dir=run_dir,
+                parsed_docs=parsed["documents"],
+                top_k=config.retrieval.top_k,
+            )
+            self.store.append_jsonl(run_dir / "logs" / "events.jsonl", {"stage": "phase5", "message": "Retrieval artifacts generated"})
+
+            extraction = self.extraction_service.run(
+                run_id=run_id,
+                run_dir=run_dir,
+                config=config,
+                table_df=table_df,
+                schema_df=schema_df,
+                style_profiles=profiles,
+                matching_results=matching["results"],
+                parsed_docs=parsed["documents"],
+                retrieval_chunks=retrieval,
+            )
+            self.store.append_jsonl(
+                run_dir / "logs" / "events.jsonl",
+                {"stage": "phase6", "message": f"Extraction complete ({extraction['proposal_count']} proposals)"},
+            )
             self._update_run(run_dir, RunStatus.COMPLETED)
             self.store.recompute_summaries(run_dir)
         except ConfigValidationError as exc:

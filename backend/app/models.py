@@ -200,6 +200,12 @@ class StyleProfileSettings(BaseModel):
 
 class RetrievalSettings(BaseModel):
     top_k: int = 6
+    include_captions: bool = True
+    include_tables: bool = True
+    neighbor_window: int = 1
+    reranker_enabled: bool = False
+    hyde_enabled: bool = False
+    query_expansion_enabled: bool = False
 
 
 class ProviderSettings(BaseModel):
@@ -214,7 +220,7 @@ class FigureFallbackSettings(BaseModel):
 
 
 class ReviewSettings(BaseModel):
-    verify_mode: bool = False
+    verify_mode: bool = True
     placeholder_values: list[str] = Field(default_factory=lambda: ["n/a", "na", "-"])
 
 
