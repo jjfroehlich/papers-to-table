@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,6 +12,8 @@ from .ids import generate_run_id
 from .ingest import IngestError, build_input_summary
 from .lifecycle import can_transition, map_operator_status
 from .schemas import RunCreateResponse, RunProgress, RunRecord, RunStatus, RunSummary
+
+logger = logging.getLogger(__name__)
 
 
 class RunnerError(RuntimeError):
@@ -129,22 +132,143 @@ class RunStore:
             artifacts.write_json("inputs/input_summary.json", input_summary.model_dump(mode="json"))
             artifacts.write_json("inputs/input_details.json", details)
 
-            # Batch 1 intentionally stops after validated run-start foundation.
-            self._transition(
-                run_id,
-                RunStatus.COMPLETED_WITH_WARNINGS,
-                message="Batch 1 foundation complete: run-start baseline is ready; later extraction stages are not yet implemented.",
-                progress=RunProgress(stage="batch1_complete", item="foundation"),
-            )
+            # Phase 2 — Parse PDFs
+            table_rows: list[dict[str, Any]] = details.get("table_rows", [])
+            self._run_parse_stage(run_id, artifacts, config, table_rows)
             artifacts.recompute_summaries(run_id=run_id, verify_mode=config.verify_mode)
         except (ConfigError, IngestError, Exception) as error:
             self._transition(
                 run_id,
                 RunStatus.FAILED,
-                message=f"Run failed during startup validation: {error}",
-                progress=RunProgress(stage="failed", item="startup"),
+                message=f"Run failed: {error}",
+                progress=RunProgress(stage="failed", item="run"),
             )
             artifacts.recompute_summaries(run_id=run_id, verify_mode=True)
+
+    def _run_parse_stage(
+        self,
+        run_id: str,
+        artifacts: RunArtifacts,
+        config: Any,
+        table_rows: list[dict[str, Any]],
+    ) -> None:
+        """Phase 2: parse PDFs and Phase 3: match to rows."""
+        from .config import RunConfig
+        from .ingest import load_table
+        from .matching import (
+            ExtractedMetadata,
+            MatchOutcome,
+            extract_paper_metadata,
+            run_matching_for_run,
+        )
+        from .parsing import ParsedDocument, parse_pdf_for_run
+
+        pdf_dir = Path(config.paths.pdf_dir)
+        pdf_files = sorted(pdf_dir.glob("*.pdf"))
+        if not pdf_files:
+            self._transition(
+                run_id,
+                RunStatus.COMPLETED_WITH_WARNINGS,
+                message="No PDF files found in pdf_dir; run is complete with warnings. Extraction and review will be unavailable.",
+                progress=RunProgress(stage="parse", item="no_pdfs"),
+            )
+            return
+
+        parsed_dir = artifacts.root / "parsed"
+        matching_dir = artifacts.root / "matching"
+
+        parsed_docs: dict[str, ParsedDocument] = {}
+        parse_errors: list[str] = []
+
+        for pdf_path in pdf_files:
+            pdf_id = pdf_path.stem
+            self._transition(
+                run_id,
+                RunStatus.RUNNING,
+                message=f"Parsing {pdf_path.name}…",
+                progress=RunProgress(stage="parse", item=pdf_id),
+            )
+            try:
+                doc, _ocr_used = parse_pdf_for_run(
+                    pdf_path=pdf_path,
+                    pdf_id=pdf_id,
+                    parsed_dir=parsed_dir,
+                    render_pages=True,
+                )
+                parsed_docs[pdf_id] = doc
+            except Exception as exc:
+                msg = f"Parsing failed for {pdf_path.name}: {exc}"
+                logger.warning(msg)
+                parse_errors.append(msg)
+
+        # Phase 3: matching
+        if not table_rows:
+            try:
+                table_rows = load_table(config.paths.table_path)
+            except Exception as exc:
+                logger.warning("Could not reload table rows for matching: %s; proceeding with empty row list", exc)
+                table_rows = []
+
+        self._transition(
+            run_id,
+            RunStatus.RUNNING,
+            message=f"Matching {len(parsed_docs)} parsed PDF(s) to table rows…",
+            progress=RunProgress(stage="match", item="all_pdfs"),
+        )
+
+        pdf_metas: dict[str, ExtractedMetadata] = {}
+        for pdf_id, doc in parsed_docs.items():
+            pdf_metas[pdf_id] = extract_paper_metadata(doc)
+
+        matching_summary = run_matching_for_run(
+            pdf_metas=pdf_metas,
+            table_rows=table_rows,
+            matching_dir=matching_dir,
+            run_id=run_id,
+        )
+
+        unresolved_count = (
+            matching_summary.ambiguous
+            + matching_summary.unmatched
+            + matching_summary.duplicate_row_conflict
+        )
+
+        msg_parts = [
+            f"Parsed {len(parsed_docs)} PDF(s)",
+            f"{matching_summary.matched} matched",
+            f"{unresolved_count} unresolved",
+        ]
+        if parse_errors:
+            msg_parts.append(f"{len(parse_errors)} parse error(s)")
+        msg = "; ".join(msg_parts) + ". Extraction stages not yet implemented."
+
+        self._transition(
+            run_id,
+            RunStatus.COMPLETED_WITH_WARNINGS,
+            message=msg,
+            progress=RunProgress(stage="batch2_complete", item="parse_match"),
+        )
+
+    def get_matching_unresolved(self, run_id: str) -> list[dict[str, Any]]:
+        """Return unresolved match records for the given run (T039)."""
+        from .matching import load_unresolved_matches
+
+        if run_id not in self._artifacts:
+            raise RunnerError(f"Run not found: {run_id}")
+        matching_dir = self._artifacts[run_id].root / "matching"
+        return load_unresolved_matches(matching_dir)
+
+    def get_matching_summary(self, run_id: str) -> dict[str, Any]:
+        """Return the matching summary for the given run (T039)."""
+        from .matching import load_matching_summary
+
+        if run_id not in self._artifacts:
+            raise RunnerError(f"Run not found: {run_id}")
+        matching_dir = self._artifacts[run_id].root / "matching"
+        summary = load_matching_summary(matching_dir)
+        if summary is None:
+            raise RunnerError("Matching summary not yet available for this run")
+        return summary.model_dump(mode="json")
 
     def list_runs(self) -> list[RunRecord]:
         with self._lock:

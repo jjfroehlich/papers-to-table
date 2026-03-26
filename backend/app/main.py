@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .runner import RunStore, RunnerError
 from .schemas import ErrorResponse, RunCreateRequest, RunCreateResponse, RunRecord, RunSummary
 
-app = FastAPI(title="Paper Table Agent API", version="0.1.0")
+app = FastAPI(title="Paper Table Agent API", version="0.2.0")
 run_store = RunStore()
 
 app.add_middleware(
@@ -57,3 +57,22 @@ def get_input_summary(run_id: str) -> dict:
         return run_store.read_artifact_json(run_id, "inputs/input_summary.json")
     except Exception as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+
+
+@app.get("/api/runs/{run_id}/matching/summary", responses={404: {"model": ErrorResponse}})
+def get_matching_summary(run_id: str) -> dict:
+    """Return the matching summary (total, matched, unresolved) for a run."""
+    try:
+        return run_store.get_matching_summary(run_id)
+    except RunnerError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+
+@app.get("/api/runs/{run_id}/matching/unresolved", responses={404: {"model": ErrorResponse}})
+def get_matching_unresolved(run_id: str) -> list[dict]:
+    """Return unmatched, ambiguous, and duplicate-row-conflict records for a run."""
+    try:
+        return run_store.get_matching_unresolved(run_id)
+    except RunnerError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+

@@ -350,7 +350,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 **Goal:** parse PDFs once, normalize them into one internal contract, and generate the low-level artifacts needed later for evidence review.
 
-- [ ] **T025** Define the internal `ParsedDocument` schema/contract with fields for:
+- [x] **T025** Define the internal `ParsedDocument` schema/contract with fields for:
   - document identity
   - extracted metadata
   - pages
@@ -363,23 +363,23 @@ The detailed task inventory below remains the source of truth for exact implemen
   - provenance links
   - optional geometry/bounding boxes
 
-- [ ] **T026** Implement the parser adapter interface and register **Docling** as the main parser.
+- [x] **T026** Implement the parser adapter interface and register **Docling** as the main parser.
 
-- [ ] **T027** Implement the low-level PDF abstraction using **`pypdfium2` / PDFium** for rendering, geometry, crop extraction, and page/image access.
+- [x] **T027** Implement the low-level PDF abstraction using **`pypdfium2` / PDFium** for rendering, geometry, crop extraction, and page/image access.
 
-- [ ] **T028** Integrate OCR fallback for scanned or text-inaccessible PDFs:
+- [x] **T028** Integrate OCR fallback for scanned or text-inaccessible PDFs:
   - default OCR fallback tool = **OCRmyPDF**
   - use OCR fallback only when text extraction is empty or clearly insufficient
   - normalize OCR output into the same `ParsedDocument` contract as born-digital PDFs
   - store OCR-affected artifacts in the run bundle
 
-- [ ] **T029** Implement parse-stage persistence so parser-native outputs and normalized parsed-document artifacts are both stored under stable run paths.
+- [x] **T029** Implement parse-stage persistence so parser-native outputs and normalized parsed-document artifacts are both stored under stable run paths.
 
-- [ ] **T030** Generate page-render artifacts and crop helpers needed later for text evidence, figure evidence, and PDF review.
+- [x] **T030** Generate page-render artifacts and crop helpers needed later for text evidence, figure evidence, and PDF review.
 
-- [ ] **T031** Add parser diagnostics per PDF, including parser path used, OCR used or not, and major extraction gaps.
+- [x] **T031** Add parser diagnostics per PDF, including parser path used, OCR used or not, and major extraction gaps.
 
-- [ ] **T032** Add tests covering clean parse, OCR fallback, normalized parsed-document output, and stored page/crop artifacts.
+- [x] **T032** Add tests covering clean parse, OCR fallback, normalized parsed-document output, and stored page/crop artifacts.
 
 ---
 
@@ -387,25 +387,25 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 **Goal:** each PDF ends in a trustworthy match state before extraction begins.
 
-- [ ] **T033** Implement grounded paper-metadata extraction from parsed documents for title, authors, publication year, and identifiers when available.
+- [x] **T033** Implement grounded paper-metadata extraction from parsed documents for title, authors, publication year, and identifiers when available.
 
-- [ ] **T034** Implement deterministic matching scoring using publication metadata signals.
+- [x] **T034** Implement deterministic matching scoring using publication metadata signals.
 
-- [ ] **T035** Implement limited fallback adjudication only for plausible ambiguous cases.
+- [x] **T035** Implement limited fallback adjudication only for plausible ambiguous cases.
 
-- [ ] **T036** Implement final match outcome assignment for:
+- [x] **T036** Implement final match outcome assignment for:
   - `matched`
   - `ambiguous`
   - `unmatched`
   - duplicate-row conflict
 
-- [ ] **T037** Implement duplicate-row conflict detection that blocks all conflicting PDFs for extraction.
+- [x] **T037** Implement duplicate-row conflict detection that blocks all conflicting PDFs for extraction.
 
-- [ ] **T038** Persist matching artifacts and reasoning summaries so unmatched, ambiguous, and conflict cases are inspectable later.
+- [x] **T038** Persist matching artifacts and reasoning summaries so unmatched, ambiguous, and conflict cases are inspectable later.
 
-- [ ] **T039** Expose unmatched, ambiguous, and duplicate-row-conflict records through API endpoints for the UI.
+- [x] **T039** Expose unmatched, ambiguous, and duplicate-row-conflict records through API endpoints for the UI.
 
-- [ ] **T040** Add tests for deterministic match success, ambiguous-block behavior, unmatched behavior, and duplicate-row-conflict behavior.
+- [x] **T040** Add tests for deterministic match success, ambiguous-block behavior, unmatched behavior, and duplicate-row-conflict behavior.
 
 ---
 

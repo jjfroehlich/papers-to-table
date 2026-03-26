@@ -1,13 +1,16 @@
 [project]
 name = "paper-table-agent-backend"
-version = "0.1.0"
-description = "Batch 1 backend foundation for Paper Table Agent"
+version = "0.2.0"
+description = "Batch 2 backend: parsing and row-matching baseline for Paper Table Agent"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115.0",
   "pydantic>=2.9.0",
   "uvicorn>=0.30.0",
-  "openpyxl>=3.1.5"
+  "openpyxl>=3.1.5",
+  "docling>=2.0.0",
+  "pypdfium2>=4.0.0",
+  "ocrmypdf>=15.0.0"
 ]
 
 [project.optional-dependencies]
