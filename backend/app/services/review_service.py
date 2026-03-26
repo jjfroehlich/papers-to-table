@@ -117,6 +117,16 @@ class ReviewService:
         )
         return payload
 
+    def add_run_warnings(self, run_dir: Path, warnings: list[str]) -> dict[str, Any]:
+        status_index = self.store.read_json(run_dir / "review" / "status_index.json")
+        merged = set(status_index.get("run_warning_categories", []))
+        merged.update(warnings)
+        if merged:
+            merged.add(WarningCategory.COMPLETED_WITH_WARNINGS.value)
+        status_index["run_warning_categories"] = sorted(merged)
+        self.store.write_json(run_dir / "review" / "status_index.json", status_index)
+        return status_index
+
     def list_proposals(self, run_dir: Path, filters: dict[str, Any]) -> dict[str, Any]:
         proposals = self.store.read_jsonl(run_dir / "proposals" / "proposals.jsonl")
         status_index = self.store.read_json(run_dir / "review" / "status_index.json")

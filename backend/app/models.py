@@ -60,6 +60,7 @@ class WarningCategory(str, Enum):
     FIGURE_DERIVED = "figure_derived"
     NO_REVIEWED_VERIFIED_CELLS = "no_reviewed_verified_cells"
     COMPLETED_WITH_WARNINGS = "completed_with_warnings"
+    UNSUPPORTED_WORKBOOK_FEATURES = "unsupported_workbook_features"
 
 
 class ProviderLocality(str, Enum):
@@ -221,6 +222,7 @@ class ProviderSettings(BaseModel):
     model_name: str = "unconfigured"
     base_url: str = "http://localhost:1234/v1"
     locality: ProviderLocality = ProviderLocality.LOCAL
+    enable_live_calls: bool = False
 
 
 class FigureFallbackSettings(BaseModel):

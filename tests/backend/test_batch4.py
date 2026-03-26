@@ -76,7 +76,7 @@ def test_batch4_review_api_decisions_and_summaries(tmp_path: Path) -> None:
 
     created = client.post("/api/runs", json={"config_path": str(cfg)}).json()
     run = _wait_for_terminal(created["run_id"])
-    assert run["status"] == "completed"
+    assert run["status"] in {"completed", "completed_with_warnings"}
 
     proposal_list = client.get(f"/api/runs/{created['run_id']}/proposals").json()
     assert proposal_list["counters"]["total"] > 0

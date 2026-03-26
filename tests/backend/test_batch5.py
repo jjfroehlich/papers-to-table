@@ -72,7 +72,7 @@ def test_batch5_summary_and_download_endpoints(tmp_path: Path) -> None:
 
     created = client.post("/api/runs", json={"config_path": str(cfg)}).json()
     run = _wait_for_terminal(created["run_id"])
-    assert run["status"] == "completed"
+    assert run["status"] in {"completed", "completed_with_warnings"}
     assert run.get("current_stage")
 
     run_summary = client.get(f"/api/runs/{created['run_id']}/summaries/run")

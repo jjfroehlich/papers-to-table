@@ -264,7 +264,7 @@ class ExtractionService:
                     "retrieved_passages": selected_chunks,
                     "current_cell_value": None if is_empty else str(current_value),
                     "verify_mode": config.review.verify_mode,
-                    "provider_call_enabled": False,
+                    "provider_call_enabled": config.provider.enable_live_calls,
                 }
 
                 try:

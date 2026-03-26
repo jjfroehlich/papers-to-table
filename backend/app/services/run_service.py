@@ -17,6 +17,7 @@ from .parser_service import ParseService
 from .retrieval_service import RetrievalService
 from .style_profile_service import StyleProfileService
 from .extraction_service import ExtractionService
+from .export_service import ExportService
 from .review_service import ReviewService
 
 
@@ -29,6 +30,7 @@ class RunService:
         self.style_profile_service = StyleProfileService(self.store)
         self.retrieval_service = RetrievalService(self.store)
         self.extraction_service = ExtractionService(self.store)
+        self.export_service = ExportService(self.store)
         self.review_service = ReviewService(self.store)
         self.executor = ThreadPoolExecutor(max_workers=2)
         self._lock = Lock()
@@ -143,12 +145,32 @@ class RunService:
             )
             self._update_run(run_dir, RunStatus.RUNNING, current_stage='refreshing_review_index')
             self.review_service.refresh_review_index(run_dir)
-            self._update_run(run_dir, RunStatus.COMPLETED, current_stage='completed')
-            self.store.recompute_summaries(run_dir)
+            self._update_run(run_dir, RunStatus.RUNNING, current_stage='exporting_outputs')
+            self.export_run(run_id)
         except ConfigValidationError as exc:
             self._update_run(run_dir, RunStatus.FAILED, error=str(exc))
         except Exception as exc:  # pragma: no cover
             self._update_run(run_dir, RunStatus.FAILED, error=f"unexpected_error: {exc}")
+
+    def export_run(self, run_id: str) -> dict[str, Any]:
+        run_dir = self.base_dir / run_id
+        config = self.store.read_json(run_dir / "config.snapshot.json")
+        export_info = self.export_service.build_exports(run_dir, config)
+        if export_info.get("unsupported_warning"):
+            self.review_service.add_run_warnings(run_dir, ["unsupported_workbook_features"])
+            self.store.append_jsonl(
+                run_dir / "logs" / "events.jsonl",
+                {
+                    "stage": "phase8",
+                    "message": f"Unsupported workbook features ignored for content-only export: {', '.join(export_info.get('unsupported_features', []))}",
+                },
+            )
+        diagnostics = self.export_service.write_diagnostics(run_dir, export_info)
+        summary, _ = self.store.recompute_summaries(run_dir)
+        terminal_status = RunStatus.COMPLETED_WITH_WARNINGS if summary.warning_categories else RunStatus.COMPLETED
+        self._update_run(run_dir, terminal_status, current_stage='completed')
+        self.store.recompute_summaries(run_dir)
+        return {"export": export_info, "diagnostics": diagnostics}
 
     def list_runs(self) -> list[dict[str, Any]]:
         runs: list[dict[str, Any]] = []

@@ -59,7 +59,7 @@ def test_run_creation_and_valid_input(tmp_path: Path) -> None:
     cfg = _config(tmp_path, table, schema, pdf_dir)
     created = client.post("/api/runs", json={"config_path": str(cfg)}).json()
     run = _wait_for_terminal(created["run_id"])
-    assert run["status"] == "completed"
+    assert run["status"] in {"completed", "completed_with_warnings"}
 
     inputs = client.get(f"/api/runs/{created['run_id']}/inputs").json()
     assert inputs["eligible_missing_cells"] == 1
@@ -71,7 +71,7 @@ def test_embedded_schema_sheet_used_when_schema_path_missing() -> None:
     cfg = Path('config.example.json')
     created = client.post("/api/runs", json={"config_path": str(cfg)}).json()
     run = _wait_for_terminal(created["run_id"])
-    assert run["status"] == "completed"
+    assert run["status"] in {"completed", "completed_with_warnings"}
 
 def test_missing_metadata_rejected(tmp_path: Path) -> None:
     table = tmp_path / "table.csv"

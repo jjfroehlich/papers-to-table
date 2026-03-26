@@ -109,6 +109,14 @@ def list_downloads(run_id: str) -> dict:
     }
 
 
+@app.post("/api/runs/{run_id}/export")
+def export_run_outputs(run_id: str) -> dict:
+    try:
+        return run_service.export_run(run_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Run/config not found") from exc
+
+
 @app.get("/api/runs/{run_id}/downloads/run-summary")
 def download_run_summary(run_id: str) -> FileResponse:
     target = ARTIFACT_ROOT / run_id / "summaries" / "run_summary.json"

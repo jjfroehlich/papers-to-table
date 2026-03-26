@@ -80,7 +80,7 @@ def test_batch2_parsing_and_matching_artifacts(tmp_path: Path) -> None:
     cfg = _config(tmp_path, table, schema, pdf_dir)
     created = client.post("/api/runs", json={"config_path": str(cfg)}).json()
     run = _wait_for_terminal(created["run_id"])
-    assert run["status"] == "completed"
+    assert run["status"] in {"completed", "completed_with_warnings"}
 
     run_dir = Path(run["artifact_dir"])
     parsed = json.loads((run_dir / "parsed" / "documents.jsonl").read_text(encoding="utf-8").splitlines()[0])

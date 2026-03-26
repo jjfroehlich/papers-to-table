@@ -76,7 +76,7 @@ def test_batch3_retrieval_profiles_and_proposals(tmp_path: Path) -> None:
 
     created = client.post("/api/runs", json={"config_path": str(cfg)}).json()
     run = _wait_for_terminal(created["run_id"])
-    assert run["status"] == "completed"
+    assert run["status"] in {"completed", "completed_with_warnings"}
 
     run_dir = Path(run["artifact_dir"])
 
