@@ -2,19 +2,23 @@
 
 ## Status
 
-Batch 2 complete — parsing and row-matching baseline implemented.
+Batch 3 complete — style profiles, retrieval artifacts, provider abstraction, and extraction baseline implemented.
 
-**Implemented modules (Batch 1 + Batch 2):**
+**Implemented modules (Batch 1 + Batch 2 + Batch 3):**
 - `backend/app/schemas.py` — all enums and Pydantic models
 - `backend/app/ids.py` — deterministic ID generation
 - `backend/app/artifacts.py` — run artifact bundle layout + I/O
 - `backend/app/config.py` — RunConfig, load/validate/snapshot
 - `backend/app/ingest.py` — table/schema loading and cell classification
 - `backend/app/lifecycle.py` — run state transitions
-- `backend/app/runner.py` — staged runner, parse + match stages
+- `backend/app/runner.py` — staged runner, parse + match + style-profile + retrieval + extraction stages
 - `backend/app/main.py` — FastAPI endpoints including matching APIs
 - `backend/app/parsing.py` — ParsedDocument contract, DoclingParserAdapter (with BasicTextParser fallback), PDFiumBackend, OCR gate
 - `backend/app/matching.py` — metadata extraction, deterministic scoring, match outcome assignment, duplicate-row conflict detection, artifact persistence
+- `backend/app/style_profiles.py` — StyleProfile schema, per-column heuristic + optional LLM preprocessing, no-leakage enforcement, artifact persistence
+- `backend/app/retrieval.py` — typed chunk generation (paragraph/section/caption/table), contextualized retrieval text, BM25-lite retrieval (top_k=6, neighbor window), artifact persistence
+- `backend/app/provider.py` — ProviderAdapter ABC, LMStudioProvider (localhost API, capability probe, retry/error handling, vision support)
+- `backend/app/extraction.py` — ExtractionRequest builder, text/vision JSON schemas, per-cell orchestrator, proposal+evidence serialization, evidence anchoring, recovery pass, figure fallback trigger/package, support-label mapping, Verify mode
 
 ## Purpose
 
