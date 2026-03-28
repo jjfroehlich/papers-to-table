@@ -6,7 +6,7 @@ Implementation checklist for the full intended MVP.
 
 ## Purpose
 
-This document turns `spec.md`, `research.md`, and `plan.md` into a concrete implementation task list for Codex.
+This document turns `spec.md`, `research.md`, and `plan.md` into a concrete implementation task list for coding agents.
 
 It is intentionally exhaustive and describes the **full intended MVP implementation**, not a reduced sprint slice.
 Tasks remain ordered by **dependency and architecture constraints**, not by human sprint scope reduction.
@@ -47,9 +47,12 @@ If implementation pressure suggests changing any of these constraints, update `s
 - Keep persistence logic centralized in the artifact subsystem rather than scattering ad hoc JSON reads and writes across the codebase.
 - Keep prompt/request construction separate from orchestration logic.
 - Resolve config defaults into one effective runtime config before snapshotting.
-- Keep unsupported or out-of-scope features explicitly blocked so Codex does not silently broaden the MVP.
+- Keep unsupported or out-of-scope features explicitly blocked so coding agents do not silently broaden the MVP.
 - A task is not truly done when a code path exists; it is done when the user-facing behavior, verification, and docs for that slice are strong enough to support the next batch.
 - For UI-affecting tasks, browser verification or equivalent end-to-end coverage is part of done.
+- Provider-path scaffolding is not a completed slice by itself. The canonical LM Studio path must either work on the canonical fixture set or fail early with a clear readiness error.
+- Keep canonical provider naming, config shape, README/docs wording, tests, and UI labels in parity. Unknown provider identifiers must be rejected explicitly.
+- Do not allow a clean shell to hide disabled, stubbed, degraded, or unreachable proposal generation.
 
 ## Assumed repo shape
 
@@ -84,7 +87,7 @@ Future coding-agent implementation should normally proceed by the canonical batc
 
 **Purpose:** establish contracts, artifact persistence, config resolution, deterministic test harnesses, and a real browser-first run-start path with explicit pre-review and lifecycle guidance.
 
-**Primary tasks:** `T001–T024`, `T081`, `T082a`, `T102`, `T103`
+**Primary tasks:** `T001–T024a`, `T081`, `T082a`, `T102`, `T103`
 
 **Why this batch exists:** future work goes shallow if the project starts from a backend-heavy skeleton with weak onboarding or vague run-state handling.
 
@@ -92,8 +95,9 @@ Future coding-agent implementation should normally proceed by the canonical batc
 
 - a new local operator can install dependencies, start backend/frontend, open the browser UI, enter a config path, create a run, and understand `ready` / `validating` / `running` / terminal states
 - config validation, config snapshotting, input summaries, run ids, and artifact layout are stable and inspectable
+- provider token validation and run-start readiness checks catch broken setup, invalid provider config, missing dependencies, unreachable providers, and unavailable models before the operator waits through a misleading run
 - the UI explains what to do before review exists instead of dropping the user into an empty shell
-- automated tests cover config validation, lifecycle transitions, and basic run creation behavior
+- automated tests cover config validation, provider/readiness failures, lifecycle transitions, and basic run creation behavior
 
 ### Batch 2 — Parsing and row-matching baseline
 
@@ -124,6 +128,7 @@ Future coding-agent implementation should normally proceed by the canonical batc
 - one best proposal per target cell is generated with explicit `found` / `inferred` / `unclear` / `blocked` / `error` / `skipped` handling
 - quote-plus-page fallback remains reviewable when highlight anchoring fails
 - figure fallback stays scoped, clearly labeled, and review-first rather than becoming a generic second extraction path
+- the canonical LM Studio path is proven on `tests/fixtures/tables/literature_fixture.xlsx` plus `tests/fixtures/papers/paper_1.pdf` by producing at least one non-empty proposal with reviewer-usable evidence, or the run fails early with an explicit readiness error rather than pretending extraction succeeded
 
 ### Batch 4 — Review backend, summaries, and export gating
 
@@ -153,6 +158,7 @@ Future coding-agent implementation should normally proceed by the canonical batc
 - the browser app presents a coherent run-summary plus queue/detail/evidence workspace
 - proposal ordering, filtering, selection, and run switching behave predictably without stale state leakage
 - text highlights, quote-plus-page fallback, figure evidence, bulk acceptance, edited acceptance, keyboard navigation, and unresolved-match inspection are all actually usable
+- provider mode and readiness truth are visible in the UI, and disabled, degraded, stub, or unreachable proposal-generation states are not mistaken for normal live execution
 - download surfaces are truthful about what is ready versus not yet written
 - end of Batch 5: generate or update `README.md` so it truthfully matches the implemented app’s startup path, config workflow, run lifecycle, review workflow, current download/export behavior, and known MVP limitations at that stage
 - frontend tests and Playwright coverage verify real user-facing behavior, not just component presence
@@ -169,7 +175,7 @@ Future coding-agent implementation should normally proceed by the canonical batc
 
 - accepted-only export, changed-cell highlighting, audit logs, and completed-with-warnings behavior are verified end to end
 - unsupported workbook feature warnings and diagnostics remain explicit rather than implied
-- hermetic end-to-end coverage protects the core workflow, with separate opt-in live-provider smoke coverage and performance smoke tests
+- hermetic end-to-end coverage protects the core workflow, with separate opt-in live LM Studio smoke coverage, opt-in cloud smoke coverage when implemented, and performance smoke tests
 - `README.md` reflects the real primary happy path, artifact locations, config authority, UI-driven launch/status/review/export workflow, and export fidelity boundary
 - the final user-facing docs set is audited against the implemented MVP so README and related docs do not mention speculative helpers, stale commands, obsolete architecture, or workflows that do not exist
 
@@ -270,9 +276,21 @@ The detailed task inventory below remains the source of truth for exact implemen
   - review settings
   - export settings
 
+- [ ] **T009a** Define the canonical provider token policy and settings contract shared across runtime validation, config examples, tests, docs, and UI labels.
+  - use `lm_studio` as the canonical LM Studio config token and `LM Studio` as the canonical operator-visible label
+  - specify how optional cloud providers fit behind the same typed interface
+  - document any allowed aliases in one place only and normalize them into canonical stored values
+  - reject unknown, obsolete, or misspelled provider identifiers explicitly
+
 - [ ] **T010** Implement config default resolution into one effective runtime config before any run work starts.
 
 - [ ] **T011** Create `config.example.json` as a minimal but complete example config file for the full MVP.
+  - keep `lm_studio` and `LM Studio` as the canonical live local config token and operator label
+  - do not hardcode cloud credentials in committed examples
+
+- [ ] **T011a** Add provider-contract example coverage for the checked-in configs and tests.
+  - ensure checked-in example configs, fixture configs, and test helpers use the same canonical provider tokens and settings shape as runtime validation
+  - prefer environment-variable or secret references for optional cloud-provider examples
 
 - [ ] **T012** Implement config/path validation and required metadata/schema validation:
   - validate that configured paths exist and are readable
@@ -280,23 +298,30 @@ The detailed task inventory below remains the source of truth for exact implemen
   - validate that the source table contains `Title`, `Authors`, and `Publication Year`
   - fail early with actionable diagnostics when validation fails
 
+- [ ] **T012a** Implement run-start preflight and readiness validation for the configured execution path.
+  - validate provider token and provider-config shape
+  - validate provider reachability for live providers
+  - validate configured model availability or capability failure when it can be checked cheaply
+  - validate parser and OCR dependency availability when those paths are configured
+  - validate output-directory writability and other obvious broken local setup conditions
+  - stop before normal processing when readiness fails, and persist actionable readiness diagnostics
+
 - [ ] **T013** Implement config snapshotting into run artifacts:
   - validate config at run start
   - persist the resolved effective config as `config.snapshot.json`
   - ensure the run can later be explained from the snapshot
 
-- [ ] **T014** Build a deterministic fixture corpus in `tests/fixtures/` containing at minimum:
-  - one clean born-digital paper that should match and extract successfully
-  - one scanned or text-inaccessible paper for OCR fallback
-  - one unmatched paper
-  - one ambiguous-match paper
-  - one duplicate-row-conflict case
-  - one figure-heavy paper
-  - one workbook fixture with unsupported Excel features present for export warnings
-  - one CSV fixture
-  - one schema fixture
+- [ ] **T014** Audit, normalize, and document the canonical deterministic fixture corpus in `tests/fixtures/`.
+  - reuse the existing checked-in workbook fixture with schema tab plus the existing four paper PDFs as the primary canonical fixture set when they cover the required scenarios
+  - map those fixtures to success, OCR or text-access edge cases, unmatched or ambiguous cases, duplicate-row-conflict cases, and figure-heavy coverage where applicable
+  - add text-based companion configs, manifests, expected outputs, or assertions when more precision is needed
+  - avoid requiring new binary fixtures unless a real coverage gap cannot be addressed otherwise
 
 - [ ] **T015** Set up backend unit/integration/contract test tooling, including provider stubs/fakes and fixture helpers.
+
+- [ ] **T015a** Add contract-parity tests for provider naming and config semantics.
+  - verify canonical provider tokens across runtime schemas, example configs, and test fixtures
+  - verify unknown provider identifiers fail early with clear diagnostics
 
 - [ ] **T016** Set up frontend test tooling and Playwright e2e scaffolding for the review workflow.
 - [ ] **T016a** Harden the Playwright harness so fixture preparation is separate from server startup and browser/server processes start without shell-dependent heredocs or command chaining.
@@ -340,9 +365,16 @@ The detailed task inventory below remains the source of truth for exact implemen
   - fetch config snapshot
   - fetch input summary
 
-- [ ] **T023a** Keep run creation UI-driven in practice by returning a created run immediately, then executing the staged runner under app-owned backend control with a lightweight in-process background mechanism while exposing validating/running/terminal state transitions, actionable failure messaging, and diagnostics/config access.
+- [ ] **T023a** Keep run creation UI-driven in practice by returning a created run immediately, then launching execution under app-owned backend control using a lightweight in-process background mechanism for MVP, with no external job framework required, while exposing validating/running/terminal state transitions, actionable failure messaging, and diagnostics/config access.
 
 - [ ] **T024** Add tests covering valid input readiness, metadata-column rejection, missing-path rejection, placeholder handling, and Verify mode behavior.
+
+- [ ] **T024a** Add tests covering readiness and startup truth.
+  - invalid provider token rejection
+  - provider-unreachable readiness failure
+  - model-unavailable readiness failure where applicable
+  - missing parser or OCR dependency readiness failure where applicable
+  - broken output-path or similarly broken local setup failure
 
 ---
 
@@ -457,8 +489,16 @@ The detailed task inventory below remains the source of truth for exact implemen
 **Goal:** produce one best proposal per eligible target cell with inspectable evidence and stable structured contracts.
 
 - [ ] **T050** Implement the provider abstraction and capability-probe model for structured-output support.
+  - keep one typed interface that supports LM Studio as the default local-first path and optional cloud providers behind the same contract
+  - expose canonical provider token, locality, readiness, and capability information through the abstraction
 
 - [ ] **T051** Implement **LM Studio localhost API** integration as the initial MVP provider path.
+  - keep config parsing, runtime behavior, artifacts, and UI-visible summaries aligned with the canonical provider contract
+
+- [ ] **T051a** Implement optional cloud-provider adapter slots behind the same provider interface.
+  - support environment- or secret-based credential resolution
+  - keep cloud providers optional and outside the committed local-first happy path
+  - do not require opt-in live cloud tests for the default MVP path
 
 - [ ] **T052** Implement provider error handling and structured-output failure policy for LM Studio, including:
   - timeout handling
@@ -467,6 +507,11 @@ The detailed task inventory below remains the source of truth for exact implemen
   - malformed JSON and malformed structured-output handling
   - explicit retry or fail-fast rules with no silent corruption
   - request/response logging policy with actionable diagnostics
+
+- [ ] **T052a** Make provider-mode truth explicit across runtime artifacts and operator surfaces.
+  - classify proposal generation at minimum as live local, live cloud, unavailable, disabled, or explicit stub/demo/degraded mode
+  - prevent silent fallback from a configured live path into an unlabeled stub or degraded path
+  - persist the resulting mode and readiness status in run artifacts and summaries
 
 - [ ] **T053** Implement the extraction request builder for LM Studio structured JSON:
   - assemble per-cell extraction requests from row context, column name, column description, style profile, retrieved passages, and relevant table/caption context
@@ -520,6 +565,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 - [ ] **T066** Ensure Verify mode uses the same extraction path for already-filled cells and persists reviewable proposals for them.
 
 - [ ] **T067** Add tests covering structured-output parsing, provider failure handling, proposal/evidence serialization, blocked outcomes, unclear outcomes, evidence recovery, quote-plus-page fallback, figure fallback triggers, and Verify mode extraction on filled cells.
+  - include contract-parity and provider-mode truth assertions where applicable
 
 ---
 
@@ -528,7 +574,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 **Goal:** make proposals reviewable, filterable, auditable, asset-backed, and safe for partial review and export.
 
 - [ ] **T068** Implement normalized warning and status surfaces:
-  - define categories for ambiguous match, duplicate-row conflict, weak evidence, quote+page fallback without highlight, figure-derived evidence, no reviewed verified cells, and completed-with-warnings run outcome
+  - define categories for ambiguous match, duplicate-row conflict, weak evidence, quote+page fallback without highlight, figure-derived evidence, no reviewed verified cells, completed-with-warnings run outcome, readiness failure, provider unavailable, and explicit disabled or degraded provider mode
   - persist these statuses in run and proposal artifacts
   - expose them consistently through API payloads
 
@@ -584,6 +630,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - Verify mode on/off
   - provider/model names
   - local vs cloud status
+  - provider mode and readiness outcome
 
 - [ ] **T077** Implement reviewer-outcome summary generation as a pure function of proposals and review decisions, and persist it in `summaries/reviewer_summary.json`, including at minimum:
   - proposals generated
@@ -597,6 +644,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - Verify mode on/off
   - provider/model names
   - local vs cloud status
+  - provider mode and readiness outcome where relevant to interpretation
 
 - [ ] **T078** Support summary recomputation from artifact files so both run and reviewer summaries stay derivable and inspectable.
 
@@ -624,11 +672,13 @@ The detailed task inventory below remains the source of truth for exact implemen
   - Verify mode on/off
   - provider/model names
   - local vs cloud status
+  - provider mode and readiness outcome
   - direct links or equivalent access to workbook, audit-log, run-summary, and reviewer-summary downloads
 
 - [ ] **T082a** Implement a run-launch and setup context surface in the UI that:
   - starts a run from a config-file path without exposing a broad advanced-settings editor
   - shows the config path and concise resolved input summary
+  - shows provider/readiness context clearly before the queue is reviewable
   - keeps empty/loading/warning/failure states explicit before the review queue is ready
   - makes the next operator action obvious when no run exists yet or when the selected run is not reviewable
 
@@ -684,6 +734,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [ ] **T093** Surface warnings/statuses, run-summary fields, reviewer-summary fields, provider/model names, and local-vs-cloud status consistently across the review UI and run-summary UI.
   - show coarse running progress as current stage plus current item when available
+  - show provider mode and readiness truth without hiding disabled, unavailable, or degraded proposal generation
   - if zero verified cells have been reviewed, keep per-column lines visible only as evidence-coverage context with explicit wording that reviewer outcomes are not yet meaningful
 
 - [ ] **T094** Add frontend tests for queue filtering, ordering rules, nonlinear review, quote+page fallback rendering, figure-evidence rendering, run-summary display, and bulk-accept confirmation flow.
@@ -753,8 +804,16 @@ The detailed task inventory below remains the source of truth for exact implemen
   - Verify mode reviewed-cell flow
   - figure fallback flow
   - export with accepted-only changes
+  - use the canonical checked-in fixture set as the main proof target and prefer text-based expected outputs over new binary fixtures
 
 - [ ] **T105** Add one realistic non-hermetic smoke test path for local LM Studio execution behind an opt-in flag.
+  - use `tests/fixtures/tables/literature_fixture.xlsx` plus `tests/fixtures/papers/paper_1.pdf` as the canonical live-smoke fixture target
+  - require at least one non-empty proposal with reviewer-usable evidence when the environment is correctly configured
+  - when readiness fails, capture and report the explicit readiness error rather than treating the run as a normal success
+
+- [ ] **T105a** Add optional live cloud-provider smoke coverage only behind separate opt-in flags when cloud adapters are implemented.
+  - use environment- or secret-based credentials only
+  - keep cloud smoke coverage separate from the default local-first acceptance path
 
 - [ ] **T106** Add a performance smoke test for representative small and medium batches so obvious regressions in parsing, retrieval, extraction, and review loading are caught.
 
@@ -765,6 +824,8 @@ The detailed task inventory below remains the source of truth for exact implemen
   - where artifacts and exports are written
   - how Verify mode behaves
   - what the export fidelity boundary is
+  - what provider tokens and provider modes mean in practice
+  - how readiness and startup failures are surfaced
   - make every documented command and workflow match the implementation that currently ships
 - [ ] **T107a** Preserve user-facing onboarding in `README`, including clone/install steps, config-file purpose, LM Studio expectations, backend/frontend run commands, testing commands, artifact locations, and the export fidelity boundary.
   - do not remove useful onboarding content unless it is obsolete and replaced with something clearer in the same work pass
@@ -775,6 +836,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - launch a run from the browser using a config path
   - observe run lifecycle state in the UI
   - review/export from the same surface
+  - describe the canonical LM Studio live path truthfully and avoid implying live proposal generation when the implementation is stubbed, disabled, or degraded
   - document the real config workflow, run lifecycle, review flow, export behavior, and limitations of the implemented MVP
   - do not document speculative helpers or workflows that do not exist
 
@@ -806,6 +868,7 @@ This task list is complete enough when it can drive implementation toward a syst
 - runs the end-to-end paper-to-table workflow locally in a browser app
 - makes the startup and pre-review workflow understandable without requiring the operator to infer the happy path from source code or test fixtures
 - uses React + FastAPI + Docling + `pypdfium2` + raw/custom PDF.js + LM Studio + filesystem artifact bundles
+- enforces canonical provider/config/runtime/docs/tests parity and fails early on unknown or broken provider setups
 - keeps human review mandatory before spreadsheet mutation
 - persists proposals, evidence, review decisions, run summaries, reviewer summaries, diagnostics, and exports as inspectable artifact files
 - supports Verify mode end to end
@@ -813,5 +876,6 @@ This task list is complete enough when it can drive implementation toward a syst
 - exports a new XLSX plus audit log within the explicit content-only fidelity boundary
 - applies scoped automatic figure fallback without adding a user-triggered fallback workflow
 - keeps loading, empty, warning, failure, and not-yet-reviewable states explicit and actionable in the operator workflow
+- proves the canonical LM Studio path can generate at least one non-empty reviewable proposal with evidence on the canonical checked-in fixture set, or fails early with a clear readiness error
 - ships with a truthful user-facing `README.md` and related operator docs that match the implemented commands, architecture, workflow, exports, and limitations
 - stays inside the MVP architecture boundary defined by `spec.md`, `research.md`, and `plan.md`

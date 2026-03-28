@@ -20,7 +20,7 @@ The product is designed for high-trust extraction workflows where proposed value
 
 The intended MVP workflow is:
 
-1. Start a run from the UI by selecting or typing the path to a run configuration file, then let the app validate and snapshot the resolved config before work begins.
+1. Start a run from the UI by selecting or typing the path to a run configuration file, then let the app validate and snapshot the resolved config, run explicit readiness checks, and surface the active proposal-generation mode before work begins.
 2. Normalize table columns and determine which cells are missing versus already filled.
 3. Parse PDFs and extract paper-level metadata needed for row matching.
 4. Match each PDF to at most one row, while surfacing unmatched, ambiguous, and duplicate-row conflicts.
@@ -60,6 +60,40 @@ The browser UI is the normal operator-facing workflow surface for:
 - exporting and downloading outputs
 
 The UI may expose the config path, resolved paths, Verify-mode status, and provider/model context, but broad parameter editing in the UI is not an MVP requirement and must not become the default control surface.
+
+### Provider contract, readiness, and mode truth
+
+The product must preserve one canonical provider contract for proposal generation.
+
+That contract must stay consistent across:
+
+- runtime validation and config parsing
+- checked-in config examples
+- README and operator docs
+- automated tests and fixtures
+- operator-visible UI labels and summaries
+
+Unknown, misspelled, deprecated, or otherwise unsupported provider identifiers must fail early with a clear validation or readiness error rather than being accepted implicitly.
+
+The default local-first provider path is LM Studio via its localhost API.
+
+The canonical config token for that provider is `lm_studio`.
+
+The canonical operator-visible label is `LM Studio`.
+
+For the MVP, undocumented variants such as `lmstudio` must fail validation rather than being accepted implicitly.
+
+Optional cloud providers may be supported behind the same typed provider interface, but they must not change the product's local-first identity, and committed config examples must use environment or secret references rather than hardcoded cloud credentials.
+
+The operator must be able to tell whether proposal generation for a run is:
+
+- live via LM Studio
+- live via a supported cloud provider
+- unavailable or unreachable
+- disabled by configuration
+- running in an explicit stub, demo, or degraded fallback mode
+
+The app must not present a stub, demo, disabled, or degraded provider path as if it were the normal live proposal-generation happy path.
 
 ---
 
@@ -137,6 +171,8 @@ That means:
 - review ergonomics support confident human decisions instead of forcing the operator to infer workflow intent from raw implementation details
 - “minimal” or “task-focused” means legible, guided, and trustworthy rather than barebones, cryptic, or developer-centric
 - the browser UI feels like one coherent run-launch, status, review, and export workflow rather than a thin shell over artifact files
+- the proposal-generation path is truthful: provider mode, readiness state, and any degraded or unavailable status are visible before the operator mistakes a clean shell for a working extraction system
+- the documented LM Studio happy path is either genuinely capable of producing reviewable proposals with evidence on the canonical checked-in fixture path or it fails early with an actionable readiness error
 - documentation reflects the actual happy path and the actual limits of the product
 - the user-facing `README.md` is treated as a product surface, not as post-hoc cleanup
 - the `README.md` and other operator-facing docs must describe the real startup path, config workflow, run lifecycle, review workflow, export behavior, artifact locations, and known MVP limitations that the implementation actually supports
@@ -248,6 +284,7 @@ For each run, the system must produce:
 - Verify-mode reviewer-outcome summaries must not silently report an all-zero result when no targets were actually reviewed.
 - Unreviewed proposals must not appear as accepted changes in the exported table.
 - A concise run summary must report provider/model names used, whether processing stayed local or used cloud providers, and key run metrics.
+- The run summary and UI must distinguish between live provider execution, explicit disabled mode, explicit stub or demo mode, and provider-unavailable or provider-unreachable outcomes.
 
 ---
 
@@ -278,15 +315,27 @@ The system must normalize column identifiers and detect which cells are missing,
 
 The system must validate that the table includes standardized metadata columns named `Title`, `Authors`, and `Publication Year` before row matching begins.
 
+Before the run leaves the validation/readiness phase, the system must also validate:
+
+- provider identifier and provider-config shape
+- provider reachability when a live provider is configured
+- configured model availability or equivalent capability failure when it can be checked up front
+- parser or OCR dependency availability when those paths are configured
+- output-path writability and other obvious broken-install or broken-setup conditions
+
 The product must preserve one clear primary local happy path: install dependencies, start backend and frontend, open the browser UI, provide a config path, launch the run, monitor state, review proposals, and export accepted changes. Developer shortcuts may exist for debugging, but they must not replace this documented operator path.
 
 Advanced run behavior must be controlled through the run configuration rather than through extensive tuning controls in the UI.
 
 The UI must show the config path plus a concise resolved-input summary, including at least the table path, schema path when present, PDF directory, output directory, target-column count or list, and Verify-mode status.
 
+The UI must also show a concise provider/readiness summary before the run starts or while validation is in progress, including the canonical provider name, configured model names when relevant, and whether the app currently sees the provider path as live, unavailable, disabled, or explicitly degraded.
+
 When the operator switches from one run to another, the UI may preserve the current queue filter, but it must treat proposal selection, proposal detail, and evidence-viewer state as run-scoped. It must clear or reload those views for the newly selected run rather than briefly showing or requesting stale proposal or evidence data from the previous run.
 
 Validation failures must be surfaced with actionable operator-facing messages rather than generic request failures.
+
+Provider readiness failures must be surfaced before the operator waits through a nominal run that cannot actually produce proposals.
 
 Before any run exists, or when the selected run is not yet reviewable, the UI must make the next valid operator action obvious rather than presenting an unexplained empty review workspace.
 
@@ -335,6 +384,8 @@ Targets with no proposed value do not need to appear as normal actionable propos
 The system may use schema descriptions and non-binding format or style guidance to shape the expected output format, but proposal content must be grounded in the current PDF evidence.
 
 For some field types, the system may use non-binding format or style guidance derived from existing column entries to improve output shape and consistency, provided the proposal content itself remains grounded only in the current PDF.
+
+The system must not treat a syntactically completed extraction stage as functional proposal success if the active provider path was unreachable, stubbed, disabled, silently degraded, or otherwise unable to generate meaningful proposals.
 
 ### FR-5 Proposal behavior and derived reasoning
 
@@ -516,6 +567,7 @@ The system must preserve diagnostics that help explain:
 The system must provide a normal user-facing run summary with at least:
 - current or terminal run state
 - actionable status or failure message
+- readiness or preflight outcome when the run did not proceed normally
 - number of PDFs processed
 - number of PDFs matched, unmatched, and ambiguous
 - number of proposals generated
@@ -526,6 +578,7 @@ The system must provide a normal user-facing run summary with at least:
 - proposal coverage
 - number of accepted changes
 - provider/model names used for the run
+- provider mode for proposal generation, such as live local, live cloud, unavailable, disabled, or explicit degraded/demo mode
 - whether processing stayed local or used cloud providers
 - reviewer-outcome summary when Verify mode is enabled
 
@@ -538,6 +591,8 @@ When a run is not yet reviewable, the summary surface should still help the oper
 Download surfaces must also remain truthful: config snapshots and diagnostics may be available early, but exports and summaries must not be presented as ready when the underlying files have not been written yet.
 
 If no verified cells have been reviewed yet, reviewer-outcome reporting should remain visible but explicitly provisional. The UI should keep per-column evidence-coverage lines visible with wording that makes clear they are coverage context rather than reviewer-outcome scores until at least one verified cell has actually been reviewed.
+
+If a run completes but yields no reviewable proposals, the normal summary must make clear whether the reason was blocked matching, provider unavailability, explicit disabled or degraded mode, extraction failure, or another diagnostic class rather than collapsing all such cases into a generic `completed` result.
 
 In MVP, reviewer-outcome summaries are the primary reporting mechanism, and automated correctness scoring across heterogeneous field types is deferred.
 
@@ -632,13 +687,17 @@ The system should be usable on realistic researcher-sized batches of PDFs withou
 
 A realistic MVP workload is roughly 1 to 150 PDFs, with smaller batches common during testing.
 
-### NFR-6 Privacy and provider transparency
+### NFR-6 Privacy, provider transparency, and contract parity
 
 The product should make it clear when external model or parsing providers are used.
 
 At minimum, run outputs or the UI should make visible:
 - whether processing stayed local or used external providers
 - which providers/models were used for the run
+
+Provider naming and config semantics should remain canonical across runtime validation, config examples, docs, tests, and operator-visible UI surfaces.
+
+Cloud credentials must be supplied through environment variables, secret references, or equivalent local secret handling rather than committed example credentials.
 
 This transparency should appear in a concise run summary rather than only in deep diagnostic logs.
 
@@ -682,6 +741,12 @@ Developer-only shortcuts, helper scripts, or partial implementation paths must n
 Given a valid table, schema, PDF folder, and run configuration with standardized `Title`, `Authors`, and `Publication Year` columns,
 when the user starts a run,
 then the system records the run inputs and identifies missing versus already-filled target cells.
+
+### AC-1a Preflight and readiness truth
+
+Given a run configuration references a provider, model, parser, OCR path, output path, or other required runtime dependency,
+when the user starts a run,
+then the system performs explicit readiness checks before normal processing, surfaces actionable errors for invalid or unavailable dependencies, and does not pretend the run is functionally healthy when the live proposal path is not ready.
 
 ### AC-2 Matched extraction path
 
@@ -771,13 +836,25 @@ then only explicitly accepted proposals appear in the exported workbook and audi
 
 Given a run used one or more model or parsing providers,
 when the run summary is shown or exported,
-then the summary identifies the provider or model names used and whether processing stayed local or used external services.
+then the summary identifies the provider or model names used, whether processing stayed local or used external services, and whether proposal generation ran live, was unavailable, was disabled, or used an explicit degraded or demo path.
 
 ### AC-17 Onboarding and workflow truth
 
 Given a new local operator following the documented primary happy path,
 when they install dependencies, start the backend and frontend, open the browser UI, enter a config path, and launch a run,
 then the app and docs agree on the same workflow, the operator can understand pre-review and in-progress states without consulting source code, and the same app surface remains the normal place to review proposals and export outputs.
+
+### AC-18 Canonical provider contract parity
+
+Given the checked-in config examples, runtime config validation, tests, and operator-visible provider labels,
+when a supported provider is referenced,
+then the same canonical provider token and settings shape are accepted consistently across those surfaces, including `lm_studio` as the LM Studio config token and `LM Studio` as the operator-visible label, and unknown or misspelled provider identifiers fail early with a clear error.
+
+### AC-19 Canonical live proposal path
+
+Given the canonical live-smoke fixture target consisting of `tests/fixtures/tables/literature_fixture.xlsx` plus `tests/fixtures/papers/paper_1.pdf`, and a reachable LM Studio configuration,
+when the operator runs the normal browser-first workflow,
+then the system either produces at least one non-empty reviewable proposal with reviewer-usable evidence or fails early with an explicit readiness error that clearly explains why live proposal generation could not proceed.
 
 ---
 

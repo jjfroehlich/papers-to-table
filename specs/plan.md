@@ -34,6 +34,7 @@ The intended implementation model for this repository is:
 - The JSON config file remains authoritative for advanced behavior and reproducibility.
 - The browser UI owns the normal operator workflow for launch, status visibility, review, and export.
 - The local onboarding path should stay clear and singular: start backend, start frontend, open the browser UI, supply a config path, start the run.
+- Do not let early batches stop at a structurally correct shell. Provider-path scaffolding, placeholder proposal generation, or silent degraded modes do not count as a finished slice.
 - If a batch changes operator-facing truth, update `README.md`, `spec.md`, `plan.md`, and `tasks.md` together in the same work pass.
 - End-of-batch documentation updates are mandatory for operator-facing changes; `README.md` must trail implementation by zero batches, not by a later cleanup pass.
 - `README.md` and any other user-facing docs must only describe commands, config behavior, lifecycle states, review actions, downloads, exports, and limitations that exist in the implemented slice.
@@ -85,6 +86,14 @@ Implementation for this phase is complete when the system satisfies the function
    - real limitations and unsupported cases
    - no speculative helpers or unimplemented workflows
 
+11. The canonical provider contract is stable across runtime validation, config examples, tests, README/docs, and operator-visible UI labels, with unknown provider identifiers rejected explicitly.
+
+12. Run-start preflight checks catch invalid provider config, provider unreachable state, model unavailable state, missing parser or OCR dependencies, and other broken local setup conditions before the operator waits through a misleading run.
+
+13. The canonical LM Studio live path is proven on the checked-in canonical fixture set by producing at least one non-empty proposal with reviewer-usable evidence, or the app fails early with a clear readiness error instead of looking nominally complete.
+
+14. Run artifacts and run summaries record whether proposal generation was live local, live cloud, unavailable, disabled, or explicitly degraded/demo, and the UI reports that state truthfully.
+
 ---
 
 ## Constraints and non-goals
@@ -99,6 +108,7 @@ Implementation for this phase is complete when the system satisfies the function
 - Pipeline must preserve auditable run artifacts.
 - Parser, model, and retrieval backends must remain replaceable behind stable contracts.
 - Provider/model behavior must be transparent enough for users to know whether a run stayed local or used cloud services.
+- Provider config examples must not require committed cloud secrets; optional cloud providers should rely on environment or secret references.
 
 ### Non-goals
 
@@ -136,7 +146,7 @@ The initial system will use a mostly deterministic staged pipeline with a few LL
 The workflow is structured and auditable. The prior implementation showed that graph orchestration added less value than expected around a mostly sequential loop. The rewrite should stay simple for MVP: one run executes straight through, and an interrupted run is restarted as a new run rather than resumed in place.
 
 **Operator consequence:**
-Runs are started through the API and executed under app-owned backend control using a lightweight in-process background mechanism for MVP, so the UI can remain the primary operator surface for launch and status tracking without requiring an external job framework.
+Runs are launched from the UI and executed under app-owned backend control using a lightweight in-process background mechanism for MVP; no external job framework is required.
 
 ---
 
@@ -189,12 +199,21 @@ Use `openpyxl` as the main XLSX round-trip engine. Guarantee content-only fideli
 
 ---
 
-### TD-7: Use structured outputs first, with LM Studio localhost API as the initial provider
+### TD-7: Use one typed provider abstraction, structured outputs first, with LM Studio localhost API as the default live path
 
-LLM interaction will be schema-first using typed contracts. The initial supported provider path is LM Studio via its localhost API, with each cell request returning structured JSON plus page-grounded evidence. Other providers can be added later behind the same contract.
+LLM interaction will be schema-first using typed contracts. The initial supported live provider path is LM Studio via its localhost API, with each cell request returning structured JSON plus page-grounded evidence. Optional cloud providers can be added later behind the same contract without changing the operator workflow or broadening the UI into a settings editor.
 
 **Rationale:**
 The extraction path depends on predictable proposal and evidence objects. LM Studio matches the local-first MVP boundary while preserving a clean contract for future provider expansion.
+
+**Contract policy:**
+- the canonical LM Studio config token is `lm_studio`
+- the canonical LM Studio operator-visible label is `LM Studio`
+- provider identifiers come from one canonical enum or equivalent central registry
+- compatibility aliases, if any, must normalize into canonical stored values and stay documented in one place
+- unknown provider identifiers fail early
+- cloud-provider credentials are resolved from environment or secret references, not committed example secrets
+- stub/demo/degraded provider modes must be explicit, never silent
 
 ---
 
@@ -304,6 +323,8 @@ This plan depends on `research.md` for supporting tradeoffs and decisions. Addit
   - workbook fidelity policy
   - UI stack
 
+The stable run, provider, review, and export surfaces may later support richer APIs, MCP-style integrations, or larger agentic systems, but that is a later extension. The current MVP requirement is a truthful, working local-first app with one real proposal-generation happy path.
+
 Implementation should normally proceed batch-by-batch according to `tasks.md`. The detailed task list remains exhaustive, but the practical implementation unit is a coherent batch with its own verification and doc-sync expectations.
 
 ---
@@ -388,6 +409,16 @@ This config file is the source of truth for:
 - review settings
 - export settings
 
+Provider settings should follow one typed schema that covers at least:
+
+- canonical provider token
+- provider locality (`local` or `cloud`)
+- base URL or endpoint where relevant
+- text and vision model identifiers where relevant
+- timeout and structured-output capability settings where relevant
+- credential environment-variable or secret references for cloud providers
+- explicit disabled or stub/demo mode only when intentionally supported
+
 The UI should not expose a large parameter-tuning surface in MVP. Advanced behavior is configured by editing the config file directly.
 
 The UI should still expose enough config-derived context for safe operation: config path, resolved input locations, output location, Verify-mode status, and provider/model summary.
@@ -405,6 +436,10 @@ The MVP pipeline should run in these explicit stages:
 1. **Load config and inputs**
    - read config
    - expose `ready` before starting, then `validating` while checking config and input readiness
+   - validate canonical provider token and provider-config shape
+   - run provider/model readiness checks when live proposal generation is configured
+   - verify parser, OCR, and other required dependency availability for configured paths
+   - verify output-path writability and other obvious broken-setup conditions
    - load spreadsheet and schema
    - validate required metadata columns
    - detect missing and already-filled cells
@@ -441,6 +476,7 @@ The MVP pipeline should run in these explicit stages:
    - use crop + caption + nearby text + full page as needed
 9. **Write proposal artifacts**
    - write proposals, evidence, diagnostics, and run summaries as JSON artifacts
+   - record provider mode, readiness results, and any explicit degraded or disabled status in run artifacts and summaries
 10. **Review in UI**
    - show resolved run setup context and direct access to config snapshot
    - keep the queue clearly non-actionable until the run is review-ready
@@ -1038,9 +1074,11 @@ Run the pipeline simply and predictably without reintroducing graph-runtime comp
 ## Recommended MVP shape
 
 - app-owned staged runner
-- runs started through the API and executed under app-owned backend control using a lightweight in-process background mechanism
+- runs launched from the UI and executed under app-owned backend control using a lightweight in-process background mechanism
 - no job queue required by default
 - add **Huey + SqliteHuey** first if async execution becomes a practical necessity
+
+Runs are launched from the UI and executed under app-owned backend control using a lightweight in-process background mechanism for MVP; no external job framework is required.
 
 ## Why this shape
 
@@ -1069,9 +1107,57 @@ Keep proposal extraction robust across local and external providers.
 - structured JSON per proposal as the stable contract
 - prompt-only JSON fallback when required for future providers
 
+The provider layer should be one typed interface with explicit locality, capability, and readiness reporting. The same provider abstraction should support LM Studio as the default local-first path and optional cloud providers later without changing the browser-first operator workflow.
+
 ## Initial provider decision
 
 The initial provider path is LM Studio via its localhost API. The plan should assume local execution by default and treat other providers as later extensions behind the same interface.
+
+## Canonical token and alias policy
+
+- the canonical LM Studio config token is `lm_studio`
+- the canonical LM Studio operator-visible label is `LM Studio`
+- provider names are centrally defined and stored canonically
+- config parsing, tests, docs, and UI labels must use the same canonical tokens
+- explicit aliases may exist only as a documented normalization layer
+- unknown or obsolete identifiers fail during validation rather than being guessed at runtime
+
+## Provider config schema expectations
+
+Each provider entry should capture, as applicable:
+
+- canonical provider token
+- declared locality (`local` or `cloud`)
+- endpoint or base URL
+- model identifiers for text extraction and vision fallback
+- timeout and capability-probe settings
+- credential environment-variable or secret references for cloud providers
+- explicit disabled flag or explicit stub/demo mode only when intentionally supported
+
+Committed examples should show LM Studio as the default live path. Cloud examples, when present, should demonstrate environment-based credential resolution rather than committed secrets.
+
+## Preflight and readiness policy
+
+Before normal run execution begins, the app should perform the smallest coherent readiness check set for the configured path:
+
+- config schema and canonical provider-token validation
+- provider reachability for live providers
+- configured model availability or capability failure where it can be checked cheaply
+- parser and OCR dependency availability for configured paths
+- output-path writability and other obvious broken local setup conditions
+
+If these checks fail, the run should stop before misleading downstream stages and persist a readiness failure that the UI can present directly.
+
+## Provider mode recording and truthfulness
+
+Run artifacts and normal summaries should record at least:
+
+- configured provider token
+- resolved canonical provider token
+- model identifiers used
+- locality (`local` or `cloud`)
+- proposal-generation mode (`live`, `unavailable`, `disabled`, or explicit `stub/demo/degraded`)
+- readiness checks performed and failing reasons where applicable
 
 ## Transparency
 
@@ -1079,6 +1165,7 @@ The system should record and surface:
 - provider name
 - model name
 - whether the run stayed local or used cloud providers
+- whether proposal generation was live, unavailable, disabled, or explicitly degraded/demo
 
 At minimum this should appear in the normal run summary.
 
@@ -1086,6 +1173,7 @@ The normal run summary should include:
 - provider name
 - model name
 - whether execution stayed local or used cloud services
+- provider mode and readiness outcome for proposal generation
 - PDFs processed
 - matched, unmatched, and ambiguous PDF counts
 - proposals generated
@@ -1097,6 +1185,25 @@ The normal run summary should include:
 ---
 
 ## Evaluation and measurement strategy
+
+## Canonical fixture strategy
+
+The checked-in workbook fixture with schema tab plus the checked-in set of four paper PDFs should remain the primary canonical fixture baseline for MVP rebuilds when they cover the intended scenarios.
+
+The canonical live-smoke fixture target for the LM Studio proof path is:
+
+- `tests/fixtures/tables/literature_fixture.xlsx`
+- `tests/fixtures/papers/paper_1.pdf`
+
+That pair is the normative minimum live-path proof target for MVP unless the fixture audit explicitly revises it in the same work pass.
+
+Implementation and verification work should prefer:
+
+- reusing those existing binary fixtures
+- adding text-based companion configs, manifests, expected outputs, or assertions when more specificity is needed
+- avoiding new binary fixtures unless a real coverage gap cannot be addressed otherwise
+
+This keeps the rebuild burden realistic for coding agents while preserving one stable happy-path proof target.
 
 ## Objective
 
@@ -1279,7 +1386,7 @@ Paper Table Agent will be implemented as a local-first workflow application with
 - one main parser first, behind a normalized parser contract
 - OCRmyPDF plus Tesseract as the scanned-PDF fallback
 - typed retrieval units and source-preserving evidence
-- a deterministic app-owned staged runner executed synchronously first inside FastAPI, with Huey + SqliteHuey as the first likely async addition if needed
+- runs launched from the UI and executed under app-owned backend control using a lightweight in-process background mechanism for MVP, with Huey + SqliteHuey as the first likely async addition if needed
 - filesystem artifact bundles and JSON state files as the complete MVP persistence layer, with no database required
 - reviewer-outcome-based MVP evaluation
 - a preprocessing LLM that turns existing filled cells into structured style profiles

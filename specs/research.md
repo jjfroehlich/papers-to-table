@@ -76,8 +76,11 @@ The main research questions for this phase were:
 - The system should use **filesystem artifact bundles plus JSON files as the canonical and sufficient MVP state**, with no database required for MVP.
 - Export should generate a **new updated XLSX workbook plus audit log**, not patch arbitrary workbooks in place, and **openpyxl** is the most realistic Python engine for that MVP behavior. The fidelity promise should be **content-only fidelity plus changed-cell highlighting**, with workbook behavior and advanced sheet features out of guarantee.
 - The implementation should use a **deterministic staged pipeline first**, with only targeted LLM-assisted stages.
-- The strongest current MVP runtime recommendation is **an app-owned staged runner executed synchronously inside the FastAPI service first**, with **Huey + SqliteHuey** as the first candidate background-job layer only if UI responsiveness later proves async execution necessary.
+- The strongest current MVP runtime recommendation is that **runs are launched from the UI and executed under app-owned backend control using a lightweight in-process background mechanism for MVP; no external job framework is required**, with **Huey + SqliteHuey** as the first candidate background-job layer only if that approach later proves insufficient.
 - Structured outputs should be the **default contract path**, with capability probes and graceful fallback for weaker providers.
+- Recent rebuild attempts showed that provider-path proof, readiness checks, and exact provider-contract parity must be explicit. A clean browser shell is not enough if the documented LM Studio path is broken, stubbed, mismatched, or silently degraded.
+- The rebuild quality bar should require one canonical live-path proof target: the checked-in workbook fixture plus the checked-in set of four paper PDFs, with `tests/fixtures/tables/literature_fixture.xlsx` plus `tests/fixtures/papers/paper_1.pdf` as the default live-smoke pair, and text-based companion fixtures or assertions preferred over new binary artifacts.
+- The provider architecture should remain **LM Studio first** for the local-default path, using the canonical config token `lm_studio`, while allowing **optional cloud providers behind the same typed interface**, using environment or secret-based credentials and opt-in live tests only.
 - Heavy orchestration or graph-first agent systems should be **deferred** unless measured workflow complexity clearly justifies them.
 - In MVP, evaluation should be based primarily on **reviewer-outcome summaries**, not on a single automated “correctness score” over heterogeneous field types.
 - Existing filled spreadsheet cells should be processed through a **per-column preprocessing LLM** that produces a structured style/format profile. Heuristic-only default shaping is not sufficient, and raw filled cells should **not** be passed into extraction prompts as semantic exemplars by default.
@@ -178,6 +181,12 @@ The rewrite should therefore begin from a smaller baseline:
 - typed/contextualized retrieval and table-aware retrieval as focused structural improvements
 
 Any added sophistication should prove lift before becoming baseline.
+
+Recent rebuild evidence adds three practical constraints to that baseline:
+
+- provider contract parity must be enforced across runtime, config examples, docs, tests, and UI labels
+- run-start preflight must catch provider, model, parser, dependency, and setup failures before nominal run execution
+- completion should require either real proposal generation proof on the canonical fixture path or an explicit readiness failure, not a cosmetically complete app shell
 
 ---
 
@@ -671,7 +680,7 @@ The question was whether v1 should be built around a heavyweight orchestration/a
 
 ## Main conclusion
 
-The app should use a **deterministic app-owned staged runner first**, executed synchronously in the FastAPI service. No job queue is required for MVP. If async execution becomes necessary later, **Huey + SqliteHuey** is the first likely queue layer.
+Runs are launched from the UI and executed under app-owned backend control using a lightweight in-process background mechanism for MVP; no external job framework is required. If that approach later proves insufficient, **Huey + SqliteHuey** is the first likely queue layer.
 
 ## Why this conclusion won
 
@@ -699,7 +708,7 @@ The queue library should only run stage jobs in the background.
 This research supports:
 
 - simple stage-based pipeline execution
-- synchronous execution first, with background execution deferred unless needed
+- UI-launched execution under app-owned backend control using a lightweight in-process background mechanism, with no external job framework required for MVP
 
 For MVP, that staged runner can remain single-pass. It does not need pause/resume support or in-place rerun semantics; interrupted runs can simply be replaced by a new run.
 
@@ -1219,8 +1228,8 @@ Paper Table Agent should be built as a **local-first, workflow-centered paper-to
 - OCRmyPDF plus Tesseract as the scanned-PDF fallback
 - typed retrieval units with source-preserving evidence display
 - filesystem artifact bundles and JSON files as the complete MVP persistence model
-- a deterministic app-owned staged runner executed synchronously first inside FastAPI
-- LM Studio localhost API as the default structured-output provider
+- runs launched from the UI and executed under app-owned backend control using a lightweight in-process background mechanism for MVP
+- LM Studio localhost API, using the canonical config token `lm_studio`, as the default structured-output provider
 - reviewer-outcome-based MVP evaluation
 - preprocessing-LLM-derived style/format profiles rather than raw semantic examples
 - figure-aware fallback with scoped triggers for the heavier reasoning-plus-vision path
