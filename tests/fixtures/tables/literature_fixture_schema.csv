@@ -1,0 +1,43 @@
+﻿column_name,description
+Authors,"List of authors, used to identify the publication."
+Publication Year,"Year when the paper was published, to identify the publication."
+Title,"Title of the publication, to identify the publication."
+Abstract,Abstract text of the publication.
+Journal,Journal the paper was published in.
+Link,DOI link.
+Date Added,Date the paper was added to the bibliography or library.
+MPRABase_datasets_id,"Dataset ID for the publication in the ""MPRAbase"" database."
+Focus,"What the general focus of the publication is (e.g. transcriptional regulation, UTRs, coding, or other)"
+Synthetic designs,If the study tests only native sequences or if sequences are changed.
+Cloning,How the library was cloned. 
+Bottlenecking,"If there was bottle-necking used in the cloning to achieve a specific number of barcodes per sequence. And if so, how the bottle-necking was done (liquid culture, scraping colonies). "
+mean # Barcodes per sequence,How many different barcodes there are for each tested sequence. 
+Type of variants,"What kind of sequence the study tests, e.g. mainly comparing different sequences (fragments), or comparing different variations of a sequence (point, del), or completely synthetic sequences"
+Species,Which species the model system is from.
+Model system,The model system (e.g. which cell line).
+Episomal vs genomic,If the reporter construct is integrated in the genome (genomic) or not and transiently transfected (episomal)
+If episomal: Ori in backbone?,In case the assay is episomal (and not genomically integrated): if the backbone plasmid contained an Ori and if the authors prevented activity of the Ori (which might interfere with the assay)
+Integration method,"Which method is used to integrate the reporter in the genome, only applies if the assay is genomically integrated (and not episomal)"
+Integration site,"In case the assay is genomic integrated, then where it is integrated. Lenti or PiggyBac would be random, recombinases/landing pad based systems would have a specific locus usually. "
+Readout,"How the expression is read out. By RNA levels (RNAseq, scRNAseq), or by FACS sorting followed by DNAseq (FACS)"
+Promoter,"With which promoter the assay is performed, for studies of transcription this is often some kind of minimal promoter. Also add which specific minimal promoter is used (and the source of that minimal promoter if stated). "
+MPRABase_Total_Variants_Tested,Only for publications that are catalogued in MPRAbase database. 
+# Variants tested,How many different sequences (or variants) where being evaluated in the study
+Scale,If the tested sequences where randomly taken from the whole genome or if the experiment covered the whole genome
+length of sequences (bp),How long the sequences are that are tested
+Where is the BC?,"Where the barcode is located in the reporter design (often that can be 5'UTR or 3'UTR, but might be different in special cases)"
+BC length (bp),How long the barcode sequences are. 
+General library design category,"Transcriptional reporter assays often are based on a few general designs. There is STARRseq (where the tested sequence is expressed in the 3'UTR of the reporter) and LentiMPRA (where the barcode is part of the 5'UTR of the reporter mRNA), and there are possibly a few more. "
+mean reads per sequence/variant,How many sequencing reads for each tested sequence/variant where required or achieved?
+library construction,How the MPRA library is cloned and prepare (before delivering it to the cells)
+library composition,"In which proportions of sequences the library is composed, e.g. how many percent are control sequences, how many are test sequences. "
+library seq,"How the MPRA library is sequenced (e.g. to associate barcodes with sequences), before it is delivered to the cells"
+Delivery,How the library was delivered to cells. 
+RNA library,How the RNA library is prepared when the assay is being conducted
+DNA library,How the DNA library is prepared when the assay is being conducted
+UMI?,If the RNA/DNA library prep includes a UMI (and how it is added)
+Approach,General approach
+what predicts activity? (e.g. accessible -> active in MPRA?),What chromatin features or sequence features correlated well with activitiy in the MPRA. 
+Other notes,noteworthy things
+Number of Conditions,"In case the study performed the MPRA with the same sequences in different conditions (e.g. different media, different time points, different concentrations of agonist), then the number of different conditions"
+Type of Condition,"In case the study performed the MPRA with the same sequences in different conditions (e.g. different media, different time points, different concentrations of agonist), then the type of conditions that were tested"

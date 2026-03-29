@@ -52,7 +52,9 @@ If implementation pressure suggests changing any of these constraints, update `s
 - For UI-affecting tasks, browser verification or equivalent end-to-end coverage is part of done.
 - Provider-path scaffolding is not a completed slice by itself. The canonical LM Studio path must either work on the canonical fixture set or fail early with a clear readiness error.
 - Keep canonical provider naming, config shape, README/docs wording, tests, and UI labels in parity. Unknown provider identifiers must be rejected explicitly.
+- Treat `README.md`, the checked-in config example, the runtime config schema, and operator-visible UI copy as one operator-facing contract. Keep provider, parser, model, Verify-mode, and run-state terminology aligned across those surfaces.
 - Do not allow a clean shell to hide disabled, stubbed, degraded, or unreachable proposal generation.
+- Treat the reviewer as reviewing the paper, not the model. Review-state semantics, no-data handling, and evidence interaction should reflect that throughout implementation.
 
 ## Assumed repo shape
 
@@ -96,6 +98,8 @@ Future coding-agent implementation should normally proceed by the canonical batc
 - a new local operator can install dependencies, start backend/frontend, open the browser UI, enter a config path, create a run, and understand `ready` / `validating` / `running` / terminal states
 - config validation, config snapshotting, input summaries, run ids, and artifact layout are stable and inspectable
 - provider token validation and run-start readiness checks catch broken setup, invalid provider config, missing dependencies, unreachable providers, and unavailable models before the operator waits through a misleading run
+- readiness-failed and early-failed runs still expose resolved config/input context in artifacts and the UI
+- the run/setup surface is picker-driven for normal use, resolves path differences clearly, and stays compact rather than path-heavy
 - the UI explains what to do before review exists instead of dropping the user into an empty shell
 - automated tests cover config validation, provider/readiness failures, lifecycle transitions, and basic run creation behavior
 
@@ -111,6 +115,7 @@ Future coding-agent implementation should normally proceed by the canonical batc
 
 - PDFs are normalized into a stable parsed-document contract with stored parser diagnostics and page/crop artifacts
 - OCR fallback is narrow, explicit, and stored in artifacts
+- configured parser choice, actual parser used, and any explicit fallback path are inspectable rather than silently substituted
 - each PDF ends in a clear match outcome before extraction
 - ambiguous, unmatched, and duplicate-row-conflict cases are blocked and inspectable rather than silently leaking into extraction
 
@@ -127,6 +132,7 @@ Future coding-agent implementation should normally proceed by the canonical batc
 - retrieval artifacts, style profiles, prompts, proposal records, and evidence records are all inspectable in run artifacts
 - one best proposal per target cell is generated with explicit `found` / `inferred` / `unclear` / `blocked` / `error` / `skipped` handling
 - quote-plus-page fallback remains reviewable when highlight anchoring fails
+- structured-output compatibility is negotiated truthfully, malformed structured responses get bounded recovery before hard failure, long-text fields do not systematically fail from short-answer assumptions, and unsupported guessing resolves to `unclear`
 - figure fallback stays scoped, clearly labeled, and review-first rather than becoming a generic second extraction path
 - the canonical LM Studio path is proven on `tests/fixtures/tables/literature_fixture.xlsx` plus `tests/fixtures/papers/paper_1.pdf` by producing at least one non-empty proposal with reviewer-usable evidence, or the run fails early with an explicit readiness error rather than pretending extraction succeeded
 
@@ -143,6 +149,8 @@ Future coding-agent implementation should normally proceed by the canonical batc
 - proposal-list/detail/filter APIs support the full MVP review surface
 - review decisions are explicit persisted records, not implicit UI state
 - progress counters, warning/status categories, run summaries, and reviewer summaries are recomputable from artifacts
+- run and reviewer summaries stay internally consistent, with provisional states labeled clearly and warning flags gated on real triggering conditions
+- persisted review semantics distinguish confirmed no-data outcomes from rejected-or-model-wrong outcomes
 - export candidate selection is safely limited to explicitly accepted proposals
 
 ### Batch 5 — Browser review workspace and operator usability
@@ -156,9 +164,13 @@ Future coding-agent implementation should normally proceed by the canonical batc
 **Batch 5 is complete when:**
 
 - the browser app presents a coherent run-summary plus queue/detail/evidence workspace
-- proposal ordering, filtering, selection, and run switching behave predictably without stale state leakage
-- text highlights, quote-plus-page fallback, figure evidence, bulk acceptance, edited acceptance, keyboard navigation, and unresolved-match inspection are all actually usable
+- grouped queue triage is actually usable, with paper and column grouping, compact cards, and high-scan state markers
+- proposal ordering, filtering, selection, grouping mode changes, and run switching behave predictably without stale state leakage
+- no-value cases have explicit reviewer paths, including manual entry and confirmed no-data resolution
+- text highlights, quote-plus-page fallback, figure evidence, zoom/pan, evidence-to-input interaction, bulk acceptance, edited acceptance, keyboard navigation, and unresolved-match inspection are all actually usable
+- rationale is concise and scannable in the decision pane rather than rendered as dense prose
 - provider mode and readiness truth are visible in the UI, and disabled, degraded, stub, or unreachable proposal-generation states are not mistaken for normal live execution
+- the run/setup UI is picker-driven rather than path-heavy while still showing config-derived resolved context
 - download surfaces are truthful about what is ready versus not yet written
 - end of Batch 5: generate or update `README.md` so it truthfully matches the implemented app’s startup path, config workflow, run lifecycle, review workflow, current download/export behavior, and known MVP limitations at that stage
 - frontend tests and Playwright coverage verify real user-facing behavior, not just component presence
@@ -196,6 +208,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - support label
   - evidence source type
   - review decision
+  - review resolution reason
   - warning/status category
   - provider locality (`local` vs `cloud`)
 
@@ -262,6 +275,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [ ] **T008** Define the review-decision JSON schema plus the run-summary and reviewer-summary JSON schemas.
   - review decisions must remain persistable as explicit records, not only as in-place proposal mutations
+  - preserve a distinct confirmed-no-data outcome and structured resolution reasons for non-accepted or manually resolved states
 
 - [ ] **T009** Define the single JSON config schema covering:
   - input table and schema paths
@@ -282,6 +296,8 @@ The detailed task inventory below remains the source of truth for exact implemen
   - document any allowed aliases in one place only and normalize them into canonical stored values
   - reject unknown, obsolete, or misspelled provider identifiers explicitly
 
+- [ ] **T009b** Define the operator-facing terminology parity rules for provider, parser, model, Verify-mode, and run-state labels across the runtime config schema, checked-in config example, tests, docs, and UI copy.
+
 - [ ] **T010** Implement config default resolution into one effective runtime config before any run work starts.
 
 - [ ] **T011** Create `config.example.json` as a minimal but complete example config file for the full MVP.
@@ -294,6 +310,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [ ] **T012** Implement config/path validation and required metadata/schema validation:
   - validate that configured paths exist and are readable
+  - resolve relative, absolute, browser-selected, and platform-specific path spellings into one explicit resolved-run context before execution
   - validate that schema columns include at least `column_name` and `description`
   - validate that the source table contains `Title`, `Authors`, and `Publication Year`
   - fail early with actionable diagnostics when validation fails
@@ -310,6 +327,8 @@ The detailed task inventory below remains the source of truth for exact implemen
   - validate config at run start
   - persist the resolved effective config as `config.snapshot.json`
   - ensure the run can later be explained from the snapshot
+
+- [ ] **T013a** Persist a resolved input-summary artifact early enough that readiness-failed and early-failed runs still expose table, schema, PDF-directory, output-directory, and Verify-mode context to the UI and diagnostics.
 
 - [ ] **T014** Audit, normalize, and document the canonical deterministic fixture corpus in `tests/fixtures/`.
   - reuse the existing checked-in workbook fixture with schema tab plus the existing four paper PDFs as the primary canonical fixture set when they cover the required scenarios
@@ -335,10 +354,14 @@ The detailed task inventory below remains the source of truth for exact implemen
 **Goal:** the system can start a run, validate and snapshot inputs, and compute which cells are eligible for extraction or verification.
 
 - [ ] **T017** Implement spreadsheet loading for CSV and XLSX inputs.
+  - handle BOM-marked headers safely for CSV inputs
+  - normalize Excel-native date and datetime cells into stable internal values instead of leaking raw serials
 
 - [ ] **T018** Implement schema loading from workbook or separate schema file.
+  - normalize BOM-marked or whitespace-padded headers for CSV-based schema sources before field validation
 
 - [ ] **T019** Implement table normalization and required metadata-column validation for `Title`, `Authors`, and `Publication Year`.
+  - perform header normalization before checking canonical field names
 
 - [ ] **T020** Implement cell eligibility classification for at least:
   - empty / missing
@@ -365,6 +388,13 @@ The detailed task inventory below remains the source of truth for exact implemen
   - fetch config snapshot
   - fetch input summary
 
+- [ ] **T023b** Support picker-driven input overrides in the run-creation flow while preserving config-file authority.
+  - accept explicit run-input overrides for relevant file or folder paths
+  - materialize browser-selected files or directories into app-owned staged inputs or another explicit backend-readable input handle before execution
+  - return the resolved path context that the UI should display back to the operator
+  - distinguish logical input source from backend-visible runtime locator in the returned run context
+  - keep override handling narrow and input-focused rather than turning the API into a broad settings editor
+
 - [ ] **T023a** Keep run creation UI-driven in practice by returning a created run immediately, then launching execution under app-owned backend control using a lightweight in-process background mechanism for MVP, with no external job framework required, while exposing validating/running/terminal state transitions, actionable failure messaging, and diagnostics/config access.
 
 - [ ] **T024** Add tests covering valid input readiness, metadata-column rejection, missing-path rejection, placeholder handling, and Verify mode behavior.
@@ -375,6 +405,12 @@ The detailed task inventory below remains the source of truth for exact implemen
   - model-unavailable readiness failure where applicable
   - missing parser or OCR dependency readiness failure where applicable
   - broken output-path or similarly broken local setup failure
+
+- [ ] **T024b** Add tests covering path-resolution and picker-driven setup truth.
+  - relative versus absolute path resolution
+  - browser-selected input override handling
+  - backend staging or input-handle materialization for browser-selected inputs
+  - resolved-path reporting in early-failure and success cases
 
 ---
 
@@ -397,6 +433,11 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [ ] **T026** Implement the parser adapter interface and register **Docling** as the main parser.
 
+- [ ] **T026a** Implement explicit parser-selection and fallback-policy handling.
+  - record configured parser choice separately from actual parser used
+  - if the configured parser cannot be used, fail readiness or parsing by default unless an explicit lower-quality fallback policy was enabled for debugging or constrained environments
+  - surface any explicit fallback path in run artifacts, diagnostics, and operator-visible summaries
+
 - [ ] **T027** Implement the low-level PDF abstraction using **`pypdfium2` / PDFium** for rendering, geometry, crop extraction, and page/image access.
 
 - [ ] **T028** Integrate OCR fallback for scanned or text-inaccessible PDFs:
@@ -409,7 +450,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [ ] **T030** Generate page-render artifacts and crop helpers needed later for text evidence, figure evidence, and PDF review.
 
-- [ ] **T031** Add parser diagnostics per PDF, including parser path used, OCR used or not, and major extraction gaps.
+- [ ] **T031** Add parser diagnostics per PDF, including configured parser choice, actual parser path used, OCR used or not, and major extraction gaps.
 
 - [ ] **T032** Add tests covering clean parse, OCR fallback, normalized parsed-document output, and stored page/crop artifacts.
 
@@ -490,7 +531,9 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [ ] **T050** Implement the provider abstraction and capability-probe model for structured-output support.
   - keep one typed interface that supports LM Studio as the default local-first path and optional cloud providers behind the same contract
-  - expose canonical provider token, locality, readiness, and capability information through the abstraction
+  - expose canonical provider token, locality, readiness, and structured-output capability information through the abstraction
+  - validate guided-JSON or equivalent structured-output compatibility instead of assuming one wire format
+  - keep structured-output compatibility handling scoped so one provider-schema mismatch does not poison unrelated proposal attempts by default
 
 - [ ] **T051** Implement **LM Studio localhost API** integration as the initial MVP provider path.
   - keep config parsing, runtime behavior, artifacts, and UI-visible summaries aligned with the canonical provider contract
@@ -504,8 +547,12 @@ The detailed task inventory below remains the source of truth for exact implemen
   - timeout handling
   - model-unavailable handling
   - capability checks for required structured-output behavior
+  - guided-JSON rejection handling with compatible fallback when the same proposal contract can still be preserved
   - malformed JSON and malformed structured-output handling
-  - explicit retry or fail-fast rules with no silent corruption
+  - a bounded repair or retry path before recording a hard extraction error
+  - a compact repair-oriented instruction or equivalent narrowly scoped recovery step for malformed JSON
+  - containment of compatibility failures so the affected target or request path fails truthfully without unnecessarily poisoning the rest of the run
+  - explicit fail-fast rules when recovery cannot preserve the proposal contract
   - request/response logging policy with actionable diagnostics
 
 - [ ] **T052a** Make provider-mode truth explicit across runtime artifacts and operator surfaces.
@@ -517,6 +564,10 @@ The detailed task inventory below remains the source of truth for exact implemen
   - assemble per-cell extraction requests from row context, column name, column description, style profile, retrieved passages, and relevant table/caption context
   - keep prompt/request construction separate from orchestration logic
   - support rationale and calculation fields in the response contract
+
+- [ ] **T053a** Request concise markdown-bullet rationale from the extraction layer when rationale is returned.
+  - prefer short scientific-review bullets over dense prose
+  - keep the rationale output compact enough for the middle review pane by default
 
 - [ ] **T054** Build the structured JSON schema/request payload for the text model path.
 
@@ -533,6 +584,8 @@ The detailed task inventory below remains the source of truth for exact implemen
   - Verify mode state
   - text-model or vision-model request path as routed
 
+- [ ] **T057a** Add field-aware extraction handling for long-text targets so narrative outputs do not systematically fail because of short-answer-oriented response shaping or truncation assumptions.
+
 - [ ] **T058** Implement proposal-state handling for at least:
   - `found`
   - `inferred`
@@ -541,11 +594,16 @@ The detailed task inventory below remains the source of truth for exact implemen
   - `error`
   - `skipped`
 
+- [ ] **T058a** Enforce the anti-guessing rule in extraction adjudication.
+  - prefer `unclear` over guesses supported mainly by prior spreadsheet values, common practice, or weak implication
+  - keep style profiles and prior table content as output-shaping context only, not as semantic evidence substitutes
+
 - [ ] **T059** Implement text-evidence anchoring and validation for quote + page + highlight when possible.
 
 - [ ] **T060** Implement the single narrow evidence-recovery pass when evidence is weak, missing, or unusable for display.
 
 - [ ] **T061** Keep weak-but-reviewable proposals available when quote + page evidence exists even if precise highlighting fails.
+  - preserve the fallback as clearly rendered text evidence rather than letting it appear blank, missing, or mislabeled
 
 - [ ] **T062** Implement scoped automatic figure fallback trigger logic:
   - trigger only when the field is likely figure/table-derived
@@ -566,6 +624,8 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [ ] **T067** Add tests covering structured-output parsing, provider failure handling, proposal/evidence serialization, blocked outcomes, unclear outcomes, evidence recovery, quote-plus-page fallback, figure fallback triggers, and Verify mode extraction on filled cells.
   - include contract-parity and provider-mode truth assertions where applicable
+  - cover compatibility mismatches that should not poison the rest of the run
+  - cover malformed-JSON repair behavior and compact bullet-rationale output shape
 
 ---
 
@@ -586,6 +646,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - figure-derived evidence
   - ambiguous/unmatched match status
   - review decision status
+  - expose compact triage fields needed for grouped sidebar rendering by paper and by column
 
 - [ ] **T070** Implement proposal-detail API payloads containing:
   - row context
@@ -597,6 +658,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - calculation
   - primary and secondary evidence
   - warning/status flags
+  - no-value or manual-resolution affordances needed by the middle pane
 
 - [ ] **T071** Implement review-asset serving endpoints for the review UI, including:
   - safe browser access to original PDFs for the PDF.js viewer
@@ -607,15 +669,19 @@ The detailed task inventory below remains the source of truth for exact implemen
 - [ ] **T072** Implement review-decision persistence for:
   - accept as-is
   - accept with edit
+  - confirm no data
   - reject
   - no decision yet
   - persist explicit review-decision records that can later drive audit logs and summary recomputation
+  - preserve structured resolution reasons for non-accepted or manually resolved outcomes
 
 - [ ] **T073** Preserve prior proposal state and review history for auditability when a review decision is recorded.
 
 - [ ] **T074** Implement guarded bulk-accept semantics limited to the currently visible filtered subset of undecided proposals.
 
 - [ ] **T075** Implement progress counters and decision-breakdown aggregation.
+
+- [ ] **T075a** Ensure review aggregates distinguish confirmed-no-data outcomes from rejected-or-model-wrong outcomes in both backend summaries and API payloads.
 
 - [ ] **T076** Implement run-summary generation and persistence in `summaries/run_summary.json`, including at minimum:
   - PDFs processed
@@ -624,6 +690,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - reviewed proposals
   - accepted as-is
   - accepted with edit
+  - confirmed no-data outcomes when applicable
   - rejected
   - pending / undecided
   - changed cells exported
@@ -631,12 +698,14 @@ The detailed task inventory below remains the source of truth for exact implemen
   - provider/model names
   - local vs cloud status
   - provider mode and readiness outcome
+  - internally consistent counts and warning flags derived from persisted data rather than speculative UI state
 
 - [ ] **T077** Implement reviewer-outcome summary generation as a pure function of proposals and review decisions, and persist it in `summaries/reviewer_summary.json`, including at minimum:
   - proposals generated
   - reviewed proposals
   - accepted as-is
   - accepted with edit
+  - confirmed no-data outcomes when applicable
   - rejected
   - pending / undecided
   - changed cells exported
@@ -645,12 +714,16 @@ The detailed task inventory below remains the source of truth for exact implemen
   - provider/model names
   - local vs cloud status
   - provider mode and readiness outcome where relevant to interpretation
+  - explicit provisional labeling when too little reviewed data exists for meaningful interpretation
 
 - [ ] **T078** Support summary recomputation from artifact files so both run and reviewer summaries stay derivable and inspectable.
+
+- [ ] **T078a** Add summary-integrity checks that reject internally inconsistent counts, misleading zero-value rollups, and warning flags that fire before their triggering conditions are met.
 
 - [ ] **T079** Ensure export candidate selection uses only explicitly accepted proposals and excludes unreviewed proposals by construction.
 
 - [ ] **T080** Add tests covering review decision recording, audit history, visible-subset bulk acceptance, warning/status semantics, review-asset serving, run-summary recomputation, reviewer-summary recomputation, and partial-review behavior.
+  - cover distinct confirmed-no-data persistence and summary reporting
 
 ---
 
@@ -667,6 +740,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - reviewed proposals
   - accepted as-is
   - accepted with edit
+  - confirmed no-data outcomes when applicable
   - rejected
   - changed cells exported
   - Verify mode on/off
@@ -677,19 +751,38 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [ ] **T082a** Implement a run-launch and setup context surface in the UI that:
   - starts a run from a config-file path without exposing a broad advanced-settings editor
-  - shows the config path and concise resolved input summary
+  - shows the config path and concise resolved input summary, including on readiness-failed or early-failed runs when that context is known
+  - supports browser-compatible picker controls for relevant file and folder inputs while preserving config-file authority for advanced behavior
+  - materializes picker-selected inputs into backend-readable staged files or directories, or another explicit server-side input handle, instead of relying on raw browser-native paths
+  - shows picker-based overrides as explicit resolved run-input selections rather than hiding them
+  - shows both logical input source and backend-visible runtime locator when picker overrides are used
+  - keeps target-columns display collapsible, truncated, or otherwise compact by default
   - shows provider/readiness context clearly before the queue is reviewable
   - keeps empty/loading/warning/failure states explicit before the review queue is ready
   - makes the next operator action obvious when no run exists yet or when the selected run is not reviewable
 
 - [ ] **T083** Implement the three-pane review workspace:
-  - left pane = proposal queue/list
-  - center pane = proposal detail
+  - left pane = grouped review queue or sidebar
+  - center pane = detail and decision workflow
   - right pane = evidence viewer
   - visible run/reviewer summary context in the main workspace
-  - top bar or equivalent queue controls = counters, filters, and warnings
+  - top bar or equivalent queue controls = grouping toggle, counters, filters, saved views or presets when implemented, and warnings
+
+- [ ] **T083a** Implement grouped-queue client state and grouped rendering behavior.
+  - support `Group by Paper` and `Group by Column`
+  - show group-header summary context including total count, pending count, and any warning or manual-attention badge needed for triage
+  - order groups with pending-actionable groups first, configured column order for column groups, and stable matched-row or PDF-name order for paper groups
+  - preserve collapsible group state when helpful
+  - keep grouping state, filters, and saved views or presets usable for both triage and deeper investigation
 
 - [ ] **T084** Implement the proposal queue pane with the full MVP filter set, stable selection behavior, and explicit proposal ordering rules:
+  - render compact grouped cards rather than a flat tall list
+  - show only essential triage information on compact cards: target column, triage status, and support/confidence
+  - add high-scan state markers such as left-border colors for pending, accepted, and manual-attention states
+  - keep review decision state, support quality, and match outcome visually distinct rather than collapsing them into one status chip
+  - default groups with pending actionable items before fully resolved or manual-attention-only groups
+  - within grouped-by-column mode, preserve configured target-column order inside the same group-priority bucket
+  - within grouped-by-paper mode, preserve stable matched-row order when available, otherwise stable PDF-name order inside the same group-priority bucket
   - default pending / undecided proposals before reviewed proposals
   - within undecided proposals, actionable proposals before blocked or unresolved items
   - within the same decision-status bucket, preserve stable spreadsheet row order, then column order, then `proposal_id`
@@ -700,22 +793,37 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [ ] **T085** Implement the proposal detail pane showing row context, target column definition, current value in Verify mode, proposed value, support label, rationale, calculation, warning/status flags, and primary/secondary evidence.
   - status, evidence source, and warning state should be distinguishable at a glance
+  - keep explicit row context near the top
+  - present existing-versus-proposed comparison clearly in Verify mode
+  - render concise rationale by default and fuller rationale through expansion
+  - render markdown-bullet rationale cleanly when provided in bullet form
+  - support explicit no-value reviewer actions including edited-value entry and confirmed-no-data resolution
+  - surface structured resolution reasons for non-accepted or manually resolved outcomes
 
 - [ ] **T086** Implement the evidence viewer pane using a raw/custom PDF.js viewer for text evidence and attached reviewable figure evidence.
+  - include zoom and pan capabilities as baseline viewer behavior
 
 - [ ] **T087** Implement backend-to-viewer highlight coordinate conversion:
   - map canonical PDF/page coordinates from backend evidence records into PDF.js viewer overlay coordinates
   - render stable text highlight overlays
   - handle zoom and viewport changes correctly
   - do not emit fabricated placeholder highlight boxes when reliable anchor geometry is unavailable
+  - support click-to-populate flows from selected quote or highlight evidence into the active proposed-value or edited-value input
+  - treat populate as replace-active-input by default rather than append unless an explicit append action is offered separately
+  - limit automatic populate to textual evidence spans or figure-caption text, not raw image crops alone
+  - use only the explicitly clicked or reviewer-selected span range rather than concatenating all visible evidence implicitly
+  - stage overlong text for reviewer trim or confirmation rather than silently truncating or auto-saving it
 
 - [ ] **T088** Implement graceful quote + page fallback display when highlight coordinates are missing or invalid.
+  - explain missing highlight geometry explicitly
+  - provide useful fallback actions such as opening the full PDF when scoped evidence is unavailable
 
 - [ ] **T089** Implement the figure-evidence viewer with crop-first display, attached caption, figure-derived warning/status markers, and full-page access.
 
 - [ ] **T090** Implement the review action area with:
   - accept
   - accept with edit
+  - confirm no data
   - reject
   - next
   - previous
@@ -725,8 +833,10 @@ The detailed task inventory below remains the source of truth for exact implemen
 - [ ] **T090a** Make bulk acceptance and edited acceptance behavior explicit and reviewer-safe:
   - confirm bulk acceptance against the currently visible filtered subset
   - present accept-with-edit as a distinct save-edited-value action rather than a vague duplicate of plain acceptance
+  - keep confirmed-no-data resolution visibly distinct from rejection
 
 - [ ] **T091** Implement keyboard shortcuts for next/previous navigation, accept current proposal, reject current proposal, focus edit control, and focus/open evidence viewer.
+  - surface shortcuts in button tooltips or equivalent inline affordances on the relevant controls
 
 - [ ] **T092** Implement unmatched, ambiguous, and duplicate-row-conflict inspection views in the UI.
   - identify the affected PDF, unresolved outcome, and rationale directly in the review workspace without requiring raw artifact inspection
@@ -735,11 +845,14 @@ The detailed task inventory below remains the source of truth for exact implemen
 - [ ] **T093** Surface warnings/statuses, run-summary fields, reviewer-summary fields, provider/model names, and local-vs-cloud status consistently across the review UI and run-summary UI.
   - show coarse running progress as current stage plus current item when available
   - show provider mode and readiness truth without hiding disabled, unavailable, or degraded proposal generation
+  - show configured parser choice, actual parser used, and any explicit fallback state when relevant
   - if zero verified cells have been reviewed, keep per-column lines visible only as evidence-coverage context with explicit wording that reviewer outcomes are not yet meaningful
+  - do not show limited-review or similar warnings before their real triggering conditions are met
+  - keep confirmed-no-data outcomes distinct from rejected-or-model-wrong outcomes in visible summaries and badges
 
-- [ ] **T094** Add frontend tests for queue filtering, ordering rules, nonlinear review, quote+page fallback rendering, figure-evidence rendering, run-summary display, and bulk-accept confirmation flow.
+- [ ] **T094** Add frontend tests for grouped queue behavior, group-header summaries, group ordering rules, queue filtering, item ordering rules, nonlinear review, quote+page fallback rendering, figure-evidence rendering, run-summary display, no-data workflow rendering, picker-driven setup flow, markdown-bullet rationale rendering, click-to-populate replace behavior, overlong-text staging behavior, tooltip shortcut surfacing, and bulk-accept confirmation flow.
 
-- [ ] **T095** Add Playwright e2e tests for the core review loop from proposal selection through decision recording and summary updates.
+- [ ] **T095** Add Playwright e2e tests for the core review loop from proposal selection through grouped triage, group ordering, evidence interaction, no-data resolution, decision recording, picker-input staging, and summary updates.
 
 ---
 
@@ -821,19 +934,22 @@ The detailed task inventory below remains the source of truth for exact implemen
   - how to prepare config
   - how to start the FastAPI backend and React UI
   - how to run a sample workflow
+  - how picker-driven setup and path overrides work while config-file authority is preserved
   - where artifacts and exports are written
   - how Verify mode behaves
   - what the export fidelity boundary is
   - what provider tokens and provider modes mean in practice
   - how readiness and startup failures are surfaced
+  - include at least one known-working LM Studio model example while making clear that stronger or newer compatible models may also be used
   - make every documented command and workflow match the implementation that currently ships
 - [ ] **T107a** Preserve user-facing onboarding in `README`, including clone/install steps, config-file purpose, LM Studio expectations, backend/frontend run commands, testing commands, artifact locations, and the export fidelity boundary.
   - do not remove useful onboarding content unless it is obsolete and replaced with something clearer in the same work pass
+  - keep the checked-in config example, runtime config schema, and README terminology aligned for provider, parser, model, Verify mode, and run states
   - do not keep obsolete onboarding text, superseded commands, or alternate startup paths that are not real supported workflows
 
 - [ ] **T107b** Keep README aligned with the real primary happy path:
   - start backend and frontend
-  - launch a run from the browser using a config path
+  - launch a run from the browser using a config path plus picker-driven input selection when supported
   - observe run lifecycle state in the UI
   - review/export from the same surface
   - describe the canonical LM Studio live path truthfully and avoid implying live proposal generation when the implementation is stubbed, disabled, or degraded

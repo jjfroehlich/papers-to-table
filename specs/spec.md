@@ -8,11 +8,13 @@ Finalized baseline
 
 Paper Table Agent helps a researcher turn a folder of scientific PDFs plus a structured spreadsheet into reviewed spreadsheet updates.
 
-The system matches PDFs to spreadsheet rows, proposes values for missing cells using grounded evidence from the papers, and provides a review interface where a human can accept, edit, reject, or bulk-accept the currently visible filtered subset before any spreadsheet is updated.
+The system matches PDFs to spreadsheet rows, proposes values for missing cells using grounded evidence from the papers, and provides a review interface where a human can accept, edit, confirm no data, reject, or bulk-accept the currently visible filtered subset before any spreadsheet is updated.
 
 The system primarily extracts from text and tables, and may use scoped figure-aware fallback extraction when the field appears likely figure- or table-derived, text or table retrieval remains insufficient, or text-first extraction remains insufficient after evidence recovery.
 
 The product is designed for high-trust extraction workflows where proposed values must remain inspectable, auditable, reversible, and clearly distinguishable by support level.
+
+The reviewer is reviewing what the paper supports, not grading the model, so the review workspace must keep paper evidence, reviewer judgment, and explicit curation outcomes primary.
 
 ---
 
@@ -25,7 +27,7 @@ The intended MVP workflow is:
 3. Parse PDFs and extract paper-level metadata needed for row matching.
 4. Match each PDF to at most one row, while surfacing unmatched, ambiguous, and duplicate-row conflicts.
 5. Generate one best proposal per eligible target cell, with evidence and support labeling.
-6. Let a human reviewer inspect, filter, accept, edit, reject, or bulk-accept the currently visible filtered subset.
+6. Let a human reviewer inspect, filter, accept, edit, confirm no data, reject, or bulk-accept the currently visible filtered subset.
 7. Export a new XLSX workbook containing only explicitly accepted changes plus an audit log and run summaries.
 8. Preserve diagnostics and artifacts so the run can be inspected later.
 
@@ -61,6 +63,8 @@ The browser UI is the normal operator-facing workflow surface for:
 
 The UI may expose the config path, resolved paths, Verify-mode status, and provider/model context, but broad parameter editing in the UI is not an MVP requirement and must not become the default control surface.
 
+The checked-in config example, runtime config schema, README, and operator-visible UI terminology are part of one operator-facing contract. Names and meanings for provider, parser, model, Verify mode, and run-state settings must stay aligned across those surfaces. Operator docs should include at least one known-working LM Studio model example, clearly labeled as an example rather than as the only acceptable model choice.
+
 ### Provider contract, readiness, and mode truth
 
 The product must preserve one canonical provider contract for proposal generation.
@@ -81,7 +85,7 @@ The canonical config token for that provider is `lm_studio`.
 
 The canonical operator-visible label is `LM Studio`.
 
-For the MVP, undocumented variants such as `lmstudio` must fail validation rather than being accepted implicitly.
+If compatibility aliases are supported, they must normalize to the same canonical stored value, remain documented in the checked-in config and operator docs, and never create disagreement between validation, artifacts, and UI labels.
 
 Optional cloud providers may be supported behind the same typed provider interface, but they must not change the product's local-first identity, and committed config examples must use environment or secret references rather than hardcoded cloud credentials.
 
@@ -155,6 +159,8 @@ A developer or advanced user who inspects diagnostics to understand matching, ex
 - All runs are auditable.
 - The product is optimized for trustworthy extraction workflows, not maximal automation at any cost.
 - The product should preserve a clear distinction between directly supported values and inferred or derived values.
+- The reviewer is reviewing the paper, not the model, so evidence and paper context must remain visually primary over model-generated prose.
+- Confirmed absence of data in the paper is a valid review outcome and must remain distinct from model error or unsupported extraction.
 
 ## Product quality bar
 
@@ -171,6 +177,11 @@ That means:
 - review ergonomics support confident human decisions instead of forcing the operator to infer workflow intent from raw implementation details
 - “minimal” or “task-focused” means legible, guided, and trustworthy rather than barebones, cryptic, or developer-centric
 - the browser UI feels like one coherent run-launch, status, review, and export workflow rather than a thin shell over artifact files
+- the review workspace behaves like a reviewer-centered scientific curation workstation rather than a generic model-output browser
+- the left sidebar supports dense grouped triage without collapsing decision state, support quality, and match outcome into one vague status chip
+- no-value cases remain actionable through explicit no-data confirmation or manual entry rather than dead-ending in an empty detail pane
+- evidence handling is interactive enough that the reviewer can inspect, zoom, pan, and use paper evidence directly while editing a value
+- the run/setup surface is action-oriented and picker-driven rather than dominated by raw path entry and long uncollapsed lists
 - the proposal-generation path is truthful: provider mode, readiness state, and any degraded or unavailable status are visible before the operator mistakes a clean shell for a working extraction system
 - the documented LM Studio happy path is either genuinely capable of producing reviewable proposals with evidence on the canonical checked-in fixture path or it fails early with an actionable readiness error
 - documentation reflects the actual happy path and the actual limits of the product
@@ -191,6 +202,9 @@ That means:
 6. As a curator, I want an updated export file and audit log after review so that I can update my master table safely and trace what changed.
 7. As a developer or advanced user, I want diagnostic outputs about matching, extraction, evidence quality, and reviewer-outcome reporting so that I can troubleshoot poor runs.
 8. As a reviewer, I want verify mode to compare proposals against already-filled cells so that I can review disagreements, make decisions on them, and assess how well the app is performing through reviewer outcomes.
+9. As a reviewer, I want to switch between grouping proposals by paper and by column so that I can triage quickly and then investigate deeply without losing context.
+10. As a reviewer, I want to confirm that a paper truly does not report a value, separately from rejecting a wrong model guess, so that the recorded outcome reflects the paper rather than the model.
+11. As a reviewer, I want to zoom, pan, and click evidence into my edited-value workflow so that I am curating from the paper rather than copying information manually across panes.
 
 ---
 
@@ -213,7 +227,7 @@ That means:
 - Figure-based evidence display in review when available.
 - Verify mode: generating proposals for already-filled cells, showing them in review, and including reviewer decisions on them in run summaries.
 - MVP filtering by row, column, PDF, evidence status, figure-based evidence, and ambiguous or unmatched match status.
-- Accept, accept-with-edit, reject, and guarded bulk acceptance of the currently visible filtered proposal subset.
+- Accept, accept-with-edit, confirm-no-data, reject, and guarded bulk acceptance of the currently visible filtered proposal subset.
 - Navigation through proposals without recording a decision.
 - Exporting an updated XLSX table and an audit log.
 - Preserving cell content in the exported table and visually marking updated cells with distinct background coloring.
@@ -246,6 +260,8 @@ The system accepts:
 
 - The schema contains at least a `column_name` and a `description` for each target column.
 - The table must contain standardized metadata columns named `Title`, `Authors`, and `Publication Year` for row matching.
+- CSV or schema files may arrive with UTF-8 BOM markers or surrounding whitespace in headers; normalization must not misread canonical field names because of those artifacts.
+- Workbook date and datetime cells may arrive as native Excel cell types or text representations; normalization must preserve their intended meaning for matching, extraction, review, and export rather than treating them as opaque serial values.
 - The schema defines the intended meaning of each target field.
 - PDFs are scientific papers or similarly structured technical documents.
 - PDFs may contain important information in prose, captions, tables, and figures.
@@ -283,6 +299,7 @@ For each run, the system must produce:
 - Verify-mode reviewer-outcome summaries remain available even when there are no verified cells, with a clear status or explanation instead of silent empty metrics.
 - Verify-mode reviewer-outcome summaries must not silently report an all-zero result when no targets were actually reviewed.
 - Unreviewed proposals must not appear as accepted changes in the exported table.
+- Confirmed no-data outcomes must remain distinct from rejected-or-model-wrong outcomes in persisted review state, diagnostics, and user-facing summaries.
 - A concise run summary must report provider/model names used, whether processing stayed local or used cloud providers, and key run metrics.
 - The run summary and UI must distinguish between live provider execution, explicit disabled mode, explicit stub or demo mode, and provider-unavailable or provider-unreachable outcomes.
 
@@ -296,7 +313,9 @@ The product uses the following reviewer-facing concepts consistently across the 
 - **Proposal**: the one best attempted value for a specific row/column cell in a specific run.
 - **Support level**: how strongly the system believes the evidence supports the proposal, such as direct evidence, inferred from evidence, weak evidence, or figure-based evidence.
 - **Evidence item**: the reviewer-visible text quote, page anchor, highlight, figure crop, caption, or related source reference used to justify the proposal.
-- **Review decision**: accept as-is, accept with edit, reject, or no decision yet.
+- **Review decision**: accept as-is, accept with edit, confirm no data, reject, or no decision yet.
+- **Resolution reason**: a structured reviewer reason attached to a non-accepted or manually resolved outcome, such as `not reported in paper`, `insufficient evidence`, `model wrong`, or `needs manual entry`.
+- **Triage projection**: the compact sidebar view of broader proposal and run state used for fast scanning. It may compress state for density, but it must not erase the underlying distinctions between review decision state, evidence/support quality, and match outcome.
 - **Diagnostics-only outcome**: a recorded extraction result that should appear in diagnostics even when there is no reviewable proposal.
 
 This terminology is normative for the MVP even if internal implementation names differ.
@@ -313,6 +332,10 @@ The primary happy path is that the operator starts a run from the UI by providin
 
 The system must normalize column identifiers and detect which cells are missing, already filled, or otherwise eligible for extraction or verification behavior.
 
+Normalization must robustly handle common real-world input quirks such as BOM-marked CSV headers, surrounding header whitespace, and Excel-native date or datetime cells.
+
+The runtime must also resolve common path-input differences consistently, including relative versus absolute paths, browser-selected inputs, and platform-specific path spellings, and surface one clear resolved path context to the operator before work begins.
+
 The system must validate that the table includes standardized metadata columns named `Title`, `Authors`, and `Publication Year` before row matching begins.
 
 Before the run leaves the validation/readiness phase, the system must also validate:
@@ -327,9 +350,25 @@ The product must preserve one clear primary local happy path: install dependenci
 
 Advanced run behavior must be controlled through the run configuration rather than through extensive tuning controls in the UI.
 
+The UI may let the operator override relevant input file or folder paths from within the app using picker controls, provided the config file remains the authoritative source for advanced behavior and reproducibility and the resolved run context remains explicit.
+
+For MVP browser mode, the normal setup flow should prefer browser-compatible picker behavior for file and directory selection. Native OS dialogs may be used only in a future desktop package and are not an MVP assumption.
+
+Because a pure browser client cannot be assumed to expose stable native filesystem paths, picker-selected inputs must be materialized into backend-readable staged files or directories, or into another explicit app-owned server-side input handle, before validation and execution begin.
+
+The resolved run context must distinguish the logical source of each input, such as config-declared path, typed backend path, or picker-staged override, from the backend-visible locator actually used at runtime.
+
+Manual raw absolute-path entry may remain available as a fallback, but it must not be the primary setup interaction for the normal operator workflow.
+
 The UI must show the config path plus a concise resolved-input summary, including at least the table path, schema path when present, PDF directory, output directory, target-column count or list, and Verify-mode status.
 
+The target-column list should be collapsible, truncated, or otherwise compact by default so the run/setup surface stays focused on what worked, what needs attention, and what the operator should do next.
+
+That resolved context must be preserved in run artifacts and remain visible in the UI even when the run fails during readiness or another early stage.
+
 The UI must also show a concise provider/readiness summary before the run starts or while validation is in progress, including the canonical provider name, configured model names when relevant, and whether the app currently sees the provider path as live, unavailable, disabled, or explicitly degraded.
+
+The run setup and later run summary must also identify the configured parser choice and, when parsing begins, the actual parser path used. If the configured parser cannot be used, the default behavior must be an explicit failure or blocked readiness result unless the operator has explicitly enabled a documented fallback path that is surfaced in the UI and run artifacts.
 
 When the operator switches from one run to another, the UI may preserve the current queue filter, but it must treat proposal selection, proposal detail, and evidence-viewer state as run-scoped. It must clear or reload those views for the newly selected run rather than briefly showing or requesting stale proposal or evidence data from the previous run.
 
@@ -385,6 +424,16 @@ The system may use schema descriptions and non-binding format or style guidance 
 
 For some field types, the system may use non-binding format or style guidance derived from existing column entries to improve output shape and consistency, provided the proposal content itself remains grounded only in the current PDF.
 
+The provider layer must probe or otherwise establish structured-output compatibility for the configured provider-model path before relying on a specific guided-JSON mechanism, and it must use a provider-accepted structured format for that path.
+
+When the provider's preferred structured-output or guided-JSON mode is not supported, the system may fall back to a compatible structured-response path, but it must preserve the same proposal contract and record that negotiation truthfully in diagnostics and run summaries.
+
+One structured-output compatibility mismatch must not silently poison the rest of the run when other target cells or compatible request paths can still proceed safely.
+
+Transient malformed structured responses should trigger a bounded recovery path before the target cell is finalized as a hard error.
+
+Long-text target fields must remain first-class extraction targets; the system must not systematically collapse them into empty, truncated, or schema-invalid outcomes merely because they exceed short-answer assumptions.
+
 The system must not treat a syntactically completed extraction stage as functional proposal success if the active provider path was unreachable, stubbed, disabled, silently degraded, or otherwise unable to generate meaningful proposals.
 
 ### FR-5 Proposal behavior and derived reasoning
@@ -397,6 +446,8 @@ The system may infer or derive a plausible value when direct wording is incomple
 - a figure provides the strongest evidence
 
 When a proposal depends on calculation or reasoning, the system must show a concise reviewer-facing rationale or calculation summary. Hidden chain-of-thought is not required or expected.
+
+The system should prefer `unclear` over guessing when the strongest support is common practice, prior spreadsheet content, or weak implication rather than current-paper evidence.
 
 Reviewer-visible proposal states must distinguish at least between:
 - `found`: directly supported enough by evidence
@@ -412,7 +463,9 @@ Each non-empty proposed value must include at least one evidence item when feasi
 
 For text-derived proposals, the minimum reviewer-visible evidence target is a highlighted source quote on the PDF page.
 
-If text highlighting cannot be recovered reliably, the proposal must remain reviewable with the source quote plus page reference, and it must be marked as weaker text evidence.
+If text highlighting cannot be recovered reliably, the proposal must remain reviewable with the source quote plus page reference, it must be marked as weaker text evidence, and that fallback must render clearly as text evidence rather than appearing blank, missing, or as another evidence type.
+
+Evidence must render according to its semantics. Text evidence without coordinates remains text evidence, figure evidence remains figure evidence, and the absence of highlight boxes must not make valid evidence appear missing.
 
 The UI must not fabricate placeholder or guessed highlight geometry merely to avoid fallback display. If reliable page geometry is unavailable, the reviewer must see an explicit quote-plus-page fallback instead.
 
@@ -456,6 +509,13 @@ The system must provide a review interface where a human can inspect proposals a
 
 The same local browser app must also support starting runs and monitoring run state; review is not a separate operator surface disconnected from run startup.
 
+The review workspace is a scientific curation workstation. Its primary purpose is to help the reviewer decide what the paper supports, not to showcase model output.
+
+The normative MVP pane structure is:
+- left = grouped review queue or sidebar
+- middle = details and decision workflow
+- right = evidence viewer or PDF viewer
+
 The review interface must support a queue-first workflow with:
 - a proposal list or queue
 - a focused detail pane for the selected proposal
@@ -467,6 +527,38 @@ Launching runs, understanding status, reviewing proposals, and exporting outputs
 Review must be nonlinear: selecting a proposal for inspection must not itself record a decision.
 
 The UI should support one visible master queue with filtering, reusable saved views or equivalent presets, and progress indicators.
+
+The left sidebar must support two grouping modes:
+- `Group by Paper`
+- `Group by Column`
+
+The grouping mode must be switchable from a control at the top of the sidebar.
+
+Each group header must show enough summary context for triage, including at minimum the group label, total item count, pending count, and any match-warning or manual-attention badge needed for triage.
+
+The default group ordering should prioritize groups with pending actionable items ahead of groups that are fully resolved or only manual-attention.
+
+Within the same priority bucket:
+- `Group by Column` follows configured target-column order
+- `Group by Paper` follows stable matched-row order when available, otherwise stable PDF-name order
+
+Grouped sections may be collapsible when that improves density, but grouped triage must remain immediately scannable.
+
+The sidebar must use compact grouped cards rather than tall repetitive cards.
+
+Compact cards should show only the essential triage information:
+- target column
+- triage-oriented status
+- confidence or support level
+
+Compact cards must also include a high-scan visual progress indicator such as a colored left border or equivalent marker. At minimum, the compact triage projection must distinguish:
+- yellow = pending or undecided
+- green = accepted
+- red = needs manual entry or unresolved manual action
+
+The broader product status taxonomy still applies, but the sidebar may project it into a denser triage view only if review decision state, evidence/support quality, and match outcome remain separately visible through group headers, badges, compact sublabels, or detail state.
+
+Queue density and fast scanning are first-class requirements. Grouping, density, filtering, and saved views or presets must support both rapid triage and deeper investigation.
 
 The review workspace must also handle pre-review states well, including:
 - no runs yet
@@ -490,6 +582,7 @@ Blocked, unresolved, unmatched, ambiguous, or duplicate-row-conflict records mus
 The reviewer must be able to:
 - accept a proposal
 - accept a proposal with edits
+- confirm no data in paper
 - reject a proposal
 - bulk-accept the currently visible filtered proposal subset, subject to confirmation
 - move through proposals efficiently without recording a decision
@@ -502,7 +595,31 @@ Unreviewed proposals that have not been explicitly accepted must be discarded fr
 
 The review interface must show enough row context, column context, proposal state, evidence context, and rationale context for a meaningful decision.
 
+The middle pane is the primary details and decision surface.
+
+Explicit row context must appear near the top of the middle pane.
+
+In Verify mode, the middle pane must present a clear comparison between the existing value and the proposed value.
+
+Rationale should default to a short, scannable summary, with fuller rationale available through expansion when needed.
+
+If the model finds no value, the middle pane must not dead-end. The no-value state must still support reviewer action with at least:
+- an `Enter edited value` input or equivalent
+- a `Confirm No Data` action or equivalent
+
+`Confirm No Data` is a valid resolved outcome meaning the reviewer believes the paper does not report the value. It must remain distinct from rejecting a wrong or untrustworthy model output.
+
+The persisted review semantics must preserve that distinction through a dedicated confirmed-no-data review outcome that does not collapse `not reported in paper` into `model wrong`.
+
+At minimum, non-accepted or manually resolved review outcomes must preserve structured resolution reasons that distinguish:
+- not reported in paper
+- insufficient evidence
+- model wrong
+- needs manual entry
+
 Accept-with-edit must behave as an explicit edit-save action rather than a vague duplicate of normal acceptance.
+
+If rationale is rendered in bullet form, the UI must render it cleanly as concise markdown bullets rather than as a dense paragraph blob.
 
 Proposal status, evidence source, and warning state must be visually distinguishable at a glance.
 
@@ -510,11 +627,31 @@ Accept actions must not be available for blocked items or items without a review
 
 Figure-derived evidence should be displayed crop-first, with caption directly attached and the full page accessible on demand.
 
+The right evidence pane must support zoom and pan for document evidence.
+
+Clicking the selected quote or highlighted evidence should be able to populate either the proposed-value input or the edited-value input, depending on the active editing state.
+
+Populate-from-evidence is a reviewer-assist action only: it must stage text into the active input and must not auto-save, auto-accept, or silently record a decision.
+
+The default populate behavior must replace the active input with normalized text from the explicitly clicked evidence span. Append behavior may exist only as a separate explicit action.
+
+Automatic populate must apply only to textual evidence, including quote-plus-page text and figure-caption text, not to raw image crops with no textual payload.
+
+If the reviewer has not explicitly selected multiple spans, the populate action must use only the clicked span rather than concatenating all visible evidence.
+
+If populated text is obviously longer than the target field shape or violates known field-format guidance, the UI must stage it without silent truncation and require reviewer trimming or confirmation before save.
+
+When no scoped evidence is available, the evidence pane must still provide a useful fallback action such as opening the full PDF.
+
+When highlight geometry is unavailable, the UI must explain that limitation explicitly rather than faking highlight boxes.
+
 The review interface must support filtering by row, column, PDF, evidence status, figure-based evidence, and ambiguous or unmatched match status.
 
 Any stored proposal must be reviewable in the interface, including proposals whose text evidence is shown as quote plus page without a reliable highlight.
 
 The review workspace must expose direct access to the main run artifacts needed by a reviewer after decisions are made, including the exported workbook, audit log, run summary, and reviewer summary.
+
+Keyboard shortcuts must be surfaced in context through button tooltips or equivalent inline affordances. The operator must not need to rely on a footer legend alone to discover core review shortcuts.
 
 ### FR-10 Spreadsheet protection and verify mode
 
@@ -574,6 +711,7 @@ The system must provide a normal user-facing run summary with at least:
 - number of proposals reviewed
 - accepted as-is count and rate
 - accepted with edit count and rate
+- confirmed no-data count and rate when applicable
 - rejected count and rate
 - proposal coverage
 - number of accepted changes
@@ -588,6 +726,8 @@ The normal user-facing run summary should remain useful even before the run reac
 
 When a run is not yet reviewable, the summary surface should still help the operator understand what has happened so far, what is blocked, and whether review will become available automatically or requires intervention.
 
+Runs that fail during readiness or soon after launch must still retain the resolved config/input context and any completed preflight results so operators can diagnose the failure without opening source code.
+
 Download surfaces must also remain truthful: config snapshots and diagnostics may be available early, but exports and summaries must not be presented as ready when the underlying files have not been written yet.
 
 If no verified cells have been reviewed yet, reviewer-outcome reporting should remain visible but explicitly provisional. The UI should keep per-column evidence-coverage lines visible with wording that makes clear they are coverage context rather than reviewer-outcome scores until at least one verified cell has actually been reviewed.
@@ -600,6 +740,7 @@ Reviewer-outcome summaries must include, at minimum:
 - reviewed verified-cell count
 - accepted as-is count and rate
 - accepted with edit count and rate
+- confirmed no-data count and rate when applicable
 - rejected count and rate
 - proposal coverage
 - per-column reviewer outcome breakdown
@@ -611,6 +752,8 @@ Verify mode may still compare proposals against already-filled cells, but future
 If there are too few reviewed proposals or verified proposals for meaningful interpretation, the system must warn explicitly.
 
 If reviewer-outcome reporting may be biased or if any future automated evaluation would be leakage-prone, the system should warn explicitly.
+
+Summary metrics and warning flags must be internally consistent across UI and artifact files. Counts must reflect persisted underlying facts, and provisional or not-yet-evaluable states must be labeled clearly instead of being reported as final warnings or scores.
 
 Run summaries and reviewer summaries must remain derivable from persisted artifact data so they can be recomputed and inspected later.
 
@@ -638,6 +781,8 @@ A reviewer must be able to tell, for each proposal:
 - what evidence supports it
 - whether the value depends on calculation or reasoning
 - whether additional scrutiny is recommended
+
+The primary reviewer question is what the paper supports, including whether the paper does not report the target value, not whether the model happened to produce an answer.
 
 Figure-derived evidence must be visibly distinguishable from text or table evidence.
 
@@ -709,9 +854,15 @@ The product should allow future replacement or addition of parser, retrieval, an
 
 The review interface should be visually clear, efficient for repeated review work, and suitable for modern desktop use.
 
+Usability for MVP specifically requires dense grouped triage, clear no-data handling, evidence interaction that supports direct curation work, and setup flows that are picker-driven rather than path-heavy.
+
 ### NFR-9 Workflow and documentation truthfulness
 
 The README, in-app labels, status text, and normal startup commands must describe the same real local workflow.
+
+The checked-in config example and runtime config schema are part of that same operator-facing contract and must use the same terminology and semantics for provider, parser, model, Verify-mode, and run-state settings as the README and UI.
+
+Operator-facing docs should include at least one known-working LM Studio model example while remaining explicit that better or newer models may also satisfy the contract.
 
 Developer-only shortcuts, helper scripts, or partial implementation paths must not be presented as the primary operator path unless they truly are the intended MVP workflow.
 
@@ -731,6 +882,7 @@ Developer-only shortcuts, helper scripts, or partial implementation paths must n
 - Duplicate PDF matches to the same row block all conflicting PDFs until manual cleanup.
 - Verify mode is the only product-level mode for reviewing already-filled cells and generating reviewer-outcome summaries for those comparisons.
 - Verify mode is configurable and enabled by default.
+- Confirmed no-data outcomes remain distinct from rejected-or-model-wrong outcomes in review state and summaries.
 
 ---
 
@@ -740,19 +892,37 @@ Developer-only shortcuts, helper scripts, or partial implementation paths must n
 
 Given a valid table, schema, PDF folder, and run configuration with standardized `Title`, `Authors`, and `Publication Year` columns,
 when the user starts a run,
-then the system records the run inputs and identifies missing versus already-filled target cells.
+then the system records a resolved config snapshot and resolved input context, normalizes common real-world input quirks such as BOM-marked headers and Excel datetime cells, and identifies missing versus already-filled target cells.
 
 ### AC-1a Preflight and readiness truth
 
 Given a run configuration references a provider, model, parser, OCR path, output path, or other required runtime dependency,
 when the user starts a run,
-then the system performs explicit readiness checks before normal processing, surfaces actionable errors for invalid or unavailable dependencies, and does not pretend the run is functionally healthy when the live proposal path is not ready.
+then the system performs explicit readiness checks before normal processing, surfaces actionable errors for invalid or unavailable dependencies, preserves the resolved config/input context for inspection even on early failure, and does not pretend the run is functionally healthy when the live proposal path is not ready.
+
+### AC-1b Parser truthfulness
+
+Given a run configuration selects a parser,
+when readiness or parsing begins,
+then the operator can tell which parser was configured, which parser was actually used, and whether any fallback path was explicitly enabled, and the app does not silently substitute another parser by default.
+
+### AC-1c Setup ergonomics and resolved path truth
+
+Given the operator is preparing a run from the browser UI,
+when they select or override relevant inputs,
+then the setup flow prefers browser-compatible picker controls over raw path typing, resolves relative and platform-specific path inputs into one clear run context, materializes picker-selected inputs into backend-readable staged files or directories or another explicit server-side input handle before execution, preserves config-file authority for advanced behavior, keeps the target-columns display compact by default through truncation, collapse, or equivalent compact presentation, and shows both the logical input source and the backend-visible runtime locator in the resolved run context.
 
 ### AC-2 Matched extraction path
 
 Given a PDF that can be matched to a row,
 when extraction is run,
-then the system attempts each eligible target column and stores one best outcome for each attempted target cell.
+then the system attempts each eligible target column, including long-text fields, prefers a truthful `unclear` outcome over unsupported guessing, and stores one best outcome for each attempted target cell.
+
+### AC-2a Structured-output compatibility and recovery
+
+Given a live provider rejects the preferred guided-JSON or structured-output mode, or returns malformed structured JSON,
+when extraction is run,
+then the system attempts a bounded compatible fallback or repair path, preserves the proposal contract if recovery succeeds, and records a clear hard error only if that bounded recovery fails.
 
 ### AC-3 Ambiguous matching blocking
 
@@ -770,13 +940,49 @@ then the proposal includes at least one evidence item when feasible or is flagge
 
 Given a stored proposal,
 when a reviewer opens it in the review interface,
-then the reviewer can inspect the proposed value, proposal state, relevant row and column context, primary evidence, and concise rationale or calculation when applicable, including quote-plus-page evidence when a text highlight could not be recovered, while also seeing visually distinct status/evidence/warning cues and the surrounding run-summary context.
+then the reviewer can inspect the proposed value, proposal state, relevant row and column context, primary evidence, and concise rationale or calculation when applicable, including clear quote-plus-page text evidence when a text highlight could not be recovered, while also seeing visually distinct status/evidence/warning cues and the surrounding run-summary context.
+
+### AC-5a Grouped queue triage
+
+Given a run with multiple reviewable proposals,
+when the reviewer uses the left sidebar,
+then the queue supports `Group by Paper` and `Group by Column`, presents compact grouped cards rather than tall repetitive cards, keeps grouping headers or badges dense and scannable, shows group-header summary context including total count, pending count, and any warning or manual-attention badge needed for triage, orders groups predictably with pending-actionable groups first, configured column order for column groups, and stable matched-row or PDF-name order for paper groups, and preserves separate signals for review decision state, support quality, and match outcome rather than collapsing them into one vague status chip.
+
+### AC-5b Compact triage indicators
+
+Given proposals appear in the sidebar triage view,
+when the reviewer scans the queue,
+then each compact card shows at least target column, triage-oriented status, and support level, and uses a high-scan progress marker such as a colored left border that makes pending, accepted, and manual-attention states easy to distinguish.
+
+### AC-5c Explicit no-value handling
+
+Given the model did not produce a usable value or the reviewer determines the paper does not report the target field,
+when the reviewer uses the middle pane,
+then the UI still provides an `Enter edited value` path and a `Confirm No Data` path or equivalent, and the no-data resolution is persisted distinctly from rejecting a wrong model output.
+
+### AC-5d Evidence interaction and fallback behavior
+
+Given a proposal has selected text or figure evidence,
+when the reviewer uses the right evidence pane,
+then the viewer supports zoom and pan, preserves quote-plus-page fallback when highlight geometry is missing, explains missing highlight geometry instead of faking boxes, allows full-PDF fallback when scoped evidence is unavailable, and supports clicking selected quote or highlight evidence into the active proposed-value or edited-value workflow as a non-saving staging action that replaces the active input by default, applies only to textual evidence or figure-caption text, uses only the explicitly clicked or selected span, and never silently truncates overlong text.
+
+### AC-5e Rationale rendering
+
+Given a proposal includes rationale formatted as concise markdown bullets,
+when the reviewer opens the middle pane,
+then the default rationale view remains scannable and the bullet structure renders cleanly as markdown bullets rather than as a dense paragraph blob, with fuller rationale available only through expansion when needed.
 
 ### AC-6 Decision control
 
 Given a proposal under review,
-when the reviewer accepts, edits, rejects, or bulk-accepts the currently visible filtered subset after confirmation,
-then the system stores that decision as an explicit persisted review record, preserves the prior proposal state for auditability, and does not offer accept actions for blocked or non-reviewable items.
+when the reviewer accepts, edits, confirms no data, rejects, or bulk-accepts the currently visible filtered subset after confirmation,
+then the system stores that decision as an explicit persisted review record, preserves the prior proposal state for auditability, records structured resolution reasons for non-accepted or manually resolved outcomes, and does not offer accept actions for blocked or non-reviewable items.
+
+### AC-6a Shortcut affordances
+
+Given the review workspace exposes keyboard shortcuts for core actions,
+when the reviewer hovers or focuses the relevant controls,
+then the shortcut is surfaced in a tooltip or equivalent inline affordance on the control itself rather than only in a separate legend.
 
 ### AC-7 Locked-cell safety
 
@@ -788,7 +994,7 @@ then that cell is not overwritten unless explicit review behavior has authorized
 
 Given Verify mode is enabled, and Verify mode is on by default unless disabled in configuration,
 when the system processes already-filled cells,
-then it generates reviewable proposals for those cells, allows explicit accept/edit/reject decisions, and uses those reviewer decisions in reviewer-outcome statistics and per-column review summaries.
+then it generates reviewable proposals for those cells, allows explicit accept/edit/confirm-no-data/reject decisions, and uses those reviewer decisions in reviewer-outcome statistics and per-column review summaries.
 
 ### AC-9 Export integrity
 
@@ -804,9 +1010,9 @@ then the table preserves accepted and unchanged cell content correctly, guarante
 
 ### AC-11 Diagnostic transparency
 
-Given a run with matched PDFs but no usable accepted values,
-when the run finishes,
-then the system provides diagnostics explaining why no values were produced or accepted and marks the run as completed with warnings rather than silently successful.
+Given a run fails early or finishes with matched PDFs but no usable accepted values,
+when the run reaches its terminal state,
+then the system provides diagnostics and resolved context explaining what happened, why no values were produced or accepted, and whether the result is a readiness failure, a completed run with warnings, or another terminal outcome rather than a silent success.
 
 ### AC-12 Weak-evidence handling
 
@@ -824,7 +1030,7 @@ then it may produce a figure-based proposal with clearly labeled visual evidence
 
 Given Verify mode is enabled but too few verified proposals were reviewed to support meaningful interpretation,
 when reviewer-outcome summaries are generated,
-then the system emits a warning or explicit limited-review status rather than a misleading normal reviewer-outcome summary.
+then the system emits a warning or explicit limited-review status rather than a misleading normal reviewer-outcome summary, keeps provisional metrics clearly labeled as provisional, and does not show internally inconsistent counts or premature warning flags.
 
 ### AC-15 Partial-review export behavior
 
@@ -842,13 +1048,13 @@ then the summary identifies the provider or model names used, whether processing
 
 Given a new local operator following the documented primary happy path,
 when they install dependencies, start the backend and frontend, open the browser UI, enter a config path, and launch a run,
-then the app and docs agree on the same workflow, the operator can understand pre-review and in-progress states without consulting source code, and the same app surface remains the normal place to review proposals and export outputs.
+then the app, README, checked-in config example, runtime config schema, and UI terminology agree on the same workflow, the operator can understand pre-review and in-progress states without consulting source code, the docs include at least one known-working LM Studio model example without treating it as the only valid model, and the same app surface remains the normal place to review proposals and export outputs.
 
 ### AC-18 Canonical provider contract parity
 
 Given the checked-in config examples, runtime config validation, tests, and operator-visible provider labels,
 when a supported provider is referenced,
-then the same canonical provider token and settings shape are accepted consistently across those surfaces, including `lm_studio` as the LM Studio config token and `LM Studio` as the operator-visible label, and unknown or misspelled provider identifiers fail early with a clear error.
+then the same canonical provider token and settings shape are accepted consistently across those surfaces, including `lm_studio` as the canonical LM Studio config token and `LM Studio` as the operator-visible label, documented compatibility aliases normalize to the same stored form when supported, and unsupported identifiers fail early with a clear error.
 
 ### AC-19 Canonical live proposal path
 
@@ -888,6 +1094,7 @@ The following are candidate success metrics:
 
 - accepted as-is rate
 - accepted with edit rate
+- confirmed no-data rate
 - rejected rate
 - proposal coverage
 - per-column reviewer outcome breakdown
@@ -936,4 +1143,4 @@ Technical architecture, parser strategy, retrieval strategy, model behavior, per
 
 ## Appendix: concise product statement
 
-Paper Table Agent is a local-first paper-to-table review system. It matches papers to spreadsheet rows, proposes values for missing or verified cells with anchored evidence, and lets a human reviewer accept, edit, reject, or bulk-accept the currently visible filtered subset before exporting an audited XLSX table update.
+Paper Table Agent is a local-first paper-to-table review system. It matches papers to spreadsheet rows, proposes values for missing or verified cells with anchored evidence, and lets a human reviewer accept, edit, confirm no data, reject, or bulk-accept the currently visible filtered subset before exporting an audited XLSX table update.

@@ -34,10 +34,12 @@ The intended implementation model for this repository is:
 - The JSON config file remains authoritative for advanced behavior and reproducibility.
 - The browser UI owns the normal operator workflow for launch, status visibility, review, and export.
 - The local onboarding path should stay clear and singular: start backend, start frontend, open the browser UI, supply a config path, start the run.
+- Treat `README.md`, the checked-in config example, the runtime config schema, and operator-visible UI copy as one operator-facing contract. Keep provider, parser, model, Verify-mode, and run-state terminology aligned across those surfaces.
 - Do not let early batches stop at a structurally correct shell. Provider-path scaffolding, placeholder proposal generation, or silent degraded modes do not count as a finished slice.
 - If a batch changes operator-facing truth, update `README.md`, `spec.md`, `plan.md`, and `tasks.md` together in the same work pass.
 - End-of-batch documentation updates are mandatory for operator-facing changes; `README.md` must trail implementation by zero batches, not by a later cleanup pass.
 - `README.md` and any other user-facing docs must only describe commands, config behavior, lifecycle states, review actions, downloads, exports, and limitations that exist in the implemented slice.
+- When operator docs describe LM Studio setup, include at least one verified model example while keeping the implementation contract open to stronger or newer models that satisfy the same interface.
 
 ---
 
@@ -104,11 +106,13 @@ Implementation for this phase is complete when the system satisfies the function
 - Single-user local browser app operation is sufficient for MVP.
 - Human review is required before spreadsheet updates.
 - UI remains minimal and task-focused, but not thin to the point that startup, lifecycle visibility, or review/export workflow becomes guesswork.
+- The UI must behave as a reviewer-centered scientific curation workstation where the reviewer is judging what the paper supports, not grading model output.
 - The product must preserve one primary local onboarding/start path instead of expecting users to infer a preferred route from multiple equivalent but differently documented commands.
 - Pipeline must preserve auditable run artifacts.
 - Parser, model, and retrieval backends must remain replaceable behind stable contracts.
 - Provider/model behavior must be transparent enough for users to know whether a run stayed local or used cloud services.
 - Provider config examples must not require committed cloud secrets; optional cloud providers should rely on environment or secret references.
+- Setup should remain config-authoritative but picker-driven for normal browser use rather than path-heavy.
 
 ### Non-goals
 
@@ -172,6 +176,9 @@ Docling is currently the strongest main parser candidate for structured scientif
 
 **Note:**
 GROBID remains an optional later enrichment path if measured lift justifies it.
+
+**Parser-truth requirement:**
+Runtime behavior must make parser selection explicit. The run contract should record the configured parser choice and the actual parser used. Silent substitution from a configured parser to another parser is not the baseline behavior; any fallback parser path must be explicitly enabled and surfaced in readiness results, run artifacts, and summaries.
 
 ---
 
@@ -423,9 +430,19 @@ The UI should not expose a large parameter-tuning surface in MVP. Advanced behav
 
 The UI should still expose enough config-derived context for safe operation: config path, resolved input locations, output location, Verify-mode status, and provider/model summary.
 
+The UI may allow picker-driven overrides for relevant input paths, but those overrides should be treated as explicit run-input selections layered over the config rather than as a broad in-UI settings surface.
+
+For MVP browser mode, picker behavior should rely on browser-compatible file or directory selection patterns rather than assuming a desktop shell or native OS dialog.
+
+Because a pure browser client cannot be assumed to expose stable backend-visible native paths, picker-selected inputs should be materialized into backend-readable staged files or directories, or into another explicit app-owned server-side input handle, before validation and execution begin.
+
+The resolved run context should preserve both the logical source of each input, such as config-declared path, typed backend path, or picker-staged override, and the backend-visible locator actually used at runtime.
+
 This split is intentional: the config file owns advanced behavior and reproducibility, while the UI owns launch, status visibility, review, artifact access, and first-run usability.
 
 The config file should be sufficient to reproduce a run together with the input files and output artifact bundle.
+
+The config schema and checked-in example are not secondary docs. Runtime validation, persisted config snapshots, README terminology, and UI labels must all describe the same operator-facing settings. If a compatibility alias is supported, it should normalize into the same canonical stored value and appear consistently in docs and diagnostics.
 
 ---
 
@@ -435,12 +452,18 @@ The MVP pipeline should run in these explicit stages:
 
 1. **Load config and inputs**
    - read config
+   - resolve defaults and persist a config snapshot early enough that readiness-failed runs still retain the resolved context
    - expose `ready` before starting, then `validating` while checking config and input readiness
    - validate canonical provider token and provider-config shape
    - run provider/model readiness checks when live proposal generation is configured
    - verify parser, OCR, and other required dependency availability for configured paths
    - verify output-path writability and other obvious broken-setup conditions
+   - resolve relative paths, browser-selected inputs, and platform-specific path spellings into one explicit resolved run context
+   - materialize picker-selected files or directories into backend-readable staged inputs or explicit server-side input handles rather than relying on browser-native absolute paths
    - load spreadsheet and schema
+   - normalize BOM-marked or whitespace-padded headers in CSV or schema inputs before field validation
+   - normalize workbook date and datetime cells into a stable internal representation that preserves their intended meaning
+   - persist a resolved input summary before later stages can fail
    - validate required metadata columns
    - detect missing and already-filled cells
 2. **Build per-column style profiles**
@@ -481,7 +504,7 @@ The MVP pipeline should run in these explicit stages:
    - show resolved run setup context and direct access to config snapshot
    - keep the queue clearly non-actionable until the run is review-ready
    - queue-first review
-   - record accept / accept-with-edit / reject / bulk-accept-visible-subset decisions
+   - record accept / accept-with-edit / confirm-no-data / reject / bulk-accept-visible-subset decisions
 11. **Export**
    - generate new XLSX
    - apply accepted changes
@@ -491,6 +514,7 @@ The MVP pipeline should run in these explicit stages:
    - reviewed count
    - accepted-as-is
    - accepted-with-edit
+   - confirmed-no-data
    - rejected
    - per-column breakdown
 
@@ -516,60 +540,150 @@ When implementation changes one side of this mapping, the corresponding section 
 
 ## MVP interaction model
 
-The review UI will use a **queue-first / list-detail** design with an explicit three-pane layout plus visible run/reviewer summary context.
+The review UI will use a **queue-first / list-detail** design with an explicit three-pane layout plus visible run/reviewer summary context. The design target is a reviewer-centered scientific curation workstation: the operator should be able to decide what the paper supports with minimal friction, not merely inspect model output.
 
-### Layout
+### Layout roles
 
-- **Left pane**: proposal queue
-- **Center pane**: proposal detail
-- **Right pane**: evidence viewer
+- **Left pane**: grouped review queue or sidebar used for triage
+- **Center pane**: proposal detail and decision workflow
+- **Right pane**: evidence viewer or PDF viewer
 - **Summary/top context area**: run metrics, reviewer-outcome context, and direct artifact downloads
-- **Top bar / queue controls**: progress counters, filters, and warning cues
+- **Top bar / queue controls**: grouping toggle, filters, saved-view or preset access, progress counters, and warning cues
 
-### Proposal queue
+The left pane remains triage-first, the middle pane remains decision-first, and the right pane remains evidence-first. A rebuild should not swap those responsibilities or blur them into one generic card grid.
 
-The queue should support filtering by:
-- row
-- column
-- PDF
-- evidence status
-- figure-based evidence
-- ambiguous/unmatched match status
+### Run/setup surface
 
-Default ordering should prioritize actionable undecided proposals before blocked, unresolved, or otherwise non-reviewable records.
+The run/setup tab should remain in the same app and should stay config-authoritative without feeling path-heavy.
 
-Blocked and unresolved records should remain visible through queue ordering, filters, or dedicated warning/inspection surfaces, but they should not displace the main actionable review slice by default.
+It should present:
+- config path and resolved run context
+- picker-driven overrides for relevant input files or folders
+- a compact target-columns preview that expands only on demand
+- a concise action-oriented summary of whether the last run worked, what needs attention, and what the operator should do next
 
-Proposal status, evidence source, and warning state should be distinguishable at a glance through clear labels, badges, or equivalent visual treatments.
+When picker-driven overrides are used, the run/setup surface should show both the logical override source and the backend-visible staged locator or server-side input handle actually used for execution.
 
-### Proposal detail
+For MVP browser mode, setup should rely on browser-compatible picker behavior first. Native OS dialogs are a future desktop-packaging concern, not part of the baseline UI contract.
 
-The detail pane should show:
-- row context
+### Shared UI state model
+
+The client state architecture should explicitly track at least:
+- selected run id
+- sidebar grouping mode: `paper` or `column`
+- queue filters
+- saved view or preset selection when implemented
+- collapsed or expanded group state
+- selected proposal id
+- active decision mode: inspect, accept, edit, confirm-no-data, reject
+- edit buffer and active value-input target
+- selected evidence item
+- evidence-viewer focus state
+- evidence-viewer zoom and pan state
+
+When switching runs, the app may preserve filters, grouping mode, or saved-view selection when useful for triage continuity, but it must reset proposal selection, decision draft state, edit buffers, evidence selection, and viewer state so stale context does not leak across runs.
+
+### Left pane: grouped triage sidebar
+
+The sidebar must support two grouping modes:
+- `Group by Paper`
+- `Group by Column`
+
+The grouping-mode toggle should live at the top of the sidebar and should update the queue projection without changing the underlying proposal records.
+
+The grouped queue data structure should support:
+- group header metadata such as paper name or column name
+- per-group counts for total, pending, resolved, and manual-attention items
+- per-group match warnings where relevant
+- collapsible group sections when density benefits from collapse
+- stable group ordering rules
+- stable item ordering within groups
+
+Group headers should surface at least the group label, total count, pending count, and any match-warning or manual-attention badge needed for triage.
+
+Default group ordering should place groups with pending actionable items ahead of groups that are fully resolved or only manual-attention.
+
+Within that priority bucket:
+- column groups follow configured target-column order
+- paper groups follow stable matched-row order when available, otherwise stable PDF-name order
+
+The queue rendering should use compact grouped cards rather than tall repetitive cards.
+
+Each compact queue card should expose only the high-value triage fields:
+- target column
+- triage-oriented status
+- support or confidence level
+
+Compact cards should also expose visually distinct markers for:
+- review decision state
+- evidence or support quality
+- match outcome when relevant
+
+Those distinctions must not collapse into one ambiguous badge.
+
+The compact triage projection should use a strong scan marker such as a colored left border or equivalent indicator. At minimum:
+- yellow = pending or undecided
+- green = accepted
+- red = needs manual entry or unresolved manual action
+
+Queue density and fast scanning remain first-class. The sidebar should support both:
+- rapid triage across many proposals
+- deeper investigation through preserved filters, grouping, and saved views or presets
+
+### Middle pane: detail and decision workflow
+
+The middle pane is the primary decision surface and should include at least:
+- explicit row context near the top
 - target column definition
-- current cell value if in Verify mode
-- proposed value
-- support state
-- concise rationale or calculation
-- primary evidence item
-- expandable secondary evidence items
+- current value block when Verify mode is active
+- proposed value block
+- concise support-state labeling
+- short rationale summary by default
+- expandable fuller rationale
+- editable value input
+- primary review actions
 
-The action area should disable accept paths for blocked items or items without a reviewable proposed value while still allowing inspection and rejection.
+If rationale is delivered as markdown bullets, the middle pane should render it through a concise markdown renderer rather than flattening it into a paragraph blob.
 
-### Evidence viewer
+The decision workflow must make no-value cases actionable. When there is no usable proposal value, the pane should still expose:
+- an explicit edited-value entry path
+- an explicit `Confirm No Data` path or equivalent
 
-For text evidence:
-- show quote text
-- show page
-- show highlight when available
-- fall back to quote + page when highlight fails
+`Confirm No Data` is a review resolution meaning the reviewer believes the paper does not report the target value. The UI and persisted review state must keep that meaning distinct from rejecting a wrong or untrustworthy model output.
 
-Highlight overlays must come from actual parsed page geometry. Do not fabricate placeholder rectangles just to preserve a highlight-looking UI.
+Non-accepted or manually resolved outcomes should carry a structured resolution reason so later summaries and diagnostics can distinguish at least:
+- not reported in paper
+- insufficient evidence
+- model wrong
+- needs manual entry
 
-For figure evidence:
-- show crop first
-- show caption directly attached
-- allow full-page inspection
+Accept-with-edit remains a first-class explicit workflow rather than a minor variant of acceptance.
+
+### Right pane: evidence viewer and PDF interaction
+
+The right pane should be built around a PDF evidence viewer with:
+- zoom support
+- pan support
+- page navigation
+- highlight overlay support when geometry is available
+- quote-plus-page fallback when geometry is unavailable
+- crop-first figure evidence with attached caption and full-page access
+
+Highlight overlays must come from actual parsed page geometry. If highlight geometry is missing, the UI should explain that limitation rather than fabricating highlight boxes.
+
+The evidence interaction model should support a click-to-populate flow: when the reviewer clicks selected quote text or a highlight-linked evidence element, the UI should be able to populate either the proposed-value input or the edited-value input, depending on the active editing state.
+
+Populate-from-evidence should be a reviewer-assist staging action only. It should not auto-save, auto-accept, or silently record a decision.
+
+Default populate behavior should replace the active input with normalized text from the explicitly clicked evidence span. Append behavior may exist only as a separate explicit action.
+
+Automatic populate should apply only to textual evidence, including quote-plus-page text and figure-caption text, not to raw image crops with no textual payload.
+
+If the reviewer has not explicitly selected multiple spans, the populate action should use only the clicked span rather than concatenating all visible evidence.
+
+If populated text is obviously longer than the target field shape or violates known field-format guidance, the UI should stage it without silent truncation and require reviewer trimming or confirmation before save.
+
+When no scoped evidence is available, the right pane should still present a useful fallback action such as opening the full PDF.
 
 ### Summary and download context
 
@@ -584,27 +698,25 @@ The unresolved-match area remains inspect-only in MVP. It is a visibility and di
 
 If no verified cells have been reviewed yet, keep per-column verify coverage visible only as evidence-coverage context with explicit wording that reviewer outcomes are not yet meaningful.
 
-### Actions
+### Actions and shortcut surfacing
 
 The main review actions should be:
 - accept
 - accept with edit
+- confirm no data
 - reject
 - next
 - previous
 - bulk accept visible subset
-
-### Progress and decision affordances
 
 The top bar should show:
 - total proposals
 - reviewed proposals
 - accepted as-is
 - accepted with edit
+- confirmed no-data outcomes when applicable
 - rejected
-- pending / undecided
-
-### MVP keyboard affordances
+- pending or undecided
 
 The MVP should support:
 - next/previous proposal navigation
@@ -612,6 +724,8 @@ The MVP should support:
 - reject current proposal
 - focus proposed-value edit control
 - open or focus the evidence viewer
+
+Keyboard shortcuts should be surfaced on the relevant controls through tooltips or equivalent inline affordances rather than being discoverable only in a distant legend.
 
 ## Bulk review behavior
 
@@ -629,9 +743,9 @@ The FastAPI layer should expose a small stable set of application-facing endpoin
 
 - create/list/get runs
 - get run summary
-- list proposals with filters
+- list proposals with filters and enough compact triage fields to support grouped sidebar rendering by paper or column
 - get proposal detail
-- submit review decision
+- submit review decision, including edited values, confirm-no-data resolutions, and structured resolution reasons
 - inspect unmatched/ambiguous PDFs
 - request export
 - fetch export bundle
@@ -679,6 +793,8 @@ The default OCR fallback is **OCRmyPDF**.
 Born-digital PDFs remain the primary target and should not go through OCR unnecessarily.
 
 OCR outputs must still be normalized into the same parsed-document contract as non-OCR documents.
+
+If the configured parser is Docling, the default expectation is that the run either uses Docling successfully or fails clearly with actionable messaging. A lower-quality parser may exist only as an explicit opt-in fallback for debugging or constrained environments, and any such fallback must be surfaced in readiness results, diagnostics, and summaries rather than activated silently.
 
 ### Optional later enrichment
 - GROBID if measured lift justifies it
@@ -796,6 +912,9 @@ Generate schema-driven proposals with enough context to maximize usefulness whil
 - structured-output-first
 - concise rationale/calculation when the value is derived
 - proposal states should include at least `found`, `inferred`, `unclear`, `blocked`, and `error`
+- prefer `unclear` over guesses grounded mainly in prior spreadsheet values, common practice, or weak implication
+- keep long-text or narrative fields as first-class targets through field-aware output handling rather than assuming every value fits a short-answer contract
+- prefer concise markdown-bullet rationale over dense prose when a rationale is returned
 
 ## LLM interaction model
 
@@ -821,6 +940,8 @@ The model is allowed to:
 - extract directly supported values
 - derive values from calculations
 - provide concise reviewer-facing rationale when inference or calculation is required
+
+When rationale is requested, the preferred output shape is concise markdown bullets, for example short `Observation` and `Inference` bullets, because the review pane is optimized for fast scientific scanning rather than long narrative justification.
 
 The model must not rely on hidden chain-of-thought as a product feature.
 
@@ -891,7 +1012,7 @@ Preferred:
 - quote + page + highlight
 
 Fallback reviewable state:
-- quote + page
+- quote + page, still rendered clearly as text evidence rather than blank or mislabeled evidence
 
 ### Figure proposals
 Preferred minimum:
@@ -1061,7 +1182,11 @@ Proposal identifiers must remain unique within a run, including blocked or unres
 
 Review decisions should be persisted as explicit records rather than only as proposal-state mutations so audit logs and summaries remain derivable from artifact data.
 
+Persisted review semantics should preserve a distinct no-data confirmation meaning so later summaries can separate `paper does not report this value` from `model wrong` or `insufficient evidence` outcomes.
+
 When an audit log includes a decision timestamp, that timestamp should come from the persisted review-decision record when one exists.
+
+Even when a run fails during readiness or before later summaries exist, the artifact bundle should retain the resolved config snapshot plus the best available input/output context so the UI and diagnostics remain informative.
 
 ---
 
@@ -1103,9 +1228,10 @@ Keep proposal extraction robust across local and external providers.
 ## Approach
 
 - typed request/response contracts
-- structured-output-first execution
+- structured-output-first execution with capability negotiation
 - structured JSON per proposal as the stable contract
-- prompt-only JSON fallback when required for future providers
+- compatible fallback when a provider rejects a stronger guided-JSON mode
+- prompt-only JSON fallback only when the same proposal contract can still be validated
 
 The provider layer should be one typed interface with explicit locality, capability, and readiness reporting. The same provider abstraction should support LM Studio as the default local-first path and optional cloud providers later without changing the browser-first operator workflow.
 
@@ -1135,6 +1261,20 @@ Each provider entry should capture, as applicable:
 - explicit disabled flag or explicit stub/demo mode only when intentionally supported
 
 Committed examples should show LM Studio as the default live path. Cloud examples, when present, should demonstrate environment-based credential resolution rather than committed secrets.
+
+Operator docs should include at least one verified LM Studio model example, clearly marked as a known-working example rather than as the only acceptable model.
+
+## Structured-output compatibility and response recovery
+
+Provider adapters should probe or negotiate structured-output compatibility per provider/model path rather than assuming one guided-JSON mechanism will work everywhere.
+
+If a provider rejects the preferred guided-output mode, the adapter should fall back to another compatible structured-response path only if the same proposal contract can still be validated.
+
+One structured-output mismatch or guided-JSON rejection must not poison an entire run by default. Compatibility handling should be contained to the affected provider-model path, request shape, or target-cell attempt, with truthful diagnostics and continued processing where the contract can still be preserved safely.
+
+Malformed structured responses should go through a bounded repair path before the target is finalized as a hard extraction error. The repair path should use a compact repair-oriented instruction or equivalent narrowly scoped recovery mechanism rather than reopening the full extraction request indefinitely.
+
+If a compatible structured path cannot be established, the run should record a clear provider or extraction failure rather than silently accepting unstructured output as a valid proposal.
 
 ## Preflight and readiness policy
 
@@ -1178,7 +1318,7 @@ The normal run summary should include:
 - matched, unmatched, and ambiguous PDF counts
 - proposals generated
 - proposals reviewed
-- accepted as-is, accepted with edit, and rejected counts
+- accepted as-is, accepted with edit, confirmed no-data, and rejected counts
 - accepted change count
 - warning flags for limited review or weak evidence situations
 
@@ -1222,6 +1362,7 @@ At minimum, the run summary should include:
 - reviewed proposals
 - accepted-as-is
 - accepted-with-edit
+- confirmed-no-data
 - rejected
 - changed cells exported
 - Verify mode on/off
@@ -1235,6 +1376,7 @@ Use reviewer-outcome statistics as the primary product-level measurement:
 - reviewed proposal count
 - accepted as-is count/rate
 - accepted with edit count/rate
+- confirmed no-data count/rate
 - rejected count/rate
 - proposal coverage
 - per-column reviewer outcome breakdown
@@ -1259,6 +1401,8 @@ Always distinguish:
 - evaluation emptiness/skips
 
 Never let zero-evaluable-target runs masquerade as normal scored runs. Leakage-safe benchmark design can be deferred until a later phase because MVP does not depend on automated verification scoring.
+
+Run-summary and reviewer-summary counters and warning flags should be computed from persisted artifact facts rather than ad hoc UI heuristics, and provisional states should stay visibly provisional until their triggering conditions are truly met.
 
 ---
 

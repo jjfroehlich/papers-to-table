@@ -188,6 +188,25 @@ Recent rebuild evidence adds three practical constraints to that baseline:
 - run-start preflight must catch provider, model, parser, dependency, and setup failures before nominal run execution
 - completion should require either real proposal generation proof on the canonical fixture path or an explicit readiness failure, not a cosmetically complete app shell
 
+## Durable rebuild rules from recent testing
+
+The latest rebuild and test cycle surfaced several rules that are broader than any one bug and should survive future implementation changes:
+
+- Treat the README, checked-in config example, runtime config schema, and UI labels as one operator contract. Drift across those surfaces causes setup and review errors even when the underlying code path is otherwise functional.
+- Keep at least one verified LM Studio model example in operator docs, but frame it as a known-working example rather than as the only acceptable model choice.
+- Normalize commonplace ingestion artifacts at the boundary, especially BOM-affected CSV headers and Excel-native date or datetime cells.
+- Persist resolved config and input context before deeper execution so readiness failures and early-run failures remain diagnosable in the UI and artifact bundle.
+- Make parser selection explicit. Silent substitution from a configured parser to another parser hides real environment problems and breaks operator trust unless fallback was explicitly opted into and surfaced.
+- Treat structured-output support as a negotiated provider capability, not as one hardcoded protocol. Guided-JSON rejection should degrade gracefully only if the same proposal contract can still be validated, and one compatibility mismatch should not poison the rest of the run by default.
+- Prefer `unclear` over guesses supported mainly by prior spreadsheet patterns, common practice, or weak implication rather than by current-paper evidence.
+- Treat malformed model JSON as a partially recoverable transport or format problem first, not immediately as a semantic extraction failure. A compact repair-oriented recovery step is preferable to prematurely collapsing the target into a hard error.
+- Quote plus page evidence remains valid reviewer evidence even when precise highlight geometry is unavailable.
+- Compute summary metrics and warnings from persisted facts, and distinguish provisional states from final results.
+- Long-text fields need contract-level robustness; short-answer defaults and tight output shapes create systematic failure modes.
+- A lower-quality parser fallback may still be useful for debugging or constrained environments, but it should be explicit opt-in behavior rather than a silent quality downgrade from a configured main parser.
+
+These are not arguments for more fallback layers. They are arguments for tighter contracts, more truthful operator surfaces, and narrower but more reliable recovery behavior.
+
 ---
 
 ## Research topic 1 — Parser and low-level PDF stack
@@ -473,6 +492,28 @@ The review UI should support:
 - page-relative highlight overlays when geometry is available
 - fallback behavior when precise highlight rectangles are not reliable
 - figure crop plus full-page viewing for figure-derived evidence
+
+### Rationale formatting recommendation
+
+Reviewer scanability improves when rationale is returned as concise markdown bullets rather than as dense prose.
+
+The preferred guidance to the extraction layer is to request rationale in a compact bullet structure such as:
+- `Observation`
+- `Inference`
+
+This is not mainly an aesthetic choice. It better matches rapid scientific review workflows, reduces dense paragraph explanations in the decision pane, and makes accept-with-edit and no-data review decisions faster to evaluate.
+
+### Specification lesson from recent rebuilds
+
+Recent rebuild attempts specified architecture, workflow sequencing, and runtime contracts more strongly than review information hierarchy and interaction details.
+
+That left room for technically compliant but ergonomically weaker implementations, including:
+- evidence that was present but visually weak
+- flat noisy queues
+- unclear handling of no-value states
+- insufficiently interactive evidence review
+
+For this product class, grouped triage behavior, explicit no-data handling, evidence interactivity, and visible distinctions between review state, support quality, and match outcome need to be specified as first-class requirements rather than left to implementation taste.
 
 ## Consequences for implementation
 
@@ -774,6 +815,7 @@ The strongest current recommendation is to measure:
 - reviewed verified-cell count
 - accepted as-is count/rate
 - accepted with edit count/rate
+- confirmed no-data count/rate
 - rejected count/rate
 - per-column reviewer outcome breakdown
 - evidence coverage
@@ -781,6 +823,13 @@ The strongest current recommendation is to measure:
 - matched / unmatched / ambiguous PDF counts
 
 This is more trustworthy and easier to interpret than an automated aggregate score over free text, numeric, categorical, range, and reasoning-heavy fields.
+
+Later spec tightening adds four durable implementation constraints to that measurement and review model:
+
+- `confirm no data` should remain a first-class reviewer outcome throughout summaries and pipeline artifacts rather than being folded into rejection.
+- Browser-picker setup in a local browser app should materialize selected inputs into backend-readable staged files, directories, or explicit server-side input handles rather than assuming the browser can supply stable native paths.
+- Evidence-to-input population should be a text-first staging action that replaces the active input by default, never auto-saves, and never silently truncates overlong text.
+- Grouped triage should define default group ordering and minimum group-header counts or warnings so rebuilds do not diverge on basic review ergonomics.
 
 ## Why this conclusion won
 
