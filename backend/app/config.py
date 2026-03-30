@@ -35,6 +35,7 @@ class ParserConfig(BaseModel):
     backend: str = "docling"
     ocr_enabled: bool = False
     ocr_language: str = "en"
+    allow_basic_fallback: bool = False  # T026a: allow pypdfium2 fallback if configured parser fails
 
 
 class MatchingConfig(BaseModel):
@@ -165,5 +166,18 @@ async def check_readiness(config: RunConfig) -> ReadinessResult:
                 f"Cannot reach LM Studio at {config.provider.base_url}: {e}. "
                 f"Is LM Studio running with a model loaded?"
             )
+
+    # T026a / T031: Check parser and OCR dependencies
+    from .parsing import check_parser_readiness, check_ocr_readiness
+    parser_errors = check_parser_readiness(
+        config.parser.backend,
+        config.parser.allow_basic_fallback,
+    )
+    for err in parser_errors:
+        r.fail(err)
+
+    ocr_errors = check_ocr_readiness(config.parser.ocr_enabled)
+    for err in ocr_errors:
+        r.fail(err)
 
     return r

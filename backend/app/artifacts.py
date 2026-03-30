@@ -46,6 +46,16 @@ def get_logs_dir(output_dir: str, run_id: str) -> pathlib.Path:
     return get_run_dir(output_dir, run_id) / "logs"
 
 
+def get_parsed_base_dir(output_dir: str, run_id: str) -> pathlib.Path:
+    """Root directory for all per-PDF parse artifacts."""
+    return get_run_dir(output_dir, run_id) / "parsed"
+
+
+def get_matching_dir(output_dir: str, run_id: str) -> pathlib.Path:
+    """Directory for matching artifacts."""
+    return get_run_dir(output_dir, run_id) / "matching"
+
+
 def init_run_bundle(output_dir: str, run_id: str) -> pathlib.Path:
     """Create the full directory structure for a run bundle."""
     run_dir = get_run_dir(output_dir, run_id)
