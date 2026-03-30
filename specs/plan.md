@@ -1022,7 +1022,7 @@ The system must distinguish and label the following evidence types. These types 
 - `calculation`: a calculation or derivation performed on quoted numeric evidence; distinct from the quote(s) used as inputs
 - `approximate_highlight`: a highlight region produced from approximate parser geometry rather than precise page-text alignment; labeled as approximate, not presented as exact
 - `quote_plus_page`: a quote plus page reference when precise highlighting fails; labeled as fallback text evidence
-- `figure_based`: evidence derived from a figure, chart, diagram, or image, with figure crop, caption, and full-page context
+- `figure_based_evidence`: evidence derived from a figure, chart, diagram, or image, with figure crop, caption, and full-page context
 
 The review UI must show direct quotes separately from reasoning and calculations. The reviewer must be able to distinguish verbatim text from model-constructed inference.
 
@@ -1061,7 +1061,7 @@ Each evidence object should capture, at minimum:
 - evidence identifier
 - source PDF
 - page reference
-- evidence type (one of: `direct_quote`, `inferred_reasoning`, `calculation`, `approximate_highlight`, `quote_plus_page`, `figure_based`)
+- evidence type (one of: `direct_quote`, `inferred_reasoning`, `calculation`, `approximate_highlight`, `quote_plus_page`, `figure_based_evidence`)
 - direct quote text when the evidence type includes verbatim text
 - exact highlight regions when available from page-text alignment
 - approximate fallback regions when exact alignment failed but parser geometry is available

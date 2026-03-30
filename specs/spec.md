@@ -327,7 +327,7 @@ The product uses the following reviewer-facing concepts consistently across the 
   - `calculation`: a calculation or derivation performed on quoted numeric evidence
   - `approximate_highlight`: a highlight region derived from approximate parser geometry rather than precise page-text alignment, labeled as approximate
   - `quote_plus_page`: a quote plus page number when precise highlighting fails; labeled as fallback text evidence rather than as an exact highlight
-  - `figure_based`: evidence derived from a figure, chart, diagram, or image, with figure crop, caption, and full-page context
+  - `figure_based_evidence`: evidence derived from a figure, chart, diagram, or image, with figure crop, caption, and full-page context
 - **Primary evidence**: the single most authoritative evidence item for a proposal, selected by evidence ranking based on source authority and field relevance.
 - **Supporting evidence**: additional ordered evidence items that corroborate or supplement the primary evidence, shown in ranked order.
 - **Evidence ranking**: the process of ordering evidence items by source authority and field relevance so the most authoritative evidence becomes primary and supporting items are ordered accordingly.
@@ -822,7 +822,7 @@ A reviewer must be able to tell, for each proposal:
 - what value was proposed
 - what support level it has, such as direct evidence, inferred from evidence, weak evidence, or figure-based evidence
 - what evidence supports it, including which item is primary and which are supporting
-- what evidence type each item is: direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, or figure-based
+- what evidence type each item is: direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, or figure-based evidence
 - whether the value depends on calculation or reasoning, shown separately from direct quotes
 - whether additional scrutiny is recommended
 
@@ -1197,4 +1197,4 @@ Technical architecture, parser strategy, retrieval strategy, model behavior, per
 
 ## Appendix: concise product statement
 
-Paper Table Agent is a local-first, evidence-first paper-to-table review system. It matches papers to spreadsheet rows, proposes values for missing or verified cells with ranked, typed, anchored evidence, and lets a human reviewer inspect direct quotes separately from reasoning and calculations, navigate multiple supporting evidence items, and accept, edit, confirm no data, reject, or bulk-accept the currently visible filtered subset before exporting an audited XLSX table update. Evidence quality and reviewer trust are first-class product requirements.
+Paper Table Agent is a local-first, evidence-first paper-to-table review system. It matches papers to spreadsheet rows and proposes values for missing or verified cells, attaching ranked, typed, and anchored evidence to each proposal. The reviewer can inspect direct quotes separately from reasoning and calculations, navigate multiple supporting evidence items in order, and accept, edit, confirm no data, or reject each proposal before exporting an audited XLSX table update. Evidence quality and reviewer trust are first-class product requirements.

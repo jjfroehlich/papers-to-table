@@ -25,7 +25,7 @@ Preserve these constraints throughout implementation:
 - small **Python FastAPI** backend
 - **Docling** as main parser
 - **PDFium via `pypdfium2`** as low-level PDF backend
-- raw/custom **PDF.js** viewer with synchronized quote-list and viewer navigation
+- raw/custom **PDF.js** viewer with synchronized quote list and viewer navigation
 - **LM Studio localhost API** as the initial provider path
 - **separate text-model and vision-model configuration** in the provider config
 - **filesystem artifact bundles + JSON files only**
@@ -265,13 +265,13 @@ The detailed task inventory below remains the source of truth for exact implemen
   - `calculation`
   - `needs_more_evidence`
   - `primary_evidence_id` (the single most authoritative evidence item, selected by evidence ranking)
-  - `supporting_evidence_ids` (ordered list of additional evidence item ids, ranked by authority and relevance, most authoritative first)
+  - `ordered_supporting_evidence_ids` (ordered list of additional evidence item ids, ranked by authority and relevance, most authoritative first)
 
 - [ ] **T007** Define the evidence JSON schema and contract for separate evidence records linked to proposals, including at least:
   - `evidence_id`
   - `proposal_id`
   - `pdf_id`
-  - `source_type` (one of: `direct_quote`, `inferred_reasoning`, `calculation`, `approximate_highlight`, `quote_plus_page`, `figure_based`)
+  - `source_type` (one of: `direct_quote`, `inferred_reasoning`, `calculation`, `approximate_highlight`, `quote_plus_page`, `figure_based_evidence`)
   - `page`
   - `quote_text` (verbatim text for direct quote, inferred reasoning, calculation, and quote-plus-page types)
   - `exact_highlight_regions` (bounding regions from page-text alignment when available)
