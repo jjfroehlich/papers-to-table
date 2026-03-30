@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pathlib
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
@@ -9,6 +10,9 @@ from pydantic import BaseModel
 from .artifacts import (
     get_config_snapshot_path,
     get_input_summary_path,
+    get_matching_dir,
+    get_parsed_base_dir,
+    get_run_dir,
     get_run_json_path,
     get_run_summary_path,
     list_run_ids,
@@ -16,6 +20,7 @@ from .artifacts import (
 )
 from .config import apply_overrides, load_config
 from .ids import generate_run_id
+from .matching import load_ambiguous, load_conflicts, load_match_results, load_match_summary, load_unmatched
 from .runner import launch_run
 from .schemas import RunStatus
 
@@ -133,3 +138,83 @@ async def get_run_summary(run_id: str, output_dir: str = "./runs"):
     if not path.exists():
         return await get_run(run_id, output_dir)
     return read_json(path)
+
+
+# ---------------------------------------------------------------------------
+# T039: Matching inspection endpoints
+# ---------------------------------------------------------------------------
+
+@app.get("/api/runs/{run_id}/matching")
+async def get_run_matching(run_id: str, output_dir: str = "./runs"):
+    """Get all match results for a run (T039)."""
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+    results = load_match_results(run_dir)
+    summary = load_match_summary(run_dir)
+    return {"run_id": run_id, "summary": summary, "results": results}
+
+
+@app.get("/api/runs/{run_id}/matching/summary")
+async def get_run_matching_summary(run_id: str, output_dir: str = "./runs"):
+    """Get match summary counts for a run."""
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+    summary = load_match_summary(run_dir)
+    if summary is None:
+        raise HTTPException(status_code=404, detail="Matching not yet complete for this run")
+    return summary
+
+
+@app.get("/api/runs/{run_id}/matching/unmatched")
+async def get_run_unmatched(run_id: str, output_dir: str = "./runs"):
+    """Get unmatched PDFs for a run (T039)."""
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+    return {"run_id": run_id, "unmatched": load_unmatched(run_dir)}
+
+
+@app.get("/api/runs/{run_id}/matching/ambiguous")
+async def get_run_ambiguous(run_id: str, output_dir: str = "./runs"):
+    """Get ambiguous-match PDFs for a run (T039)."""
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+    return {"run_id": run_id, "ambiguous": load_ambiguous(run_dir)}
+
+
+@app.get("/api/runs/{run_id}/matching/conflicts")
+async def get_run_conflicts(run_id: str, output_dir: str = "./runs"):
+    """Get duplicate-row-conflict PDFs for a run (T039)."""
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+    return {"run_id": run_id, "conflicts": load_conflicts(run_dir)}
+
+
+@app.get("/api/runs/{run_id}/parsed/{pdf_id}")
+async def get_parsed_document(run_id: str, pdf_id: str, output_dir: str = "./runs"):
+    """Get the normalized ParsedDocument for a single PDF (T029)."""
+    run_dir = get_run_dir(output_dir, run_id)
+    parsed_path = run_dir / "parsed" / pdf_id / "parsed_document.json"
+    if not parsed_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Parsed document not found for pdf_id={pdf_id} in run {run_id}",
+        )
+    return read_json(parsed_path)
+
+
+@app.get("/api/runs/{run_id}/parsed/{pdf_id}/diagnostics")
+async def get_parse_diagnostics(run_id: str, pdf_id: str, output_dir: str = "./runs"):
+    """Get parser diagnostics for a single PDF (T031)."""
+    run_dir = get_run_dir(output_dir, run_id)
+    diag_path = run_dir / "parsed" / pdf_id / "diagnostics.json"
+    if not diag_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Parser diagnostics not found for pdf_id={pdf_id} in run {run_id}",
+        )
+    return read_json(diag_path)

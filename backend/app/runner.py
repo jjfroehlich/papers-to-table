@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import pathlib
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -9,6 +10,7 @@ from .artifacts import (
     get_config_snapshot_path,
     get_input_summary_path,
     get_reviewer_summary_path,
+    get_run_dir,
     get_run_json_path,
     get_run_summary_path,
     init_run_bundle,
@@ -24,7 +26,9 @@ from .ingest import (
     validate_schema_columns,
 )
 from .lifecycle import apply_transition
-from .schemas import RunStatus
+from .matching import persist_match_artifacts, run_matching
+from .parsing import parse_pdf
+from .schemas import RunStatus, WarningCategory
 
 _active_runs: dict[str, asyncio.Task] = {}
 _active_runs_lock: asyncio.Lock | None = None
@@ -166,13 +170,78 @@ async def run_pipeline(
         run_data["eligible_cells"] = len(eligible)
         save_run(run_data)
 
-        # Stage: run_pipeline stub (Batch 2+ implements parsing/matching/extraction)
-        run_data = update_stage(run_data, "run_pipeline")
+        run_dir = get_run_dir(output_dir, run_id)
+
+        # Stage: parse
+        run_data = update_stage(run_data, "parse")
         save_run(run_data)
 
-        # Batch 1 stub: yield to event loop so the API remains responsive.
-        # Batch 2+ replaces this with real parsing, matching, and extraction.
-        await asyncio.sleep(0)
+        parsed_docs: list[dict] = []
+        parse_errors: list[str] = []
+
+        for pdf_file in pdf_files:
+            pdf_path = os.path.join(config.pdf_dir, pdf_file)
+            pdf_id = pathlib.Path(pdf_file).stem
+            await asyncio.sleep(0)  # yield to event loop between PDFs
+            try:
+                doc, diagnostics, _page_paths = parse_pdf(
+                    pdf_path=pdf_path,
+                    pdf_id=pdf_id,
+                    configured_parser=config.parser.backend,
+                    allow_basic_fallback=config.parser.allow_basic_fallback,
+                    ocr_enabled=config.parser.ocr_enabled,
+                    ocr_language=config.parser.ocr_language,
+                    run_dir=run_dir,
+                    generate_pages=True,
+                )
+                parsed_docs.append(doc.model_dump())
+            except Exception as e:
+                parse_errors.append(f"{pdf_file}: {e}")
+
+        if parse_errors:
+            # Record parse errors as warnings; don't abort the run
+            for err in parse_errors:
+                run_data.setdefault("warnings", []).append({
+                    "category": WarningCategory.partial_extraction.value,
+                    "message": f"Parse error: {err}",
+                    "context": None,
+                })
+            save_run(run_data)
+
+        # Stage: match
+        run_data = update_stage(run_data, "match")
+        save_run(run_data)
+
+        match_results = run_matching(
+            pdf_docs=parsed_docs,
+            df=df,
+            ambiguity_threshold=config.matching.ambiguity_threshold,
+        )
+        persist_match_artifacts(run_dir, run_id, match_results)
+
+        # Record match-outcome warnings
+        from .schemas import WarningCategory as WC
+        for mr in match_results:
+            from .schemas import MatchOutcome
+            if mr["outcome"] == MatchOutcome.unmatched.value:
+                run_data.setdefault("warnings", []).append({
+                    "category": WC.unmatched_pdf.value,
+                    "message": f"PDF not matched to any table row: {mr['pdf_id']}",
+                    "context": {"pdf_id": mr["pdf_id"]},
+                })
+            elif mr["outcome"] == MatchOutcome.ambiguous.value:
+                run_data.setdefault("warnings", []).append({
+                    "category": WC.ambiguous_match.value,
+                    "message": f"PDF match ambiguous: {mr['pdf_id']}",
+                    "context": {"pdf_id": mr["pdf_id"]},
+                })
+            elif mr["outcome"] == MatchOutcome.duplicate_row_conflict.value:
+                run_data.setdefault("warnings", []).append({
+                    "category": WC.duplicate_row_conflict.value,
+                    "message": f"Duplicate row conflict: {mr['pdf_id']}",
+                    "context": {"pdf_id": mr["pdf_id"]},
+                })
+        save_run(run_data)
 
         warnings = run_data.get("warnings", [])
         final_status = (
