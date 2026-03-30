@@ -1,0 +1,95 @@
+export type RunStatus =
+  | 'created'
+  | 'validating'
+  | 'running'
+  | 'completed'
+  | 'completed_with_warnings'
+  | 'failed'
+  | 'interrupted'
+
+export type MatchOutcome = 'matched' | 'ambiguous' | 'unmatched' | 'duplicate_row_conflict'
+export type ProposalState = 'found' | 'inferred' | 'unclear' | 'blocked' | 'error' | 'skipped'
+export type SupportLabel = 'direct_evidence' | 'inferred_from_evidence' | 'weak_evidence' | 'blocked' | 'error'
+export type EvidenceSourceType =
+  | 'direct_quote'
+  | 'inferred_reasoning'
+  | 'calculation'
+  | 'approximate_highlight'
+  | 'quote_plus_page'
+  | 'figure_based_evidence'
+export type ReviewDecision = 'accepted' | 'accepted_with_edit' | 'confirmed_no_data' | 'rejected'
+
+export interface WarningItem {
+  category: string
+  message: string
+  context?: Record<string, unknown>
+}
+
+export interface RunData {
+  run_id: string
+  status: RunStatus
+  config_path: string | null
+  table_path: string | null
+  schema_path: string | null
+  pdf_dir: string | null
+  output_dir: string
+  verify_mode: boolean
+  provider_token: string | null
+  provider_locality: string | null
+  started_at: string | null
+  completed_at: string | null
+  current_stage: string | null
+  total_rows: number
+  eligible_cells: number
+  proposals_generated: number
+  proposals_reviewed: number
+  warnings: WarningItem[]
+  error_message: string | null
+  created_at: string
+}
+
+export interface InputSummary {
+  run_id: string
+  table_path: string | null
+  schema_path: string | null
+  pdf_dir: string | null
+  output_dir: string
+  verify_mode: boolean
+  table_rows: number | null
+  schema_columns: number | null
+  pdf_count: number | null
+  recorded_at: string
+}
+
+export interface CreateRunRequest {
+  config_path: string
+  table_path?: string
+  schema_path?: string
+  pdf_dir?: string
+}
+
+export interface CreateRunResponse {
+  run_id: string
+  status: string
+}
+
+export interface ListRunsResponse {
+  runs: RunData[]
+}
+
+export interface Proposal {
+  proposal_id: string
+  run_id: string
+  cell_id: string
+  row_id: string
+  column_name: string
+  pdf_id: string
+  state: ProposalState
+  support: SupportLabel
+  proposed_value: string | null
+  rationale: string | null
+  calculation: string | null
+  evidence_ids: string[]
+  warning_flags: string[]
+  created_at: string
+}
