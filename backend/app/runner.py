@@ -170,7 +170,9 @@ async def run_pipeline(
         run_data = update_stage(run_data, "run_pipeline")
         save_run(run_data)
 
-        await asyncio.sleep(0)  # yield to event loop
+        # Batch 1 stub: yield to event loop so the API remains responsive.
+        # Batch 2+ replaces this with real parsing, matching, and extraction.
+        await asyncio.sleep(0)
 
         warnings = run_data.get("warnings", [])
         final_status = (
