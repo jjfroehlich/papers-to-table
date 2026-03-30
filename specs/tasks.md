@@ -207,9 +207,9 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 **Goal:** establish stable schemas, stable identifiers, filesystem persistence, config behavior, and test scaffolding for the full MVP.
 
-- [ ] **T001** Create the base project skeleton for `backend/`, `frontend/`, and `tests/`, plus a short root-level development note that describes the local-first architecture and canonical pipeline stages.
+- [x] **T001** Create the base project skeleton for `backend/`, `frontend/`, and `tests/`, plus a short root-level development note that describes the local-first architecture and canonical pipeline stages.
 
-- [ ] **T002** Define the shared domain enums and common JSON/Pydantic/TypeScript schemas for at least:
+- [x] **T002** Define the shared domain enums and common JSON/Pydantic/TypeScript schemas for at least:
   - run status
   - match outcome
   - proposal state
@@ -220,13 +220,13 @@ The detailed task inventory below remains the source of truth for exact implemen
   - warning/status category
   - provider locality (`local` vs `cloud`)
 
-- [ ] **T003** Define and implement stable identifier generation for runs, PDFs, rows, cells, proposals, evidence items, and review decisions, including at minimum:
+- [x] **T003** Define and implement stable identifier generation for runs, PDFs, rows, cells, proposals, evidence items, and review decisions, including at minimum:
   - deterministic `cell_id`
   - stable `pdf_id` assignment within a run
   - proposal and evidence ids that are unique and traceable, including cases where multiple PDFs target the same row/cell within one run
   - stable review-decision ids linked back to proposal and cell context
 
-- [ ] **T004** Implement the stable run artifact bundle layout with at least:
+- [x] **T004** Implement the stable run artifact bundle layout with at least:
   - `run.json`
   - `config.snapshot.json`
   - `inputs/`
@@ -242,7 +242,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - `exports/`
   - `logs/`
 
-- [ ] **T005** Implement the artifact I/O helper layer:
+- [x] **T005** Implement the artifact I/O helper layer:
   - shared helpers for writing and reading JSON snapshot files
   - shared helpers for appending and reading JSONL files
   - stable artifact-path generation inside a run bundle
@@ -250,7 +250,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - run-summary and reviewer-summary recomputation from artifact files
   - write behavior that is atomic enough for local single-user reliability
 
-- [ ] **T006** Define the proposal JSON schema and contract for one proposal object per target cell per run, including at least:
+- [x] **T006** Define the proposal JSON schema and contract for one proposal object per target cell per run, including at least:
   - `proposal_id`
   - `run_id`
   - `pdf_id`
@@ -267,7 +267,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - `primary_evidence_id` (the single most authoritative evidence item, selected by evidence ranking)
   - `ordered_supporting_evidence_ids` (ordered list of additional evidence item ids, ranked by authority and relevance, most authoritative first)
 
-- [ ] **T007** Define the evidence JSON schema and contract for separate evidence records linked to proposals, including at least:
+- [x] **T007** Define the evidence JSON schema and contract for separate evidence records linked to proposals, including at least:
   - `evidence_id`
   - `proposal_id`
   - `pdf_id`
@@ -283,11 +283,11 @@ The detailed task inventory below remains the source of truth for exact implemen
   - `anchor_confidence`
   - `evidence_rank` (integer rank within the proposal, lower = more authoritative; primary evidence has rank 1)
 
-- [ ] **T008** Define the review-decision JSON schema plus the run-summary and reviewer-summary JSON schemas.
+- [x] **T008** Define the review-decision JSON schema plus the run-summary and reviewer-summary JSON schemas.
   - review decisions must remain persistable as explicit records, not only as in-place proposal mutations
   - preserve a distinct confirmed-no-data outcome and structured resolution reasons for non-accepted or manually resolved states
 
-- [ ] **T009** Define the single JSON config schema covering:
+- [x] **T009** Define the single JSON config schema covering:
   - input table and schema paths
   - PDF directory path
   - parser settings
@@ -300,33 +300,33 @@ The detailed task inventory below remains the source of truth for exact implemen
   - review settings
   - export settings
 
-- [ ] **T009a** Define the canonical provider token policy and settings contract shared across runtime validation, config examples, tests, docs, and UI labels.
+- [x] **T009a** Define the canonical provider token policy and settings contract shared across runtime validation, config examples, tests, docs, and UI labels.
   - use `lm_studio` as the canonical LM Studio config token and `LM Studio` as the canonical operator-visible label
   - specify how optional cloud providers fit behind the same typed interface
   - document any allowed aliases in one place only and normalize them into canonical stored values
   - reject unknown, obsolete, or misspelled provider identifiers explicitly
   - provider settings must include separate model identifier fields for text extraction and for vision extraction; a single shared model field is not sufficient
 
-- [ ] **T009b** Define the operator-facing terminology parity rules for provider, parser, model, Verify-mode, and run-state labels across the runtime config schema, checked-in config example, tests, docs, and UI copy.
+- [x] **T009b** Define the operator-facing terminology parity rules for provider, parser, model, Verify-mode, and run-state labels across the runtime config schema, checked-in config example, tests, docs, and UI copy.
 
-- [ ] **T010** Implement config default resolution into one effective runtime config before any run work starts.
+- [x] **T010** Implement config default resolution into one effective runtime config before any run work starts.
 
-- [ ] **T011** Create `config.example.json` as a minimal but complete example config file for the full MVP.
+- [x] **T011** Create `config.example.json` as a minimal but complete example config file for the full MVP.
   - keep `lm_studio` and `LM Studio` as the canonical live local config token and operator label
   - do not hardcode cloud credentials in committed examples
 
-- [ ] **T011a** Add provider-contract example coverage for the checked-in configs and tests.
+- [x] **T011a** Add provider-contract example coverage for the checked-in configs and tests.
   - ensure checked-in example configs, fixture configs, and test helpers use the same canonical provider tokens and settings shape as runtime validation
   - prefer environment-variable or secret references for optional cloud-provider examples
 
-- [ ] **T012** Implement config/path validation and required metadata/schema validation:
+- [x] **T012** Implement config/path validation and required metadata/schema validation:
   - validate that configured paths exist and are readable
   - resolve relative, absolute, browser-selected, and platform-specific path spellings into one explicit resolved-run context before execution
   - validate that schema columns include at least `column_name` and `description`
   - validate that the source table contains `Title`, `Authors`, and `Publication Year`
   - fail early with actionable diagnostics when validation fails
 
-- [ ] **T012a** Implement run-start preflight and readiness validation for the configured execution path.
+- [x] **T012a** Implement run-start preflight and readiness validation for the configured execution path.
   - validate provider token and provider-config shape
   - validate provider reachability for live providers
   - validate configured model availability or capability failure when it can be checked cheaply
@@ -334,27 +334,27 @@ The detailed task inventory below remains the source of truth for exact implemen
   - validate output-directory writability and other obvious broken local setup conditions
   - stop before normal processing when readiness fails, and persist actionable readiness diagnostics
 
-- [ ] **T013** Implement config snapshotting into run artifacts:
+- [x] **T013** Implement config snapshotting into run artifacts:
   - validate config at run start
   - persist the resolved effective config as `config.snapshot.json`
   - ensure the run can later be explained from the snapshot
 
-- [ ] **T013a** Persist a resolved input-summary artifact early enough that readiness-failed and early-failed runs still expose table, schema, PDF-directory, output-directory, and Verify-mode context to the UI and diagnostics.
+- [x] **T013a** Persist a resolved input-summary artifact early enough that readiness-failed and early-failed runs still expose table, schema, PDF-directory, output-directory, and Verify-mode context to the UI and diagnostics.
 
-- [ ] **T014** Audit, normalize, and document the canonical deterministic fixture corpus in `tests/fixtures/`.
+- [x] **T014** Audit, normalize, and document the canonical deterministic fixture corpus in `tests/fixtures/`.
   - reuse the existing checked-in workbook fixture with schema tab plus the existing four paper PDFs as the primary canonical fixture set when they cover the required scenarios
   - map those fixtures to success, OCR or text-access edge cases, unmatched or ambiguous cases, duplicate-row-conflict cases, and figure-heavy coverage where applicable
   - add text-based companion configs, manifests, expected outputs, or assertions when more precision is needed
   - avoid requiring new binary fixtures unless a real coverage gap cannot be addressed otherwise
 
-- [ ] **T015** Set up backend unit/integration/contract test tooling, including provider stubs/fakes and fixture helpers.
+- [x] **T015** Set up backend unit/integration/contract test tooling, including provider stubs/fakes and fixture helpers.
 
-- [ ] **T015a** Add contract-parity tests for provider naming and config semantics.
+- [x] **T015a** Add contract-parity tests for provider naming and config semantics.
   - verify canonical provider tokens across runtime schemas, example configs, and test fixtures
   - verify unknown provider identifiers fail early with clear diagnostics
 
-- [ ] **T016** Set up frontend test tooling and Playwright e2e scaffolding for the review workflow.
-- [ ] **T016a** Harden the Playwright harness so fixture preparation is separate from server startup and browser/server processes start without shell-dependent heredocs or command chaining.
+- [x] **T016** Set up frontend test tooling and Playwright e2e scaffolding for the review workflow.
+- [x] **T016a** Harden the Playwright harness so fixture preparation is separate from server startup and browser/server processes start without shell-dependent heredocs or command chaining.
   - distinguish missing browser/runtime dependencies from application failures when practical
   - retain screenshots, traces, or similarly useful browser-failure artifacts when practical
 
@@ -364,25 +364,25 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 **Goal:** the system can start a run, validate and snapshot inputs, and compute which cells are eligible for extraction or verification.
 
-- [ ] **T017** Implement spreadsheet loading for CSV and XLSX inputs.
+- [x] **T017** Implement spreadsheet loading for CSV and XLSX inputs.
   - handle BOM-marked headers safely for CSV inputs
   - normalize Excel-native date and datetime cells into stable internal values instead of leaking raw serials
 
-- [ ] **T018** Implement schema loading from workbook or separate schema file.
+- [x] **T018** Implement schema loading from workbook or separate schema file.
   - normalize BOM-marked or whitespace-padded headers for CSV-based schema sources before field validation
 
-- [ ] **T019** Implement table normalization and required metadata-column validation for `Title`, `Authors`, and `Publication Year`.
+- [x] **T019** Implement table normalization and required metadata-column validation for `Title`, `Authors`, and `Publication Year`.
   - perform header normalization before checking canonical field names
 
-- [ ] **T020** Implement cell eligibility classification for at least:
+- [x] **T020** Implement cell eligibility classification for at least:
   - empty / missing
   - already-filled
   - trivial placeholder treated as empty when configured
   - skipped / ineligible
 
-- [ ] **T021** Implement Verify mode semantics so already-filled cells become eligible targets when Verify mode is enabled.
+- [x] **T021** Implement Verify mode semantics so already-filled cells become eligible targets when Verify mode is enabled.
 
-- [ ] **T022** Implement run lifecycle state transitions for at least:
+- [x] **T022** Implement run lifecycle state transitions for at least:
   - `created`
   - `validating`
   - `running`
@@ -392,25 +392,25 @@ The detailed task inventory below remains the source of truth for exact implemen
   - `interrupted`
   - treat `created` and `interrupted` as internal or artifact-level states when useful, but map UI state to the normative operator-visible lifecycle defined in `spec.md`
 
-- [ ] **T023** Implement run creation and inspection API endpoints for:
+- [x] **T023** Implement run creation and inspection API endpoints for:
   - create run
   - list runs
   - get run summary
   - fetch config snapshot
   - fetch input summary
 
-- [ ] **T023b** Support picker-driven input overrides in the run-creation flow while preserving config-file authority.
+- [x] **T023b** Support picker-driven input overrides in the run-creation flow while preserving config-file authority.
   - accept explicit run-input overrides for relevant file or folder paths
   - materialize browser-selected files or directories into app-owned staged inputs or another explicit backend-readable input handle before execution
   - return the resolved path context that the UI should display back to the operator
   - distinguish logical input source from backend-visible runtime locator in the returned run context
   - keep override handling narrow and input-focused rather than turning the API into a broad settings editor
 
-- [ ] **T023a** Keep run creation UI-driven in practice by returning a created run immediately, then launching execution under app-owned backend control using a lightweight in-process background mechanism for MVP, with no external job framework required, while exposing validating/running/terminal state transitions, actionable failure messaging, and diagnostics/config access.
+- [x] **T023a** Keep run creation UI-driven in practice by returning a created run immediately, then launching execution under app-owned backend control using a lightweight in-process background mechanism for MVP, with no external job framework required, while exposing validating/running/terminal state transitions, actionable failure messaging, and diagnostics/config access.
 
-- [ ] **T024** Add tests covering valid input readiness, metadata-column rejection, missing-path rejection, placeholder handling, and Verify mode behavior.
+- [x] **T024** Add tests covering valid input readiness, metadata-column rejection, missing-path rejection, placeholder handling, and Verify mode behavior.
 
-- [ ] **T024a** Add tests covering readiness and startup truth.
+- [x] **T024a** Add tests covering readiness and startup truth.
   - invalid provider token rejection
   - provider-unreachable readiness failure
   - model-unavailable readiness failure where applicable
@@ -762,7 +762,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 **Goal:** implement the dedicated queue-first local browser review application required by the MVP.
 
-- [ ] **T081** Build the React frontend shell with Run and Review views.
+- [x] **T081** Build the React frontend shell with Run and Review views.
 
 - [ ] **T082** Implement the concise run summary view showing at least:
   - PDFs processed
@@ -780,7 +780,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - provider mode and readiness outcome
   - direct links or equivalent access to workbook, audit-log, run-summary, and reviewer-summary downloads
 
-- [ ] **T082a** Implement a run-launch and setup context surface in the UI that:
+- [x] **T082a** Implement a run-launch and setup context surface in the UI that:
   - starts a run from a config-file path without exposing a broad advanced-settings editor
   - shows the config path and concise resolved input summary, including on readiness-failed or early-failed runs when that context is known
   - supports browser-compatible picker controls for relevant file and folder inputs while preserving config-file authority for advanced behavior
@@ -957,9 +957,9 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 **Goal:** prove the full MVP workflow works end to end and stays inside the intended architecture boundary.
 
-- [ ] **T102** Implement the app-owned staged runner that executes the canonical pipeline stages under backend control while the API remains responsive enough for UI-driven launch, polling, diagnostics, and review-state loading.
+- [x] **T102** Implement the app-owned staged runner that executes the canonical pipeline stages under backend control while the API remains responsive enough for UI-driven launch, polling, diagnostics, and review-state loading.
 
-- [ ] **T103** Ensure interrupted or failed runs leave inspectable partial artifacts and that a new run creates a new run directory rather than resuming in place by default.
+- [x] **T103** Ensure interrupted or failed runs leave inspectable partial artifacts and that a new run creates a new run directory rather than resuming in place by default.
 
 - [ ] **T104** Add hermetic end-to-end tests using stub providers over the fixture corpus for:
   - successful matched extraction
