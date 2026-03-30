@@ -3,9 +3,8 @@ from __future__ import annotations
 
 import json
 import pathlib
-import shutil
 from typing import Optional
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -1028,11 +1027,11 @@ class TestEndToEndMatching:
         for r in results:
             assert r.outcome in list(MatchOutcome)
 
-    def test_duplicate_row_conflict_detection_in_run(self, df):
+    def test_duplicate_row_conflict_detection_in_run(self, df, tmp_path):
         """When two PDFs match the same row, both are marked as conflicts."""
         # Synthetic: use the same doc twice to force a conflict
-        run_dir = pathlib.Path("/tmp/conflict_test_run")
-        run_dir.mkdir(exist_ok=True)
+        run_dir = tmp_path / "conflict_test"
+        run_dir.mkdir()
         doc, _, _ = parse_pdf(
             pdf_path=PAPER_2,
             pdf_id="paper_2_copy1",
@@ -1064,7 +1063,6 @@ class TestEndToEndMatching:
         assert conflict_count == 2, (
             f"Expected 2 conflicts, got {conflict_count}. Outcomes: {[r.outcome for r in results]}"
         )
-        shutil.rmtree(run_dir, ignore_errors=True)
 
 
 # ===========================================================================

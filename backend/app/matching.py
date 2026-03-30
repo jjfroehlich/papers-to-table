@@ -22,6 +22,7 @@ import pandas as pd
 from pydantic import BaseModel
 
 from .artifacts import write_json
+from .parsing import _DOI_PATTERN, _YEAR_PATTERN
 from .schemas import MatchOutcome
 
 
@@ -158,9 +159,9 @@ def extract_paper_metadata(doc_dict: dict) -> PaperMetadata:
 
     # --- DOI fallback ---
     if not doi and full_text:
-        doi_match = re.search(r"(10\.\d{4,}[\w./\-;()+<>:]+)", full_text)
+        doi_match = _DOI_PATTERN.search(full_text)
         if doi_match:
-            doi = doi_match.group(1).rstrip(".)")
+            doi = doi_match.group(1).rstrip(".")
 
     # --- Abstract snippet ---
     for block in doc_dict.get("blocks", []):
@@ -204,7 +205,7 @@ def _extract_title_from_text(full_text: str, blocks: list[dict]) -> Optional[str
 
 def _extract_year_from_text(full_text: str) -> Optional[int]:
     """Extract most-common plausible publication year from text."""
-    matches = re.findall(r"\b(19[9]\d|20[0-3]\d)\b", full_text)
+    matches = _YEAR_PATTERN.findall(full_text)
     if not matches:
         return None
     counter = Counter(matches)

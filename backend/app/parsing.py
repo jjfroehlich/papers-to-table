@@ -24,6 +24,21 @@ from pydantic import BaseModel
 
 from .artifacts import write_json
 
+# ---------------------------------------------------------------------------
+# Shared regex constants (avoids duplication across metadata extraction points)
+# ---------------------------------------------------------------------------
+
+#: Pattern for extracting publication years in the range 1990–2039
+_YEAR_PATTERN = re.compile(r"\b(19[9]\d|20[0-3]\d)\b")
+
+#: Pattern for extracting DOIs (permissive, handles common variants)
+_DOI_PATTERN = re.compile(r"(10\.\d{4,}[\w./\-;()+<>:]+)")
+
+
+def _normalize_linebreaks(text: str) -> str:
+    """Normalize Windows (CRLF) and old Mac (CR) line endings to Unix (LF)."""
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
 
 # ---------------------------------------------------------------------------
 # ParsedDocument contract (T025)
@@ -363,8 +378,7 @@ def _parse_with_pdfium(
         page_number = page_idx + 1
         w, h = backend.page_size(page_idx)
         raw_text = backend.get_page_text(page_idx)
-        # Normalize Windows line-endings so paragraph splitting works correctly
-        text = raw_text.replace("\r\n", "\n").replace("\r", "\n")
+        text = _normalize_linebreaks(raw_text)
         accessible = len(text.strip()) >= 20
 
         pages.append(PageInfo(
@@ -411,7 +425,7 @@ def _parse_with_pdfium(
     all_page_texts = []
     for page_idx in range(n_pages):
         raw = backend.get_page_text(page_idx)
-        all_page_texts.append(raw.replace("\r\n", "\n").replace("\r", "\n"))
+        all_page_texts.append(_normalize_linebreaks(raw))
     first_pages_text = "\n".join(all_page_texts[:3])
 
     metadata = _extract_metadata_from_text(blocks, first_pages_text, full_text)
@@ -470,18 +484,15 @@ def _extract_metadata_from_text(
     abstract: Optional[str] = None
 
     # DOI extraction
-    doi_match = re.search(
-        r"(10\.\d{4,}[\w./\-;()]+)", full_text, re.IGNORECASE
-    )
+    doi_match = _DOI_PATTERN.search(full_text)
     if doi_match:
         doi = doi_match.group(1).rstrip(".")
 
-    # Year: prefer 4-digit year in range 1990-2030
-    year_matches = re.findall(r"\b(19[9]\d|20[0-3]\d)\b", full_text)
+    # Year: prefer 4-digit year in the expected publication range
+    year_matches = _YEAR_PATTERN.findall(full_text)
     if year_matches:
         from collections import Counter
         year_counts = Counter(year_matches)
-        # Most common year in typical publication range
         year = int(year_counts.most_common(1)[0][0])
 
     # Title: line-based extraction from raw first-pages text works better than
@@ -902,13 +913,13 @@ def _extract_docling_metadata(doc: object) -> DocumentMetadata:
                 break
 
     if not year and full_text:
-        year_matches = re.findall(r"\b(19[9]\d|20[0-3]\d)\b", full_text)
+        year_matches = _YEAR_PATTERN.findall(full_text)
         if year_matches:
             from collections import Counter
             year = int(Counter(year_matches).most_common(1)[0][0])
 
     if not doi and full_text:
-        doi_match = re.search(r"(10\.\d{4,}[\w./\-;()]+)", full_text, re.IGNORECASE)
+        doi_match = _DOI_PATTERN.search(full_text)
         if doi_match:
             doi = doi_match.group(1).rstrip(".")
 
