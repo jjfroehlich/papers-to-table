@@ -146,7 +146,7 @@ def test_load_config_example():
 
 
 def test_invalid_provider_token():
-    with pytest.raises(Exception, match="Unknown provider token"):
+    with pytest.raises(ValueError, match="Unknown provider token"):
         RunConfig.model_validate(
             {
                 "table_path": "t.xlsx",

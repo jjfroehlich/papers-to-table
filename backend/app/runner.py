@@ -27,6 +27,14 @@ from .lifecycle import apply_transition
 from .schemas import RunStatus
 
 _active_runs: dict[str, asyncio.Task] = {}
+_active_runs_lock: asyncio.Lock | None = None
+
+
+def _get_lock() -> asyncio.Lock:
+    global _active_runs_lock
+    if _active_runs_lock is None:
+        _active_runs_lock = asyncio.Lock()
+    return _active_runs_lock
 
 
 def get_initial_run_data(
@@ -217,8 +225,16 @@ def launch_run(
     output_dir: str,
 ) -> None:
     """Launch a run as an asyncio background task."""
-    task = asyncio.create_task(
-        run_pipeline(run_id, config, config_path, output_dir)
-    )
-    _active_runs[run_id] = task
-    task.add_done_callback(lambda t: _active_runs.pop(run_id, None))
+
+    async def _register_and_run() -> None:
+        lock = _get_lock()
+        async with lock:
+            task = asyncio.current_task()
+            _active_runs[run_id] = task  # type: ignore[assignment]
+        try:
+            await run_pipeline(run_id, config, config_path, output_dir)
+        finally:
+            async with lock:
+                _active_runs.pop(run_id, None)
+
+    asyncio.create_task(_register_and_run())
