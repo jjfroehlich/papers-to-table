@@ -2,7 +2,7 @@
 
 ## Status
 
-Finalized baseline
+Updated: evidence-first, reviewer-centered, proactive figure review direction
 
 ## Summary
 
@@ -10,7 +10,7 @@ Paper Table Agent helps a researcher turn a folder of scientific PDFs plus a str
 
 The system matches PDFs to spreadsheet rows, proposes values for missing cells using grounded evidence from the papers, and provides a review interface where a human can accept, edit, confirm no data, reject, or bulk-accept the currently visible filtered subset before any spreadsheet is updated.
 
-The system primarily extracts from text and tables, and may use scoped figure-aware fallback extraction when the field appears likely figure- or table-derived, text or table retrieval remains insufficient, or text-first extraction remains insufficient after evidence recovery.
+The system extracts primarily from text and tables. When vision capability is available, it also reviews all relevant extracted figures as a normal supplemental evidence stage, allowing figure evidence to strengthen any proposal, corroborate text evidence, or rescue weak text-only results. This is proactive and targeted rather than a narrow last-resort fallback.
 
 The product is designed for high-trust extraction workflows where proposed values must remain inspectable, auditable, reversible, and clearly distinguishable by support level.
 
@@ -115,10 +115,11 @@ Paper Table Agent addresses this by turning PDF-to-table curation into a structu
 
 - Reduce manual effort for extracting structured information from scientific papers into tables.
 - Keep a human reviewer in control of every spreadsheet update.
+- Treat evidence quality and reviewer trust as first-class product requirements, not implementation details.
 - Preserve evidence and provenance for every proposed value.
 - Support repeatable, auditable runs across many PDFs.
 - Work well for scientific papers with mixed prose, captions, tables, and figures.
-- Support figure-aware fallback extraction for cases where important information is primarily contained in charts, diagrams, image panels, or other figure content.
+- Support proactive figure review across all relevant extracted figures when vision capability is available, allowing figure evidence to supplement, strengthen, or rescue any proposal regardless of field type.
 - Support verification against already-filled cells when enabled, so the user can compare proposals against existing entries and assess app performance through reviewer outcomes.
 
 ## Non-goals
@@ -127,7 +128,7 @@ Paper Table Agent addresses this by turning PDF-to-table curation into a structu
 - General-purpose chat over documents.
 - Replacing expert judgment for ambiguous scientific interpretation.
 - Multi-user collaboration workflows.
-- Full multimodal parsing or reasoning on every page by default.
+- Full multimodal reasoning on every page by default; proactive figure review covers relevant extracted figures, not blanket per-page vision.
 - In-UI advanced parameter tuning; advanced run behavior is controlled through the run configuration.
 
 ---
@@ -151,7 +152,13 @@ A developer or advanced user who inspects diagnostics to understand matching, ex
 ## Product principles
 
 - Human review is required before spreadsheet updates.
+- Evidence quality and reviewer trust are first-class product requirements, not polish.
 - Evidence is attached to proposals, not hidden inside model reasoning.
+- Each proposal should support one best answer, but may include multiple evidence items when useful. The most authoritative evidence item becomes the primary evidence; additional items are ordered supporting evidence.
+- Evidence must be ranked and ordered: source authority and field relevance determine which evidence is primary, not the order in which the model returned quotes.
+- The product must distinguish clearly between evidence types: direct quote evidence, inferred reasoning, calculation-based justification, approximate highlight fallback, quote-plus-page fallback, and figure-based evidence.
+- Direct quotes must be shown separately from reasoning and calculations in the review UI.
+- Exact quote highlighting should be produced from rendered page text or an equivalent page-text alignment strategy whenever possible; if it fails, the product must degrade honestly and visibly to approximate region highlighting or quote-plus-page evidence, and fallback evidence must be labeled as fallback, not presented as exact.
 - Plausible values may still be surfaced even when evidence is weak, but they must be flagged accordingly.
 - A proposal being present does not imply that it is correct.
 - Attached evidence does not automatically imply that a proposal is correct.
@@ -197,14 +204,15 @@ That means:
 1. As a researcher, I want to load my spreadsheet, schema, and PDF folder so the system can identify missing values worth extracting.
 2. As a researcher, I want the system to match each PDF to the most likely spreadsheet row so that extraction happens in the correct row context.
 3. As a researcher, I want the system to propose values for missing cells and show supporting evidence from the paper so that I can judge whether the proposal is trustworthy.
-4. As a reviewer, I want to inspect the PDF page with a highlight of the most relevant quoted evidence, or at minimum the quote plus page when highlighting fails, and see a concise rationale or calculation when the value is derived, so that I can accept, edit, or reject it confidently.
-5. As a curator, I want non-empty spreadsheet cells to remain protected unless I explicitly choose otherwise so that previously curated data is not overwritten accidentally.
-6. As a curator, I want an updated export file and audit log after review so that I can update my master table safely and trace what changed.
-7. As a developer or advanced user, I want diagnostic outputs about matching, extraction, evidence quality, and reviewer-outcome reporting so that I can troubleshoot poor runs.
-8. As a reviewer, I want verify mode to compare proposals against already-filled cells so that I can review disagreements, make decisions on them, and assess how well the app is performing through reviewer outcomes.
-9. As a reviewer, I want to switch between grouping proposals by paper and by column so that I can triage quickly and then investigate deeply without losing context.
-10. As a reviewer, I want to confirm that a paper truly does not report a value, separately from rejecting a wrong model guess, so that the recorded outcome reflects the paper rather than the model.
-11. As a reviewer, I want to zoom, pan, and click evidence into my edited-value workflow so that I am curating from the paper rather than copying information manually across panes.
+4. As a reviewer, I want to inspect the PDF page with a highlight of the most relevant quoted evidence, see direct quotes separately from reasoning and calculations, navigate through multiple supporting evidence items in ranked order, and have the viewer stay synchronized with whichever evidence item I select, so that I can make a well-informed decision about what the paper actually supports.
+5. As a reviewer, I want figure evidence shown alongside text evidence when available, with crop, caption, and full-page access, so that I can assess evidence from charts or diagrams as readily as from text passages.
+6. As a curator, I want non-empty spreadsheet cells to remain protected unless I explicitly choose otherwise so that previously curated data is not overwritten accidentally.
+7. As a curator, I want an updated export file and audit log after review so that I can update my master table safely and trace what changed.
+8. As a developer or advanced user, I want diagnostic outputs about matching, extraction, evidence quality, and reviewer-outcome reporting so that I can troubleshoot poor runs.
+9. As a reviewer, I want verify mode to compare proposals against already-filled cells so that I can review disagreements, make decisions on them, and assess how well the app is performing through reviewer outcomes.
+10. As a reviewer, I want to switch between grouping proposals by paper and by column so that I can triage quickly and then investigate deeply without losing context.
+11. As a reviewer, I want to confirm that a paper truly does not report a value, separately from rejecting a wrong model guess, so that the recorded outcome reflects the paper rather than the model.
+12. As a reviewer, I want to zoom, pan, navigate pages, and click evidence into my edited-value workflow so that I am curating from the paper rather than copying information manually across panes.
 
 ---
 
@@ -223,7 +231,7 @@ That means:
 - Producing at most one best proposal per target cell per run.
 - Storing one or more evidence items per proposed value.
 - Human review of proposals with PDF evidence display when available, including weaker review states when text highlighting fails but quote plus page evidence is available.
-- Figure-aware fallback extraction for unresolved or weakly supported cases, across all figure types and all target field types.
+- Proactive figure review across all relevant extracted figures when vision capability is available, allowing figure evidence to supplement, strengthen, or rescue any proposal regardless of field type.
 - Figure-based evidence display in review when available.
 - Verify mode: generating proposals for already-filled cells, showing them in review, and including reviewer decisions on them in run summaries.
 - MVP filtering by row, column, PDF, evidence status, figure-based evidence, and ambiguous or unmatched match status.
@@ -313,6 +321,16 @@ The product uses the following reviewer-facing concepts consistently across the 
 - **Proposal**: the one best attempted value for a specific row/column cell in a specific run.
 - **Support level**: how strongly the system believes the evidence supports the proposal, such as direct evidence, inferred from evidence, weak evidence, or figure-based evidence.
 - **Evidence item**: the reviewer-visible text quote, page anchor, highlight, figure crop, caption, or related source reference used to justify the proposal.
+- **Evidence type**: the semantic kind of evidence, which the UI must render and label distinctly. The defined types are:
+  - `direct_quote`: a verbatim passage from the paper that directly states the value
+  - `inferred_reasoning`: a reasoning chain or argument constructed from one or more quoted passages
+  - `calculation`: a calculation or derivation performed on quoted numeric evidence
+  - `approximate_highlight`: a highlight region derived from approximate parser geometry rather than precise page-text alignment, labeled as approximate
+  - `quote_plus_page`: a quote plus page number when precise highlighting fails; labeled as fallback text evidence rather than as an exact highlight
+  - `figure_based_evidence`: evidence derived from a figure, chart, diagram, or image, with figure crop, caption, and full-page context
+- **Primary evidence**: the single most authoritative evidence item for a proposal, selected by evidence ranking based on source authority and field relevance.
+- **Supporting evidence**: additional ordered evidence items that corroborate or supplement the primary evidence, shown in ranked order.
+- **Evidence ranking**: the process of ordering evidence items by source authority and field relevance so the most authoritative evidence becomes primary and supporting items are ordered accordingly.
 - **Review decision**: accept as-is, accept with edit, confirm no data, reject, or no decision yet.
 - **Resolution reason**: a structured reviewer reason attached to a non-accepted or manually resolved outcome, such as `not reported in paper`, `insufficient evidence`, `model wrong`, or `needs manual entry`.
 - **Triage projection**: the compact sidebar view of broader proposal and run state used for fast scanning. It may compress state for density, but it must not erase the underlying distinctions between review decision state, evidence/support quality, and match outcome.
@@ -461,21 +479,29 @@ Reviewer-visible proposal states should use clear human-readable language that c
 
 Each non-empty proposed value must include at least one evidence item when feasible.
 
-For text-derived proposals, the minimum reviewer-visible evidence target is a highlighted source quote on the PDF page.
+Each proposal must expose one primary evidence item. Additional supporting evidence items may be attached and must be ordered by authority and relevance, most authoritative first.
 
-If text highlighting cannot be recovered reliably, the proposal must remain reviewable with the source quote plus page reference, it must be marked as weaker text evidence, and that fallback must render clearly as text evidence rather than appearing blank, missing, or as another evidence type.
+The system must not assume that the first model-returned quote is automatically the best evidence. Evidence must be ranked and ordered so the most authoritative item becomes primary. Evidence selection should consider source authority and field relevance, for example preferring more authoritative procedural sections for procedural fields.
 
-Evidence must render according to its semantics. Text evidence without coordinates remains text evidence, figure evidence remains figure evidence, and the absence of highlight boxes must not make valid evidence appear missing.
+The review UI must show direct quotes separately from reasoning and calculations. A direct quote evidence item and an inferred reasoning or calculation item serve different reviewer functions and must be visually distinguishable.
+
+For text-derived proposals, the minimum reviewer-visible evidence target is a highlighted source quote on the PDF page. Exact quote highlighting should be produced from rendered page text or an equivalent page-text alignment strategy whenever possible.
+
+If exact quote matching fails, the product must degrade honestly and visibly. Approximate region highlighting is acceptable as a labeled fallback, but it must be marked as approximate, not presented as exact. If no reliable geometry is available at all, the proposal must remain reviewable with the source quote plus page reference, clearly labeled as quote-plus-page fallback text evidence.
+
+The quote list and the document viewer must stay synchronized around the currently selected evidence item. When the reviewer selects a different evidence item in the quote list, the viewer must scroll to and highlight that item. When the selected evidence changes or zoom changes, the viewer must refocus stably rather than jumping arbitrarily.
+
+Evidence must render according to its semantics. Text evidence without coordinates remains text evidence. Approximate highlight is distinct from exact highlight. Figure evidence is distinct from text evidence. The absence of exact highlight boxes must not make valid evidence appear missing.
 
 The UI must not fabricate placeholder or guessed highlight geometry merely to avoid fallback display. If reliable page geometry is unavailable, the reviewer must see an explicit quote-plus-page fallback instead.
 
-For figure-derived proposals, the minimum reviewer-visible evidence target is a figure crop plus caption, with the full page also accessible in the UI.
+For figure-derived proposals, the minimum reviewer-visible evidence target is a figure crop plus caption, with the full page also accessible in the UI. The viewer must support navigation from the figure crop to the full page context.
 
 An evidence item must contain enough source information for a reviewer to inspect the origin of the proposal.
 
 Attached evidence is decision support for the reviewer, not proof of correctness by itself.
 
-Multiple evidence items may support a single proposal, but the review UI should show one primary evidence item by default and allow additional items to be expanded.
+Multiple evidence items may support a single proposal. The review UI must show the primary evidence item by default and allow additional supporting items to be navigated in order.
 
 ### FR-7 Evidence validation and recovery
 
@@ -487,21 +513,28 @@ If strong evidence still cannot be recovered, the proposal may remain available 
 
 Failure to recover a highlight for a text-derived proposal must not by itself move the proposal to diagnostics-only if quote plus page evidence is available.
 
-### FR-8 Scoped figure-aware fallback
+### FR-8 Proactive figure review
 
-The system must support scoped figure-aware fallback extraction when the field appears likely figure- or table-derived, when text or table retrieval or extraction remains insufficient, or when text-first extraction remains insufficient after evidence recovery.
+When vision capability is available, the system must review all relevant extracted figures as a normal supplemental evidence stage, not only figures whose fields match a narrow set of figure-like criteria.
 
-Figure-aware fallback may use scoped visual context such as:
+Proactive figure review means the system reviews relevant figures alongside text extraction rather than waiting for text extraction to fail before consulting figures. This makes figure evidence available to:
+- strengthen and corroborate text-derived proposals
+- supplement weak or ambiguous text evidence
+- rescue weak, unclear, or failed text-only proposals when appropriate
+
+Figure evidence must be allowed to support any field type when it materially strengthens the answer. The system must not restrict figure review to fields explicitly classified as figure-derived.
+
+Figure-aware extraction may use scoped visual context such as:
 - figure crops
 - full page images
 - captions
 - nearby narrative text
 
-Figure-aware extraction is in scope for all figure types and all target field types, including complex image-heavy scientific figures, but reliability varies by figure type and all figure-derived proposals remain subject to human review.
-
 Figure-derived proposals must remain clearly marked as figure-based evidence in review.
 
 Figure-derived proposals remain subject to heightened reviewer scrutiny and may rely more heavily on visual context and concise rationale than direct text-derived proposals.
+
+The system must still avoid unrestricted full multimodal reasoning on every page by default. The scope remains targeted: review all relevant extracted figures as supplemental evidence, not every page of every paper for every field.
 
 ### FR-9 Review workflow
 
@@ -629,6 +662,16 @@ Figure-derived evidence should be displayed crop-first, with caption directly at
 
 The right evidence pane must support zoom and pan for document evidence.
 
+The viewer must support real review work. Required navigation capabilities are:
+- previous and next page
+- jump to a specific page by number
+- zoom in and out
+- focus on evidence: when an evidence item is selected, the viewer must scroll to and center or highlight the relevant region
+- stable refocus: when the selected evidence item changes or when zoom changes, the viewer must refocus stably without arbitrary jumping
+- figure-to-full-page context: figure evidence must be viewable both as a focused crop and as full page context accessible from the same pane
+
+The quote list and the document viewer must stay synchronized around the currently selected evidence item. Selecting a different evidence item in the list must update the viewer to show that item's location. The viewer must not remain stuck on an unrelated page or position when evidence selection changes.
+
 Clicking the selected quote or highlighted evidence should be able to populate either the proposed-value input or the edited-value input, depending on the active editing state.
 
 Populate-from-evidence is a reviewer-assist action only: it must stage text into the active input and must not auto-save, auto-accept, or silently record a decision.
@@ -715,7 +758,7 @@ The system must provide a normal user-facing run summary with at least:
 - rejected count and rate
 - proposal coverage
 - number of accepted changes
-- provider/model names used for the run
+- provider/model names used for the run, including separate identification of the text model and the vision model when both were used
 - provider mode for proposal generation, such as live local, live cloud, unavailable, disabled, or explicit degraded/demo mode
 - whether processing stayed local or used cloud providers
 - reviewer-outcome summary when Verify mode is enabled
@@ -778,11 +821,14 @@ Failures that prevent safe execution must be surfaced clearly in run diagnostics
 A reviewer must be able to tell, for each proposal:
 - what value was proposed
 - what support level it has, such as direct evidence, inferred from evidence, weak evidence, or figure-based evidence
-- what evidence supports it
-- whether the value depends on calculation or reasoning
+- what evidence supports it, including which item is primary and which are supporting
+- what evidence type each item is: direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, or figure-based evidence
+- whether the value depends on calculation or reasoning, shown separately from direct quotes
 - whether additional scrutiny is recommended
 
 The primary reviewer question is what the paper supports, including whether the paper does not report the target value, not whether the model happened to produce an answer.
+
+Direct quotes must be shown separately from reasoning and calculations. A reviewer must be able to distinguish which parts of the evidence are verbatim from the paper and which are model-constructed inferences.
 
 Figure-derived evidence must be visibly distinguishable from text or table evidence.
 
@@ -872,6 +918,12 @@ Developer-only shortcuts, helper scripts, or partial implementation paths must n
 
 - Already-filled cells are protected by default.
 - Evidence quality influences reviewer scrutiny, not only whether a proposal exists.
+- Each proposal exposes one primary evidence item, selected by evidence ranking. Additional supporting evidence items are ordered by authority and relevance.
+- Evidence must be ranked: the most authoritative evidence becomes primary. The first model-returned quote is not automatically primary.
+- The product distinguishes evidence types: direct quote, inferred reasoning, calculation, approximate highlight fallback, quote-plus-page fallback, and figure-based evidence. These types must be labeled and rendered distinctly.
+- Direct quotes must be shown separately from reasoning and calculations in the review UI.
+- Exact quote highlighting is produced from page-text alignment when possible; if it fails, fallback must be labeled as fallback.
+- The quote list and the document viewer must stay synchronized around the currently selected evidence item.
 - Proposals may be supported by multiple evidence items.
 - Reviewer-visible evidence must remain anchored to the source even if internal retrieval uses transformed text.
 - Diagnostic-only outcomes must remain clearly distinct from reviewable proposals.
@@ -960,11 +1012,11 @@ Given the model did not produce a usable value or the reviewer determines the pa
 when the reviewer uses the middle pane,
 then the UI still provides an `Enter edited value` path and a `Confirm No Data` path or equivalent, and the no-data resolution is persisted distinctly from rejecting a wrong model output.
 
-### AC-5d Evidence interaction and fallback behavior
+### AC-5d Evidence interaction, viewer navigation, and fallback behavior
 
 Given a proposal has selected text or figure evidence,
 when the reviewer uses the right evidence pane,
-then the viewer supports zoom and pan, preserves quote-plus-page fallback when highlight geometry is missing, explains missing highlight geometry instead of faking boxes, allows full-PDF fallback when scoped evidence is unavailable, and supports clicking selected quote or highlight evidence into the active proposed-value or edited-value workflow as a non-saving staging action that replaces the active input by default, applies only to textual evidence or figure-caption text, uses only the explicitly clicked or selected span, and never silently truncates overlong text.
+then the viewer supports zoom and pan; supports previous and next page navigation; supports jump to page by number; focuses on the currently selected evidence item and refocuses stably when evidence selection or zoom changes; supports figure-to-full-page context navigation; keeps the quote list and the document viewer synchronized so selecting a different evidence item in the list moves the viewer to that item's location; preserves quote-plus-page fallback when highlight geometry is missing; explains missing highlight geometry instead of faking boxes; distinguishes approximate highlight fallback from exact highlight; allows full-PDF fallback when scoped evidence is unavailable; and supports clicking selected quote or highlight evidence into the active proposed-value or edited-value workflow as a non-saving staging action that replaces the active input by default, applies only to textual evidence or figure-caption text, uses only the explicitly clicked or selected span, and never silently truncates overlong text.
 
 ### AC-5e Rationale rendering
 
@@ -1042,7 +1094,7 @@ then only explicitly accepted proposals appear in the exported workbook and audi
 
 Given a run used one or more model or parsing providers,
 when the run summary is shown or exported,
-then the summary identifies the provider or model names used, whether processing stayed local or used external services, and whether proposal generation ran live, was unavailable, was disabled, or used an explicit degraded or demo path.
+then the summary identifies the provider or model names used, separately identifying the text model and the vision model when both were used, whether processing stayed local or used external services, and whether proposal generation ran live, was unavailable, was disabled, or used an explicit degraded or demo path.
 
 ### AC-17 Onboarding and workflow truth
 
@@ -1076,7 +1128,9 @@ The following behaviors are required for the MVP represented by this spec:
 - Locked-cell protection.
 - Verify mode for already-filled cells, including review and reviewer-outcome summaries.
 - Diagnostics sufficient to explain no-value or poor-quality runs.
-- Figure-aware fallback extraction for all figure types and all target field types in scoped, review-oriented form.
+- Evidence quality is a first-class requirement: evidence ranking, evidence type taxonomy, primary and supporting evidence semantics, exact quote highlighting with honest fallback, and synchronized multi-evidence review UX.
+- Proactive figure review across all relevant extracted figures when vision capability is available, with figure evidence allowed to supplement, strengthen, or rescue any proposal.
+- Separate text-model and vision-model configuration with both exposed in reviewer-visible run context and summaries.
 - Filtering by row, column, PDF, evidence status, figure-based evidence, and ambiguous or unmatched match status.
 - OCR support as a fallback.
 
@@ -1143,4 +1197,4 @@ Technical architecture, parser strategy, retrieval strategy, model behavior, per
 
 ## Appendix: concise product statement
 
-Paper Table Agent is a local-first paper-to-table review system. It matches papers to spreadsheet rows, proposes values for missing or verified cells with anchored evidence, and lets a human reviewer accept, edit, confirm no data, reject, or bulk-accept the currently visible filtered subset before exporting an audited XLSX table update.
+Paper Table Agent is a local-first, evidence-first paper-to-table review system. It matches papers to spreadsheet rows and proposes values for missing or verified cells, attaching ranked, typed, and anchored evidence to each proposal. The reviewer can inspect direct quotes separately from reasoning and calculations, navigate multiple supporting evidence items in order, and accept, edit, confirm no data, or reject each proposal before exporting an audited XLSX table update. Evidence quality and reviewer trust are first-class product requirements.

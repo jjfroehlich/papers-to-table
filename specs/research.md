@@ -24,7 +24,7 @@ Where a conclusion is not fully settled, it should be marked clearly using the c
 
 ## Status
 
-Finalized baseline
+Updated: evidence quality, reviewer trust, proactive figure review, and separate text/vision model direction
 
 This document contains the current baseline conclusions plus explicit open questions. It should be updated whenever a major implementation decision changes.
 
@@ -84,7 +84,11 @@ The main research questions for this phase were:
 - Heavy orchestration or graph-first agent systems should be **deferred** unless measured workflow complexity clearly justifies them.
 - In MVP, evaluation should be based primarily on **reviewer-outcome summaries**, not on a single automated “correctness score” over heterogeneous field types.
 - Existing filled spreadsheet cells should be processed through a **per-column preprocessing LLM** that produces a structured style/format profile. Heuristic-only default shaping is not sufficient, and raw filled cells should **not** be passed into extraction prompts as semantic exemplars by default.
-- Figure-aware fallback should remain available, but the heavier reasoning-plus-vision path should remain a scoped escalation triggered only when the field is likely figure- or table-derived, text retrieval failed or remained insufficient, after text-first extraction remains insufficient after evidence recovery. Human review remains the only MVP evaluation path.
+- Figure-aware evidence should be **proactive and targeted when vision capability is available**: the system should review all relevant extracted figures as a normal supplemental evidence stage, not only escalate to vision when text has failed. Figure evidence may support any field type, strengthen text proposals, or rescue weak text-only results. The scope remains focused on relevant extracted figures per paper rather than blanket per-page multimodal reasoning.
+- **Evidence quality and reviewer trust are first-class requirements**: the system must rank evidence by source authority and field relevance rather than treating the first model-returned quote as automatically primary. Evidence types must be distinguished and labeled: direct quote, inferred reasoning, calculation, approximate highlight fallback, quote-plus-page fallback, and figure-based.
+- **Exact quote highlighting should be produced from page-text alignment** rather than only from parser bounding boxes; if exact alignment fails, the system must degrade honestly to approximate highlight or quote-plus-page fallback, each clearly labeled as such.
+- The review workspace must expose an ordered evidence list synchronized with the document viewer, with stable refocus when evidence or zoom changes.
+- **Separate text-model and vision-model configuration** improves flexibility and transparency: the text model and vision model may differ, and both should be recorded in run artifacts and shown in reviewer-visible summaries.
 
 ### Provisional conclusions
 
@@ -412,9 +416,17 @@ If a value appears plausible, the system may still propose it even if evidence i
 
 Weak or missing evidence should trigger at most a narrow recovery path at first. The rewrite should prefer a stricter evidence contract over reflexively adding salvage ladders.
 
-### Multiple evidence items are appropriate
+### Multiple evidence items are appropriate, but must be ranked
 
-Some values are best supported by more than one snippet, but the review surface should emphasize one primary evidence item and make others expandable.
+Some values are best supported by more than one snippet. The review surface should expose one primary evidence item and ordered supporting items. The primary item must be selected by evidence ranking, not by the arbitrary order in which the model returned quotes. Evidence ranking should consider source authority and field relevance.
+
+### Evidence types must be distinguished and labeled
+
+The system must distinguish: direct quote, inferred reasoning, calculation, approximate highlight fallback, quote-plus-page fallback, and figure-based evidence. These are not interchangeable. A reviewer making a decision benefits from knowing whether quoted text is verbatim from the paper or model-constructed.
+
+### Exact quote highlighting requires page-text alignment
+
+Parser bounding boxes give approximate region geometry but not character-level precision. Producing exact highlight overlays requires aligning the quote against the rendered page text layer. When that alignment succeeds, the result is an exact highlight. When it fails, the product must degrade honestly to an approximate highlight (labeled as such) or quote-plus-page fallback (also labeled). Presenting approximate geometry as exact undermines reviewer trust.
 
 ## Consequences for implementation
 
@@ -425,6 +437,10 @@ This research supports:
 - table-aware retrieval units
 - `found` vs `inferred` proposal states
 - a narrow evidence validator plus a simple locator path
+- evidence ranking with primary and ordered supporting evidence
+- evidence type taxonomy and distinct labels for each type
+- page-text alignment for exact quote highlighting with honest labeled fallback
+- synchronized quote list and document viewer
 - weak-evidence triage cues
 
 ---
@@ -945,19 +961,33 @@ In other words, **vision works best as a targeted fallback**, not as the default
 
 ## Important note about current product direction
 
-The current product direction is broader than the narrowest research recommendation:
+The current product direction is broader than the narrowest research recommendation, and is intentionally so:
 
-- figure-aware fallback is in MVP
-- all figure types are in scope
-- all target field types may trigger figure fallback
-- the heavier reasoning-plus-vision path still uses scoped triggers
-- complex image-heavy figures are not excluded from scope
+- proactive figure review is in scope when vision capability is available, not only as a last-resort fallback
+- all relevant extracted figures should be reviewed as a normal supplemental evidence stage
+- figure evidence is allowed for all field types, not only fields explicitly classified as figure-derived
+- figure evidence may strengthen text proposals, supplement weak evidence, or rescue failed text-only proposals
+- the scope is targeted (relevant figures per paper) rather than blanket per-page vision
 
-This is a valid product choice, but it is broader and riskier than the most conservative research recommendation. It increases the importance of:
-- clear visual evidence display
-- figure-based support labels
-- strong human review expectations
-- explicit monitoring of figure-derived proposal outcomes
+This is the correct product direction. The prior narrow-fallback approach meant figures were only consulted when text had already failed, which systematically denied the reviewer access to figure evidence that might have increased their confidence or changed their decision. The risk of false precision from figure reasoning is addressed by strong human review expectations and clear evidence labeling, not by restricting when figure evidence can be gathered.
+
+## Why proactive targeted figure review is better than narrow trigger-based fallback
+
+### Narrow fallback creates systematic blind spots
+
+If figure evidence is only gathered when text extraction fails, the reviewer never sees figure evidence for proposals where text extraction succeeded but the figure would have provided stronger or more direct support. The reviewer cannot benefit from evidence that was never collected.
+
+### Figures often complement text evidence
+
+In scientific papers, figures frequently contain the clearest statement of a result even when the same result is also stated in the text. A reviewer whose text evidence shows an ambiguous passage in the methods section might make a more confident decision if they could also see the relevant figure.
+
+### The cost concern is addressed by targeting, not by narrow triggers
+
+Running vision on every page of every paper for every field would be expensive and slow. But reviewing the set of extracted figures per paper (typically a small number compared to all pages) is a targeted operation with bounded scope. The key constraint is "relevant extracted figures per paper," not "every page."
+
+### Honest labeling replaces precision restriction as the quality mechanism
+
+Instead of restricting figure evidence to prevent low-confidence results, the product should allow figure evidence freely and label it clearly. The reviewer sees figure-based evidence as figure-based evidence, makes their own judgment, and either accepts it or rejects it.
 
 ## Why the fallback design still won at the research level
 
@@ -975,19 +1005,26 @@ Figure-derived values are often more ambiguous than table- or text-derived value
 
 ## Recommended product behavior
 
-The app should add a **figure fallback stage** after normal text/table extraction and evidence recovery.
+The app should include a **proactive figure review stage** after text/table extraction and evidence recovery, running whenever vision capability is available.
 
-### Suggested trigger conditions
+### What changed from the narrow fallback design
 
-Trigger the figure fallback when one or more of these are true:
+The narrow fallback design ran figure review only when:
+- the field appeared figure-derived
+- text retrieval failed
+- text-first extraction remained insufficient after evidence recovery
 
-- the field appears likely figure- or table-derived
-- text/table extraction failed or remained insufficient
-- the user text-first extraction remained insufficient after evidence recovery
-- retrieved chunks mention figures, panels, or captions prominently
-- the parser identified candidate figure-bearing regions/pages
+The improved design runs figure review proactively across all relevant extracted figures when a vision model is configured. The trigger is not failure but availability: if a vision model is configured and relevant figures were extracted, figure review runs.
 
-The routing decision can be made by the extraction path itself, including an LLM-assisted decision, as long as it stays within these scoped triggers and does not make vision the default path for all fields.
+### Suggested scope definition
+
+The scope should remain targeted rather than blanket. Relevant figures can be selected by:
+- figures with captions that mention the target column or related terms
+- figures on pages that also contain the best text evidence
+- all extracted figures when the paper has a small number of figures (e.g., fewer than ten)
+- an LLM-assisted relevance selection step for papers with many figures
+
+The goal is to review all figures likely to be useful, not to process every page image for every field.
 
 ## Suggested figure-fallback inputs
 
@@ -1112,11 +1149,11 @@ A vision-capable model is useful for:
 
 ## Consequences for the rest of the documents
 
-This research suggests that both `spec.md` and `plan.md` should acknowledge:
+This research supports:
 
-- figure-aware evidence sources
-- vision fallback as a non-default extraction path
-- broader figure support in the current product scope
+- figure-aware evidence sources as a normal supplemental stage, not a last-resort fallback
+- proactive targeted figure review when vision capability is available
+- figure evidence allowed for any field type
 - figure-based review evidence in the UI
 - human review as the governing evaluation path for figure-derived proposals
 
@@ -1150,6 +1187,85 @@ This supports:
 - local-first default behavior
 - provider transparency in summaries, logs, and config
 - keeping the low-level PDF layer swappable
+
+---
+
+## Research topic 14 — Evidence quality, reviewer trust, and evidence ranking
+
+## Why this matters
+
+A proposal with evidence attached is only as useful as the quality of that evidence from the reviewer's perspective. If the most authoritative quote in the paper is buried as supporting evidence while an arbitrary less-relevant quote is shown as primary, the reviewer must do extra work to find the passage that would actually inform their decision. If evidence types are not distinguished, the reviewer cannot tell whether they are reading verbatim text from the paper or a model-constructed summary.
+
+This research addresses why evidence quality and reviewer trust must be first-class product requirements.
+
+## Why ordered evidence rather than one arbitrary quote
+
+When the model returns multiple quoted passages as evidence for a proposal, the order in which they were returned is usually determined by context-window order or the model's internal ranking, not by their relevance to the reviewer's decision. The first quote may be less authoritative than the second or third.
+
+A reviewer making a decision deserves to see the most directly relevant, most authoritative evidence item first. Supporting items should be presented in ranked order so the reviewer can navigate them systematically rather than having to evaluate an arbitrary sequence.
+
+Evidence ranking should consider:
+- source section authority for the field type (methods sections for procedural fields, results sections for outcome fields)
+- quote directness: a quote that uses the exact terminology of the field is more authoritative than one that uses general language
+- proximity to data: a quote from a results table is more authoritative than a quote from a discussion paraphrase
+
+## Why evidence types must be distinguished
+
+A direct quote from the paper is fundamentally different from a model-constructed reasoning chain about the paper. Both may appear as evidence items, but they have different epistemic statuses:
+- a direct quote can be verified by finding the text in the paper
+- an inferred reasoning chain requires the reviewer to evaluate whether the inference is valid
+- a calculation requires the reviewer to check the arithmetic
+
+If these are not visually distinguished, the reviewer cannot efficiently apply the appropriate scrutiny to each. A product that mixes them without labels forces every reviewer to mentally categorize every piece of evidence rather than letting the system do that work.
+
+The review UI must show direct quotes separately from reasoning and calculations, labeled as what they are.
+
+## Why approximate and fallback highlights must be labeled
+
+A highlight overlay that covers the wrong region of the page, or that approximates rather than precisely marks the quoted text, can mislead the reviewer. The reviewer may trust the highlight as exact when it is not. This is a truth problem, not an aesthetics problem.
+
+The product must distinguish:
+- exact highlight: produced from page-text alignment, precise
+- approximate highlight: derived from parser geometry, may not be character-precise
+- quote-plus-page fallback: no reliable geometry, reviewer must find the text manually
+
+Each of these requires different reviewer behavior, so each must be labeled distinctly.
+
+## Main conclusion
+
+Evidence quality is a first-class product requirement. A future implementation must not satisfy evidence requirements by attaching any quote and calling it done. The following are required:
+- evidence ranking with primary and ordered supporting evidence
+- evidence type taxonomy and distinct labels
+- exact quote highlighting from page-text alignment with honest labeled fallback
+- direct quotes visually separated from reasoning and calculations in the review UI
+
+---
+
+## Research topic 15 — Separate text-model and vision-model configuration
+
+## Why this matters
+
+The best text model and the best vision model for this product are usually not the same model. In local deployments via LM Studio, text and vision capabilities are often served by separate model endpoints. Requiring operators to use one unified model for both text extraction and visual figure review either forces a suboptimal text model or a suboptimal vision model.
+
+## Why separation improves flexibility and transparency
+
+### Flexibility
+
+Separate model identifiers allow operators to:
+- choose the best available text model independently of vision capability
+- disable vision review entirely when no vision model is configured, without breaking text extraction
+- update one model without affecting the other
+- configure a strong vision model for papers with complex figures without changing the text model
+
+### Transparency
+
+When a reviewer is assessing a proposal, they deserve to know which model generated the text evidence and which model generated the figure evidence. If the same model identifier appears for both, it is less informative than showing the reviewer exactly which capability was used.
+
+Run summaries and reviewer context should identify both the text model and the vision model when both were used.
+
+## Main conclusion
+
+Provider configuration must carry separate model identifier fields for text extraction and vision extraction. Both fields must be recordable in run artifacts. Both must be reported in run summaries and reviewer context. A future implementation that uses a single model identifier for both modalities does not meet this requirement.
 
 ---
 
@@ -1232,11 +1348,13 @@ It would add substantial complexity around authentication, concurrency, and revi
 These questions remain open and should be resolved explicitly rather than assumed away:
 
 - How much measured lift does table-aware retrieval provide over simpler typed chunk retrieval on realistic paper batches?
-- Which figure categories deliver enough reviewer value to justify deeper visual tooling beyond the scoped fallback path?
+- Which figure categories deliver enough reviewer value to justify deeper visual tooling beyond the proactive figure review stage?
+- What is the minimum set of structural heuristics sufficient to select relevant figures for proactive review without processing too many irrelevant ones?
 - At what point does synchronous execution become unacceptable for the target batch sizes, justifying the first background-job layer?
 - Which provider capability probes are sufficient to distinguish reliable structured-output support from prompt-only JSON behavior?
 - What is the minimum saved-view or queue-preset feature set that materially improves review speed without adding UI complexity?
 - Which JSON files inside the artifact bundle are safe to treat as stable interfaces for tooling and tests in MVP, and which should remain internal implementation details?
+- What is the most practical implementation of page-text alignment for exact quote highlighting across a range of PDF text layer qualities?
 
 ---
 
@@ -1250,19 +1368,22 @@ This research supports the current direction of `plan.md` and suggests the follo
    - workbook fidelity policy
    - parser baseline decision
    - UI shell or viewer-stack decision
+   - evidence ranking algorithm and authority heuristic design
 
 2. README or runbook additions
    - a small real-example set
    - stub/synthetic PDFs for deterministic testing
    - figure-heavy test examples
+   - examples showing evidence type labeling in review output
    - Verify-mode review outcome tracking examples
-   - explicit clone/install/config/LM Studio onboarding so future README edits do not collapse back to architecture-only notes
+   - explicit clone/install/config/LM Studio onboarding (including both text model and vision model configuration) so future README edits do not collapse back to architecture-only notes
 
 3. test harness hardening
    - keep Playwright startup shell-independent
    - separate fixture preparation from backend/frontend server startup
    - report missing browser runtimes as environment limitations rather than application regressions
    - capture screenshots, traces, or similarly useful browser-failure artifacts when practical
+   - include viewer synchronization and evidence navigation in e2e test coverage
 
 ---
 
@@ -1278,12 +1399,15 @@ Paper Table Agent should be built as a **local-first, workflow-centered paper-to
 - typed retrieval units with source-preserving evidence display
 - filesystem artifact bundles and JSON files as the complete MVP persistence model
 - runs launched from the UI and executed under app-owned backend control using a lightweight in-process background mechanism for MVP
-- LM Studio localhost API, using the canonical config token `lm_studio`, as the default structured-output provider
+- LM Studio localhost API, using the canonical config token `lm_studio`, as the default structured-output provider, with separate model identifier fields for text extraction and vision extraction
+- evidence quality as a first-class requirement: evidence ranking by source authority and field relevance, evidence type taxonomy (direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, figure-based), primary evidence selected by ranking, ordered supporting evidence, direct quotes visually separated from reasoning and calculations
+- exact quote highlighting from page-text alignment with honest labeled fallback to approximate highlight or quote-plus-page; no fallback presented as exact
+- synchronized quote list and document viewer with stable refocus, previous/next/jump-to-page navigation, and figure-to-full-page context
+- proactive targeted figure review across all relevant extracted figures when a vision model is configured; figure evidence allowed for any field type; figure evidence may strengthen, supplement, or rescue any proposal
 - reviewer-outcome-based MVP evaluation
 - preprocessing-LLM-derived style/format profiles rather than raw semantic examples
-- figure-aware fallback with scoped triggers for the heavier reasoning-plus-vision path
 - reviewed XLSX export into a new workbook and audit log with content-only fidelity plus changed-cell highlighting
 
 It also needs explicit measurement integrity requirements so empty or non-interpretable evaluation states cannot quietly masquerade as normal results.
 
-This keeps the system aligned with its actual purpose: trustworthy human-reviewed extraction from scientific papers into structured tables.
+This keeps the system aligned with its actual purpose: trustworthy human-reviewed extraction from scientific papers into structured tables, with evidence quality and reviewer trust as first-class requirements.
