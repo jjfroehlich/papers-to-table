@@ -25,8 +25,9 @@ Preserve these constraints throughout implementation:
 - small **Python FastAPI** backend
 - **Docling** as main parser
 - **PDFium via `pypdfium2`** as low-level PDF backend
-- raw/custom **PDF.js** viewer
+- raw/custom **PDF.js** viewer with synchronized quote-list and viewer navigation
 - **LM Studio localhost API** as the initial provider path
+- **separate text-model and vision-model configuration** in the provider config
 - **filesystem artifact bundles + JSON files only**
 - **no database in MVP**
 - **no background job framework by default in MVP**
@@ -34,8 +35,13 @@ Preserve these constraints throughout implementation:
 - **reviewer-outcome summaries** in MVP
 - **per-column preprocessing LLM** for style profiles
 - **no raw semantic example injection by default**
-- **scoped automatic figure fallback only**
+- **proactive figure review across all relevant extracted figures when a vision model is configured**
+- figure evidence allowed for any field type; not restricted to figure-classified fields
+- **no unrestricted full-page vision on every page by default**
 - **no user-triggered figure fallback**
+- **evidence ranking**: primary evidence selected by authority and relevance, not by model output order
+- **evidence type taxonomy**: direct quote, inferred reasoning, calculation, approximate highlight fallback, quote-plus-page fallback, figure-based; each labeled and rendered distinctly
+- **exact quote highlighting from page-text alignment** with honest labeled fallback to approximate highlight or quote-plus-page
 
 If implementation pressure suggests changing any of these constraints, update `spec.md` and `plan.md` first, then update this file in the same work pass.
 
@@ -55,6 +61,8 @@ If implementation pressure suggests changing any of these constraints, update `s
 - Treat `README.md`, the checked-in config example, the runtime config schema, and operator-visible UI copy as one operator-facing contract. Keep provider, parser, model, Verify-mode, and run-state terminology aligned across those surfaces.
 - Do not allow a clean shell to hide disabled, stubbed, degraded, or unreachable proposal generation.
 - Treat the reviewer as reviewing the paper, not the model. Review-state semantics, no-data handling, and evidence interaction should reflect that throughout implementation.
+- Evidence quality and reviewer trust are first-class implementation requirements. A proposal with an evidence record does not satisfy evidence requirements unless the evidence is ranked, typed, and labeled correctly. The first model-returned quote is not automatically primary.
+- Evidence ranking must be authoritatively ordered. Implementation that treats supporting evidence items as unordered or treats all items as equivalent does not satisfy the evidence contract.
 
 ## Assumed repo shape
 
@@ -256,22 +264,24 @@ The detailed task inventory below remains the source of truth for exact implemen
   - `rationale`
   - `calculation`
   - `needs_more_evidence`
-  - `primary_evidence_id`
-  - `evidence_ids`
+  - `primary_evidence_id` (the single most authoritative evidence item, selected by evidence ranking)
+  - `supporting_evidence_ids` (ordered list of additional evidence item ids, ranked by authority and relevance, most authoritative first)
 
 - [ ] **T007** Define the evidence JSON schema and contract for separate evidence records linked to proposals, including at least:
   - `evidence_id`
   - `proposal_id`
   - `pdf_id`
-  - `source_type`
+  - `source_type` (one of: `direct_quote`, `inferred_reasoning`, `calculation`, `approximate_highlight`, `quote_plus_page`, `figure_based`)
   - `page`
-  - `quote_text`
-  - `highlight`
+  - `quote_text` (verbatim text for direct quote, inferred reasoning, calculation, and quote-plus-page types)
+  - `exact_highlight_regions` (bounding regions from page-text alignment when available)
+  - `approximate_highlight_regions` (bounding regions from parser geometry when exact alignment failed; labeled as approximate)
   - `figure_ref`
   - `caption_text`
   - `crop_path`
   - `full_page_path`
   - `anchor_confidence`
+  - `evidence_rank` (integer rank within the proposal, lower = more authoritative; primary evidence has rank 1)
 
 - [ ] **T008** Define the review-decision JSON schema plus the run-summary and reviewer-summary JSON schemas.
   - review decisions must remain persistable as explicit records, not only as in-place proposal mutations
@@ -285,8 +295,8 @@ The detailed task inventory below remains the source of truth for exact implemen
   - matching settings
   - style-profile settings
   - retrieval settings
-  - provider/model settings
-  - figure-fallback settings
+  - provider/model settings, including separate fields for text model identifier and vision model identifier
+  - figure-review settings (scope, relevance selection strategy)
   - review settings
   - export settings
 
@@ -295,6 +305,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - specify how optional cloud providers fit behind the same typed interface
   - document any allowed aliases in one place only and normalize them into canonical stored values
   - reject unknown, obsolete, or misspelled provider identifiers explicitly
+  - provider settings must include separate model identifier fields for text extraction and for vision extraction; a single shared model field is not sufficient
 
 - [ ] **T009b** Define the operator-facing terminology parity rules for provider, parser, model, Verify-mode, and run-state labels across the runtime config schema, checked-in config example, tests, docs, and UI copy.
 
@@ -532,6 +543,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 - [ ] **T050** Implement the provider abstraction and capability-probe model for structured-output support.
   - keep one typed interface that supports LM Studio as the default local-first path and optional cloud providers behind the same contract
   - expose canonical provider token, locality, readiness, and structured-output capability information through the abstraction
+  - support separate model identifier fields for text extraction and vision extraction in the provider config
   - validate guided-JSON or equivalent structured-output compatibility instead of assuming one wire format
   - keep structured-output compatibility handling scoped so one provider-schema mismatch does not poison unrelated proposal attempts by default
 
@@ -559,6 +571,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - classify proposal generation at minimum as live local, live cloud, unavailable, disabled, or explicit stub/demo/degraded mode
   - prevent silent fallback from a configured live path into an unlabeled stub or degraded path
   - persist the resulting mode and readiness status in run artifacts and summaries
+  - record text model and vision model identifiers separately in run artifacts and summaries when both are used
 
 - [ ] **T053** Implement the extraction request builder for LM Studio structured JSON:
   - assemble per-cell extraction requests from row context, column name, column description, style profile, retrieved passages, and relevant table/caption context
@@ -598,17 +611,26 @@ The detailed task inventory below remains the source of truth for exact implemen
   - prefer `unclear` over guesses supported mainly by prior spreadsheet values, common practice, or weak implication
   - keep style profiles and prior table content as output-shaping context only, not as semantic evidence substitutes
 
-- [ ] **T059** Implement text-evidence anchoring and validation for quote + page + highlight when possible.
+- [ ] **T059** Implement text-evidence anchoring and highlight production using a page-text alignment strategy:
+  - attempt exact quote matching against the rendered page text layer to produce character-level highlight regions
+  - store resulting regions as `exact_highlight_regions` in the evidence record
+  - if exact page-text alignment fails, attempt to derive approximate regions from parser geometry and store them as `approximate_highlight_regions`, labeled as approximate
+  - if neither succeeds, fall back to quote-plus-page evidence, labeled as such
+  - never present approximate or fallback highlights as exact highlights
+  - store the `source_type` that reflects the achieved highlight fidelity
 
 - [ ] **T060** Implement the single narrow evidence-recovery pass when evidence is weak, missing, or unusable for display.
 
 - [ ] **T061** Keep weak-but-reviewable proposals available when quote + page evidence exists even if precise highlighting fails.
   - preserve the fallback as clearly rendered text evidence rather than letting it appear blank, missing, or mislabeled
 
-- [ ] **T062** Implement scoped automatic figure fallback trigger logic:
-  - trigger only when the field is likely figure/table-derived
-  - and text/table retrieval failed or remained insufficient
-  - no user-triggered fallback control is part of MVP
+- [ ] **T062** Implement proactive figure review when a vision model is configured:
+  - when a vision model is configured, run figure review across all relevant extracted figures for the current paper as a normal supplemental evidence stage, not only when text extraction has failed
+  - select relevant figures by structural heuristics, caption relevance, or an LLM-assisted relevance selection step, rather than processing every figure indiscriminately
+  - figure evidence may support any field type, not only fields classified as figure-derived
+  - figure evidence may strengthen text-derived proposals, supplement weak evidence, or rescue weak, unclear, or failed text-only proposals
+  - figure review produces additional evidence items ranked by authority and relevance alongside existing text evidence
+  - no user-triggered figure review control is part of MVP; figure review runs automatically based on configuration
 
 - [ ] **T063** Build the figure-fallback input package containing:
   - crop
@@ -618,14 +640,21 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [ ] **T064** Persist figure-derived evidence records distinctly from text evidence while keeping figure-derived proposals as normal proposals with figure-marked evidence.
 
-- [ ] **T065** Implement reviewer-facing support-label mapping from internal states, including figure-derived evidence labeling and weak-evidence labeling.
+- [ ] **T065** Implement reviewer-facing support-label mapping and evidence type labeling:
+  - map internal proposal states to reviewer-facing labels such as `Direct evidence` and `Inferred from evidence`
+  - label each evidence item's type visibly in the UI: direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, or figure-based
+  - ensure the primary evidence item is visually distinguished as primary
+  - ensure supporting evidence items are shown in ranked order
+  - ensure direct quotes are visually separated from reasoning and calculations in the detail pane
 
 - [ ] **T066** Ensure Verify mode uses the same extraction path for already-filled cells and persists reviewable proposals for them.
 
-- [ ] **T067** Add tests covering structured-output parsing, provider failure handling, proposal/evidence serialization, blocked outcomes, unclear outcomes, evidence recovery, quote-plus-page fallback, figure fallback triggers, and Verify mode extraction on filled cells.
+- [ ] **T067** Add tests covering structured-output parsing, provider failure handling, proposal/evidence serialization, blocked outcomes, unclear outcomes, evidence recovery, evidence ranking (primary selection by authority), evidence type labeling, exact-highlight vs. approximate-highlight vs. quote-plus-page fallback evidence paths, proactive figure review triggering, figure evidence support for any field type, figure rescue of weak text proposals, separate text and vision model config, and Verify mode extraction on filled cells.
   - include contract-parity and provider-mode truth assertions where applicable
   - cover compatibility mismatches that should not poison the rest of the run
   - cover malformed-JSON repair behavior and compact bullet-rationale output shape
+  - cover evidence ranking behavior: proposals must have the highest-authority quote as primary
+  - cover the honest fallback chain: exact → approximate → quote-plus-page, each with correct source_type
 
 ---
 
@@ -656,7 +685,9 @@ The detailed task inventory below remains the source of truth for exact implemen
   - support label
   - rationale
   - calculation
-  - primary and secondary evidence
+  - primary evidence (the single most authoritative evidence item)
+  - ordered supporting evidence (additional evidence items ranked by authority and relevance)
+  - evidence type for each evidence item
   - warning/status flags
   - no-value or manual-resolution affordances needed by the middle pane
 
@@ -695,7 +726,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - pending / undecided
   - changed cells exported
   - Verify mode on/off
-  - provider/model names
+  - provider/model names, with text model and vision model identified separately when both were used
   - local vs cloud status
   - provider mode and readiness outcome
   - internally consistent counts and warning flags derived from persisted data rather than speculative UI state
@@ -711,7 +742,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - changed cells exported
   - matched / unmatched / ambiguous PDFs
   - Verify mode on/off
-  - provider/model names
+  - provider/model names, with text model and vision model identified separately when both were used
   - local vs cloud status
   - provider mode and readiness outcome where relevant to interpretation
   - explicit provisional labeling when too little reviewed data exists for meaningful interpretation
@@ -744,7 +775,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - rejected
   - changed cells exported
   - Verify mode on/off
-  - provider/model names
+  - provider/model names, with text model and vision model identified separately when both were used
   - local vs cloud status
   - provider mode and readiness outcome
   - direct links or equivalent access to workbook, audit-log, run-summary, and reviewer-summary downloads
@@ -791,32 +822,51 @@ The detailed task inventory below remains the source of truth for exact implemen
   - do not record review decisions implicitly from navigation or selection changes
   - allow filter continuity across run switches when practical, but do not preserve stale proposal/detail/evidence state across runs
 
-- [ ] **T085** Implement the proposal detail pane showing row context, target column definition, current value in Verify mode, proposed value, support label, rationale, calculation, warning/status flags, and primary/secondary evidence.
+- [ ] **T085** Implement the proposal detail pane showing row context, target column definition, current value in Verify mode, proposed value, support label, rationale, calculation, warning/status flags, and evidence list with primary and ordered supporting items.
   - status, evidence source, and warning state should be distinguishable at a glance
   - keep explicit row context near the top
   - present existing-versus-proposed comparison clearly in Verify mode
   - render concise rationale by default and fuller rationale through expansion
   - render markdown-bullet rationale cleanly when provided in bullet form
+  - show direct quotes separately from inferred reasoning and calculations; each evidence type must be visually labeled
+  - show the primary evidence item prominently and supporting items in ranked order
   - support explicit no-value reviewer actions including edited-value entry and confirmed-no-data resolution
   - surface structured resolution reasons for non-accepted or manually resolved outcomes
 
 - [ ] **T086** Implement the evidence viewer pane using a raw/custom PDF.js viewer for text evidence and attached reviewable figure evidence.
   - include zoom and pan capabilities as baseline viewer behavior
+  - include previous and next page navigation
+  - include jump-to-page-by-number navigation
+  - focus on the currently selected evidence item when it changes: scroll to and center or highlight the relevant region
+  - refocus stably when evidence selection or zoom changes, without arbitrary jumping
+  - support figure-to-full-page context: figure evidence viewable as focused crop and as full page from the same pane
 
-- [ ] **T087** Implement backend-to-viewer highlight coordinate conversion:
+- [ ] **T086a** Implement synchronized quote list and document viewer:
+  - maintain an ordered list of evidence items for the current proposal (primary first, then supporting in ranked order)
+  - when the reviewer selects an evidence item in the quote list, update the viewer to show that item's page and location
+  - when evidence selection changes programmatically (e.g., proposal selection changes), update both the quote list selection and the viewer location
+  - the viewer and quote list must never be out of sync when the reviewer navigates between evidence items
+
+- [ ] **T087** Implement backend-to-viewer highlight coordinate conversion and evidence type rendering:
   - map canonical PDF/page coordinates from backend evidence records into PDF.js viewer overlay coordinates
+  - render exact highlight overlays from `exact_highlight_regions` when available
+  - render approximate highlight overlays from `approximate_highlight_regions` with a distinct visual label indicating they are approximate
   - render stable text highlight overlays
   - handle zoom and viewport changes correctly
   - do not emit fabricated placeholder highlight boxes when reliable anchor geometry is unavailable
+  - display direct-quote evidence, inferred-reasoning evidence, and calculation evidence with distinct visual labels so the reviewer can tell which type they are inspecting
   - support click-to-populate flows from selected quote or highlight evidence into the active proposed-value or edited-value input
   - treat populate as replace-active-input by default rather than append unless an explicit append action is offered separately
   - limit automatic populate to textual evidence spans or figure-caption text, not raw image crops alone
   - use only the explicitly clicked or reviewer-selected span range rather than concatenating all visible evidence implicitly
   - stage overlong text for reviewer trim or confirmation rather than silently truncating or auto-saving it
 
-- [ ] **T088** Implement graceful quote + page fallback display when highlight coordinates are missing or invalid.
-  - explain missing highlight geometry explicitly
+- [ ] **T088** Implement honest fallback display for each evidence quality level:
+  - for approximate highlights: show the approximate region with a visible label indicating it is approximate, not exact
+  - for quote-plus-page fallback: display the quote text and page number with a visible label indicating this is fallback text evidence because highlighting was not available
+  - explain missing exact highlight geometry explicitly rather than silently showing nothing
   - provide useful fallback actions such as opening the full PDF when scoped evidence is unavailable
+  - never display approximate or fallback evidence as if it were exact highlighting
 
 - [ ] **T089** Implement the figure-evidence viewer with crop-first display, attached caption, figure-derived warning/status markers, and full-page access.
 
@@ -845,12 +895,13 @@ The detailed task inventory below remains the source of truth for exact implemen
 - [ ] **T093** Surface warnings/statuses, run-summary fields, reviewer-summary fields, provider/model names, and local-vs-cloud status consistently across the review UI and run-summary UI.
   - show coarse running progress as current stage plus current item when available
   - show provider mode and readiness truth without hiding disabled, unavailable, or degraded proposal generation
+  - show both text model and vision model identifiers separately when both were used for a run
   - show configured parser choice, actual parser used, and any explicit fallback state when relevant
   - if zero verified cells have been reviewed, keep per-column lines visible only as evidence-coverage context with explicit wording that reviewer outcomes are not yet meaningful
   - do not show limited-review or similar warnings before their real triggering conditions are met
   - keep confirmed-no-data outcomes distinct from rejected-or-model-wrong outcomes in visible summaries and badges
 
-- [ ] **T094** Add frontend tests for grouped queue behavior, group-header summaries, group ordering rules, queue filtering, item ordering rules, nonlinear review, quote+page fallback rendering, figure-evidence rendering, run-summary display, no-data workflow rendering, picker-driven setup flow, markdown-bullet rationale rendering, click-to-populate replace behavior, overlong-text staging behavior, tooltip shortcut surfacing, and bulk-accept confirmation flow.
+- [ ] **T094** Add frontend tests for grouped queue behavior, group-header summaries, group ordering rules, queue filtering, item ordering rules, nonlinear review, evidence type labeling (direct quote vs. inferred vs. calculation vs. approximate vs. fallback), exact-highlight vs. approximate-highlight vs. quote-plus-page fallback rendering, synchronized quote-list and viewer behavior, viewer navigation (previous/next page, jump to page), figure-evidence rendering with full-page access, run-summary display including text and vision model identifiers, no-data workflow rendering, picker-driven setup flow, markdown-bullet rationale rendering, click-to-populate replace behavior, overlong-text staging behavior, tooltip shortcut surfacing, and bulk-accept confirmation flow.
 
 - [ ] **T095** Add Playwright e2e tests for the core review loop from proposal selection through grouped triage, group ordering, evidence interaction, no-data resolution, decision recording, picker-input staging, and summary updates.
 
@@ -914,8 +965,10 @@ The detailed task inventory below remains the source of truth for exact implemen
   - successful matched extraction
   - unmatched / ambiguous / duplicate-row blocked flows
   - weak-evidence quote+page review
+  - exact highlight vs. approximate highlight vs. quote-plus-page fallback evidence paths
   - Verify mode reviewed-cell flow
-  - figure fallback flow
+  - proactive figure review flow with figure evidence supporting a proposal
+  - figure rescue of a weak text-only proposal
   - export with accepted-only changes
   - use the canonical checked-in fixture set as the main proof target and prefer text-based expected outputs over new binary fixtures
 
@@ -958,6 +1011,47 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 ---
 
+## Phase 10 — Evidence quality, proactive figure review, and model transparency
+
+**Goal:** ensure the system satisfies the evidence-first, reviewer-centered quality bar defined in the improved product direction.
+
+- [ ] **T108** Stale-spec cleanup: audit the codebase and tests for any remaining references to "scoped figure fallback only," narrow fallback triggers, or single-model provider config that conflict with the improved product direction. Update or remove them in the same pass.
+
+- [ ] **T109** Implement evidence ranking and authority-aware evidence selection:
+  - rank evidence items by source section authority and field relevance rather than by model output order
+  - select the highest-ranked evidence item as the primary evidence item for the proposal
+  - store the remaining items as ordered supporting evidence
+  - the ranking logic may use structural heuristics, section type classifications, or an LLM-assisted selection step
+  - acceptance criteria: a reviewer reviewing a procedural field proposal sees the most authoritative section as primary, not an arbitrary paragraph
+
+- [ ] **T110** Implement end-to-end evidence type labeling and validation:
+  - verify that each evidence record stores a valid `source_type` from the defined taxonomy
+  - verify that exact highlights, approximate highlights, and quote-plus-page fallback evidence are stored and surfaced correctly
+  - verify that the UI displays each evidence type with its correct label and distinct visual treatment
+  - acceptance criteria: a reviewer can tell at a glance whether any evidence item is a direct quote, approximate highlight, quote-plus-page fallback, inferred reasoning, calculation, or figure-based without reading additional explanation
+
+- [ ] **T111** End-to-end validation for proactive figure review behavior:
+  - verify that when a vision model is configured, figure review runs for relevant extracted figures even when text extraction succeeded
+  - verify that figure evidence can be stored alongside text evidence for the same proposal
+  - verify that figure evidence appears in the ranked evidence list for any field type
+  - verify that figure rescue of a weak or unclear text-only proposal produces a visible reviewable proposal with figure-based evidence
+  - acceptance criteria: a run where text extraction produced weak evidence and relevant figures were available must produce at least one proposal with figure evidence when a vision model is configured
+
+- [ ] **T112** Implement and validate separate text-model and vision-model configuration:
+  - verify that the config schema accepts separate model identifier fields for text and vision
+  - verify that run artifacts record both model identifiers separately
+  - verify that the run summary shows both model identifiers when both were used
+  - verify that the reviewer-visible run context exposes both model identifiers
+  - acceptance criteria: a reviewer can see which text model and which vision model were used for any run where both were configured
+
+- [ ] **T113** Validate synchronized quote list and viewer behavior:
+  - verify that selecting a different evidence item in the quote list updates the viewer to that item's page and location
+  - verify that the viewer refocuses stably when evidence selection changes
+  - verify that zoom changes do not cause the viewer to lose focus on the selected evidence item
+  - acceptance criteria: after selecting any evidence item from the quote list, the viewer shows that item's page and location within one interaction, without requiring additional navigation by the reviewer
+
+---
+
 ## Explicit MVP exclusions for this task list
 
 Do **not** add the following unless `spec.md` and `plan.md` are intentionally revised first:
@@ -972,7 +1066,8 @@ Do **not** add the following unless `spec.md` and `plan.md` are intentionally re
 - in-place workbook patching
 - workbook fidelity guarantees beyond content-only export plus changed-cell highlighting
 - raw semantic example injection from filled cells as the default extraction strategy
-- user-triggered figure fallback controls
+- user-triggered figure review controls
+- unrestricted full-page vision on every page of every paper for every field
 - automated heterogeneous correctness scoring as the primary MVP evaluation metric
 
 ---
@@ -990,7 +1085,11 @@ This task list is complete enough when it can drive implementation toward a syst
 - supports Verify mode end to end
 - generates reviewer-outcome summaries for the MVP
 - exports a new XLSX plus audit log within the explicit content-only fidelity boundary
-- applies scoped automatic figure fallback without adding a user-triggered fallback workflow
+- produces evidence with correct type labels (direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, figure-based) and ranks evidence by authority so the most authoritative item is primary
+- produces exact quote highlights from page-text alignment when possible and degrades honestly with labeled fallback when it fails; fallback evidence is never presented as exact
+- keeps the quote list and document viewer synchronized around the selected evidence item, with stable refocus on selection or zoom changes, previous/next/jump-to-page navigation, and figure-to-full-page context
+- runs proactive figure review across all relevant extracted figures when a vision model is configured, with figure evidence allowed for any field type, including figure rescue of weak text-only proposals
+- records text model and vision model identifiers separately in run artifacts, run summaries, and reviewer-visible context
 - keeps loading, empty, warning, failure, and not-yet-reviewable states explicit and actionable in the operator workflow
 - proves the canonical LM Studio path can generate at least one non-empty reviewable proposal with evidence on the canonical checked-in fixture set, or fails early with a clear readiness error
 - ships with a truthful user-facing `README.md` and related operator docs that match the implemented commands, architecture, workflow, exports, and limitations

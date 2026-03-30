@@ -2,7 +2,7 @@
 
 ## Status
 
-Finalized baseline
+Updated: evidence-first, proactive figure review, separate text/vision model direction
 
 ## Purpose
 
@@ -206,17 +206,22 @@ Use `openpyxl` as the main XLSX round-trip engine. Guarantee content-only fideli
 
 ---
 
-### TD-7: Use one typed provider abstraction, structured outputs first, with LM Studio localhost API as the default live path
+### TD-7: Use one typed provider abstraction, structured outputs first, with LM Studio localhost API as the default live path, and separate text-model and vision-model configuration
 
 LLM interaction will be schema-first using typed contracts. The initial supported live provider path is LM Studio via its localhost API, with each cell request returning structured JSON plus page-grounded evidence. Optional cloud providers can be added later behind the same contract without changing the operator workflow or broadening the UI into a settings editor.
 
+The provider configuration must support separate model identifiers for text extraction and vision extraction. The text model and vision model may differ: local deployments often have separate chat and vision endpoints, and operators should be able to configure each independently.
+
+When both a text model and a vision model are used in a run, the run summary and reviewer-visible context must identify both models separately so the reviewer understands what capability extracted what.
+
 **Rationale:**
-The extraction path depends on predictable proposal and evidence objects. LM Studio matches the local-first MVP boundary while preserving a clean contract for future provider expansion.
+The extraction path depends on predictable proposal and evidence objects. Separating text and vision model identifiers improves flexibility (the best text model and the best vision model are often not the same), supports running without vision capability when no vision model is configured, and gives reviewers transparent context about what generated each evidence type.
 
 **Contract policy:**
 - the canonical LM Studio config token is `lm_studio`
 - the canonical LM Studio operator-visible label is `LM Studio`
 - provider identifiers come from one canonical enum or equivalent central registry
+- provider config carries separate model identifier fields for text extraction and for vision extraction
 - compatibility aliases, if any, must normalize into canonical stored values and stay documented in one place
 - unknown provider identifiers fail early
 - cloud-provider credentials are resolved from environment or secret references, not committed example secrets
@@ -263,15 +268,28 @@ This keeps the benefit of column-specific output shaping while avoiding heuristi
 
 ---
 
-### TD-11: Figure support is in scope, but the heavier reasoning-plus-vision path is tightly scoped
+### TD-11: Figure review is proactive and targeted when vision capability is available
 
-Figure-aware fallback is in MVP, but the heavier reasoning-plus-vision path should run only when the field is likely figure- or table-derived, text retrieval failed, after text-first extraction remains insufficient after evidence recovery. Figure-derived proposals remain review-first and are evaluated through normal human reviewer outcomes rather than separate automated figure scoring.
+When vision capability is available (a vision model is configured), the system must review all relevant extracted figures as a normal supplemental evidence stage, not only when text extraction has already failed.
+
+Proactive figure review allows the system to:
+- provide figure evidence that strengthens or corroborates text-derived proposals
+- supplement weak or ambiguous text proposals with figure evidence
+- rescue weak, unclear, or failed text-only proposals when figure evidence is available
+
+Figure evidence must be allowed to support any field type when it materially strengthens the answer. The system must not restrict figure evidence to fields explicitly classified as figure-derived.
+
+The distinction between proactive figure review and unrestricted full-page multimodal reasoning is important:
+- proactive figure review: all relevant extracted figures are reviewed as a supplemental evidence stage
+- unrestricted full-page reasoning: every page of every paper is sent to a vision model for every field
+
+The second is explicitly out of scope. The first is required when vision capability is available.
 
 **Rationale:**
-This keeps visual extraction available where it is likely to help while avoiding multimodal escalation as a baseline behavior.
+The prior narrow-fallback design meant figures were only consulted when text had already failed. But figures often contain complementary information that strengthens text evidence, and a reviewer cannot benefit from figure evidence that was never collected. Proactive targeted figure review makes figure evidence available as a first-class evidential source while staying within a reasonable operational scope.
 
 **Implementation direction:**
-The routing decision may be made by the extraction path itself, including an LLM-assisted decision, provided it stays within those scoped triggers and does not escalate all pages or all fields to vision by default.
+The figure review stage receives all figures extracted from the parsed document for the current paper. The stage should select relevant figures rather than processing every figure indiscriminately. Relevance can be determined by structural heuristics, captions, or an LLM-assisted selection step, as long as the scope remains targeted rather than blanket per-page vision.
 
 ---
 
@@ -494,9 +512,12 @@ The MVP pipeline should run in these explicit stages:
    - validate page-grounded evidence
    - run one narrow recovery step if evidence is missing/weak/unusable
    - preserve weak-but-reviewable proposals
-8. **Run scoped figure fallback when needed**
-   - only when figure/table-derived evidence is likely, text retrieval failed, or text-first extraction remains insufficient after evidence recovery
-   - use crop + caption + nearby text + full page as needed
+8. **Review relevant figures as supplemental evidence when vision capability is available**
+   - when a vision model is configured, review all relevant extracted figures for the current paper as a normal supplemental evidence stage
+   - select relevant figures by structural heuristics, captions, or LLM-assisted selection rather than processing every figure indiscriminately
+   - use crop + caption + nearby text + full page as the input package
+   - figure evidence may strengthen text-derived proposals, supplement weak proposals, or rescue failed text-only proposals
+   - figure evidence is allowed for any field type, not restricted to figure-classified fields
 9. **Write proposal artifacts**
    - write proposals, evidence, diagnostics, and run summaries as JSON artifacts
    - record provider mode, readiness results, and any explicit degraded or disabled status in run artifacts and summaries
@@ -664,12 +685,17 @@ Accept-with-edit remains a first-class explicit workflow rather than a minor var
 The right pane should be built around a PDF evidence viewer with:
 - zoom support
 - pan support
-- page navigation
+- previous and next page navigation
+- jump to page by number
 - highlight overlay support when geometry is available
-- quote-plus-page fallback when geometry is unavailable
+- approximate highlight fallback, labeled as approximate, when only parser geometry is available and page-text alignment failed
+- quote-plus-page fallback, labeled as fallback text evidence, when no reliable geometry is available
 - crop-first figure evidence with attached caption and full-page access
+- figure-to-full-page context: figure evidence must be accessible both as a focused crop and as full page context
 
-Highlight overlays must come from actual parsed page geometry. If highlight geometry is missing, the UI should explain that limitation rather than fabricating highlight boxes.
+The viewer must stay synchronized with the currently selected evidence item. When the reviewer selects a different evidence item in the quote list, the viewer must scroll to and highlight that item. When evidence selection or zoom changes, the viewer must refocus stably rather than jumping arbitrarily.
+
+Highlight overlays must come from actual page geometry derived from page-text alignment or parser coordinates. Approximate parser geometry should be labeled as approximate. If no reliable highlight geometry is available, the UI should explain that limitation rather than fabricating highlight boxes.
 
 The evidence interaction model should support a click-to-populate flow: when the reviewer clicks selected quote text or a highlight-linked evidence element, the UI should be able to populate either the proposed-value input or the edited-value input, depending on the active editing state.
 
@@ -947,8 +973,9 @@ The model must not rely on hidden chain-of-thought as a product feature.
 
 The MVP should use:
 
-- one primary text-capable reasoning model through LM Studio
-- one vision-capable model through LM Studio for figure fallback when needed
+- one primary text-capable reasoning model, configured separately from any vision model
+- one vision-capable model for figure review when configured, separate from the text model
+- both model identifiers recorded in run artifacts and shown in run summaries and reviewer context
 
 ## Verify mode
 
@@ -978,7 +1005,37 @@ Raw existing filled cells must not be injected into extraction prompts as semant
 
 ## Objective
 
-Preserve plausible values while making evidence quality visible, recoverable, and reviewable.
+Preserve plausible values while making evidence quality visible, recoverable, and reviewable. Give the reviewer the information needed to make confident decisions, not merely proof that the model found something.
+
+## Evidence quality as a first-class requirement
+
+Evidence quality and reviewer trust are first-class product requirements. The system must not assume that the first model-returned quote is automatically the best evidence. Evidence must be ranked and ordered so the most authoritative item becomes primary.
+
+Evidence selection should consider source authority and field relevance. For example, a methods section is generally more authoritative for procedural fields, while a results section is more authoritative for outcome fields. The ranking logic may use structural heuristics, section type classifications, or an LLM-assisted selection step.
+
+## Evidence type taxonomy
+
+The system must distinguish and label the following evidence types. These types must be rendered and labeled distinctly in the review UI:
+
+- `direct_quote`: a verbatim passage from the paper that directly states the value
+- `inferred_reasoning`: a reasoning chain or argument constructed from one or more quoted passages; distinct from the quote itself
+- `calculation`: a calculation or derivation performed on quoted numeric evidence; distinct from the quote(s) used as inputs
+- `approximate_highlight`: a highlight region produced from approximate parser geometry rather than precise page-text alignment; labeled as approximate, not presented as exact
+- `quote_plus_page`: a quote plus page reference when precise highlighting fails; labeled as fallback text evidence
+- `figure_based`: evidence derived from a figure, chart, diagram, or image, with figure crop, caption, and full-page context
+
+The review UI must show direct quotes separately from reasoning and calculations. The reviewer must be able to distinguish verbatim text from model-constructed inference.
+
+## Exact quote highlighting and honest fallback
+
+Exact quote highlighting should be produced from rendered page text or an equivalent page-text alignment strategy whenever possible. Parser bounding boxes are often approximate; character-level alignment against the rendered text layer produces more precise highlights.
+
+If exact quote matching against the rendered page text fails, the system must degrade honestly:
+- if an approximate region can be derived from parser geometry, it may be shown as an `approximate_highlight`, labeled as approximate
+- if no reliable geometry is available, the evidence degrades to `quote_plus_page` fallback, labeled as such
+- fallback evidence must never be presented as exact highlighting
+
+The UI must explain the fallback state rather than fabricating placeholder geometry.
 
 ## MVP evidence contract
 
@@ -995,8 +1052,8 @@ Each proposal JSON object should include, at minimum:
 - proposed value
 - rationale field
 - calculation field when the value is derived
-- primary evidence identifier
-- secondary evidence identifiers when additional evidence exists
+- primary evidence identifier, pointing to the highest-ranked evidence item
+- ordered supporting evidence identifiers, ranked by authority and relevance, most authoritative first
 
 ### Evidence object shape in prose
 
@@ -1004,30 +1061,47 @@ Each evidence object should capture, at minimum:
 - evidence identifier
 - source PDF
 - page reference
-- evidence type such as text quote, highlight, figure crop, or caption
+- evidence type (one of: `direct_quote`, `inferred_reasoning`, `calculation`, `approximate_highlight`, `quote_plus_page`, `figure_based`)
+- direct quote text when the evidence type includes verbatim text
+- exact highlight regions when available from page-text alignment
+- approximate fallback regions when exact alignment failed but parser geometry is available
+- figure reference, caption text, crop path, and full-page path when evidence is figure-based
+- anchor confidence level
 - enough anchor information for the UI to render or fall back gracefully
 
 ### Text proposals
 Preferred:
-- quote + page + highlight
+- quote + page + exact highlight from page-text alignment
 
-Fallback reviewable state:
-- quote + page, still rendered clearly as text evidence rather than blank or mislabeled evidence
+First fallback:
+- quote + page + approximate highlight from parser geometry, labeled as approximate
+
+Final fallback:
+- quote + page only, rendered clearly as text evidence, labeled as quote-plus-page fallback
 
 ### Figure proposals
 Preferred minimum:
 - crop + caption + page access
 
 ### Review emphasis
-- one primary evidence item by default
-- expandable secondary evidence items
+- one primary evidence item by default, selected by evidence ranking
+- ordered supporting evidence items, navigable in ranked order
 - separate rationale and calculation fields for derived values
+- direct quotes visually distinct from reasoning and calculations in the review UI
+
+## Quote list and viewer synchronization
+
+The review workspace presents an ordered list of evidence items alongside the document viewer. These must stay synchronized:
+- selecting an evidence item in the quote list must update the viewer to show that item's location on the page
+- when the selected evidence changes, the viewer must refocus stably rather than jumping arbitrarily
+- when zoom changes, the viewer must maintain focus on the selected evidence item
 
 ## Validation and recovery
 
 MVP should use:
 - one strict evidence validator
 - one simple locator/recovery path
+- honest fallback labeling when exact highlighting cannot be recovered
 
 Do not build a broad salvage ladder by default.
 
@@ -1047,17 +1121,21 @@ The system should:
 
 ### Figures
 
-Figures are also first-class evidence sources, but figure reasoning is a scoped fallback path.
+Figures are first-class evidence sources, not a last-resort fallback.
+
+When vision capability is available, the system should review all relevant extracted figures as a normal supplemental evidence stage. This proactive approach means:
+- figure evidence may strengthen or corroborate any proposal, not just those whose field type is explicitly classified as figure-derived
+- figure evidence may rescue weak, unclear, or failed text-only proposals
+- figure evidence may supplement text evidence to increase reviewer confidence
 
 The MVP should:
-- extract figure/caption relationships when available
+- extract figure/caption relationships when available at parse time
 - generate crops and page references for review
-- use a vision-capable model only when:
-  - the field appears likely figure/table-derived
-  - text retrieval failed or remained insufficient
-  - or text-first extraction remains insufficient after evidence recovery
+- run relevant extracted figures through vision review when a vision model is configured, selecting by structural heuristics or relevance rather than exhaustively processing every figure
 
 Figure-derived proposals remain normal proposals, but their evidence source must be marked as figure-based.
+
+The scope is targeted: relevant extracted figures per paper, not every page of every paper for every field. This keeps the approach focused while ensuring figure evidence is available where it matters.
 
 ## Evaluation boundary
 
@@ -1255,14 +1333,17 @@ Each provider entry should capture, as applicable:
 - canonical provider token
 - declared locality (`local` or `cloud`)
 - endpoint or base URL
-- model identifiers for text extraction and vision fallback
+- model identifier for text extraction
+- model identifier for vision extraction (separate field; may be the same model or a different one)
 - timeout and capability-probe settings
 - credential environment-variable or secret references for cloud providers
 - explicit disabled flag or explicit stub/demo mode only when intentionally supported
 
-Committed examples should show LM Studio as the default live path. Cloud examples, when present, should demonstrate environment-based credential resolution rather than committed secrets.
+Committed examples should show LM Studio as the default live path with both text model and vision model fields. Cloud examples, when present, should demonstrate environment-based credential resolution rather than committed secrets.
 
-Operator docs should include at least one verified LM Studio model example, clearly marked as a known-working example rather than as the only acceptable model.
+Operator docs should include at least one verified LM Studio text model example and, where applicable, a vision model example, clearly marked as known-working examples rather than as the only acceptable models.
+
+When a vision model is configured and used, run artifacts and run summaries must record it separately from the text model so the reviewer can see which model generated which evidence type.
 
 ## Structured-output compatibility and response recovery
 
@@ -1302,16 +1383,16 @@ Run artifacts and normal summaries should record at least:
 ## Transparency
 
 The system should record and surface:
-- provider name
-- model name
+- text model name and vision model name separately when both are used
 - whether the run stayed local or used cloud providers
 - whether proposal generation was live, unavailable, disabled, or explicitly degraded/demo
+- whether figure review was performed and with which vision model
 
 At minimum this should appear in the normal run summary.
 
 The normal run summary should include:
-- provider name
-- model name
+- text model name
+- vision model name (when a vision model was configured or used)
 - whether execution stayed local or used cloud services
 - provider mode and readiness outcome for proposal generation
 - PDFs processed
@@ -1534,7 +1615,12 @@ Paper Table Agent will be implemented as a local-first workflow application with
 - filesystem artifact bundles and JSON state files as the complete MVP persistence layer, with no database required
 - reviewer-outcome-based MVP evaluation
 - a preprocessing LLM that turns existing filled cells into structured style profiles
-- figure-aware fallback with tightly scoped reasoning-plus-vision escalation
+- evidence ranking and evidence type taxonomy with primary and supporting evidence semantics
+- exact quote highlighting via page-text alignment with honest labeled fallback to approximate highlight or quote-plus-page
+- synchronized quote list and document viewer around the currently selected evidence item
+- viewer navigation: previous/next page, jump to page, zoom with stable refocus on evidence
+- proactive figure review across all relevant extracted figures when a vision model is configured, with figure evidence allowed for any field type
+- separate text-model and vision-model configuration, with both recorded in run artifacts and shown in summaries
 - new XLSX export plus audit log with content-only fidelity plus changed-cell highlighting
 
-This keeps the system aligned with its real purpose: trustworthy, human-reviewed extraction from scientific papers into structured tables.
+This keeps the system aligned with its real purpose: trustworthy, human-reviewed extraction from scientific papers into structured tables, with evidence quality and reviewer trust as first-class requirements.
