@@ -1,0 +1,178 @@
+from __future__ import annotations
+
+from enum import Enum
+from typing import Optional
+
+from pydantic import BaseModel
+
+
+class RunStatus(str, Enum):
+    created = "created"
+    validating = "validating"
+    running = "running"
+    completed = "completed"
+    completed_with_warnings = "completed_with_warnings"
+    failed = "failed"
+    interrupted = "interrupted"
+
+
+class MatchOutcome(str, Enum):
+    matched = "matched"
+    ambiguous = "ambiguous"
+    unmatched = "unmatched"
+    duplicate_row_conflict = "duplicate_row_conflict"
+
+
+class ProposalState(str, Enum):
+    found = "found"
+    inferred = "inferred"
+    unclear = "unclear"
+    blocked = "blocked"
+    error = "error"
+    skipped = "skipped"
+
+
+class SupportLabel(str, Enum):
+    direct_evidence = "direct_evidence"
+    inferred_from_evidence = "inferred_from_evidence"
+    weak_evidence = "weak_evidence"
+    blocked = "blocked"
+    error = "error"
+
+
+class EvidenceSourceType(str, Enum):
+    direct_quote = "direct_quote"
+    inferred_reasoning = "inferred_reasoning"
+    calculation = "calculation"
+    approximate_highlight = "approximate_highlight"
+    quote_plus_page = "quote_plus_page"
+    figure_based_evidence = "figure_based_evidence"
+
+
+class ReviewDecision(str, Enum):
+    accepted = "accepted"
+    accepted_with_edit = "accepted_with_edit"
+    confirmed_no_data = "confirmed_no_data"
+    rejected = "rejected"
+
+
+class ReviewResolutionReason(str, Enum):
+    accepted_as_proposed = "accepted_as_proposed"
+    accepted_with_edit = "accepted_with_edit"
+    confirmed_no_data_in_paper = "confirmed_no_data_in_paper"
+    rejected_incorrect = "rejected_incorrect"
+    rejected_low_confidence = "rejected_low_confidence"
+    rejected_out_of_scope = "rejected_out_of_scope"
+    manually_entered = "manually_entered"
+
+
+class ProviderLocality(str, Enum):
+    local = "local"
+    cloud = "cloud"
+
+
+class WarningCategory(str, Enum):
+    unmatched_pdf = "unmatched_pdf"
+    ambiguous_match = "ambiguous_match"
+    duplicate_row_conflict = "duplicate_row_conflict"
+    missing_required_column = "missing_required_column"
+    low_confidence_proposal = "low_confidence_proposal"
+    fallback_evidence_used = "fallback_evidence_used"
+    provider_unreachable = "provider_unreachable"
+    partial_extraction = "partial_extraction"
+
+
+class Proposal(BaseModel):
+    proposal_id: str
+    run_id: str
+    cell_id: str
+    row_id: str
+    column_name: str
+    pdf_id: str
+    state: ProposalState
+    support: SupportLabel
+    proposed_value: Optional[str] = None
+    rationale: Optional[str] = None
+    calculation: Optional[str] = None
+    evidence_ids: list[str]
+    warning_flags: list[str]
+    created_at: str
+
+
+class Evidence(BaseModel):
+    evidence_id: str
+    run_id: str
+    proposal_id: str
+    source_type: EvidenceSourceType
+    raw_text: Optional[str] = None
+    page_number: Optional[int] = None
+    bbox: Optional[list[float]] = None  # x0, y0, x1, y1
+    figure_id: Optional[str] = None
+    caption: Optional[str] = None
+    reasoning: Optional[str] = None
+    is_primary: bool
+    created_at: str
+
+
+class ReviewDecisionRecord(BaseModel):
+    review_decision_id: str
+    run_id: str
+    proposal_id: str
+    cell_id: str
+    decision: ReviewDecision
+    resolution_reason: Optional[ReviewResolutionReason] = None
+    edited_value: Optional[str] = None
+    reviewer_note: Optional[str] = None
+    decided_at: str
+
+
+class RunWarning(BaseModel):
+    category: WarningCategory
+    message: str
+    context: Optional[dict] = None
+
+
+class RunSummary(BaseModel):
+    run_id: str
+    status: RunStatus
+    config_path: Optional[str] = None
+    table_path: Optional[str] = None
+    schema_path: Optional[str] = None
+    pdf_dir: Optional[str] = None
+    output_dir: str
+    verify_mode: bool
+    provider_token: Optional[str] = None
+    provider_locality: Optional[ProviderLocality] = None
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    current_stage: Optional[str] = None
+    total_rows: int
+    eligible_cells: int
+    proposals_generated: int
+    proposals_reviewed: int
+    warnings: list[RunWarning]
+    error_message: Optional[str] = None
+
+
+class ReviewerSummary(BaseModel):
+    run_id: str
+    total_proposals: int
+    accepted: int
+    accepted_with_edit: int
+    confirmed_no_data: int
+    rejected: int
+    pending: int
+    generated_at: str
+
+
+class InputSummary(BaseModel):
+    run_id: str
+    table_path: Optional[str] = None
+    schema_path: Optional[str] = None
+    pdf_dir: Optional[str] = None
+    output_dir: str
+    verify_mode: bool
+    table_rows: Optional[int] = None
+    schema_columns: Optional[int] = None
+    pdf_count: Optional[int] = None
+    recorded_at: str
