@@ -12,8 +12,7 @@ For spec-driven work, use this order:
 
 1. `spec.md`
 2. `plan.md`
-3. `data-model.md` or `contracts/` when relevant
-4. `tasks.md`
+3. `tasks.md`
 
 If these artifacts conflict, fix the smallest coherent set of docs first before changing code or task status.
 
@@ -22,8 +21,6 @@ If these artifacts conflict, fix the smallest coherent set of docs first before 
 - `spec.md`: product behavior, user-facing requirements, acceptance criteria
 - `plan.md`: technical architecture and implementation direction
 - `research.md`: decisions, tradeoffs, evidence, deferred questions
-- `data-model.md`: entities, relationships, invariants
-- `contracts/`: stable API or payload contracts
 - `tasks.md`: canonical implementation checklist and batch structure
 
 ## Documentation Sync Rules
@@ -32,7 +29,6 @@ If these artifacts conflict, fix the smallest coherent set of docs first before 
 - If user-facing behavior changes, update `spec.md`.
 - If architecture, runtime shape, parser strategy, UI stack, persistence strategy, or sequencing changes, update `plan.md`.
 - If a decision changed because the tradeoff or rationale changed, update `research.md`.
-- If entities or stable contracts changed, update `data-model.md` or `contracts/`.
 - If spec-driven execution progress changed, keep `tasks.md` aligned.
 - Remove stale text rather than leaving both old and new descriptions in place.
 
