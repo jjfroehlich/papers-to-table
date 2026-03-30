@@ -31,7 +31,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from .artifacts import get_evidence_dir, get_proposals_dir, write_json
+from .artifacts import get_evidence_dir, write_json
 from .ids import generate_evidence_id, generate_proposal_id
 from .provider import (
     ProviderAdapter,
@@ -858,8 +858,6 @@ def persist_proposal(
     proposal: ProposalRecord,
 ) -> pathlib.Path:
     """Persist a proposal record as JSON under proposals/."""
-    proposals_dir = get_proposals_dir(run_dir.parent.name, str(run_dir.parent))
-    # run_dir IS the run dir, not output_dir — recalculate
     p_dir = run_dir / "proposals"
     p_dir.mkdir(parents=True, exist_ok=True)
     path = p_dir / f"{proposal.proposal_id}.json"

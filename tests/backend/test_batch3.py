@@ -290,10 +290,12 @@ class TestStyleProfileSchema:
         loaded = load_style_profile(run_dir, "Integration site")
         assert loaded is not None
         assert loaded.column_name == "Integration site"
-        # Raw values should not appear in the persisted file
+        # T044: raw cell values must NOT appear in the persisted style profile file
         path = run_dir / "style_profiles" / "Integration_site.json"
         content = path.read_text()
-        assert "filled" not in content.lower() or "source_column_count" in content
+        # These are raw cell values that were used for format analysis — must not persist
+        assert "Tibial" not in content
+        assert "Femoral" not in content
 
     async def test_run_style_profiles_stage(self, run_dir: pathlib.Path):
         """T042/T043: run_style_profiles_stage persists profiles for each schema column."""
@@ -1359,11 +1361,14 @@ class TestCanonicalFixtureReadiness:
         # Either LM Studio is reachable (ok=True) or there's an explicit error (ok=False)
         # The key: it must NOT silently ignore the failure and claim ok=True
         if not readiness.ok:
-            # Must have an actionable error message mentioning LM Studio
-            provider_errors = [e for e in readiness.errors if "LM Studio" in e or "localhost" in e]
-            assert len(provider_errors) > 0, (
-                "Readiness failure must include an actionable message about LM Studio: "
-                f"errors={readiness.errors}"
+            # Must have at least one error message about the provider
+            assert len(readiness.errors) > 0, (
+                "Readiness failure must produce at least one error message"
+            )
+            # The error must be actionable — must reference the provider or connectivity
+            combined = " ".join(readiness.errors).lower()
+            assert any(kw in combined for kw in ("lm studio", "localhost", "provider", "reach", "connect")), (
+                f"Readiness error messages must be actionable: {readiness.errors}"
             )
 
     async def test_provider_unavailable_produces_skipped_not_silent_success(

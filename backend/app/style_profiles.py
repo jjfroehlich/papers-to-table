@@ -31,6 +31,7 @@ class StyleProfile(BaseModel):
     All fields guide format and presentation only.
     Raw cell values are NOT stored here (no-leakage baseline, T044).
     """
+
     column_name: str
 
     # Core shape signals
@@ -65,7 +66,7 @@ class StyleProfile(BaseModel):
 
     generated_at: str
     source_column_count: int
-    """Number of non-empty cells analysed when producing this profile."""
+    """Number of non-empty cells analyzed when producing this profile."""
 
     provider_mode: str = "unavailable"
     """How the profile was produced: 'live_llm', 'heuristic', 'unavailable'."""
@@ -122,7 +123,7 @@ def _heuristic_profile(column_name: str, filled_values: list[str]) -> StyleProfi
 # ---------------------------------------------------------------------------
 
 _STYLE_SYSTEM_PROMPT = (
-    "You are an expert scientific data curator analysing a spreadsheet column. "
+    "You are an expert scientific data curator analyzing a spreadsheet column. "
     "Your job is to describe the OUTPUT FORMAT and STYLE of a spreadsheet column, "
     "NOT to interpret the content. "
     "Respond ONLY with a JSON object matching the required schema."

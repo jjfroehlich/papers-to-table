@@ -144,7 +144,12 @@ class ProviderAdapter(abc.ABC):
         capabilities: Optional[ProviderCapabilities] = None,
         readiness_error: Optional[str] = None,
     ) -> ProviderMode:
-        mode = "unavailable" if readiness_error else "live_local"
+        if readiness_error:
+            mode = "unavailable"
+        elif self.locality == ProviderLocality.cloud:
+            mode = "live_cloud"
+        else:
+            mode = "live_local"
         return ProviderMode(
             token=self.token,
             locality=self.locality.value,
