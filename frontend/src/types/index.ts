@@ -93,3 +93,98 @@ export interface Proposal {
   warning_flags: string[]
   created_at: string
 }
+
+export interface EvidenceItem {
+  evidence_id: string
+  proposal_id: string
+  pdf_id: string
+  source_type: EvidenceSourceType
+  quote_text: string | null
+  page_number: number | null
+  exact_highlight_regions: Array<{x0: number; y0: number; x1: number; y1: number; page: number}> | null
+  approximate_highlight_regions: Array<{x0: number; y0: number; x1: number; y1: number; page: number}> | null
+  figure_ref: string | null
+  caption_text: string | null
+  crop_path: string | null
+  full_page_path: string | null
+  anchor_confidence: number | null
+  evidence_rank: number
+  source_label: string
+}
+
+export interface DecisionRecord {
+  review_decision_id: string
+  run_id: string
+  proposal_id: string
+  cell_id: string
+  decision: ReviewDecision
+  resolution_reason: string | null
+  edited_value: string | null
+  reviewer_note: string | null
+  decided_at: string
+}
+
+export interface EnrichedProposal {
+  proposal_id: string
+  run_id: string
+  cell_id: string
+  row_id: string
+  column_name: string
+  pdf_id: string
+  state: ProposalState
+  support: SupportLabel
+  proposed_value: string | null
+  rationale: string | null
+  calculation: string | null
+  primary_evidence_id: string | null
+  ordered_supporting_evidence_ids: string[]
+  evidence_ids: string[]
+  warning_flags: string[]
+  needs_more_evidence: boolean
+  created_at: string
+  latest_decision: DecisionRecord | null
+  warning_categories: string[]
+  is_figure_derived: boolean
+  is_fallback_evidence: boolean
+}
+
+export interface ProposalDetail {
+  proposal: EnrichedProposal
+  evidence: EvidenceItem[]
+  latest_decision: DecisionRecord | null
+  decision_history: DecisionRecord[]
+  row_context: Record<string, unknown>
+  column_definition: Record<string, unknown> | null
+}
+
+export interface MatchingSummary {
+  run_id: string
+  total_pdfs: number
+  matched: number
+  unmatched: number
+  ambiguous: number
+  duplicate_row_conflict: number
+}
+
+export interface ReviewProgress {
+  run_id: string
+  total_proposals: number
+  reviewed: number
+  accepted: number
+  accepted_with_edit: number
+  confirmed_no_data: number
+  rejected: number
+  pending: number
+}
+
+export interface ReviewerSummary {
+  run_id: string
+  total_proposals: number
+  reviewed: number
+  pending: number
+  accepted: number
+  accepted_with_edit: number
+  confirmed_no_data: number
+  rejected: number
+  by_column: Record<string, {total: number; accepted: number; rejected: number; confirmed_no_data: number; pending: number}>
+}
