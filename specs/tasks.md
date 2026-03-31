@@ -764,7 +764,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T081** Build the React frontend shell with Run and Review views.
 
-- [ ] **T082** Implement the concise run summary view showing at least:
+- [x] **T082** Implement the concise run summary view showing at least:
   - PDFs processed
   - matched / unmatched / ambiguous PDFs
   - proposals generated
@@ -792,21 +792,21 @@ The detailed task inventory below remains the source of truth for exact implemen
   - keeps empty/loading/warning/failure states explicit before the review queue is ready
   - makes the next operator action obvious when no run exists yet or when the selected run is not reviewable
 
-- [ ] **T083** Implement the three-pane review workspace:
+- [x] **T083** Implement the three-pane review workspace:
   - left pane = grouped review queue or sidebar
   - center pane = detail and decision workflow
   - right pane = evidence viewer
   - visible run/reviewer summary context in the main workspace
   - top bar or equivalent queue controls = grouping toggle, counters, filters, saved views or presets when implemented, and warnings
 
-- [ ] **T083a** Implement grouped-queue client state and grouped rendering behavior.
+- [x] **T083a** Implement grouped-queue client state and grouped rendering behavior.
   - support `Group by Paper` and `Group by Column`
   - show group-header summary context including total count, pending count, and any warning or manual-attention badge needed for triage
   - order groups with pending-actionable groups first, configured column order for column groups, and stable matched-row or PDF-name order for paper groups
   - preserve collapsible group state when helpful
   - keep grouping state, filters, and saved views or presets usable for both triage and deeper investigation
 
-- [ ] **T084** Implement the proposal queue pane with the full MVP filter set, stable selection behavior, and explicit proposal ordering rules:
+- [x] **T084** Implement the proposal queue pane with the full MVP filter set, stable selection behavior, and explicit proposal ordering rules:
   - render compact grouped cards rather than a flat tall list
   - show only essential triage information on compact cards: target column, triage status, and support/confidence
   - add high-scan state markers such as left-border colors for pending, accepted, and manual-attention states
@@ -822,7 +822,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - do not record review decisions implicitly from navigation or selection changes
   - allow filter continuity across run switches when practical, but do not preserve stale proposal/detail/evidence state across runs
 
-- [ ] **T085** Implement the proposal detail pane showing row context, target column definition, current value in Verify mode, proposed value, support label, rationale, calculation, warning/status flags, and evidence list with primary and ordered supporting items.
+- [x] **T085** Implement the proposal detail pane showing row context, target column definition, current value in Verify mode, proposed value, support label, rationale, calculation, warning/status flags, and evidence list with primary and ordered supporting items.
   - status, evidence source, and warning state should be distinguishable at a glance
   - keep explicit row context near the top
   - present existing-versus-proposed comparison clearly in Verify mode
@@ -833,7 +833,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - support explicit no-value reviewer actions including edited-value entry and confirmed-no-data resolution
   - surface structured resolution reasons for non-accepted or manually resolved outcomes
 
-- [ ] **T086** Implement the evidence viewer pane using a raw/custom PDF.js viewer for text evidence and attached reviewable figure evidence.
+- [x] **T086** Implement the evidence viewer pane using a raw/custom PDF.js viewer for text evidence and attached reviewable figure evidence.
   - include zoom and pan capabilities as baseline viewer behavior
   - include previous and next page navigation
   - include jump-to-page-by-number navigation
@@ -841,13 +841,13 @@ The detailed task inventory below remains the source of truth for exact implemen
   - refocus stably when evidence selection or zoom changes, without arbitrary jumping
   - support figure-to-full-page context: figure evidence viewable as focused crop and as full page from the same pane
 
-- [ ] **T086a** Implement synchronized quote list and document viewer:
+- [x] **T086a** Implement synchronized quote list and document viewer:
   - maintain an ordered list of evidence items for the current proposal (primary first, then supporting in ranked order)
   - when the reviewer selects an evidence item in the quote list, update the viewer to show that item's page and location
   - when evidence selection changes programmatically (e.g., proposal selection changes), update both the quote list selection and the viewer location
   - the viewer and quote list must never be out of sync when the reviewer navigates between evidence items
 
-- [ ] **T087** Implement backend-to-viewer highlight coordinate conversion and evidence type rendering:
+- [x] **T087** Implement backend-to-viewer highlight coordinate conversion and evidence type rendering:
   - map canonical PDF/page coordinates from backend evidence records into PDF.js viewer overlay coordinates
   - render exact highlight overlays from `exact_highlight_regions` when available
   - render approximate highlight overlays from `approximate_highlight_regions` with a distinct visual label indicating they are approximate
@@ -861,16 +861,16 @@ The detailed task inventory below remains the source of truth for exact implemen
   - use only the explicitly clicked or reviewer-selected span range rather than concatenating all visible evidence implicitly
   - stage overlong text for reviewer trim or confirmation rather than silently truncating or auto-saving it
 
-- [ ] **T088** Implement honest fallback display for each evidence quality level:
+- [x] **T088** Implement honest fallback display for each evidence quality level:
   - for approximate highlights: show the approximate region with a visible label indicating it is approximate, not exact
   - for quote-plus-page fallback: display the quote text and page number with a visible label indicating this is fallback text evidence because highlighting was not available
   - explain missing exact highlight geometry explicitly rather than silently showing nothing
   - provide useful fallback actions such as opening the full PDF when scoped evidence is unavailable
   - never display approximate or fallback evidence as if it were exact highlighting
 
-- [ ] **T089** Implement the figure-evidence viewer with crop-first display, attached caption, figure-derived warning/status markers, and full-page access.
+- [x] **T089** Implement the figure-evidence viewer with crop-first display, attached caption, figure-derived warning/status markers, and full-page access.
 
-- [ ] **T090** Implement the review action area with:
+- [x] **T090** Implement the review action area with:
   - accept
   - accept with edit
   - confirm no data
@@ -880,19 +880,19 @@ The detailed task inventory below remains the source of truth for exact implemen
   - bulk accept visible subset
   - disable accept actions for blocked items or items without a reviewable proposal value
 
-- [ ] **T090a** Make bulk acceptance and edited acceptance behavior explicit and reviewer-safe:
+- [x] **T090a** Make bulk acceptance and edited acceptance behavior explicit and reviewer-safe:
   - confirm bulk acceptance against the currently visible filtered subset
   - present accept-with-edit as a distinct save-edited-value action rather than a vague duplicate of plain acceptance
   - keep confirmed-no-data resolution visibly distinct from rejection
 
-- [ ] **T091** Implement keyboard shortcuts for next/previous navigation, accept current proposal, reject current proposal, focus edit control, and focus/open evidence viewer.
+- [x] **T091** Implement keyboard shortcuts for next/previous navigation, accept current proposal, reject current proposal, focus edit control, and focus/open evidence viewer.
   - surface shortcuts in button tooltips or equivalent inline affordances on the relevant controls
 
-- [ ] **T092** Implement unmatched, ambiguous, and duplicate-row-conflict inspection views in the UI.
+- [x] **T092** Implement unmatched, ambiguous, and duplicate-row-conflict inspection views in the UI.
   - identify the affected PDF, unresolved outcome, and rationale directly in the review workspace without requiring raw artifact inspection
   - keep this surface inspect-only for MVP rather than adding direct rematch or reassignment actions
 
-- [ ] **T093** Surface warnings/statuses, run-summary fields, reviewer-summary fields, provider/model names, and local-vs-cloud status consistently across the review UI and run-summary UI.
+- [x] **T093** Surface warnings/statuses, run-summary fields, reviewer-summary fields, provider/model names, and local-vs-cloud status consistently across the review UI and run-summary UI.
   - show coarse running progress as current stage plus current item when available
   - show provider mode and readiness truth without hiding disabled, unavailable, or degraded proposal generation
   - show both text model and vision model identifiers separately when both were used for a run
@@ -901,9 +901,9 @@ The detailed task inventory below remains the source of truth for exact implemen
   - do not show limited-review or similar warnings before their real triggering conditions are met
   - keep confirmed-no-data outcomes distinct from rejected-or-model-wrong outcomes in visible summaries and badges
 
-- [ ] **T094** Add frontend tests for grouped queue behavior, group-header summaries, group ordering rules, queue filtering, item ordering rules, nonlinear review, evidence type labeling (direct quote vs. inferred vs. calculation vs. approximate vs. fallback), exact-highlight vs. approximate-highlight vs. quote-plus-page fallback rendering, synchronized quote-list and viewer behavior, viewer navigation (previous/next page, jump to page), figure-evidence rendering with full-page access, run-summary display including text and vision model identifiers, no-data workflow rendering, picker-driven setup flow, markdown-bullet rationale rendering, click-to-populate replace behavior, overlong-text staging behavior, tooltip shortcut surfacing, and bulk-accept confirmation flow.
+- [x] **T094** Add frontend tests for grouped queue behavior, group-header summaries, group ordering rules, queue filtering, item ordering rules, nonlinear review, evidence type labeling (direct quote vs. inferred vs. calculation vs. approximate vs. fallback), exact-highlight vs. approximate-highlight vs. quote-plus-page fallback rendering, synchronized quote-list and viewer behavior, viewer navigation (previous/next page, jump to page), figure-evidence rendering with full-page access, run-summary display including text and vision model identifiers, no-data workflow rendering, picker-driven setup flow, markdown-bullet rationale rendering, click-to-populate replace behavior, overlong-text staging behavior, tooltip shortcut surfacing, and bulk-accept confirmation flow.
 
-- [ ] **T095** Add Playwright e2e tests for the core review loop from proposal selection through grouped triage, group ordering, evidence interaction, no-data resolution, decision recording, picker-input staging, and summary updates.
+- [x] **T095** Add Playwright e2e tests for the core review loop from proposal selection through grouped triage, group ordering, evidence interaction, no-data resolution, decision recording, picker-input staging, and summary updates.
 
 ---
 
@@ -941,7 +941,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - unsupported workbook feature warnings
   - completed-with-warnings runs
 
-- [ ] **T100** Implement final download endpoints for:
+- [x] **T100** Implement final download endpoints for:
   - updated workbook
   - audit log
   - `summaries/run_summary.json`

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { RunLaunchSurface } from './components/RunLaunchSurface'
 import { RunList } from './components/RunList'
 import { RunDetail } from './components/RunDetail'
+import { ReviewWorkspace } from './components/ReviewWorkspace'
 import { api } from './api/client'
 import type { RunData } from './types'
 
@@ -95,7 +96,7 @@ export function App() {
       </header>
 
       {/* Main content */}
-      <main className="max-w-screen-xl mx-auto px-4 py-6">
+      <main className={view === 'review' && isReviewable ? '' : 'max-w-screen-xl mx-auto px-4 py-6'}>
         {view === 'run' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left: Launch + run list */}
@@ -165,20 +166,11 @@ export function App() {
         )}
 
         {view === 'review' && (
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8 text-center">
-            {isReviewable ? (
-              <>
-                <div className="text-gray-400 text-4xl mb-3">🔍</div>
-                <h2 className="text-lg font-semibold text-gray-900">Review</h2>
-                <p className="mt-2 text-sm text-gray-500">
-                  Proposal review workspace — available in Batch 2.
-                </p>
-                <p className="mt-1 text-xs text-gray-400">
-                  Selected run: <code className="bg-gray-100 px-1 rounded">{selectedRun?.run_id}</code>
-                </p>
-              </>
+          <>
+            {isReviewable && selectedRun ? (
+              <ReviewWorkspace run={selectedRun} outputDir={selectedRun.output_dir} />
             ) : (
-              <>
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8 text-center">
                 <div className="text-gray-300 text-4xl mb-3">🔒</div>
                 <h2 className="text-lg font-semibold text-gray-700">Review unavailable</h2>
                 <p className="mt-2 text-sm text-gray-500">
@@ -190,9 +182,9 @@ export function App() {
                 >
                   Go to Run tab
                 </button>
-              </>
+              </div>
             )}
-          </div>
+          </>
         )}
       </main>
     </div>
