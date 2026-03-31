@@ -911,19 +911,19 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 **Goal:** safely export only explicitly accepted changes, stay honest about the workbook fidelity boundary, and make the finished run inspectable.
 
-- [ ] **T096** Implement content-only XLSX export with changed-cell highlighting:
+- [x] **T096** Implement content-only XLSX export with changed-cell highlighting:
   - preserve cell contents only
   - apply only explicitly accepted changes
   - highlight changed cells
   - do **not** attempt to preserve formulas, filters, frozen panes, hidden rows/columns, merged cells, conditional formatting, comments, named ranges, charts, shapes, or macros
 
-- [ ] **T097** Implement best-effort detection and reporting of unsupported workbook features during export:
+- [x] **T097** Implement best-effort detection and reporting of unsupported workbook features during export:
   - inspect the source workbook for unsupported advanced features when feasible
   - record warnings in diagnostics and logs
   - keep export behavior aligned with the content-only fidelity boundary
   - warn and ignore rather than trying to preserve unsupported features in MVP
 
-- [ ] **T098** Implement audit-log generation with at least:
+- [x] **T098** Implement audit-log generation with at least:
   - row identifier
   - column identifier
   - old value
@@ -933,7 +933,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - decision timestamp
   - derive decision timestamps from persisted review-decision records when available instead of placeholder strings
 
-- [ ] **T099** Implement diagnostics JSON for:
+- [x] **T099** Implement diagnostics JSON for:
   - matching failures
   - blocked outcomes
   - unclear / skipped / error outcomes
@@ -949,7 +949,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - final downloadable run artifacts and relevant JSON outputs
   - keep the UI truthful about which downloads are actually ready versus not yet written
 
-- [ ] **T101** Add tests covering export integrity, content-only fidelity, changed-cell highlighting, accepted-only export behavior, unsupported-feature warnings, audit-log completeness, and completed-with-warnings semantics.
+- [x] **T101** Add tests covering export integrity, content-only fidelity, changed-cell highlighting, accepted-only export behavior, unsupported-feature warnings, audit-log completeness, and completed-with-warnings semantics.
 
 ---
 
@@ -961,7 +961,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T103** Ensure interrupted or failed runs leave inspectable partial artifacts and that a new run creates a new run directory rather than resuming in place by default.
 
-- [ ] **T104** Add hermetic end-to-end tests using stub providers over the fixture corpus for:
+- [x] **T104** Add hermetic end-to-end tests using stub providers over the fixture corpus for:
   - successful matched extraction
   - unmatched / ambiguous / duplicate-row blocked flows
   - weak-evidence quote+page review
@@ -972,18 +972,19 @@ The detailed task inventory below remains the source of truth for exact implemen
   - export with accepted-only changes
   - use the canonical checked-in fixture set as the main proof target and prefer text-based expected outputs over new binary fixtures
 
-- [ ] **T105** Add one realistic non-hermetic smoke test path for local LM Studio execution behind an opt-in flag.
+- [x] **T105** Add one realistic non-hermetic smoke test path for local LM Studio execution behind an opt-in flag.
   - use `tests/fixtures/tables/literature_fixture.xlsx` plus `tests/fixtures/papers/paper_1.pdf` as the canonical live-smoke fixture target
   - require at least one non-empty proposal with reviewer-usable evidence when the environment is correctly configured
   - when readiness fails, capture and report the explicit readiness error rather than treating the run as a normal success
 
-- [ ] **T105a** Add optional live cloud-provider smoke coverage only behind separate opt-in flags when cloud adapters are implemented.
+- [x] **T105a** Add optional live cloud-provider smoke coverage only behind separate opt-in flags when cloud adapters are implemented.
   - use environment- or secret-based credentials only
   - keep cloud smoke coverage separate from the default local-first acceptance path
+  - *Note: Cloud adapters are not implemented in this MVP; this task is complete as a no-op pending T051a cloud adapter work.*
 
-- [ ] **T106** Add a performance smoke test for representative small and medium batches so obvious regressions in parsing, retrieval, extraction, and review loading are caught.
+- [x] **T106** Add a performance smoke test for representative small and medium batches so obvious regressions in parsing, retrieval, extraction, and review loading are caught.
 
-- [ ] **T107** Update `README` with MVP run instructions:
+- [x] **T107** Update `README` with MVP run instructions:
   - how to prepare config
   - how to start the FastAPI backend and React UI
   - how to run a sample workflow
@@ -995,12 +996,12 @@ The detailed task inventory below remains the source of truth for exact implemen
   - how readiness and startup failures are surfaced
   - include at least one known-working LM Studio model example while making clear that stronger or newer compatible models may also be used
   - make every documented command and workflow match the implementation that currently ships
-- [ ] **T107a** Preserve user-facing onboarding in `README`, including clone/install steps, config-file purpose, LM Studio expectations, backend/frontend run commands, testing commands, artifact locations, and the export fidelity boundary.
+- [x] **T107a** Preserve user-facing onboarding in `README`, including clone/install steps, config-file purpose, LM Studio expectations, backend/frontend run commands, testing commands, artifact locations, and the export fidelity boundary.
   - do not remove useful onboarding content unless it is obsolete and replaced with something clearer in the same work pass
   - keep the checked-in config example, runtime config schema, and README terminology aligned for provider, parser, model, Verify mode, and run states
   - do not keep obsolete onboarding text, superseded commands, or alternate startup paths that are not real supported workflows
 
-- [ ] **T107b** Keep README aligned with the real primary happy path:
+- [x] **T107b** Keep README aligned with the real primary happy path:
   - start backend and frontend
   - launch a run from the browser using a config path plus picker-driven input selection when supported
   - observe run lifecycle state in the UI

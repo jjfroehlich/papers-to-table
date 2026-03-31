@@ -39,6 +39,7 @@ from .review import (
     recompute_summaries,
     record_review_decision,
 )
+from .export import run_export
 from .runner import launch_run
 from .schemas import ReviewDecision, ReviewResolutionReason, RunStatus
 
@@ -586,4 +587,32 @@ async def download_reviewer_summary_file(run_id: str, output_dir: str = "./runs"
     if not reviewer_path.exists():
         raise HTTPException(status_code=404, detail="reviewer_summary.json not found.")
     return FileResponse(str(reviewer_path), media_type="application/json", filename="reviewer_summary.json")
+
+
+# ---------------------------------------------------------------------------
+# T096-T099 — Trigger export pipeline
+# ---------------------------------------------------------------------------
+
+@app.post("/api/runs/{run_id}/export")
+async def trigger_export(run_id: str, output_dir: str = "./runs"):
+    """Trigger the export pipeline for a completed run (T096-T099).
+
+    Generates:
+    - Updated XLSX workbook with accepted-only changes and changed-cell highlighting
+    - Audit log JSON
+    - Diagnostics JSON
+
+    Only available for runs in completed or completed_with_warnings status.
+    Returns a summary of generated artifacts and any unsupported-feature warnings.
+    """
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+    try:
+        result = run_export(run_dir, output_dir, run_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Export failed: {exc}")
+    return result
 
