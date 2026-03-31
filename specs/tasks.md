@@ -662,12 +662,12 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 **Goal:** make proposals reviewable, filterable, auditable, asset-backed, and safe for partial review and export.
 
-- [ ] **T068** Implement normalized warning and status surfaces:
+- [x] **T068** Implement normalized warning and status surfaces:
   - define categories for ambiguous match, duplicate-row conflict, weak evidence, quote+page fallback without highlight, figure-derived evidence, no reviewed verified cells, completed-with-warnings run outcome, readiness failure, provider unavailable, and explicit disabled or degraded provider mode
   - persist these statuses in run and proposal artifacts
   - expose them consistently through API payloads
 
-- [ ] **T069** Implement proposal-list APIs with filters for at least:
+- [x] **T069** Implement proposal-list APIs with filters for at least:
   - row
   - column
   - PDF
@@ -677,7 +677,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - review decision status
   - expose compact triage fields needed for grouped sidebar rendering by paper and by column
 
-- [ ] **T070** Implement proposal-detail API payloads containing:
+- [x] **T070** Implement proposal-detail API payloads containing:
   - row context
   - column definition
   - current cell value
@@ -691,13 +691,13 @@ The detailed task inventory below remains the source of truth for exact implemen
   - warning/status flags
   - no-value or manual-resolution affordances needed by the middle pane
 
-- [ ] **T071** Implement review-asset serving endpoints for the review UI, including:
+- [x] **T071** Implement review-asset serving endpoints for the review UI, including:
   - safe browser access to original PDFs for the PDF.js viewer
   - page-image serving
   - figure-crop serving
   - evidence metadata lookups needed by the viewer and detail pane
 
-- [ ] **T072** Implement review-decision persistence for:
+- [x] **T072** Implement review-decision persistence for:
   - accept as-is
   - accept with edit
   - confirm no data
@@ -706,15 +706,15 @@ The detailed task inventory below remains the source of truth for exact implemen
   - persist explicit review-decision records that can later drive audit logs and summary recomputation
   - preserve structured resolution reasons for non-accepted or manually resolved outcomes
 
-- [ ] **T073** Preserve prior proposal state and review history for auditability when a review decision is recorded.
+- [x] **T073** Preserve prior proposal state and review history for auditability when a review decision is recorded.
 
-- [ ] **T074** Implement guarded bulk-accept semantics limited to the currently visible filtered subset of undecided proposals.
+- [x] **T074** Implement guarded bulk-accept semantics limited to the currently visible filtered subset of undecided proposals.
 
-- [ ] **T075** Implement progress counters and decision-breakdown aggregation.
+- [x] **T075** Implement progress counters and decision-breakdown aggregation.
 
-- [ ] **T075a** Ensure review aggregates distinguish confirmed-no-data outcomes from rejected-or-model-wrong outcomes in both backend summaries and API payloads.
+- [x] **T075a** Ensure review aggregates distinguish confirmed-no-data outcomes from rejected-or-model-wrong outcomes in both backend summaries and API payloads.
 
-- [ ] **T076** Implement run-summary generation and persistence in `summaries/run_summary.json`, including at minimum:
+- [x] **T076** Implement run-summary generation and persistence in `summaries/run_summary.json`, including at minimum:
   - PDFs processed
   - matched / unmatched / ambiguous PDFs
   - proposals generated
@@ -731,7 +731,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - provider mode and readiness outcome
   - internally consistent counts and warning flags derived from persisted data rather than speculative UI state
 
-- [ ] **T077** Implement reviewer-outcome summary generation as a pure function of proposals and review decisions, and persist it in `summaries/reviewer_summary.json`, including at minimum:
+- [x] **T077** Implement reviewer-outcome summary generation as a pure function of proposals and review decisions, and persist it in `summaries/reviewer_summary.json`, including at minimum:
   - proposals generated
   - reviewed proposals
   - accepted as-is
@@ -747,13 +747,13 @@ The detailed task inventory below remains the source of truth for exact implemen
   - provider mode and readiness outcome where relevant to interpretation
   - explicit provisional labeling when too little reviewed data exists for meaningful interpretation
 
-- [ ] **T078** Support summary recomputation from artifact files so both run and reviewer summaries stay derivable and inspectable.
+- [x] **T078** Support summary recomputation from artifact files so both run and reviewer summaries stay derivable and inspectable.
 
-- [ ] **T078a** Add summary-integrity checks that reject internally inconsistent counts, misleading zero-value rollups, and warning flags that fire before their triggering conditions are met.
+- [x] **T078a** Add summary-integrity checks that reject internally inconsistent counts, misleading zero-value rollups, and warning flags that fire before their triggering conditions are met.
 
-- [ ] **T079** Ensure export candidate selection uses only explicitly accepted proposals and excludes unreviewed proposals by construction.
+- [x] **T079** Ensure export candidate selection uses only explicitly accepted proposals and excludes unreviewed proposals by construction.
 
-- [ ] **T080** Add tests covering review decision recording, audit history, visible-subset bulk acceptance, warning/status semantics, review-asset serving, run-summary recomputation, reviewer-summary recomputation, and partial-review behavior.
+- [x] **T080** Add tests covering review decision recording, audit history, visible-subset bulk acceptance, warning/status semantics, review-asset serving, run-summary recomputation, reviewer-summary recomputation, and partial-review behavior.
   - cover distinct confirmed-no-data persistence and summary reporting
 
 ---

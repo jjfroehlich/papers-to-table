@@ -1,0 +1,687 @@
+"""Batch 4: Review backend — decision persistence, list/detail/filter APIs,
+summaries, and export gating.
+
+Tasks covered: T068 (warning categories), T069 (proposal list/filter),
+T070 (proposal detail), T071 (asset serving helpers), T072 (decision
+persistence), T073 (audit history), T074 (bulk-accept), T075/T075a
+(progress counters), T076/T077 (run/reviewer summaries), T078/T078a
+(recomputation + integrity), T079 (export candidates).
+"""
+from __future__ import annotations
+
+import pathlib
+from datetime import datetime, timezone
+from typing import Any, Optional
+
+from .artifacts import (
+    append_jsonl,
+    get_review_dir,
+    get_reviewer_summary_path,
+    get_run_dir,
+    get_run_json_path,
+    get_run_summary_path,
+    read_json,
+    read_jsonl,
+    write_json,
+)
+from .extraction import EvidenceRecord, ProposalRecord, load_evidence, load_proposals
+from .ids import generate_review_decision_id
+from .schemas import (
+    EvidenceSourceType,
+    ProviderLocality,
+    ReviewDecision,
+    ReviewDecisionRecord,
+    ReviewResolutionReason,
+    ReviewerSummary,
+    RunStatus,
+    RunSummary,
+    SupportLabel,
+    WarningCategory,
+)
+
+# ---------------------------------------------------------------------------
+# Artifact paths for review decisions
+# ---------------------------------------------------------------------------
+
+def get_decisions_path(run_dir: pathlib.Path) -> pathlib.Path:
+    """JSONL file storing all review-decision records (append-only)."""
+    return run_dir / "review" / "decisions.jsonl"
+
+
+def get_proposal_history_path(run_dir: pathlib.Path, proposal_id: str) -> pathlib.Path:
+    """Per-proposal decision history JSON (latest + full log)."""
+    return run_dir / "review" / "history" / f"{proposal_id}.json"
+
+
+# ---------------------------------------------------------------------------
+# T072/T073 — Decision persistence and audit history
+# ---------------------------------------------------------------------------
+
+def record_review_decision(
+    run_dir: pathlib.Path,
+    proposal_id: str,
+    cell_id: str,
+    run_id: str,
+    decision: ReviewDecision,
+    resolution_reason: Optional[ReviewResolutionReason] = None,
+    edited_value: Optional[str] = None,
+    reviewer_note: Optional[str] = None,
+) -> ReviewDecisionRecord:
+    """Persist a review decision as an explicit record.
+
+    - Appends to the shared decisions JSONL (audit trail, T073).
+    - Overwrites the per-proposal history file so the latest decision is fast
+      to look up while the full history remains in the JSONL.
+    """
+    decision_id = generate_review_decision_id(proposal_id)
+    decided_at = datetime.now(timezone.utc).isoformat()
+
+    record = ReviewDecisionRecord(
+        review_decision_id=decision_id,
+        run_id=run_id,
+        proposal_id=proposal_id,
+        cell_id=cell_id,
+        decision=decision,
+        resolution_reason=resolution_reason,
+        edited_value=edited_value,
+        reviewer_note=reviewer_note,
+        decided_at=decided_at,
+    )
+
+    # Append to global decisions log (audit trail)
+    append_jsonl(get_decisions_path(run_dir), record.model_dump())
+
+    # Write latest decision to per-proposal history file (fast lookup)
+    history_path = get_proposal_history_path(run_dir, proposal_id)
+    history_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Load existing history to preserve prior decisions
+    prior: list[dict] = []
+    if history_path.exists():
+        try:
+            existing = read_json(history_path)
+            prior = existing.get("history", [])
+        except Exception:
+            prior = []
+
+    write_json(
+        history_path,
+        {
+            "proposal_id": proposal_id,
+            "run_id": run_id,
+            "latest_decision": record.model_dump(),
+            "history": prior + [record.model_dump()],
+        },
+    )
+
+    return record
+
+
+def get_latest_decision(
+    run_dir: pathlib.Path, proposal_id: str
+) -> Optional[ReviewDecisionRecord]:
+    """Return the most-recent decision for a proposal, or None if undecided."""
+    history_path = get_proposal_history_path(run_dir, proposal_id)
+    if not history_path.exists():
+        return None
+    try:
+        data = read_json(history_path)
+        latest = data.get("latest_decision")
+        if latest is None:
+            return None
+        return ReviewDecisionRecord.model_validate(latest)
+    except Exception:
+        return None
+
+
+def get_decision_history(
+    run_dir: pathlib.Path, proposal_id: str
+) -> list[ReviewDecisionRecord]:
+    """Return full decision history for a proposal (oldest first)."""
+    history_path = get_proposal_history_path(run_dir, proposal_id)
+    if not history_path.exists():
+        return []
+    try:
+        data = read_json(history_path)
+        return [ReviewDecisionRecord.model_validate(d) for d in data.get("history", [])]
+    except Exception:
+        return []
+
+
+def load_all_decisions(run_dir: pathlib.Path) -> list[ReviewDecisionRecord]:
+    """Load every decision record from the append-only JSONL."""
+    records = read_jsonl(get_decisions_path(run_dir))
+    result: list[ReviewDecisionRecord] = []
+    for r in records:
+        try:
+            result.append(ReviewDecisionRecord.model_validate(r))
+        except Exception:
+            pass
+    return result
+
+
+# ---------------------------------------------------------------------------
+# T068 — Warning-category helpers
+# ---------------------------------------------------------------------------
+
+_EVIDENCE_WARNING_FLAGS = {
+    "fallback_evidence": WarningCategory.fallback_evidence_used,
+    "figure_derived": WarningCategory.figure_derived_evidence,
+    "weak_evidence": WarningCategory.weak_evidence,
+}
+
+
+def _proposal_warning_categories(proposal: ProposalRecord) -> list[WarningCategory]:
+    """Derive WarningCategory values from a ProposalRecord's warning_flags."""
+    cats: list[WarningCategory] = []
+    for flag in proposal.warning_flags:
+        cat = _EVIDENCE_WARNING_FLAGS.get(flag)
+        if cat:
+            cats.append(cat)
+    if proposal.support == SupportLabel.weak_evidence:
+        if WarningCategory.weak_evidence not in cats:
+            cats.append(WarningCategory.weak_evidence)
+    return cats
+
+
+def _is_figure_derived(proposal: ProposalRecord) -> bool:
+    return (
+        "figure_derived" in proposal.warning_flags
+        or proposal.support == SupportLabel.inferred_from_evidence
+    )
+
+
+def _is_fallback_evidence(proposal: ProposalRecord) -> bool:
+    return "fallback_evidence" in proposal.warning_flags
+
+
+# ---------------------------------------------------------------------------
+# T069 — Proposal list with filters
+# ---------------------------------------------------------------------------
+
+class ProposalFilter:
+    """Filtering parameters for the proposal list endpoint."""
+
+    def __init__(
+        self,
+        row_id: Optional[str] = None,
+        column_name: Optional[str] = None,
+        pdf_id: Optional[str] = None,
+        evidence_status: Optional[str] = None,   # "figure_derived" | "fallback" | "weak"
+        figure_derived: Optional[bool] = None,
+        decision: Optional[str] = None,           # ReviewDecision value or "undecided"
+        match_status: Optional[str] = None,       # MatchOutcome value
+    ) -> None:
+        self.row_id = row_id
+        self.column_name = column_name
+        self.pdf_id = pdf_id
+        self.evidence_status = evidence_status
+        self.figure_derived = figure_derived
+        self.decision = decision
+        self.match_status = match_status
+
+    def matches(
+        self,
+        proposal: ProposalRecord,
+        latest_decision: Optional[ReviewDecisionRecord],
+    ) -> bool:
+        if self.row_id and proposal.row_id != self.row_id:
+            return False
+        if self.column_name and proposal.column_name != self.column_name:
+            return False
+        if self.pdf_id and proposal.pdf_id != self.pdf_id:
+            return False
+        if self.evidence_status:
+            if self.evidence_status == "figure_derived" and not _is_figure_derived(proposal):
+                return False
+            elif self.evidence_status == "fallback" and not _is_fallback_evidence(proposal):
+                return False
+            elif self.evidence_status == "weak" and proposal.support != SupportLabel.weak_evidence:
+                return False
+        if self.figure_derived is not None:
+            if self.figure_derived != _is_figure_derived(proposal):
+                return False
+        if self.decision:
+            if self.decision == "undecided":
+                if latest_decision is not None:
+                    return False
+            else:
+                if latest_decision is None:
+                    return False
+                if latest_decision.decision.value != self.decision:
+                    return False
+        return True
+
+
+def list_proposals(
+    run_dir: pathlib.Path,
+    filt: Optional[ProposalFilter] = None,
+) -> list[dict]:
+    """Return enriched proposal dicts (proposal + latest decision) matching filt."""
+    proposals = load_proposals(run_dir)
+    result: list[dict] = []
+    for p in proposals:
+        latest = get_latest_decision(run_dir, p.proposal_id)
+        if filt and not filt.matches(p, latest):
+            continue
+        d = p.model_dump()
+        d["latest_decision"] = latest.model_dump() if latest else None
+        d["warning_categories"] = [c.value for c in _proposal_warning_categories(p)]
+        d["is_figure_derived"] = _is_figure_derived(p)
+        d["is_fallback_evidence"] = _is_fallback_evidence(p)
+        result.append(d)
+    return result
+
+
+# ---------------------------------------------------------------------------
+# T070 — Proposal detail payload
+# ---------------------------------------------------------------------------
+
+def get_proposal_detail(
+    run_dir: pathlib.Path,
+    proposal_id: str,
+    row_data: Optional[dict] = None,
+    column_defs: Optional[dict] = None,
+) -> Optional[dict]:
+    """Return full detail payload for a single proposal.
+
+    Includes the proposal, all evidence, latest decision, decision history,
+    row context, and column definition.
+    """
+    proposals = load_proposals(run_dir)
+    proposal: Optional[ProposalRecord] = None
+    for p in proposals:
+        if p.proposal_id == proposal_id:
+            proposal = p
+            break
+    if proposal is None:
+        return None
+
+    all_evidence = load_evidence(run_dir)
+    proposal_evidence = [e for e in all_evidence if e.proposal_id == proposal_id]
+    proposal_evidence.sort(key=lambda e: e.evidence_rank)
+
+    latest = get_latest_decision(run_dir, proposal_id)
+    history = get_decision_history(run_dir, proposal_id)
+
+    # Enrich evidence with display labels
+    evidence_dicts = []
+    for ev in proposal_evidence:
+        ed = ev.model_dump()
+        ed["source_type_display"] = _evidence_source_display(ev.source_type)
+        evidence_dicts.append(ed)
+
+    detail: dict[str, Any] = {
+        "proposal": proposal.model_dump(),
+        "evidence": evidence_dicts,
+        "latest_decision": latest.model_dump() if latest else None,
+        "decision_history": [d.model_dump() for d in history],
+        "warning_categories": [c.value for c in _proposal_warning_categories(proposal)],
+        "support_label_display": _support_label_display(proposal.support),
+        "is_figure_derived": _is_figure_derived(proposal),
+        "is_fallback_evidence": _is_fallback_evidence(proposal),
+    }
+
+    # Row context (if provided)
+    if row_data:
+        detail["row_context"] = row_data.get(proposal.row_id)
+
+    # Column definition (if provided)
+    if column_defs:
+        detail["column_definition"] = column_defs.get(proposal.column_name)
+
+    return detail
+
+
+def _support_label_display(support: SupportLabel) -> str:
+    return {
+        SupportLabel.direct_evidence: "Direct evidence",
+        SupportLabel.inferred_from_evidence: "Inferred from evidence",
+        SupportLabel.weak_evidence: "Weak evidence",
+        SupportLabel.blocked: "Blocked",
+        SupportLabel.error: "Error",
+    }.get(support, support.value)
+
+
+def _evidence_source_display(source_type: EvidenceSourceType) -> str:
+    return {
+        EvidenceSourceType.direct_quote: "Direct quote",
+        EvidenceSourceType.inferred_reasoning: "Inferred reasoning",
+        EvidenceSourceType.calculation: "Calculation",
+        EvidenceSourceType.approximate_highlight: "Approximate highlight",
+        EvidenceSourceType.quote_plus_page: "Quote + page (no highlight)",
+        EvidenceSourceType.figure_based_evidence: "Figure-based evidence",
+    }.get(source_type, source_type.value)
+
+
+# ---------------------------------------------------------------------------
+# T074 — Guarded bulk-accept
+# ---------------------------------------------------------------------------
+
+def bulk_accept_proposals(
+    run_dir: pathlib.Path,
+    run_id: str,
+    proposal_ids: list[str],
+) -> list[ReviewDecisionRecord]:
+    """Accept a list of proposal IDs as a bulk operation.
+
+    Callers must pass only the IDs from the currently-visible filtered
+    subset; this function records an accepted decision for each ID that
+    does not already have a decision (undecided only).  IDs that already
+    have a decision are skipped to avoid overwriting explicit decisions.
+    """
+    proposals = load_proposals(run_dir)
+    proposal_map = {p.proposal_id: p for p in proposals}
+
+    recorded: list[ReviewDecisionRecord] = []
+    for pid in proposal_ids:
+        p = proposal_map.get(pid)
+        if p is None:
+            continue
+        existing = get_latest_decision(run_dir, pid)
+        if existing is not None:
+            # Skip already-decided proposals
+            continue
+        rec = record_review_decision(
+            run_dir=run_dir,
+            proposal_id=pid,
+            cell_id=p.cell_id,
+            run_id=run_id,
+            decision=ReviewDecision.accepted,
+            resolution_reason=ReviewResolutionReason.accepted_as_proposed,
+        )
+        recorded.append(rec)
+    return recorded
+
+
+# ---------------------------------------------------------------------------
+# T075/T075a — Progress counters
+# ---------------------------------------------------------------------------
+
+def get_progress(run_dir: pathlib.Path) -> dict:
+    """Return progress counters distinguished by decision type (T075/T075a).
+
+    confirmed_no_data and rejected are kept separate in the payload so callers
+    can distinguish 'paper has no data' from 'model was wrong'.
+    """
+    proposals = load_proposals(run_dir)
+    total = len(proposals)
+    accepted = 0
+    accepted_with_edit = 0
+    confirmed_no_data = 0
+    rejected = 0
+    pending = 0
+
+    for p in proposals:
+        d = get_latest_decision(run_dir, p.proposal_id)
+        if d is None:
+            pending += 1
+        elif d.decision == ReviewDecision.accepted:
+            accepted += 1
+        elif d.decision == ReviewDecision.accepted_with_edit:
+            accepted_with_edit += 1
+        elif d.decision == ReviewDecision.confirmed_no_data:
+            confirmed_no_data += 1
+        elif d.decision == ReviewDecision.rejected:
+            rejected += 1
+        else:
+            pending += 1
+
+    reviewed = accepted + accepted_with_edit + confirmed_no_data + rejected
+    return {
+        "total": total,
+        "reviewed": reviewed,
+        "pending": pending,
+        "accepted": accepted,
+        "accepted_with_edit": accepted_with_edit,
+        "confirmed_no_data": confirmed_no_data,   # paper truly has no data (T075a)
+        "rejected": rejected,                     # model wrong / out-of-scope (T075a)
+        "explicitly_accepted": accepted + accepted_with_edit,
+        "explicitly_rejected": rejected,
+        "confirmed_absent": confirmed_no_data,
+    }
+
+
+# ---------------------------------------------------------------------------
+# T076/T077 — Run and reviewer summary generation
+# ---------------------------------------------------------------------------
+
+def compute_reviewer_summary(run_dir: pathlib.Path, run_id: str) -> ReviewerSummary:
+    """Pure function: compute reviewer summary from proposal + decision artifacts."""
+    progress = get_progress(run_dir)
+    return ReviewerSummary(
+        run_id=run_id,
+        total_proposals=progress["total"],
+        accepted=progress["accepted"],
+        accepted_with_edit=progress["accepted_with_edit"],
+        confirmed_no_data=progress["confirmed_no_data"],
+        rejected=progress["rejected"],
+        pending=progress["pending"],
+        explicitly_accepted=progress["explicitly_accepted"],
+        explicitly_rejected=progress["explicitly_rejected"],
+        confirmed_absent=progress["confirmed_absent"],
+        generated_at=datetime.now(timezone.utc).isoformat(),
+    )
+
+
+def persist_reviewer_summary(run_dir: pathlib.Path, run_id: str) -> ReviewerSummary:
+    """Recompute and persist the reviewer summary to summaries/reviewer_summary.json."""
+    summary = compute_reviewer_summary(run_dir, run_id)
+    path = get_reviewer_summary_path(str(run_dir.parent), run_id)
+    write_json(path, summary.model_dump())
+    return summary
+
+
+def load_run_json(run_dir: pathlib.Path) -> dict:
+    """Load run.json for a run."""
+    path = run_dir / "run.json"
+    if not path.exists():
+        return {}
+    return read_json(path)
+
+
+def compute_run_summary(run_dir: pathlib.Path, run_id: str) -> dict:
+    """Compute a run summary dict from artifacts (T076, T078).
+
+    Merges the persisted run.json with live reviewer progress so the summary
+    always reflects the current decision state even before a full recompute.
+    """
+    run_data = load_run_json(run_dir)
+    progress = get_progress(run_dir)
+
+    summary = dict(run_data)
+    summary["run_id"] = run_id
+    summary["proposals_generated"] = summary.get("proposals_generated", progress["total"])
+    summary["proposals_reviewed"] = progress["reviewed"]
+    # Enrich with decision breakdown
+    summary["review_progress"] = progress
+
+    return summary
+
+
+def persist_run_summary(run_dir: pathlib.Path, run_id: str) -> dict:
+    """Recompute and persist the run summary to summaries/run_summary.json."""
+    summary = compute_run_summary(run_dir, run_id)
+    # Determine output_dir from run_dir (run_dir is output_dir/run_id)
+    output_dir = str(run_dir.parent)
+    path = get_run_summary_path(output_dir, run_id)
+    write_json(path, summary)
+    return summary
+
+
+# ---------------------------------------------------------------------------
+# T078 — Summary recomputation entry point
+# ---------------------------------------------------------------------------
+
+def recompute_summaries(run_dir: pathlib.Path, run_id: str) -> dict:
+    """Recompute both run and reviewer summaries from artifact files.
+
+    Returns a dict with both recomputed summaries. Raises ValueError if
+    integrity checks fail (T078a).
+    """
+    reviewer = compute_reviewer_summary(run_dir, run_id)
+
+    # Integrity check before persisting (T078a)
+    validate_reviewer_summary_integrity(reviewer)
+
+    run_summary = compute_run_summary(run_dir, run_id)
+
+    # Persist
+    output_dir = str(run_dir.parent)
+    write_json(get_reviewer_summary_path(output_dir, run_id), reviewer.model_dump())
+    write_json(get_run_summary_path(output_dir, run_id), run_summary)
+
+    return {
+        "run_summary": run_summary,
+        "reviewer_summary": reviewer.model_dump(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# T078a — Summary integrity checks
+# ---------------------------------------------------------------------------
+
+def validate_reviewer_summary_integrity(summary: ReviewerSummary) -> None:
+    """Raise ValueError if the summary is internally inconsistent.
+
+    Checks:
+    - total == reviewed + pending
+    - reviewed == accepted + accepted_with_edit + confirmed_no_data + rejected
+    - explicitly_accepted == accepted + accepted_with_edit
+    - confirmed_absent == confirmed_no_data (T075a: must stay separate)
+    - no count is negative
+    """
+    counts = [
+        summary.total_proposals,
+        summary.accepted,
+        summary.accepted_with_edit,
+        summary.confirmed_no_data,
+        summary.rejected,
+        summary.pending,
+    ]
+    for name, val in zip(
+        ["total", "accepted", "accepted_with_edit", "confirmed_no_data", "rejected", "pending"],
+        counts,
+    ):
+        if val < 0:
+            raise ValueError(f"ReviewerSummary.{name} is negative ({val})")
+
+    reviewed = summary.accepted + summary.accepted_with_edit + summary.confirmed_no_data + summary.rejected
+    if summary.total_proposals != reviewed + summary.pending:
+        raise ValueError(
+            f"ReviewerSummary count mismatch: total={summary.total_proposals} "
+            f"!= reviewed({reviewed}) + pending({summary.pending})"
+        )
+
+    if summary.explicitly_accepted != summary.accepted + summary.accepted_with_edit:
+        raise ValueError(
+            "ReviewerSummary.explicitly_accepted is inconsistent with accepted + accepted_with_edit"
+        )
+
+    if summary.confirmed_absent != summary.confirmed_no_data:
+        raise ValueError(
+            "ReviewerSummary.confirmed_absent must equal confirmed_no_data (T075a)"
+        )
+
+
+# ---------------------------------------------------------------------------
+# T079 — Export candidate selection (accepted-only, by construction)
+# ---------------------------------------------------------------------------
+
+def get_export_candidates(run_dir: pathlib.Path) -> list[dict]:
+    """Return proposals that have been explicitly accepted (as-is or with edit).
+
+    This function constructs the export list from explicit decision records only.
+    Unreviewed proposals are excluded by construction.  confirmed_no_data and
+    rejected are also excluded — only accepted and accepted_with_edit qualify.
+    """
+    proposals = load_proposals(run_dir)
+    proposal_map = {p.proposal_id: p for p in proposals}
+
+    candidates: list[dict] = []
+    for p in proposals:
+        latest = get_latest_decision(run_dir, p.proposal_id)
+        if latest is None:
+            continue  # Unreviewed — excluded by construction
+        if latest.decision not in (ReviewDecision.accepted, ReviewDecision.accepted_with_edit):
+            continue  # confirmed_no_data and rejected are not export candidates
+
+        candidate: dict = {
+            "proposal_id": p.proposal_id,
+            "cell_id": p.cell_id,
+            "row_id": p.row_id,
+            "column_name": p.column_name,
+            "pdf_id": p.pdf_id,
+            "proposed_value": p.proposed_value,
+            "decision": latest.decision.value,
+            "edited_value": latest.edited_value,
+            # Export value: edited if accepted_with_edit, otherwise proposed
+            "export_value": (
+                latest.edited_value
+                if latest.decision == ReviewDecision.accepted_with_edit
+                else p.proposed_value
+            ),
+            "decided_at": latest.decided_at,
+            "review_decision_id": latest.review_decision_id,
+        }
+        candidates.append(candidate)
+
+    return candidates
+
+
+# ---------------------------------------------------------------------------
+# T071 — Asset path helpers for review-asset serving
+# ---------------------------------------------------------------------------
+
+def get_pdf_asset_path(run_dir: pathlib.Path, pdf_id: str) -> Optional[pathlib.Path]:
+    """Return the path to the original PDF file for a given pdf_id.
+
+    The original PDF path is stored in the parsed document metadata.
+    """
+    parsed_path = run_dir / "parsed" / pdf_id / "parsed_document.json"
+    if not parsed_path.exists():
+        return None
+    try:
+        doc = read_json(parsed_path)
+        source_path = doc.get("source_path") or doc.get("pdf_path")
+        if source_path:
+            p = pathlib.Path(source_path)
+            if p.exists():
+                return p
+    except Exception:
+        pass
+    return None
+
+
+def get_page_image_path(run_dir: pathlib.Path, pdf_id: str, page: int) -> Optional[pathlib.Path]:
+    """Return the path to a rendered page image if it was stored during parsing."""
+    img_path = run_dir / "parsed" / pdf_id / "pages" / f"page_{page:04d}.png"
+    if img_path.exists():
+        return img_path
+    return None
+
+
+def get_figure_crop_path(
+    run_dir: pathlib.Path, pdf_id: str, figure_id: str
+) -> Optional[pathlib.Path]:
+    """Return the path to a figure crop image if available."""
+    figures_dir = run_dir / "parsed" / pdf_id / "figures"
+    for candidate in [
+        figures_dir / f"{figure_id}.png",
+        figures_dir / f"{figure_id}.jpg",
+        figures_dir / f"{figure_id}_crop.png",
+    ]:
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def get_evidence_asset_metadata(
+    run_dir: pathlib.Path, evidence_id: str
+) -> Optional[dict]:
+    """Return evidence metadata for a given evidence_id."""
+    all_evidence = load_evidence(run_dir)
+    for ev in all_evidence:
+        if ev.evidence_id == evidence_id:
+            return ev.model_dump()
+    return None

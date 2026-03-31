@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import pathlib
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from .artifacts import (
@@ -21,8 +22,25 @@ from .artifacts import (
 from .config import apply_overrides, load_config
 from .ids import generate_run_id
 from .matching import load_ambiguous, load_conflicts, load_match_results, load_match_summary, load_unmatched
+from .extraction import load_proposals, persist_proposal, persist_evidence
+from .review import (
+    ProposalFilter,
+    bulk_accept_proposals,
+    compute_reviewer_summary,
+    get_evidence_asset_metadata,
+    get_export_candidates,
+    get_figure_crop_path,
+    get_latest_decision,
+    get_page_image_path,
+    get_pdf_asset_path,
+    get_progress,
+    get_proposal_detail,
+    list_proposals,
+    recompute_summaries,
+    record_review_decision,
+)
 from .runner import launch_run
-from .schemas import RunStatus
+from .schemas import ReviewDecision, ReviewResolutionReason, RunStatus
 
 app = FastAPI(title="Paper Table Agent", version="0.1.0")
 
@@ -218,3 +236,284 @@ async def get_parse_diagnostics(run_id: str, pdf_id: str, output_dir: str = "./r
             detail=f"Parser diagnostics not found for pdf_id={pdf_id} in run {run_id}",
         )
     return read_json(diag_path)
+
+
+# ---------------------------------------------------------------------------
+# Batch 4 — Review API request/response models (T069–T079)
+# ---------------------------------------------------------------------------
+
+class RecordDecisionRequest(BaseModel):
+    decision: str                                   # ReviewDecision value
+    resolution_reason: Optional[str] = None         # ReviewResolutionReason value
+    edited_value: Optional[str] = None
+    reviewer_note: Optional[str] = None
+
+
+class BulkAcceptRequest(BaseModel):
+    proposal_ids: list[str]
+
+
+# ---------------------------------------------------------------------------
+# T069 — Proposal list with filters
+# ---------------------------------------------------------------------------
+
+@app.get("/api/runs/{run_id}/proposals")
+async def get_proposals(
+    run_id: str,
+    output_dir: str = "./runs",
+    row_id: Optional[str] = None,
+    column_name: Optional[str] = None,
+    pdf_id: Optional[str] = None,
+    evidence_status: Optional[str] = None,
+    figure_derived: Optional[bool] = None,
+    decision: Optional[str] = None,
+    match_status: Optional[str] = None,
+):
+    """List proposals with optional filters (T069).
+
+    Filter parameters:
+    - row_id: filter to a specific row
+    - column_name: filter to a specific column
+    - pdf_id: filter to a specific PDF
+    - evidence_status: 'figure_derived' | 'fallback' | 'weak'
+    - figure_derived: true/false
+    - decision: ReviewDecision value or 'undecided'
+    - match_status: MatchOutcome value
+    """
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+
+    filt = ProposalFilter(
+        row_id=row_id,
+        column_name=column_name,
+        pdf_id=pdf_id,
+        evidence_status=evidence_status,
+        figure_derived=figure_derived,
+        decision=decision,
+        match_status=match_status,
+    )
+    proposals = list_proposals(run_dir, filt)
+    return {"run_id": run_id, "count": len(proposals), "proposals": proposals}
+
+
+# ---------------------------------------------------------------------------
+# T070 — Proposal detail
+# ---------------------------------------------------------------------------
+
+@app.get("/api/runs/{run_id}/proposals/{proposal_id}")
+async def get_proposal(run_id: str, proposal_id: str, output_dir: str = "./runs"):
+    """Get full detail for a single proposal (T070)."""
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+
+    detail = get_proposal_detail(run_dir, proposal_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail=f"Proposal not found: {proposal_id}")
+    return detail
+
+
+# ---------------------------------------------------------------------------
+# T071 — Review-asset serving endpoints
+# ---------------------------------------------------------------------------
+
+@app.get("/api/runs/{run_id}/assets/pdf/{pdf_id}")
+async def serve_pdf(run_id: str, pdf_id: str, output_dir: str = "./runs"):
+    """Serve the original PDF file for a given pdf_id (T071)."""
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+    pdf_path = get_pdf_asset_path(run_dir, pdf_id)
+    if pdf_path is None or not pdf_path.exists():
+        raise HTTPException(status_code=404, detail=f"PDF not found for pdf_id={pdf_id}")
+    return FileResponse(str(pdf_path), media_type="application/pdf")
+
+
+@app.get("/api/runs/{run_id}/assets/pages/{pdf_id}/{page}")
+async def serve_page_image(run_id: str, pdf_id: str, page: int, output_dir: str = "./runs"):
+    """Serve a rendered page image for PDF viewer (T071)."""
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+    img_path = get_page_image_path(run_dir, pdf_id, page)
+    if img_path is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Page image not found for pdf_id={pdf_id} page={page}",
+        )
+    return FileResponse(str(img_path), media_type="image/png")
+
+
+@app.get("/api/runs/{run_id}/assets/figures/{pdf_id}/{figure_id}")
+async def serve_figure_crop(run_id: str, pdf_id: str, figure_id: str, output_dir: str = "./runs"):
+    """Serve a figure crop image (T071)."""
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+    crop_path = get_figure_crop_path(run_dir, pdf_id, figure_id)
+    if crop_path is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Figure crop not found for pdf_id={pdf_id} figure_id={figure_id}",
+        )
+    return FileResponse(str(crop_path), media_type="image/png")
+
+
+@app.get("/api/runs/{run_id}/assets/evidence/{evidence_id}")
+async def get_evidence_metadata(run_id: str, evidence_id: str, output_dir: str = "./runs"):
+    """Get evidence metadata for a given evidence_id (T071)."""
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+    meta = get_evidence_asset_metadata(run_dir, evidence_id)
+    if meta is None:
+        raise HTTPException(status_code=404, detail=f"Evidence not found: {evidence_id}")
+    return meta
+
+
+# ---------------------------------------------------------------------------
+# T072/T073 — Review-decision recording
+# ---------------------------------------------------------------------------
+
+@app.post("/api/runs/{run_id}/proposals/{proposal_id}/decision")
+async def record_decision(
+    run_id: str,
+    proposal_id: str,
+    request: RecordDecisionRequest,
+    output_dir: str = "./runs",
+):
+    """Record a review decision for a proposal (T072/T073)."""
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+
+    # Validate decision value
+    try:
+        decision = ReviewDecision(request.decision)
+    except ValueError:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid decision value: {request.decision!r}. "
+            f"Must be one of: {[d.value for d in ReviewDecision]}",
+        )
+
+    # Validate resolution_reason if provided
+    resolution_reason = None
+    if request.resolution_reason:
+        try:
+            resolution_reason = ReviewResolutionReason(request.resolution_reason)
+        except ValueError:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid resolution_reason: {request.resolution_reason!r}",
+            )
+
+    # Resolve cell_id from proposal
+    proposals = load_proposals(run_dir)
+    proposal = next((p for p in proposals if p.proposal_id == proposal_id), None)
+    if proposal is None:
+        raise HTTPException(status_code=404, detail=f"Proposal not found: {proposal_id}")
+
+    rec = record_review_decision(
+        run_dir=run_dir,
+        proposal_id=proposal_id,
+        cell_id=proposal.cell_id,
+        run_id=run_id,
+        decision=decision,
+        resolution_reason=resolution_reason,
+        edited_value=request.edited_value,
+        reviewer_note=request.reviewer_note,
+    )
+    return rec.model_dump()
+
+
+# ---------------------------------------------------------------------------
+# T074 — Bulk-accept visible subset
+# ---------------------------------------------------------------------------
+
+@app.post("/api/runs/{run_id}/proposals/bulk-accept")
+async def bulk_accept(run_id: str, request: BulkAcceptRequest, output_dir: str = "./runs"):
+    """Bulk-accept a filtered subset of undecided proposals (T074).
+
+    Only undecided proposals in the supplied list are accepted.
+    Already-decided proposals are skipped.
+    """
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+
+    recorded = bulk_accept_proposals(run_dir, run_id, request.proposal_ids)
+    return {
+        "run_id": run_id,
+        "accepted_count": len(recorded),
+        "decisions": [r.model_dump() for r in recorded],
+    }
+
+
+# ---------------------------------------------------------------------------
+# T075 — Progress counters
+# ---------------------------------------------------------------------------
+
+@app.get("/api/runs/{run_id}/progress")
+async def get_run_progress(run_id: str, output_dir: str = "./runs"):
+    """Get review progress counters (T075/T075a)."""
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+    return {"run_id": run_id, **get_progress(run_dir)}
+
+
+# ---------------------------------------------------------------------------
+# T077 — Reviewer summary
+# ---------------------------------------------------------------------------
+
+@app.get("/api/runs/{run_id}/reviewer-summary")
+async def get_reviewer_summary_endpoint(run_id: str, output_dir: str = "./runs"):
+    """Get the reviewer outcome summary (T077)."""
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+    summary = compute_reviewer_summary(run_dir, run_id)
+    return summary.model_dump()
+
+
+# ---------------------------------------------------------------------------
+# T078 — Summary recomputation
+# ---------------------------------------------------------------------------
+
+@app.post("/api/runs/{run_id}/summaries/recompute")
+async def recompute_run_summaries(run_id: str, output_dir: str = "./runs"):
+    """Recompute and persist both run and reviewer summaries from artifacts (T078)."""
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+    try:
+        result = recompute_summaries(run_dir, run_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return result
+
+
+# ---------------------------------------------------------------------------
+# T079 — Export candidate selection
+# ---------------------------------------------------------------------------
+
+@app.get("/api/runs/{run_id}/export-candidates")
+async def get_run_export_candidates(run_id: str, output_dir: str = "./runs"):
+    """Return accepted proposals that are eligible for export (T079).
+
+    Only explicitly accepted (as-is or with edit) proposals are returned.
+    Unreviewed, confirmed-no-data, and rejected proposals are excluded by
+    construction.
+    """
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+    candidates = get_export_candidates(run_dir)
+    return {
+        "run_id": run_id,
+        "count": len(candidates),
+        "candidates": candidates,
+    }
+
