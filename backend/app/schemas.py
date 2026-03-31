@@ -72,14 +72,26 @@ class ProviderLocality(str, Enum):
 
 
 class WarningCategory(str, Enum):
+    # Match-outcome warnings
     unmatched_pdf = "unmatched_pdf"
     ambiguous_match = "ambiguous_match"
     duplicate_row_conflict = "duplicate_row_conflict"
+    # Schema/data warnings
     missing_required_column = "missing_required_column"
+    # Evidence-quality warnings
     low_confidence_proposal = "low_confidence_proposal"
-    fallback_evidence_used = "fallback_evidence_used"
+    fallback_evidence_used = "fallback_evidence_used"  # quote+page without highlight
+    figure_derived_evidence = "figure_derived_evidence"
+    weak_evidence = "weak_evidence"
+    # Provider/readiness warnings
     provider_unreachable = "provider_unreachable"
+    provider_disabled = "provider_disabled"
+    provider_degraded = "provider_degraded"
+    readiness_failure = "readiness_failure"
+    # Run-outcome warnings
     partial_extraction = "partial_extraction"
+    completed_with_warnings = "completed_with_warnings"
+    no_reviewed_cells = "no_reviewed_cells"  # run finished but no cells have been confirmed
 
 
 class Proposal(BaseModel):
@@ -162,6 +174,10 @@ class ReviewerSummary(BaseModel):
     confirmed_no_data: int
     rejected: int
     pending: int
+    # breakdown helpers (T075a)
+    explicitly_accepted: int = 0        # accepted + accepted_with_edit
+    explicitly_rejected: int = 0        # rejected (model-wrong)
+    confirmed_absent: int = 0           # confirmed_no_data (distinct from rejection)
     generated_at: str
 
 
