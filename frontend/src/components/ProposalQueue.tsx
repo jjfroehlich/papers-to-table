@@ -85,18 +85,27 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    setProposals([])
-    setLoading(true)
-    setError(null)
-    setCollapsedGroups(new Set())
+    let cancelled = false
     const decisionParam = DECISION_FILTER_MAP[filter]
-    api.listProposals(runId, {
-      output_dir: outputDir,
-      ...(decisionParam ? { decision: decisionParam } : {}),
-    })
-      .then((resp) => setProposals(resp.proposals))
-      .catch((err) => setError(err instanceof Error ? err.message : String(err)))
-      .finally(() => setLoading(false))
+    async function load() {
+      setProposals([])
+      setLoading(true)
+      setError(null)
+      setCollapsedGroups(new Set())
+      try {
+        const resp = await api.listProposals(runId, {
+          output_dir: outputDir,
+          ...(decisionParam ? { decision: decisionParam } : {}),
+        })
+        if (!cancelled) setProposals(resp.proposals)
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : String(err))
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
   }, [runId, outputDir, filter])
 
   const filtered = useMemo(() => {

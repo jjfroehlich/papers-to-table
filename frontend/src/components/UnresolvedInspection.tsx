@@ -45,12 +45,15 @@ export function UnresolvedInspection({ runId, outputDir }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    setLoading(true)
-    Promise.allSettled([
-      api.getUnmatched(runId, outputDir),
-      api.getAmbiguous(runId, outputDir),
-      api.getConflicts(runId, outputDir),
-    ]).then(([u, a, c]) => {
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      const [u, a, c] = await Promise.allSettled([
+        api.getUnmatched(runId, outputDir),
+        api.getAmbiguous(runId, outputDir),
+        api.getConflicts(runId, outputDir),
+      ])
+      if (cancelled) return
       if (u.status === 'fulfilled') setUnmatched(u.value.unmatched as UnmatchedItem[])
       if (a.status === 'fulfilled') setAmbiguous(a.value.ambiguous as AmbiguousItem[])
       if (c.status === 'fulfilled') setConflicts(c.value.conflicts as ConflictItem[])
@@ -58,7 +61,10 @@ export function UnresolvedInspection({ runId, outputDir }: Props) {
         .filter((r) => r.status === 'rejected')
         .map((r) => (r as PromiseRejectedResult).reason?.message ?? 'Unknown error')
       if (errs.length) setError(errs.join('; '))
-    }).finally(() => setLoading(false))
+      setLoading(false)
+    }
+    load()
+    return () => { cancelled = true }
   }, [runId, outputDir])
 
   if (loading) {

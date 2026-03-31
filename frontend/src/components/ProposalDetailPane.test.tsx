@@ -97,7 +97,7 @@ describe('ProposalDetailPane', () => {
         outputDir="./runs"
         selectedEvidenceId={null}
         onEvidenceSelect={vi.fn()}
-        onDecisionRecorded={vi.fn()}
+        
       />
     )
     await screen.findByText('120')
@@ -112,7 +112,7 @@ describe('ProposalDetailPane', () => {
         outputDir="./runs"
         selectedEvidenceId={null}
         onEvidenceSelect={vi.fn()}
-        onDecisionRecorded={vi.fn()}
+        
       />
     )
     await screen.findByText('Rationale')
@@ -127,7 +127,7 @@ describe('ProposalDetailPane', () => {
         outputDir="./runs"
         selectedEvidenceId={null}
         onEvidenceSelect={vi.fn()}
-        onDecisionRecorded={vi.fn()}
+        
       />
     )
     await screen.findByText('Rationale')
@@ -143,7 +143,7 @@ describe('ProposalDetailPane', () => {
         outputDir="./runs"
         selectedEvidenceId={null}
         onEvidenceSelect={vi.fn()}
-        onDecisionRecorded={vi.fn()}
+        
       />
     )
     await screen.findByText('direct quote')
@@ -159,7 +159,7 @@ describe('ProposalDetailPane', () => {
         outputDir="./runs"
         selectedEvidenceId={null}
         onEvidenceSelect={vi.fn()}
-        onDecisionRecorded={vi.fn()}
+        
       />
     )
     await screen.findByText('A Study on Cognitive Load')
@@ -174,7 +174,7 @@ describe('ProposalDetailPane', () => {
         outputDir="./runs"
         selectedEvidenceId="ev1"
         onEvidenceSelect={vi.fn()}
-        onDecisionRecorded={vi.fn()}
+        
       />
     )
     await screen.findByText('direct quote')
@@ -190,7 +190,7 @@ describe('ProposalDetailPane', () => {
         outputDir="./runs"
         selectedEvidenceId={null}
         onEvidenceSelect={vi.fn()}
-        onDecisionRecorded={vi.fn()}
+        
       />
     )
     expect(screen.getByText('Select a proposal from the queue')).toBeInTheDocument()

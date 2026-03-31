@@ -35,40 +35,51 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
   const [renderError, setRenderError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 })
+  const [pdfPageSize, setPdfPageSize] = useState({ width: 0, height: 0 })
   const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null)
 
   // Load PDF when pdfId changes
   useEffect(() => {
-    if (!pdfId) {
-      setPdfDoc(null)
-      setTotalPages(0)
-      setCurrentPage(1)
-      setPageInput('1')
-      return
-    }
-    setLoadError(null)
-    const url = api.getPdfUrl(runId, pdfId, outputDir)
-    pdfjsLib.getDocument(url).promise
-      .then((doc) => {
-        setPdfDoc(doc)
-        setTotalPages(doc.numPages)
+    let cancelled = false
+    async function loadPdf() {
+      if (!pdfId) {
+        setPdfDoc(null)
+        setTotalPages(0)
         setCurrentPage(1)
         setPageInput('1')
-      })
-      .catch((err) => {
-        setLoadError(err instanceof Error ? err.message : String(err))
-        setPdfDoc(null)
-      })
+        return
+      }
+      setLoadError(null)
+      const url = api.getPdfUrl(runId, pdfId, outputDir)
+      try {
+        const doc = await pdfjsLib.getDocument(url).promise
+        if (!cancelled) {
+          setPdfDoc(doc)
+          setTotalPages(doc.numPages)
+          setCurrentPage(1)
+          setPageInput('1')
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setLoadError(err instanceof Error ? err.message : String(err))
+          setPdfDoc(null)
+        }
+      }
+    }
+    loadPdf()
+    return () => { cancelled = true }
   }, [pdfId, runId, outputDir])
 
   // Navigate to evidence page when evidence changes
   useEffect(() => {
-    if (evidence?.page_number != null && evidence.page_number !== currentPage) {
+    if (evidence?.page_number != null) {
       const page = evidence.page_number
-      setCurrentPage(page)
-      setPageInput(String(page))
+      Promise.resolve().then(() => {
+        setCurrentPage(page)
+        setPageInput(String(page))
+      })
     }
-  }, [evidence]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [evidence])
 
   // Render page when doc/page/zoom changes
   useEffect(() => {
@@ -82,9 +93,13 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
       renderTaskRef.current.cancel()
     }
 
-    setRenderError(null)
+    Promise.resolve().then(() => setRenderError(null))
 
     pdfDoc.getPage(currentPage).then((page) => {
+      // Store unscaled page dimensions (PDF points) for coordinate conversion
+      const unscaledViewport = page.getViewport({ scale: 1.0 })
+      setPdfPageSize({ width: unscaledViewport.width, height: unscaledViewport.height })
+
       const viewport = page.getViewport({ scale: zoom })
       canvas.width = viewport.width
       canvas.height = viewport.height
@@ -112,16 +127,18 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
     else setPageInput(String(currentPage))
   }
 
-  // Compute highlight boxes relative to current rendered canvas
-  function getHighlights(regions: HighlightRegion[] | null, pageHeight: number) {
-    if (!regions || canvasSize.width === 0) return []
+  // Compute highlight boxes relative to current rendered canvas.
+  // Evidence coordinates are in PDF points (same space as pdfPageSize).
+  // PDF origin is bottom-left; canvas origin is top-left.
+  function getHighlights(regions: HighlightRegion[] | null) {
+    if (!regions || canvasSize.width === 0 || pdfPageSize.width === 0) return []
+    const scaleX = canvasSize.width / pdfPageSize.width
+    const scaleY = canvasSize.height / pdfPageSize.height
     return regions
       .filter((r) => r.page === currentPage)
       .map((r) => {
-        const scaleX = canvasSize.width / (r.x1 > 1 ? r.x1 : 1) // heuristic: if coords are in points, use page width
-        const scaleY = canvasSize.height / (pageHeight || canvasSize.height)
         const x = r.x0 * scaleX
-        const y = (pageHeight - r.y1) * scaleY
+        const y = (pdfPageSize.height - r.y1) * scaleY  // flip Y axis
         const w = (r.x1 - r.x0) * scaleX
         const h = (r.y1 - r.y0) * scaleY
         return { x, y, w, h }
@@ -174,8 +191,8 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
   // Determine highlight regions
   const exactRegions = evidence?.exact_highlight_regions ?? null
   const approxRegions = evidence?.approximate_highlight_regions ?? null
-  const exactHighlights = getHighlights(exactRegions, canvasSize.height)
-  const approxHighlights = getHighlights(approxRegions, canvasSize.height)
+  const exactHighlights = getHighlights(exactRegions)
+  const approxHighlights = getHighlights(approxRegions)
   const showTextFallback =
     evidence?.source_type === 'quote_plus_page' ||
     (!exactRegions && !approxRegions && evidence?.quote_text)

@@ -8,7 +8,6 @@ interface Props {
   outputDir: string
   selectedEvidenceId: string | null
   onEvidenceSelect: (evidenceId: string) => void
-  onDecisionRecorded: () => void
 }
 
 function SourceTypeBadge({ sourceType }: { sourceType: string }) {
@@ -72,7 +71,6 @@ export function ProposalDetailPane({
   outputDir,
   selectedEvidenceId,
   onEvidenceSelect,
-  onDecisionRecorded,
 }: Props) {
   const [detail, setDetail] = useState<ProposalDetail | null>(null)
   const [loading, setLoading] = useState(false)
@@ -80,23 +78,27 @@ export function ProposalDetailPane({
   const [rationaleOpen, setRationaleOpen] = useState(false)
 
   useEffect(() => {
-    if (!proposalId) {
-      setDetail(null)
-      return
+    let cancelled = false
+    async function load() {
+      if (!proposalId) {
+        setDetail(null)
+        return
+      }
+      setLoading(true)
+      setError(null)
+      setRationaleOpen(false)
+      try {
+        const d = await api.getProposalDetail(runId, proposalId, outputDir)
+        if (!cancelled) setDetail(d)
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : String(err))
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
-    setLoading(true)
-    setError(null)
-    setRationaleOpen(false)
-    api.getProposalDetail(runId, proposalId, outputDir)
-      .then(setDetail)
-      .catch((err) => setError(err instanceof Error ? err.message : String(err)))
-      .finally(() => setLoading(false))
+    load()
+    return () => { cancelled = true }
   }, [proposalId, runId, outputDir])
-
-  // Expose reload for parent via onDecisionRecorded pattern
-  useEffect(() => {
-    // re-fetch after decision recorded
-  }, [onDecisionRecorded])
 
   if (!proposalId) {
     return (

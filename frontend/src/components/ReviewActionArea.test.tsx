@@ -13,29 +13,34 @@ vi.mock('../api/client', () => ({
   },
 }))
 
-const mockProposal: EnrichedProposal = {
-  proposal_id: 'p1',
-  run_id: 'r1',
-  cell_id: 'c1',
-  row_id: 'row-001',
-  column_name: 'sample_size',
-  pdf_id: 'paper-a',
-  state: 'found',
-  support: 'direct_evidence',
-  proposed_value: '120',
-  rationale: null,
-  calculation: null,
-  primary_evidence_id: null,
-  ordered_supporting_evidence_ids: [],
-  evidence_ids: [],
-  warning_flags: [],
-  needs_more_evidence: false,
-  created_at: '2024-01-01T00:00:00Z',
-  latest_decision: null,
-  warning_categories: [],
-  is_figure_derived: false,
-  is_fallback_evidence: false,
+function makeProposal(overrides: Partial<EnrichedProposal> = {}): EnrichedProposal {
+  return {
+    proposal_id: 'p1',
+    run_id: 'r1',
+    cell_id: 'c1',
+    row_id: 'row-001',
+    column_name: 'sample_size',
+    pdf_id: 'paper-a',
+    state: 'found',
+    support: 'direct_evidence',
+    proposed_value: '120',
+    rationale: null,
+    calculation: null,
+    primary_evidence_id: null,
+    ordered_supporting_evidence_ids: [],
+    evidence_ids: [],
+    warning_flags: [],
+    needs_more_evidence: false,
+    created_at: '2024-01-01T00:00:00Z',
+    latest_decision: null,
+    warning_categories: [],
+    is_figure_derived: false,
+    is_fallback_evidence: false,
+    ...overrides,
+  }
 }
+
+const mockProposal = makeProposal()
 
 describe('ReviewActionArea', () => {
   const onDecisionRecorded = vi.fn()
@@ -58,7 +63,7 @@ describe('ReviewActionArea', () => {
         outputDir="./runs"
         onDecisionRecorded={onDecisionRecorded}
         onNext={onNext}
-        visibleProposalIds={['p1', 'p2']}
+        visibleProposals={[mockProposal, makeProposal({ proposal_id: 'p2' })]}
       />
     )
     const acceptBtn = screen.getByText('Accept')
@@ -77,7 +82,7 @@ describe('ReviewActionArea', () => {
         outputDir="./runs"
         onDecisionRecorded={onDecisionRecorded}
         onNext={onNext}
-        visibleProposalIds={['p1']}
+        visibleProposals={[mockProposal]}
       />
     )
     fireEvent.click(screen.getByText('Reject'))
@@ -86,7 +91,22 @@ describe('ReviewActionArea', () => {
     })
   })
 
-  it('bulk accept shows confirmation dialog with count', () => {
+  it('bulk accept shows confirmation dialog with pending count only', () => {
+    // p2 is pending, p3 has a decision — bulk count should be 1 (only p2)
+    const decidedProposal = makeProposal({
+      proposal_id: 'p3',
+      latest_decision: {
+        review_decision_id: 'd3',
+        run_id: 'r1',
+        proposal_id: 'p3',
+        cell_id: 'c3',
+        decision: 'accepted',
+        resolution_reason: null,
+        edited_value: null,
+        reviewer_note: null,
+        decided_at: '2024-01-01T00:00:00Z',
+      },
+    })
     render(
       <ReviewActionArea
         proposal={mockProposal}
@@ -94,10 +114,10 @@ describe('ReviewActionArea', () => {
         outputDir="./runs"
         onDecisionRecorded={onDecisionRecorded}
         onNext={onNext}
-        visibleProposalIds={['p1', 'p2', 'p3']}
+        visibleProposals={[mockProposal, makeProposal({ proposal_id: 'p2' }), decidedProposal]}
       />
     )
-    const bulkBtn = screen.getByText(/Bulk accept 2 pending/i)
+    const bulkBtn = screen.getByText(/Bulk accept 1 pending/i)
     fireEvent.click(bulkBtn)
     expect(screen.getByText(/Confirm bulk accept/i)).toBeInTheDocument()
   })
@@ -110,7 +130,7 @@ describe('ReviewActionArea', () => {
         outputDir="./runs"
         onDecisionRecorded={onDecisionRecorded}
         onNext={onNext}
-        visibleProposalIds={['p1']}
+        visibleProposals={[mockProposal]}
       />
     )
     fireEvent.click(screen.getByText('Accept with Edit'))
@@ -125,7 +145,7 @@ describe('ReviewActionArea', () => {
         outputDir="./runs"
         onDecisionRecorded={onDecisionRecorded}
         onNext={onNext}
-        visibleProposalIds={['p1']}
+        visibleProposals={[mockProposal]}
       />
     )
     fireEvent.click(screen.getByText('Accept with Edit'))
@@ -150,7 +170,7 @@ describe('ReviewActionArea', () => {
         outputDir="./runs"
         onDecisionRecorded={onDecisionRecorded}
         onNext={onNext}
-        visibleProposalIds={['p1']}
+        visibleProposals={[mockProposal]}
       />
     )
     fireEvent.click(screen.getByText('Next →'))

@@ -223,7 +223,6 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
               outputDir={outputDir}
               selectedEvidenceId={selectedEvidenceId}
               onEvidenceSelect={handleEvidenceSelect}
-              onDecisionRecorded={handleDecisionRecorded}
               key={`${selectedProposalId}-${decisionVersion}`}
             />
           </div>
@@ -234,7 +233,7 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
               outputDir={outputDir}
               onDecisionRecorded={handleDecisionRecorded}
               onNext={goNext}
-              visibleProposalIds={proposalList.map((p) => p.proposal_id)}
+              visibleProposals={proposalList}
             />
           )}
         </div>

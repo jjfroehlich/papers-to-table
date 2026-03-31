@@ -8,7 +8,7 @@ interface Props {
   outputDir: string
   onDecisionRecorded: () => void
   onNext: () => void
-  visibleProposalIds: string[]
+  visibleProposals: EnrichedProposal[]
 }
 
 export function ReviewActionArea({
@@ -17,7 +17,7 @@ export function ReviewActionArea({
   outputDir,
   onDecisionRecorded,
   onNext,
-  visibleProposalIds,
+  visibleProposals,
 }: Props) {
   const [editValue, setEditValue] = useState('')
   const [showEditInput, setShowEditInput] = useState(false)
@@ -25,10 +25,11 @@ export function ReviewActionArea({
   const [error, setError] = useState<string | null>(null)
   const [showBulkConfirm, setShowBulkConfirm] = useState(false)
 
-  const pendingIds = visibleProposalIds.filter(
-    (id) => id !== proposal.proposal_id
+  // Only count proposals that have not yet been decided (pending)
+  const pendingProposals = visibleProposals.filter(
+    (p) => p.proposal_id !== proposal.proposal_id && !p.latest_decision
   )
-  const pendingCount = pendingIds.length
+  const pendingCount = pendingProposals.length
 
   async function decide(
     decision: string,
@@ -53,10 +54,10 @@ export function ReviewActionArea({
     setLoading(true)
     setError(null)
     try {
-      // Include the current proposal if pending
+      // Include the current proposal if not yet decided
       const ids = proposal.latest_decision
-        ? pendingIds
-        : [proposal.proposal_id, ...pendingIds]
+        ? pendingProposals.map((p) => p.proposal_id)
+        : [proposal.proposal_id, ...pendingProposals.map((p) => p.proposal_id)]
       await api.bulkAccept(runId, ids, outputDir)
       onDecisionRecorded()
     } catch (err) {
