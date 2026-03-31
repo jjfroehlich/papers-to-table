@@ -17,7 +17,12 @@ from .artifacts import (
     write_json,
 )
 from .config import RunConfig, check_readiness
-from .ids import generate_run_id
+from .extraction import (
+    extract_cell,
+    make_blocked_proposal,
+    make_skipped_proposal,
+)
+from .ids import generate_cell_id, generate_row_id, generate_run_id
 from .ingest import (
     get_eligible_cells,
     load_schema,
@@ -28,7 +33,10 @@ from .ingest import (
 from .lifecycle import apply_transition
 from .matching import persist_match_artifacts, run_matching
 from .parsing import parse_pdf
-from .schemas import RunStatus, WarningCategory
+from .provider import ProviderError, initialize_provider
+from .retrieval import run_retrieval_for_cell
+from .schemas import MatchOutcome, RunStatus, WarningCategory
+from .style_profiles import run_style_profiles_stage
 
 _active_runs: dict[str, asyncio.Task] = {}
 _active_runs_lock: asyncio.Lock | None = None
@@ -222,7 +230,6 @@ async def run_pipeline(
         # Record match-outcome warnings
         from .schemas import WarningCategory as WC
         for mr in match_results:
-            from .schemas import MatchOutcome
             if mr["outcome"] == MatchOutcome.unmatched.value:
                 run_data.setdefault("warnings", []).append({
                     "category": WC.unmatched_pdf.value,
@@ -243,6 +250,190 @@ async def run_pipeline(
                 })
         save_run(run_data)
 
+        # Stage: initialize provider (T050, T052a)
+        run_data = update_stage(run_data, "provider_init")
+        save_run(run_data)
+
+        provider = None
+        provider_mode = None
+        provider_init_error: Optional[str] = None
+        text_model_id = config.provider.text_model.model_id
+        vision_model_id = (
+            config.provider.vision_model.model_id
+            if config.provider.vision_model
+            else None
+        )
+
+        try:
+            provider, provider_mode = await initialize_provider(
+                config.provider,
+                text_model_id=text_model_id,
+                vision_model_id=vision_model_id,
+            )
+        except ProviderError as e:
+            provider_init_error = str(e)
+            run_data.setdefault("warnings", []).append({
+                "category": WC.provider_unreachable.value,
+                "message": f"Provider unavailable: {provider_init_error}",
+                "context": {"provider": config.provider.token},
+            })
+            save_run(run_data)
+
+        # Persist provider mode in run artifacts (T052a)
+        if provider_mode:
+            write_json(run_dir / "provider_mode.json", provider_mode.model_dump())
+
+        # Stage: style profiles (T041-T044)
+        run_data = update_stage(run_data, "style_profiles")
+        save_run(run_data)
+
+        # Pass provider for LLM-assisted profiling when available
+        style_profiles = await run_style_profiles_stage(
+            run_dir=run_dir,
+            df=df,
+            schema=schema,
+            provider=provider,  # None → heuristic fallback
+        )
+
+        # Stage: extraction (T057)
+        run_data = update_stage(run_data, "extraction")
+        save_run(run_data)
+
+        # Build a lookup: matched_row_index → match_result
+        matched: dict[int, dict] = {}
+        for mr in match_results:
+            if mr["outcome"] == MatchOutcome.matched.value and mr.get("matched_row_index") is not None:
+                matched[mr["matched_row_index"]] = mr
+
+        proposals_generated = 0
+
+        if provider is None:
+            # Provider unavailable — record skipped proposals for each eligible cell
+            for cell in eligible:
+                row_idx = cell.get("row_index", 0)
+                pdf_id = ""
+                match_result = matched.get(row_idx)
+                if match_result:
+                    pdf_id = match_result.get("pdf_id", "")
+                row_id = generate_row_id(row_idx, str(df.iloc[row_idx].get("Title", "") if row_idx < len(df) else ""))
+                cell_id = generate_cell_id(row_id, cell["column_name"])
+                make_skipped_proposal(
+                    run_id=run_id,
+                    pdf_id=pdf_id or "unknown",
+                    row_id=row_id,
+                    cell_id=cell_id,
+                    column_name=cell["column_name"],
+                    skip_reason=f"Provider unavailable: {provider_init_error}",
+                    run_dir=run_dir,
+                )
+        else:
+            # Build doc dict lookup: pdf_id → parsed_doc dict
+            doc_by_pdf_id: dict[str, dict] = {}
+            for doc in parsed_docs:
+                doc_by_pdf_id[doc["pdf_id"]] = doc
+
+            # Build column description lookup
+            col_descriptions = {c["column_name"]: c.get("description", "") for c in schema}
+
+            # Process eligible cells grouped by row
+            for cell in eligible:
+                row_idx = cell.get("row_index", 0)
+                col_name = cell["column_name"]
+                col_desc = col_descriptions.get(col_name, "")
+
+                # Find the matched PDF for this row
+                match_result = matched.get(row_idx)
+                if not match_result:
+                    # No matched PDF for this row — record blocked proposal
+                    row_id = generate_row_id(row_idx, "")
+                    cell_id = generate_cell_id(row_id, col_name)
+                    make_blocked_proposal(
+                        run_id=run_id,
+                        pdf_id="unknown",
+                        row_id=row_id,
+                        cell_id=cell_id,
+                        column_name=col_name,
+                        blocked_reason="No PDF matched to this row",
+                        run_dir=run_dir,
+                    )
+                    continue
+
+                pdf_id = match_result["pdf_id"]
+                if match_result.get("blocked", False):
+                    row_id = generate_row_id(row_idx, "")
+                    cell_id = generate_cell_id(row_id, col_name)
+                    make_blocked_proposal(
+                        run_id=run_id,
+                        pdf_id=pdf_id,
+                        row_id=row_id,
+                        cell_id=cell_id,
+                        column_name=col_name,
+                        blocked_reason=match_result.get("blocked_reason") or "PDF match blocked",
+                        run_dir=run_dir,
+                    )
+                    continue
+
+                doc_dict = doc_by_pdf_id.get(pdf_id)
+                if doc_dict is None:
+                    row_id = generate_row_id(row_idx, "")
+                    cell_id = generate_cell_id(row_id, col_name)
+                    make_skipped_proposal(
+                        run_id=run_id,
+                        pdf_id=pdf_id,
+                        row_id=row_id,
+                        cell_id=cell_id,
+                        column_name=col_name,
+                        skip_reason=f"Parsed document not found for pdf_id={pdf_id}",
+                        run_dir=run_dir,
+                    )
+                    continue
+
+                row_dict = df.iloc[row_idx].to_dict() if row_idx < len(df) else {}
+                row_id = generate_row_id(row_idx, str(row_dict.get("Title", "")))
+                cell_id = generate_cell_id(row_id, col_name)
+                existing_value = cell.get("current_value")
+
+                # Retrieve relevant context (T045-T048)
+                retrieval = run_retrieval_for_cell(
+                    run_id=run_id,
+                    pdf_id=pdf_id,
+                    column_name=col_name,
+                    column_description=col_desc,
+                    doc_dict=doc_dict,
+                    run_dir=run_dir,
+                    top_k=config.retrieval.top_k,
+                )
+
+                style_profile = style_profiles.get(col_name)
+
+                await asyncio.sleep(0)  # yield between cells
+
+                proposal = await extract_cell(
+                    run_id=run_id,
+                    pdf_id=pdf_id,
+                    row_id=row_id,
+                    cell_id=cell_id,
+                    column_name=col_name,
+                    column_description=col_desc,
+                    row_context=row_dict,
+                    doc_dict=doc_dict,
+                    run_dir=run_dir,
+                    provider=provider,
+                    text_model_id=text_model_id,
+                    retrieval=retrieval,
+                    style_profile=style_profile,
+                    caps=provider_mode.capabilities if provider_mode else None,
+                    vision_model_id=vision_model_id if config.figure_review.enabled else None,
+                    is_verify_mode=config.verify_mode,
+                    existing_value=existing_value if config.verify_mode else None,
+                    provider_mode_str=provider_mode.mode if provider_mode else "unknown",
+                )
+
+                proposals_generated += 1
+
+        run_data["proposals_generated"] = proposals_generated
+        save_run(run_data)
+
         warnings = run_data.get("warnings", [])
         final_status = (
             RunStatus.completed_with_warnings if warnings else RunStatus.completed
@@ -259,12 +450,12 @@ async def run_pipeline(
             reviewer_summary_path,
             {
                 "run_id": run_id,
-                "total_proposals": 0,
+                "total_proposals": proposals_generated,
                 "accepted": 0,
                 "accepted_with_edit": 0,
                 "confirmed_no_data": 0,
                 "rejected": 0,
-                "pending": 0,
+                "pending": proposals_generated,
                 "generated_at": datetime.now(timezone.utc).isoformat(),
             },
         )

@@ -497,7 +497,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 **Goal:** generate safe per-column style guidance and bounded retrieval artifacts without semantic example leakage.
 
-- [ ] **T041** Define the style-profile JSON schema with at least:
+- [x] **T041** Define the style-profile JSON schema with at least:
   - `field_type_guess`
   - `expected_length`
   - `tone`
@@ -507,32 +507,32 @@ The detailed task inventory below remains the source of truth for exact implemen
   - `format_notes`
   - `example_risk`
 
-- [ ] **T042** Implement the per-column preprocessing LLM step that analyzes existing filled cells and produces one structured style profile per schema column.
+- [x] **T042** Implement the per-column preprocessing LLM step that analyzes existing filled cells and produces one structured style profile per schema column.
 
-- [ ] **T043** Persist style profiles under `style_profiles/` and ensure they guide only output form, not semantic content.
+- [x] **T043** Persist style profiles under `style_profiles/` and ensure they guide only output form, not semantic content.
 
-- [ ] **T044** Enforce the no-leakage baseline for style profiles:
+- [x] **T044** Enforce the no-leakage baseline for style profiles:
   - do not inject raw filled cells as semantic exemplars by default
   - keep the preprocessing output limited to style/format guidance
   - keep any leakage-risk markers visible in artifacts and diagnostics
 
-- [ ] **T045** Create MVP retrieval chunks for at least:
+- [x] **T045** Create MVP retrieval chunks for at least:
   - paragraphs
   - section blocks
   - captions
   - table regions
 
-- [ ] **T046** Implement contextualized retrieval text while preserving separate source-preserving display text for review.
+- [x] **T046** Implement contextualized retrieval text while preserving separate source-preserving display text for review.
 
-- [ ] **T047** Implement MVP retrieval assembly defaults:
+- [x] **T047** Implement MVP retrieval assembly defaults:
   - `top_k = 6`
   - include captions and tables when relevant
   - include one neighbor window around selected text chunks
   - do **not** implement reranking, HyDE, or query expansion in the MVP baseline
 
-- [ ] **T048** Persist retrieval artifacts and diagnostics so selected chunks, contextualized text, and source-preserving review text remain inspectable.
+- [x] **T048** Persist retrieval artifacts and diagnostics so selected chunks, contextualized text, and source-preserving review text remain inspectable.
 
-- [ ] **T049** Add tests covering style-profile generation, no raw-example leakage into extraction inputs, typed chunk generation, retrieval-text/display-text separation, and retrieval defaults.
+- [x] **T049** Add tests covering style-profile generation, no raw-example leakage into extraction inputs, typed chunk generation, retrieval-text/display-text separation, and retrieval defaults.
 
 ---
 
@@ -540,22 +540,22 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 **Goal:** produce one best proposal per eligible target cell with inspectable evidence and stable structured contracts.
 
-- [ ] **T050** Implement the provider abstraction and capability-probe model for structured-output support.
+- [x] **T050** Implement the provider abstraction and capability-probe model for structured-output support.
   - keep one typed interface that supports LM Studio as the default local-first path and optional cloud providers behind the same contract
   - expose canonical provider token, locality, readiness, and structured-output capability information through the abstraction
   - support separate model identifier fields for text extraction and vision extraction in the provider config
   - validate guided-JSON or equivalent structured-output compatibility instead of assuming one wire format
   - keep structured-output compatibility handling scoped so one provider-schema mismatch does not poison unrelated proposal attempts by default
 
-- [ ] **T051** Implement **LM Studio localhost API** integration as the initial MVP provider path.
+- [x] **T051** Implement **LM Studio localhost API** integration as the initial MVP provider path.
   - keep config parsing, runtime behavior, artifacts, and UI-visible summaries aligned with the canonical provider contract
 
-- [ ] **T051a** Implement optional cloud-provider adapter slots behind the same provider interface.
+- [x] **T051a** Implement optional cloud-provider adapter slots behind the same provider interface.
   - support environment- or secret-based credential resolution
   - keep cloud providers optional and outside the committed local-first happy path
   - do not require opt-in live cloud tests for the default MVP path
 
-- [ ] **T052** Implement provider error handling and structured-output failure policy for LM Studio, including:
+- [x] **T052** Implement provider error handling and structured-output failure policy for LM Studio, including:
   - timeout handling
   - model-unavailable handling
   - capability checks for required structured-output behavior
@@ -567,28 +567,28 @@ The detailed task inventory below remains the source of truth for exact implemen
   - explicit fail-fast rules when recovery cannot preserve the proposal contract
   - request/response logging policy with actionable diagnostics
 
-- [ ] **T052a** Make provider-mode truth explicit across runtime artifacts and operator surfaces.
+- [x] **T052a** Make provider-mode truth explicit across runtime artifacts and operator surfaces.
   - classify proposal generation at minimum as live local, live cloud, unavailable, disabled, or explicit stub/demo/degraded mode
   - prevent silent fallback from a configured live path into an unlabeled stub or degraded path
   - persist the resulting mode and readiness status in run artifacts and summaries
   - record text model and vision model identifiers separately in run artifacts and summaries when both are used
 
-- [ ] **T053** Implement the extraction request builder for LM Studio structured JSON:
+- [x] **T053** Implement the extraction request builder for LM Studio structured JSON:
   - assemble per-cell extraction requests from row context, column name, column description, style profile, retrieved passages, and relevant table/caption context
   - keep prompt/request construction separate from orchestration logic
   - support rationale and calculation fields in the response contract
 
-- [ ] **T053a** Request concise markdown-bullet rationale from the extraction layer when rationale is returned.
+- [x] **T053a** Request concise markdown-bullet rationale from the extraction layer when rationale is returned.
   - prefer short scientific-review bullets over dense prose
   - keep the rationale output compact enough for the middle review pane by default
 
-- [ ] **T054** Build the structured JSON schema/request payload for the text model path.
+- [x] **T054** Build the structured JSON schema/request payload for the text model path.
 
-- [ ] **T055** Build the structured JSON schema/request payload for the vision-capable model path.
+- [x] **T055** Build the structured JSON schema/request payload for the vision-capable model path.
 
-- [ ] **T056** Implement proposal/evidence serialization using the shared artifact I/O layer so proposals and evidence are stored as separate linked records under stable bundle locations.
+- [x] **T056** Implement proposal/evidence serialization using the shared artifact I/O layer so proposals and evidence are stored as separate linked records under stable bundle locations.
 
-- [ ] **T057** Implement the per-target-cell extraction orchestrator that assembles:
+- [x] **T057** Implement the per-target-cell extraction orchestrator that assembles:
   - row context
   - column definition
   - current cell value when relevant
@@ -597,9 +597,9 @@ The detailed task inventory below remains the source of truth for exact implemen
   - Verify mode state
   - text-model or vision-model request path as routed
 
-- [ ] **T057a** Add field-aware extraction handling for long-text targets so narrative outputs do not systematically fail because of short-answer-oriented response shaping or truncation assumptions.
+- [x] **T057a** Add field-aware extraction handling for long-text targets so narrative outputs do not systematically fail because of short-answer-oriented response shaping or truncation assumptions.
 
-- [ ] **T058** Implement proposal-state handling for at least:
+- [x] **T058** Implement proposal-state handling for at least:
   - `found`
   - `inferred`
   - `unclear`
@@ -607,11 +607,11 @@ The detailed task inventory below remains the source of truth for exact implemen
   - `error`
   - `skipped`
 
-- [ ] **T058a** Enforce the anti-guessing rule in extraction adjudication.
+- [x] **T058a** Enforce the anti-guessing rule in extraction adjudication.
   - prefer `unclear` over guesses supported mainly by prior spreadsheet values, common practice, or weak implication
   - keep style profiles and prior table content as output-shaping context only, not as semantic evidence substitutes
 
-- [ ] **T059** Implement text-evidence anchoring and highlight production using a page-text alignment strategy:
+- [x] **T059** Implement text-evidence anchoring and highlight production using a page-text alignment strategy:
   - attempt exact quote matching against the rendered page text layer to produce character-level highlight regions
   - store resulting regions as `exact_highlight_regions` in the evidence record
   - if exact page-text alignment fails, attempt to derive approximate regions from parser geometry and store them as `approximate_highlight_regions`, labeled as approximate
@@ -619,12 +619,12 @@ The detailed task inventory below remains the source of truth for exact implemen
   - never present approximate or fallback highlights as exact highlights
   - store the `source_type` that reflects the achieved highlight fidelity
 
-- [ ] **T060** Implement the single narrow evidence-recovery pass when evidence is weak, missing, or unusable for display.
+- [x] **T060** Implement the single narrow evidence-recovery pass when evidence is weak, missing, or unusable for display.
 
-- [ ] **T061** Keep weak-but-reviewable proposals available when quote + page evidence exists even if precise highlighting fails.
+- [x] **T061** Keep weak-but-reviewable proposals available when quote + page evidence exists even if precise highlighting fails.
   - preserve the fallback as clearly rendered text evidence rather than letting it appear blank, missing, or mislabeled
 
-- [ ] **T062** Implement proactive figure review when a vision model is configured:
+- [x] **T062** Implement proactive figure review when a vision model is configured:
   - when a vision model is configured, run figure review across all relevant extracted figures for the current paper as a normal supplemental evidence stage, not only when text extraction has failed
   - select relevant figures by structural heuristics, caption relevance, or an LLM-assisted relevance selection step, rather than processing every figure indiscriminately
   - figure evidence may support any field type, not only fields classified as figure-derived
@@ -632,24 +632,24 @@ The detailed task inventory below remains the source of truth for exact implemen
   - figure review produces additional evidence items ranked by authority and relevance alongside existing text evidence
   - no user-triggered figure review control is part of MVP; figure review runs automatically based on configuration
 
-- [ ] **T063** Build the figure-fallback input package containing:
+- [x] **T063** Build the figure-fallback input package containing:
   - crop
   - caption
   - nearby text
   - full-page reference
 
-- [ ] **T064** Persist figure-derived evidence records distinctly from text evidence while keeping figure-derived proposals as normal proposals with figure-marked evidence.
+- [x] **T064** Persist figure-derived evidence records distinctly from text evidence while keeping figure-derived proposals as normal proposals with figure-marked evidence.
 
-- [ ] **T065** Implement reviewer-facing support-label mapping and evidence type labeling:
+- [x] **T065** Implement reviewer-facing support-label mapping and evidence type labeling:
   - map internal proposal states to reviewer-facing labels such as `Direct evidence` and `Inferred from evidence`
   - label each evidence item's type visibly in the UI: direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, or figure-based
   - ensure the primary evidence item is visually distinguished as primary
   - ensure supporting evidence items are shown in ranked order
   - ensure direct quotes are visually separated from reasoning and calculations in the detail pane
 
-- [ ] **T066** Ensure Verify mode uses the same extraction path for already-filled cells and persists reviewable proposals for them.
+- [x] **T066** Ensure Verify mode uses the same extraction path for already-filled cells and persists reviewable proposals for them.
 
-- [ ] **T067** Add tests covering structured-output parsing, provider failure handling, proposal/evidence serialization, blocked outcomes, unclear outcomes, evidence recovery, evidence ranking (primary selection by authority), evidence type labeling, exact-highlight vs. approximate-highlight vs. quote-plus-page fallback evidence paths, proactive figure review triggering, figure evidence support for any field type, figure rescue of weak text proposals, separate text and vision model config, and Verify mode extraction on filled cells.
+- [x] **T067** Add tests covering structured-output parsing, provider failure handling, proposal/evidence serialization, blocked outcomes, unclear outcomes, evidence recovery, evidence ranking (primary selection by authority), evidence type labeling, exact-highlight vs. approximate-highlight vs. quote-plus-page fallback evidence paths, proactive figure review triggering, figure evidence support for any field type, figure rescue of weak text proposals, separate text and vision model config, and Verify mode extraction on filled cells.
   - include contract-parity and provider-mode truth assertions where applicable
   - cover compatibility mismatches that should not poison the rest of the run
   - cover malformed-JSON repair behavior and compact bullet-rationale output shape
