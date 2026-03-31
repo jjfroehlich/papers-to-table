@@ -6,4 +6,6 @@ python_functions = ["test_*"]
 asyncio_mode = "auto"
 markers = [
     "e2e: end-to-end tests requiring live backend and frontend (opt-in)",
+    "smoke: opt-in live smoke tests requiring external services (e.g. LM Studio)",
+    "performance: performance smoke tests that measure timing regressions",
 ]
