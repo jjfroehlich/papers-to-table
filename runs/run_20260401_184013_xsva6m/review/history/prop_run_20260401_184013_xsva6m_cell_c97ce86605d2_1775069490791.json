@@ -1,0 +1,28 @@
+{
+  "proposal_id": "prop_run_20260401_184013_xsva6m_cell_c97ce86605d2_1775069490791",
+  "run_id": "run_20260401_184013_xsva6m",
+  "latest_decision": {
+    "review_decision_id": "rev_prop_run_20260401_184013_xsva6m_cell_c97ce86605d2_1775069490791_kybbzl5s",
+    "run_id": "run_20260401_184013_xsva6m",
+    "proposal_id": "prop_run_20260401_184013_xsva6m_cell_c97ce86605d2_1775069490791",
+    "cell_id": "cell_c97ce86605d2",
+    "decision": "rejected",
+    "resolution_reason": null,
+    "edited_value": null,
+    "reviewer_note": null,
+    "decided_at": "2026-04-01T20:08:22.354055+00:00"
+  },
+  "history": [
+    {
+      "review_decision_id": "rev_prop_run_20260401_184013_xsva6m_cell_c97ce86605d2_1775069490791_kybbzl5s",
+      "run_id": "run_20260401_184013_xsva6m",
+      "proposal_id": "prop_run_20260401_184013_xsva6m_cell_c97ce86605d2_1775069490791",
+      "cell_id": "cell_c97ce86605d2",
+      "decision": "rejected",
+      "resolution_reason": null,
+      "edited_value": null,
+      "reviewer_note": null,
+      "decided_at": "2026-04-01T20:08:22.354055+00:00"
+    }
+  ]
+}
