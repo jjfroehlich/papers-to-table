@@ -1,0 +1,24 @@
+{
+  "proposal_id": "prop_run_20260401_170239_0nhpnj_cell_3290a4290e26_1775063401503",
+  "run_id": "run_20260401_170239_0nhpnj",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "Journal",
+  "cell_id": "cell_3290a4290e26",
+  "state": "found",
+  "support": "direct_evidence",
+  "proposed_value": "Nature",
+  "rationale": "- The paper cites a previous study published in Nature: 'The FANTOM Consortium and the RIKEN PMI and CLST (DGT). A promoter-level mammalian expression atlas. Nature 507, 462-470 (2014).'",
+  "calculation": "The citation of a study in Nature supports that the current paper was published in Nature, as the reference format matches the journal's standard.",
+  "primary_evidence_id": "ev_prop_run_20260401_170239_0nhpnj_cell_3290a4290e26_1775063401503_nrrnguac",
+  "ordered_supporting_evidence_ids": [],
+  "evidence_ids": [
+    "ev_prop_run_20260401_170239_0nhpnj_cell_3290a4290e26_1775063401503_nrrnguac"
+  ],
+  "warning_flags": [],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "Nature",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T17:10:01.503090+00:00"
+}

@@ -1,3 +1,4 @@
+- Add explicit `Open in local PDF viewer` action from the evidence pane and define OS-level fallback behavior when the annotated pane is intentionally optimized for highlights rather than native-reader interaction.
 # Paper Table Agent — `tasks.md`
 
 ## Status
@@ -25,7 +26,7 @@ Preserve these constraints throughout implementation:
 - small **Python FastAPI** backend
 - **Docling** as main parser
 - **PDFium via `pypdfium2`** as low-level PDF backend
-- raw/custom **PDF.js** viewer with synchronized quote list and viewer navigation
+- evidence viewer with synchronized quote list and viewer navigation, preserving standard PDF-reading affordances in at least one explicit mode
 - **LM Studio localhost API** as the initial provider path
 - **separate text-model and vision-model configuration** in the provider config
 - **filesystem artifact bundles + JSON files only**
@@ -63,6 +64,7 @@ If implementation pressure suggests changing any of these constraints, update `s
 - Treat the reviewer as reviewing the paper, not the model. Review-state semantics, no-data handling, and evidence interaction should reflect that throughout implementation.
 - Evidence quality and reviewer trust are first-class implementation requirements. A proposal with an evidence record does not satisfy evidence requirements unless the evidence is ranked, typed, and labeled correctly. The first model-returned quote is not automatically primary.
 - Evidence ranking must be authoritatively ordered. Implementation that treats supporting evidence items as unordered or treats all items as equivalent does not satisfy the evidence contract.
+- Keep reviewable proposals, diagnostics-only outcomes, and reviewer-facing counts as separate concepts. The main queue must not become a raw dump of every blocked, skipped, ambiguous, or failed cell artifact.
 
 ## Assumed repo shape
 
@@ -122,8 +124,10 @@ Future coding-agent implementation should normally proceed by the canonical batc
 **Batch 2 is complete when:**
 
 - PDFs are normalized into a stable parsed-document contract with stored parser diagnostics and page/crop artifacts
+- text-based PDFs remain parseable across supported Docling versions; parser-integration drift is covered by a real fixture-backed regression test rather than treated as acceptable silent degradation
 - OCR fallback is narrow, explicit, and stored in artifacts
 - configured parser choice, actual parser used, and any explicit fallback path are inspectable rather than silently substituted
+- low-text or parse-degraded papers surface explicit diagnostics and must not look like normal reviewable no-value proposals
 - each PDF ends in a clear match outcome before extraction
 - ambiguous, unmatched, and duplicate-row-conflict cases are blocked and inspectable rather than silently leaking into extraction
 
@@ -142,6 +146,7 @@ Future coding-agent implementation should normally proceed by the canonical batc
 - quote-plus-page fallback remains reviewable when highlight anchoring fails
 - structured-output compatibility is negotiated truthfully, malformed structured responses get bounded recovery before hard failure, long-text fields do not systematically fail from short-answer assumptions, and unsupported guessing resolves to `unclear`
 - figure fallback stays scoped, clearly labeled, and review-first rather than becoming a generic second extraction path
+- figure review uses persisted figure crop artifacts and page links shared with the reviewer UI; caption-only figure records do not satisfy the vision-review contract
 - the canonical LM Studio path is proven on `tests/fixtures/tables/literature_fixture.xlsx` plus `tests/fixtures/papers/paper_1.pdf` by producing at least one non-empty proposal with reviewer-usable evidence, or the run fails early with an explicit readiness error rather than pretending extraction succeeded
 
 ### Batch 4 — Review backend, summaries, and export gating
@@ -160,6 +165,7 @@ Future coding-agent implementation should normally proceed by the canonical batc
 - run and reviewer summaries stay internally consistent, with provisional states labeled clearly and warning flags gated on real triggering conditions
 - persisted review semantics distinguish confirmed no-data outcomes from rejected-or-model-wrong outcomes
 - export candidate selection is safely limited to explicitly accepted proposals
+- review-facing APIs expose actionable proposal counts separately from broader attempted or diagnostic totals
 
 ### Batch 5 — Browser review workspace and operator usability
 
@@ -173,11 +179,15 @@ Future coding-agent implementation should normally proceed by the canonical batc
 
 - the browser app presents a coherent run-summary plus queue/detail/evidence workspace
 - grouped queue triage is actually usable, with paper and column grouping, compact cards, and high-scan state markers
+- queue grouping labels use meaningful paper metadata when available rather than bare internal PDF ids
 - proposal ordering, filtering, selection, grouping mode changes, and run switching behave predictably without stale state leakage
 - no-value cases have explicit reviewer paths, including manual entry and confirmed no-data resolution
-- text highlights, quote-plus-page fallback, figure evidence, zoom/pan, evidence-to-input interaction, bulk acceptance, edited acceptance, keyboard navigation, and unresolved-match inspection are all actually usable
+- text highlights, quote-plus-page fallback, figure evidence, zoom/pan, standard drag-based PDF reading, evidence-to-input interaction, bulk acceptance, edited acceptance, keyboard navigation, and unresolved-match inspection are all actually usable
+- queue, detail, and evidence panes are resizable by the reviewer
+- the evidence pane preserves ordinary PDF-reader affordances in at least one mode, including drag-based panning and text selection/copy when the PDF source allows it
 - rationale is concise and scannable in the decision pane rather than rendered as dense prose
 - provider mode and readiness truth are visible in the UI, and disabled, degraded, stub, or unreachable proposal-generation states are not mistaken for normal live execution
+- active runs refresh automatically in the UI, stale-refresh conditions are explicit, and operators can abort in-flight runs from the main workflow
 - the run/setup UI is picker-driven rather than path-heavy while still showing config-derived resolved context
 - download surfaces are truthful about what is ready versus not yet written
 - end of Batch 5: generate or update `README.md` so it truthfully matches the implemented app’s startup path, config workflow, run lifecycle, review workflow, current download/export behavior, and known MVP limitations at that stage
@@ -380,6 +390,8 @@ The detailed task inventory below remains the source of truth for exact implemen
   - trivial placeholder treated as empty when configured
   - skipped / ineligible
 
+- [ ] **T020a** Enforce that already-filled cells outside Verify mode remain diagnostics-only or entirely out of scope, rather than producing reviewer-facing placeholder proposals or synthetic blocked rationales.
+
 - [x] **T021** Implement Verify mode semantics so already-filled cells become eligible targets when Verify mode is enabled.
 
 - [x] **T022** Implement run lifecycle state transitions for at least:
@@ -398,6 +410,12 @@ The detailed task inventory below remains the source of truth for exact implemen
   - get run summary
   - fetch config snapshot
   - fetch input summary
+
+- [ ] **T023c** Implement active-run auto-refresh and cancellation support end to end.
+  - expose a backend run-cancel endpoint or equivalent control path
+  - persist interrupted state distinctly from failed state
+  - make UI polling or streaming keep active status current without requiring manual refresh as the primary mechanism
+  - surface stale-refresh failures explicitly in the UI
 
 - [x] **T023b** Support picker-driven input overrides in the run-creation flow while preserving config-file authority.
   - accept explicit run-input overrides for relevant file or folder paths
@@ -833,13 +851,19 @@ The detailed task inventory below remains the source of truth for exact implemen
   - support explicit no-value reviewer actions including edited-value entry and confirmed-no-data resolution
   - surface structured resolution reasons for non-accepted or manually resolved outcomes
 
-- [x] **T086** Implement the evidence viewer pane using a raw/custom PDF.js viewer for text evidence and attached reviewable figure evidence.
+- [x] **T086** Implement the evidence viewer pane so it supports both annotated evidence inspection and normal PDF reading behavior for text evidence and attached reviewable figure evidence.
   - include zoom and pan capabilities as baseline viewer behavior
   - include previous and next page navigation
   - include jump-to-page-by-number navigation
+  - provide a standard interactive reading mode, or equivalent viewer behavior, with pointer-drag page movement and text selection/copy when the source PDF and viewer foundation permit it
   - focus on the currently selected evidence item when it changes: scroll to and center or highlight the relevant region
   - refocus stably when evidence selection or zoom changes, without arbitrary jumping
   - support figure-to-full-page context: figure evidence viewable as focused crop and as full page from the same pane
+
+- [x] **T086b** Preserve ordinary PDF-viewer fallback affordances from the review pane.
+  - expose an obvious action to open the current PDF in a fuller browser-native viewer when scoped evidence or in-pane controls are insufficient
+  - treat in-viewer text search as recommended when supported cleanly by the chosen viewer mode or browser PDF surface, but do not require a brittle custom search layer for MVP
+  - do not force reviewers to remain in an overlay-only mode when they need to read or copy from the paper naturally
 
 - [x] **T086a** Implement synchronized quote list and document viewer:
   - maintain an ordered list of evidence items for the current proposal (primary first, then supporting in ranked order)

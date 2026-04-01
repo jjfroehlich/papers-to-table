@@ -1,0 +1,514 @@
+{
+  "run_id": "run_20260401_170239_0nhpnj",
+  "pdf_id": "paper_2",
+  "column_name": "Synthetic designs",
+  "query": "Synthetic designs: If the study tests only native sequences or if sequences are changed.",
+  "top_k": 10,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_2_p1_7",
+      "source_block_id": "paper_2_p1_7",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 7,
+      "display_text": "Check for updates",
+      "retrieval_text": "[Section: Compatibility rules of human enhancer and promoter sequences] Check for updates",
+      "bbox": [
+        50.50249862,
+        579.8904990320312,
+        120.52649861999993,
+        572.8869371442307
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules of human enhancer and promoter sequences",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p1_8",
+      "source_block_id": "paper_2_p1_8",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 8,
+      "display_text": "The extent to which distal enhancers might activate specific types of promoters has been an outstanding question in human gene regulation. Since their initial discovery, enhancers have been defined in part based on their ability to activate multiple non-cognate promoter sequences 10,11 . High-throughput reporter assays have now confirmed that many enhancer sequences derived from the human genome have the capability to activate various human, viral and synthetic promoters 12-18 .",
+      "retrieval_text": "[Section: Compatibility rules of human enhancer and promoter sequences] The extent to which distal enhancers might activate specific types of promoters has been an outstanding question in human gene regulation. Since their initial discovery, enhancers have been defined in part based on their ability to activate multiple non-cognate promoter sequences 10,11 . High-throughput reporter assays have now confirmed that many enhancer sequences derived from the human genome have the capability to activate various human, viral and synthetic promoters 12-18 .",
+      "bbox": [
+        39.68500137,
+        268.3069306620313,
+        296.40893450067915,
+        185.4003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules of human enhancer and promoter sequences",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p1_9",
+      "source_block_id": "paper_2_p1_9",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 9,
+      "display_text": "transcriptional cofactors 20 . Together, these studies have suggested a 'biochemical compatibility' model in which different enhancers might have an intrinsic preference for activating different promoter sequences based on the transcription factors (TFs) and cofactors that they can recruit 2,21 .",
+      "retrieval_text": "[Section: Compatibility rules of human enhancer and promoter sequences] transcriptional cofactors 20 . Together, these studies have suggested a 'biochemical compatibility' model in which different enhancers might have an intrinsic preference for activating different promoter sequences based on the transcription factors (TFs) and cofactors that they can recruit 2,21 .",
+      "bbox": [
+        306.14169311,
+        269.4306171376313,
+        562.860403690048,
+        217.6503462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules of human enhancer and promoter sequences",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p1_10",
+      "source_block_id": "paper_2_p1_10",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 10,
+      "display_text": "Yet, other observations have suggested that enhancers and promoters have some degree of intrinsic specificity. Early studies identified individual examples in which particular enhancers or cofactors showed stronger activation with certain core promoters 3-8 . More recently, studies using Drosophila and high-throughput reporter assays revealed that developmental and housekeeping gene promoters show greater than tenfold preferences for different classes of genomic enhancers 9 , have differing levels of sequence-encoded responsiveness to enhancer activation 19 and  respond differently to recruitment of various",
+      "retrieval_text": "[Section: Compatibility rules of human enhancer and promoter sequences] Yet, other observations have suggested that enhancers and promoters have some degree of intrinsic specificity. Early studies identified individual examples in which particular enhancers or cofactors showed stronger activation with certain core promoters 3-8 . More recently, studies using Drosophila and high-throughput reporter assays revealed that developmental and housekeeping gene promoters show greater than tenfold preferences for different classes of genomic enhancers 9 , have differing levels of sequence-encoded responsiveness to enhancer activation 19 and  respond differently to recruitment of various",
+      "bbox": [
+        39.68500137,
+        182.30693066203128,
+        296.43828165776154,
+        88.6503462870312
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules of human enhancer and promoter sequences",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p1_11",
+      "source_block_id": "paper_2_p1_11",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 11,
+      "display_text": "Despite these advances, the biochemical compatibility model has not yet been systematically tested for human enhancers and promoters. As such, it remains unclear whether compatibility classes of enhancers and promoters exist in the human genome and, if so, how their enhancer and promoter activity combine and how such specificity is encoded.",
+      "retrieval_text": "[Section: Compatibility rules of human enhancer and promoter sequences] Despite these advances, the biochemical compatibility model has not yet been systematically tested for human enhancers and promoters. As such, it remains unclear whether compatibility classes of enhancers and promoters exist in the human genome and, if so, how their enhancer and promoter activity combine and how such specificity is encoded.",
+      "bbox": [
+        306.14169311,
+        214.55693066203128,
+        562.843521071019,
+        163.9003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules of human enhancer and promoter sequences",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p1_12",
+      "source_block_id": "paper_2_p1_12",
+      "chunk_type": "section",
+      "page_number": 1,
+      "reading_order": 12,
+      "display_text": "Measuring enhancer-promoter compatibility",
+      "retrieval_text": "Measuring enhancer-promoter compatibility",
+      "bbox": [
+        306.14169311,
+        142.38993066203125,
+        519.8899681109752,
+        133.36696498580181
+      ],
+      "provenance": "docling",
+      "section_context": "Measuring enhancer-promoter compatibility",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p8_81",
+      "source_block_id": "paper_2_p8_81",
+      "chunk_type": "section",
+      "page_number": 8,
+      "reading_order": 81,
+      "display_text": "Discussion",
+      "retrieval_text": "Discussion",
+      "bbox": [
+        39.68500137,
+        572.3898085920313,
+        90.68725136999998,
+        563.3668429158018
+      ],
+      "provenance": "docling",
+      "section_context": "Discussion",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p8_82",
+      "source_block_id": "paper_2_p8_82",
+      "chunk_type": "paragraph",
+      "page_number": 8,
+      "reading_order": 82,
+      "display_text": "Since the discovery of the first enhancers 40 years ago 10,11 , many enhancer and promoter sequences have been combined and found to be compatible 12-18 . At the same time, studies of individual natural or synthetic core promoters have been found to have some degree of specificity when combined with various transcriptional cofactors or enhancer sequences 3-8 .",
+      "retrieval_text": "[Section: Discussion] Since the discovery of the first enhancers 40 years ago 10,11 , many enhancer and promoter sequences have been combined and found to be compatible 12-18 . At the same time, studies of individual natural or synthetic core promoters have been found to have some degree of specificity when combined with various transcriptional cofactors or enhancer sequences 3-8 .",
+      "bbox": [
+        39.68500137,
+        559.6805560976312,
+        296.3016502944012,
+        497.15034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Discussion",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p8_83",
+      "source_block_id": "paper_2_p8_83",
+      "chunk_type": "paragraph",
+      "page_number": 8,
+      "reading_order": 83,
+      "display_text": "Here we developed and applied ExP STARR-seq to systematically quantify enhancer-promoter compatibility and identified a simple rule for combining human enhancer and promoter activities. Enhancers are intrinsically compatible with many RNA polymerase II promoter sequences and act multiplicatively to scale the RNA output of a promoter. As a result, independent control of intrinsic enhancer activity and intrinsic promoter activity can create significant variation in RNA expression. In our data, promoter activity and enhancer activity each vary by more than three orders of magnitude, with their multiplicative combination explaining much of the observed >250,000-fold variation in STARR-seq expression (Fig. 2i and Extended Data Fig. 2k-l). This broad compatibility appears to be consistent with recent studies that used other reporter approaches. That is, human core promoters or enhancers are similarly scaled when they are inserted into different genomic loci 40,41 , and randomly generated enhancer and promoter sequences combine multiplicatively in STARR-seq experiments in three other cell lines 36 . This is also consistent with our previous finding 22 that the effects of enhancers on nearby genes in the genome can be predicted with good accuracy using the ABC model. This model assumes that all enhancers and promoters are equally compatible and that enhancer activity and 3D enhancer-promoter contact frequencies tune the relative effect of an enhancer on gene expression.",
+      "retrieval_text": "[Section: Discussion] Here we developed and applied ExP STARR-seq to systematically quantify enhancer-promoter compatibility and identified a simple rule for combining human enhancer and promoter activities. Enhancers are intrinsically compatible with many RNA polymerase II promoter sequences and act multiplicatively to scale the RNA output of a promoter. As a result, independent control of intrinsic enhancer activity and intrinsic promoter activity can create significant variation in RNA expression. In our data, promoter activity and enhancer activity each vary by more than three orders of magnitude, with their multiplicative combination explaining much of the observed >250,000-fold variation in STARR-seq expression (Fig. 2i and Extended Data Fig. 2k-l). This broad compatibility appears to be consistent with recent studies that used other reporter approaches. That is, human core promoters or enhancers are similarly scaled when they are inserted into different genomic loci 40,41 , and randomly generated enhancer and promoter sequences combine multiplicatively in STARR-seq experiments in three other cell lines 36 . This is also consistent with our previous finding 22 that the effects of enhancers on nearby genes in the genome can be predicted with good accuracy using the ABC model. This model assumes that all enhancers and promoters are equally compatible and that enhancer activity and 3D enhancer-promoter contact frequencies tune the relative effect of an enhancer on gene expression.",
+      "bbox": [
+        39.68410494999998,
+        494.0569306620313,
+        296.42452291718996,
+        260.6503462870312
+      ],
+      "provenance": "docling",
+      "section_context": "Discussion",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p8_84",
+      "source_block_id": "paper_2_p8_84",
+      "chunk_type": "paragraph",
+      "page_number": 8,
+      "reading_order": 84,
+      "display_text": "We also identified two classes of enhancers and promoters that have subtle preferences in activation. One class of promoters, corresponding largely to ubiquitously expressed (housekeeping) genes, is less responsive to distal enhancers both in ExP STARR-seq and in the genome, whereas the second class of promoters, corresponding to variably expressed genes, is more responsive. Previous studies have identified numerous differences in sequence content and motifs between the promoters of housekeeping and context-specific genes 30-34 . We found that these promoters indeed showed intrinsic differences in their levels of activity and responsiveness to enhancers. In particular, P2 promoters contain built-in activating sequences that increase both enhancer and promoter activity, which seem to reduce their responsiveness to distal enhancers. This model for human promoters appears to differ qualitatively from previous studies of Drosophila , which found that the promoters of housekeeping and developmentally regulated genes can both be highly responsive, but to distinct sets of enhancer sequences and cofactors 9,20 .",
+      "retrieval_text": "[Section: Discussion] We also identified two classes of enhancers and promoters that have subtle preferences in activation. One class of promoters, corresponding largely to ubiquitously expressed (housekeeping) genes, is less responsive to distal enhancers both in ExP STARR-seq and in the genome, whereas the second class of promoters, corresponding to variably expressed genes, is more responsive. Previous studies have identified numerous differences in sequence content and motifs between the promoters of housekeeping and context-specific genes 30-34 . We found that these promoters indeed showed intrinsic differences in their levels of activity and responsiveness to enhancers. In particular, P2 promoters contain built-in activating sequences that increase both enhancer and promoter activity, which seem to reduce their responsiveness to distal enhancers. This model for human promoters appears to differ qualitatively from previous studies of Drosophila , which found that the promoters of housekeeping and developmentally regulated genes can both be highly responsive, but to distinct sets of enhancer sequences and cofactors 9,20 .",
+      "bbox": [
+        39.68500137,
+        257.5569306620313,
+        296.3710579401359,
+        88.6503462870312
+      ],
+      "provenance": "docling",
+      "section_context": "Discussion",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p8_85",
+      "source_block_id": "paper_2_p8_85",
+      "chunk_type": "paragraph",
+      "page_number": 8,
+      "reading_order": 85,
+      "display_text": "Together, these observations suggest a model in which the effects of enhancers on nearby genes in the human genome is controlled by quantitative tuning of intrinsic promoter activity, intrinsic enhancer activity and 3D enhancer-promoter contacts, with enhancer-promoter class compatibilities playing an additional but smaller part (Extended Data Fig. 10). Beyond these factors, further work will be required to identify and predict cases for which promoters are responsive only to certain chromatin environments, cofactors or enhancer sequences 3-8 . Regarding the latter possibility, other parallel studies have examined effects not explained by a multiplicative ExP model and found that combinations of TFs in enhancer and promoter sequences may mediate additional specificity 36,39 .",
+      "retrieval_text": "[Section: Discussion] Together, these observations suggest a model in which the effects of enhancers on nearby genes in the human genome is controlled by quantitative tuning of intrinsic promoter activity, intrinsic enhancer activity and 3D enhancer-promoter contacts, with enhancer-promoter class compatibilities playing an additional but smaller part (Extended Data Fig. 10). Beyond these factors, further work will be required to identify and predict cases for which promoters are responsive only to certain chromatin environments, cofactors or enhancer sequences 3-8 . Regarding the latter possibility, other parallel studies have examined effects not explained by a multiplicative ExP model and found that combinations of TFs in enhancer and promoter sequences may mediate additional specificity 36,39 .",
+      "bbox": [
+        39.68500137,
+        85.55693066203128,
+        296.3676063036634,
+        45.65034246703124
+      ],
+      "provenance": "docling",
+      "section_context": "Discussion",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p8_86",
+      "source_block_id": "paper_2_p8_86",
+      "chunk_type": "paragraph",
+      "page_number": 8,
+      "reading_order": 86,
+      "display_text": "A remaining challenge will be to link the sequences that control enhancer and promoter activities with effects on particular biochemical steps in transcription. In this respect, we found that GABPA and YY1 bind both to P2 promoters and to distal enhancers, and are associated with increased enhancer activity, increased promoter activity and reduced promoter responsiveness to distal enhancers. This suggests that distal enhancers may act, in part, on a particular rate-limiting step in transcription that can be saturated by the inclusion of built-in activating sequences in a gene promoter. Indeed, a previous study 35 found that adding GABPA and YY1 motifs to several promoters led to an increase in RNA expression that saturates at two or five copies of the motif, respectively. Given the preferred positions of these motifs within 20 bp of the TSS-as well as previous findings that these proteins physically interact with general TFs 42,43 and/or influence transcriptional initiation and TSS selection 37,44-46 -such a rate-limiting step might involve assembly of the preinitiation complex. In addition to this step, our data are consistent with a model in which enhancers and promoters control additional steps in transcription that multiplicatively combine and do not saturate in the dynamic range of our assay. Examples of such processes that could multiplicatively combine include control of burst frequency and burst size 47 . Further work will be required to investigate these possibilities.",
+      "retrieval_text": "[Section: Discussion] A remaining challenge will be to link the sequences that control enhancer and promoter activities with effects on particular biochemical steps in transcription. In this respect, we found that GABPA and YY1 bind both to P2 promoters and to distal enhancers, and are associated with increased enhancer activity, increased promoter activity and reduced promoter responsiveness to distal enhancers. This suggests that distal enhancers may act, in part, on a particular rate-limiting step in transcription that can be saturated by the inclusion of built-in activating sequences in a gene promoter. Indeed, a previous study 35 found that adding GABPA and YY1 motifs to several promoters led to an increase in RNA expression that saturates at two or five copies of the motif, respectively. Given the preferred positions of these motifs within 20 bp of the TSS-as well as previous findings that these proteins physically interact with general TFs 42,43 and/or influence transcriptional initiation and TSS selection 37,44-46 -such a rate-limiting step might involve assembly of the preinitiation complex. In addition to this step, our data are consistent with a model in which enhancers and promoters control additional steps in transcription that multiplicatively combine and do not saturate in the dynamic range of our assay. Examples of such processes that could multiplicatively combine include control of burst frequency and burst size 47 . Further work will be required to investigate these possibilities.",
+      "bbox": [
+        306.14181518,
+        655.3069306620313,
+        562.8736246796822,
+        432.65034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Discussion",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p8_87",
+      "source_block_id": "paper_2_p8_87",
+      "chunk_type": "paragraph",
+      "page_number": 8,
+      "reading_order": 87,
+      "display_text": "Our study has several limitations that highlight areas for future work. First, the episomal STARR-seq assay does not capture all mechanisms that might influence transcriptional activation in the genome and may capture effects of sequences on other mechanisms, such as RNA stability 16,17,29 . Second, our experiments were not sufficiently powered to quantify possible compatibility among the weakest enhancers and promoters. Third, the exact proportions of variance explained by factors in the multiplicative model are influenced by the method of selecting enhancers and promoters for the experiment. Fourth, the extent to which promoter and enhancer classes might change across cell types is unclear. Further investigation with genome editing, orthogonal assays and additional cell types will be required to resolve these outstanding questions.",
+      "retrieval_text": "[Section: Discussion] Our study has several limitations that highlight areas for future work. First, the episomal STARR-seq assay does not capture all mechanisms that might influence transcriptional activation in the genome and may capture effects of sequences on other mechanisms, such as RNA stability 16,17,29 . Second, our experiments were not sufficiently powered to quantify possible compatibility among the weakest enhancers and promoters. Third, the exact proportions of variance explained by factors in the multiplicative model are influenced by the method of selecting enhancers and promoters for the experiment. Fourth, the extent to which promoter and enhancer classes might change across cell types is unclear. Further investigation with genome editing, orthogonal assays and additional cell types will be required to resolve these outstanding questions.",
+      "bbox": [
+        306.14181518,
+        429.5569306620313,
+        562.760484386048,
+        292.90059653453125
+      ],
+      "provenance": "docling",
+      "section_context": "Discussion",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_156",
+      "source_block_id": "paper_2_p10_156",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 156,
+      "display_text": "715 genes sampled to span a range of potential promoter activities, including the 200 most highly expressed genes in K562 cells, based on the CAGE signal at their TSS 1 and a random sample of 515 other expressed genes (>1 transcripts per million (TPM) in RNA-seq data 28 ).",
+      "retrieval_text": "[Section: Selection of enhancer and promoter sequences for ExP STARR-seq] 715 genes sampled to span a range of potential promoter activities, including the 200 most highly expressed genes in K562 cells, based on the CAGE signal at their TSS 1 and a random sample of 515 other expressed genes (>1 transcripts per million (TPM) in RNA-seq data 28 ).",
+      "bbox": [
+        306.13848830999996,
+        590.8070588395314,
+        562.731311718717,
+        550.9002242170313
+      ],
+      "provenance": "docling",
+      "section_context": "Selection of enhancer and promoter sequences for ExP STARR-seq",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_157",
+      "source_block_id": "paper_2_p10_157",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 157,
+      "display_text": "20 genes that are not expressed or lowly expressed in K562 cells (<1 TPM), and that are expressed in both GM12878 and HCT-116 cells (in the top 70% of genes by TPM based on RNA-seq 1 ).",
+      "retrieval_text": "[Section: Selection of enhancer and promoter sequences for ExP STARR-seq] 20 genes that are not expressed or lowly expressed in K562 cells (<1 TPM), and that are expressed in both GM12878 and HCT-116 cells (in the top 70% of genes by TPM based on RNA-seq 1 ).",
+      "bbox": [
+        306.14181518,
+        547.8068085920313,
+        562.7703250644328,
+        518.6502242170313
+      ],
+      "provenance": "docling",
+      "section_context": "Selection of enhancer and promoter sequences for ExP STARR-seq",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_158",
+      "source_block_id": "paper_2_p10_158",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 158,
+      "display_text": "100 random genomic sequences as negative controls (positive strand).",
+      "retrieval_text": "[Section: Selection of enhancer and promoter sequences for ExP STARR-seq] 100 random genomic sequences as negative controls (positive strand).",
+      "bbox": [
+        306.13928751750007,
+        515.5570588395312,
+        562.8077140429526,
+        497.15034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Selection of enhancer and promoter sequences for ExP STARR-seq",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_159",
+      "source_block_id": "paper_2_p10_159",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 159,
+      "display_text": "100 dinucleotide shuffles of these random genomic sequences.",
+      "retrieval_text": "[Section: Selection of enhancer and promoter sequences for ExP STARR-seq] 100 dinucleotide shuffles of these random genomic sequences.",
+      "bbox": [
+        306.1433464475,
+        494.05718090953127,
+        546.6720962,
+        486.40059653453125
+      ],
+      "provenance": "docling",
+      "section_context": "Selection of enhancer and promoter sequences for ExP STARR-seq",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_160",
+      "source_block_id": "paper_2_p10_160",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 160,
+      "display_text": "For the selected genes, we synthesized a 264 bp sequence, including approximately 244 bp upstream and 20 bp downstream of the TSS. Here we defined the TSS as the centre of the 10-bp window with the most CAGE 5′ read counts within 1 kbp of a RefSeq TSS. For lowly expressed genes (which lack a clear CAGE signal), we used the hg19 RefSeq-annotated TSS. For genes studied in a previous study 22 , we adjusted the assigned 10 bp TSS window by manual examination of the CAGE if necessary.",
+      "retrieval_text": "[Section: Selection of enhancer and promoter sequences for ExP STARR-seq] For the selected genes, we synthesized a 264 bp sequence, including approximately 244 bp upstream and 20 bp downstream of the TSS. Here we defined the TSS as the centre of the 10-bp window with the most CAGE 5′ read counts within 1 kbp of a RefSeq TSS. For lowly expressed genes (which lack a clear CAGE signal), we used the hg19 RefSeq-annotated TSS. For genes studied in a previous study 22 , we adjusted the assigned 10 bp TSS window by manual examination of the CAGE if necessary.",
+      "bbox": [
+        306.14181518,
+        483.3069306620313,
+        562.8649470953065,
+        400.40034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Selection of enhancer and promoter sequences for ExP STARR-seq",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_161",
+      "source_block_id": "paper_2_p10_161",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 161,
+      "display_text": "For the enhancers, we selected the 1,000 enhancer sequences to include the following:",
+      "retrieval_text": "[Section: Selection of enhancer and promoter sequences for ExP STARR-seq] For the enhancers, we selected the 1,000 enhancer sequences to include the following:",
+      "bbox": [
+        306.14181518,
+        397.3069306620313,
+        562.7998706620107,
+        378.90034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Selection of enhancer and promoter sequences for ExP STARR-seq",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_236",
+      "source_block_id": "paper_2_p14_236",
+      "chunk_type": "section",
+      "page_number": 14,
+      "reading_order": 236,
+      "display_text": "Assessing the cell-type specificity of E1 and E2 enhancers",
+      "retrieval_text": "Assessing the cell-type specificity of E1 and E2 enhancers",
+      "bbox": [
+        39.68510055,
+        258.73743066203133,
+        263.6150505505099,
+        250.85790423716082
+      ],
+      "provenance": "docling",
+      "section_context": "Assessing the cell-type specificity of E1 and E2 enhancers",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_237",
+      "source_block_id": "paper_2_p14_237",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 237,
+      "display_text": "We tested whether E1 and E2 enhancer sequences from ExP STARR-seq overlapped elements predicted to act as enhancers by the ABC model in K562 cells or in 128 other cell types and tissues. To do so, we intersected the E1 and E2 enhancer sequences with the approximately 200-bp regions predicted by the ABC model to act as enhancers for at least 1 nearby expressed gene, as previously defined 51 . The ABC enhancergene predictions from this previous study 51 are available at https:// www.engreitzlab.org/resources/.",
+      "retrieval_text": "[Section: Assessing the cell-type specificity of E1 and E2 enhancers] We tested whether E1 and E2 enhancer sequences from ExP STARR-seq overlapped elements predicted to act as enhancers by the ABC model in K562 cells or in 128 other cell types and tissues. To do so, we intersected the E1 and E2 enhancer sequences with the approximately 200-bp regions predicted by the ABC model to act as enhancers for at least 1 nearby expressed gene, as previously defined 51 . The ABC enhancergene predictions from this previous study 51 are available at https:// www.engreitzlab.org/resources/.",
+      "bbox": [
+        39.68510055,
+        246.80693066203128,
+        296.25777817584475,
+        163.9003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Assessing the cell-type specificity of E1 and E2 enhancers",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_238",
+      "source_block_id": "paper_2_p14_238",
+      "chunk_type": "section",
+      "page_number": 14,
+      "reading_order": 238,
+      "display_text": "Aligning promoters by TSS",
+      "retrieval_text": "Aligning promoters by TSS",
+      "bbox": [
+        39.68510055,
+        151.23743066203133,
+        146.32865055067995,
+        143.35790423716082
+      ],
+      "provenance": "docling",
+      "section_context": "Aligning promoters by TSS",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_258",
+      "source_block_id": "paper_2_p15_258",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 258,
+      "display_text": "Motif ExP STARR-seq analysis",
+      "retrieval_text": "Motif ExP STARR-seq analysis",
+      "bbox": [
+        39.68500137,
+        355.4874306620313,
+        156.48690136982995,
+        347.6079042371608
+      ],
+      "provenance": "docling",
+      "section_context": "Motif ExP STARR-seq analysis",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_259",
+      "source_block_id": "paper_2_p15_259",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 259,
+      "display_text": "For the motif ExP STARR-seq experiment, we followed the methods detailed for the original STARR-seq experiment, but with the following exceptions. We sequenced the promoter DNA pool to a depth of 214.8 million reads. For the construction of the barcode-promoter dictionary, we initially aligned the promoter sequence reads to a specially constructed index of the unedited promoter sequences, using bowtie2 as described for the original STARR-seq experiment but with a slightly relaxed alignment threshold (X: -score-min L,-0.7,-0.7). We then used a custom Python script to check aligned reads at the sites of potential edits. The script reassigned a read to an edited promoter sequence if it perfectly matched the edited sequence at all edit positions and the immediate upstream and downstream base pair. If the read did not perfectly match an edited sequence but also did not match the wild-type sequence at the edit positions, the read was discarded. Reads with <90% perfect match with the entire sequence to which they were assigned were discarded. From this point, we returned to the original STARR-seq methods, namely dropping barcode-promoter pairs with singleton reads, removing ambiguous pairings and thresholding pairs with at least five reads to build the barcode-promoter dictionary.",
+      "retrieval_text": "[Section: Motif ExP STARR-seq analysis] For the motif ExP STARR-seq experiment, we followed the methods detailed for the original STARR-seq experiment, but with the following exceptions. We sequenced the promoter DNA pool to a depth of 214.8 million reads. For the construction of the barcode-promoter dictionary, we initially aligned the promoter sequence reads to a specially constructed index of the unedited promoter sequences, using bowtie2 as described for the original STARR-seq experiment but with a slightly relaxed alignment threshold (X: -score-min L,-0.7,-0.7). We then used a custom Python script to check aligned reads at the sites of potential edits. The script reassigned a read to an edited promoter sequence if it perfectly matched the edited sequence at all edit positions and the immediate upstream and downstream base pair. If the read did not perfectly match an edited sequence but also did not match the wild-type sequence at the edit positions, the read was discarded. Reads with <90% perfect match with the entire sequence to which they were assigned were discarded. From this point, we returned to the original STARR-seq methods, namely dropping barcode-promoter pairs with singleton reads, removing ambiguous pairings and thresholding pairs with at least five reads to build the barcode-promoter dictionary.",
+      "bbox": [
+        39.68500137,
+        343.5569306620313,
+        296.35084258671156,
+        142.4003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Motif ExP STARR-seq analysis",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_260",
+      "source_block_id": "paper_2_p15_260",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 260,
+      "display_text": "We sequenced the pool consisting of two replicates of the input DNA library as well as four replicates of the RNA library to a total of 345.5 million reads. When quantifying STARR-seq expression, unlike with the original STARR-seq experiment, we sequenced two replicates of the input DNA library. Therefore, to quantify the DNA read count for the log 2 (RNA/DNA) calculation, we used the average count of the two replicates, weighted to the same total read count. STARR-seq expression was highly correlated across replicates (minimum R 2 = 0.92; Extended Data Fig. 9a). As with the original STARR-seq experiment, we only included in the final analysis plasmids that had greater than 25 DNA reads and greater than 1 RNA transcript, for a total of 362,905 plasmids across 19,019 promoter-enhancer pairs, with an average of 19 barcodes per pair (Extended Data Fig. 9b). For unedited promoter and enhancer pairs, the STARR-seq expression was highly correlated with the expression in the original ExP STARR-seq experiment (Extended Data Fig. 9c).",
+      "retrieval_text": "[Section: Motif ExP STARR-seq analysis] We sequenced the pool consisting of two replicates of the input DNA library as well as four replicates of the RNA library to a total of 345.5 million reads. When quantifying STARR-seq expression, unlike with the original STARR-seq experiment, we sequenced two replicates of the input DNA library. Therefore, to quantify the DNA read count for the log 2 (RNA/DNA) calculation, we used the average count of the two replicates, weighted to the same total read count. STARR-seq expression was highly correlated across replicates (minimum R 2 = 0.92; Extended Data Fig. 9a). As with the original STARR-seq experiment, we only included in the final analysis plasmids that had greater than 25 DNA reads and greater than 1 RNA transcript, for a total of 362,905 plasmids across 19,019 promoter-enhancer pairs, with an average of 19 barcodes per pair (Extended Data Fig. 9b). For unedited promoter and enhancer pairs, the STARR-seq expression was highly correlated with the expression in the original ExP STARR-seq experiment (Extended Data Fig. 9c).",
+      "bbox": [
+        39.68500137,
+        139.30693066203128,
+        296.4188308915224,
+        45.65034246703124
+      ],
+      "provenance": "docling",
+      "section_context": "Motif ExP STARR-seq analysis",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_269",
+      "source_block_id": "paper_2_p15_269",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 269,
+      "display_text": "Data availability",
+      "retrieval_text": "Data availability",
+      "bbox": [
+        306.14181518,
+        260.63993066203125,
+        383.3325651799999,
+        251.61696498580181
+      ],
+      "provenance": "docling",
+      "section_context": "Data availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_270",
+      "source_block_id": "paper_2_p15_270",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 270,
+      "display_text": "Raw and processed data for ExP STARR-seq, motif ExP STARR-seq, HS-STARR-seq and K562 PRO-seq can be found at the NCBI's Gene Expression Omnibus under accession number GSE184426. Luciferase data can be found in Supplementary Table 3. Datasets used from the ENCODE Project are listed in Supplementary Table 10 and are available at https://www.encodeproject.org. Additional resources and protocols related to this study are available at https://www.engreitzlab.org/ resources/.",
+      "retrieval_text": "[Section: Data availability] Raw and processed data for ExP STARR-seq, motif ExP STARR-seq, HS-STARR-seq and K562 PRO-seq can be found at the NCBI's Gene Expression Omnibus under accession number GSE184426. Luciferase data can be found in Supplementary Table 3. Datasets used from the ENCODE Project are listed in Supplementary Table 10 and are available at https://www.encodeproject.org. Additional resources and protocols related to this study are available at https://www.engreitzlab.org/ resources/.",
+      "bbox": [
+        306.14181518,
+        246.80693066203128,
+        562.8682975672606,
+        163.9003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Data availability",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_271",
+      "source_block_id": "paper_2_p15_271",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 271,
+      "display_text": "Code availability",
+      "retrieval_text": "Code availability",
+      "bbox": [
+        306.14181518,
+        142.38993066203125,
+        385.03784018097497,
+        133.36696498580181
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": true
+    }
+  ],
+  "retrieved_at": "2026-04-01T17:19:31.391205+00:00"
+}

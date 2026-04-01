@@ -9,5 +9,6 @@ describe('api client', () => {
     expect(typeof api.createRun).toBe('function')
     expect(typeof api.getRunConfig).toBe('function')
     expect(typeof api.getRunInputs).toBe('function')
+    expect(typeof api.openPdfInLocalViewer).toBe('function')
   })
 })

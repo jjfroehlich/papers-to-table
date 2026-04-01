@@ -1,0 +1,29 @@
+{
+  "proposal_id": "prop_run_20260401_170239_0nhpnj_cell_88af7b440025_1775063741462",
+  "run_id": "run_20260401_170239_0nhpnj",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "Approach",
+  "cell_id": "cell_88af7b440025",
+  "state": "found",
+  "support": "direct_evidence",
+  "proposed_value": "ExP STARR-seq involves cloning 264 bp enhancer and promoter sequences in all pairwise combinations into a plasmid vector with a unique 16-bp plasmid barcode (BC) adjacent to the enhancer; the plasmid pool is transfected into cells, and reporter transcripts are quantified via RNA-seq; STARR-seq expression is calculated as RNA/DNA ratio normalized per plasmid, enabling high-throughput, quantitative measurement of enhancer-promoter compatibility across ~1 million pairs with >1 billion reads per replicate, using virtual replicates to assess barcode variability and naive averaging to estimate intrinsic promoter and enhancer activities.",
+  "rationale": "- ExP STARR-seq uses pairwise cloning of 264 bp sequences with unique 16-bp plasmid barcodes into a modified STARR-seq vector, followed by transfection and RNA-seq to measure expression (Passage 1, 2). \n- STARR-seq expression is calculated as RNA/DNA ratio per plasmid, enabling quantification of ~1 million enhancer-promoter pairs with high reproducibility (R² = 0.92) and deep sequencing (>1 billion reads) (Passage 4, 5). \n- Intrinsic activities are estimated via naive averaging: promoter activity is the average log2(STARR-seq expression) when paired with random enhancers, and similarly for enhancer activity (Passage 9).",
+  "calculation": "The approach is directly described in the paper, with no need for calculation beyond summarizing the described methodology.",
+  "primary_evidence_id": "ev_prop_run_20260401_170239_0nhpnj_cell_88af7b440025_1775063741462_cvh729np",
+  "ordered_supporting_evidence_ids": [
+    "ev_prop_run_20260401_170239_0nhpnj_cell_88af7b440025_1775063741462_3l4ua2n5",
+    "ev_prop_run_20260401_170239_0nhpnj_cell_88af7b440025_1775063741462_ebbobni9"
+  ],
+  "evidence_ids": [
+    "ev_prop_run_20260401_170239_0nhpnj_cell_88af7b440025_1775063741462_cvh729np",
+    "ev_prop_run_20260401_170239_0nhpnj_cell_88af7b440025_1775063741462_3l4ua2n5",
+    "ev_prop_run_20260401_170239_0nhpnj_cell_88af7b440025_1775063741462_ebbobni9"
+  ],
+  "warning_flags": [],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "PxE, P-BC-E, STARRseq",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T17:15:41.462602+00:00"
+}

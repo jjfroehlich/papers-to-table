@@ -82,6 +82,8 @@ class FigureCaptionPair(BaseModel):
     caption_block_id: Optional[str] = None
     caption_text: Optional[str] = None
     bbox: Optional[list[float]] = None  # figure region in PDF points
+    crop_path: Optional[str] = None
+    full_page_path: Optional[str] = None
 
 
 class ParsedDocument(BaseModel):
@@ -261,18 +263,30 @@ class PDFiumBackend:
         width = page.get_width()
         height = page.get_height()
 
-        x0 = max(0.0, bbox[0] - padding)
-        y0 = max(0.0, bbox[1] - padding)
-        x1 = min(width, bbox[2] + padding)
-        y1 = min(height, bbox[3] + padding)
+        x0_raw, x1_raw = sorted((bbox[0], bbox[2]))
+        y0_raw, y1_raw = sorted((bbox[1], bbox[3]))
+
+        x0 = max(0.0, x0_raw - padding)
+        y0 = max(0.0, y0_raw - padding)
+        x1 = min(width, x1_raw + padding)
+        y1 = min(height, y1_raw + padding)
+
+        if x1 <= x0 or y1 <= y0:
+            raise ValueError(f"Invalid crop bbox: {bbox}")
 
         bitmap = page.render(
             scale=scale,
             rotation=0,
-            crop=(x0, y0, x1, y1),
             may_draw_forms=False,
         )
         pil_image = bitmap.to_pil()
+        crop_box = (
+            int(round(x0 * scale)),
+            int(round(y0 * scale)),
+            int(round(x1 * scale)),
+            int(round(y1 * scale)),
+        )
+        pil_image = pil_image.crop(crop_box)
         buf = io.BytesIO()
         pil_image.save(buf, format="PNG", optimize=True)
         return buf.getvalue()
@@ -693,7 +707,10 @@ class DoclingParserAdapter(ParserAdapter):
         reading_order = 0
         figure_counter = 0
 
-        for item in doc.iterate_items():
+        for item_entry in doc.iterate_items():
+            # Newer docling versions yield (item, level) tuples here.
+            item = item_entry[0] if isinstance(item_entry, tuple) else item_entry
+
             from docling_core.types.doc import (
                 DocItemLabel,
                 SectionHeaderItem,
@@ -1063,6 +1080,60 @@ def generate_page_artifacts(
     return artifact_paths
 
 
+def generate_figure_artifacts(
+    run_dir: pathlib.Path,
+    pdf_path: str,
+    doc: ParsedDocument,
+    page_artifact_paths: Optional[list[str]] = None,
+    scale: float = 2.0,
+) -> ParsedDocument:
+    """Render detected figures to crop artifacts and attach artifact paths."""
+    if not doc.figures:
+        return doc
+
+    figures_dir = get_parsed_dir(run_dir, doc.pdf_id) / "figures"
+    figures_dir.mkdir(parents=True, exist_ok=True)
+
+    page_path_by_number: dict[int, str] = {}
+    for rel_path in page_artifact_paths or []:
+        match = re.search(r"page_(\d+)\.png$", rel_path)
+        if match:
+            page_path_by_number[int(match.group(1))] = rel_path.replace("\\", "/")
+
+    backend = PDFiumBackend(pdf_path)
+    updated_figures: list[FigureCaptionPair] = []
+    try:
+        for figure in doc.figures:
+            crop_path = figure.crop_path
+            full_page_path = figure.full_page_path or page_path_by_number.get(figure.page_number)
+
+            if figure.bbox is not None and 1 <= figure.page_number <= len(backend):
+                try:
+                    png_bytes = backend.render_crop(
+                        figure.page_number - 1,
+                        figure.bbox,
+                        scale=scale,
+                    )
+                    out_path = figures_dir / f"{figure.figure_id}.png"
+                    out_path.write_bytes(png_bytes)
+                    crop_path = str(out_path.relative_to(run_dir)).replace("\\", "/")
+                except Exception:
+                    pass
+
+            updated_figures.append(
+                figure.model_copy(
+                    update={
+                        "crop_path": crop_path,
+                        "full_page_path": full_page_path,
+                    }
+                )
+            )
+    finally:
+        backend.close()
+
+    return doc.model_copy(update={"figures": updated_figures})
+
+
 def generate_crop_artifact(
     run_dir: pathlib.Path,
     pdf_path: str,
@@ -1219,6 +1290,13 @@ def parse_pdf(
         page_artifact_paths = generate_page_artifacts(
             run_dir, pdf_path, pdf_id, scale=page_render_scale
         )
+
+    doc = generate_figure_artifacts(
+        run_dir,
+        pdf_path,
+        doc,
+        page_artifact_paths=page_artifact_paths,
+    )
 
     diagnostics = build_diagnostics(doc, page_artifact_paths)
     persist_parse_artifacts(run_dir, doc, diagnostics)

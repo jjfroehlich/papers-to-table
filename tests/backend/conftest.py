@@ -32,6 +32,9 @@ def minimal_config_dict(tmp_output_dir: pathlib.Path) -> dict:
         "provider": {
             "token": "lm_studio",
             "base_url": "http://localhost:1234",
+            "text_model": {
+                "model_id": "qwen/qwen3-30b-a3b-2507"
+            },
         },
     }
 

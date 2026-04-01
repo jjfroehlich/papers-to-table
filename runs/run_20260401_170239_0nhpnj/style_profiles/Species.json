@@ -1,0 +1,14 @@
+{
+  "column_name": "Species",
+  "field_type_guess": "categorical",
+  "expected_length": "short",
+  "tone": "neutral",
+  "detail_level": "low",
+  "value_shape": "single species name or species combination",
+  "unit_style": null,
+  "format_notes": "Some entries include combinations like 'human/virus'; values are lowercase and use common biological species names.",
+  "example_risk": "medium",
+  "generated_at": "2026-04-01T17:06:54.737586+00:00",
+  "source_column_count": 177,
+  "provider_mode": "live_llm"
+}

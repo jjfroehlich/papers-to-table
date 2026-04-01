@@ -28,8 +28,10 @@ A local-first paper-to-table review app. Ingest scientific PDFs and a structured
 ```bash
 git clone <repo-url>
 cd paper-table-agent
-pip install fastapi "uvicorn[standard]" "pydantic>=2" openpyxl pandas python-multipart httpx rank-bm25
+pip install -e ./backend
 ```
+
+> **Note:** This installs all required backend packages including `docling` (the PDF parser) and `pypdfium2`. `docling` downloads ML models on first use and may take a minute.
 
 ### 2. Install frontend dependencies
 
@@ -42,7 +44,7 @@ cd ..
 ### 3. Start the backend
 
 ```bash
-uvicorn backend.app.main:app --reload --port 8000
+python -m uvicorn backend.app.main:app --reload --port 8000
 ```
 
 The API will be available at `http://localhost:8000`.
@@ -283,7 +285,7 @@ Canonical test fixtures are in `tests/fixtures/`:
 
 | Command | What it does |
 |---|---|
-| `uvicorn backend.app.main:app --reload` | Start backend (dev, auto-reload) |
+| `python -m uvicorn backend.app.main:app --reload` | Start backend (dev, auto-reload) |
 | `cd frontend && npm run dev` | Start frontend dev server |
 | `cd frontend && npm run build` | Build frontend for production |
 | `cd frontend && npm run lint` | Run ESLint |

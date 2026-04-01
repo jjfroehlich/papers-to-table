@@ -19,8 +19,6 @@ from .artifacts import (
 from .config import RunConfig, check_readiness
 from .extraction import (
     extract_cell,
-    make_blocked_proposal,
-    make_skipped_proposal,
 )
 from .ids import generate_cell_id, generate_row_id, generate_run_id
 from .ingest import (
@@ -31,7 +29,7 @@ from .ingest import (
     validate_schema_columns,
 )
 from .lifecycle import apply_transition
-from .matching import persist_match_artifacts, run_matching
+from .matching import MatchResult, persist_match_artifacts, run_matching
 from .parsing import parse_pdf
 from .provider import ProviderError, initialize_provider
 from .retrieval import run_retrieval_for_cell
@@ -94,6 +92,11 @@ async def run_pipeline(
         data["current_stage"] = stage
         return data
 
+    def fail_run(data: dict, error_message: str) -> dict:
+        data = apply_transition(data, RunStatus.failed, error_message=error_message)
+        data["current_stage"] = None
+        return data
+
     run_data = get_initial_run_data(run_id, config, config_path)
     init_run_bundle(output_dir, run_id)
     save_run(run_data)
@@ -125,11 +128,7 @@ async def run_pipeline(
 
         readiness = await check_readiness(config)
         if not readiness.ok:
-            run_data = apply_transition(
-                run_data,
-                RunStatus.failed,
-                error_message="; ".join(readiness.errors),
-            )
+            run_data = fail_run(run_data, "; ".join(readiness.errors))
             save_run(run_data)
             return
 
@@ -142,22 +141,14 @@ async def run_pipeline(
 
         meta_errors = validate_metadata_columns(df)
         if meta_errors:
-            run_data = apply_transition(
-                run_data,
-                RunStatus.failed,
-                error_message="; ".join(meta_errors),
-            )
+            run_data = fail_run(run_data, "; ".join(meta_errors))
             save_run(run_data)
             return
 
         schema = load_schema(config.schema_path, config.table_path)
         schema_errors = validate_schema_columns(schema)
         if schema_errors:
-            run_data = apply_transition(
-                run_data,
-                RunStatus.failed,
-                error_message="; ".join(schema_errors),
-            )
+            run_data = fail_run(run_data, "; ".join(schema_errors))
             save_run(run_data)
             return
 
@@ -230,23 +221,23 @@ async def run_pipeline(
         # Record match-outcome warnings
         from .schemas import WarningCategory as WC
         for mr in match_results:
-            if mr["outcome"] == MatchOutcome.unmatched.value:
+            if mr.outcome == MatchOutcome.unmatched:
                 run_data.setdefault("warnings", []).append({
                     "category": WC.unmatched_pdf.value,
-                    "message": f"PDF not matched to any table row: {mr['pdf_id']}",
-                    "context": {"pdf_id": mr["pdf_id"]},
+                    "message": f"PDF not matched to any table row: {mr.pdf_id}",
+                    "context": {"pdf_id": mr.pdf_id},
                 })
-            elif mr["outcome"] == MatchOutcome.ambiguous.value:
+            elif mr.outcome == MatchOutcome.ambiguous:
                 run_data.setdefault("warnings", []).append({
                     "category": WC.ambiguous_match.value,
-                    "message": f"PDF match ambiguous: {mr['pdf_id']}",
-                    "context": {"pdf_id": mr["pdf_id"]},
+                    "message": f"PDF match ambiguous: {mr.pdf_id}",
+                    "context": {"pdf_id": mr.pdf_id},
                 })
-            elif mr["outcome"] == MatchOutcome.duplicate_row_conflict.value:
+            elif mr.outcome == MatchOutcome.duplicate_row_conflict:
                 run_data.setdefault("warnings", []).append({
                     "category": WC.duplicate_row_conflict.value,
-                    "message": f"Duplicate row conflict: {mr['pdf_id']}",
-                    "context": {"pdf_id": mr["pdf_id"]},
+                    "message": f"Duplicate row conflict: {mr.pdf_id}",
+                    "context": {"pdf_id": mr.pdf_id},
                 })
         save_run(run_data)
 
@@ -279,6 +270,14 @@ async def run_pipeline(
             })
             save_run(run_data)
 
+        if provider is None:
+            run_data = fail_run(
+                run_data,
+                provider_init_error or "Provider unavailable during initialization",
+            )
+            save_run(run_data)
+            return
+
         # Persist provider mode in run artifacts (T052a)
         if provider_mode:
             write_json(run_dir / "provider_mode.json", provider_mode.model_dump())
@@ -293,6 +292,7 @@ async def run_pipeline(
             df=df,
             schema=schema,
             provider=provider,  # None → heuristic fallback
+            model_id=text_model_id if provider is not None else None,
         )
 
         # Stage: extraction (T057)
@@ -300,136 +300,86 @@ async def run_pipeline(
         save_run(run_data)
 
         # Build a lookup: matched_row_index → match_result
-        matched: dict[int, dict] = {}
+        matched: dict[int, MatchResult] = {}
         for mr in match_results:
-            if mr["outcome"] == MatchOutcome.matched.value and mr.get("matched_row_index") is not None:
-                matched[mr["matched_row_index"]] = mr
+            if mr.outcome == MatchOutcome.matched and mr.matched_row_index is not None:
+                matched[mr.matched_row_index] = mr
 
         proposals_generated = 0
 
-        if provider is None:
-            # Provider unavailable — record skipped proposals for each eligible cell
-            for cell in eligible:
-                row_idx = cell.get("row_index", 0)
-                pdf_id = ""
-                match_result = matched.get(row_idx)
-                if match_result:
-                    pdf_id = match_result.get("pdf_id", "")
-                row_id = generate_row_id(row_idx, str(df.iloc[row_idx].get("Title", "") if row_idx < len(df) else ""))
-                cell_id = generate_cell_id(row_id, cell["column_name"])
-                make_skipped_proposal(
-                    run_id=run_id,
-                    pdf_id=pdf_id or "unknown",
-                    row_id=row_id,
-                    cell_id=cell_id,
-                    column_name=cell["column_name"],
-                    skip_reason=f"Provider unavailable: {provider_init_error}",
-                    run_dir=run_dir,
-                )
-        else:
-            # Build doc dict lookup: pdf_id → parsed_doc dict
-            doc_by_pdf_id: dict[str, dict] = {}
-            for doc in parsed_docs:
-                doc_by_pdf_id[doc["pdf_id"]] = doc
+        # Build doc dict lookup: pdf_id → parsed_doc dict
+        doc_by_pdf_id: dict[str, dict] = {}
+        for doc in parsed_docs:
+            doc_by_pdf_id[doc["pdf_id"]] = doc
 
-            # Build column description lookup
-            col_descriptions = {c["column_name"]: c.get("description", "") for c in schema}
+        # Build column description lookup
+        col_descriptions = {c["column_name"]: c.get("description", "") for c in schema}
+        missing_doc_warnings: set[str] = set()
 
-            # Process eligible cells grouped by row
-            for cell in eligible:
-                row_idx = cell.get("row_index", 0)
-                col_name = cell["column_name"]
-                col_desc = col_descriptions.get(col_name, "")
+        # Process eligible cells only for rows with a usable PDF match.
+        for cell in eligible:
+            row_idx = cell.get("row_index", 0)
+            col_name = cell["column_name"]
+            col_desc = col_descriptions.get(col_name, "")
 
-                # Find the matched PDF for this row
-                match_result = matched.get(row_idx)
-                if not match_result:
-                    # No matched PDF for this row — record blocked proposal
-                    row_id = generate_row_id(row_idx, "")
-                    cell_id = generate_cell_id(row_id, col_name)
-                    make_blocked_proposal(
-                        run_id=run_id,
-                        pdf_id="unknown",
-                        row_id=row_id,
-                        cell_id=cell_id,
-                        column_name=col_name,
-                        blocked_reason="No PDF matched to this row",
-                        run_dir=run_dir,
-                    )
-                    continue
+            match_result = matched.get(row_idx)
+            if not match_result or match_result.blocked:
+                continue
 
-                pdf_id = match_result["pdf_id"]
-                if match_result.get("blocked", False):
-                    row_id = generate_row_id(row_idx, "")
-                    cell_id = generate_cell_id(row_id, col_name)
-                    make_blocked_proposal(
-                        run_id=run_id,
-                        pdf_id=pdf_id,
-                        row_id=row_id,
-                        cell_id=cell_id,
-                        column_name=col_name,
-                        blocked_reason=match_result.get("blocked_reason") or "PDF match blocked",
-                        run_dir=run_dir,
-                    )
-                    continue
+            pdf_id = match_result.pdf_id
+            doc_dict = doc_by_pdf_id.get(pdf_id)
+            if doc_dict is None:
+                if pdf_id not in missing_doc_warnings:
+                    run_data.setdefault("warnings", []).append({
+                        "category": WC.partial_extraction.value,
+                        "message": f"Parsed document not found for matched PDF: {pdf_id}",
+                        "context": {"pdf_id": pdf_id},
+                    })
+                    missing_doc_warnings.add(pdf_id)
+                    save_run(run_data)
+                continue
 
-                doc_dict = doc_by_pdf_id.get(pdf_id)
-                if doc_dict is None:
-                    row_id = generate_row_id(row_idx, "")
-                    cell_id = generate_cell_id(row_id, col_name)
-                    make_skipped_proposal(
-                        run_id=run_id,
-                        pdf_id=pdf_id,
-                        row_id=row_id,
-                        cell_id=cell_id,
-                        column_name=col_name,
-                        skip_reason=f"Parsed document not found for pdf_id={pdf_id}",
-                        run_dir=run_dir,
-                    )
-                    continue
+            row_dict = df.iloc[row_idx].to_dict() if row_idx < len(df) else {}
+            row_id = generate_row_id(row_idx, str(row_dict.get("Title", "")))
+            cell_id = generate_cell_id(row_id, col_name)
+            existing_value = cell.get("current_value")
 
-                row_dict = df.iloc[row_idx].to_dict() if row_idx < len(df) else {}
-                row_id = generate_row_id(row_idx, str(row_dict.get("Title", "")))
-                cell_id = generate_cell_id(row_id, col_name)
-                existing_value = cell.get("current_value")
+            retrieval = run_retrieval_for_cell(
+                run_id=run_id,
+                pdf_id=pdf_id,
+                column_name=col_name,
+                column_description=col_desc,
+                doc_dict=doc_dict,
+                run_dir=run_dir,
+                top_k=config.retrieval.top_k,
+            )
 
-                # Retrieve relevant context (T045-T048)
-                retrieval = run_retrieval_for_cell(
-                    run_id=run_id,
-                    pdf_id=pdf_id,
-                    column_name=col_name,
-                    column_description=col_desc,
-                    doc_dict=doc_dict,
-                    run_dir=run_dir,
-                    top_k=config.retrieval.top_k,
-                )
+            style_profile = style_profiles.get(col_name)
 
-                style_profile = style_profiles.get(col_name)
+            await asyncio.sleep(0)  # yield between cells
 
-                await asyncio.sleep(0)  # yield between cells
+            await extract_cell(
+                run_id=run_id,
+                pdf_id=pdf_id,
+                row_id=row_id,
+                cell_id=cell_id,
+                column_name=col_name,
+                column_description=col_desc,
+                row_context=row_dict,
+                doc_dict=doc_dict,
+                run_dir=run_dir,
+                provider=provider,
+                text_model_id=text_model_id,
+                retrieval=retrieval,
+                style_profile=style_profiles.get(col_name),
+                caps=provider_mode.capabilities if provider_mode else None,
+                vision_model_id=vision_model_id if config.figure_review.enabled else None,
+                is_verify_mode=config.verify_mode,
+                existing_value=existing_value if config.verify_mode else None,
+                provider_mode_str=provider_mode.mode if provider_mode else "unknown",
+            )
 
-                proposal = await extract_cell(
-                    run_id=run_id,
-                    pdf_id=pdf_id,
-                    row_id=row_id,
-                    cell_id=cell_id,
-                    column_name=col_name,
-                    column_description=col_desc,
-                    row_context=row_dict,
-                    doc_dict=doc_dict,
-                    run_dir=run_dir,
-                    provider=provider,
-                    text_model_id=text_model_id,
-                    retrieval=retrieval,
-                    style_profile=style_profile,
-                    caps=provider_mode.capabilities if provider_mode else None,
-                    vision_model_id=vision_model_id if config.figure_review.enabled else None,
-                    is_verify_mode=config.verify_mode,
-                    existing_value=existing_value if config.verify_mode else None,
-                    provider_mode_str=provider_mode.mode if provider_mode else "unknown",
-                )
-
-                proposals_generated += 1
+            proposals_generated += 1
 
         run_data["proposals_generated"] = proposals_generated
         save_run(run_data)
@@ -500,3 +450,14 @@ def launch_run(
                 _active_runs.pop(run_id, None)
 
     asyncio.create_task(_register_and_run())
+
+
+async def abort_run(run_id: str) -> bool:
+    """Cancel an active run task if it exists."""
+    lock = _get_lock()
+    async with lock:
+        task = _active_runs.get(run_id)
+        if task is None:
+            return False
+        task.cancel()
+        return True

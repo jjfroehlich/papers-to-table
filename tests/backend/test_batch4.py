@@ -41,6 +41,7 @@ from backend.app.review import (
     get_export_candidates,
     get_latest_decision,
     get_progress,
+    get_progress_for_review,
     get_proposal_detail,
     list_proposals,
     record_review_decision,
@@ -397,6 +398,19 @@ class TestProposalListFilter:
         proposals = list_proposals(run_dir)
         assert proposals[0]["latest_decision"] is None
 
+    def test_reviewable_only_excludes_blocked_and_skipped(self, tmp_path):
+        run_dir, run_id = _make_run(tmp_path)
+        pdf_id = generate_pdf_id("paper1.pdf")
+        row_id = generate_row_id(0, "Title A")
+        reviewable = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose", state="unclear")
+        _make_proposal(run_dir, run_id, pdf_id, row_id, "Outcome", state="blocked")
+        _make_proposal(run_dir, run_id, pdf_id, row_id, "Study Type", state="skipped")
+
+        proposals = list_proposals(run_dir, ProposalFilter(reviewable_only=True))
+
+        assert len(proposals) == 1
+        assert proposals[0]["proposal_id"] == reviewable.proposal_id
+
 
 # ---------------------------------------------------------------------------
 # T070 — Proposal detail
@@ -444,6 +458,17 @@ class TestProposalDetail:
 
         detail = get_proposal_detail(run_dir, p.proposal_id)
         assert WarningCategory.fallback_evidence_used.value in detail["warning_categories"]
+
+    def test_defaults_missing_row_and_column_context(self, tmp_path):
+        run_dir, run_id = _make_run(tmp_path)
+        pdf_id = generate_pdf_id("paper1.pdf")
+        row_id = generate_row_id(0, "Title A")
+        p = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose")
+
+        detail = get_proposal_detail(run_dir, p.proposal_id)
+
+        assert detail["row_context"] == {}
+        assert detail["column_definition"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -614,6 +639,21 @@ class TestProgressCounters:
         assert progress["explicitly_accepted"] == 2  # accepted + accepted_with_edit
         assert progress["explicitly_rejected"] == 0
         assert progress["confirmed_absent"] == 1     # T075a: confirmed_no_data
+
+    def test_review_progress_excludes_blocked_proposals(self, tmp_path):
+        run_dir, run_id = _make_run(tmp_path)
+        pdf_id = generate_pdf_id("paper1.pdf")
+        row_id = generate_row_id(0, "Title A")
+        reviewable = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose", state="unclear")
+        _make_proposal(run_dir, run_id, pdf_id, row_id, "Outcome", state="blocked")
+
+        record_review_decision(run_dir, reviewable.proposal_id, reviewable.cell_id, run_id,
+                               decision=ReviewDecision.accepted)
+
+        progress = get_progress_for_review(run_dir)
+        assert progress["total_proposals"] == 1
+        assert progress["reviewed"] == 1
+        assert progress["pending"] == 0
 
 
 # ---------------------------------------------------------------------------
@@ -948,6 +988,22 @@ class TestProposalListAPI:
         resp = client.get(f"/api/runs/nonexistent/proposals?output_dir={tmp_path}")
         assert resp.status_code == 404
 
+    def test_reviewable_only_endpoint_excludes_blocked(self, client, tmp_path):
+        run_dir, run_id = _make_run(tmp_path)
+        pdf_id = generate_pdf_id("paper1.pdf")
+        row_id = generate_row_id(0, "Title A")
+        reviewable = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose", state="unclear")
+        _make_proposal(run_dir, run_id, pdf_id, row_id, "Outcome", state="blocked")
+
+        resp = client.get(
+            f"/api/runs/{run_id}/proposals?output_dir={tmp_path}&reviewable_only=true"
+        )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["count"] == 1
+        assert data["proposals"][0]["proposal_id"] == reviewable.proposal_id
+
 
 class TestProposalDetailAPI:
     def test_get_proposal_detail_endpoint(self, client, run_with_proposals):
@@ -969,6 +1025,21 @@ class TestProposalDetailAPI:
             f"/api/runs/{run_id}/proposals/prop_nonexistent?output_dir={output_dir}"
         )
         assert resp.status_code == 404
+
+    def test_detail_endpoint_returns_safe_defaults(self, client, tmp_path):
+        run_dir, run_id = _make_run(tmp_path)
+        pdf_id = generate_pdf_id("paper1.pdf")
+        row_id = generate_row_id(0, "Title A")
+        proposal = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose")
+
+        resp = client.get(
+            f"/api/runs/{run_id}/proposals/{proposal.proposal_id}?output_dir={tmp_path}"
+        )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["row_context"] == {}
+        assert data["column_definition"] is None
 
 
 class TestDecisionAPI:
@@ -1038,6 +1109,50 @@ class TestProgressAPI:
         assert data["pending"] == 2
         assert "confirmed_no_data" in data
         assert "rejected" in data
+
+    def test_review_progress_endpoint_uses_reviewable_subset(self, client, tmp_path):
+        run_dir, run_id = _make_run(tmp_path)
+        pdf_id = generate_pdf_id("paper1.pdf")
+        row_id = generate_row_id(0, "Title A")
+        reviewable = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose", state="unclear")
+        _make_proposal(run_dir, run_id, pdf_id, row_id, "Outcome", state="blocked")
+
+        record_review_decision(run_dir, reviewable.proposal_id, reviewable.cell_id, run_id,
+                               decision=ReviewDecision.accepted)
+
+        resp = client.get(f"/api/runs/{run_id}/progress-review?output_dir={tmp_path}")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total_proposals"] == 1
+        assert data["reviewed"] == 1
+        assert data["pending"] == 0
+
+
+class TestAbortAPI:
+    def test_abort_rejects_completed_run(self, client, tmp_path):
+        _run_dir, run_id = _make_run(tmp_path)
+
+        resp = client.post(f"/api/runs/{run_id}/abort?output_dir={tmp_path}")
+
+        assert resp.status_code == 409
+        assert "not active" in resp.json()["detail"]
+
+    def test_abort_returns_interrupting_for_active_run(self, client, tmp_path, monkeypatch):
+        run_dir, run_id = _make_run(tmp_path)
+        run_json = read_json(run_dir / "run.json")
+        run_json["status"] = RunStatus.running.value
+        write_json(run_dir / "run.json", run_json)
+
+        async def fake_abort_run(requested_run_id: str) -> bool:
+            return requested_run_id == run_id
+
+        monkeypatch.setattr("backend.app.main.abort_run", fake_abort_run)
+
+        resp = client.post(f"/api/runs/{run_id}/abort?output_dir={tmp_path}")
+
+        assert resp.status_code == 200
+        assert resp.json() == {"run_id": run_id, "status": "interrupting"}
 
 
 class TestReviewerSummaryAPI:

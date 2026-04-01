@@ -101,6 +101,12 @@ class ProposalRecord(BaseModel):
     created_at: str
 
 
+class FigureReviewHit(BaseModel):
+    proposed_value: str
+    rationale: Optional[str] = None
+    evidence: EvidenceRecord
+
+
 # ---------------------------------------------------------------------------
 # Support-label mapping (T065)
 # ---------------------------------------------------------------------------
@@ -732,6 +738,19 @@ def _load_figure_image_b64(figure: dict, run_dir: pathlib.Path) -> Optional[str]
     return None
 
 
+def _normalize_value_for_compare(value: Optional[str]) -> str:
+    if not value:
+        return ""
+    lowered = unicodedata.normalize("NFKD", value.lower())
+    return re.sub(r"[^a-z0-9]+", "", lowered)
+
+
+def _values_match(left: Optional[str], right: Optional[str]) -> bool:
+    left_norm = _normalize_value_for_compare(left)
+    right_norm = _normalize_value_for_compare(right)
+    return bool(left_norm and right_norm and left_norm == right_norm)
+
+
 async def run_figure_review(
     proposal_id: str,
     run_id: str,
@@ -742,19 +761,20 @@ async def run_figure_review(
     run_dir: pathlib.Path,
     provider: ProviderAdapter,
     vision_model_id: str,
+    current_proposed_value: Optional[str] = None,
     max_figures: int = 5,
-) -> list[EvidenceRecord]:
+) -> list[FigureReviewHit]:
     """Proactive figure review (T062): run vision model over relevant figures.
 
     Targeted: only relevant figures by caption heuristic.
-    Returns list of figure-derived evidence records (T064).
+    Returns figure hits that can either support a text proposal or rescue an empty one.
     """
     figures = doc_dict.get("figures", [])
     if not figures:
         return []
 
     relevant = select_relevant_figures(figures, column_name, column_description, max_figures)
-    evidence_records: list[EvidenceRecord] = []
+    figure_hits: list[FigureReviewHit] = []
 
     for figure in relevant:
         fig_id = figure.get("figure_id", "unknown")
@@ -764,25 +784,6 @@ async def run_figure_review(
         # Load figure crop image
         image_b64 = _load_figure_image_b64(figure, run_dir)
         if image_b64 is None:
-            # No crop available — record figure evidence without image
-            ev_id = generate_evidence_id(proposal_id)
-            ev = EvidenceRecord(
-                evidence_id=ev_id,
-                run_id=run_id,
-                proposal_id=proposal_id,
-                pdf_id=pdf_id,
-                source_type=EvidenceSourceType.figure_based_evidence,
-                quote_text=caption or None,
-                page_number=figure.get("page_number"),
-                caption_text=caption or None,
-                figure_ref=fig_id,
-                anchor_confidence=0.1,
-                evidence_rank=99,
-                is_primary=False,
-                is_figure_derived=True,
-                created_at=datetime.now(timezone.utc).isoformat(),
-            )
-            evidence_records.append(ev)
             continue
 
         # Build vision prompt (T063)
@@ -805,6 +806,9 @@ async def run_figure_review(
             if fig_state == "unclear" or not fig_value:
                 continue  # This figure doesn't support the field
 
+            if current_proposed_value and not _values_match(fig_value, current_proposed_value):
+                continue
+
             ev_id = generate_evidence_id(proposal_id)
             ev = EvidenceRecord(
                 evidence_id=ev_id,
@@ -816,6 +820,8 @@ async def run_figure_review(
                 page_number=figure.get("page_number"),
                 caption_text=caption or None,
                 figure_ref=fig_id,
+                crop_path=figure.get("crop_path"),
+                full_page_path=figure.get("full_page_path"),
                 reasoning=fig_rationale,
                 anchor_confidence=0.7,
                 evidence_rank=99,
@@ -823,12 +829,18 @@ async def run_figure_review(
                 is_figure_derived=True,
                 created_at=datetime.now(timezone.utc).isoformat(),
             )
-            evidence_records.append(ev)
+            figure_hits.append(
+                FigureReviewHit(
+                    proposed_value=str(fig_value).strip(),
+                    rationale=fig_rationale,
+                    evidence=ev,
+                )
+            )
         except Exception:
             # Single figure failure does not abort the rest (T052)
             continue
 
-    return evidence_records
+    return figure_hits
 
 
 def _find_nearby_text(figure_id: str, doc_dict: dict, window: int = 2) -> Optional[str]:
@@ -1084,10 +1096,10 @@ async def extract_cell(
             needs_more = False
 
     # Proactive figure review (T062): when vision model configured
-    figure_evidence: list[EvidenceRecord] = []
+    figure_hits: list[FigureReviewHit] = []
     if vision_model_id and doc_dict.get("figures"):
         try:
-            figure_evidence = await run_figure_review(
+            figure_hits = await run_figure_review(
                 proposal_id=proposal_id,
                 run_id=run_id,
                 pdf_id=pdf_id,
@@ -1097,25 +1109,27 @@ async def extract_cell(
                 run_dir=run_dir,
                 provider=provider,
                 vision_model_id=vision_model_id,
+                current_proposed_value=proposed_value,
             )
         except Exception:
             pass  # Figure review failure does not abort the proposal
+
+    figure_evidence = [hit.evidence for hit in figure_hits]
 
     all_evidence = evidence_records + figure_evidence
 
     # Rank evidence (T065)
     ranked_evidence = rank_evidence(all_evidence)
 
-    # Upgrade state if figure evidence supports a weak proposal (T062)
-    if figure_evidence and state == ProposalState.unclear:
-        figure_found = any(
-            fe.source_type == EvidenceSourceType.figure_based_evidence
-            for fe in figure_evidence
-        )
-        if figure_found:
-            # Don't auto-upgrade to found — keep as inferred with figure evidence
-            state = ProposalState.inferred
-            support = SupportLabel.inferred_from_evidence
+    # Allow figure evidence to rescue an empty text proposal (T062)
+    if figure_hits and not proposed_value:
+        best_figure_hit = figure_hits[0]
+        proposed_value = best_figure_hit.proposed_value
+        if not rationale:
+            rationale = _normalize_rationale(best_figure_hit.rationale)
+        state = ProposalState.inferred
+        support = SupportLabel.inferred_from_evidence
+        needs_more = False
 
     # Persist evidence records
     for ev in ranked_evidence:
@@ -1129,6 +1143,8 @@ async def extract_cell(
     warning_flags = []
     if needs_more:
         warning_flags.append("needs_more_evidence")
+    if any(ev.is_figure_derived for ev in ranked_evidence):
+        warning_flags.append("figure_derived")
     if any(ev.source_type == EvidenceSourceType.quote_plus_page for ev in ranked_evidence):
         warning_flags.append("fallback_evidence_used")
     if any(ev.source_type == EvidenceSourceType.approximate_highlight for ev in ranked_evidence):

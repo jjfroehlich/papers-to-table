@@ -1,0 +1,14 @@
+{
+  "column_name": "BC length (bp)",
+  "field_type_guess": "mixed",
+  "expected_length": "short",
+  "tone": "technical",
+  "detail_level": "medium",
+  "value_shape": "numeric value or 'no BC' string",
+  "unit_style": "bp",
+  "format_notes": "Values are either integers representing barcode length in base pairs or the string 'no BC' indicating absence of barcode.",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T17:07:49.070298+00:00",
+  "source_column_count": 45,
+  "provider_mode": "live_llm"
+}

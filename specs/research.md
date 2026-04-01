@@ -1,3 +1,4 @@
+Annotated evidence display and standard PDF reading are related but not identical reviewer tasks. If one in-app viewer cannot do both reliably, the more important MVP contract is trustworthy quote/highlight display in-app plus an obvious handoff to the local OS PDF viewer for broader reading, text selection, and search.
 # Paper Table Agent — `research.md`
 
 ## Purpose
@@ -88,6 +89,7 @@ The main research questions for this phase were:
 - **Evidence quality and reviewer trust are first-class requirements**: the system must rank evidence by source authority and field relevance rather than treating the first model-returned quote as automatically primary. Evidence types must be distinguished and labeled: direct quote, inferred reasoning, calculation, approximate highlight fallback, quote-plus-page fallback, and figure-based.
 - **Exact quote highlighting should be produced from page-text alignment** rather than only from parser bounding boxes; if exact alignment fails, the system must degrade honestly to approximate highlight or quote-plus-page fallback, each clearly labeled as such.
 - The review workspace must expose an ordered evidence list synchronized with the document viewer, with stable refocus when evidence or zoom changes.
+- Reviewers still expect ordinary PDF-reading affordances. A practical MVP should preserve drag-based page movement, text selection and copy when the source PDF allows it, and an obvious path to browser-native PDF controls even when annotated evidence overlays are also supported.
 - **Separate text-model and vision-model configuration** improves flexibility and transparency: the text model and vision model may differ, and both should be recorded in run artifacts and shown in reviewer-visible summaries.
 
 ### Provisional conclusions
@@ -192,6 +194,14 @@ Recent rebuild evidence adds three practical constraints to that baseline:
 - run-start preflight must catch provider, model, parser, dependency, and setup failures before nominal run execution
 - completion should require either real proposal generation proof on the canonical fixture path or an explicit readiness failure, not a cosmetically complete app shell
 
+Additional rebuild evidence from review-mode implementation adds four more practical constraints:
+
+- reviewable proposals and diagnostics-only outcomes must be separate contracts, otherwise the UI will tend to load every blocked or skipped cell as if it were a review task
+- reviewer-facing counts must distinguish actionable proposals from attempted-cell totals and diagnostic totals
+- active-run visibility must not rely on manual refresh as the primary feedback path
+- runtime-derived artifact filenames must be sanitized or abstracted so cross-platform filesystem differences do not surface as late-run failures
+- evidence-viewer requirements must distinguish annotated evidence inspection from ordinary PDF reading, otherwise rebuilds tend to ship a technically correct canvas viewer that lacks normal pan/select/copy behavior
+
 ## Durable rebuild rules from recent testing
 
 The latest rebuild and test cycle surfaced several rules that are broader than any one bug and should survive future implementation changes:
@@ -201,13 +211,21 @@ The latest rebuild and test cycle surfaced several rules that are broader than a
 - Normalize commonplace ingestion artifacts at the boundary, especially BOM-affected CSV headers and Excel-native date or datetime cells.
 - Persist resolved config and input context before deeper execution so readiness failures and early-run failures remain diagnosable in the UI and artifact bundle.
 - Make parser selection explicit. Silent substitution from a configured parser to another parser hides real environment problems and breaks operator trust unless fallback was explicitly opted into and surfaced.
+- Treat upstream parser API drift as a contract risk; normalize Docling iterator payload shape in the adapter and cover it with fixture-backed regression tests so text-based PDFs do not silently parse as empty.
 - Treat structured-output support as a negotiated provider capability, not as one hardcoded protocol. Guided-JSON rejection should degrade gracefully only if the same proposal contract can still be validated, and one compatibility mismatch should not poison the rest of the run by default.
 - Prefer `unclear` over guesses supported mainly by prior spreadsheet patterns, common practice, or weak implication rather than by current-paper evidence.
 - Treat malformed model JSON as a partially recoverable transport or format problem first, not immediately as a semantic extraction failure. A compact repair-oriented recovery step is preferable to prematurely collapsing the target into a hard error.
 - Quote plus page evidence remains valid reviewer evidence even when precise highlight geometry is unavailable.
+- Treat low-text or parse-degraded papers as explicit diagnostics and degraded workflow states, not as normal-looking no-value review outputs.
+- Treat figure review as incomplete unless real figure crop artifacts and page links are persisted for the same figures shown to the reviewer; caption-only figure metadata does not constitute a working vision path.
 - Compute summary metrics and warnings from persisted facts, and distinguish provisional states from final results.
 - Long-text fields need contract-level robustness; short-answer defaults and tight output shapes create systematic failure modes.
 - A lower-quality parser fallback may still be useful for debugging or constrained environments, but it should be explicit opt-in behavior rather than a silent quality downgrade from a configured main parser.
+- Treat already-filled cells outside Verify mode as out of scope, not as reviewer-facing blocked placeholders with synthetic rationale.
+- Persist diagnostics for unmatched, ambiguous, duplicate-conflict, blocked, skipped, or failed outcomes, but do not assume each such record belongs in the main review queue.
+- Make run cancellation and stale-refresh behavior explicit product concerns, not incidental UI polish.
+- Reviewer-facing queue grouping should use meaningful citation context when available rather than leaking internal PDF ids as the primary label.
+- Review ergonomics such as adjustable pane widths materially affect usability for evidence-heavy curation and should be specified rather than left to frontend taste.
 
 These are not arguments for more fallback layers. They are arguments for tighter contracts, more truthful operator surfaces, and narrower but more reliable recovery behavior.
 
@@ -531,6 +549,8 @@ That left room for technically compliant but ergonomically weaker implementation
 
 For this product class, grouped triage behavior, explicit no-data handling, evidence interactivity, and visible distinctions between review state, support quality, and match outcome need to be specified as first-class requirements rather than left to implementation taste.
 
+Recent implementation work added one more concrete lesson: a custom evidence overlay viewer alone is not enough. Reviewers often need the right pane to behave like a normal PDF reader for a stretch of time before they switch back to evidence-specific inspection. That means the spec should allow or require an explicit interactive reading mode, or an equivalent viewer foundation, rather than assuming highlight overlays alone satisfy evidence usability.
+
 ## Consequences for implementation
 
 This research supports:
@@ -602,6 +622,8 @@ That ecosystem fit is strongest in React.
 ### PDF.js should remain the evidence-viewer foundation
 
 PDF.js is the best open-source foundation for a browser/webview PDF evidence viewer, even if a more opinionated wrapper or commercial SDK could accelerate later implementation.
+
+However, recent implementation work also shows that a pure app-rendered canvas layer can under-deliver on ordinary PDF-reader ergonomics. For MVP, the safest contract is not “everything must be custom,” but “the evidence pane must preserve normal reading affordances as well as app-owned evidence behavior.” In practice, that can mean a hybrid approach where annotated evidence mode is app-owned while interactive reading mode relies on more native browser PDF behavior.
 
 ## Consequences for implementation
 

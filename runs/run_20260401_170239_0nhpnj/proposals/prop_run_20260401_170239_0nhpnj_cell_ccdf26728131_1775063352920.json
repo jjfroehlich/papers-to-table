@@ -1,0 +1,22 @@
+{
+  "proposal_id": "prop_run_20260401_170239_0nhpnj_cell_ccdf26728131_1775063352920",
+  "run_id": "run_20260401_170239_0nhpnj",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "RNA library",
+  "cell_id": "cell_ccdf26728131",
+  "state": "unclear",
+  "support": "blocked",
+  "proposed_value": null,
+  "rationale": "- The paper describes STARR-seq RNA and DNA library sequencing but does not provide explicit procedural details on RNA library preparation.\n- While it mentions sequencing depth and library types (RNA and DNA), no specific steps for RNA library construction (e.g., reverse transcription, adapter ligation, amplification) are detailed.\n- No mention of reagents, platforms, or technical methods for RNA library prep beyond 'sequenced each STARR-seq RNA and input DNA library'.",
+  "calculation": null,
+  "primary_evidence_id": null,
+  "ordered_supporting_evidence_ids": [],
+  "evidence_ids": [],
+  "warning_flags": [],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "reporter-specific RT",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T17:09:12.920365+00:00"
+}

@@ -14,7 +14,7 @@ export function App() {
   const [selectedRun, setSelectedRun] = useState<RunData | null>(null)
   const [loadingRuns, setLoadingRuns] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [pollingInterval, setPollingInterval] = useState<ReturnType<typeof setInterval> | null>(null)
+  const [abortingRunId, setAbortingRunId] = useState<string | null>(null)
 
   const loadRuns = useCallback(async () => {
     try {
@@ -36,27 +36,33 @@ export function App() {
     loadRuns()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Poll for active runs
   useEffect(() => {
     const hasActiveRun = runs.some((r) =>
       r.status === 'created' || r.status === 'validating' || r.status === 'running'
     )
-    if (hasActiveRun && !pollingInterval) {
-      const id = setInterval(loadRuns, 2000)
-      setPollingInterval(id)
-    } else if (!hasActiveRun && pollingInterval) {
-      clearInterval(pollingInterval)
-      setPollingInterval(null)
-    }
-    return () => {
-      if (pollingInterval) clearInterval(pollingInterval)
-    }
-  }, [runs, loadRuns]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (!hasActiveRun) return
+    const timeoutId = window.setTimeout(() => {
+      void loadRuns()
+    }, 2000)
+    return () => window.clearTimeout(timeoutId)
+  }, [runs, loadRuns])
 
   function handleRunCreated(run: RunData) {
     setRuns((prev) => [run, ...prev.filter((r) => r.run_id !== run.run_id)])
     setSelectedRun(run)
   }
+
+  const handleAbortRun = useCallback(async (run: RunData) => {
+    setAbortingRunId(run.run_id)
+    try {
+      await api.abortRun(run.run_id, run.output_dir)
+      await loadRuns()
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setAbortingRunId(null)
+    }
+  }, [loadRuns])
 
   const isReviewable = selectedRun?.status === 'completed' || selectedRun?.status === 'completed_with_warnings'
 
@@ -97,6 +103,12 @@ export function App() {
 
       {/* Main content */}
       <main className={view === 'review' && isReviewable ? '' : 'max-w-screen-xl mx-auto px-4 py-6'}>
+        {loadError && selectedRun && (
+          <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Live status refresh failed. The selected run details may be stale until the backend connection recovers.
+          </div>
+        )}
+
         {view === 'run' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left: Launch + run list */}
@@ -145,7 +157,11 @@ export function App() {
             <div className="lg:col-span-2">
               <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5 min-h-64">
                 {selectedRun ? (
-                  <RunDetail run={selectedRun} />
+                  <RunDetail
+                    run={selectedRun}
+                    onAbort={handleAbortRun}
+                    aborting={abortingRunId === selectedRun.run_id}
+                  />
                 ) : (
                   <div className="flex flex-col items-center justify-center h-48 text-center">
                     <div className="text-gray-400 text-4xl mb-3">📋</div>

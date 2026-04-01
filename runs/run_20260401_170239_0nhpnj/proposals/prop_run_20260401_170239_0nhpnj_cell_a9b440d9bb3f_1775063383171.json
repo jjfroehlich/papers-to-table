@@ -1,0 +1,27 @@
+{
+  "proposal_id": "prop_run_20260401_170239_0nhpnj_cell_a9b440d9bb3f_1775063383171",
+  "run_id": "run_20260401_170239_0nhpnj",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "Type of Condition",
+  "cell_id": "cell_a9b440d9bb3f",
+  "state": "inferred",
+  "support": "inferred_from_evidence",
+  "proposed_value": "different cell types, different assay formats, different sequence lengths",
+  "rationale": "- The paper describes MPRA experiments in mouse embryonic stem cells (a second cell type) alongside human ExP-STARR-seq data, indicating different cell types were tested.\n- It notes differences in assay format (MPRA vs. STARR-seq), plasmid design, and element selection method, implying different experimental conditions.\n- The study explicitly mentions differences in enhancer and promoter sequence lengths (about 400 bp in MPRA vs. unspecified in ExP-STARR-seq), confirming variation in sequence length as a tested condition.",
+  "calculation": null,
+  "primary_evidence_id": "ev_prop_run_20260401_170239_0nhpnj_cell_a9b440d9bb3f_1775063383171_mdmr8jzo",
+  "ordered_supporting_evidence_ids": [
+    "ev_prop_run_20260401_170239_0nhpnj_cell_a9b440d9bb3f_1775063383171_xhwewjfe"
+  ],
+  "evidence_ids": [
+    "ev_prop_run_20260401_170239_0nhpnj_cell_a9b440d9bb3f_1775063383171_mdmr8jzo",
+    "ev_prop_run_20260401_170239_0nhpnj_cell_a9b440d9bb3f_1775063383171_xhwewjfe"
+  ],
+  "warning_flags": [],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T17:09:43.171010+00:00"
+}

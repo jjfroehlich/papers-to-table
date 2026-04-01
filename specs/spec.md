@@ -16,6 +16,8 @@ The product is designed for high-trust extraction workflows where proposed value
 
 The reviewer is reviewing what the paper supports, not grading the model, so the review workspace must keep paper evidence, reviewer judgment, and explicit curation outcomes primary.
 
+The review workspace must show actionable review items by default rather than every recorded pipeline outcome. Diagnostic-only outcomes such as unmatched rows, blocked extraction caused by missing or ambiguous paper matching, skipped cells outside Verify mode, or other non-reviewable pipeline results must remain visible through diagnostics and summaries, but they must not dominate the main proposal queue or inflate reviewer-facing counts.
+
 ---
 
 ## End-to-end workflow
@@ -30,6 +32,7 @@ The intended MVP workflow is:
 6. Let a human reviewer inspect, filter, accept, edit, confirm no data, reject, or bulk-accept the currently visible filtered subset.
 7. Export a new XLSX workbook containing only explicitly accepted changes plus an audit log and run summaries.
 8. Preserve diagnostics and artifacts so the run can be inspected later.
+9. Allow the operator to abort an active run from the UI and see that interruption reflected promptly in run state.
 
 This workflow is intentionally linear from the operator’s perspective even if the implementation uses multiple internal stages.
 
@@ -43,6 +46,10 @@ The UI must make run lifecycle state explicit. The operator-visible states are:
 - `completed`: the run finished cleanly and is ready for review/export
 - `completed with warnings`: the run finished and is reviewable, but unresolved matching issues, export caveats, or other important warnings remain visible
 - `failed`: the run could not complete and the operator must be able to see an actionable reason
+
+Active runs must refresh automatically in the UI often enough that an operator can follow progress without relying on manual refresh as the primary mechanism. Manual refresh may remain available, but it is a fallback rather than the normative status path.
+
+If the UI cannot refresh live state, it must tell the operator explicitly that the displayed state may be stale.
 
 These states are reviewer-facing UX requirements, not merely backend implementation details.
 
@@ -60,6 +67,7 @@ The browser UI is the normal operator-facing workflow surface for:
 - understanding lifecycle state and warnings
 - reviewing proposals and unresolved matching issues
 - exporting and downloading outputs
+- aborting an active run
 
 The UI may expose the config path, resolved paths, Verify-mode status, and provider/model context, but broad parameter editing in the UI is not an MVP requirement and must not become the default control surface.
 
@@ -120,6 +128,7 @@ Paper Table Agent addresses this by turning PDF-to-table curation into a structu
 - Support repeatable, auditable runs across many PDFs.
 - Work well for scientific papers with mixed prose, captions, tables, and figures.
 - Support proactive figure review across all relevant extracted figures when vision capability is available, allowing figure evidence to supplement, strengthen, or rescue any proposal regardless of field type.
+- Persist figure crop and full-page artifacts when figures are extracted so that review and vision analysis operate on the same concrete evidence.
 - Support verification against already-filled cells when enabled, so the user can compare proposals against existing entries and assess app performance through reviewer outcomes.
 
 ## Non-goals
@@ -187,9 +196,15 @@ That means:
 - the review workspace behaves like a reviewer-centered scientific curation workstation rather than a generic model-output browser
 - the left sidebar supports dense grouped triage without collapsing decision state, support quality, and match outcome into one vague status chip
 - no-value cases remain actionable through explicit no-data confirmation or manual entry rather than dead-ending in an empty detail pane
-- evidence handling is interactive enough that the reviewer can inspect, zoom, pan, and use paper evidence directly while editing a value
+- evidence handling is interactive enough that the reviewer can inspect, zoom, pan, drag the page naturally, select and copy text when the source PDF allows it, and use paper evidence directly while editing a value
+- the review workspace performs acceptably on realistic runs because it defaults to actionable review items rather than loading thousands of diagnostic-only artifacts into the main queue
+- reviewer-facing counts distinguish reviewable proposals from broader attempted-cell or diagnostic totals, so the operator is not misled by large numbers that do not reflect actual review work
+- the review workspace supports adjustable pane widths so the operator can rebalance queue, detail, and PDF space during curation
+- paper-group labels in the queue use useful citation context when available, not only internal file identifiers
 - the run/setup surface is action-oriented and picker-driven rather than dominated by raw path entry and long uncollapsed lists
-- the proposal-generation path is truthful: provider mode, readiness state, and any degraded or unavailable status are visible before the operator mistakes a clean shell for a working extraction system
+- the proposal-generation path is truthful: provider mode, readiness state, parse-failure or low-text states, and any degraded or unavailable status are visible before the operator mistakes a clean shell for a working extraction system
+- text-based PDFs remain parseable across supported upstream parser versions; parser-integration drift must not silently collapse a paper into an empty parsed document
+- when figure review is enabled, extracted figures persist real crop artifacts and page links for both reviewer inspection and vision-model calls; caption-only figure metadata is not sufficient
 - the documented LM Studio happy path is either genuinely capable of producing reviewable proposals with evidence on the canonical checked-in fixture path or it fails early with an actionable readiness error
 - documentation reflects the actual happy path and the actual limits of the product
 - the user-facing `README.md` is treated as a product surface, not as post-hoc cleanup
@@ -212,7 +227,9 @@ That means:
 9. As a reviewer, I want verify mode to compare proposals against already-filled cells so that I can review disagreements, make decisions on them, and assess how well the app is performing through reviewer outcomes.
 10. As a reviewer, I want to switch between grouping proposals by paper and by column so that I can triage quickly and then investigate deeply without losing context.
 11. As a reviewer, I want to confirm that a paper truly does not report a value, separately from rejecting a wrong model guess, so that the recorded outcome reflects the paper rather than the model.
-12. As a reviewer, I want to zoom, pan, navigate pages, and click evidence into my edited-value workflow so that I am curating from the paper rather than copying information manually across panes.
+12. As a reviewer, I want to zoom, pan, drag the page naturally, navigate pages, select and copy text from the paper when possible, and click evidence into my edited-value workflow so that I am curating from the paper rather than copying information manually across panes.
+13. As a reviewer, I want the queue, detail pane, and PDF pane widths to be adjustable so that I can prioritize the content needed for the current decision.
+14. As an operator, I want active runs to refresh automatically and support cancellation so that I do not need to infer whether work is still happening.
 
 ---
 
@@ -229,6 +246,7 @@ That means:
 - Blocking extraction when two or more PDFs match the same row until the conflict is cleaned up manually.
 - Proposing values for schema-defined target cells.
 - Producing at most one best proposal per target cell per run.
+- Restricting the default review queue to reviewable proposals only, while keeping blocked, unmatched, duplicate-conflict, skipped, and other diagnostic-only outcomes visible through diagnostics and summaries.
 - Storing one or more evidence items per proposed value.
 - Human review of proposals with PDF evidence display when available, including weaker review states when text highlighting fails but quote plus page evidence is available.
 - Proactive figure review across all relevant extracted figures when vision capability is available, allowing figure evidence to supplement, strengthen, or rescue any proposal regardless of field type.
@@ -295,11 +313,14 @@ For each run, the system must produce:
 - An audit log of accepted changes.
 - Run diagnostics and reviewer-outcome summaries.
 
+The run may also produce diagnostics-only records for blocked, skipped, unmatched, ambiguous, duplicate-conflict, or otherwise non-reviewable outcomes, but those records are distinct from reviewable proposals and must not be treated as normal queue items by default.
+
 ### Output expectations
 
 - No spreadsheet cell is updated automatically without an explicit human decision.
 - All exported changes are traceable back to reviewed proposals.
 - Proposal identifiers must remain unique within a run, including cases where multiple PDFs target the same row/cell context.
+- Reviewable proposal counts, attempted-extraction counts, unresolved-match counts, and diagnostics-only outcome counts must remain distinct in artifacts and in the UI.
 - The exported table must remain in XLSX format, even when the input table is CSV.
 - The exported XLSX table guarantees content-only fidelity plus highlighting of changed cells. Workbook formatting, layout, formulas, filters, frozen panes, hidden rows/columns, merged cells, conditional formatting, comments, named ranges, and similar workbook behavior are out of guarantee for MVP.
 - Cells changed through accepted proposals must be visually highlighted in the exported XLSX table.
@@ -310,6 +331,8 @@ For each run, the system must produce:
 - Confirmed no-data outcomes must remain distinct from rejected-or-model-wrong outcomes in persisted review state, diagnostics, and user-facing summaries.
 - A concise run summary must report provider/model names used, whether processing stayed local or used cloud providers, and key run metrics.
 - The run summary and UI must distinguish between live provider execution, explicit disabled mode, explicit stub or demo mode, and provider-unavailable or provider-unreachable outcomes.
+- Runs that are aborted by the operator must persist an explicit interrupted outcome with enough context for the UI and diagnostics to distinguish interruption from failure.
+- Artifact persistence must sanitize runtime-derived filenames or use opaque identifiers so run behavior is robust across supported operating systems.
 
 ---
 
@@ -319,6 +342,7 @@ The product uses the following reviewer-facing concepts consistently across the 
 
 - **Match outcome**: whether a PDF is `matched`, `ambiguous`, `unmatched`, or blocked by a duplicate-row conflict.
 - **Proposal**: the one best attempted value for a specific row/column cell in a specific run.
+- **Reviewable proposal**: a proposal that should appear in the main review queue because a reviewer can make a decision on it.
 - **Support level**: how strongly the system believes the evidence supports the proposal, such as direct evidence, inferred from evidence, weak evidence, or figure-based evidence.
 - **Evidence item**: the reviewer-visible text quote, page anchor, highlight, figure crop, caption, or related source reference used to justify the proposal.
 - **Evidence type**: the semantic kind of evidence, which the UI must render and label distinctly. The defined types are:
@@ -335,6 +359,8 @@ The product uses the following reviewer-facing concepts consistently across the 
 - **Resolution reason**: a structured reviewer reason attached to a non-accepted or manually resolved outcome, such as `not reported in paper`, `insufficient evidence`, `model wrong`, or `needs manual entry`.
 - **Triage projection**: the compact sidebar view of broader proposal and run state used for fast scanning. It may compress state for density, but it must not erase the underlying distinctions between review decision state, evidence/support quality, and match outcome.
 - **Diagnostics-only outcome**: a recorded extraction result that should appear in diagnostics even when there is no reviewable proposal.
+
+Blocked or skipped cells outside Verify mode, unresolved match failures, duplicate-row conflicts, provider-initialization failures before extraction, and similar non-reviewable states are diagnostics-only outcomes unless the spec explicitly says they belong in review.
 
 This terminology is normative for the MVP even if internal implementation names differ.
 
@@ -363,6 +389,8 @@ Before the run leaves the validation/readiness phase, the system must also valid
 - configured model availability or equivalent capability failure when it can be checked up front
 - parser or OCR dependency availability when those paths are configured
 - output-path writability and other obvious broken-install or broken-setup conditions
+
+When Verify mode is disabled, already-filled cells must remain out of scope for proposal generation and review. The system must not generate reviewer-facing placeholder proposals, fake blocked rationales, or verify-style comparison panes for those cells.
 
 The product must preserve one clear primary local happy path: install dependencies, start backend and frontend, open the browser UI, provide a config path, launch the run, monitor state, review proposals, and export accepted changes. Developer shortcuts may exist for debugging, but they must not replace this documented operator path.
 
@@ -395,6 +423,16 @@ Validation failures must be surfaced with actionable operator-facing messages ra
 Provider readiness failures must be surfaced before the operator waits through a nominal run that cannot actually produce proposals.
 
 Before any run exists, or when the selected run is not yet reviewable, the UI must make the next valid operator action obvious rather than presenting an unexplained empty review workspace.
+
+The UI must allow an operator to request run cancellation while a run is validating or running, and it must surface whether that cancellation has been accepted, completed, or failed.
+
+Active run detail and run list views must refresh automatically on a reasonable cadence while work is in progress, and must clear stale stage text promptly when a run reaches a terminal state.
+
+The review workspace must treat queue grouping labels as reviewer-facing context rather than internal ids. When row metadata is available, paper-group labels should prefer a concise citation-style label such as first author plus year and a short title fragment over a bare PDF filename.
+
+The review workspace must allow the operator to resize the queue, detail, and evidence panes by direct manipulation.
+
+The right pane's primary in-app document mode must remain optimized for evidence quotes and highlight overlays. When reviewers need normal reading behavior beyond that annotated mode, the workspace must provide an explicit action to open the PDF in the operating system's default local PDF viewer.
 
 ### FR-2 Paper metadata extraction
 
@@ -662,6 +700,8 @@ Figure-derived evidence should be displayed crop-first, with caption directly at
 
 The right evidence pane must support zoom and pan for document evidence.
 
+The in-app viewer's primary job is to show evidence quotes, page focus, and highlight overlays reliably. It is acceptable for the in-app viewer to prioritize annotation fidelity over full native-reader behavior, provided the UI offers an explicit one-click path to open the same PDF in the operating system's default local PDF viewer for ordinary reading and search.
+
 The viewer must support real review work. Required navigation capabilities are:
 - previous and next page
 - jump to a specific page by number
@@ -669,6 +709,9 @@ The viewer must support real review work. Required navigation capabilities are:
 - focus on evidence: when an evidence item is selected, the viewer must scroll to and center or highlight the relevant region
 - stable refocus: when the selected evidence item changes or when zoom changes, the viewer must refocus stably without arbitrary jumping
 - figure-to-full-page context: figure evidence must be viewable both as a focused crop and as full page context accessible from the same pane
+- open in local viewer: the operator must be able to open the current PDF in the default OS PDF application for standard reading, text selection, copy/paste, and search outside the in-app annotated pane
+
+In-viewer text search is optional. If the annotated pane does not provide full text-search or native text-selection behavior, the UI must provide an obvious fallback by opening the PDF in the operating system's default local PDF viewer.
 
 The quote list and the document viewer must stay synchronized around the currently selected evidence item. Selecting a different evidence item in the list must update the viewer to show that item's location. The viewer must not remain stuck on an unrelated page or position when evidence selection changes.
 
@@ -1016,7 +1059,7 @@ then the UI still provides an `Enter edited value` path and a `Confirm No Data` 
 
 Given a proposal has selected text or figure evidence,
 when the reviewer uses the right evidence pane,
-then the viewer supports zoom and pan; supports previous and next page navigation; supports jump to page by number; focuses on the currently selected evidence item and refocuses stably when evidence selection or zoom changes; supports figure-to-full-page context navigation; keeps the quote list and the document viewer synchronized so selecting a different evidence item in the list moves the viewer to that item's location; preserves quote-plus-page fallback when highlight geometry is missing; explains missing highlight geometry instead of faking boxes; distinguishes approximate highlight fallback from exact highlight; allows full-PDF fallback when scoped evidence is unavailable; and supports clicking selected quote or highlight evidence into the active proposed-value or edited-value workflow as a non-saving staging action that replaces the active input by default, applies only to textual evidence or figure-caption text, uses only the explicitly clicked or selected span, and never silently truncates overlong text.
+then the viewer supports zoom and pan; supports previous and next page navigation; supports jump to page by number; provides a normal reading mode with pointer-drag page movement and text selection/copy when the PDF source and chosen viewer mode allow it; focuses on the currently selected evidence item and refocuses stably when evidence selection or zoom changes; supports figure-to-full-page context navigation; keeps the quote list and the document viewer synchronized so selecting a different evidence item in the list moves the viewer to that item's location; preserves quote-plus-page fallback when highlight geometry is missing; explains missing highlight geometry instead of faking boxes; distinguishes approximate highlight fallback from exact highlight; allows full-PDF fallback when scoped evidence is unavailable; and supports clicking selected quote or highlight evidence into the active proposed-value or edited-value workflow as a non-saving staging action that replaces the active input by default, applies only to textual evidence or figure-caption text, uses only the explicitly clicked or selected span, and never silently truncates overlong text.
 
 ### AC-5e Rationale rendering
 

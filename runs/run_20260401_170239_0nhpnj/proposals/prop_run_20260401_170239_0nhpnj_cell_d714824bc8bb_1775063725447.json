@@ -1,0 +1,24 @@
+{
+  "proposal_id": "prop_run_20260401_170239_0nhpnj_cell_d714824bc8bb_1775063725447",
+  "run_id": "run_20260401_170239_0nhpnj",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "Delivery",
+  "cell_id": "cell_d714824bc8bb",
+  "state": "found",
+  "support": "direct_evidence",
+  "proposed_value": "Plasmid pool containing 1,000 enhancer and 1,000 promoter sequences in all pairwise combinations was transfected into 50 million K562 cells per biological replicate using an unspecified transfection reagent, with four biological replicates performed.",
+  "rationale": "- The paper states: \"We cloned these 1,000 enhancer and 1,000 promoter sequences in all pairwise combinations, transfected the plasmid pool into K562 cells in 4 biological replicates of 50 million cells each\".\n- Delivery involved transfection of a plasmid pool into K562 cells, with cell count and replicate number explicitly specified.\n- Transfection reagent, device, or protocol reference is not specified, but the method of delivery is directly stated as transfection of a plasmid pool.",
+  "calculation": null,
+  "primary_evidence_id": "ev_prop_run_20260401_170239_0nhpnj_cell_d714824bc8bb_1775063725447_zt7j6nx2",
+  "ordered_supporting_evidence_ids": [],
+  "evidence_ids": [
+    "ev_prop_run_20260401_170239_0nhpnj_cell_d714824bc8bb_1775063725447_zt7j6nx2"
+  ],
+  "warning_flags": [],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T17:15:25.447429+00:00"
+}

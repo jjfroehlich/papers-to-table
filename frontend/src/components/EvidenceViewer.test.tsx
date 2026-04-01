@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { vi, describe, it, expect, beforeAll } from 'vitest'
 import { EvidenceViewer } from './EvidenceViewer'
 import type { EvidenceItem } from '../types'
@@ -16,6 +16,7 @@ vi.mock('../api/client', () => ({
     getPdfUrl: (_runId: string, pdfId: string) => `http://localhost:8000/api/runs/r1/assets/pdf/${pdfId}`,
     getFigureUrl: (_runId: string, pdfId: string, figureId: string) =>
       `http://localhost:8000/api/runs/r1/assets/figures/${pdfId}/${figureId}`,
+    openPdfInLocalViewer: vi.fn().mockResolvedValue({ status: 'opened' }),
   },
 }))
 
@@ -85,6 +86,19 @@ const figureEvidence: EvidenceItem = {
 }
 
 describe('EvidenceViewer', () => {
+  it('shows annotated-viewer guidance and local-viewer action', () => {
+    render(
+      <EvidenceViewer
+        runId="r1"
+        pdfId="paper-a"
+        evidence={null}
+        outputDir="./runs"
+      />
+    )
+    expect(screen.getByText(/optimized for evidence highlights/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Open in Local PDF Viewer/i })).toBeInTheDocument()
+  })
+
   it('renders quote text for quote_plus_page fallback', () => {
     render(
       <EvidenceViewer
@@ -96,6 +110,22 @@ describe('EvidenceViewer', () => {
     )
     expect(screen.getByText(/Text fallback – exact highlighting unavailable/i)).toBeInTheDocument()
     expect(screen.getByText(/A total of 120 participants were enrolled/i)).toBeInTheDocument()
+  })
+
+  it('opens the local PDF viewer on demand', async () => {
+    const { api } = await import('../api/client')
+    render(
+      <EvidenceViewer
+        runId="r1"
+        pdfId="paper-a"
+        evidence={null}
+        outputDir="./runs"
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: /Open in Local PDF Viewer/i }))
+    await waitFor(() => {
+      expect(api.openPdfInLocalViewer).toHaveBeenCalledWith('r1', 'paper-a', './runs')
+    })
   })
 
   it('shows no-pdf placeholder when pdfId is null and no figure evidence', () => {

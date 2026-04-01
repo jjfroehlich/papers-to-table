@@ -1,0 +1,14 @@
+{
+  "column_name": "Title",
+  "field_type_guess": "text",
+  "expected_length": "long",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "title case sentence with technical terminology",
+  "unit_style": null,
+  "format_notes": "Contains scientific terminology, uses title case, includes hyphenated compound terms and specialized phrases common in academic publishing.",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T17:05:59.898542+00:00",
+  "source_column_count": 226,
+  "provider_mode": "live_llm"
+}

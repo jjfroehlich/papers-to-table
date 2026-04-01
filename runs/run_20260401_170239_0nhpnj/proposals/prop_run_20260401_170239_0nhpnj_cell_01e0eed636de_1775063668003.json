@@ -1,0 +1,22 @@
+{
+  "proposal_id": "prop_run_20260401_170239_0nhpnj_cell_01e0eed636de_1775063668003",
+  "run_id": "run_20260401_170239_0nhpnj",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "MPRABase_datasets_id",
+  "cell_id": "cell_01e0eed636de",
+  "state": "unclear",
+  "support": "blocked",
+  "proposed_value": null,
+  "rationale": "- The paper does not mention 'MPRAbase' or provide a dataset ID in the format 'DS' + 4 digits.\n- While the study references a parallel MPRA-based study (ref. 39), it does not state that the current dataset is deposited in MPRABase.\n- No explicit or implicit evidence supports a DS ID for this publication in MPRABase.",
+  "calculation": "not applicable",
+  "primary_evidence_id": null,
+  "ordered_supporting_evidence_ids": [],
+  "evidence_ids": [],
+  "warning_flags": [],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "not in MPRABase",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T17:14:28.003993+00:00"
+}

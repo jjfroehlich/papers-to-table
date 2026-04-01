@@ -1,0 +1,496 @@
+{
+  "run_id": "run_20260401_170239_0nhpnj",
+  "pdf_id": "paper_2",
+  "column_name": "# Variants tested",
+  "query": "# Variants tested: How many different sequences (or variants) where being evaluated in the study",
+  "top_k": 10,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_2_p1_10",
+      "source_block_id": "paper_2_p1_10",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 10,
+      "display_text": "Yet, other observations have suggested that enhancers and promoters have some degree of intrinsic specificity. Early studies identified individual examples in which particular enhancers or cofactors showed stronger activation with certain core promoters 3-8 . More recently, studies using Drosophila and high-throughput reporter assays revealed that developmental and housekeeping gene promoters show greater than tenfold preferences for different classes of genomic enhancers 9 , have differing levels of sequence-encoded responsiveness to enhancer activation 19 and  respond differently to recruitment of various",
+      "retrieval_text": "[Section: Compatibility rules of human enhancer and promoter sequences] Yet, other observations have suggested that enhancers and promoters have some degree of intrinsic specificity. Early studies identified individual examples in which particular enhancers or cofactors showed stronger activation with certain core promoters 3-8 . More recently, studies using Drosophila and high-throughput reporter assays revealed that developmental and housekeeping gene promoters show greater than tenfold preferences for different classes of genomic enhancers 9 , have differing levels of sequence-encoded responsiveness to enhancer activation 19 and  respond differently to recruitment of various",
+      "bbox": [
+        39.68500137,
+        182.30693066203128,
+        296.43828165776154,
+        88.6503462870312
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules of human enhancer and promoter sequences",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p1_11",
+      "source_block_id": "paper_2_p1_11",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 11,
+      "display_text": "Despite these advances, the biochemical compatibility model has not yet been systematically tested for human enhancers and promoters. As such, it remains unclear whether compatibility classes of enhancers and promoters exist in the human genome and, if so, how their enhancer and promoter activity combine and how such specificity is encoded.",
+      "retrieval_text": "[Section: Compatibility rules of human enhancer and promoter sequences] Despite these advances, the biochemical compatibility model has not yet been systematically tested for human enhancers and promoters. As such, it remains unclear whether compatibility classes of enhancers and promoters exist in the human genome and, if so, how their enhancer and promoter activity combine and how such specificity is encoded.",
+      "bbox": [
+        306.14169311,
+        214.55693066203128,
+        562.843521071019,
+        163.9003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules of human enhancer and promoter sequences",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p1_12",
+      "source_block_id": "paper_2_p1_12",
+      "chunk_type": "section",
+      "page_number": 1,
+      "reading_order": 12,
+      "display_text": "Measuring enhancer-promoter compatibility",
+      "retrieval_text": "Measuring enhancer-promoter compatibility",
+      "bbox": [
+        306.14169311,
+        142.38993066203125,
+        519.8899681109752,
+        133.36696498580181
+      ],
+      "provenance": "docling",
+      "section_context": "Measuring enhancer-promoter compatibility",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p5_48",
+      "source_block_id": "paper_2_p5_48",
+      "chunk_type": "paragraph",
+      "page_number": 5,
+      "reading_order": 48,
+      "display_text": "versus 13% of E2; Extended Data Fig. 6f). Both classes contained a large fraction of sequences predicted to be an enhancer in at least one other related or unrelated cell type (90% of E1 and 70% of E2), which suggests that some E2 genomic elements may act as strong enhancers in other cell types. Regarding sequence features, E1 enhancer sequences were significantly enriched for FOS and JUN motifs, whereas E2 enhancer sequences were not significantly enriched for any particular motif (Benjamini-Hochberg corrected P < 0.05; Extended Data Fig. 6b,c and Supplementary Table 5). Both E1 and E2 genomic enhancers appeared to produce enhancer RNAs, as measured by global nuclear run-on sequencing (GRO-cap) (Extended Data Fig. 6g), and showed similar levels of sequence conservation (Extended Data Fig. 6h).",
+      "retrieval_text": "[Section: Article] versus 13% of E2; Extended Data Fig. 6f). Both classes contained a large fraction of sequences predicted to be an enhancer in at least one other related or unrelated cell type (90% of E1 and 70% of E2), which suggests that some E2 genomic elements may act as strong enhancers in other cell types. Regarding sequence features, E1 enhancer sequences were significantly enriched for FOS and JUN motifs, whereas E2 enhancer sequences were not significantly enriched for any particular motif (Benjamini-Hochberg corrected P < 0.05; Extended Data Fig. 6b,c and Supplementary Table 5). Both E1 and E2 genomic enhancers appeared to produce enhancer RNAs, as measured by global nuclear run-on sequencing (GRO-cap) (Extended Data Fig. 6g), and showed similar levels of sequence conservation (Extended Data Fig. 6h).",
+      "bbox": [
+        39.68500137,
+        246.80693066203128,
+        296.39559631539254,
+        120.9003462870312
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p5_49",
+      "source_block_id": "paper_2_p5_49",
+      "chunk_type": "paragraph",
+      "page_number": 5,
+      "reading_order": 49,
+      "display_text": "These observations suggest that the differences in how these classes of enhancer sequences activate different promoters in ExP-STARR-seq could be related to their ability to recruit activating TFs (see below). We note that despite these clear differences in genomic activity, the two classes of enhancer sequences showed, on average, similar levels of activity in the ExP-STARR-seq assay (Extended Data Fig. 4b). This may reflect previous observations that sequences in STARR-seq might affect reporter expression by acting on steps other than transcriptional activation 16 or that the episomal STARR-seq assay often detects activity for sequences that do not appear to be active in their endogenous chromosomal context 17,29 .",
+      "retrieval_text": "[Section: Article] These observations suggest that the differences in how these classes of enhancer sequences activate different promoters in ExP-STARR-seq could be related to their ability to recruit activating TFs (see below). We note that despite these clear differences in genomic activity, the two classes of enhancer sequences showed, on average, similar levels of activity in the ExP-STARR-seq assay (Extended Data Fig. 4b). This may reflect previous observations that sequences in STARR-seq might affect reporter expression by acting on steps other than transcriptional activation 16 or that the episomal STARR-seq assay often detects activity for sequences that do not appear to be active in their endogenous chromosomal context 17,29 .",
+      "bbox": [
+        39.68500137,
+        117.80693066203128,
+        296.32681342962235,
+        45.65034246703124
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p5_50",
+      "source_block_id": "paper_2_p5_50",
+      "chunk_type": "section",
+      "page_number": 5,
+      "reading_order": 50,
+      "display_text": "Properties of promoter classes",
+      "retrieval_text": "Properties of promoter classes",
+      "bbox": [
+        306.14169311,
+        679.8899306620312,
+        449.10594311000006,
+        670.8669649858018
+      ],
+      "provenance": "docling",
+      "section_context": "Properties of promoter classes",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p7_70",
+      "source_block_id": "paper_2_p7_70",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 70,
+      "display_text": "We first compared intrinsic promoter activity with responsiveness to E1 enhancers. These two factors were correlated both when considering all promoters in ExP STARR-seq (Pearson R = -0.62, log 2 (space); Fig. 5b) and when considering only P1 promoters ( R = -0.51). As promoter activity increased, responsiveness to E1 enhancers rapidly decreased (for example, from about ninefold average activation by E1 enhancers for the SNAI3 P1 promoter) and appeared to saturate at about threefold for most P2 promoter sequences (Extended Data Fig. 8c).",
+      "retrieval_text": "[Section: P2 promoters contain built-in enhancers] We first compared intrinsic promoter activity with responsiveness to E1 enhancers. These two factors were correlated both when considering all promoters in ExP STARR-seq (Pearson R = -0.62, log 2 (space); Fig. 5b) and when considering only P1 promoters ( R = -0.51). As promoter activity increased, responsiveness to E1 enhancers rapidly decreased (for example, from about ninefold average activation by E1 enhancers for the SNAI3 P1 promoter) and appeared to saturate at about threefold for most P2 promoter sequences (Extended Data Fig. 8c).",
+      "bbox": [
+        39.68500137,
+        429.5569306620313,
+        296.3903898973952,
+        346.65034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "P2 promoters contain built-in enhancers",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p7_71",
+      "source_block_id": "paper_2_p7_71",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 71,
+      "display_text": "We next tested whether P2 promoters had stronger intrinsic enhancer activity. To do so, we generated a second STARR-seq dataset in which we measured the enhancer activity of >8.9 million sequences derived from DNase-accessible elements and promoters (by hybrid selection (HS) STARR-seq; Methods and Extended Data Fig. 8d-f). In this dataset, many promoter elements tested in ExP STARR-seq (along with thousands of other accessible elements) were densely tiled (an average of about 11 fragments each covering at least 90% of the promoters tested in the ExP assay), which enabled us to test the enhancer activity of entire P1 and P2 promoter sequences. P2 promoters indeed showed about twofold higher intrinsic enhancer activity than P1 promoters in HS-STARR-seq ( P = 1.14 × 10 -16 , t -test; Fig. 5c), which provides support for a model in which these promoters contain built-in enhancers.",
+      "retrieval_text": "[Section: P2 promoters contain built-in enhancers] We next tested whether P2 promoters had stronger intrinsic enhancer activity. To do so, we generated a second STARR-seq dataset in which we measured the enhancer activity of >8.9 million sequences derived from DNase-accessible elements and promoters (by hybrid selection (HS) STARR-seq; Methods and Extended Data Fig. 8d-f). In this dataset, many promoter elements tested in ExP STARR-seq (along with thousands of other accessible elements) were densely tiled (an average of about 11 fragments each covering at least 90% of the promoters tested in the ExP assay), which enabled us to test the enhancer activity of entire P1 and P2 promoter sequences. P2 promoters indeed showed about twofold higher intrinsic enhancer activity than P1 promoters in HS-STARR-seq ( P = 1.14 × 10 -16 , t -test; Fig. 5c), which provides support for a model in which these promoters contain built-in enhancers.",
+      "bbox": [
+        39.68500137,
+        343.5569306620313,
+        296.38176276800425,
+        206.9003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "P2 promoters contain built-in enhancers",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p7_72",
+      "source_block_id": "paper_2_p7_72",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 72,
+      "display_text": "We examined whether the sequence motifs enriched in P2 promoters contribute to both enhancer activity and promoter activity. To do so, we examined data on enhancer activity from HS-STARR-seq along with another previous experiment that measured promoter activity for millions of random genomic fragments in K562 cells (survey of regulatory elements (SuRE) 23 ). A total of 16 out of the 17 motifs enriched in P2 promoters, including motifs for GABPA and YY1, were positively correlated with both enhancer activity and promoter activity (Fig. 5d, Supplementary Table 9 and Methods).",
+      "retrieval_text": "[Section: P2 promoters contain built-in enhancers] We examined whether the sequence motifs enriched in P2 promoters contribute to both enhancer activity and promoter activity. To do so, we examined data on enhancer activity from HS-STARR-seq along with another previous experiment that measured promoter activity for millions of random genomic fragments in K562 cells (survey of regulatory elements (SuRE) 23 ). A total of 16 out of the 17 motifs enriched in P2 promoters, including motifs for GABPA and YY1, were positively correlated with both enhancer activity and promoter activity (Fig. 5d, Supplementary Table 9 and Methods).",
+      "bbox": [
+        39.68510055,
+        203.80718090953133,
+        296.32065967998426,
+        110.1503462870312
+      ],
+      "provenance": "docling",
+      "section_context": "P2 promoters contain built-in enhancers",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p7_77",
+      "source_block_id": "paper_2_p7_77",
+      "chunk_type": "section",
+      "page_number": 7,
+      "reading_order": 77,
+      "display_text": "Compatibility rules in a second dataset",
+      "retrieval_text": "Compatibility rules in a second dataset",
+      "bbox": [
+        306.14169311,
+        249.88993066203125,
+        487.02174311195,
+        240.86696498580181
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules in a second dataset",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p7_78",
+      "source_block_id": "paper_2_p7_78",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 78,
+      "display_text": "A parallel study 39 conducted a similar experiment to examine the compatibilities among hundreds of enhancer and promoter sequences in mouse embryonic stem cells (a total of 22,406 enhancer-promoter pairs, measured in 2 separate experiments). This dataset provided an opportunity to assess the extent to which the compatibility rules we identified generalize to a second cell type, organism and assay format. Regarding the assay format, that study 39 used a different plasmid design (massively parallel reporter assay (MPRA) format with the enhancer located immediately upstream of the promoter), different method of element selection (densely sampled from 3 genomic loci) and different enhancer and promoter sequence lengths (about 400 bp).",
+      "retrieval_text": "[Section: Compatibility rules in a second dataset] A parallel study 39 conducted a similar experiment to examine the compatibilities among hundreds of enhancer and promoter sequences in mouse embryonic stem cells (a total of 22,406 enhancer-promoter pairs, measured in 2 separate experiments). This dataset provided an opportunity to assess the extent to which the compatibility rules we identified generalize to a second cell type, organism and assay format. Regarding the assay format, that study 39 used a different plasmid design (massively parallel reporter assay (MPRA) format with the enhancer located immediately upstream of the promoter), different method of element selection (densely sampled from 3 genomic loci) and different enhancer and promoter sequence lengths (about 400 bp).",
+      "bbox": [
+        306.14169311,
+        237.18052558763122,
+        562.8250161592747,
+        120.9003462870312
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules in a second dataset",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p7_79",
+      "source_block_id": "paper_2_p7_79",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 79,
+      "display_text": "The patterns of enhancer-promoter compatibility in this second dataset were highly similar to ExP STARR-seq. The multiplicative enhancer × promoter model explained 91% and 78% of the variance in RNA expression in the two experiments and 81% and 34% of the variance in enhancer activation (Extended Data Fig. 9e,f). The fraction of variance unexplained could result in part from additional specificity factors (see also ref. 39 ). Promoters with stronger intrinsic activity were less",
+      "retrieval_text": "[Section: Compatibility rules in a second dataset] The patterns of enhancer-promoter compatibility in this second dataset were highly similar to ExP STARR-seq. The multiplicative enhancer × promoter model explained 91% and 78% of the variance in RNA expression in the two experiments and 81% and 34% of the variance in enhancer activation (Extended Data Fig. 9e,f). The fraction of variance unexplained could result in part from additional specificity factors (see also ref. 39 ). Promoters with stronger intrinsic activity were less",
+      "bbox": [
+        306.14169311,
+        117.80693066203128,
+        562.8041757480705,
+        45.65034246703124
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules in a second dataset",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p9_105",
+      "source_block_id": "paper_2_p9_105",
+      "chunk_type": "list_item",
+      "page_number": 9,
+      "reading_order": 105,
+      "display_text": "Kermekchiev, M., Pettersson, M., Matthias, P. & Schaffner, W. Every enhancer works with every promoter for all the combinations tested: could new regulatory pathways evolve by enhancer shuffling? Gene Expr. 1 , 71-81 (1991).",
+      "retrieval_text": "[Section: Article] Kermekchiev, M., Pettersson, M., Matthias, P. & Schaffner, W. Every enhancer works with every promoter for all the combinations tested: could new regulatory pathways evolve by enhancer shuffling? Gene Expr. 1 , 71-81 (1991).",
+      "bbox": [
+        39.66100376999995,
+        597.0002621320313,
+        296.0470036499999,
+        575.7069418573143
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p9_106",
+      "source_block_id": "paper_2_p9_106",
+      "chunk_type": "list_item",
+      "page_number": 9,
+      "reading_order": 106,
+      "display_text": "Tewhey, R. et al. Direct identification of hundreds of expression-modulating variants using a multiplexed reporter assay. Cell 172 , 1132-1134 (2018).",
+      "retrieval_text": "[Section: Article] Tewhey, R. et al. Direct identification of hundreds of expression-modulating variants using a multiplexed reporter assay. Cell 172 , 1132-1134 (2018).",
+      "bbox": [
+        39.660998669999984,
+        572.9522628520313,
+        296.35419854603987,
+        559.6749423373143
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p9_107",
+      "source_block_id": "paper_2_p9_107",
+      "chunk_type": "list_item",
+      "page_number": 9,
+      "reading_order": 107,
+      "display_text": "Klein, J. C. et al. A systematic evaluation of the design and context dependencies of massively parallel reporter assays. Nat. Methods 17 , 1083-1091 (2020).",
+      "retrieval_text": "[Section: Article] Klein, J. C. et al. A systematic evaluation of the design and context dependencies of massively parallel reporter assays. Nat. Methods 17 , 1083-1091 (2020).",
+      "bbox": [
+        39.660997649999985,
+        556.9202633320313,
+        279.45819753167973,
+        543.6429428173143
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p13_212",
+      "source_block_id": "paper_2_p13_212",
+      "chunk_type": "section",
+      "page_number": 13,
+      "reading_order": 212,
+      "display_text": "Assessing reproducibility of the clusters",
+      "retrieval_text": "Assessing reproducibility of the clusters",
+      "bbox": [
+        39.68510055,
+        312.4874306620313,
+        199.71290055067993,
+        304.6079042371608
+      ],
+      "provenance": "docling",
+      "section_context": "Assessing reproducibility of the clusters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p13_213",
+      "source_block_id": "paper_2_p13_213",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 213,
+      "display_text": "We evaluated whether the clustering we observed in the residuals was a general trend of the data or an artefact of a few promoters or enhancers. To test this possibility, we randomly downsampled the residual matrix to 25% of promoters and 25% of enhancers (6.25% of the total data) 100 times and clustered the subsets. The original (full data) cluster identity of a promoter or enhancer predicted the downsampled cluster with greater than 80% accuracy (Extended Data Fig. 4f).",
+      "retrieval_text": "[Section: Assessing reproducibility of the clusters] We evaluated whether the clustering we observed in the residuals was a general trend of the data or an artefact of a few promoters or enhancers. To test this possibility, we randomly downsampled the residual matrix to 25% of promoters and 25% of enhancers (6.25% of the total data) 100 times and clustered the subsets. The original (full data) cluster identity of a promoter or enhancer predicted the downsampled cluster with greater than 80% accuracy (Extended Data Fig. 4f).",
+      "bbox": [
+        39.68510055,
+        300.5569306620313,
+        296.27654703045476,
+        228.4003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Assessing reproducibility of the clusters",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p13_214",
+      "source_block_id": "paper_2_p13_214",
+      "chunk_type": "section",
+      "page_number": 13,
+      "reading_order": 214,
+      "display_text": "Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes",
+      "retrieval_text": "Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes",
+      "bbox": [
+        39.68510055,
+        215.73743066203133,
+        294.63665055170003,
+        197.1054044071608
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p13_215",
+      "source_block_id": "paper_2_p13_215",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 215,
+      "display_text": "We evaluated whether certain promoters were more responsive when paired with different enhancer classes, and whether certain enhancers had more activity when paired with promoters from different classes (Fig. 3c,d).",
+      "retrieval_text": "[Section: Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes] We evaluated whether certain promoters were more responsive when paired with different enhancer classes, and whether certain enhancers had more activity when paired with promoters from different classes (Fig. 3c,d).",
+      "bbox": [
+        39.68510055,
+        193.05693066203128,
+        296.28073211312847,
+        163.9003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p13_216",
+      "source_block_id": "paper_2_p13_216",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 216,
+      "display_text": "To explore differences in enhancer activity when paired with different promoter classes, we fit the Poisson model (described above) separately to two different subsets of the data: (1) all enhancer sequences paired with P1 or genomic background promoter sequences (producing an estimate of the activity of an enhancer sequence on a P1 promoter); and (2) all enhancer sequences paired with P2 or genomic background promoter sequences (producing an estimate of the activity of an enhancer sequence on a P2 promoter).",
+      "retrieval_text": "[Section: Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes] To explore differences in enhancer activity when paired with different promoter classes, we fit the Poisson model (described above) separately to two different subsets of the data: (1) all enhancer sequences paired with P1 or genomic background promoter sequences (producing an estimate of the activity of an enhancer sequence on a P1 promoter); and (2) all enhancer sequences paired with P2 or genomic background promoter sequences (producing an estimate of the activity of an enhancer sequence on a P2 promoter).",
+      "bbox": [
+        39.68500137,
+        160.80718090953133,
+        296.3554933171381,
+        77.9003462870312
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p13_217",
+      "source_block_id": "paper_2_p13_217",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 217,
+      "display_text": "Similarly, to estimate promoter responsiveness to either E1 or E2 enhancers, we fit the Poisson model to the subsets: (3) all promoters paired with E1 or genomic background enhancer sequences (producing an estimate of the responsiveness of a promoter sequence to E1 enhancers): and (4) all promoters paired with E2 or genomic background enhancer sequences (producing an estimate of the responsiveness of a promoter sequence to E2 enhancers).",
+      "retrieval_text": "[Section: Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes] Similarly, to estimate promoter responsiveness to either E1 or E2 enhancers, we fit the Poisson model to the subsets: (3) all promoters paired with E1 or genomic background enhancer sequences (producing an estimate of the responsiveness of a promoter sequence to E1 enhancers): and (4) all promoters paired with E2 or genomic background enhancer sequences (producing an estimate of the responsiveness of a promoter sequence to E2 enhancers).",
+      "bbox": [
+        39.68500137,
+        74.80693066203128,
+        296.21681964260864,
+        45.65034246703124
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_236",
+      "source_block_id": "paper_2_p14_236",
+      "chunk_type": "section",
+      "page_number": 14,
+      "reading_order": 236,
+      "display_text": "Assessing the cell-type specificity of E1 and E2 enhancers",
+      "retrieval_text": "Assessing the cell-type specificity of E1 and E2 enhancers",
+      "bbox": [
+        39.68510055,
+        258.73743066203133,
+        263.6150505505099,
+        250.85790423716082
+      ],
+      "provenance": "docling",
+      "section_context": "Assessing the cell-type specificity of E1 and E2 enhancers",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_237",
+      "source_block_id": "paper_2_p14_237",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 237,
+      "display_text": "We tested whether E1 and E2 enhancer sequences from ExP STARR-seq overlapped elements predicted to act as enhancers by the ABC model in K562 cells or in 128 other cell types and tissues. To do so, we intersected the E1 and E2 enhancer sequences with the approximately 200-bp regions predicted by the ABC model to act as enhancers for at least 1 nearby expressed gene, as previously defined 51 . The ABC enhancergene predictions from this previous study 51 are available at https:// www.engreitzlab.org/resources/.",
+      "retrieval_text": "[Section: Assessing the cell-type specificity of E1 and E2 enhancers] We tested whether E1 and E2 enhancer sequences from ExP STARR-seq overlapped elements predicted to act as enhancers by the ABC model in K562 cells or in 128 other cell types and tissues. To do so, we intersected the E1 and E2 enhancer sequences with the approximately 200-bp regions predicted by the ABC model to act as enhancers for at least 1 nearby expressed gene, as previously defined 51 . The ABC enhancergene predictions from this previous study 51 are available at https:// www.engreitzlab.org/resources/.",
+      "bbox": [
+        39.68510055,
+        246.80693066203128,
+        296.25777817584475,
+        163.9003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Assessing the cell-type specificity of E1 and E2 enhancers",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_238",
+      "source_block_id": "paper_2_p14_238",
+      "chunk_type": "section",
+      "page_number": 14,
+      "reading_order": 238,
+      "display_text": "Aligning promoters by TSS",
+      "retrieval_text": "Aligning promoters by TSS",
+      "bbox": [
+        39.68510055,
+        151.23743066203133,
+        146.32865055067995,
+        143.35790423716082
+      ],
+      "provenance": "docling",
+      "section_context": "Aligning promoters by TSS",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_274",
+      "source_block_id": "paper_2_p15_274",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 274,
+      "display_text": "50. Engreitz, J. M. et al. Local regulation of gene expression by lncRNA promoters, transcription and splicing. Nature 539 , 452-455 (2016).",
+      "retrieval_text": "[Section: Code availability] 50. Engreitz, J. M. et al. Local regulation of gene expression by lncRNA promoters, transcription and splicing. Nature 539 , 452-455 (2016).",
+      "bbox": [
+        306.14182946,
+        59.74073155203132,
+        531.7256293354415,
+        46.463411037314245
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p16_275",
+      "source_block_id": "paper_2_p16_275",
+      "chunk_type": "list_item",
+      "page_number": 16,
+      "reading_order": 275,
+      "display_text": "Nasser, J. et al. Genome-wide enhancer maps link risk variants to disease genes. Nature 593 , 238-243 (2021).",
+      "retrieval_text": "[Section: Code availability] Nasser, J. et al. Genome-wide enhancer maps link risk variants to disease genes. Nature 593 , 238-243 (2021).",
+      "bbox": [
+        39.68500137,
+        741.2882578120312,
+        287.60680124543984,
+        728.0109372973143
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p16_276",
+      "source_block_id": "paper_2_p16_276",
+      "chunk_type": "list_item",
+      "page_number": 16,
+      "reading_order": 276,
+      "display_text": "Anscombe, F. J. The transformation of Poisson, binomial and negative-binomial data. Biometrika 35 , 246-254 (1948).",
+      "retrieval_text": "[Section: Code availability] Anscombe, F. J. The transformation of Poisson, binomial and negative-binomial data. Biometrika 35 , 246-254 (1948).",
+      "bbox": [
+        39.685000590000016,
+        725.2562582920312,
+        282.44440046771973,
+        711.9789377773143
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": true
+    }
+  ],
+  "retrieved_at": "2026-04-01T17:09:00.889249+00:00"
+}

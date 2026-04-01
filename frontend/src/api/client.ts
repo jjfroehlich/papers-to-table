@@ -12,7 +12,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return resp.json() as Promise<T>
 }
 
-function qs(params: Record<string, string | undefined>): string {
+function qs(params: Record<string, string | boolean | undefined>): string {
   const pairs = Object.entries(params)
     .filter(([, v]) => v !== undefined && v !== null)
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v!)}`)
@@ -57,6 +57,7 @@ export const api = {
       decision?: string
       match_status?: string
       evidence_status?: string
+      reviewable_only?: boolean
       output_dir?: string
     }
   ) => {
@@ -67,6 +68,7 @@ export const api = {
       decision: params?.decision,
       match_status: params?.match_status,
       evidence_status: params?.evidence_status,
+      reviewable_only: params?.reviewable_only,
     })
     return request<{ run_id: string; count: number; proposals: import('../types').EnrichedProposal[] }>(
       `/api/runs/${runId}/proposals${q}`
@@ -111,6 +113,11 @@ export const api = {
     return request<import('../types').ReviewProgress>(`/api/runs/${runId}/progress${q}`)
   },
 
+  getReviewProgress: (runId: string, outputDir?: string) => {
+    const q = outputDir ? `?output_dir=${encodeURIComponent(outputDir)}` : ''
+    return request<import('../types').ReviewProgress>(`/api/runs/${runId}/progress-review${q}`)
+  },
+
   getReviewerSummary: (runId: string, outputDir?: string) => {
     const q = outputDir ? `?output_dir=${encodeURIComponent(outputDir)}` : ''
     return request<import('../types').ReviewerSummary>(`/api/runs/${runId}/reviewer-summary${q}`)
@@ -136,6 +143,13 @@ export const api = {
     return request<{ run_id: string; conflicts: unknown[] }>(`/api/runs/${runId}/matching/conflicts${q}`)
   },
 
+  abortRun: (runId: string, outputDir?: string) => {
+    const q = outputDir ? `?output_dir=${encodeURIComponent(outputDir)}` : ''
+    return request<{ run_id: string; status: string }>(`/api/runs/${runId}/abort${q}`, {
+      method: 'POST',
+    })
+  },
+
   // Assets — return URL strings (no fetch needed)
   getPdfUrl: (runId: string, pdfId: string, outputDir?: string): string => {
     const q = outputDir ? `?output_dir=${encodeURIComponent(outputDir)}` : ''
@@ -145,5 +159,13 @@ export const api = {
   getFigureUrl: (runId: string, pdfId: string, figureId: string, outputDir?: string): string => {
     const q = outputDir ? `?output_dir=${encodeURIComponent(outputDir)}` : ''
     return `${API_BASE}/api/runs/${runId}/assets/figures/${pdfId}/${figureId}${q}`
+  },
+
+  openPdfInLocalViewer: (runId: string, pdfId: string, outputDir?: string) => {
+    const q = outputDir ? `?output_dir=${encodeURIComponent(outputDir)}` : ''
+    return request<{ run_id: string; pdf_id: string; status: string; path: string }>(
+      `/api/runs/${runId}/assets/pdf/${pdfId}/open${q}`,
+      { method: 'POST' }
+    )
   },
 }

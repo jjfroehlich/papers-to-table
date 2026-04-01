@@ -13,10 +13,20 @@ Proposal content must remain grounded in the current PDF evidence.
 from __future__ import annotations
 
 import pathlib
+import re
 from datetime import datetime, timezone
 from typing import Optional
 
 from pydantic import BaseModel
+
+_INVALID_FILENAME_CHARS = re.compile(r'[\\/:*?"<>|]')
+
+
+def _safe_filename(name: str, max_len: int = 64) -> str:
+    """Return a filename-safe version of *name* for all platforms."""
+    safe = _INVALID_FILENAME_CHARS.sub("_", name)
+    safe = safe.replace(" ", "_")
+    return safe[:max_len]
 
 from .artifacts import write_json
 
@@ -158,6 +168,7 @@ async def generate_style_profile(
     description: str,
     filled_values: list[str],
     provider: Optional[object] = None,  # ProviderAdapter from provider.py
+    model_id: Optional[str] = None,
 ) -> StyleProfile:
     """Generate a style profile for a column.
 
@@ -173,7 +184,7 @@ async def generate_style_profile(
     # Only pass non-empty values to the LLM
     nonempty = [v.strip() for v in filled_values if v.strip()]
 
-    if provider is not None:
+    if provider is not None and model_id:
         try:
             import json
 
@@ -182,6 +193,7 @@ async def generate_style_profile(
                 system=_STYLE_SYSTEM_PROMPT,
                 user=prompt,
                 max_tokens=512,
+                model_id=model_id,
             )
             # Parse the JSON response
             # Strip markdown code fences if present
@@ -228,7 +240,7 @@ def persist_style_profile(run_dir: pathlib.Path, profile: StyleProfile) -> pathl
     """
     profiles_dir = get_style_profiles_dir(run_dir)
     profiles_dir.mkdir(parents=True, exist_ok=True)
-    safe_name = profile.column_name.replace(" ", "_").replace("/", "_")[:64]
+    safe_name = _safe_filename(profile.column_name)
     path = profiles_dir / f"{safe_name}.json"
     write_json(path, profile.model_dump())
     return path
@@ -236,7 +248,7 @@ def persist_style_profile(run_dir: pathlib.Path, profile: StyleProfile) -> pathl
 
 def load_style_profile(run_dir: pathlib.Path, column_name: str) -> Optional[StyleProfile]:
     """Load a persisted style profile for a column."""
-    safe_name = column_name.replace(" ", "_").replace("/", "_")[:64]
+    safe_name = _safe_filename(column_name)
     path = get_style_profiles_dir(run_dir) / f"{safe_name}.json"
     if path.exists():
         from .artifacts import read_json
@@ -274,6 +286,7 @@ async def run_style_profiles_stage(
     df,   # pd.DataFrame
     schema: list[dict],
     provider: Optional[object] = None,
+    model_id: Optional[str] = None,
 ) -> dict[str, StyleProfile]:
     """Generate and persist style profiles for all schema columns.
 
@@ -297,7 +310,13 @@ async def run_style_profiles_stage(
         else:
             filled = []
 
-        profile = await generate_style_profile(col_name, description, filled, provider)
+        profile = await generate_style_profile(
+            col_name,
+            description,
+            filled,
+            provider,
+            model_id,
+        )
         persist_style_profile(run_dir, profile)
         profiles[col_name] = profile
 

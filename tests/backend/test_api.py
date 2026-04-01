@@ -124,6 +124,42 @@ class TestGetRunInputs:
         assert resp.json()["table_rows"] == 10
 
 
+class TestOpenPdfInLocalViewer:
+    @pytest.mark.asyncio
+    async def test_open_pdf_not_found(self, tmp_path):
+        rid = "run_missing_pdf"
+        init_run_bundle(str(tmp_path), rid)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(f"/api/runs/{rid}/assets/pdf/paper-1/open?output_dir={tmp_path}")
+        assert resp.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_open_pdf_uses_os_viewer(self, tmp_path, monkeypatch):
+        rid = "run_open_pdf"
+        run_dir = init_run_bundle(str(tmp_path), rid)
+        pdf_dir = run_dir / "source"
+        pdf_dir.mkdir(parents=True, exist_ok=True)
+        pdf_path = pdf_dir / "paper-1.pdf"
+        pdf_path.write_bytes(b"%PDF-1.4\n%stub\n")
+        parsed_dir = run_dir / "parsed" / "paper-1"
+        parsed_dir.mkdir(parents=True, exist_ok=True)
+        write_json(parsed_dir / "parsed_document.json", {"source_path": str(pdf_path)})
+
+        opened: list[str] = []
+
+        def fake_open(path: pathlib.Path) -> None:
+            opened.append(str(path))
+
+        monkeypatch.setattr("backend.app.main.open_in_local_viewer", fake_open)
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(f"/api/runs/{rid}/assets/pdf/paper-1/open?output_dir={tmp_path}")
+
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "opened"
+        assert opened == [str(pdf_path)]
+
+
 class TestCreateRun:
     @pytest.mark.asyncio
     async def test_invalid_config_path(self):

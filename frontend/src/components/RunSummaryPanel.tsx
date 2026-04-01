@@ -12,7 +12,7 @@ export function RunSummaryPanel({ run, outputDir }: Props) {
   const [matching, setMatching] = useState<MatchingSummary | null>(null)
 
   useEffect(() => {
-    api.getProgress(run.run_id, outputDir).then(setProgress).catch(() => {})
+    api.getReviewProgress(run.run_id, outputDir).then(setProgress).catch(() => {})
     api.getMatchingSummary(run.run_id, outputDir).then(setMatching).catch(() => {})
   }, [run.run_id, outputDir])
 

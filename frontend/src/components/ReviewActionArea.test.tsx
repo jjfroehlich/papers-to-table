@@ -31,11 +31,17 @@ function makeProposal(overrides: Partial<EnrichedProposal> = {}): EnrichedPropos
     evidence_ids: [],
     warning_flags: [],
     needs_more_evidence: false,
+    is_verify_mode: false,
+    existing_value: null,
+    provider_mode: 'text',
     created_at: '2024-01-01T00:00:00Z',
     latest_decision: null,
     warning_categories: [],
     is_figure_derived: false,
     is_fallback_evidence: false,
+    paper_title: 'A sample MPRA paper',
+    paper_authors: 'Smith, J.',
+    paper_year: '2024',
     ...overrides,
   }
 }

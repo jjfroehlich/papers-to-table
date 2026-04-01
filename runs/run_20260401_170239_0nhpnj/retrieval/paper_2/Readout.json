@@ -1,0 +1,532 @@
+{
+  "run_id": "run_20260401_170239_0nhpnj",
+  "pdf_id": "paper_2",
+  "column_name": "Readout",
+  "query": "Readout: How the expression is read out. By RNA levels (RNAseq, scRNAseq), or by FACS sorting followed by DNAseq (FACS)",
+  "top_k": 10,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_2_p1_5",
+      "source_block_id": "paper_2_p1_5",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 5,
+      "display_text": "Drew T. Bergman 1,2,9 , Thouis R. Jones 1,9 , Vincent Liu 3 , Judhajeet Ray 1 , Evelyn Jagoda 1 , Layla Siraj 1,4 , Helen Y. Kang 3,5 , Joseph Nasser 1 , Michael Kane 1 , Antonio Rios 3 , Tung H. Nguyen 1 , Sharon R. Grossman 1 , Charles P. Fulco 1,8 , Eric S. Lander 1,6,7 & Jesse M. Engreitz 1,3,5 ✉",
+      "retrieval_text": "[Section: Compatibility rules of human enhancer and promoter sequences] Drew T. Bergman 1,2,9 , Thouis R. Jones 1,9 , Vincent Liu 3 , Judhajeet Ray 1 , Evelyn Jagoda 1 , Layla Siraj 1,4 , Helen Y. Kang 3,5 , Joseph Nasser 1 , Michael Kane 1 , Antonio Rios 3 , Tung H. Nguyen 1 , Sharon R. Grossman 1 , Charles P. Fulco 1,8 , Eric S. Lander 1,6,7 & Jesse M. Engreitz 1,3,5 ✉",
+      "bbox": [
+        217.32229615999995,
+        645.4324552150313,
+        528.21029296,
+        605.0705584816056
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules of human enhancer and promoter sequences",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p1_6",
+      "source_block_id": "paper_2_p1_6",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 6,
+      "display_text": "Gene regulation in the human genome is controlled by distal enhancers that activate specific nearby promoters 1 . A proposed model for this specificity is that promoters have sequence-encoded preferences for certain enhancers, for example, mediated by interacting sets of transcription factors or cofactors 2 . This 'biochemical compatibility' model has been supported by observations at individual human promoters and by genome-wide measurements in Drosophila 3-9 . However, the degree to which human enhancers and promoters are intrinsically compatible has not yet been systematically measured, and how their activities combine to control RNA expression remains unclear. Here we design a high-throughput reporter assay called enhancer × promoter self-transcribing active regulatory region sequencing (ExP STARR-seq) and applied it to examine the combinatorial compatibilities of 1,000 enhancer and 1,000 promoter sequences in human K562 cells. We identify simple rules for enhancer-promoter compatibility, whereby most enhancers activate all promoters by similar amounts, and intrinsic enhancer and promoter activities multiplicatively combine to determine RNA output ( R 2 = 0.82). In addition, two classes of enhancers and promoters show subtle preferential effects. Promoters of housekeeping genes contain built-in activating motifs for factors such as GABPA and YY1, which decrease the responsiveness of promoters to distal enhancers. Promoters of variably expressed genes lack these motifs and show stronger responsiveness to enhancers. Together, this systematic assessment of enhancer-promoter compatibility suggests a multiplicative model tuned by enhancer and promoter class to control gene transcription in the human genome.",
+      "retrieval_text": "[Section: Compatibility rules of human enhancer and promoter sequences] Gene regulation in the human genome is controlled by distal enhancers that activate specific nearby promoters 1 . A proposed model for this specificity is that promoters have sequence-encoded preferences for certain enhancers, for example, mediated by interacting sets of transcription factors or cofactors 2 . This 'biochemical compatibility' model has been supported by observations at individual human promoters and by genome-wide measurements in Drosophila 3-9 . However, the degree to which human enhancers and promoters are intrinsically compatible has not yet been systematically measured, and how their activities combine to control RNA expression remains unclear. Here we design a high-throughput reporter assay called enhancer × promoter self-transcribing active regulatory region sequencing (ExP STARR-seq) and applied it to examine the combinatorial compatibilities of 1,000 enhancer and 1,000 promoter sequences in human K562 cells. We identify simple rules for enhancer-promoter compatibility, whereby most enhancers activate all promoters by similar amounts, and intrinsic enhancer and promoter activities multiplicatively combine to determine RNA output ( R 2 = 0.82). In addition, two classes of enhancers and promoters show subtle preferential effects. Promoters of housekeeping genes contain built-in activating motifs for factors such as GABPA and YY1, which decrease the responsiveness of promoters to distal enhancers. Promoters of variably expressed genes lack these motifs and show stronger responsiveness to enhancers. Together, this systematic assessment of enhancer-promoter compatibility suggests a multiplicative model tuned by enhancer and promoter class to control gene transcription in the human genome.",
+      "bbox": [
+        217.32149704000003,
+        580.5985527320313,
+        562.8533923300001,
+        299.2737931620314
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules of human enhancer and promoter sequences",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p1_7",
+      "source_block_id": "paper_2_p1_7",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 7,
+      "display_text": "Check for updates",
+      "retrieval_text": "[Section: Compatibility rules of human enhancer and promoter sequences] Check for updates",
+      "bbox": [
+        50.50249862,
+        579.8904990320312,
+        120.52649861999993,
+        572.8869371442307
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules of human enhancer and promoter sequences",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p3_27",
+      "source_block_id": "paper_2_p3_27",
+      "chunk_type": "section",
+      "page_number": 3,
+      "reading_order": 27,
+      "display_text": "Activities multiplicatively combine",
+      "retrieval_text": "Activities multiplicatively combine",
+      "bbox": [
+        306.14169311,
+        733.6399306620312,
+        470.66319311009767,
+        724.6169649858018
+      ],
+      "provenance": "docling",
+      "section_context": "Activities multiplicatively combine",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p3_28",
+      "source_block_id": "paper_2_p3_28",
+      "chunk_type": "paragraph",
+      "page_number": 3,
+      "reading_order": 28,
+      "display_text": "This  pattern  of  effects-in  which  enhancers  showed  similar fold-activation across many promoters, and promoters showed similar levels of activation by many enhancers-suggests that intrinsic enhancer and promoter activities multiplicatively combine to produce the RNA output in STARR-seq. To quantify this, we correlated expression in the STARR-seq assay with intrinsic enhancer activity, intrinsic promoter activity and the multiplicative product of intrinsic enhancer and promoter activities.",
+      "retrieval_text": "[Section: Activities multiplicatively combine] This  pattern  of  effects-in  which  enhancers  showed  similar fold-activation across many promoters, and promoters showed similar levels of activation by many enhancers-suggests that intrinsic enhancer and promoter activities multiplicatively combine to produce the RNA output in STARR-seq. To quantify this, we correlated expression in the STARR-seq assay with intrinsic enhancer activity, intrinsic promoter activity and the multiplicative product of intrinsic enhancer and promoter activities.",
+      "bbox": [
+        306.14169311,
+        719.8069306620313,
+        562.8372148753016,
+        636.9003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Activities multiplicatively combine",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p3_29",
+      "source_block_id": "paper_2_p3_29",
+      "chunk_type": "paragraph",
+      "page_number": 3,
+      "reading_order": 29,
+      "display_text": "To do so, we fit the following Poisson count model:",
+      "retrieval_text": "[Section: Activities multiplicatively combine] To do so, we fit the following Poisson count model:",
+      "bbox": [
+        314.6474431925,
+        633.8071809095313,
+        502.1113681892824,
+        626.1505965345314
+      ],
+      "provenance": "docling",
+      "section_context": "Activities multiplicatively combine",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p5_46",
+      "source_block_id": "paper_2_p5_46",
+      "chunk_type": "section",
+      "page_number": 5,
+      "reading_order": 46,
+      "display_text": "Article",
+      "retrieval_text": "Article",
+      "bbox": [
+        39.68500137,
+        762.3165463820312,
+        86.78100137000003,
+        750.087971184142
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p5_47",
+      "source_block_id": "paper_2_p5_47",
+      "chunk_type": "caption",
+      "page_number": 5,
+      "reading_order": 47,
+      "display_text": "Fig. 3 | Compatibility classes of enhancers and promoters. a , Heatmap of deviations in enhancer-promoter STARR-seq expression from a multiplicative enhancer-promoter model (colour scale indicates the fold-difference between observed expression versus expression predicted by the multiplicative model; grey indicates missing data). The vertical axis shows promoter sequences grouped by class and sorted by responsiveness to E1 versus E2 (see b ); the horizontal axis shows enhancer sequences grouped by class and sorted by activation of P1 versus P2 (see c ). b , Activation of P1 versus P2 promoters by E1 and E2 enhancer sequences (equivalently: responsiveness to E1 versus E2 enhancer sequences). n = 126 (E1) or 290 (E2). Boxes represent the median and IQR, with whiskers ±1.5× the IQR. * P = 4.2 × 10 -8 , two-sample t -test. c , For each promoter, the average activation by (responsiveness to) E1 enhancer sequences ( x axis) versus the average activation by E2 enhancer sequences ( y axis). P1 promoters are activated more strongly by E1 versus E2 enhancers. d , For each enhancer, the average fold-activation when paired with P1 promoters ( x axis) versus P2 promoters ( y axis). E1 enhancers more strongly activate P1 promoters.",
+      "retrieval_text": "[Section: Article] Fig. 3 | Compatibility classes of enhancers and promoters. a , Heatmap of deviations in enhancer-promoter STARR-seq expression from a multiplicative enhancer-promoter model (colour scale indicates the fold-difference between observed expression versus expression predicted by the multiplicative model; grey indicates missing data). The vertical axis shows promoter sequences grouped by class and sorted by responsiveness to E1 versus E2 (see b ); the horizontal axis shows enhancer sequences grouped by class and sorted by activation of P1 versus P2 (see c ). b , Activation of P1 versus P2 promoters by E1 and E2 enhancer sequences (equivalently: responsiveness to E1 versus E2 enhancer sequences). n = 126 (E1) or 290 (E2). Boxes represent the median and IQR, with whiskers ±1.5× the IQR. * P = 4.2 × 10 -8 , two-sample t -test. c , For each promoter, the average activation by (responsiveness to) E1 enhancer sequences ( x axis) versus the average activation by E2 enhancer sequences ( y axis). P1 promoters are activated more strongly by E1 versus E2 enhancers. d , For each enhancer, the average fold-activation when paired with P1 promoters ( x axis) versus P2 promoters ( y axis). E1 enhancers more strongly activate P1 promoters.",
+      "bbox": [
+        39.67809186999996,
+        431.28132275203126,
+        293.9253017656498,
+        274.769826218698
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p5_48",
+      "source_block_id": "paper_2_p5_48",
+      "chunk_type": "paragraph",
+      "page_number": 5,
+      "reading_order": 48,
+      "display_text": "versus 13% of E2; Extended Data Fig. 6f). Both classes contained a large fraction of sequences predicted to be an enhancer in at least one other related or unrelated cell type (90% of E1 and 70% of E2), which suggests that some E2 genomic elements may act as strong enhancers in other cell types. Regarding sequence features, E1 enhancer sequences were significantly enriched for FOS and JUN motifs, whereas E2 enhancer sequences were not significantly enriched for any particular motif (Benjamini-Hochberg corrected P < 0.05; Extended Data Fig. 6b,c and Supplementary Table 5). Both E1 and E2 genomic enhancers appeared to produce enhancer RNAs, as measured by global nuclear run-on sequencing (GRO-cap) (Extended Data Fig. 6g), and showed similar levels of sequence conservation (Extended Data Fig. 6h).",
+      "retrieval_text": "[Section: Article] versus 13% of E2; Extended Data Fig. 6f). Both classes contained a large fraction of sequences predicted to be an enhancer in at least one other related or unrelated cell type (90% of E1 and 70% of E2), which suggests that some E2 genomic elements may act as strong enhancers in other cell types. Regarding sequence features, E1 enhancer sequences were significantly enriched for FOS and JUN motifs, whereas E2 enhancer sequences were not significantly enriched for any particular motif (Benjamini-Hochberg corrected P < 0.05; Extended Data Fig. 6b,c and Supplementary Table 5). Both E1 and E2 genomic enhancers appeared to produce enhancer RNAs, as measured by global nuclear run-on sequencing (GRO-cap) (Extended Data Fig. 6g), and showed similar levels of sequence conservation (Extended Data Fig. 6h).",
+      "bbox": [
+        39.68500137,
+        246.80693066203128,
+        296.39559631539254,
+        120.9003462870312
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p5_49",
+      "source_block_id": "paper_2_p5_49",
+      "chunk_type": "paragraph",
+      "page_number": 5,
+      "reading_order": 49,
+      "display_text": "These observations suggest that the differences in how these classes of enhancer sequences activate different promoters in ExP-STARR-seq could be related to their ability to recruit activating TFs (see below). We note that despite these clear differences in genomic activity, the two classes of enhancer sequences showed, on average, similar levels of activity in the ExP-STARR-seq assay (Extended Data Fig. 4b). This may reflect previous observations that sequences in STARR-seq might affect reporter expression by acting on steps other than transcriptional activation 16 or that the episomal STARR-seq assay often detects activity for sequences that do not appear to be active in their endogenous chromosomal context 17,29 .",
+      "retrieval_text": "[Section: Article] These observations suggest that the differences in how these classes of enhancer sequences activate different promoters in ExP-STARR-seq could be related to their ability to recruit activating TFs (see below). We note that despite these clear differences in genomic activity, the two classes of enhancer sequences showed, on average, similar levels of activity in the ExP-STARR-seq assay (Extended Data Fig. 4b). This may reflect previous observations that sequences in STARR-seq might affect reporter expression by acting on steps other than transcriptional activation 16 or that the episomal STARR-seq assay often detects activity for sequences that do not appear to be active in their endogenous chromosomal context 17,29 .",
+      "bbox": [
+        39.68500137,
+        117.80693066203128,
+        296.32681342962235,
+        45.65034246703124
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p5_50",
+      "source_block_id": "paper_2_p5_50",
+      "chunk_type": "section",
+      "page_number": 5,
+      "reading_order": 50,
+      "display_text": "Properties of promoter classes",
+      "retrieval_text": "Properties of promoter classes",
+      "bbox": [
+        306.14169311,
+        679.8899306620312,
+        449.10594311000006,
+        670.8669649858018
+      ],
+      "provenance": "docling",
+      "section_context": "Properties of promoter classes",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p9_100",
+      "source_block_id": "paper_2_p9_100",
+      "chunk_type": "list_item",
+      "page_number": 9,
+      "reading_order": 100,
+      "display_text": "Zabidi, M. A., Arnold, C. D., Schernhuber, K. & Pagani, M. Enhancer-core-promoter specificity separates developmental and housekeeping gene regulation. Nature 518 , 556-559 (2015).",
+      "retrieval_text": "[Section: Article] Zabidi, M. A., Arnold, C. D., Schernhuber, K. & Pagani, M. Enhancer-core-promoter specificity separates developmental and housekeeping gene regulation. Nature 518 , 556-559 (2015).",
+      "bbox": [
+        39.67900532999998,
+        701.2082590120312,
+        282.53500682999993,
+        679.9149387373143
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p9_101",
+      "source_block_id": "paper_2_p9_101",
+      "chunk_type": "list_item",
+      "page_number": 9,
+      "reading_order": 101,
+      "display_text": "Banerji, J., Rusconi, S. & Schaffner, W. Expression of a β-globin gene is enhanced by remote SV40 DNA sequences. Cell 27 , 299-308 (1981).",
+      "retrieval_text": "[Section: Article] Banerji, J., Rusconi, S. & Schaffner, W. Expression of a β-globin gene is enhanced by remote SV40 DNA sequences. Cell 27 , 299-308 (1981).",
+      "bbox": [
+        39.67899890999995,
+        677.1602597320312,
+        278.9403987905996,
+        663.8829392173143
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p9_102",
+      "source_block_id": "paper_2_p9_102",
+      "chunk_type": "list_item",
+      "page_number": 9,
+      "reading_order": 102,
+      "display_text": "Banerji, J., Olson, L. & Schaffner, W. A lymphocyte-specific cellular enhancer is located downstream of the joining region in immunoglobulin heavy chain genes. Cell 33 , 729-740 (1983).",
+      "retrieval_text": "[Section: Article] Banerji, J., Olson, L. & Schaffner, W. A lymphocyte-specific cellular enhancer is located downstream of the joining region in immunoglobulin heavy chain genes. Cell 33 , 729-740 (1983).",
+      "bbox": [
+        39.67900070999994,
+        661.1282602120313,
+        288.4450005899998,
+        639.8349399373143
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p12_191",
+      "source_block_id": "paper_2_p12_191",
+      "chunk_type": "section",
+      "page_number": 12,
+      "reading_order": 191,
+      "display_text": "Estimating enhancer and promoter activities using the naive averaging approach",
+      "retrieval_text": "Estimating enhancer and promoter activities using the naive averaging approach",
+      "bbox": [
+        39.68500137,
+        226.48743066203133,
+        281.04505137068,
+        207.8554044071608
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating enhancer and promoter activities using the naive averaging approach",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p12_192",
+      "source_block_id": "paper_2_p12_192",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 192,
+      "display_text": "We sought to compare the intrinsic activities of different enhancer and promoter sequences in ExP STARR-seq-that is, the contribution of a given enhancer or promoter sequence to STARR-seq expression relative to other sequences. We estimated enhancer activity and promoter activity in two ways: by a simple averaging method and by fitting a multiplicative Poisson count model (see next s  ec  ti  on).",
+      "retrieval_text": "[Section: Estimating enhancer and promoter activities using the naive averaging approach] We sought to compare the intrinsic activities of different enhancer and promoter sequences in ExP STARR-seq-that is, the contribution of a given enhancer or promoter sequence to STARR-seq expression relative to other sequences. We estimated enhancer activity and promoter activity in two ways: by a simple averaging method and by fitting a multiplicative Poisson count model (see next s  ec  ti  on).",
+      "bbox": [
+        39.68500137,
+        203.80693066203128,
+        296.2782330394567,
+        142.4003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating enhancer and promoter activities using the naive averaging approach",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p12_193",
+      "source_block_id": "paper_2_p12_193",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 193,
+      "display_text": "As a first approach to estimate promoter activity, we calculated, for each promoter sequence, the average log2(STARR-seq expression) when that promoter is paired with random genomic sequences in the enhancer position (Fig. 1c). This quantity represents the basal (or autonomous) expression level of the promoter in the absence of a strong activating sequence in the enhancer position.",
+      "retrieval_text": "[Section: Estimating enhancer and promoter activities using the naive averaging approach] As a first approach to estimate promoter activity, we calculated, for each promoter sequence, the average log2(STARR-seq expression) when that promoter is paired with random genomic sequences in the enhancer position (Fig. 1c). This quantity represents the basal (or autonomous) expression level of the promoter in the absence of a strong activating sequence in the enhancer position.",
+      "bbox": [
+        39.68500137,
+        139.30693066203128,
+        296.2510781496188,
+        77.90059653453125
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating enhancer and promoter activities using the naive averaging approach",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p12_195",
+      "source_block_id": "paper_2_p12_195",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 195,
+      "display_text": "As noted above, we fit this model on the set of plasmids with at least 25 DNA reads, and at least 1 RNA read. In addition, to reduce noise in our promoter and enhancer activity estimates, we required at least two separate plasmid barcodes per promoter-enhancer pair. These filters resulted in 604,268 promoter-enhancer pairs across 4,512,907 total unique plasmids (approximately 7.5 plasmids per pair) that were used to estimate promoter and enhancer activity.",
+      "retrieval_text": "[Section: Estimating enhancer and promoter activities using the naive averaging approach] As noted above, we fit this model on the set of plasmids with at least 25 DNA reads, and at least 1 RNA read. In addition, to reduce noise in our promoter and enhancer activity estimates, we required at least two separate plasmid barcodes per promoter-enhancer pair. These filters resulted in 604,268 promoter-enhancer pairs across 4,512,907 total unique plasmids (approximately 7.5 plasmids per pair) that were used to estimate promoter and enhancer activity.",
+      "bbox": [
+        306.14169311,
+        741.3069306620313,
+        562.8216562140307,
+        669.1503462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating enhancer and promoter activities using the naive averaging approach",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p12_196",
+      "source_block_id": "paper_2_p12_196",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 196,
+      "display_text": "In practice, this averaging method of calculating enhancer and promoter activity was inaccurate and biased for several reasons. First, the averaging method does not consider the variance introduced by sampling and counting noise in sequencing, which is significant because many promoter-enhancer pairs have low RNA read counts. Second, the averaging method does not account for differences introduced due to missing data. In the 1,000 enhancer × 1,000 promoter data matrix, many entries are missing either due to low RNA counts (resulting from counting and sampling noise or from low expression) or due to low DNA counts (resulting from variation introduced in cloning the plasmid library). As a result of these factors, the averaging method produces biased (inflated) estimates of activity for weaker enhancer and promoter sequences because the expression of plasmids containing these sequences is more likely to drop below the threshold of detection given our sequencing depth (Extended Data Fig. 2c,d).",
+      "retrieval_text": "[Section: Estimating enhancer and promoter activities using the naive averaging approach] In practice, this averaging method of calculating enhancer and promoter activity was inaccurate and biased for several reasons. First, the averaging method does not consider the variance introduced by sampling and counting noise in sequencing, which is significant because many promoter-enhancer pairs have low RNA read counts. Second, the averaging method does not account for differences introduced due to missing data. In the 1,000 enhancer × 1,000 promoter data matrix, many entries are missing either due to low RNA counts (resulting from counting and sampling noise or from low expression) or due to low DNA counts (resulting from variation introduced in cloning the plasmid library). As a result of these factors, the averaging method produces biased (inflated) estimates of activity for weaker enhancer and promoter sequences because the expression of plasmids containing these sequences is more likely to drop below the threshold of detection given our sequencing depth (Extended Data Fig. 2c,d).",
+      "bbox": [
+        306.14169311,
+        666.0569306620313,
+        562.8692914343773,
+        507.90034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating enhancer and promoter activities using the naive averaging approach",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p12_197",
+      "source_block_id": "paper_2_p12_197",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 197,
+      "display_text": "Because this model explained the data well, we used this same model to estimate intrinsic enhancer and promoter activity.",
+      "retrieval_text": "[Section: Estimating enhancer and promoter activities using the naive averaging approach] Because this model explained the data well, we used this same model to estimate intrinsic enhancer and promoter activity.",
+      "bbox": [
+        306.14169311,
+        504.8069306620313,
+        562.7246634786183,
+        486.40034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating enhancer and promoter activities using the naive averaging approach",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p12_199",
+      "source_block_id": "paper_2_p12_199",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 199,
+      "display_text": "We fit a count-based Poisson model to address the limitations of using a simple averaging approach to estimate intrinsic enhancer and promoter activities (see previous section) and to quantify the extent to which the ExP STARR-seq data can be explained by a simple multiplicative function of intrinsic enhancer and promoter activities. In this multiplicative model, all enhancers are assumed to activate all promoters by the same fold-change without enhancer-promoter interaction terms.",
+      "retrieval_text": "[Section: Estimating intrinsic enhancer and promoter activities using the multiplicative model] We fit a count-based Poisson model to address the limitations of using a simple averaging approach to estimate intrinsic enhancer and promoter activities (see previous section) and to quantify the extent to which the ExP STARR-seq data can be explained by a simple multiplicative function of intrinsic enhancer and promoter activities. In this multiplicative model, all enhancers are assumed to activate all promoters by the same fold-change without enhancer-promoter interaction terms.",
+      "bbox": [
+        306.14169311,
+        451.0569306620313,
+        562.710432365529,
+        378.90034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating intrinsic enhancer and promoter activities using the multiplicative model",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p12_200",
+      "source_block_id": "paper_2_p12_200",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 200,
+      "display_text": "Specifically, we estimated enhancer and promoter activities from ExP STARR-seq data by fitting the observed RNA read counts to a multiplicative function of observed DNA input read counts, intrinsic enhancer activity and intrinsic promoter activity as follows:",
+      "retrieval_text": "[Section: Estimating intrinsic enhancer and promoter activities using the multiplicative model] Specifically, we estimated enhancer and promoter activities from ExP STARR-seq data by fitting the observed RNA read counts to a multiplicative function of observed DNA input read counts, intrinsic enhancer activity and intrinsic promoter activity as follows:",
+      "bbox": [
+        306.14169311,
+        375.8069306620313,
+        562.8236159815058,
+        335.90034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating intrinsic enhancer and promoter activities using the multiplicative model",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p12_201",
+      "source_block_id": "paper_2_p12_201",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 201,
+      "display_text": "k P E RNA ~Poisson( ×DNA× × ), where P is the intrinsic promoter activity of the promoter sequence p, E is intrinsic enhancer activity of the enhancer sequence e, and k is a global scaling/intercept term that accounts for factors that control the relative counts of DNA and RNA, such as sequencing depth.",
+      "retrieval_text": "[Section: Estimating intrinsic enhancer and promoter activities using the multiplicative model] k P E RNA ~Poisson( ×DNA× × ), where P is the intrinsic promoter activity of the promoter sequence p, E is intrinsic enhancer activity of the enhancer sequence e, and k is a global scaling/intercept term that accounts for factors that control the relative counts of DNA and RNA, such as sequencing depth.",
+      "bbox": [
+        373.51685730171994,
+        325.70778429809127,
+        493.61026869240993,
+        317.95653648463497
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating intrinsic enhancer and promoter activities using the multiplicative model",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p19_304",
+      "source_block_id": "paper_2_p19_304",
+      "chunk_type": "paragraph",
+      "page_number": 19,
+      "reading_order": 304,
+      "display_text": "Extended Data Fig. 2 | Comparison of methods of estimating enhancer and promoter activities and the multiplicative model. a . Intrinsic promoter activity (expression versus random genomic controls in enhancer position) of five selected promoters. Error bars: 95% CI across plasmid barcodes (n = 54-79). Promoter classes (see Methods): DNASE2 (P1), HDAC6 (P1), CD164 (P1), BCAT2 (P1), PPP1R15A (P2). b . Activation (expression versus random genomic controls in enhancer position) of 5 selected promoters by 5 selected enhancers: 1 = chr11:61602148-61602412 (E1), 2 = chr19:49467061-49467325 (E1), 3 = chrX:48641342-48641606 (E1), 4 = chr19:12893216-12893480 (E2), 5 = chr17:40851134-40851398 (E1). Error bars: 95% CI across plasmid barcodes (n = 12-56). c-d . Heatmap of promoter activity ( a , expression divided by intrinsic enhancer activity) or enhancer activity ( b , expression divided by intrinsic promoter activity) across all pairs of promoter (vertical) and enhancer sequences (horizontal). Axes are sorted by intrinsic promoter and enhancer activities, as in Fig. 2j. Grey: missing data. e . Intrinsic promoter and enhancer activity (y-axis, estimated by a Poisson count model) versus average pairwise",
+      "retrieval_text": "[Section: Article] Extended Data Fig. 2 | Comparison of methods of estimating enhancer and promoter activities and the multiplicative model. a . Intrinsic promoter activity (expression versus random genomic controls in enhancer position) of five selected promoters. Error bars: 95% CI across plasmid barcodes (n = 54-79). Promoter classes (see Methods): DNASE2 (P1), HDAC6 (P1), CD164 (P1), BCAT2 (P1), PPP1R15A (P2). b . Activation (expression versus random genomic controls in enhancer position) of 5 selected promoters by 5 selected enhancers: 1 = chr11:61602148-61602412 (E1), 2 = chr19:49467061-49467325 (E1), 3 = chrX:48641342-48641606 (E1), 4 = chr19:12893216-12893480 (E2), 5 = chr17:40851134-40851398 (E1). Error bars: 95% CI across plasmid barcodes (n = 12-56). c-d . Heatmap of promoter activity ( a , expression divided by intrinsic enhancer activity) or enhancer activity ( b , expression divided by intrinsic promoter activity) across all pairs of promoter (vertical) and enhancer sequences (horizontal). Axes are sorted by intrinsic promoter and enhancer activities, as in Fig. 2j. Grey: missing data. e . Intrinsic promoter and enhancer activity (y-axis, estimated by a Poisson count model) versus average pairwise",
+      "bbox": [
+        39.68500137,
+        741.4162104420312,
+        295.2606029853201,
+        584.8747125086974
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p19_305",
+      "source_block_id": "paper_2_p19_305",
+      "chunk_type": "paragraph",
+      "page_number": 19,
+      "reading_order": 305,
+      "display_text": "Spearman correlation (as in Fig. 2c, d). f-g . Correlation between two estimates of promoter ( c ) and enhancer ( d ) activities. One method ('average activity', x-axis) estimates activity calculated by averaging across elements, and the other method ('intrinsic activity', y-axis) estimates activity by using coefficients estimated by a Poisson count model (see Methods). h-i . Correlation of intrinsic promoter ( e ) and enhancer ( f ) activity estimates from Poisson model using data from separate replicate experiments. j-k . Fraction of variance explained by promoter activity, enhancer activity, class interaction from the perspective of expression (STARR-seq score) and enhancer activation (fold-activation of an enhancer on a promoter, normalizing out promoter strength) limited to pairs with 2 or more ( c ) or 20 or more ( d ) plasmid barcodes. Plot includes pairs with P0 promoters and E0 enhancers. Bar plots show sequential sum of squares (Type-I ANOVA). l . Correlation of the multiplicative enhancer x promoter model with STARR-seq expression comparing enhancer-promoter pairs located within 10 kb, 100 kb, and pairs located on different chromosomes.",
+      "retrieval_text": "[Section: Article] Spearman correlation (as in Fig. 2c, d). f-g . Correlation between two estimates of promoter ( c ) and enhancer ( d ) activities. One method ('average activity', x-axis) estimates activity calculated by averaging across elements, and the other method ('intrinsic activity', y-axis) estimates activity by using coefficients estimated by a Poisson count model (see Methods). h-i . Correlation of intrinsic promoter ( e ) and enhancer ( f ) activity estimates from Poisson model using data from separate replicate experiments. j-k . Fraction of variance explained by promoter activity, enhancer activity, class interaction from the perspective of expression (STARR-seq score) and enhancer activation (fold-activation of an enhancer on a promoter, normalizing out promoter strength) limited to pairs with 2 or more ( c ) or 20 or more ( d ) plasmid barcodes. Plot includes pairs with P0 promoters and E0 enhancers. Bar plots show sequential sum of squares (Type-I ANOVA). l . Correlation of the multiplicative enhancer x promoter model with STARR-seq expression comparing enhancer-promoter pairs located within 10 kb, 100 kb, and pairs located on different chromosomes.",
+      "bbox": [
+        306.1260031899999,
+        741.3742142920306,
+        561.5798032166698,
+        584.8327163586968
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p20_306",
+      "source_block_id": "paper_2_p20_306",
+      "chunk_type": "caption",
+      "page_number": 20,
+      "reading_order": 306,
+      "display_text": "Extended Data Fig. 3 | Validation of enhancer-promoter multiplication via luciferase assays and modeling gene transcription as a function of intrinsic promoter activity and enhancer inputs. a . ExP luciferase reporter construct. Seven enhancer fragments, with flanking polyadenylation signals, were cloned upstream of five promoter fragments and measured via the dual luciferase assay. b . Autonomous promoter activity of ExP luciferase (average luciferase signal of promoter with negative control) for 5 promoter sequences derived from 3 genes ( MYC , PVT1 , CCDC26 ). Error bars are 95% CI from 6 (MYC) or 4 (all other promoters) biological replicates. c . Enhancer activation (luciferase signal versus negative control sequence in the enhancer position) of seven enhancers across five promoter fragments. Error bars are 95% CI from 6 (MYC)",
+      "retrieval_text": "[Section: Article] Extended Data Fig. 3 | Validation of enhancer-promoter multiplication via luciferase assays and modeling gene transcription as a function of intrinsic promoter activity and enhancer inputs. a . ExP luciferase reporter construct. Seven enhancer fragments, with flanking polyadenylation signals, were cloned upstream of five promoter fragments and measured via the dual luciferase assay. b . Autonomous promoter activity of ExP luciferase (average luciferase signal of promoter with negative control) for 5 promoter sequences derived from 3 genes ( MYC , PVT1 , CCDC26 ). Error bars are 95% CI from 6 (MYC) or 4 (all other promoters) biological replicates. c . Enhancer activation (luciferase signal versus negative control sequence in the enhancer position) of seven enhancers across five promoter fragments. Error bars are 95% CI from 6 (MYC)",
+      "bbox": [
+        39.68499667999998,
+        263.35233715203117,
+        295.6729013706999,
+        156.82583991869774
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p20_307",
+      "source_block_id": "paper_2_p20_307",
+      "chunk_type": "caption",
+      "page_number": 20,
+      "reading_order": 307,
+      "display_text": "or 4 (all other promoters) biological replicates. d-f . Gene transcription (y-axis): PRO-seq read counts in the gene body. a . Promoter Activity (x-axis, left): Intrinsic promoter activity, as measured by ExP STARR-seq. b . Enhancer Input (x-axis, center): enhancer activity (based on measurements of H3K27ac and DHS in the genome) multiplied by enhancer-promoter contact (based on Hi-C measurements), summed across all putative enhancers (DHS peaks) within 5 Mb of the gene promoter (excluding the promoter's own peak), weighted by HiC contact as in the ABC Model 22 . c . Promoter Activity x Enhancer Input (x-axis, right). Labels: gene symbols for 741 promoters with sequence activity estimates from ExP STARR-seq and enhancer input estimates from ABC. Dotted lines: Line of best fit from linear regression in log 2 space.",
+      "retrieval_text": "[Section: Article] or 4 (all other promoters) biological replicates. d-f . Gene transcription (y-axis): PRO-seq read counts in the gene body. a . Promoter Activity (x-axis, left): Intrinsic promoter activity, as measured by ExP STARR-seq. b . Enhancer Input (x-axis, center): enhancer activity (based on measurements of H3K27ac and DHS in the genome) multiplied by enhancer-promoter contact (based on Hi-C measurements), summed across all putative enhancers (DHS peaks) within 5 Mb of the gene promoter (excluding the promoter's own peak), weighted by HiC contact as in the ABC Model 22 . c . Promoter Activity x Enhancer Input (x-axis, right). Labels: gene symbols for 741 promoters with sequence activity estimates from ExP STARR-seq and enhancer input estimates from ABC. Dotted lines: Line of best fit from linear regression in log 2 space.",
+      "bbox": [
+        306.13998197999996,
+        263.3243375020311,
+        562.4772996980801,
+        156.03283054324538
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p21_308",
+      "source_block_id": "paper_2_p21_308",
+      "chunk_type": "caption",
+      "page_number": 21,
+      "reading_order": 308,
+      "display_text": "Extended Data Fig. 4 | Enhancer and promoter cluster identification and reproducibility. a . Heatmap of deviations in enhancer-promoter STARR-seq expression from a multiplicative enhancer-promoter model (color scale: fold-difference between observed expression versus expression predicted by multiplicative model; gray: missing data). Same as Fig 3a, except including clusters with weak sequences and missing data (E0 and P0). Vertical axis: promoter sequences grouped by class and sorted by responsiveness to E1 vs. E2; horizontal axis: enhancer sequences grouped by class and sorted by activation of P1 vs. P2. b . Distribution of intrinsic enhancer and promoter activity (expression versus genomic controls) by cluster. c . Fraction of enhancer-promoter pairs observed in ExP STARR-seq dataset (>= 2 plasmid barcodes) by cluster. d . Correlation of average promoter activation (expression versus genomic controls in enhancer position) by E2 versus E1 enhancer sequences. Each point is one promoter sequence. Same as Fig. 3c, except",
+      "retrieval_text": "[Section: Article] Extended Data Fig. 4 | Enhancer and promoter cluster identification and reproducibility. a . Heatmap of deviations in enhancer-promoter STARR-seq expression from a multiplicative enhancer-promoter model (color scale: fold-difference between observed expression versus expression predicted by multiplicative model; gray: missing data). Same as Fig 3a, except including clusters with weak sequences and missing data (E0 and P0). Vertical axis: promoter sequences grouped by class and sorted by responsiveness to E1 vs. E2; horizontal axis: enhancer sequences grouped by class and sorted by activation of P1 vs. P2. b . Distribution of intrinsic enhancer and promoter activity (expression versus genomic controls) by cluster. c . Fraction of enhancer-promoter pairs observed in ExP STARR-seq dataset (>= 2 plasmid barcodes) by cluster. d . Correlation of average promoter activation (expression versus genomic controls in enhancer position) by E2 versus E1 enhancer sequences. Each point is one promoter sequence. Same as Fig. 3c, except",
+      "bbox": [
+        39.68510055,
+        238.51232555203126,
+        296.03420581904015,
+        101.97682789869782
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p21_309",
+      "source_block_id": "paper_2_p21_309",
+      "chunk_type": "caption",
+      "page_number": 21,
+      "reading_order": 309,
+      "display_text": "including P0 promoter sequences. e . Correlation of average activation of P2 versus P1 promoters. Each point is one enhancer sequence. Same as Fig. 3d, except including E0 enhancer sequences. f . Robustness of enhancer and promoter cluster assignments to downsampling of enhancer and promoter sequences. Clustering was repeated in 100 random downsamplings to 25% of promoter sequences and 25% of enhancer sequences (6.25% of original matrix). Heatmap: Average fraction overlap between cluster assignments from the full and downsampled matrices. g . Correlation of average promoter activation (expression versus genomic controls in enhancer position) by E2 versus E1 enhancer sequences using 'average activity' instead of model estimates. Each point is one promoter sequence. h . Correlation of average activation of P2 versus P1 promoters using 'average activity' instead of model estimates. Each point is one enhancer sequence.",
+      "retrieval_text": "[Section: Article] including P0 promoter sequences. e . Correlation of average activation of P2 versus P1 promoters. Each point is one enhancer sequence. Same as Fig. 3d, except including E0 enhancer sequences. f . Robustness of enhancer and promoter cluster assignments to downsampling of enhancer and promoter sequences. Clustering was repeated in 100 random downsamplings to 25% of promoter sequences and 25% of enhancer sequences (6.25% of original matrix). Heatmap: Average fraction overlap between cluster assignments from the full and downsampled matrices. g . Correlation of average promoter activation (expression versus genomic controls in enhancer position) by E2 versus E1 enhancer sequences using 'average activity' instead of model estimates. Each point is one promoter sequence. h . Correlation of average activation of P2 versus P1 promoters using 'average activity' instead of model estimates. Each point is one enhancer sequence.",
+      "bbox": [
+        306.13309144999994,
+        238.47031771203115,
+        561.9984914275296,
+        111.93782019869775
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    }
+  ],
+  "retrieved_at": "2026-04-01T17:15:10.427077+00:00"
+}

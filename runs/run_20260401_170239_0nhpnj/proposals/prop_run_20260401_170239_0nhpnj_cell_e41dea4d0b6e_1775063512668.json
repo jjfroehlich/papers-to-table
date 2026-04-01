@@ -1,0 +1,27 @@
+{
+  "proposal_id": "prop_run_20260401_170239_0nhpnj_cell_e41dea4d0b6e_1775063512668",
+  "run_id": "run_20260401_170239_0nhpnj",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "what predicts activity? (e.g. accessible -> active in MPRA?)",
+  "cell_id": "cell_e41dea4d0b6e",
+  "state": "found",
+  "support": "direct_evidence",
+  "proposed_value": "Chromatin accessibility (DNase I hypersensitivity), H3K27ac levels, and binding of activating transcription factors (e.g., AP-1 factors JUN and ATF3) strongly correlate with enhancer activity in ExP STARR-seq, with E1 sequences showing significantly higher levels of these features compared to E2 sequences (Fig. 3a, Extended Data Fig. 6a–d). Promoter activity also correlates with biochemical features such as chromatin accessibility and nascent transcription, though canonical promoter motifs showed weak associations.",
+  "rationale": "- E1 enhancer sequences showed stronger associations with H3K27ac, DNase I hypersensitivity, and AP-1 factor binding than E2 sequences (Fig. 3a, Extended Data Fig. 6a–d). \n- Enhancer and promoter activity in ExP STARR-seq correlated with biochemical features including chromatin accessibility, H3K27ac, and nascent RNA transcription (Extended Data Fig. 1g). \n- E1 sequences were more likely to be predicted as enhancers and showed stronger effects in CRISPR perturbations, consistent with higher activity (Extended Data Fig. 6e).",
+  "calculation": null,
+  "primary_evidence_id": "ev_prop_run_20260401_170239_0nhpnj_cell_e41dea4d0b6e_1775063512668_ls6p88k0",
+  "ordered_supporting_evidence_ids": [
+    "ev_prop_run_20260401_170239_0nhpnj_cell_e41dea4d0b6e_1775063512668_0arzs9v4"
+  ],
+  "evidence_ids": [
+    "ev_prop_run_20260401_170239_0nhpnj_cell_e41dea4d0b6e_1775063512668_ls6p88k0",
+    "ev_prop_run_20260401_170239_0nhpnj_cell_e41dea4d0b6e_1775063512668_0arzs9v4"
+  ],
+  "warning_flags": [],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T17:11:52.668730+00:00"
+}

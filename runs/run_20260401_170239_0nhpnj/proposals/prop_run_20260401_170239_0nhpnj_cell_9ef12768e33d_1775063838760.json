@@ -1,0 +1,29 @@
+{
+  "proposal_id": "prop_run_20260401_170239_0nhpnj_cell_9ef12768e33d_1775063838760",
+  "run_id": "run_20260401_170239_0nhpnj",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "library construction",
+  "cell_id": "cell_9ef12768e33d",
+  "state": "inferred",
+  "support": "inferred_from_evidence",
+  "proposed_value": "The MPRA library was constructed by ordering 264 bp enhancer and promoter sequences as synthetic oligonucleotides with 18 bp adaptors in an oligonucleotide array format from Twist Bioscience. These sequences were cloned into a plasmid vector with a reporter gene, where the enhancer and promoter were positioned in the positive strand direction, and barcodes were located within the sequence. The library was transfected into K562 cells for STARR-seq analysis.",
+  "rationale": "- The library was constructed using synthetic oligonucleotides ordered from Twist Bioscience with 18 bp adaptors (Passage 9). \n- Sequences were cloned in all pairwise combinations of 1,000 enhancers and 1,000 promoters (Passage 5), indicating a plasmid-based cloning system with reporter gene functionality. \n- All sequences were in the positive strand direction (Passage 7), and barcodes were used to track individual plasmid variants (implied by STARR-seq analysis of individual barcodes; Passage 5).",
+  "calculation": null,
+  "primary_evidence_id": "ev_prop_run_20260401_170239_0nhpnj_cell_9ef12768e33d_1775063838760_uj88q0gx",
+  "ordered_supporting_evidence_ids": [
+    "ev_prop_run_20260401_170239_0nhpnj_cell_9ef12768e33d_1775063838760_bp1z9r4j",
+    "ev_prop_run_20260401_170239_0nhpnj_cell_9ef12768e33d_1775063838760_tfa6bw0n"
+  ],
+  "evidence_ids": [
+    "ev_prop_run_20260401_170239_0nhpnj_cell_9ef12768e33d_1775063838760_uj88q0gx",
+    "ev_prop_run_20260401_170239_0nhpnj_cell_9ef12768e33d_1775063838760_bp1z9r4j",
+    "ev_prop_run_20260401_170239_0nhpnj_cell_9ef12768e33d_1775063838760_tfa6bw0n"
+  ],
+  "warning_flags": [],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T17:17:18.760151+00:00"
+}

@@ -1,0 +1,29 @@
+{
+  "proposal_id": "prop_run_20260401_170239_0nhpnj_cell_aa99e2a3a3c0_1775063628322",
+  "run_id": "run_20260401_170239_0nhpnj",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "Episomal vs genomic",
+  "cell_id": "cell_aa99e2a3a3c0",
+  "state": "found",
+  "support": "direct_evidence",
+  "proposed_value": "episomal",
+  "rationale": "- The paper explicitly states that ExP STARR-seq involves transient transfection of plasmids into cells (Passage 5). \n- It describes the use of plasmid barcodes and RNA-seq to measure reporter transcripts from transfected plasmids, confirming episomal delivery (Passage 4). \n- The authors note that episomal STARR-seq assays often detect activity for sequences not active in their endogenous chromosomal context (Passage 10).",
+  "calculation": "The method relies on transient transfection of plasmids, which are not integrated into the genome, confirming episomal status.",
+  "primary_evidence_id": "ev_prop_run_20260401_170239_0nhpnj_cell_aa99e2a3a3c0_1775063628322_g92seuwf",
+  "ordered_supporting_evidence_ids": [
+    "ev_prop_run_20260401_170239_0nhpnj_cell_aa99e2a3a3c0_1775063628322_s8bw65w4"
+  ],
+  "evidence_ids": [
+    "ev_prop_run_20260401_170239_0nhpnj_cell_aa99e2a3a3c0_1775063628322_g92seuwf",
+    "ev_prop_run_20260401_170239_0nhpnj_cell_aa99e2a3a3c0_1775063628322_s8bw65w4"
+  ],
+  "warning_flags": [
+    "approximate_highlight_used"
+  ],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "episomal",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T17:13:48.322184+00:00"
+}

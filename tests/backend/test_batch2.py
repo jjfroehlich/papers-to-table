@@ -29,13 +29,17 @@ from backend.app.matching import (
 )
 from backend.app.parsing import (
     BasicTextParserAdapter,
+    DocumentMetadata,
     DoclingParserAdapter,
+    FigureCaptionPair,
+    PageInfo,
     ParserDiagnostics,
     ParsedDocument,
     PDFiumBackend,
     build_diagnostics,
     check_ocr_readiness,
     check_parser_readiness,
+    generate_figure_artifacts,
     generate_page_artifacts,
     get_parsed_dir,
     normalize_text,
@@ -115,6 +119,28 @@ class TestParserAdapterInterface:
         # docling is installed so should be importable
         assert ok, reason
 
+    def test_docling_parse_extracts_text_from_text_pdf(self, tmp_path):
+        """Regression: current docling iterate_items() may yield (item, level)."""
+        run_dir = tmp_path / "run"
+        run_dir.mkdir()
+
+        doc, diag, _ = parse_pdf(
+            pdf_path=PAPER_2,
+            pdf_id="paper_2",
+            configured_parser="docling",
+            allow_basic_fallback=False,
+            ocr_enabled=False,
+            ocr_language="en",
+            run_dir=run_dir,
+            generate_pages=False,
+        )
+
+        assert doc.parser_used == "docling"
+        assert len(doc.blocks) > 0
+        assert "Compatibility rules of human enhancer and promoter sequences" in doc.full_text
+        assert "K562" in doc.full_text
+        assert diag.text_char_count > 1000
+
     def test_parse_pdf_records_configured_vs_actual_parser(self, tmp_path):
         """T026a: configured_parser and parser_used must both be recorded."""
         run_dir = tmp_path / "run"
@@ -134,6 +160,62 @@ class TestParserAdapterInterface:
         assert doc.fallback_used is False
         assert diag.configured_parser == "pypdfium2"
         assert diag.actual_parser_used == "pypdfium2"
+
+    def test_generate_figure_artifacts_persists_crop_and_page_links(self, tmp_path):
+        """Figure review needs stored crops and page links, not caption-only metadata."""
+        run_dir = tmp_path / "run"
+        run_dir.mkdir()
+
+        page_artifact_paths = generate_page_artifacts(
+            run_dir,
+            PAPER_2,
+            "paper_2",
+            scale=1.0,
+        )
+        doc = ParsedDocument(
+            pdf_id="paper_2",
+            pdf_path=PAPER_2,
+            metadata=DocumentMetadata(title="Test figure doc"),
+            pages=[
+                PageInfo(
+                    page_number=1,
+                    width=612.0,
+                    height=792.0,
+                    text_accessible=True,
+                    block_count=0,
+                )
+            ],
+            blocks=[],
+            figures=[
+                FigureCaptionPair(
+                    figure_id="paper_2_fig1",
+                    page_number=1,
+                    bbox=[0.0, 0.0, 150.0, 150.0],
+                )
+            ],
+            full_text="test",
+            normalized_text="test",
+            configured_parser="docling",
+            parser_used="docling",
+            fallback_used=False,
+            fallback_reason=None,
+            ocr_used=False,
+            ocr_reason=None,
+            parse_warnings=[],
+            parsed_at="2026-04-01T00:00:00+00:00",
+        )
+
+        updated = generate_figure_artifacts(
+            run_dir,
+            PAPER_2,
+            doc,
+            page_artifact_paths=page_artifact_paths,
+        )
+
+        figure = updated.figures[0]
+        assert figure.crop_path is not None
+        assert figure.full_page_path == "parsed/paper_2/pages/page_0001.png"
+        assert (run_dir / pathlib.Path(figure.crop_path)).exists()
 
     def test_fallback_disabled_raises_when_configured_parser_fails(self, tmp_path):
         """T026a: without allow_basic_fallback, a broken parser should raise."""

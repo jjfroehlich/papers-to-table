@@ -1,0 +1,14 @@
+{
+  "column_name": "Type of Condition",
+  "field_type_guess": "text",
+  "expected_length": "short",
+  "tone": "technical",
+  "detail_level": "medium",
+  "value_shape": "comma-separated list of condition descriptors",
+  "unit_style": null,
+  "format_notes": "Values are descriptive phrases indicating experimental conditions; may include multiple terms separated by spaces or commas; consistent capitalization not enforced.",
+  "example_risk": "medium",
+  "generated_at": "2026-04-01T17:08:56.808855+00:00",
+  "source_column_count": 27,
+  "provider_mode": "live_llm"
+}

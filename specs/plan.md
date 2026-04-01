@@ -36,6 +36,7 @@ The intended implementation model for this repository is:
 - The local onboarding path should stay clear and singular: start backend, start frontend, open the browser UI, supply a config path, start the run.
 - Treat `README.md`, the checked-in config example, the runtime config schema, and operator-visible UI copy as one operator-facing contract. Keep provider, parser, model, Verify-mode, and run-state terminology aligned across those surfaces.
 - Do not let early batches stop at a structurally correct shell. Provider-path scaffolding, placeholder proposal generation, or silent degraded modes do not count as a finished slice.
+- Do not let diagnostic-only outcomes masquerade as normal review proposals. If a pipeline result is not meant for reviewer decision-making, keep it visible through summaries and diagnostics rather than inflating the main queue.
 - If a batch changes operator-facing truth, update `README.md`, `spec.md`, `plan.md`, and `tasks.md` together in the same work pass.
 - End-of-batch documentation updates are mandatory for operator-facing changes; `README.md` must trail implementation by zero batches, not by a later cleanup pass.
 - `README.md` and any other user-facing docs must only describe commands, config behavior, lifecycle states, review actions, downloads, exports, and limitations that exist in the implemented slice.
@@ -61,6 +62,9 @@ Implementation for this phase is complete when the system satisfies the function
    - export an updated workbook and audit log
 
 2. PDFs are normalized into one internal parsed-document contract that downstream systems use regardless of parser backend.
+   - parser adapters must normalize supported upstream API-shape differences rather than silently dropping extracted content from text-based PDFs
+   - low-text or parse-degraded papers must surface explicit diagnostics/warnings instead of flowing into review as normal-looking no-value extraction results
+   - figure-bearing papers must persist real figure crop artifacts and page links whenever figures are extracted so that reviewer UI and vision calls consume the same assets
 
 3. Evidence remains reviewable and auditable even when retrieval uses contextualized text.
 
@@ -96,6 +100,10 @@ Implementation for this phase is complete when the system satisfies the function
 
 14. Run artifacts and run summaries record whether proposal generation was live local, live cloud, unavailable, disabled, or explicitly degraded/demo, and the UI reports that state truthfully.
 
+15. The review workspace loads and counts actionable review items separately from diagnostics-only outcomes, so realistic runs remain performant and reviewer-facing metrics stay meaningful.
+
+16. Active runs refresh automatically in the UI, stale-state conditions are surfaced explicitly, and operators can abort a run from the main workflow surface.
+
 ---
 
 ## Constraints and non-goals
@@ -113,6 +121,7 @@ Implementation for this phase is complete when the system satisfies the function
 - Provider/model behavior must be transparent enough for users to know whether a run stayed local or used cloud services.
 - Provider config examples must not require committed cloud secrets; optional cloud providers should rely on environment or secret references.
 - Setup should remain config-authoritative but picker-driven for normal browser use rather than path-heavy.
+- Review APIs and artifact persistence should separate reviewer work items from diagnostics-only outcomes so the queue is not a raw dump of every attempted cell.
 
 ### Non-goals
 
@@ -152,6 +161,8 @@ The workflow is structured and auditable. The prior implementation showed that g
 **Operator consequence:**
 Runs are launched from the UI and executed under app-owned backend control using a lightweight in-process background mechanism for MVP; no external job framework is required.
 
+The same mechanism should expose cancellation so the UI can abort an in-flight run without introducing a second execution model.
+
 ---
 
 ### TD-3: Use one main parser first, with a stable parser contract
@@ -177,6 +188,9 @@ Docling is currently the strongest main parser candidate for structured scientif
 **Note:**
 GROBID remains an optional later enrichment path if measured lift justifies it.
 
+**Adapter-compatibility requirement:**
+The parser adapter layer must normalize supported upstream API-shape differences explicitly. Integration code must not assume one exact Docling iterator payload shape if newer versions may yield wrapped `(item, level)` entries or equivalent variants.
+
 **Parser-truth requirement:**
 Runtime behavior must make parser selection explicit. The run contract should record the configured parser choice and the actual parser used. Silent substitution from a configured parser to another parser is not the baseline behavior; any fallback parser path must be explicitly enabled and surfaced in readiness results, run artifacts, and summaries.
 
@@ -188,6 +202,9 @@ The system will use:
 
 - per-run artifact folders in the output directory as the canonical run record
 - JSON files inside each run bundle for proposals, explicit review-decision records, diagnostics, summaries, and export bookkeeping
+
+**Artifact policy refinement:**
+Reviewable proposals and diagnostics-only outcomes should not be conflated merely because both are persisted as JSON. A large run may produce many blocked or skipped outcomes, but those should live in diagnostic artifacts or aggregate summaries unless they are intentionally reviewable. Runtime-derived artifact paths must use sanitized or opaque filenames so persistence is portable across supported operating systems.
 
 **Rationale:**
 For a local-first, single-user MVP, artifact bundles are simpler, easier to inspect, and easier to debug than introducing a database. This keeps state reproducible without adding operational complexity that the product does not yet need.
@@ -237,7 +254,11 @@ The review product surface will be a dedicated Run/Review application delivered 
 The main value of the product is human verification of proposed spreadsheet updates with visible evidence.
 
 **Interaction model:**
-Queue/list of proposals + focused detail pane + custom PDF.js evidence viewer, with visible run/reviewer summary context in the main review workspace.
+Queue/list of proposals + focused detail pane + evidence viewer that combines annotated evidence inspection with a standard interactive PDF-reading mode, with visible run/reviewer summary context in the main review workspace.
+
+The queue must default to actionable review items rather than all recorded pipeline outcomes, and the workspace should support direct pane resizing so reviewers can rebalance queue, detail, and evidence space as needed. The evidence pane should also preserve ordinary PDF-reading affordances, including drag-based page movement, selectable text when available, and a clear path to a fuller browser-native PDF view.
+
+Figure review is only considered implemented when the parsed-document contract persists actual figure crop artifacts and page-image links that both the reviewer UI and the vision-model path can reuse. Caption-only figure metadata is insufficient.
 
 The same UI must also provide:
 - a small run launcher centered on config-file path entry or selection
@@ -245,6 +266,8 @@ The same UI must also provide:
 - visible lifecycle status and actionable failure messaging before review begins
 - explicit pre-review empty/loading/warning states that tell the operator what to do next
 - unresolved-match inspection that keeps PDF names and rationales visible without forcing the operator into raw artifact files
+- automatic refresh for active runs plus explicit stale-state messaging when refresh fails
+- an abort action for active runs
 
 When switching runs, the UI may preserve the active queue filter, but proposal selection, proposal detail, and evidence-viewer state must always be refreshed for the currently loaded run.
 
@@ -352,6 +375,8 @@ The stable run, provider, review, and export surfaces may later support richer A
 
 Implementation should normally proceed batch-by-batch according to `tasks.md`. The detailed task list remains exhaustive, but the practical implementation unit is a coherent batch with its own verification and doc-sync expectations.
 
+Recent implementation experience also shows that review semantics must be defined at the same level as persistence and lifecycle semantics. If the queue contract, proposal-count contract, and diagnostics-only contract are left implicit, a rebuild will tend to expose raw artifact volume directly in the UI.
+
 ---
 
 ## System architecture overview
@@ -399,7 +424,7 @@ The MVP implementation stack is best understood in two layers.
 - **Backend API**: small Python FastAPI service
 - **PDF ingestion/parser**: Docling
 - **Low-level PDF rendering/geometry**: PDFium via `pypdfium2`
-- **PDF review viewer**: raw/custom PDF.js viewer with app-owned evidence/highlight overlays
+- **PDF review viewer**: app-owned evidence viewer that supports annotated overlays plus a standard interactive reading mode with ordinary PDF-viewer affordances
 - **LLM provider (MVP default)**: LM Studio localhost API
 - **Persistence**: filesystem artifact bundles + JSON files only
 - **Spreadsheet export**: `openpyxl`
@@ -567,7 +592,7 @@ The review UI will use a **queue-first / list-detail** design with an explicit t
 
 - **Left pane**: grouped review queue or sidebar used for triage
 - **Center pane**: proposal detail and decision workflow
-- **Right pane**: evidence viewer or PDF viewer
+- **Right pane**: evidence viewer or PDF viewer, including both annotated-evidence inspection and a standard interactive reading mode
 - **Summary/top context area**: run metrics, reviewer-outcome context, and direct artifact downloads
 - **Top bar / queue controls**: grouping toggle, filters, saved-view or preset access, progress counters, and warning cues
 
@@ -601,8 +626,11 @@ The client state architecture should explicitly track at least:
 - selected evidence item
 - evidence-viewer focus state
 - evidence-viewer zoom and pan state
+- evidence-viewer state centered on annotated review, plus any external-open affordance state such as `opening local viewer`
 
 When switching runs, the app may preserve filters, grouping mode, or saved-view selection when useful for triage continuity, but it must reset proposal selection, decision draft state, edit buffers, evidence selection, and viewer state so stale context does not leak across runs.
+
+The implementation should treat annotated evidence inspection as the primary in-app viewer intent. Ordinary document reading, text selection, and full-document search may be delegated to the operating system's default PDF viewer through an explicit open action rather than being forced into the annotated pane.
 
 ### Left pane: grouped triage sidebar
 

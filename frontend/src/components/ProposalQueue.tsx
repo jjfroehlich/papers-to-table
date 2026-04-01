@@ -10,7 +10,7 @@ interface Props {
 }
 
 type GroupBy = 'paper' | 'column'
-type Filter = 'all' | 'pending' | 'accepted' | 'no_data' | 'rejected' | 'blocked'
+type Filter = 'all' | 'pending' | 'accepted' | 'no_data' | 'rejected'
 
 const DECISION_FILTER_MAP: Record<Filter, ReviewDecision | 'undecided' | null> = {
   all: null,
@@ -18,7 +18,6 @@ const DECISION_FILTER_MAP: Record<Filter, ReviewDecision | 'undecided' | null> =
   accepted: 'accepted',
   no_data: 'confirmed_no_data',
   rejected: 'rejected',
-  blocked: null,
 }
 
 function stateColor(p: EnrichedProposal): string {
@@ -72,7 +71,29 @@ function DecisionBadge({ decision }: { decision: ReviewDecision }) {
 }
 
 function isPending(p: EnrichedProposal) {
-  return !p.latest_decision && p.state !== 'blocked'
+  return !p.latest_decision
+}
+
+function getLeadAuthor(authors?: string | null): string | null {
+  if (!authors) return null
+  const firstAuthor = authors
+    .split(/;|,\s+(?=[A-Z][a-z])/)[0]
+    ?.trim()
+  if (!firstAuthor) return null
+  const surname = firstAuthor.split(',')[0]?.trim() || firstAuthor.split(' ').at(-1)?.trim()
+  return surname || firstAuthor
+}
+
+function buildPaperGroupLabel(proposal: EnrichedProposal): string {
+  const author = getLeadAuthor(proposal.paper_authors)
+  const year = proposal.paper_year ? String(proposal.paper_year) : null
+  const title = proposal.paper_title?.trim()
+  const citation = author && year
+    ? `${author} et al. ${year}`
+    : author || year || proposal.pdf_id
+  if (!title) return citation
+  const compactTitle = title.length > 56 ? `${title.slice(0, 56).trimEnd()}...` : title
+  return `${citation} - ${compactTitle}`
 }
 
 export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }: Props) {
@@ -95,6 +116,7 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
       try {
         const resp = await api.listProposals(runId, {
           output_dir: outputDir,
+          reviewable_only: true,
           ...(decisionParam ? { decision: decisionParam } : {}),
         })
         if (!cancelled) setProposals(resp.proposals)
@@ -110,14 +132,12 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
 
   const filtered = useMemo(() => {
     let list = proposals
-    // Extra client-side filter for 'blocked' (no API param)
-    if (filter === 'blocked') {
-      list = list.filter((p) => p.state === 'blocked')
-    }
     if (search.trim()) {
       const q = search.toLowerCase()
       list = list.filter(
         (p) =>
+          (p.paper_title ?? '').toLowerCase().includes(q) ||
+          (p.paper_authors ?? '').toLowerCase().includes(q) ||
           p.column_name.toLowerCase().includes(q) ||
           p.row_id.toLowerCase().includes(q) ||
           (p.proposed_value ?? '').toLowerCase().includes(q)
@@ -204,7 +224,6 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
           <option value="accepted">Accepted</option>
           <option value="no_data">No Data</option>
           <option value="rejected">Rejected</option>
-          <option value="blocked">Blocked</option>
         </select>
         {/* Search */}
         <input
@@ -224,6 +243,7 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
         {groups.map(([key, items]) => {
           const pendingCount = items.filter(isPending).length
           const isCollapsed = collapsedGroups.has(key)
+          const groupLabel = groupBy === 'paper' ? buildPaperGroupLabel(items[0]) : key
           return (
             <div key={key} className="border-b border-gray-100 last:border-b-0">
               {/* Group header */}
@@ -231,8 +251,8 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
                 className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 hover:bg-gray-100 text-left"
                 onClick={() => toggleGroup(key)}
               >
-                <span className="text-xs font-medium text-gray-700 truncate max-w-40" title={key}>
-                  {key}
+                <span className="text-xs font-medium text-gray-700 truncate max-w-52" title={groupLabel}>
+                  {groupLabel}
                 </span>
                 <span className="flex items-center gap-1 shrink-0">
                   {pendingCount > 0 && (
@@ -279,7 +299,7 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
 
       {/* Footer count */}
       <div className="px-3 py-1.5 border-t border-gray-100 text-xs text-gray-400 shrink-0">
-        {filtered.length} proposal{filtered.length !== 1 ? 's' : ''}
+        {filtered.length} review proposal{filtered.length !== 1 ? 's' : ''}
       </div>
     </div>
   )

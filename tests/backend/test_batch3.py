@@ -64,6 +64,7 @@ from backend.app.retrieval import (
     RetrievalChunk,
     RetrievalResult,
     _tokenize,
+    build_retrieval_query,
     build_chunks_from_parsed_doc,
     retrieve,
     run_retrieval_for_cell,
@@ -435,6 +436,83 @@ class TestRetrievalChunks:
         for chunk_data in data["chunks"]:
             assert "display_text" in chunk_data
             assert "retrieval_text" in chunk_data
+
+    def test_run_retrieval_for_cell_sanitizes_windows_unsafe_filename(
+        self,
+        run_dir: pathlib.Path,
+        minimal_doc_dict: dict,
+    ):
+        """T048: retrieval artifact names must be safe on Windows."""
+        run_retrieval_for_cell(
+            run_id="run_test001",
+            pdf_id="paper_test",
+            column_name="What predicts activity? (e.g. accessible -> active):",
+            column_description="Free-text rationale",
+            doc_dict=minimal_doc_dict,
+            run_dir=run_dir,
+            top_k=6,
+        )
+        artifacts = list((run_dir / "retrieval" / "paper_test").glob("*.json"))
+        assert len(artifacts) == 1
+
+        invalid_chars = set('\\/:*?"<>|')
+        filename = artifacts[0].name
+        assert not any(ch in invalid_chars for ch in filename), filename
+
+    def test_count_like_query_expands_with_pair_and_coverage_hints(self):
+        query = build_retrieval_query(
+            "# Variants tested",
+            "How many different sequences or variants were evaluated in the study",
+        )
+        assert "Retrieval hints:" in query
+        assert "pairs" in query
+        assert "coverage" in query
+
+    def test_count_like_retrieval_surfaces_pair_count_chunk(
+        self,
+        run_dir: pathlib.Path,
+        minimal_doc_dict: dict,
+    ):
+        doc_dict = dict(minimal_doc_dict)
+        doc_dict["blocks"] = list(minimal_doc_dict["blocks"]) + [
+            {
+                "block_id": "b6",
+                "block_type": "paragraph",
+                "page_number": 4,
+                "text": "The study tested many different sequences across several conditions.",
+                "normalized_text": "the study tested many different sequences across several conditions",
+                "reading_order": 5,
+                "bbox": [10, 220, 400, 260],
+                "provenance": "pypdfium2",
+            },
+            {
+                "block_id": "b7",
+                "block_type": "paragraph",
+                "page_number": 4,
+                "text": "We focused our analysis on the 604,268 enhancer-promoter pairs for which we obtained good coverage.",
+                "normalized_text": "we focused our analysis on the 604 268 enhancer promoter pairs for which we obtained good coverage",
+                "reading_order": 6,
+                "bbox": [10, 160, 400, 210],
+                "provenance": "pypdfium2",
+            },
+        ]
+        doc_dict["full_text"] = (
+            minimal_doc_dict["full_text"]
+            + "\nThe study tested many different sequences across several conditions."
+            + "\nWe focused our analysis on the 604,268 enhancer-promoter pairs for which we obtained good coverage."
+        )
+
+        result = run_retrieval_for_cell(
+            run_id="run_test001",
+            pdf_id="paper_test",
+            column_name="# Variants tested",
+            column_description="How many different sequences or variants were evaluated in the study",
+            doc_dict=doc_dict,
+            run_dir=run_dir,
+            top_k=4,
+        )
+
+        assert any("604,268" in chunk.display_text for chunk in result.chunks)
 
     def test_bm25_scores_relevant_higher(self, minimal_doc_dict: dict):
         """BM25 should score relevant chunks higher."""
@@ -1244,9 +1322,77 @@ class TestFigureReview:
             text_model_id="test-model",
             vision_model_id="vision-model",
         )
-        # Proposal should be upgraded (inferred from figure) or maintain state
-        # Figure review ran regardless of text state
+        assert proposal.proposed_value == "45.3%"
+        assert proposal.state == ProposalState.inferred
+        assert "figure_derived" in proposal.warning_flags
         assert text_provider.vision_complete_structured.called
+
+        proposal_evidence = [
+            ev for ev in load_evidence(run_dir)
+            if ev.proposal_id == proposal.proposal_id
+        ]
+        assert any(ev.is_figure_derived for ev in proposal_evidence)
+
+    async def test_conflicting_figure_value_is_not_attached_to_text_proposal(
+        self,
+        run_dir: pathlib.Path,
+        minimal_doc_dict: dict,
+    ):
+        import struct, zlib
+
+        def _minimal_png() -> bytes:
+            def chunk(tag: bytes, data: bytes) -> bytes:
+                c = struct.pack(">I", len(data)) + tag + data
+                return c + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+            ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
+            idat = zlib.compress(b"\x00\xFF\xFF\xFF")
+            return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", idat) + chunk(b"IEND", b"")
+
+        crop_path = run_dir / "fig_crop4.png"
+        crop_path.write_bytes(_minimal_png())
+
+        doc_with_crop = dict(minimal_doc_dict)
+        doc_with_crop["figures"] = [
+            {**minimal_doc_dict["figures"][0], "crop_path": str(crop_path)}
+        ]
+
+        provider = AsyncMock()
+        provider.chat_complete_structured = AsyncMock(return_value={
+            "proposed_value": "Tibial defect",
+            "state": "found",
+            "rationale": "- Found in text.",
+            "calculation": None,
+            "quotes": [{"text": "scaffold was implanted in the tibial defect", "page": 1, "source_type": "direct_quote"}],
+        })
+        provider.vision_complete_structured = AsyncMock(return_value={
+            "proposed_value": "Femoral condyle",
+            "state": "found",
+            "rationale": "- Figure suggests femoral condyle.",
+            "figure_description": "Annotated defect site",
+            "caption_relevant": True,
+        })
+
+        proposal = await extract_cell(
+            run_id="run_test",
+            pdf_id="paper_test",
+            row_id="row_test",
+            cell_id="cell_conflict",
+            column_name="Integration site",
+            column_description="Site of implantation",
+            row_context={},
+            doc_dict=doc_with_crop,
+            run_dir=run_dir,
+            provider=provider,
+            text_model_id="test-model",
+            vision_model_id="vision-model",
+        )
+
+        proposal_evidence = [
+            ev for ev in load_evidence(run_dir)
+            if ev.proposal_id == proposal.proposal_id
+        ]
+        assert proposal.proposed_value == "Tibial defect"
+        assert not any(ev.is_figure_derived for ev in proposal_evidence)
 
 
 class TestProposalPersistence:

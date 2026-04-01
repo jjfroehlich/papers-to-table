@@ -29,6 +29,7 @@ from .ids import generate_review_decision_id
 from .schemas import (
     EvidenceSourceType,
     ProviderLocality,
+    ProposalState,
     ReviewDecision,
     ReviewDecisionRecord,
     ReviewResolutionReason,
@@ -211,6 +212,7 @@ class ProposalFilter:
         figure_derived: Optional[bool] = None,
         decision: Optional[str] = None,           # ReviewDecision value or "undecided"
         match_status: Optional[str] = None,       # MatchOutcome value
+        reviewable_only: bool = False,
     ) -> None:
         self.row_id = row_id
         self.column_name = column_name
@@ -219,12 +221,15 @@ class ProposalFilter:
         self.figure_derived = figure_derived
         self.decision = decision
         self.match_status = match_status
+        self.reviewable_only = reviewable_only
 
     def matches(
         self,
         proposal: ProposalRecord,
         latest_decision: Optional[ReviewDecisionRecord],
     ) -> bool:
+        if self.reviewable_only and not _is_reviewable_proposal(proposal):
+            return False
         if self.row_id and proposal.row_id != self.row_id:
             return False
         if self.column_name and proposal.column_name != self.column_name:
@@ -251,6 +256,10 @@ class ProposalFilter:
                 if latest_decision.decision.value != self.decision:
                     return False
         return True
+
+
+def _is_reviewable_proposal(proposal: ProposalRecord) -> bool:
+    return proposal.state not in (ProposalState.blocked, ProposalState.skipped)
 
 
 def list_proposals(
@@ -316,6 +325,8 @@ def get_proposal_detail(
         "evidence": evidence_dicts,
         "latest_decision": latest.model_dump() if latest else None,
         "decision_history": [d.model_dump() for d in history],
+        "row_context": {},
+        "column_definition": None,
         "warning_categories": [c.value for c in _proposal_warning_categories(proposal)],
         "support_label_display": _support_label_display(proposal.support),
         "is_figure_derived": _is_figure_derived(proposal),
@@ -430,12 +441,54 @@ def get_progress(run_dir: pathlib.Path) -> dict:
     reviewed = accepted + accepted_with_edit + confirmed_no_data + rejected
     return {
         "total": total,
+        "total_proposals": total,
         "reviewed": reviewed,
         "pending": pending,
         "accepted": accepted,
         "accepted_with_edit": accepted_with_edit,
         "confirmed_no_data": confirmed_no_data,   # paper truly has no data (T075a)
         "rejected": rejected,                     # model wrong / out-of-scope (T075a)
+        "explicitly_accepted": accepted + accepted_with_edit,
+        "explicitly_rejected": rejected,
+        "confirmed_absent": confirmed_no_data,
+    }
+
+
+def get_progress_for_review(run_dir: pathlib.Path) -> dict:
+    """Return progress counters for actionable review proposals only."""
+    proposals = [p for p in load_proposals(run_dir) if _is_reviewable_proposal(p)]
+    total = len(proposals)
+    accepted = 0
+    accepted_with_edit = 0
+    confirmed_no_data = 0
+    rejected = 0
+    pending = 0
+
+    for p in proposals:
+        d = get_latest_decision(run_dir, p.proposal_id)
+        if d is None:
+            pending += 1
+        elif d.decision == ReviewDecision.accepted:
+            accepted += 1
+        elif d.decision == ReviewDecision.accepted_with_edit:
+            accepted_with_edit += 1
+        elif d.decision == ReviewDecision.confirmed_no_data:
+            confirmed_no_data += 1
+        elif d.decision == ReviewDecision.rejected:
+            rejected += 1
+        else:
+            pending += 1
+
+    reviewed = accepted + accepted_with_edit + confirmed_no_data + rejected
+    return {
+        "total": total,
+        "total_proposals": total,
+        "reviewed": reviewed,
+        "pending": pending,
+        "accepted": accepted,
+        "accepted_with_edit": accepted_with_edit,
+        "confirmed_no_data": confirmed_no_data,
+        "rejected": rejected,
         "explicitly_accepted": accepted + accepted_with_edit,
         "explicitly_rejected": rejected,
         "confirmed_absent": confirmed_no_data,

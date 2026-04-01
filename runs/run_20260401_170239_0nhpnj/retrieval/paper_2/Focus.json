@@ -1,0 +1,442 @@
+{
+  "run_id": "run_20260401_170239_0nhpnj",
+  "pdf_id": "paper_2",
+  "column_name": "Focus",
+  "query": "Focus: What the general focus of the publication is (e.g. transcriptional regulation, UTRs, coding, or other)",
+  "top_k": 10,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_2_p3_29",
+      "source_block_id": "paper_2_p3_29",
+      "chunk_type": "paragraph",
+      "page_number": 3,
+      "reading_order": 29,
+      "display_text": "To do so, we fit the following Poisson count model:",
+      "retrieval_text": "[Section: Activities multiplicatively combine] To do so, we fit the following Poisson count model:",
+      "bbox": [
+        314.6474431925,
+        633.8071809095313,
+        502.1113681892824,
+        626.1505965345314
+      ],
+      "provenance": "docling",
+      "section_context": "Activities multiplicatively combine",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p3_30",
+      "source_block_id": "paper_2_p3_30",
+      "chunk_type": "paragraph",
+      "page_number": 3,
+      "reading_order": 30,
+      "display_text": "k P E RNA ~Poisson( ×DNA× × ), where RNA is RNA reads counts per plasmid, DNA is DNA read counts per plasmid, P is the intrinsic promoter activity, E is intrinsic enhancer activity and k is a free intercept term used to scale the activities of promoters, enhancers and their pairings relative to the average of random genomic control sequences (Methods). This multiplicative model assumes that there is no sequence or biochemical specificity between individual pairs of enhancers and promoters, and that differences in expression are solely due to differences in intrinsic enhancer and promoter activities. Hereafter, we define 'intrinsic enhancer activity' and 'intrinsic promoter activity' as the fits from this model, which are similar to the 'average activities' calculated above (Extended Data Fig. 2f,g) but better account for missing data and counting noise (Methods). These estimates of activity were reproducible across replicate experiments and when comparing non-overlapping plasmid barcodes (Extended Data Fig. 2h,i).",
+      "retrieval_text": "[Section: Activities multiplicatively combine] k P E RNA ~Poisson( ×DNA× × ), where RNA is RNA reads counts per plasmid, DNA is DNA read counts per plasmid, P is the intrinsic promoter activity, E is intrinsic enhancer activity and k is a free intercept term used to scale the activities of promoters, enhancers and their pairings relative to the average of random genomic control sequences (Methods). This multiplicative model assumes that there is no sequence or biochemical specificity between individual pairs of enhancers and promoters, and that differences in expression are solely due to differences in intrinsic enhancer and promoter activities. Hereafter, we define 'intrinsic enhancer activity' and 'intrinsic promoter activity' as the fits from this model, which are similar to the 'average activities' calculated above (Extended Data Fig. 2f,g) but better account for missing data and counting noise (Methods). These estimates of activity were reproducible across replicate experiments and when comparing non-overlapping plasmid barcodes (Extended Data Fig. 2h,i).",
+      "bbox": [
+        373.51685730171994,
+        615.9578453280913,
+        493.61026869240993,
+        608.206597514635
+      ],
+      "provenance": "docling",
+      "section_context": "Activities multiplicatively combine",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p3_31",
+      "source_block_id": "paper_2_p3_31",
+      "chunk_type": "paragraph",
+      "page_number": 3,
+      "reading_order": 31,
+      "display_text": "The multiplicative combination of intrinsic promoter and enhancer activities explained 82% of the total variance in STARR-seq expression, whereas intrinsic promoter and enhancer activities alone explained 48% and 27%, respectively (correlation with log2(STARR-seq expression) across all enhancer-promoter pairs with at least 2 plasmid barcodes; Fig. 2e-i). The multiplicative model fit similarly well between enhancer-promoter pairs located near to one another in the genome (<10 kb and <100 kb), as it did for enhancer-promoter pairs located on different chromosomes (Extended Data Fig. 2j). From the point of view of enhancer activation (fold-activation of an enhancer on a promoter, normalizing out promoter strength), intrinsic enhancer activity explained 65% of the variance, with 35% unexplained (Extended Data Fig. 2k). At least part of the remaining variance is probably due to experimental noise, because the proportion of variance explained by the multiplicative model increased when we examined E -P pairs with >20 barcodes (increasing from 82% to 94% variance explained for STARR-seq expression, and from 65% to 89% explained by intrinsic enhancer activity for enhancer activation) (Extended Data Fig. 2l).",
+      "retrieval_text": "[Section: Activities multiplicatively combine] The multiplicative combination of intrinsic promoter and enhancer activities explained 82% of the total variance in STARR-seq expression, whereas intrinsic promoter and enhancer activities alone explained 48% and 27%, respectively (correlation with log2(STARR-seq expression) across all enhancer-promoter pairs with at least 2 plasmid barcodes; Fig. 2e-i). The multiplicative model fit similarly well between enhancer-promoter pairs located near to one another in the genome (<10 kb and <100 kb), as it did for enhancer-promoter pairs located on different chromosomes (Extended Data Fig. 2j). From the point of view of enhancer activation (fold-activation of an enhancer on a promoter, normalizing out promoter strength), intrinsic enhancer activity explained 65% of the variance, with 35% unexplained (Extended Data Fig. 2k). At least part of the remaining variance is probably due to experimental noise, because the proportion of variance explained by the multiplicative model increased when we examined E -P pairs with >20 barcodes (increasing from 82% to 94% variance explained for STARR-seq expression, and from 65% to 89% explained by intrinsic enhancer activity for enhancer activation) (Extended Data Fig. 2l).",
+      "bbox": [
+        306.14169311,
+        429.5569306620313,
+        562.8901213283301,
+        239.1503462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Activities multiplicatively combine",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p4_40",
+      "source_block_id": "paper_2_p4_40",
+      "chunk_type": "paragraph",
+      "page_number": 4,
+      "reading_order": 40,
+      "display_text": "We quantified the additional variance explained by promoter and enhancer class by extending the multiplicative ExP model as follows:",
+      "retrieval_text": "[Section: Classes of enhancers and promoters] We quantified the additional variance explained by promoter and enhancer class by extending the multiplicative ExP model as follows:",
+      "bbox": [
+        306.14169311,
+        418.8069306620313,
+        562.7120238669008,
+        400.40034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Classes of enhancers and promoters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p4_41",
+      "source_block_id": "paper_2_p4_41",
+      "chunk_type": "paragraph",
+      "page_number": 4,
+      "reading_order": 41,
+      "display_text": "where PEClassInteraction is a weighted indicator variable for each of the nine possible E -P class combinations. Promoter and enhancer class specificity explained an additional 2% of the total variation in STARR-seq expression or, after normalizing for promoter activity, an additional 4% of the variance in enhancer activation (Extended Data Fig. 2k).",
+      "retrieval_text": "[Section: Classes of enhancers and promoters] where PEClassInteraction is a weighted indicator variable for each of the nine possible E -P class combinations. Promoter and enhancer class specificity explained an additional 2% of the total variation in STARR-seq expression or, after normalizing for promoter activity, an additional 4% of the variance in enhancer activation (Extended Data Fig. 2k).",
+      "bbox": [
+        306.14169311,
+        365.0569306620313,
+        562.7777691350929,
+        314.40034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Classes of enhancers and promoters",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p4_42",
+      "source_block_id": "paper_2_p4_42",
+      "chunk_type": "paragraph",
+      "page_number": 4,
+      "reading_order": 42,
+      "display_text": "Together, these observations identify classes of enhancer and promoter sequences with subtle quantitative differences in compatibility. We next sought to characterize these classes to understand how such preferential effects might be encoded.",
+      "retrieval_text": "[Section: Classes of enhancers and promoters] Together, these observations identify classes of enhancer and promoter sequences with subtle quantitative differences in compatibility. We next sought to characterize these classes to understand how such preferential effects might be encoded.",
+      "bbox": [
+        306.14169311,
+        311.30718090953127,
+        562.7092681092572,
+        271.40059653453125
+      ],
+      "provenance": "docling",
+      "section_context": "Classes of enhancers and promoters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p9_121",
+      "source_block_id": "paper_2_p9_121",
+      "chunk_type": "list_item",
+      "page_number": 9,
+      "reading_order": 121,
+      "display_text": "Haberle, V. & Stark, A. Eukaryotic core promoters and the functional basis of transcription initiation. Nat. Rev. Mol. Cell Biol. 19 , 621-637 (2018).",
+      "retrieval_text": "[Section: Article] Haberle, V. & Stark, A. Eukaryotic core promoters and the functional basis of transcription initiation. Nat. Rev. Mol. Cell Biol. 19 , 621-637 (2018).",
+      "bbox": [
+        306.09097533,
+        741.3422785720313,
+        561.588375207721,
+        728.0649580573144
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p9_122",
+      "source_block_id": "paper_2_p9_122",
+      "chunk_type": "list_item",
+      "page_number": 9,
+      "reading_order": 122,
+      "display_text": "Lenhard, B., Sandelin, A. & Carninci, P. Metazoan promoters: emerging characteristics and insights into transcriptional regulation. Nat. Rev. Genet. 13 , 233-245 (2012).",
+      "retrieval_text": "[Section: Article] Lenhard, B., Sandelin, A. & Carninci, P. Metazoan promoters: emerging characteristics and insights into transcriptional regulation. Nat. Rev. Genet. 13 , 233-245 (2012).",
+      "bbox": [
+        306.08497490999997,
+        725.3102790520313,
+        552.2151747889211,
+        712.0329585373144
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p9_123",
+      "source_block_id": "paper_2_p9_123",
+      "chunk_type": "list_item",
+      "page_number": 9,
+      "reading_order": 123,
+      "display_text": "Fan, K., Moore, J. E., Zhang, X.-O. & Weng, Z. Genetic and epigenetic features of promoters with ubiquitous chromatin accessibility support ubiquitous transcription of cell-essential genes. Nucleic Acids Res. 49 , 5705-5725 (2021).",
+      "retrieval_text": "[Section: Article] Fan, K., Moore, J. E., Zhang, X.-O. & Weng, Z. Genetic and epigenetic features of promoters with ubiquitous chromatin accessibility support ubiquitous transcription of cell-essential genes. Nucleic Acids Res. 49 , 5705-5725 (2021).",
+      "bbox": [
+        306.08497772999993,
+        709.2782795320313,
+        553.2489776100009,
+        687.9849592573144
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p9_133",
+      "source_block_id": "paper_2_p9_133",
+      "chunk_type": "list_item",
+      "page_number": 9,
+      "reading_order": 133,
+      "display_text": "Chiang, C. M. & Roeder, R. G. Cloning of an intrinsic human TFIID subunit that interacts with multiple transcriptional activators. Science 267 , 531-536 (1995).",
+      "retrieval_text": "[Section: Article] Chiang, C. M. & Roeder, R. G. Cloning of an intrinsic human TFIID subunit that interacts with multiple transcriptional activators. Science 267 , 531-536 (1995).",
+      "bbox": [
+        306.07297274999985,
+        508.8782855320314,
+        553.1823726391808,
+        495.60096501731437
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p9_134",
+      "source_block_id": "paper_2_p9_134",
+      "chunk_type": "list_item",
+      "page_number": 9,
+      "reading_order": 134,
+      "display_text": "Austen, M., Lüscher, B. & Lüscher-Firzlaff, J. M. Characterization of the transcriptional regulator YY1. The bipartite transactivation domain is independent of interaction with the TATA box-binding protein, transcription factor IIB, TAFII55, or cAMPresponsive element-binding protein (CPB)-binding protein. J. Biol. Chem. 272 , 1709-1717 (1997).",
+      "retrieval_text": "[Section: Article] Austen, M., Lüscher, B. & Lüscher-Firzlaff, J. M. Characterization of the transcriptional regulator YY1. The bipartite transactivation domain is independent of interaction with the TATA box-binding protein, transcription factor IIB, TAFII55, or cAMPresponsive element-binding protein (CPB)-binding protein. J. Biol. Chem. 272 , 1709-1717 (1997).",
+      "bbox": [
+        306.0729770099998,
+        492.8462860120314,
+        549.2463768906011,
+        455.52096621731437
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p9_135",
+      "source_block_id": "paper_2_p9_135",
+      "chunk_type": "list_item",
+      "page_number": 9,
+      "reading_order": 135,
+      "display_text": "Sucharov, C., Basu, A., Carter, R. S. & Avadhani, N. G. A novel transcriptional initiator activity of the GABP factor binding ets sequence repeat from the murine cytochrome c oxidase Vb gene. Gene Expr. 5 , 93-111 (1995).",
+      "retrieval_text": "[Section: Article] Sucharov, C., Basu, A., Carter, R. S. & Avadhani, N. G. A novel transcriptional initiator activity of the GABP factor binding ets sequence repeat from the murine cytochrome c oxidase Vb gene. Gene Expr. 5 , 93-111 (1995).",
+      "bbox": [
+        306.0729749099998,
+        452.7662872120314,
+        552.9669747900009,
+        431.47296693731437
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p9_136",
+      "source_block_id": "paper_2_p9_136",
+      "chunk_type": "list_item",
+      "page_number": 9,
+      "reading_order": 136,
+      "display_text": "Carter, R. S. & Avadhani, N. G. Cooperative binding of GA-binding protein transcription factors to duplicated transcription initiation region repeats of the cytochrome c oxidase subunit IV gene. J. Biol. Chem. 269 , 4381-4387 (1994).",
+      "retrieval_text": "[Section: Article] Carter, R. S. & Avadhani, N. G. Cooperative binding of GA-binding protein transcription factors to duplicated transcription initiation region repeats of the cytochrome c oxidase subunit IV gene. J. Biol. Chem. 269 , 4381-4387 (1994).",
+      "bbox": [
+        306.0729755099998,
+        428.7182879320314,
+        557.4843700477195,
+        407.42496765731437
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p12_200",
+      "source_block_id": "paper_2_p12_200",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 200,
+      "display_text": "Specifically, we estimated enhancer and promoter activities from ExP STARR-seq data by fitting the observed RNA read counts to a multiplicative function of observed DNA input read counts, intrinsic enhancer activity and intrinsic promoter activity as follows:",
+      "retrieval_text": "[Section: Estimating intrinsic enhancer and promoter activities using the multiplicative model] Specifically, we estimated enhancer and promoter activities from ExP STARR-seq data by fitting the observed RNA read counts to a multiplicative function of observed DNA input read counts, intrinsic enhancer activity and intrinsic promoter activity as follows:",
+      "bbox": [
+        306.14169311,
+        375.8069306620313,
+        562.8236159815058,
+        335.90034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating intrinsic enhancer and promoter activities using the multiplicative model",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p12_201",
+      "source_block_id": "paper_2_p12_201",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 201,
+      "display_text": "k P E RNA ~Poisson( ×DNA× × ), where P is the intrinsic promoter activity of the promoter sequence p, E is intrinsic enhancer activity of the enhancer sequence e, and k is a global scaling/intercept term that accounts for factors that control the relative counts of DNA and RNA, such as sequencing depth.",
+      "retrieval_text": "[Section: Estimating intrinsic enhancer and promoter activities using the multiplicative model] k P E RNA ~Poisson( ×DNA× × ), where P is the intrinsic promoter activity of the promoter sequence p, E is intrinsic enhancer activity of the enhancer sequence e, and k is a global scaling/intercept term that accounts for factors that control the relative counts of DNA and RNA, such as sequencing depth.",
+      "bbox": [
+        373.51685730171994,
+        325.70778429809127,
+        493.61026869240993,
+        317.95653648463497
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating intrinsic enhancer and promoter activities using the multiplicative model",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p12_202",
+      "source_block_id": "paper_2_p12_202",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 202,
+      "display_text": "We fit these parameters using block coordinate descent on the negative log-likelihood of the distribution above, initially fixing k = 0, then alternatively optimizing promoter activities while holding enhancer activities constant, and enhancer activities while holding promoter activities constant.",
+      "retrieval_text": "[Section: Estimating intrinsic enhancer and promoter activities using the multiplicative model] We fit these parameters using block coordinate descent on the negative log-likelihood of the distribution above, initially fixing k = 0, then alternatively optimizing promoter activities while holding enhancer activities constant, and enhancer activities while holding promoter activities constant.",
+      "bbox": [
+        306.14169311,
+        257.5569306620313,
+        562.884186284283,
+        206.9003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating intrinsic enhancer and promoter activities using the multiplicative model",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p13_212",
+      "source_block_id": "paper_2_p13_212",
+      "chunk_type": "section",
+      "page_number": 13,
+      "reading_order": 212,
+      "display_text": "Assessing reproducibility of the clusters",
+      "retrieval_text": "Assessing reproducibility of the clusters",
+      "bbox": [
+        39.68510055,
+        312.4874306620313,
+        199.71290055067993,
+        304.6079042371608
+      ],
+      "provenance": "docling",
+      "section_context": "Assessing reproducibility of the clusters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p13_213",
+      "source_block_id": "paper_2_p13_213",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 213,
+      "display_text": "We evaluated whether the clustering we observed in the residuals was a general trend of the data or an artefact of a few promoters or enhancers. To test this possibility, we randomly downsampled the residual matrix to 25% of promoters and 25% of enhancers (6.25% of the total data) 100 times and clustered the subsets. The original (full data) cluster identity of a promoter or enhancer predicted the downsampled cluster with greater than 80% accuracy (Extended Data Fig. 4f).",
+      "retrieval_text": "[Section: Assessing reproducibility of the clusters] We evaluated whether the clustering we observed in the residuals was a general trend of the data or an artefact of a few promoters or enhancers. To test this possibility, we randomly downsampled the residual matrix to 25% of promoters and 25% of enhancers (6.25% of the total data) 100 times and clustered the subsets. The original (full data) cluster identity of a promoter or enhancer predicted the downsampled cluster with greater than 80% accuracy (Extended Data Fig. 4f).",
+      "bbox": [
+        39.68510055,
+        300.5569306620313,
+        296.27654703045476,
+        228.4003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Assessing reproducibility of the clusters",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p13_214",
+      "source_block_id": "paper_2_p13_214",
+      "chunk_type": "section",
+      "page_number": 13,
+      "reading_order": 214,
+      "display_text": "Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes",
+      "retrieval_text": "Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes",
+      "bbox": [
+        39.68510055,
+        215.73743066203133,
+        294.63665055170003,
+        197.1054044071608
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p16_292",
+      "source_block_id": "paper_2_p16_292",
+      "chunk_type": "list_item",
+      "page_number": 16,
+      "reading_order": 292,
+      "display_text": "Seabold, S. & Perktold, J. Statsmodels: econometric and statistical modeling with Python. in Proc. 9th Python in Science Conference (eds van der Walt, S. & Millman, J) 92-96 (SciPy, 2010).",
+      "retrieval_text": "[Section: Code availability] Seabold, S. & Perktold, J. Statsmodels: econometric and statistical modeling with Python. in Proc. 9th Python in Science Conference (eds van der Walt, S. & Millman, J) 92-96 (SciPy, 2010).",
+      "bbox": [
+        39.66099141000001,
+        508.8242647720313,
+        296.35239128766,
+        487.5309444973143
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p16_293",
+      "source_block_id": "paper_2_p16_293",
+      "chunk_type": "paragraph",
+      "page_number": 16,
+      "reading_order": 293,
+      "display_text": "Acknowledgements This work was supported by a NHGRI Genomic Innovator Award (R35HG011324 to J.M.E.); Gordon and Betty Moore and the BASE Research Initiative at the Lucile Packard Children's Hospital at Stanford University (J.M.E.); a NIH Pathway to Independence Award (K99HG009917 and R00HG009917 to J.M.E.); the Harvard Society of Fellows (J.M.E.); the Novo Nordisk Foundation Center for Genomic Mechanisms of Disease (J.M.E.); the Broad Institute (E.S.L.); an AΩA Carolyn L. Kuckein Student Research Fellowship (D. T .B.); NHGRI Ruth L. Kirschstein NRSA Predoctoral Institutional Research Training Grants (T32HG000044, V.L.); and by the National Institute of General Medical Sciences (T32GM007753, L.S.). We thank B. van Steensel and M. Martinez-Ara for sharing data and discussing analysis. We thank C. Vockley, V. Subramanian and members of the Engreitz and Lander research groups for discussions and technical assistance. E.S.L is currently on leave from the Broad Institute, MIT, and Harvard.",
+      "retrieval_text": "[Section: Code availability] Acknowledgements This work was supported by a NHGRI Genomic Innovator Award (R35HG011324 to J.M.E.); Gordon and Betty Moore and the BASE Research Initiative at the Lucile Packard Children's Hospital at Stanford University (J.M.E.); a NIH Pathway to Independence Award (K99HG009917 and R00HG009917 to J.M.E.); the Harvard Society of Fellows (J.M.E.); the Novo Nordisk Foundation Center for Genomic Mechanisms of Disease (J.M.E.); the Broad Institute (E.S.L.); an AΩA Carolyn L. Kuckein Student Research Fellowship (D. T .B.); NHGRI Ruth L. Kirschstein NRSA Predoctoral Institutional Research Training Grants (T32HG000044, V.L.); and by the National Institute of General Medical Sciences (T32GM007753, L.S.). We thank B. van Steensel and M. Martinez-Ara for sharing data and discussing analysis. We thank C. Vockley, V. Subramanian and members of the Engreitz and Lander research groups for discussions and technical assistance. E.S.L is currently on leave from the Broad Institute, MIT, and Harvard.",
+      "bbox": [
+        306.10899416999996,
+        741.3182738320313,
+        554.1957941653214,
+        645.174955057314
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p16_294",
+      "source_block_id": "paper_2_p16_294",
+      "chunk_type": "paragraph",
+      "page_number": 16,
+      "reading_order": 294,
+      "display_text": "Author contributions D.T.B., C.P.F., T .R.J., J.R. and J.M.E. developed the ExP STARR-seq assay. D.T.B., J.R., M.K., A.R. and T .H.N. performed the STARR-seq experiments. M.K. performed the luciferase assay experiments. D.T.B., T.R.J., V.L., E.J., L.S., H. Y .K., J.N., S.R.G. and J.M.E. analysed the STARR-seq data. M.K. and J.M.E analysed the luciferase assay data. E.S.L. and J.M.E. supervised the work. All authors contributed to writing the manuscript.",
+      "retrieval_text": "[Section: Code availability] Author contributions D.T.B., C.P.F., T .R.J., J.R. and J.M.E. developed the ExP STARR-seq assay. D.T.B., J.R., M.K., A.R. and T .H.N. performed the STARR-seq experiments. M.K. performed the luciferase assay experiments. D.T.B., T.R.J., V.L., E.J., L.S., H. Y .K., J.N., S.R.G. and J.M.E. analysed the STARR-seq data. M.K. and J.M.E analysed the luciferase assay data. E.S.L. and J.M.E. supervised the work. All authors contributed to writing the manuscript.",
+      "bbox": [
+        306.10899416999996,
+        630.834276112031,
+        558.2343941791812,
+        592.524956077314
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p16_295",
+      "source_block_id": "paper_2_p16_295",
+      "chunk_type": "paragraph",
+      "page_number": 16,
+      "reading_order": 295,
+      "display_text": "Competing interests C.P.F. is now an employee and shareholder of Bristol Myers Squibb. J.M.E. is a shareholder of Illumina, Inc, and other biotechnology companies. All other authors declare no competing interests.",
+      "retrieval_text": "[Section: Code availability] Competing interests C.P.F. is now an employee and shareholder of Bristol Myers Squibb. J.M.E. is a shareholder of Illumina, Inc, and other biotechnology companies. All other authors declare no competing interests.",
+      "bbox": [
+        306.10899416999996,
+        578.184277132031,
+        562.6863941706009,
+        556.3989567373139
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p16_296",
+      "source_block_id": "paper_2_p16_296",
+      "chunk_type": "section",
+      "page_number": 16,
+      "reading_order": 296,
+      "display_text": "Additional information",
+      "retrieval_text": "Additional information",
+      "bbox": [
+        306.10899416999996,
+        542.0582777920309,
+        369.5049941700005,
+        536.8098735367118
+      ],
+      "provenance": "docling",
+      "section_context": "Additional information",
+      "is_neighbor": true
+    }
+  ],
+  "retrieved_at": "2026-04-01T17:17:02.739758+00:00"
+}

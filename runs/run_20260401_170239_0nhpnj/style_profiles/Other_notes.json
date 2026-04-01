@@ -1,0 +1,14 @@
+{
+  "column_name": "Other notes",
+  "field_type_guess": "text",
+  "expected_length": "medium",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "free-form descriptive text with mixed syntax",
+  "unit_style": null,
+  "format_notes": "Contains a mix of procedural notes, citations, experimental observations, and conceptual summaries; includes embedded URLs, citations (e.g. Matreyek et al LP), and technical terminology; some entries are bullet-pointed, others are run-on sentences; no consistent punctuation or structure",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T17:08:48.012446+00:00",
+  "source_column_count": 34,
+  "provider_mode": "live_llm"
+}

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import os
 import pathlib
+import subprocess
+import sys
 from typing import Any, Optional
 
 from fastapi import FastAPI, HTTPException
@@ -20,7 +23,8 @@ from .artifacts import (
     read_json,
 )
 from .config import apply_overrides, load_config
-from .ids import generate_run_id
+from .ids import generate_row_id, generate_run_id
+from .ingest import load_schema, load_table
 from .matching import load_ambiguous, load_conflicts, load_match_results, load_match_summary, load_unmatched
 from .extraction import load_proposals, persist_proposal, persist_evidence
 from .review import (
@@ -34,13 +38,14 @@ from .review import (
     get_page_image_path,
     get_pdf_asset_path,
     get_progress,
+    get_progress_for_review,
     get_proposal_detail,
     list_proposals,
     recompute_summaries,
     record_review_decision,
 )
 from .export import run_export
-from .runner import launch_run
+from .runner import abort_run, launch_run
 from .schemas import ReviewDecision, ReviewResolutionReason, RunStatus
 
 app = FastAPI(title="Paper Table Agent", version="0.1.0")
@@ -63,6 +68,23 @@ class CreateRunRequest(BaseModel):
 class CreateRunResponse(BaseModel):
     run_id: str
     status: str
+
+
+class OpenPdfResponse(BaseModel):
+    run_id: str
+    pdf_id: str
+    status: str
+    path: str
+
+
+def open_in_local_viewer(path: pathlib.Path) -> None:
+    if sys.platform.startswith("win"):
+        os.startfile(str(path))  # type: ignore[attr-defined]
+        return
+    if sys.platform == "darwin":
+        subprocess.Popen(["open", str(path)])
+        return
+    subprocess.Popen(["xdg-open", str(path)])
 
 
 @app.get("/api/health")
@@ -254,6 +276,31 @@ class BulkAcceptRequest(BaseModel):
     proposal_ids: list[str]
 
 
+def _paper_lead_author(authors: Optional[str]) -> Optional[str]:
+    if not authors:
+        return None
+    first = authors.split(";")[0].strip()
+    if not first:
+        return None
+    if "," in first:
+        return first.split(",", 1)[0].strip() or first
+    parts = first.split()
+    return parts[-1] if parts else first
+
+
+def _paper_label(pdf_id: str, title: Optional[str], authors: Optional[str], year: Optional[str]) -> str:
+    lead_author = _paper_lead_author(authors)
+    citation = " ".join(part for part in [lead_author, year] if part)
+    if not citation:
+        citation = pdf_id
+    if not title:
+        return citation
+    short_title = title[:80].rstrip()
+    if len(title) > 80:
+        short_title = f"{short_title}..."
+    return f"{citation} - {short_title}"
+
+
 # ---------------------------------------------------------------------------
 # T069 — Proposal list with filters
 # ---------------------------------------------------------------------------
@@ -269,6 +316,7 @@ async def get_proposals(
     figure_derived: Optional[bool] = None,
     decision: Optional[str] = None,
     match_status: Optional[str] = None,
+    reviewable_only: bool = False,
 ):
     """List proposals with optional filters (T069).
 
@@ -293,8 +341,39 @@ async def get_proposals(
         figure_derived=figure_derived,
         decision=decision,
         match_status=match_status,
+        reviewable_only=reviewable_only,
     )
     proposals = list_proposals(run_dir, filt)
+
+    if proposals:
+        try:
+            run_data = read_json(run_dir / "run.json")
+            table_path = run_data.get("table_path")
+            if table_path:
+                df = load_table(table_path)
+                row_map: dict[str, dict[str, Any]] = {}
+                for row_idx, row in df.iterrows():
+                    title = str(row.get("Title", ""))
+                    row_id_value = generate_row_id(int(row_idx), title)
+                    row_map[row_id_value] = row.to_dict()
+
+                for proposal in proposals:
+                    row = row_map.get(proposal.get("row_id", ""), {})
+                    title = str(row.get("Title", "") or "").strip() or None
+                    authors = str(row.get("Authors", "") or "").strip() or None
+                    year = str(row.get("Publication Year", "") or "").strip() or None
+                    proposal["paper_title"] = title
+                    proposal["paper_authors"] = authors
+                    proposal["paper_year"] = year
+                    proposal["paper_label"] = _paper_label(
+                        str(proposal.get("pdf_id", "")),
+                        title,
+                        authors,
+                        year,
+                    )
+        except Exception:
+            pass
+
     return {"run_id": run_id, "count": len(proposals), "proposals": proposals}
 
 
@@ -309,7 +388,33 @@ async def get_proposal(run_id: str, proposal_id: str, output_dir: str = "./runs"
     if not run_dir.exists():
         raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
 
-    detail = get_proposal_detail(run_dir, proposal_id)
+    row_data: Optional[dict] = None
+    column_defs: Optional[dict] = None
+    try:
+        run_data = read_json(run_dir / "run.json")
+        table_path = run_data.get("table_path")
+        schema_path = run_data.get("schema_path")
+        if table_path:
+            df = load_table(table_path)
+            row_data = {}
+            for row_idx, row in df.iterrows():
+                title = str(row.get("Title", ""))
+                row_id = generate_row_id(int(row_idx), title)
+                row_data[row_id] = row.to_dict()
+            column_defs = {
+                col["column_name"]: col
+                for col in load_schema(schema_path, table_path)
+            }
+    except Exception:
+        row_data = None
+        column_defs = None
+
+    detail = get_proposal_detail(
+        run_dir,
+        proposal_id,
+        row_data=row_data,
+        column_defs=column_defs,
+    )
     if detail is None:
         raise HTTPException(status_code=404, detail=f"Proposal not found: {proposal_id}")
     return detail
@@ -329,6 +434,22 @@ async def serve_pdf(run_id: str, pdf_id: str, output_dir: str = "./runs"):
     if pdf_path is None or not pdf_path.exists():
         raise HTTPException(status_code=404, detail=f"PDF not found for pdf_id={pdf_id}")
     return FileResponse(str(pdf_path), media_type="application/pdf")
+
+
+@app.post("/api/runs/{run_id}/assets/pdf/{pdf_id}/open", response_model=OpenPdfResponse)
+async def open_pdf_in_local_viewer(run_id: str, pdf_id: str, output_dir: str = "./runs"):
+    """Open the original PDF file using the OS default PDF viewer."""
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+    pdf_path = get_pdf_asset_path(run_dir, pdf_id)
+    if pdf_path is None or not pdf_path.exists():
+        raise HTTPException(status_code=404, detail=f"PDF not found for pdf_id={pdf_id}")
+    try:
+        open_in_local_viewer(pdf_path)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to open local PDF viewer: {exc}")
+    return OpenPdfResponse(run_id=run_id, pdf_id=pdf_id, status="opened", path=str(pdf_path))
 
 
 @app.get("/api/runs/{run_id}/assets/pages/{pdf_id}/{page}")
@@ -463,6 +584,40 @@ async def get_run_progress(run_id: str, output_dir: str = "./runs"):
     if not run_dir.exists():
         raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
     return {"run_id": run_id, **get_progress(run_dir)}
+
+
+@app.get("/api/runs/{run_id}/progress-review")
+async def get_run_review_progress(run_id: str, output_dir: str = "./runs"):
+    """Get review progress counters for actionable proposals only."""
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+    return {"run_id": run_id, **get_progress_for_review(run_dir)}
+
+
+@app.post("/api/runs/{run_id}/abort")
+async def abort_run_endpoint(run_id: str, output_dir: str = "./runs"):
+    """Abort an active run if it is still executing."""
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+
+    run_data = read_json(run_dir / "run.json")
+    if run_data.get("status") not in {
+        RunStatus.created.value,
+        RunStatus.validating.value,
+        RunStatus.running.value,
+    }:
+        raise HTTPException(status_code=409, detail=f"Run is not active: {run_id}")
+
+    cancelled = await abort_run(run_id)
+    if not cancelled:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Run is not active in the current backend process: {run_id}",
+        )
+
+    return {"run_id": run_id, "status": "interrupting"}
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,532 @@
+{
+  "run_id": "run_20260401_170239_0nhpnj",
+  "pdf_id": "paper_2",
+  "column_name": "Date Added",
+  "query": "Date Added: Date the paper was added to the bibliography or library.",
+  "top_k": 10,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_2_p6_67",
+      "source_block_id": "paper_2_p6_67",
+      "chunk_type": "paragraph",
+      "page_number": 6,
+      "reading_order": 67,
+      "display_text": "These observations suggest that P2 promoters may have reduced responsiveness to E1 enhancers because they contain some of the same motifs, which potentially saturate a particular step in transcription. Accordingly, we explored the hypothesis that promoters contain built-in E1 enhancer sequences that would increase promoter activity and decrease responsiveness to distal E1 enhancers.",
+      "retrieval_text": "[Section: P2 promoters contain built-in enhancers] These observations suggest that P2 promoters may have reduced responsiveness to E1 enhancers because they contain some of the same motifs, which potentially saturate a particular step in transcription. Accordingly, we explored the hypothesis that promoters contain built-in E1 enhancer sequences that would increase promoter activity and decrease responsiveness to distal E1 enhancers.",
+      "bbox": [
+        306.14169311,
+        193.05693066203128,
+        562.7679049945457,
+        131.65059653453125
+      ],
+      "provenance": "docling",
+      "section_context": "P2 promoters contain built-in enhancers",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p6_68",
+      "source_block_id": "paper_2_p6_68",
+      "chunk_type": "paragraph",
+      "page_number": 6,
+      "reading_order": 68,
+      "display_text": "Consistent with this hypothesis, the following results were obtained. (1) Across all promoters, responsiveness to E1 enhancers was inversely correlated with intrinsic promoter activity in a way that appeared to reach saturation. (2) P2 promoters had stronger enhancer activity than P1 promoters. (3) Nearly all of the TF motifs enriched in P2 promoters were predictive of both promoter activity and enhancer activity. And (4) scrambling or inserting GABPA or YY1 motifs affected the responsiveness of promoters to E1 enhancers.",
+      "retrieval_text": "[Section: P2 promoters contain built-in enhancers] Consistent with this hypothesis, the following results were obtained. (1) Across all promoters, responsiveness to E1 enhancers was inversely correlated with intrinsic promoter activity in a way that appeared to reach saturation. (2) P2 promoters had stronger enhancer activity than P1 promoters. (3) Nearly all of the TF motifs enriched in P2 promoters were predictive of both promoter activity and enhancer activity. And (4) scrambling or inserting GABPA or YY1 motifs affected the responsiveness of promoters to E1 enhancers.",
+      "bbox": [
+        306.14169311,
+        128.55693066203128,
+        562.8356679213678,
+        45.65109702953123
+      ],
+      "provenance": "docling",
+      "section_context": "P2 promoters contain built-in enhancers",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p7_69",
+      "source_block_id": "paper_2_p7_69",
+      "chunk_type": "caption",
+      "page_number": 7,
+      "reading_order": 69,
+      "display_text": "Fig. 5 | P2 promoters contain built-in enhancer sequences. a , DNase-seq and GABPA ChIP-seq binding at the HBE1 promoter (pHBE1, P1), HS1-HS3 enhancers (E1) and RPL3 promoter (pRPL3, P2). b , Correlation between intrinsic promoter activity and responsiveness of promoters to E1 enhancers (average activation by E1 sequences, expressions versus random genomic controls). Each point is one promoter. c , Average enhancer activity in HS-STARR-seq (RNA/DNA) of random genomic background fragments (Ctrl, n = 3.9 million) and P1 ( n = 192) and P2 ( n = 391) promoters. * P = 5.2 × 10 -4 , ** P = 1.1 × 10 -15 , *** P = 1.4 × 10 -66 , two-sided t -test. d , For each of the 400 sequence motifs that appeared in at least 5% of HS-STARR-seq fragments, shown are correlations (Pearson R ) of",
+      "retrieval_text": "[Section: P2 promoters contain built-in enhancers] Fig. 5 | P2 promoters contain built-in enhancer sequences. a , DNase-seq and GABPA ChIP-seq binding at the HBE1 promoter (pHBE1, P1), HS1-HS3 enhancers (E1) and RPL3 promoter (pRPL3, P2). b , Correlation between intrinsic promoter activity and responsiveness of promoters to E1 enhancers (average activation by E1 sequences, expressions versus random genomic controls). Each point is one promoter. c , Average enhancer activity in HS-STARR-seq (RNA/DNA) of random genomic background fragments (Ctrl, n = 3.9 million) and P1 ( n = 192) and P2 ( n = 391) promoters. * P = 5.2 × 10 -4 , ** P = 1.1 × 10 -15 , *** P = 1.4 × 10 -66 , two-sided t -test. d , For each of the 400 sequence motifs that appeared in at least 5% of HS-STARR-seq fragments, shown are correlations (Pearson R ) of",
+      "bbox": [
+        39.68450539999998,
+        553.6839106420313,
+        295.1654020597799,
+        457.181445048698
+      ],
+      "provenance": "docling",
+      "section_context": "P2 promoters contain built-in enhancers",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_152",
+      "source_block_id": "paper_2_p10_152",
+      "chunk_type": "section",
+      "page_number": 10,
+      "reading_order": 152,
+      "display_text": "Selection of enhancer and promoter sequences for ExP STARR-seq",
+      "retrieval_text": "Selection of enhancer and promoter sequences for ExP STARR-seq",
+      "bbox": [
+        306.14169311,
+        699.4874306620312,
+        559.9593431098298,
+        691.6079042371608
+      ],
+      "provenance": "docling",
+      "section_context": "Selection of enhancer and promoter sequences for ExP STARR-seq",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_153",
+      "source_block_id": "paper_2_p10_153",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 153,
+      "display_text": "To explore the compatibility of human enhancers and promoters, we selected 1,000 promoter and 1,000 enhancer sequences, including sequences from the human genome spanning a range of expression or activity levels, and dinucleotide shuffled controls. Based on available lengths of oligonucleotide pool synthesis, each sequence was 264 bp.",
+      "retrieval_text": "[Section: Selection of enhancer and promoter sequences for ExP STARR-seq] To explore the compatibility of human enhancers and promoters, we selected 1,000 promoter and 1,000 enhancer sequences, including sequences from the human genome spanning a range of expression or activity levels, and dinucleotide shuffled controls. Based on available lengths of oligonucleotide pool synthesis, each sequence was 264 bp.",
+      "bbox": [
+        306.14169311,
+        687.5569306620313,
+        562.7954406036781,
+        636.9003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Selection of enhancer and promoter sequences for ExP STARR-seq",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_154",
+      "source_block_id": "paper_2_p10_154",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 154,
+      "display_text": "For the promoters, we selected the 1,000 promoter sequences to include the following:",
+      "retrieval_text": "[Section: Selection of enhancer and promoter sequences for ExP STARR-seq] For the promoters, we selected the 1,000 promoter sequences to include the following:",
+      "bbox": [
+        306.14169311,
+        633.8069306620313,
+        562.8113039492739,
+        615.4003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Selection of enhancer and promoter sequences for ExP STARR-seq",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p11_179",
+      "source_block_id": "paper_2_p11_179",
+      "chunk_type": "section",
+      "page_number": 11,
+      "reading_order": 179,
+      "display_text": "Library transfection",
+      "retrieval_text": "Library transfection",
+      "bbox": [
+        306.14169311,
+        591.9873085920312,
+        387.17559310983006,
+        584.1077821671608
+      ],
+      "provenance": "docling",
+      "section_context": "Library transfection",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p11_180",
+      "source_block_id": "paper_2_p11_180",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 180,
+      "display_text": "We nucleofected 10 million K562 cells with 15 μg of the ExP plasmid library in 100 μl cuvettes with a Lonza 4D-Nucleofector using settings and protocols specified by the manufacturer for K562 cells (T-016). We pooled 5 nucleofections together during recovery to form 50 million cell biological transfection replicates and generated 4 replicates for a total of 200 million cells. After 24 h, we collected the cells in Qiagen buffer RLT (79216) and proceeded with STARR-seq library preparation. For the motif ExP STARR-seq experiment, we collected 6.5-10 million nucleofected cells per replicate.",
+      "retrieval_text": "[Section: Library transfection] We nucleofected 10 million K562 cells with 15 μg of the ExP plasmid library in 100 μl cuvettes with a Lonza 4D-Nucleofector using settings and protocols specified by the manufacturer for K562 cells (T-016). We pooled 5 nucleofections together during recovery to form 50 million cell biological transfection replicates and generated 4 replicates for a total of 200 million cells. After 24 h, we collected the cells in Qiagen buffer RLT (79216) and proceeded with STARR-seq library preparation. For the motif ExP STARR-seq experiment, we collected 6.5-10 million nucleofected cells per replicate.",
+      "bbox": [
+        306.14169311,
+        580.0568085920313,
+        562.8226111446842,
+        486.40059653453125
+      ],
+      "provenance": "docling",
+      "section_context": "Library transfection",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p11_181",
+      "source_block_id": "paper_2_p11_181",
+      "chunk_type": "section",
+      "page_number": 11,
+      "reading_order": 181,
+      "display_text": "STARR-seq library preparation",
+      "retrieval_text": "STARR-seq library preparation",
+      "bbox": [
+        306.14169311,
+        473.7374306620313,
+        428.4218431066849,
+        465.8579042371608
+      ],
+      "provenance": "docling",
+      "section_context": "STARR-seq library preparation",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p11_182",
+      "source_block_id": "paper_2_p11_182",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 182,
+      "display_text": "We proceeded with STARR-seq library preparation using an adapted protocol 13 . We split the 50 million cell transfection replicates in half and extracted total RNA using three Qiagen RNeasy mini columns (74134), performing the on-column DNase step. We isolated polyA+ mRNA using a Qiagen Oligotex mRNA kit for the 1,000 × 1,000 ExP dataset (note this kit has been discontinued, we now use the Poly(A) Purist MAG kit from Thermo Fisher Scientific, AM1922). Following mRNA elution, TURBO DNase (Thermo Fisher Scientific, AM2238) was added in 100 μl reactions and incubated at 37 °C for 30 min, then another 2 μl of TURBO DNase was added and incubated at 37 °C for 15 min. We purified the RNA following DNA digestion with Zymo RNA Clean & Concentrator 5 (R1013) (R1018 for the motif ExP STARR-seq experiment). We reverse-transcribed the polyA+ mRNA using Thermo SuperScriptIV using the STARR_RT primer (CAAACTCATCAATGTATCT TATCATG) in 20 μl reactions according to the manufacturer's recommendations. We included 1 μl of the ribonuclease inhibitor RNaseOUT (Invitrogen, 10777019). Following reverse transcription, we added 1 μl of RNaseH (Thermo Fisher Scientific, EN0201) and incubated at 37 °C for 20 min. We purified the cDNA with 1.8× volume of AMPure XP beads. We selectively amplified the reporter transcript using intron-spanning junction primers with Q5 polymerase in 50 μl reactions (98 °C for 45 s; 15 cycles of 98 °C for 15 s, 65 °C for 30 s and 72 °C for 70 s, jPCR_fwd: TCGTGAGGCACTGGGCAG*G*T*G*T*C, jPCR_rev: CTTATCATGTCTGCTCGA*A*G*C, where the asterisk represents phosphorothioate bonds). Following purifications with 0.8× volume of AMPure XP beads, we performed a test final sequencing-ready PCR with a dilution of the junction PCR product to determine the optimal cycle number, then proceeded with the final PCR using Q5 polymerase in 50 μl reactions (98 °C for 45 s; about 9 cycles of 98 °C for 10 s, 65 °C for 30 s and 72 °C for 30 s, ExP_GFP_fwd_I2: AATGATACGGCGACCACC GAGATCTACAC[index-2]GGCTTAAGCATGGCTAGCAAAG, ExP_P4_rev: CAAGCAGAAGACGGCATACGAGATTCATTCCATGGCATCTCACG. For the 1,000 × 1,000 ExP STARR-seq experiment, we purified the final libraries with 2 rounds of 0.8× volume of SPRISelect (Beckman Coulter, B23318) (1 round of 0.7× SPRISelect for the motif ExP STARR-seq experiment).",
+      "retrieval_text": "[Section: STARR-seq library preparation] We proceeded with STARR-seq library preparation using an adapted protocol 13 . We split the 50 million cell transfection replicates in half and extracted total RNA using three Qiagen RNeasy mini columns (74134), performing the on-column DNase step. We isolated polyA+ mRNA using a Qiagen Oligotex mRNA kit for the 1,000 × 1,000 ExP dataset (note this kit has been discontinued, we now use the Poly(A) Purist MAG kit from Thermo Fisher Scientific, AM1922). Following mRNA elution, TURBO DNase (Thermo Fisher Scientific, AM2238) was added in 100 μl reactions and incubated at 37 °C for 30 min, then another 2 μl of TURBO DNase was added and incubated at 37 °C for 15 min. We purified the RNA following DNA digestion with Zymo RNA Clean & Concentrator 5 (R1013) (R1018 for the motif ExP STARR-seq experiment). We reverse-transcribed the polyA+ mRNA using Thermo SuperScriptIV using the STARR_RT primer (CAAACTCATCAATGTATCT TATCATG) in 20 μl reactions according to the manufacturer's recommendations. We included 1 μl of the ribonuclease inhibitor RNaseOUT (Invitrogen, 10777019). Following reverse transcription, we added 1 μl of RNaseH (Thermo Fisher Scientific, EN0201) and incubated at 37 °C for 20 min. We purified the cDNA with 1.8× volume of AMPure XP beads. We selectively amplified the reporter transcript using intron-spanning junction primers with Q5 polymerase in 50 μl reactions (98 °C for 45 s; 15 cycles of 98 °C for 15 s, 65 °C for 30 s and 72 °C for 70 s, jPCR_fwd: TCGTGAGGCACTGGGCAG*G*T*G*T*C, jPCR_rev: CTTATCATGTCTGCTCGA*A*G*C, where the asterisk represents phosphorothioate bonds). Following purifications with 0.8× volume of AMPure XP beads, we performed a test final sequencing-ready PCR with a dilution of the junction PCR product to determine the optimal cycle number, then proceeded with the final PCR using Q5 polymerase in 50 μl reactions (98 °C for 45 s; about 9 cycles of 98 °C for 10 s, 65 °C for 30 s and 72 °C for 30 s, ExP_GFP_fwd_I2: AATGATACGGCGACCACC GAGATCTACAC[index-2]GGCTTAAGCATGGCTAGCAAAG, ExP_P4_rev: CAAGCAGAAGACGGCATACGAGATTCATTCCATGGCATCTCACG. For the 1,000 × 1,000 ExP STARR-seq experiment, we purified the final libraries with 2 rounds of 0.8× volume of SPRISelect (Beckman Coulter, B23318) (1 round of 0.7× SPRISelect for the motif ExP STARR-seq experiment).",
+      "bbox": [
+        306.14169311,
+        461.8069306620313,
+        562.8409834813318,
+        88.6503462870312
+      ],
+      "provenance": "docling",
+      "section_context": "STARR-seq library preparation",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p11_183",
+      "source_block_id": "paper_2_p11_183",
+      "chunk_type": "section",
+      "page_number": 11,
+      "reading_order": 183,
+      "display_text": "Alignment and counting of STARR-seq data",
+      "retrieval_text": "Alignment and counting of STARR-seq data",
+      "bbox": [
+        306.14169311,
+        75.98743066203122,
+        477.37759310983,
+        68.10790423716082
+      ],
+      "provenance": "docling",
+      "section_context": "Alignment and counting of STARR-seq data",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p12_195",
+      "source_block_id": "paper_2_p12_195",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 195,
+      "display_text": "As noted above, we fit this model on the set of plasmids with at least 25 DNA reads, and at least 1 RNA read. In addition, to reduce noise in our promoter and enhancer activity estimates, we required at least two separate plasmid barcodes per promoter-enhancer pair. These filters resulted in 604,268 promoter-enhancer pairs across 4,512,907 total unique plasmids (approximately 7.5 plasmids per pair) that were used to estimate promoter and enhancer activity.",
+      "retrieval_text": "[Section: Estimating enhancer and promoter activities using the naive averaging approach] As noted above, we fit this model on the set of plasmids with at least 25 DNA reads, and at least 1 RNA read. In addition, to reduce noise in our promoter and enhancer activity estimates, we required at least two separate plasmid barcodes per promoter-enhancer pair. These filters resulted in 604,268 promoter-enhancer pairs across 4,512,907 total unique plasmids (approximately 7.5 plasmids per pair) that were used to estimate promoter and enhancer activity.",
+      "bbox": [
+        306.14169311,
+        741.3069306620313,
+        562.8216562140307,
+        669.1503462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating enhancer and promoter activities using the naive averaging approach",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p12_196",
+      "source_block_id": "paper_2_p12_196",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 196,
+      "display_text": "In practice, this averaging method of calculating enhancer and promoter activity was inaccurate and biased for several reasons. First, the averaging method does not consider the variance introduced by sampling and counting noise in sequencing, which is significant because many promoter-enhancer pairs have low RNA read counts. Second, the averaging method does not account for differences introduced due to missing data. In the 1,000 enhancer × 1,000 promoter data matrix, many entries are missing either due to low RNA counts (resulting from counting and sampling noise or from low expression) or due to low DNA counts (resulting from variation introduced in cloning the plasmid library). As a result of these factors, the averaging method produces biased (inflated) estimates of activity for weaker enhancer and promoter sequences because the expression of plasmids containing these sequences is more likely to drop below the threshold of detection given our sequencing depth (Extended Data Fig. 2c,d).",
+      "retrieval_text": "[Section: Estimating enhancer and promoter activities using the naive averaging approach] In practice, this averaging method of calculating enhancer and promoter activity was inaccurate and biased for several reasons. First, the averaging method does not consider the variance introduced by sampling and counting noise in sequencing, which is significant because many promoter-enhancer pairs have low RNA read counts. Second, the averaging method does not account for differences introduced due to missing data. In the 1,000 enhancer × 1,000 promoter data matrix, many entries are missing either due to low RNA counts (resulting from counting and sampling noise or from low expression) or due to low DNA counts (resulting from variation introduced in cloning the plasmid library). As a result of these factors, the averaging method produces biased (inflated) estimates of activity for weaker enhancer and promoter sequences because the expression of plasmids containing these sequences is more likely to drop below the threshold of detection given our sequencing depth (Extended Data Fig. 2c,d).",
+      "bbox": [
+        306.14169311,
+        666.0569306620313,
+        562.8692914343773,
+        507.90034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating enhancer and promoter activities using the naive averaging approach",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p12_197",
+      "source_block_id": "paper_2_p12_197",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 197,
+      "display_text": "Because this model explained the data well, we used this same model to estimate intrinsic enhancer and promoter activity.",
+      "retrieval_text": "[Section: Estimating enhancer and promoter activities using the naive averaging approach] Because this model explained the data well, we used this same model to estimate intrinsic enhancer and promoter activity.",
+      "bbox": [
+        306.14169311,
+        504.8069306620313,
+        562.7246634786183,
+        486.40034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating enhancer and promoter activities using the naive averaging approach",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p13_212",
+      "source_block_id": "paper_2_p13_212",
+      "chunk_type": "section",
+      "page_number": 13,
+      "reading_order": 212,
+      "display_text": "Assessing reproducibility of the clusters",
+      "retrieval_text": "Assessing reproducibility of the clusters",
+      "bbox": [
+        39.68510055,
+        312.4874306620313,
+        199.71290055067993,
+        304.6079042371608
+      ],
+      "provenance": "docling",
+      "section_context": "Assessing reproducibility of the clusters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p13_213",
+      "source_block_id": "paper_2_p13_213",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 213,
+      "display_text": "We evaluated whether the clustering we observed in the residuals was a general trend of the data or an artefact of a few promoters or enhancers. To test this possibility, we randomly downsampled the residual matrix to 25% of promoters and 25% of enhancers (6.25% of the total data) 100 times and clustered the subsets. The original (full data) cluster identity of a promoter or enhancer predicted the downsampled cluster with greater than 80% accuracy (Extended Data Fig. 4f).",
+      "retrieval_text": "[Section: Assessing reproducibility of the clusters] We evaluated whether the clustering we observed in the residuals was a general trend of the data or an artefact of a few promoters or enhancers. To test this possibility, we randomly downsampled the residual matrix to 25% of promoters and 25% of enhancers (6.25% of the total data) 100 times and clustered the subsets. The original (full data) cluster identity of a promoter or enhancer predicted the downsampled cluster with greater than 80% accuracy (Extended Data Fig. 4f).",
+      "bbox": [
+        39.68510055,
+        300.5569306620313,
+        296.27654703045476,
+        228.4003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Assessing reproducibility of the clusters",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p13_214",
+      "source_block_id": "paper_2_p13_214",
+      "chunk_type": "section",
+      "page_number": 13,
+      "reading_order": 214,
+      "display_text": "Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes",
+      "retrieval_text": "Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes",
+      "bbox": [
+        39.68510055,
+        215.73743066203133,
+        294.63665055170003,
+        197.1054044071608
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_245",
+      "source_block_id": "paper_2_p14_245",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 245,
+      "display_text": "We sequenced the input DNA libraries to a depth of 880 million and 810 million reads (promoter and accessible element pools, respectively), and the RNA libraries to a depth of 1.1 billion reads (both pools). We aligned reads to the hg19 genome using bowtie2 (options: -q -met-stderr -maxins 1000 -p 4 -no-discordant -no-mixed). We discarded fragments with fewer than 25 aligned DNA reads. Biological replicates were highly correlated ( R 2 = 0.92 and 0.91 for promoter and accessible element pools, respectively) (Extended Data Fig. 8d).",
+      "retrieval_text": "[Section: HS-STARR-seq to measure enhancer activity for millions of genomic sequences] We sequenced the input DNA libraries to a depth of 880 million and 810 million reads (promoter and accessible element pools, respectively), and the RNA libraries to a depth of 1.1 billion reads (both pools). We aligned reads to the hg19 genome using bowtie2 (options: -q -met-stderr -maxins 1000 -p 4 -no-discordant -no-mixed). We discarded fragments with fewer than 25 aligned DNA reads. Biological replicates were highly correlated ( R 2 = 0.92 and 0.91 for promoter and accessible element pools, respectively) (Extended Data Fig. 8d).",
+      "bbox": [
+        306.14169311,
+        408.0569306620313,
+        562.8133149107531,
+        325.15034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "HS-STARR-seq to measure enhancer activity for millions of genomic sequences",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_246",
+      "source_block_id": "paper_2_p14_246",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 246,
+      "display_text": "We analysed this dataset by computing a log 2 (activity per fragment) equal to the log 2 (RNA/DNA) and correcting for a fragment-length bias. We noted that STARR-seq expression was highly inversely correlated with the length of the enhancer sequence, even among random genomic fragments that did not overlap putative regulatory elements, which could result from biases in library preparation and sequencing. To adjust for this, we fit a linear regression (separately for the two pools) and subtracted this regression from the log 2 (RNA/DNA) activity to give a bias-corrected activity. We then correlated motifs with bias-corrected activity. To estimate enhancer activity of promoters from the ExP, we found HS-STARR-seq fragments that overlapped at least 90% of an ExP promoter and averaged their activity scores.",
+      "retrieval_text": "[Section: HS-STARR-seq to measure enhancer activity for millions of genomic sequences] We analysed this dataset by computing a log 2 (activity per fragment) equal to the log 2 (RNA/DNA) and correcting for a fragment-length bias. We noted that STARR-seq expression was highly inversely correlated with the length of the enhancer sequence, even among random genomic fragments that did not overlap putative regulatory elements, which could result from biases in library preparation and sequencing. To adjust for this, we fit a linear regression (separately for the two pools) and subtracted this regression from the log 2 (RNA/DNA) activity to give a bias-corrected activity. We then correlated motifs with bias-corrected activity. To estimate enhancer activity of promoters from the ExP, we found HS-STARR-seq fragments that overlapped at least 90% of an ExP promoter and averaged their activity scores.",
+      "bbox": [
+        306.14169311,
+        322.0569306620313,
+        562.7970593983649,
+        196.1503462870313
+      ],
+      "provenance": "docling",
+      "section_context": "HS-STARR-seq to measure enhancer activity for millions of genomic sequences",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_247",
+      "source_block_id": "paper_2_p14_247",
+      "chunk_type": "section",
+      "page_number": 14,
+      "reading_order": 247,
+      "display_text": "Analysis of variance",
+      "retrieval_text": "Analysis of variance",
+      "bbox": [
+        306.14169311,
+        183.48743066203133,
+        385.19934310983007,
+        175.60790423716082
+      ],
+      "provenance": "docling",
+      "section_context": "Analysis of variance",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_252",
+      "source_block_id": "paper_2_p15_252",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 252,
+      "display_text": "and with intrinsic activities between -2 and +2 (evenly spaced sampling from promoters ordered by intrinsic activity). We included a weak promoter in each cluster (intrinsic activity less than -3) and included the promoters for GATA1 and RPL37A (two other weak promoters).",
+      "retrieval_text": "[Section: Article] and with intrinsic activities between -2 and +2 (evenly spaced sampling from promoters ordered by intrinsic activity). We included a weak promoter in each cluster (intrinsic activity less than -3) and included the promoters for GATA1 and RPL37A (two other weak promoters).",
+      "bbox": [
+        39.68500137,
+        741.3069306620313,
+        296.3467281367982,
+        701.4005965345314
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_253",
+      "source_block_id": "paper_2_p15_253",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 253,
+      "display_text": "We selected 15 enhancers from each of the E1 and E2 enhancer clusters, from elements detected as endogenous enhancers in K562 cells in a previous study 22 , with intrinsic activity between -2 and 2 (evenly spaced sampling from enhancers ordered by intrinsic activity), and avoiding potential polyA signals in the enhancer sequence. We added one weak enhancer from each class (intrinsic activity less than -3), and one weak scramble enhancer sequence from the original experiment.",
+      "retrieval_text": "[Section: Article] We selected 15 enhancers from each of the E1 and E2 enhancer clusters, from elements detected as endogenous enhancers in K562 cells in a previous study 22 , with intrinsic activity between -2 and 2 (evenly spaced sampling from enhancers ordered by intrinsic activity), and avoiding potential polyA signals in the enhancer sequence. We added one weak enhancer from each class (intrinsic activity less than -3), and one weak scramble enhancer sequence from the original experiment.",
+      "bbox": [
+        39.68500137,
+        698.3074311570314,
+        296.35967784407603,
+        626.1503462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_254",
+      "source_block_id": "paper_2_p15_254",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 254,
+      "display_text": "To explore the effect of adding GABPA, YY1, or other motifs to promoters, in every promoter sequence selected above, we inserted 2 copies of the GABPA consensus motif, centred at -10 and -31 relative to the TSS (identified by CAGE) to generate a new promoter sequence. For each original sequence, we did the same with YY1 at +1 relative to the TSS. Consensus motifs were taken from the HOCOMOCO v11 CORE motifs 54 .",
+      "retrieval_text": "[Section: Article] To explore the effect of adding GABPA, YY1, or other motifs to promoters, in every promoter sequence selected above, we inserted 2 copies of the GABPA consensus motif, centred at -10 and -31 relative to the TSS (identified by CAGE) to generate a new promoter sequence. For each original sequence, we did the same with YY1 at +1 relative to the TSS. Consensus motifs were taken from the HOCOMOCO v11 CORE motifs 54 .",
+      "bbox": [
+        39.68500137,
+        623.0569306620313,
+        296.3672967445914,
+        550.9002242170313
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_259",
+      "source_block_id": "paper_2_p15_259",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 259,
+      "display_text": "For the motif ExP STARR-seq experiment, we followed the methods detailed for the original STARR-seq experiment, but with the following exceptions. We sequenced the promoter DNA pool to a depth of 214.8 million reads. For the construction of the barcode-promoter dictionary, we initially aligned the promoter sequence reads to a specially constructed index of the unedited promoter sequences, using bowtie2 as described for the original STARR-seq experiment but with a slightly relaxed alignment threshold (X: -score-min L,-0.7,-0.7). We then used a custom Python script to check aligned reads at the sites of potential edits. The script reassigned a read to an edited promoter sequence if it perfectly matched the edited sequence at all edit positions and the immediate upstream and downstream base pair. If the read did not perfectly match an edited sequence but also did not match the wild-type sequence at the edit positions, the read was discarded. Reads with <90% perfect match with the entire sequence to which they were assigned were discarded. From this point, we returned to the original STARR-seq methods, namely dropping barcode-promoter pairs with singleton reads, removing ambiguous pairings and thresholding pairs with at least five reads to build the barcode-promoter dictionary.",
+      "retrieval_text": "[Section: Motif ExP STARR-seq analysis] For the motif ExP STARR-seq experiment, we followed the methods detailed for the original STARR-seq experiment, but with the following exceptions. We sequenced the promoter DNA pool to a depth of 214.8 million reads. For the construction of the barcode-promoter dictionary, we initially aligned the promoter sequence reads to a specially constructed index of the unedited promoter sequences, using bowtie2 as described for the original STARR-seq experiment but with a slightly relaxed alignment threshold (X: -score-min L,-0.7,-0.7). We then used a custom Python script to check aligned reads at the sites of potential edits. The script reassigned a read to an edited promoter sequence if it perfectly matched the edited sequence at all edit positions and the immediate upstream and downstream base pair. If the read did not perfectly match an edited sequence but also did not match the wild-type sequence at the edit positions, the read was discarded. Reads with <90% perfect match with the entire sequence to which they were assigned were discarded. From this point, we returned to the original STARR-seq methods, namely dropping barcode-promoter pairs with singleton reads, removing ambiguous pairings and thresholding pairs with at least five reads to build the barcode-promoter dictionary.",
+      "bbox": [
+        39.68500137,
+        343.5569306620313,
+        296.35084258671156,
+        142.4003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Motif ExP STARR-seq analysis",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_260",
+      "source_block_id": "paper_2_p15_260",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 260,
+      "display_text": "We sequenced the pool consisting of two replicates of the input DNA library as well as four replicates of the RNA library to a total of 345.5 million reads. When quantifying STARR-seq expression, unlike with the original STARR-seq experiment, we sequenced two replicates of the input DNA library. Therefore, to quantify the DNA read count for the log 2 (RNA/DNA) calculation, we used the average count of the two replicates, weighted to the same total read count. STARR-seq expression was highly correlated across replicates (minimum R 2 = 0.92; Extended Data Fig. 9a). As with the original STARR-seq experiment, we only included in the final analysis plasmids that had greater than 25 DNA reads and greater than 1 RNA transcript, for a total of 362,905 plasmids across 19,019 promoter-enhancer pairs, with an average of 19 barcodes per pair (Extended Data Fig. 9b). For unedited promoter and enhancer pairs, the STARR-seq expression was highly correlated with the expression in the original ExP STARR-seq experiment (Extended Data Fig. 9c).",
+      "retrieval_text": "[Section: Motif ExP STARR-seq analysis] We sequenced the pool consisting of two replicates of the input DNA library as well as four replicates of the RNA library to a total of 345.5 million reads. When quantifying STARR-seq expression, unlike with the original STARR-seq experiment, we sequenced two replicates of the input DNA library. Therefore, to quantify the DNA read count for the log 2 (RNA/DNA) calculation, we used the average count of the two replicates, weighted to the same total read count. STARR-seq expression was highly correlated across replicates (minimum R 2 = 0.92; Extended Data Fig. 9a). As with the original STARR-seq experiment, we only included in the final analysis plasmids that had greater than 25 DNA reads and greater than 1 RNA transcript, for a total of 362,905 plasmids across 19,019 promoter-enhancer pairs, with an average of 19 barcodes per pair (Extended Data Fig. 9b). For unedited promoter and enhancer pairs, the STARR-seq expression was highly correlated with the expression in the original ExP STARR-seq experiment (Extended Data Fig. 9c).",
+      "bbox": [
+        39.68500137,
+        139.30693066203128,
+        296.4188308915224,
+        45.65034246703124
+      ],
+      "provenance": "docling",
+      "section_context": "Motif ExP STARR-seq analysis",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_261",
+      "source_block_id": "paper_2_p15_261",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 261,
+      "display_text": "For edited promoters, to determine the change in responsiveness to E1 enhancers (Fig. 5e), we estimated unedited and edited responsiveness to E1 enhancers as described for the original experiment. We transformed the values out of log 2 (space) and computed the per cent change in the responsiveness as the per cent difference between the responsiveness of the edited sequence and the responsiveness of the unedited sequence.",
+      "retrieval_text": "[Section: Motif ExP STARR-seq analysis] For edited promoters, to determine the change in responsiveness to E1 enhancers (Fig. 5e), we estimated unedited and edited responsiveness to E1 enhancers as described for the original experiment. We transformed the values out of log 2 (space) and computed the per cent change in the responsiveness as the per cent difference between the responsiveness of the edited sequence and the responsiveness of the unedited sequence.",
+      "bbox": [
+        306.14169311,
+        676.8069306620313,
+        562.8182526361912,
+        615.4003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Motif ExP STARR-seq analysis",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_267",
+      "source_block_id": "paper_2_p15_267",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 267,
+      "display_text": "Reporting summary",
+      "retrieval_text": "Reporting summary",
+      "bbox": [
+        306.14181518,
+        312.4874306620313,
+        387.056715176685,
+        304.6079042371608
+      ],
+      "provenance": "docling",
+      "section_context": "Reporting summary",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_268",
+      "source_block_id": "paper_2_p15_268",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 268,
+      "display_text": "Further information on research design is available in the Nature Research Reporting Summary linked to this paper.",
+      "retrieval_text": "[Section: Reporting summary] Further information on research design is available in the Nature Research Reporting Summary linked to this paper.",
+      "bbox": [
+        306.14181518,
+        300.5569306620313,
+        562.6397148011317,
+        282.15034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Reporting summary",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_269",
+      "source_block_id": "paper_2_p15_269",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 269,
+      "display_text": "Data availability",
+      "retrieval_text": "Data availability",
+      "bbox": [
+        306.14181518,
+        260.63993066203125,
+        383.3325651799999,
+        251.61696498580181
+      ],
+      "provenance": "docling",
+      "section_context": "Data availability",
+      "is_neighbor": true
+    }
+  ],
+  "retrieved_at": "2026-04-01T17:19:05.711023+00:00"
+}

@@ -36,23 +36,28 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 })
   const [pdfPageSize, setPdfPageSize] = useState({ width: 0, height: 0 })
+  const [openLocalError, setOpenLocalError] = useState<string | null>(null)
+  const [openingLocal, setOpeningLocal] = useState(false)
   const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null)
 
   // Load PDF when pdfId changes
   useEffect(() => {
     let cancelled = false
+    let loadingTask: ReturnType<typeof pdfjsLib.getDocument> | null = null
     async function loadPdf() {
       if (!pdfId) {
         setPdfDoc(null)
         setTotalPages(0)
         setCurrentPage(1)
         setPageInput('1')
+        setLoadError(null)
         return
       }
       setLoadError(null)
       const url = api.getPdfUrl(runId, pdfId, outputDir)
       try {
-        const doc = await pdfjsLib.getDocument(url).promise
+        loadingTask = pdfjsLib.getDocument(url)
+        const doc = await loadingTask.promise
         if (!cancelled) {
           setPdfDoc(doc)
           setTotalPages(doc.numPages)
@@ -67,7 +72,12 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
       }
     }
     loadPdf()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+      if (loadingTask && typeof loadingTask.destroy === 'function') {
+        void loadingTask.destroy()
+      }
+    }
   }, [pdfId, runId, outputDir])
 
   // Navigate to evidence page when evidence changes
@@ -103,6 +113,8 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
       const viewport = page.getViewport({ scale: zoom })
       canvas.width = viewport.width
       canvas.height = viewport.height
+      canvas.style.width = `${viewport.width}px`
+      canvas.style.height = `${viewport.height}px`
       setCanvasSize({ width: viewport.width, height: viewport.height })
 
       const task = page.render({ canvas, canvasContext: ctx, viewport })
@@ -125,6 +137,21 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
     const n = parseInt(pageInput, 10)
     if (!isNaN(n)) goToPage(n)
     else setPageInput(String(currentPage))
+  }
+
+  async function handleOpenInLocalViewer() {
+    if (!pdfId || openingLocal) {
+      return
+    }
+    setOpeningLocal(true)
+    setOpenLocalError(null)
+    try {
+      await api.openPdfInLocalViewer(runId, pdfId, outputDir)
+    } catch (err) {
+      setOpenLocalError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setOpeningLocal(false)
+    }
   }
 
   // Compute highlight boxes relative to current rendered canvas.
@@ -244,21 +271,33 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
         >
           +
         </button>
+        <button
+          type="button"
+          onClick={handleOpenInLocalViewer}
+          disabled={!pdfId || openingLocal}
+          className="ml-auto px-2 py-1 rounded text-xs border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+        >
+          {openingLocal ? 'Opening…' : 'Open in Local PDF Viewer'}
+        </button>
       </div>
-
-      {/* Canvas area */}
+      <div className="shrink-0 px-3 py-2 border-b border-gray-200 bg-gray-50 text-xs text-gray-600">
+        This pane is optimized for evidence highlights. Use the local PDF viewer when you want standard reading behavior such as hand-pan, text selection, or full-document search.
+      </div>
       <div className="flex-1 overflow-auto p-3">
+        {openLocalError && (
+          <div className="mb-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            Could not open the local PDF viewer: {openLocalError}
+          </div>
+        )}
         {renderError && (
           <div className="text-xs text-red-600 mb-2">Render error: {renderError}</div>
         )}
-        {/* Canvas + highlight overlay wrapper */}
         <div
           ref={overlayRef}
           className="relative inline-block"
           style={{ width: canvasSize.width || undefined }}
         >
           <canvas ref={canvasRef} className="shadow-md" />
-          {/* Exact highlights */}
           {exactHighlights.map((h, i) => (
             <div
               key={`exact-${i}`}
@@ -273,7 +312,6 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
               }}
             />
           ))}
-          {/* Approximate highlights */}
           {approxHighlights.map((h, i) => (
             <div
               key={`approx-${i}`}
@@ -297,7 +335,6 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
           ))}
         </div>
 
-        {/* Text fallback */}
         {showTextFallback && evidence?.quote_text && (
           <div className="mt-3 rounded border border-amber-200 bg-amber-50 p-3">
             <p className="text-xs font-medium text-amber-700 mb-1">

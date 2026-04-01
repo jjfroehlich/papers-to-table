@@ -26,6 +26,13 @@ from pydantic import BaseModel
 from .schemas import ProviderLocality
 
 
+def _has_explicit_model_id(model_id: Optional[str]) -> bool:
+    if model_id is None:
+        return False
+    normalized = model_id.strip()
+    return bool(normalized) and normalized != "default"
+
+
 # ---------------------------------------------------------------------------
 # Provider capability contract (T050)
 # ---------------------------------------------------------------------------
@@ -295,22 +302,28 @@ class LMStudioProvider(ProviderAdapter):
                 probed_at=now,
             )
 
-        # Check if text model is available (model_id "default" always accepted)
-        model_ok = (text_model_id == "default") or (text_model_id in available_ids) or bool(available_ids)
-
-        if not model_ok:
-            return ProviderCapabilities(
-                supports_structured_output=False,
-                structured_output_mode="none",
-                model_id=text_model_id,
-                probed_at=now,
+        if not _has_explicit_model_id(text_model_id):
+            raise ProviderError(
+                "provider.text_model.model_id must be set to a real LM Studio model id; "
+                '"default" is not allowed.'
             )
+
+        if text_model_id not in available_ids:
+            raise ProviderError(
+                f"Configured text model '{text_model_id}' is not loaded in LM Studio. "
+                "Load that model or update provider.text_model.model_id."
+            )
+
+        if vision_model_id is not None and _has_explicit_model_id(vision_model_id):
+            if vision_model_id not in available_ids:
+                raise ProviderError(
+                    f"Configured vision model '{vision_model_id}' is not loaded in LM Studio. "
+                    "Load that model or update provider.vision_model.model_id."
+                )
 
         # Probe structured-output support (T050)
         # Try json_schema first (stricter), then json_object
-        effective_model = text_model_id if text_model_id != "default" else (
-            next(iter(available_ids), "default")
-        )
+        effective_model = text_model_id
         structured_mode = await self._probe_structured_output_mode(effective_model)
 
         return ProviderCapabilities(
@@ -382,9 +395,14 @@ class LMStudioProvider(ProviderAdapter):
         system: str,
         user: str,
         max_tokens: int = 512,
-        model_id: str = "default",
+        model_id: str = "",
     ) -> str:
         """Simple text completion, returns assistant content as string."""
+        if not _has_explicit_model_id(model_id):
+            raise ProviderError(
+                "LM Studio text completion requires an explicit model_id; "
+                '"default" is not allowed.'
+            )
         messages = [
             {"role": "system", "content": system},
             {"role": "user", "content": user},
@@ -630,7 +648,7 @@ class CloudProviderAdapter(ProviderAdapter):
     async def probe_capabilities(self, text_model_id: str, vision_model_id: Optional[str] = None) -> ProviderCapabilities:
         raise NotImplementedError("Cloud provider probe not implemented in MVP.")
 
-    async def text_complete_raw(self, system: str, user: str, max_tokens: int = 512, model_id: str = "default") -> str:
+    async def text_complete_raw(self, system: str, user: str, max_tokens: int = 512, model_id: str = "") -> str:
         raise NotImplementedError("Cloud provider text completion not implemented in MVP.")
 
     async def chat_complete_structured(self, messages, response_schema, model_id, max_tokens=2048, temperature=0.0) -> dict:

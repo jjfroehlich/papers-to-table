@@ -3,6 +3,8 @@ import { RunStatusBadge } from './RunStatusBadge'
 
 interface Props {
   run: RunData
+  onAbort?: (run: RunData) => void
+  aborting?: boolean
 }
 
 function Field({ label, value }: { label: string; value: string | number | boolean | null }) {
@@ -15,15 +17,26 @@ function Field({ label, value }: { label: string; value: string | number | boole
   )
 }
 
-export function RunDetail({ run }: Props) {
+export function RunDetail({ run, onAbort, aborting }: Props) {
   const PROVIDER_DISPLAY: Record<string, string> = { lm_studio: 'LM Studio' }
   const providerLabel = run.provider_token ? (PROVIDER_DISPLAY[run.provider_token] ?? run.provider_token) : '—'
+  const isAbortable =
+    !!onAbort && (run.status === 'created' || run.status === 'validating' || run.status === 'running')
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <h3 className="font-semibold text-gray-900">Run Details</h3>
         <RunStatusBadge status={run.status} />
+        {isAbortable && (
+          <button
+            onClick={() => onAbort?.(run)}
+            disabled={aborting}
+            className="ml-auto rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {aborting ? 'Aborting…' : 'Abort Run'}
+          </button>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -66,7 +79,7 @@ export function RunDetail({ run }: Props) {
 
       {run.status === 'completed' && (
         <div className="rounded-md bg-green-50 border border-green-200 p-3 text-sm text-green-700">
-          Run completed. Review functionality will be available in a future update.
+          Run completed. Review and export are available from the Review tab.
         </div>
       )}
 

@@ -1,0 +1,22 @@
+{
+  "proposal_id": "prop_run_20260401_170239_0nhpnj_cell_15870f236367_1775063574669",
+  "run_id": "run_20260401_170239_0nhpnj",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "Integration method",
+  "cell_id": "cell_15870f236367",
+  "state": "unclear",
+  "support": "blocked",
+  "proposed_value": null,
+  "rationale": "- The paper describes multiple reporter assay formats (ExP STARR-seq, luciferase assay, MPRA) but does not specify a genomic integration method for any of them.\n- All experiments use plasmid-based reporters, indicating episomal delivery rather than genomic integration.\n- No mention of integration methods such as CRISPR, transposon, or viral vectors is present in the provided passages.",
+  "calculation": null,
+  "primary_evidence_id": null,
+  "ordered_supporting_evidence_ids": [],
+  "evidence_ids": [],
+  "warning_flags": [],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "none",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T17:12:54.669586+00:00"
+}

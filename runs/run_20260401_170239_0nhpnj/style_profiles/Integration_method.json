@@ -1,0 +1,14 @@
+{
+  "column_name": "Integration method",
+  "field_type_guess": "categorical",
+  "expected_length": "short",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "single term from predefined list",
+  "unit_style": null,
+  "format_notes": "Values are consistent and represent specific integration methods; likely a controlled vocabulary.",
+  "example_risk": "low",
+  "generated_at": "2026-04-01T17:07:12.354189+00:00",
+  "source_column_count": 60,
+  "provider_mode": "live_llm"
+}

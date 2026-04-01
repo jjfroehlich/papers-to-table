@@ -1,0 +1,14 @@
+{
+  "column_name": "Promoter",
+  "field_type_guess": "text",
+  "expected_length": "short",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "promoter name with optional variant, source, or construct details in parentheses",
+  "unit_style": null,
+  "format_notes": "May include promoter name, variant, construct name, or source; parentheses often used to denote additional details like plasmid name or sequence length; some entries include inducible systems (e.g. tet-inducible) or specific gene names (e.g. minHis3)",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T17:07:24.265441+00:00",
+  "source_column_count": 67,
+  "provider_mode": "live_llm"
+}

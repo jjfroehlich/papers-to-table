@@ -126,13 +126,20 @@ export function ProposalDetailPane({
 
   if (!detail) return null
 
-  const { proposal, evidence, row_context, column_definition } = detail
+  const { proposal, evidence } = detail
+  const row_context = detail.row_context ?? {}
+  const column_definition = detail.column_definition ?? null
   const rowTitle =
+    (row_context['Title'] as string | undefined) ??
     (row_context['title'] as string | undefined) ??
     (row_context['paper_title'] as string | undefined) ??
     proposal.row_id
-  const rowAuthors = row_context['authors'] as string | undefined
-  const rowYear = row_context['year'] as string | number | undefined
+  const rowAuthors =
+    (row_context['Authors'] as string | undefined) ??
+    (row_context['authors'] as string | undefined)
+  const rowYear =
+    (row_context['Publication Year'] as string | number | undefined) ??
+    (row_context['year'] as string | number | undefined)
 
   const stateColors: Record<string, string> = {
     found: 'bg-green-100 text-green-700',
@@ -210,12 +217,14 @@ export function ProposalDetailPane({
       </div>
 
       {/* Current vs proposed (verify mode) */}
-      {row_context[proposal.column_name] !== undefined && (
+      {proposal.is_verify_mode && (proposal.existing_value != null || row_context[proposal.column_name] !== undefined) && (
         <div className="rounded border border-purple-200 bg-purple-50 px-3 py-2 text-xs space-y-1">
           <p className="font-medium text-purple-700">Verify mode</p>
           <div className="flex gap-2">
             <span className="text-gray-500">Current:</span>
-            <span className="text-gray-800 font-mono">{String(row_context[proposal.column_name])}</span>
+            <span className="text-gray-800 font-mono">
+              {String(proposal.existing_value ?? row_context[proposal.column_name] ?? '—')}
+            </span>
           </div>
           <div className="flex gap-2">
             <span className="text-gray-500">Proposed:</span>

@@ -141,11 +141,17 @@ export interface EnrichedProposal {
   evidence_ids: string[]
   warning_flags: string[]
   needs_more_evidence: boolean
+  is_verify_mode: boolean
+  existing_value?: string | null
+  provider_mode?: string
   created_at: string
   latest_decision: DecisionRecord | null
   warning_categories: string[]
   is_figure_derived: boolean
   is_fallback_evidence: boolean
+  paper_title?: string | null
+  paper_authors?: string | null
+  paper_year?: string | number | null
 }
 
 export interface ProposalDetail {

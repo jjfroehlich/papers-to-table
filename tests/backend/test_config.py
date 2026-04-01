@@ -86,7 +86,10 @@ class TestLoadConfig:
         data = {
             "table_path": "t.xlsx",
             "pdf_dir": "pdfs/",
-            "provider": {"token": "lm_studio"},
+            "provider": {
+                "token": "lm_studio",
+                "text_model": {"model_id": "qwen/qwen3-30b-a3b-2507"},
+            },
         }
         p = tmp_path / "config.json"
         p.write_text(json.dumps(data), encoding="utf-8")
@@ -95,6 +98,18 @@ class TestLoadConfig:
         assert config.verify_mode is False
         assert config.provider.base_url == "http://localhost:1234"
         assert config.parser.backend == "docling"
+        assert config.matching.ambiguity_threshold == 0.15
+
+    def test_text_model_id_default_preserved_until_readiness(self, tmp_path):
+        data = {
+            "table_path": "t.xlsx",
+            "pdf_dir": "pdfs/",
+            "provider": {"token": "lm_studio"},
+        }
+        p = tmp_path / "config.json"
+        p.write_text(json.dumps(data), encoding="utf-8")
+        config = load_config(str(p))
+        assert config.provider.text_model.model_id == "default"
 
     def test_separate_text_and_vision_model(self):
         config = load_config(FIXTURE_CONFIG)
@@ -137,14 +152,45 @@ class TestApplyOverrides:
 class TestReadiness:
     @pytest.mark.asyncio
     @respx.mock
-    async def test_provider_reachable(self, tmp_path, minimal_config_dict):
+    async def test_provider_reachable(self, tmp_path, minimal_config_dict, monkeypatch):
         minimal_config_dict["output_dir"] = str(tmp_path / "runs")
         config = RunConfig.model_validate(minimal_config_dict)
+        monkeypatch.setattr("backend.app.parsing.check_parser_readiness", lambda *_args: [])
+        monkeypatch.setattr("backend.app.parsing.check_ocr_readiness", lambda *_args: [])
         respx.get("http://localhost:1234/v1/models").mock(
-            return_value=httpx.Response(200, json={"data": []})
+            return_value=httpx.Response(200, json={"data": [{"id": "qwen/qwen3-30b-a3b-2507"}]})
         )
         result = await check_readiness(config)
         assert result.ok is True
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_rejects_default_text_model(self, tmp_path, minimal_config_dict, monkeypatch):
+        minimal_config_dict["provider"].pop("text_model", None)
+        minimal_config_dict["output_dir"] = str(tmp_path / "runs")
+        config = RunConfig.model_validate(minimal_config_dict)
+        monkeypatch.setattr("backend.app.parsing.check_parser_readiness", lambda *_args: [])
+        monkeypatch.setattr("backend.app.parsing.check_ocr_readiness", lambda *_args: [])
+        respx.get("http://localhost:1234/v1/models").mock(
+            return_value=httpx.Response(200, json={"data": [{"id": "qwen/qwen3-30b-a3b-2507"}]})
+        )
+        result = await check_readiness(config)
+        assert result.ok is False
+        assert any("text_model.model_id" in e for e in result.errors)
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_rejects_unloaded_text_model(self, tmp_path, minimal_config_dict, monkeypatch):
+        minimal_config_dict["output_dir"] = str(tmp_path / "runs")
+        config = RunConfig.model_validate(minimal_config_dict)
+        monkeypatch.setattr("backend.app.parsing.check_parser_readiness", lambda *_args: [])
+        monkeypatch.setattr("backend.app.parsing.check_ocr_readiness", lambda *_args: [])
+        respx.get("http://localhost:1234/v1/models").mock(
+            return_value=httpx.Response(200, json={"data": [{"id": "some-other-model"}]})
+        )
+        result = await check_readiness(config)
+        assert result.ok is False
+        assert any("not loaded in LM Studio" in e for e in result.errors)
 
     @pytest.mark.asyncio
     @respx.mock
@@ -178,12 +224,14 @@ class TestReadiness:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_output_dir_created_if_missing(self, tmp_path, minimal_config_dict):
+    async def test_output_dir_created_if_missing(self, tmp_path, minimal_config_dict, monkeypatch):
         out = tmp_path / "new_runs"
         minimal_config_dict["output_dir"] = str(out)
         config = RunConfig.model_validate(minimal_config_dict)
+        monkeypatch.setattr("backend.app.parsing.check_parser_readiness", lambda *_args: [])
+        monkeypatch.setattr("backend.app.parsing.check_ocr_readiness", lambda *_args: [])
         respx.get("http://localhost:1234/v1/models").mock(
-            return_value=httpx.Response(200, json={"data": []})
+            return_value=httpx.Response(200, json={"data": [{"id": "qwen/qwen3-30b-a3b-2507"}]})
         )
         result = await check_readiness(config)
         assert out.exists()

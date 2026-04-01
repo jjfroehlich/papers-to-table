@@ -1,0 +1,14 @@
+{
+  "column_name": "If episomal: Ori in backbone?",
+  "field_type_guess": "text",
+  "expected_length": "short",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "yes (optional description with citations or modifications)",
+  "unit_style": null,
+  "format_notes": "Values start with 'yes' followed by optional parenthetical details including backbone names, Addgene IDs, citations, or mechanisms to prevent Ori activity (e.g., polyA sites, splice acceptors).",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T17:07:07.846808+00:00",
+  "source_column_count": 11,
+  "provider_mode": "live_llm"
+}

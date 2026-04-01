@@ -23,6 +23,16 @@ from pydantic import BaseModel
 
 from .artifacts import write_json
 
+_INVALID_FILENAME_CHARS = re.compile(r'[\\/:*?"<>|]')
+_COUNT_LIKE_PATTERN = re.compile(r"(^\s*#)|\b(how many|number|count|total|sample size|n\s*=)\b", re.IGNORECASE)
+
+
+def _safe_filename(name: str, max_len: int = 48) -> str:
+    """Return a filename-safe version of *name* for all platforms."""
+    safe = _INVALID_FILENAME_CHARS.sub("_", name)
+    safe = safe.replace(" ", "_")
+    return safe[:max_len]
+
 # ---------------------------------------------------------------------------
 # Retrieval chunk contract (T045)
 # ---------------------------------------------------------------------------
@@ -139,6 +149,78 @@ def _tokenize(text: str) -> list[str]:
     """Simple whitespace + punctuation tokenizer."""
     text = unicodedata.normalize("NFKD", text.lower())
     return re.findall(r"[a-z0-9]+", text)
+
+
+def _unique_terms(terms: list[str]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for term in terms:
+        token = term.strip().lower()
+        if not token or token in seen:
+            continue
+        seen.add(token)
+        ordered.append(token)
+    return ordered
+
+
+def build_retrieval_query(column_name: str, column_description: str) -> str:
+    """Build a retrieval query with light field-aware expansion.
+
+    The expansion is intentionally lexical and conservative. It helps columns whose
+    user-facing wording does not closely match how papers describe the answer.
+    """
+    base_query = f"{column_name}: {column_description}".strip()
+    combined = f"{column_name} {column_description}".lower()
+    hints: list[str] = []
+
+    if _COUNT_LIKE_PATTERN.search(combined):
+        hints.extend([
+            "count",
+            "total",
+            "number",
+            "pairs",
+            "pair",
+            "combinations",
+            "constructed",
+            "tested",
+            "included",
+            "coverage",
+        ])
+
+    if re.search(r"\b(variant|variants|sequence|sequences|pair|pairs|barcode|barcodes|construct|constructs|plasmid|plasmids|element|elements)\b", combined):
+        hints.extend([
+            "sequences",
+            "pairs",
+            "combinations",
+            "plasmids",
+            "barcodes",
+        ])
+
+    if re.search(r"\b(episomal|ori|origin of replication|backbone|vector)\b", combined):
+        hints.extend([
+            "episomal",
+            "plasmid",
+            "vector",
+            "backbone",
+            "origin",
+            "replication",
+            "polya",
+        ])
+
+    if re.search(r"\b(clon|library|design|construct|assay format|readout)\b", combined):
+        hints.extend([
+            "methods",
+            "design",
+            "library",
+            "cloning",
+            "construct",
+        ])
+
+    hint_terms = _unique_terms(hints)
+    if not hint_terms:
+        return base_query
+
+    return f"{base_query}\nRetrieval hints: {' '.join(hint_terms)}"
 
 
 def _build_idf(chunks: list[RetrievalChunk]) -> dict[str, float]:
@@ -298,7 +380,7 @@ def get_retrieval_dir(run_dir: pathlib.Path) -> pathlib.Path:
 
 
 def get_retrieval_artifact_path(run_dir: pathlib.Path, pdf_id: str, column_name: str) -> pathlib.Path:
-    safe_col = column_name.replace(" ", "_").replace("/", "_")[:48]
+    safe_col = _safe_filename(column_name)
     return get_retrieval_dir(run_dir) / pdf_id / f"{safe_col}.json"
 
 
@@ -340,7 +422,7 @@ def run_retrieval_for_cell(
     top_k: int = 6,
 ) -> RetrievalResult:
     """Build and persist retrieval result for one (pdf, column) pair."""
-    query = f"{column_name}: {column_description}".strip()
+    query = build_retrieval_query(column_name, column_description)
     chunks = retrieve(query, doc_dict, top_k=top_k)
     result = RetrievalResult(
         run_id=run_id,

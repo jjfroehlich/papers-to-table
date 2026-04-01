@@ -34,6 +34,12 @@ const mockProposals: EnrichedProposal[] = [
     warning_categories: [],
     is_figure_derived: false,
     is_fallback_evidence: false,
+    is_verify_mode: false,
+    existing_value: null,
+    provider_mode: 'text',
+    paper_title: 'A study of sample size reporting in MPRA assays',
+    paper_authors: 'Smith, J.; Doe, A.',
+    paper_year: '2024',
   },
   {
     proposal_id: 'p2',
@@ -67,6 +73,12 @@ const mockProposals: EnrichedProposal[] = [
     warning_categories: [],
     is_figure_derived: false,
     is_fallback_evidence: false,
+    is_verify_mode: false,
+    existing_value: null,
+    provider_mode: 'text',
+    paper_title: 'An effect size benchmark paper',
+    paper_authors: 'Lee, P.; Kim, R.',
+    paper_year: '2023',
   },
   {
     proposal_id: 'p3',
@@ -90,6 +102,12 @@ const mockProposals: EnrichedProposal[] = [
     warning_categories: [],
     is_figure_derived: false,
     is_fallback_evidence: false,
+    is_verify_mode: false,
+    existing_value: null,
+    provider_mode: 'text',
+    paper_title: 'A study of sample size reporting in MPRA assays',
+    paper_authors: 'Smith, J.; Doe, A.',
+    paper_year: '2024',
   },
 ]
 
@@ -124,9 +142,9 @@ describe('ProposalQueue', () => {
         onSelect={onSelect}
       />
     )
-    await screen.findByText('paper-a')
-    expect(screen.getByText('paper-a')).toBeInTheDocument()
-    expect(screen.getByText('paper-b')).toBeInTheDocument()
+    await screen.findByText(/Smith et al\. 2024/)
+    expect(screen.getByText(/Smith et al\. 2024/)).toBeInTheDocument()
+    expect(screen.getByText(/Lee et al\. 2023/)).toBeInTheDocument()
   })
 
   it('grouping by column groups proposals by column_name', async () => {
@@ -138,7 +156,7 @@ describe('ProposalQueue', () => {
         onSelect={onSelect}
       />
     )
-    await screen.findByText('paper-a')
+    await screen.findByText(/Smith et al\. 2024/)
     const colBtn = screen.getByText('By Column')
     fireEvent.click(colBtn)
     // After switching, groups should be column names (use getAllByText since name appears in header + card)

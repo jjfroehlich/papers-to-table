@@ -26,7 +26,7 @@
   },
   "matching": {
     "strategy": "title_authors",
-    "ambiguity_threshold": 0.85
+    "ambiguity_threshold": 0.15
   },
   "style_profiles": {
     "enabled": true,

@@ -34,6 +34,9 @@ const mockDetail: ProposalDetail = {
     warning_categories: [],
     is_figure_derived: false,
     is_fallback_evidence: false,
+    is_verify_mode: false,
+    existing_value: '84',
+    provider_mode: 'text',
   },
   evidence: [
     {
@@ -164,6 +167,43 @@ describe('ProposalDetailPane', () => {
     )
     await screen.findByText('A Study on Cognitive Load')
     expect(screen.getByText('2022')).toBeInTheDocument()
+  })
+
+  it('does not show verify comparison when verify mode is off', async () => {
+    render(
+      <ProposalDetailPane
+        proposalId="p1"
+        runId="r1"
+        outputDir="./runs"
+        selectedEvidenceId={null}
+        onEvidenceSelect={vi.fn()}
+      />
+    )
+    await screen.findByText('120')
+    expect(screen.queryByText('Verify mode')).not.toBeInTheDocument()
+  })
+
+  it('shows verify comparison only for verify proposals', async () => {
+    mockGetProposalDetail.mockResolvedValueOnce({
+      ...mockDetail,
+      proposal: {
+        ...mockDetail.proposal,
+        is_verify_mode: true,
+      },
+    })
+
+    render(
+      <ProposalDetailPane
+        proposalId="p1"
+        runId="r1"
+        outputDir="./runs"
+        selectedEvidenceId={null}
+        onEvidenceSelect={vi.fn()}
+      />
+    )
+    await screen.findByText('Verify mode')
+    expect(screen.getByText('84')).toBeInTheDocument()
+    expect(screen.getAllByText('120')).toHaveLength(2)
   })
 
   it('highlights selected evidence item', async () => {

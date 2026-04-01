@@ -1,0 +1,14 @@
+{
+  "column_name": "Link",
+  "field_type_guess": "text",
+  "expected_length": "long",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "URL with DOI identifier following standard DOI pattern",
+  "unit_style": null,
+  "format_notes": "DOI links typically follow the pattern https://doi.org/10.xxxx/xxxxx or https://www.domain.com/doi/10.xxxx/xxxxx; may include versioning (e.g. v1) or article identifiers",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T17:06:18.154390+00:00",
+  "source_column_count": 223,
+  "provider_mode": "live_llm"
+}

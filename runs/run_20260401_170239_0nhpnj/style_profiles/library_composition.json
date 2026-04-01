@@ -1,0 +1,14 @@
+{
+  "column_name": "library composition",
+  "field_type_guess": "text",
+  "expected_length": "short",
+  "tone": "informal",
+  "detail_level": "low",
+  "value_shape": "percentage ranges with labels, separated by commas",
+  "unit_style": "percentage",
+  "format_notes": "Uses tildes (~) for approximation, includes labels like 'ctrls', 'pos', 'neg', and may use hyphens for missing or unspecified values",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T17:08:07.211100+00:00",
+  "source_column_count": 3,
+  "provider_mode": "live_llm"
+}

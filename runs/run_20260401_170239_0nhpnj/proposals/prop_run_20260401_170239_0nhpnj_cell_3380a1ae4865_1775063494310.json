@@ -1,0 +1,24 @@
+{
+  "proposal_id": "prop_run_20260401_170239_0nhpnj_cell_3380a1ae4865_1775063494310",
+  "run_id": "run_20260401_170239_0nhpnj",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "Promoter",
+  "cell_id": "cell_3380a1ae4865",
+  "state": "inferred",
+  "support": "inferred_from_evidence",
+  "proposed_value": "minimal promoter (K562 cell line, ExP STARR-seq assay)",
+  "rationale": "- The study uses ExP STARR-seq in K562 cells, which typically employs a minimal promoter to measure enhancer activity without confounding effects from strong endogenous promoters.\n- The paper describes intrinsic promoter activity as a fit parameter in a multiplicative model, implying a standardized, minimal promoter context to isolate enhancer-promoter compatibility.\n- The assay design (STARR-seq) inherently relies on a minimal promoter to assess enhancer function, as confirmed by the use of a control plasmid with random genomic sequences (Methods, Extended Data Fig. 2f,g).",
+  "calculation": "inferred from assay design and model description",
+  "primary_evidence_id": "ev_prop_run_20260401_170239_0nhpnj_cell_3380a1ae4865_1775063494310_nrayomy4",
+  "ordered_supporting_evidence_ids": [],
+  "evidence_ids": [
+    "ev_prop_run_20260401_170239_0nhpnj_cell_3380a1ae4865_1775063494310_nrayomy4"
+  ],
+  "warning_flags": [],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "many promoters",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T17:11:34.310891+00:00"
+}

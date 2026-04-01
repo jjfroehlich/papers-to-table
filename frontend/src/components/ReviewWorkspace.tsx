@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import type { RunData, EvidenceItem, EnrichedProposal } from '../types'
 import { RunSummaryPanel } from './RunSummaryPanel'
 import { ProposalQueue } from './ProposalQueue'
@@ -15,6 +15,17 @@ interface Props {
 }
 
 type SidePanel = 'evidence' | 'unresolved'
+type ResizeTarget = 'left' | 'right' | null
+
+const LEFT_PANE_MIN = 260
+const LEFT_PANE_MAX = 520
+const RIGHT_PANE_MIN = 320
+const RIGHT_PANE_MAX = 720
+const CENTER_PANE_MIN = 420
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max)
+}
 
 // Keyboard help modal
 function KeyboardHelpModal({ onClose }: { onClose: () => void }) {
@@ -61,6 +72,7 @@ function KeyboardHelpModal({ onClose }: { onClose: () => void }) {
 }
 
 export function ReviewWorkspace({ run, outputDir }: Props) {
+  const layoutRef = useRef<HTMLDivElement | null>(null)
   const [selectedProposalId, setSelectedProposalId] = useState<string | null>(null)
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(null)
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceItem | null>(null)
@@ -69,11 +81,26 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
   const [showHelp, setShowHelp] = useState(false)
   const [proposalList, setProposalList] = useState<EnrichedProposal[]>([])
   const [decisionVersion, setDecisionVersion] = useState(0)
+  const [leftPaneWidth, setLeftPaneWidth] = useState(320)
+  const [rightPaneWidth, setRightPaneWidth] = useState(420)
+  const [resizeTarget, setResizeTarget] = useState<ResizeTarget>(null)
 
   // Fetch flat proposal list for navigation
   useEffect(() => {
-    api.listProposals(run.run_id, { output_dir: outputDir })
-      .then((resp) => setProposalList(resp.proposals))
+    api.listProposals(run.run_id, {
+      output_dir: outputDir,
+      reviewable_only: true,
+    })
+      .then((resp) => {
+        setProposalList(resp.proposals)
+        setSelectedProposalId((current) => {
+          if (resp.proposals.length === 0) return null
+          if (current && resp.proposals.some((proposal) => proposal.proposal_id === current)) {
+            return current
+          }
+          return resp.proposals[0].proposal_id
+        })
+      })
       .catch(() => {})
   }, [run.run_id, outputDir, decisionVersion])
 
@@ -145,6 +172,40 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
       .catch(() => {})
   }, [selectedProposalId, run.run_id, outputDir, decisionVersion])
 
+  useEffect(() => {
+    if (!resizeTarget) return
+
+    function handleMouseMove(event: MouseEvent) {
+      const rect = layoutRef.current?.getBoundingClientRect()
+      if (!rect) return
+
+      if (resizeTarget === 'left') {
+        const maxWidth = Math.min(LEFT_PANE_MAX, rect.width - rightPaneWidth - CENTER_PANE_MIN)
+        setLeftPaneWidth(clamp(event.clientX - rect.left, LEFT_PANE_MIN, maxWidth))
+        return
+      }
+
+      const maxWidth = Math.min(RIGHT_PANE_MAX, rect.width - leftPaneWidth - CENTER_PANE_MIN)
+      setRightPaneWidth(clamp(rect.right - event.clientX, RIGHT_PANE_MIN, maxWidth))
+    }
+
+    function handleMouseUp() {
+      setResizeTarget(null)
+    }
+
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [leftPaneWidth, resizeTarget, rightPaneWidth])
+
   function handleEvidenceSelect(evidenceId: string) {
     setSelectedEvidenceId(evidenceId)
     // Need to fetch evidence item; we'll look it up from detail
@@ -202,9 +263,12 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
       </div>
 
       {/* Three-pane layout */}
-      <div className="flex-1 flex overflow-hidden">
+      <div ref={layoutRef} className="flex-1 flex overflow-hidden">
         {/* Left: Queue */}
-        <div className="w-72 shrink-0 border-r border-gray-200 bg-white overflow-hidden flex flex-col">
+        <div
+          className="shrink-0 border-r border-gray-200 bg-white overflow-hidden flex flex-col"
+          style={{ width: leftPaneWidth }}
+        >
           <ProposalQueue
             runId={run.run_id}
             outputDir={outputDir}
@@ -213,6 +277,16 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
             key={`${run.run_id}-${decisionVersion}`}
           />
         </div>
+
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize proposal queue"
+          onMouseDown={() => setResizeTarget('left')}
+          className={`w-1.5 shrink-0 cursor-col-resize border-r border-gray-200 bg-gray-100 transition-colors hover:bg-blue-200 ${
+            resizeTarget === 'left' ? 'bg-blue-300' : ''
+          }`}
+        />
 
         {/* Center: Detail + actions */}
         <div className="flex-1 min-w-0 flex flex-col overflow-hidden bg-white">
@@ -238,8 +312,21 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
           )}
         </div>
 
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize evidence panel"
+          onMouseDown={() => setResizeTarget('right')}
+          className={`w-1.5 shrink-0 cursor-col-resize border-l border-gray-200 bg-gray-100 transition-colors hover:bg-blue-200 ${
+            resizeTarget === 'right' ? 'bg-blue-300' : ''
+          }`}
+        />
+
         {/* Right: Evidence viewer / Unresolved */}
-        <div className="w-96 shrink-0 border-l border-gray-200 bg-gray-50 overflow-hidden flex flex-col">
+        <div
+          className="shrink-0 border-l border-gray-200 bg-gray-50 overflow-hidden flex flex-col"
+          style={{ width: rightPaneWidth }}
+        >
           {sidePanel === 'evidence' ? (
             <EvidenceViewer
               runId={run.run_id}

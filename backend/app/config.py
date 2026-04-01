@@ -31,6 +31,13 @@ class ProviderConfig(BaseModel):
     locality: str = "local"
 
 
+def _is_configured_model_id(model_id: Optional[str]) -> bool:
+    if model_id is None:
+        return False
+    normalized = model_id.strip()
+    return bool(normalized) and normalized != "default"
+
+
 class ParserConfig(BaseModel):
     backend: str = "docling"
     ocr_enabled: bool = False
@@ -40,7 +47,7 @@ class ParserConfig(BaseModel):
 
 class MatchingConfig(BaseModel):
     strategy: str = "title_authors"
-    ambiguity_threshold: float = 0.85
+    ambiguity_threshold: float = 0.15
 
 
 class StyleProfileConfig(BaseModel):
@@ -153,6 +160,12 @@ async def check_readiness(config: RunConfig) -> ReadinessResult:
         r.fail(f"output_dir is not writable: {output_dir}")
 
     if config.provider.token == "lm_studio":
+        text_model_id = config.provider.text_model.model_id
+        if not _is_configured_model_id(text_model_id):
+            r.fail(
+                "provider.text_model.model_id must be set to a real LM Studio model id; "
+                '"default" is not allowed.'
+            )
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(f"{config.provider.base_url}/v1/models")
@@ -161,6 +174,29 @@ async def check_readiness(config: RunConfig) -> ReadinessResult:
                         f"LM Studio at {config.provider.base_url} returned HTTP {resp.status_code}. "
                         f"Is LM Studio running?"
                     )
+                else:
+                    models_data = resp.json()
+                    available_ids = {
+                        model.get("id", "") for model in models_data.get("data", [])
+                    }
+                    if _is_configured_model_id(text_model_id) and text_model_id not in available_ids:
+                        r.fail(
+                            f"Configured text model '{text_model_id}' is not loaded in LM Studio. "
+                            "Load that model or update provider.text_model.model_id."
+                        )
+
+                    vision_model = config.provider.vision_model
+                    vision_model_id = vision_model.model_id if vision_model else None
+                    if config.figure_review.enabled:
+                        if not _is_configured_model_id(vision_model_id):
+                            r.fail(
+                                "figure_review is enabled, but provider.vision_model.model_id is missing or invalid."
+                            )
+                        elif vision_model_id not in available_ids:
+                            r.fail(
+                                f"Configured vision model '{vision_model_id}' is not loaded in LM Studio. "
+                                "Load that model or update provider.vision_model.model_id."
+                            )
         except Exception as e:
             r.fail(
                 f"Cannot reach LM Studio at {config.provider.base_url}: {e}. "

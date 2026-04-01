@@ -1,0 +1,29 @@
+{
+  "evidence_id": "ev_prop_run_20260401_170239_0nhpnj_cell_9ef12768e33d_1775063838760_uj88q0gx",
+  "run_id": "run_20260401_170239_0nhpnj",
+  "proposal_id": "prop_run_20260401_170239_0nhpnj_cell_9ef12768e33d_1775063838760",
+  "pdf_id": "paper_2",
+  "source_type": "direct_quote",
+  "quote_text": "We ordered 264 bp sequences in an oligonucleotide array format from Twist Bioscience with separate pairs of 18 bp adaptors (total length of",
+  "page_number": 10,
+  "exact_highlight_regions": [
+    {
+      "x0": 306.14181518,
+      "y0": 64.05692684203132,
+      "x1": 562.7560070066884,
+      "y1": 45.65034246703124,
+      "page": 10
+    }
+  ],
+  "approximate_highlight_regions": null,
+  "figure_ref": null,
+  "caption_text": null,
+  "crop_path": null,
+  "full_page_path": null,
+  "anchor_confidence": 1.0,
+  "evidence_rank": 1,
+  "reasoning": null,
+  "is_primary": true,
+  "is_figure_derived": false,
+  "created_at": "2026-04-01T17:17:36.371022+00:00"
+}
