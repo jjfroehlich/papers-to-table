@@ -1,0 +1,550 @@
+{
+  "run_id": "run_20260401_184013_xsva6m",
+  "pdf_id": "paper_2",
+  "column_name": "Journal",
+  "query": "Journal: Journal the paper was published in.",
+  "top_k": 10,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_2_p1_3",
+      "source_block_id": "paper_2_p1_3",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 3,
+      "display_text": "Accepted: 17 May 2022",
+      "retrieval_text": "[Section: Compatibility rules of human enhancer and promoter sequences] Accepted: 17 May 2022",
+      "bbox": [
+        39.68500137,
+        612.1125525720313,
+        125.9010013699999,
+        605.1089906842308
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules of human enhancer and promoter sequences",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p1_4",
+      "source_block_id": "paper_2_p1_4",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 4,
+      "display_text": "Published online: 20 May 2022",
+      "retrieval_text": "[Section: Compatibility rules of human enhancer and promoter sequences] Published online: 20 May 2022",
+      "bbox": [
+        39.68500137,
+        596.0085524920313,
+        154.41300136999996,
+        589.0049906042308
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules of human enhancer and promoter sequences",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p1_5",
+      "source_block_id": "paper_2_p1_5",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 5,
+      "display_text": "Drew T. Bergman 1,2,9 , Thouis R. Jones 1,9 , Vincent Liu 3 , Judhajeet Ray 1 , Evelyn Jagoda 1 , Layla Siraj 1,4 , Helen Y. Kang 3,5 , Joseph Nasser 1 , Michael Kane 1 , Antonio Rios 3 , Tung H. Nguyen 1 , Sharon R. Grossman 1 , Charles P. Fulco 1,8 , Eric S. Lander 1,6,7 & Jesse M. Engreitz 1,3,5 ✉",
+      "retrieval_text": "[Section: Compatibility rules of human enhancer and promoter sequences] Drew T. Bergman 1,2,9 , Thouis R. Jones 1,9 , Vincent Liu 3 , Judhajeet Ray 1 , Evelyn Jagoda 1 , Layla Siraj 1,4 , Helen Y. Kang 3,5 , Joseph Nasser 1 , Michael Kane 1 , Antonio Rios 3 , Tung H. Nguyen 1 , Sharon R. Grossman 1 , Charles P. Fulco 1,8 , Eric S. Lander 1,6,7 & Jesse M. Engreitz 1,3,5 ✉",
+      "bbox": [
+        217.32229615999995,
+        645.4324552150313,
+        528.21029296,
+        605.0705584816056
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules of human enhancer and promoter sequences",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p5_53",
+      "source_block_id": "paper_2_p5_53",
+      "chunk_type": "paragraph",
+      "page_number": 5,
+      "reading_order": 53,
+      "display_text": "P1 promoters had on average 3.2-fold weaker intrinsic promoter activity than P2 promoters, as measured by ExP STARR-seq ( P < 10 -16 , MannWhitney U -test; Fig. 4b and Extended Data Fig. 4b), but showed similar levels of transcription in their native genomic locations (as measured by PRO-seq in the gene body; P = 0.733, Mann-Whitney U -test; Fig. 4b). P1 promoters also had more activating chromatin environments based on predictions of enhancer input from the ABC model ( P = 0.00083, Mann-Whitney U -test; Extended Data Fig. 7c-e). This suggests that P1 promoters may be more dependent on the genomic context for their level of transcription in the genome.",
+      "retrieval_text": "[Section: Properties of promoter classes] P1 promoters had on average 3.2-fold weaker intrinsic promoter activity than P2 promoters, as measured by ExP STARR-seq ( P < 10 -16 , MannWhitney U -test; Fig. 4b and Extended Data Fig. 4b), but showed similar levels of transcription in their native genomic locations (as measured by PRO-seq in the gene body; P = 0.733, Mann-Whitney U -test; Fig. 4b). P1 promoters also had more activating chromatin environments based on predictions of enhancer input from the ABC model ( P = 0.00083, Mann-Whitney U -test; Extended Data Fig. 7c-e). This suggests that P1 promoters may be more dependent on the genomic context for their level of transcription in the genome.",
+      "bbox": [
+        306.14169311,
+        472.5569306620313,
+        562.8244789987071,
+        368.15059653453125
+      ],
+      "provenance": "docling",
+      "section_context": "Properties of promoter classes",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p5_54",
+      "source_block_id": "paper_2_p5_54",
+      "chunk_type": "paragraph",
+      "page_number": 5,
+      "reading_order": 54,
+      "display_text": "Indeed, genes corresponding to P1 promoters had more genomic regulatory elements in CRISPR experiments. In data from previous studies in which CRISPRi was used to perturb every DNase-accessible element near selected promoters (Methods), the 14 genes corresponding to P1 promoters had an average of 3.6 (median of 3) distal enhancers in CRISPR experiments, whereas the 11 genes corresponding to P2 promoters had only 0.36 (median of 0; Fig. 4c and Extended Data Fig. 7f). Distal enhancers for P1 genes in the genome also had stronger effect sizes ( P = 0.0071, ttest, Extended Data Fig. 7g).",
+      "retrieval_text": "[Section: Properties of promoter classes] Indeed, genes corresponding to P1 promoters had more genomic regulatory elements in CRISPR experiments. In data from previous studies in which CRISPRi was used to perturb every DNase-accessible element near selected promoters (Methods), the 14 genes corresponding to P1 promoters had an average of 3.6 (median of 3) distal enhancers in CRISPR experiments, whereas the 11 genes corresponding to P2 promoters had only 0.36 (median of 0; Fig. 4c and Extended Data Fig. 7f). Distal enhancers for P1 genes in the genome also had stronger effect sizes ( P = 0.0071, ttest, Extended Data Fig. 7g).",
+      "bbox": [
+        306.14169311,
+        365.0569306620313,
+        562.87183894775,
+        271.4003462870312
+      ],
+      "provenance": "docling",
+      "section_context": "Properties of promoter classes",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p5_55",
+      "source_block_id": "paper_2_p5_55",
+      "chunk_type": "paragraph",
+      "page_number": 5,
+      "reading_order": 55,
+      "display_text": "Together, these observations suggest that P1 promoter sequences correspond to variably expressed genes and depend more on distal enhancers for their transcriptional activation both in the ExP STARR-seq assay and in the genome, whereas P2 promoter sequences correspond to ubiquitously expressed genes that are relatively less sensitive to distal enhancers in both contexts.",
+      "retrieval_text": "[Section: Properties of promoter classes] Together, these observations suggest that P1 promoter sequences correspond to variably expressed genes and depend more on distal enhancers for their transcriptional activation both in the ExP STARR-seq assay and in the genome, whereas P2 promoter sequences correspond to ubiquitously expressed genes that are relatively less sensitive to distal enhancers in both contexts.",
+      "bbox": [
+        306.14169311,
+        268.3069306620313,
+        562.837936906493,
+        206.9003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Properties of promoter classes",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p6_67",
+      "source_block_id": "paper_2_p6_67",
+      "chunk_type": "paragraph",
+      "page_number": 6,
+      "reading_order": 67,
+      "display_text": "These observations suggest that P2 promoters may have reduced responsiveness to E1 enhancers because they contain some of the same motifs, which potentially saturate a particular step in transcription. Accordingly, we explored the hypothesis that promoters contain built-in E1 enhancer sequences that would increase promoter activity and decrease responsiveness to distal E1 enhancers.",
+      "retrieval_text": "[Section: P2 promoters contain built-in enhancers] These observations suggest that P2 promoters may have reduced responsiveness to E1 enhancers because they contain some of the same motifs, which potentially saturate a particular step in transcription. Accordingly, we explored the hypothesis that promoters contain built-in E1 enhancer sequences that would increase promoter activity and decrease responsiveness to distal E1 enhancers.",
+      "bbox": [
+        306.14169311,
+        193.05693066203128,
+        562.7679049945457,
+        131.65059653453125
+      ],
+      "provenance": "docling",
+      "section_context": "P2 promoters contain built-in enhancers",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p6_68",
+      "source_block_id": "paper_2_p6_68",
+      "chunk_type": "paragraph",
+      "page_number": 6,
+      "reading_order": 68,
+      "display_text": "Consistent with this hypothesis, the following results were obtained. (1) Across all promoters, responsiveness to E1 enhancers was inversely correlated with intrinsic promoter activity in a way that appeared to reach saturation. (2) P2 promoters had stronger enhancer activity than P1 promoters. (3) Nearly all of the TF motifs enriched in P2 promoters were predictive of both promoter activity and enhancer activity. And (4) scrambling or inserting GABPA or YY1 motifs affected the responsiveness of promoters to E1 enhancers.",
+      "retrieval_text": "[Section: P2 promoters contain built-in enhancers] Consistent with this hypothesis, the following results were obtained. (1) Across all promoters, responsiveness to E1 enhancers was inversely correlated with intrinsic promoter activity in a way that appeared to reach saturation. (2) P2 promoters had stronger enhancer activity than P1 promoters. (3) Nearly all of the TF motifs enriched in P2 promoters were predictive of both promoter activity and enhancer activity. And (4) scrambling or inserting GABPA or YY1 motifs affected the responsiveness of promoters to E1 enhancers.",
+      "bbox": [
+        306.14169311,
+        128.55693066203128,
+        562.8356679213678,
+        45.65109702953123
+      ],
+      "provenance": "docling",
+      "section_context": "P2 promoters contain built-in enhancers",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p7_69",
+      "source_block_id": "paper_2_p7_69",
+      "chunk_type": "caption",
+      "page_number": 7,
+      "reading_order": 69,
+      "display_text": "Fig. 5 | P2 promoters contain built-in enhancer sequences. a , DNase-seq and GABPA ChIP-seq binding at the HBE1 promoter (pHBE1, P1), HS1-HS3 enhancers (E1) and RPL3 promoter (pRPL3, P2). b , Correlation between intrinsic promoter activity and responsiveness of promoters to E1 enhancers (average activation by E1 sequences, expressions versus random genomic controls). Each point is one promoter. c , Average enhancer activity in HS-STARR-seq (RNA/DNA) of random genomic background fragments (Ctrl, n = 3.9 million) and P1 ( n = 192) and P2 ( n = 391) promoters. * P = 5.2 × 10 -4 , ** P = 1.1 × 10 -15 , *** P = 1.4 × 10 -66 , two-sided t -test. d , For each of the 400 sequence motifs that appeared in at least 5% of HS-STARR-seq fragments, shown are correlations (Pearson R ) of",
+      "retrieval_text": "[Section: P2 promoters contain built-in enhancers] Fig. 5 | P2 promoters contain built-in enhancer sequences. a , DNase-seq and GABPA ChIP-seq binding at the HBE1 promoter (pHBE1, P1), HS1-HS3 enhancers (E1) and RPL3 promoter (pRPL3, P2). b , Correlation between intrinsic promoter activity and responsiveness of promoters to E1 enhancers (average activation by E1 sequences, expressions versus random genomic controls). Each point is one promoter. c , Average enhancer activity in HS-STARR-seq (RNA/DNA) of random genomic background fragments (Ctrl, n = 3.9 million) and P1 ( n = 192) and P2 ( n = 391) promoters. * P = 5.2 × 10 -4 , ** P = 1.1 × 10 -15 , *** P = 1.4 × 10 -66 , two-sided t -test. d , For each of the 400 sequence motifs that appeared in at least 5% of HS-STARR-seq fragments, shown are correlations (Pearson R ) of",
+      "bbox": [
+        39.68450539999998,
+        553.6839106420313,
+        295.1654020597799,
+        457.181445048698
+      ],
+      "provenance": "docling",
+      "section_context": "P2 promoters contain built-in enhancers",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p9_139",
+      "source_block_id": "paper_2_p9_139",
+      "chunk_type": "list_item",
+      "page_number": 9,
+      "reading_order": 139,
+      "display_text": "The FANTOM Consortium and the RIKEN PMI and CLST (DGT). A promoter-level mammalian expression atlas. Nature 507 , 462-470 (2014).",
+      "retrieval_text": "[Section: Article] The FANTOM Consortium and the RIKEN PMI and CLST (DGT). A promoter-level mammalian expression atlas. Nature 507 , 462-470 (2014).",
+      "bbox": [
+        306.0669959099998,
+        364.5902898520314,
+        533.6169957900009,
+        351.31296933731437
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p9_140",
+      "source_block_id": "paper_2_p9_140",
+      "chunk_type": "paragraph",
+      "page_number": 9,
+      "reading_order": 140,
+      "display_text": "Publisher's note Springer Nature remains neutral with regard to jurisdictional claims in published maps and institutional affiliations.",
+      "retrieval_text": "[Section: Article] Publisher's note Springer Nature remains neutral with regard to jurisdictional claims in published maps and institutional affiliations.",
+      "bbox": [
+        306.0669887099998,
+        340.5422905120314,
+        540.6363887077213,
+        327.2649699973144
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p9_141",
+      "source_block_id": "paper_2_p9_141",
+      "chunk_type": "list_item",
+      "page_number": 9,
+      "reading_order": 141,
+      "display_text": "© The Author(s), under exclusive licence to Springer Nature Limited 2022",
+      "retrieval_text": "[Section: Article] © The Author(s), under exclusive licence to Springer Nature Limited 2022",
+      "bbox": [
+        306.0669887099998,
+        316.0022911120314,
+        503.20298871000176,
+        310.7409703573144
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p13_212",
+      "source_block_id": "paper_2_p13_212",
+      "chunk_type": "section",
+      "page_number": 13,
+      "reading_order": 212,
+      "display_text": "Assessing reproducibility of the clusters",
+      "retrieval_text": "Assessing reproducibility of the clusters",
+      "bbox": [
+        39.68510055,
+        312.4874306620313,
+        199.71290055067993,
+        304.6079042371608
+      ],
+      "provenance": "docling",
+      "section_context": "Assessing reproducibility of the clusters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p13_213",
+      "source_block_id": "paper_2_p13_213",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 213,
+      "display_text": "We evaluated whether the clustering we observed in the residuals was a general trend of the data or an artefact of a few promoters or enhancers. To test this possibility, we randomly downsampled the residual matrix to 25% of promoters and 25% of enhancers (6.25% of the total data) 100 times and clustered the subsets. The original (full data) cluster identity of a promoter or enhancer predicted the downsampled cluster with greater than 80% accuracy (Extended Data Fig. 4f).",
+      "retrieval_text": "[Section: Assessing reproducibility of the clusters] We evaluated whether the clustering we observed in the residuals was a general trend of the data or an artefact of a few promoters or enhancers. To test this possibility, we randomly downsampled the residual matrix to 25% of promoters and 25% of enhancers (6.25% of the total data) 100 times and clustered the subsets. The original (full data) cluster identity of a promoter or enhancer predicted the downsampled cluster with greater than 80% accuracy (Extended Data Fig. 4f).",
+      "bbox": [
+        39.68510055,
+        300.5569306620313,
+        296.27654703045476,
+        228.4003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Assessing reproducibility of the clusters",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p13_214",
+      "source_block_id": "paper_2_p13_214",
+      "chunk_type": "section",
+      "page_number": 13,
+      "reading_order": 214,
+      "display_text": "Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes",
+      "retrieval_text": "Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes",
+      "bbox": [
+        39.68510055,
+        215.73743066203133,
+        294.63665055170003,
+        197.1054044071608
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_238",
+      "source_block_id": "paper_2_p14_238",
+      "chunk_type": "section",
+      "page_number": 14,
+      "reading_order": 238,
+      "display_text": "Aligning promoters by TSS",
+      "retrieval_text": "Aligning promoters by TSS",
+      "bbox": [
+        39.68510055,
+        151.23743066203133,
+        146.32865055067995,
+        143.35790423716082
+      ],
+      "provenance": "docling",
+      "section_context": "Aligning promoters by TSS",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_239",
+      "source_block_id": "paper_2_p14_239",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 239,
+      "display_text": "For each 264 bp promoter sequence, we defined the primary TSS as the nucleotide with the highest stranded 5′ signal in GRO-Cap data in K562 cells (Gene Expression Omnibus identifier GSM1480321) 55 . This primary TSS position was used for plotting genomic signals relative to the TSS and in analyses of motif positioning (for example, for GABPA and YY1).",
+      "retrieval_text": "[Section: Aligning promoters by TSS] For each 264 bp promoter sequence, we defined the primary TSS as the nucleotide with the highest stranded 5′ signal in GRO-Cap data in K562 cells (Gene Expression Omnibus identifier GSM1480321) 55 . This primary TSS position was used for plotting genomic signals relative to the TSS and in analyses of motif positioning (for example, for GABPA and YY1).",
+      "bbox": [
+        39.68510055,
+        139.30693066203128,
+        296.3525635310331,
+        88.6503462870312
+      ],
+      "provenance": "docling",
+      "section_context": "Aligning promoters by TSS",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_240",
+      "source_block_id": "paper_2_p14_240",
+      "chunk_type": "section",
+      "page_number": 14,
+      "reading_order": 240,
+      "display_text": "Analysis of motif position relative to TSS",
+      "retrieval_text": "Analysis of motif position relative to TSS",
+      "bbox": [
+        39.68510055,
+        75.98743066203122,
+        200.0189005465999,
+        68.10790423716082
+      ],
+      "provenance": "docling",
+      "section_context": "Analysis of motif position relative to TSS",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_241",
+      "source_block_id": "paper_2_p14_241",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 241,
+      "display_text": "We used FIMO 53 to scan for HOCOMOCO motifs in promoters, including for GABPA (GABPA_HUMAN.H11MO.0.A), YY1 (TYY1_HUMAN.",
+      "retrieval_text": "[Section: Analysis of motif position relative to TSS] We used FIMO 53 to scan for HOCOMOCO motifs in promoters, including for GABPA (GABPA_HUMAN.H11MO.0.A), YY1 (TYY1_HUMAN.",
+      "bbox": [
+        39.68510055,
+        65.1806285876313,
+        294.8200024761853,
+        45.65034246703124
+      ],
+      "provenance": "docling",
+      "section_context": "Analysis of motif position relative to TSS",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_242",
+      "source_block_id": "paper_2_p14_242",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 242,
+      "display_text": "H11MO.0.A) and the TATA box (TBP_HUMAN.H11MO.0.A). We report positional preferences as the distance between the primary TSS from GRO-cap (see above) and the centre of the motif. For example, for GABPA, the most common position was -10 relative to the TSS (that is , with the second 'G' in the core 'GGAA' motif located at position -10).",
+      "retrieval_text": "[Section: Analysis of motif position relative to TSS] H11MO.0.A) and the TATA box (TBP_HUMAN.H11MO.0.A). We report positional preferences as the distance between the primary TSS from GRO-cap (see above) and the centre of the motif. For example, for GABPA, the most common position was -10 relative to the TSS (that is , with the second 'G' in the core 'GGAA' motif located at position -10).",
+      "bbox": [
+        306.14169311,
+        741.3069306620313,
+        562.861499581462,
+        690.6503462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Analysis of motif position relative to TSS",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_243",
+      "source_block_id": "paper_2_p14_243",
+      "chunk_type": "section",
+      "page_number": 14,
+      "reading_order": 243,
+      "display_text": "HS-STARR-seq to measure enhancer activity for millions of genomic sequences",
+      "retrieval_text": "HS-STARR-seq to measure enhancer activity for millions of genomic sequences",
+      "bbox": [
+        306.14181518,
+        677.9874306620312,
+        539.3503651806798,
+        659.3554044071608
+      ],
+      "provenance": "docling",
+      "section_context": "HS-STARR-seq to measure enhancer activity for millions of genomic sequences",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_256",
+      "source_block_id": "paper_2_p15_256",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 256,
+      "display_text": "To explore the effect of adding GABPA motifs to enhancers, we inserted 2, 4, or 6 copies of the GAPBA consensus motif (GAACCG GAAGTGG) spaced by 21 bp to a single random background enhancer.",
+      "retrieval_text": "[Section: Article] To explore the effect of adding GABPA motifs to enhancers, we inserted 2, 4, or 6 copies of the GAPBA consensus motif (GAACCG GAAGTGG) spaced by 21 bp to a single random background enhancer.",
+      "bbox": [
+        39.68300091968999,
+        451.0569306620313,
+        296.29875220216,
+        421.90034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_257",
+      "source_block_id": "paper_2_p15_257",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 257,
+      "display_text": "In this experiment, each originally selected promoter was also included in the enhancer sequence pool, and all enhancer sequences were included in both orientations in the plasmid. Promoter and enhancer sequences used in this experiment are listed in Supplementary Tables 14 and 15.",
+      "retrieval_text": "[Section: Article] In this experiment, each originally selected promoter was also included in the enhancer sequence pool, and all enhancer sequences were included in both orientations in the plasmid. Promoter and enhancer sequences used in this experiment are listed in Supplementary Tables 14 and 15.",
+      "bbox": [
+        39.68500137,
+        418.8069306620313,
+        296.27042524518544,
+        368.15059653453125
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_258",
+      "source_block_id": "paper_2_p15_258",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 258,
+      "display_text": "Motif ExP STARR-seq analysis",
+      "retrieval_text": "Motif ExP STARR-seq analysis",
+      "bbox": [
+        39.68500137,
+        355.4874306620313,
+        156.48690136982995,
+        347.6079042371608
+      ],
+      "provenance": "docling",
+      "section_context": "Motif ExP STARR-seq analysis",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_259",
+      "source_block_id": "paper_2_p15_259",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 259,
+      "display_text": "For the motif ExP STARR-seq experiment, we followed the methods detailed for the original STARR-seq experiment, but with the following exceptions. We sequenced the promoter DNA pool to a depth of 214.8 million reads. For the construction of the barcode-promoter dictionary, we initially aligned the promoter sequence reads to a specially constructed index of the unedited promoter sequences, using bowtie2 as described for the original STARR-seq experiment but with a slightly relaxed alignment threshold (X: -score-min L,-0.7,-0.7). We then used a custom Python script to check aligned reads at the sites of potential edits. The script reassigned a read to an edited promoter sequence if it perfectly matched the edited sequence at all edit positions and the immediate upstream and downstream base pair. If the read did not perfectly match an edited sequence but also did not match the wild-type sequence at the edit positions, the read was discarded. Reads with <90% perfect match with the entire sequence to which they were assigned were discarded. From this point, we returned to the original STARR-seq methods, namely dropping barcode-promoter pairs with singleton reads, removing ambiguous pairings and thresholding pairs with at least five reads to build the barcode-promoter dictionary.",
+      "retrieval_text": "[Section: Motif ExP STARR-seq analysis] For the motif ExP STARR-seq experiment, we followed the methods detailed for the original STARR-seq experiment, but with the following exceptions. We sequenced the promoter DNA pool to a depth of 214.8 million reads. For the construction of the barcode-promoter dictionary, we initially aligned the promoter sequence reads to a specially constructed index of the unedited promoter sequences, using bowtie2 as described for the original STARR-seq experiment but with a slightly relaxed alignment threshold (X: -score-min L,-0.7,-0.7). We then used a custom Python script to check aligned reads at the sites of potential edits. The script reassigned a read to an edited promoter sequence if it perfectly matched the edited sequence at all edit positions and the immediate upstream and downstream base pair. If the read did not perfectly match an edited sequence but also did not match the wild-type sequence at the edit positions, the read was discarded. Reads with <90% perfect match with the entire sequence to which they were assigned were discarded. From this point, we returned to the original STARR-seq methods, namely dropping barcode-promoter pairs with singleton reads, removing ambiguous pairings and thresholding pairs with at least five reads to build the barcode-promoter dictionary.",
+      "bbox": [
+        39.68500137,
+        343.5569306620313,
+        296.35084258671156,
+        142.4003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Motif ExP STARR-seq analysis",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_260",
+      "source_block_id": "paper_2_p15_260",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 260,
+      "display_text": "We sequenced the pool consisting of two replicates of the input DNA library as well as four replicates of the RNA library to a total of 345.5 million reads. When quantifying STARR-seq expression, unlike with the original STARR-seq experiment, we sequenced two replicates of the input DNA library. Therefore, to quantify the DNA read count for the log 2 (RNA/DNA) calculation, we used the average count of the two replicates, weighted to the same total read count. STARR-seq expression was highly correlated across replicates (minimum R 2 = 0.92; Extended Data Fig. 9a). As with the original STARR-seq experiment, we only included in the final analysis plasmids that had greater than 25 DNA reads and greater than 1 RNA transcript, for a total of 362,905 plasmids across 19,019 promoter-enhancer pairs, with an average of 19 barcodes per pair (Extended Data Fig. 9b). For unedited promoter and enhancer pairs, the STARR-seq expression was highly correlated with the expression in the original ExP STARR-seq experiment (Extended Data Fig. 9c).",
+      "retrieval_text": "[Section: Motif ExP STARR-seq analysis] We sequenced the pool consisting of two replicates of the input DNA library as well as four replicates of the RNA library to a total of 345.5 million reads. When quantifying STARR-seq expression, unlike with the original STARR-seq experiment, we sequenced two replicates of the input DNA library. Therefore, to quantify the DNA read count for the log 2 (RNA/DNA) calculation, we used the average count of the two replicates, weighted to the same total read count. STARR-seq expression was highly correlated across replicates (minimum R 2 = 0.92; Extended Data Fig. 9a). As with the original STARR-seq experiment, we only included in the final analysis plasmids that had greater than 25 DNA reads and greater than 1 RNA transcript, for a total of 362,905 plasmids across 19,019 promoter-enhancer pairs, with an average of 19 barcodes per pair (Extended Data Fig. 9b). For unedited promoter and enhancer pairs, the STARR-seq expression was highly correlated with the expression in the original ExP STARR-seq experiment (Extended Data Fig. 9c).",
+      "bbox": [
+        39.68500137,
+        139.30693066203128,
+        296.4188308915224,
+        45.65034246703124
+      ],
+      "provenance": "docling",
+      "section_context": "Motif ExP STARR-seq analysis",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_261",
+      "source_block_id": "paper_2_p15_261",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 261,
+      "display_text": "For edited promoters, to determine the change in responsiveness to E1 enhancers (Fig. 5e), we estimated unedited and edited responsiveness to E1 enhancers as described for the original experiment. We transformed the values out of log 2 (space) and computed the per cent change in the responsiveness as the per cent difference between the responsiveness of the edited sequence and the responsiveness of the unedited sequence.",
+      "retrieval_text": "[Section: Motif ExP STARR-seq analysis] For edited promoters, to determine the change in responsiveness to E1 enhancers (Fig. 5e), we estimated unedited and edited responsiveness to E1 enhancers as described for the original experiment. We transformed the values out of log 2 (space) and computed the per cent change in the responsiveness as the per cent difference between the responsiveness of the edited sequence and the responsiveness of the unedited sequence.",
+      "bbox": [
+        306.14169311,
+        676.8069306620313,
+        562.8182526361912,
+        615.4003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Motif ExP STARR-seq analysis",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_267",
+      "source_block_id": "paper_2_p15_267",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 267,
+      "display_text": "Reporting summary",
+      "retrieval_text": "Reporting summary",
+      "bbox": [
+        306.14181518,
+        312.4874306620313,
+        387.056715176685,
+        304.6079042371608
+      ],
+      "provenance": "docling",
+      "section_context": "Reporting summary",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_268",
+      "source_block_id": "paper_2_p15_268",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 268,
+      "display_text": "Further information on research design is available in the Nature Research Reporting Summary linked to this paper.",
+      "retrieval_text": "[Section: Reporting summary] Further information on research design is available in the Nature Research Reporting Summary linked to this paper.",
+      "bbox": [
+        306.14181518,
+        300.5569306620313,
+        562.6397148011317,
+        282.15034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Reporting summary",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_269",
+      "source_block_id": "paper_2_p15_269",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 269,
+      "display_text": "Data availability",
+      "retrieval_text": "Data availability",
+      "bbox": [
+        306.14181518,
+        260.63993066203125,
+        383.3325651799999,
+        251.61696498580181
+      ],
+      "provenance": "docling",
+      "section_context": "Data availability",
+      "is_neighbor": true
+    }
+  ],
+  "retrieved_at": "2026-04-01T18:49:19.462646+00:00"
+}

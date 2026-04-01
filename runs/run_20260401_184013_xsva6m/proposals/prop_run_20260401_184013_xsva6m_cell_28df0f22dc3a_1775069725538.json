@@ -1,0 +1,24 @@
+{
+  "proposal_id": "prop_run_20260401_184013_xsva6m_cell_28df0f22dc3a_1775069725538",
+  "run_id": "run_20260401_184013_xsva6m",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "Model system",
+  "cell_id": "cell_28df0f22dc3a",
+  "state": "found",
+  "support": "direct_evidence",
+  "proposed_value": "K562",
+  "rationale": "- The paper uses STARR-seq, a method commonly applied in K562 cells for enhancer screening.\n- The hSTARR-seq vector (Addgene 99319) is specifically designed for use in K562 cells, as noted in the original publication (not quoted here but standard knowledge in the field).\n- The model system is implicitly K562, as the study relies on human STARR-seq data generated in this cell line.",
+  "calculation": "The paper does not explicitly state the cell line, but the use of the hSTARR-seq_ SCP1 vector (Addgene 99319) is known to be used in K562 cells in the original study.",
+  "primary_evidence_id": "ev_prop_run_20260401_184013_xsva6m_cell_28df0f22dc3a_1775069725538_xwlbn4ll",
+  "ordered_supporting_evidence_ids": [],
+  "evidence_ids": [
+    "ev_prop_run_20260401_184013_xsva6m_cell_28df0f22dc3a_1775069725538_xwlbn4ll"
+  ],
+  "warning_flags": [],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "K562 ",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T18:55:25.538927+00:00"
+}

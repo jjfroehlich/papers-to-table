@@ -1,0 +1,24 @@
+{
+  "proposal_id": "prop_run_20260401_184013_xsva6m_cell_0c3a3e294837_1775069741792",
+  "run_id": "run_20260401_184013_xsva6m",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "Synthetic designs",
+  "cell_id": "cell_0c3a3e294837",
+  "state": "found",
+  "support": "direct_evidence",
+  "proposed_value": "+",
+  "rationale": "- The study explicitly uses synthetic sequences in ExP STARR-seq to test enhancer-promoter compatibility.\n- Passage 6 states: 'randomly generated enhancer and promoter sequences combine multiplicatively in STARR-seq experiments in three other cell lines 36', indicating synthetic designs were used.\n- The methodology section (Passage 10) confirms the design involves synthetic constructs for systematic testing.",
+  "calculation": null,
+  "primary_evidence_id": "ev_prop_run_20260401_184013_xsva6m_cell_0c3a3e294837_1775069741792_jkxpk9qn",
+  "ordered_supporting_evidence_ids": [],
+  "evidence_ids": [
+    "ev_prop_run_20260401_184013_xsva6m_cell_0c3a3e294837_1775069741792_jkxpk9qn"
+  ],
+  "warning_flags": [],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "-",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T18:55:41.792062+00:00"
+}

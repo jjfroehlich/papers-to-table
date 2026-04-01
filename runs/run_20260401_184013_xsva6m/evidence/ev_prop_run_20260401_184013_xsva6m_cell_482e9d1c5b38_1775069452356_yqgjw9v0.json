@@ -1,0 +1,29 @@
+{
+  "evidence_id": "ev_prop_run_20260401_184013_xsva6m_cell_482e9d1c5b38_1775069452356_yqgjw9v0",
+  "run_id": "run_20260401_184013_xsva6m",
+  "proposal_id": "prop_run_20260401_184013_xsva6m_cell_482e9d1c5b38_1775069452356",
+  "pdf_id": "paper_2",
+  "source_type": "direct_quote",
+  "quote_text": "approximately 20 bp downstream of the genomic transcription start site (TSS) (as observed in capped analysis of gene expression (CAGE) data) and approximately 242 bp upstream (264 bp in total; Methods).",
+  "page_number": 2,
+  "exact_highlight_regions": [
+    {
+      "x0": 306.14169311,
+      "y0": 290.9305255876313,
+      "x1": 562.83300289074,
+      "y1": 45.65034246703124,
+      "page": 2
+    }
+  ],
+  "approximate_highlight_regions": null,
+  "figure_ref": null,
+  "caption_text": null,
+  "crop_path": null,
+  "full_page_path": null,
+  "anchor_confidence": 1.0,
+  "evidence_rank": 1,
+  "reasoning": null,
+  "is_primary": true,
+  "is_figure_derived": false,
+  "created_at": "2026-04-01T18:51:06.049281+00:00"
+}

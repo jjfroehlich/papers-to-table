@@ -1,0 +1,29 @@
+{
+  "evidence_id": "ev_prop_run_20260401_184013_xsva6m_cell_48adfab85eb5_1775069583861_7034yw40",
+  "run_id": "run_20260401_184013_xsva6m",
+  "proposal_id": "prop_run_20260401_184013_xsva6m_cell_48adfab85eb5_1775069583861",
+  "pdf_id": "paper_2",
+  "source_type": "direct_quote",
+  "quote_text": "E1 enhancer sequences were significantly enriched for FOS and JUN motifs, whereas E2 enhancer sequences were not significantly enriched for any particular motif (Benjamini-Hochberg corrected P < 0.05; Extended Data Fig. 6b,c and Supplementary Table 5).",
+  "page_number": 5,
+  "exact_highlight_regions": [
+    {
+      "x0": 39.68500137,
+      "y0": 246.80693066203128,
+      "x1": 296.39559631539254,
+      "y1": 120.9003462870312,
+      "page": 5
+    }
+  ],
+  "approximate_highlight_regions": null,
+  "figure_ref": null,
+  "caption_text": null,
+  "crop_path": null,
+  "full_page_path": null,
+  "anchor_confidence": 1.0,
+  "evidence_rank": 2,
+  "reasoning": null,
+  "is_primary": false,
+  "is_figure_derived": false,
+  "created_at": "2026-04-01T18:53:32.237299+00:00"
+}

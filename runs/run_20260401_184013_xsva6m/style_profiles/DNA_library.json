@@ -1,0 +1,14 @@
+{
+  "column_name": "DNA library",
+  "field_type_guess": "text",
+  "expected_length": "long",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "complex procedural description with multiple steps and technical details",
+  "unit_style": "mixed",
+  "format_notes": "Contains procedural steps, equipment, reagents, cycle counts, volumes, and sequencing details; uses abbreviations (e.g., gDNA, PCR, FACS, Illumina) without full expansion; includes both narrative and structured elements (e.g., '5Âµg DNA / 50 ÂµL reaction')",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T18:44:25.457817+00:00",
+  "source_column_count": 20,
+  "provider_mode": "live_llm"
+}

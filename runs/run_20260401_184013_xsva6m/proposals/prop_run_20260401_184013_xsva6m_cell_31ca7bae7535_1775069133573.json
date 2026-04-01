@@ -1,0 +1,24 @@
+{
+  "proposal_id": "prop_run_20260401_184013_xsva6m_cell_31ca7bae7535_1775069133573",
+  "run_id": "run_20260401_184013_xsva6m",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "Cloning",
+  "cell_id": "cell_31ca7bae7535",
+  "state": "found",
+  "support": "direct_evidence",
+  "proposed_value": "gibson",
+  "rationale": "- The paper explicitly states: \"inserted them into the hSTARR-seq_SCP1 vector_blocking 4 vector 17 in the promoter position (replacing the original SCP1 promoter) or enhancer position in a single pooled cloning step using Gibson assembly to generate all pairwise combinations.\" \n- This directly confirms the use of Gibson assembly for cloning.\n- The existing table value 'gibson' is therefore supported by the text.",
+  "calculation": null,
+  "primary_evidence_id": "ev_prop_run_20260401_184013_xsva6m_cell_31ca7bae7535_1775069133573_4aprz5iv",
+  "ordered_supporting_evidence_ids": [],
+  "evidence_ids": [
+    "ev_prop_run_20260401_184013_xsva6m_cell_31ca7bae7535_1775069133573_4aprz5iv"
+  ],
+  "warning_flags": [],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "gibson",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T18:45:33.573653+00:00"
+}

@@ -1,0 +1,24 @@
+{
+  "proposal_id": "prop_run_20260401_184013_xsva6m_cell_d714824bc8bb_1775069565596",
+  "run_id": "run_20260401_184013_xsva6m",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "Delivery",
+  "cell_id": "cell_d714824bc8bb",
+  "state": "inferred",
+  "support": "inferred_from_evidence",
+  "proposed_value": "Plasmid pool containing 1,000 enhancer and 1,000 promoter sequences in all pairwise combinations was transfected into K562 cells using a standard transfection protocol, with 50 million cells per biological replicate; transfection was performed using a transfection reagent (not explicitly named) and the hSTARR-seq_SCP1 vector with four polyA sequences upstream of the promoter position to prevent spurious transcription from the origin of replication. The library was delivered via lipid-based transfection, as implied by the use of standard STARR-seq protocols and the absence of electroporation or viral delivery mention.",
+  "rationale": "- The paper states that plasmid pools were transfected into K562 cells in 4 biological replicates of 50 million cells each (Passage 2), but does not name the transfection reagent.\n- The use of the hSTARR-seq_SCP1 vector, designed to avoid spurious transcription, implies standard plasmid delivery methods (Passage 4).\n- No mention of electroporation, viral vectors, or microinjection; thus, lipid-based transfection is inferred as the standard method for such assays in K562 cells.",
+  "calculation": null,
+  "primary_evidence_id": "ev_prop_run_20260401_184013_xsva6m_cell_d714824bc8bb_1775069565596_rrdxyn21",
+  "ordered_supporting_evidence_ids": [],
+  "evidence_ids": [
+    "ev_prop_run_20260401_184013_xsva6m_cell_d714824bc8bb_1775069565596_rrdxyn21"
+  ],
+  "warning_flags": [],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T18:52:45.596590+00:00"
+}

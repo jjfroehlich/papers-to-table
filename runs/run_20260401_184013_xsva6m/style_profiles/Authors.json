@@ -1,0 +1,14 @@
+{
+  "column_name": "Authors",
+  "field_type_guess": "text",
+  "expected_length": "medium",
+  "tone": "formal",
+  "detail_level": "high",
+  "value_shape": "comma-separated list of names with initials and last names, using semicolons to separate authors",
+  "unit_style": null,
+  "format_notes": "Authors are listed with last name followed by initials; multiple authors are separated by semicolons; some entries include middle initials or full first names; punctuation consistency varies slightly (e.g., missing periods after initials, inconsistent spacing).",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T18:42:04.198901+00:00",
+  "source_column_count": 224,
+  "provider_mode": "live_llm"
+}

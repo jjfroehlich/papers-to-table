@@ -1,0 +1,14 @@
+{
+  "column_name": "Type of Condition",
+  "field_type_guess": "text",
+  "expected_length": "short",
+  "tone": "technical",
+  "detail_level": "medium",
+  "value_shape": "short descriptive phrase",
+  "unit_style": null,
+  "format_notes": "Values are typically concise, descriptive phrases indicating experimental conditions; may include compound terms (e.g. 'time points neuron diff') and vary in specificity.",
+  "example_risk": "medium",
+  "generated_at": "2026-04-01T18:44:51.044490+00:00",
+  "source_column_count": 27,
+  "provider_mode": "live_llm"
+}

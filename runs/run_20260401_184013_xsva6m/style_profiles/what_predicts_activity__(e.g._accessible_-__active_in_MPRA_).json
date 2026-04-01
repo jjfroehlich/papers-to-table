@@ -1,0 +1,14 @@
+{
+  "column_name": "what predicts activity? (e.g. accessible -> active in MPRA?)",
+  "field_type_guess": "text",
+  "expected_length": "medium",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "sentence with multiple clauses and statistical references",
+  "unit_style": null,
+  "format_notes": "Includes statistical measures (e.g., Pearson correlation r < 0.3), percentages, and references to specific assays (ATAC-seq, STARR-seq, FAIRE). Often contains caveats and contextual limitations.",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T18:44:38.447337+00:00",
+  "source_column_count": 7,
+  "provider_mode": "live_llm"
+}

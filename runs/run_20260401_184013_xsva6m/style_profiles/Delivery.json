@@ -1,0 +1,14 @@
+{
+  "column_name": "Delivery",
+  "field_type_guess": "text",
+  "expected_length": "long",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "complex sentence with multiple parameters, units, and device/plasmid names",
+  "unit_style": "standard scientific (e.g. Âµg, million, Î¼L)",
+  "format_notes": "Contains variable combinations of cell counts, plasmid amounts, transfection reagents, devices, kits, and protocols; units are consistently used but may vary in notation (e.g. 'mio' for million, 'Î¼' vs 'Âµ'); includes citations and references to specific protocols",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T18:44:14.840590+00:00",
+  "source_column_count": 9,
+  "provider_mode": "live_llm"
+}

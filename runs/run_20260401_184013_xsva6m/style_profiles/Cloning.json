@@ -1,0 +1,14 @@
+{
+  "column_name": "Cloning",
+  "field_type_guess": "categorical",
+  "expected_length": "short",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "single term from predefined set",
+  "unit_style": null,
+  "format_notes": "Values are standardized molecular cloning method names; case-sensitive and limited to known techniques.",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T18:42:49.342278+00:00",
+  "source_column_count": 48,
+  "provider_mode": "live_llm"
+}

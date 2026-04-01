@@ -1,0 +1,14 @@
+{
+  "column_name": "Episomal vs genomic",
+  "field_type_guess": "categorical",
+  "expected_length": "single_value",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "single categorical term",
+  "unit_style": null,
+  "format_notes": "Values are limited to two fixed terms: 'episomal' or 'genomic'.",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T18:43:10.127184+00:00",
+  "source_column_count": 125,
+  "provider_mode": "live_llm"
+}

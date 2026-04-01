@@ -1,0 +1,14 @@
+{
+  "column_name": "Where is the BC?",
+  "field_type_guess": "text",
+  "expected_length": "short",
+  "tone": "technical",
+  "detail_level": "medium",
+  "value_shape": "single term or phrase",
+  "unit_style": null,
+  "format_notes": "Values are typically gene regulatory region names or 'no BC'; case-sensitive and consistent in terminology.",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T18:43:47.231926+00:00",
+  "source_column_count": 47,
+  "provider_mode": "live_llm"
+}

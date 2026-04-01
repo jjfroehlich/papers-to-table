@@ -1,0 +1,27 @@
+{
+  "proposal_id": "prop_run_20260401_184013_xsva6m_cell_aa99e2a3a3c0_1775069468803",
+  "run_id": "run_20260401_184013_xsva6m",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "Episomal vs genomic",
+  "cell_id": "cell_aa99e2a3a3c0",
+  "state": "found",
+  "support": "direct_evidence",
+  "proposed_value": "episomal",
+  "rationale": "- The paper explicitly states that the ExP STARR-seq plasmid pool was \"transfected\" into cells, indicating transient, non-integrated delivery (Passage 2). \n- It further clarifies that the assay measures \"reporter transcripts\" from plasmids, with activity normalized to DNA input, a hallmark of episomal systems (Passage 7). \n- The authors contrast episomal reporter activity with genomic elements, using terms like \"genomic enhancers\" and \"genomic promoters\" to distinguish from the cloned sequences in the plasmid (Passage 3).",
+  "calculation": "The method relies on transient transfection and plasmid-based reporter expression, which is characteristic of episomal systems.",
+  "primary_evidence_id": "ev_prop_run_20260401_184013_xsva6m_cell_aa99e2a3a3c0_1775069468803_efmdhcoh",
+  "ordered_supporting_evidence_ids": [
+    "ev_prop_run_20260401_184013_xsva6m_cell_aa99e2a3a3c0_1775069468803_cfhj5hhf"
+  ],
+  "evidence_ids": [
+    "ev_prop_run_20260401_184013_xsva6m_cell_aa99e2a3a3c0_1775069468803_efmdhcoh",
+    "ev_prop_run_20260401_184013_xsva6m_cell_aa99e2a3a3c0_1775069468803_cfhj5hhf"
+  ],
+  "warning_flags": [],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "episomal",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T18:51:08.803241+00:00"
+}

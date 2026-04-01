@@ -1,0 +1,24 @@
+{
+  "proposal_id": "prop_run_20260401_184013_xsva6m_cell_97ea8879a5f6_1775069420633",
+  "run_id": "run_20260401_184013_xsva6m",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "Readout",
+  "cell_id": "cell_97ea8879a5f6",
+  "state": "found",
+  "support": "direct_evidence",
+  "proposed_value": "RNAseq",
+  "rationale": "- The paper states: 'transcribed to produce a reporter mRNA transcript, which is then sequenced to quantify the relative expression levels of plasmids' (Passage 8). \n- ExP STARR-seq uses RNA-seq to quantify reporter mRNA transcripts (Passage 8). \n- The method relies on sequencing RNA (cDNA) derived from the reporter mRNA, not DNA or FACS sorting.",
+  "calculation": null,
+  "primary_evidence_id": "ev_prop_run_20260401_184013_xsva6m_cell_97ea8879a5f6_1775069420633_rk389lzn",
+  "ordered_supporting_evidence_ids": [],
+  "evidence_ids": [
+    "ev_prop_run_20260401_184013_xsva6m_cell_97ea8879a5f6_1775069420633_rk389lzn"
+  ],
+  "warning_flags": [],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T18:50:20.633451+00:00"
+}

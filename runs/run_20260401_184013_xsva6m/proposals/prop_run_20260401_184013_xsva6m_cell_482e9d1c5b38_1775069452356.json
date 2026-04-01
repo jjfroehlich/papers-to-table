@@ -1,0 +1,24 @@
+{
+  "proposal_id": "prop_run_20260401_184013_xsva6m_cell_482e9d1c5b38_1775069452356",
+  "run_id": "run_20260401_184013_xsva6m",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "length of sequences (bp)",
+  "cell_id": "cell_482e9d1c5b38",
+  "state": "found",
+  "support": "direct_evidence",
+  "proposed_value": "264",
+  "rationale": "- The paper explicitly states: 'approximately 20 bp downstream of the genomic transcription start site (TSS) ... and approximately 242 bp upstream (264 bp in total; Methods)'.\n- This confirms the total length of the promoter sequences tested is 264 bp.\n- The value '264' is directly supported by the text and matches the existing table value.",
+  "calculation": "20 bp (downstream) + 242 bp (upstream) = 264 bp",
+  "primary_evidence_id": "ev_prop_run_20260401_184013_xsva6m_cell_482e9d1c5b38_1775069452356_yqgjw9v0",
+  "ordered_supporting_evidence_ids": [],
+  "evidence_ids": [
+    "ev_prop_run_20260401_184013_xsva6m_cell_482e9d1c5b38_1775069452356_yqgjw9v0"
+  ],
+  "warning_flags": [],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "264",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T18:50:52.356831+00:00"
+}

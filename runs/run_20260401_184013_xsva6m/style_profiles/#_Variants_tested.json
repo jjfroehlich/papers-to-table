@@ -1,0 +1,14 @@
+{
+  "column_name": "# Variants tested",
+  "field_type_guess": "numeric",
+  "expected_length": "short",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "integer value with optional unit or descriptive text",
+  "unit_style": "none",
+  "format_notes": "Some entries include descriptive text (e.g. 'insertion positions') alongside numbers; values are mostly integers, but formatting varies (e.g. commas used in some).",
+  "example_risk": "medium",
+  "generated_at": "2026-04-01T18:43:35.855187+00:00",
+  "source_column_count": 80,
+  "provider_mode": "live_llm"
+}

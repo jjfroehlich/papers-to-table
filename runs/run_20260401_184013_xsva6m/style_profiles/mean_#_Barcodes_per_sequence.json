@@ -1,0 +1,14 @@
+{
+  "column_name": "mean # Barcodes per sequence",
+  "field_type_guess": "mixed",
+  "expected_length": "short",
+  "tone": "technical",
+  "detail_level": "medium",
+  "value_shape": "numeric values or 'no BC' string",
+  "unit_style": null,
+  "format_notes": "Contains numeric values and the string 'no BC'; includes invalid entries resembling dates, suggesting data entry errors.",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T18:42:56.170579+00:00",
+  "source_column_count": 47,
+  "provider_mode": "live_llm"
+}

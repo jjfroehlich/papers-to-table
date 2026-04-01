@@ -1,0 +1,14 @@
+{
+  "column_name": "Abstract",
+  "field_type_guess": "text",
+  "expected_length": "long",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "paragraph with structured scientific content",
+  "unit_style": null,
+  "format_notes": "Abstracts contain full sentences, use technical terminology, and follow a structured narrative (background, methods, results, implications). HTML tags (e.g., <p>, <h3>) may be present in raw data but are not part of semantic content.",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T18:42:17.169493+00:00",
+  "source_column_count": 202,
+  "provider_mode": "live_llm"
+}

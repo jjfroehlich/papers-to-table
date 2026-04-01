@@ -1,0 +1,31 @@
+{
+  "proposal_id": "prop_run_20260401_184013_xsva6m_cell_e41dea4d0b6e_1775069335451",
+  "run_id": "run_20260401_184013_xsva6m",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "what predicts activity? (e.g. accessible -> active in MPRA?)",
+  "cell_id": "cell_e41dea4d0b6e",
+  "state": "found",
+  "support": "direct_evidence",
+  "proposed_value": "Chromatin accessibility (DNase I hypersensitivity), H3K27ac levels, and binding of activating transcription factors such as AP-1 (JUN and ATF3) strongly correlate with enhancer activity in ExP STARR-seq, with E1-class enhancers showing significantly higher levels of these features compared to E2-class enhancers. Additionally, ETS-family motifs (e.g., GABPA) are positively correlated with enhancer activity but negatively correlated with enhancer responsiveness, suggesting a tuning role in enhancer-promoter compatibility.",
+  "rationale": "- E1 sequences showed stronger associations with H3K27ac, DNase I hypersensitivity, and AP-1 factor binding compared to E2 sequences (Fig. 3a, Extended Data Fig. 6a-d). \n- Enhancer activity in ExP STARR-seq correlated with biochemical features including chromatin accessibility, H3K27ac, and nascent RNA transcription (Extended Data Fig. 1g). \n- ETS-family motifs (e.g., GABPA) were positively correlated with enhancer activity but negatively correlated with responsiveness, indicating a regulatory tuning role (page 8).",
+  "calculation": null,
+  "primary_evidence_id": "ev_prop_run_20260401_184013_xsva6m_cell_e41dea4d0b6e_1775069335451_c5bhccx9",
+  "ordered_supporting_evidence_ids": [
+    "ev_prop_run_20260401_184013_xsva6m_cell_e41dea4d0b6e_1775069335451_ois6jf1f",
+    "ev_prop_run_20260401_184013_xsva6m_cell_e41dea4d0b6e_1775069335451_aldbe0lt"
+  ],
+  "evidence_ids": [
+    "ev_prop_run_20260401_184013_xsva6m_cell_e41dea4d0b6e_1775069335451_c5bhccx9",
+    "ev_prop_run_20260401_184013_xsva6m_cell_e41dea4d0b6e_1775069335451_ois6jf1f",
+    "ev_prop_run_20260401_184013_xsva6m_cell_e41dea4d0b6e_1775069335451_aldbe0lt"
+  ],
+  "warning_flags": [
+    "approximate_highlight_used"
+  ],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T18:48:55.451731+00:00"
+}

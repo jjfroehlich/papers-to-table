@@ -1,0 +1,14 @@
+{
+  "column_name": "RNA library",
+  "field_type_guess": "text",
+  "expected_length": "long",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "comma-separated procedural steps with optional technical details",
+  "unit_style": null,
+  "format_notes": "Values consist of sequential laboratory procedures, often including reagents, techniques, and equipment; may include specific platforms (e.g. Illumina HiSeq4000) and read lengths (e.g. 100bp PE).",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T18:44:21.016927+00:00",
+  "source_column_count": 28,
+  "provider_mode": "live_llm"
+}

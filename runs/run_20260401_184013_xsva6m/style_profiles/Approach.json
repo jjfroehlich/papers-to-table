@@ -1,0 +1,14 @@
+{
+  "column_name": "Approach",
+  "field_type_guess": "text",
+  "expected_length": "long",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "complex procedural description with multiple clauses and technical details",
+  "unit_style": null,
+  "format_notes": "Contains procedural steps, experimental design elements, molecular biology techniques, and specific methodological notes; includes parentheses with abbreviations and references to specific protocols or components.",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T18:44:33.994321+00:00",
+  "source_column_count": 49,
+  "provider_mode": "live_llm"
+}

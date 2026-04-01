@@ -1,0 +1,14 @@
+{
+  "column_name": "Species",
+  "field_type_guess": "categorical",
+  "expected_length": "short",
+  "tone": "neutral",
+  "detail_level": "low",
+  "value_shape": "single species name or species combination",
+  "unit_style": null,
+  "format_notes": "Values include single species (e.g., 'human', 'yeast') or combinations (e.g., 'human/virus'); no units or numerical values.",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T18:43:02.779549+00:00",
+  "source_column_count": 177,
+  "provider_mode": "live_llm"
+}

@@ -1,0 +1,24 @@
+{
+  "proposal_id": "prop_run_20260401_184013_xsva6m_cell_15870f236367_1775069436371",
+  "run_id": "run_20260401_184013_xsva6m",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "Integration method",
+  "cell_id": "cell_15870f236367",
+  "state": "unclear",
+  "support": "blocked",
+  "proposed_value": null,
+  "rationale": "- The paper describes the use of plasmid-based reporter vectors for ExP STARR-seq, with sequences cloned into plasmids and transfected into cells.\n- There is no mention of genomic integration; all experiments are based on transient transfection of plasmids.\n- Since the assay is episomal and not genomically integrated, the integration method is not applicable.",
+  "calculation": "The assay is explicitly described as plasmid-based and transiently transfected, indicating episomal expression rather than genomic integration.",
+  "primary_evidence_id": "ev_prop_run_20260401_184013_xsva6m_cell_15870f236367_1775069436371_aho1f7im",
+  "ordered_supporting_evidence_ids": [],
+  "evidence_ids": [
+    "ev_prop_run_20260401_184013_xsva6m_cell_15870f236367_1775069436371_aho1f7im"
+  ],
+  "warning_flags": [],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "none",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T18:50:36.371721+00:00"
+}

@@ -1,0 +1,29 @@
+{
+  "evidence_id": "ev_prop_run_20260401_184013_xsva6m_cell_800bc1a56a0e_1775069105189_3qzyvpyb",
+  "run_id": "run_20260401_184013_xsva6m",
+  "proposal_id": "prop_run_20260401_184013_xsva6m_cell_800bc1a56a0e_1775069105189",
+  "pdf_id": "paper_2",
+  "source_type": "direct_quote",
+  "quote_text": "Here we developed and applied ExP STARR-seq to systematically quantify enhancer-promoter compatibility and identified a simple rule for combining human enhancer and promoter activities.",
+  "page_number": 8,
+  "exact_highlight_regions": [
+    {
+      "x0": 39.68410494999998,
+      "y0": 494.0569306620313,
+      "x1": 296.42452291718996,
+      "y1": 260.6503462870312,
+      "page": 8
+    }
+  ],
+  "approximate_highlight_regions": null,
+  "figure_ref": null,
+  "caption_text": null,
+  "crop_path": null,
+  "full_page_path": null,
+  "anchor_confidence": 1.0,
+  "evidence_rank": 1,
+  "reasoning": null,
+  "is_primary": true,
+  "is_figure_derived": false,
+  "created_at": "2026-04-01T18:45:18.366569+00:00"
+}

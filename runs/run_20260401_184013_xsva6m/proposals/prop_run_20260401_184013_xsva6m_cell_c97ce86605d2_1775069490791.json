@@ -1,0 +1,26 @@
+{
+  "proposal_id": "prop_run_20260401_184013_xsva6m_cell_c97ce86605d2_1775069490791",
+  "run_id": "run_20260401_184013_xsva6m",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "Where is the BC?",
+  "cell_id": "cell_c97ce86605d2",
+  "state": "inferred",
+  "support": "weak_evidence",
+  "proposed_value": "no BC",
+  "rationale": "- The paper describes a multiplicative model using plasmid barcodes to measure enhancer and promoter activities, but does not specify the barcode location within the reporter construct.\n- The ExP STARR-seq assay uses plasmid barcodes for quantification, but their placement (e.g., 5'UTR, 3'UTR) is not explicitly stated in any passage.\n- Given the absence of explicit information about barcode location and the focus on activity measurements rather than transcript structure, the barcode location cannot be determined from the provided text.",
+  "calculation": null,
+  "primary_evidence_id": "ev_prop_run_20260401_184013_xsva6m_cell_c97ce86605d2_1775069490791_at64xahq",
+  "ordered_supporting_evidence_ids": [],
+  "evidence_ids": [
+    "ev_prop_run_20260401_184013_xsva6m_cell_c97ce86605d2_1775069490791_at64xahq"
+  ],
+  "warning_flags": [
+    "approximate_highlight_used"
+  ],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T18:51:30.791901+00:00"
+}

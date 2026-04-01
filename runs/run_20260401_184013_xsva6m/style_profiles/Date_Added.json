@@ -1,0 +1,14 @@
+{
+  "column_name": "Date Added",
+  "field_type_guess": "date",
+  "expected_length": "medium",
+  "tone": "neutral",
+  "detail_level": "high",
+  "value_shape": "ISO 8601 date-time string",
+  "unit_style": "ISO 8601",
+  "format_notes": "Includes date and time with seconds precision, formatted as YYYY-MM-DD HH:MM:SS",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T18:42:35.592325+00:00",
+  "source_column_count": 226,
+  "provider_mode": "live_llm"
+}

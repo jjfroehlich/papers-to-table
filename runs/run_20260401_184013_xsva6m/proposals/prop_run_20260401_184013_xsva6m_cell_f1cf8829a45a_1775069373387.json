@@ -1,0 +1,27 @@
+{
+  "proposal_id": "prop_run_20260401_184013_xsva6m_cell_f1cf8829a45a_1775069373387",
+  "run_id": "run_20260401_184013_xsva6m",
+  "pdf_id": "paper_2",
+  "row_id": "row_d02cb42d72a4",
+  "column_name": "Link",
+  "cell_id": "cell_f1cf8829a45a",
+  "state": "found",
+  "support": "direct_evidence",
+  "proposed_value": "https://doi.org/10.1038/s41586-022-04877-w",
+  "rationale": "- Passage 2 directly states: 'https://doi.org/10.1038/s41586-022-04877-w'.\n- Passage 10 confirms this DOI link as the location for supplementary content: 'available at https://doi.org/10.1038/s41586-022-04877-w'.\n- The existing table value matches the DOI link explicitly stated in the paper.",
+  "calculation": null,
+  "primary_evidence_id": "ev_prop_run_20260401_184013_xsva6m_cell_f1cf8829a45a_1775069373387_323s4f9i",
+  "ordered_supporting_evidence_ids": [
+    "ev_prop_run_20260401_184013_xsva6m_cell_f1cf8829a45a_1775069373387_6pv12mhp"
+  ],
+  "evidence_ids": [
+    "ev_prop_run_20260401_184013_xsva6m_cell_f1cf8829a45a_1775069373387_323s4f9i",
+    "ev_prop_run_20260401_184013_xsva6m_cell_f1cf8829a45a_1775069373387_6pv12mhp"
+  ],
+  "warning_flags": [],
+  "needs_more_evidence": false,
+  "is_verify_mode": true,
+  "existing_value": "https://www.nature.com/articles/s41586-022-04877-w",
+  "provider_mode": "live_local",
+  "created_at": "2026-04-01T18:49:33.387803+00:00"
+}

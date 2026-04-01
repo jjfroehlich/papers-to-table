@@ -1,0 +1,14 @@
+{
+  "column_name": "Type of variants",
+  "field_type_guess": "categorical",
+  "expected_length": "short",
+  "tone": "neutral",
+  "detail_level": "low",
+  "value_shape": "single word",
+  "unit_style": null,
+  "format_notes": null,
+  "example_risk": "low",
+  "generated_at": "2026-04-01T18:42:59.681277+00:00",
+  "source_column_count": 77,
+  "provider_mode": "live_llm"
+}

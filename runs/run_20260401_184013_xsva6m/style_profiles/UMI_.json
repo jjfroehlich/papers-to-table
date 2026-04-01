@@ -1,0 +1,14 @@
+{
+  "column_name": "UMI?",
+  "field_type_guess": "categorical",
+  "expected_length": "single_value",
+  "tone": "neutral",
+  "detail_level": "low",
+  "value_shape": "single word or short phrase",
+  "unit_style": null,
+  "format_notes": "Values are consistently 'no' indicating absence of UMI; no variation in format observed.",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T18:44:30.505009+00:00",
+  "source_column_count": 38,
+  "provider_mode": "live_llm"
+}

@@ -1,0 +1,14 @@
+{
+  "column_name": "Synthetic designs",
+  "field_type_guess": "categorical",
+  "expected_length": "single_value",
+  "tone": "neutral",
+  "detail_level": "low",
+  "value_shape": "single character or symbol",
+  "unit_style": null,
+  "format_notes": "Values are limited to '-' or '+'; likely represents presence/absence or binary condition.",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T18:42:46.058138+00:00",
+  "source_column_count": 84,
+  "provider_mode": "live_llm"
+}

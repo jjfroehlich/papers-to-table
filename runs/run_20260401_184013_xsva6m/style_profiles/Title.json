@@ -1,0 +1,14 @@
+{
+  "column_name": "Title",
+  "field_type_guess": "text",
+  "expected_length": "long",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "title case sentence with descriptive scientific content",
+  "unit_style": null,
+  "format_notes": "Contains scientific terminology, uses title case, includes technical phrases and concepts; may include em-dashes and special characters like 'â€“'.",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T18:42:14.255499+00:00",
+  "source_column_count": 226,
+  "provider_mode": "live_llm"
+}

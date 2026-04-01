@@ -1,0 +1,14 @@
+{
+  "column_name": "General library design category",
+  "field_type_guess": "categorical",
+  "expected_length": "short",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "capitalized acronyms with optional hyphens and numbers",
+  "unit_style": null,
+  "format_notes": "Values are standardized acronyms; some include hyphens (e.g., CapStarr-seq); case-sensitive; consistent use of 'seq' suffix; occasional non-standard variants (e.g., 'FACS-sort + DNAseq') suggest mixed formatting",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T18:43:53.888806+00:00",
+  "source_column_count": 63,
+  "provider_mode": "live_llm"
+}

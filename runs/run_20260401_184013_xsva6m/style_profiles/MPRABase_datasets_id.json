@@ -1,0 +1,14 @@
+{
+  "column_name": "MPRABase_datasets_id",
+  "field_type_guess": "text",
+  "expected_length": "short",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "prefix 'DS' followed by 4 digits",
+  "unit_style": null,
+  "format_notes": "Values follow the pattern 'DS' + 4-digit number; 'not in MPRABase' is a special status indicator",
+  "example_risk": "high",
+  "generated_at": "2026-04-01T18:42:39.570640+00:00",
+  "source_column_count": 143,
+  "provider_mode": "live_llm"
+}

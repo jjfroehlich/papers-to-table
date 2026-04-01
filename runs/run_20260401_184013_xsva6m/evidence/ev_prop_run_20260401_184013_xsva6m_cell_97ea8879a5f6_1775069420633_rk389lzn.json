@@ -1,0 +1,29 @@
+{
+  "evidence_id": "ev_prop_run_20260401_184013_xsva6m_cell_97ea8879a5f6_1775069420633_rk389lzn",
+  "run_id": "run_20260401_184013_xsva6m",
+  "proposal_id": "prop_run_20260401_184013_xsva6m_cell_97ea8879a5f6_1775069420633",
+  "pdf_id": "paper_2",
+  "source_type": "direct_quote",
+  "quote_text": "transcribed to produce a reporter mRNA transcript, which is then sequenced to quantify the relative expression levels of plasmids",
+  "page_number": 10,
+  "exact_highlight_regions": [
+    {
+      "x0": 39.68500137,
+      "y0": 580.0568085920313,
+      "x1": 296.3805921073868,
+      "y1": 486.40034628703125,
+      "page": 10
+    }
+  ],
+  "approximate_highlight_regions": null,
+  "figure_ref": null,
+  "caption_text": null,
+  "crop_path": null,
+  "full_page_path": null,
+  "anchor_confidence": 1.0,
+  "evidence_rank": 1,
+  "reasoning": null,
+  "is_primary": true,
+  "is_figure_derived": false,
+  "created_at": "2026-04-01T18:50:33.646866+00:00"
+}

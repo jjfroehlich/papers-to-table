@@ -1,0 +1,16 @@
+{
+  "token": "lm_studio",
+  "locality": "local",
+  "mode": "live_local",
+  "text_model_id": "qwen/qwen3-30b-a3b-2507",
+  "vision_model_id": "zai-org/glm-4.6v-flash",
+  "capabilities": {
+    "supports_structured_output": true,
+    "structured_output_mode": "json_schema",
+    "model_id": "qwen/qwen3-30b-a3b-2507",
+    "vision_capable": true,
+    "probed_at": "2026-04-01T18:42:02.594081+00:00"
+  },
+  "readiness_error": null,
+  "recorded_at": "2026-04-01T18:42:04.196898+00:00"
+}

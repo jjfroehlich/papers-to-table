@@ -1,0 +1,29 @@
+{
+  "evidence_id": "ev_prop_run_20260401_184013_xsva6m_cell_fbe4d5c81159_1775069546371_3578pi2u",
+  "run_id": "run_20260401_184013_xsva6m",
+  "proposal_id": "prop_run_20260401_184013_xsva6m_cell_fbe4d5c81159_1775069546371",
+  "pdf_id": "paper_2",
+  "source_type": "direct_quote",
+  "quote_text": "In the enhancer position of ExP STARR-seq, we included the following elements: (1) 131 accessible genomic elements we previously tested by CRISPRi; (2) 669 other accessible genomic elements selected to span a range of quantitative histone 3 lysine 27 acetylation (H3K27ac) and DNase-based sequencing (DNase-seq) signals (centred on the summit of the DNase-seq peak); and (3) 200 controls, including random genomic control sequences and dinucleotide shuffled sequences (Extended Data Fig. 1a and Methods).",
+  "page_number": 2,
+  "exact_highlight_regions": [
+    {
+      "x0": 306.14169311,
+      "y0": 290.9305255876313,
+      "x1": 562.83300289074,
+      "y1": 45.65034246703124,
+      "page": 2
+    }
+  ],
+  "approximate_highlight_regions": null,
+  "figure_ref": null,
+  "caption_text": null,
+  "crop_path": null,
+  "full_page_path": null,
+  "anchor_confidence": 1.0,
+  "evidence_rank": 1,
+  "reasoning": null,
+  "is_primary": true,
+  "is_figure_derived": false,
+  "created_at": "2026-04-01T18:52:42.609615+00:00"
+}

@@ -1,0 +1,29 @@
+{
+  "evidence_id": "ev_prop_run_20260401_184013_xsva6m_cell_4b91e28c2b28_1775069641021_vpiu9lai",
+  "run_id": "run_20260401_184013_xsva6m",
+  "proposal_id": "prop_run_20260401_184013_xsva6m_cell_4b91e28c2b28_1775069641021",
+  "pdf_id": "paper_2",
+  "source_type": "direct_quote",
+  "quote_text": "we introduced a random 16-mer sequence located immediately upstream of the enhancer sequence that we use as a plasmid barcode to identify which enhancer reporter mRNAs are derived from which enhancer-promoter pairs (Fig. 1a).",
+  "page_number": 10,
+  "exact_highlight_regions": [
+    {
+      "x0": 39.68500137,
+      "y0": 300.5569306620313,
+      "x1": 296.3953385218614,
+      "y1": 131.6503462870313,
+      "page": 10
+    }
+  ],
+  "approximate_highlight_regions": null,
+  "figure_ref": null,
+  "caption_text": null,
+  "crop_path": null,
+  "full_page_path": null,
+  "anchor_confidence": 1.0,
+  "evidence_rank": 1,
+  "reasoning": null,
+  "is_primary": true,
+  "is_figure_derived": false,
+  "created_at": "2026-04-01T18:54:13.706724+00:00"
+}
