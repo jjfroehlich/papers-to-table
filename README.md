@@ -60,6 +60,32 @@ Open `http://localhost:5173` in your browser.
 
 ---
 
+## UI walkthrough
+
+The browser UI is the primary operator surface for launch, review, and export.
+
+### Run setup
+
+![Run setup screenshot](docs/screenshots/run-setup.png)
+
+The **Browse...** controls only prefill selected file names. Always confirm or edit the backend-readable path in the text box before you create a run.
+
+### Highlighted-evidence review
+
+![Review workspace screenshot](docs/screenshots/review-workspace.png)
+
+The review workspace keeps the queue, proposal detail, and highlighted PDF evidence visible at the same time. Blue overlays mean exact quote highlights; dashed orange overlays mean approximate regions; the amber text panel means quote-plus-page fallback.
+
+### Manual export and diagnostics artifacts
+
+![Export and diagnostics screenshot](docs/screenshots/export-diagnostics.png)
+
+Export is always explicit. The workbook and JSON download links only appear after the reviewer clicks **Export reviewed workbook**.
+
+For a compact screenshot-backed operator guide, see [`docs/operator-workflow.md`](docs/operator-workflow.md).
+
+---
+
 ## Configuration
 
 All run parameters are controlled by a JSON config file. Copy the example to get started:
@@ -88,7 +114,37 @@ The canonical provider token is `lm_studio`. Tokens such as `lmstudio`, `LMStudi
 | `retrieval.recall_rescue_enabled` | Retry `unclear` results with deterministic expanded retrieval (default: `true`) |
 | `retrieval.whole_document_mode` | Opt-in whole-document rescue context for short parsed papers (default: `false`) |
 
+### Schema-first extraction guidance
+
+Schema-first empty-table operation is the normal/default workflow. You do **not** need prefilled examples in the workbook for extraction to work.
+
 When `field_type` is provided in the schema, extraction honors it without requiring prefilled table examples. `allowed_values` are only valid for `categorical` fields. Numeric fields preserve `exact`, `range`, or `approximate` answer forms internally.
+
+Use schema descriptions to tell the reviewer-facing system what paper evidence should count:
+
+- name the paper fact directly
+- include units, scope, or disambiguators when the column name is short
+- keep one extractable concept per column
+- use `allowed_values` for categorical fields instead of relying on reviewer memory
+
+Concrete schema snippet:
+
+```csv
+column_name,description,field_type,allowed_values
+Species,Species used in the assay or model system.,categorical,"[""human"",""mouse"",""yeast""]"
+Model system,Cell line or organism context used for the reported experiment.,text,
+Number of Conditions,How many distinct experimental conditions were tested in the paper.,number,
+Readout,Primary assay readout used to measure expression or activity.,categorical,"[""RNAseq"",""scRNAseq"",""FACS""]"
+```
+
+Supported optional field types are `text`, `number`, `categorical`, and `boolean`.
+
+Numeric answer forms stay truthful to the paper:
+
+- `5` → exact
+- `5-7` → range
+- `~5` → approximate
+- values estimated from a graph should remain approximate rather than being rewritten as exact
 
 The config file is the authoritative control surface for all run parameters. Path overrides entered in the browser UI apply to a single run only and do not change the config file.
 
@@ -163,6 +219,8 @@ Export is always explicit and manual. Run completion and review decisions never 
 
 Only explicitly **accepted** (as-is or with edit) proposals are written to the workbook. Unreviewed, confirmed-no-data, and rejected proposals are excluded by construction.
 
+Confirmed-no-data remains a review outcome only. It is visible in summaries and audit artifacts, but it never writes a value to the workbook.
+
 ### 4. Download
 
 Use the download endpoints or the review UI download buttons that appear after an explicit export:
@@ -175,6 +233,20 @@ Use the download endpoints or the review UI download buttons that appear after a
 | `GET /api/runs/{run_id}/downloads/reviewer-summary` | `reviewer_summary.json` |
 
 Download endpoints return 404 if the export has not been triggered yet.
+
+---
+
+## Evidence semantics
+
+Evidence labels are intentional and reviewer-facing:
+
+- **Direct quote** — exact page-text highlight
+- **Approximate highlight** — region-level fallback when exact alignment fails
+- **Quote + page** — text fallback when highlight geometry is unavailable
+- **Inferred reasoning** / **Calculation** — support types shown separately from direct quotes
+- **Figure evidence** — labeled separately when figure review is used
+
+Fallback evidence is still reviewable, but it is labeled as fallback instead of being presented as exact evidence.
 
 ---
 
@@ -239,6 +311,26 @@ If the provider is unavailable at startup (or the configured model IDs are not a
 
 ---
 
+## Provider, parsing, and fallback truth
+
+- `lm_studio` is the canonical live provider token for the local-first path.
+- The review summary surfaces provider mode directly so you can tell whether a run is `live local`, `live cloud`, `unavailable`, `disabled`, or `stub/demo`.
+- Parsing fallback, OCR fallback, duplicate-row conflicts, and evidence fallback remain visible as warnings or badges instead of being hidden.
+- Fallback evidence is never relabeled as exact evidence.
+- If the configured live provider is unreachable at startup, the run fails during readiness rather than pretending to finish with warnings.
+
+---
+
+## Trustworthiness checklist
+
+- [ ] Confirm the provider mode shown in the UI matches your intended local/cloud path.
+- [ ] Read the evidence label before treating a proposal as directly supported.
+- [ ] Review proposals before export; proposal presence is not proof.
+- [ ] Trigger export explicitly instead of assuming run completion wrote a workbook.
+- [ ] Keep the audit log and diagnostics JSON with the exported workbook.
+
+---
+
 ## Testing
 
 ### Backend tests
@@ -261,11 +353,22 @@ cd frontend
 npm run lint && npm run build
 ```
 
-### End-to-end tests (opt-in, requires live stack)
+### End-to-end tests (opt-in, auto-start deterministic local stack)
 
 ```bash
-# Start backend and frontend first, then:
-pytest tests/e2e -m e2e
+pip install -e ./backend[test]
+python -m playwright install chromium
+cd frontend && npm install && cd ..
+python -m pytest tests/e2e -m e2e
+```
+
+### Refresh README screenshots
+
+```bash
+pip install -e ./backend[test]
+python -m playwright install chromium
+cd frontend && npm install && cd ..
+python -m pytest tests/e2e/test_doc_screenshots.py -m e2e --capture-doc-screenshots
 ```
 
 ### Live LM Studio smoke test (opt-in)
@@ -294,6 +397,7 @@ Canonical test fixtures are in `tests/fixtures/`:
 - **Partial review is allowed.** Export may proceed with only a subset of proposals reviewed. Only explicitly accepted proposals are written.
 - **PDF highlight coordinates** are shown when available. When not available, quote text is shown as a text fallback.
 - **No in-place workbook patching.** The export always writes a new XLSX file; the source workbook is never modified.
+- **The Browse controls are not full file-system bridges.** They prefill selected names and still require a backend-readable path.
 
 ---
 
@@ -307,4 +411,5 @@ Canonical test fixtures are in `tests/fixtures/`:
 | `cd frontend && npm run lint` | Run ESLint |
 | `cd frontend && npm run test -- --run` | Run frontend unit tests |
 | `python -m pytest tests/backend -v` | Run backend tests |
-| `python -m pytest tests/e2e -m e2e` | Run e2e tests (requires live stack) |
+| `python -m pytest tests/e2e -m e2e` | Run Playwright e2e tests against the deterministic local demo stack |
+| `python -m pytest tests/e2e/test_doc_screenshots.py -m e2e --capture-doc-screenshots` | Refresh the checked-in README screenshots |

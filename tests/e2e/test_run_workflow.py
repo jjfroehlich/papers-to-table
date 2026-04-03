@@ -1,13 +1,4 @@
-"""
-E2e scaffolding: run-launch and status workflow.
-
-These tests are opt-in (marked 'e2e') and require the full stack running.
-They serve as the scaffolding that Batch 2+ will build on when the pipeline
-is fully implemented.
-
-To run:
-    pytest tests/e2e -m e2e --base-url http://localhost:5173
-"""
+"""Deferred e2e scaffolding for broader run-launch and status coverage."""
 from __future__ import annotations
 
 import pytest
@@ -25,7 +16,7 @@ def frontend_url() -> str:
     return "http://localhost:5173"
 
 
-@pytest.mark.skip(reason="e2e tests require live server; run with: pytest tests/e2e -m e2e")
+@pytest.mark.skip(reason="deferred broad e2e scaffolding; targeted Playwright coverage lives in test_review_workspace.py")
 def test_health_endpoint_reachable(backend_url: str):
     """Backend /api/health returns 200."""
     import urllib.request
@@ -33,7 +24,7 @@ def test_health_endpoint_reachable(backend_url: str):
         assert resp.status == 200
 
 
-@pytest.mark.skip(reason="e2e tests require live server; run with: pytest tests/e2e -m e2e")
+@pytest.mark.skip(reason="deferred broad e2e scaffolding; targeted Playwright coverage lives in test_review_workspace.py")
 def test_frontend_loads(page, frontend_url: str):
     """Frontend serves and shows the main UI."""
     page.goto(frontend_url)
@@ -41,7 +32,7 @@ def test_frontend_loads(page, frontend_url: str):
     assert "Paper Table Agent" in page.title() or page.locator("h1").inner_text() == "Paper Table Agent"
 
 
-@pytest.mark.skip(reason="e2e tests require live server; run with: pytest tests/e2e -m e2e")
+@pytest.mark.skip(reason="deferred broad e2e scaffolding; targeted Playwright coverage lives in test_review_workspace.py")
 def test_run_view_shows_create_run_form(page, frontend_url: str):
     """Run view shows the config path input and Create Run button."""
     page.goto(frontend_url)
@@ -49,7 +40,7 @@ def test_run_view_shows_create_run_form(page, frontend_url: str):
     assert page.locator("button:has-text('Create Run')").is_visible()
 
 
-@pytest.mark.skip(reason="e2e tests require live server; run with: pytest tests/e2e -m e2e")
+@pytest.mark.skip(reason="deferred broad e2e scaffolding; targeted Playwright coverage lives in test_review_workspace.py")
 def test_review_tab_disabled_without_completed_run(page, frontend_url: str):
     """Review tab is disabled when no completed run is selected."""
     page.goto(frontend_url)
@@ -57,14 +48,14 @@ def test_review_tab_disabled_without_completed_run(page, frontend_url: str):
     assert review_btn.is_disabled()
 
 
-@pytest.mark.skip(reason="e2e tests require live server; run with: pytest tests/e2e -m e2e")
+@pytest.mark.skip(reason="deferred broad e2e scaffolding; targeted Playwright coverage lives in test_review_workspace.py")
 def test_empty_run_list_shows_guidance(page, frontend_url: str):
     """Empty run list shows next-action guidance."""
     page.goto(frontend_url)
     assert page.locator("text=No runs yet").is_visible() or page.locator("text=config.json").is_visible()
 
 
-@pytest.mark.skip(reason="e2e tests require live server; run with: pytest tests/e2e -m e2e")
+@pytest.mark.skip(reason="deferred broad e2e scaffolding; targeted Playwright coverage lives in test_review_workspace.py")
 def test_create_run_with_invalid_config_shows_error(page, frontend_url: str):
     """Creating a run with a nonexistent config shows an error message."""
     page.goto(frontend_url)
@@ -73,7 +64,7 @@ def test_create_run_with_invalid_config_shows_error(page, frontend_url: str):
     page.wait_for_selector("[class*='red']", timeout=5000)
 
 
-@pytest.mark.skip(reason="e2e tests require live server; run with: pytest tests/e2e -m e2e")
+@pytest.mark.skip(reason="deferred broad e2e scaffolding; targeted Playwright coverage lives in test_review_workspace.py")
 def test_create_run_completes_and_shows_detail(page, frontend_url: str):
     """Full happy path: create run with example config, see it complete."""
     page.goto(frontend_url)

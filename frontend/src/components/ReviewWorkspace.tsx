@@ -281,10 +281,13 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
   const activeEvidenceIndex = currentEvidenceList.findIndex((item) => item.evidence_id === selectedEvidenceId)
 
   return (
-    <div className="flex flex-col h-[calc(100vh-57px)]">
+    <div className="flex flex-col h-[calc(100vh-57px)]" data-testid="review-workspace">
       <RunSummaryPanel run={run} outputDir={outputDir} />
 
-      <div className="shrink-0 bg-white border-b border-gray-200 px-4 py-2 flex flex-wrap items-center gap-4">
+      <div
+        className="shrink-0 bg-white border-b border-gray-200 px-4 py-2 flex flex-wrap items-center gap-4"
+        data-testid="review-toolbar"
+      >
         <div className="flex items-center gap-4">
           <button
             onClick={() => setSidePanel('evidence')}
@@ -382,7 +385,7 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
       </div>
 
       {(exportError || exportResult) && (
-        <div className="shrink-0 border-b border-gray-200 bg-gray-50 px-4 py-2 text-xs">
+        <div className="shrink-0 border-b border-gray-200 bg-gray-50 px-4 py-2 text-xs" data-testid="export-status">
           {exportError && (
             <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-red-700">
               <strong>Export failed:</strong> {exportError}
