@@ -2,17 +2,17 @@
 
 ## Status
 
-Updated: evidence-first, reviewer-centered, proactive figure review direction
+Updated: schema-first extraction, evidence-first review, truthful provider semantics, and reviewer-workflow refinements
 
 ## Summary
 
 Paper Table Agent helps a researcher turn a folder of scientific PDFs plus a structured spreadsheet into reviewed spreadsheet updates.
 
-The system matches PDFs to spreadsheet rows, proposes values for missing cells using grounded evidence from the papers, and provides a review interface where a human can accept, edit, confirm no data, reject, or bulk-accept the currently visible filtered subset before any spreadsheet is updated.
+The system matches PDFs to spreadsheet rows, proposes values for schema-defined target cells using grounded evidence from the papers, and provides a review interface where a human can accept, edit, confirm no data, reject, or bulk-accept the currently visible filtered subset before any spreadsheet is updated.
 
-The system extracts primarily from text and tables. When vision capability is available, it also reviews all relevant extracted figures as a normal supplemental evidence stage, allowing figure evidence to strengthen any proposal, corroborate text evidence, or rescue weak text-only results. This is proactive and targeted rather than a narrow last-resort fallback.
+The system extracts primarily from text and tables. Extraction is schema-first: column name, description, and optional field typing define what should be extracted, while existing filled cells are optional format helpers only. When vision capability is available, the system also reviews all relevant extracted figures as a normal supplemental evidence stage, allowing figure evidence to strengthen any proposal, corroborate text evidence, or rescue weak text-only results. This is proactive and targeted rather than a narrow last-resort fallback.
 
-The product is designed for high-trust extraction workflows where proposed values must remain inspectable, auditable, reversible, and clearly distinguishable by support level.
+The product is designed for high-trust extraction workflows where proposed values must remain inspectable, auditable, reversible, and clearly distinguishable by support level, parsing quality, and provider-mode truth.
 
 The reviewer is reviewing what the paper supports, not grading the model, so the review workspace must keep paper evidence, reviewer judgment, and explicit curation outcomes primary.
 
@@ -24,13 +24,13 @@ The review workspace must show actionable review items by default rather than ev
 
 The intended MVP workflow is:
 
-1. Start a run from the UI by selecting or typing the path to a run configuration file, then let the app validate and snapshot the resolved config, run explicit readiness checks, and surface the active proposal-generation mode before work begins.
+1. Start a run from the UI by typing the path to a run configuration file or using a `Browse...` affordance for local selection, then let the app validate and snapshot the resolved config, run explicit readiness checks, and surface the active proposal-generation mode before work begins.
 2. Normalize table columns and determine which cells are missing versus already filled.
 3. Parse PDFs and extract paper-level metadata needed for row matching.
 4. Match each PDF to at most one row, while surfacing unmatched, ambiguous, and duplicate-row conflicts.
-5. Generate one best proposal per eligible target cell, with evidence and support labeling.
-6. Let a human reviewer inspect, filter, accept, edit, confirm no data, reject, or bulk-accept the currently visible filtered subset.
-7. Export a new XLSX workbook containing only explicitly accepted changes plus an audit log and run summaries.
+5. Generate one best proposal per eligible target cell using schema-first extraction, with evidence and support labeling that do not depend on prefilled cell values.
+6. Let a human reviewer inspect, filter, accept, edit, confirm no data, reject, or bulk-accept the currently visible filtered subset, while navigating evidence and proposals quickly.
+7. Manually trigger export from the review UI to generate a new XLSX workbook containing only explicitly accepted changes plus an audit log and run summaries.
 8. Preserve diagnostics and artifacts so the run can be inspected later.
 9. Allow the operator to abort an active run from the UI and see that interruption reflected promptly in run state.
 
@@ -46,6 +46,8 @@ The UI must make run lifecycle state explicit. The operator-visible states are:
 - `completed`: the run finished cleanly and is ready for review/export
 - `completed with warnings`: the run finished and is reviewable, but unresolved matching issues, export caveats, or other important warnings remain visible
 - `failed`: the run could not complete and the operator must be able to see an actionable reason
+
+`completed with warnings` is reserved for partial-success runs where meaningful processing actually happened. Provider unavailability or provider-unreachable state discovered at run start must fail the run during readiness rather than producing a cosmetically completed run.
 
 Active runs must refresh automatically in the UI often enough that an operator can follow progress without relying on manual refresh as the primary mechanism. Manual refresh may remain available, but it is a fallback rather than the normative status path.
 
@@ -107,6 +109,8 @@ The operator must be able to tell whether proposal generation for a run is:
 
 The app must not present a stub, demo, disabled, or degraded provider path as if it were the normal live proposal-generation happy path.
 
+If the configured live provider is unavailable at run start, the run must fail during readiness with an operator-facing reason. That condition is not a valid `completed with warnings` outcome.
+
 ---
 
 ## Problem statement
@@ -165,7 +169,7 @@ A developer or advanced user who inspects diagnostics to understand matching, ex
 - Evidence is attached to proposals, not hidden inside model reasoning.
 - Each proposal should support one best answer, but may include multiple evidence items when useful. The most authoritative evidence item becomes the primary evidence; additional items are ordered supporting evidence.
 - Evidence must be ranked and ordered: source authority and field relevance determine which evidence is primary, not the order in which the model returned quotes.
-- The product must distinguish clearly between evidence types: direct quote evidence, inferred reasoning, calculation-based justification, approximate highlight fallback, quote-plus-page fallback, and figure-based evidence.
+- The product must distinguish clearly between evidence types: direct quote evidence, inferred reasoning, calculation-based justification, approximate highlight fallback, quote-plus-page fallback, and figure-derived evidence split into caption-grounded and visual-interpretation subtypes.
 - Direct quotes must be shown separately from reasoning and calculations in the review UI.
 - Exact quote highlighting should be produced from rendered page text or an equivalent page-text alignment strategy whenever possible; if it fails, the product must degrade honestly and visibly to approximate region highlighting or quote-plus-page evidence, and fallback evidence must be labeled as fallback, not presented as exact.
 - Plausible values may still be surfaced even when evidence is weak, but they must be flagged accordingly.
@@ -250,9 +254,9 @@ That means:
 - Storing one or more evidence items per proposed value.
 - Human review of proposals with PDF evidence display when available, including weaker review states when text highlighting fails but quote plus page evidence is available.
 - Proactive figure review across all relevant extracted figures when vision capability is available, allowing figure evidence to supplement, strengthen, or rescue any proposal regardless of field type.
-- Figure-based evidence display in review when available.
+- Figure-derived evidence display in review when available, including caption-grounded and visual-interpretation figure evidence.
 - Verify mode: generating proposals for already-filled cells, showing them in review, and including reviewer decisions on them in run summaries.
-- MVP filtering by row, column, PDF, evidence status, figure-based evidence, and ambiguous or unmatched match status.
+- MVP filtering by row, column, PDF, evidence status, figure-derived evidence, and ambiguous or unmatched match status.
 - Accept, accept-with-edit, confirm-no-data, reject, and guarded bulk acceptance of the currently visible filtered proposal subset.
 - Navigation through proposals without recording a decision.
 - Exporting an updated XLSX table and an audit log.
@@ -285,10 +289,14 @@ The system accepts:
 ### Input expectations
 
 - The schema contains at least a `column_name` and a `description` for each target column.
+- The schema may also include an optional `field_type` with one of `text`, `number`, `categorical`, or `boolean`.
+- The schema may include optional `allowed_values` only when `field_type` is `categorical`.
+- The schema does not require `normalization_notes` for MVP.
 - The table must contain standardized metadata columns named `Title`, `Authors`, and `Publication Year` for row matching.
 - CSV or schema files may arrive with UTF-8 BOM markers or surrounding whitespace in headers; normalization must not misread canonical field names because of those artifacts.
 - Workbook date and datetime cells may arrive as native Excel cell types or text representations; normalization must preserve their intended meaning for matching, extraction, review, and export rather than treating them as opaque serial values.
 - The schema defines the intended meaning of each target field.
+- Schema descriptions should explain the field meaning, expected answer shape, and important inclusions or exclusions clearly enough that extraction can remain schema-first rather than value-example-driven.
 - PDFs are scientific papers or similarly structured technical documents.
 - PDFs may contain important information in prose, captions, tables, and figures.
 - Born-digital scientific PDFs are the main target.
@@ -297,7 +305,10 @@ The system accepts:
 
 ### Input guidance from existing cells
 
-- The system may derive a non-binding style or format profile from existing filled cells for all field types through a preprocessing LLM, but such guidance must be used only to influence output shape, detail level, and formatting. Raw existing cells are not passed as semantic exemplars by default, and proposal content must remain grounded in the current PDF.
+- The system may derive a non-binding style or format profile from existing filled cells for all field types through a preprocessing LLM, but such guidance must be used only to influence output shape, detail level, and formatting.
+- Raw existing cells must not be passed into extraction prompts as semantic exemplars.
+- Extraction must remain functional when a table or a column is empty. Existing filled cells are optional helpers only and not a precondition for extraction.
+- Proposal content must remain grounded in the current PDF plus the schema definition for the target field.
 
 ---
 
@@ -343,15 +354,18 @@ The product uses the following reviewer-facing concepts consistently across the 
 - **Match outcome**: whether a PDF is `matched`, `ambiguous`, `unmatched`, or blocked by a duplicate-row conflict.
 - **Proposal**: the one best attempted value for a specific row/column cell in a specific run.
 - **Reviewable proposal**: a proposal that should appear in the main review queue because a reviewer can make a decision on it.
-- **Support level**: how strongly the system believes the evidence supports the proposal, such as direct evidence, inferred from evidence, weak evidence, or figure-based evidence.
+- **Field type**: an optional schema-level constraint used to shape extraction and review semantics. MVP supports `text`, `number`, `categorical`, and `boolean`.
+- **Numeric value form**: the internal representation for a numeric answer. MVP must allow at least `exact`, `range`, and `approximate`.
+- **Support level**: how strongly the system believes the evidence supports the proposal, such as direct evidence, inferred from evidence, weak evidence, or figure-derived evidence.
 - **Evidence item**: the reviewer-visible text quote, page anchor, highlight, figure crop, caption, or related source reference used to justify the proposal.
 - **Evidence type**: the semantic kind of evidence, which the UI must render and label distinctly. The defined types are:
-  - `direct_quote`: a verbatim passage from the paper that directly states the value
+  - `direct_quote`: a verbatim passage from the paper that directly states the value and has an exact or approximate page anchor when possible
   - `inferred_reasoning`: a reasoning chain or argument constructed from one or more quoted passages
   - `calculation`: a calculation or derivation performed on quoted numeric evidence
   - `approximate_highlight`: a highlight region derived from approximate parser geometry rather than precise page-text alignment, labeled as approximate
   - `quote_plus_page`: a quote plus page number when precise highlighting fails; labeled as fallback text evidence rather than as an exact highlight
-  - `figure_based_evidence`: evidence derived from a figure, chart, diagram, or image, with figure crop, caption, and full-page context
+  - `caption_grounded_figure_evidence`: evidence grounded primarily in a figure caption plus figure context, with figure crop, caption, and full-page context
+  - `visual_interpretation_figure_evidence`: evidence grounded primarily in visual interpretation of a figure, chart, diagram, or image, with crop and full-page context
 - **Primary evidence**: the single most authoritative evidence item for a proposal, selected by evidence ranking based on source authority and field relevance.
 - **Supporting evidence**: additional ordered evidence items that corroborate or supplement the primary evidence, shown in ranked order.
 - **Evidence ranking**: the process of ordering evidence items by source authority and field relevance so the most authoritative evidence becomes primary and supporting items are ordered accordingly.
@@ -406,6 +420,8 @@ The resolved run context must distinguish the logical source of each input, such
 
 Manual raw absolute-path entry may remain available as a fallback, but it must not be the primary setup interaction for the normal operator workflow.
 
+The config-path control must remain a text field so operators can paste or inspect the exact path, but the UI must also expose a `Browse...` action that supports normal local-first use.
+
 The UI must show the config path plus a concise resolved-input summary, including at least the table path, schema path when present, PDF directory, output directory, target-column count or list, and Verify-mode status.
 
 The target-column list should be collapsible, truncated, or otherwise compact by default so the run/setup surface stays focused on what worked, what needs attention, and what the operator should do next.
@@ -442,6 +458,8 @@ Metadata extraction for matching must be grounded in the paper and must not inve
 
 The system should support OCR as a fallback when PDF text is not directly accessible.
 
+Any parsing fallback, OCR use, low-text condition, or other degraded parsing outcome must be surfaced in persisted diagnostics, run summaries, and reviewer-visible status surfaces rather than remaining an implementation-only detail.
+
 ### FR-3 PDF-to-row matching
 
 The system must attempt to match each PDF to the most likely table row.
@@ -452,17 +470,31 @@ The system must support:
 - a fallback adjudication step for ambiguous but plausible cases
 - a final state of matched, ambiguous, or unmatched
 
+Deterministic matching must rely primarily on interpretable publication signals such as DOI or other stable identifiers, first-author agreement, author overlap, publication year, and title similarity. Title similarity remains useful but must not dominate the score when stronger exact or near-exact signals are available.
+
+Abstract similarity may be used as an optional secondary deterministic signal when available, but it must not replace the stronger identifier and author/year signals.
+
 If matching remains ambiguous, extraction for that PDF must be blocked entirely.
 
 If multiple PDFs plausibly compete for the same row, the system must flag the conflict, block extraction for all PDFs involved in that duplicate-row conflict, and require manual cleanup before either PDF can proceed.
 
 Unmatched and ambiguous PDFs must remain visible in the UI for manual inspection.
 
+Duplicate-row conflicts must be represented distinctly from ordinary ambiguity in artifacts, summaries, and UI-facing diagnostics.
+
 ### FR-4 Schema-driven extraction
 
 The system must attempt extraction only for schema-defined columns.
 
-The system must support values whose intended outputs may be free text, numeric, categorical, boolean, or ranges.
+The default extraction contract is schema-first. Column name, description, and optional field type must drive extraction even when the source table is empty.
+
+The system must support values whose intended outputs may be free text, numeric, categorical, or boolean.
+
+When `field_type` is provided in the schema, extraction must honor it. When `field_type` is omitted, extraction should still proceed from the column name and description rather than failing schema validation.
+
+When `field_type` is `categorical`, optional `allowed_values` may constrain output normalization and reviewer presentation.
+
+When `field_type` is `number`, the internal contract must support at least `exact`, `range`, and `approximate` numeric forms rather than forcing every answer into one scalar shape.
 
 For each target cell, the system must produce at most one best proposal per run.
 
@@ -480,15 +512,24 @@ The system may use schema descriptions and non-binding format or style guidance 
 
 For some field types, the system may use non-binding format or style guidance derived from existing column entries to improve output shape and consistency, provided the proposal content itself remains grounded only in the current PDF.
 
+Historical spreadsheet values must not be described or implied as semantic exemplars for extraction.
+
 The provider layer must probe or otherwise establish structured-output compatibility for the configured provider-model path before relying on a specific guided-JSON mechanism, and it must use a provider-accepted structured format for that path.
 
-When the provider's preferred structured-output or guided-JSON mode is not supported, the system may fall back to a compatible structured-response path, but it must preserve the same proposal contract and record that negotiation truthfully in diagnostics and run summaries.
+The bounded structured-output fallback ladder is:
 
-One structured-output compatibility mismatch must not silently poison the rest of the run when other target cells or compatible request paths can still proceed safely.
+1. `json_schema`
+2. one retry with stronger instruction when the returned structure is invalid
+3. minimal JSON repair when the failure is purely syntactic
+4. otherwise mark extraction failed for that target
 
-Transient malformed structured responses should trigger a bounded recovery path before the target cell is finalized as a hard error.
+The system must not add a longer implicit fallback ladder by default.
 
 Long-text target fields must remain first-class extraction targets; the system must not systematically collapse them into empty, truncated, or schema-invalid outcomes merely because they exceed short-answer assumptions.
+
+The first extraction pass should use focused retrieval by default. When that pass returns `unclear`, the system must use a bounded deterministic recall-rescue path: expanded retrieval, then section-level or full-text context when configured and justified.
+
+The config may offer an optional whole-document mode for important fields when parsed text fits comfortably within the active model context, but that mode must remain optional and non-default.
 
 The system must not treat a syntactically completed extraction stage as functional proposal success if the active provider path was unreachable, stubbed, disabled, silently degraded, or otherwise unable to generate meaningful proposals.
 
@@ -513,6 +554,8 @@ Reviewer-visible proposal states must distinguish at least between:
 
 Reviewer-visible proposal states should use clear human-readable language that communicates the support level of the proposal. Internal names such as `found` and `inferred` may be mapped to labels such as `Direct evidence` and `Inferred from evidence`.
 
+`Direct evidence` must require an anchored direct quote. A proposal supported only by a loosely related quote plus reasoning must be labeled as inferred or weak evidence instead.
+
 ### FR-6 Evidence attachment
 
 Each non-empty proposed value must include at least one evidence item when feasible.
@@ -521,7 +564,11 @@ Each proposal must expose one primary evidence item. Additional supporting evide
 
 The system must not assume that the first model-returned quote is automatically the best evidence. Evidence must be ranked and ordered so the most authoritative item becomes primary. Evidence selection should consider source authority and field relevance, for example preferring more authoritative procedural sections for procedural fields.
 
+More than one direct quote may be attached when genuinely needed to support a single proposal.
+
 The review UI must show direct quotes separately from reasoning and calculations. A direct quote evidence item and an inferred reasoning or calculation item serve different reviewer functions and must be visually distinguishable.
+
+`direct_quote` evidence must require a reviewer-visible anchored quote. A quote that is only loosely related to the answer must not be promoted to direct evidence merely because a quote exists.
 
 For text-derived proposals, the minimum reviewer-visible evidence target is a highlighted source quote on the PDF page. Exact quote highlighting should be produced from rendered page text or an equivalent page-text alignment strategy whenever possible.
 
@@ -534,6 +581,8 @@ Evidence must render according to its semantics. Text evidence without coordinat
 The UI must not fabricate placeholder or guessed highlight geometry merely to avoid fallback display. If reliable page geometry is unavailable, the reviewer must see an explicit quote-plus-page fallback instead.
 
 For figure-derived proposals, the minimum reviewer-visible evidence target is a figure crop plus caption, with the full page also accessible in the UI. The viewer must support navigation from the figure crop to the full page context.
+
+`caption_grounded_figure_evidence` should normally rank above generic inferred reasoning when both are otherwise comparably relevant. `visual_interpretation_figure_evidence` remains valid but should carry higher reviewer scrutiny.
 
 An evidence item must contain enough source information for a reviewer to inspect the origin of the proposal.
 
@@ -568,9 +617,11 @@ Figure-aware extraction may use scoped visual context such as:
 - captions
 - nearby narrative text
 
-Figure-derived proposals must remain clearly marked as figure-based evidence in review.
+Figure-derived proposals must remain clearly marked as figure-derived evidence in review, and the review surface must expose whether the support is caption-grounded or visual interpretation.
 
 Figure-derived proposals remain subject to heightened reviewer scrutiny and may rely more heavily on visual context and concise rationale than direct text-derived proposals.
+
+Figure evidence must preserve the distinction between caption-grounded support and pure visual interpretation.
 
 The system must still avoid unrestricted full multimodal reasoning on every page by default. The scope remains targeted: review all relevant extracted figures as supplemental evidence, not every page of every paper for every field.
 
@@ -598,6 +649,8 @@ Launching runs, understanding status, reviewing proposals, and exporting outputs
 Review must be nonlinear: selecting a proposal for inspection must not itself record a decision.
 
 The UI should support one visible master queue with filtering, reusable saved views or equivalent presets, and progress indicators.
+
+The main progress headline and default counts in the review workspace must use reviewable proposals or otherwise actionable proposals. Broader attempted totals and diagnostics-only totals may still be shown secondarily.
 
 The left sidebar must support two grouping modes:
 - `Group by Paper`
@@ -657,6 +710,7 @@ The reviewer must be able to:
 - reject a proposal
 - bulk-accept the currently visible filtered proposal subset, subject to confirmation
 - move through proposals efficiently without recording a decision
+- cycle through evidence items efficiently without losing proposal context
 - inspect unmatched and ambiguous PDFs
 - see progress counters including reviewed versus total proposals and decision breakdowns
 
@@ -690,6 +744,8 @@ At minimum, non-accepted or manually resolved review outcomes must preserve stru
 
 Accept-with-edit must behave as an explicit edit-save action rather than a vague duplicate of normal acceptance.
 
+After the reviewer records `accept`, `accept with edit`, `confirm no data`, or `reject`, the workspace should auto-advance to the next reviewable proposal by default.
+
 If rationale is rendered in bullet form, the UI must render it cleanly as concise markdown bullets rather than as a dense paragraph blob.
 
 Proposal status, evidence source, and warning state must be visually distinguishable at a glance.
@@ -701,6 +757,8 @@ Figure-derived evidence should be displayed crop-first, with caption directly at
 The right evidence pane must support zoom and pan for document evidence.
 
 The in-app viewer's primary job is to show evidence quotes, page focus, and highlight overlays reliably. It is acceptable for the in-app viewer to prioritize annotation fidelity over full native-reader behavior, provided the UI offers an explicit one-click path to open the same PDF in the operating system's default local PDF viewer for ordinary reading and search.
+
+If strong highlighting and evidence navigation can coexist cleanly with native pan, drag, selection, and search in the same in-app mode, that is preferred. If not, highlight quality and evidence navigation take priority and the explicit local-viewer fallback remains required.
 
 The viewer must support real review work. Required navigation capabilities are:
 - previous and next page
@@ -731,13 +789,15 @@ When no scoped evidence is available, the evidence pane must still provide a use
 
 When highlight geometry is unavailable, the UI must explain that limitation explicitly rather than faking highlight boxes.
 
-The review interface must support filtering by row, column, PDF, evidence status, figure-based evidence, and ambiguous or unmatched match status.
+The review interface must support filtering by row, column, PDF, evidence status, figure-derived evidence, and ambiguous or unmatched match status.
 
 Any stored proposal must be reviewable in the interface, including proposals whose text evidence is shown as quote plus page without a reliable highlight.
 
 The review workspace must expose direct access to the main run artifacts needed by a reviewer after decisions are made, including the exported workbook, audit log, run summary, and reviewer summary.
 
 Keyboard shortcuts must be surfaced in context through button tooltips or equivalent inline affordances. The operator must not need to rely on a footer legend alone to discover core review shortcuts.
+
+Keyboard support must include fast sequential review behavior, including next or previous proposal navigation, focus edit input, and next or previous evidence navigation.
 
 ### FR-10 Spreadsheet protection and verify mode
 
@@ -762,6 +822,8 @@ The system must export:
 - an audit log of changes
 - reviewer-outcome summaries and run diagnostics
 
+Export must be a manual reviewer action from the review UI. It must not occur implicitly at run completion or as a side effect of recording review decisions.
+
 The original input table must remain unchanged.
 
 Changed cells must be visually highlighted in the exported table.
@@ -785,6 +847,7 @@ The system must preserve diagnostics that help explain:
 - why a PDF was matched, left unmatched, or marked ambiguous
 - why a value was proposed, left unclear, blocked, skipped, or not proposed
 - whether evidence was strong, weak, missing, or recovered
+- whether parsing used a fallback or degraded path
 - why a run finished with few or no usable proposals
 
 The system must provide a normal user-facing run summary with at least:
@@ -810,6 +873,8 @@ Detailed logs and deeper diagnostics may exist as advanced outputs for developme
 
 The normal user-facing run summary should remain useful even before the run reaches a terminal state, for example by showing validation or processing state together with the resolved input/config context.
 
+Run summaries and review summaries must also surface duplicate-row conflicts, degraded parsing conditions, and evidence-fallback states when those conditions materially affect reviewer trust or throughput.
+
 When a run is not yet reviewable, the summary surface should still help the operator understand what has happened so far, what is blocked, and whether review will become available automatically or requires intervention.
 
 Runs that fail during readiness or soon after launch must still retain the resolved config/input context and any completed preflight results so operators can diagnose the failure without opening source code.
@@ -818,7 +883,7 @@ Download surfaces must also remain truthful: config snapshots and diagnostics ma
 
 If no verified cells have been reviewed yet, reviewer-outcome reporting should remain visible but explicitly provisional. The UI should keep per-column evidence-coverage lines visible with wording that makes clear they are coverage context rather than reviewer-outcome scores until at least one verified cell has actually been reviewed.
 
-If a run completes but yields no reviewable proposals, the normal summary must make clear whether the reason was blocked matching, provider unavailability, explicit disabled or degraded mode, extraction failure, or another diagnostic class rather than collapsing all such cases into a generic `completed` result.
+If a run completes but yields no reviewable proposals, the normal summary must make clear whether the reason was blocked matching, degraded parsing, explicit disabled or degraded mode, extraction failure, or another diagnostic class rather than collapsing all such cases into a generic `completed` result.
 
 In MVP, reviewer-outcome summaries are the primary reporting mechanism, and automated correctness scoring across heterogeneous field types is deferred.
 
@@ -851,7 +916,9 @@ When document structure can be detected, the system should preserve enough of th
 
 ### FR-14 Run completion semantics
 
-If a run matches one or more PDFs but yields no usable proposals, the run outcome must remain visible as a completed run with warnings rather than appearing silently successful.
+If a run matches one or more PDFs and meaningful processing occurred but the result is still only partially useful, the run outcome may be `completed with warnings` rather than silently successful.
+
+If provider unavailability or provider-unreachable state prevents useful extraction before processing starts, the run must fail rather than being recast as `completed with warnings`.
 
 Failures that prevent safe execution must be surfaced clearly in run diagnostics.
 
@@ -863,9 +930,9 @@ Failures that prevent safe execution must be surfaced clearly in run diagnostics
 
 A reviewer must be able to tell, for each proposal:
 - what value was proposed
-- what support level it has, such as direct evidence, inferred from evidence, weak evidence, or figure-based evidence
+- what support level it has, such as direct evidence, inferred from evidence, weak evidence, or figure-derived evidence
 - what evidence supports it, including which item is primary and which are supporting
-- what evidence type each item is: direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, or figure-based evidence
+- what evidence type each item is: direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, `caption_grounded_figure_evidence`, or `visual_interpretation_figure_evidence`
 - whether the value depends on calculation or reasoning, shown separately from direct quotes
 - whether additional scrutiny is recommended
 
@@ -963,7 +1030,7 @@ Developer-only shortcuts, helper scripts, or partial implementation paths must n
 - Evidence quality influences reviewer scrutiny, not only whether a proposal exists.
 - Each proposal exposes one primary evidence item, selected by evidence ranking. Additional supporting evidence items are ordered by authority and relevance.
 - Evidence must be ranked: the most authoritative evidence becomes primary. The first model-returned quote is not automatically primary.
-- The product distinguishes evidence types: direct quote, inferred reasoning, calculation, approximate highlight fallback, quote-plus-page fallback, and figure-based evidence. These types must be labeled and rendered distinctly.
+- The product distinguishes evidence types: direct quote, inferred reasoning, calculation, approximate highlight fallback, quote-plus-page fallback, `caption_grounded_figure_evidence`, and `visual_interpretation_figure_evidence`. These types must be labeled and rendered distinctly.
 - Direct quotes must be shown separately from reasoning and calculations in the review UI.
 - Exact quote highlighting is produced from page-text alignment when possible; if it fails, fallback must be labeled as fallback.
 - The quote list and the document viewer must stay synchronized around the currently selected evidence item.
@@ -971,6 +1038,7 @@ Developer-only shortcuts, helper scripts, or partial implementation paths must n
 - Reviewer-visible evidence must remain anchored to the source even if internal retrieval uses transformed text.
 - Diagnostic-only outcomes must remain clearly distinct from reviewable proposals.
 - Any stored proposal remains reviewable, even when text highlighting fails and only quote plus page evidence is available.
+- Schema-first extraction remains valid even when a table or a target column has no prefilled example values.
 - One target cell receives at most one best proposal per run.
 - Proposal identifiers remain unique within a run even when multiple PDFs surface the same row/column target.
 - Ambiguous PDF-to-row matches block extraction rather than silently proceeding.
@@ -1005,19 +1073,25 @@ then the operator can tell which parser was configured, which parser was actuall
 
 Given the operator is preparing a run from the browser UI,
 when they select or override relevant inputs,
-then the setup flow prefers browser-compatible picker controls over raw path typing, resolves relative and platform-specific path inputs into one clear run context, materializes picker-selected inputs into backend-readable staged files or directories or another explicit server-side input handle before execution, preserves config-file authority for advanced behavior, keeps the target-columns display compact by default through truncation, collapse, or equivalent compact presentation, and shows both the logical input source and the backend-visible runtime locator in the resolved run context.
+then the setup flow prefers browser-compatible picker controls over raw path typing, keeps the config-path field editable as text, provides a `Browse...` action for normal local use, resolves relative and platform-specific path inputs into one clear run context, materializes picker-selected inputs into backend-readable staged files or directories or another explicit server-side input handle before execution, preserves config-file authority for advanced behavior, keeps the target-columns display compact by default through truncation, collapse, or equivalent compact presentation, and shows both the logical input source and the backend-visible runtime locator in the resolved run context.
 
 ### AC-2 Matched extraction path
 
 Given a PDF that can be matched to a row,
 when extraction is run,
-then the system attempts each eligible target column, including long-text fields, prefers a truthful `unclear` outcome over unsupported guessing, and stores one best outcome for each attempted target cell.
+then the system attempts each eligible target column, including long-text fields, uses column name, description, and optional field type as the primary extraction contract, remains functional even when no prefilled spreadsheet examples exist for that column, prefers a truthful `unclear` outcome over unsupported guessing, and stores one best outcome for each attempted target cell.
 
 ### AC-2a Structured-output compatibility and recovery
 
 Given a live provider rejects the preferred guided-JSON or structured-output mode, or returns malformed structured JSON,
 when extraction is run,
-then the system attempts a bounded compatible fallback or repair path, preserves the proposal contract if recovery succeeds, and records a clear hard error only if that bounded recovery fails.
+then the system tries `json_schema`, retries once with stronger instruction if the response is invalid, attempts minimal syntactic JSON repair when appropriate, preserves the proposal contract if recovery succeeds, and records a clear hard error only if that bounded recovery fails.
+
+### AC-2b Recall rescue and field typing
+
+Given a target field has an optional schema `field_type` and the first retrieval-based extraction pass returns `unclear`,
+when extraction continues,
+then the system may use expanded retrieval and a bounded section-level or optional full-text rescue pass, while preserving the field-type contract and leaving whole-document mode opt-in rather than default.
 
 ### AC-3 Ambiguous matching blocking
 
@@ -1059,7 +1133,13 @@ then the UI still provides an `Enter edited value` path and a `Confirm No Data` 
 
 Given a proposal has selected text or figure evidence,
 when the reviewer uses the right evidence pane,
-then the viewer supports zoom and pan; supports previous and next page navigation; supports jump to page by number; provides a normal reading mode with pointer-drag page movement and text selection/copy when the PDF source and chosen viewer mode allow it; focuses on the currently selected evidence item and refocuses stably when evidence selection or zoom changes; supports figure-to-full-page context navigation; keeps the quote list and the document viewer synchronized so selecting a different evidence item in the list moves the viewer to that item's location; preserves quote-plus-page fallback when highlight geometry is missing; explains missing highlight geometry instead of faking boxes; distinguishes approximate highlight fallback from exact highlight; allows full-PDF fallback when scoped evidence is unavailable; and supports clicking selected quote or highlight evidence into the active proposed-value or edited-value workflow as a non-saving staging action that replaces the active input by default, applies only to textual evidence or figure-caption text, uses only the explicitly clicked or selected span, and never silently truncates overlong text.
+then the viewer supports zoom and pan; supports previous and next page navigation; supports jump to page by number; provides a normal reading mode with pointer-drag page movement and text selection/copy when the PDF source and chosen viewer mode allow it; supports next and previous evidence navigation; focuses on the currently selected evidence item and refocuses stably when evidence selection or zoom changes; supports figure-to-full-page context navigation; keeps the quote list and the document viewer synchronized so selecting a different evidence item in the list moves the viewer to that item's location; preserves quote-plus-page fallback when highlight geometry is missing; explains missing highlight geometry instead of faking boxes; distinguishes approximate highlight fallback from exact highlight; allows full-PDF fallback when scoped evidence is unavailable; and supports clicking selected quote or highlight evidence into the active proposed-value or edited-value workflow as a non-saving staging action that replaces the active input by default, applies only to textual evidence or figure-caption text, uses only the explicitly clicked or selected span, and never silently truncates overlong text.
+
+### AC-5f Actionable counts and auto-advance
+
+Given the reviewer is working through a run,
+when the queue and review actions are displayed,
+then the main progress headline uses actionable or reviewable proposals by default, broader attempted totals remain secondary, and after `accept`, `accept with edit`, `confirm no data`, or `reject`, the workspace auto-advances to the next reviewable proposal when one exists.
 
 ### AC-5e Rationale rendering
 
@@ -1095,7 +1175,7 @@ then it generates reviewable proposals for those cells, allows explicit accept/e
 
 Given accepted proposals,
 when the user exports results,
-then the system produces an updated XLSX table and an audit log containing only approved changes, while leaving the original input table unchanged, and any available audit timestamp comes from the persisted review-decision record for that change.
+then the system produces an updated XLSX table and an audit log containing only approved changes, while leaving the original input table unchanged, any available audit timestamp comes from the persisted review-decision record for that change, and export happens only after an explicit manual export action from the review UI.
 
 ### AC-10 Export fidelity
 
@@ -1107,7 +1187,13 @@ then the table preserves accepted and unchanged cell content correctly, guarante
 
 Given a run fails early or finishes with matched PDFs but no usable accepted values,
 when the run reaches its terminal state,
-then the system provides diagnostics and resolved context explaining what happened, why no values were produced or accepted, and whether the result is a readiness failure, a completed run with warnings, or another terminal outcome rather than a silent success.
+then the system provides diagnostics and resolved context explaining what happened, why no values were produced or accepted, whether parsing was degraded or used fallback, and whether the result is a readiness failure, a completed run with warnings, or another terminal outcome rather than a silent success.
+
+### AC-16a Provider hard-fail truth
+
+Given the configured live provider is unavailable or unreachable before proposal generation can begin,
+when the operator starts a run,
+then the run fails during readiness with an actionable provider error and does not surface as `completed with warnings`.
 
 ### AC-12 Weak-evidence handling
 
@@ -1115,11 +1201,11 @@ Given a plausible proposal with weak, missing, or initially unusable evidence,
 when proposal processing completes,
 then the system makes one recovery attempt, keeps the proposal reviewable if appropriate, and marks it accordingly, including quote-plus-page review when text highlighting could not be recovered.
 
-### AC-13 Figure fallback
+### AC-13 Figure-derived support and rescue
 
 Given a target field that remains unresolved after text or table extraction,
 when the system identifies relevant figure evidence,
-then it may produce a figure-based proposal with clearly labeled visual evidence, including a crop and caption, for review.
+then it may produce a figure-derived proposal with clearly labeled caption-grounded or visual-interpretation evidence, including a crop and caption, for review.
 
 ### AC-14 Evaluation integrity
 
@@ -1172,9 +1258,10 @@ The following behaviors are required for the MVP represented by this spec:
 - Verify mode for already-filled cells, including review and reviewer-outcome summaries.
 - Diagnostics sufficient to explain no-value or poor-quality runs.
 - Evidence quality is a first-class requirement: evidence ranking, evidence type taxonomy, primary and supporting evidence semantics, exact quote highlighting with honest fallback, and synchronized multi-evidence review UX.
+- Schema-first extraction is a first-class requirement: extraction works without prefilled cells, optional field typing shapes output when present, and historical spreadsheet values are not semantic exemplars.
 - Proactive figure review across all relevant extracted figures when vision capability is available, with figure evidence allowed to supplement, strengthen, or rescue any proposal.
 - Separate text-model and vision-model configuration with both exposed in reviewer-visible run context and summaries.
-- Filtering by row, column, PDF, evidence status, figure-based evidence, and ambiguous or unmatched match status.
+- Filtering by row, column, PDF, evidence status, figure-derived evidence, and ambiguous or unmatched match status.
 - OCR support as a fallback.
 
 The following behaviors are important but may ship as progressive quality improvements so long as they do not weaken the core review workflow:

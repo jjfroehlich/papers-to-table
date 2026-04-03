@@ -100,7 +100,7 @@ The config file is the authoritative control surface for all run parameters. Pat
 
 The run progresses through: `created → validating → running → completed` (or `completed_with_warnings` / `failed`). Select any run from the list to see stage progress, warnings, and error details.
 
-A run reaches `completed_with_warnings` when it finished but encountered matching issues, provider degradation, or other non-fatal problems. The run is still reviewable and exportable.
+A run reaches `completed_with_warnings` when it finished but encountered non-fatal issues (for example, matching ambiguity or fallback evidence quality warnings). The run is still reviewable and exportable.
 
 ### 2. Review proposals
 
@@ -219,7 +219,7 @@ Example model IDs (any compatible model may be used):
 - Text: `lmstudio-community/Meta-Llama-3.1-8B-Instruct-GGUF`
 - Vision: `lmstudio-community/llava-v1.6-mistral-7b-gguf` (optional)
 
-If the provider is unavailable, the run completes with `completed_with_warnings` status and records skipped proposals for each eligible cell. No proposals are generated in this case.
+If the provider is unavailable at startup (or the configured model IDs are not available), readiness fails and the run ends in `failed` with an explicit startup error.
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-Updated: evidence-first, proactive figure review, separate text/vision model direction
+Updated: schema-first extraction, truthful provider semantics, and reviewer-centered evidence workflow refinements
 
 ## Purpose
 
@@ -70,7 +70,7 @@ Implementation for this phase is complete when the system satisfies the function
 
 4. Run artifacts, proposal state, review decisions, and exports are persisted in a reproducible local-first manner.
 
-5. The implementation supports structured-output-first extraction with graceful downgrade when providers lack strong schema support.
+5. The implementation supports structured-output-first extraction with bounded compatibility negotiation and recovery: `json_schema`, one stronger retry, minimal syntactic repair, then hard failure for that target.
 
 6. Diagnostics explain failures and low-quality results without requiring developers to inspect raw prompts manually.
 
@@ -103,6 +103,14 @@ Implementation for this phase is complete when the system satisfies the function
 15. The review workspace loads and counts actionable review items separately from diagnostics-only outcomes, so realistic runs remain performant and reviewer-facing metrics stay meaningful.
 
 16. Active runs refresh automatically in the UI, stale-state conditions are surfaced explicitly, and operators can abort a run from the main workflow surface.
+
+17. Provider-unavailable or provider-unreachable state discovered at run start produces a readiness failure rather than a misleading `completed_with_warnings` run.
+
+18. Parsing fallback, OCR use, or degraded parsing conditions are persisted and surfaced in summaries and reviewer-facing status.
+
+19. Proposal persistence uses `proposals.jsonl` plus a proposal index or equivalent lookup structure rather than many per-proposal files.
+
+20. The main review-progress headline uses actionable or reviewable proposals by default, while broader attempted totals remain secondary diagnostics.
 
 ---
 
@@ -153,7 +161,7 @@ The initial system will use a mostly deterministic staged pipeline with a few LL
 - ambiguous row adjudication
 - schema-driven proposal extraction
 - optional evidence recovery
-- optional figure fallback
+- proactive targeted figure review as a supplemental evidence stage when vision capability is available
 
 **Rationale:**
 The workflow is structured and auditable. The prior implementation showed that graph orchestration added less value than expected around a mostly sequential loop. The rewrite should stay simple for MVP: one run executes straight through, and an interrupted run is restarted as a new run rather than resumed in place.
@@ -203,6 +211,8 @@ The system will use:
 - per-run artifact folders in the output directory as the canonical run record
 - JSON files inside each run bundle for proposals, explicit review-decision records, diagnostics, summaries, and export bookkeeping
 
+The canonical proposal persistence shape is `proposals.jsonl` plus a lookup index or equivalent secondary structure that supports efficient filtering and id-based loading without reverting to many per-proposal JSON files.
+
 **Artifact policy refinement:**
 Reviewable proposals and diagnostics-only outcomes should not be conflated merely because both are persisted as JSON. A large run may produce many blocked or skipped outcomes, but those should live in diagnostic artifacts or aggregate summaries unless they are intentionally reviewable. Runtime-derived artifact paths must use sanitized or opaque filenames so persistence is portable across supported operating systems.
 
@@ -243,6 +253,11 @@ The extraction path depends on predictable proposal and evidence objects. Separa
 - unknown provider identifiers fail early
 - cloud-provider credentials are resolved from environment or secret references, not committed example secrets
 - stub/demo/degraded provider modes must be explicit, never silent
+
+**Readiness and fallback policy:**
+- provider unavailability at run start is a readiness failure, not a warning-only completion state
+- `completed_with_warnings` is reserved for partial-success runs where meaningful work actually happened
+- structured-output recovery is bounded: `json_schema`, one stronger retry, minimal syntactic repair, then hard failure for that target
 
 ---
 
@@ -285,6 +300,8 @@ The product already requires human review. Reviewer decisions are the most trust
 ### TD-10: Existing filled cells feed a preprocessing LLM that produces structured style profiles
 
 Existing filled cells should be processed per column through a preprocessing LLM that generates a structured style/format profile. That profile may guide output shape, tone, and detail level, but raw filled cells must not be passed as semantic few-shot exemplars to extraction prompts by default.
+
+Schema-first extraction remains primary even when no filled cells exist. Column name, column description, and optional field typing must be sufficient to drive extraction.
 
 **Rationale:**
 This keeps the benefit of column-specific output shaping while avoiding heuristic-only format inference and avoiding direct semantic anchoring to historical cell content.
@@ -406,7 +423,7 @@ The system will consist of five major layers:
    - parser adapters
    - low-level PDF rendering/anchoring
    - retrieval/indexing
-   - extraction and figure fallback
+   - extraction and proactive targeted figure review
 
 5. **Persistence layer**
    - filesystem run artifacts
@@ -455,7 +472,7 @@ This config file is the source of truth for:
 - style-profile preprocessing
 - retrieval settings
 - model/provider settings
-- figure fallback settings
+- figure review settings
 - review settings
 - export settings
 
@@ -468,6 +485,8 @@ Provider settings should follow one typed schema that covers at least:
 - timeout and structured-output capability settings where relevant
 - credential environment-variable or secret references for cloud providers
 - explicit disabled or stub/demo mode only when intentionally supported
+
+Dead config keys should be removed rather than documented aspirationally. In particular, `retrieval.chunk_size` is not part of the canonical direction unless the runtime actually consumes it.
 
 The UI should not expose a large parameter-tuning surface in MVP. Advanced behavior is configured by editing the config file directly.
 
@@ -513,14 +532,16 @@ The MVP pipeline should run in these explicit stages:
    - read existing filled cells per column
    - run a preprocessing LLM step per column
    - produce a structured style/format profile for each column
+   - allow empty columns or empty tables without failing extraction
 3. **Parse PDFs once**
    - parse each PDF with Docling
    - generate normalized parsed-document artifacts
-   - generate page/crop artifacts needed for review and figure fallback
+   - generate page/crop artifacts needed for review and proactive targeted figure review
    - trigger OCR fallback only when PDF text is inaccessible or clearly insufficient
+   - persist whether fallback or degraded parsing occurred so summaries and reviewer surfaces can report it later
 4. **Match PDFs to rows**
    - extract grounded publication metadata
-   - run deterministic matching
+   - run deterministic matching with identifiers, first author, author overlap, year, and title as interpretable signals
    - run fallback adjudication only for plausible ambiguous cases
    - block ambiguous matches
    - block duplicate-row PDF conflicts
@@ -528,10 +549,12 @@ The MVP pipeline should run in these explicit stages:
    - generate typed chunks
    - generate contextualized retrieval text
    - generate table-aware retrieval units when available
+   - keep retrieval simple by default; no reranking, HyDE, or query expansion in the baseline
 6. **Extract proposals per target cell**
-   - gather row context, column definition, style profile, and retrieved context
+   - gather row context, column definition, optional field type, style profile, and retrieved context
    - prompt the model once per target cell
    - require structured JSON output
+   - apply bounded recall rescue on `unclear` outcomes through expanded retrieval and optional section/full-text context
    - store one best proposal per target cell
 7. **Validate and recover evidence**
    - validate page-grounded evidence
@@ -544,13 +567,15 @@ The MVP pipeline should run in these explicit stages:
    - figure evidence may strengthen text-derived proposals, supplement weak proposals, or rescue failed text-only proposals
    - figure evidence is allowed for any field type, not restricted to figure-classified fields
 9. **Write proposal artifacts**
-   - write proposals, evidence, diagnostics, and run summaries as JSON artifacts
+   - write proposals, proposal index, evidence, diagnostics, and run summaries as JSON artifacts
    - record provider mode, readiness results, and any explicit degraded or disabled status in run artifacts and summaries
 10. **Review in UI**
    - show resolved run setup context and direct access to config snapshot
    - keep the queue clearly non-actionable until the run is review-ready
    - queue-first review
+   - use actionable-only progress counts as the main headline
    - record accept / accept-with-edit / confirm-no-data / reject / bulk-accept-visible-subset decisions
+   - auto-advance to the next reviewable proposal after an explicit decision when one exists
 11. **Export**
    - generate new XLSX
    - apply accepted changes
@@ -604,6 +629,7 @@ The run/setup tab should remain in the same app and should stay config-authorita
 
 It should present:
 - config path and resolved run context
+- config path as an editable text field plus a `Browse...` affordance for normal local use
 - picker-driven overrides for relevant input files or folders
 - a compact target-columns preview that expands only on demand
 - a concise action-oriented summary of whether the last run worked, what needs attention, and what the operator should do next
@@ -679,6 +705,8 @@ Queue density and fast scanning remain first-class. The sidebar should support b
 - rapid triage across many proposals
 - deeper investigation through preserved filters, grouping, and saved views or presets
 
+Primary counters in the top bar should default to actionable or reviewable proposals rather than total attempted records.
+
 ### Middle pane: detail and decision workflow
 
 The middle pane is the primary decision surface and should include at least:
@@ -746,6 +774,8 @@ The main review workspace should expose:
 - reviewer-summary context
 - direct access to workbook, audit-log, run-summary, and reviewer-summary downloads
 
+The primary progress headline should use actionable or reviewable proposals by default. Attempted totals, duplicate-row conflicts, and other diagnostics remain visible but secondary.
+
 When those files are not available yet, the workspace should say so explicitly instead of presenting them as ready downloads.
 
 The unresolved-match area remains inspect-only in MVP. It is a visibility and diagnosis surface, not a corrective-action workspace.
@@ -778,6 +808,9 @@ The MVP should support:
 - reject current proposal
 - focus proposed-value edit control
 - open or focus the evidence viewer
+- next/previous evidence navigation
+
+After an explicit decision is recorded, the UI should auto-advance to the next reviewable proposal when one exists.
 
 Keyboard shortcuts should be surfaced on the relevant controls through tooltips or equivalent inline affordances rather than being discoverable only in a distant legend.
 
@@ -885,10 +918,12 @@ Match each PDF to the most likely row while minimizing incorrect row assignment.
 
 ### Pass 1 — Deterministic scoring
 Use publication metadata signals such as:
-- title similarity
+- identifiers when available, including DOI
+- first-author agreement
 - author overlap
-- year tolerance
-- identifiers when available
+- year consistency
+- title similarity with lower dominance than exact or near-exact signals
+- optional abstract similarity when available and cheap enough to compute
 
 ### Pass 2 — Model adjudication
 Use only for plausible ambiguous cases.
@@ -896,6 +931,8 @@ Use only for plausible ambiguous cases.
 ### Conflict policy
 - if match remains ambiguous: block extraction
 - if two or more PDFs match the same row: block all involved until manual cleanup
+
+Duplicate-row conflicts should be persisted and surfaced distinctly from ordinary ambiguity so operators can tell whether the issue is `multiple plausible rows for one PDF` or `multiple PDFs colliding on one row`.
 
 ### User visibility
 Unmatched, ambiguous, and duplicate-row-conflict PDFs must remain visible in the UI.
@@ -919,6 +956,8 @@ The MVP retrieval defaults are:
 - include captions/tables when relevant
 - one neighbor window around selected text chunks
 
+No standalone `retrieval.chunk_size` setting is part of the canonical baseline unless the runtime uses it directly.
+
 ## Retrieval text versus display text
 
 Retrieval may use contextualized `retrieval_text`, but evidence display and quote validation must use source-preserving text.
@@ -941,11 +980,11 @@ Advanced helpers must prove lift before becoming baseline behavior.
 
 The runner should start with:
 - one primary context strategy
-- one fallback
+- one bounded rescue path
 
 The current preferred direction is:
 - primary: focused retrieval-based extraction
-- fallback: broader full-document context for cases where retrieval is insufficient or not applicable
+- rescue on `unclear`: expanded retrieval, then section-level or optional full-text context for important fields when the parsed text fits comfortably in the active model context
 
 Memory-mode summarization is not baseline MVP behavior.
 
@@ -985,9 +1024,12 @@ The extraction model should receive, at minimum:
 - row context
 - column name
 - column description
+- optional schema field type and categorical allowed values when present
 - per-column style/format profile
 - retrieved evidence context
 - instructions for proposal state and evidence output
+
+The extraction contract must remain valid when no style profile exists because the table or column had no filled examples.
 
 The model is allowed to:
 
@@ -1027,6 +1069,17 @@ It must not encode likely scientific content for the target cell.
 
 Raw existing filled cells must not be injected into extraction prompts as semantic few-shot exemplars by default.
 
+Optional schema field types should remain the first-class semantic guidance for extraction:
+
+- `text`
+- `number`
+- `categorical`
+- `boolean`
+
+For `categorical` fields, the schema may supply `allowed_values`.
+
+For `number` fields, the internal answer contract must allow at least `exact`, `range`, and `approximate` forms.
+
 ---
 
 ## Evidence strategy
@@ -1045,14 +1098,17 @@ Evidence selection should consider source authority and field relevance. For exa
 
 The system must distinguish and label the following evidence types. These types must be rendered and labeled distinctly in the review UI:
 
-- `direct_quote`: a verbatim passage from the paper that directly states the value
+- `direct_quote`: a verbatim passage from the paper that directly states the value and remains anchored to the page
 - `inferred_reasoning`: a reasoning chain or argument constructed from one or more quoted passages; distinct from the quote itself
 - `calculation`: a calculation or derivation performed on quoted numeric evidence; distinct from the quote(s) used as inputs
 - `approximate_highlight`: a highlight region produced from approximate parser geometry rather than precise page-text alignment; labeled as approximate, not presented as exact
 - `quote_plus_page`: a quote plus page reference when precise highlighting fails; labeled as fallback text evidence
-- `figure_based_evidence`: evidence derived from a figure, chart, diagram, or image, with figure crop, caption, and full-page context
+- `caption_grounded_figure_evidence`: evidence grounded primarily in a figure caption plus figure context
+- `visual_interpretation_figure_evidence`: evidence grounded primarily in visual interpretation of a figure, chart, diagram, or image
 
 The review UI must show direct quotes separately from reasoning and calculations. The reviewer must be able to distinguish verbatim text from model-constructed inference.
+
+`direct_quote` should be reserved for anchored direct support. If the answer depends on reasoning over loosely related quotes, the evidence should be ranked and labeled as inferred or weak support instead.
 
 ## Exact quote highlighting and honest fallback
 
@@ -1089,11 +1145,11 @@ Each evidence object should capture, at minimum:
 - evidence identifier
 - source PDF
 - page reference
-- evidence type (one of: `direct_quote`, `inferred_reasoning`, `calculation`, `approximate_highlight`, `quote_plus_page`, `figure_based_evidence`)
+- evidence type (one of: `direct_quote`, `inferred_reasoning`, `calculation`, `approximate_highlight`, `quote_plus_page`, `caption_grounded_figure_evidence`, `visual_interpretation_figure_evidence`)
 - direct quote text when the evidence type includes verbatim text
 - exact highlight regions when available from page-text alignment
 - approximate fallback regions when exact alignment failed but parser geometry is available
-- figure reference, caption text, crop path, and full-page path when evidence is figure-based
+- figure reference, caption text, crop path, and full-page path when evidence is figure-derived
 - anchor confidence level
 - enough anchor information for the UI to render or fall back gracefully
 
@@ -1114,8 +1170,10 @@ Preferred minimum:
 ### Review emphasis
 - one primary evidence item by default, selected by evidence ranking
 - ordered supporting evidence items, navigable in ranked order
+- support multiple quote evidence items when one quote is not sufficient
 - separate rationale and calculation fields for derived values
 - direct quotes visually distinct from reasoning and calculations in the review UI
+- caption-grounded figure evidence should usually rank above generic inferred reasoning when otherwise comparably relevant
 
 ## Quote list and viewer synchronization
 
@@ -1161,7 +1219,7 @@ The MVP should:
 - generate crops and page references for review
 - run relevant extracted figures through vision review when a vision model is configured, selecting by structural heuristics or relevance rather than exhaustively processing every figure
 
-Figure-derived proposals remain normal proposals, but their evidence source must be marked as figure-based.
+Figure-derived proposals remain normal proposals, but their evidence source must preserve whether support was caption-grounded or primarily visual interpretation.
 
 The scope is targeted: relevant extracted figures per paper, not every page of every paper for every field. This keeps the approach focused while ensuring figure evidence is available where it matters.
 
@@ -1184,6 +1242,7 @@ Produce safe, review-authorized outputs without mutating the original source wor
 - preserve accepted cell content only
 - highlight changed cells
 - include audit log
+- require an explicit manual export trigger from the review UI
 
 ## Engine
 
@@ -1231,7 +1290,7 @@ Canonical run bundle:
 - parser outputs
 - retrieval artifacts
 - run metadata JSON
-- proposals JSON
+- proposals JSONL plus proposal index
 - evidence JSON
 - review decisions JSON
 - diagnostics JSON
@@ -1252,6 +1311,7 @@ The bundle should contain stable top-level categories such as:
 - `matching/`
 - `retrieval/`
 - `proposals/proposals.jsonl`
+- `proposals/index.json`
 - `evidence/evidence.jsonl`
 - `review/decisions.jsonl`
 - `review/reviewer_summary.json`
@@ -1336,8 +1396,8 @@ Keep proposal extraction robust across local and external providers.
 - typed request/response contracts
 - structured-output-first execution with capability negotiation
 - structured JSON per proposal as the stable contract
-- compatible fallback when a provider rejects a stronger guided-JSON mode
-- prompt-only JSON fallback only when the same proposal contract can still be validated
+- bounded structured-output recovery when a provider rejects or malformedly returns a stronger guided-JSON mode
+- no broader unstructured JSON recovery path beyond the bounded ladder that still preserves the same validated proposal contract
 
 The provider layer should be one typed interface with explicit locality, capability, and readiness reporting. The same provider abstraction should support LM Studio as the default local-first path and optional cloud providers later without changing the browser-first operator workflow.
 
@@ -1377,7 +1437,12 @@ When a vision model is configured and used, run artifacts and run summaries must
 
 Provider adapters should probe or negotiate structured-output compatibility per provider/model path rather than assuming one guided-JSON mechanism will work everywhere.
 
-If a provider rejects the preferred guided-output mode, the adapter should fall back to another compatible structured-response path only if the same proposal contract can still be validated.
+If a provider rejects the preferred guided-output mode, the adapter should follow a bounded ladder only if the same proposal contract can still be validated:
+
+1. `json_schema`
+2. one stronger-instruction retry
+3. minimal syntactic JSON repair
+4. otherwise hard failure for the affected target
 
 One structured-output mismatch or guided-JSON rejection must not poison an entire run by default. Compatibility handling should be contained to the affected provider-model path, request shape, or target-cell attempt, with truthful diagnostics and continued processing where the contract can still be preserved safely.
 
@@ -1396,6 +1461,8 @@ Before normal run execution begins, the app should perform the smallest coherent
 - output-path writability and other obvious broken local setup conditions
 
 If these checks fail, the run should stop before misleading downstream stages and persist a readiness failure that the UI can present directly.
+
+Provider-unavailable state discovered here must remain a failure outcome rather than being reclassified later as a warning-only completion.
 
 ## Provider mode recording and truthfulness
 
@@ -1532,7 +1599,7 @@ Run-summary and reviewer-summary counters and warning flags should be computed f
 - end-to-end stub run
 - review API and UI smoke
 - export generation
-- figure fallback path
+- proactive figure review path
 - Verify mode flow
 
 ### Deterministic offline tests
@@ -1580,7 +1647,7 @@ Maintain a compact fixture set that covers:
 - contextualized retrieval text
 - table-aware retrieval artifacts
 - narrow evidence validator + locator
-- figure fallback
+- proactive targeted figure review
 - review filters, counters, and progress UX
 
 ## P2 — Measured extensions
@@ -1601,7 +1668,7 @@ Maintain a compact fixture set that covers:
 **Mitigation:** PDFium low-level backend, strict evidence contract, one simple locator path, fallback quote+page reviewability.
 
 ### R-3: Figure scope too broad for reliable MVP behavior
-**Mitigation:** review-first figure UX, explicit fallback triggers, visible figure-based evidence, and human reviewer judgment as the governing quality check.
+**Mitigation:** review-first figure UX, targeted relevance selection, visible figure-derived evidence subtypes, and human reviewer judgment as the governing quality check.
 
 ### R-4: Workbook fidelity expectations exceed implementation reality
 **Mitigation:** explicitly document the content-only export boundary and the non-guaranteed workbook features.

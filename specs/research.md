@@ -1,4 +1,3 @@
-Annotated evidence display and standard PDF reading are related but not identical reviewer tasks. If one in-app viewer cannot do both reliably, the more important MVP contract is trustworthy quote/highlight display in-app plus an obvious handoff to the local OS PDF viewer for broader reading, text selection, and search.
 # Paper Table Agent — `research.md`
 
 ## Purpose
@@ -25,7 +24,7 @@ Where a conclusion is not fully settled, it should be marked clearly using the c
 
 ## Status
 
-Updated: evidence quality, reviewer trust, proactive figure review, and separate text/vision model direction
+Updated: evidence quality, reviewer trust, proactive figure review, separate text/vision model direction, and integrity/workflow refinements
 
 This document contains the current baseline conclusions plus explicit open questions. It should be updated whenever a major implementation decision changes.
 
@@ -78,15 +77,15 @@ The main research questions for this phase were:
 - Export should generate a **new updated XLSX workbook plus audit log**, not patch arbitrary workbooks in place, and **openpyxl** is the most realistic Python engine for that MVP behavior. The fidelity promise should be **content-only fidelity plus changed-cell highlighting**, with workbook behavior and advanced sheet features out of guarantee.
 - The implementation should use a **deterministic staged pipeline first**, with only targeted LLM-assisted stages.
 - The strongest current MVP runtime recommendation is that **runs are launched from the UI and executed under app-owned backend control using a lightweight in-process background mechanism for MVP; no external job framework is required**, with **Huey + SqliteHuey** as the first candidate background-job layer only if that approach later proves insufficient.
-- Structured outputs should be the **default contract path**, with capability probes and graceful fallback for weaker providers.
+- Structured outputs should be the **default contract path**, with capability probes and a bounded recovery ladder rather than open-ended fallback behavior.
 - Recent rebuild attempts showed that provider-path proof, readiness checks, and exact provider-contract parity must be explicit. A clean browser shell is not enough if the documented LM Studio path is broken, stubbed, mismatched, or silently degraded.
 - The rebuild quality bar should require one canonical live-path proof target: the checked-in workbook fixture plus the checked-in set of four paper PDFs, with `tests/fixtures/tables/literature_fixture.xlsx` plus `tests/fixtures/papers/paper_1.pdf` as the default live-smoke pair, and text-based companion fixtures or assertions preferred over new binary artifacts.
 - The provider architecture should remain **LM Studio first** for the local-default path, using the canonical config token `lm_studio`, while allowing **optional cloud providers behind the same typed interface**, using environment or secret-based credentials and opt-in live tests only.
 - Heavy orchestration or graph-first agent systems should be **deferred** unless measured workflow complexity clearly justifies them.
 - In MVP, evaluation should be based primarily on **reviewer-outcome summaries**, not on a single automated “correctness score” over heterogeneous field types.
-- Existing filled spreadsheet cells should be processed through a **per-column preprocessing LLM** that produces a structured style/format profile. Heuristic-only default shaping is not sufficient, and raw filled cells should **not** be passed into extraction prompts as semantic exemplars by default.
+- Existing filled spreadsheet cells should be processed through a **per-column preprocessing LLM** that produces a structured style/format profile. Heuristic-only default shaping is not sufficient, raw filled cells should **not** be passed into extraction prompts as semantic exemplars by default, and extraction must still work when a table or target column has no prefilled values.
 - Figure-aware evidence should be **proactive and targeted when vision capability is available**: the system should review all relevant extracted figures as a normal supplemental evidence stage, not only escalate to vision when text has failed. Figure evidence may support any field type, strengthen text proposals, or rescue weak text-only results. The scope remains focused on relevant extracted figures per paper rather than blanket per-page multimodal reasoning.
-- **Evidence quality and reviewer trust are first-class requirements**: the system must rank evidence by source authority and field relevance rather than treating the first model-returned quote as automatically primary. Evidence types must be distinguished and labeled: direct quote, inferred reasoning, calculation, approximate highlight fallback, quote-plus-page fallback, and figure-based.
+- **Evidence quality and reviewer trust are first-class requirements**: the system must rank evidence by source authority and field relevance rather than treating the first model-returned quote as automatically primary. Evidence types must be distinguished and labeled: direct quote, inferred reasoning, calculation, approximate highlight fallback, quote-plus-page fallback, `caption_grounded_figure_evidence`, and `visual_interpretation_figure_evidence`.
 - **Exact quote highlighting should be produced from page-text alignment** rather than only from parser bounding boxes; if exact alignment fails, the system must degrade honestly to approximate highlight or quote-plus-page fallback, each clearly labeled as such.
 - The review workspace must expose an ordered evidence list synchronized with the document viewer, with stable refocus when evidence or zoom changes.
 - Reviewers still expect ordinary PDF-reading affordances. A practical MVP should preserve drag-based page movement, text selection and copy when the source PDF allows it, and an obvious path to browser-native PDF controls even when annotated evidence overlays are also supported.
@@ -440,7 +439,7 @@ Some values are best supported by more than one snippet. The review surface shou
 
 ### Evidence types must be distinguished and labeled
 
-The system must distinguish: direct quote, inferred reasoning, calculation, approximate highlight fallback, quote-plus-page fallback, and figure-based evidence. These are not interchangeable. A reviewer making a decision benefits from knowing whether quoted text is verbatim from the paper or model-constructed.
+The system must distinguish: direct quote, inferred reasoning, calculation, approximate highlight fallback, quote-plus-page fallback, `caption_grounded_figure_evidence`, and `visual_interpretation_figure_evidence`. These are not interchangeable. A reviewer making a decision benefits from knowing whether quoted text is verbatim from the paper, caption-grounded, visually interpreted, or model-constructed.
 
 ### Exact quote highlighting requires page-text alignment
 
@@ -806,7 +805,7 @@ The app should be **structured-output-first**, with:
 - typed contracts
 - capability probes
 - provider-specific compatibility handling
-- prompt-only JSON fallback when needed
+- a bounded recovery ladder: `json_schema`, one stronger retry, minimal syntactic repair, then fail
 
 ## Why this conclusion matters
 
@@ -977,7 +976,7 @@ The strongest research-backed pattern is still:
 1. parse text, captions, and tables first
 2. run normal schema-driven extraction
 3. if a field remains unresolved or weakly supported, escalate to a figure-aware vision step
-4. store the result as a normal proposal with explicit figure-based evidence and review cues
+4. store the result as a normal proposal with explicit figure-derived evidence and subtype-aware review cues
 
 In other words, **vision works best as a targeted fallback**, not as the default extraction path for every page.
 
@@ -1009,7 +1008,7 @@ Running vision on every page of every paper for every field would be expensive a
 
 ### Honest labeling replaces precision restriction as the quality mechanism
 
-Instead of restricting figure evidence to prevent low-confidence results, the product should allow figure evidence freely and label it clearly. The reviewer sees figure-based evidence as figure-based evidence, makes their own judgment, and either accepts it or rejects it.
+Instead of restricting figure evidence to prevent low-confidence results, the product should allow figure evidence freely and label it clearly. The reviewer sees whether support is caption-grounded or visual interpretation, makes their own judgment, and either accepts it or rejects it.
 
 ## Why the fallback design still won at the research level
 
@@ -1061,7 +1060,7 @@ The vision step should receive a tightly scoped package rather than the whole pa
 
 ## Suggested outputs
 
-The figure fallback should produce a normal proposal object, but with figure-aware evidence metadata such as:
+The targeted figure-review step should produce a normal proposal object, but with figure-aware evidence metadata such as:
 
 - evidence source type = `figure`
 - figure/page identity
@@ -1091,7 +1090,7 @@ Normal extraction should still operate first on:
 - captions
 - document metadata
 
-### Stage C — Figure fallback
+### Stage C — Targeted figure review
 
 Only unresolved or weak cases should escalate to a vision-capable extraction pass.
 
@@ -1126,7 +1125,7 @@ These are difficult, but they are in the current product scope. That means the p
 
 ## Figure evaluation boundary
 
-MVP does not require a separate automated evaluation track for figure-derived proposals. Figure-based evidence should remain visible and reviewable, but usefulness is assessed through the same human reviewer outcomes used elsewhere in the product.
+MVP does not require a separate automated evaluation track for figure-derived proposals. Figure-derived evidence should remain visible and reviewable, but usefulness is assessed through the same human reviewer outcomes used elsewhere in the product.
 
 ## Useful tools and how they could help
 
@@ -1176,7 +1175,7 @@ This research supports:
 - figure-aware evidence sources as a normal supplemental stage, not a last-resort fallback
 - proactive targeted figure review when vision capability is available
 - figure evidence allowed for any field type
-- figure-based review evidence in the UI
+- figure-derived review evidence in the UI, with caption-grounded vs. visual-interpretation distinction
 - human review as the governing evaluation path for figure-derived proposals
 
 ---
@@ -1288,6 +1287,193 @@ Run summaries and reviewer context should identify both the text model and the v
 ## Main conclusion
 
 Provider configuration must carry separate model identifier fields for text extraction and vision extraction. Both fields must be recordable in run artifacts. Both must be reported in run summaries and reviewer context. A future implementation that uses a single model identifier for both modalities does not meet this requirement.
+
+---
+
+## Research topic 16 — Integrity and workflow refinements from rebuild validation
+
+## Why this matters
+
+Recent rebuild and review cycles validated additional trust and usability constraints that should be explicit in this research baseline. These refinements do not replace the existing architecture direction; they tighten it so reviewer-visible behavior, provider readiness semantics, and schema-driven extraction stay consistent and defensible.
+
+## Main conclusions
+
+### Style-profile anti-leakage and schema-first extraction
+
+Extraction must not depend on prefilled spreadsheet cells. Prefilled cells are optional helpers for output-shape guidance only, not semantic exemplars. The extraction contract remains schema-first: column name, column description, and optional field type define what the model is expected to produce.
+
+This keeps empty-table workflows first-class and reduces leakage risk where raw example values bias proposals toward prior spreadsheet content rather than current-paper evidence.
+
+### Optional per-field schema typing
+
+A small optional schema extension is justified for better extraction and evaluation consistency:
+
+- optional `field_type` for text, number, categorical, or boolean
+- optional `allowed_values` for categorical outputs only
+- numeric representation that supports exact, range, and approximate value forms
+
+`normalization_notes` should not become a required schema field for MVP.
+
+This extension should remain optional so MVP does not become schema-heavy.
+
+### Better schema descriptions as a product-quality lever
+
+Because extraction is schema-driven, better column descriptions are a high-leverage quality control. Documentation should guide users to specify:
+
+- what the field means
+- what answer shape is expected
+- key distinctions, boundaries, or exclusions
+
+This is typically more valuable than adding many extra tuning knobs.
+
+### Matching heuristics: lower title dominance, strengthen exact signals
+
+Matching should stay deterministic-first but reduce over-reliance on title similarity alone. The practical direction is to combine interpretable signals such as:
+
+- DOI or other stable identifiers
+- first author and author overlap
+- publication year consistency
+- abstract similarity when available
+
+This keeps matching explainable, strengthens robustness to title variation, and makes ambiguous or duplicate outcomes easier to defend.
+
+### Duplicate-row conflicts as first-class outcomes
+
+Duplicate-row conflicts are integrity outcomes, not ordinary ambiguity. When multiple papers compete for the same row mapping, extraction should be blocked for all involved PDFs until manual resolution. This prevents wrong-row proposal leakage into review.
+
+### Provider-unavailable must hard-fail at run start
+
+If the configured provider is unavailable at startup, the run should fail early with an explicit readiness failure. `completed_with_warnings` is reserved for partial-success runs where meaningful extraction work actually happened.
+
+This preserves operator trust by preventing cosmetically complete but non-functional runs from appearing successful.
+
+### Warning/status semantic consistency
+
+Warning and status semantics must be canonical across persisted extraction artifacts, review APIs, and UI summaries. Reviewer-facing state should derive from persisted facts, not UI-local interpretation.
+
+### Remove dead retrieval.chunk_size
+
+If `retrieval.chunk_size` is not consumed by the runtime retrieval path, it should be removed from config surfaces. Dead settings violate operator-contract parity across config example, runtime schema, README, and actual behavior.
+
+### Deterministic recall rescue for "model did not see it"
+
+When first-pass extraction returns unclear, recall should be improved through a bounded deterministic rescue path:
+
+1. focused retrieval pass
+2. expanded retrieval or section-level/full-text fallback on unclear outcomes
+3. optional whole-document mode when parsed text fits active model context
+
+This is a measured extension for recall and diagnostics, not a default whole-document strategy.
+
+### Keep retrieval simple by default
+
+Baseline retrieval direction remains:
+
+- typed chunks
+- contextualized retrieval text
+- simple lexical retrieval
+- no reranker, HyDE, or query expansion by default
+
+Structural improvements and deterministic rescue should be prioritized before advanced retrieval stacks.
+
+### Simpler structured-output fallback
+
+Use bounded structured-output recovery:
+
+1. `json_schema` first
+2. one stronger-instruction retry if invalid
+3. minimal JSON repair for purely syntactic errors
+4. otherwise clean extraction failure
+
+Prefer honest bounded failure over long silent fallback ladders.
+
+### Direct evidence must require anchored direct quote
+
+Direct-evidence support labels should require an anchored direct quote with exact or approximate page anchoring when possible. A loosely related quote is not sufficient to claim direct support.
+
+If support depends on reasoning over quotes rather than direct statement, the state should be `inferred_from_evidence` or another weaker support category.
+
+### Figure evidence split: caption-grounded vs visual interpretation
+
+Figure evidence should be split into at least:
+
+- `caption_grounded_figure_evidence`
+- `visual_interpretation_figure_evidence`
+
+Caption-grounded figure evidence is generally easier to verify and should usually rank above generic inferred reasoning. Pure visual interpretation remains useful but should carry higher review scrutiny.
+
+### Multiple quotes when genuinely needed
+
+Some values legitimately require more than one quote (for example condition plus result, or numerator plus denominator). The system should support multiple typed evidence items per proposal, ordered by relevance.
+
+### Proposals persistence refinement: `proposals.jsonl` plus index
+
+Filesystem-first persistence remains the MVP baseline, but per-proposal file sprawl should be avoided as run size grows. A practical refinement is `proposals.jsonl` plus an index for efficient listing/filtering/loading while preserving inspectability and portability.
+
+### Actionable-only progress counts
+
+Reviewer-facing progress headlines should default to actionable proposals. Attempted totals and diagnostic outcomes remain visible but should not dominate primary progress messaging.
+
+### Keyboard navigation, evidence cycling, and fast sequential review
+
+Keyboard support is a workflow-efficiency requirement for high-volume review, not optional power-user polish. Key actions should include next or previous proposal navigation, focus edit input, cycle evidence, and decision shortcuts.
+
+### Auto-advance after decision
+
+After recording a decision, the UI should auto-advance to the next proposal by default to preserve review momentum. Decision recording remains explicit and reviewer-safe.
+
+### Config path plus Browse button
+
+A text path field remains valuable for reproducibility and advanced control. A `Browse...` affordance improves first-run usability in browser workflows while preserving config authority.
+
+### PDF viewer priority: highlight quality and evidence navigation
+
+Annotated evidence inspection and ordinary PDF reading are related but not identical. If one in-app viewer cannot do both perfectly, the higher-priority product contract is:
+
+- trustworthy quote and highlight display in-app
+- robust evidence navigation in-app
+- obvious handoff to OS PDF viewing for broader reading, selection, and search
+
+### Manual export trigger from review UI
+
+Export should remain an explicit post-review user action rather than an implicit side effect of run completion.
+
+### Changed-cell highlighting as audit closure
+
+Changed-cell highlighting in exported workbooks is part of auditability and review closure, not cosmetic formatting. It enables fast visual reconciliation between review decisions and output workbook changes.
+
+### README screenshots and Playwright-based capture
+
+Because this product is workflow- and UI-dependent, README screenshots add practical onboarding value. Playwright-based capture is preferred for repeatable, updatable screenshots tied to real UI behavior.
+
+### Lightweight trustworthiness checklist
+
+A compact README trust checklist should clarify core trust boundaries such as:
+
+- local versus cloud path status
+- evidence type labeling
+- fallback visibility
+- review requirement before export
+- export fidelity boundary
+- audit artifact availability
+
+## Consequences for implementation and docs
+
+These refinements strengthen existing direction rather than replacing it:
+
+- schema-first extraction remains primary, with anti-leakage constraints made explicit
+- deterministic matching and retrieval remain baseline, with bounded rescue improvements
+- evidence semantics are tightened around anchored direct support and figure evidence subtypes
+- status/warning truthfulness is enforced end-to-end across persistence, API, and UI
+- review ergonomics are treated as throughput and trust requirements, not optional polish
+
+## Remaining open questions
+
+The current direction is strong enough for implementation, but these details remain implementation choices rather than open strategy questions:
+
+- what exact proposal-index shape best balances append-only writes with fast filter lookups for `proposals.jsonl`
+- what token or parsed-length threshold should gate optional whole-document mode cleanly for the default LM Studio path
+- whether the chosen in-app viewer can preserve strong highlight navigation and native-like text selection in one mode, or whether the local-PDF-viewer fallback should remain the clearer primary split
 
 ---
 
@@ -1422,7 +1608,7 @@ Paper Table Agent should be built as a **local-first, workflow-centered paper-to
 - filesystem artifact bundles and JSON files as the complete MVP persistence model
 - runs launched from the UI and executed under app-owned backend control using a lightweight in-process background mechanism for MVP
 - LM Studio localhost API, using the canonical config token `lm_studio`, as the default structured-output provider, with separate model identifier fields for text extraction and vision extraction
-- evidence quality as a first-class requirement: evidence ranking by source authority and field relevance, evidence type taxonomy (direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, figure-based), primary evidence selected by ranking, ordered supporting evidence, direct quotes visually separated from reasoning and calculations
+- evidence quality as a first-class requirement: evidence ranking by source authority and field relevance, evidence type taxonomy (direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, `caption_grounded_figure_evidence`, `visual_interpretation_figure_evidence`), primary evidence selected by ranking, ordered supporting evidence, direct quotes visually separated from reasoning and calculations
 - exact quote highlighting from page-text alignment with honest labeled fallback to approximate highlight or quote-plus-page; no fallback presented as exact
 - synchronized quote list and document viewer with stable refocus, previous/next/jump-to-page navigation, and figure-to-full-page context
 - proactive targeted figure review across all relevant extracted figures when a vision model is configured; figure evidence allowed for any field type; figure evidence may strengthen, supplement, or rescue any proposal

@@ -1,4 +1,3 @@
-- Add explicit `Open in local PDF viewer` action from the evidence pane and define OS-level fallback behavior when the annotated pane is intentionally optimized for highlights rather than native-reader interaction.
 # Paper Table Agent — `tasks.md`
 
 ## Status
@@ -39,9 +38,9 @@ Preserve these constraints throughout implementation:
 - **proactive figure review across all relevant extracted figures when a vision model is configured**
 - figure evidence allowed for any field type; not restricted to figure-classified fields
 - **no unrestricted full-page vision on every page by default**
-- **no user-triggered figure fallback**
+- **no user-triggered figure-review rerun control**
 - **evidence ranking**: primary evidence selected by authority and relevance, not by model output order
-- **evidence type taxonomy**: direct quote, inferred reasoning, calculation, approximate highlight fallback, quote-plus-page fallback, figure-based; each labeled and rendered distinctly
+- **evidence type taxonomy**: direct quote, inferred reasoning, calculation, approximate highlight fallback, quote-plus-page fallback, caption-grounded figure evidence, and visual-interpretation figure evidence; each labeled and rendered distinctly
 - **exact quote highlighting from page-text alignment** with honest labeled fallback to approximate highlight or quote-plus-page
 
 If implementation pressure suggests changing any of these constraints, update `spec.md` and `plan.md` first, then update this file in the same work pass.
@@ -95,119 +94,55 @@ Future coding-agent implementation should normally proceed by the canonical batc
 
 ## Canonical implementation batches
 
-### Batch 1 — Foundation and operator-start baseline
+### Batch 1 — Extraction truth, matching, and persistence refinement
 
-**Purpose:** establish contracts, artifact persistence, config resolution, deterministic test harnesses, and a real browser-first run-start path with explicit pre-review and lifecycle guidance.
+**Purpose:** tighten the extraction contract so the system is schema-first, empty-table-safe, deterministically matchable, provider-truthful, and evidence-strict before more UI polish lands.
 
-**Primary tasks:** `T001–T024a`, `T081`, `T082a`, `T102`, `T103`
+**Primary tasks:** `T020a`, `T024c`, `T034a`, `T038a`, `T040a`, `T041a`, `T042a`, `T044a`, `T047a`, `T047b`, `T047c`, `T049a`, `T049b`, `T050b`, `T052b`, `T052c`, `T056a`, `T057b`, `T058b`, `T059a`, `T062a`, `T062b`, `T067a`
 
-**Why this batch exists:** future work goes shallow if the project starts from a backend-heavy skeleton with weak onboarding or vague run-state handling.
+**Why this batch exists:** the next implementation pass should first fix extraction leakage risk, matching integrity, warning truth, and artifact shape. Otherwise later review UX polish will sit on top of weak or misleading backend semantics.
 
 **Batch 1 is complete when:**
 
-- a new local operator can install dependencies, start backend/frontend, open the browser UI, enter a config path, create a run, and understand `ready` / `validating` / `running` / terminal states
-- config validation, config snapshotting, input summaries, run ids, and artifact layout are stable and inspectable
-- provider token validation and run-start readiness checks catch broken setup, invalid provider config, missing dependencies, unreachable providers, and unavailable models before the operator waits through a misleading run
-- readiness-failed and early-failed runs still expose resolved config/input context in artifacts and the UI
-- the run/setup surface is picker-driven for normal use, resolves path differences clearly, and stays compact rather than path-heavy
-- the UI explains what to do before review exists instead of dropping the user into an empty shell
-- automated tests cover config validation, provider/readiness failures, lifecycle transitions, and basic run creation behavior
+- deterministic matching clearly favors DOI, author, and year signals over title-heavy scoring and explains duplicate-row conflicts distinctly from ordinary ambiguity
+- schema-first extraction works without prefilled cells, optional field typing is honored, and style profiles remain helper-only rather than semantic exemplars
+- retrieval rescue is bounded and explicit, whole-document mode is optional rather than default, and dead `retrieval.chunk_size` config is gone
+- provider-unavailable state hard-fails at run start, warning propagation is truthful, and the structured-output ladder is bounded and testable
+- proposal persistence uses `proposals.jsonl` plus an index or equivalent lookup structure
+- direct evidence requires anchored direct support, multiple quotes are supported when genuinely needed, and figure evidence subtypes are ranked and labeled correctly
 
-### Batch 2 — Parsing and row-matching baseline
+### Batch 2 — Reviewer workflow, viewer navigation, and export control
 
-**Purpose:** parse papers once into a stable contract, support OCR fallback, and produce trustworthy matched/unmatched/ambiguous/duplicate-row outcomes before extraction begins.
+**Purpose:** make the run and review workspace faster and more trustworthy by tightening setup and status truth, centering actionable counts, improving fast sequential review, and keeping export explicit.
 
-**Primary tasks:** `T025–T040`
+**Primary tasks:** `T023c`, `T024b`, `T068a`, `T075b`, `T080a`, `T082b`, `T084a`, `T086c`, `T090b`, `T091a`, `T093a`, `T094a`, `T095a`, `T096a`, `T101a`
 
-**Why this batch exists:** mediocre implementations often rush into extraction before parser outputs, diagnostics, and blocked-match behavior are stable.
+**Why this batch exists:** the current baseline already has a substantial review shell. The next useful step is to tighten reviewer throughput and truthfulness rather than rebuild the whole workspace again.
 
 **Batch 2 is complete when:**
 
-- PDFs are normalized into a stable parsed-document contract with stored parser diagnostics and page/crop artifacts
-- text-based PDFs remain parseable across supported Docling versions; parser-integration drift is covered by a real fixture-backed regression test rather than treated as acceptable silent degradation
-- OCR fallback is narrow, explicit, and stored in artifacts
-- configured parser choice, actual parser used, and any explicit fallback path are inspectable rather than silently substituted
-- low-text or parse-degraded papers surface explicit diagnostics and must not look like normal reviewable no-value proposals
-- each PDF ends in a clear match outcome before extraction
-- ambiguous, unmatched, and duplicate-row-conflict cases are blocked and inspectable rather than silently leaking into extraction
+- active runs refresh automatically, cancellation is explicit, and stale-refresh failures are surfaced instead of silently leaving the operator with stale state
+- the review workspace headline and progress controls default to actionable or reviewable proposals instead of broader attempted totals
+- the config path remains editable as text while also supporting a `Browse...` control for normal use
+- evidence navigation supports fast sequential review, including next or previous evidence and stronger highlight synchronization
+- explicit decisions auto-advance to the next reviewable proposal when one exists
+- parsing fallback, duplicate conflicts, evidence fallback, and provider-mode truth are surfaced consistently in review-facing summaries and diagnostics
+- export is an explicit manual reviewer action and never an implicit side effect
 
-### Batch 3 — Retrieval, style profiles, extraction, and evidence
+### Batch 3 — Regression protection, screenshots, and trustworthiness docs
 
-**Purpose:** produce one best proposal per eligible target cell with grounded evidence, stable structured contracts, scoped recovery, and scoped figure fallback.
+**Purpose:** close the loop with coverage and operator docs so the tightened workflow remains demonstrable, repeatable, and truthful.
 
-**Primary tasks:** `T041–T067`
+**Primary tasks:** `T107c`, `T107d`
 
-**Why this batch exists:** proposal quality depends on retrieval discipline, style guidance, structured outputs, and strict evidence handling rather than on raw model access alone.
+**Why this batch exists:** these changes are product-trust changes. They should ship with screenshots, lightweight trust guidance, and reproducible documentation rather than being left as implicit code behavior.
 
 **Batch 3 is complete when:**
 
-- retrieval artifacts, style profiles, prompts, proposal records, and evidence records are all inspectable in run artifacts
-- one best proposal per target cell is generated with explicit `found` / `inferred` / `unclear` / `blocked` / `error` / `skipped` handling
-- quote-plus-page fallback remains reviewable when highlight anchoring fails
-- structured-output compatibility is negotiated truthfully, malformed structured responses get bounded recovery before hard failure, long-text fields do not systematically fail from short-answer assumptions, and unsupported guessing resolves to `unclear`
-- figure fallback stays scoped, clearly labeled, and review-first rather than becoming a generic second extraction path
-- figure review uses persisted figure crop artifacts and page links shared with the reviewer UI; caption-only figure records do not satisfy the vision-review contract
-- the canonical LM Studio path is proven on `tests/fixtures/tables/literature_fixture.xlsx` plus `tests/fixtures/papers/paper_1.pdf` by producing at least one non-empty proposal with reviewer-usable evidence, or the run fails early with an explicit readiness error rather than pretending extraction succeeded
-
-### Batch 4 — Review backend, summaries, and export gating
-
-**Purpose:** make proposals reviewable and filterable through stable APIs, preserve review decisions and auditability, and compute truthful run/reviewer summaries before the full browser workspace is polished.
-
-**Primary tasks:** `T068–T080`
-
-**Why this batch exists:** shallow implementations often build the visible review UI before the decision model, summary model, and warning semantics are trustworthy.
-
-**Batch 4 is complete when:**
-
-- proposal-list/detail/filter APIs support the full MVP review surface
-- review decisions are explicit persisted records, not implicit UI state
-- progress counters, warning/status categories, run summaries, and reviewer summaries are recomputable from artifacts
-- run and reviewer summaries stay internally consistent, with provisional states labeled clearly and warning flags gated on real triggering conditions
-- persisted review semantics distinguish confirmed no-data outcomes from rejected-or-model-wrong outcomes
-- export candidate selection is safely limited to explicitly accepted proposals
-- review-facing APIs expose actionable proposal counts separately from broader attempted or diagnostic totals
-
-### Batch 5 — Browser review workspace and operator usability
-
-**Purpose:** deliver the actual queue-first review product surface with strong pre-review states, clear status/warning cues, safe review actions, and truthful artifact/download access.
-
-**Primary tasks:** `T082`, `T083–T095`, `T100`
-
-**Why this batch exists:** future agents can technically satisfy many UI requirements while still shipping a review workspace that feels fragmented, stale, or unsafe.
-
-**Batch 5 is complete when:**
-
-- the browser app presents a coherent run-summary plus queue/detail/evidence workspace
-- grouped queue triage is actually usable, with paper and column grouping, compact cards, and high-scan state markers
-- queue grouping labels use meaningful paper metadata when available rather than bare internal PDF ids
-- proposal ordering, filtering, selection, grouping mode changes, and run switching behave predictably without stale state leakage
-- no-value cases have explicit reviewer paths, including manual entry and confirmed no-data resolution
-- text highlights, quote-plus-page fallback, figure evidence, zoom/pan, standard drag-based PDF reading, evidence-to-input interaction, bulk acceptance, edited acceptance, keyboard navigation, and unresolved-match inspection are all actually usable
-- queue, detail, and evidence panes are resizable by the reviewer
-- the evidence pane preserves ordinary PDF-reader affordances in at least one mode, including drag-based panning and text selection/copy when the PDF source allows it
-- rationale is concise and scannable in the decision pane rather than rendered as dense prose
-- provider mode and readiness truth are visible in the UI, and disabled, degraded, stub, or unreachable proposal-generation states are not mistaken for normal live execution
-- active runs refresh automatically in the UI, stale-refresh conditions are explicit, and operators can abort in-flight runs from the main workflow
-- the run/setup UI is picker-driven rather than path-heavy while still showing config-derived resolved context
-- download surfaces are truthful about what is ready versus not yet written
-- end of Batch 5: generate or update `README.md` so it truthfully matches the implemented app’s startup path, config workflow, run lifecycle, review workflow, current download/export behavior, and known MVP limitations at that stage
-- frontend tests and Playwright coverage verify real user-facing behavior, not just component presence
-
-### Batch 6 — Export, hardening, regression protection, and docs truth
-
-**Purpose:** finish the product with safe accepted-only export, unsupported-feature warnings, hermetic regression coverage, opt-in live smoke coverage, performance checks, and fully truthful onboarding docs.
-
-**Primary tasks:** `T096–T101`, `T104–T107b`
-
-**Why this batch exists:** the app is not finished when review works if export integrity, warnings, diagnostics, and onboarding still mislead users.
-
-**Batch 6 is complete when:**
-
-- accepted-only export, changed-cell highlighting, audit logs, and completed-with-warnings behavior are verified end to end
-- unsupported workbook feature warnings and diagnostics remain explicit rather than implied
-- hermetic end-to-end coverage protects the core workflow, with separate opt-in live LM Studio smoke coverage, opt-in cloud smoke coverage when implemented, and performance smoke tests
-- `README.md` reflects the real primary happy path, artifact locations, config authority, UI-driven launch/status/review/export workflow, and export fidelity boundary
-- the final user-facing docs set is audited against the implemented MVP so README and related docs do not mention speculative helpers, stale commands, obsolete architecture, or workflows that do not exist
+- operator docs explain schema descriptions, manual export, evidence semantics, and provider or parsing truth without drift
+- the README includes current screenshots for run setup, highlighted evidence review, and export or diagnostics views
+- screenshot capture is reproducible through Playwright or an equivalent checked-in workflow
+- the README includes a compact trustworthiness checklist aligned with local-first usage, evidence labeling, fallback visibility, review-before-export, and audit artifact access
 
 The detailed task inventory below remains the source of truth for exact implementation work inside each batch.
 
@@ -277,11 +212,11 @@ The detailed task inventory below remains the source of truth for exact implemen
   - `primary_evidence_id` (the single most authoritative evidence item, selected by evidence ranking)
   - `ordered_supporting_evidence_ids` (ordered list of additional evidence item ids, ranked by authority and relevance, most authoritative first)
 
-- [x] **T007** Define the evidence JSON schema and contract for separate evidence records linked to proposals, including at least:
+- [ ] **T007** Define the evidence JSON schema and contract for separate evidence records linked to proposals, including at least:
   - `evidence_id`
   - `proposal_id`
   - `pdf_id`
-  - `source_type` (one of: `direct_quote`, `inferred_reasoning`, `calculation`, `approximate_highlight`, `quote_plus_page`, `figure_based_evidence`)
+  - `source_type` (one of: `direct_quote`, `inferred_reasoning`, `calculation`, `approximate_highlight`, `quote_plus_page`, `caption_grounded_figure_evidence`, `visual_interpretation_figure_evidence`)
   - `page`
   - `quote_text` (verbatim text for direct quote, inferred reasoning, calculation, and quote-plus-page types)
   - `exact_highlight_regions` (bounding regions from page-text alignment when available)
@@ -426,9 +361,9 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T023a** Keep run creation UI-driven in practice by returning a created run immediately, then launching execution under app-owned backend control using a lightweight in-process background mechanism for MVP, with no external job framework required, while exposing validating/running/terminal state transitions, actionable failure messaging, and diagnostics/config access.
 
-- [x] **T024** Add tests covering valid input readiness, metadata-column rejection, missing-path rejection, placeholder handling, and Verify mode behavior.
+- [ ] **T024** Add tests covering valid input readiness, metadata-column rejection, missing-path rejection, placeholder handling, and Verify mode behavior.
 
-- [x] **T024a** Add tests covering readiness and startup truth.
+- [ ] **T024a** Add tests covering readiness and startup truth.
   - invalid provider token rejection
   - provider-unreachable readiness failure
   - model-unavailable readiness failure where applicable
@@ -440,6 +375,11 @@ The detailed task inventory below remains the source of truth for exact implemen
   - browser-selected input override handling
   - backend staging or input-handle materialization for browser-selected inputs
   - resolved-path reporting in early-failure and success cases
+
+- [ ] **T024c** Add tests for provider hard-fail truth and warning semantics.
+  - provider-unavailable at run start must produce readiness failure rather than `completed_with_warnings`
+  - `completed_with_warnings` must remain reserved for partial-success runs where meaningful processing actually happened
+  - run summaries and reviewer summaries must preserve that distinction
 
 ---
 
@@ -493,6 +433,12 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T034** Implement deterministic matching scoring using publication metadata signals.
 
+- [ ] **T034a** Rebalance deterministic matching so exact and near-exact signals dominate title similarity.
+  - prioritize DOI and other stable identifiers when present
+  - strengthen first-author match, broader author overlap, and year consistency signals
+  - lower title dominance so title similarity cannot outweigh stronger identifier or author/year evidence by itself
+  - allow optional abstract similarity only as a secondary deterministic signal when available
+
 - [x] **T035** Implement limited fallback adjudication only for plausible ambiguous cases.
 
 - [x] **T036** Implement final match outcome assignment for:
@@ -505,9 +451,18 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T038** Persist matching artifacts and reasoning summaries so unmatched, ambiguous, and conflict cases are inspectable later.
 
+- [ ] **T038a** Persist duplicate-row conflicts as first-class diagnostic records.
+  - record the conflicting PDF set, target row, and per-signal rationale
+  - keep duplicate-row conflicts distinct from ordinary ambiguity in artifacts, summaries, and UI-facing payloads
+
 - [x] **T039** Expose unmatched, ambiguous, and duplicate-row-conflict records through API endpoints for the UI.
 
 - [x] **T040** Add tests for deterministic match success, ambiguous-block behavior, unmatched behavior, and duplicate-row-conflict behavior.
+
+- [ ] **T040a** Add tests for the tightened matching heuristic contract.
+  - DOI or identifier matches must outrank title-only similarity
+  - first-author and author-overlap signals must change ranking materially
+  - year mismatches and duplicate-row conflicts must remain explainable in persisted diagnostics
 
 ---
 
@@ -525,7 +480,18 @@ The detailed task inventory below remains the source of truth for exact implemen
   - `format_notes`
   - `example_risk`
 
-- [x] **T042** Implement the per-column preprocessing LLM step that analyzes existing filled cells and produces one structured style profile per schema column.
+- [ ] **T041a** Extend the schema contract with optional field typing.
+  - add optional `field_type` values: `text`, `number`, `categorical`, `boolean`
+  - add optional `allowed_values` for `categorical` only
+  - do not require `normalization_notes`
+  - document numeric answer forms `exact`, `range`, and `approximate` in the extraction contract
+
+- [ ] **T042** Implement the per-column preprocessing LLM step that analyzes existing filled cells and produces one structured style profile per schema column.
+
+- [ ] **T042a** Make style-profile preprocessing helper-only and empty-table-safe.
+  - allow extraction to proceed when a table or target column has no filled examples
+  - treat missing style profiles as expected input conditions rather than extraction failures
+  - preserve schema-first behavior when style-profile preprocessing yields no useful profile
 
 - [x] **T043** Persist style profiles under `style_profiles/` and ensure they guide only output form, not semantic content.
 
@@ -533,6 +499,11 @@ The detailed task inventory below remains the source of truth for exact implemen
   - do not inject raw filled cells as semantic exemplars by default
   - keep the preprocessing output limited to style/format guidance
   - keep any leakage-risk markers visible in artifacts and diagnostics
+
+- [ ] **T044a** Tighten extraction request construction against schema leakage.
+  - pass column name, description, optional field type, and style-profile summary only
+  - do not pass raw historical cell values into extraction prompts as semantic examples
+  - keep extraction behavior schema-first even when Verify mode is enabled
 
 - [x] **T045** Create MVP retrieval chunks for at least:
   - paragraphs
@@ -548,9 +519,30 @@ The detailed task inventory below remains the source of truth for exact implemen
   - include one neighbor window around selected text chunks
   - do **not** implement reranking, HyDE, or query expansion in the MVP baseline
 
+- [ ] **T047a** Remove dead `retrieval.chunk_size` config from schema, examples, docs, and tests if the runtime does not use it.
+
+- [ ] **T047b** Implement deterministic recall rescue for `unclear` first-pass results.
+  - start with focused retrieval-based extraction
+  - on `unclear`, expand retrieval context or promote to section-level context
+  - keep the rescue path explicit in artifacts and diagnostics rather than hidden in prompt construction
+
+- [ ] **T047c** Add optional config-controlled whole-document mode.
+  - keep it off by default
+  - enable it only when parsed text fits comfortably in the active model context and the field is important enough to justify the broader pass
+  - record when whole-document mode was used in run artifacts and summaries
+
 - [x] **T048** Persist retrieval artifacts and diagnostics so selected chunks, contextualized text, and source-preserving review text remain inspectable.
 
-- [x] **T049** Add tests covering style-profile generation, no raw-example leakage into extraction inputs, typed chunk generation, retrieval-text/display-text separation, and retrieval defaults.
+- [ ] **T049** Add tests covering style-profile generation, no raw-example leakage into extraction inputs, typed chunk generation, retrieval-text/display-text separation, and retrieval defaults.
+
+- [ ] **T049a** Add tests for schema-first extraction and optional field typing.
+  - empty-table or empty-column cases must still extract without error
+  - `categorical` fields must honor `allowed_values` when provided
+  - numeric fields must accept `exact`, `range`, and `approximate` forms in the internal contract
+
+- [ ] **T049b** Add tests for bounded recall rescue and optional whole-document mode.
+  - first-pass `unclear` outcomes should trigger the configured rescue path
+  - whole-document mode must remain opt-in and visible in artifacts when used
 
 ---
 
@@ -564,6 +556,11 @@ The detailed task inventory below remains the source of truth for exact implemen
   - support separate model identifier fields for text extraction and vision extraction in the provider config
   - validate guided-JSON or equivalent structured-output compatibility instead of assuming one wire format
   - keep structured-output compatibility handling scoped so one provider-schema mismatch does not poison unrelated proposal attempts by default
+
+- [ ] **T050b** Enforce provider-unavailable hard-fail semantics at run start.
+  - fail readiness when a configured live provider is unavailable or unreachable before proposal generation begins
+  - reserve `completed_with_warnings` for partial-success runs only
+  - keep provider-mode truth explicit in artifacts, summaries, and UI-facing payloads
 
 - [x] **T051** Implement **LM Studio localhost API** integration as the initial MVP provider path.
   - keep config parsing, runtime behavior, artifacts, and UI-visible summaries aligned with the canonical provider contract
@@ -584,6 +581,16 @@ The detailed task inventory below remains the source of truth for exact implemen
   - containment of compatibility failures so the affected target or request path fails truthfully without unnecessarily poisoning the rest of the run
   - explicit fail-fast rules when recovery cannot preserve the proposal contract
   - request/response logging policy with actionable diagnostics
+
+- [ ] **T052b** Tighten structured-output recovery to one bounded ladder.
+  - `json_schema` first
+  - one stronger-instruction retry if the response is invalid
+  - minimal JSON repair only for purely syntactic failures
+  - otherwise mark extraction failed for the affected target
+
+- [ ] **T052c** Normalize warning and status propagation end to end.
+  - keep evidence-fallback mapping keys consistent from extraction artifacts through review APIs and UI summaries
+  - ensure provider-mode truth and fallback-status truth are derived from persisted facts rather than UI-local heuristics
 
 - [x] **T052a** Make provider-mode truth explicit across runtime artifacts and operator surfaces.
   - classify proposal generation at minimum as live local, live cloud, unavailable, disabled, or explicit stub/demo/degraded mode
@@ -606,6 +613,11 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T056** Implement proposal/evidence serialization using the shared artifact I/O layer so proposals and evidence are stored as separate linked records under stable bundle locations.
 
+- [ ] **T056a** Migrate canonical proposal persistence to `proposals.jsonl` plus proposal index.
+  - keep filesystem-first JSON persistence
+  - use an index or equivalent lookup structure for id-based loading and filtered list assembly
+  - remove any remaining many-small-proposal-file direction from artifacts and docs
+
 - [x] **T057** Implement the per-target-cell extraction orchestrator that assembles:
   - row context
   - column definition
@@ -614,6 +626,11 @@ The detailed task inventory below remains the source of truth for exact implemen
   - retrieved evidence context
   - Verify mode state
   - text-model or vision-model request path as routed
+
+- [ ] **T057b** Add schema-aware field-type handling to extraction and proposal contracts.
+  - pass optional schema `field_type` and `allowed_values` into extraction requests when present
+  - keep numeric outputs internally typed as `exact`, `range`, or `approximate`
+  - ensure the absence of field typing does not block extraction
 
 - [x] **T057a** Add field-aware extraction handling for long-text targets so narrative outputs do not systematically fail because of short-answer-oriented response shaping or truncation assumptions.
 
@@ -629,6 +646,10 @@ The detailed task inventory below remains the source of truth for exact implemen
   - prefer `unclear` over guesses supported mainly by prior spreadsheet values, common practice, or weak implication
   - keep style profiles and prior table content as output-shaping context only, not as semantic evidence substitutes
 
+- [ ] **T058b** Fix direct-evidence support semantics.
+  - require anchored direct quote support before labeling a proposal as direct evidence
+  - downgrade quote-plus-reasoning cases to inferred or weak evidence when the quote does not directly state the answer
+
 - [x] **T059** Implement text-evidence anchoring and highlight production using a page-text alignment strategy:
   - attempt exact quote matching against the rendered page text layer to produce character-level highlight regions
   - store resulting regions as `exact_highlight_regions` in the evidence record
@@ -636,6 +657,10 @@ The detailed task inventory below remains the source of truth for exact implemen
   - if neither succeeds, fall back to quote-plus-page evidence, labeled as such
   - never present approximate or fallback highlights as exact highlights
   - store the `source_type` that reflects the achieved highlight fidelity
+
+- [ ] **T059a** Support multiple quote evidence items for one proposal when genuinely needed.
+  - preserve ranked ordering across multiple quotes, calculations, and supporting evidence items
+  - avoid collapsing multi-part support into one synthetic quote blob when separate quotes are clearer for review
 
 - [x] **T060** Implement the single narrow evidence-recovery pass when evidence is weak, missing, or unusable for display.
 
@@ -650,6 +675,14 @@ The detailed task inventory below remains the source of truth for exact implemen
   - figure review produces additional evidence items ranked by authority and relevance alongside existing text evidence
   - no user-triggered figure review control is part of MVP; figure review runs automatically based on configuration
 
+- [ ] **T062a** Split figure evidence into reviewer-visible subtypes.
+  - persist `caption_grounded_figure_evidence` separately from `visual_interpretation_figure_evidence`
+  - expose both subtypes through artifacts, API payloads, and UI labels
+
+- [ ] **T062b** Tighten figure-evidence ranking semantics.
+  - rank caption-grounded figure evidence above generic inferred reasoning when otherwise comparably relevant
+  - keep pure visual-interpretation evidence visibly distinct and subject to higher reviewer scrutiny
+
 - [x] **T063** Build the figure-fallback input package containing:
   - crop
   - caption
@@ -658,21 +691,27 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T064** Persist figure-derived evidence records distinctly from text evidence while keeping figure-derived proposals as normal proposals with figure-marked evidence.
 
-- [x] **T065** Implement reviewer-facing support-label mapping and evidence type labeling:
+- [ ] **T065** Implement reviewer-facing support-label mapping and evidence type labeling:
   - map internal proposal states to reviewer-facing labels such as `Direct evidence` and `Inferred from evidence`
-  - label each evidence item's type visibly in the UI: direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, or figure-based
+  - label each evidence item's type visibly in the UI: direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, `caption_grounded_figure_evidence`, or `visual_interpretation_figure_evidence`
   - ensure the primary evidence item is visually distinguished as primary
   - ensure supporting evidence items are shown in ranked order
   - ensure direct quotes are visually separated from reasoning and calculations in the detail pane
 
 - [x] **T066** Ensure Verify mode uses the same extraction path for already-filled cells and persists reviewable proposals for them.
 
-- [x] **T067** Add tests covering structured-output parsing, provider failure handling, proposal/evidence serialization, blocked outcomes, unclear outcomes, evidence recovery, evidence ranking (primary selection by authority), evidence type labeling, exact-highlight vs. approximate-highlight vs. quote-plus-page fallback evidence paths, proactive figure review triggering, figure evidence support for any field type, figure rescue of weak text proposals, separate text and vision model config, and Verify mode extraction on filled cells.
+- [ ] **T067** Add tests covering structured-output parsing, provider failure handling, proposal/evidence serialization, blocked outcomes, unclear outcomes, evidence recovery, evidence ranking (primary selection by authority), evidence type labeling, exact-highlight vs. approximate-highlight vs. quote-plus-page fallback evidence paths, proactive figure review triggering, figure evidence support for any field type, figure rescue of weak text proposals, separate text and vision model config, and Verify mode extraction on filled cells.
   - include contract-parity and provider-mode truth assertions where applicable
   - cover compatibility mismatches that should not poison the rest of the run
   - cover malformed-JSON repair behavior and compact bullet-rationale output shape
   - cover evidence ranking behavior: proposals must have the highest-authority quote as primary
   - cover the honest fallback chain: exact → approximate → quote-plus-page, each with correct source_type
+
+- [ ] **T067a** Add tests for the tightened extraction-truth contract.
+  - cover provider hard-fail semantics at run start
+  - cover the bounded structured-output ladder exactly as specified
+  - cover direct-evidence thresholding, multi-quote support, and figure-evidence subtype ranking
+  - cover `proposals.jsonl` plus index persistence behavior
 
 ---
 
@@ -684,6 +723,11 @@ The detailed task inventory below remains the source of truth for exact implemen
   - define categories for ambiguous match, duplicate-row conflict, weak evidence, quote+page fallback without highlight, figure-derived evidence, no reviewed verified cells, completed-with-warnings run outcome, readiness failure, provider unavailable, and explicit disabled or degraded provider mode
   - persist these statuses in run and proposal artifacts
   - expose them consistently through API payloads
+
+- [ ] **T068a** Surface degraded parsing, duplicate-row conflicts, and evidence-fallback truth consistently.
+  - carry parse-fallback and low-text warnings from parsing artifacts into run summaries and review payloads
+  - keep duplicate-row conflicts distinct from ambiguous matches in status categories and API responses
+  - ensure evidence-fallback states remain reviewer-visible without inflating the main actionable queue
 
 - [x] **T069** Implement proposal-list APIs with filters for at least:
   - row
@@ -732,6 +776,10 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T075a** Ensure review aggregates distinguish confirmed-no-data outcomes from rejected-or-model-wrong outcomes in both backend summaries and API payloads.
 
+- [ ] **T075b** Make actionable-only counts the default review-progress source.
+  - compute primary progress from reviewable or actionable proposals
+  - expose broader attempted totals, blocked counts, and diagnostic totals only as secondary context
+
 - [x] **T076** Implement run-summary generation and persistence in `summaries/run_summary.json`, including at minimum:
   - PDFs processed
   - matched / unmatched / ambiguous PDFs
@@ -774,6 +822,10 @@ The detailed task inventory below remains the source of truth for exact implemen
 - [x] **T080** Add tests covering review decision recording, audit history, visible-subset bulk acceptance, warning/status semantics, review-asset serving, run-summary recomputation, reviewer-summary recomputation, and partial-review behavior.
   - cover distinct confirmed-no-data persistence and summary reporting
 
+- [ ] **T080a** Add tests for warning/status truth across artifacts, APIs, and summaries.
+  - parse fallback, provider-mode truth, duplicate-row conflicts, and evidence-fallback warnings must stay consistent across surfaces
+  - actionable-only counts must remain distinct from broader attempted totals in summary payloads
+
 ---
 
 ## Phase 7 — Review UI shell, three-pane workspace, ordering rules, and evidence viewer
@@ -810,6 +862,10 @@ The detailed task inventory below remains the source of truth for exact implemen
   - keeps empty/loading/warning/failure states explicit before the review queue is ready
   - makes the next operator action obvious when no run exists yet or when the selected run is not reviewable
 
+- [ ] **T082b** Add a `Browse...` control next to the config-path text field.
+  - keep the text field as the canonical visible path control
+  - allow normal local-first file selection without hiding or replacing the path value
+
 - [x] **T083** Implement the three-pane review workspace:
   - left pane = grouped review queue or sidebar
   - center pane = detail and decision workflow
@@ -840,6 +896,10 @@ The detailed task inventory below remains the source of truth for exact implemen
   - do not record review decisions implicitly from navigation or selection changes
   - allow filter continuity across run switches when practical, but do not preserve stale proposal/detail/evidence state across runs
 
+- [ ] **T084a** Make actionable-only progress explicit in the review workspace.
+  - use reviewable or actionable proposal counts in the main headline and primary counters
+  - keep broader totals available secondarily without dominating queue triage
+
 - [x] **T085** Implement the proposal detail pane showing row context, target column definition, current value in Verify mode, proposed value, support label, rationale, calculation, warning/status flags, and evidence list with primary and ordered supporting items.
   - status, evidence source, and warning state should be distinguishable at a glance
   - keep explicit row context near the top
@@ -851,7 +911,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - support explicit no-value reviewer actions including edited-value entry and confirmed-no-data resolution
   - surface structured resolution reasons for non-accepted or manually resolved outcomes
 
-- [x] **T086** Implement the evidence viewer pane so it supports both annotated evidence inspection and normal PDF reading behavior for text evidence and attached reviewable figure evidence.
+- [ ] **T086** Implement the evidence viewer pane so it supports both annotated evidence inspection and normal PDF reading behavior for text evidence and attached reviewable figure evidence.
   - include zoom and pan capabilities as baseline viewer behavior
   - include previous and next page navigation
   - include jump-to-page-by-number navigation
@@ -864,6 +924,11 @@ The detailed task inventory below remains the source of truth for exact implemen
   - expose an obvious action to open the current PDF in a fuller browser-native viewer when scoped evidence or in-pane controls are insufficient
   - treat in-viewer text search as recommended when supported cleanly by the chosen viewer mode or browser PDF surface, but do not require a brittle custom search layer for MVP
   - do not force reviewers to remain in an overlay-only mode when they need to read or copy from the paper naturally
+
+- [ ] **T086c** Strengthen evidence navigation and highlight behavior in the viewer.
+  - add explicit next and previous evidence controls in the evidence pane
+  - keep highlight focus synchronized as the reviewer cycles evidence items
+  - prioritize highlight and navigation quality over forcing every native-reader affordance into the same in-app mode
 
 - [x] **T086a** Implement synchronized quote list and document viewer:
   - maintain an ordered list of evidence items for the current proposal (primary first, then supporting in ranked order)
@@ -892,7 +957,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - provide useful fallback actions such as opening the full PDF when scoped evidence is unavailable
   - never display approximate or fallback evidence as if it were exact highlighting
 
-- [x] **T089** Implement the figure-evidence viewer with crop-first display, attached caption, figure-derived warning/status markers, and full-page access.
+- [ ] **T089** Implement the figure-evidence viewer with crop-first display, attached caption, figure-derived warning/status markers, and full-page access.
 
 - [x] **T090** Implement the review action area with:
   - accept
@@ -909,8 +974,17 @@ The detailed task inventory below remains the source of truth for exact implemen
   - present accept-with-edit as a distinct save-edited-value action rather than a vague duplicate of plain acceptance
   - keep confirmed-no-data resolution visibly distinct from rejection
 
+- [ ] **T090b** Auto-advance after explicit review decisions.
+  - after `accept`, `accept_with_edit`, `confirm_no_data`, or `reject`, move to the next reviewable proposal when one exists
+  - do not auto-advance on mere selection changes or partial edits
+
 - [x] **T091** Implement keyboard shortcuts for next/previous navigation, accept current proposal, reject current proposal, focus edit control, and focus/open evidence viewer.
   - surface shortcuts in button tooltips or equivalent inline affordances on the relevant controls
+
+- [ ] **T091a** Extend keyboard support for fast sequential review.
+  - add next and previous evidence shortcuts
+  - preserve focus-edit behavior for quick accept-with-edit flows
+  - keep shortcut handling safe when text inputs are focused
 
 - [x] **T092** Implement unmatched, ambiguous, and duplicate-row-conflict inspection views in the UI.
   - identify the affected PDF, unresolved outcome, and rationale directly in the review workspace without requiring raw artifact inspection
@@ -925,9 +999,25 @@ The detailed task inventory below remains the source of truth for exact implemen
   - do not show limited-review or similar warnings before their real triggering conditions are met
   - keep confirmed-no-data outcomes distinct from rejected-or-model-wrong outcomes in visible summaries and badges
 
-- [x] **T094** Add frontend tests for grouped queue behavior, group-header summaries, group ordering rules, queue filtering, item ordering rules, nonlinear review, evidence type labeling (direct quote vs. inferred vs. calculation vs. approximate vs. fallback), exact-highlight vs. approximate-highlight vs. quote-plus-page fallback rendering, synchronized quote-list and viewer behavior, viewer navigation (previous/next page, jump to page), figure-evidence rendering with full-page access, run-summary display including text and vision model identifiers, no-data workflow rendering, picker-driven setup flow, markdown-bullet rationale rendering, click-to-populate replace behavior, overlong-text staging behavior, tooltip shortcut surfacing, and bulk-accept confirmation flow.
+- [ ] **T093a** Tighten review-surface truth for parsing fallback and actionable counts.
+  - surface degraded parsing, OCR fallback, duplicate-row conflicts, and evidence fallback in reviewer-visible summaries and diagnostics
+  - keep actionable-only progress as the primary headline while preserving secondary totals for context
 
-- [x] **T095** Add Playwright e2e tests for the core review loop from proposal selection through grouped triage, group ordering, evidence interaction, no-data resolution, decision recording, picker-input staging, and summary updates.
+- [ ] **T094** Add frontend tests for grouped queue behavior, group-header summaries, group ordering rules, queue filtering, item ordering rules, nonlinear review, evidence type labeling (direct quote vs. inferred vs. calculation vs. approximate vs. fallback), exact-highlight vs. approximate-highlight vs. quote-plus-page fallback rendering, synchronized quote-list and viewer behavior, viewer navigation (previous/next page, jump to page), figure-evidence rendering with full-page access, run-summary display including text and vision model identifiers, no-data workflow rendering, picker-driven setup flow, markdown-bullet rationale rendering, click-to-populate replace behavior, overlong-text staging behavior, tooltip shortcut surfacing, and bulk-accept confirmation flow.
+
+- [ ] **T094a** Add frontend tests for the next reviewer-throughput contract.
+  - actionable-only headline counts
+  - config-path `Browse...` control
+  - next or previous evidence navigation
+  - auto-advance after explicit decisions
+  - degraded parsing and provider-mode warning display in review-facing summaries
+
+- [ ] **T095** Add Playwright e2e tests for the core review loop from proposal selection through grouped triage, group ordering, evidence interaction, no-data resolution, decision recording, picker-input staging, and summary updates.
+
+- [ ] **T095a** Add Playwright coverage for fast sequential review and explicit export flow.
+  - evidence cycling and auto-advance after explicit decisions
+  - manual export trigger from the review UI
+  - highlighted-evidence review flow suitable for README screenshot capture
 
 ---
 
@@ -940,6 +1030,10 @@ The detailed task inventory below remains the source of truth for exact implemen
   - apply only explicitly accepted changes
   - highlight changed cells
   - do **not** attempt to preserve formulas, filters, frozen panes, hidden rows/columns, merged cells, conditional formatting, comments, named ranges, charts, shapes, or macros
+
+- [ ] **T096a** Keep export explicitly manual in the product workflow.
+  - require the reviewer to trigger export from the review UI
+  - ensure run completion and decision recording never auto-export implicitly
 
 - [x] **T097** Implement best-effort detection and reporting of unsupported workbook features during export:
   - inspect the source workbook for unsupported advanced features when feasible
@@ -975,6 +1069,11 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T101** Add tests covering export integrity, content-only fidelity, changed-cell highlighting, accepted-only export behavior, unsupported-feature warnings, audit-log completeness, and completed-with-warnings semantics.
 
+- [ ] **T101a** Add tests for manual-export truth.
+  - exports must not appear automatically after run completion alone
+  - changed-cell highlighting must remain visible in the explicit export output
+  - diagnostics should reflect manual-export timing truthfully
+
 ---
 
 ## Phase 9 — Orchestration, hardening, regression protection, and README updates
@@ -985,7 +1084,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T103** Ensure interrupted or failed runs leave inspectable partial artifacts and that a new run creates a new run directory rather than resuming in place by default.
 
-- [x] **T104** Add hermetic end-to-end tests using stub providers over the fixture corpus for:
+- [ ] **T104** Add hermetic end-to-end tests using stub providers over the fixture corpus for:
   - successful matched extraction
   - unmatched / ambiguous / duplicate-row blocked flows
   - weak-evidence quote+page review
@@ -1008,7 +1107,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T106** Add a performance smoke test for representative small and medium batches so obvious regressions in parsing, retrieval, extraction, and review loading are caught.
 
-- [x] **T107** Update `README` with MVP run instructions:
+- [ ] **T107** Update `README` with MVP run instructions:
   - how to prepare config
   - how to start the FastAPI backend and React UI
   - how to run a sample workflow
@@ -1020,12 +1119,12 @@ The detailed task inventory below remains the source of truth for exact implemen
   - how readiness and startup failures are surfaced
   - include at least one known-working LM Studio model example while making clear that stronger or newer compatible models may also be used
   - make every documented command and workflow match the implementation that currently ships
-- [x] **T107a** Preserve user-facing onboarding in `README`, including clone/install steps, config-file purpose, LM Studio expectations, backend/frontend run commands, testing commands, artifact locations, and the export fidelity boundary.
+- [ ] **T107a** Preserve user-facing onboarding in `README`, including clone/install steps, config-file purpose, LM Studio expectations, backend/frontend run commands, testing commands, artifact locations, and the export fidelity boundary.
   - do not remove useful onboarding content unless it is obsolete and replaced with something clearer in the same work pass
   - keep the checked-in config example, runtime config schema, and README terminology aligned for provider, parser, model, Verify mode, and run states
   - do not keep obsolete onboarding text, superseded commands, or alternate startup paths that are not real supported workflows
 
-- [x] **T107b** Keep README aligned with the real primary happy path:
+- [ ] **T107b** Keep README aligned with the real primary happy path:
   - start backend and frontend
   - launch a run from the browser using a config path plus picker-driven input selection when supported
   - observe run lifecycle state in the UI
@@ -1034,46 +1133,19 @@ The detailed task inventory below remains the source of truth for exact implemen
   - document the real config workflow, run lifecycle, review flow, export behavior, and limitations of the implemented MVP
   - do not document speculative helpers or workflows that do not exist
 
----
+- [ ] **T107c** Update `README.md` and related operator docs for the tightened workflow contract.
+  - add guidance for writing strong schema descriptions
+  - include at least one concrete schema snippet showing `column_name`, `description`, optional `field_type`, and categorical `allowed_values`
+  - present schema-first empty-table operation as the normal/default mental model, not just a supported edge case
+  - include numeric answer-form examples for `exact`, `range`, and `approximate`, such as `5`, `5-7`, `~5`, or estimated-from-graph cases
+  - describe manual export explicitly instead of implying automatic export
+  - include screenshot expectations for run setup, highlighted-evidence review workspace, and export or diagnostics views
+  - add a lightweight trustworthiness checklist covering provider path, evidence labeling, fallback visibility, review-before-export, and audit artifacts
 
-## Phase 10 — Evidence quality, proactive figure review, and model transparency
-
-**Goal:** ensure the system satisfies the evidence-first, reviewer-centered quality bar defined in the improved product direction.
-
-- [ ] **T108** Stale-spec cleanup: audit the codebase and tests for any remaining references to "scoped figure fallback only," narrow fallback triggers, or single-model provider config that conflict with the improved product direction. Update or remove them in the same pass.
-
-- [ ] **T109** Implement evidence ranking and authority-aware evidence selection:
-  - rank evidence items by source section authority and field relevance rather than by model output order
-  - select the highest-ranked evidence item as the primary evidence item for the proposal
-  - store the remaining items as ordered supporting evidence
-  - the ranking logic may use structural heuristics, section type classifications, or an LLM-assisted selection step
-  - acceptance criteria: a reviewer reviewing a procedural field proposal sees the most authoritative section as primary, not an arbitrary paragraph
-
-- [ ] **T110** Implement end-to-end evidence type labeling and validation:
-  - verify that each evidence record stores a valid `source_type` from the defined taxonomy
-  - verify that exact highlights, approximate highlights, and quote-plus-page fallback evidence are stored and surfaced correctly
-  - verify that the UI displays each evidence type with its correct label and distinct visual treatment
-  - acceptance criteria: a reviewer can tell at a glance whether any evidence item is a direct quote, approximate highlight, quote-plus-page fallback, inferred reasoning, calculation, or figure-based without reading additional explanation
-
-- [ ] **T111** End-to-end validation for proactive figure review behavior:
-  - verify that when a vision model is configured, figure review runs for relevant extracted figures even when text extraction succeeded
-  - verify that figure evidence can be stored alongside text evidence for the same proposal
-  - verify that figure evidence appears in the ranked evidence list for any field type
-  - verify that figure rescue of a weak or unclear text-only proposal produces a visible reviewable proposal with figure-based evidence
-  - acceptance criteria: a run where text extraction produced weak evidence and relevant figures were available must produce at least one proposal with figure evidence when a vision model is configured
-
-- [ ] **T112** Implement and validate separate text-model and vision-model configuration:
-  - verify that the config schema accepts separate model identifier fields for text and vision
-  - verify that run artifacts record both model identifiers separately
-  - verify that the run summary shows both model identifiers when both were used
-  - verify that the reviewer-visible run context exposes both model identifiers
-  - acceptance criteria: a reviewer can see which text model and which vision model were used for any run where both were configured
-
-- [ ] **T113** Validate synchronized quote list and viewer behavior:
-  - verify that selecting a different evidence item in the quote list updates the viewer to that item's page and location
-  - verify that the viewer refocuses stably when evidence selection changes
-  - verify that zoom changes do not cause the viewer to lose focus on the selected evidence item
-  - acceptance criteria: after selecting any evidence item from the quote list, the viewer shows that item's page and location within one interaction, without requiring additional navigation by the reviewer
+- [ ] **T107d** Add a reproducible screenshot-capture workflow for docs.
+  - prefer Playwright-based capture tied to real UI states
+  - keep the workflow lightweight and local-first
+  - store or document the commands needed to refresh README screenshots consistently
 
 ---
 
@@ -1107,15 +1179,17 @@ This task list is complete enough when it can drive implementation toward a syst
 - enforces canonical provider/config/runtime/docs/tests parity and fails early on unknown or broken provider setups
 - keeps human review mandatory before spreadsheet mutation
 - persists proposals, evidence, review decisions, run summaries, reviewer summaries, diagnostics, and exports as inspectable artifact files
+- uses `proposals.jsonl` plus a proposal index or equivalent lookup structure as the canonical proposal persistence direction
 - supports Verify mode end to end
 - generates reviewer-outcome summaries for the MVP
 - exports a new XLSX plus audit log within the explicit content-only fidelity boundary
-- produces evidence with correct type labels (direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, figure-based) and ranks evidence by authority so the most authoritative item is primary
+- produces evidence with correct type labels (direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, `caption_grounded_figure_evidence`, `visual_interpretation_figure_evidence`) and ranks evidence by authority so the most authoritative item is primary
 - produces exact quote highlights from page-text alignment when possible and degrades honestly with labeled fallback when it fails; fallback evidence is never presented as exact
 - keeps the quote list and document viewer synchronized around the selected evidence item, with stable refocus on selection or zoom changes, previous/next/jump-to-page navigation, and figure-to-full-page context
 - runs proactive figure review across all relevant extracted figures when a vision model is configured, with figure evidence allowed for any field type, including figure rescue of weak text-only proposals
 - records text model and vision model identifiers separately in run artifacts, run summaries, and reviewer-visible context
 - keeps loading, empty, warning, failure, and not-yet-reviewable states explicit and actionable in the operator workflow
 - proves the canonical LM Studio path can generate at least one non-empty reviewable proposal with evidence on the canonical checked-in fixture set, or fails early with a clear readiness error
+- keeps manual export explicit, actionable-only review counts primary, and parsing/provider fallback truth visible to reviewers
 - ships with a truthful user-facing `README.md` and related operator docs that match the implemented commands, architecture, workflow, exports, and limitations
 - stays inside the MVP architecture boundary defined by `spec.md`, `research.md`, and `plan.md`
