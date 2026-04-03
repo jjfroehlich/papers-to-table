@@ -1,3 +1,27 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-slate-100;
+  }
+
+  body {
+    @apply min-h-screen bg-slate-100 text-slate-900 antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+
+  ::selection {
+    @apply bg-blue-200 text-slate-900;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(148 163 184 / 0.85) transparent;
+  }
+}

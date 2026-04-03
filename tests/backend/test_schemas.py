@@ -73,7 +73,8 @@ class TestEvidenceSourceType:
             "calculation",
             "approximate_highlight",
             "quote_plus_page",
-            "figure_based_evidence",
+            "caption_grounded_figure_evidence",
+            "visual_interpretation_figure_evidence",
         }
         assert values == expected
 

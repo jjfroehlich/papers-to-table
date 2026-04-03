@@ -845,13 +845,12 @@ class TestEvidenceRanking:
 
     def test_figure_evidence_ranks_alongside_inferred(self):
         items = [
-            self._make_evidence("e1", EvidenceSourceType.figure_based_evidence),
+            self._make_evidence("e1", EvidenceSourceType.caption_grounded_figure_evidence),
             self._make_evidence("e2", EvidenceSourceType.inferred_reasoning),
         ]
         ranked = rank_evidence(items)
-        # Both have same authority; order stable but both below direct_quote
         types = {r.source_type for r in ranked}
-        assert EvidenceSourceType.figure_based_evidence in types
+        assert EvidenceSourceType.caption_grounded_figure_evidence in types
 
 
 class TestEvidenceTypeLabelMapping:
@@ -874,7 +873,7 @@ class TestEvidenceTypeLabelMapping:
         assert "fallback" in label.lower() or "page" in label.lower()
 
     def test_figure_label(self):
-        label = evidence_type_display(EvidenceSourceType.figure_based_evidence)
+        label = evidence_type_display(EvidenceSourceType.caption_grounded_figure_evidence)
         assert "Figure" in label or "figure" in label.lower()
 
     def test_proposal_support_direct_evidence_label(self):
@@ -934,9 +933,8 @@ class TestExtractionOrchestrator:
         assert proposal.state == ProposalState.found
         assert proposal.proposed_value == "Tibial defect"
         assert proposal.primary_evidence_id is not None
-        # Proposal must be persisted
-        prop_path = run_dir / "proposals" / f"{proposal.proposal_id}.json"
-        assert prop_path.exists()
+        persisted = load_proposals(run_dir)
+        assert any(item.proposal_id == proposal.proposal_id for item in persisted)
 
     async def test_provider_error_yields_error_proposal(self, run_dir: pathlib.Path, minimal_doc_dict: dict):
         """T058: provider error produces error state proposal."""
@@ -1023,8 +1021,8 @@ class TestExtractionOrchestrator:
         )
         assert proposal.is_verify_mode is True
         assert proposal.existing_value == "Femoral condyle"
-        # Proposal must be persisted and reviewable
-        assert (run_dir / "proposals" / f"{proposal.proposal_id}.json").exists()
+        persisted = load_proposals(run_dir)
+        assert any(item.proposal_id == proposal.proposal_id for item in persisted)
 
     async def test_fallback_evidence_labeled_correctly(
         self, run_dir: pathlib.Path, minimal_doc_dict: dict
@@ -1160,7 +1158,7 @@ class TestFigureReview:
             run_id="run_test",
             proposal_id="prop_test",
             pdf_id="pdf_test",
-            source_type=EvidenceSourceType.figure_based_evidence,
+            source_type=EvidenceSourceType.caption_grounded_figure_evidence,
             quote_text="Figure 1 shows bone ingrowth at 8 weeks",
             page_number=2,
             figure_ref="fig_1",
@@ -1176,7 +1174,7 @@ class TestFigureReview:
         assert path.exists()
         data = json.loads(path.read_text())
         assert data["is_figure_derived"] is True
-        assert data["source_type"] == EvidenceSourceType.figure_based_evidence.value
+        assert data["source_type"] == EvidenceSourceType.caption_grounded_figure_evidence.value
 
     async def test_figure_review_triggered_when_vision_configured(
         self, run_dir: pathlib.Path, minimal_doc_dict: dict
@@ -1614,3 +1612,30 @@ class TestCanonicalFixtureReadiness:
         user_content = messages[1]["content"]
         assert "Rat" in user_content
         assert "Verify mode" in user_content or "existing" in user_content.lower()
+
+    def test_build_text_extraction_prompt_uses_style_summary_not_raw_examples(self):
+        profile = StyleProfile(
+            column_name="Integration site",
+            field_type_guess="categorical",
+            expected_length="short",
+            tone="technical",
+            detail_level="medium",
+            value_shape="anatomical site name",
+            unit_style=None,
+            format_notes="Use concise site labels.",
+            example_risk="low",
+            generated_at="2026-01-01T00:00:00+00:00",
+            source_column_count=2,
+            provider_mode="heuristic",
+        )
+        messages = build_text_extraction_prompt(
+            column_name="Integration site",
+            column_description="Where scaffold was implanted",
+            row_context={},
+            retrieval=None,
+            style_profile=profile,
+        )
+        user_content = messages[1]["content"]
+        assert "anatomical site name" in user_content
+        assert "Tibial defect" not in user_content
+        assert "Femoral condyle" not in user_content

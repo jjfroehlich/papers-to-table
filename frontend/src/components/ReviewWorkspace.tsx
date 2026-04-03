@@ -285,36 +285,41 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
       <RunSummaryPanel run={run} outputDir={outputDir} />
 
       <div
-        className="shrink-0 bg-white border-b border-gray-200 px-4 py-2 flex flex-wrap items-center gap-4"
+        className="shrink-0 border-b border-slate-200 bg-white px-4 py-3 flex flex-wrap items-center gap-4 shadow-sm"
         data-testid="review-toolbar"
       >
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Review workspace</p>
+          <div className="mt-1 flex items-center gap-3 text-xs">
+            <span className="font-semibold text-slate-900">Actionable review</span>
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 font-medium text-slate-700">
+              {actionableReviewed} / {actionableTotal}
+            </span>
+            <span className="text-slate-500">attempted {attemptedTotal}</span>
+          </div>
+        </div>
+
         <div className="flex items-center gap-4">
           <button
             onClick={() => setSidePanel('evidence')}
-            className={`py-2 text-xs font-medium border-b-2 transition-colors ${
+            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               sidePanel === 'evidence'
-                ? 'border-blue-600 text-blue-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'bg-slate-900 text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
             Evidence
           </button>
           <button
             onClick={() => setSidePanel('unresolved')}
-            className={`py-2 text-xs font-medium border-b-2 transition-colors ${
+            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               sidePanel === 'unresolved'
-                ? 'border-blue-600 text-blue-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'bg-slate-900 text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
             Unresolved
           </button>
-        </div>
-
-        <div className="flex items-center gap-2 text-xs text-gray-500">
-          <span className="font-medium text-gray-700">Actionable review</span>
-          <span>{actionableReviewed} / {actionableTotal}</span>
-          <span className="text-gray-400">· attempted {attemptedTotal}</span>
         </div>
 
         <div className="flex items-center gap-2 text-xs">
@@ -339,7 +344,7 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
           <button
             onClick={handleExport}
             disabled={exporting}
-            className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-full bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
           >
             {exporting ? 'Exporting…' : 'Export reviewed workbook'}
           </button>
@@ -347,25 +352,25 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
             <>
               <a
                 href={api.getWorkbookDownloadUrl(run.run_id, outputDir)}
-                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
               >
                 Workbook
               </a>
               <a
                 href={api.getAuditLogDownloadUrl(run.run_id, outputDir)}
-                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
               >
                 Audit log
               </a>
               <a
                 href={api.getRunSummaryDownloadUrl(run.run_id, outputDir)}
-                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
               >
                 Run summary
               </a>
               <a
                 href={api.getReviewerSummaryDownloadUrl(run.run_id, outputDir)}
-                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
               >
                 Reviewer summary
               </a>
@@ -373,19 +378,19 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
           )}
           <button
             onClick={() => setShowHelp(true)}
-            className="text-xs text-gray-400 hover:text-gray-600"
+            className="text-xs text-slate-400 hover:text-slate-600"
             title="Keyboard shortcuts (?)"
           >
             ?
           </button>
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-slate-400">
             {currentIndex >= 0 ? `${currentIndex + 1} / ${proposalList.length}` : `${proposalList.length} actionable`}
           </span>
         </div>
       </div>
 
       {(exportError || exportResult) && (
-        <div className="shrink-0 border-b border-gray-200 bg-gray-50 px-4 py-2 text-xs" data-testid="export-status">
+        <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-4 py-2 text-xs" data-testid="export-status">
           {exportError && (
             <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-red-700">
               <strong>Export failed:</strong> {exportError}
@@ -401,7 +406,7 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
 
       <div ref={layoutRef} className="flex-1 flex overflow-hidden">
         <div
-          className="shrink-0 border-r border-gray-200 bg-white overflow-hidden flex flex-col"
+          className="shrink-0 border-r border-slate-200 bg-white overflow-hidden flex flex-col"
           style={{ width: leftPaneWidth }}
         >
           <ProposalQueue
@@ -418,7 +423,7 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
           aria-orientation="vertical"
           aria-label="Resize proposal queue"
           onMouseDown={() => setResizeTarget('left')}
-          className={`w-1.5 shrink-0 cursor-col-resize border-r border-gray-200 bg-gray-100 transition-colors hover:bg-blue-200 ${
+          className={`w-1.5 shrink-0 cursor-col-resize border-r border-slate-200 bg-slate-100 transition-colors hover:bg-blue-200 ${
             resizeTarget === 'left' ? 'bg-blue-300' : ''
           }`}
         />
@@ -452,13 +457,13 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
           aria-orientation="vertical"
           aria-label="Resize evidence panel"
           onMouseDown={() => setResizeTarget('right')}
-          className={`w-1.5 shrink-0 cursor-col-resize border-l border-gray-200 bg-gray-100 transition-colors hover:bg-blue-200 ${
+          className={`w-1.5 shrink-0 cursor-col-resize border-l border-slate-200 bg-slate-100 transition-colors hover:bg-blue-200 ${
             resizeTarget === 'right' ? 'bg-blue-300' : ''
           }`}
         />
 
         <div
-          className="shrink-0 border-l border-gray-200 bg-gray-50 overflow-hidden flex flex-col"
+          className="shrink-0 border-l border-slate-200 bg-slate-50 overflow-hidden flex flex-col"
           style={{ width: rightPaneWidth }}
         >
           {sidePanel === 'evidence' ? (

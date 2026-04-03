@@ -463,19 +463,19 @@ class TestHermeticVerifyMode:
 
 class TestHermeticFigureEvidence:
     def test_figure_evidence_stored_with_correct_type(self, tmp_path: pathlib.Path):
-        """Figure-based evidence is stored with figure_based_evidence type."""
+        """Figure-derived evidence is stored with the typed figure evidence enum."""
         run_dir, run_id = _make_run(tmp_path)
         prop = _seed_proposal(run_dir, run_id, 0, "Paper One", "Method", "Flow cytometry")
         ev = _seed_evidence(
             run_dir, run_id, prop,
-            source_type=EvidenceSourceType.figure_based_evidence,
+            source_type=EvidenceSourceType.caption_grounded_figure_evidence,
             is_figure=True,
         )
         from backend.app.extraction import load_evidence
         all_ev = load_evidence(run_dir)
         matching = [e for e in all_ev if e.evidence_id == ev.evidence_id]
         assert len(matching) == 1
-        assert matching[0].source_type == EvidenceSourceType.figure_based_evidence
+        assert matching[0].source_type == EvidenceSourceType.caption_grounded_figure_evidence
         assert matching[0].is_figure_derived is True
 
     def test_figure_evidence_proposal_exportable_when_accepted(self, tmp_path: pathlib.Path):
@@ -484,7 +484,7 @@ class TestHermeticFigureEvidence:
         prop = _seed_proposal(run_dir, run_id, 0, "Paper One", "Method", "Flow cytometry")
         _seed_evidence(
             run_dir, run_id, prop,
-            source_type=EvidenceSourceType.figure_based_evidence,
+            source_type=EvidenceSourceType.caption_grounded_figure_evidence,
             is_figure=True,
         )
         record_review_decision(
@@ -517,7 +517,7 @@ class TestHermeticFigureEvidence:
             run_id=run_id,
             proposal_id=prop.proposal_id,
             pdf_id=prop.pdf_id,
-            source_type=EvidenceSourceType.figure_based_evidence,
+            source_type=EvidenceSourceType.visual_interpretation_figure_evidence,
             page_number=3,
             is_primary=False,
             is_figure_derived=True,
@@ -530,7 +530,7 @@ class TestHermeticFigureEvidence:
         prop_ev = [e for e in all_ev if e.proposal_id == prop.proposal_id]
         assert len(prop_ev) == 2
         types = {e.source_type for e in prop_ev}
-        assert EvidenceSourceType.figure_based_evidence in types
+        assert EvidenceSourceType.visual_interpretation_figure_evidence in types
         assert EvidenceSourceType.quote_plus_page in types
 
         record_review_decision(

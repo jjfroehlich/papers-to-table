@@ -1,76 +1,66 @@
-"""Deferred e2e scaffolding for broader run-launch and status coverage."""
+"""Runnable Playwright coverage for run setup and review gating."""
 from __future__ import annotations
 
 import pytest
+from playwright.sync_api import Page, expect
 
 pytestmark = pytest.mark.e2e
 
 
-@pytest.fixture(scope="session")
-def backend_url() -> str:
-    return "http://localhost:8000"
-
-
-@pytest.fixture(scope="session")
-def frontend_url() -> str:
-    return "http://localhost:5173"
-
-
-@pytest.mark.skip(reason="deferred broad e2e scaffolding; targeted Playwright coverage lives in test_review_workspace.py")
-def test_health_endpoint_reachable(backend_url: str):
-    """Backend /api/health returns 200."""
-    import urllib.request
-    with urllib.request.urlopen(f"{backend_url}/api/health") as resp:
-        assert resp.status == 200
-
-
-@pytest.mark.skip(reason="deferred broad e2e scaffolding; targeted Playwright coverage lives in test_review_workspace.py")
-def test_frontend_loads(page, frontend_url: str):
-    """Frontend serves and shows the main UI."""
+def test_run_tab_gates_review_until_a_reviewable_run_is_selected(page: Page, frontend_url: str):
     page.goto(frontend_url)
-    page.wait_for_selector("h1", timeout=5000)
-    assert "Paper Table Agent" in page.title() or page.locator("h1").inner_text() == "Paper Table Agent"
+
+    expect(page.locator("[data-testid='run-launch-surface']")).to_be_visible()
+    expect(page.get_by_role("button", name="Review")).to_be_disabled()
+    expect(page.get_by_role("heading", name="Create Run")).to_be_visible()
 
 
-@pytest.mark.skip(reason="deferred broad e2e scaffolding; targeted Playwright coverage lives in test_review_workspace.py")
-def test_run_view_shows_create_run_form(page, frontend_url: str):
-    """Run view shows the config path input and Create Run button."""
+def test_browse_prefills_paths_without_removing_manual_editability(page: Page, frontend_url: str):
     page.goto(frontend_url)
-    page.wait_for_selector("input[placeholder*='config']", timeout=5000)
-    assert page.locator("button:has-text('Create Run')").is_visible()
+
+    launch_surface = page.locator("[data-testid='run-launch-surface']")
+    config_input = launch_surface.get_by_placeholder("e.g. config.example.json")
+    file_inputs = launch_surface.locator("input[type='file']")
+
+    file_inputs.nth(0).set_input_files(
+        files=[{
+            "name": "picked-config.json",
+            "mimeType": "application/json",
+            "buffer": b"{}",
+        }]
+    )
+    expect(config_input).to_have_value("picked-config.json")
+
+    config_input.fill("/tmp/runtime/config.json")
+    expect(config_input).to_have_value("/tmp/runtime/config.json")
+
+    launch_surface.get_by_role("button", name="▼ Show optional path overrides").click()
+    table_input = launch_surface.get_by_placeholder("e.g. path/to/table.xlsx")
+
+    file_inputs.nth(1).set_input_files(
+        files=[{
+            "name": "picked-table.xlsx",
+            "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "buffer": b"fake-xlsx",
+        }]
+    )
+    expect(table_input).to_have_value("picked-table.xlsx")
+
+    table_input.fill("/tmp/runtime/table.xlsx")
+    expect(table_input).to_have_value("/tmp/runtime/table.xlsx")
 
 
-@pytest.mark.skip(reason="deferred broad e2e scaffolding; targeted Playwright coverage lives in test_review_workspace.py")
-def test_review_tab_disabled_without_completed_run(page, frontend_url: str):
-    """Review tab is disabled when no completed run is selected."""
+def test_selecting_completed_run_enables_review_workspace(page: Page, frontend_url: str):
     page.goto(frontend_url)
-    review_btn = page.locator("button:has-text('Review')")
-    assert review_btn.is_disabled()
 
+    run_item = page.locator("[data-testid='run-item']").first
+    expect(run_item).to_be_visible()
+    run_item.click()
 
-@pytest.mark.skip(reason="deferred broad e2e scaffolding; targeted Playwright coverage lives in test_review_workspace.py")
-def test_empty_run_list_shows_guidance(page, frontend_url: str):
-    """Empty run list shows next-action guidance."""
-    page.goto(frontend_url)
-    assert page.locator("text=No runs yet").is_visible() or page.locator("text=config.json").is_visible()
+    review_tab = page.get_by_role("button", name="Review")
+    expect(review_tab).to_be_enabled()
+    review_tab.click()
 
-
-@pytest.mark.skip(reason="deferred broad e2e scaffolding; targeted Playwright coverage lives in test_review_workspace.py")
-def test_create_run_with_invalid_config_shows_error(page, frontend_url: str):
-    """Creating a run with a nonexistent config shows an error message."""
-    page.goto(frontend_url)
-    page.fill("input[placeholder*='config']", "/nonexistent/config.json")
-    page.click("button:has-text('Create Run')")
-    page.wait_for_selector("[class*='red']", timeout=5000)
-
-
-@pytest.mark.skip(reason="deferred broad e2e scaffolding; targeted Playwright coverage lives in test_review_workspace.py")
-def test_create_run_completes_and_shows_detail(page, frontend_url: str):
-    """Full happy path: create run with example config, see it complete."""
-    page.goto(frontend_url)
-    page.fill("input[placeholder*='config']", "config.example.json")
-    page.click("button:has-text('Create Run')")
-    # Wait for run to appear in list
-    page.wait_for_selector("[class*='run_']", timeout=10000)
-    # Wait for completion (pipeline stub completes fast)
-    page.wait_for_selector("text=Completed", timeout=15000)
+    expect(page.locator("[data-testid='review-workspace']")).to_be_visible()
+    expect(page.locator("[data-testid='review-toolbar']")).to_contain_text("Actionable review")
+    expect(page.get_by_role("button", name="Export reviewed workbook")).to_be_visible()

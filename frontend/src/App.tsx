@@ -74,18 +74,23 @@ export function App() {
   const isReviewable = selectedRun?.status === 'completed' || selectedRun?.status === 'completed_with_warnings'
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-100 text-slate-900">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-screen-xl mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-lg font-bold text-gray-900">Paper Table Agent</h1>
+      <header className="border-b border-slate-800 bg-slate-950 text-slate-50 shadow-lg">
+        <div className="max-w-screen-xl mx-auto px-4 py-4 flex items-center justify-between gap-6">
+          <div>
+            <h1 className="text-lg font-semibold tracking-tight">Paper Table Agent</h1>
+            <p className="mt-1 text-xs text-slate-300">
+              Evidence-first scientific review workstation for paper-backed table curation.
+            </p>
+          </div>
           <nav className="flex gap-2">
             <button
               onClick={() => setView('run')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                 view === 'run'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'text-slate-300 hover:bg-slate-800'
               }`}
             >
               Run
@@ -93,12 +98,12 @@ export function App() {
             <button
               onClick={() => setView('review')}
               disabled={!isReviewable}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                 view === 'review' && isReviewable
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-blue-500 text-white shadow-sm'
                   : !isReviewable
-                  ? 'text-gray-300 cursor-not-allowed'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  ? 'text-slate-600 cursor-not-allowed'
+                  : 'text-slate-300 hover:bg-slate-800'
               }`}
               title={!isReviewable ? 'Select a completed run to enable review' : undefined}
             >
@@ -111,10 +116,10 @@ export function App() {
       {/* Main content */}
       <main className={view === 'review' && isReviewable ? '' : 'max-w-screen-xl mx-auto px-4 py-6'}>
         {activeRunRefreshStale && (
-          <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm">
             Live status refresh failed. Active run status may be stale until the backend connection recovers.
             {lastSuccessfulRefreshAt && (
-              <span className="ml-1 text-amber-700">
+              <span className="ml-1 text-amber-800">
                 Last successful refresh: {new Date(lastSuccessfulRefreshAt).toLocaleTimeString()}.
               </span>
             )}
@@ -128,27 +133,30 @@ export function App() {
         )}
 
         {view === 'run' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left: Launch + run list */}
-            <div className="lg:col-span-1 space-y-6">
-              {/* Launch surface */}
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
-                <h2 className="text-base font-semibold text-gray-900 mb-4">Create Run</h2>
-                <RunLaunchSurface onRunCreated={handleRunCreated} />
-              </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left: Launch + run list */}
+              <div className="lg:col-span-1 space-y-6">
+                {/* Launch surface */}
+                <div className="rounded-2xl border border-slate-200 bg-white/95 shadow-sm p-5">
+                  <h2 className="text-base font-semibold text-slate-900 mb-1">Create Run</h2>
+                  <p className="mb-4 text-xs text-slate-500">
+                    Launch one evidence-backed curation run from a config file, then review only explicit proposals.
+                  </p>
+                  <RunLaunchSurface onRunCreated={handleRunCreated} />
+                </div>
 
-              {/* Run list */}
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-                  <h2 className="text-base font-semibold text-gray-900">
-                    Runs {runs.length > 0 && <span className="text-gray-400 text-sm">({runs.length})</span>}
-                  </h2>
-                  <button
-                    onClick={loadRuns}
-                    className="text-xs text-blue-600 hover:underline"
-                  >
-                    Refresh
-                  </button>
+                {/* Run list */}
+                <div className="rounded-2xl border border-slate-200 bg-white/95 shadow-sm">
+                  <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+                    <h2 className="text-base font-semibold text-slate-900">
+                      Runs {runs.length > 0 && <span className="text-slate-400 text-sm">({runs.length})</span>}
+                    </h2>
+                    <button
+                      onClick={loadRuns}
+                      className="text-xs font-medium text-blue-700 hover:underline"
+                    >
+                      Refresh
+                    </button>
                 </div>
                 {loadingRuns ? (
                   <div className="px-5 py-8 text-sm text-gray-400 text-center">Loading runs…</div>
@@ -173,7 +181,7 @@ export function App() {
 
             {/* Right: Run detail / next-action guidance */}
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5 min-h-64">
+              <div className="rounded-2xl border border-slate-200 bg-white/95 shadow-sm p-5 min-h-64">
                 {selectedRun ? (
                   <RunDetail
                     run={selectedRun}
@@ -181,12 +189,12 @@ export function App() {
                     aborting={abortingRunId === selectedRun.run_id}
                   />
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-48 text-center">
-                    <div className="text-gray-400 text-4xl mb-3">📋</div>
-                    <h3 className="text-base font-medium text-gray-700">No run selected</h3>
-                    <p className="mt-1 text-sm text-gray-500 max-w-sm">
-                      Create a run using the form on the left, or select an existing run from the list to see its details.
-                    </p>
+                    <div className="flex flex-col items-center justify-center h-48 text-center">
+                      <div className="text-slate-400 text-4xl mb-3">📋</div>
+                      <h3 className="text-base font-medium text-slate-700">No run selected</h3>
+                      <p className="mt-1 text-sm text-slate-500 max-w-sm">
+                        Create a run using the form on the left, or select an existing run from the list to see its details.
+                      </p>
                     {runs.length === 0 && (
                       <p className="mt-3 text-sm text-blue-600">
                         To start: enter the path to your <code className="bg-blue-50 px-1 rounded">config.json</code> file and click Create Run.

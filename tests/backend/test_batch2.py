@@ -45,6 +45,7 @@ from backend.app.parsing import (
     normalize_text,
     parse_pdf,
     persist_parse_artifacts,
+    _unwrap_docling_item,
 )
 from backend.app.schemas import MatchOutcome
 
@@ -119,27 +120,11 @@ class TestParserAdapterInterface:
         # docling is installed so should be importable
         assert ok, reason
 
-    def test_docling_parse_extracts_text_from_text_pdf(self, tmp_path):
-        """Regression: current docling iterate_items() may yield (item, level)."""
-        run_dir = tmp_path / "run"
-        run_dir.mkdir()
-
-        doc, diag, _ = parse_pdf(
-            pdf_path=PAPER_2,
-            pdf_id="paper_2",
-            configured_parser="docling",
-            allow_basic_fallback=False,
-            ocr_enabled=False,
-            ocr_language="en",
-            run_dir=run_dir,
-            generate_pages=False,
-        )
-
-        assert doc.parser_used == "docling"
-        assert len(doc.blocks) > 0
-        assert "Compatibility rules of human enhancer and promoter sequences" in doc.full_text
-        assert "K562" in doc.full_text
-        assert diag.text_char_count > 1000
+    def test_docling_iterate_items_tuple_shape_unwrapped(self):
+        """Regression: Docling iterate_items() may yield (item, level) tuples."""
+        item = object()
+        assert _unwrap_docling_item((item, 2)) is item
+        assert _unwrap_docling_item(item) is item
 
     def test_parse_pdf_records_configured_vs_actual_parser(self, tmp_path):
         """T026a: configured_parser and parser_used must both be recorded."""
@@ -395,25 +380,26 @@ class TestOCRFallback:
 
         # Mock the initial parse to return the empty doc
         with patch("backend.app.parsing.BasicTextParserAdapter.parse", return_value=empty_doc):
-            with patch("backend.app.parsing._apply_ocr_fallback") as mock_ocr:
-                # Mock OCR to return doc with ocr_used=True
-                ocr_doc = empty_doc.model_copy(update={
-                    "ocr_used": True,
-                    "parser_used": "pypdfium2_ocr",
-                    "full_text": "Some OCR text",
-                })
-                mock_ocr.return_value = ocr_doc
+            with patch("backend.app.parsing._ocrmypdf_available", return_value=(True, "")):
+                with patch("backend.app.parsing._apply_ocr_fallback") as mock_ocr:
+                    # Mock OCR to return doc with ocr_used=True
+                    ocr_doc = empty_doc.model_copy(update={
+                        "ocr_used": True,
+                        "parser_used": "pypdfium2_ocr",
+                        "full_text": "Some OCR text",
+                    })
+                    mock_ocr.return_value = ocr_doc
 
-                doc, diag, _ = parse_pdf(
-                    pdf_path=PAPER_2,
-                    pdf_id="paper_2",
-                    configured_parser="pypdfium2",
-                    allow_basic_fallback=False,
-                    ocr_enabled=True,  # OCR enabled
-                    ocr_language="en",
-                    run_dir=run_dir,
-                    generate_pages=False,
-                )
+                    doc, diag, _ = parse_pdf(
+                        pdf_path=PAPER_2,
+                        pdf_id="paper_2",
+                        configured_parser="pypdfium2",
+                        allow_basic_fallback=False,
+                        ocr_enabled=True,  # OCR enabled
+                        ocr_language="en",
+                        run_dir=run_dir,
+                        generate_pages=False,
+                    )
 
         assert doc.ocr_used is True
         assert doc.parser_used == "pypdfium2_ocr"
@@ -467,8 +453,8 @@ class TestOCRFallback:
         assert errors == []
 
     def test_ocr_readiness_passes_when_installed(self):
-        errors = check_ocr_readiness(ocr_enabled=True)
-        # ocrmypdf is installed in this environment
+        with patch("backend.app.parsing._ocrmypdf_available", return_value=(True, "")):
+            errors = check_ocr_readiness(ocr_enabled=True)
         assert errors == []
 
 

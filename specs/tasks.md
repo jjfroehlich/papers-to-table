@@ -212,7 +212,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - `primary_evidence_id` (the single most authoritative evidence item, selected by evidence ranking)
   - `ordered_supporting_evidence_ids` (ordered list of additional evidence item ids, ranked by authority and relevance, most authoritative first)
 
-- [ ] **T007** Define the evidence JSON schema and contract for separate evidence records linked to proposals, including at least:
+- [x] **T007** Define the evidence JSON schema and contract for separate evidence records linked to proposals, including at least:
   - `evidence_id`
   - `proposal_id`
   - `pdf_id`
@@ -352,18 +352,19 @@ The detailed task inventory below remains the source of truth for exact implemen
   - make UI polling or streaming keep active status current without requiring manual refresh as the primary mechanism
   - surface stale-refresh failures explicitly in the UI
 
-- [x] **T023b** Support picker-driven input overrides in the run-creation flow while preserving config-file authority.
+- [ ] **T023b** Support picker-driven input overrides in the run-creation flow while preserving config-file authority.
   - accept explicit run-input overrides for relevant file or folder paths
-  - materialize browser-selected files or directories into app-owned staged inputs or another explicit backend-readable input handle before execution
   - return the resolved path context that the UI should display back to the operator
   - distinguish logical input source from backend-visible runtime locator in the returned run context
   - keep override handling narrow and input-focused rather than turning the API into a broad settings editor
 
+- [ ] **T023b1** Materialize browser-selected files or directories into app-owned staged inputs or another explicit backend-readable input handle before execution so `Browse...` becomes more than filename prefill.
+
 - [x] **T023a** Keep run creation UI-driven in practice by returning a created run immediately, then launching execution under app-owned backend control using a lightweight in-process background mechanism for MVP, with no external job framework required, while exposing validating/running/terminal state transitions, actionable failure messaging, and diagnostics/config access.
 
-- [ ] **T024** Add tests covering valid input readiness, metadata-column rejection, missing-path rejection, placeholder handling, and Verify mode behavior.
+- [x] **T024** Add tests covering valid input readiness, metadata-column rejection, missing-path rejection, placeholder handling, and Verify mode behavior.
 
-- [ ] **T024a** Add tests covering readiness and startup truth.
+- [x] **T024a** Add tests covering readiness and startup truth.
   - invalid provider token rejection
   - provider-unreachable readiness failure
   - model-unavailable readiness failure where applicable
@@ -486,7 +487,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - do not require `normalization_notes`
   - document numeric answer forms `exact`, `range`, and `approximate` in the extraction contract
 
-- [ ] **T042** Implement the per-column preprocessing LLM step that analyzes existing filled cells and produces one structured style profile per schema column.
+- [x] **T042** Implement the per-column preprocessing LLM step that analyzes existing filled cells and produces one structured style profile per schema column.
 
 - [x] **T042a** Make style-profile preprocessing helper-only and empty-table-safe.
   - allow extraction to proceed when a table or target column has no filled examples
@@ -533,7 +534,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T048** Persist retrieval artifacts and diagnostics so selected chunks, contextualized text, and source-preserving review text remain inspectable.
 
-- [ ] **T049** Add tests covering style-profile generation, no raw-example leakage into extraction inputs, typed chunk generation, retrieval-text/display-text separation, and retrieval defaults.
+- [x] **T049** Add tests covering style-profile generation, no raw-example leakage into extraction inputs, typed chunk generation, retrieval-text/display-text separation, and retrieval defaults.
 
 - [x] **T049a** Add tests for schema-first extraction and optional field typing.
   - empty-table or empty-column cases must still extract without error
@@ -691,7 +692,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T064** Persist figure-derived evidence records distinctly from text evidence while keeping figure-derived proposals as normal proposals with figure-marked evidence.
 
-- [ ] **T065** Implement reviewer-facing support-label mapping and evidence type labeling:
+- [x] **T065** Implement reviewer-facing support-label mapping and evidence type labeling:
   - map internal proposal states to reviewer-facing labels such as `Direct evidence` and `Inferred from evidence`
   - label each evidence item's type visibly in the UI: direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, `caption_grounded_figure_evidence`, or `visual_interpretation_figure_evidence`
   - ensure the primary evidence item is visually distinguished as primary
@@ -700,7 +701,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T066** Ensure Verify mode uses the same extraction path for already-filled cells and persists reviewable proposals for them.
 
-- [ ] **T067** Add tests covering structured-output parsing, provider failure handling, proposal/evidence serialization, blocked outcomes, unclear outcomes, evidence recovery, evidence ranking (primary selection by authority), evidence type labeling, exact-highlight vs. approximate-highlight vs. quote-plus-page fallback evidence paths, proactive figure review triggering, figure evidence support for any field type, figure rescue of weak text proposals, separate text and vision model config, and Verify mode extraction on filled cells.
+- [x] **T067** Add tests covering structured-output parsing, provider failure handling, proposal/evidence serialization, blocked outcomes, unclear outcomes, evidence recovery, evidence ranking (primary selection by authority), evidence type labeling, exact-highlight vs. approximate-highlight vs. quote-plus-page fallback evidence paths, proactive figure review triggering, figure evidence support for any field type, figure rescue of weak text proposals, separate text and vision model config, and Verify mode extraction on filled cells.
   - include contract-parity and provider-mode truth assertions where applicable
   - cover compatibility mismatches that should not poison the rest of the run
   - cover malformed-JSON repair behavior and compact bullet-rationale output shape

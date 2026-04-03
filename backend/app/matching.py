@@ -258,11 +258,11 @@ def _extract_year_from_text(full_text: str) -> Optional[int]:
 # ---------------------------------------------------------------------------
 
 _DOI_WEIGHT = 0.45
-_TITLE_WEIGHT = 0.15
+_TITLE_WEIGHT = 0.3
 _FIRST_AUTHOR_WEIGHT = 0.15
 _AUTHOR_WEIGHT = 0.1
 _YEAR_WEIGHT = 0.1
-_EXACT_TITLE_BONUS = 0.05
+_EXACT_TITLE_BONUS = 0.15
 
 
 def score_against_row(paper: PaperMetadata, row: dict) -> float:
@@ -277,31 +277,55 @@ def score_against_row(paper: PaperMetadata, row: dict) -> float:
     row_authors = str(row.get("Authors", "") or "").strip()
     row_doi = _extract_row_doi(row)
 
+    doi_match = 0.0
     if paper.doi and row_doi:
-        score += _DOI_WEIGHT * _doi_match_score(paper.doi, row_doi)
+        doi_match = _doi_match_score(paper.doi, row_doi)
+        score += _DOI_WEIGHT * doi_match
 
+    title_sim = 0.0
     if paper.title and row_title:
-        sim = _title_jaccard(paper.title, row_title)
-        score += _TITLE_WEIGHT * sim
+        title_sim = _title_jaccard(paper.title, row_title)
+        score += _TITLE_WEIGHT * title_sim
         if _norm(paper.title) == _norm(row_title):
             score += _EXACT_TITLE_BONUS
 
+    year_score = 0.0
     if paper.year and row_year:
         try:
             ry = int(re.sub(r"[^\d]", "", row_year)[:4])
             if ry == paper.year:
+                year_score = 1.0
                 score += _YEAR_WEIGHT
             elif abs(ry - paper.year) == 1:
                 # Off-by-one: online-first vs print year is common
+                year_score = 0.5
                 score += _YEAR_WEIGHT * 0.5
         except (ValueError, TypeError):
             pass
 
+    first_author_match = False
+    overlap = 0.0
     if paper.authors and row_authors:
-        if _first_author_match(paper.authors, row_authors):
+        first_author_match = _first_author_match(paper.authors, row_authors)
+        if first_author_match:
             score += _FIRST_AUTHOR_WEIGHT
         overlap = _author_overlap(paper.authors, row_authors)
         score += _AUTHOR_WEIGHT * overlap
+
+    if doi_match >= 1.0:
+        score = max(score, 0.95)
+    elif title_sim >= 0.999:
+        title_floor = 0.62
+        if year_score >= 1.0:
+            title_floor += 0.08
+        elif year_score > 0.0:
+            title_floor += 0.04
+        score = max(score, title_floor)
+    elif title_sim >= 0.75 and year_score >= 1.0:
+        score = max(score, 0.6)
+
+    if first_author_match and overlap > 0 and year_score >= 1.0 and title_sim >= 0.4:
+        score = max(score, 0.8)
 
     return round(min(score, 1.0), 6)
 

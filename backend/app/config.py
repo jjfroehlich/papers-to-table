@@ -184,6 +184,8 @@ async def check_readiness(config: RunConfig) -> ReadinessResult:
             os.makedirs(output_dir, exist_ok=True)
         except OSError as e:
             r.fail(f"Cannot create output_dir: {e}")
+    elif not os.path.isdir(output_dir):
+        r.fail(f"output_dir is not a directory: {output_dir}")
     elif not os.access(output_dir, os.W_OK):
         r.fail(f"output_dir is not writable: {output_dir}")
 

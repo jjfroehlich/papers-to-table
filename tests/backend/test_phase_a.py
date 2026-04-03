@@ -163,6 +163,32 @@ def test_apply_overrides():
     assert overridden.pdf_dir == config.pdf_dir  # unchanged
 
 
+def test_apply_overrides_resolves_relative_paths_against_config_dir(tmp_path):
+    config_dir = tmp_path / "configs"
+    config_dir.mkdir()
+    table = tmp_path / "table.xlsx"
+    schema = tmp_path / "schema.csv"
+    pdf_dir = tmp_path / "papers"
+    pdf_dir.mkdir()
+    table.write_text("placeholder", encoding="utf-8")
+    schema.write_text("column_name,description\nMethod,Method\n", encoding="utf-8")
+
+    config_path = config_dir / "config.json"
+    config_path.write_text(json.dumps({
+        "table_path": "../table.xlsx",
+        "schema_path": "../schema.csv",
+        "pdf_dir": "../papers",
+        "provider": {"token": "lm_studio", "text_model": {"model_id": "example/model"}},
+    }), encoding="utf-8")
+
+    config = load_config(str(config_path))
+    overridden = apply_overrides(config, {"pdf_dir": "../papers"}, base_dir=str(config_dir))
+
+    assert overridden.table_path == str(table.resolve())
+    assert overridden.schema_path == str(schema.resolve())
+    assert overridden.pdf_dir == str(pdf_dir.resolve())
+
+
 # ---------------------------------------------------------------------------
 # Ingest
 # ---------------------------------------------------------------------------

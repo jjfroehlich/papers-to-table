@@ -17,7 +17,7 @@ This guide stays intentionally close to the implemented MVP. It documents the cu
 
 ![Review workspace screenshot](screenshots/review-workspace.png)
 
-- The queue defaults to actionable pending proposals.
+- The queue defaults to actionable pending proposals and supports grouped triage by paper or column.
 - The detail pane keeps the proposed value, schema description, and ordered evidence list together.
 - The evidence viewer uses:
   - blue overlays for exact quote highlights

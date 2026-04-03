@@ -96,6 +96,15 @@ function buildPaperGroupLabel(proposal: EnrichedProposal): string {
   return `${citation} - ${compactTitle}`
 }
 
+function groupStats(items: EnrichedProposal[]) {
+  return {
+    pending: items.filter(isPending).length,
+    direct: items.filter((item) => item.support === 'direct_evidence').length,
+    weak: items.filter((item) => item.support === 'weak_evidence').length,
+    fallback: items.filter((item) => item.is_fallback_evidence).length,
+  }
+}
+
 export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }: Props) {
   const [proposals, setProposals] = useState<EnrichedProposal[]>([])
   const [loading, setLoading] = useState(true)
@@ -189,25 +198,31 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
   return (
     <div className="flex flex-col h-full">
       {/* Controls */}
-      <div className="p-2 border-b border-gray-100 space-y-2 shrink-0">
+      <div className="shrink-0 border-b border-slate-200 bg-slate-50/80 p-3 space-y-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Queue</p>
+          <p className="mt-1 text-xs text-slate-600">
+            Triage by paper or column, keep pending items first, and jump directly into evidence review.
+          </p>
+        </div>
         {/* Group toggle */}
         <div className="flex gap-1">
           <button
             onClick={() => setGroupBy('paper')}
-            className={`flex-1 py-1 text-xs rounded ${
+            className={`flex-1 rounded-full px-3 py-1.5 text-xs font-medium ${
               groupBy === 'paper'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-slate-900 text-white shadow-sm'
+                : 'bg-white text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-100'
             }`}
           >
             By Paper
           </button>
           <button
             onClick={() => setGroupBy('column')}
-            className={`flex-1 py-1 text-xs rounded ${
+            className={`flex-1 rounded-full px-3 py-1.5 text-xs font-medium ${
               groupBy === 'column'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-slate-900 text-white shadow-sm'
+                : 'bg-white text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-100'
             }`}
           >
             By Column
@@ -217,7 +232,7 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value as Filter)}
-          className="w-full text-xs border border-gray-200 rounded px-2 py-1"
+          className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-700"
         >
             <option value="pending">Pending</option>
             <option value="all">All reviewable</option>
@@ -231,38 +246,59 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
           placeholder="Search…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full text-xs border border-gray-200 rounded px-2 py-1"
+          className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-700"
         />
       </div>
 
       {/* Group list */}
       <div className="flex-1 overflow-y-auto">
         {groups.length === 0 && (
-          <div className="p-4 text-center text-sm text-gray-400">No proposals match the current filter.</div>
+          <div className="p-4 text-center text-sm text-slate-400">No proposals match the current filter.</div>
         )}
         {groups.map(([key, items]) => {
-          const pendingCount = items.filter(isPending).length
+          const stats = groupStats(items)
           const isCollapsed = collapsedGroups.has(key)
           const groupLabel = groupBy === 'paper' ? buildPaperGroupLabel(items[0]) : key
           return (
-            <div key={key} className="border-b border-gray-100 last:border-b-0">
+            <div key={key} className="border-b border-slate-100 last:border-b-0">
               {/* Group header */}
               <button
-                className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 hover:bg-gray-100 text-left"
+                className="w-full px-3 py-2.5 bg-slate-50 hover:bg-slate-100 text-left"
                 onClick={() => toggleGroup(key)}
               >
-                <span className="text-xs font-medium text-gray-700 truncate max-w-52" title={groupLabel}>
-                  {groupLabel}
-                </span>
-                <span className="flex items-center gap-1 shrink-0">
-                  {pendingCount > 0 && (
-                    <span className="text-xs bg-blue-100 text-blue-700 px-1.5 rounded-full font-medium">
-                      {pendingCount}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="block truncate text-xs font-semibold text-slate-800" title={groupLabel}>
+                      {groupLabel}
                     </span>
-                  )}
-                  <span className="text-xs text-gray-400">{items.length}</span>
-                  <span className="text-gray-400 text-xs">{isCollapsed ? '▶' : '▼'}</span>
-                </span>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
+                      {stats.pending > 0 && (
+                        <span className="rounded-full bg-blue-100 px-2 py-0.5 font-medium text-blue-700">
+                          {stats.pending} pending
+                        </span>
+                      )}
+                      {stats.direct > 0 && (
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-medium text-emerald-700">
+                          {stats.direct} direct
+                        </span>
+                      )}
+                      {stats.weak > 0 && (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-700">
+                          {stats.weak} weak
+                        </span>
+                      )}
+                      {stats.fallback > 0 && (
+                        <span className="rounded-full bg-orange-100 px-2 py-0.5 font-medium text-orange-700">
+                          {stats.fallback} fallback
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <span className="flex items-center gap-2 shrink-0 text-xs text-slate-400">
+                    <span>{items.length}</span>
+                    <span>{isCollapsed ? '▶' : '▼'}</span>
+                  </span>
+                </div>
               </button>
 
               {/* Cards */}
@@ -271,18 +307,33 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
                   <button
                     key={p.proposal_id}
                     onClick={() => onSelect(p.proposal_id)}
-                    className={`w-full text-left px-3 py-2 border-l-4 flex items-start gap-2 hover:bg-gray-50 transition-colors ${stateColor(p)} ${
-                      selectedProposalId === p.proposal_id ? 'bg-blue-50' : 'bg-white'
+                    className={`w-full border-l-4 px-3 py-2.5 text-left flex items-start gap-3 transition-colors ${stateColor(p)} ${
+                      selectedProposalId === p.proposal_id ? 'bg-blue-50/80' : 'bg-white hover:bg-slate-50'
                     }`}
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium text-gray-800 truncate">
+                      <div className="text-xs font-semibold text-slate-800 truncate">
                         {p.column_name}
                       </div>
-                      <div className="text-xs text-gray-500 truncate">{p.row_id}</div>
+                      <div className="mt-0.5 text-[11px] text-slate-500 truncate">
+                        {groupBy === 'paper'
+                          ? (p.proposed_value || p.row_id)
+                          : (p.paper_title || p.row_id)}
+                      </div>
+                      <div className="mt-1 text-[11px] text-slate-400 truncate">{p.row_id}</div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex flex-wrap items-center justify-end gap-1 shrink-0">
                       <SupportBadge support={p.support} />
+                      {p.is_figure_derived && (
+                        <span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-700">
+                          fig
+                        </span>
+                      )}
+                      {p.is_fallback_evidence && (
+                        <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-medium text-orange-700">
+                          fallback
+                        </span>
+                      )}
                       {p.latest_decision && (
                         <DecisionBadge decision={p.latest_decision.decision} />
                       )}
@@ -298,7 +349,7 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
       </div>
 
       {/* Footer count */}
-      <div className="px-3 py-1.5 border-t border-gray-100 text-xs text-gray-400 shrink-0">
+      <div className="shrink-0 border-t border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
         {filtered.length} {filter === 'pending' ? 'pending' : 'review'} proposal{filtered.length !== 1 ? 's' : ''}
       </div>
     </div>

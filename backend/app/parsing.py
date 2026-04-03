@@ -40,6 +40,11 @@ def _normalize_linebreaks(text: str) -> str:
     return text.replace("\r\n", "\n").replace("\r", "\n")
 
 
+def _unwrap_docling_item(item_entry: object) -> object:
+    """Normalize Docling iterate_items() payload shape across supported versions."""
+    return item_entry[0] if isinstance(item_entry, tuple) else item_entry
+
+
 # ---------------------------------------------------------------------------
 # ParsedDocument contract (T025)
 # ---------------------------------------------------------------------------
@@ -708,8 +713,7 @@ class DoclingParserAdapter(ParserAdapter):
         figure_counter = 0
 
         for item_entry in doc.iterate_items():
-            # Newer docling versions yield (item, level) tuples here.
-            item = item_entry[0] if isinstance(item_entry, tuple) else item_entry
+            item = _unwrap_docling_item(item_entry)
 
             from docling_core.types.doc import (
                 DocItemLabel,
