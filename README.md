@@ -74,7 +74,7 @@ The **Browse...** controls only prefill selected file names. Always confirm or e
 
 ![Review workspace screenshot](docs/screenshots/review-workspace.png)
 
-The review workspace keeps the queue, proposal detail, and highlighted PDF evidence visible at the same time. Blue overlays mean exact quote highlights; dashed orange overlays mean approximate regions; the amber text panel means quote-plus-page fallback.
+The review workspace keeps dense grouped triage, proposal detail, and highlighted PDF evidence visible at the same time. Blue overlays mean exact quote highlights; dashed orange overlays mean approximate regions; the amber text panel means quote-plus-page fallback.
 
 ### Manual export and diagnostics artifacts
 
@@ -370,7 +370,7 @@ cd frontend && npm install && cd ..
 python -m pytest tests/e2e -m e2e
 ```
 
-This currently exercises the implemented Playwright slice for fast review, evidence cycling, explicit export, and screenshot capture. Broader run-launch e2e scaffolding remains deferred and is skipped explicitly.
+This currently exercises the implemented Playwright slice for run-setup gating, picker-prefill truth, fast review, evidence cycling, explicit export, and screenshot capture.
 
 ### Refresh README screenshots
 

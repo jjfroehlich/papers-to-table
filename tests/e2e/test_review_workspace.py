@@ -34,7 +34,7 @@ def test_fast_sequential_review_supports_auto_advance_and_evidence_cycling(
 
     page.get_by_role("button", name="Accept", exact=True).click()
 
-    expect(page.get_by_text("HEK293T", exact=True)).to_be_visible()
+    expect(page.get_by_text("HEK293T", exact=True).first).to_be_visible()
 
 
 def test_review_workspace_keeps_export_manual(
@@ -46,7 +46,7 @@ def test_review_workspace_keeps_export_manual(
 
     expect(page.get_by_role("link", name="Workbook")).to_have_count(0)
     page.get_by_role("button", name="Accept", exact=True).click()
-    expect(page.get_by_text("HEK293T", exact=True)).to_be_visible()
+    expect(page.get_by_text("HEK293T", exact=True).first).to_be_visible()
 
     page.get_by_role("button", name="Export reviewed workbook").click()
 
