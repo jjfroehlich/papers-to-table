@@ -1,22 +1,150 @@
-"""
-E2e test scaffolding for Paper Table Agent.
-
-These tests require:
-  - Backend running: uvicorn backend.app.main:app --port 8000
-  - Frontend built and served: cd frontend && npm run preview -- --port 5173
-
-Enable live e2e tests with: pytest tests/e2e -m e2e
-
-Fixture preparation is separate from server startup per T016a.
-"""
+"""Playwright-backed e2e fixtures for review/export coverage and docs screenshots."""
 from __future__ import annotations
+
+import os
+import pathlib
+import socket
+import subprocess
+import sys
+import time
+import urllib.request
 
 import pytest
 
-# All e2e tests are marked 'e2e' so they can be opted in explicitly:
-#   pytest tests/e2e -m e2e
-# They are skipped by default in CI to avoid requiring a running server.
+from .demo_stack import DemoRunIds, prepare_demo_runtime
+
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--capture-doc-screenshots",
+        action="store_true",
+        default=False,
+        help="Write refreshed README screenshots into docs/screenshots.",
+    )
+    parser.addoption(
+        "--docs-screenshot-dir",
+        action="store",
+        default=str(REPO_ROOT / "docs" / "screenshots"),
+        help="Destination directory for refreshed docs screenshots.",
+    )
 
 
 def pytest_configure(config):
-    config.addinivalue_line("markers", "e2e: end-to-end tests requiring live backend and frontend")
+    config.addinivalue_line("markers", "e2e: end-to-end tests requiring Playwright")
+
+
+def _find_free_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
+def _wait_for_http(url: str, timeout_seconds: int = 60) -> None:
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+        try:
+            with urllib.request.urlopen(url) as response:
+                if response.status < 500:
+                    return
+        except Exception:
+            time.sleep(0.5)
+    raise RuntimeError(f"Timed out waiting for {url}")
+
+
+def _stop_process(process: subprocess.Popen[str] | None) -> None:
+    if process is None or process.poll() is not None:
+        return
+    process.terminate()
+    try:
+        process.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait(timeout=5)
+
+
+@pytest.fixture(scope="session")
+def live_stack(tmp_path_factory) -> dict[str, object]:
+    runtime_root = tmp_path_factory.mktemp("playwright-runtime")
+    demo_runtime = prepare_demo_runtime(runtime_root, REPO_ROOT)
+    backend_port = _find_free_port()
+    frontend_port = _find_free_port()
+    backend_url = f"http://127.0.0.1:{backend_port}"
+    frontend_url = f"http://127.0.0.1:{frontend_port}"
+
+    backend_log = (runtime_root / "backend.log").open("w", encoding="utf-8")
+    frontend_log = (runtime_root / "frontend.log").open("w", encoding="utf-8")
+
+    backend_env = os.environ.copy()
+    backend_env["PYTHONPATH"] = str(REPO_ROOT) + os.pathsep + backend_env.get("PYTHONPATH", "")
+    backend_process = subprocess.Popen(
+        [
+            sys.executable,
+            "-m",
+            "uvicorn",
+            "backend.app.main:app",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            str(backend_port),
+        ],
+        cwd=str(runtime_root),
+        env=backend_env,
+        stdout=backend_log,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+
+    frontend_env = os.environ.copy()
+    frontend_env["VITE_API_BASE_URL"] = backend_url
+    frontend_process = subprocess.Popen(
+        ["npm", "run", "dev", "--", "--host", "127.0.0.1", "--port", str(frontend_port)],
+        cwd=str(REPO_ROOT / "frontend"),
+        env=frontend_env,
+        stdout=frontend_log,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+
+    try:
+        _wait_for_http(f"{backend_url}/api/health")
+        _wait_for_http(frontend_url)
+        yield {
+            "backend_url": backend_url,
+            "frontend_url": frontend_url,
+            "runtime_root": runtime_root,
+            "demo_runtime": demo_runtime,
+        }
+    finally:
+        _stop_process(frontend_process)
+        _stop_process(backend_process)
+        backend_log.close()
+        frontend_log.close()
+
+
+@pytest.fixture(scope="session")
+def backend_url(live_stack: dict[str, object]) -> str:
+    return str(live_stack["backend_url"])
+
+
+@pytest.fixture(scope="session")
+def frontend_url(live_stack: dict[str, object]) -> str:
+    return str(live_stack["frontend_url"])
+
+
+@pytest.fixture(scope="session")
+def demo_run_ids(live_stack: dict[str, object]) -> DemoRunIds:
+    demo_runtime = live_stack["demo_runtime"]
+    assert hasattr(demo_runtime, "run_ids")
+    return demo_runtime.run_ids  # type: ignore[return-value]
+
+
+@pytest.fixture(scope="session")
+def docs_screenshot_dir(pytestconfig) -> pathlib.Path:
+    return pathlib.Path(pytestconfig.getoption("--docs-screenshot-dir")).resolve()
+
+
+@pytest.fixture(scope="session")
+def capture_doc_screenshots(pytestconfig) -> bool:
+    return bool(pytestconfig.getoption("--capture-doc-screenshots"))

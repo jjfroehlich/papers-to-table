@@ -25,6 +25,7 @@ export function RunList({ runs, selectedRunId, onSelect }: Props) {
       {runs.map((run) => (
         <li
           key={run.run_id}
+          data-testid="run-item"
           className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
             selectedRunId === run.run_id ? 'bg-blue-50 border-l-4 border-blue-500' : ''
           }`}

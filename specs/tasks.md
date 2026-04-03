@@ -1014,7 +1014,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [ ] **T095** Add Playwright e2e tests for the core review loop from proposal selection through grouped triage, group ordering, evidence interaction, no-data resolution, decision recording, picker-input staging, and summary updates.
 
-- [ ] **T095a** Add Playwright coverage for fast sequential review and explicit export flow.
+- [x] **T095a** Add Playwright coverage for fast sequential review and explicit export flow.
   - evidence cycling and auto-advance after explicit decisions
   - manual export trigger from the review UI
   - highlighted-evidence review flow suitable for README screenshot capture
@@ -1107,7 +1107,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T106** Add a performance smoke test for representative small and medium batches so obvious regressions in parsing, retrieval, extraction, and review loading are caught.
 
-- [ ] **T107** Update `README` with MVP run instructions:
+- [x] **T107** Update `README` with MVP run instructions:
   - how to prepare config
   - how to start the FastAPI backend and React UI
   - how to run a sample workflow
@@ -1119,12 +1119,12 @@ The detailed task inventory below remains the source of truth for exact implemen
   - how readiness and startup failures are surfaced
   - include at least one known-working LM Studio model example while making clear that stronger or newer compatible models may also be used
   - make every documented command and workflow match the implementation that currently ships
-- [ ] **T107a** Preserve user-facing onboarding in `README`, including clone/install steps, config-file purpose, LM Studio expectations, backend/frontend run commands, testing commands, artifact locations, and the export fidelity boundary.
+- [x] **T107a** Preserve user-facing onboarding in `README`, including clone/install steps, config-file purpose, LM Studio expectations, backend/frontend run commands, testing commands, artifact locations, and the export fidelity boundary.
   - do not remove useful onboarding content unless it is obsolete and replaced with something clearer in the same work pass
   - keep the checked-in config example, runtime config schema, and README terminology aligned for provider, parser, model, Verify mode, and run states
   - do not keep obsolete onboarding text, superseded commands, or alternate startup paths that are not real supported workflows
 
-- [ ] **T107b** Keep README aligned with the real primary happy path:
+- [x] **T107b** Keep README aligned with the real primary happy path:
   - start backend and frontend
   - launch a run from the browser using a config path plus picker-driven input selection when supported
   - observe run lifecycle state in the UI
@@ -1133,7 +1133,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - document the real config workflow, run lifecycle, review flow, export behavior, and limitations of the implemented MVP
   - do not document speculative helpers or workflows that do not exist
 
-- [ ] **T107c** Update `README.md` and related operator docs for the tightened workflow contract.
+- [x] **T107c** Update `README.md` and related operator docs for the tightened workflow contract.
   - add guidance for writing strong schema descriptions
   - include at least one concrete schema snippet showing `column_name`, `description`, optional `field_type`, and categorical `allowed_values`
   - present schema-first empty-table operation as the normal/default mental model, not just a supported edge case
@@ -1142,7 +1142,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - include screenshot expectations for run setup, highlighted-evidence review workspace, and export or diagnostics views
   - add a lightweight trustworthiness checklist covering provider path, evidence labeling, fallback visibility, review-before-export, and audit artifacts
 
-- [ ] **T107d** Add a reproducible screenshot-capture workflow for docs.
+- [x] **T107d** Add a reproducible screenshot-capture workflow for docs.
   - prefer Playwright-based capture tied to real UI states
   - keep the workflow lightweight and local-first
   - store or document the commands needed to refresh README screenshots consistently

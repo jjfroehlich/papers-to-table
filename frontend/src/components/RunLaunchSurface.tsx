@@ -43,7 +43,7 @@ export function RunLaunchSurface({ onRunCreated }: Props) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="run-launch-surface">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Config file path <span className="text-red-500">*</span>
