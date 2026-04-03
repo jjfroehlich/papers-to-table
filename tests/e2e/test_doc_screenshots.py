@@ -47,8 +47,8 @@ def test_capture_readme_screenshots(
     page.wait_for_timeout(1500)
     _capture(page.locator("[data-testid='review-workspace']"), docs_screenshot_dir / "review-workspace.png")
 
-    page.get_by_role("button", name="Accept").click()
-    expect(page.get_by_text("HEK293T")).to_be_visible()
+    page.get_by_role("button", name="Accept", exact=True).click()
+    expect(page.get_by_text("HEK293T", exact=True)).to_be_visible()
     page.get_by_role("button", name="Export reviewed workbook").click()
     expect(page.get_by_text("Export completed at")).to_be_visible()
     _capture(page.locator("[data-testid='review-workspace']"), docs_screenshot_dir / "export-diagnostics.png")
