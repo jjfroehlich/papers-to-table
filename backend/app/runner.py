@@ -62,6 +62,12 @@ def get_initial_run_data(
         "verify_mode": config.verify_mode,
         "provider_token": config.provider.token,
         "provider_locality": config.provider.locality,
+        "provider_mode": "unknown",
+        "provider_text_model_id": config.provider.text_model.model_id,
+        "provider_vision_model_id": (
+            config.provider.vision_model.model_id if config.provider.vision_model else None
+        ),
+        "provider_readiness_error": None,
         "started_at": None,
         "completed_at": None,
         "current_stage": None,
@@ -97,6 +103,22 @@ async def run_pipeline(
         data["current_stage"] = None
         return data
 
+    def write_final_summaries(data: dict, proposals_generated: int = 0) -> None:
+        write_json(get_run_summary_path(output_dir, run_id), data)
+        write_json(
+            get_reviewer_summary_path(output_dir, run_id),
+            {
+                "run_id": run_id,
+                "total_proposals": proposals_generated,
+                "accepted": 0,
+                "accepted_with_edit": 0,
+                "confirmed_no_data": 0,
+                "rejected": 0,
+                "pending": proposals_generated,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+
     run_data = get_initial_run_data(run_id, config, config_path)
     init_run_bundle(output_dir, run_id)
     save_run(run_data)
@@ -128,10 +150,34 @@ async def run_pipeline(
         }
         write_json(input_summary_path, early_input_summary)
 
+        text_model_id = config.provider.text_model.model_id
+        vision_model_id = (
+            config.provider.vision_model.model_id
+            if config.provider.vision_model
+            else None
+        )
+
         readiness = await check_readiness(config)
         if not readiness.ok:
+            if readiness.provider_mode:
+                run_data["provider_mode"] = readiness.provider_mode
+            if readiness.provider_readiness_error:
+                run_data["provider_readiness_error"] = readiness.provider_readiness_error
+                write_json(
+                    get_run_dir(output_dir, run_id) / "provider_mode.json",
+                    {
+                        "token": config.provider.token,
+                        "locality": config.provider.locality,
+                        "mode": readiness.provider_mode or "unknown",
+                        "text_model_id": text_model_id,
+                        "vision_model_id": vision_model_id,
+                        "readiness_error": readiness.provider_readiness_error,
+                        "recorded_at": datetime.now(timezone.utc).isoformat(),
+                    },
+                )
             run_data = fail_run(run_data, "; ".join(readiness.errors))
             save_run(run_data)
+            write_final_summaries(run_data)
             return
 
         # Stage: load_inputs
@@ -145,6 +191,7 @@ async def run_pipeline(
         if meta_errors:
             run_data = fail_run(run_data, "; ".join(meta_errors))
             save_run(run_data)
+            write_final_summaries(run_data)
             return
 
         schema = load_schema(config.schema_path, config.table_path)
@@ -152,6 +199,7 @@ async def run_pipeline(
         if schema_errors:
             run_data = fail_run(run_data, "; ".join(schema_errors))
             save_run(run_data)
+            write_final_summaries(run_data)
             return
 
         eligible = get_eligible_cells(df, schema, config.verify_mode)
@@ -180,12 +228,6 @@ async def run_pipeline(
         provider = None
         provider_mode = None
         provider_init_error: Optional[str] = None
-        text_model_id = config.provider.text_model.model_id
-        vision_model_id = (
-            config.provider.vision_model.model_id
-            if config.provider.vision_model
-            else None
-        )
 
         try:
             provider, provider_mode = await initialize_provider(
@@ -195,6 +237,20 @@ async def run_pipeline(
             )
         except ProviderError as e:
             provider_init_error = str(e)
+            run_data["provider_mode"] = "unavailable"
+            run_data["provider_readiness_error"] = provider_init_error
+            write_json(
+                run_dir / "provider_mode.json",
+                {
+                    "token": config.provider.token,
+                    "locality": config.provider.locality,
+                    "mode": "unavailable",
+                    "text_model_id": text_model_id,
+                    "vision_model_id": vision_model_id,
+                    "readiness_error": provider_init_error,
+                    "recorded_at": datetime.now(timezone.utc).isoformat(),
+                },
+            )
             run_data.setdefault("warnings", []).append({
                 "category": WC.provider_unreachable.value,
                 "message": f"Provider unavailable: {provider_init_error}",
@@ -208,11 +264,16 @@ async def run_pipeline(
                 provider_init_error or "Provider unavailable during initialization",
             )
             save_run(run_data)
+            write_final_summaries(run_data)
             return
 
         # Persist provider mode in run artifacts (T052a)
         if provider_mode:
+            run_data["provider_mode"] = provider_mode.mode
+            run_data["provider_locality"] = provider_mode.locality
+            run_data["provider_readiness_error"] = provider_mode.readiness_error
             write_json(run_dir / "provider_mode.json", provider_mode.model_dump())
+            save_run(run_data)
 
         # Stage: parse
         run_data = update_stage(run_data, "parse")
@@ -437,6 +498,7 @@ async def run_pipeline(
             run_data["error_message"] = str(e)
         run_data["current_stage"] = None
         save_run(run_data)
+        write_final_summaries(run_data, run_data.get("proposals_generated", 0))
 
 
 def launch_run(

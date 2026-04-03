@@ -84,6 +84,7 @@ The canonical provider token is `lm_studio`. Tokens such as `lmstudio`, `LMStudi
 | `provider.base_url` | LM Studio API base URL (default: `http://localhost:1234`) |
 | `provider.text_model.model_id` | ID of the text model loaded in LM Studio |
 | `provider.vision_model.model_id` | ID of the vision model (optional) |
+| `retrieval.top_k` | Focused retrieval passage count for the first pass (default: `6`) |
 | `retrieval.recall_rescue_enabled` | Retry `unclear` results with deterministic expanded retrieval (default: `true`) |
 | `retrieval.whole_document_mode` | Opt-in whole-document rescue context for short parsed papers (default: `false`) |
 
@@ -200,6 +201,7 @@ The exported XLSX always contains all rows and columns from the source workbook,
   proposals/
     proposals.jsonl              # Append-only proposal records
     proposal_index.json          # Proposal lookup metadata
+  provider_mode.json             # Persisted provider/mode/readiness truth
   evidence/                       # Per-proposal evidence (JSON files)
   review/
     decisions.jsonl               # Append-only review decision log

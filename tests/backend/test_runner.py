@@ -73,11 +73,12 @@ class TestGetInitialRunData:
 class TestRunPipeline:
     @pytest.mark.asyncio
     @respx.mock
-    async def test_completes_with_valid_inputs(self, tmp_path):
+    async def test_completes_with_valid_inputs(self, tmp_path, monkeypatch):
         """Happy-path: pipeline completes when LM Studio is reachable."""
         respx.get("http://localhost:1234/v1/models").mock(
-            return_value=httpx.Response(200, json={"data": []})
+            return_value=httpx.Response(200, json={"data": [{"id": "qwen/qwen3-30b-a3b-2507"}]})
         )
+        monkeypatch.setattr("backend.app.runner.initialize_provider", _fake_initialize_provider)
         config = make_config(tmp_path)
         run_id = "run_test_happy"
         output_dir = str(tmp_path / "runs")
@@ -94,10 +95,11 @@ class TestRunPipeline:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_writes_config_snapshot(self, tmp_path):
+    async def test_writes_config_snapshot(self, tmp_path, monkeypatch):
         respx.get("http://localhost:1234/v1/models").mock(
-            return_value=httpx.Response(200, json={"data": []})
+            return_value=httpx.Response(200, json={"data": [{"id": "qwen/qwen3-30b-a3b-2507"}]})
         )
+        monkeypatch.setattr("backend.app.runner.initialize_provider", _fake_initialize_provider)
         config = make_config(tmp_path)
         run_id = "run_snap"
         output_dir = str(tmp_path / "runs")
@@ -112,10 +114,11 @@ class TestRunPipeline:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_writes_input_summary(self, tmp_path):
+    async def test_writes_input_summary(self, tmp_path, monkeypatch):
         respx.get("http://localhost:1234/v1/models").mock(
-            return_value=httpx.Response(200, json={"data": []})
+            return_value=httpx.Response(200, json={"data": [{"id": "qwen/qwen3-30b-a3b-2507"}]})
         )
+        monkeypatch.setattr("backend.app.runner.initialize_provider", _fake_initialize_provider)
         config = make_config(tmp_path)
         run_id = "run_inputs"
         output_dir = str(tmp_path / "runs")
@@ -168,10 +171,11 @@ class TestRunPipeline:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_records_total_rows_and_eligible_cells(self, tmp_path):
+    async def test_records_total_rows_and_eligible_cells(self, tmp_path, monkeypatch):
         respx.get("http://localhost:1234/v1/models").mock(
-            return_value=httpx.Response(200, json={"data": []})
+            return_value=httpx.Response(200, json={"data": [{"id": "qwen/qwen3-30b-a3b-2507"}]})
         )
+        monkeypatch.setattr("backend.app.runner.initialize_provider", _fake_initialize_provider)
         config = make_config(tmp_path)
         run_id = "run_counts"
         output_dir = str(tmp_path / "runs")
@@ -201,6 +205,7 @@ class TestRunPipeline:
         assert run_data["status"] == RunStatus.failed.value
         assert run_data["error_message"] == "provider offline"
         assert list(proposals_dir.glob("*.json")) == []
+        assert not (proposals_dir / "proposals.jsonl").exists()
 
     @pytest.mark.asyncio
     async def test_only_usable_matched_rows_create_proposal_artifacts(self, tmp_path, monkeypatch):
@@ -275,11 +280,11 @@ class TestRunPipeline:
         await run_pipeline(run_id, config, "config.json", output_dir)
 
         proposals_dir = pathlib.Path(output_dir) / run_id / "proposals"
-        proposal_files = list(proposals_dir.glob("*.json"))
         run_data = read_json(get_run_json_path(output_dir, run_id))
 
         assert run_data["proposals_generated"] == 1
-        assert len(proposal_files) == 1
+        assert (proposals_dir / "proposals.jsonl").exists()
+        assert (proposals_dir / "proposal_index.json").exists()
 
 
 async def _ready_ok(*args, **kwargs):
@@ -293,7 +298,13 @@ async def _raise_provider_error(*args, **kwargs):
 
 
 async def _fake_initialize_provider(*args, **kwargs):
-    return object(), SimpleNamespace(mode="text", capabilities=None, model_dump=lambda: {"mode": "text"})
+    return object(), SimpleNamespace(
+        mode="live_local",
+        locality="local",
+        readiness_error=None,
+        capabilities=None,
+        model_dump=lambda: {"mode": "live_local", "locality": "local", "readiness_error": None},
+    )
 
 
 async def _fake_style_profiles(**kwargs):

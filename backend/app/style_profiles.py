@@ -184,17 +184,19 @@ async def generate_style_profile(
     # Only pass non-empty values to the LLM
     nonempty = [v.strip() for v in filled_values if v.strip()]
 
-    if provider is not None and model_id and nonempty:
+    if provider is not None and nonempty:
         try:
             import json
 
             prompt = _build_style_prompt(column_name, description, nonempty)
-            response_text = await provider.text_complete_raw(
-                system=_STYLE_SYSTEM_PROMPT,
-                user=prompt,
-                max_tokens=512,
-                model_id=model_id,
-            )
+            request_kwargs = {
+                "system": _STYLE_SYSTEM_PROMPT,
+                "user": prompt,
+                "max_tokens": 512,
+            }
+            if model_id:
+                request_kwargs["model_id"] = model_id
+            response_text = await provider.text_complete_raw(**request_kwargs)
             # Parse the JSON response
             # Strip markdown code fences if present
             cleaned = response_text.strip()

@@ -71,7 +71,7 @@ const figureEvidence: EvidenceItem = {
   evidence_id: 'ev3',
   proposal_id: 'p1',
   pdf_id: 'paper-a',
-  source_type: 'figure_based_evidence',
+  source_type: 'caption_grounded_figure_evidence',
   quote_text: null,
   page_number: null,
   exact_highlight_regions: null,
