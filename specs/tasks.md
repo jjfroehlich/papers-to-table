@@ -370,7 +370,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - missing parser or OCR dependency readiness failure where applicable
   - broken output-path or similarly broken local setup failure
 
-- [x] **T024b** Add tests covering path-resolution and picker-driven setup truth.
+- [ ] **T024b** Add tests covering path-resolution and picker-driven setup truth.
   - relative versus absolute path resolution
   - browser-selected input override handling
   - backend staging or input-handle materialization for browser-selected inputs
@@ -1014,7 +1014,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [ ] **T095** Add Playwright e2e tests for the core review loop from proposal selection through grouped triage, group ordering, evidence interaction, no-data resolution, decision recording, picker-input staging, and summary updates.
 
-- [x] **T095a** Add Playwright coverage for fast sequential review and explicit export flow.
+- [ ] **T095a** Add Playwright coverage for fast sequential review and explicit export flow.
   - evidence cycling and auto-advance after explicit decisions
   - manual export trigger from the review UI
   - highlighted-evidence review flow suitable for README screenshot capture

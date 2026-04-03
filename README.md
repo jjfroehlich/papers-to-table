@@ -99,7 +99,7 @@ The config file is the authoritative control surface for all run parameters. Pat
 ### 1. Create a run
 
 1. Open `http://localhost:5173` in the browser.
-2. In the **Run** tab, enter the path to your config file (e.g. `config.json`) or use **Browse...** to fill the config-path field and then edit it if needed.
+2. In the **Run** tab, enter the path to your config file (e.g. `config.json`). The **Browse...** control is a local convenience for picking a file name, but you should still confirm or edit the backend-readable path in the text field before creating the run.
 3. Optionally expand **optional path overrides** to override `table_path`, `schema_path`, or `pdf_dir` for this run.
 4. Click **Create Run**.
 

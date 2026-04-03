@@ -76,7 +76,7 @@ export function RunLaunchSurface({ onRunCreated }: Props) {
           </button>
         </div>
         <p className="mt-1 text-xs text-gray-500">
-          Path to your JSON run configuration file. See{' '}
+          Enter the backend-readable path to your JSON run configuration file. The browse control can prefill a selected file name, but you may still need to edit the exact path. See{' '}
           <code className="bg-gray-100 px-1 rounded">config.example.json</code> for the format.
         </p>
       </div>
@@ -94,7 +94,7 @@ export function RunLaunchSurface({ onRunCreated }: Props) {
       {showOverrides && (
         <div className="space-y-3 rounded-md border border-gray-200 bg-gray-50 p-4">
           <p className="text-xs text-gray-500">
-            Override paths from the config file. Useful when your files are in a different location than the config specifies.
+            Override paths from the config file. Useful when your files are in a different location than the config specifies. Browse buttons prefill selected file names only; confirm the backend-readable path before launch.
           </p>
 
           <div>
