@@ -258,11 +258,11 @@ def _extract_year_from_text(full_text: str) -> Optional[int]:
 # ---------------------------------------------------------------------------
 
 _DOI_WEIGHT = 0.45
-_TITLE_WEIGHT = 0.2
+_TITLE_WEIGHT = 0.15
 _FIRST_AUTHOR_WEIGHT = 0.15
 _AUTHOR_WEIGHT = 0.1
 _YEAR_WEIGHT = 0.1
-_EXACT_TITLE_BONUS = 0.1
+_EXACT_TITLE_BONUS = 0.05
 
 
 def score_against_row(paper: PaperMetadata, row: dict) -> float:

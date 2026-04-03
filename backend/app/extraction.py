@@ -450,7 +450,7 @@ def build_whole_document_context(
 
 def _normalize_for_match(text: str) -> str:
     text = unicodedata.normalize("NFKD", text)
-    text = re.sub(r"[^\w\s]", " ", text)
+    text = re.sub(r"[^a-zA-Z0-9\s]", " ", text)
     text = re.sub(r"\s+", " ", text).strip().lower()
     return text
 
@@ -650,7 +650,9 @@ def adjudicate_state(
     has_any_quote = bool(quotes)
 
     if raw_state == "found":
-        if has_any_quote:
+        if any(q.get("source_type") == "direct_quote" for q in quotes):
+            return ProposalState.found, SupportLabel.direct_evidence
+        if any(q.get("source_type") != "direct_quote" for q in quotes):
             return ProposalState.found, SupportLabel.inferred_from_evidence
         else:
             return ProposalState.inferred, SupportLabel.inferred_from_evidence
@@ -972,10 +974,10 @@ def persist_proposal(
     proposal: ProposalRecord,
 ) -> pathlib.Path:
     """Persist a proposal record to proposals.jsonl plus a lookup index."""
-    p_dir = run_dir / "proposals"
+    p_dir = _safe_run_subpath(run_dir, "proposals")
     p_dir.mkdir(parents=True, exist_ok=True)
-    jsonl_path = p_dir / "proposals.jsonl"
-    index_path = p_dir / "proposal_index.json"
+    jsonl_path = _safe_run_subpath(run_dir, "proposals", "proposals.jsonl")
+    index_path = _safe_run_subpath(run_dir, "proposals", "proposal_index.json")
 
     record = proposal.model_dump(mode="json")
     append_jsonl(jsonl_path, record)
@@ -1006,16 +1008,16 @@ def persist_evidence(
     evidence: EvidenceRecord,
 ) -> pathlib.Path:
     """Persist an evidence record as JSON under evidence/."""
-    e_dir = run_dir / "evidence"
+    e_dir = _safe_run_subpath(run_dir, "evidence")
     e_dir.mkdir(parents=True, exist_ok=True)
-    path = e_dir / f"{evidence.evidence_id}.json"
+    path = _safe_run_subpath(run_dir, "evidence", f"{evidence.evidence_id}.json")
     write_json(path, evidence.model_dump())
     return path
 
 
 def load_proposals(run_dir: pathlib.Path) -> list[ProposalRecord]:
     """Load all proposal records from proposals.jsonl."""
-    path = run_dir / "proposals" / "proposals.jsonl"
+    path = _safe_run_subpath(run_dir, "proposals", "proposals.jsonl")
     if not path.exists():
         return []
     results: list[ProposalRecord] = []
@@ -1029,7 +1031,7 @@ def load_proposals(run_dir: pathlib.Path) -> list[ProposalRecord]:
 
 def load_evidence(run_dir: pathlib.Path) -> list[EvidenceRecord]:
     """Load all evidence records from the run directory."""
-    e_dir = run_dir / "evidence"
+    e_dir = _safe_run_subpath(run_dir, "evidence")
     if not e_dir.exists():
         return []
     results = []
@@ -1416,6 +1418,16 @@ def _normalize_rationale(rationale: Optional[str]) -> Optional[str]:
         return "\n".join(f"- {s}." for s in sentences[:3])
     # Truncate to 3 bullets
     return "\n".join(f"- {s}." for s in sentences[:3]) + "\n- ..."
+
+
+def _safe_run_subpath(run_dir: pathlib.Path, *parts: str) -> pathlib.Path:
+    if not parts:
+        raise ValueError("Artifact subpath parts are required.")
+    base = run_dir.resolve()
+    path = base.joinpath(*parts).resolve()
+    if path == base or base not in path.parents:
+        raise ValueError("Artifact path must stay within the run directory.")
+    return path
 
 
 def make_blocked_proposal(

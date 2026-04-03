@@ -97,13 +97,14 @@ def validate_schema_columns(schema: list[dict]) -> list[str]:
                 f"Schema row {i}: missing description for column '{col.get('column_name', '')}'"
             )
         field_type = col.get("field_type")
+        field_type_value = getattr(field_type, "value", field_type)
         if field_type and field_type not in allowed_field_types:
             errors.append(
                 f"Schema row {i}: invalid field_type '{field_type}' for column "
                 f"'{col.get('column_name', '')}'"
             )
         allowed_values = col.get("allowed_values")
-        if allowed_values and field_type != "categorical":
+        if allowed_values and field_type_value != "categorical":
             errors.append(
                 f"Schema row {i}: allowed_values require field_type='categorical' for column "
                 f"'{col.get('column_name', '')}'"
