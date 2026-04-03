@@ -17,7 +17,6 @@ function SourceTypeBadge({ sourceType }: { sourceType: string }) {
     calculation: 'bg-blue-100 text-blue-700',
     approximate_highlight: 'bg-orange-100 text-orange-700',
     quote_plus_page: 'bg-gray-100 text-gray-600',
-    figure_based_evidence: 'bg-purple-100 text-purple-700',
     caption_grounded_figure_evidence: 'bg-purple-100 text-purple-700',
     visual_interpretation_figure_evidence: 'bg-fuchsia-100 text-fuchsia-700',
   }

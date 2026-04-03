@@ -99,6 +99,7 @@ class TestLoadConfig:
         assert config.provider.base_url == "http://localhost:1234"
         assert config.parser.backend == "docling"
         assert config.matching.ambiguity_threshold == 0.15
+        assert config.retrieval.top_k == 6
 
     def test_text_model_id_default_preserved_until_readiness(self, tmp_path):
         data = {

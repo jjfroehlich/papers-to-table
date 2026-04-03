@@ -16,7 +16,6 @@ export type EvidenceSourceType =
   | 'calculation'
   | 'approximate_highlight'
   | 'quote_plus_page'
-  | 'figure_based_evidence'
   | 'caption_grounded_figure_evidence'
   | 'visual_interpretation_figure_evidence'
 export type ReviewDecision = 'accepted' | 'accepted_with_edit' | 'confirmed_no_data' | 'rejected'
@@ -38,6 +37,10 @@ export interface RunData {
   verify_mode: boolean
   provider_token: string | null
   provider_locality: string | null
+  provider_mode?: string | null
+  provider_text_model_id?: string | null
+  provider_vision_model_id?: string | null
+  provider_readiness_error?: string | null
   started_at: string | null
   completed_at: string | null
   current_stage: string | null

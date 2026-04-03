@@ -670,16 +670,67 @@ def adjudicate_state(
 def determine_support_label(
     state: ProposalState,
     evidence_records: list[EvidenceRecord],
+    proposed_value: Optional[str] = None,
+    field_type: Optional[SchemaFieldType] = None,
 ) -> SupportLabel:
     if state == ProposalState.error:
         return SupportLabel.error
     if state in (ProposalState.blocked, ProposalState.skipped, ProposalState.unclear):
         return SupportLabel.blocked
-    if any(ev.source_type == EvidenceSourceType.direct_quote for ev in evidence_records):
+    if any(
+        ev.source_type == EvidenceSourceType.direct_quote
+        and _quote_directly_supports_value(ev.quote_text, proposed_value, field_type)
+        for ev in evidence_records
+    ):
         return SupportLabel.direct_evidence
     if evidence_records:
         return SupportLabel.inferred_from_evidence
     return SupportLabel.weak_evidence
+
+
+def _normalize_support_text(text: Optional[str]) -> str:
+    if not text:
+        return ""
+    normalized = unicodedata.normalize("NFKD", text.lower())
+    normalized = re.sub(r"[^a-z0-9.%\s-]+", " ", normalized)
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    return normalized
+
+
+def _normalize_support_tokens(text: Optional[str]) -> set[str]:
+    normalized = _normalize_support_text(text)
+    tokens = set()
+    for token in normalized.split():
+        if len(token) > 3 and token.endswith("s"):
+            token = token[:-1]
+        tokens.add(token)
+    return tokens
+
+
+def _quote_directly_supports_value(
+    quote_text: Optional[str],
+    proposed_value: Optional[str],
+    field_type: Optional[SchemaFieldType],
+) -> bool:
+    if not quote_text or not proposed_value:
+        return False
+    quote_norm = _normalize_support_text(quote_text)
+    value_norm = _normalize_support_text(proposed_value)
+    if not quote_norm or not value_norm:
+        return False
+    if value_norm in quote_norm:
+        return True
+
+    quote_tokens = _normalize_support_tokens(quote_text)
+    value_tokens = _normalize_support_tokens(proposed_value)
+    if not value_tokens:
+        return False
+    overlap = len(quote_tokens & value_tokens) / len(value_tokens)
+    # Numeric answers should match all normalized value tokens exactly, while
+    # text/categorical answers allow limited phrasing variation once most of the
+    # proposed-value tokens are grounded in the quote.
+    threshold = 1.0 if field_type == SchemaFieldType.number else 0.66
+    return overlap >= threshold
 
 
 # ---------------------------------------------------------------------------
@@ -1343,7 +1394,12 @@ async def extract_cell(
         state = ProposalState.inferred
         needs_more = False
 
-    support = determine_support_label(state, ranked_evidence)
+    support = determine_support_label(
+        state,
+        ranked_evidence,
+        proposed_value=proposed_value,
+        field_type=field_type,
+    )
 
     # Persist evidence records
     for ev in ranked_evidence:

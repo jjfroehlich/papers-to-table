@@ -173,7 +173,6 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
   }
 
   const isFigureEvidence =
-    evidence?.source_type === 'figure_based_evidence' ||
     evidence?.source_type === 'caption_grounded_figure_evidence' ||
     evidence?.source_type === 'visual_interpretation_figure_evidence'
 

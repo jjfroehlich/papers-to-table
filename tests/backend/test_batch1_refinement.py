@@ -322,6 +322,46 @@ class TestExtractionRefinement:
         assert proposal.support == SupportLabel.inferred_from_evidence
         assert "fallback_evidence_used" in proposal.warning_flags
 
+    async def test_direct_evidence_requires_quote_to_directly_support_value(self, run_dir: pathlib.Path, minimal_doc_dict: dict):
+        provider = AsyncMock()
+        provider.chat_complete_structured = AsyncMock(
+            return_value={
+                "proposed_value": "Improved bone regeneration",
+                "state": "found",
+                "rationale": "- Interpreted from the paper.",
+                "calculation": None,
+                "numeric_value_form": None,
+                "quotes": [
+                    {
+                        "text": "Bone volume fraction (BVF) was measured as 45.3% at 12 weeks.",
+                        "page": 2,
+                        "source_type": "direct_quote",
+                    }
+                ],
+            }
+        )
+        provider.vision_complete_structured = AsyncMock()
+
+        proposal = await extract_cell(
+            run_id="run_test",
+            pdf_id="paper_test",
+            row_id="row_test",
+            cell_id="cell_indirect_quote",
+            column_name="Outcome summary",
+            column_description="Short outcome summary",
+            row_context={},
+            doc_dict=minimal_doc_dict,
+            run_dir=run_dir,
+            provider=provider,
+            text_model_id="text-model",
+            field_type=SchemaFieldType.text,
+        )
+
+        # The quote is real and anchorable, but it only reports a BVF measurement.
+        # It does not directly state the broader outcome summary value, so support
+        # must stay inferred rather than direct evidence.
+        assert proposal.support == SupportLabel.inferred_from_evidence
+
     async def test_unclear_triggers_recall_rescue_and_optional_whole_document(
         self,
         run_dir: pathlib.Path,
@@ -546,4 +586,10 @@ class TestRunnerProviderTruth:
         run_data = json.loads((tmp_path / "runs" / "run_provider_fail" / "run.json").read_text(encoding="utf-8"))
         assert run_data["status"] == "failed"
         assert run_data["error_message"] == "provider offline"
+        assert run_data["provider_mode"] == "unavailable"
+        assert run_data["provider_readiness_error"] == "provider offline"
         assert parse_called["value"] is False
+        provider_mode = json.loads((tmp_path / "runs" / "run_provider_fail" / "provider_mode.json").read_text(encoding="utf-8"))
+        reviewer_summary = json.loads((tmp_path / "runs" / "run_provider_fail" / "summaries" / "reviewer_summary.json").read_text(encoding="utf-8"))
+        assert provider_mode["mode"] == "unavailable"
+        assert reviewer_summary["total_proposals"] == 0

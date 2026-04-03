@@ -20,6 +20,8 @@ function Field({ label, value }: { label: string; value: string | number | boole
 export function RunDetail({ run, onAbort, aborting }: Props) {
   const PROVIDER_DISPLAY: Record<string, string> = { lm_studio: 'LM Studio' }
   const providerLabel = run.provider_token ? (PROVIDER_DISPLAY[run.provider_token] ?? run.provider_token) : '—'
+  const providerMode =
+    run.provider_mode == null ? null : run.provider_mode.replace(/_/g, ' ')
   const isAbortable =
     !!onAbort && (run.status === 'created' || run.status === 'validating' || run.status === 'running')
 
@@ -43,6 +45,9 @@ export function RunDetail({ run, onAbort, aborting }: Props) {
         <Field label="Run ID" value={run.run_id} />
         <Field label="Provider" value={providerLabel} />
         <Field label="Locality" value={run.provider_locality} />
+        <Field label="Provider mode" value={providerMode} />
+        <Field label="Text model" value={run.provider_text_model_id ?? null} />
+        <Field label="Vision model" value={run.provider_vision_model_id ?? null} />
         <Field label="Verify mode" value={run.verify_mode ? 'Yes' : 'No'} />
         <Field label="Table" value={run.table_path} />
         <Field label="Schema" value={run.schema_path} />
@@ -63,6 +68,9 @@ export function RunDetail({ run, onAbort, aborting }: Props) {
         <div className="rounded-md bg-red-50 border border-red-200 p-3">
           <p className="text-sm font-medium text-red-700">Run failed</p>
           <p className="mt-1 text-sm text-red-600">{run.error_message}</p>
+          {run.provider_readiness_error && run.provider_readiness_error !== run.error_message && (
+            <p className="mt-1 text-xs text-red-500">{run.provider_readiness_error}</p>
+          )}
         </div>
       )}
 

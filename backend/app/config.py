@@ -57,7 +57,7 @@ class StyleProfileConfig(BaseModel):
 
 class RetrievalConfig(BaseModel):
     strategy: str = "semantic_chunks"
-    top_k: int = 10
+    top_k: int = 6
     recall_rescue_enabled: bool = True
     whole_document_mode: bool = False
     whole_document_max_chars: int = 12000
@@ -124,6 +124,8 @@ class ReadinessResult:
         self.ok: bool = True
         self.errors: list[str] = []
         self.warnings: list[str] = []
+        self.provider_mode: Optional[str] = None
+        self.provider_readiness_error: Optional[str] = None
 
     def fail(self, msg: str) -> None:
         self.ok = False
@@ -182,28 +184,40 @@ async def check_readiness(config: RunConfig) -> ReadinessResult:
                         model.get("id", "") for model in models_data.get("data", [])
                     }
                     if _is_configured_model_id(text_model_id) and text_model_id not in available_ids:
-                        r.fail(
+                        message = (
                             f"Configured text model '{text_model_id}' is not loaded in LM Studio. "
                             "Load that model or update provider.text_model.model_id."
                         )
+                        r.provider_mode = "unavailable"
+                        r.provider_readiness_error = message
+                        r.fail(message)
 
                     vision_model = config.provider.vision_model
                     vision_model_id = vision_model.model_id if vision_model else None
                     if config.figure_review.enabled:
                         if not _is_configured_model_id(vision_model_id):
-                            r.fail(
+                            message = (
                                 "figure_review is enabled, but provider.vision_model.model_id is missing or invalid."
                             )
+                            r.provider_mode = "unavailable"
+                            r.provider_readiness_error = message
+                            r.fail(message)
                         elif vision_model_id not in available_ids:
-                            r.fail(
+                            message = (
                                 f"Configured vision model '{vision_model_id}' is not loaded in LM Studio. "
                                 "Load that model or update provider.vision_model.model_id."
                             )
+                            r.provider_mode = "unavailable"
+                            r.provider_readiness_error = message
+                            r.fail(message)
         except Exception as e:
-            r.fail(
+            message = (
                 f"Cannot reach LM Studio at {config.provider.base_url}: {e}. "
                 f"Is LM Studio running with a model loaded?"
             )
+            r.provider_mode = "unavailable"
+            r.provider_readiness_error = message
+            r.fail(message)
 
     # T026a / T031: Check parser and OCR dependencies
     from .parsing import check_parser_readiness, check_ocr_readiness

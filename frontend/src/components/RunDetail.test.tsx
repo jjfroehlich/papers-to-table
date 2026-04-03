@@ -14,6 +14,10 @@ const baseRun: RunData = {
   verify_mode: false,
   provider_token: 'lm_studio',
   provider_locality: 'local',
+  provider_mode: 'unavailable',
+  provider_text_model_id: 'text-model',
+  provider_vision_model_id: null,
+  provider_readiness_error: 'provider offline',
   started_at: null,
   completed_at: null,
   current_stage: null,
@@ -35,6 +39,12 @@ describe('RunDetail', () => {
   it('shows LM Studio display name for lm_studio token', () => {
     render(<RunDetail run={baseRun} />)
     expect(screen.getByText('LM Studio')).toBeTruthy()
+  })
+
+  it('shows provider mode and model truth', () => {
+    render(<RunDetail run={baseRun} />)
+    expect(screen.getByText('unavailable')).toBeTruthy()
+    expect(screen.getByText('text-model')).toBeTruthy()
   })
 
   it('shows error message when failed', () => {
