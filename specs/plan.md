@@ -2,7 +2,7 @@
 
 ## Status
 
-Updated: schema-first extraction, truthful provider semantics, and reviewer-centered evidence workflow refinements
+Updated: schema-first extraction, truthful provider semantics, and reviewer-centered evidence workflow refinements including explicit export controls and fast-review navigation
 
 ## Purpose
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
 import type { EnrichedProposal } from '../types'
 
@@ -6,9 +6,10 @@ interface Props {
   proposal: EnrichedProposal
   runId: string
   outputDir: string
-  onDecisionRecorded: () => void
+  onDecisionRecorded: (options?: { autoAdvance?: boolean }) => void
   onNext: () => void
   visibleProposals: EnrichedProposal[]
+  focusEditSignal?: number
 }
 
 export function ReviewActionArea({
@@ -18,18 +19,31 @@ export function ReviewActionArea({
   onDecisionRecorded,
   onNext,
   visibleProposals,
+  focusEditSignal = 0,
 }: Props) {
   const [editValue, setEditValue] = useState('')
   const [showEditInput, setShowEditInput] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showBulkConfirm, setShowBulkConfirm] = useState(false)
+  const editInputRef = useRef<HTMLInputElement | null>(null)
 
   // Only count proposals that have not yet been decided (pending)
   const pendingProposals = visibleProposals.filter(
     (p) => p.proposal_id !== proposal.proposal_id && !p.latest_decision
   )
   const pendingCount = pendingProposals.length
+
+  useEffect(() => {
+    if (focusEditSignal === 0) return
+    setShowEditInput(true)
+  }, [focusEditSignal])
+
+  useEffect(() => {
+    if (!showEditInput) return
+    editInputRef.current?.focus()
+    editInputRef.current?.select()
+  }, [showEditInput, focusEditSignal])
 
   async function decide(
     decision: string,
@@ -41,7 +55,7 @@ export function ReviewActionArea({
       await api.recordDecision(runId, proposal.proposal_id, { decision, ...extras }, outputDir)
       setShowEditInput(false)
       setEditValue('')
-      onDecisionRecorded()
+      onDecisionRecorded({ autoAdvance: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -89,6 +103,7 @@ export function ReviewActionArea({
       {showEditInput && (
         <div className="flex gap-2">
           <input
+            ref={editInputRef}
             autoFocus
             type="text"
             value={editValue}

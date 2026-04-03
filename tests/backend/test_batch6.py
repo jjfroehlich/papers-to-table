@@ -559,6 +559,10 @@ class TestGenerateDiagnostics:
 # ---------------------------------------------------------------------------
 
 class TestRunExport:
+    def test_run_completion_alone_does_not_create_exports(self, tmp_path: pathlib.Path):
+        run_dir, _run_id = _make_run(tmp_path)
+        assert list((run_dir / "exports").iterdir()) == []
+
     def test_run_export_returns_paths(self, tmp_path: pathlib.Path):
         run_dir, run_id = _make_run(tmp_path)
         rows = [{"Title": "Paper One", "Authors": "A", "Publication Year": "2020", "Method": ""}]
@@ -620,6 +624,19 @@ class TestRunExport:
         assert "fidelity_boundary" in result
         assert len(result["fidelity_boundary"]) > 10
 
+    def test_run_export_persists_manual_export_summary_in_run_json(self, tmp_path: pathlib.Path):
+        run_dir, run_id = _make_run(tmp_path)
+        rows = [{"Title": "Paper One", "Authors": "A", "Publication Year": "2020", "Method": ""}]
+        table_path = _make_xlsx_table(tmp_path, rows)
+        write_json(run_dir / "config.snapshot.json", {"table_path": str(table_path)})
+        _make_proposal_and_accept(run_dir, run_id, 0, "Paper One", "Method", "PCR")
+
+        result = run_export(run_dir, str(tmp_path), run_id)
+        run_json = read_json(run_dir / "run.json")
+
+        assert run_json["last_export"]["accepted_changes_count"] == 1
+        assert run_json["last_export"]["workbook_path"] == result["workbook_path"]
+
 
 # ---------------------------------------------------------------------------
 # T100/API — POST /api/runs/{run_id}/export endpoint
@@ -651,3 +668,15 @@ class TestExportEndpoint:
         assert "audit_log_path" in data
         assert "diagnostics_path" in data
         assert data["accepted_changes_count"] == 1
+
+    def test_download_workbook_requires_manual_export_trigger(self, tmp_path: pathlib.Path):
+        run_dir, run_id = _make_run(tmp_path)
+        rows = [{"Title": "Paper One", "Authors": "A", "Publication Year": "2020", "Method": ""}]
+        table_path = _make_xlsx_table(tmp_path, rows)
+        write_json(run_dir / "config.snapshot.json", {"table_path": str(table_path)})
+        _make_proposal_and_accept(run_dir, run_id, 0, "Paper One", "Method", "PCR")
+
+        resp = client.get(f"/api/runs/{run_id}/downloads/workbook?output_dir={tmp_path}")
+
+        assert resp.status_code == 404
+        assert "Trigger export" in resp.json()["detail"]

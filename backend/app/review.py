@@ -167,6 +167,7 @@ def load_all_decisions(run_dir: pathlib.Path) -> list[ReviewDecisionRecord]:
 
 _EVIDENCE_WARNING_FLAGS = {
     "fallback_evidence_used": WarningCategory.fallback_evidence_used,
+    "fallback_evidence": WarningCategory.fallback_evidence_used,
     "figure_derived": WarningCategory.figure_derived_evidence,
     "weak_evidence": WarningCategory.weak_evidence,
 }
@@ -190,7 +191,7 @@ def _is_figure_derived(proposal: ProposalRecord) -> bool:
 
 
 def _is_fallback_evidence(proposal: ProposalRecord) -> bool:
-    return "fallback_evidence_used" in proposal.warning_flags
+    return "fallback_evidence_used" in proposal.warning_flags or "fallback_evidence" in proposal.warning_flags
 
 
 # ---------------------------------------------------------------------------
@@ -500,14 +501,20 @@ def get_progress_for_review(run_dir: pathlib.Path) -> dict:
 def compute_reviewer_summary(run_dir: pathlib.Path, run_id: str) -> ReviewerSummary:
     """Pure function: compute reviewer summary from proposal + decision artifacts."""
     progress = get_progress(run_dir)
+    actionable_progress = get_progress_for_review(run_dir)
     return ReviewerSummary(
         run_id=run_id,
         total_proposals=progress["total"],
+        reviewed=progress["reviewed"],
         accepted=progress["accepted"],
         accepted_with_edit=progress["accepted_with_edit"],
         confirmed_no_data=progress["confirmed_no_data"],
         rejected=progress["rejected"],
         pending=progress["pending"],
+        actionable_total_proposals=actionable_progress["total"],
+        actionable_reviewed=actionable_progress["reviewed"],
+        actionable_pending=actionable_progress["pending"],
+        diagnostic_only_total_proposals=max(0, progress["total"] - actionable_progress["total"]),
         explicitly_accepted=progress["explicitly_accepted"],
         explicitly_rejected=progress["explicitly_rejected"],
         confirmed_absent=progress["confirmed_absent"],
@@ -539,6 +546,7 @@ def compute_run_summary(run_dir: pathlib.Path, run_id: str) -> dict:
     """
     run_data = load_run_json(run_dir)
     progress = get_progress(run_dir)
+    actionable_progress = get_progress_for_review(run_dir)
 
     summary = dict(run_data)
     summary["run_id"] = run_id
@@ -546,6 +554,8 @@ def compute_run_summary(run_dir: pathlib.Path, run_id: str) -> dict:
     summary["proposals_reviewed"] = progress["reviewed"]
     # Enrich with decision breakdown
     summary["review_progress"] = progress
+    summary["actionable_review_progress"] = actionable_progress
+    summary["diagnostic_only_total_proposals"] = max(0, progress["total"] - actionable_progress["total"])
 
     return summary
 
@@ -618,6 +628,11 @@ def validate_reviewer_summary_integrity(summary: ReviewerSummary) -> None:
             raise ValueError(f"ReviewerSummary.{name} is negative ({val})")
 
     reviewed = summary.accepted + summary.accepted_with_edit + summary.confirmed_no_data + summary.rejected
+    if summary.reviewed not in (0, reviewed):
+        raise ValueError(
+            f"ReviewerSummary.reviewed={summary.reviewed} is inconsistent with "
+            f"accepted+accepted_with_edit+confirmed_no_data+rejected ({reviewed})"
+        )
     if summary.total_proposals != reviewed + summary.pending:
         raise ValueError(
             f"ReviewerSummary count mismatch: total={summary.total_proposals} "
@@ -632,6 +647,25 @@ def validate_reviewer_summary_integrity(summary: ReviewerSummary) -> None:
     if summary.confirmed_absent != summary.confirmed_no_data:
         raise ValueError(
             "ReviewerSummary.confirmed_absent must equal confirmed_no_data (T075a)"
+        )
+
+    actionable_total = summary.actionable_total_proposals or summary.total_proposals
+    actionable_reviewed = summary.actionable_reviewed or reviewed
+    actionable_pending = summary.actionable_pending or summary.pending
+    diagnostic_only_total = (
+        summary.diagnostic_only_total_proposals
+        if summary.diagnostic_only_total_proposals
+        else summary.total_proposals - actionable_total
+    )
+
+    if actionable_total != actionable_reviewed + actionable_pending:
+        raise ValueError(
+            "ReviewerSummary actionable totals are inconsistent with actionable_reviewed + actionable_pending"
+        )
+
+    if diagnostic_only_total != summary.total_proposals - actionable_total:
+        raise ValueError(
+            "ReviewerSummary diagnostic_only_total_proposals must equal total_proposals - actionable_total_proposals"
         )
 
 

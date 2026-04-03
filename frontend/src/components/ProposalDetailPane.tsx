@@ -194,6 +194,11 @@ export function ProposalDetailPane({
         <span className={`px-2 py-0.5 rounded text-xs font-medium ${supportColors[proposal.support] ?? 'bg-gray-100 text-gray-600'}`}>
           {proposal.support.replace(/_/g, ' ')}
         </span>
+        {proposal.provider_mode && (
+          <span className="px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-700">
+            {proposal.provider_mode.replace(/_/g, ' ')}
+          </span>
+        )}
         {proposal.is_figure_derived && (
           <span className="px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-700">figure</span>
         )}

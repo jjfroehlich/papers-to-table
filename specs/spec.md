@@ -2,7 +2,7 @@
 
 ## Status
 
-Updated: schema-first extraction, evidence-first review, truthful provider semantics, and reviewer-workflow refinements
+Updated: schema-first extraction, evidence-first review, truthful provider semantics, and reviewer-workflow refinements including explicit export controls and fast-review navigation
 
 ## Summary
 

@@ -183,11 +183,16 @@ class RunSummary(BaseModel):
 class ReviewerSummary(BaseModel):
     run_id: str
     total_proposals: int
+    reviewed: int = 0
     accepted: int
     accepted_with_edit: int
     confirmed_no_data: int
     rejected: int
     pending: int
+    actionable_total_proposals: int = 0
+    actionable_reviewed: int = 0
+    actionable_pending: int = 0
+    diagnostic_only_total_proposals: int = 0
     # breakdown helpers (T075a)
     explicitly_accepted: int = 0        # accepted + accepted_with_edit
     explicitly_rejected: int = 0        # rejected (model-wrong)

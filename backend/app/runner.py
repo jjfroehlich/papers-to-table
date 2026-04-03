@@ -19,6 +19,7 @@ from .artifacts import (
 from .config import RunConfig, check_readiness
 from .extraction import (
     extract_cell,
+    load_proposals,
 )
 from .ids import generate_cell_id, generate_row_id, generate_run_id
 from .ingest import (
@@ -33,7 +34,7 @@ from .matching import MatchResult, persist_match_artifacts, run_matching
 from .parsing import parse_pdf
 from .provider import ProviderError, initialize_provider
 from .retrieval import run_retrieval_for_cell
-from .schemas import MatchOutcome, RunStatus, WarningCategory
+from .schemas import MatchOutcome, RunStatus, SupportLabel, WarningCategory
 from .style_profiles import run_style_profiles_stage
 
 _active_runs: dict[str, asyncio.Task] = {}
@@ -110,11 +111,19 @@ async def run_pipeline(
             {
                 "run_id": run_id,
                 "total_proposals": proposals_generated,
+                "reviewed": 0,
                 "accepted": 0,
                 "accepted_with_edit": 0,
                 "confirmed_no_data": 0,
                 "rejected": 0,
                 "pending": proposals_generated,
+                "actionable_total_proposals": proposals_generated,
+                "actionable_reviewed": 0,
+                "actionable_pending": proposals_generated,
+                "diagnostic_only_total_proposals": 0,
+                "explicitly_accepted": 0,
+                "explicitly_rejected": 0,
+                "confirmed_absent": 0,
                 "generated_at": datetime.now(timezone.utc).isoformat(),
             },
         )
@@ -281,6 +290,7 @@ async def run_pipeline(
 
         parsed_docs: list[dict] = []
         parse_errors: list[str] = []
+        parse_warning_messages: set[tuple[str, str]] = set()
 
         for pdf_file in pdf_files:
             pdf_path = os.path.join(config.pdf_dir, pdf_file)
@@ -298,6 +308,58 @@ async def run_pipeline(
                     generate_pages=True,
                 )
                 parsed_docs.append(doc.model_dump())
+
+                if diagnostics.fallback_used:
+                    key = (pdf_id, "fallback")
+                    if key not in parse_warning_messages:
+                        run_data.setdefault("warnings", []).append({
+                            "category": WC.partial_extraction.value,
+                            "message": (
+                                f"Parser fallback used for {pdf_id}: "
+                                f"{diagnostics.actual_parser_used} replaced {diagnostics.configured_parser}."
+                            ),
+                            "context": {
+                                "pdf_id": pdf_id,
+                                "configured_parser": diagnostics.configured_parser,
+                                "actual_parser_used": diagnostics.actual_parser_used,
+                            },
+                        })
+                        parse_warning_messages.add(key)
+
+                if diagnostics.ocr_used:
+                    key = (pdf_id, "ocr")
+                    if key not in parse_warning_messages:
+                        run_data.setdefault("warnings", []).append({
+                            "category": WC.partial_extraction.value,
+                            "message": f"OCR fallback used for {pdf_id}.",
+                            "context": {
+                                "pdf_id": pdf_id,
+                                "ocr_reason": diagnostics.ocr_reason,
+                            },
+                        })
+                        parse_warning_messages.add(key)
+
+                for warning in diagnostics.parse_warnings:
+                    key = (pdf_id, warning)
+                    if key in parse_warning_messages:
+                        continue
+                    run_data.setdefault("warnings", []).append({
+                        "category": WC.partial_extraction.value,
+                        "message": f"{pdf_id}: {warning}",
+                        "context": {"pdf_id": pdf_id},
+                    })
+                    parse_warning_messages.add(key)
+
+                for gap in diagnostics.major_extraction_gaps:
+                    key = (pdf_id, gap)
+                    if key in parse_warning_messages:
+                        continue
+                    run_data.setdefault("warnings", []).append({
+                        "category": WC.partial_extraction.value,
+                        "message": f"{pdf_id}: {gap}",
+                        "context": {"pdf_id": pdf_id},
+                    })
+                    parse_warning_messages.add(key)
             except Exception as e:
                 parse_errors.append(f"{pdf_file}: {e}")
 
@@ -452,6 +514,21 @@ async def run_pipeline(
             proposals_generated += 1
 
         run_data["proposals_generated"] = proposals_generated
+        proposals = load_proposals(run_dir)
+        fallback_count = sum("fallback_evidence_used" in proposal.warning_flags for proposal in proposals)
+        weak_count = sum(proposal.support == SupportLabel.weak_evidence for proposal in proposals)
+        if fallback_count:
+            run_data.setdefault("warnings", []).append({
+                "category": WC.fallback_evidence_used.value,
+                "message": f"{fallback_count} proposal(s) require evidence fallback review.",
+                "context": {"count": fallback_count},
+            })
+        if weak_count:
+            run_data.setdefault("warnings", []).append({
+                "category": WC.weak_evidence.value,
+                "message": f"{weak_count} proposal(s) have weak evidence.",
+                "context": {"count": weak_count},
+            })
         save_run(run_data)
 
         warnings = run_data.get("warnings", [])
@@ -471,11 +548,19 @@ async def run_pipeline(
             {
                 "run_id": run_id,
                 "total_proposals": proposals_generated,
+                "reviewed": 0,
                 "accepted": 0,
                 "accepted_with_edit": 0,
                 "confirmed_no_data": 0,
                 "rejected": 0,
                 "pending": proposals_generated,
+                "actionable_total_proposals": proposals_generated,
+                "actionable_reviewed": 0,
+                "actionable_pending": proposals_generated,
+                "diagnostic_only_total_proposals": 0,
+                "explicitly_accepted": 0,
+                "explicitly_rejected": 0,
+                "confirmed_absent": 0,
                 "generated_at": datetime.now(timezone.utc).isoformat(),
             },
         )

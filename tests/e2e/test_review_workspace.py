@@ -113,3 +113,37 @@ def test_decision_buttons_present_and_clickable(page, frontend_url: str):
             assert page.locator("text=Accept").first.is_visible()
             assert page.locator("text=Reject").first.is_visible()
             assert page.locator("text=No Data").first.is_visible()
+
+
+@pytest.mark.skip(reason="e2e tests require live server with a completed run and proposals")
+def test_fast_sequential_review_supports_auto_advance_and_evidence_cycling(page, frontend_url: str):
+    """Sequential review keeps evidence navigation and auto-advance usable."""
+    page.goto(frontend_url)
+    page.wait_for_selector("h1", timeout=5000)
+
+    review_tab = page.locator("button", has_text="Review")
+    if review_tab.get_attribute("disabled") is None:
+        review_tab.click()
+        page.wait_for_selector("text=Actionable review", timeout=5000)
+
+        cards = page.locator("[class*='border-l-4']")
+        if cards.count() > 0:
+            cards.first.click()
+            page.wait_for_selector("text=Next evidence", timeout=5000)
+            page.click("button:has-text('Next evidence')")
+            page.click("button:has-text('Accept')")
+            page.wait_for_timeout(500)
+
+
+@pytest.mark.skip(reason="e2e tests require live server with a completed run and explicit export support")
+def test_review_workspace_keeps_export_manual(page, frontend_url: str):
+    """Export remains an explicit reviewer action from the review workspace."""
+    page.goto(frontend_url)
+    page.wait_for_selector("h1", timeout=5000)
+
+    review_tab = page.locator("button", has_text="Review")
+    if review_tab.get_attribute("disabled") is None:
+        review_tab.click()
+        page.wait_for_selector("button:has-text('Export reviewed workbook')", timeout=5000)
+        export_button = page.locator("button", has_text="Export reviewed workbook")
+        assert export_button.is_visible()

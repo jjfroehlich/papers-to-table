@@ -70,6 +70,7 @@ describe('ReviewActionArea', () => {
         onDecisionRecorded={onDecisionRecorded}
         onNext={onNext}
         visibleProposals={[mockProposal, makeProposal({ proposal_id: 'p2' })]}
+        focusEditSignal={0}
       />
     )
     const acceptBtn = screen.getByText('Accept')
@@ -77,7 +78,7 @@ describe('ReviewActionArea', () => {
     await waitFor(() => {
       expect(mockRecordDecision).toHaveBeenCalledWith('r1', 'p1', { decision: 'accepted' }, './runs')
     })
-    expect(onDecisionRecorded).toHaveBeenCalled()
+    expect(onDecisionRecorded).toHaveBeenCalledWith({ autoAdvance: true })
   })
 
   it('reject button calls recordDecision with rejected', async () => {
@@ -89,6 +90,7 @@ describe('ReviewActionArea', () => {
         onDecisionRecorded={onDecisionRecorded}
         onNext={onNext}
         visibleProposals={[mockProposal]}
+        focusEditSignal={0}
       />
     )
     fireEvent.click(screen.getByText('Reject'))
@@ -121,6 +123,7 @@ describe('ReviewActionArea', () => {
         onDecisionRecorded={onDecisionRecorded}
         onNext={onNext}
         visibleProposals={[mockProposal, makeProposal({ proposal_id: 'p2' }), decidedProposal]}
+        focusEditSignal={0}
       />
     )
     const bulkBtn = screen.getByText(/Bulk accept 1 pending/i)
@@ -137,6 +140,7 @@ describe('ReviewActionArea', () => {
         onDecisionRecorded={onDecisionRecorded}
         onNext={onNext}
         visibleProposals={[mockProposal]}
+        focusEditSignal={0}
       />
     )
     fireEvent.click(screen.getByText('Accept with Edit'))
@@ -152,6 +156,7 @@ describe('ReviewActionArea', () => {
         onDecisionRecorded={onDecisionRecorded}
         onNext={onNext}
         visibleProposals={[mockProposal]}
+        focusEditSignal={0}
       />
     )
     fireEvent.click(screen.getByText('Accept with Edit'))
@@ -177,9 +182,40 @@ describe('ReviewActionArea', () => {
         onDecisionRecorded={onDecisionRecorded}
         onNext={onNext}
         visibleProposals={[mockProposal]}
+        focusEditSignal={0}
       />
     )
     fireEvent.click(screen.getByText('Next →'))
     expect(onNext).toHaveBeenCalled()
+  })
+
+  it('focusEditSignal opens and focuses edit input', async () => {
+    const { rerender } = render(
+      <ReviewActionArea
+        proposal={mockProposal}
+        runId="r1"
+        outputDir="./runs"
+        onDecisionRecorded={onDecisionRecorded}
+        onNext={onNext}
+        visibleProposals={[mockProposal]}
+        focusEditSignal={0}
+      />
+    )
+
+    rerender(
+      <ReviewActionArea
+        proposal={mockProposal}
+        runId="r1"
+        outputDir="./runs"
+        onDecisionRecorded={onDecisionRecorded}
+        onNext={onNext}
+        visibleProposals={[mockProposal]}
+        focusEditSignal={1}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Enter corrected value/i)).toHaveFocus()
+    })
   })
 })

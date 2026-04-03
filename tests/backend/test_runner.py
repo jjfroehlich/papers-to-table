@@ -286,6 +286,62 @@ class TestRunPipeline:
         assert (proposals_dir / "proposals.jsonl").exists()
         assert (proposals_dir / "proposal_index.json").exists()
 
+    @pytest.mark.asyncio
+    async def test_parse_and_evidence_fallback_truth_surfaces_in_run_warnings(self, tmp_path, monkeypatch):
+        config = make_config(tmp_path)
+        run_id = "run_warning_truth"
+        output_dir = str(tmp_path / "runs")
+        (tmp_path / "runs").mkdir(exist_ok=True)
+
+        df = pd.DataFrame([
+            {
+                "Title": "Matched Paper",
+                "Authors": "Smith, J.",
+                "Publication Year": "2024",
+                "assay": "",
+            }
+        ])
+        schema = [{"column_name": "assay", "description": "Assay description"}]
+        eligible = [{"row_index": 0, "column_name": "assay", "current_value": "", "eligibility": "eligible"}]
+        match_results = [
+            MatchResult(
+                pdf_id="paper_1",
+                pdf_path="paper_1.pdf",
+                outcome=MatchOutcome.matched,
+                matched_row_index=0,
+                matched_row_title="Matched Paper",
+                score=0.9,
+                runner_up_score=0.2,
+                runner_up_row_index=None,
+                reasoning="clear match",
+                blocked=False,
+                matched_at=datetime.now(timezone.utc).isoformat(),
+            ),
+        ]
+
+        monkeypatch.setattr("backend.app.runner.check_readiness", _ready_ok)
+        monkeypatch.setattr("backend.app.runner.load_table", lambda path: df)
+        monkeypatch.setattr("backend.app.runner.validate_metadata_columns", lambda df: [])
+        monkeypatch.setattr("backend.app.runner.load_schema", lambda schema_path, table_path: schema)
+        monkeypatch.setattr("backend.app.runner.validate_schema_columns", lambda schema: [])
+        monkeypatch.setattr("backend.app.runner.get_eligible_cells", lambda df, schema, verify_mode: eligible)
+        monkeypatch.setattr("backend.app.runner.parse_pdf", _fake_parse_pdf_with_warnings)
+        monkeypatch.setattr("backend.app.runner.run_matching", lambda **kwargs: match_results)
+        monkeypatch.setattr("backend.app.runner.persist_match_artifacts", lambda *args, **kwargs: None)
+        monkeypatch.setattr("backend.app.runner.initialize_provider", _fake_initialize_provider)
+        monkeypatch.setattr("backend.app.runner.run_style_profiles_stage", _fake_style_profiles)
+        monkeypatch.setattr("backend.app.runner.run_retrieval_for_cell", lambda **kwargs: None)
+        monkeypatch.setattr("backend.app.runner.extract_cell", _fake_extract_cell_with_fallback)
+
+        await run_pipeline(run_id, config, "config.json", output_dir)
+
+        run_data = read_json(get_run_json_path(output_dir, run_id))
+        warning_messages = [warning["message"] for warning in run_data["warnings"]]
+
+        assert any("Parser fallback used" in message for message in warning_messages)
+        assert any("OCR fallback used" in message for message in warning_messages)
+        assert any("require evidence fallback review" in message for message in warning_messages)
+
 
 async def _ready_ok(*args, **kwargs):
     return SimpleNamespace(ok=True, errors=[])
@@ -314,7 +370,31 @@ async def _fake_style_profiles(**kwargs):
 def _fake_parse_pdf(**kwargs):
     pdf_id = kwargs["pdf_id"]
     doc = SimpleNamespace(model_dump=lambda: {"pdf_id": pdf_id, "blocks": []})
-    return doc, {}, []
+    diagnostics = SimpleNamespace(
+        fallback_used=False,
+        actual_parser_used="docling",
+        configured_parser="docling",
+        ocr_used=False,
+        ocr_reason=None,
+        parse_warnings=[],
+        major_extraction_gaps=[],
+    )
+    return doc, diagnostics, []
+
+
+def _fake_parse_pdf_with_warnings(**kwargs):
+    pdf_id = kwargs["pdf_id"]
+    doc = SimpleNamespace(model_dump=lambda: {"pdf_id": pdf_id, "blocks": []})
+    diagnostics = SimpleNamespace(
+        fallback_used=True,
+        actual_parser_used="pypdfium2",
+        configured_parser="docling",
+        ocr_used=True,
+        ocr_reason="low text extraction",
+        parse_warnings=["Low text extraction (scanned PDF)."],
+        major_extraction_gaps=["Sparse extracted text"],
+    )
+    return doc, diagnostics, []
 
 
 async def _fake_extract_cell(**kwargs):
@@ -332,6 +412,29 @@ async def _fake_extract_cell(**kwargs):
         rationale="- extracted",
         evidence_ids=[],
         warning_flags=[],
+        needs_more_evidence=False,
+        is_verify_mode=False,
+        created_at=datetime.now(timezone.utc).isoformat(),
+    )
+    persist_proposal(kwargs["run_dir"], proposal)
+    return proposal
+
+
+async def _fake_extract_cell_with_fallback(**kwargs):
+    proposal_id = generate_proposal_id(kwargs["run_id"], kwargs["cell_id"])
+    proposal = ProposalRecord(
+        proposal_id=proposal_id,
+        run_id=kwargs["run_id"],
+        pdf_id=kwargs["pdf_id"],
+        row_id=kwargs["row_id"],
+        column_name=kwargs["column_name"],
+        cell_id=kwargs["cell_id"],
+        state=ProposalState.unclear,
+        support=SupportLabel.weak_evidence,
+        proposed_value="candidate",
+        rationale="- extracted",
+        evidence_ids=[],
+        warning_flags=["fallback_evidence_used"],
         needs_more_evidence=False,
         is_verify_mode=False,
         created_at=datetime.now(timezone.utc).isoformat(),

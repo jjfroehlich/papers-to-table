@@ -101,7 +101,7 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [groupBy, setGroupBy] = useState<GroupBy>('paper')
-  const [filter, setFilter] = useState<Filter>('all')
+  const [filter, setFilter] = useState<Filter>('pending')
   const [search, setSearch] = useState('')
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
 
@@ -144,7 +144,7 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
       )
     }
     return list
-  }, [proposals, filter, search])
+  }, [proposals, search])
 
   const groups = useMemo(() => {
     const map = new Map<string, EnrichedProposal[]>()
@@ -219,11 +219,11 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
           onChange={(e) => setFilter(e.target.value as Filter)}
           className="w-full text-xs border border-gray-200 rounded px-2 py-1"
         >
-          <option value="all">All</option>
-          <option value="pending">Pending</option>
-          <option value="accepted">Accepted</option>
-          <option value="no_data">No Data</option>
-          <option value="rejected">Rejected</option>
+            <option value="pending">Pending</option>
+            <option value="all">All reviewable</option>
+            <option value="accepted">Accepted</option>
+            <option value="no_data">No Data</option>
+            <option value="rejected">Rejected</option>
         </select>
         {/* Search */}
         <input
@@ -299,7 +299,7 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
 
       {/* Footer count */}
       <div className="px-3 py-1.5 border-t border-gray-100 text-xs text-gray-400 shrink-0">
-        {filtered.length} review proposal{filtered.length !== 1 ? 's' : ''}
+        {filtered.length} {filter === 'pending' ? 'pending' : 'review'} proposal{filtered.length !== 1 ? 's' : ''}
       </div>
     </div>
   )

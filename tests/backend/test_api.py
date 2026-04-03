@@ -212,3 +212,37 @@ class TestCreateRun:
             })
         assert resp.status_code == 200
         await asyncio.sleep(0.2)
+
+    @pytest.mark.asyncio
+    async def test_relative_config_paths_report_resolved_runtime_paths_on_failure(self, tmp_path):
+        config_dir = tmp_path / "configs"
+        config_dir.mkdir()
+        table_path = tmp_path / "table.xlsx"
+        schema_path = tmp_path / "schema.csv"
+        table_path.write_text("Title\nPaper A\n", encoding="utf-8")
+        schema_path.write_text("column_name,description\nOutcome,Outcome description\n", encoding="utf-8")
+
+        config_path = config_dir / "config.json"
+        config_path.write_text(json.dumps({
+            "table_path": "../table.xlsx",
+            "schema_path": "../schema.csv",
+            "pdf_dir": "../missing-pdfs",
+            "output_dir": "../runs",
+            "provider": {
+                "token": "lm_studio",
+                "text_model": {"model_id": "qwen/qwen3-30b-a3b-2507"},
+            },
+        }), encoding="utf-8")
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post("/api/runs", json={"config_path": str(config_path)})
+            assert resp.status_code == 200
+            run_id = resp.json()["run_id"]
+
+        await asyncio.sleep(0.2)
+        run_json = read_json(get_run_json_path(str(tmp_path / "runs"), run_id))
+
+        assert run_json["status"] == RunStatus.failed.value
+        assert run_json["table_path"] == str(table_path.resolve())
+        assert run_json["schema_path"] == str(schema_path.resolve())
+        assert run_json["pdf_dir"] == str((tmp_path / "missing-pdfs").resolve())
