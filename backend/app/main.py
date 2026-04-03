@@ -114,7 +114,11 @@ async def create_run(request: CreateRunRequest):
         overrides["pdf_dir"] = request.pdf_dir
     if overrides:
         try:
-            config = apply_overrides(config, overrides)
+            config = apply_overrides(
+                config,
+                overrides,
+                base_dir=str(pathlib.Path(request.config_path).resolve().parent),
+            )
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Override error: {e}")
 
@@ -770,4 +774,3 @@ async def trigger_export(run_id: str, output_dir: str = "./runs"):
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Export failed: {exc}")
     return result
-

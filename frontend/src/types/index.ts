@@ -49,6 +49,13 @@ export interface RunData {
   proposals_generated: number
   proposals_reviewed: number
   warnings: WarningItem[]
+  last_export?: {
+    exported_at: string
+    accepted_changes_count: number
+    workbook_path: string
+    audit_log_path: string
+    diagnostics_path: string
+  } | null
   error_message: string | null
   created_at: string
 }
@@ -202,5 +209,21 @@ export interface ReviewerSummary {
   accepted_with_edit: number
   confirmed_no_data: number
   rejected: number
+  actionable_total_proposals?: number
+  actionable_reviewed?: number
+  actionable_pending?: number
+  diagnostic_only_total_proposals?: number
   by_column: Record<string, {total: number; accepted: number; rejected: number; confirmed_no_data: number; pending: number}>
+}
+
+export interface ExportResult {
+  run_id: string
+  exported_at: string
+  accepted_changes_count: number
+  workbook_path: string
+  audit_log_path: string
+  diagnostics_path: string
+  unsupported_feature_warnings: string[]
+  unsupported_feature_warnings_count: number
+  fidelity_boundary: string
 }

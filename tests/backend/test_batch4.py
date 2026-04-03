@@ -1163,6 +1163,9 @@ class TestReviewerSummaryAPI:
         data = resp.json()
         assert data["run_id"] == run_id
         assert data["total_proposals"] == 2
+        assert data["reviewed"] == 0
+        assert data["actionable_total_proposals"] == 2
+        assert data["diagnostic_only_total_proposals"] == 0
         assert "confirmed_no_data" in data
         assert "rejected" in data
 
@@ -1173,6 +1176,8 @@ class TestRecomputeAPI:
         resp = client.post(f"/api/runs/{run_id}/summaries/recompute?output_dir={output_dir}")
         assert resp.status_code == 200
         data = resp.json()
+        assert data["run_summary"]["review_progress"]["total_proposals"] >= data["run_summary"]["actionable_review_progress"]["total_proposals"]
+        assert "diagnostic_only_total_proposals" in data["run_summary"]
         assert "reviewer_summary" in data
         assert "run_summary" in data
 

@@ -150,6 +150,13 @@ export const api = {
     })
   },
 
+  triggerExport: (runId: string, outputDir?: string) => {
+    const q = outputDir ? `?output_dir=${encodeURIComponent(outputDir)}` : ''
+    return request<import('../types').ExportResult>(`/api/runs/${runId}/export${q}`, {
+      method: 'POST',
+    })
+  },
+
   // Assets — return URL strings (no fetch needed)
   getPdfUrl: (runId: string, pdfId: string, outputDir?: string): string => {
     const q = outputDir ? `?output_dir=${encodeURIComponent(outputDir)}` : ''
@@ -167,5 +174,25 @@ export const api = {
       `/api/runs/${runId}/assets/pdf/${pdfId}/open${q}`,
       { method: 'POST' }
     )
+  },
+
+  getWorkbookDownloadUrl: (runId: string, outputDir?: string): string => {
+    const q = outputDir ? `?output_dir=${encodeURIComponent(outputDir)}` : ''
+    return `${API_BASE}/api/runs/${runId}/downloads/workbook${q}`
+  },
+
+  getAuditLogDownloadUrl: (runId: string, outputDir?: string): string => {
+    const q = outputDir ? `?output_dir=${encodeURIComponent(outputDir)}` : ''
+    return `${API_BASE}/api/runs/${runId}/downloads/audit-log${q}`
+  },
+
+  getRunSummaryDownloadUrl: (runId: string, outputDir?: string): string => {
+    const q = outputDir ? `?output_dir=${encodeURIComponent(outputDir)}` : ''
+    return `${API_BASE}/api/runs/${runId}/downloads/run-summary${q}`
+  },
+
+  getReviewerSummaryDownloadUrl: (runId: string, outputDir?: string): string => {
+    const q = outputDir ? `?output_dir=${encodeURIComponent(outputDir)}` : ''
+    return `${API_BASE}/api/runs/${runId}/downloads/reviewer-summary${q}`
   },
 }

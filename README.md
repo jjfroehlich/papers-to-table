@@ -99,11 +99,13 @@ The config file is the authoritative control surface for all run parameters. Pat
 ### 1. Create a run
 
 1. Open `http://localhost:5173` in the browser.
-2. In the **Run** tab, enter the path to your config file (e.g. `config.json`).
+2. In the **Run** tab, enter the path to your config file (e.g. `config.json`). The **Browse...** control is a local convenience for picking a file name, but you should still confirm or edit the backend-readable path in the text field before creating the run.
 3. Optionally expand **optional path overrides** to override `table_path`, `schema_path`, or `pdf_dir` for this run.
 4. Click **Create Run**.
 
 The run progresses through: `created → validating → running → completed` (or `completed_with_warnings` / `failed`). Select any run from the list to see stage progress, warnings, and error details.
+
+Active runs refresh automatically. If live refresh fails, the Run tab shows an explicit stale-status warning so you do not mistake old state for current state. Active runs can be aborted from the Run detail surface.
 
 A run reaches `completed_with_warnings` when it finished but encountered non-fatal issues (for example, matching ambiguity or fallback evidence quality warnings). The run is still reviewable and exportable.
 
@@ -113,9 +115,9 @@ When a run reaches `completed` or `completed_with_warnings`, the **Review** tab 
 
 The review workspace has three panes:
 
-- **Left — Proposal Queue:** Browse proposals grouped by paper or column. Filter by decision status (All / Pending / Accepted / No Data / Rejected). Click a proposal to load it.
+- **Left — Proposal Queue:** Browse proposals grouped by paper or column. The queue defaults to **Pending** reviewable proposals so sequential review stays fast. Click a proposal to load it.
 - **Center — Proposal Detail:** Shows the proposed value, rationale, evidence list, and row context. Click an evidence item to jump to it in the PDF viewer.
-- **Right — Evidence Viewer:** Renders the source PDF with PDF.js. Blue overlays show exact highlights; dashed orange overlays show approximate regions. A text fallback panel appears when exact highlighting is unavailable.
+- **Right — Evidence Viewer:** Renders the source PDF with PDF.js. Blue overlays show exact highlights; dashed orange overlays show approximate regions. Explicit **Previous evidence** / **Next evidence** controls stay synchronized with the selected evidence item. A text fallback panel appears when exact highlighting is unavailable.
 
 **Decision controls:**
 
@@ -134,20 +136,26 @@ The review workspace has three panes:
 | `R` | Reject |
 | `]` or `N` | Next proposal |
 | `[` or `P` | Prev proposal |
+| `Alt+N` | Next evidence |
+| `Alt+P` | Prev evidence |
 | `E` | Focus edit input |
 | `?` | Show shortcut help |
+
+After an explicit decision (accept, accept with edit, no data, reject), the workspace auto-advances to the next pending reviewable proposal when one exists.
+
+The top review summary uses **actionable review counts** as the main progress headline and keeps broader attempted totals secondary. Parsing fallback, OCR fallback, duplicate-row conflicts, provider mode, and evidence fallback remain visible through the review summary and unresolved surfaces.
 
 The **Unresolved** tab shows unmatched PDFs, ambiguous matches, and duplicate row conflicts for inspection.
 
 ### 3. Export
 
-After completing review, trigger export from the **Review** tab (or via the API):
+After completing review, trigger export from the **Review** tab with **Export reviewed workbook** (or via the API):
 
 ```bash
 POST /api/runs/{run_id}/export?output_dir=./runs
 ```
 
-Export generates three files in `{run_id}/exports/`:
+Export is always explicit and manual. Run completion and review decisions never auto-export. Triggering export generates three files in `{run_id}/exports/`:
 
 - `workbook_{timestamp}.xlsx` — updated XLSX with accepted changes and yellow cell highlighting
 - `audit_log_{timestamp}.json` — decision log (row, column, old value, new value, timestamp)
@@ -157,7 +165,7 @@ Only explicitly **accepted** (as-is or with edit) proposals are written to the w
 
 ### 4. Download
 
-Use the download endpoints or the browser UI download buttons:
+Use the download endpoints or the review UI download buttons that appear after an explicit export:
 
 | Endpoint | Returns |
 |---|---|

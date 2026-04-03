@@ -142,7 +142,7 @@ def test_list_run_ids(tmp_path):
 def test_load_config_example():
     config = load_config(FIXTURE_CONFIG)
     assert config.provider.token == "lm_studio"
-    assert config.table_path == "tests/fixtures/tables/literature_fixture.xlsx"
+    assert config.table_path == str(pathlib.Path("tests/fixtures/tables/literature_fixture.xlsx").resolve())
 
 
 def test_invalid_provider_token():

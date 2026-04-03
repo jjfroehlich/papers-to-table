@@ -484,4 +484,13 @@ def run_export(
             "and macros are not preserved."
         ),
     }
+    run_data["last_export"] = {
+        "exported_at": result["exported_at"],
+        "accepted_changes_count": result["accepted_changes_count"],
+        "workbook_path": result["workbook_path"],
+        "audit_log_path": result["audit_log_path"],
+        "diagnostics_path": result["diagnostics_path"],
+    }
+    write_json(run_json_path, run_data)
+    write_json(run_dir / "exports" / "latest_export.json", result)
     return result

@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as pdfjsLib from 'pdfjs-dist'
 import type { EvidenceItem } from '../types'
 import { api } from '../api/client'
 
-// Set worker source before any PDF operations
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
   import.meta.url
@@ -21,12 +20,25 @@ interface Props {
   runId: string
   pdfId: string | null
   evidence: EvidenceItem | null
+  evidenceList: EvidenceItem[]
+  selectedEvidenceId: string | null
+  activeEvidenceIndex: number
+  onSelectEvidence: (evidenceId: string) => void
   outputDir: string
 }
 
-export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
+export function EvidenceViewer({
+  runId,
+  pdfId,
+  evidence,
+  evidenceList,
+  selectedEvidenceId,
+  activeEvidenceIndex,
+  onSelectEvidence,
+  outputDir,
+}: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const overlayRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(0)
@@ -40,10 +52,10 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
   const [openingLocal, setOpeningLocal] = useState(false)
   const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null)
 
-  // Load PDF when pdfId changes
   useEffect(() => {
     let cancelled = false
     let loadingTask: ReturnType<typeof pdfjsLib.getDocument> | null = null
+
     async function loadPdf() {
       if (!pdfId) {
         setPdfDoc(null)
@@ -64,49 +76,43 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
           setCurrentPage(1)
           setPageInput('1')
         }
-      } catch (err) {
+      } catch (error) {
         if (!cancelled) {
-          setLoadError(err instanceof Error ? err.message : String(err))
+          setLoadError(error instanceof Error ? error.message : String(error))
           setPdfDoc(null)
         }
       }
     }
-    loadPdf()
+
+    void loadPdf()
     return () => {
       cancelled = true
       if (loadingTask && typeof loadingTask.destroy === 'function') {
         void loadingTask.destroy()
       }
     }
-  }, [pdfId, runId, outputDir])
+  }, [outputDir, pdfId, runId])
 
-  // Navigate to evidence page when evidence changes
   useEffect(() => {
-    if (evidence?.page_number != null) {
-      const page = evidence.page_number
-      Promise.resolve().then(() => {
-        setCurrentPage(page)
-        setPageInput(String(page))
-      })
-    }
+    if (evidence?.page_number == null) return
+    const page = evidence.page_number
+    setCurrentPage(page)
+    setPageInput(String(page))
   }, [evidence])
 
-  // Render page when doc/page/zoom changes
   useEffect(() => {
     if (!pdfDoc || !canvasRef.current) return
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Cancel any in-flight render
     if (renderTaskRef.current) {
       renderTaskRef.current.cancel()
     }
 
-    Promise.resolve().then(() => setRenderError(null))
+    setRenderError(null)
 
     pdfDoc.getPage(currentPage).then((page) => {
-      // Store unscaled page dimensions (PDF points) for coordinate conversion
       const unscaledViewport = page.getViewport({ scale: 1.0 })
       setPdfPageSize({ width: unscaledViewport.width, height: unscaledViewport.height })
 
@@ -120,64 +126,84 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
       const task = page.render({ canvas, canvasContext: ctx, viewport })
       renderTaskRef.current = task
       return task.promise
-    }).catch((err) => {
-      if (err?.name !== 'RenderingCancelledException') {
-        setRenderError(err instanceof Error ? err.message : String(err))
+    }).catch((error) => {
+      if (error?.name !== 'RenderingCancelledException') {
+        setRenderError(error instanceof Error ? error.message : String(error))
       }
     })
-  }, [pdfDoc, currentPage, zoom])
+  }, [currentPage, pdfDoc, zoom])
 
-  function goToPage(n: number) {
-    const clamped = Math.max(1, Math.min(n, totalPages))
+  function goToPage(pageNumber: number) {
+    const clamped = Math.max(1, Math.min(pageNumber, totalPages))
     setCurrentPage(clamped)
     setPageInput(String(clamped))
   }
 
   function handlePageInputBlur() {
-    const n = parseInt(pageInput, 10)
-    if (!isNaN(n)) goToPage(n)
-    else setPageInput(String(currentPage))
+    const pageNumber = parseInt(pageInput, 10)
+    if (!Number.isNaN(pageNumber)) {
+      goToPage(pageNumber)
+      return
+    }
+    setPageInput(String(currentPage))
   }
 
   async function handleOpenInLocalViewer() {
-    if (!pdfId || openingLocal) {
-      return
-    }
+    if (!pdfId || openingLocal) return
     setOpeningLocal(true)
     setOpenLocalError(null)
     try {
       await api.openPdfInLocalViewer(runId, pdfId, outputDir)
-    } catch (err) {
-      setOpenLocalError(err instanceof Error ? err.message : String(err))
+    } catch (error) {
+      setOpenLocalError(error instanceof Error ? error.message : String(error))
     } finally {
       setOpeningLocal(false)
     }
   }
 
-  // Compute highlight boxes relative to current rendered canvas.
-  // Evidence coordinates are in PDF points (same space as pdfPageSize).
-  // PDF origin is bottom-left; canvas origin is top-left.
-  function getHighlights(regions: HighlightRegion[] | null) {
+  const getHighlights = useCallback((regions: HighlightRegion[] | null) => {
     if (!regions || canvasSize.width === 0 || pdfPageSize.width === 0) return []
     const scaleX = canvasSize.width / pdfPageSize.width
     const scaleY = canvasSize.height / pdfPageSize.height
     return regions
-      .filter((r) => r.page === currentPage)
-      .map((r) => {
-        const x = r.x0 * scaleX
-        const y = (pdfPageSize.height - r.y1) * scaleY  // flip Y axis
-        const w = (r.x1 - r.x0) * scaleX
-        const h = (r.y1 - r.y0) * scaleY
+      .filter((region) => region.page === currentPage)
+      .map((region) => {
+        const x = region.x0 * scaleX
+        const y = (pdfPageSize.height - region.y1) * scaleY
+        const w = (region.x1 - region.x0) * scaleX
+        const h = (region.y1 - region.y0) * scaleY
         return { x, y, w, h }
       })
-  }
+  }, [canvasSize.height, canvasSize.width, currentPage, pdfPageSize.height, pdfPageSize.width])
+
+  const exactRegions = evidence?.exact_highlight_regions ?? null
+  const approxRegions = evidence?.approximate_highlight_regions ?? null
+  const exactHighlights = useMemo(() => getHighlights(exactRegions), [exactRegions, getHighlights])
+  const approxHighlights = useMemo(() => getHighlights(approxRegions), [approxRegions, getHighlights])
+  const activeHighlights = exactHighlights.length > 0 ? exactHighlights : approxHighlights
+  const showTextFallback =
+    evidence?.source_type === 'quote_plus_page' ||
+    (!exactRegions && !approxRegions && evidence?.quote_text)
+
+  useEffect(() => {
+    const highlight = activeHighlights[0]
+    const container = scrollRef.current
+    if (!container || !highlight) return
+    container.scrollTo({
+      top: Math.max(0, highlight.y - container.clientHeight / 2 + highlight.h / 2),
+      left: Math.max(0, highlight.x - container.clientWidth / 2 + highlight.w / 2),
+      behavior: 'smooth',
+    })
+  }, [activeHighlights, evidence?.evidence_id, zoom])
 
   const isFigureEvidence =
     evidence?.source_type === 'caption_grounded_figure_evidence' ||
     evidence?.source_type === 'visual_interpretation_figure_evidence'
 
+  const canCycleEvidence = evidenceList.length > 1
+
   if (isFigureEvidence && evidence?.figure_ref) {
-    const figUrl = api.getFigureUrl(runId, evidence.pdf_id, evidence.figure_ref, outputDir)
+    const figureUrl = api.getFigureUrl(runId, evidence.pdf_id, evidence.figure_ref, outputDir)
     return (
       <div className="flex flex-col h-full bg-gray-50">
         <div className="px-3 py-2 border-b border-gray-200 bg-white flex items-center gap-2">
@@ -185,10 +211,36 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
           <span className="text-xs text-purple-600 bg-purple-100 px-1.5 rounded">
             {evidence.figure_ref}
           </span>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (!canCycleEvidence) return
+                const previousIndex = activeEvidenceIndex > 0 ? activeEvidenceIndex - 1 : evidenceList.length - 1
+                onSelectEvidence(evidenceList[previousIndex].evidence_id)
+              }}
+              disabled={!canCycleEvidence}
+              className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+            >
+              Previous evidence
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!canCycleEvidence) return
+                const nextIndex = activeEvidenceIndex < evidenceList.length - 1 ? activeEvidenceIndex + 1 : 0
+                onSelectEvidence(evidenceList[nextIndex].evidence_id)
+              }}
+              disabled={!canCycleEvidence}
+              className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+            >
+              Next evidence
+            </button>
+          </div>
         </div>
         <div className="flex-1 overflow-auto flex items-start justify-center p-4">
           <img
-            src={figUrl}
+            src={figureUrl}
             alt={`Figure ${evidence.figure_ref}`}
             className="max-w-full object-contain shadow-sm"
           />
@@ -218,18 +270,8 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
     )
   }
 
-  // Determine highlight regions
-  const exactRegions = evidence?.exact_highlight_regions ?? null
-  const approxRegions = evidence?.approximate_highlight_regions ?? null
-  const exactHighlights = getHighlights(exactRegions)
-  const approxHighlights = getHighlights(approxRegions)
-  const showTextFallback =
-    evidence?.source_type === 'quote_plus_page' ||
-    (!exactRegions && !approxRegions && evidence?.quote_text)
-
   return (
     <div className="flex flex-col h-full bg-gray-50">
-      {/* Toolbar */}
       <div className="shrink-0 px-2 py-1.5 border-b border-gray-200 bg-white flex items-center gap-2 flex-wrap">
         <button
           onClick={() => goToPage(currentPage - 1)}
@@ -244,9 +286,9 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
             min={1}
             max={totalPages}
             value={pageInput}
-            onChange={(e) => setPageInput(e.target.value)}
+            onChange={(event) => setPageInput(event.target.value)}
             onBlur={handlePageInputBlur}
-            onKeyDown={(e) => e.key === 'Enter' && handlePageInputBlur()}
+            onKeyDown={(event) => event.key === 'Enter' && handlePageInputBlur()}
             className="w-10 border border-gray-200 rounded px-1 py-0.5 text-center text-xs"
           />
           <span className="text-gray-400">/ {totalPages || '—'}</span>
@@ -260,7 +302,35 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
         </button>
         <div className="w-px h-4 bg-gray-200" />
         <button
-          onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))}
+          type="button"
+          onClick={() => {
+            if (!canCycleEvidence) return
+            const previousIndex = activeEvidenceIndex > 0 ? activeEvidenceIndex - 1 : evidenceList.length - 1
+            onSelectEvidence(evidenceList[previousIndex].evidence_id)
+          }}
+          disabled={!canCycleEvidence}
+          className="px-2 py-1 rounded text-xs border border-gray-200 hover:bg-gray-100 disabled:opacity-40"
+        >
+          Previous evidence
+        </button>
+        <span className="text-xs text-gray-500">
+          {selectedEvidenceId && activeEvidenceIndex >= 0 ? `${activeEvidenceIndex + 1} / ${evidenceList.length}` : 'No evidence'}
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            if (!canCycleEvidence) return
+            const nextIndex = activeEvidenceIndex < evidenceList.length - 1 ? activeEvidenceIndex + 1 : 0
+            onSelectEvidence(evidenceList[nextIndex].evidence_id)
+          }}
+          disabled={!canCycleEvidence}
+          className="px-2 py-1 rounded text-xs border border-gray-200 hover:bg-gray-100 disabled:opacity-40"
+        >
+          Next evidence
+        </button>
+        <div className="w-px h-4 bg-gray-200" />
+        <button
+          onClick={() => setZoom((value) => Math.max(0.5, +(value - 0.25).toFixed(2)))}
           disabled={zoom <= 0.5}
           className="px-2 py-1 rounded text-xs border border-gray-200 hover:bg-gray-100 disabled:opacity-40"
         >
@@ -268,7 +338,7 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
         </button>
         <span className="text-xs text-gray-600">{Math.round(zoom * 100)}%</span>
         <button
-          onClick={() => setZoom((z) => Math.min(3.0, +(z + 0.25).toFixed(2)))}
+          onClick={() => setZoom((value) => Math.min(3.0, +(value + 0.25).toFixed(2)))}
           disabled={zoom >= 3.0}
           className="px-2 py-1 rounded text-xs border border-gray-200 hover:bg-gray-100 disabled:opacity-40"
         >
@@ -286,7 +356,7 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
       <div className="shrink-0 px-3 py-2 border-b border-gray-200 bg-gray-50 text-xs text-gray-600">
         This pane is optimized for evidence highlights. Use the local PDF viewer when you want standard reading behavior such as hand-pan, text selection, or full-document search.
       </div>
-      <div className="flex-1 overflow-auto p-3">
+      <div ref={scrollRef} className="flex-1 overflow-auto p-3">
         {openLocalError && (
           <div className="mb-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
             Could not open the local PDF viewer: {openLocalError}
@@ -296,34 +366,34 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
           <div className="text-xs text-red-600 mb-2">Render error: {renderError}</div>
         )}
         <div
-          ref={overlayRef}
           className="relative inline-block"
           style={{ width: canvasSize.width || undefined }}
         >
           <canvas ref={canvasRef} className="shadow-md" />
-          {exactHighlights.map((h, i) => (
+          {exactHighlights.map((highlight, index) => (
             <div
-              key={`exact-${i}`}
+              key={`exact-${index}`}
               className="absolute pointer-events-none"
               style={{
-                left: h.x,
-                top: h.y,
-                width: h.w,
-                height: h.h,
+                left: highlight.x,
+                top: highlight.y,
+                width: highlight.w,
+                height: highlight.h,
                 backgroundColor: 'rgba(59, 130, 246, 0.25)',
-                border: '1px solid rgba(59, 130, 246, 0.6)',
+                border: '1px solid rgba(59, 130, 246, 0.7)',
+                boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.18)',
               }}
             />
           ))}
-          {approxHighlights.map((h, i) => (
+          {approxHighlights.map((highlight, index) => (
             <div
-              key={`approx-${i}`}
+              key={`approx-${index}`}
               className="absolute pointer-events-none"
               style={{
-                left: h.x,
-                top: h.y,
-                width: h.w,
-                height: h.h,
+                left: highlight.x,
+                top: highlight.y,
+                width: highlight.w,
+                height: highlight.h,
                 border: '2px dashed rgba(234, 88, 12, 0.7)',
                 backgroundColor: 'rgba(234, 88, 12, 0.08)',
               }}

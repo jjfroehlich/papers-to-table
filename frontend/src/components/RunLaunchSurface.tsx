@@ -15,6 +15,7 @@ export function RunLaunchSurface({ onRunCreated }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [showOverrides, setShowOverrides] = useState(false)
 
+  const configFileRef = useRef<HTMLInputElement>(null)
   const tableFileRef = useRef<HTMLInputElement>(null)
   const schemaFileRef = useRef<HTMLInputElement>(null)
 
@@ -47,15 +48,35 @@ export function RunLaunchSurface({ onRunCreated }: Props) {
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Config file path <span className="text-red-500">*</span>
         </label>
-        <input
-          type="text"
-          value={configPath}
-          onChange={(e) => setConfigPath(e.target.value)}
-          placeholder="e.g. config.example.json"
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        />
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={configPath}
+            onChange={(e) => setConfigPath(e.target.value)}
+            placeholder="e.g. config.example.json"
+            className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          <input
+            ref={configFileRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={(e) => {
+              const selected = e.target.files?.[0]
+              if (!selected) return
+              setConfigPath(selected.webkitRelativePath || selected.name)
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => configFileRef.current?.click()}
+            className="shrink-0 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
+          >
+            Browse...
+          </button>
+        </div>
         <p className="mt-1 text-xs text-gray-500">
-          Path to your JSON run configuration file. See{' '}
+          Enter the backend-readable path to your JSON run configuration file. The browse control can prefill a selected file name, but you may still need to edit the exact path. See{' '}
           <code className="bg-gray-100 px-1 rounded">config.example.json</code> for the format.
         </p>
       </div>
@@ -73,7 +94,7 @@ export function RunLaunchSurface({ onRunCreated }: Props) {
       {showOverrides && (
         <div className="space-y-3 rounded-md border border-gray-200 bg-gray-50 p-4">
           <p className="text-xs text-gray-500">
-            Override paths from the config file. Useful when your files are in a different location than the config specifies.
+            Override paths from the config file. Useful when your files are in a different location than the config specifies. Browse buttons prefill selected file names only; confirm the backend-readable path before launch.
           </p>
 
           <div>

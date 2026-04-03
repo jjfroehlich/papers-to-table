@@ -346,7 +346,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - fetch config snapshot
   - fetch input summary
 
-- [ ] **T023c** Implement active-run auto-refresh and cancellation support end to end.
+- [x] **T023c** Implement active-run auto-refresh and cancellation support end to end.
   - expose a backend run-cancel endpoint or equivalent control path
   - persist interrupted state distinctly from failed state
   - make UI polling or streaming keep active status current without requiring manual refresh as the primary mechanism
@@ -724,7 +724,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - persist these statuses in run and proposal artifacts
   - expose them consistently through API payloads
 
-- [ ] **T068a** Surface degraded parsing, duplicate-row conflicts, and evidence-fallback truth consistently.
+- [x] **T068a** Surface degraded parsing, duplicate-row conflicts, and evidence-fallback truth consistently.
   - carry parse-fallback and low-text warnings from parsing artifacts into run summaries and review payloads
   - keep duplicate-row conflicts distinct from ambiguous matches in status categories and API responses
   - ensure evidence-fallback states remain reviewer-visible without inflating the main actionable queue
@@ -776,7 +776,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T075a** Ensure review aggregates distinguish confirmed-no-data outcomes from rejected-or-model-wrong outcomes in both backend summaries and API payloads.
 
-- [ ] **T075b** Make actionable-only counts the default review-progress source.
+- [x] **T075b** Make actionable-only counts the default review-progress source.
   - compute primary progress from reviewable or actionable proposals
   - expose broader attempted totals, blocked counts, and diagnostic totals only as secondary context
 
@@ -822,7 +822,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 - [x] **T080** Add tests covering review decision recording, audit history, visible-subset bulk acceptance, warning/status semantics, review-asset serving, run-summary recomputation, reviewer-summary recomputation, and partial-review behavior.
   - cover distinct confirmed-no-data persistence and summary reporting
 
-- [ ] **T080a** Add tests for warning/status truth across artifacts, APIs, and summaries.
+- [x] **T080a** Add tests for warning/status truth across artifacts, APIs, and summaries.
   - parse fallback, provider-mode truth, duplicate-row conflicts, and evidence-fallback warnings must stay consistent across surfaces
   - actionable-only counts must remain distinct from broader attempted totals in summary payloads
 
@@ -862,7 +862,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - keeps empty/loading/warning/failure states explicit before the review queue is ready
   - makes the next operator action obvious when no run exists yet or when the selected run is not reviewable
 
-- [ ] **T082b** Add a `Browse...` control next to the config-path text field.
+- [x] **T082b** Add a `Browse...` control next to the config-path text field.
   - keep the text field as the canonical visible path control
   - allow normal local-first file selection without hiding or replacing the path value
 
@@ -896,7 +896,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - do not record review decisions implicitly from navigation or selection changes
   - allow filter continuity across run switches when practical, but do not preserve stale proposal/detail/evidence state across runs
 
-- [ ] **T084a** Make actionable-only progress explicit in the review workspace.
+- [x] **T084a** Make actionable-only progress explicit in the review workspace.
   - use reviewable or actionable proposal counts in the main headline and primary counters
   - keep broader totals available secondarily without dominating queue triage
 
@@ -925,7 +925,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - treat in-viewer text search as recommended when supported cleanly by the chosen viewer mode or browser PDF surface, but do not require a brittle custom search layer for MVP
   - do not force reviewers to remain in an overlay-only mode when they need to read or copy from the paper naturally
 
-- [ ] **T086c** Strengthen evidence navigation and highlight behavior in the viewer.
+- [x] **T086c** Strengthen evidence navigation and highlight behavior in the viewer.
   - add explicit next and previous evidence controls in the evidence pane
   - keep highlight focus synchronized as the reviewer cycles evidence items
   - prioritize highlight and navigation quality over forcing every native-reader affordance into the same in-app mode
@@ -974,14 +974,14 @@ The detailed task inventory below remains the source of truth for exact implemen
   - present accept-with-edit as a distinct save-edited-value action rather than a vague duplicate of plain acceptance
   - keep confirmed-no-data resolution visibly distinct from rejection
 
-- [ ] **T090b** Auto-advance after explicit review decisions.
+- [x] **T090b** Auto-advance after explicit review decisions.
   - after `accept`, `accept_with_edit`, `confirm_no_data`, or `reject`, move to the next reviewable proposal when one exists
   - do not auto-advance on mere selection changes or partial edits
 
 - [x] **T091** Implement keyboard shortcuts for next/previous navigation, accept current proposal, reject current proposal, focus edit control, and focus/open evidence viewer.
   - surface shortcuts in button tooltips or equivalent inline affordances on the relevant controls
 
-- [ ] **T091a** Extend keyboard support for fast sequential review.
+- [x] **T091a** Extend keyboard support for fast sequential review.
   - add next and previous evidence shortcuts
   - preserve focus-edit behavior for quick accept-with-edit flows
   - keep shortcut handling safe when text inputs are focused
@@ -999,13 +999,13 @@ The detailed task inventory below remains the source of truth for exact implemen
   - do not show limited-review or similar warnings before their real triggering conditions are met
   - keep confirmed-no-data outcomes distinct from rejected-or-model-wrong outcomes in visible summaries and badges
 
-- [ ] **T093a** Tighten review-surface truth for parsing fallback and actionable counts.
+- [x] **T093a** Tighten review-surface truth for parsing fallback and actionable counts.
   - surface degraded parsing, OCR fallback, duplicate-row conflicts, and evidence fallback in reviewer-visible summaries and diagnostics
   - keep actionable-only progress as the primary headline while preserving secondary totals for context
 
 - [ ] **T094** Add frontend tests for grouped queue behavior, group-header summaries, group ordering rules, queue filtering, item ordering rules, nonlinear review, evidence type labeling (direct quote vs. inferred vs. calculation vs. approximate vs. fallback), exact-highlight vs. approximate-highlight vs. quote-plus-page fallback rendering, synchronized quote-list and viewer behavior, viewer navigation (previous/next page, jump to page), figure-evidence rendering with full-page access, run-summary display including text and vision model identifiers, no-data workflow rendering, picker-driven setup flow, markdown-bullet rationale rendering, click-to-populate replace behavior, overlong-text staging behavior, tooltip shortcut surfacing, and bulk-accept confirmation flow.
 
-- [ ] **T094a** Add frontend tests for the next reviewer-throughput contract.
+- [x] **T094a** Add frontend tests for the next reviewer-throughput contract.
   - actionable-only headline counts
   - config-path `Browse...` control
   - next or previous evidence navigation
@@ -1031,7 +1031,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - highlight changed cells
   - do **not** attempt to preserve formulas, filters, frozen panes, hidden rows/columns, merged cells, conditional formatting, comments, named ranges, charts, shapes, or macros
 
-- [ ] **T096a** Keep export explicitly manual in the product workflow.
+- [x] **T096a** Keep export explicitly manual in the product workflow.
   - require the reviewer to trigger export from the review UI
   - ensure run completion and decision recording never auto-export implicitly
 
@@ -1069,7 +1069,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T101** Add tests covering export integrity, content-only fidelity, changed-cell highlighting, accepted-only export behavior, unsupported-feature warnings, audit-log completeness, and completed-with-warnings semantics.
 
-- [ ] **T101a** Add tests for manual-export truth.
+- [x] **T101a** Add tests for manual-export truth.
   - exports must not appear automatically after run completion alone
   - changed-cell highlighting must remain visible in the explicit export output
   - diagnostics should reflect manual-export timing truthfully

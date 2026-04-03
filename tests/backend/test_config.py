@@ -68,9 +68,9 @@ class TestLoadConfig:
     def test_load_example_config(self):
         config = load_config(FIXTURE_CONFIG)
         assert config.provider.token == "lm_studio"
-        assert config.table_path == FIXTURE_TABLE
-        assert config.schema_path == FIXTURE_SCHEMA
-        assert config.pdf_dir == FIXTURE_PDF_DIR
+        assert config.table_path == str(pathlib.Path(FIXTURE_TABLE).resolve())
+        assert config.schema_path == str(pathlib.Path(FIXTURE_SCHEMA).resolve())
+        assert config.pdf_dir == str(pathlib.Path(FIXTURE_PDF_DIR).resolve())
 
     def test_file_not_found(self):
         with pytest.raises(FileNotFoundError):
@@ -100,6 +100,29 @@ class TestLoadConfig:
         assert config.parser.backend == "docling"
         assert config.matching.ambiguity_threshold == 0.15
         assert config.retrieval.top_k == 6
+
+    def test_relative_paths_resolve_against_config_location(self, tmp_path):
+        config_dir = tmp_path / "nested"
+        config_dir.mkdir()
+        data = {
+            "table_path": "../table.xlsx",
+            "schema_path": "../schema.csv",
+            "pdf_dir": "../pdfs",
+            "output_dir": "../runs",
+            "provider": {
+                "token": "lm_studio",
+                "text_model": {"model_id": "qwen/qwen3-30b-a3b-2507"},
+            },
+        }
+        config_path = config_dir / "config.json"
+        config_path.write_text(json.dumps(data), encoding="utf-8")
+
+        config = load_config(str(config_path))
+
+        assert config.table_path == str((tmp_path / "table.xlsx").resolve())
+        assert config.schema_path == str((tmp_path / "schema.csv").resolve())
+        assert config.pdf_dir == str((tmp_path / "pdfs").resolve())
+        assert config.output_dir == str((tmp_path / "runs").resolve())
 
     def test_text_model_id_default_preserved_until_readiness(self, tmp_path):
         data = {
@@ -148,6 +171,17 @@ class TestApplyOverrides:
         config = load_config(FIXTURE_CONFIG)
         overridden = apply_overrides(config, {})
         assert overridden.table_path == config.table_path
+
+    def test_relative_overrides_resolve_against_base_dir(self, tmp_path):
+        config = load_config(FIXTURE_CONFIG)
+        overridden = apply_overrides(
+            config,
+            {"table_path": "alternate/table.xlsx", "pdf_dir": "alternate/pdfs"},
+            base_dir=str(tmp_path),
+        )
+
+        assert overridden.table_path == str((tmp_path / "alternate" / "table.xlsx").resolve())
+        assert overridden.pdf_dir == str((tmp_path / "alternate" / "pdfs").resolve())
 
 
 class TestReadiness:

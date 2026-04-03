@@ -15,12 +15,14 @@ export function App() {
   const [loadingRuns, setLoadingRuns] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [abortingRunId, setAbortingRunId] = useState<string | null>(null)
+  const [lastSuccessfulRefreshAt, setLastSuccessfulRefreshAt] = useState<string | null>(null)
 
   const loadRuns = useCallback(async () => {
     try {
       const resp = await api.listRuns()
       setRuns(resp.runs)
       setLoadError(null)
+      setLastSuccessfulRefreshAt(new Date().toISOString())
       if (selectedRun) {
         const updated = resp.runs.find((r) => r.run_id === selectedRun.run_id)
         if (updated) setSelectedRun(updated)
@@ -46,6 +48,11 @@ export function App() {
     }, 2000)
     return () => window.clearTimeout(timeoutId)
   }, [runs, loadRuns])
+
+  const hasActiveRun = runs.some((run) =>
+    run.status === 'created' || run.status === 'validating' || run.status === 'running'
+  )
+  const activeRunRefreshStale = hasActiveRun && !!loadError
 
   function handleRunCreated(run: RunData) {
     setRuns((prev) => [run, ...prev.filter((r) => r.run_id !== run.run_id)])
@@ -103,9 +110,20 @@ export function App() {
 
       {/* Main content */}
       <main className={view === 'review' && isReviewable ? '' : 'max-w-screen-xl mx-auto px-4 py-6'}>
-        {loadError && selectedRun && (
+        {activeRunRefreshStale && (
           <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Live status refresh failed. The selected run details may be stale until the backend connection recovers.
+            Live status refresh failed. Active run status may be stale until the backend connection recovers.
+            {lastSuccessfulRefreshAt && (
+              <span className="ml-1 text-amber-700">
+                Last successful refresh: {new Date(lastSuccessfulRefreshAt).toLocaleTimeString()}.
+              </span>
+            )}
+            <button
+              onClick={() => void loadRuns()}
+              className="ml-3 text-xs font-semibold text-amber-900 underline"
+            >
+              Refresh now
+            </button>
           </div>
         )}
 

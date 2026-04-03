@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 from typing import Optional
 
 import httpx
@@ -103,19 +104,42 @@ class RunConfig(BaseModel):
         return self
 
 
+def _resolve_path_value(value: object, base_dir: Path) -> object:
+    if not isinstance(value, str) or not value.strip():
+        return value
+    candidate = Path(value)
+    if candidate.is_absolute():
+        return str(candidate.resolve())
+    return str((base_dir / candidate).resolve())
+
+
+def _resolve_config_paths(data: dict, base_dir: Path) -> dict:
+    resolved = dict(data)
+    for key in ("table_path", "schema_path", "pdf_dir", "output_dir"):
+        if key in resolved:
+            resolved[key] = _resolve_path_value(resolved.get(key), base_dir)
+    return resolved
+
+
 def load_config(path: str) -> RunConfig:
     """Load and parse config from JSON file."""
-    with open(path, "r", encoding="utf-8") as f:
+    config_path = Path(path).resolve()
+    with open(config_path, "r", encoding="utf-8") as f:
         data = json.load(f)
-    return RunConfig.model_validate(data)
+    return RunConfig.model_validate(_resolve_config_paths(data, config_path.parent))
 
 
-def apply_overrides(config: RunConfig, overrides: dict) -> RunConfig:
+def apply_overrides(config: RunConfig, overrides: dict, base_dir: str | None = None) -> RunConfig:
     """Apply picker-driven overrides (table_path, schema_path, pdf_dir)."""
     data = config.model_dump()
+    resolved_base_dir = Path(base_dir).resolve() if base_dir else None
     for k in ("table_path", "schema_path", "pdf_dir"):
         if k in overrides and overrides[k] is not None:
-            data[k] = overrides[k]
+            data[k] = (
+                _resolve_path_value(overrides[k], resolved_base_dir)
+                if resolved_base_dir is not None
+                else overrides[k]
+            )
     return RunConfig.model_validate(data)
 
 

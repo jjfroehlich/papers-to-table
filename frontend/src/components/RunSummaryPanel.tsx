@@ -1,10 +1,23 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api/client'
 import type { RunData, ReviewProgress, MatchingSummary } from '../types'
 
 interface Props {
   run: RunData
   outputDir: string
+}
+
+function warningTags(run: RunData) {
+  const warnings = run.warnings
+  return {
+    parsingFallback: warnings.some((warning) =>
+      warning.category === 'partial_extraction'
+      || warning.message.toLowerCase().includes('parser fallback')
+      || warning.message.toLowerCase().includes('ocr')
+    ),
+    duplicateConflicts: warnings.some((warning) => warning.category === 'duplicate_row_conflict'),
+    fallbackEvidence: warnings.some((warning) => warning.category === 'fallback_evidence_used'),
+  }
 }
 
 export function RunSummaryPanel({ run, outputDir }: Props) {
@@ -14,11 +27,12 @@ export function RunSummaryPanel({ run, outputDir }: Props) {
   useEffect(() => {
     api.getReviewProgress(run.run_id, outputDir).then(setProgress).catch(() => {})
     api.getMatchingSummary(run.run_id, outputDir).then(setMatching).catch(() => {})
-  }, [run.run_id, outputDir])
+  }, [outputDir, run.run_id])
 
-  const reviewed = progress?.reviewed ?? 0
-  const total = progress?.total_proposals ?? run.proposals_generated
-  const progressPct = total > 0 ? Math.round((reviewed / total) * 100) : 0
+  const actionableReviewed = progress?.reviewed ?? 0
+  const actionableTotal = progress?.total_proposals ?? 0
+  const progressPct = actionableTotal > 0 ? Math.round((actionableReviewed / actionableTotal) * 100) : 0
+  const warnings = useMemo(() => warningTags(run), [run])
 
   const providerLabel =
     run.provider_token === 'lm_studio' ? 'LM Studio' : (run.provider_token ?? '—')
@@ -44,7 +58,6 @@ export function RunSummaryPanel({ run, outputDir }: Props) {
 
   return (
     <div className="bg-white border-b border-gray-200 px-4 py-2 flex flex-wrap items-center gap-4 text-xs text-gray-600">
-      {/* PDF matching stats */}
       <div className="flex items-center gap-1">
         <span className="font-medium text-gray-700">PDFs:</span>
         <span className="text-green-700">{matching?.matched ?? '—'} matched</span>
@@ -54,27 +67,21 @@ export function RunSummaryPanel({ run, outputDir }: Props) {
         {matching && matching.ambiguous > 0 && (
           <span className="text-orange-600 ml-1">{matching.ambiguous} ambiguous</span>
         )}
-      </div>
-
-      <div className="w-px h-4 bg-gray-200" />
-
-      {/* Proposal stats */}
-      <div className="flex items-center gap-1">
-        <span className="font-medium text-gray-700">Proposals:</span>
-        <span>{total} generated</span>
-        {progress && (
-          <>
-            <span className="text-blue-600 ml-1">{progress.accepted + progress.accepted_with_edit} accepted</span>
-            {progress.rejected > 0 && (
-              <span className="text-red-500 ml-1">{progress.rejected} rejected</span>
-            )}
-          </>
+        {matching && matching.duplicate_row_conflict > 0 && (
+          <span className="text-red-600 ml-1">{matching.duplicate_row_conflict} duplicate conflict</span>
         )}
       </div>
 
       <div className="w-px h-4 bg-gray-200" />
 
-      {/* Provider */}
+      <div className="flex items-center gap-1">
+        <span className="font-medium text-gray-700">Actionable review:</span>
+        <span>{actionableReviewed} / {actionableTotal}</span>
+        <span className="text-gray-400 ml-1">attempted {run.proposals_generated}</span>
+      </div>
+
+      <div className="w-px h-4 bg-gray-200" />
+
       <div className="flex items-center gap-1.5">
         <span className="font-medium text-gray-700">Provider:</span>
         <span>{providerLabel}</span>
@@ -92,6 +99,29 @@ export function RunSummaryPanel({ run, outputDir }: Props) {
         </>
       )}
 
+      {(warnings.parsingFallback || warnings.duplicateConflicts || warnings.fallbackEvidence) && (
+        <>
+          <div className="w-px h-4 bg-gray-200" />
+          <div className="flex items-center gap-2">
+            {warnings.parsingFallback && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-800">
+                parsing fallback
+              </span>
+            )}
+            {warnings.duplicateConflicts && (
+              <span className="rounded-full bg-red-100 px-2 py-0.5 font-medium text-red-700">
+                duplicate conflicts
+              </span>
+            )}
+            {warnings.fallbackEvidence && (
+              <span className="rounded-full bg-orange-100 px-2 py-0.5 font-medium text-orange-700">
+                evidence fallback
+              </span>
+            )}
+          </div>
+        </>
+      )}
+
       {run.warnings.length > 0 && (
         <>
           <div className="w-px h-4 bg-gray-200" />
@@ -102,8 +132,7 @@ export function RunSummaryPanel({ run, outputDir }: Props) {
         </>
       )}
 
-      {/* Progress bar */}
-      {total > 0 && (
+      {actionableTotal > 0 && (
         <>
           <div className="w-px h-4 bg-gray-200" />
           <div className="flex items-center gap-2 min-w-40">
@@ -113,7 +142,7 @@ export function RunSummaryPanel({ run, outputDir }: Props) {
                 style={{ width: `${progressPct}%` }}
               />
             </div>
-            <span className="shrink-0 text-gray-500">{progressPct}% reviewed</span>
+            <span className="shrink-0 text-gray-500">{progressPct}% actionable reviewed</span>
           </div>
         </>
       )}

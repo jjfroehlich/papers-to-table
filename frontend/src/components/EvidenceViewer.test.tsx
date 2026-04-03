@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { vi, describe, it, expect, beforeAll } from 'vitest'
+import { vi, describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import { EvidenceViewer } from './EvidenceViewer'
 import type { EvidenceItem } from '../types'
 
@@ -86,12 +86,22 @@ const figureEvidence: EvidenceItem = {
 }
 
 describe('EvidenceViewer', () => {
+  const onSelectEvidence = vi.fn()
+
+  beforeEach(() => {
+    onSelectEvidence.mockClear()
+  })
+
   it('shows annotated-viewer guidance and local-viewer action', () => {
     render(
       <EvidenceViewer
         runId="r1"
         pdfId="paper-a"
         evidence={null}
+        evidenceList={[]}
+        selectedEvidenceId={null}
+        activeEvidenceIndex={-1}
+        onSelectEvidence={onSelectEvidence}
         outputDir="./runs"
       />
     )
@@ -105,6 +115,10 @@ describe('EvidenceViewer', () => {
         runId="r1"
         pdfId="paper-a"
         evidence={quoteEvidence}
+        evidenceList={[quoteEvidence]}
+        selectedEvidenceId="ev1"
+        activeEvidenceIndex={0}
+        onSelectEvidence={onSelectEvidence}
         outputDir="./runs"
       />
     )
@@ -119,6 +133,10 @@ describe('EvidenceViewer', () => {
         runId="r1"
         pdfId="paper-a"
         evidence={null}
+        evidenceList={[]}
+        selectedEvidenceId={null}
+        activeEvidenceIndex={-1}
+        onSelectEvidence={onSelectEvidence}
         outputDir="./runs"
       />
     )
@@ -134,6 +152,10 @@ describe('EvidenceViewer', () => {
         runId="r1"
         pdfId={null}
         evidence={null}
+        evidenceList={[]}
+        selectedEvidenceId={null}
+        activeEvidenceIndex={-1}
+        onSelectEvidence={onSelectEvidence}
         outputDir="./runs"
       />
     )
@@ -146,6 +168,10 @@ describe('EvidenceViewer', () => {
         runId="r1"
         pdfId="paper-a"
         evidence={figureEvidence}
+        evidenceList={[figureEvidence]}
+        selectedEvidenceId="ev3"
+        activeEvidenceIndex={0}
+        onSelectEvidence={onSelectEvidence}
         outputDir="./runs"
       />
     )
@@ -160,6 +186,10 @@ describe('EvidenceViewer', () => {
         runId="r1"
         pdfId="paper-a"
         evidence={figureEvidence}
+        evidenceList={[figureEvidence]}
+        selectedEvidenceId="ev3"
+        activeEvidenceIndex={0}
+        onSelectEvidence={onSelectEvidence}
         outputDir="./runs"
       />
     )
@@ -173,10 +203,32 @@ describe('EvidenceViewer', () => {
         runId="r1"
         pdfId="paper-a"
         evidence={approxEvidence}
+        evidenceList={[approxEvidence]}
+        selectedEvidenceId="ev2"
+        activeEvidenceIndex={0}
+        onSelectEvidence={onSelectEvidence}
         outputDir="./runs"
       />
     )
     // The toolbar should be visible (PDF path)
     expect(screen.getByRole('spinbutton')).toBeInTheDocument()
+  })
+
+  it('cycles to the next evidence item from the toolbar', () => {
+    render(
+      <EvidenceViewer
+        runId="r1"
+        pdfId="paper-a"
+        evidence={quoteEvidence}
+        evidenceList={[quoteEvidence, approxEvidence]}
+        selectedEvidenceId="ev1"
+        activeEvidenceIndex={0}
+        onSelectEvidence={onSelectEvidence}
+        outputDir="./runs"
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /Next evidence/i }))
+    expect(onSelectEvidence).toHaveBeenCalledWith('ev2')
   })
 })

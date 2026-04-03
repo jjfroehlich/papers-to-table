@@ -3,6 +3,8 @@ import { useEffect, useCallback } from 'react'
 interface Props {
   onNext: () => void
   onPrev: () => void
+  onNextEvidence: () => void
+  onPrevEvidence: () => void
   onAccept: () => void
   onReject: () => void
   onFocusEdit: () => void
@@ -13,6 +15,8 @@ interface Props {
 export function useReviewKeyboardShortcuts({
   onNext,
   onPrev,
+  onNextEvidence,
+  onPrevEvidence,
   onAccept,
   onReject,
   onFocusEdit,
@@ -23,8 +27,21 @@ export function useReviewKeyboardShortcuts({
     (e: KeyboardEvent) => {
       if (!enabled) return
       // Skip if focus is inside an input/textarea/select
-      const tag = (e.target as HTMLElement)?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      const target = e.target as HTMLElement | null
+      const tag = target?.tagName
+      if (target?.isContentEditable || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+
+      if (e.altKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault()
+        onNextEvidence()
+        return
+      }
+
+      if (e.altKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault()
+        onPrevEvidence()
+        return
+      }
 
       switch (e.key) {
         case ']':
@@ -55,7 +72,7 @@ export function useReviewKeyboardShortcuts({
           break
       }
     },
-    [enabled, onNext, onPrev, onAccept, onReject, onFocusEdit, onShowHelp]
+    [enabled, onNext, onPrev, onNextEvidence, onPrevEvidence, onAccept, onReject, onFocusEdit, onShowHelp]
   )
 
   useEffect(() => {
