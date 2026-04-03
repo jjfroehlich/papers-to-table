@@ -28,9 +28,13 @@ function clamp(value: number, min: number, max: number) {
 }
 
 function warningHeadline(run: RunData) {
-  const messages = run.warnings.map((warning) => warning.message.toLowerCase())
   return {
-    hasParsingTruth: messages.some((message) => message.includes('parser fallback') || message.includes('ocr') || message.includes('low text')),
+    hasParsingTruth: run.warnings.some((warning) =>
+      warning.category === 'partial_extraction'
+      || warning.message.toLowerCase().includes('parser fallback')
+      || warning.message.toLowerCase().includes('ocr')
+      || warning.message.toLowerCase().includes('low text')
+    ),
     hasDuplicateConflict: run.warnings.some((warning) => warning.category === 'duplicate_row_conflict'),
     hasFallbackEvidence: run.warnings.some((warning) => warning.category === 'fallback_evidence_used'),
   }

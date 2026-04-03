@@ -10,7 +10,11 @@ interface Props {
 function warningTags(run: RunData) {
   const warnings = run.warnings
   return {
-    parsingFallback: warnings.some((warning) => warning.message.toLowerCase().includes('parser fallback') || warning.message.toLowerCase().includes('ocr')),
+    parsingFallback: warnings.some((warning) =>
+      warning.category === 'partial_extraction'
+      || warning.message.toLowerCase().includes('parser fallback')
+      || warning.message.toLowerCase().includes('ocr')
+    ),
     duplicateConflicts: warnings.some((warning) => warning.category === 'duplicate_row_conflict'),
     fallbackEvidence: warnings.some((warning) => warning.category === 'fallback_evidence_used'),
   }

@@ -109,7 +109,7 @@ def _resolve_path_value(value: object, base_dir: Path) -> object:
         return value
     candidate = Path(value)
     if candidate.is_absolute():
-        return str(candidate)
+        return str(candidate.resolve())
     return str((base_dir / candidate).resolve())
 
 
