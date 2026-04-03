@@ -46,7 +46,21 @@ class EvidenceSourceType(str, Enum):
     calculation = "calculation"
     approximate_highlight = "approximate_highlight"
     quote_plus_page = "quote_plus_page"
-    figure_based_evidence = "figure_based_evidence"
+    caption_grounded_figure_evidence = "caption_grounded_figure_evidence"
+    visual_interpretation_figure_evidence = "visual_interpretation_figure_evidence"
+
+
+class SchemaFieldType(str, Enum):
+    text = "text"
+    number = "number"
+    categorical = "categorical"
+    boolean = "boolean"
+
+
+class NumericValueForm(str, Enum):
+    exact = "exact"
+    range = "range"
+    approximate = "approximate"
 
 
 class ReviewDecision(str, Enum):

@@ -17,6 +17,8 @@ export type EvidenceSourceType =
   | 'approximate_highlight'
   | 'quote_plus_page'
   | 'figure_based_evidence'
+  | 'caption_grounded_figure_evidence'
+  | 'visual_interpretation_figure_evidence'
 export type ReviewDecision = 'accepted' | 'accepted_with_edit' | 'confirmed_no_data' | 'rejected'
 
 export interface WarningItem {
@@ -143,6 +145,11 @@ export interface EnrichedProposal {
   needs_more_evidence: boolean
   is_verify_mode: boolean
   existing_value?: string | null
+  field_type?: 'text' | 'number' | 'categorical' | 'boolean' | null
+  allowed_values?: string[] | null
+  numeric_value_form?: 'exact' | 'range' | 'approximate' | null
+  recall_rescue_used?: boolean
+  whole_document_used?: boolean
   provider_mode?: string
   created_at: string
   latest_decision: DecisionRecord | null
