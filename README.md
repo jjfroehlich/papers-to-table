@@ -203,6 +203,14 @@ The top review summary uses **actionable review counts** as the main progress he
 
 The **Unresolved** tab shows unmatched PDFs, ambiguous matches, and duplicate row conflicts for inspection.
 
+### Verify mode
+
+When `verify_mode` is `true`, the app also generates proposals for already-filled cells instead of treating them as protected by default.
+
+- the review detail pane shows **Current** vs **Proposed** values
+- accepted decisions can write reviewed updates for those already-filled cells into the explicit export
+- reviewer summaries include those reviewed comparisons, but this MVP does **not** add an automated correctness score
+
 ### 3. Export
 
 After completing review, trigger export from the **Review** tab with **Export reviewed workbook** (or via the API):
@@ -361,6 +369,8 @@ python -m playwright install chromium
 cd frontend && npm install && cd ..
 python -m pytest tests/e2e -m e2e
 ```
+
+This currently exercises the implemented Playwright slice for fast review, evidence cycling, explicit export, and screenshot capture. Broader run-launch e2e scaffolding remains deferred and is skipped explicitly.
 
 ### Refresh README screenshots
 
