@@ -178,6 +178,7 @@ export interface ProposalDetail {
   decision_history: DecisionRecord[]
   row_context: Record<string, unknown>
   column_definition: Record<string, unknown> | null
+  support_label_display?: string
 }
 
 export interface MatchingSummary {

@@ -201,13 +201,22 @@ export function EvidenceViewer({
     evidence?.source_type === 'visual_interpretation_figure_evidence'
 
   const canCycleEvidence = evidenceList.length > 1
+  const evidenceQualityLabel = isFigureEvidence
+    ? 'Figure evidence'
+    : exactHighlights.length > 0
+      ? 'Exact quote highlight'
+      : approxHighlights.length > 0
+        ? 'Approximate region highlight'
+        : showTextFallback
+          ? 'Quote + page fallback'
+          : 'Paper evidence'
 
   if (isFigureEvidence && evidence?.figure_ref) {
     const figureUrl = api.getFigureUrl(runId, evidence.pdf_id, evidence.figure_ref, outputDir)
     return (
-      <div className="flex flex-col h-full bg-gray-50">
-        <div className="px-3 py-2 border-b border-gray-200 bg-white flex items-center gap-2">
-          <span className="text-xs font-medium text-gray-600">Figure</span>
+      <div className="flex flex-col h-full bg-slate-50">
+        <div className="px-3 py-2 border-b border-slate-200 bg-white flex items-center gap-2">
+          <span className="text-xs font-medium text-slate-600">{evidenceQualityLabel}</span>
           <span className="text-xs text-purple-600 bg-purple-100 px-1.5 rounded">
             {evidence.figure_ref}
           </span>
@@ -220,7 +229,7 @@ export function EvidenceViewer({
                 onSelectEvidence(evidenceList[previousIndex].evidence_id)
               }}
               disabled={!canCycleEvidence}
-              className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+               className="rounded border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 disabled:opacity-40"
             >
               Previous evidence
             </button>
@@ -232,7 +241,7 @@ export function EvidenceViewer({
                 onSelectEvidence(evidenceList[nextIndex].evidence_id)
               }}
               disabled={!canCycleEvidence}
-              className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+               className="rounded border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 disabled:opacity-40"
             >
               Next evidence
             </button>
@@ -246,7 +255,7 @@ export function EvidenceViewer({
           />
         </div>
         {evidence.caption_text && (
-          <div className="px-3 py-2 border-t border-gray-200 bg-white text-xs text-gray-600 italic">
+          <div className="px-3 py-2 border-t border-slate-200 bg-white text-xs text-slate-600 italic">
             {evidence.caption_text}
           </div>
         )}
@@ -271,12 +280,12 @@ export function EvidenceViewer({
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
-      <div className="shrink-0 px-2 py-1.5 border-b border-gray-200 bg-white flex items-center gap-2 flex-wrap">
+    <div className="flex flex-col h-full bg-slate-50">
+      <div className="shrink-0 px-2 py-1.5 border-b border-slate-200 bg-white flex items-center gap-2 flex-wrap">
         <button
           onClick={() => goToPage(currentPage - 1)}
           disabled={currentPage <= 1}
-          className="px-2 py-1 rounded text-xs border border-gray-200 hover:bg-gray-100 disabled:opacity-40"
+          className="px-2 py-1 rounded text-xs border border-slate-200 hover:bg-slate-100 disabled:opacity-40"
         >
           ‹
         </button>
@@ -291,16 +300,16 @@ export function EvidenceViewer({
             onKeyDown={(event) => event.key === 'Enter' && handlePageInputBlur()}
             className="w-10 border border-gray-200 rounded px-1 py-0.5 text-center text-xs"
           />
-          <span className="text-gray-400">/ {totalPages || '—'}</span>
+           <span className="text-slate-400">/ {totalPages || '—'}</span>
         </div>
         <button
           onClick={() => goToPage(currentPage + 1)}
           disabled={currentPage >= totalPages}
-          className="px-2 py-1 rounded text-xs border border-gray-200 hover:bg-gray-100 disabled:opacity-40"
+          className="px-2 py-1 rounded text-xs border border-slate-200 hover:bg-slate-100 disabled:opacity-40"
         >
           ›
         </button>
-        <div className="w-px h-4 bg-gray-200" />
+        <div className="w-px h-4 bg-slate-200" />
         <button
           type="button"
           onClick={() => {
@@ -309,13 +318,13 @@ export function EvidenceViewer({
             onSelectEvidence(evidenceList[previousIndex].evidence_id)
           }}
           disabled={!canCycleEvidence}
-          className="px-2 py-1 rounded text-xs border border-gray-200 hover:bg-gray-100 disabled:opacity-40"
+          className="px-2 py-1 rounded text-xs border border-slate-200 hover:bg-slate-100 disabled:opacity-40"
         >
           Previous evidence
         </button>
-        <span className="text-xs text-gray-500">
-          {selectedEvidenceId && activeEvidenceIndex >= 0 ? `${activeEvidenceIndex + 1} / ${evidenceList.length}` : 'No evidence'}
-        </span>
+         <span className="text-xs text-slate-500">
+           {selectedEvidenceId && activeEvidenceIndex >= 0 ? `${activeEvidenceIndex + 1} / ${evidenceList.length}` : 'No evidence'}
+         </span>
         <button
           type="button"
           onClick={() => {
@@ -324,23 +333,23 @@ export function EvidenceViewer({
             onSelectEvidence(evidenceList[nextIndex].evidence_id)
           }}
           disabled={!canCycleEvidence}
-          className="px-2 py-1 rounded text-xs border border-gray-200 hover:bg-gray-100 disabled:opacity-40"
+          className="px-2 py-1 rounded text-xs border border-slate-200 hover:bg-slate-100 disabled:opacity-40"
         >
           Next evidence
         </button>
-        <div className="w-px h-4 bg-gray-200" />
+        <div className="w-px h-4 bg-slate-200" />
         <button
           onClick={() => setZoom((value) => Math.max(0.5, +(value - 0.25).toFixed(2)))}
           disabled={zoom <= 0.5}
-          className="px-2 py-1 rounded text-xs border border-gray-200 hover:bg-gray-100 disabled:opacity-40"
+          className="px-2 py-1 rounded text-xs border border-slate-200 hover:bg-slate-100 disabled:opacity-40"
         >
           −
         </button>
-        <span className="text-xs text-gray-600">{Math.round(zoom * 100)}%</span>
+         <span className="text-xs text-slate-600">{Math.round(zoom * 100)}%</span>
         <button
           onClick={() => setZoom((value) => Math.min(3.0, +(value + 0.25).toFixed(2)))}
           disabled={zoom >= 3.0}
-          className="px-2 py-1 rounded text-xs border border-gray-200 hover:bg-gray-100 disabled:opacity-40"
+          className="px-2 py-1 rounded text-xs border border-slate-200 hover:bg-slate-100 disabled:opacity-40"
         >
           +
         </button>
@@ -348,13 +357,14 @@ export function EvidenceViewer({
           type="button"
           onClick={handleOpenInLocalViewer}
           disabled={!pdfId || openingLocal}
-          className="ml-auto px-2 py-1 rounded text-xs border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+          className="ml-auto px-2 py-1 rounded text-xs border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40"
         >
           {openingLocal ? 'Opening…' : 'Open in Local PDF Viewer'}
         </button>
       </div>
-      <div className="shrink-0 px-3 py-2 border-b border-gray-200 bg-gray-50 text-xs text-gray-600">
-        This pane is optimized for evidence highlights. Use the local PDF viewer when you want standard reading behavior such as hand-pan, text selection, or full-document search.
+      <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+        <span className="font-medium text-slate-700">{evidenceQualityLabel}.</span>{' '}
+        This pane is optimized for evidence highlights and fast verification. Use the local PDF viewer for hand-pan, text selection, or full-document search.
       </div>
       <div ref={scrollRef} className="flex-1 overflow-auto p-3">
         {openLocalError && (

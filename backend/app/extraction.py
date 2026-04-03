@@ -1071,13 +1071,16 @@ def load_proposals(run_dir: pathlib.Path) -> list[ProposalRecord]:
     path = _safe_run_subpath(run_dir, "proposals", "proposals.jsonl")
     if not path.exists():
         return []
-    results: list[ProposalRecord] = []
+    deduped: dict[str, ProposalRecord] = {}
     for record in read_jsonl(path):
         try:
-            results.append(ProposalRecord.model_validate(record))
+            proposal = ProposalRecord.model_validate(record)
+            if proposal.proposal_id in deduped:
+                del deduped[proposal.proposal_id]
+            deduped[proposal.proposal_id] = proposal
         except Exception:
             pass
-    return results
+    return list(deduped.values())
 
 
 def load_evidence(run_dir: pathlib.Path) -> list[EvidenceRecord]:
