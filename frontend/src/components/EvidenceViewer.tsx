@@ -172,8 +172,12 @@ export function EvidenceViewer({ runId, pdfId, evidence, outputDir }: Props) {
       })
   }
 
-  // For figure-based evidence: show image instead of PDF
-  if (evidence?.source_type === 'figure_based_evidence' && evidence.figure_ref) {
+  const isFigureEvidence =
+    evidence?.source_type === 'figure_based_evidence' ||
+    evidence?.source_type === 'caption_grounded_figure_evidence' ||
+    evidence?.source_type === 'visual_interpretation_figure_evidence'
+
+  if (isFigureEvidence && evidence?.figure_ref) {
     const figUrl = api.getFigureUrl(runId, evidence.pdf_id, evidence.figure_ref, outputDir)
     return (
       <div className="flex flex-col h-full bg-gray-50">

@@ -184,7 +184,7 @@ async def generate_style_profile(
     # Only pass non-empty values to the LLM
     nonempty = [v.strip() for v in filled_values if v.strip()]
 
-    if provider is not None and model_id:
+    if provider is not None and model_id and nonempty:
         try:
             import json
 

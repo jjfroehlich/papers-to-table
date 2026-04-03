@@ -26,6 +26,14 @@ def get_proposals_dir(output_dir: str, run_id: str) -> pathlib.Path:
     return get_run_dir(output_dir, run_id) / "proposals"
 
 
+def get_proposals_jsonl_path(output_dir: str, run_id: str) -> pathlib.Path:
+    return get_proposals_dir(output_dir, run_id) / "proposals.jsonl"
+
+
+def get_proposal_index_path(output_dir: str, run_id: str) -> pathlib.Path:
+    return get_proposals_dir(output_dir, run_id) / "proposal_index.json"
+
+
 def get_evidence_dir(output_dir: str, run_id: str) -> pathlib.Path:
     return get_run_dir(output_dir, run_id) / "evidence"
 

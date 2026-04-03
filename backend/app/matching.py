@@ -53,6 +53,8 @@ class MatchResult(BaseModel):
     score: float
     runner_up_score: float
     runner_up_row_index: Optional[int] = None
+    conflict_pdf_ids: list[str] = []
+    conflict_row_indices: list[int] = []
     reasoning: str
     blocked: bool            # True when extraction must be blocked
     blocked_reason: Optional[str] = None
@@ -102,24 +104,63 @@ def _author_overlap(paper_authors: list[str], row_authors_str: str) -> float:
 
     paper_lastnames = set()
     for a in paper_authors:
-        # handle "Lastname, Firstname" or "Firstname Lastname"
-        parts = re.split(r"[,;]", a.strip())
-        if parts:
-            paper_lastnames.add(_norm(parts[0].strip()))
+        lastname = _extract_first_author_lastname(a)
+        if lastname:
+            paper_lastnames.add(lastname)
 
     row_lastnames = set()
-    for a in re.split(r"[;,]", row_authors_str):
+    for a in re.split(r";|\band\b", row_authors_str, flags=re.IGNORECASE):
         a = a.strip()
         if a:
-            parts = re.split(r"\s+", a)
-            if parts:
-                row_lastnames.add(_norm(parts[0].strip()))
+            lastname = _extract_first_author_lastname(a)
+            if lastname:
+                row_lastnames.add(lastname)
 
     if not paper_lastnames or not row_lastnames:
         return 0.0
 
     matches = paper_lastnames & row_lastnames
     return len(matches) / len(paper_lastnames)
+
+
+def _normalize_doi(value: str) -> str:
+    text = value.strip().lower()
+    text = re.sub(r"^https?://(dx\.)?doi\.org/", "", text)
+    text = re.sub(r"^doi:\s*", "", text)
+    return text.rstrip(".")
+
+
+def _extract_row_doi(row: dict) -> Optional[str]:
+    for key in ("DOI", "Doi", "doi"):
+        value = str(row.get(key, "") or "").strip()
+        if value:
+            return value
+    return None
+
+
+def _doi_match_score(left: str, right: str) -> float:
+    return 1.0 if _normalize_doi(left) == _normalize_doi(right) else 0.0
+
+
+def _extract_first_author_lastname(author_value: str) -> Optional[str]:
+    text = author_value.strip()
+    if not text:
+        return None
+    first_author = re.split(r";|\band\b", text, maxsplit=1, flags=re.IGNORECASE)[0].strip()
+    if "," in first_author:
+        token = first_author.split(",", 1)[0]
+    else:
+        token = first_author.split()[-1]
+    normalized = _norm(token)
+    return normalized or None
+
+
+def _first_author_match(paper_authors: list[str], row_authors_str: str) -> bool:
+    if not paper_authors or not row_authors_str.strip():
+        return False
+    paper_first = _extract_first_author_lastname(paper_authors[0])
+    row_first = _extract_first_author_lastname(row_authors_str)
+    return bool(paper_first and row_first and paper_first == row_first)
 
 
 # ---------------------------------------------------------------------------
@@ -216,10 +257,12 @@ def _extract_year_from_text(full_text: str) -> Optional[int]:
 # Deterministic scoring (T034)
 # ---------------------------------------------------------------------------
 
-# Weight configuration
-_TITLE_WEIGHT = 0.70
-_YEAR_WEIGHT = 0.20
-_AUTHOR_WEIGHT = 0.10
+_DOI_WEIGHT = 0.45
+_TITLE_WEIGHT = 0.15
+_FIRST_AUTHOR_WEIGHT = 0.15
+_AUTHOR_WEIGHT = 0.1
+_YEAR_WEIGHT = 0.1
+_EXACT_TITLE_BONUS = 0.05
 
 
 def score_against_row(paper: PaperMetadata, row: dict) -> float:
@@ -232,13 +275,17 @@ def score_against_row(paper: PaperMetadata, row: dict) -> float:
     row_title = str(row.get("Title", "") or "").strip()
     row_year = str(row.get("Publication Year", "") or "").strip()
     row_authors = str(row.get("Authors", "") or "").strip()
+    row_doi = _extract_row_doi(row)
 
-    # --- Title similarity (most important signal) ---
+    if paper.doi and row_doi:
+        score += _DOI_WEIGHT * _doi_match_score(paper.doi, row_doi)
+
     if paper.title and row_title:
         sim = _title_jaccard(paper.title, row_title)
         score += _TITLE_WEIGHT * sim
+        if _norm(paper.title) == _norm(row_title):
+            score += _EXACT_TITLE_BONUS
 
-    # --- Year match ---
     if paper.year and row_year:
         try:
             ry = int(re.sub(r"[^\d]", "", row_year)[:4])
@@ -250,12 +297,13 @@ def score_against_row(paper: PaperMetadata, row: dict) -> float:
         except (ValueError, TypeError):
             pass
 
-    # --- Author overlap ---
     if paper.authors and row_authors:
+        if _first_author_match(paper.authors, row_authors):
+            score += _FIRST_AUTHOR_WEIGHT
         overlap = _author_overlap(paper.authors, row_authors)
         score += _AUTHOR_WEIGHT * overlap
 
-    return round(score, 6)
+    return round(min(score, 1.0), 6)
 
 
 def score_all_rows(paper: PaperMetadata, df: pd.DataFrame) -> list[tuple[int, float]]:
@@ -277,8 +325,8 @@ def score_all_rows(paper: PaperMetadata, df: pd.DataFrame) -> list[tuple[int, fl
 # Match outcome assignment (T035, T036)
 # ---------------------------------------------------------------------------
 
-# Thresholds — tuned for title-based matching
-_MATCH_THRESHOLD = 0.50       # min score to consider as a candidate
+# Thresholds — tuned for identifier/author/year-first matching
+_MATCH_THRESHOLD = 0.35
 _AMBIGUITY_GAP_MIN = 0.15     # runner-up must be at least this far below top to be "matched"
 
 
@@ -474,17 +522,23 @@ def detect_duplicate_row_conflicts(
             and result.matched_row_index in conflicting_rows
         ):
             conflicting_pdf_count = len(row_to_pdfs[result.matched_row_index])
+            conflict_pdf_ids = [
+                updated[pdf_idx].pdf_id
+                for pdf_idx in row_to_pdfs[result.matched_row_index]
+            ]
             updated[i] = result.model_copy(update={
                 "outcome": MatchOutcome.duplicate_row_conflict,
                 "blocked": True,
+                "conflict_pdf_ids": conflict_pdf_ids,
+                "conflict_row_indices": [result.matched_row_index],
                 "blocked_reason": (
                     f"duplicate_row_conflict: {conflicting_pdf_count} PDFs "
                     f"all matched to row {result.matched_row_index} "
                     f"('{str(result.matched_row_title or '')[:50]}')"
                 ),
                 "reasoning": result.reasoning + (
-                    f" [CONFLICT: {conflicting_pdf_count} PDFs matched to same row "
-                    f"{result.matched_row_index}; extraction blocked for all]"
+                    f" [CONFLICT: row {result.matched_row_index} was claimed by PDFs "
+                    f"{', '.join(conflict_pdf_ids)}; extraction blocked for all]"
                 ),
             })
 
@@ -624,6 +678,8 @@ def persist_match_artifacts(
                 "pdf_path": r.pdf_path,
                 "matched_row_index": r.matched_row_index,
                 "matched_row_title": r.matched_row_title,
+                "conflict_pdf_ids": r.conflict_pdf_ids,
+                "conflict_row_indices": r.conflict_row_indices,
                 "score": r.score,
                 "reasoning": r.reasoning,
                 "blocked_reason": r.blocked_reason,

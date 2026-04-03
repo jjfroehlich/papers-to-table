@@ -31,18 +31,22 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from .artifacts import get_evidence_dir, write_json
+from .artifacts import (
+    append_jsonl,
+    read_json,
+    read_jsonl,
+    write_json,
+)
 from .ids import generate_evidence_id, generate_proposal_id
 from .provider import (
     ProviderAdapter,
-    ProviderError,
-    StructuredOutputError,
-    _try_repair_json,
 )
 from .retrieval import RetrievalResult
 from .schemas import (
     EvidenceSourceType,
+    NumericValueForm,
     ProposalState,
+    SchemaFieldType,
     SupportLabel,
 )
 from .style_profiles import StyleProfile
@@ -97,6 +101,11 @@ class ProposalRecord(BaseModel):
     needs_more_evidence: bool = False
     is_verify_mode: bool = False
     existing_value: Optional[str] = None   # for verify mode comparison
+    field_type: Optional[SchemaFieldType] = None
+    allowed_values: Optional[list[str]] = None
+    numeric_value_form: Optional[NumericValueForm] = None
+    recall_rescue_used: bool = False
+    whole_document_used: bool = False
     provider_mode: str = "unknown"
     created_at: str
 
@@ -125,7 +134,8 @@ EVIDENCE_TYPE_DISPLAY = {
     EvidenceSourceType.calculation: "Calculation",
     EvidenceSourceType.approximate_highlight: "Approximate highlight",
     EvidenceSourceType.quote_plus_page: "Quote + page (fallback)",
-    EvidenceSourceType.figure_based_evidence: "Figure-based evidence",
+    EvidenceSourceType.caption_grounded_figure_evidence: "Caption-grounded figure evidence",
+    EvidenceSourceType.visual_interpretation_figure_evidence: "Visual-interpretation figure evidence",
 }
 
 
@@ -162,6 +172,11 @@ TEXT_EXTRACTION_SCHEMA = {
             "type": ["string", "null"],
             "description": "Calculation or derivation if value was computed. null otherwise.",
         },
+        "numeric_value_form": {
+            "type": ["string", "null"],
+            "enum": ["exact", "range", "approximate", None],
+            "description": "Required when the target field is numeric.",
+        },
         "quotes": {
             "type": "array",
             "items": {
@@ -183,7 +198,7 @@ TEXT_EXTRACTION_SCHEMA = {
             "description": "Evidence quotes supporting the proposed value.",
         },
     },
-    "required": ["proposed_value", "state", "rationale", "calculation", "quotes"],
+    "required": ["proposed_value", "state", "rationale", "calculation", "numeric_value_form", "quotes"],
 }
 
 # Vision-model extraction response schema (T055) — same structure, different context
@@ -200,6 +215,10 @@ VISION_EXTRACTION_SCHEMA = {
         "rationale": {
             "type": ["string", "null"],
         },
+        "numeric_value_form": {
+            "type": ["string", "null"],
+            "enum": ["exact", "range", "approximate", None],
+        },
         "figure_description": {
             "type": ["string", "null"],
             "description": "What the figure shows that supports the value.",
@@ -209,7 +228,14 @@ VISION_EXTRACTION_SCHEMA = {
             "description": "Whether the figure caption directly supports the value.",
         },
     },
-    "required": ["proposed_value", "state", "rationale", "figure_description", "caption_relevant"],
+    "required": [
+        "proposed_value",
+        "state",
+        "rationale",
+        "numeric_value_form",
+        "figure_description",
+        "caption_relevant",
+    ],
 }
 
 
@@ -260,12 +286,29 @@ def _build_context_block(retrieval: Optional[RetrievalResult]) -> str:
     return "\n".join(parts)
 
 
+def _build_field_contract(
+    field_type: Optional[SchemaFieldType],
+    allowed_values: Optional[list[str]],
+) -> str:
+    if field_type is None:
+        return ""
+    parts = [f"\nSchema contract:\n- field_type: {field_type.value}"]
+    if field_type == SchemaFieldType.categorical and allowed_values:
+        parts.append("- allowed_values: " + ", ".join(allowed_values))
+    elif field_type == SchemaFieldType.number:
+        parts.append("- numeric_value_form: exact, range, or approximate")
+    return "\n".join(parts)
+
+
 def build_text_extraction_prompt(
     column_name: str,
     column_description: str,
     row_context: dict,
     retrieval: Optional[RetrievalResult],
     style_profile: Optional[StyleProfile],
+    field_type: Optional[SchemaFieldType] = None,
+    allowed_values: Optional[list[str]] = None,
+    whole_document_text: Optional[str] = None,
     is_verify_mode: bool = False,
     existing_value: Optional[str] = None,
     is_long_text: bool = False,
@@ -297,7 +340,14 @@ def build_text_extraction_prompt(
         )
 
     style_block = _build_style_guidance(style_profile)
+    field_contract = _build_field_contract(field_type, allowed_values)
     context_block = _build_context_block(retrieval)
+    whole_document_block = ""
+    if whole_document_text:
+        whole_document_block = (
+            "\n\nWhole-document rescue context (use only because the first pass was unclear):\n"
+            f"{whole_document_text}"
+        )
 
     user_content = (
         f"Extract: {column_name}\n"
@@ -305,15 +355,18 @@ def build_text_extraction_prompt(
         f"Paper row context:\n{row_block}"
         f"{verify_block}"
         f"{long_text_note}"
+        f"{field_contract}"
         f"{style_block}\n\n"
         f"{context_block}\n\n"
+        f"{whole_document_block}\n\n"
         "Instructions:\n"
         "1. Return proposed_value=null and state='unclear' if the paper does not clearly support a value.\n"
         "2. Use state='found' for directly stated values, 'inferred' for derived/reasoned values.\n"
-        "3. Include at least one evidence quote if you found or inferred a value.\n"
+        "3. Include one or more evidence quotes when they are genuinely needed to support the value.\n"
         "4. Rationale must be ≤3 concise markdown bullets (- bullet text).\n"
         "5. Never fabricate quotes; only use text that appears in the passages above.\n"
-        "6. Return ONLY valid JSON matching the schema."
+        "6. Only set numeric_value_form when the field is numeric; otherwise return null.\n"
+        "7. Return ONLY valid JSON matching the schema."
     )
 
     return [
@@ -327,6 +380,8 @@ def build_figure_extraction_prompt(
     column_description: str,
     caption_text: Optional[str],
     nearby_text: Optional[str],
+    field_type: Optional[SchemaFieldType] = None,
+    allowed_values: Optional[list[str]] = None,
 ) -> list[dict]:
     """Build the vision-model figure extraction prompt (T063)."""
     caption_block = f"Figure caption: {caption_text}" if caption_text else "No caption available."
@@ -335,6 +390,7 @@ def build_figure_extraction_prompt(
     user_content = (
         f"Field to extract: {column_name}\n"
         f"Field description: {column_description}\n\n"
+        f"{_build_field_contract(field_type, allowed_values)}\n\n"
         f"{caption_block}\n"
         f"{nearby_block}\n\n"
         "Analyze the figure image. "
@@ -366,12 +422,35 @@ def is_long_text_field(column_name: str, column_description: str) -> bool:
     return any(kw in combined for kw in _LONG_TEXT_KEYWORDS)
 
 
+def _normalize_numeric_value_form(
+    raw_value: Optional[str],
+    field_type: Optional[SchemaFieldType],
+) -> Optional[NumericValueForm]:
+    if field_type != SchemaFieldType.number or not raw_value:
+        return None
+    try:
+        return NumericValueForm(raw_value)
+    except ValueError:
+        return None
+
+
+def build_whole_document_context(
+    doc_dict: dict,
+    max_chars: int,
+) -> Optional[str]:
+    full_text = str(doc_dict.get("full_text", "") or "").strip()
+    if not full_text or len(full_text) > max_chars:
+        return None
+    return full_text
+
+
 # ---------------------------------------------------------------------------
 # Text-evidence anchoring (T059)
 # ---------------------------------------------------------------------------
 
 def _normalize_for_match(text: str) -> str:
     text = unicodedata.normalize("NFKD", text)
+    text = re.sub(r"[^a-zA-Z0-9\s]", " ", text)
     text = re.sub(r"\s+", " ", text).strip().lower()
     return text
 
@@ -523,10 +602,11 @@ def anchor_evidence(
 _EVIDENCE_AUTHORITY = {
     EvidenceSourceType.direct_quote: 1,
     EvidenceSourceType.calculation: 2,
-    EvidenceSourceType.inferred_reasoning: 3,
-    EvidenceSourceType.approximate_highlight: 4,
-    EvidenceSourceType.quote_plus_page: 5,
-    EvidenceSourceType.figure_based_evidence: 3,  # figure ranks alongside inferred
+    EvidenceSourceType.caption_grounded_figure_evidence: 3,
+    EvidenceSourceType.inferred_reasoning: 4,
+    EvidenceSourceType.visual_interpretation_figure_evidence: 5,
+    EvidenceSourceType.approximate_highlight: 6,
+    EvidenceSourceType.quote_plus_page: 7,
 }
 
 
@@ -534,7 +614,8 @@ def rank_evidence(items: list[EvidenceRecord]) -> list[EvidenceRecord]:
     """Rank evidence items by source authority, assign evidence_rank.
 
     T065: most authoritative item gets rank=1 and is_primary=True.
-    Authority order: direct_quote > calculation > figure/inferred > approx > q+p.
+    Authority order: direct_quote > calculation > caption_grounded_figure > inferred >
+    visual_interpretation_figure > approx > q+p.
     """
     if not items:
         return items
@@ -566,18 +647,14 @@ def adjudicate_state(
     if not proposed_value or not proposed_value.strip():
         return ProposalState.unclear, SupportLabel.blocked
 
-    has_direct_quote = any(
-        q.get("source_type") == "direct_quote" for q in quotes
-    )
     has_any_quote = bool(quotes)
 
     if raw_state == "found":
-        if has_direct_quote:
+        if any(q.get("source_type") == "direct_quote" for q in quotes):
             return ProposalState.found, SupportLabel.direct_evidence
-        elif has_any_quote:
-            return ProposalState.found, SupportLabel.direct_evidence
+        if any(q.get("source_type") != "direct_quote" for q in quotes):
+            return ProposalState.found, SupportLabel.inferred_from_evidence
         else:
-            # Claim of 'found' without quotes → downgrade to inferred
             return ProposalState.inferred, SupportLabel.inferred_from_evidence
 
     elif raw_state == "inferred":
@@ -588,6 +665,21 @@ def adjudicate_state(
 
     else:  # unclear or unknown
         return ProposalState.unclear, SupportLabel.blocked
+
+
+def determine_support_label(
+    state: ProposalState,
+    evidence_records: list[EvidenceRecord],
+) -> SupportLabel:
+    if state == ProposalState.error:
+        return SupportLabel.error
+    if state in (ProposalState.blocked, ProposalState.skipped, ProposalState.unclear):
+        return SupportLabel.blocked
+    if any(ev.source_type == EvidenceSourceType.direct_quote for ev in evidence_records):
+        return SupportLabel.direct_evidence
+    if evidence_records:
+        return SupportLabel.inferred_from_evidence
+    return SupportLabel.weak_evidence
 
 
 # ---------------------------------------------------------------------------
@@ -762,6 +854,8 @@ async def run_figure_review(
     provider: ProviderAdapter,
     vision_model_id: str,
     current_proposed_value: Optional[str] = None,
+    field_type: Optional[SchemaFieldType] = None,
+    allowed_values: Optional[list[str]] = None,
     max_figures: int = 5,
 ) -> list[FigureReviewHit]:
     """Proactive figure review (T062): run vision model over relevant figures.
@@ -788,7 +882,12 @@ async def run_figure_review(
 
         # Build vision prompt (T063)
         messages = build_figure_extraction_prompt(
-            column_name, column_description, caption, nearby_text
+            column_name,
+            column_description,
+            caption,
+            nearby_text,
+            field_type=field_type,
+            allowed_values=allowed_values,
         )
 
         try:
@@ -809,13 +908,18 @@ async def run_figure_review(
             if current_proposed_value and not _values_match(fig_value, current_proposed_value):
                 continue
 
+            figure_source_type = (
+                EvidenceSourceType.caption_grounded_figure_evidence
+                if result.get("caption_relevant")
+                else EvidenceSourceType.visual_interpretation_figure_evidence
+            )
             ev_id = generate_evidence_id(proposal_id)
             ev = EvidenceRecord(
                 evidence_id=ev_id,
                 run_id=run_id,
                 proposal_id=proposal_id,
                 pdf_id=pdf_id,
-                source_type=EvidenceSourceType.figure_based_evidence,
+                source_type=figure_source_type,
                 quote_text=fig_description or caption or None,
                 page_number=figure.get("page_number"),
                 caption_text=caption or None,
@@ -869,12 +973,34 @@ def persist_proposal(
     run_dir: pathlib.Path,
     proposal: ProposalRecord,
 ) -> pathlib.Path:
-    """Persist a proposal record as JSON under proposals/."""
-    p_dir = run_dir / "proposals"
+    """Persist a proposal record to proposals.jsonl plus a lookup index."""
+    p_dir = _safe_run_subpath(run_dir, "proposals")
     p_dir.mkdir(parents=True, exist_ok=True)
-    path = p_dir / f"{proposal.proposal_id}.json"
-    write_json(path, proposal.model_dump())
-    return path
+    jsonl_path = _safe_run_subpath(run_dir, "proposals", "proposals.jsonl")
+    index_path = _safe_run_subpath(run_dir, "proposals", "proposal_index.json")
+
+    record = proposal.model_dump(mode="json")
+    append_jsonl(jsonl_path, record)
+
+    index = {}
+    if index_path.exists():
+        try:
+            index = read_json(index_path)
+        except Exception:
+            index = {}
+    line_count = len(read_jsonl(jsonl_path))
+    index[proposal.proposal_id] = {
+        "proposal_id": proposal.proposal_id,
+        "row_id": proposal.row_id,
+        "column_name": proposal.column_name,
+        "pdf_id": proposal.pdf_id,
+        "state": proposal.state.value,
+        "support": proposal.support.value,
+        "warning_flags": proposal.warning_flags,
+        "line_number": line_count,
+    }
+    write_json(index_path, index)
+    return jsonl_path
 
 
 def persist_evidence(
@@ -882,24 +1008,22 @@ def persist_evidence(
     evidence: EvidenceRecord,
 ) -> pathlib.Path:
     """Persist an evidence record as JSON under evidence/."""
-    e_dir = run_dir / "evidence"
+    e_dir = _safe_run_subpath(run_dir, "evidence")
     e_dir.mkdir(parents=True, exist_ok=True)
-    path = e_dir / f"{evidence.evidence_id}.json"
+    path = _safe_run_subpath(run_dir, "evidence", f"{evidence.evidence_id}.json")
     write_json(path, evidence.model_dump())
     return path
 
 
 def load_proposals(run_dir: pathlib.Path) -> list[ProposalRecord]:
-    """Load all proposal records from the run directory."""
-    p_dir = run_dir / "proposals"
-    if not p_dir.exists():
+    """Load all proposal records from proposals.jsonl."""
+    path = _safe_run_subpath(run_dir, "proposals", "proposals.jsonl")
+    if not path.exists():
         return []
-    results = []
-    from .artifacts import read_json
-    for p in sorted(p_dir.glob("*.json")):
+    results: list[ProposalRecord] = []
+    for record in read_jsonl(path):
         try:
-            data = read_json(p)
-            results.append(ProposalRecord.model_validate(data))
+            results.append(ProposalRecord.model_validate(record))
         except Exception:
             pass
     return results
@@ -907,7 +1031,7 @@ def load_proposals(run_dir: pathlib.Path) -> list[ProposalRecord]:
 
 def load_evidence(run_dir: pathlib.Path) -> list[EvidenceRecord]:
     """Load all evidence records from the run directory."""
-    e_dir = run_dir / "evidence"
+    e_dir = _safe_run_subpath(run_dir, "evidence")
     if not e_dir.exists():
         return []
     results = []
@@ -939,10 +1063,15 @@ async def extract_cell(
     text_model_id: str,
     retrieval: Optional[RetrievalResult] = None,
     style_profile: Optional[StyleProfile] = None,
+    field_type: Optional[SchemaFieldType] = None,
+    allowed_values: Optional[list[str]] = None,
     caps=None,  # ProviderCapabilities
     vision_model_id: Optional[str] = None,
     is_verify_mode: bool = False,
     existing_value: Optional[str] = None,
+    recall_rescue_enabled: bool = True,
+    whole_document_mode: bool = False,
+    whole_document_max_chars: int = 12000,
     provider_mode_str: str = "unknown",
 ) -> ProposalRecord:
     """Extract one cell value and produce a proposal with evidence.
@@ -953,6 +1082,11 @@ async def extract_cell(
     """
     proposal_id = generate_proposal_id(run_id, cell_id)
     now = datetime.now(timezone.utc).isoformat()
+    if field_type is not None and not isinstance(field_type, SchemaFieldType):
+        try:
+            field_type = SchemaFieldType(str(field_type))
+        except ValueError:
+            field_type = None
 
     long_text = is_long_text_field(column_name, column_description)
 
@@ -963,6 +1097,8 @@ async def extract_cell(
         row_context=row_context,
         retrieval=retrieval,
         style_profile=style_profile,
+        field_type=field_type,
+        allowed_values=allowed_values,
         is_verify_mode=is_verify_mode,
         existing_value=existing_value,
         is_long_text=long_text,
@@ -1001,17 +1137,92 @@ async def extract_cell(
         persist_proposal(run_dir, proposal)
         return proposal
 
+    recall_rescue_used = False
+    whole_document_used = False
+
+    raw_state = raw_result.get("state", "unclear")
+    if raw_state == "unclear" and recall_rescue_enabled:
+        recall_rescue_used = True
+        rescue_retrieval = retrieval
+        if retrieval is not None and doc_dict:
+            from .retrieval import run_retrieval_for_cell
+
+            rescue_retrieval = run_retrieval_for_cell(
+                run_id=run_id,
+                pdf_id=pdf_id,
+                column_name=column_name,
+                column_description=column_description,
+                doc_dict=doc_dict,
+                run_dir=run_dir,
+                top_k=max((retrieval.top_k if retrieval else 6) + 3, 9),
+                mode="recall_rescue",
+                rescue_reason="first_pass_unclear",
+            )
+        whole_document_text = None
+        if whole_document_mode:
+            whole_document_text = build_whole_document_context(doc_dict, whole_document_max_chars)
+            whole_document_used = whole_document_text is not None
+        rescue_messages = build_text_extraction_prompt(
+            column_name=column_name,
+            column_description=column_description,
+            row_context=row_context,
+            retrieval=rescue_retrieval,
+            style_profile=style_profile,
+            field_type=field_type,
+            allowed_values=allowed_values,
+            whole_document_text=whole_document_text,
+            is_verify_mode=is_verify_mode,
+            existing_value=existing_value,
+            is_long_text=long_text,
+        )
+        try:
+            raw_result = await provider.chat_complete_structured(
+                messages=rescue_messages,
+                response_schema=TEXT_EXTRACTION_SCHEMA,
+                model_id=text_model_id,
+                max_tokens=max_tokens,
+            )
+        except Exception as e:
+            proposal = ProposalRecord(
+                proposal_id=proposal_id,
+                run_id=run_id,
+                pdf_id=pdf_id,
+                row_id=row_id,
+                column_name=column_name,
+                cell_id=cell_id,
+                state=ProposalState.error,
+                support=SupportLabel.error,
+                proposed_value=None,
+                rationale=f"Provider error: {e}",
+                evidence_ids=[],
+                warning_flags=["provider_error"],
+                provider_mode=provider_mode_str,
+                is_verify_mode=is_verify_mode,
+                existing_value=existing_value,
+                field_type=field_type,
+                allowed_values=allowed_values,
+                recall_rescue_used=recall_rescue_used,
+                whole_document_used=whole_document_used,
+                created_at=now,
+            )
+            persist_proposal(run_dir, proposal)
+            return proposal
+
     # Parse and adjudicate result (T058)
     raw_state = raw_result.get("state", "unclear")
     proposed_value = raw_result.get("proposed_value")
     rationale = raw_result.get("rationale")
     calculation = raw_result.get("calculation")
+    numeric_value_form = _normalize_numeric_value_form(
+        raw_result.get("numeric_value_form"),
+        field_type,
+    )
     quotes: list[dict] = raw_result.get("quotes") or []
 
     # T053a: ensure rationale is compact bullets
     rationale = _normalize_rationale(rationale)
 
-    state, support = adjudicate_state(raw_state, proposed_value, quotes, is_verify_mode)
+    state, _ = adjudicate_state(raw_state, proposed_value, quotes, is_verify_mode)
 
     # Build evidence records from quotes (T059)
     evidence_records: list[EvidenceRecord] = []
@@ -1110,6 +1321,8 @@ async def extract_cell(
                 provider=provider,
                 vision_model_id=vision_model_id,
                 current_proposed_value=proposed_value,
+                field_type=field_type,
+                allowed_values=allowed_values,
             )
         except Exception:
             pass  # Figure review failure does not abort the proposal
@@ -1128,8 +1341,9 @@ async def extract_cell(
         if not rationale:
             rationale = _normalize_rationale(best_figure_hit.rationale)
         state = ProposalState.inferred
-        support = SupportLabel.inferred_from_evidence
         needs_more = False
+
+    support = determine_support_label(state, ranked_evidence)
 
     # Persist evidence records
     for ev in ranked_evidence:
@@ -1143,12 +1357,16 @@ async def extract_cell(
     warning_flags = []
     if needs_more:
         warning_flags.append("needs_more_evidence")
+    if recall_rescue_used:
+        warning_flags.append("recall_rescue_used")
+    if whole_document_used:
+        warning_flags.append("whole_document_used")
     if any(ev.is_figure_derived for ev in ranked_evidence):
         warning_flags.append("figure_derived")
     if any(ev.source_type == EvidenceSourceType.quote_plus_page for ev in ranked_evidence):
         warning_flags.append("fallback_evidence_used")
     if any(ev.source_type == EvidenceSourceType.approximate_highlight for ev in ranked_evidence):
-        warning_flags.append("approximate_highlight_used")
+        warning_flags.append("approximate_highlight")
 
     proposal = ProposalRecord(
         proposal_id=proposal_id,
@@ -1169,6 +1387,11 @@ async def extract_cell(
         needs_more_evidence=needs_more,
         is_verify_mode=is_verify_mode,
         existing_value=existing_value,
+        field_type=field_type,
+        allowed_values=allowed_values,
+        numeric_value_form=numeric_value_form,
+        recall_rescue_used=recall_rescue_used,
+        whole_document_used=whole_document_used,
         provider_mode=provider_mode_str,
         created_at=now,
     )
@@ -1195,6 +1418,16 @@ def _normalize_rationale(rationale: Optional[str]) -> Optional[str]:
         return "\n".join(f"- {s}." for s in sentences[:3])
     # Truncate to 3 bullets
     return "\n".join(f"- {s}." for s in sentences[:3]) + "\n- ..."
+
+
+def _safe_run_subpath(run_dir: pathlib.Path, *parts: str) -> pathlib.Path:
+    if not parts:
+        raise ValueError("Artifact subpath parts are required.")
+    base = run_dir.resolve()
+    path = base.joinpath(*parts).resolve()
+    if path == base or base not in path.parents:
+        raise ValueError("Artifact path must stay within the run directory.")
+    return path
 
 
 def make_blocked_proposal(

@@ -325,7 +325,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - trivial placeholder treated as empty when configured
   - skipped / ineligible
 
-- [ ] **T020a** Enforce that already-filled cells outside Verify mode remain diagnostics-only or entirely out of scope, rather than producing reviewer-facing placeholder proposals or synthetic blocked rationales.
+- [x] **T020a** Enforce that already-filled cells outside Verify mode remain diagnostics-only or entirely out of scope, rather than producing reviewer-facing placeholder proposals or synthetic blocked rationales.
 
 - [x] **T021** Implement Verify mode semantics so already-filled cells become eligible targets when Verify mode is enabled.
 
@@ -376,7 +376,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - backend staging or input-handle materialization for browser-selected inputs
   - resolved-path reporting in early-failure and success cases
 
-- [ ] **T024c** Add tests for provider hard-fail truth and warning semantics.
+- [x] **T024c** Add tests for provider hard-fail truth and warning semantics.
   - provider-unavailable at run start must produce readiness failure rather than `completed_with_warnings`
   - `completed_with_warnings` must remain reserved for partial-success runs where meaningful processing actually happened
   - run summaries and reviewer summaries must preserve that distinction
@@ -433,7 +433,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T034** Implement deterministic matching scoring using publication metadata signals.
 
-- [ ] **T034a** Rebalance deterministic matching so exact and near-exact signals dominate title similarity.
+- [x] **T034a** Rebalance deterministic matching so exact and near-exact signals dominate title similarity.
   - prioritize DOI and other stable identifiers when present
   - strengthen first-author match, broader author overlap, and year consistency signals
   - lower title dominance so title similarity cannot outweigh stronger identifier or author/year evidence by itself
@@ -451,7 +451,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T038** Persist matching artifacts and reasoning summaries so unmatched, ambiguous, and conflict cases are inspectable later.
 
-- [ ] **T038a** Persist duplicate-row conflicts as first-class diagnostic records.
+- [x] **T038a** Persist duplicate-row conflicts as first-class diagnostic records.
   - record the conflicting PDF set, target row, and per-signal rationale
   - keep duplicate-row conflicts distinct from ordinary ambiguity in artifacts, summaries, and UI-facing payloads
 
@@ -459,7 +459,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T040** Add tests for deterministic match success, ambiguous-block behavior, unmatched behavior, and duplicate-row-conflict behavior.
 
-- [ ] **T040a** Add tests for the tightened matching heuristic contract.
+- [x] **T040a** Add tests for the tightened matching heuristic contract.
   - DOI or identifier matches must outrank title-only similarity
   - first-author and author-overlap signals must change ranking materially
   - year mismatches and duplicate-row conflicts must remain explainable in persisted diagnostics
@@ -480,7 +480,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - `format_notes`
   - `example_risk`
 
-- [ ] **T041a** Extend the schema contract with optional field typing.
+- [x] **T041a** Extend the schema contract with optional field typing.
   - add optional `field_type` values: `text`, `number`, `categorical`, `boolean`
   - add optional `allowed_values` for `categorical` only
   - do not require `normalization_notes`
@@ -488,7 +488,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [ ] **T042** Implement the per-column preprocessing LLM step that analyzes existing filled cells and produces one structured style profile per schema column.
 
-- [ ] **T042a** Make style-profile preprocessing helper-only and empty-table-safe.
+- [x] **T042a** Make style-profile preprocessing helper-only and empty-table-safe.
   - allow extraction to proceed when a table or target column has no filled examples
   - treat missing style profiles as expected input conditions rather than extraction failures
   - preserve schema-first behavior when style-profile preprocessing yields no useful profile
@@ -500,7 +500,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - keep the preprocessing output limited to style/format guidance
   - keep any leakage-risk markers visible in artifacts and diagnostics
 
-- [ ] **T044a** Tighten extraction request construction against schema leakage.
+- [x] **T044a** Tighten extraction request construction against schema leakage.
   - pass column name, description, optional field type, and style-profile summary only
   - do not pass raw historical cell values into extraction prompts as semantic examples
   - keep extraction behavior schema-first even when Verify mode is enabled
@@ -519,14 +519,14 @@ The detailed task inventory below remains the source of truth for exact implemen
   - include one neighbor window around selected text chunks
   - do **not** implement reranking, HyDE, or query expansion in the MVP baseline
 
-- [ ] **T047a** Remove dead `retrieval.chunk_size` config from schema, examples, docs, and tests if the runtime does not use it.
+- [x] **T047a** Remove dead `retrieval.chunk_size` config from schema, examples, docs, and tests if the runtime does not use it.
 
-- [ ] **T047b** Implement deterministic recall rescue for `unclear` first-pass results.
+- [x] **T047b** Implement deterministic recall rescue for `unclear` first-pass results.
   - start with focused retrieval-based extraction
   - on `unclear`, expand retrieval context or promote to section-level context
   - keep the rescue path explicit in artifacts and diagnostics rather than hidden in prompt construction
 
-- [ ] **T047c** Add optional config-controlled whole-document mode.
+- [x] **T047c** Add optional config-controlled whole-document mode.
   - keep it off by default
   - enable it only when parsed text fits comfortably in the active model context and the field is important enough to justify the broader pass
   - record when whole-document mode was used in run artifacts and summaries
@@ -535,12 +535,12 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [ ] **T049** Add tests covering style-profile generation, no raw-example leakage into extraction inputs, typed chunk generation, retrieval-text/display-text separation, and retrieval defaults.
 
-- [ ] **T049a** Add tests for schema-first extraction and optional field typing.
+- [x] **T049a** Add tests for schema-first extraction and optional field typing.
   - empty-table or empty-column cases must still extract without error
   - `categorical` fields must honor `allowed_values` when provided
   - numeric fields must accept `exact`, `range`, and `approximate` forms in the internal contract
 
-- [ ] **T049b** Add tests for bounded recall rescue and optional whole-document mode.
+- [x] **T049b** Add tests for bounded recall rescue and optional whole-document mode.
   - first-pass `unclear` outcomes should trigger the configured rescue path
   - whole-document mode must remain opt-in and visible in artifacts when used
 
@@ -557,7 +557,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - validate guided-JSON or equivalent structured-output compatibility instead of assuming one wire format
   - keep structured-output compatibility handling scoped so one provider-schema mismatch does not poison unrelated proposal attempts by default
 
-- [ ] **T050b** Enforce provider-unavailable hard-fail semantics at run start.
+- [x] **T050b** Enforce provider-unavailable hard-fail semantics at run start.
   - fail readiness when a configured live provider is unavailable or unreachable before proposal generation begins
   - reserve `completed_with_warnings` for partial-success runs only
   - keep provider-mode truth explicit in artifacts, summaries, and UI-facing payloads
@@ -582,13 +582,13 @@ The detailed task inventory below remains the source of truth for exact implemen
   - explicit fail-fast rules when recovery cannot preserve the proposal contract
   - request/response logging policy with actionable diagnostics
 
-- [ ] **T052b** Tighten structured-output recovery to one bounded ladder.
+- [x] **T052b** Tighten structured-output recovery to one bounded ladder.
   - `json_schema` first
   - one stronger-instruction retry if the response is invalid
   - minimal JSON repair only for purely syntactic failures
   - otherwise mark extraction failed for the affected target
 
-- [ ] **T052c** Normalize warning and status propagation end to end.
+- [x] **T052c** Normalize warning and status propagation end to end.
   - keep evidence-fallback mapping keys consistent from extraction artifacts through review APIs and UI summaries
   - ensure provider-mode truth and fallback-status truth are derived from persisted facts rather than UI-local heuristics
 
@@ -613,7 +613,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T056** Implement proposal/evidence serialization using the shared artifact I/O layer so proposals and evidence are stored as separate linked records under stable bundle locations.
 
-- [ ] **T056a** Migrate canonical proposal persistence to `proposals.jsonl` plus proposal index.
+- [x] **T056a** Migrate canonical proposal persistence to `proposals.jsonl` plus proposal index.
   - keep filesystem-first JSON persistence
   - use an index or equivalent lookup structure for id-based loading and filtered list assembly
   - remove any remaining many-small-proposal-file direction from artifacts and docs
@@ -627,7 +627,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - Verify mode state
   - text-model or vision-model request path as routed
 
-- [ ] **T057b** Add schema-aware field-type handling to extraction and proposal contracts.
+- [x] **T057b** Add schema-aware field-type handling to extraction and proposal contracts.
   - pass optional schema `field_type` and `allowed_values` into extraction requests when present
   - keep numeric outputs internally typed as `exact`, `range`, or `approximate`
   - ensure the absence of field typing does not block extraction
@@ -646,7 +646,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - prefer `unclear` over guesses supported mainly by prior spreadsheet values, common practice, or weak implication
   - keep style profiles and prior table content as output-shaping context only, not as semantic evidence substitutes
 
-- [ ] **T058b** Fix direct-evidence support semantics.
+- [x] **T058b** Fix direct-evidence support semantics.
   - require anchored direct quote support before labeling a proposal as direct evidence
   - downgrade quote-plus-reasoning cases to inferred or weak evidence when the quote does not directly state the answer
 
@@ -658,7 +658,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - never present approximate or fallback highlights as exact highlights
   - store the `source_type` that reflects the achieved highlight fidelity
 
-- [ ] **T059a** Support multiple quote evidence items for one proposal when genuinely needed.
+- [x] **T059a** Support multiple quote evidence items for one proposal when genuinely needed.
   - preserve ranked ordering across multiple quotes, calculations, and supporting evidence items
   - avoid collapsing multi-part support into one synthetic quote blob when separate quotes are clearer for review
 
@@ -675,11 +675,11 @@ The detailed task inventory below remains the source of truth for exact implemen
   - figure review produces additional evidence items ranked by authority and relevance alongside existing text evidence
   - no user-triggered figure review control is part of MVP; figure review runs automatically based on configuration
 
-- [ ] **T062a** Split figure evidence into reviewer-visible subtypes.
+- [x] **T062a** Split figure evidence into reviewer-visible subtypes.
   - persist `caption_grounded_figure_evidence` separately from `visual_interpretation_figure_evidence`
   - expose both subtypes through artifacts, API payloads, and UI labels
 
-- [ ] **T062b** Tighten figure-evidence ranking semantics.
+- [x] **T062b** Tighten figure-evidence ranking semantics.
   - rank caption-grounded figure evidence above generic inferred reasoning when otherwise comparably relevant
   - keep pure visual-interpretation evidence visibly distinct and subject to higher reviewer scrutiny
 
@@ -707,7 +707,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - cover evidence ranking behavior: proposals must have the highest-authority quote as primary
   - cover the honest fallback chain: exact → approximate → quote-plus-page, each with correct source_type
 
-- [ ] **T067a** Add tests for the tightened extraction-truth contract.
+- [x] **T067a** Add tests for the tightened extraction-truth contract.
   - cover provider hard-fail semantics at run start
   - cover the bounded structured-output ladder exactly as specified
   - cover direct-evidence thresholding, multi-quote support, and figure-evidence subtype ranking

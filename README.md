@@ -76,7 +76,7 @@ The canonical provider token is `lm_studio`. Tokens such as `lmstudio`, `LMStudi
 | Field | Description |
 |---|---|
 | `table_path` | Path to spreadsheet (XLSX or CSV) |
-| `schema_path` | Path to schema CSV (`column_name`, `description`) |
+| `schema_path` | Path to schema CSV (`column_name`, `description`, optional `field_type`, optional `allowed_values`) |
 | `pdf_dir` | Directory containing PDF files |
 | `output_dir` | Where run artifacts are stored (default: `./runs`) |
 | `verify_mode` | If `true`, already-filled cells are also extraction targets |
@@ -84,6 +84,10 @@ The canonical provider token is `lm_studio`. Tokens such as `lmstudio`, `LMStudi
 | `provider.base_url` | LM Studio API base URL (default: `http://localhost:1234`) |
 | `provider.text_model.model_id` | ID of the text model loaded in LM Studio |
 | `provider.vision_model.model_id` | ID of the vision model (optional) |
+| `retrieval.recall_rescue_enabled` | Retry `unclear` results with deterministic expanded retrieval (default: `true`) |
+| `retrieval.whole_document_mode` | Opt-in whole-document rescue context for short parsed papers (default: `false`) |
+
+When `field_type` is provided in the schema, extraction honors it without requiring prefilled table examples. `allowed_values` are only valid for `categorical` fields. Numeric fields preserve `exact`, `range`, or `approximate` answer forms internally.
 
 The config file is the authoritative control surface for all run parameters. Path overrides entered in the browser UI apply to a single run only and do not change the config file.
 
@@ -193,7 +197,9 @@ The exported XLSX always contains all rows and columns from the source workbook,
   config.snapshot.json            # Frozen config used for this run
   inputs/
     input_summary.json            # Table/schema/PDF metadata
-  proposals/                      # Per-cell proposals (JSON files)
+  proposals/
+    proposals.jsonl              # Append-only proposal records
+    proposal_index.json          # Proposal lookup metadata
   evidence/                       # Per-proposal evidence (JSON files)
   review/
     decisions.jsonl               # Append-only review decision log

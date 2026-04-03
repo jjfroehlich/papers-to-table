@@ -102,6 +102,8 @@ async def run_pipeline(
     save_run(run_data)
 
     try:
+        from .schemas import WarningCategory as WC
+
         # Stage: validating
         run_data = apply_transition(run_data, RunStatus.validating)
         run_data = update_stage(run_data, "validating")
@@ -171,76 +173,6 @@ async def run_pipeline(
 
         run_dir = get_run_dir(output_dir, run_id)
 
-        # Stage: parse
-        run_data = update_stage(run_data, "parse")
-        save_run(run_data)
-
-        parsed_docs: list[dict] = []
-        parse_errors: list[str] = []
-
-        for pdf_file in pdf_files:
-            pdf_path = os.path.join(config.pdf_dir, pdf_file)
-            pdf_id = pathlib.Path(pdf_file).stem
-            await asyncio.sleep(0)  # yield to event loop between PDFs
-            try:
-                doc, diagnostics, _page_paths = parse_pdf(
-                    pdf_path=pdf_path,
-                    pdf_id=pdf_id,
-                    configured_parser=config.parser.backend,
-                    allow_basic_fallback=config.parser.allow_basic_fallback,
-                    ocr_enabled=config.parser.ocr_enabled,
-                    ocr_language=config.parser.ocr_language,
-                    run_dir=run_dir,
-                    generate_pages=True,
-                )
-                parsed_docs.append(doc.model_dump())
-            except Exception as e:
-                parse_errors.append(f"{pdf_file}: {e}")
-
-        if parse_errors:
-            # Record parse errors as warnings; don't abort the run
-            for err in parse_errors:
-                run_data.setdefault("warnings", []).append({
-                    "category": WarningCategory.partial_extraction.value,
-                    "message": f"Parse error: {err}",
-                    "context": None,
-                })
-            save_run(run_data)
-
-        # Stage: match
-        run_data = update_stage(run_data, "match")
-        save_run(run_data)
-
-        match_results = run_matching(
-            pdf_docs=parsed_docs,
-            df=df,
-            ambiguity_threshold=config.matching.ambiguity_threshold,
-        )
-        persist_match_artifacts(run_dir, run_id, match_results)
-
-        # Record match-outcome warnings
-        from .schemas import WarningCategory as WC
-        for mr in match_results:
-            if mr.outcome == MatchOutcome.unmatched:
-                run_data.setdefault("warnings", []).append({
-                    "category": WC.unmatched_pdf.value,
-                    "message": f"PDF not matched to any table row: {mr.pdf_id}",
-                    "context": {"pdf_id": mr.pdf_id},
-                })
-            elif mr.outcome == MatchOutcome.ambiguous:
-                run_data.setdefault("warnings", []).append({
-                    "category": WC.ambiguous_match.value,
-                    "message": f"PDF match ambiguous: {mr.pdf_id}",
-                    "context": {"pdf_id": mr.pdf_id},
-                })
-            elif mr.outcome == MatchOutcome.duplicate_row_conflict:
-                run_data.setdefault("warnings", []).append({
-                    "category": WC.duplicate_row_conflict.value,
-                    "message": f"Duplicate row conflict: {mr.pdf_id}",
-                    "context": {"pdf_id": mr.pdf_id},
-                })
-        save_run(run_data)
-
         # Stage: initialize provider (T050, T052a)
         run_data = update_stage(run_data, "provider_init")
         save_run(run_data)
@@ -282,6 +214,77 @@ async def run_pipeline(
         if provider_mode:
             write_json(run_dir / "provider_mode.json", provider_mode.model_dump())
 
+        # Stage: parse
+        run_data = update_stage(run_data, "parse")
+        save_run(run_data)
+
+        parsed_docs: list[dict] = []
+        parse_errors: list[str] = []
+
+        for pdf_file in pdf_files:
+            pdf_path = os.path.join(config.pdf_dir, pdf_file)
+            pdf_id = pathlib.Path(pdf_file).stem
+            await asyncio.sleep(0)  # yield to event loop between PDFs
+            try:
+                doc, diagnostics, _page_paths = parse_pdf(
+                    pdf_path=pdf_path,
+                    pdf_id=pdf_id,
+                    configured_parser=config.parser.backend,
+                    allow_basic_fallback=config.parser.allow_basic_fallback,
+                    ocr_enabled=config.parser.ocr_enabled,
+                    ocr_language=config.parser.ocr_language,
+                    run_dir=run_dir,
+                    generate_pages=True,
+                )
+                parsed_docs.append(doc.model_dump())
+            except Exception as e:
+                parse_errors.append(f"{pdf_file}: {e}")
+
+        if parse_errors:
+            for err in parse_errors:
+                run_data.setdefault("warnings", []).append({
+                    "category": WarningCategory.partial_extraction.value,
+                    "message": f"Parse error: {err}",
+                    "context": None,
+                })
+            save_run(run_data)
+
+        # Stage: match
+        run_data = update_stage(run_data, "match")
+        save_run(run_data)
+
+        match_results = run_matching(
+            pdf_docs=parsed_docs,
+            df=df,
+            ambiguity_threshold=config.matching.ambiguity_threshold,
+        )
+        persist_match_artifacts(run_dir, run_id, match_results)
+
+        for mr in match_results:
+            if mr.outcome == MatchOutcome.unmatched:
+                run_data.setdefault("warnings", []).append({
+                    "category": WC.unmatched_pdf.value,
+                    "message": f"PDF not matched to any table row: {mr.pdf_id}",
+                    "context": {"pdf_id": mr.pdf_id},
+                })
+            elif mr.outcome == MatchOutcome.ambiguous:
+                run_data.setdefault("warnings", []).append({
+                    "category": WC.ambiguous_match.value,
+                    "message": f"PDF match ambiguous: {mr.pdf_id}",
+                    "context": {"pdf_id": mr.pdf_id},
+                })
+            elif mr.outcome == MatchOutcome.duplicate_row_conflict:
+                run_data.setdefault("warnings", []).append({
+                    "category": WC.duplicate_row_conflict.value,
+                    "message": f"Duplicate row conflict: {mr.pdf_id}",
+                    "context": {
+                        "pdf_id": mr.pdf_id,
+                        "row_index": mr.matched_row_index,
+                        "conflict_pdf_ids": mr.conflict_pdf_ids,
+                    },
+                })
+        save_run(run_data)
+
         # Stage: style profiles (T041-T044)
         run_data = update_stage(run_data, "style_profiles")
         save_run(run_data)
@@ -313,14 +316,15 @@ async def run_pipeline(
             doc_by_pdf_id[doc["pdf_id"]] = doc
 
         # Build column description lookup
-        col_descriptions = {c["column_name"]: c.get("description", "") for c in schema}
+        schema_by_column = {c["column_name"]: c for c in schema}
         missing_doc_warnings: set[str] = set()
 
         # Process eligible cells only for rows with a usable PDF match.
         for cell in eligible:
             row_idx = cell.get("row_index", 0)
             col_name = cell["column_name"]
-            col_desc = col_descriptions.get(col_name, "")
+            col_def = schema_by_column.get(col_name, {})
+            col_desc = col_def.get("description", "")
 
             match_result = matched.get(row_idx)
             if not match_result or match_result.blocked:
@@ -371,11 +375,16 @@ async def run_pipeline(
                 provider=provider,
                 text_model_id=text_model_id,
                 retrieval=retrieval,
-                style_profile=style_profiles.get(col_name),
+                style_profile=style_profile,
+                field_type=col_def.get("field_type"),
+                allowed_values=col_def.get("allowed_values"),
                 caps=provider_mode.capabilities if provider_mode else None,
                 vision_model_id=vision_model_id if config.figure_review.enabled else None,
                 is_verify_mode=config.verify_mode,
                 existing_value=existing_value if config.verify_mode else None,
+                recall_rescue_enabled=config.retrieval.recall_rescue_enabled,
+                whole_document_mode=config.retrieval.whole_document_mode,
+                whole_document_max_chars=config.retrieval.whole_document_max_chars,
                 provider_mode_str=provider_mode.mode if provider_mode else "unknown",
             )
 

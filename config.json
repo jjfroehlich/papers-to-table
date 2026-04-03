@@ -35,8 +35,10 @@
   },
   "retrieval": {
     "strategy": "semantic_chunks",
-    "chunk_size": 512,
-    "top_k": 10
+    "top_k": 10,
+    "recall_rescue_enabled": true,
+    "whole_document_mode": false,
+    "whole_document_max_chars": 12000
   },
   "figure_review": {
     "enabled": true,

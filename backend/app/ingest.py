@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 import pathlib
 from typing import Optional
 
@@ -27,32 +28,49 @@ def load_table(path: str) -> pd.DataFrame:
         return df
 
 
+def _normalize_allowed_values(value: object) -> Optional[list[str]]:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text or text.lower() in {"nan", "none"}:
+        return None
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, list):
+            values = [str(item).strip() for item in parsed if str(item).strip()]
+            return values or None
+    except Exception:
+        pass
+
+    separator = "|" if "|" in text else ";" if ";" in text else ","
+    values = [item.strip() for item in text.split(separator) if item.strip()]
+    return values or None
+
+
+def _schema_row_to_dict(row: dict) -> dict:
+    field_type = str(row.get("field_type", "") or "").strip() or None
+    return {
+        "column_name": str(row.get("column_name", "") or "").strip(),
+        "description": str(row.get("description", "") or "").strip(),
+        "field_type": field_type,
+        "allowed_values": _normalize_allowed_values(row.get("allowed_values")),
+    }
+
+
 def load_schema(schema_path: Optional[str], table_path: str) -> list[dict]:
-    """Load schema from CSV or embedded XLSX sheet. Returns list of {column_name, description}."""
+    """Load schema from CSV or embedded XLSX sheet."""
     if schema_path:
         p = pathlib.Path(schema_path)
         if p.suffix.lower() == ".csv":
             with open(schema_path, "r", encoding="utf-8-sig") as f:
                 reader = csv.DictReader(f)
-                return [
-                    {
-                        "column_name": row["column_name"],
-                        "description": row.get("description", ""),
-                    }
-                    for row in reader
-                ]
+                return [_schema_row_to_dict(row) for row in reader]
     tp = pathlib.Path(table_path)
     if tp.suffix.lower() in (".xlsx", ".xls"):
         try:
             df = pd.read_excel(table_path, sheet_name="Schema", dtype=str)
             if "column_name" in df.columns:
-                return [
-                    {
-                        "column_name": str(r["column_name"]),
-                        "description": str(r.get("description", "")),
-                    }
-                    for _, r in df.iterrows()
-                ]
+                return [_schema_row_to_dict(r.to_dict()) for _, r in df.iterrows()]
         except Exception:
             pass
     return []
@@ -70,12 +88,26 @@ def validate_metadata_columns(df: pd.DataFrame) -> list[str]:
 def validate_schema_columns(schema: list[dict]) -> list[str]:
     """Validate schema has column_name and description fields."""
     errors = []
+    allowed_field_types = {"text", "number", "categorical", "boolean"}
     for i, col in enumerate(schema):
         if not col.get("column_name"):
             errors.append(f"Schema row {i}: missing column_name")
         if not col.get("description"):
             errors.append(
                 f"Schema row {i}: missing description for column '{col.get('column_name', '')}'"
+            )
+        field_type = col.get("field_type")
+        field_type_value = getattr(field_type, "value", field_type)
+        if field_type and field_type not in allowed_field_types:
+            errors.append(
+                f"Schema row {i}: invalid field_type '{field_type}' for column "
+                f"'{col.get('column_name', '')}'"
+            )
+        allowed_values = col.get("allowed_values")
+        if allowed_values and field_type_value != "categorical":
+            errors.append(
+                f"Schema row {i}: allowed_values require field_type='categorical' for column "
+                f"'{col.get('column_name', '')}'"
             )
     return errors
 

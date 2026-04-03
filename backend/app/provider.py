@@ -41,7 +41,7 @@ class ProviderCapabilities(BaseModel):
     """Detected capabilities of a provider/model pair."""
     supports_structured_output: bool = False
     structured_output_mode: str = "none"
-    """One of: 'json_schema', 'json_object', 'text_fallback', 'none'."""
+    """One of: 'json_schema' or 'none'."""
     model_id: Optional[str] = None
     vision_capable: bool = False
     probed_at: Optional[str] = None
@@ -335,8 +335,7 @@ class LMStudioProvider(ProviderAdapter):
         )
 
     async def _probe_structured_output_mode(self, model_id: str) -> str:
-        """Try json_schema, then json_object, return the first that works."""
-        # Try json_schema (LM Studio >= 0.3.x with grammar support)
+        """Require json_schema support for the live extraction path."""
         try:
             test_schema = {
                 "type": "object",
@@ -364,29 +363,7 @@ class LMStudioProvider(ProviderAdapter):
                         return "json_schema"
         except Exception:
             pass
-
-        # Try json_object
-        try:
-            payload_jo = {
-                "model": model_id,
-                "messages": [{"role": "user", "content": "Reply with JSON: {\"test\": \"ok\"}"}],
-                "response_format": {"type": "json_object"},
-                "max_tokens": 32,
-                "temperature": 0.0,
-            }
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                resp = await client.post(
-                    f"{self._base_url}/v1/chat/completions", json=payload_jo
-                )
-                if resp.status_code == 200:
-                    content = resp.json()["choices"][0]["message"]["content"]
-                    parsed = _try_repair_json(content)
-                    if parsed is not None:
-                        return "json_object"
-        except Exception:
-            pass
-
-        return "text_fallback"
+        return "none"
 
     # --- Text completion ---
 
@@ -440,79 +417,69 @@ class LMStudioProvider(ProviderAdapter):
         max_tokens: int = 2048,
         temperature: float = 0.0,
     ) -> dict:
-        """Structured-output chat completion with bounded recovery (T052).
-
-        Negotiates format based on probed capabilities.
-        Attempts one repair pass on malformed JSON before hard failure.
-        T052: one compatibility mismatch does NOT poison the rest of the run.
-        """
+        """Structured-output chat completion with one bounded recovery ladder."""
         caps = self._capabilities
-        structured_mode = caps.structured_output_mode if caps else "text_fallback"
+        structured_mode = caps.structured_output_mode if caps else "none"
+        if structured_mode != "json_schema":
+            raise StructuredOutputError("json_schema structured output is required.")
 
         payload = self._build_payload(
             messages, model_id, max_tokens, temperature, response_schema, structured_mode
         )
-
-        last_exc: Optional[Exception] = None
-        for attempt in range(DEFAULT_RETRIES + 1):
+        try:
+            first_raw = await self._post_structured_payload(payload, model_id)
             try:
-                async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
-                    resp = await client.post(
-                        f"{self._base_url}/v1/chat/completions", json=payload
-                    )
-
-                if resp.status_code == 404:
-                    raise ModelUnavailableError(
-                        f"Model '{model_id}' not found at LM Studio. "
-                        "Ensure the model is loaded."
-                    )
-                if resp.status_code == 503:
-                    raise ModelUnavailableError("LM Studio is busy or model is not loaded.")
-                if resp.status_code != 200:
-                    raise ProviderError(
-                        f"LM Studio returned HTTP {resp.status_code}: {resp.text[:300]}"
-                    )
-
-                raw_content = resp.json()["choices"][0]["message"]["content"]
-                parsed = _try_repair_json(raw_content)
-                if parsed is not None:
-                    return parsed
-
-                # Bounded repair: ask model to reformat its last output
-                if attempt == 0:
-                    repair_msg = {
-                        "role": "user",
-                        "content": (
-                            "Your previous response was not valid JSON. "
-                            "Return ONLY a valid JSON object with no surrounding text, "
-                            "markdown, or explanations. "
-                            f"Ensure it matches this schema: {json.dumps(response_schema)}"
-                        ),
-                    }
-                    payload["messages"] = list(messages) + [
-                        {"role": "assistant", "content": raw_content},
-                        repair_msg,
-                    ]
-                    # Reduce max_tokens for repair to avoid truncation
-                    payload["max_tokens"] = min(max_tokens, 1024)
-                    continue
-
-                raise StructuredOutputError(
-                    f"LM Studio returned malformed JSON after repair attempt: {raw_content[:200]}"
+                return json.loads(first_raw)
+            except json.JSONDecodeError:
+                stronger_retry_payload = self._build_payload(
+                    list(messages) + [
+                        {
+                            "role": "user",
+                            "content": (
+                                "Your previous response was not valid JSON. Return ONLY a JSON object "
+                                f"that matches this schema exactly: {json.dumps(response_schema)}"
+                            ),
+                        }
+                    ],
+                    model_id,
+                    min(max_tokens, 1024),
+                    temperature,
+                    response_schema,
+                    structured_mode,
                 )
+                retry_raw = await self._post_structured_payload(stronger_retry_payload, model_id)
+                try:
+                    return json.loads(retry_raw)
+                except json.JSONDecodeError:
+                    repaired = _try_repair_json(retry_raw)
+                    if repaired is not None:
+                        return repaired
+                    raise StructuredOutputError(
+                        f"LM Studio returned malformed JSON after bounded recovery: {retry_raw[:200]}"
+                    )
+        except (ProviderError, StructuredOutputError, ModelUnavailableError, ProviderTimeoutError):
+            raise
+        except httpx.TimeoutException as e:
+            raise ProviderTimeoutError(f"Request timed out: {e}") from e
+        except Exception as e:
+            raise ProviderError(f"LM Studio request failed: {e}") from e
 
-            except (ProviderError, StructuredOutputError, ModelUnavailableError, ProviderTimeoutError):
-                raise
-            except httpx.TimeoutException as e:
-                last_exc = ProviderTimeoutError(f"Request timed out: {e}")
-                if attempt >= DEFAULT_RETRIES:
-                    raise last_exc from e
-            except Exception as e:
-                raise ProviderError(f"LM Studio request failed: {e}") from e
-
-        if last_exc:
-            raise last_exc
-        raise ProviderError("Structured completion failed after retries")
+    async def _post_structured_payload(self, payload: dict, model_id: str) -> str:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
+            resp = await client.post(
+                f"{self._base_url}/v1/chat/completions", json=payload
+            )
+        if resp.status_code == 404:
+            raise ModelUnavailableError(
+                f"Model '{model_id}' not found at LM Studio. Ensure the model is loaded."
+            )
+        if resp.status_code == 503:
+            raise ModelUnavailableError("LM Studio is busy or model is not loaded.")
+        if resp.status_code != 200:
+            raise ProviderError(
+                f"LM Studio returned HTTP {resp.status_code}: {resp.text[:300]}"
+            )
+        return resp.json()["choices"][0]["message"]["content"]
 
     def _build_payload(
         self,
@@ -580,32 +547,68 @@ class LMStudioProvider(ProviderAdapter):
             }
 
         payload = self._build_payload(
-            vision_messages, model_id, max_tokens, temperature,
-            response_schema, "json_object"  # use json_object for vision (broader compat)
+            vision_messages,
+            model_id,
+            max_tokens,
+            temperature,
+            response_schema,
+            "json_schema",
         )
 
         try:
-            async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT * 2) as client:
-                resp = await client.post(
-                    f"{self._base_url}/v1/chat/completions", json=payload
+            first_raw = await self._post_vision_payload(payload, model_id)
+            try:
+                return json.loads(first_raw)
+            except json.JSONDecodeError:
+                stronger_retry_payload = self._build_payload(
+                    vision_messages + [
+                        {
+                            "role": "user",
+                            "content": (
+                                "Return ONLY valid JSON that matches this schema exactly: "
+                                f"{json.dumps(response_schema)}"
+                            ),
+                        }
+                    ],
+                    model_id,
+                    min(max_tokens, 1024),
+                    temperature,
+                    response_schema,
+                    "json_schema",
                 )
-            if resp.status_code != 200:
-                raise ProviderError(
-                    f"Vision completion failed HTTP {resp.status_code}: {resp.text[:200]}"
-                )
-            raw = resp.json()["choices"][0]["message"]["content"]
-            parsed = _try_repair_json(raw)
-            if parsed is None:
-                raise StructuredOutputError(
-                    f"Vision model returned malformed JSON: {raw[:200]}"
-                )
-            return parsed
+                retry_raw = await self._post_vision_payload(stronger_retry_payload, model_id)
+                try:
+                    return json.loads(retry_raw)
+                except json.JSONDecodeError:
+                    repaired = _try_repair_json(retry_raw)
+                    if repaired is not None:
+                        return repaired
+                    raise StructuredOutputError(
+                        f"Vision model returned malformed JSON after bounded recovery: {retry_raw[:200]}"
+                    )
         except (ProviderError, StructuredOutputError):
             raise
         except httpx.TimeoutException as e:
             raise ProviderTimeoutError(f"Vision request timed out: {e}") from e
         except Exception as e:
             raise ProviderError(f"Vision request failed: {e}") from e
+
+    async def _post_vision_payload(self, payload: dict, model_id: str) -> str:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT * 2) as client:
+            resp = await client.post(
+                f"{self._base_url}/v1/chat/completions", json=payload
+            )
+        if resp.status_code == 404:
+            raise ModelUnavailableError(
+                f"Vision model '{model_id}' not found at LM Studio. Ensure the model is loaded."
+            )
+        if resp.status_code == 503:
+            raise ModelUnavailableError("LM Studio is busy or vision model is not loaded.")
+        if resp.status_code != 200:
+            raise ProviderError(
+                f"Vision completion failed HTTP {resp.status_code}: {resp.text[:200]}"
+            )
+        return resp.json()["choices"][0]["message"]["content"]
 
     def set_capabilities(self, caps: ProviderCapabilities) -> None:
         """Set probed capabilities so they are reused across requests."""
@@ -695,6 +698,10 @@ async def initialize_provider(
     try:
         provider = build_provider(config)
         caps = await provider.probe_capabilities(text_model_id, vision_model_id)
+        if caps.structured_output_mode != "json_schema":
+            raise ProviderError(
+                "Configured provider/model does not support required json_schema structured output."
+            )
         if isinstance(provider, LMStudioProvider):
             provider.set_capabilities(caps)
         mode = provider.get_provider_mode(

@@ -57,8 +57,10 @@ class StyleProfileConfig(BaseModel):
 
 class RetrievalConfig(BaseModel):
     strategy: str = "semantic_chunks"
-    chunk_size: int = 512
     top_k: int = 10
+    recall_rescue_enabled: bool = True
+    whole_document_mode: bool = False
+    whole_document_max_chars: int = 12000
 
 
 class FigureReviewConfig(BaseModel):

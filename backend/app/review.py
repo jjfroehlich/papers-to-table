@@ -166,7 +166,7 @@ def load_all_decisions(run_dir: pathlib.Path) -> list[ReviewDecisionRecord]:
 # ---------------------------------------------------------------------------
 
 _EVIDENCE_WARNING_FLAGS = {
-    "fallback_evidence": WarningCategory.fallback_evidence_used,
+    "fallback_evidence_used": WarningCategory.fallback_evidence_used,
     "figure_derived": WarningCategory.figure_derived_evidence,
     "weak_evidence": WarningCategory.weak_evidence,
 }
@@ -186,14 +186,11 @@ def _proposal_warning_categories(proposal: ProposalRecord) -> list[WarningCatego
 
 
 def _is_figure_derived(proposal: ProposalRecord) -> bool:
-    return (
-        "figure_derived" in proposal.warning_flags
-        or proposal.support == SupportLabel.inferred_from_evidence
-    )
+    return "figure_derived" in proposal.warning_flags
 
 
 def _is_fallback_evidence(proposal: ProposalRecord) -> bool:
-    return "fallback_evidence" in proposal.warning_flags
+    return "fallback_evidence_used" in proposal.warning_flags
 
 
 # ---------------------------------------------------------------------------
@@ -361,7 +358,8 @@ def _evidence_source_display(source_type: EvidenceSourceType) -> str:
         EvidenceSourceType.calculation: "Calculation",
         EvidenceSourceType.approximate_highlight: "Approximate highlight",
         EvidenceSourceType.quote_plus_page: "Quote + page (no highlight)",
-        EvidenceSourceType.figure_based_evidence: "Figure-based evidence",
+        EvidenceSourceType.caption_grounded_figure_evidence: "Caption-grounded figure evidence",
+        EvidenceSourceType.visual_interpretation_figure_evidence: "Visual-interpretation figure evidence",
     }.get(source_type, source_type.value)
 
 

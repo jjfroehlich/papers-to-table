@@ -66,6 +66,8 @@ class RetrievalResult(BaseModel):
     query: str
     top_k: int
     chunks: list[RetrievalChunk]
+    mode: str = "baseline"
+    rescue_reason: Optional[str] = None
     retrieved_at: str
 
 
@@ -420,6 +422,8 @@ def run_retrieval_for_cell(
     doc_dict: dict,
     run_dir: pathlib.Path,
     top_k: int = 6,
+    mode: str = "baseline",
+    rescue_reason: Optional[str] = None,
 ) -> RetrievalResult:
     """Build and persist retrieval result for one (pdf, column) pair."""
     query = build_retrieval_query(column_name, column_description)
@@ -431,6 +435,8 @@ def run_retrieval_for_cell(
         query=query,
         top_k=top_k,
         chunks=chunks,
+        mode=mode,
+        rescue_reason=rescue_reason,
         retrieved_at=datetime.now(timezone.utc).isoformat(),
     )
     persist_retrieval_result(run_dir, result)
