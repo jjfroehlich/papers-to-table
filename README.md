@@ -75,7 +75,7 @@ For wide format, optional `{column_name}__cell_id` columns preserve explicit gol
 - comparison rows flatten run metadata into stable columns such as `run_id`, `mode`, `model_id`, `vision_model_id`, `parser_identity`, `parser_version`, `prompt_identity`, `schema_identity`, and `config_hash`
 - per-run summaries and comparison rows keep evidence quality separate from correctness with `anchor_valid_rate`, `correct_and_anchored_rate`, and `evidence_present_but_unvalidated_count`
 - anchor validation requires `page` plus `quote_text`, and when persisted page text is available the quote must be locatable on the cited page to count as `anchor_valid`
-- evidence with page and quote but without persisted text validation data is reported as `evidence_present_but_unvalidated` instead of counting as fully valid
+- evidence with page and quote but without enough validation support, including quote strings that are not locatable in available persisted text, is reported as `evidence_present_but_unvalidated` instead of counting as fully valid
 
 ## Outputs
 

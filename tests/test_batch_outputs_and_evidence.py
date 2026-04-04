@@ -4,9 +4,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import pyarrow.parquet as pq
-from openpyxl import load_workbook
-
 from paper_eval.cli import main
 from paper_eval.evidence import validate_evidence_anchors
 from paper_eval.run_loader import load_run
@@ -45,7 +42,7 @@ class EvidenceValidationTests(unittest.TestCase):
         self.assertFalse(result.anchor_valid)
         self.assertTrue(result.evidence_present_but_unvalidated)
 
-    def test_anchor_is_invalid_when_quote_cannot_be_located(self) -> None:
+    def test_evidence_is_unvalidated_when_quote_cannot_be_located(self) -> None:
         result = validate_evidence_anchors(
             [
                 self._evidence_item(
@@ -54,6 +51,22 @@ class EvidenceValidationTests(unittest.TestCase):
                 )
             ],
             page_text_by_page={2: "A different sentence appears here."},
+            page_count=3,
+        )
+
+        self.assertEqual(result.outcome, "evidence_present_but_unvalidated")
+        self.assertFalse(result.anchor_valid)
+        self.assertTrue(result.evidence_present_but_unvalidated)
+
+    def test_anchor_is_invalid_when_required_anchor_fields_are_missing(self) -> None:
+        result = validate_evidence_anchors(
+            [
+                self._evidence_item(
+                    page=0,
+                    quote_text="result was positive",
+                )
+            ],
+            page_text_by_page={},
             page_count=3,
         )
 
@@ -101,6 +114,12 @@ class BatchEvaluationTests(unittest.TestCase):
             self.assertEqual(metadata["config_snapshot__config__hash"], "cfg-a")
 
     def test_evaluate_writes_batch_outputs_with_one_row_per_run(self) -> None:
+        try:
+            import pyarrow.parquet as pq
+            from openpyxl import load_workbook
+        except ModuleNotFoundError as exc:  # pragma: no cover
+            self.skipTest(str(exc))
+
         with tempfile.TemporaryDirectory() as temp_dir:
             base = Path(temp_dir)
             run_a = self._create_run_bundle(
@@ -188,6 +207,12 @@ class BatchEvaluationTests(unittest.TestCase):
             self.assertEqual(summary_b["metrics"]["evidence_present_but_unvalidated_count"], 1)
 
     def test_compare_command_rebuilds_comparison_outputs_from_per_run_summaries(self) -> None:
+        try:
+            import pyarrow.parquet as pq  # noqa: F401
+            from openpyxl import load_workbook  # noqa: F401
+        except ModuleNotFoundError as exc:  # pragma: no cover
+            self.skipTest(str(exc))
+
         with tempfile.TemporaryDirectory() as temp_dir:
             base = Path(temp_dir)
             run_dir = self._create_run_bundle(

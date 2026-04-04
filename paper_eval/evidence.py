@@ -110,7 +110,7 @@ def _validate_single_anchor(
         diagnostic["reason"] = "quote_located"
         return diagnostic
 
-    diagnostic["outcome"] = "anchor_invalid"
+    diagnostic["outcome"] = "evidence_present_but_unvalidated"
     diagnostic["reason"] = "quote_not_locatable"
     return diagnostic
 
