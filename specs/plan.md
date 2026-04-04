@@ -89,6 +89,8 @@ The CLI resolves:
 - output directory
 - judge settings when text judging is active
 
+For MVP, the default local-first judge settings should target LM Studio through its OpenAI-compatible local API, with `qwen/qwen3.5-35b-a3b` as the default configured judge model.
+
 ### 2. Load and validate run artifacts
 
 For each run:
@@ -296,11 +298,22 @@ Text scoring should support two layers:
 
 The scoring-policy resolver should also support a per-column deterministic override for highly standardized text fields.
 
+Boolean, categorical, and numeric fields should continue to use deterministic scoring by default. The judge path should remain primarily for text fields and any explicitly configured residual cases.
+
 ---
 
 ## LLM judge implementation policy
 
 The judge layer should be intentionally narrow.
+
+### Default provider direction
+
+The default local-first judge path for MVP should be LM Studio using its OpenAI-compatible local API.
+
+- default provider: LM Studio
+- default configured judge model: `qwen/qwen3.5-35b-a3b`
+- future providers may be added later, but LM Studio is the default path that README and operator docs should explain first
+- the evaluator should not require cloud judge infrastructure in the default setup
 
 ### Judge inputs
 
@@ -314,23 +327,31 @@ The judge prompt should include only the minimum needed context:
 
 ### Judge outputs
 
-The judge should return strict structured output, for example:
+The judge should return strict structured output via an explicit JSON schema, for example:
 
 - decision: correct or incorrect or unclear
 - short public rationale label
 - optional normalization hint for logging
 
+Outputs should stay bounded. The evaluator should not persist long free-form reasoning in its core artifacts.
+
 ### Judge reproducibility
 
 Persist:
 
-- judge model id
+- judge provider
+- configured judge model id
+- resolved runtime-served judge model id
 - temperature
 - prompt version or hash
+- verdict
+- input hash
 - timestamp
 - request count and token usage if available
 
 The evaluator should avoid storing long hidden reasoning or raw chain-of-thought text.
+
+The resolved runtime model identity must be persisted even when the operator configured a model string up front, because LM Studio or another provider may serve a different runtime identifier than the configured alias.
 
 ### Bounded use
 
@@ -392,6 +413,25 @@ Suggested layout:
 ```
 
 CSV is the canonical inspectable output. XLSX and Parquet are alternate renderings of the same normalized comparison rows.
+
+---
+
+## README and operator-doc deliverables
+
+README and operator-facing docs should be treated as implementation deliverables, not polish.
+
+They should clearly cover:
+
+- what the eval repo does
+- which input artifacts it expects from the main app
+- one-run evaluation
+- many-run evaluation
+- headline metrics versus diagnostic metrics
+- LM Studio judge configuration through the OpenAI-compatible local API
+- the default configured judge model `qwen/qwen3.5-35b-a3b`
+- current limitations and local-first assumptions
+
+Batch completion should require docs clear enough that an operator can run the tool and interpret the main outputs without reading source code.
 
 ---
 
