@@ -79,7 +79,7 @@ export function App() {
       <header className="border-b border-slate-800 bg-slate-950 text-slate-50 shadow-lg">
         <div className="max-w-screen-xl mx-auto px-4 py-4 flex items-center justify-between gap-6">
           <div>
-            <h1 className="text-lg font-semibold tracking-tight">Paper Table Agent</h1>
+            <h1 className="text-lg font-semibold tracking-tight">Extract Structured Info from Papers</h1>
             <p className="mt-1 text-xs text-slate-300">
               Evidence-first scientific review workstation for paper-backed table curation.
             </p>

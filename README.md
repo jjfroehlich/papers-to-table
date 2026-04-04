@@ -1,4 +1,4 @@
-# Paper Table Agent
+# extract-structured-info-from-papers
 
 A local-first paper-to-table review app. Ingest scientific PDFs and a structured spreadsheet, generate evidence-backed cell proposals, review them in a browser UI, and export audited XLSX updates.
 
@@ -26,8 +26,8 @@ A local-first paper-to-table review app. Ingest scientific PDFs and a structured
 ### 1. Clone and install backend dependencies
 
 ```bash
-git clone <repo-url>
-cd paper-table-agent
+git clone https://github.com/jjfroehlich/extract-structured-info-from-papers.git
+cd extract-structured-info-from-papers
 pip install -e ./backend
 ```
 

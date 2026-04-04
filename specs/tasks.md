@@ -1,4 +1,4 @@
-# Paper Table Agent — `tasks.md`
+# Extract Structured Info from Papers — `tasks.md`
 
 ## Status
 
