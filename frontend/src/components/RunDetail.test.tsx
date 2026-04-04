@@ -102,4 +102,33 @@ describe('RunDetail', () => {
     render(<RunDetail run={runningRun} />)
     expect(screen.getByText(/load_inputs/)).toBeTruthy()
   })
+
+  it('shows resolved input source and runtime locator context', () => {
+    const runWithResolvedInputs: RunData = {
+      ...baseRun,
+      resolved_inputs: {
+        table_path: {
+          source_kind: 'staged_handle',
+          logical_source: 'picked-table.xlsx',
+          runtime_locator: '/tmp/.staged/table.xlsx',
+          staged_handle: 'staged_table_path_abc',
+        },
+        schema_path: {
+          source_kind: 'path_override',
+          logical_source: './schema.csv',
+          runtime_locator: '/tmp/schema.csv',
+        },
+        pdf_dir: {
+          source_kind: 'config',
+          logical_source: '/data/pdfs',
+          runtime_locator: '/data/pdfs',
+        },
+      },
+    }
+    render(<RunDetail run={runWithResolvedInputs} />)
+    expect(screen.getByText('picked-table.xlsx')).toBeTruthy()
+    expect(screen.getByText('/tmp/.staged/table.xlsx')).toBeTruthy()
+    expect(screen.getByText('/tmp/schema.csv')).toBeTruthy()
+    expect(screen.getAllByText('/data/pdfs')).toHaveLength(2)
+  })
 })

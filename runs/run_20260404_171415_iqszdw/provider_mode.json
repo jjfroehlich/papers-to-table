@@ -1,0 +1,9 @@
+{
+  "token": "lm_studio",
+  "locality": "local",
+  "mode": "unavailable",
+  "text_model_id": "qwen/qwen3.5-35b-a3b",
+  "vision_model_id": "google/gemma-4-26b-a4b",
+  "readiness_error": "Configured provider/model does not support required json_schema structured output.",
+  "recorded_at": "2026-04-04T17:14:20.226743+00:00"
+}

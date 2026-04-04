@@ -4,9 +4,11 @@ import os
 import pathlib
 import subprocess
 import sys
+from datetime import datetime, timezone
 from typing import Any, Optional
+from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -21,6 +23,7 @@ from .artifacts import (
     get_run_summary_path,
     list_run_ids,
     read_json,
+    write_json,
 )
 from .config import apply_overrides, load_config
 from .ids import generate_row_id, generate_run_id
@@ -63,11 +66,22 @@ class CreateRunRequest(BaseModel):
     table_path: Optional[str] = None
     schema_path: Optional[str] = None
     pdf_dir: Optional[str] = None
+    table_staged_handle: Optional[str] = None
+    schema_staged_handle: Optional[str] = None
+    pdf_dir_staged_handle: Optional[str] = None
 
 
 class CreateRunResponse(BaseModel):
     run_id: str
     status: str
+    resolved_inputs: dict[str, Any]
+
+
+class StagedInputResponse(BaseModel):
+    handle: str
+    kind: str
+    logical_source: str
+    runtime_locator: str
 
 
 class OpenPdfResponse(BaseModel):
@@ -87,9 +101,108 @@ def open_in_local_viewer(path: pathlib.Path) -> None:
     subprocess.Popen(["xdg-open", str(path)])
 
 
+def _resolve_path_like(value: str, base_dir: pathlib.Path) -> str:
+    candidate = pathlib.Path(value)
+    if candidate.is_absolute():
+        return str(candidate.resolve())
+    return str((base_dir / candidate).resolve())
+
+
+def _staged_root(output_dir: str) -> pathlib.Path:
+    return pathlib.Path(output_dir).resolve() / ".staged_inputs"
+
+
+def _staged_metadata_path(output_dir: str, handle: str) -> pathlib.Path:
+    return _staged_root(output_dir) / handle / "metadata.json"
+
+
+def _load_staged_input_metadata(output_dir: str, handle: str, expected_kind: str) -> dict[str, Any]:
+    meta_path = _staged_metadata_path(output_dir, handle)
+    if not meta_path.exists():
+        raise HTTPException(status_code=422, detail=f"Unknown staged input handle: {handle}")
+    metadata = read_json(meta_path)
+    if metadata.get("kind") != expected_kind:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Staged handle '{handle}' is for kind={metadata.get('kind')}, "
+                f"but {expected_kind} was requested."
+            ),
+        )
+    runtime_locator = metadata.get("runtime_locator")
+    if not runtime_locator:
+        raise HTTPException(status_code=422, detail=f"Staged handle '{handle}' has no runtime locator.")
+    return metadata
+
+
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.post("/api/staged-inputs", response_model=StagedInputResponse)
+async def stage_input_files(
+    kind: str = Form(...),
+    output_dir: str = Form("./runs"),
+    files: list[UploadFile] = File(...),
+):
+    """Materialize browser-selected inputs into backend-readable staged handles."""
+    allowed_kinds = {"table_path", "schema_path", "pdf_dir"}
+    if kind not in allowed_kinds:
+        raise HTTPException(status_code=422, detail=f"Invalid staged input kind: {kind}")
+    if not files:
+        raise HTTPException(status_code=422, detail="No files were uploaded for staging.")
+    if kind in {"table_path", "schema_path"} and len(files) != 1:
+        raise HTTPException(status_code=422, detail=f"{kind} staging expects exactly one file.")
+
+    handle = f"staged_{kind}_{uuid4().hex[:12]}"
+    staged_dir = _staged_root(output_dir) / handle
+    staged_dir.mkdir(parents=True, exist_ok=True)
+
+    persisted_names: list[str] = []
+    if kind == "pdf_dir":
+        runtime_dir = staged_dir / "pdf_dir"
+        runtime_dir.mkdir(parents=True, exist_ok=True)
+        for upload in files:
+            filename = pathlib.Path(upload.filename or "upload.pdf").name
+            if not filename.lower().endswith(".pdf"):
+                continue
+            destination = runtime_dir / filename
+            contents = await upload.read()
+            destination.write_bytes(contents)
+            persisted_names.append(filename)
+            await upload.close()
+        if not persisted_names:
+            raise HTTPException(status_code=422, detail="pdf_dir staging requires at least one PDF file.")
+        logical_source = f"{len(persisted_names)} picked PDF(s): " + ", ".join(persisted_names[:3])
+        runtime_locator = str(runtime_dir.resolve())
+    else:
+        upload = files[0]
+        filename = pathlib.Path(upload.filename or "upload").name
+        destination = staged_dir / filename
+        contents = await upload.read()
+        destination.write_bytes(contents)
+        await upload.close()
+        persisted_names = [filename]
+        logical_source = filename
+        runtime_locator = str(destination.resolve())
+
+    metadata = {
+        "handle": handle,
+        "kind": kind,
+        "logical_source": logical_source,
+        "runtime_locator": runtime_locator,
+        "persisted_names": persisted_names,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    write_json(staged_dir / "metadata.json", metadata)
+
+    return StagedInputResponse(
+        handle=handle,
+        kind=kind,
+        logical_source=logical_source,
+        runtime_locator=runtime_locator,
+    )
 
 
 @app.post("/api/runs", response_model=CreateRunResponse)
@@ -105,13 +218,91 @@ async def create_run(request: CreateRunRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Config error: {e}")
 
+    config_base_dir = pathlib.Path(request.config_path).resolve().parent
+    resolved_inputs: dict[str, Any] = {
+        "table_path": {
+            "source_kind": "config",
+            "logical_source": config.table_path,
+            "runtime_locator": config.table_path,
+        },
+        "schema_path": {
+            "source_kind": "config",
+            "logical_source": config.schema_path,
+            "runtime_locator": config.schema_path,
+        },
+        "pdf_dir": {
+            "source_kind": "config",
+            "logical_source": config.pdf_dir,
+            "runtime_locator": config.pdf_dir,
+        },
+    }
+
+    for key, path_value, staged_handle in (
+        ("table_path", request.table_path, request.table_staged_handle),
+        ("schema_path", request.schema_path, request.schema_staged_handle),
+        ("pdf_dir", request.pdf_dir, request.pdf_dir_staged_handle),
+    ):
+        if path_value and staged_handle:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Provide either {key} or {key.replace('_path', '')}_staged_handle, not both.",
+            )
+
     overrides = {}
-    if request.table_path:
+    if request.table_staged_handle:
+        meta = _load_staged_input_metadata(config.output_dir, request.table_staged_handle, "table_path")
+        overrides["table_path"] = meta["runtime_locator"]
+        resolved_inputs["table_path"] = {
+            "source_kind": "staged_handle",
+            "staged_handle": request.table_staged_handle,
+            "logical_source": meta.get("logical_source"),
+            "runtime_locator": meta["runtime_locator"],
+        }
+    elif request.table_path:
+        runtime_locator = _resolve_path_like(request.table_path, config_base_dir)
         overrides["table_path"] = request.table_path
-    if request.schema_path:
+        resolved_inputs["table_path"] = {
+            "source_kind": "path_override",
+            "logical_source": request.table_path,
+            "runtime_locator": runtime_locator,
+        }
+
+    if request.schema_staged_handle:
+        meta = _load_staged_input_metadata(config.output_dir, request.schema_staged_handle, "schema_path")
+        overrides["schema_path"] = meta["runtime_locator"]
+        resolved_inputs["schema_path"] = {
+            "source_kind": "staged_handle",
+            "staged_handle": request.schema_staged_handle,
+            "logical_source": meta.get("logical_source"),
+            "runtime_locator": meta["runtime_locator"],
+        }
+    elif request.schema_path:
+        runtime_locator = _resolve_path_like(request.schema_path, config_base_dir)
         overrides["schema_path"] = request.schema_path
-    if request.pdf_dir:
+        resolved_inputs["schema_path"] = {
+            "source_kind": "path_override",
+            "logical_source": request.schema_path,
+            "runtime_locator": runtime_locator,
+        }
+
+    if request.pdf_dir_staged_handle:
+        meta = _load_staged_input_metadata(config.output_dir, request.pdf_dir_staged_handle, "pdf_dir")
+        overrides["pdf_dir"] = meta["runtime_locator"]
+        resolved_inputs["pdf_dir"] = {
+            "source_kind": "staged_handle",
+            "staged_handle": request.pdf_dir_staged_handle,
+            "logical_source": meta.get("logical_source"),
+            "runtime_locator": meta["runtime_locator"],
+        }
+    elif request.pdf_dir:
+        runtime_locator = _resolve_path_like(request.pdf_dir, config_base_dir)
         overrides["pdf_dir"] = request.pdf_dir
+        resolved_inputs["pdf_dir"] = {
+            "source_kind": "path_override",
+            "logical_source": request.pdf_dir,
+            "runtime_locator": runtime_locator,
+        }
+
     if overrides:
         try:
             config = apply_overrides(
@@ -125,9 +316,13 @@ async def create_run(request: CreateRunRequest):
     run_id = generate_run_id()
     output_dir = config.output_dir
 
-    launch_run(run_id, config, request.config_path, output_dir)
+    launch_run(run_id, config, request.config_path, output_dir, resolved_inputs=resolved_inputs)
 
-    return CreateRunResponse(run_id=run_id, status=RunStatus.created.value)
+    return CreateRunResponse(
+        run_id=run_id,
+        status=RunStatus.created.value,
+        resolved_inputs=resolved_inputs,
+    )
 
 
 @app.get("/api/runs")

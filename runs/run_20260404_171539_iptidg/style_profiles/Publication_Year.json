@@ -1,0 +1,14 @@
+{
+  "column_name": "Publication Year",
+  "field_type_guess": "numeric",
+  "expected_length": "short",
+  "tone": "neutral",
+  "detail_level": "low",
+  "value_shape": "4-digit integer",
+  "unit_style": null,
+  "format_notes": "YYYY format",
+  "example_risk": "none",
+  "generated_at": "2026-04-04T17:18:35.096821+00:00",
+  "source_column_count": 226,
+  "provider_mode": "live_llm"
+}

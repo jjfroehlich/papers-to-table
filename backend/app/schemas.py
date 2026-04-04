@@ -238,6 +238,7 @@ class InputSummary(BaseModel):
     table_path: Optional[str] = None
     schema_path: Optional[str] = None
     pdf_dir: Optional[str] = None
+    resolved_inputs: Optional[dict] = None
     output_dir: str
     verify_mode: bool
     eval_mode: bool = False

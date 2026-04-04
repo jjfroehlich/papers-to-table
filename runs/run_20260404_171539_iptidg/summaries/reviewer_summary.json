@@ -1,0 +1,18 @@
+{
+  "run_id": "run_20260404_171539_iptidg",
+  "total_proposals": 39,
+  "reviewed": 0,
+  "accepted": 0,
+  "accepted_with_edit": 0,
+  "confirmed_no_data": 0,
+  "rejected": 0,
+  "pending": 39,
+  "actionable_total_proposals": 39,
+  "actionable_reviewed": 0,
+  "actionable_pending": 39,
+  "diagnostic_only_total_proposals": 0,
+  "explicitly_accepted": 0,
+  "explicitly_rejected": 0,
+  "confirmed_absent": 0,
+  "generated_at": "2026-04-04T18:58:29.745982+00:00"
+}

@@ -33,6 +33,26 @@ export interface RunData {
   table_path: string | null
   schema_path: string | null
   pdf_dir: string | null
+  resolved_inputs?: {
+    table_path?: {
+      source_kind: 'config' | 'path_override' | 'staged_handle'
+      logical_source: string | null
+      runtime_locator: string | null
+      staged_handle?: string | null
+    } | null
+    schema_path?: {
+      source_kind: 'config' | 'path_override' | 'staged_handle'
+      logical_source: string | null
+      runtime_locator: string | null
+      staged_handle?: string | null
+    } | null
+    pdf_dir?: {
+      source_kind: 'config' | 'path_override' | 'staged_handle'
+      logical_source: string | null
+      runtime_locator: string | null
+      staged_handle?: string | null
+    } | null
+  }
   output_dir: string
   verify_mode: boolean
   eval_mode: boolean
@@ -89,6 +109,7 @@ export interface InputSummary {
   table_path: string | null
   schema_path: string | null
   pdf_dir: string | null
+  resolved_inputs?: RunData['resolved_inputs']
   output_dir: string
   verify_mode: boolean
   eval_mode: boolean
@@ -104,11 +125,22 @@ export interface CreateRunRequest {
   table_path?: string
   schema_path?: string
   pdf_dir?: string
+  table_staged_handle?: string
+  schema_staged_handle?: string
+  pdf_dir_staged_handle?: string
 }
 
 export interface CreateRunResponse {
   run_id: string
   status: string
+  resolved_inputs: Required<NonNullable<RunData['resolved_inputs']>>
+}
+
+export interface StagedInputResponse {
+  handle: string
+  kind: 'table_path' | 'schema_path' | 'pdf_dir'
+  logical_source: string
+  runtime_locator: string
 }
 
 export interface ListRunsResponse {

@@ -7,6 +7,7 @@ describe('api client', () => {
     expect(typeof api.listRuns).toBe('function')
     expect(typeof api.getRun).toBe('function')
     expect(typeof api.createRun).toBe('function')
+    expect(typeof api.stageInputFiles).toBe('function')
     expect(typeof api.getRunConfig).toBe('function')
     expect(typeof api.getRunInputs).toBe('function')
     expect(typeof api.triggerExport).toBe('function')

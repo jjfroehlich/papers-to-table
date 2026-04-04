@@ -50,6 +50,24 @@ def test_browse_prefills_paths_without_removing_manual_editability(page: Page, f
     expect(table_input).to_have_value("/tmp/runtime/table.xlsx")
 
 
+def test_picker_staging_shows_handle_for_table_override(page: Page, frontend_url: str):
+    page.goto(frontend_url)
+
+    launch_surface = page.locator("[data-testid='run-launch-surface']")
+    launch_surface.get_by_role("button", name="▼ Show optional path overrides").click()
+
+    file_inputs = launch_surface.locator("input[type='file']")
+    file_inputs.nth(1).set_input_files(
+        files=[{
+            "name": "picked-table.csv",
+            "mimeType": "text/csv",
+            "buffer": b"Title\nPaper A\n",
+        }]
+    )
+
+    expect(launch_surface.get_by_text("staged handle:")).to_be_visible()
+
+
 def test_selecting_completed_run_enables_review_workspace(page: Page, frontend_url: str):
     page.goto(frontend_url)
 

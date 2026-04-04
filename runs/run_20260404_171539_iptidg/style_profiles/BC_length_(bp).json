@@ -1,0 +1,14 @@
+{
+  "column_name": "BC length (bp)",
+  "field_type_guess": "numeric",
+  "expected_length": "single_value",
+  "tone": "technical",
+  "detail_level": "medium",
+  "value_shape": "single value",
+  "unit_style": null,
+  "format_notes": null,
+  "example_risk": "none",
+  "generated_at": "2026-04-04T17:44:21.382550+00:00",
+  "source_column_count": 45,
+  "provider_mode": "heuristic"
+}

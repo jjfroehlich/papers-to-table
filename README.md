@@ -68,7 +68,7 @@ The browser UI is the primary operator surface for launch, review, and export.
 
 ![Run setup screenshot](docs/screenshots/run-setup.png)
 
-The **Browse...** controls only prefill selected file names. Always confirm or edit the backend-readable path in the text box before you create a run.
+The config **Browse...** control prefills a file name for convenience. Optional override pickers can also stage selected files into backend-readable handles for a run.
 
 ### Highlighted-evidence review
 
@@ -183,9 +183,12 @@ Eval mode is artifact emission for a separate scorer, not an in-app benchmark da
 ### 1. Create a run
 
 1. Open `http://localhost:5173` in the browser.
-2. In the **Run** tab, enter the path to your config file (e.g. `config.json`). The **Browse...** control is a local convenience for picking a file name, but you should still confirm or edit the backend-readable path in the text field before creating the run.
+2. In the **Run** tab, enter the path to your config file (e.g. `config.json`). The config **Browse...** control is a local convenience for picking a file name; confirm or edit the backend-readable path before creating the run.
 3. Optionally expand **optional path overrides** to override `table_path`, `schema_path`, or `pdf_dir` for this run.
+4. For overrides, either type a backend-readable path or use **Stage... / Stage PDFs...** to upload picker-selected files into app-owned staged handles.
 4. Click **Create Run**.
+
+Run details and input summary artifacts include `resolved_inputs` so you can distinguish each input's logical source (config/path override/staged handle) from the backend runtime locator used during execution.
 
 The run progresses through: `created → validating → running → completed` (or `completed_with_warnings` / `failed`). Select any run from the list to see stage progress, warnings, and error details.
 
@@ -408,7 +411,7 @@ cd frontend && npm install && cd ..
 python -m pytest tests/e2e -m e2e
 ```
 
-This currently exercises the implemented Playwright slice for run-setup gating, picker-prefill truth, fast review, evidence cycling, explicit export, and screenshot capture.
+This currently exercises the implemented Playwright slice for run-setup gating, picker staging/prefill truth, fast review, evidence cycling, explicit export, and screenshot capture.
 
 ### Refresh README screenshots
 
@@ -445,7 +448,7 @@ Canonical test fixtures are in `tests/fixtures/`:
 - **Partial review is allowed.** Export may proceed with only a subset of proposals reviewed. Only explicitly accepted proposals are written.
 - **PDF highlight coordinates** are shown when available. When not available, quote text is shown as a text fallback.
 - **No in-place workbook patching.** The export always writes a new XLSX file; the source workbook is never modified.
-- **The Browse controls are not full file-system bridges.** They prefill selected names and still require a backend-readable path.
+- **Browser file pickers cannot provide native local paths.** For overrides, use staged handles (`Stage...` / `Stage PDFs...`) or type backend-readable paths explicitly.
 
 ---
 

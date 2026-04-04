@@ -10,8 +10,9 @@ This guide stays intentionally close to the implemented MVP. It documents the cu
 
 - Start from the **Run** tab.
 - Enter the backend-readable config path in the text field.
-- Use **Browse...** only as a filename prefill helper; confirm the real path before launch.
+- Use config **Browse...** as a filename prefill helper; confirm the real path before launch.
 - Expand **optional path overrides** only when you need a one-run override for the table, schema, or PDF directory.
+- For override pickers, use **Stage...** / **Stage PDFs...** to materialize browser-selected files into backend-readable staged handles.
 
 ### 2. Highlighted-evidence review workspace
 

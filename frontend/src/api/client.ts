@@ -48,6 +48,28 @@ export const api = {
       body: JSON.stringify(req),
     }),
 
+  stageInputFiles: async (
+    kind: 'table_path' | 'schema_path' | 'pdf_dir',
+    files: File[],
+    outputDir = './runs'
+  ) => {
+    const form = new FormData()
+    form.append('kind', kind)
+    form.append('output_dir', outputDir)
+    for (const file of files) {
+      form.append('files', file)
+    }
+    const resp = await fetch(`${API_BASE}/api/staged-inputs`, {
+      method: 'POST',
+      body: form,
+    })
+    if (!resp.ok) {
+      const text = await resp.text()
+      throw new Error(`API error ${resp.status}: ${text}`)
+    }
+    return resp.json() as Promise<import('../types').StagedInputResponse>
+  },
+
   // Proposals
   listProposals: (
     runId: string,

@@ -59,7 +59,10 @@ def _get_lock() -> asyncio.Lock:
 
 
 def get_initial_run_data(
-    run_id: str, config: RunConfig, config_path: Optional[str]
+    run_id: str,
+    config: RunConfig,
+    config_path: Optional[str],
+    resolved_inputs: Optional[dict[str, object]] = None,
 ) -> dict:
     now = datetime.now(timezone.utc).isoformat()
     run_mode = get_run_mode(config)
@@ -71,6 +74,23 @@ def get_initial_run_data(
         "table_path": config.table_path,
         "schema_path": config.schema_path,
         "pdf_dir": config.pdf_dir,
+        "resolved_inputs": resolved_inputs or {
+            "table_path": {
+                "source_kind": "config",
+                "logical_source": config.table_path,
+                "runtime_locator": config.table_path,
+            },
+            "schema_path": {
+                "source_kind": "config",
+                "logical_source": config.schema_path,
+                "runtime_locator": config.schema_path,
+            },
+            "pdf_dir": {
+                "source_kind": "config",
+                "logical_source": config.pdf_dir,
+                "runtime_locator": config.pdf_dir,
+            },
+        },
         "output_dir": config.output_dir,
         "verify_mode": config.verify_mode,
         "eval_mode": config.eval_mode,
@@ -111,6 +131,7 @@ async def run_pipeline(
     config: RunConfig,
     config_path: Optional[str],
     output_dir: str,
+    resolved_inputs: Optional[dict[str, object]] = None,
 ) -> None:
     """Main staged runner - runs as asyncio task."""
     run_json_path = get_run_json_path(output_dir, run_id)
@@ -176,7 +197,7 @@ async def run_pipeline(
         except Exception:
             return data
 
-    run_data = get_initial_run_data(run_id, config, config_path)
+    run_data = get_initial_run_data(run_id, config, config_path, resolved_inputs=resolved_inputs)
     init_run_bundle(output_dir, run_id)
     save_run(run_data)
 
@@ -203,6 +224,7 @@ async def run_pipeline(
             "table_path": config.table_path,
             "schema_path": config.schema_path,
             "pdf_dir": config.pdf_dir,
+            "resolved_inputs": run_data.get("resolved_inputs"),
             "output_dir": output_dir,
             "verify_mode": config.verify_mode,
             "eval_mode": config.eval_mode,
@@ -758,6 +780,7 @@ def launch_run(
     config: RunConfig,
     config_path: Optional[str],
     output_dir: str,
+    resolved_inputs: Optional[dict[str, object]] = None,
 ) -> None:
     """Launch a run as an asyncio background task."""
 
@@ -767,7 +790,13 @@ def launch_run(
             task = asyncio.current_task()
             _active_runs[run_id] = task  # type: ignore[assignment]
         try:
-            await run_pipeline(run_id, config, config_path, output_dir)
+            await run_pipeline(
+                run_id,
+                config,
+                config_path,
+                output_dir,
+                resolved_inputs=resolved_inputs,
+            )
         finally:
             async with lock:
                 _active_runs.pop(run_id, None)

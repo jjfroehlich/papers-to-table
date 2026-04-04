@@ -55,6 +55,12 @@ export function RunDetail({ run, onAbort, aborting }: Props) {
         <Field label="Table" value={run.table_path} />
         <Field label="Schema" value={run.schema_path} />
         <Field label="PDF dir" value={run.pdf_dir} />
+        <Field label="Table source" value={run.resolved_inputs?.table_path?.logical_source ?? null} />
+        <Field label="Table locator" value={run.resolved_inputs?.table_path?.runtime_locator ?? null} />
+        <Field label="Schema source" value={run.resolved_inputs?.schema_path?.logical_source ?? null} />
+        <Field label="Schema locator" value={run.resolved_inputs?.schema_path?.runtime_locator ?? null} />
+        <Field label="PDF source" value={run.resolved_inputs?.pdf_dir?.logical_source ?? null} />
+        <Field label="PDF locator" value={run.resolved_inputs?.pdf_dir?.runtime_locator ?? null} />
         <Field label="Output dir" value={run.output_dir} />
         <Field label="Prompt hash" value={run.prompt_hash ?? null} />
         <Field label="Schema hash" value={run.schema_hash ?? null} />

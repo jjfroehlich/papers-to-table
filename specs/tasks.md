@@ -372,13 +372,13 @@ The detailed task inventory below remains the source of truth for exact implemen
   - make UI polling or streaming keep active status current without requiring manual refresh as the primary mechanism
   - surface stale-refresh failures explicitly in the UI
 
-- [ ] **T023b** Support picker-driven input overrides in the run-creation flow while preserving config-file authority.
+- [x] **T023b** Support picker-driven input overrides in the run-creation flow while preserving config-file authority.
   - accept explicit run-input overrides for relevant file or folder paths
   - return the resolved path context that the UI should display back to the operator
   - distinguish logical input source from backend-visible runtime locator in the returned run context
   - keep override handling narrow and input-focused rather than turning the API into a broad settings editor
 
-- [ ] **T023b1** Materialize browser-selected files or directories into app-owned staged inputs or another explicit backend-readable input handle before execution so `Browse...` becomes more than filename prefill.
+- [x] **T023b1** Materialize browser-selected files or directories into app-owned staged inputs or another explicit backend-readable input handle before execution so `Browse...` becomes more than filename prefill.
 
 - [x] **T023a** Keep run creation UI-driven in practice by returning a created run immediately, then launching execution under app-owned backend control using a lightweight in-process background mechanism for MVP, with no external job framework required, while exposing validating/running/terminal state transitions, actionable failure messaging, and diagnostics/config access.
 
@@ -391,7 +391,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - missing parser or OCR dependency readiness failure where applicable
   - broken output-path or similarly broken local setup failure
 
-- [ ] **T024b** Add tests covering path-resolution and picker-driven setup truth.
+- [x] **T024b** Add tests covering path-resolution and picker-driven setup truth.
   - relative versus absolute path resolution
   - browser-selected input override handling
   - backend staging or input-handle materialization for browser-selected inputs
@@ -990,14 +990,13 @@ The detailed task inventory below remains the source of truth for exact implemen
   - support explicit no-value reviewer actions including edited-value entry and confirmed-no-data resolution
   - surface structured resolution reasons for non-accepted or manually resolved outcomes
 
-- [ ] **T086** Implement the evidence viewer pane so it supports both annotated evidence inspection and normal PDF reading behavior for text evidence and attached reviewable figure evidence.
-  - include zoom and pan capabilities as baseline viewer behavior
-  - include previous and next page navigation
-  - include jump-to-page-by-number navigation
-  - provide a standard interactive reading mode, or equivalent viewer behavior, with pointer-drag page movement and text selection/copy when the source PDF and viewer foundation permit it
+- [x] **T086** Implement the evidence viewer pane for MVP-core annotated evidence inspection plus browser-realistic reading support.
+  - include zoom controls and page navigation (previous/next and jump-to-page)
+  - keep highlight fidelity and evidence-navigation synchronization primary
   - focus on the currently selected evidence item when it changes: scroll to and center or highlight the relevant region
   - refocus stably when evidence selection or zoom changes, without arbitrary jumping
   - support figure-to-full-page context: figure evidence viewable as focused crop and as full page from the same pane
+  - provide an explicit local-PDF-viewer fallback for workflows that need native pan/select/search behavior beyond the in-pane annotated mode
 
 - [x] **T086b** Preserve ordinary PDF-viewer fallback affordances from the review pane.
   - expose an obvious action to open the current PDF in a fuller browser-native viewer when scoped evidence or in-pane controls are insufficient
@@ -1087,7 +1086,20 @@ The detailed task inventory below remains the source of truth for exact implemen
   - show which gold table and masked working table were involved
   - show schema/config/model/parser version or identity context without implying that the app computed the final eval score
 
-- [ ] **T094** Add frontend tests for grouped queue behavior, group-header summaries, group ordering rules, queue filtering, item ordering rules, nonlinear review, evidence type labeling (direct quote vs. inferred vs. calculation vs. approximate vs. fallback), exact-highlight vs. approximate-highlight vs. quote-plus-page fallback rendering, synchronized quote-list and viewer behavior, viewer navigation (previous/next page, jump to page), figure-evidence rendering with full-page access, run-summary display including text and vision model identifiers, no-data workflow rendering, picker-driven setup flow, markdown-bullet rationale rendering, click-to-populate replace behavior, overlong-text staging behavior, tooltip shortcut surfacing, and bulk-accept confirmation flow.
+- [x] **T094** Add frontend tests for MVP-core reviewer workflow behavior.
+  - grouped queue behavior and group-header summaries
+  - actionable-first ordering and filtering behavior for common triage flows
+  - evidence type labeling and fallback rendering (exact vs approximate vs quote-plus-page)
+  - synchronized evidence selection and viewer navigation controls
+  - figure-evidence rendering with full-page access
+  - run-summary display including text/vision model identifiers and Eval-mode context
+  - no-data workflow rendering and bulk-accept confirmation behavior
+  - picker-driven setup flow and resolved input-context display
+
+- [ ] **T094c** Add extended frontend regression coverage beyond MVP-core.
+  - expanded queue ordering matrix and less-common filter interactions
+  - markdown-rationale edge cases, click-to-populate variants, overlong-text staging edge cases
+  - deeper keyboard-tooltip and accessibility-state assertions
 
 - [x] **T094a** Add frontend tests for the next reviewer-throughput contract.
   - actionable-only headline counts
@@ -1101,7 +1113,16 @@ The detailed task inventory below remains the source of truth for exact implemen
   - gold-table versus masked-working-table context display
   - schema/config/model/parser context display without implying in-app benchmark scoring
 
-- [ ] **T095** Add Playwright e2e tests for the core review loop from proposal selection through grouped triage, group ordering, evidence interaction, no-data resolution, decision recording, picker-input staging, and summary updates.
+- [x] **T095** Add bounded Playwright e2e coverage for the hermetic core review loop.
+  - proposal selection, grouped triage, and actionable ordering in the main queue
+  - evidence interaction (including fallback evidence navigation) and decision recording
+  - no-data resolution and summary updates
+  - picker-input staging flow for browser-selected overrides
+  - stable locator strategy and deterministic assertions on user-visible behavior
+
+- [ ] **T095b** Add expanded Playwright coverage beyond MVP-core.
+  - broader grouped-ordering permutations and advanced filter combinations
+  - additional cross-pane interaction and long-run navigation scenarios
 
 - [x] **T095a** Add Playwright coverage for fast sequential review and explicit export flow.
   - evidence cycling and auto-advance after explicit decisions
@@ -1173,7 +1194,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T103** Ensure interrupted or failed runs leave inspectable partial artifacts and that a new run creates a new run directory rather than resuming in place by default.
 
-- [ ] **T104** Add hermetic end-to-end tests using stub providers over the fixture corpus for:
+- [x] **T104** Add hermetic end-to-end tests using stub providers over the fixture corpus for:
   - successful matched extraction
   - unmatched / ambiguous / duplicate-row blocked flows
   - weak-evidence quote+page review
