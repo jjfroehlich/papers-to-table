@@ -2,13 +2,11 @@
 
 ## Status
 
-Initial unchecked implementation task list for the evaluation repo.
+Batch 1 is partially implemented and reviewed. Checked items below should reflect work that is implemented, verified, and documented truthfully.
 
 ## Purpose
 
 This file turns `spec.md`, `plan.md`, and `research.md` into a concrete implementation checklist.
-
-All tasks remain unchecked because implementation has not started.
 
 ---
 

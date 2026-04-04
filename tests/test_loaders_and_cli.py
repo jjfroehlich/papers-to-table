@@ -13,6 +13,14 @@ from paper_eval.run_loader import load_run
 
 
 class LoaderAndCliTests(unittest.TestCase):
+    def test_run_loader_requires_required_artifact_files_with_explicit_message(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_dir = Path(temp_dir) / "run-a"
+            run_dir.mkdir(parents=True)
+
+            with self.assertRaisesRegex(ContractError, "missing required artifact files: run.json, proposals/proposals.jsonl"):
+                load_run(run_dir)
+
     def test_run_loader_requires_stable_join_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             run_dir = Path(temp_dir) / "run-a"
@@ -25,6 +33,24 @@ class LoaderAndCliTests(unittest.TestCase):
 
             with self.assertRaises(ContractError):
                 load_run(run_dir)
+
+    def test_gold_loader_marks_present_and_empty_cells(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            gold_path = Path(temp_dir) / "gold.csv"
+            gold_path.write_text(
+                "row_id,status,notes\n"
+                "row-1,yes,\n"
+                "row-2,  ,NA\n",
+                encoding="utf-8",
+            )
+
+            gold = load_gold(gold_path)
+            indexed = {(cell.row_id, cell.column_name): cell for cell in gold.cells}
+
+            self.assertTrue(indexed[("row-1", "status")].is_present)
+            self.assertFalse(indexed[("row-1", "notes")].is_present)
+            self.assertFalse(indexed[("row-2", "status")].is_present)
+            self.assertTrue(indexed[("row-2", "notes")].is_present)
 
     def test_gold_xlsx_uses_first_sheet_by_default_and_supports_selection(self) -> None:
         try:
@@ -51,6 +77,24 @@ class LoaderAndCliTests(unittest.TestCase):
             self.assertEqual(default_gold.cells[0].row_id, "row-1")
             self.assertEqual(explicit_gold.sheet_name, "Second")
             self.assertEqual(explicit_gold.cells[0].row_id, "row-2")
+
+    def test_gold_xlsx_invalid_sheet_has_explicit_message(self) -> None:
+        try:
+            from openpyxl import Workbook
+        except ModuleNotFoundError as exc:  # pragma: no cover
+            self.skipTest(str(exc))
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            gold_path = Path(temp_dir) / "gold.xlsx"
+            workbook = Workbook()
+            worksheet = workbook.active
+            worksheet.title = "First"
+            worksheet.append(["row_id", "status"])
+            worksheet.append(["row-1", "yes"])
+            workbook.save(gold_path)
+
+            with self.assertRaisesRegex(ContractError, "Worksheet 'Missing' was not found"):
+                load_gold(gold_path, sheet_name="Missing")
 
     def test_cli_scores_single_run_and_outputs_expected_artifacts(self) -> None:
         try:

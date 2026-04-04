@@ -41,7 +41,7 @@ Each proposal record must publish stable scoring identifiers directly in the art
 - `column_name`
 - `cell_id`
 
-`row_index` may be present for debugging context, but the evaluator does not use row index as the primary scoring join.
+Batch 1 matches proposals to gold cells by stable `row_id + column_name` and treats `cell_id` as a required published audit field plus an explicit mismatch diagnostic. `row_index` may be present for debugging context, but the evaluator does not use row index as the primary scoring join.
 
 ### Gold table
 
@@ -82,3 +82,5 @@ out/
 ```
 
 `scored_cells.*` includes per-cell join status, raw values, normalized values, correctness, and diagnostics.
+
+Batch 1 supports scoring multiple runs in one invocation, but it still writes only per-run outputs. Combined comparison artifacts are deferred to Batch 2.
