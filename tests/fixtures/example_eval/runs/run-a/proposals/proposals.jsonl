@@ -1,0 +1,6 @@
+{"run_id": "run-a", "row_id": "row-1", "column_name": "status", "cell_id": "cell-status-1", "proposed_value": "yes", "field_type": "boolean", "evidence": [{"page": 1, "quote_text": "The result was positive."}]}
+{"run_id": "run-a", "row_id": "row-1", "column_name": "score", "cell_id": "cell-score-1", "proposed_value": "10.3", "field_type": "numeric"}
+{"run_id": "run-a", "row_id": "row-1", "column_name": "notes", "cell_id": "cell-notes-1", "proposed_value": "Alpha result", "field_type": "text", "scoring_policy": "deterministic"}
+{"run_id": "run-a", "row_id": "row-2", "column_name": "status", "cell_id": "cell-status-2", "proposed_value": "no", "field_type": "boolean", "evidence": [{"page": 2, "quote_text": "The control arm remained negative."}]}
+{"run_id": "run-a", "row_id": "row-2", "column_name": "score", "cell_id": "cell-score-2", "proposed_value": "20.2", "field_type": "numeric"}
+{"run_id": "run-a", "row_id": "row-2", "column_name": "notes", "cell_id": "cell-notes-2", "proposed_value": "Beta result", "field_type": "text", "scoring_policy": "deterministic"}

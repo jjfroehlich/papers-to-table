@@ -1,0 +1,11 @@
+{
+  "run_id": "run-a",
+  "run_mode": "eval",
+  "provider_text_model_id": "model-a",
+  "config_hash": "cfg-a",
+  "gold_table_hash": "gold-hash-1",
+  "gold_table_snapshot_path": "gold/gold_snapshot.csv",
+  "masked_table_hash": "masked-hash-a",
+  "masked_table_snapshot_path": "masked/masked_table.csv",
+  "gold_source_ref": "fixtures/example_eval/gold.csv"
+}

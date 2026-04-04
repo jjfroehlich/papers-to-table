@@ -61,8 +61,11 @@ def _rows_to_gold_cells(
 ) -> list[GoldCell]:
     fieldname_set = set(fieldnames)
     if {"row_id", "column_name", "gold_value"}.issubset(fieldname_set):
-        return _load_long_form_rows(rows, sheet_name=sheet_name)
-    return _load_wide_form_rows(rows, fieldnames, sheet_name=sheet_name)
+        cells = _load_long_form_rows(rows, sheet_name=sheet_name)
+    else:
+        cells = _load_wide_form_rows(rows, fieldnames, sheet_name=sheet_name)
+    _validate_unique_gold_join_keys(cells)
+    return cells
 
 
 def _load_long_form_rows(rows: list[dict[str, Any]], *, sheet_name: str | None) -> list[GoldCell]:
@@ -139,3 +142,15 @@ def _optional_int(value: Any) -> int | None:
     if value is None or value == "":
         return None
     return int(value)
+
+
+def _validate_unique_gold_join_keys(cells: list[GoldCell]) -> None:
+    seen: dict[tuple[str, str], GoldCell] = {}
+    for cell in cells:
+        join_key = cell.join_key
+        if join_key in seen:
+            raise ContractError(
+                "Gold input publishes duplicate stable join keys; each scored cell must have a unique "
+                f"row_id + column_name pair. Duplicate: row_id='{cell.row_id}', column_name='{cell.column_name}'."
+            )
+        seen[join_key] = cell

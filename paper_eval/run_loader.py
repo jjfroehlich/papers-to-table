@@ -18,6 +18,58 @@ _PAGE_TEXT_FILES = (
     "support/page_texts.json",
     "support/pages.json",
 )
+_EVAL_MODE = "eval"
+_EVAL_PROVENANCE_TEXT_FIELDS = {
+    "gold_source_ref": (
+        ("gold_source_ref",),
+        ("gold_table_source_ref",),
+        ("eval", "gold_source_ref"),
+        ("eval", "gold_table_source_ref"),
+        ("provenance", "gold_source_ref"),
+        ("provenance", "gold_table_source_ref"),
+    ),
+    "gold_table_hash": (
+        ("gold_table_hash",),
+        ("gold_table_content_hash",),
+        ("gold_content_hash",),
+        ("eval", "gold_table_hash"),
+        ("eval", "gold_table_content_hash"),
+        ("provenance", "gold_table_hash"),
+        ("provenance", "gold_table_content_hash"),
+    ),
+    "gold_table_snapshot_path": (
+        ("gold_table_snapshot_path",),
+        ("gold_snapshot_path",),
+        ("eval", "gold_table_snapshot_path"),
+        ("eval", "gold_snapshot_path"),
+        ("provenance", "gold_table_snapshot_path"),
+        ("provenance", "gold_snapshot_path"),
+    ),
+    "masked_table_hash": (
+        ("masked_table_hash",),
+        ("masked_working_table_hash",),
+        ("masked_table_content_hash",),
+        ("eval", "masked_table_hash"),
+        ("eval", "masked_working_table_hash"),
+        ("provenance", "masked_table_hash"),
+        ("provenance", "masked_working_table_hash"),
+    ),
+    "masked_table_snapshot_path": (
+        ("masked_table_snapshot_path",),
+        ("masked_working_table_snapshot_path",),
+        ("masked_snapshot_path",),
+        ("eval", "masked_table_snapshot_path"),
+        ("eval", "masked_working_table_snapshot_path"),
+        ("provenance", "masked_table_snapshot_path"),
+        ("provenance", "masked_working_table_snapshot_path"),
+    ),
+}
+_REQUIRED_EVAL_PROVENANCE_FIELDS = (
+    "gold_table_hash",
+    "gold_table_snapshot_path",
+    "masked_table_hash",
+    "masked_table_snapshot_path",
+)
 
 
 def discover_run_directories(run_paths: list[Path], runs_root: Path | None) -> list[Path]:
@@ -66,6 +118,10 @@ def load_run(run_dir: Path) -> LoadedRun:
         config_payload=config_payload,
         input_summary_payload=input_summary_payload,
         run_summary_payload=run_summary_payload,
+    )
+    _validate_eval_mode_provenance(
+        metadata=metadata,
+        run_dir=run_dir,
     )
     proposals = _load_proposals(run_dir, metadata.run_id, sidecar_evidence)
     return LoadedRun(
@@ -137,6 +193,16 @@ def _build_run_metadata(
         or _required_text(run_summary_payload.get("run_id"))
         or run_dir.name
     )
+    eval_provenance = {
+        field_name: _first_present(
+            run_payload,
+            config_payload,
+            input_summary_payload,
+            run_summary_payload,
+            keys=key_paths,
+        )
+        for field_name, key_paths in _EVAL_PROVENANCE_TEXT_FIELDS.items()
+    }
     return RunMetadata(
         run_id=run_id,
         run_dir=run_dir,
@@ -214,6 +280,11 @@ def _build_run_metadata(
             run_summary_payload,
             keys=(("page_count",), ("total_pages",), ("num_pages",), ("document", "page_count")),
         ),
+        gold_source_ref=eval_provenance["gold_source_ref"],
+        gold_table_hash=eval_provenance["gold_table_hash"],
+        gold_table_snapshot_path=eval_provenance["gold_table_snapshot_path"],
+        masked_table_hash=eval_provenance["masked_table_hash"],
+        masked_table_snapshot_path=eval_provenance["masked_table_snapshot_path"],
         extras={
             "run": run_payload,
             "config_snapshot": config_payload,
@@ -221,6 +292,35 @@ def _build_run_metadata(
             "run_summary": run_summary_payload,
         },
     )
+
+
+def _validate_eval_mode_provenance(*, metadata: RunMetadata, run_dir: Path) -> None:
+    if (metadata.run_mode or "").strip().casefold() != _EVAL_MODE:
+        return
+
+    missing_fields = [
+        field_name
+        for field_name in _REQUIRED_EVAL_PROVENANCE_FIELDS
+        if not _required_text(getattr(metadata, field_name))
+    ]
+    if missing_fields:
+        raise ContractError(
+            "Eval-mode run bundles must publish provenance fields for reproducibility. "
+            f"Missing fields for run '{metadata.run_id}': {', '.join(missing_fields)}."
+        )
+
+    for field_name in ("gold_table_snapshot_path", "masked_table_snapshot_path"):
+        path_text = _required_text(getattr(metadata, field_name))
+        if path_text is None:
+            continue
+        path = Path(path_text)
+        if not path.is_absolute():
+            path = run_dir / path
+        if not path.exists():
+            raise ContractError(
+                f"Eval-mode run '{metadata.run_id}' references missing provenance artifact "
+                f"'{field_name}': {path_text}"
+            )
 
 
 def _first_present(*payloads: dict[str, Any], keys: tuple[tuple[str, ...], ...]) -> str | None:

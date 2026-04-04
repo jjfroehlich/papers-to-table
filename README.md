@@ -8,29 +8,20 @@ CLI-first evaluation for `extract-structured-info-from-papers` run bundles.
 python -m pip install -r requirements.txt
 ```
 
-## CLI
+## What inputs are required
 
-```bash
-python -m paper_eval evaluate --run path/to/run --gold gold.csv --out out/
-python -m paper_eval evaluate --run path/to/run --gold gold.xlsx --gold-sheet Sheet1 --out out/
-python -m paper_eval evaluate --run path/to/run --gold gold.csv --schema schema.json --judge-model gpt-4.1 --out out/
-python -m paper_eval evaluate --run path/to/run-a --run path/to/run-b --gold gold.csv --out out/
-python -m paper_eval evaluate --runs-root path/to/runs --gold gold.csv --out out/
-python -m paper_eval compare --summaries out/per-run --out out/compare
-```
+You need:
 
-`--judge-model` fixes the text-judge model for the evaluation run. If omitted, the evaluator also accepts `PAPER_EVAL_JUDGE_MODEL`. The evaluator reads `PAPER_EVAL_JUDGE_API_KEY` for authentication and optionally `PAPER_EVAL_JUDGE_API_BASE` for an OpenAI-compatible API base URL.
+1. one run directory, many `--run` directories, or a `--runs-root`
+2. one gold CSV or XLSX file
+3. optional schema JSON when you want field types, numeric tolerances, aliases, or text scoring overrides
 
-## Current input contract
-
-### Run bundle
-
-Required:
+### Required run-bundle files
 
 - `run.json`
 - `proposals/proposals.jsonl`
 
-Optional but loaded when present:
+### Optional run-bundle files that the evaluator loads when present
 
 - `config.snapshot.json`
 - `inputs/input_summary.json`
@@ -38,62 +29,178 @@ Optional but loaded when present:
 - `evidence/evidence.jsonl`
 - `evidence/evidence.json`
 - `support/evidence.jsonl`
+- `evidence/page_text.json`
+- `evidence/page_texts.json`
+- `evidence/pages.json`
+- `support/page_text.json`
+- `support/page_texts.json`
+- `support/pages.json`
 
-Each proposal record must publish stable scoring identifiers directly in the artifact bundle:
+### Stable join-key contract required from the main app
+
+Every proposal row must publish:
 
 - `row_id`
 - `column_name`
 - `cell_id`
 
-Batch 1 matches proposals to gold cells by stable `row_id + column_name` and treats `cell_id` as a required published audit field plus an explicit mismatch diagnostic. `row_index` may be present for debugging context, but the evaluator does not use row index as the primary scoring join.
+The evaluator scores by stable published join keys, not by reverse-engineering main-app ID logic. If any of `row_id`, `column_name`, or `cell_id` is missing, evaluation fails immediately with a contract error. `row_index` may be present for debugging context, but it is not used as the primary scoring join.
 
-### Gold table
+If gold publishes a `cell_id` and the matched proposal publishes a different `cell_id`, the cell is not scored. The mismatch is recorded in `scored_cells.*`, counted in `cell_id_mismatch_count`, and listed in `join_diagnostics`.
+
+### Eval-mode provenance contract
+
+When a run is marked `run_mode=eval`, the evaluator now requires reproducibility fields for the source tables:
+
+- `gold_table_hash`
+- `gold_table_snapshot_path`
+- `masked_table_hash`
+- `masked_table_snapshot_path`
+
+If either snapshot path is missing or points at a file that is not present in the run bundle, evaluation fails immediately.
+
+### Gold file formats
 
 CSV and XLSX are supported.
 
-- XLSX evaluation is exactly one worksheet per invocation.
-- `--gold-sheet` selects the worksheet explicitly.
-- If `--gold-sheet` is omitted, the evaluator uses the first worksheet in workbook order.
+- XLSX scoring is exactly one worksheet per invocation.
+- `--gold-sheet` selects a worksheet explicitly.
+- If `--gold-sheet` is omitted, the first worksheet in workbook order is used.
 
 Supported gold layouts:
 
 1. wide format with a required `row_id` column and one data column per field
 2. long format with `row_id`, `column_name`, `gold_value`, and optional `cell_id`
 
-For wide format, optional `{column_name}__cell_id` columns preserve explicit gold cell ids for audit and mismatch diagnostics.
+Wide-format gold may also include `{column_name}__cell_id` columns for explicit audit IDs. Gold cells must have unique `row_id + column_name` pairs; duplicate gold join keys fail fast.
 
-## Current scoring behavior
+## How to evaluate one run
 
-- scores only gold-present cells in headline structured metrics
-- keeps gold-empty cells out of headline scoring and reports them as diagnostics
-- uses stable join keys from artifacts instead of row-index-first alignment
-- deterministically scores boolean, categorical, and numeric fields
-- resolves numeric tolerances from schema per-column overrides first, then global defaults
-- uses a constrained text judge by default for text fields, with per-field or per-column deterministic override for standardized text columns
-- keeps structured metrics deterministic-first and reports `text_accuracy` separately from structured accuracy
-- fails fast if a text field requires judge-backed scoring but no fixed judge model is configured
+```bash
+python -m paper_eval evaluate \
+  --run tests/fixtures/example_eval/runs/run-a \
+  --gold tests/fixtures/example_eval/gold.csv \
+  --schema tests/fixtures/example_eval/schema.json \
+  --out out/example-single
+```
 
-## Text judge guardrails
+## How to evaluate many runs
 
-- fixed configurable judge model per evaluation run via `--judge-model`
-- temperature fixed at `0`
-- bounded field name, field description, gold value, proposed value, and optional evidence excerpt in judge requests
-- strict structured judge output with verdict labels `correct`, `incorrect`, or `unclear`
-- persisted judge metadata on scored text cells and in `judge_records.jsonl`, including model id, prompt version/hash, verdict, temperature, and input hash
-- no long free-form reasoning persisted in core artifacts; only short public rationale labels are stored when returned
+```bash
+python -m paper_eval evaluate \
+  --runs-root tests/fixtures/example_eval/runs \
+  --gold tests/fixtures/example_eval/gold.csv \
+  --schema tests/fixtures/example_eval/schema.json \
+  --out out/example-batch
+```
 
-## Current Batch 2 comparison and evidence behavior
+You can also pass repeated `--run` arguments:
 
-- `evaluate` now always writes per-run outputs plus a flat comparison table with one row per run
-- batch comparison artifacts are written to CSV, XLSX, and Parquet from the same normalized rows
-- comparison rows flatten run metadata into stable columns such as `run_id`, `mode`, `model_id`, `vision_model_id`, `parser_identity`, `parser_version`, `prompt_identity`, `schema_identity`, and `config_hash`
-- per-run summaries and comparison rows keep evidence quality separate from correctness with `anchor_valid_rate`, `correct_and_anchored_rate`, and `evidence_present_but_unvalidated_count`
-- anchor validation requires `page` plus `quote_text`, and when persisted page text is available the quote must be locatable on the cited page to count as `anchor_valid`
-- evidence with page and quote but without enough validation support, including quote strings that are not locatable in available persisted text, is reported as `evidence_present_but_unvalidated` instead of counting as fully valid
+```bash
+python -m paper_eval evaluate \
+  --run path/to/run-a \
+  --run path/to/run-b \
+  --gold gold.csv \
+  --out out/
+```
+
+## Rebuild comparison outputs without rescoring
+
+```bash
+python -m paper_eval compare --summaries out/example-batch/per-run --out out/example-batch/compare-rebuilt
+```
+
+## Text judge behavior
+
+Text fields use judge-backed scoring by default.
+
+- pass `--judge-model` to fix the judge model for the whole evaluation run
+- or set `PAPER_EVAL_JUDGE_MODEL`
+- set `PAPER_EVAL_JUDGE_API_KEY` for authentication
+- optionally set `PAPER_EVAL_JUDGE_API_BASE` or pass `--judge-api-base`
+
+Judge guardrails:
+
+- fixed model per evaluation run
+- temperature `0`
+- bounded field name, field description, gold value, proposed value, and optional evidence excerpt
+- strict verdict labels: `correct`, `incorrect`, `unclear`
+- persisted metadata in `scored_cells.*` and `judge_records.jsonl`
+
+If a text field resolves to judge-backed scoring and no judge model is configured, evaluation fails immediately. Highly standardized text columns can opt into deterministic scoring in schema or proposal metadata.
+
+## What the main metrics mean
+
+### Headline metrics
+
+- `structured_accuracy`: accuracy over scored boolean, categorical, and numeric gold-present cells
+- `boolean_accuracy`
+- `categorical_accuracy`
+- `numeric_accuracy`
+- `text_accuracy`: accuracy over scored text cells
+- `proposal_coverage_on_gold_present`: fraction of gold-present cells with exactly one scoreable matched proposal
+
+### Evidence metrics
+
+- `anchor_valid_rate`: fraction of scored cells with at least one fully validated evidence anchor
+- `correct_and_anchored_rate`: fraction of scored cells that are both correct and anchor-valid
+
+### Diagnostics
+
+- `gold_present_cell_count`
+- `gold_empty_cell_count`
+- `filled_on_gold_empty_count`
+- `missing_proposal_count`
+- `duplicate_proposal_join_count`
+- `cell_id_mismatch_count`
+- `unmatched_proposal_count`
+- `join_failure_count`
+- `evidence_present_but_unvalidated_count`
+
+## Headline vs diagnostic metrics
+
+Headline metrics are:
+
+- `structured_accuracy`
+- per-type structured accuracies
+- `text_accuracy`
+- `proposal_coverage_on_gold_present`
+
+Evidence and retrieval-style signals are separate from the headline score.
+
+- `anchor_valid_rate` and `correct_and_anchored_rate` are evidence metrics, not headline correctness
+- gold-empty proposals are diagnostics, not headline errors
+- join-key failures are diagnostics you can inspect, not silently guessed matches
+
+## Default gold-present-cell scoring policy
+
+By default the evaluator only scores gold-present cells in headline metrics.
+
+- gold-present cells are scored
+- gold-empty cells are left out of headline scoring
+- proposals on gold-empty cells are counted as diagnostics only
+
+This keeps incomplete gold tables from turning into false negatives.
+
+## Correctness and evidence are separate
+
+The evaluator does not blend answer correctness and evidence quality into one opaque score.
+
+- a cell can be correct but not anchor-valid
+- a cell can be anchor-valid but incorrect
+- `correct_and_anchored_rate` is reported separately so both dimensions stay inspectable
+
+## Diagnostics currently implemented
+
+- `anchor_valid_rate` checks whether evidence has a valid page, non-empty quote text, and locatable quote text when persisted page text is available
+- `evidence_present_but_unvalidated_count` captures cases where evidence exists but could not be fully validated
+- join diagnostics are written into per-cell outputs and summarized in `run_summary.json`
+
+`gold_in_document_rate` is not implemented yet.
 
 ## Outputs
 
-For each run:
+Every evaluation run writes stable artifact names:
 
 ```text
 out/
@@ -110,4 +217,60 @@ out/
     runs_comparison.parquet
 ```
 
-`scored_cells.*` includes per-cell join status, raw values, normalized values, correctness, evidence outcome, text scoring policy, and judge metadata when used. `judge_records.jsonl` is the per-cell inspectable judge artifact; the batch comparison tables keep only aggregated text metrics and run metadata.
+For the same input artifacts, schema, run ordering, and judge configuration, structured outputs are deterministic. Judge-backed text results are only as reproducible as the configured external model, but the evaluator fixes the judge request shape, temperature, and stored metadata.
+
+### Example `run_summary.json` excerpt
+
+```json
+{
+  "run_id": "run-a",
+  "metrics": {
+    "structured_accuracy": 1.0,
+    "text_accuracy": 1.0,
+    "anchor_valid_rate": 0.3333333333333333,
+    "join_failure_count": 0
+  }
+}
+```
+
+### Example `scored_cells.csv` rows
+
+```text
+record_kind,row_id,column_name,join_status,was_scored,is_correct,evidence_outcome
+gold_cell,row-1,status,matched,True,True,anchor_valid
+gold_cell,row-2,notes,matched,True,True,missing_evidence
+```
+
+### Example `runs_comparison.csv` rows
+
+```text
+run_id,structured_accuracy,text_accuracy,anchor_valid_rate,join_failure_count
+run-a,1.0,1.0,0.3333333333333333,0
+run-b,0.6666666666666666,0.5,0.0,0
+```
+
+## Current limitations
+
+- no GUI
+- no multi-sheet XLSX scoring in one invocation
+- no automatic fallback to hidden main-app join-key logic
+- no `gold_in_document_rate` metric yet
+- no structured-field support proxy metric yet
+- no heavyweight faithfulness or entailment system
+
+## Tested command paths
+
+The repository test suite covers:
+
+- single-run evaluation
+- batch evaluation
+- comparison artifact rebuilding with `compare`
+- join-key failure behavior
+- eval-mode provenance validation
+- normalization, comparators, evidence checks, and text judge integration
+
+Run the suite from the repo root:
+
+```bash
+python -m unittest discover -s tests -v
+```

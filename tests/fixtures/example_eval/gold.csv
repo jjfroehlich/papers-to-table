@@ -1,0 +1,3 @@
+row_id,status,score,notes,score__cell_id,notes__cell_id
+row-1,yes,10.0,Alpha result,cell-score-1,cell-notes-1
+row-2,no,20.0,Beta result,cell-score-2,cell-notes-2
