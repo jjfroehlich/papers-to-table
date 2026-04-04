@@ -9,12 +9,12 @@
     "token": "lm_studio",
     "base_url": "http://localhost:1234",
     "text_model": {
-      "model_id": "lmstudio-community/Meta-Llama-3.1-8B-Instruct-GGUF",
+      "model_id": "qwen/qwen3.5-35b-a3b",
       "temperature": 0.0,
-      "max_tokens": 2048
+      "max_tokens": 25000
     },
     "vision_model": {
-      "model_id": "lmstudio-community/llava-v1.6-mistral-7b-gguf",
+      "model_id": "google/gemma-4-26b-a4b",
       "temperature": 0.0,
       "max_tokens": 2048
     },
@@ -35,13 +35,13 @@
   },
   "retrieval": {
     "strategy": "semantic_chunks",
-    "top_k": 6,
+    "top_k": 10,
     "recall_rescue_enabled": true,
     "whole_document_mode": false,
     "whole_document_max_chars": 12000
   },
   "figure_review": {
-    "enabled": false,
+    "enabled": true,
     "max_figures_per_paper": 20
   },
   "review": {

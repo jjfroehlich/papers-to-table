@@ -82,6 +82,7 @@ def get_initial_run_data(
         "provider_vision_model_id": (
             config.provider.vision_model.model_id if config.provider.vision_model else None
         ),
+        "provider_request_counts": {},
         "prompt_version": prompt_identity["prompt_version"],
         "prompt_hash": prompt_identity["prompt_hash"],
         "config_hash": None,
@@ -150,6 +151,30 @@ async def run_pipeline(
                 "generated_at": datetime.now(timezone.utc).isoformat(),
             },
         )
+
+    def sync_provider_request_counts(data: dict, provider_obj: object, run_dir: pathlib.Path) -> dict:
+        """Persist provider request counters into run artifacts and run.json."""
+        if provider_obj is None:
+            return data
+        get_counts = getattr(provider_obj, "get_request_counts", None)
+        if not callable(get_counts):
+            return data
+        try:
+            counts = get_counts() or {}
+            data = dict(data)
+            data["provider_request_counts"] = counts
+            write_json(
+                run_dir / "provider_request_counts.json",
+                {
+                    "run_id": run_id,
+                    "provider_token": config.provider.token,
+                    "counts": counts,
+                    "recorded_at": datetime.now(timezone.utc).isoformat(),
+                },
+            )
+            return data
+        except Exception:
+            return data
 
     run_data = get_initial_run_data(run_id, config, config_path)
     init_run_bundle(output_dir, run_id)
@@ -358,6 +383,7 @@ async def run_pipeline(
             run_data["provider_locality"] = provider_mode.locality
             run_data["provider_readiness_error"] = provider_mode.readiness_error
             write_json(run_dir / "provider_mode.json", provider_mode.model_dump())
+            run_data = sync_provider_request_counts(run_data, provider, run_dir)
             save_run(run_data)
 
         # Stage: parse
@@ -643,6 +669,7 @@ async def run_pipeline(
                 whole_document_max_chars=config.retrieval.whole_document_max_chars,
                 provider_mode_str=provider_mode.mode if provider_mode else "unknown",
                 artifact_context=artifact_context,
+                max_figures_for_review=max(1, config.figure_review.max_figures_per_paper),
             )
 
             proposals_generated += 1
@@ -663,6 +690,7 @@ async def run_pipeline(
                 "message": f"{weak_count} proposal(s) have weak evidence.",
                 "context": {"count": weak_count},
             })
+        run_data = sync_provider_request_counts(run_data, provider, run_dir)
         save_run(run_data)
 
         warnings = run_data.get("warnings", [])
@@ -671,6 +699,7 @@ async def run_pipeline(
         )
         run_data = apply_transition(run_data, final_status)
         run_data["current_stage"] = None
+        run_data = sync_provider_request_counts(run_data, provider, run_dir)
         save_run(run_data)
 
         run_summary_path = get_run_summary_path(output_dir, run_id)
@@ -704,6 +733,8 @@ async def run_pipeline(
         run_data["status"] = RunStatus.interrupted.value
         run_data["completed_at"] = datetime.now(timezone.utc).isoformat()
         run_data["current_stage"] = None
+        if "provider" in locals() and "run_dir" in locals():
+            run_data = sync_provider_request_counts(run_data, provider, run_dir)
         save_run(run_data)
         raise
     except Exception as e:
@@ -716,6 +747,8 @@ async def run_pipeline(
             run_data["status"] = RunStatus.failed.value
             run_data["error_message"] = str(e)
         run_data["current_stage"] = None
+        if "provider" in locals() and "run_dir" in locals():
+            run_data = sync_provider_request_counts(run_data, provider, run_dir)
         save_run(run_data)
         write_final_summaries(run_data, run_data.get("proposals_generated", 0))
 

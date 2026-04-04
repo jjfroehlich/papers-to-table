@@ -1,0 +1,14 @@
+{
+  "column_name": "Journal",
+  "field_type_guess": "text",
+  "expected_length": "short",
+  "tone": "formal",
+  "detail_level": "medium",
+  "value_shape": "string of words in title case",
+  "unit_style": null,
+  "format_notes": "Contains proper nouns representing academic journal titles and preprint servers.",
+  "example_risk": "low",
+  "generated_at": "2026-04-04T11:16:20.388338+00:00",
+  "source_column_count": 182,
+  "provider_mode": "live_llm"
+}

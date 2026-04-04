@@ -27,6 +27,7 @@ import json
 import pathlib
 import re
 import unicodedata
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -87,6 +88,9 @@ class EvidenceRecord(BaseModel):
     parser_version: Optional[str] = None
     text_model_id: Optional[str] = None
     vision_model_id: Optional[str] = None
+    vision_context_bundle: Optional[dict] = None
+    vision_trigger_reasons: Optional[list[str]] = None
+    shortlist_metadata: Optional[dict] = None
     created_at: str
 
 
@@ -135,13 +139,39 @@ class ProposalRecord(BaseModel):
     gold_table_snapshot_path: Optional[str] = None
     masked_working_table_path: Optional[str] = None
     masked_working_table_hash: Optional[str] = None
+    vision_trigger_reasons: list[str] = []
+    vision_shortlist: Optional[list[dict]] = None
     created_at: str
 
 
 class FigureReviewHit(BaseModel):
     proposed_value: str
     rationale: Optional[str] = None
+    numeric_value_form: Optional[NumericValueForm] = None
     evidence: EvidenceRecord
+
+
+@dataclass
+class FigureReference:
+    reference_text: str
+    figure_numbers: list[int]
+    panel_hint: Optional[str]
+    context_snippet: str
+
+
+@dataclass
+class FigureShortlistCandidate:
+    figure: dict
+    total_score: float
+    caption_score: float
+    reference_score: float
+    nearby_context_score: float
+    confidence: str
+    matched_reference_snippets: list[str]
+    retrieved_context_snippets: list[str]
+    nearby_context_excerpt: Optional[str]
+    section_context: Optional[str]
+    rationale: list[str]
 
 
 # ---------------------------------------------------------------------------
@@ -424,12 +454,24 @@ def build_figure_extraction_prompt(
     column_description: str,
     caption_text: Optional[str],
     nearby_text: Optional[str],
+    retrieved_context_snippets: Optional[list[str]] = None,
+    figure_reference_snippets: Optional[list[str]] = None,
+    section_context: Optional[str] = None,
     field_type: Optional[SchemaFieldType] = None,
     allowed_values: Optional[list[str]] = None,
 ) -> list[dict]:
     """Build the vision-model figure extraction prompt (T063)."""
     caption_block = f"Figure caption: {caption_text}" if caption_text else "No caption available."
     nearby_block = f"Nearby text: {nearby_text[:400]}" if nearby_text else ""
+    retrieval_block = ""
+    if retrieved_context_snippets:
+        retrieval_block = "\n".join(f"- {snippet}" for snippet in retrieved_context_snippets[:4])
+        retrieval_block = f"Retrieved field passages:\n{retrieval_block}"
+    reference_block = ""
+    if figure_reference_snippets:
+        reference_block = "\n".join(f"- {snippet}" for snippet in figure_reference_snippets[:4])
+        reference_block = f"Figure-reference snippets from the paper:\n{reference_block}"
+    section_block = f"Likely section context: {section_context}" if section_context else ""
 
     user_content = (
         f"Field to extract: {column_name}\n"
@@ -437,9 +479,13 @@ def build_figure_extraction_prompt(
         f"{_build_field_contract(field_type, allowed_values)}\n\n"
         f"{caption_block}\n"
         f"{nearby_block}\n\n"
+        f"{retrieval_block}\n"
+        f"{reference_block}\n"
+        f"{section_block}\n\n"
         "Analyze the figure image. "
         "Does this figure provide evidence for the field above? "
         "If yes, extract the value. If not, return state='unclear'. "
+        "If estimating a value from a graph/plot, set numeric_value_form='approximate' or 'range' honestly. "
         "Return ONLY valid JSON matching the schema."
     )
 
@@ -629,7 +675,7 @@ def anchor_evidence(
     if exact_conf >= 0.9 and exact_regions:
         return EvidenceSourceType.direct_quote, exact_regions, [], exact_conf
 
-    approx_regions, approx_conf, _ = find_approximate_highlight_regions(
+    approx_regions, approx_conf, approx_page = find_approximate_highlight_regions(
         quote_text, doc_dict, target_page=page_number or found_page
     )
     if approx_conf >= 0.3 and approx_regions:
@@ -849,6 +895,11 @@ async def attempt_evidence_recovery(
         source_type, exact_regions, approx_regions, confidence = anchor_evidence(
             quote_text, page_num, doc_dict
         )
+        resolved_page = (
+            (exact_regions[0].get("page") if exact_regions else None)
+            or (approx_regions[0].get("page") if approx_regions else None)
+            or page_num
+        )
 
         ev_id = generate_evidence_id(proposal_id)
         return EvidenceRecord(
@@ -858,7 +909,7 @@ async def attempt_evidence_recovery(
             pdf_id=pdf_id,
             source_type=source_type,
             quote_text=quote_text,
-            page_number=page_num,
+            page_number=resolved_page,
             exact_highlight_regions=exact_regions or None,
             approximate_highlight_regions=approx_regions or None,
             anchor_confidence=confidence,
@@ -886,28 +937,224 @@ def _caption_relevance_score(caption: Optional[str], column_name: str, column_de
     return overlap
 
 
+_FIGURE_REF_PATTERN = re.compile(
+    r"\b(?:fig(?:ure)?\.?\s*)(\d+)([a-z])?(?:\s*[-–]\s*([a-z]))?\b",
+    re.IGNORECASE,
+)
+
+
+def _extract_figure_number(figure: dict) -> Optional[int]:
+    for source in (figure.get("caption_text"), figure.get("figure_id")):
+        if not source:
+            continue
+        match = re.search(r"(?:fig(?:ure)?\D*)(\d+)", str(source), flags=re.IGNORECASE)
+        if match:
+            try:
+                return int(match.group(1))
+            except ValueError:
+                continue
+    return None
+
+
+def _extract_figure_references_from_text(text: str) -> list[FigureReference]:
+    references: list[FigureReference] = []
+    if not text:
+        return references
+    for m in _FIGURE_REF_PATTERN.finditer(text):
+        nums: list[int] = []
+        try:
+            nums.append(int(m.group(1)))
+        except ValueError:
+            continue
+        panel_hint = None
+        start_panel = m.group(2)
+        end_panel = m.group(3)
+        if start_panel and end_panel:
+            panel_hint = f"{start_panel}-{end_panel}"
+        elif start_panel:
+            panel_hint = start_panel
+
+        start = max(0, m.start() - 140)
+        end = min(len(text), m.end() + 220)
+        snippet = text[start:end].strip()
+        references.append(
+            FigureReference(
+                reference_text=m.group(0),
+                figure_numbers=nums,
+                panel_hint=panel_hint,
+                context_snippet=snippet[:500],
+            )
+        )
+    return references
+
+
+def _safe_overlap_score(source_text: str, query_terms: set[str]) -> float:
+    if not source_text or not query_terms:
+        return 0.0
+    src_terms = set(re.findall(r"[a-z0-9]+", source_text.lower()))
+    if not src_terms:
+        return 0.0
+    return len(src_terms & query_terms) / len(query_terms)
+
+
+def _collect_retrieved_context_snippets(retrieval: Optional[RetrievalResult], max_items: int = 4) -> list[str]:
+    if retrieval is None:
+        return []
+    snippets: list[str] = []
+    for chunk in retrieval.chunks[:max_items]:
+        snippets.append(chunk.display_text[:300])
+    return snippets
+
+
+def _collect_retrieval_reference_snippets(retrieval: Optional[RetrievalResult]) -> list[FigureReference]:
+    if retrieval is None:
+        return []
+    refs: list[FigureReference] = []
+    for chunk in retrieval.chunks:
+        refs.extend(_extract_figure_references_from_text(chunk.display_text))
+    return refs
+
+
+def _collect_document_reference_snippets(doc_dict: dict) -> list[FigureReference]:
+    refs: list[FigureReference] = []
+    for block in doc_dict.get("blocks", []):
+        if block.get("block_type") not in ("paragraph", "caption", "section_heading", "heading"):
+            continue
+        refs.extend(_extract_figure_references_from_text(str(block.get("text", ""))))
+    return refs
+
+
+def _score_figure_candidate(
+    figure: dict,
+    column_name: str,
+    column_description: str,
+    retrieval: Optional[RetrievalResult],
+    doc_dict: dict,
+) -> FigureShortlistCandidate:
+    query_terms = set(re.findall(r"[a-z0-9]+", (column_name + " " + column_description).lower()))
+    caption = str(figure.get("caption_text") or "")
+    caption_score = _caption_relevance_score(caption, column_name, column_description)
+
+    retrieval_refs = _collect_retrieval_reference_snippets(retrieval)
+    document_refs = _collect_document_reference_snippets(doc_dict)
+    all_refs = retrieval_refs + document_refs
+
+    figure_no = _extract_figure_number(figure)
+    matched_refs: list[FigureReference] = []
+    if figure_no is not None:
+        matched_refs = [ref for ref in all_refs if figure_no in ref.figure_numbers]
+    reference_score = min(1.0, 0.25 * len(matched_refs)) if matched_refs else 0.0
+
+    nearby_context = _find_nearby_text(str(figure.get("figure_id", "")), doc_dict, window=3)
+    nearby_context_score = _safe_overlap_score(nearby_context or "", query_terms)
+
+    total = (0.45 * caption_score) + (0.35 * reference_score) + (0.20 * nearby_context_score)
+    if total >= 0.65:
+        confidence = "high"
+    elif total >= 0.35:
+        confidence = "medium"
+    else:
+        confidence = "low"
+
+    rationale: list[str] = []
+    if caption_score > 0:
+        rationale.append(f"caption_overlap={caption_score:.2f}")
+    if reference_score > 0:
+        rationale.append(f"figure_refs={len(matched_refs)}")
+    if nearby_context_score > 0:
+        rationale.append(f"nearby_context_overlap={nearby_context_score:.2f}")
+
+    retrieved_context_snippets = _collect_retrieved_context_snippets(retrieval)
+    section_context = None
+    if retrieval is not None and retrieval.chunks:
+        section_context = next((c.section_context for c in retrieval.chunks if c.section_context), None)
+
+    return FigureShortlistCandidate(
+        figure=figure,
+        total_score=total,
+        caption_score=caption_score,
+        reference_score=reference_score,
+        nearby_context_score=nearby_context_score,
+        confidence=confidence,
+        matched_reference_snippets=[ref.context_snippet for ref in matched_refs[:4]],
+        retrieved_context_snippets=retrieved_context_snippets,
+        nearby_context_excerpt=(nearby_context[:500] if nearby_context else None),
+        section_context=section_context,
+        rationale=rationale,
+    )
+
+
 def select_relevant_figures(
     figures: list[dict],
     column_name: str,
     column_description: str,
+    retrieval: Optional[RetrievalResult] = None,
+    doc_dict: Optional[dict] = None,
     max_figures: int = 5,
 ) -> list[dict]:
-    """Select relevant figures by caption relevance heuristic (T062).
+    """Select relevant figures using caption + references + local context scoring."""
+    if not figures:
+        return []
+    parsed_doc = doc_dict or {"blocks": [], "figures": figures}
+    candidates = [
+        _score_figure_candidate(
+            figure=fig,
+            column_name=column_name,
+            column_description=column_description,
+            retrieval=retrieval,
+            doc_dict=parsed_doc,
+        )
+        for fig in figures
+    ]
+    candidates.sort(key=lambda c: c.total_score, reverse=True)
 
-    Not every figure is processed — targeted rather than unrestricted.
-    """
-    scored = []
-    for fig in figures:
-        caption = fig.get("caption_text", "") or ""
-        score = _caption_relevance_score(caption, column_name, column_description)
-        scored.append((score, fig))
-    # Include any figure with nonzero score, plus top figures by score
-    scored.sort(key=lambda x: -x[0])
-    selected = [f for s, f in scored if s > 0.1]
-    if not selected:
-        # Fall back to top figures by position
-        selected = [f for _, f in scored[:2]]
-    return selected[:max_figures]
+    selected: list[FigureShortlistCandidate] = []
+    if candidates and candidates[0].confidence == "high":
+        selected.append(candidates[0])
+        if len(candidates) > 1 and candidates[1].total_score >= (candidates[0].total_score - 0.12):
+            selected.append(candidates[1])
+    elif candidates and candidates[0].confidence == "medium":
+        selected.extend(candidates[:2])
+    elif candidates:
+        # Bounded widening only when confidence is low.
+        selected.extend(candidates[: min(2, len(candidates))])
+
+    return [candidate.figure for candidate in selected[:max_figures]]
+
+
+def build_figure_shortlist(
+    figures: list[dict],
+    column_name: str,
+    column_description: str,
+    retrieval: Optional[RetrievalResult],
+    doc_dict: dict,
+    max_figures: int,
+) -> list[FigureShortlistCandidate]:
+    candidates = [
+        _score_figure_candidate(
+            figure=fig,
+            column_name=column_name,
+            column_description=column_description,
+            retrieval=retrieval,
+            doc_dict=doc_dict,
+        )
+        for fig in figures
+    ]
+    candidates.sort(key=lambda c: c.total_score, reverse=True)
+    if not candidates:
+        return []
+
+    shortlist: list[FigureShortlistCandidate] = []
+    if candidates[0].confidence == "high":
+        shortlist.append(candidates[0])
+        if len(candidates) > 1 and candidates[1].total_score >= (candidates[0].total_score - 0.12):
+            shortlist.append(candidates[1])
+    elif candidates[0].confidence == "medium":
+        shortlist.extend(candidates[: min(2, len(candidates))])
+    else:
+        shortlist.extend(candidates[: min(2, len(candidates))])
+
+    return shortlist[:max_figures]
 
 
 def _load_figure_image_b64(figure: dict, run_dir: pathlib.Path) -> Optional[str]:
@@ -948,9 +1195,11 @@ async def run_figure_review(
     run_dir: pathlib.Path,
     provider: ProviderAdapter,
     vision_model_id: str,
+    retrieval: Optional[RetrievalResult] = None,
     current_proposed_value: Optional[str] = None,
     field_type: Optional[SchemaFieldType] = None,
     allowed_values: Optional[list[str]] = None,
+    trigger_reasons: Optional[list[str]] = None,
     max_figures: int = 5,
 ) -> list[FigureReviewHit]:
     """Proactive figure review (T062): run vision model over relevant figures.
@@ -962,13 +1211,24 @@ async def run_figure_review(
     if not figures:
         return []
 
-    relevant = select_relevant_figures(figures, column_name, column_description, max_figures)
+    shortlist = build_figure_shortlist(
+        figures=figures,
+        column_name=column_name,
+        column_description=column_description,
+        retrieval=retrieval,
+        doc_dict=doc_dict,
+        max_figures=max_figures,
+    )
+    if not shortlist:
+        return []
+
     figure_hits: list[FigureReviewHit] = []
 
-    for figure in relevant:
+    for candidate in shortlist:
+        figure = candidate.figure
         fig_id = figure.get("figure_id", "unknown")
         caption = figure.get("caption_text", "")
-        nearby_text = _find_nearby_text(fig_id, doc_dict)
+        nearby_text = candidate.nearby_context_excerpt or _find_nearby_text(fig_id, doc_dict)
 
         # Load figure crop image
         image_b64 = _load_figure_image_b64(figure, run_dir)
@@ -981,6 +1241,9 @@ async def run_figure_review(
             column_description,
             caption,
             nearby_text,
+            retrieved_context_snippets=candidate.retrieved_context_snippets,
+            figure_reference_snippets=candidate.matched_reference_snippets,
+            section_context=candidate.section_context,
             field_type=field_type,
             allowed_values=allowed_values,
         )
@@ -996,6 +1259,7 @@ async def run_figure_review(
             fig_value = result.get("proposed_value")
             fig_rationale = result.get("rationale")
             fig_description = result.get("figure_description", "")
+            fig_numeric_form = _normalize_numeric_value_form(result.get("numeric_value_form"), field_type)
 
             if fig_state == "unclear" or not fig_value:
                 continue  # This figure doesn't support the field
@@ -1026,12 +1290,30 @@ async def run_figure_review(
                 evidence_rank=99,
                 is_primary=False,
                 is_figure_derived=True,
+                vision_context_bundle={
+                    "caption_text": caption or None,
+                    "nearby_text": nearby_text,
+                    "retrieved_context_snippets": candidate.retrieved_context_snippets,
+                    "figure_reference_snippets": candidate.matched_reference_snippets,
+                    "section_context": candidate.section_context,
+                },
+                vision_trigger_reasons=list(trigger_reasons or []),
+                shortlist_metadata={
+                    "figure_id": fig_id,
+                    "total_score": candidate.total_score,
+                    "caption_score": candidate.caption_score,
+                    "reference_score": candidate.reference_score,
+                    "nearby_context_score": candidate.nearby_context_score,
+                    "confidence": candidate.confidence,
+                    "rationale": candidate.rationale,
+                },
                 created_at=datetime.now(timezone.utc).isoformat(),
             )
             figure_hits.append(
                 FigureReviewHit(
                     proposed_value=str(fig_value).strip(),
                     rationale=fig_rationale,
+                    numeric_value_form=fig_numeric_form,
                     evidence=ev,
                 )
             )
@@ -1058,6 +1340,57 @@ def _find_nearby_text(figure_id: str, doc_dict: dict, window: int = 2) -> Option
     # Return text of last few blocks on that page as nearby context
     nearby = page_blocks[-window:]
     return " ".join(b.get("text", "") for b in nearby)[:500]
+
+
+def _has_numeric_conflict_in_quotes(quotes: list[dict]) -> bool:
+    numeric_values: set[str] = set()
+    for quote in quotes:
+        text = str(quote.get("text", "") or "")
+        for num in re.findall(r"\b\d+(?:\.\d+)?%?\b", text):
+            numeric_values.add(num)
+    return len(numeric_values) >= 2
+
+
+def _retrieval_looks_figure_promising(retrieval: Optional[RetrievalResult]) -> bool:
+    if retrieval is None:
+        return False
+    marker = re.compile(r"\b(fig(?:ure)?\.?\s*\d+|panel\s*[a-z]|chart|plot|graph|image|microscopy)\b", re.IGNORECASE)
+    for chunk in retrieval.chunks[:8]:
+        text = chunk.display_text or ""
+        if chunk.chunk_type == "caption":
+            return True
+        if marker.search(text):
+            return True
+    return False
+
+
+def decide_vision_trigger_reasons(
+    state: ProposalState,
+    support: SupportLabel,
+    quotes: list[dict],
+    retrieval: Optional[RetrievalResult],
+    needs_more_evidence: bool,
+    proposed_value: Optional[str],
+) -> list[str]:
+    reasons: list[str] = []
+    if state == ProposalState.unclear:
+        reasons.append("text_unclear")
+    if support == SupportLabel.weak_evidence or needs_more_evidence:
+        reasons.append("text_weak")
+    if support == SupportLabel.inferred_from_evidence and state == ProposalState.found:
+        reasons.append("confirmation_useful")
+    if _has_numeric_conflict_in_quotes(quotes):
+        reasons.append("text_contradictory")
+    if _retrieval_looks_figure_promising(retrieval):
+        reasons.append("figure_graph_promising")
+    if proposed_value is None and _retrieval_looks_figure_promising(retrieval):
+        reasons.append("figure_rescue_candidate")
+    # Stable order + dedupe
+    ordered: list[str] = []
+    for reason in reasons:
+        if reason not in ordered:
+            ordered.append(reason)
+    return ordered
 
 
 # ---------------------------------------------------------------------------
@@ -1172,6 +1505,7 @@ async def extract_cell(
     whole_document_max_chars: int = 12000,
     provider_mode_str: str = "unknown",
     artifact_context: Optional[dict] = None,
+    max_figures_for_review: int = 5,
 ) -> ProposalRecord:
     """Extract one cell value and produce a proposal with evidence.
 
@@ -1419,6 +1753,11 @@ async def extract_cell(
             anchored_type, exact_regions, approx_regions, confidence = anchor_evidence(
                 quote_text, page_num, doc_dict
             )
+            resolved_page = (
+                (exact_regions[0].get("page") if exact_regions else None)
+                or (approx_regions[0].get("page") if approx_regions else None)
+                or page_num
+            )
             ev_id = generate_evidence_id(proposal_id)
             ev = EvidenceRecord(
                 evidence_id=ev_id,
@@ -1427,7 +1766,7 @@ async def extract_cell(
                 pdf_id=pdf_id,
                 source_type=anchored_type,
                 quote_text=quote_text,
-                page_number=page_num,
+                page_number=resolved_page,
                 exact_highlight_regions=exact_regions or None,
                 approximate_highlight_regions=approx_regions or None,
                 anchor_confidence=confidence,
@@ -1476,7 +1815,47 @@ async def extract_cell(
 
     # Proactive figure review (T062): when vision model configured
     figure_hits: list[FigureReviewHit] = []
-    if vision_model_id and doc_dict.get("figures"):
+    preliminary_support = determine_support_label(
+        state,
+        evidence_records,
+        proposed_value=proposed_value,
+        field_type=field_type,
+    )
+    vision_trigger_reasons = decide_vision_trigger_reasons(
+        state=state,
+        support=preliminary_support,
+        quotes=quotes,
+        retrieval=retrieval,
+        needs_more_evidence=needs_more,
+        proposed_value=proposed_value,
+    )
+    should_run_vision = bool(
+        vision_model_id
+        and doc_dict.get("figures")
+        and vision_trigger_reasons
+    )
+
+    shortlist_metadata: list[dict] = []
+    if should_run_vision:
+        shortlist_preview = build_figure_shortlist(
+            figures=doc_dict.get("figures", []),
+            column_name=column_name,
+            column_description=column_description,
+            retrieval=retrieval,
+            doc_dict=doc_dict,
+            max_figures=max_figures_for_review,
+        )
+        shortlist_metadata = [
+            {
+                "figure_id": str(item.figure.get("figure_id", "unknown")),
+                "score": item.total_score,
+                "confidence": item.confidence,
+                "rationale": item.rationale,
+            }
+            for item in shortlist_preview
+        ]
+
+    if should_run_vision:
         try:
             figure_hits = await run_figure_review(
                 proposal_id=proposal_id,
@@ -1488,9 +1867,12 @@ async def extract_cell(
                 run_dir=run_dir,
                 provider=provider,
                 vision_model_id=vision_model_id,
+                retrieval=retrieval,
                 current_proposed_value=proposed_value,
                 field_type=field_type,
                 allowed_values=allowed_values,
+                trigger_reasons=vision_trigger_reasons,
+                max_figures=max_figures_for_review,
             )
         except Exception:
             pass  # Figure review failure does not abort the proposal
@@ -1518,6 +1900,8 @@ async def extract_cell(
     if figure_hits and not proposed_value:
         best_figure_hit = figure_hits[0]
         proposed_value = best_figure_hit.proposed_value
+        if field_type == SchemaFieldType.number and best_figure_hit.numeric_value_form is not None:
+            numeric_value_form = best_figure_hit.numeric_value_form
         if not rationale:
             rationale = _normalize_rationale(best_figure_hit.rationale)
         state = ProposalState.inferred
@@ -1552,6 +1936,10 @@ async def extract_cell(
         warning_flags.append("fallback_evidence_used")
     if any(ev.source_type == EvidenceSourceType.approximate_highlight for ev in ranked_evidence):
         warning_flags.append("approximate_highlight")
+    if numeric_value_form == NumericValueForm.approximate:
+        warning_flags.append("approximate_value")
+    if numeric_value_form == NumericValueForm.range:
+        warning_flags.append("range_value")
 
     proposal = ProposalRecord(
         proposal_id=proposal_id,
@@ -1594,6 +1982,8 @@ async def extract_cell(
         gold_table_snapshot_path=gold_table_snapshot_path,
         masked_working_table_path=masked_working_table_path,
         masked_working_table_hash=masked_working_table_hash,
+        vision_trigger_reasons=vision_trigger_reasons,
+        vision_shortlist=shortlist_metadata or None,
         created_at=now,
     )
 

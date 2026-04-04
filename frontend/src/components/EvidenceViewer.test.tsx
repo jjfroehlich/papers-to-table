@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { vi, describe, it, expect, beforeAll, beforeEach } from 'vitest'
+import * as pdfjsLib from 'pdfjs-dist'
 import { EvidenceViewer } from './EvidenceViewer'
 import type { EvidenceItem } from '../types'
 
@@ -28,6 +29,20 @@ beforeAll(() => {
       constructor() {}
       invertSelf() { return this }
     }
+  }
+
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => {
+    return {} as CanvasRenderingContext2D
+  })
+
+  if (!('scrollTo' in HTMLElement.prototype)) {
+    Object.defineProperty(HTMLElement.prototype, 'scrollTo', {
+      value: vi.fn(),
+      configurable: true,
+      writable: true,
+    })
+  } else {
+    vi.spyOn(HTMLElement.prototype, 'scrollTo').mockImplementation(() => {})
   }
 })
 
@@ -67,6 +82,13 @@ const approxEvidence: EvidenceItem = {
   source_label: 'Approximate highlight',
 }
 
+const approxEvidenceWithoutPageNumber: EvidenceItem = {
+  ...approxEvidence,
+  evidence_id: 'ev4',
+  page_number: null,
+  approximate_highlight_regions: [{ x0: 10, y0: 20, x1: 100, y1: 50, page: 7 }],
+}
+
 const figureEvidence: EvidenceItem = {
   evidence_id: 'ev3',
   proposal_id: 'p1',
@@ -85,11 +107,48 @@ const figureEvidence: EvidenceItem = {
   source_label: 'Figure',
 }
 
+function mockResolvedPdf(options?: {
+  textItems?: Array<{ str: string; transform: number[]; width: number; height: number }>
+  numPages?: number
+}) {
+  const textItems = options?.textItems ?? []
+  const page = {
+    view: [0, 0, 600, 800],
+    getViewport: ({ scale }: { scale: number }) => ({
+      width: 600 * scale,
+      height: 800 * scale,
+      scale,
+      transform: [scale, 0, 0, scale, 0, 0],
+    }),
+    render: vi.fn().mockReturnValue({
+      promise: Promise.resolve(),
+      cancel: vi.fn(),
+    }),
+    getTextContent: vi.fn().mockResolvedValue({ items: textItems }),
+  }
+
+  const doc = {
+    numPages: options?.numPages ?? 1,
+    getPage: vi.fn().mockResolvedValue(page),
+  }
+
+  const getDocument = pdfjsLib.getDocument as unknown as ReturnType<typeof vi.fn>
+  getDocument.mockReturnValue({
+    promise: Promise.resolve(doc),
+    destroy: vi.fn().mockResolvedValue(undefined),
+  })
+}
+
 describe('EvidenceViewer', () => {
   const onSelectEvidence = vi.fn()
 
   beforeEach(() => {
     onSelectEvidence.mockClear()
+    const getDocument = pdfjsLib.getDocument as unknown as ReturnType<typeof vi.fn>
+    getDocument.mockReset()
+    getDocument.mockReturnValue({
+      promise: new Promise(() => {}),
+    })
   })
 
   it('shows annotated-viewer guidance and local-viewer action', () => {
@@ -214,6 +273,23 @@ describe('EvidenceViewer', () => {
     expect(screen.getByRole('spinbutton')).toBeInTheDocument()
   })
 
+  it('infers page input from highlight regions when page_number is missing', () => {
+    render(
+      <EvidenceViewer
+        runId="r1"
+        pdfId="paper-a"
+        evidence={approxEvidenceWithoutPageNumber}
+        evidenceList={[approxEvidenceWithoutPageNumber]}
+        selectedEvidenceId="ev4"
+        activeEvidenceIndex={0}
+        onSelectEvidence={onSelectEvidence}
+        outputDir="./runs"
+      />
+    )
+
+    expect(screen.getByRole('spinbutton')).toHaveValue(7)
+  })
+
   it('cycles to the next evidence item from the toolbar', () => {
     render(
       <EvidenceViewer
@@ -230,5 +306,99 @@ describe('EvidenceViewer', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Next evidence/i }))
     expect(onSelectEvidence).toHaveBeenCalledWith('ev2')
+  })
+
+  it('renders quote-anchored overlay rectangles from resolved PDF text content', async () => {
+    mockResolvedPdf({
+      numPages: 5,
+      textItems: [
+        {
+          str: 'A total of 120 participants were enrolled.',
+          transform: [1, 0, 0, 1, 10, 30],
+          width: 120,
+          height: 12,
+        },
+      ],
+    })
+
+    const { container } = render(
+      <EvidenceViewer
+        runId="r1"
+        pdfId="paper-a"
+        evidence={quoteEvidence}
+        evidenceList={[quoteEvidence]}
+        selectedEvidenceId="ev1"
+        activeEvidenceIndex={0}
+        onSelectEvidence={onSelectEvidence}
+        outputDir="./runs"
+      />
+    )
+
+    await waitFor(() => {
+      const overlays = container.querySelectorAll('div.absolute.pointer-events-none')
+      expect(overlays.length).toBeGreaterThan(0)
+      expect((overlays[0] as HTMLDivElement).style.left).toMatch(/px$/)
+      expect((overlays[0] as HTMLDivElement).style.top).toMatch(/px$/)
+      expect((overlays[0] as HTMLDivElement).style.border).toContain('rgba(200, 160, 0')
+    })
+  })
+
+  it('shows approximate fallback note when quote matching fails and approximate region is used', async () => {
+    mockResolvedPdf({
+      numPages: 5,
+      textItems: [
+        {
+          str: 'This text does not include the evidence quote.',
+          transform: [1, 0, 0, 1, 12, 28],
+          width: 100,
+          height: 10,
+        },
+      ],
+    })
+
+    const quoteWithApprox: EvidenceItem = {
+      ...quoteEvidence,
+      evidence_id: 'ev-quote-approx',
+      approximate_highlight_regions: [{ x0: 0.1, y0: 0.2, x1: 0.35, y1: 0.28, page: 3 }],
+    }
+
+    const { container } = render(
+      <EvidenceViewer
+        runId="r1"
+        pdfId="paper-a"
+        evidence={quoteWithApprox}
+        evidenceList={[quoteWithApprox]}
+        selectedEvidenceId="ev-quote-approx"
+        activeEvidenceIndex={0}
+        onSelectEvidence={onSelectEvidence}
+        outputDir="./runs"
+      />
+    )
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/approximate block highlight because the exact quote could not be matched/i)
+      ).toBeInTheDocument()
+      const overlays = container.querySelectorAll('div.absolute.pointer-events-none')
+      expect(overlays.length).toBeGreaterThan(0)
+      expect((overlays[0] as HTMLDivElement).style.border).toContain('dashed')
+    })
+  })
+
+  it('defaults to 135% zoom for readability', () => {
+    render(
+      <EvidenceViewer
+        runId="r1"
+        pdfId="paper-a"
+        evidence={quoteEvidence}
+        evidenceList={[quoteEvidence]}
+        selectedEvidenceId="ev1"
+        activeEvidenceIndex={0}
+        onSelectEvidence={onSelectEvidence}
+        outputDir="./runs"
+      />
+    )
+
+    expect(screen.getByText('135%')).toBeInTheDocument()
   })
 })

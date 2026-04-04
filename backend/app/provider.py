@@ -168,6 +168,10 @@ class ProviderAdapter(abc.ABC):
             recorded_at=datetime.now(timezone.utc).isoformat(),
         )
 
+    def get_request_counts(self) -> dict[str, int]:
+        """Return provider request counters for run artifacts."""
+        return {}
+
 
 # ---------------------------------------------------------------------------
 # Provider errors (T052)
@@ -257,6 +261,22 @@ class LMStudioProvider(ProviderAdapter):
     def __init__(self, base_url: str = "http://localhost:1234"):
         self._base_url = base_url.rstrip("/")
         self._capabilities: Optional[ProviderCapabilities] = None
+        self._request_counts: dict[str, int] = {
+            "http_total": 0,
+            "models_list": 0,
+            "completions_total": 0,
+            "completions_text_raw": 0,
+            "completions_text_structured": 0,
+            "completions_vision_structured": 0,
+            "completions_probe_structured": 0,
+            "completion_retry_attempts": 0,
+        }
+
+    def _bump(self, key: str, amount: int = 1) -> None:
+        self._request_counts[key] = self._request_counts.get(key, 0) + amount
+
+    def get_request_counts(self) -> dict[str, int]:
+        return dict(self._request_counts)
 
     @property
     def token(self) -> str:
@@ -282,6 +302,8 @@ class LMStudioProvider(ProviderAdapter):
         now = datetime.now(timezone.utc).isoformat()
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
+                self._bump("http_total")
+                self._bump("models_list")
                 resp = await client.get(f"{self._base_url}/v1/models")
                 if resp.status_code != 200:
                     return ProviderCapabilities(
@@ -353,6 +375,9 @@ class LMStudioProvider(ProviderAdapter):
                 "temperature": 0.0,
             }
             async with httpx.AsyncClient(timeout=15.0) as client:
+                self._bump("http_total")
+                self._bump("completions_total")
+                self._bump("completions_probe_structured")
                 resp = await client.post(
                     f"{self._base_url}/v1/chat/completions", json=payload
                 )
@@ -392,6 +417,9 @@ class LMStudioProvider(ProviderAdapter):
         }
         try:
             async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
+                self._bump("http_total")
+                self._bump("completions_total")
+                self._bump("completions_text_raw")
                 resp = await client.post(
                     f"{self._base_url}/v1/chat/completions", json=payload
                 )
@@ -431,6 +459,7 @@ class LMStudioProvider(ProviderAdapter):
             try:
                 return json.loads(first_raw)
             except json.JSONDecodeError:
+                self._bump("completion_retry_attempts")
                 stronger_retry_payload = self._build_payload(
                     list(messages) + [
                         {
@@ -466,6 +495,9 @@ class LMStudioProvider(ProviderAdapter):
 
     async def _post_structured_payload(self, payload: dict, model_id: str) -> str:
         async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
+            self._bump("http_total")
+            self._bump("completions_total")
+            self._bump("completions_text_structured")
             resp = await client.post(
                 f"{self._base_url}/v1/chat/completions", json=payload
             )
@@ -560,6 +592,7 @@ class LMStudioProvider(ProviderAdapter):
             try:
                 return json.loads(first_raw)
             except json.JSONDecodeError:
+                self._bump("completion_retry_attempts")
                 stronger_retry_payload = self._build_payload(
                     vision_messages + [
                         {
@@ -595,6 +628,9 @@ class LMStudioProvider(ProviderAdapter):
 
     async def _post_vision_payload(self, payload: dict, model_id: str) -> str:
         async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT * 2) as client:
+            self._bump("http_total")
+            self._bump("completions_total")
+            self._bump("completions_vision_structured")
             resp = await client.post(
                 f"{self._base_url}/v1/chat/completions", json=payload
             )

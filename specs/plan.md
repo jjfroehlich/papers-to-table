@@ -311,28 +311,30 @@ This keeps the benefit of column-specific output shaping while avoiding heuristi
 
 ---
 
-### TD-11: Figure review is proactive and targeted when vision capability is available
+### TD-11: Figure review is text-guided and targeted when vision capability is available
 
-When vision capability is available (a vision model is configured), the system must review all relevant extracted figures as a normal supplemental evidence stage, not only when text extraction has already failed.
+When vision capability is available (a vision model is configured), the system must use text-guided figure and panel shortlisting before vision calls. The system should avoid broad weakly targeted figure inspection when a stronger text-guided shortlist can be formed.
 
-Proactive figure review allows the system to:
+Text-guided targeted figure review allows the system to:
 - provide figure evidence that strengthens or corroborates text-derived proposals
 - supplement weak or ambiguous text proposals with figure evidence
 - rescue weak, unclear, or failed text-only proposals when figure evidence is available
 
 Figure evidence must be allowed to support any field type when it materially strengthens the answer. The system must not restrict figure evidence to fields explicitly classified as figure-derived.
 
+The trigger for vision should be evidence-aware rather than schema-policy-driven. Vision should usually run when text evidence is unclear, weak, contradictory, or needs confirmation. Vision may also run when text lacks an exact value but a figure can support an approximate or range-style proposal.
+
 The distinction between proactive figure review and unrestricted full-page multimodal reasoning is important:
-- proactive figure review: all relevant extracted figures are reviewed as a supplemental evidence stage
+- proactive targeted figure review: text, captions, and figure-reference context are used to shortlist candidate figures or panels before inspection
 - unrestricted full-page reasoning: every page of every paper is sent to a vision model for every field
 
 The second is explicitly out of scope. The first is required when vision capability is available.
 
 **Rationale:**
-The prior narrow-fallback design meant figures were only consulted when text had already failed. But figures often contain complementary information that strengthens text evidence, and a reviewer cannot benefit from figure evidence that was never collected. Proactive targeted figure review makes figure evidence available as a first-class evidential source while staying within a reasonable operational scope.
+The prior narrow-fallback design meant figures were only consulted when text had already failed, while broad proactive inspection risks unnecessary cost and noise. Text-guided targeted figure review keeps figure evidence available as a first-class evidential source but narrows calls to candidates that are actually supported by field intent and nearby paper context.
 
 **Implementation direction:**
-The figure review stage receives all figures extracted from the parsed document for the current paper. The stage should select relevant figures rather than processing every figure indiscriminately. Relevance can be determined by structural heuristics, captions, or an LLM-assisted selection step, as long as the scope remains targeted rather than blanket per-page vision.
+The figure review stage receives extracted figures for the current paper, then builds a ranked shortlist using retrieved field text, caption relevance, and figure-reference snippets from the main text. Vision requests should include that textual context so the model inspects figures with guidance rather than blindly. The same strategy applies to all fields without adding per-field schema vision rules.
 
 ---
 
@@ -575,11 +577,11 @@ The MVP pipeline should run in these explicit stages:
    - validate page-grounded evidence
    - run one narrow recovery step if evidence is missing/weak/unusable
    - preserve weak-but-reviewable proposals
-8. **Review relevant figures as supplemental evidence when vision capability is available**
-   - when a vision model is configured, review all relevant extracted figures for the current paper as a normal supplemental evidence stage
-   - select relevant figures by structural heuristics, captions, or LLM-assisted selection rather than processing every figure indiscriminately
-   - use crop + caption + nearby text + full page as the input package
-   - figure evidence may strengthen text-derived proposals, supplement weak proposals, or rescue failed text-only proposals
+8. **Review text-guided shortlisted figures as supplemental evidence when vision capability is available**
+   - when a vision model is configured, build a ranked figure or panel shortlist per field from retrieved text, caption relevance, and figure-reference snippets before vision calls
+   - trigger vision primarily when text evidence is unclear, weak, contradictory, or needs confirmation, while keeping rescue availability for all fields
+   - use crop + caption + figure-reference text + nearby local context + full page as the input package
+   - figure evidence may strengthen text-derived proposals, supplement weak proposals, rescue failed text-only proposals, or support approximate or range numeric proposals when text lacks an exact value
    - figure evidence is allowed for any field type, not restricted to figure-classified fields
 9. **Write proposal artifacts**
     - write proposals, proposal index, evidence, diagnostics, and run summaries as JSON artifacts
@@ -1254,19 +1256,21 @@ The system should:
 
 Figures are first-class evidence sources, not a last-resort fallback.
 
-When vision capability is available, the system should review all relevant extracted figures as a normal supplemental evidence stage. This proactive approach means:
+When vision capability is available, the system should use text-guided figure and panel shortlisting as a normal supplemental evidence stage. This approach means:
 - figure evidence may strengthen or corroborate any proposal, not just those whose field type is explicitly classified as figure-derived
 - figure evidence may rescue weak, unclear, or failed text-only proposals
 - figure evidence may supplement text evidence to increase reviewer confidence
+- figure evidence may support approximate or range-style numeric proposals from graphs when text lacks an exact value
 
 The MVP should:
 - extract figure/caption relationships when available at parse time
 - generate crops and page references for review
-- run relevant extracted figures through vision review when a vision model is configured, selecting by structural heuristics or relevance rather than exhaustively processing every figure
+ - shortlist candidate figures or panels from retrieved text, caption relevance, and figure-reference context, then run that shortlist through vision review when a vision model is configured
+ - pass figure-referencing textual context into vision requests so interpretation is context-guided rather than blind
 
 Figure-derived proposals remain normal proposals, but their evidence source must preserve whether support was caption-grounded or primarily visual interpretation.
 
-The scope is targeted: relevant extracted figures per paper, not every page of every paper for every field. This keeps the approach focused while ensuring figure evidence is available where it matters.
+The scope is targeted: text-guided shortlisted figures or panels per field, not every page of every paper for every field. This keeps the approach focused while ensuring figure evidence is available where it matters.
 
 ## Evaluation boundary
 
@@ -1677,7 +1681,7 @@ Run-summary and reviewer-summary counters and warning flags should be computed f
 - end-to-end stub run
 - review API and UI smoke
 - export generation
-- proactive figure review path
+- text-guided targeted figure review path
 - Verify mode flow
 
 ### Deterministic offline tests
@@ -1792,7 +1796,7 @@ Extract Structured Info from Papers will be implemented as a local-first workflo
 - exact quote highlighting via page-text alignment with honest labeled fallback to approximate highlight or quote-plus-page
 - synchronized quote list and document viewer around the currently selected evidence item
 - viewer navigation: previous/next page, jump to page, zoom with stable refocus on evidence
-- proactive figure review across all relevant extracted figures when a vision model is configured, with figure evidence allowed for any field type
+- text-guided targeted figure review using shortlisted figures or panels when a vision model is configured, with figure evidence allowed for any field type
 - separate text-model and vision-model configuration, with both recorded in run artifacts and shown in summaries
 - new XLSX export plus audit log with content-only fidelity plus changed-cell highlighting
 

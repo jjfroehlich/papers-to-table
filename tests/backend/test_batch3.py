@@ -164,7 +164,15 @@ def minimal_doc_dict() -> dict:
                 "caption_text": "Figure 1. Micro-CT images showing bone ingrowth at 8 weeks.",
                 "bbox": [10, 530, 400, 700],
                 "crop_path": None,
-            }
+            },
+            {
+                "figure_id": "fig_2",
+                "page_number": 3,
+                "caption_block_id": None,
+                "caption_text": "Figure 2. Mechanical testing setup and load-displacement curve.",
+                "bbox": [10, 300, 420, 500],
+                "crop_path": None,
+            },
         ],
         "full_text": "Methods\nThe scaffold was implanted in the tibial defect of Sprague-Dawley rats.\n"
                      "Figure 1. Micro-CT images showing bone ingrowth at 8 weeks.\n"
@@ -176,6 +184,19 @@ def minimal_doc_dict() -> dict:
             {"page_number": 3, "width": 595, "height": 842, "text_accessible": True, "block_count": 1},
         ],
     }
+
+
+def _minimal_png_bytes() -> bytes:
+    import struct
+    import zlib
+
+    def chunk(tag: bytes, data: bytes) -> bytes:
+        c = struct.pack(">I", len(data)) + tag + data
+        return c + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+
+    ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
+    idat = zlib.compress(b"\x00\xFF\xFF\xFF")
+    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", idat) + chunk(b"IEND", b"")
 
 
 # ===========================================================================
@@ -1141,6 +1162,38 @@ class TestFigureReview:
         selected_captions = [f.get("caption_text", "") for f in selected]
         assert any("bone" in (c or "").lower() for c in selected_captions)
 
+    def test_shortlist_prefers_figure_referenced_in_retrieved_text(self, minimal_doc_dict: dict):
+        retrieval = RetrievalResult(
+            run_id="run_test",
+            pdf_id="paper_test",
+            column_name="Mechanical readout",
+            query="mechanical load displacement figure 2",
+            top_k=6,
+            chunks=[
+                RetrievalChunk(
+                    chunk_id="c1",
+                    source_block_id="bref",
+                    chunk_type="paragraph",
+                    page_number=3,
+                    reading_order=10,
+                    display_text="As shown in Fig. 2a, the load-displacement curve indicates increased stiffness.",
+                    retrieval_text="As shown in Fig. 2a, the load-displacement curve indicates increased stiffness.",
+                )
+            ],
+            mode="baseline",
+            retrieved_at="2026-04-04T00:00:00Z",
+        )
+        selected = select_relevant_figures(
+            minimal_doc_dict["figures"],
+            "Mechanical readout",
+            "Load-displacement measurement from figure",
+            retrieval=retrieval,
+            doc_dict=minimal_doc_dict,
+            max_figures=2,
+        )
+        assert selected
+        assert selected[0]["figure_id"] == "fig_2"
+
     def test_select_relevant_figures_irrelevant_query(self, minimal_doc_dict: dict):
         """T062: unrelated query returns minimal figures."""
         figures = minimal_doc_dict["figures"]
@@ -1183,16 +1236,8 @@ class TestFigureReview:
         from backend.app.extraction import run_figure_review
 
         # Create a minimal PNG crop file so the vision path can be triggered
-        import struct, zlib
-        def _minimal_png() -> bytes:
-            def chunk(tag: bytes, data: bytes) -> bytes:
-                c = struct.pack(">I", len(data)) + tag + data
-                return c + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
-            ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
-            idat = zlib.compress(b"\x00\xFF\xFF\xFF")
-            return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", idat) + chunk(b"IEND", b"")
         crop_path = run_dir / "fig_crop.png"
-        crop_path.write_bytes(_minimal_png())
+        crop_path.write_bytes(_minimal_png_bytes())
 
         doc_with_crop = dict(minimal_doc_dict)
         doc_with_crop["figures"] = [
@@ -1227,17 +1272,8 @@ class TestFigureReview:
     ):
         """T062: figure evidence can support any field type, not just image-type fields."""
         from backend.app.extraction import run_figure_review
-        import struct, zlib
-
-        def _minimal_png() -> bytes:
-            def chunk(tag: bytes, data: bytes) -> bytes:
-                c = struct.pack(">I", len(data)) + tag + data
-                return c + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
-            ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
-            idat = zlib.compress(b"\x00\xFF\xFF\xFF")
-            return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", idat) + chunk(b"IEND", b"")
         crop_path = run_dir / "fig_crop2.png"
-        crop_path.write_bytes(_minimal_png())
+        crop_path.write_bytes(_minimal_png_bytes())
 
         doc_with_crop = dict(minimal_doc_dict)
         doc_with_crop["figures"] = [
@@ -1272,17 +1308,8 @@ class TestFigureReview:
         self, run_dir: pathlib.Path, minimal_doc_dict: dict
     ):
         """T062: figure evidence can upgrade an unclear proposal."""
-        import struct, zlib
-
-        def _minimal_png() -> bytes:
-            def chunk(tag: bytes, data: bytes) -> bytes:
-                c = struct.pack(">I", len(data)) + tag + data
-                return c + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
-            ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
-            idat = zlib.compress(b"\x00\xFF\xFF\xFF")
-            return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", idat) + chunk(b"IEND", b"")
         crop_path = run_dir / "fig_crop3.png"
-        crop_path.write_bytes(_minimal_png())
+        crop_path.write_bytes(_minimal_png_bytes())
 
         doc_with_crop = dict(minimal_doc_dict)
         doc_with_crop["figures"] = [
@@ -1336,18 +1363,8 @@ class TestFigureReview:
         run_dir: pathlib.Path,
         minimal_doc_dict: dict,
     ):
-        import struct, zlib
-
-        def _minimal_png() -> bytes:
-            def chunk(tag: bytes, data: bytes) -> bytes:
-                c = struct.pack(">I", len(data)) + tag + data
-                return c + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
-            ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
-            idat = zlib.compress(b"\x00\xFF\xFF\xFF")
-            return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", idat) + chunk(b"IEND", b"")
-
         crop_path = run_dir / "fig_crop4.png"
-        crop_path.write_bytes(_minimal_png())
+        crop_path.write_bytes(_minimal_png_bytes())
 
         doc_with_crop = dict(minimal_doc_dict)
         doc_with_crop["figures"] = [
@@ -1391,6 +1408,187 @@ class TestFigureReview:
         ]
         assert proposal.proposed_value == "Tibial defect"
         assert not any(ev.is_figure_derived for ev in proposal_evidence)
+
+    async def test_vision_request_includes_retrieved_and_reference_context(
+        self, run_dir: pathlib.Path, minimal_doc_dict: dict
+    ):
+        from backend.app.extraction import run_figure_review
+
+        crop_path = run_dir / "fig_crop_context.png"
+        crop_path.write_bytes(_minimal_png_bytes())
+        doc_with_crop = dict(minimal_doc_dict)
+        doc_with_crop["figures"] = [{**minimal_doc_dict["figures"][1], "crop_path": str(crop_path)}]
+
+        retrieval = RetrievalResult(
+            run_id="run_test",
+            pdf_id="paper_test",
+            column_name="Mechanical readout",
+            query="Fig 2 load displacement",
+            top_k=6,
+            chunks=[
+                RetrievalChunk(
+                    chunk_id="cx",
+                    source_block_id="bx",
+                    chunk_type="paragraph",
+                    page_number=3,
+                    reading_order=12,
+                    display_text="Fig. 2a shows the load-displacement curve with the peak around 120 N.",
+                    retrieval_text="Fig. 2a shows the load-displacement curve with the peak around 120 N.",
+                    section_context="Results",
+                )
+            ],
+            mode="baseline",
+            retrieved_at="2026-04-04T00:00:00Z",
+        )
+
+        provider = AsyncMock()
+        provider.vision_complete_structured = AsyncMock(return_value={
+            "proposed_value": "120 N",
+            "state": "found",
+            "rationale": "- Read from graph peak.",
+            "numeric_value_form": "approximate",
+            "figure_description": "Load-displacement graph",
+            "caption_relevant": True,
+        })
+
+        await run_figure_review(
+            proposal_id="prop_context",
+            run_id="run_test",
+            pdf_id="paper_test",
+            column_name="Mechanical readout",
+            column_description="Peak load from load-displacement graph",
+            doc_dict=doc_with_crop,
+            run_dir=run_dir,
+            provider=provider,
+            vision_model_id="vision-model",
+            retrieval=retrieval,
+            trigger_reasons=["figure_graph_promising"],
+        )
+
+        sent_messages = provider.vision_complete_structured.call_args.kwargs["messages"]
+        user_content = sent_messages[1]["content"]
+        assert "Retrieved field passages:" in user_content
+        assert "Figure-reference snippets from the paper:" in user_content
+
+    async def test_selective_vision_trigger_skips_unneeded_calls(
+        self, run_dir: pathlib.Path, minimal_doc_dict: dict
+    ):
+        doc_with_crop = dict(minimal_doc_dict)
+        crop_path = run_dir / "fig_crop_skip.png"
+        crop_path.write_bytes(_minimal_png_bytes())
+        doc_with_crop["figures"] = [{**minimal_doc_dict["figures"][0], "crop_path": str(crop_path)}]
+
+        provider = AsyncMock()
+        provider.chat_complete_structured = AsyncMock(return_value={
+            "proposed_value": "Sprague-Dawley rats",
+            "state": "found",
+            "rationale": "- Stated directly in methods.",
+            "calculation": None,
+            "numeric_value_form": None,
+            "quotes": [
+                {
+                    "text": "The scaffold was implanted in the tibial defect of Sprague-Dawley rats.",
+                    "page": 1,
+                    "source_type": "direct_quote",
+                }
+            ],
+        })
+        provider.vision_complete_structured = AsyncMock(return_value={
+            "proposed_value": "Sprague-Dawley rats",
+            "state": "found",
+            "rationale": "- Figure confirms species.",
+            "numeric_value_form": None,
+            "figure_description": "Microscopy panel",
+            "caption_relevant": False,
+        })
+
+        proposal = await extract_cell(
+            run_id="run_test",
+            pdf_id="paper_test",
+            row_id="row_test",
+            cell_id="cell_skip_vision",
+            column_name="Species",
+            column_description="Species used in study",
+            row_context={},
+            doc_dict=doc_with_crop,
+            run_dir=run_dir,
+            provider=provider,
+            text_model_id="text-model",
+            vision_model_id="vision-model",
+        )
+
+        assert proposal.vision_trigger_reasons == []
+        assert provider.vision_complete_structured.call_count == 0
+
+    async def test_figure_approximate_or_range_numeric_rescue_is_honest(
+        self, run_dir: pathlib.Path, minimal_doc_dict: dict
+    ):
+        doc_with_crop = dict(minimal_doc_dict)
+        crop_path = run_dir / "fig_crop_range.png"
+        crop_path.write_bytes(_minimal_png_bytes())
+        doc_with_crop["figures"] = [{**minimal_doc_dict["figures"][1], "crop_path": str(crop_path)}]
+        doc_with_crop["blocks"] = [
+            *minimal_doc_dict["blocks"],
+            {
+                "block_id": "b_ref_2",
+                "block_type": "paragraph",
+                "page_number": 3,
+                "text": "As shown in Fig. 2a, peak load appears between 110 and 130 N.",
+                "normalized_text": "as shown in fig 2a peak load appears between 110 and 130 n",
+                "reading_order": 10,
+                "bbox": [10, 250, 420, 300],
+                "provenance": "pypdfium2",
+            },
+        ]
+
+        provider = AsyncMock()
+        provider.chat_complete_structured = AsyncMock(return_value={
+            "proposed_value": None,
+            "state": "unclear",
+            "rationale": None,
+            "calculation": None,
+            "numeric_value_form": None,
+            "quotes": [],
+        })
+        provider.vision_complete_structured = AsyncMock(return_value={
+            "proposed_value": "110-130 N",
+            "state": "found",
+            "rationale": "- Estimated from graph bars in Fig. 2a.",
+            "numeric_value_form": "range",
+            "figure_description": "Load-displacement plot",
+            "caption_relevant": False,
+        })
+
+        proposal = await extract_cell(
+            run_id="run_test",
+            pdf_id="paper_test",
+            row_id="row_test",
+            cell_id="cell_range",
+            column_name="Peak load",
+            column_description="Peak load from graph",
+            row_context={},
+            doc_dict=doc_with_crop,
+            run_dir=run_dir,
+            provider=provider,
+            text_model_id="text-model",
+            vision_model_id="vision-model",
+            field_type="number",
+        )
+
+        assert proposal.proposed_value == "110-130 N"
+        assert proposal.numeric_value_form is not None
+        assert proposal.numeric_value_form.value == "range"
+        assert "range_value" in proposal.warning_flags
+        assert proposal.vision_trigger_reasons
+        assert proposal.vision_shortlist
+
+        proposal_evidence = [ev for ev in load_evidence(run_dir) if ev.proposal_id == proposal.proposal_id]
+        assert any(ev.is_figure_derived for ev in proposal_evidence)
+        figure_evs = [ev for ev in proposal_evidence if ev.is_figure_derived]
+        assert figure_evs
+        assert figure_evs[0].source_type == EvidenceSourceType.visual_interpretation_figure_evidence
+        assert figure_evs[0].vision_context_bundle is not None
+        assert figure_evs[0].vision_trigger_reasons is not None
 
 
 class TestProposalPersistence:

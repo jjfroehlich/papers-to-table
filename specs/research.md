@@ -24,7 +24,7 @@ Where a conclusion is not fully settled, it should be marked clearly using the c
 
 ## Status
 
-Updated: evidence quality, reviewer trust, proactive figure review, separate text/vision model direction, integrity/workflow refinements, and leakage-aware eval-mode rationale
+Updated: evidence quality, reviewer trust, text-guided targeted figure review, separate text/vision model direction, integrity/workflow refinements, and leakage-aware eval-mode rationale
 
 This document contains the current baseline conclusions plus explicit open questions. It should be updated whenever a major implementation decision changes.
 
@@ -84,7 +84,7 @@ The main research questions for this phase were:
 - Heavy orchestration or graph-first agent systems should be **deferred** unless measured workflow complexity clearly justifies them.
 - In MVP, evaluation should be based primarily on **reviewer-outcome summaries**, not on a single automated “correctness score” over heterogeneous field types.
 - Existing filled spreadsheet cells should be processed through a **per-column preprocessing LLM** that produces a structured style/format profile. Heuristic-only default shaping is not sufficient, raw filled cells should **not** be passed into extraction prompts as semantic exemplars by default, and extraction must still work when a table or target column has no prefilled values.
-- Figure-aware evidence should be **proactive and targeted when vision capability is available**: the system should review all relevant extracted figures as a normal supplemental evidence stage, not only escalate to vision when text has failed. Figure evidence may support any field type, strengthen text proposals, or rescue weak text-only results. The scope remains focused on relevant extracted figures per paper rather than blanket per-page multimodal reasoning.
+- Figure-aware evidence should be **text-guided and targeted when vision capability is available**: the system should shortlist figures or panels using retrieved field text, caption relevance, and figure-reference snippets from the paper text before vision calls. Figure evidence may support any field type, strengthen text proposals, corroborate uncertain proposals, or rescue weak text-only results. The scope remains focused on shortlisted candidates rather than blanket per-page multimodal reasoning.
 - **Evidence quality and reviewer trust are first-class requirements**: the system must rank evidence by source authority and field relevance rather than treating the first model-returned quote as automatically primary. Evidence types must be distinguished and labeled: direct quote, inferred reasoning, calculation, approximate highlight fallback, quote-plus-page fallback, `caption_grounded_figure_evidence`, and `visual_interpretation_figure_evidence`.
 - **Exact quote highlighting should be produced from page-text alignment** rather than only from parser bounding boxes; if exact alignment fails, the system must degrade honestly to approximate highlight or quote-plus-page fallback, each clearly labeled as such.
 - The review workspace must expose an ordered evidence list synchronized with the document viewer, with stable refocus when evidence or zoom changes.
@@ -1030,22 +1030,24 @@ The strongest research-backed pattern is still:
 
 1. parse text, captions, and tables first
 2. run normal schema-driven extraction
-3. if a field remains unresolved or weakly supported, escalate to a figure-aware vision step
-4. store the result as a normal proposal with explicit figure-derived evidence and subtype-aware review cues
+3. build a text-guided shortlist of figures or panels using retrieved evidence, caption relevance, and figure-reference snippets
+4. route shortlisted candidates to vision for corroboration, rescue, or approximation where helpful
+5. store the result as a normal proposal with explicit figure-derived evidence and subtype-aware review cues
 
-In other words, **vision works best as a targeted fallback**, not as the default extraction path for every page.
+In other words, vision works best as a targeted, context-guided stage that can corroborate or rescue text extraction without becoming an untargeted default pass over every page.
 
 ## Important note about current product direction
 
-The current product direction is broader than the narrowest research recommendation, and is intentionally so:
+The current product direction is intentionally user-friendly and schema-light:
 
-- proactive figure review is in scope when vision capability is available, not only as a last-resort fallback
-- all relevant extracted figures should be reviewed as a normal supplemental evidence stage
+- no explicit schema-level per-column vision policy should be required
+- text-guided targeted figure review is in scope when vision capability is available
 - figure evidence is allowed for all field types, not only fields explicitly classified as figure-derived
-- figure evidence may strengthen text proposals, supplement weak evidence, or rescue failed text-only proposals
-- the scope is targeted (relevant figures per paper) rather than blanket per-page vision
+- figure evidence may strengthen text proposals, corroborate uncertain text outcomes, supplement weak evidence, or rescue failed text-only proposals
+- graph-derived approximate or range-style numeric proposals are useful when honestly labeled
+- the scope is targeted (shortlisted figures or panels) rather than blanket per-page vision
 
-This is the correct product direction. The prior narrow-fallback approach meant figures were only consulted when text had already failed, which systematically denied the reviewer access to figure evidence that might have increased their confidence or changed their decision. The risk of false precision from figure reasoning is addressed by strong human review expectations and clear evidence labeling, not by restricting when figure evidence can be gathered.
+This is the correct product direction. Requiring manual schema vision policies would add user burden and reduce adoption. The risk of false precision from figure reasoning is addressed by strong human review expectations and clear evidence labeling, not by requiring users to pre-classify columns.
 
 ## Why proactive targeted figure review is better than narrow trigger-based fallback
 
@@ -1057,23 +1059,25 @@ If figure evidence is only gathered when text extraction fails, the reviewer nev
 
 In scientific papers, figures frequently contain the clearest statement of a result even when the same result is also stated in the text. A reviewer whose text evidence shows an ambiguous passage in the methods section might make a more confident decision if they could also see the relevant figure.
 
-### The cost concern is addressed by targeting, not by narrow triggers
+### The cost concern is addressed by targeting, not by schema burden
 
 Running vision on every page of every paper for every field would be expensive and slow. But reviewing the set of extracted figures per paper (typically a small number compared to all pages) is a targeted operation with bounded scope. The key constraint is "relevant extracted figures per paper," not "every page."
+
+A better operational boundary is text-guided shortlisting: use retrieved passages, captions, and figure-reference snippets to rank likely figures or panels first, then inspect only the shortlist.
 
 ### Honest labeling replaces precision restriction as the quality mechanism
 
 Instead of restricting figure evidence to prevent low-confidence results, the product should allow figure evidence freely and label it clearly. The reviewer sees whether support is caption-grounded or visual interpretation, makes their own judgment, and either accepts it or rejects it.
 
-## Why the fallback design still won at the research level
+## Why text-guided targeted vision is preferred at the research level
 
 ### Vision is feasible, but expensive and noisier than text-first extraction
 
 Modern multimodal systems can use page images and figure crops effectively, especially for focused extraction prompts, but running vision over every page by default would add significant cost, latency, and operational complexity.
 
-### A fallback design matches how strong existing systems behave
+### Text-guided targeting matches how strong existing systems behave
 
-Established multimodal document systems often ingest both text and visuals, but only route images/pages to a vision model when retrieval or document structure suggests that visual reasoning is likely useful.
+Established multimodal document systems often ingest both text and visuals, then route only shortlisted images or panels to a vision model when retrieval and document structure suggest visual reasoning is likely useful.
 
 ### Human review remains essential
 
@@ -1081,7 +1085,7 @@ Figure-derived values are often more ambiguous than table- or text-derived value
 
 ## Recommended product behavior
 
-The app should include a **proactive figure review stage** after text/table extraction and evidence recovery, running whenever vision capability is available.
+The app should include a **text-guided targeted figure review stage** after text/table extraction and evidence recovery, running whenever vision capability is available.
 
 ### What changed from the narrow fallback design
 
@@ -1090,17 +1094,17 @@ The narrow fallback design ran figure review only when:
 - text retrieval failed
 - text-first extraction remained insufficient after evidence recovery
 
-The improved design runs figure review proactively across all relevant extracted figures when a vision model is configured. The trigger is not failure but availability: if a vision model is configured and relevant figures were extracted, figure review runs.
+The improved design runs figure review using a text-guided shortlist when a vision model is configured. The trigger is evidence-aware availability: if a vision model is configured and text, captions, or figure references indicate likely value, figure review runs.
 
 ### Suggested scope definition
 
-The scope should remain targeted rather than blanket. Relevant figures can be selected by:
+The scope should remain targeted rather than blanket. Candidate figures or panels can be selected by:
 - figures with captions that mention the target column or related terms
 - figures on pages that also contain the best text evidence
-- all extracted figures when the paper has a small number of figures (e.g., fewer than ten)
+- explicit figure-reference snippets in the main text (for example, Fig. 2a or Figure 3B)
 - an LLM-assisted relevance selection step for papers with many figures
 
-The goal is to review all figures likely to be useful, not to process every page image for every field.
+The goal is to review the strongest candidates first, not to process every page image for every field.
 
 ## Suggested figure-fallback inputs
 
@@ -1147,7 +1151,7 @@ Normal extraction should still operate first on:
 
 ### Stage C — Targeted figure review
 
-Only unresolved or weak cases should escalate to a vision-capable extraction pass.
+Use the text-guided shortlist for a context-aware vision pass. Weak, contradictory, unresolved, or confirmation-sensitive text outcomes should prioritize this pass, while still allowing vision corroboration for strong but high-impact claims when useful.
 
 ### Stage D — Review
 
@@ -1635,8 +1639,8 @@ It would add substantial complexity around authentication, concurrency, and revi
 These questions remain open and should be resolved explicitly rather than assumed away:
 
 - How much measured lift does table-aware retrieval provide over simpler typed chunk retrieval on realistic paper batches?
-- Which figure categories deliver enough reviewer value to justify deeper visual tooling beyond the proactive figure review stage?
-- What is the minimum set of structural heuristics sufficient to select relevant figures for proactive review without processing too many irrelevant ones?
+- Which figure categories deliver enough reviewer value to justify deeper visual tooling beyond the text-guided targeted figure review stage?
+- What is the minimum set of structural and reference-aware heuristics sufficient to shortlist relevant figures or panels without processing too many irrelevant ones?
 - At what point does synchronous execution become unacceptable for the target batch sizes, justifying the first background-job layer?
 - Which provider capability probes are sufficient to distinguish reliable structured-output support from prompt-only JSON behavior?
 - What is the minimum saved-view or queue-preset feature set that materially improves review speed without adding UI complexity?
@@ -1690,7 +1694,7 @@ Extract Structured Info from Papers should be built as a **local-first, workflow
 - evidence quality as a first-class requirement: evidence ranking by source authority and field relevance, evidence type taxonomy (direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, `caption_grounded_figure_evidence`, `visual_interpretation_figure_evidence`), primary evidence selected by ranking, ordered supporting evidence, direct quotes visually separated from reasoning and calculations
 - exact quote highlighting from page-text alignment with honest labeled fallback to approximate highlight or quote-plus-page; no fallback presented as exact
 - synchronized quote list and document viewer with stable refocus, previous/next/jump-to-page navigation, and figure-to-full-page context
-- proactive targeted figure review across all relevant extracted figures when a vision model is configured; figure evidence allowed for any field type; figure evidence may strengthen, supplement, or rescue any proposal
+- text-guided targeted figure review with shortlisted figures or panels when a vision model is configured; figure evidence allowed for any field type; figure evidence may strengthen, corroborate, supplement, or rescue proposals
 - reviewer-outcome-based MVP evaluation
 - preprocessing-LLM-derived style/format profiles rather than raw semantic examples
 - reviewed XLSX export into a new workbook and audit log with content-only fidelity plus changed-cell highlighting

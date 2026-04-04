@@ -16,6 +16,312 @@ interface HighlightRegion {
   page: number
 }
 
+interface HighlightBox {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+interface PageBounds {
+  xMin: number
+  yMin: number
+  width: number
+  height: number
+}
+
+interface ViewportLike {
+  width: number
+  height: number
+  scale: number
+  transform: number[]
+}
+
+interface PdfTextItemLike {
+  str: string
+  transform: number[]
+  width: number
+  height: number
+}
+
+interface TextFragment extends HighlightBox {
+  tokenText: string
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value))
+}
+
+function inferEvidencePage(evidence: EvidenceItem | null): number | null {
+  if (!evidence) return null
+  if (evidence.page_number && Number.isFinite(evidence.page_number) && evidence.page_number > 0) {
+    return evidence.page_number
+  }
+
+  const regions = [
+    ...(evidence.exact_highlight_regions ?? []),
+    ...(evidence.approximate_highlight_regions ?? []),
+  ]
+  for (const region of regions) {
+    if (region.page && Number.isFinite(region.page) && region.page > 0) {
+      return region.page
+    }
+  }
+  return null
+}
+
+function mapHighlightRegions(
+  regions: HighlightRegion[] | null,
+  currentPage: number,
+  canvasSize: { width: number; height: number },
+  pdfPageSize: { width: number; height: number },
+  pageBounds: PageBounds | null,
+): HighlightBox[] {
+  if (!regions || canvasSize.width === 0 || canvasSize.height === 0 || pdfPageSize.width === 0 || pdfPageSize.height === 0) {
+    return []
+  }
+  const boxes: HighlightBox[] = []
+
+  for (const region of regions) {
+    if (region.page !== currentPage) continue
+    const raw = [region.x0, region.y0, region.x1, region.y1]
+    if (raw.some((value) => !Number.isFinite(value))) continue
+
+    const mapped = computeRegionBox(region, canvasSize, pdfPageSize, pageBounds)
+    const w = mapped.w
+    const h = mapped.h
+    if (w <= 0.5 || h <= 0.5) continue
+
+    boxes.push(mapped)
+  }
+
+  return boxes
+}
+
+function computeRegionBox(
+  region: HighlightRegion,
+  canvasSize: { width: number; height: number },
+  pdfPageSize: { width: number; height: number },
+  pageBounds: PageBounds | null,
+): HighlightBox {
+  const isNormalized =
+    Math.max(Math.abs(region.x0), Math.abs(region.x1), Math.abs(region.y0), Math.abs(region.y1)) <= 1.05
+
+  let x: number
+  let y: number
+  let w: number
+  let h: number
+
+  if (isNormalized) {
+    const xMin = clamp(Math.min(region.x0, region.x1), 0, 1)
+    const xMax = clamp(Math.max(region.x0, region.x1), 0, 1)
+    const yMin = clamp(Math.min(region.y0, region.y1), 0, 1)
+    const yMax = clamp(Math.max(region.y0, region.y1), 0, 1)
+    x = xMin * canvasSize.width
+    y = (1 - yMax) * canvasSize.height
+    w = (xMax - xMin) * canvasSize.width
+    h = (yMax - yMin) * canvasSize.height
+  } else {
+    const bounds = pageBounds ?? { xMin: 0, yMin: 0, width: pdfPageSize.width, height: pdfPageSize.height }
+    const xMin = clamp(Math.min(region.x0, region.x1), bounds.xMin, bounds.xMin + bounds.width)
+    const xMax = clamp(Math.max(region.x0, region.x1), bounds.xMin, bounds.xMin + bounds.width)
+    const yMin = clamp(Math.min(region.y0, region.y1), bounds.yMin, bounds.yMin + bounds.height)
+    const yMax = clamp(Math.max(region.y0, region.y1), bounds.yMin, bounds.yMin + bounds.height)
+    const scaleX = canvasSize.width / Math.max(bounds.width, 1)
+    const scaleY = canvasSize.height / Math.max(bounds.height, 1)
+    x = (xMin - bounds.xMin) * scaleX
+    y = ((bounds.yMin + bounds.height) - yMax) * scaleY
+    w = (xMax - xMin) * scaleX
+    h = (yMax - yMin) * scaleY
+  }
+
+  const clampedX = clamp(x, 0, canvasSize.width)
+  const clampedY = clamp(y, 0, canvasSize.height)
+  const maxWidth = Math.max(0, canvasSize.width - clampedX)
+  const maxHeight = Math.max(0, canvasSize.height - clampedY)
+  return {
+    x: clampedX,
+    y: clampedY,
+    w: clamp(w, 0, maxWidth),
+    h: clamp(h, 0, maxHeight),
+  }
+}
+
+function isPdfTextItem(value: unknown): value is PdfTextItemLike {
+  if (typeof value !== 'object' || value === null) return false
+  const candidate = value as Partial<PdfTextItemLike>
+  return (
+    typeof candidate.str === 'string'
+    && Array.isArray(candidate.transform)
+    && typeof candidate.width === 'number'
+    && typeof candidate.height === 'number'
+  )
+}
+
+function multiplyTransforms(first: number[], second: number[]): number[] {
+  return [
+    first[0] * second[0] + first[2] * second[1],
+    first[1] * second[0] + first[3] * second[1],
+    first[0] * second[2] + first[2] * second[3],
+    first[1] * second[2] + first[3] * second[3],
+    first[0] * second[4] + first[2] * second[5] + first[4],
+    first[1] * second[4] + first[3] * second[5] + first[5],
+  ]
+}
+
+function normalizeSearchText(text: string): string {
+  return text
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/\u00a0/g, ' ')
+    .replace(/[“”„‟«»]/g, '"')
+    .replace(/[‘’‚‛]/g, "'")
+    .replace(/[‐‑‒–—−]/g, '-')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function tokenizeSearchText(text: string): string[] {
+  const normalized = normalizeSearchText(text)
+  return normalized ? normalized.split(' ') : []
+}
+
+function extractTextFragments(items: unknown[], viewport: ViewportLike): TextFragment[] {
+  const fragments: TextFragment[] = []
+
+  for (const item of items) {
+    if (!isPdfTextItem(item)) continue
+
+    const tokenText = normalizeSearchText(item.str)
+    if (!tokenText) continue
+
+    const transform = multiplyTransforms(viewport.transform, item.transform)
+    const height = Math.max(Math.hypot(transform[2], transform[3]) || Math.abs(item.height * viewport.scale), 1)
+    const width = Math.max(Math.abs(item.width * viewport.scale), 1)
+    const x = clamp(transform[4], 0, viewport.width)
+    const y = clamp(transform[5] - height, 0, viewport.height)
+    const w = clamp(width, 0, Math.max(0, viewport.width - x))
+    const h = clamp(height, 0, Math.max(0, viewport.height - y))
+    if (w <= 0.5 || h <= 0.5) continue
+
+    fragments.push({ x, y, w, h, tokenText })
+  }
+
+  return fragments
+}
+
+function findTokenSequence(pageTokens: string[], quoteTokens: string[], quoteStart: number, length: number): number {
+  const lastStart = pageTokens.length - length
+  outer: for (let pageStart = 0; pageStart <= lastStart; pageStart += 1) {
+    for (let offset = 0; offset < length; offset += 1) {
+      if (pageTokens[pageStart + offset] !== quoteTokens[quoteStart + offset]) {
+        continue outer
+      }
+    }
+    return pageStart
+  }
+  return -1
+}
+
+function findBestTokenSpan(pageTokens: string[], quoteTokens: string[]): { start: number; end: number } | null {
+  if (pageTokens.length === 0 || quoteTokens.length === 0) return null
+
+  for (let windowLength = quoteTokens.length; windowLength >= 1; windowLength -= 1) {
+    for (let quoteStart = 0; quoteStart + windowLength <= quoteTokens.length; quoteStart += 1) {
+      const pageStart = findTokenSequence(pageTokens, quoteTokens, quoteStart, windowLength)
+      if (pageStart !== -1) {
+        return { start: pageStart, end: pageStart + windowLength - 1 }
+      }
+    }
+
+    if (windowLength <= 6 && quoteTokens.length > 24) {
+      break
+    }
+  }
+  return null
+}
+
+function mergeFragmentBoxes(fragments: TextFragment[], viewport: { width: number; height: number }): HighlightBox[] {
+  if (fragments.length === 0) return []
+
+  const ordered = [...fragments].sort((left, right) => {
+    if (Math.abs(left.y - right.y) > 3) return left.y - right.y
+    return left.x - right.x
+  })
+
+  const merged: HighlightBox[] = []
+  for (const fragment of ordered) {
+    const current = {
+      x: clamp(fragment.x - 2, 0, viewport.width),
+      y: clamp(fragment.y - 1, 0, viewport.height),
+      w: clamp(fragment.w + 4, 0, viewport.width),
+      h: clamp(fragment.h + 2, 0, viewport.height),
+    }
+
+    const previous = merged.at(-1)
+    if (!previous) {
+      merged.push(current)
+      continue
+    }
+
+    const previousMid = previous.y + previous.h / 2
+    const currentMid = current.y + current.h / 2
+    const sameLine = Math.abs(previousMid - currentMid) <= Math.max(previous.h, current.h) * 0.7
+    const closeEnough = current.x <= previous.x + previous.w + 24
+
+    if (sameLine && closeEnough) {
+      const nextX = Math.min(previous.x, current.x)
+      const nextY = Math.min(previous.y, current.y)
+      const nextRight = Math.max(previous.x + previous.w, current.x + current.w)
+      const nextBottom = Math.max(previous.y + previous.h, current.y + current.h)
+      merged[merged.length - 1] = {
+        x: nextX,
+        y: nextY,
+        w: clamp(nextRight - nextX, 0, viewport.width - nextX),
+        h: clamp(nextBottom - nextY, 0, viewport.height - nextY),
+      }
+      continue
+    }
+
+    merged.push(current)
+  }
+
+  return merged
+}
+
+function buildQuoteHighlightBoxes(items: unknown[], viewport: ViewportLike, quoteText: string): HighlightBox[] {
+  const fragments = extractTextFragments(items, viewport)
+  if (fragments.length === 0) return []
+
+  const quoteTokens = tokenizeSearchText(quoteText)
+  if (quoteTokens.length === 0) return []
+
+  const pageTokens: Array<{ token: string; fragmentIndex: number }> = []
+  fragments.forEach((fragment, fragmentIndex) => {
+    const tokens = fragment.tokenText.split(' ').filter(Boolean)
+    tokens.forEach((token) => {
+      pageTokens.push({ token, fragmentIndex })
+    })
+  })
+
+  const tokenSpan = findBestTokenSpan(
+    pageTokens.map((entry) => entry.token),
+    quoteTokens,
+  )
+  if (!tokenSpan) return []
+
+  const fragmentIndexes = new Set<number>()
+  for (let index = tokenSpan.start; index <= tokenSpan.end; index += 1) {
+    fragmentIndexes.add(pageTokens[index].fragmentIndex)
+  }
+
+  return mergeFragmentBoxes(
+    fragments.filter((_, index) => fragmentIndexes.has(index)),
+    { width: viewport.width, height: viewport.height },
+  )
+}
+
 interface Props {
   runId: string
   pdfId: string | null
@@ -26,6 +332,8 @@ interface Props {
   onSelectEvidence: (evidenceId: string) => void
   outputDir: string
 }
+
+const DEFAULT_PDF_ZOOM = 1.35
 
 export function EvidenceViewer({
   runId,
@@ -39,18 +347,24 @@ export function EvidenceViewer({
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const highlightRef = useRef<HTMLDivElement>(null)
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(0)
-  const [zoom, setZoom] = useState(1.0)
+  const [zoom, setZoom] = useState(DEFAULT_PDF_ZOOM)
   const [pageInput, setPageInput] = useState('1')
   const [renderError, setRenderError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 })
   const [pdfPageSize, setPdfPageSize] = useState({ width: 0, height: 0 })
+  const [pageBounds, setPageBounds] = useState<PageBounds | null>(null)
+  const [quoteHighlights, setQuoteHighlights] = useState<HighlightBox[]>([])
   const [openLocalError, setOpenLocalError] = useState<string | null>(null)
   const [openingLocal, setOpeningLocal] = useState(false)
   const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null)
+  const autoFocusKeyRef = useRef<string | null>(null)
+  const renderSequenceRef = useRef(0)
+  const evidencePage = useMemo(() => inferEvidencePage(evidence), [evidence])
 
   useEffect(() => {
     let cancelled = false
@@ -63,6 +377,8 @@ export function EvidenceViewer({
         setCurrentPage(1)
         setPageInput('1')
         setLoadError(null)
+        setQuoteHighlights([])
+        setPageBounds(null)
         return
       }
       setLoadError(null)
@@ -94,17 +410,19 @@ export function EvidenceViewer({
   }, [outputDir, pdfId, runId])
 
   useEffect(() => {
-    if (evidence?.page_number == null) return
-    const page = evidence.page_number
+    if (!evidencePage) return
+    const page = totalPages > 0 ? clamp(evidencePage, 1, totalPages) : evidencePage
     setCurrentPage(page)
     setPageInput(String(page))
-  }, [evidence])
+  }, [evidencePage, totalPages])
 
   useEffect(() => {
     if (!pdfDoc || !canvasRef.current) return
+    let cancelled = false
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d')
     if (!ctx) return
+    const sequence = ++renderSequenceRef.current
 
     if (renderTaskRef.current) {
       renderTaskRef.current.cancel()
@@ -112,9 +430,19 @@ export function EvidenceViewer({
 
     setRenderError(null)
 
-    pdfDoc.getPage(currentPage).then((page) => {
+    const safePage = clamp(currentPage, 1, pdfDoc.numPages)
+    if (safePage !== currentPage) {
+      setCurrentPage(safePage)
+      setPageInput(String(safePage))
+      return
+    }
+
+    pdfDoc.getPage(safePage).then((page) => {
+      if (cancelled || renderSequenceRef.current !== sequence) return
       const unscaledViewport = page.getViewport({ scale: 1.0 })
       setPdfPageSize({ width: unscaledViewport.width, height: unscaledViewport.height })
+      const [xMin, yMin, xMax, yMax] = page.view
+      setPageBounds({ xMin, yMin, width: xMax - xMin, height: yMax - yMin })
 
       const viewport = page.getViewport({ scale: zoom })
       canvas.width = viewport.width
@@ -125,13 +453,31 @@ export function EvidenceViewer({
 
       const task = page.render({ canvas, canvasContext: ctx, viewport })
       renderTaskRef.current = task
-      return task.promise
+      return task.promise.then(async () => {
+        if (cancelled || renderSequenceRef.current !== sequence) return
+        if (!evidence?.quote_text || !evidencePage || safePage !== evidencePage) {
+          setQuoteHighlights([])
+          return
+        }
+        const textContent = await page.getTextContent()
+        if (cancelled || renderSequenceRef.current !== sequence) return
+        setQuoteHighlights(buildQuoteHighlightBoxes(textContent.items, viewport as ViewportLike, evidence.quote_text))
+      })
     }).catch((error) => {
+      if (cancelled || renderSequenceRef.current !== sequence) return
       if (error?.name !== 'RenderingCancelledException') {
         setRenderError(error instanceof Error ? error.message : String(error))
       }
+      setQuoteHighlights([])
     })
-  }, [currentPage, pdfDoc, zoom])
+
+    return () => {
+      cancelled = true
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel()
+      }
+    }
+  }, [currentPage, evidence?.quote_text, evidencePage, pdfDoc, zoom])
 
   function goToPage(pageNumber: number) {
     const clamped = Math.max(1, Math.min(pageNumber, totalPages))
@@ -162,39 +508,50 @@ export function EvidenceViewer({
   }
 
   const getHighlights = useCallback((regions: HighlightRegion[] | null) => {
-    if (!regions || canvasSize.width === 0 || pdfPageSize.width === 0) return []
-    const scaleX = canvasSize.width / pdfPageSize.width
-    const scaleY = canvasSize.height / pdfPageSize.height
-    return regions
-      .filter((region) => region.page === currentPage)
-      .map((region) => {
-        const x = region.x0 * scaleX
-        const y = (pdfPageSize.height - region.y1) * scaleY
-        const w = (region.x1 - region.x0) * scaleX
-        const h = (region.y1 - region.y0) * scaleY
-        return { x, y, w, h }
-      })
-  }, [canvasSize.height, canvasSize.width, currentPage, pdfPageSize.height, pdfPageSize.width])
+    return mapHighlightRegions(regions, currentPage, canvasSize, pdfPageSize, pageBounds)
+  }, [canvasSize, currentPage, pageBounds, pdfPageSize])
 
   const exactRegions = evidence?.exact_highlight_regions ?? null
   const approxRegions = evidence?.approximate_highlight_regions ?? null
   const exactHighlights = useMemo(() => getHighlights(exactRegions), [exactRegions, getHighlights])
   const approxHighlights = useMemo(() => getHighlights(approxRegions), [approxRegions, getHighlights])
-  const activeHighlights = exactHighlights.length > 0 ? exactHighlights : approxHighlights
+  const usingQuoteHighlights = currentPage === evidencePage && quoteHighlights.length > 0
+  const usingExactHighlights = !usingQuoteHighlights && exactHighlights.length > 0
+  const usingApproxHighlights = !usingQuoteHighlights && !usingExactHighlights && approxHighlights.length > 0
+  const resolvedHighlights = usingQuoteHighlights
+    ? quoteHighlights
+    : usingExactHighlights
+      ? exactHighlights
+      : approxHighlights
+  const usingApproximateFallbackForQuote =
+    usingApproxHighlights &&
+    currentPage === evidencePage &&
+    Boolean(evidence?.quote_text)
   const showTextFallback =
     evidence?.source_type === 'quote_plus_page' ||
     (!exactRegions && !approxRegions && evidence?.quote_text)
 
   useEffect(() => {
-    const highlight = activeHighlights[0]
+    if (currentPage !== evidencePage) {
+      autoFocusKeyRef.current = null
+    }
+  }, [currentPage, evidencePage])
+
+  useEffect(() => {
     const container = scrollRef.current
-    if (!container || !highlight) return
+    const box = highlightRef.current
+    if (!container || !box || resolvedHighlights.length === 0) return
+
+    const focusKey = `${evidence?.evidence_id ?? 'none'}:${currentPage}:${zoom}`
+    if (autoFocusKeyRef.current === focusKey) return
+
     container.scrollTo({
-      top: Math.max(0, highlight.y - container.clientHeight / 2 + highlight.h / 2),
-      left: Math.max(0, highlight.x - container.clientWidth / 2 + highlight.w / 2),
+      top: Math.max(box.offsetTop - container.clientHeight * 0.25, 0),
+      left: Math.max(box.offsetLeft - container.clientWidth * 0.25, 0),
       behavior: 'smooth',
     })
-  }, [activeHighlights, evidence?.evidence_id, zoom])
+    autoFocusKeyRef.current = focusKey
+  }, [currentPage, evidence?.evidence_id, resolvedHighlights, zoom])
 
   const isFigureEvidence =
     evidence?.source_type === 'caption_grounded_figure_evidence' ||
@@ -203,6 +560,8 @@ export function EvidenceViewer({
   const canCycleEvidence = evidenceList.length > 1
   const evidenceQualityLabel = isFigureEvidence
     ? 'Figure evidence'
+    : quoteHighlights.length > 0
+      ? 'Quote-anchored highlight'
     : exactHighlights.length > 0
       ? 'Exact quote highlight'
       : approxHighlights.length > 0
@@ -380,40 +739,38 @@ export function EvidenceViewer({
           style={{ width: canvasSize.width || undefined }}
         >
           <canvas ref={canvasRef} className="shadow-md" />
-          {exactHighlights.map((highlight, index) => (
+          {resolvedHighlights.map((highlight, index) => (
             <div
-              key={`exact-${index}`}
+              key={`highlight-${index}`}
+              ref={index === 0 ? highlightRef : undefined}
               className="absolute pointer-events-none"
               style={{
                 left: highlight.x,
                 top: highlight.y,
                 width: highlight.w,
                 height: highlight.h,
-                backgroundColor: 'rgba(59, 130, 246, 0.25)',
-                border: '1px solid rgba(59, 130, 246, 0.7)',
-                boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.18)',
-              }}
-            />
-          ))}
-          {approxHighlights.map((highlight, index) => (
-            <div
-              key={`approx-${index}`}
-              className="absolute pointer-events-none"
-              style={{
-                left: highlight.x,
-                top: highlight.y,
-                width: highlight.w,
-                height: highlight.h,
-                border: '2px dashed rgba(234, 88, 12, 0.7)',
-                backgroundColor: 'rgba(234, 88, 12, 0.08)',
+                backgroundColor: usingQuoteHighlights
+                  ? 'rgba(255, 220, 0, 0.28)'
+                  : usingExactHighlights
+                    ? 'rgba(59, 130, 246, 0.25)'
+                    : 'rgba(234, 88, 12, 0.08)',
+                border: usingQuoteHighlights
+                  ? '2px solid rgba(200, 160, 0, 0.8)'
+                  : usingExactHighlights
+                    ? '1px solid rgba(59, 130, 246, 0.7)'
+                    : '2px dashed rgba(234, 88, 12, 0.7)',
+                boxShadow: usingExactHighlights ? '0 0 0 2px rgba(59, 130, 246, 0.18)' : undefined,
+                borderRadius: '2px',
               }}
             >
-              <span
-                className="absolute -top-4 left-0 text-xs text-orange-600 bg-white px-0.5 rounded"
-                style={{ fontSize: 9, lineHeight: '1rem' }}
-              >
-                Approx
-              </span>
+              {usingApproxHighlights && index === 0 && (
+                <span
+                  className="absolute -top-4 left-0 text-xs text-orange-600 bg-white px-0.5 rounded"
+                  style={{ fontSize: 9, lineHeight: '1rem' }}
+                >
+                  Approx
+                </span>
+              )}
             </div>
           ))}
         </div>
@@ -425,6 +782,12 @@ export function EvidenceViewer({
             </p>
             <p className="text-xs text-amber-900 italic">"{evidence.quote_text}"</p>
           </div>
+        )}
+
+        {usingApproximateFallbackForQuote && (
+          <p className="mt-2 text-xs text-slate-500">
+            Showing an approximate block highlight because the exact quote could not be matched in the rendered page text.
+          </p>
         )}
       </div>
     </div>

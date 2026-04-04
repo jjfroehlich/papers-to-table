@@ -1,0 +1,14 @@
+{
+  "column_name": "# Variants tested",
+  "field_type_guess": "numeric",
+  "expected_length": "single_value",
+  "tone": "technical",
+  "detail_level": "medium",
+  "value_shape": "single value",
+  "unit_style": null,
+  "format_notes": null,
+  "example_risk": "none",
+  "generated_at": "2026-04-04T11:18:10.565534+00:00",
+  "source_column_count": 80,
+  "provider_mode": "heuristic"
+}

@@ -35,7 +35,7 @@ Preserve these constraints throughout implementation:
 - **reviewer-outcome summaries** in MVP
 - **per-column preprocessing LLM** for style profiles
 - **no raw semantic example injection by default**
-- **proactive figure review across all relevant extracted figures when a vision model is configured**
+- **text-guided targeted figure review when a vision model is configured**
 - figure evidence allowed for any field type; not restricted to figure-classified fields
 - **no unrestricted full-page vision on every page by default**
 - **no user-triggered figure-review rerun control**
@@ -705,8 +705,8 @@ The detailed task inventory below remains the source of truth for exact implemen
   - preserve the fallback as clearly rendered text evidence rather than letting it appear blank, missing, or mislabeled
 
 - [x] **T062** Implement proactive figure review when a vision model is configured:
-  - when a vision model is configured, run figure review across all relevant extracted figures for the current paper as a normal supplemental evidence stage, not only when text extraction has failed
-  - select relevant figures by structural heuristics, caption relevance, or an LLM-assisted relevance selection step, rather than processing every figure indiscriminately
+  - when a vision model is configured, run text-guided targeted figure review as a normal supplemental evidence stage, not only when text extraction has failed
+  - shortlist relevant figures or panels using retrieved field text, caption relevance, and figure-reference snippets (for example, Fig. 2a or Figure 3B), rather than processing every figure indiscriminately
   - figure evidence may support any field type, not only fields classified as figure-derived
   - figure evidence may strengthen text-derived proposals, supplement weak evidence, or rescue weak, unclear, or failed text-only proposals
   - figure review produces additional evidence items ranked by authority and relevance alongside existing text evidence
@@ -720,11 +720,31 @@ The detailed task inventory below remains the source of truth for exact implemen
   - rank caption-grounded figure evidence above generic inferred reasoning when otherwise comparably relevant
   - keep pure visual-interpretation evidence visibly distinct and subject to higher reviewer scrutiny
 
+- [x] **T062c** Implement figure-reference-aware candidate shortlisting.
+  - detect and normalize figure and panel references in retrieved text (for example, Fig. 2a, Figure 3B, Fig. 4a-c)
+  - link references to candidate figures or panels with confidence scoring and traceable rationale
+  - persist shortlist provenance so reviewers and diagnostics can see why a candidate was selected
+
+- [x] **T062d** Implement caption-plus-reference ranking for targeted figure calls.
+  - combine caption relevance, figure-reference evidence, and local section context into one ranking score
+  - require top-ranked shortlist selection before vision calls by default
+  - allow bounded widening only when ranking confidence is too low
+
+- [x] **T062e** Implement evidence-aware vision triggering for all fields.
+  - trigger vision primarily when text evidence is unclear, weak, contradictory, or needs confirmation
+  - keep vision rescue available for any field type without requiring schema-side vision policy
+  - record the trigger reason in artifacts and diagnostics for reviewer trust
+
 - [x] **T063** Build the figure-fallback input package containing:
   - crop
   - caption
   - nearby text
   - full-page reference
+
+- [x] **T063a** Pass figure-referencing textual context into vision requests.
+  - include retrieved field text and figure-reference snippets alongside crop and caption
+  - ensure vision prompts are context-guided rather than blind figure-only interpretation
+  - persist the exact context bundle used for each vision request
 
 - [x] **T064** Persist figure-derived evidence records distinctly from text evidence while keeping figure-derived proposals as normal proposals with figure-marked evidence.
 
@@ -755,6 +775,16 @@ The detailed task inventory below remains the source of truth for exact implemen
   - proposal and evidence artifacts include the minimal downstream-ready metadata contract
   - Eval-mode artifacts preserve gold-table and masked-working-table provenance distinctly, including hashes and snapshot references
   - prompt identity is persisted for every run, using `prompt_hash` as the fallback when explicit versioning is absent
+
+- [x] **T067c** Add backend tests for text-guided figure shortlisting.
+  - shortlist selection must use retrieved text, caption relevance, and figure-reference snippets
+  - broad untargeted figure calls should not occur when shortlist confidence is adequate
+  - trigger reasons for vision calls must be persisted and testable
+
+- [x] **T067d** Add backend tests for figure-derived approximate numeric proposals.
+  - graph-derived outputs may be stored as `approximate` or `range` numeric forms when exact text values are unavailable
+  - proposals must remain reviewer-visible with honest figure-derived and approximation labeling
+  - evidence typing must preserve caption-grounded versus visual-interpretation distinctions for approximate outputs
 
 ---
 
@@ -1149,7 +1179,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - weak-evidence quote+page review
   - exact highlight vs. approximate highlight vs. quote-plus-page fallback evidence paths
   - Verify mode reviewed-cell flow
-  - proactive figure review flow with figure evidence supporting a proposal
+  - text-guided targeted figure review flow with figure evidence supporting a proposal
   - figure rescue of a weak text-only proposal
   - export with accepted-only changes
   - use the canonical checked-in fixture set as the main proof target and prefer text-based expected outputs over new binary fixtures
@@ -1254,7 +1284,7 @@ This task list is complete enough when it can drive implementation toward a syst
 - produces evidence with correct type labels (direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, `caption_grounded_figure_evidence`, `visual_interpretation_figure_evidence`) and ranks evidence by authority so the most authoritative item is primary
 - produces exact quote highlights from page-text alignment when possible and degrades honestly with labeled fallback when it fails; fallback evidence is never presented as exact
 - keeps the quote list and document viewer synchronized around the selected evidence item, with stable refocus on selection or zoom changes, previous/next/jump-to-page navigation, and figure-to-full-page context
-- runs proactive figure review across all relevant extracted figures when a vision model is configured, with figure evidence allowed for any field type, including figure rescue of weak text-only proposals
+- runs text-guided targeted figure review when a vision model is configured, with figure evidence allowed for any field type, including corroboration and rescue of weak text-only proposals
 - records text model and vision model identifiers separately in run artifacts, run summaries, and reviewer-visible context
 - keeps loading, empty, warning, failure, and not-yet-reviewable states explicit and actionable in the operator workflow
 - proves the canonical LM Studio path can generate at least one non-empty reviewable proposal with evidence on the canonical checked-in fixture set, or fails early with a clear readiness error

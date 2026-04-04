@@ -29,8 +29,7 @@ If the task is explicitly spec-driven or scoped to `specs/`, follow:
 
 1. `spec.md`
 2. `plan.md`
-3. `data-model.md` or `contracts/` when relevant
-4. `tasks.md`
+3. `tasks.md`
 
 If those artifacts conflict, fix the smallest coherent set of docs first.
 
@@ -66,6 +65,8 @@ Done means the operator can understand what to do next without reading source co
 - Remove stale text rather than letting old and new descriptions coexist.
 - Keep `README.md` aligned with the real happy path, not developer shortcuts or speculative workflows.
 - If the user-facing workflow changes, update `README.md` and the relevant spec docs together.
+- If the interface design changes, update screenshots that are part of the docs and `README.md`.
+
 
 ## Verification Rules
 
@@ -105,7 +106,7 @@ If the real structure changes, update this map.
 
 ## Compounding Lessons
 
-Write a compounding lesson only when a bug, edge case, or workflow mistake reveals a reusable repo-level lesson and the repo is actively using those notes. Keep them under a consistent location in `docs/`.
+Write a compounding lesson only when a bug, edge case, or workflow mistake reveals a reusable repo-level lesson and the repo is actively using those notes. Keep them under a consistent location, `/docs/engineering-lessons`.
 
 ## Final Rule
 

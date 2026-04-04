@@ -1,0 +1,41 @@
+{
+  "evidence_id": "ev_prop_run_20260404_111254_84zys2_cell_ccdf26728131_1775303097687_bfxlcb6w",
+  "run_id": "run_20260404_111254_84zys2",
+  "proposal_id": "prop_run_20260404_111254_84zys2_cell_ccdf26728131_1775303097687",
+  "pdf_id": "paper_2",
+  "source_type": "approximate_highlight",
+  "quote_text": "This STARR-seq vector also includes 5' and 3' splice sites upstream of the enhancer that allows the use of a PCR primer that targets the splice junction to specifically amplify cDNA derived from the reporter mRNA while avoiding the amplifying the plasmid DNA sequence.",
+  "page_number": null,
+  "exact_highlight_regions": null,
+  "approximate_highlight_regions": [
+    {
+      "x0": 306.14169311,
+      "y0": 236.05693066203128,
+      "x1": 562.8484730401308,
+      "y1": 45.65034246703124,
+      "page": 3,
+      "is_approximate": true
+    }
+  ],
+  "figure_ref": null,
+  "caption_text": null,
+  "crop_path": null,
+  "full_page_path": null,
+  "anchor_confidence": 0.43243243243243246,
+  "evidence_rank": 1,
+  "reasoning": null,
+  "is_primary": true,
+  "is_figure_derived": false,
+  "run_mode": "verify",
+  "prompt_version": null,
+  "prompt_hash": "03c1f8d95e6ab5ba996d96b40750e440d3a819f0ad1faca4c90d447321905795",
+  "schema_hash": "cb85a287e0071d47941d9619dce7cc4484246fbb22ff0b3f6ec6843296a82ff7",
+  "schema_version": null,
+  "config_hash": "194127aeb36d7e6756fa03e728cda1bee250664e2fedfe2a4dffa426e070699d",
+  "config_snapshot_path": "config.snapshot.json",
+  "parser_identity": "docling",
+  "parser_version": null,
+  "text_model_id": "google/gemma-4-26b-a4b",
+  "vision_model_id": "google/gemma-4-26b-a4b",
+  "created_at": "2026-04-04T11:45:01.289339+00:00"
+}

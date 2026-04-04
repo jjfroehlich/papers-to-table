@@ -12,7 +12,7 @@ The system matches PDFs to spreadsheet rows, proposes values for schema-defined 
 
 The system supports three operator-visible run modes: normal extraction for empty targets, Verify mode for reviewer comparison on already-filled cells, and Eval mode for leakage-aware benchmark runs. In Eval mode the app loads the completed human-filled table as the gold input, creates an app-owned masked working copy of the target cells before extraction, and preserves eval-ready artifacts for a separate scoring tool.
 
-The system extracts primarily from text and tables. Extraction is schema-first: column name, description, and optional field typing define what should be extracted, while existing filled cells are optional format helpers only. When vision capability is available, the system also reviews all relevant extracted figures as a normal supplemental evidence stage, allowing figure evidence to strengthen any proposal, corroborate text evidence, or rescue weak text-only results. This is proactive and targeted rather than a narrow last-resort fallback.
+The system extracts primarily from text and tables. Extraction is schema-first: column name, description, and optional field typing define what should be extracted, while existing filled cells are optional format helpers only. The schema stays lightweight and must not require explicit per-column vision policy fields. When vision capability is available, the system uses text-guided figure shortlisting and panel targeting as a normal supplemental evidence stage, allowing figure evidence to strengthen any proposal, corroborate text evidence, or rescue weak text-only results without broad untargeted vision calls.
 
 The product is designed for high-trust extraction workflows where proposed values must remain inspectable, auditable, reversible, and clearly distinguishable by support level, parsing quality, and provider-mode truth.
 
@@ -133,7 +133,7 @@ Extract Structured Info from Papers addresses this by turning PDF-to-table curat
 - Preserve evidence and provenance for every proposed value.
 - Support repeatable, auditable runs across many PDFs.
 - Work well for scientific papers with mixed prose, captions, tables, and figures.
-- Support proactive figure review across all relevant extracted figures when vision capability is available, allowing figure evidence to supplement, strengthen, or rescue any proposal regardless of field type.
+- Support text-guided targeted figure review when vision capability is available, using retrieved text, figure captions, and figure or panel references to shortlist likely relevant figures and panels, with figure evidence allowed to supplement, strengthen, corroborate, or rescue any proposal regardless of field type.
 - Persist figure crop and full-page artifacts when figures are extracted so that review and vision analysis operate on the same concrete evidence.
 - Support verification against already-filled cells when enabled, so the user can compare proposals against existing entries and assess app performance through reviewer outcomes.
 - Produce leakage-aware eval-ready runs whose artifacts can be consumed later by a separate evaluation tool without turning the main app into a benchmark framework.
@@ -144,7 +144,7 @@ Extract Structured Info from Papers addresses this by turning PDF-to-table curat
 - General-purpose chat over documents.
 - Replacing expert judgment for ambiguous scientific interpretation.
 - Multi-user collaboration workflows.
-- Full multimodal reasoning on every page by default; proactive figure review covers relevant extracted figures, not blanket per-page vision.
+- Full multimodal reasoning on every page by default; figure review remains text-guided and targeted, not blanket per-page vision.
 - In-UI advanced parameter tuning; advanced run behavior is controlled through the run configuration.
 - Computing full benchmark metrics inside the main app, bundling a large evaluation framework into the main product, or requiring a dedicated eval UI for Eval mode.
 
@@ -215,7 +215,7 @@ That means:
 - the run/setup surface is action-oriented and picker-driven rather than dominated by raw path entry and long uncollapsed lists
 - the proposal-generation path is truthful: provider mode, readiness state, parse-failure or low-text states, and any degraded or unavailable status are visible before the operator mistakes a clean shell for a working extraction system
 - text-based PDFs remain parseable across supported upstream parser versions; parser-integration drift must not silently collapse a paper into an empty parsed document
-- when figure review is enabled, extracted figures persist real crop artifacts and page links for both reviewer inspection and vision-model calls; caption-only figure metadata is not sufficient
+- when figure review is enabled, extracted figures persist real crop artifacts and page links for both reviewer inspection and vision-model calls, and shortlisted vision requests include textual context from retrieved passages, captions, and figure-reference snippets; caption-only figure metadata is not sufficient
 - the documented LM Studio happy path is either genuinely capable of producing reviewable proposals with evidence on the canonical checked-in fixture path or it fails early with an actionable readiness error
 - documentation reflects the actual happy path and the actual limits of the product
 - the user-facing `README.md` is treated as a product surface, not as post-hoc cleanup
@@ -261,7 +261,7 @@ That means:
 - Restricting the default review queue to reviewable proposals only, while keeping blocked, unmatched, duplicate-conflict, skipped, and other diagnostic-only outcomes visible through diagnostics and summaries.
 - Storing one or more evidence items per proposed value.
 - Human review of proposals with PDF evidence display when available, including weaker review states when text highlighting fails but quote plus page evidence is available.
-- Proactive figure review across all relevant extracted figures when vision capability is available, allowing figure evidence to supplement, strengthen, or rescue any proposal regardless of field type.
+- Text-guided targeted figure review when vision capability is available, using retrieved text, captions, and figure-reference context to shortlist figures or panels, with figure evidence allowed to supplement, strengthen, corroborate, or rescue any proposal regardless of field type.
 - Figure-derived evidence display in review when available, including caption-grounded and visual-interpretation figure evidence.
 - Verify mode: generating proposals for already-filled cells, showing them in review, and including reviewer decisions on them in run summaries.
 - Eval mode: loading a completed human-filled table as gold input, masking target cells in an app-owned working copy before extraction, and persisting minimal eval-ready artifacts for a separate scoring tool.
@@ -302,6 +302,7 @@ The system accepts:
 - The schema may also include an optional `field_type` with one of `text`, `number`, `categorical`, or `boolean`.
 - The schema may include optional `allowed_values` only when `field_type` is `categorical`.
 - The schema does not require `normalization_notes` for MVP.
+- The schema must not require explicit per-column vision-policy fields such as text-only or vision-required. Vision triggering is inferred from field intent, retrieved evidence strength, and figure-reference context.
 - The table must contain standardized metadata columns named `Title`, `Authors`, and `Publication Year` for row matching.
 - CSV or schema files may arrive with UTF-8 BOM markers or surrounding whitespace in headers; normalization must not misread canonical field names because of those artifacts.
 - Workbook date and datetime cells may arrive as native Excel cell types or text representations; normalization must preserve their intended meaning for matching, extraction, review, and export rather than treating them as opaque serial values.
@@ -629,11 +630,21 @@ If strong evidence still cannot be recovered, the proposal may remain available 
 
 Failure to recover a highlight for a text-derived proposal must not by itself move the proposal to diagnostics-only if quote plus page evidence is available.
 
-### FR-8 Proactive figure review
+### FR-8 Text-guided targeted figure review
 
-When vision capability is available, the system must review all relevant extracted figures as a normal supplemental evidence stage, not only figures whose fields match a narrow set of figure-like criteria.
+When vision capability is available, the system must use text-guided candidate shortlisting before figure inspection. Shortlisting must consider:
+- retrieved text for the current field
+- figure captions
+- sentences or paragraphs that reference figures or panels (for example, Fig. 2a, Figure 3B, or Fig. 4a-c)
+- nearby local section or results context when useful
 
-Proactive figure review means the system reviews relevant figures alongside text extraction rather than waiting for text extraction to fail before consulting figures. This makes figure evidence available to:
+Vision should behave like scientific reading: read relevant text, follow figure or panel references, read captions, then inspect the shortlisted figure or panel with that context.
+
+Vision is available for all fields as fallback, rescue, and corroboration. The system must not require a schema-side per-field vision policy to enable this.
+
+The default trigger for the vision path is weak or uncertain text evidence. Vision should usually be invoked when text evidence is unclear, weak, contradictory, or needs confirmation. Vision may also be used when text does not state the answer directly but a figure can provide a useful approximate answer.
+
+Text-guided targeted figure review makes figure evidence available to:
 - strengthen and corroborate text-derived proposals
 - supplement weak or ambiguous text evidence
 - rescue weak, unclear, or failed text-only proposals when appropriate
@@ -650,9 +661,11 @@ Figure-derived proposals must remain clearly marked as figure-derived evidence i
 
 Figure-derived proposals remain subject to heightened reviewer scrutiny and may rely more heavily on visual context and concise rationale than direct text-derived proposals.
 
+For graph-derived numeric answers, the system may return approximate or range-style proposals when exact values are not available in text, as long as those proposals are labeled honestly as figure-derived approximation rather than exact quoted values.
+
 Figure evidence must preserve the distinction between caption-grounded support and pure visual interpretation.
 
-The system must still avoid unrestricted full multimodal reasoning on every page by default. The scope remains targeted: review all relevant extracted figures as supplemental evidence, not every page of every paper for every field.
+The system must still avoid unrestricted full multimodal reasoning on every page by default. The scope remains targeted: inspect text-guided shortlisted figures or panels as supplemental evidence, not every page of every paper for every field.
 
 ### FR-9 Review workflow
 
@@ -1332,7 +1345,7 @@ The following behaviors are required for the MVP represented by this spec:
 - Diagnostics sufficient to explain no-value or poor-quality runs.
 - Evidence quality is a first-class requirement: evidence ranking, evidence type taxonomy, primary and supporting evidence semantics, exact quote highlighting with honest fallback, and synchronized multi-evidence review UX.
 - Schema-first extraction is a first-class requirement: extraction works without prefilled cells, optional field typing shapes output when present, and historical spreadsheet values are not semantic exemplars.
-- Proactive figure review across all relevant extracted figures when vision capability is available, with figure evidence allowed to supplement, strengthen, or rescue any proposal.
+- Text-guided targeted figure review when vision capability is available, with figure evidence allowed to supplement, strengthen, corroborate, or rescue any proposal, and with shortlisted requests grounded in retrieved text, captions, and figure-reference context.
 - Separate text-model and vision-model configuration with both exposed in reviewer-visible run context and summaries.
 - Filtering by row, column, PDF, evidence status, figure-derived evidence, and ambiguous or unmatched match status.
 - OCR support as a fallback.

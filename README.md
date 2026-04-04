@@ -111,6 +111,7 @@ The canonical provider token is `lm_studio`. Tokens such as `lmstudio`, `LMStudi
 | `provider.base_url` | LM Studio API base URL (default: `http://localhost:1234`) |
 | `provider.text_model.model_id` | ID of the text model loaded in LM Studio |
 | `provider.vision_model.model_id` | ID of the vision model (optional) |
+| `figure_review.enabled` | Enables text-guided figure review as supplemental evidence (global, not schema-per-column) |
 | `retrieval.top_k` | Focused retrieval passage count for the first pass (default: `6`) |
 | `retrieval.recall_rescue_enabled` | Retry `unclear` results with deterministic expanded retrieval (default: `true`) |
 | `retrieval.whole_document_mode` | Opt-in whole-document rescue context for short parsed papers (default: `false`) |
@@ -146,6 +147,15 @@ Numeric answer forms stay truthful to the paper:
 - `5-7` → range
 - `~5` → approximate
 - values estimated from a graph should remain approximate rather than being rewritten as exact
+
+### Text-guided vision strategy
+
+Vision is not configured per schema column. The app decides when to use figure review from extraction evidence quality and paper context.
+
+- figure shortlisting combines retrieved field text, caption relevance, explicit figure references (for example, `Fig. 2a`, `Figure 3B`), and nearby section context
+- vision is triggered selectively when text is unclear, weak, contradictory, needs confirmation, or figure/graph extraction looks promising
+- shortlist and trigger reasons are persisted with proposal/evidence artifacts for reviewer trust
+- figure calls are bounded to a narrow shortlist; broad untargeted figure sweeps are avoided
 
 The config file is the authoritative control surface for all run parameters. Path overrides entered in the browser UI apply to a single run only and do not change the config file.
 
@@ -263,6 +273,14 @@ Evidence labels are intentional and reviewer-facing:
 - **Quote + page** — text fallback when highlight geometry is unavailable
 - **Inferred reasoning** / **Calculation** — support types shown separately from direct quotes
 - **Figure evidence** — labeled separately when figure review is used
+
+Figure-derived numeric answers keep honest value form semantics:
+
+- graph estimate -> `approximate`
+- graph interval -> `range`
+- exact textual statement -> `exact`
+
+The app does not silently collapse graph-derived approximate/range values into exact values.
 
 Fallback evidence is still reviewable, but it is labeled as fallback instead of being presented as exact evidence.
 

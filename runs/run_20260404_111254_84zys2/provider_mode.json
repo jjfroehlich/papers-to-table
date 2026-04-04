@@ -1,0 +1,16 @@
+{
+  "token": "lm_studio",
+  "locality": "local",
+  "mode": "live_local",
+  "text_model_id": "google/gemma-4-26b-a4b",
+  "vision_model_id": "google/gemma-4-26b-a4b",
+  "capabilities": {
+    "supports_structured_output": true,
+    "structured_output_mode": "json_schema",
+    "model_id": "google/gemma-4-26b-a4b",
+    "vision_capable": true,
+    "probed_at": "2026-04-04T11:12:56.510231+00:00"
+  },
+  "readiness_error": null,
+  "recorded_at": "2026-04-04T11:12:58.272041+00:00"
+}
