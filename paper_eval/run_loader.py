@@ -295,7 +295,7 @@ def _build_run_metadata(
 
 
 def _validate_eval_mode_provenance(*, metadata: RunMetadata, run_dir: Path) -> None:
-    if (metadata.run_mode or "").strip().casefold() != _EVAL_MODE:
+    if _normalize_run_mode(metadata.run_mode) != _EVAL_MODE:
         return
 
     missing_fields = [
@@ -481,3 +481,7 @@ def _optional_int(value: Any) -> int | None:
     if value is None or value == "":
         return None
     return int(value)
+
+
+def _normalize_run_mode(value: Any) -> str:
+    return _required_text(value).casefold() if _required_text(value) else ""

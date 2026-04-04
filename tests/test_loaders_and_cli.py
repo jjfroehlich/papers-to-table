@@ -241,7 +241,7 @@ class LoaderAndCliTests(unittest.TestCase):
             self.assertEqual(judge_records[0]["judge_verdict"], "correct")
             self.assertIsNotNone(judge_records[0]["judge_input_hash"])
 
-    def test_cli_scores_fixture_backed_run_and_outputs_expected_files(self) -> None:
+    def test_cli_evaluates_fixture_run_with_expected_outputs(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             copied_fixture = Path(temp_dir) / "fixture"
             shutil.copytree(FIXTURE_ROOT, copied_fixture)

@@ -209,7 +209,7 @@ class BatchEvaluationTests(unittest.TestCase):
             self.assertEqual(summary_b["metrics"]["anchor_valid_rate"], 0.0)
             self.assertEqual(summary_b["metrics"]["evidence_present_but_unvalidated_count"], 1)
 
-    def test_fixture_backed_runs_root_flow_writes_expected_batch_outputs(self) -> None:
+    def test_batch_evaluation_writes_expected_outputs(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             copied_fixture = Path(temp_dir) / "fixture"
             shutil.copytree(FIXTURE_ROOT, copied_fixture)
