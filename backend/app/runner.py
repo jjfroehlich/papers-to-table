@@ -542,7 +542,18 @@ async def run_pipeline(
                     save_run(run_data)
                 continue
 
-            row_dict = extraction_df.iloc[row_idx].to_dict() if row_idx < len(extraction_df) else {}
+            if row_idx >= len(extraction_df):
+                run_data.setdefault("warnings", []).append({
+                    "category": WC.partial_extraction.value,
+                    "message": (
+                        f"Eligible cell row index {row_idx} is outside the staged extraction table."
+                    ),
+                    "context": {"row_index": row_idx, "column_name": col_name},
+                })
+                save_run(run_data)
+                continue
+
+            row_dict = extraction_df.iloc[row_idx].to_dict()
             row_id = generate_row_id(row_idx, str(row_dict.get("Title", "")))
             cell_id = generate_cell_id(row_id, col_name)
             existing_value = cell.get("current_value")

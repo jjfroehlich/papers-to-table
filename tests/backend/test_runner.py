@@ -199,6 +199,10 @@ class TestRunPipeline:
         run_data = read_json(get_run_json_path(output_dir, run_id))
         input_summary = read_json(get_input_summary_path(output_dir, run_id))
         proposals = load_proposals(pathlib.Path(output_dir) / run_id)
+        masked_workbook_path = pathlib.Path(output_dir) / run_id / "inputs" / "masked_working_table.xlsx"
+        masked_sheet = openpyxl.load_workbook(masked_workbook_path).active
+        header_row = [cell.value for cell in masked_sheet[1]]
+        assay_column = header_row.index("assay") + 1
 
         assert run_data["run_mode"] == "eval"
         assert run_data["eval_mode"] is True
@@ -214,8 +218,9 @@ class TestRunPipeline:
         assert proposals[0].gold_table_hash == run_data["eval_artifacts"]["gold_table"]["content_hash"]
         assert proposals[0].masked_working_table_hash == run_data["eval_artifacts"]["masked_working_table"]["content_hash"]
 
-        original_value = openpyxl.load_workbook(workbook_path).active["D2"].value
-        masked_value = openpyxl.load_workbook(pathlib.Path(output_dir) / run_id / "inputs" / "masked_working_table.xlsx").active["D2"].value
+        original_sheet = openpyxl.load_workbook(workbook_path).active
+        original_value = original_sheet.cell(row=2, column=assay_column).value
+        masked_value = masked_sheet.cell(row=2, column=assay_column).value
         assert original_value == "STARR-seq"
         assert masked_value in ("", None)
         assert _CAPTURED_ROW_CONTEXTS[-1]["assay"] == ""

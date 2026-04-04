@@ -205,6 +205,12 @@ def persist_masked_working_copy(
     schema: list[dict],
     masked_df: pd.DataFrame,
 ) -> None:
+    """Persist the masked working copy using a format-compatible writer.
+
+    .xlsx/.xlsm/.xltx/.xltm files are copied via openpyxl so the workbook keeps its
+    existing sheet/cell structure while target cells are blanked. Legacy .xls files
+    fall back to pandas Excel writing, and non-Excel inputs fall back to CSV output.
+    """
     source = pathlib.Path(source_path)
     destination = pathlib.Path(destination_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
