@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from .artifacts import (
+    hash_file,
+    hash_json_data,
     get_config_snapshot_path,
     get_input_summary_path,
     get_reviewer_summary_path,
@@ -16,16 +18,20 @@ from .artifacts import (
     init_run_bundle,
     write_json,
 )
-from .config import RunConfig, check_readiness
+from .config import RunConfig, check_readiness, get_run_mode
 from .extraction import (
     extract_cell,
+    get_prompt_identity,
     load_proposals,
 )
 from .ids import generate_cell_id, generate_row_id, generate_run_id
 from .ingest import (
+    create_masked_working_dataframe,
     get_eligible_cells,
     load_schema,
     load_table,
+    persist_masked_working_copy,
+    persist_table_snapshot,
     validate_metadata_columns,
     validate_schema_columns,
 )
@@ -41,6 +47,10 @@ _active_runs: dict[str, asyncio.Task] = {}
 _active_runs_lock: asyncio.Lock | None = None
 
 
+def _relative_run_path(run_dir: pathlib.Path, artifact_path: pathlib.Path) -> str:
+    return str(artifact_path.resolve().relative_to(run_dir.resolve())).replace("\\", "/")
+
+
 def _get_lock() -> asyncio.Lock:
     global _active_runs_lock
     if _active_runs_lock is None:
@@ -52,6 +62,8 @@ def get_initial_run_data(
     run_id: str, config: RunConfig, config_path: Optional[str]
 ) -> dict:
     now = datetime.now(timezone.utc).isoformat()
+    run_mode = get_run_mode(config)
+    prompt_identity = get_prompt_identity()
     return {
         "run_id": run_id,
         "status": RunStatus.created.value,
@@ -61,6 +73,8 @@ def get_initial_run_data(
         "pdf_dir": config.pdf_dir,
         "output_dir": config.output_dir,
         "verify_mode": config.verify_mode,
+        "eval_mode": config.eval_mode,
+        "run_mode": run_mode,
         "provider_token": config.provider.token,
         "provider_locality": config.provider.locality,
         "provider_mode": "unknown",
@@ -68,6 +82,15 @@ def get_initial_run_data(
         "provider_vision_model_id": (
             config.provider.vision_model.model_id if config.provider.vision_model else None
         ),
+        "prompt_version": prompt_identity["prompt_version"],
+        "prompt_hash": prompt_identity["prompt_hash"],
+        "config_hash": None,
+        "config_snapshot_path": None,
+        "schema_hash": None,
+        "schema_version": None,
+        "parser_identity": config.parser.backend,
+        "parser_version": None,
+        "eval_artifacts": None,
         "provider_readiness_error": None,
         "started_at": None,
         "completed_at": None,
@@ -140,8 +163,13 @@ async def run_pipeline(
         run_data = update_stage(run_data, "validating")
         save_run(run_data)
 
+        run_dir = get_run_dir(output_dir, run_id)
         config_snap_path = get_config_snapshot_path(output_dir, run_id)
-        write_json(config_snap_path, config.model_dump())
+        config_snapshot = config.model_dump()
+        write_json(config_snap_path, config_snapshot)
+        run_data["config_hash"] = hash_json_data(config_snapshot)
+        run_data["config_snapshot_path"] = _relative_run_path(run_dir, config_snap_path)
+        save_run(run_data)
 
         input_summary_path = get_input_summary_path(output_dir, run_id)
         now = datetime.now(timezone.utc).isoformat()
@@ -152,6 +180,17 @@ async def run_pipeline(
             "pdf_dir": config.pdf_dir,
             "output_dir": output_dir,
             "verify_mode": config.verify_mode,
+            "eval_mode": config.eval_mode,
+            "run_mode": run_data["run_mode"],
+            "prompt_version": run_data["prompt_version"],
+            "prompt_hash": run_data["prompt_hash"],
+            "config_hash": run_data["config_hash"],
+            "config_snapshot_path": run_data["config_snapshot_path"],
+            "schema_hash": None,
+            "schema_version": None,
+            "parser_identity": config.parser.backend,
+            "parser_version": None,
+            "eval_artifacts": None,
             "table_rows": None,
             "schema_columns": None,
             "pdf_count": None,
@@ -211,12 +250,51 @@ async def run_pipeline(
             write_final_summaries(run_data)
             return
 
-        eligible = get_eligible_cells(df, schema, config.verify_mode)
+        schema_hash = hash_json_data(schema)
+        run_data["schema_hash"] = schema_hash
+        early_input_summary["schema_hash"] = schema_hash
+        input_summary_base = {
+            **early_input_summary,
+            "schema_hash": schema_hash,
+        }
+
+        eligible = get_eligible_cells(
+            df,
+            schema,
+            verify_mode=config.verify_mode,
+            eval_mode=config.eval_mode,
+        )
+        extraction_df = df
+        style_profile_df = df
+
+        if config.eval_mode:
+            gold_snapshot_path = run_dir / "inputs" / f"gold_table{pathlib.Path(config.table_path).suffix}"
+            masked_path = run_dir / "inputs" / f"masked_working_table{pathlib.Path(config.table_path).suffix}"
+            persist_table_snapshot(config.table_path, str(gold_snapshot_path))
+            masked_df, masking_summary = create_masked_working_dataframe(df, schema)
+            persist_masked_working_copy(config.table_path, str(masked_path), schema, masked_df)
+            extraction_df = masked_df
+            style_profile_df = masked_df
+            run_data["eval_artifacts"] = {
+                "gold_table": {
+                    "source_reference": config.table_path,
+                    "content_hash": hash_file(config.table_path),
+                    "snapshot_path": _relative_run_path(run_dir, gold_snapshot_path),
+                },
+                "masked_working_table": {
+                    "path": _relative_run_path(run_dir, masked_path),
+                    "content_hash": hash_file(masked_path),
+                },
+                **masking_summary,
+            }
+            input_summary_base["eval_artifacts"] = run_data["eval_artifacts"]
+        else:
+            input_summary_base["eval_artifacts"] = None
 
         pdf_files = [f for f in os.listdir(config.pdf_dir) if f.lower().endswith(".pdf")]
 
         input_summary = {
-            **early_input_summary,
+            **input_summary_base,
             "table_rows": len(df),
             "schema_columns": len(schema),
             "pdf_count": len(pdf_files),
@@ -227,8 +305,6 @@ async def run_pipeline(
         run_data["total_rows"] = len(df)
         run_data["eligible_cells"] = len(eligible)
         save_run(run_data)
-
-        run_dir = get_run_dir(output_dir, run_id)
 
         # Stage: initialize provider (T050, T052a)
         run_data = update_stage(run_data, "provider_init")
@@ -415,7 +491,7 @@ async def run_pipeline(
         # Pass provider for LLM-assisted profiling when available
         style_profiles = await run_style_profiles_stage(
             run_dir=run_dir,
-            df=df,
+            df=style_profile_df,
             schema=schema,
             provider=provider,  # None → heuristic fallback
             model_id=text_model_id if provider is not None else None,
@@ -466,10 +542,56 @@ async def run_pipeline(
                     save_run(run_data)
                 continue
 
-            row_dict = df.iloc[row_idx].to_dict() if row_idx < len(df) else {}
+            row_dict = extraction_df.iloc[row_idx].to_dict() if row_idx < len(extraction_df) else {}
             row_id = generate_row_id(row_idx, str(row_dict.get("Title", "")))
             cell_id = generate_cell_id(row_id, col_name)
             existing_value = cell.get("current_value")
+            artifact_context = {
+                "run_mode": run_data["run_mode"],
+                "prompt_version": run_data["prompt_version"],
+                "prompt_hash": run_data["prompt_hash"],
+                "schema_hash": run_data["schema_hash"],
+                "schema_version": run_data.get("schema_version"),
+                "config_hash": run_data["config_hash"],
+                "config_snapshot_path": run_data["config_snapshot_path"],
+                "parser_identity": doc_dict.get("parser_used") or run_data.get("parser_identity"),
+                "parser_version": None,
+                "gold_table_source_reference": (
+                    run_data.get("eval_artifacts", {})
+                    .get("gold_table", {})
+                    .get("source_reference")
+                    if run_data.get("eval_artifacts")
+                    else None
+                ),
+                "gold_table_hash": (
+                    run_data.get("eval_artifacts", {})
+                    .get("gold_table", {})
+                    .get("content_hash")
+                    if run_data.get("eval_artifacts")
+                    else None
+                ),
+                "gold_table_snapshot_path": (
+                    run_data.get("eval_artifacts", {})
+                    .get("gold_table", {})
+                    .get("snapshot_path")
+                    if run_data.get("eval_artifacts")
+                    else None
+                ),
+                "masked_working_table_path": (
+                    run_data.get("eval_artifacts", {})
+                    .get("masked_working_table", {})
+                    .get("path")
+                    if run_data.get("eval_artifacts")
+                    else None
+                ),
+                "masked_working_table_hash": (
+                    run_data.get("eval_artifacts", {})
+                    .get("masked_working_table", {})
+                    .get("content_hash")
+                    if run_data.get("eval_artifacts")
+                    else None
+                ),
+            }
 
             retrieval = run_retrieval_for_cell(
                 run_id=run_id,
@@ -509,6 +631,7 @@ async def run_pipeline(
                 whole_document_mode=config.retrieval.whole_document_mode,
                 whole_document_max_chars=config.retrieval.whole_document_max_chars,
                 provider_mode_str=provider_mode.mode if provider_mode else "unknown",
+                artifact_context=artifact_context,
             )
 
             proposals_generated += 1

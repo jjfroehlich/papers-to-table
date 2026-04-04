@@ -144,6 +144,23 @@ class TestLoadConfig:
         config = load_config(FIXTURE_CONFIG)
         assert config.verify_mode is False
 
+    def test_eval_mode_default_false(self):
+        config = load_config(FIXTURE_CONFIG)
+        assert config.eval_mode is False
+
+    def test_reject_verify_mode_and_eval_mode_together(self):
+        with pytest.raises(Exception, match="verify_mode=true and eval_mode=true cannot be used together"):
+            RunConfig.model_validate({
+                "table_path": "t.xlsx",
+                "pdf_dir": "pdfs/",
+                "verify_mode": True,
+                "eval_mode": True,
+                "provider": {
+                    "token": "lm_studio",
+                    "text_model": {"model_id": "qwen/qwen3-30b-a3b-2507"},
+                },
+            })
+
 
 class TestApplyOverrides:
     def test_override_table_path(self):

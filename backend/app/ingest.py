@@ -4,8 +4,10 @@ import csv
 import io
 import json
 import pathlib
+import shutil
 from typing import Optional
 
+import openpyxl
 import pandas as pd
 
 TRIVIAL_PLACEHOLDERS = {"n/a", "na", "tbd", "tba", "unknown", "-", "--", "none", "?"}
@@ -116,25 +118,31 @@ def is_trivial_placeholder(value: str) -> bool:
     return value.strip().lower() in TRIVIAL_PLACEHOLDERS
 
 
-def classify_cell_eligibility(value: str, verify_mode: bool = False) -> str:
+def classify_cell_eligibility(
+    value: str,
+    verify_mode: bool = False,
+    eval_mode: bool = False,
+) -> str:
     """Returns 'eligible', 'already_filled', 'placeholder', or 'ineligible'."""
     if not value or value.strip() == "":
         return "eligible"
     if is_trivial_placeholder(value):
         return "placeholder"
-    if verify_mode:
+    if verify_mode or eval_mode:
         return "eligible"
     return "already_filled"
 
 
 def get_eligible_cells(
-    df: pd.DataFrame, schema: list[dict], verify_mode: bool = False
+    df: pd.DataFrame,
+    schema: list[dict],
+    verify_mode: bool = False,
+    eval_mode: bool = False,
 ) -> list[dict]:
     """Return list of eligible cells: {row_id, row_index, column_name, current_value, eligibility}."""
     from .ids import generate_row_id
 
-    schema_cols = {col["column_name"] for col in schema}
-    target_cols = schema_cols - REQUIRED_METADATA_COLS
+    target_cols = set(get_target_columns(df, schema))
 
     eligible = []
     for row_idx, row in df.iterrows():
@@ -144,9 +152,9 @@ def get_eligible_cells(
             if col_name not in df.columns:
                 continue
             value = str(row.get(col_name, ""))
-            eligibility = classify_cell_eligibility(value, verify_mode)
+            eligibility = classify_cell_eligibility(value, verify_mode, eval_mode)
             if eligibility in ("eligible", "placeholder") or (
-                verify_mode and eligibility == "already_filled"
+                (verify_mode or eval_mode) and eligibility == "already_filled"
             ):
                 eligible.append(
                     {
@@ -158,3 +166,68 @@ def get_eligible_cells(
                     }
                 )
     return eligible
+
+
+def get_target_columns(df: pd.DataFrame, schema: list[dict]) -> list[str]:
+    schema_cols = {col["column_name"] for col in schema}
+    return [column for column in df.columns if column in schema_cols and column not in REQUIRED_METADATA_COLS]
+
+
+def create_masked_working_dataframe(
+    df: pd.DataFrame,
+    schema: list[dict],
+) -> tuple[pd.DataFrame, dict]:
+    masked_df = df.copy(deep=True)
+    target_columns = get_target_columns(masked_df, schema)
+    masked_non_empty_count = 0
+
+    for column_name in target_columns:
+        column_values = masked_df[column_name].fillna("")
+        masked_non_empty_count += sum(1 for value in column_values if str(value).strip())
+        masked_df[column_name] = ""
+
+    return masked_df, {
+        "target_columns": target_columns,
+        "target_cell_count": len(masked_df.index) * len(target_columns),
+        "masked_non_empty_cell_count": masked_non_empty_count,
+    }
+
+
+def persist_table_snapshot(source_path: str, destination_path: str) -> None:
+    destination = pathlib.Path(destination_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source_path, destination)
+
+
+def persist_masked_working_copy(
+    source_path: str,
+    destination_path: str,
+    schema: list[dict],
+    masked_df: pd.DataFrame,
+) -> None:
+    source = pathlib.Path(source_path)
+    destination = pathlib.Path(destination_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+
+    if source.suffix.lower() in (".xlsx", ".xlsm", ".xltx", ".xltm"):
+        workbook = openpyxl.load_workbook(source)
+        worksheet = workbook.worksheets[0]
+        header_map = {
+            str(cell.value).strip(): index
+            for index, cell in enumerate(worksheet[1], start=1)
+            if cell.value is not None
+        }
+        for column_name in get_target_columns(masked_df, schema):
+            column_index = header_map.get(column_name)
+            if column_index is None:
+                continue
+            for row_index in range(2, worksheet.max_row + 1):
+                worksheet.cell(row=row_index, column=column_index).value = ""
+        workbook.save(destination)
+        return
+
+    if source.suffix.lower() == ".xls":
+        masked_df.to_excel(destination, index=False)
+        return
+
+    masked_df.to_csv(destination, index=False)

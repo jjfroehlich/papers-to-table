@@ -22,6 +22,7 @@ export function RunDetail({ run, onAbort, aborting }: Props) {
   const providerLabel = run.provider_token ? (PROVIDER_DISPLAY[run.provider_token] ?? run.provider_token) : '—'
   const providerMode =
     run.provider_mode == null ? null : run.provider_mode.replace(/_/g, ' ')
+  const runModeLabel = run.run_mode.replace(/_/g, ' ')
   const isAbortable =
     !!onAbort && (run.status === 'created' || run.status === 'validating' || run.status === 'running')
 
@@ -46,17 +47,32 @@ export function RunDetail({ run, onAbort, aborting }: Props) {
         <Field label="Provider" value={providerLabel} />
         <Field label="Locality" value={run.provider_locality} />
         <Field label="Provider mode" value={providerMode} />
+        <Field label="Run mode" value={runModeLabel} />
         <Field label="Text model" value={run.provider_text_model_id ?? null} />
         <Field label="Vision model" value={run.provider_vision_model_id ?? null} />
         <Field label="Verify mode" value={run.verify_mode ? 'Yes' : 'No'} />
+        <Field label="Eval mode" value={run.eval_mode ? 'Yes' : 'No'} />
         <Field label="Table" value={run.table_path} />
         <Field label="Schema" value={run.schema_path} />
         <Field label="PDF dir" value={run.pdf_dir} />
         <Field label="Output dir" value={run.output_dir} />
+        <Field label="Prompt hash" value={run.prompt_hash ?? null} />
+        <Field label="Schema hash" value={run.schema_hash ?? null} />
+        <Field label="Config hash" value={run.config_hash ?? null} />
+        <Field label="Parser" value={run.parser_identity ?? null} />
         <Field label="Total rows" value={run.total_rows} />
         <Field label="Eligible cells" value={run.eligible_cells} />
         <Field label="Started" value={run.started_at ? new Date(run.started_at).toLocaleString() : null} />
         <Field label="Completed" value={run.completed_at ? new Date(run.completed_at).toLocaleString() : null} />
+        {run.eval_artifacts?.gold_table?.source_reference && (
+          <Field label="Gold table source" value={run.eval_artifacts.gold_table.source_reference} />
+        )}
+        {run.eval_artifacts?.gold_table?.snapshot_path && (
+          <Field label="Gold table snapshot" value={run.eval_artifacts.gold_table.snapshot_path} />
+        )}
+        {run.eval_artifacts?.masked_working_table?.path && (
+          <Field label="Masked working table" value={run.eval_artifacts.masked_working_table.path} />
+        )}
         {run.current_stage && (
           <div className="text-sm text-blue-600">
             <span className="font-medium">Current stage:</span> {run.current_stage}
