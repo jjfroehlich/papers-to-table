@@ -34,7 +34,7 @@ Goal: make one run scoreable from the CLI with deterministic structured metrics 
 - [x] E006 Implement contract validation for required main-app artifact files and the published stable eval join fields.
 - [x] E007 Implement proposal loading from `proposals/proposals.jsonl`.
 - [x] E008 Implement loading of run metadata from `run.json`, `config.snapshot.json`, `inputs/input_summary.json`, and `summaries/run_summary.json` when present.
-- [ ] E009 Implement a loader or adapter path for evidence data when proposals do not already carry enough evidence detail.
+- [x] E009 Implement a loader or adapter path for evidence data when proposals do not already carry enough evidence detail.
 - [x] E010 Implement explicit contract errors for missing required scoring fields, especially missing stable join identifiers such as `row_id`, `column_name`, and `cell_id`.
 - [x] E011 Implement gold CSV loading.
 - [x] E012 Implement gold XLSX loading with single-sheet selection per invocation and a documented default first-sheet behavior when no sheet is specified.
