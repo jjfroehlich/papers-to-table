@@ -228,6 +228,9 @@ class LoaderAndCliTests(unittest.TestCase):
             self.assertEqual(row_3_score["join_status"], "cell_id_mismatch")
             self.assertEqual(note_row["was_scored"], "True")
             self.assertEqual(note_row["judge_verdict"], "correct")
+            self.assertEqual(note_row["judge_provider"], "lm_studio")
+            self.assertEqual(note_row["judge_configured_model_id"], "fake-judge-v1")
+            self.assertEqual(note_row["judge_resolved_model_id"], "")
             self.assertEqual(note_row["judge_model_id"], "fake-judge-v1")
             self.assertIn('"rationale_label": "semantic_match"', note_row["diagnostics"])
 
@@ -237,6 +240,9 @@ class LoaderAndCliTests(unittest.TestCase):
                 if line.strip()
             ]
             self.assertEqual(len(judge_records), 1)
+            self.assertEqual(judge_records[0]["judge_provider"], "lm_studio")
+            self.assertEqual(judge_records[0]["judge_configured_model_id"], "fake-judge-v1")
+            self.assertIsNone(judge_records[0]["judge_resolved_model_id"])
             self.assertEqual(judge_records[0]["judge_model_id"], "fake-judge-v1")
             self.assertEqual(judge_records[0]["judge_verdict"], "correct")
             self.assertIsNotNone(judge_records[0]["judge_input_hash"])

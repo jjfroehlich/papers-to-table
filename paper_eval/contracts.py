@@ -223,6 +223,9 @@ class ScoredCell:
     row_index: int | None = None
     normalized_gold: Any = None
     normalized_proposed: Any = None
+    judge_provider: str | None = None
+    judge_configured_model_id: str | None = None
+    judge_resolved_model_id: str | None = None
     judge_verdict: str | None = None
     judge_model_id: str | None = None
     judge_prompt_version: str | None = None
@@ -257,6 +260,7 @@ class EvidenceValidationResult:
 @dataclass(frozen=True)
 class JudgeConfig:
     model_id: str
+    provider: str = "lm_studio"
     api_base: str | None = None
     api_key: str | None = None
     prompt_version: str = "batch3-text-judge-v1"
@@ -299,6 +303,9 @@ class JudgeRecord:
     row_id: str | None
     column_name: str
     cell_id: str | None
+    judge_provider: str
+    judge_configured_model_id: str
+    judge_resolved_model_id: str | None
     judge_model_id: str
     judge_prompt_version: str
     judge_prompt_hash: str

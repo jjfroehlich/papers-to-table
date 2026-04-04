@@ -114,20 +114,52 @@ python -m paper_eval compare --summaries out/example-batch/per-run --out out/exa
 
 Text fields use judge-backed scoring by default.
 
-- pass `--judge-model` to fix the judge model for the whole evaluation run
-- or set `PAPER_EVAL_JUDGE_MODEL`
-- set `PAPER_EVAL_JUDGE_API_KEY` for authentication
-- optionally set `PAPER_EVAL_JUDGE_API_BASE` or pass `--judge-api-base`
+- the default local-first judge provider is LM Studio through its OpenAI-compatible local API
+- start LM Studio local server before running judge-backed text evaluation
+- default judge API base: `http://127.0.0.1:1234/v1`
+- default configured judge model: `qwen/qwen3.5-35b-a3b`
+- pass `--judge-model` or set `PAPER_EVAL_JUDGE_MODEL` to override the configured judge model
+- optionally set `PAPER_EVAL_JUDGE_API_BASE` or pass `--judge-api-base` when LM Studio is exposed somewhere else
+- set `PAPER_EVAL_JUDGE_API_KEY` only if your LM Studio setup requires authentication
 
 Judge guardrails:
 
 - fixed model per evaluation run
 - temperature `0`
+- structured JSON schema output through the LM Studio OpenAI-compatible API
 - bounded field name, field description, gold value, proposed value, and optional evidence excerpt
 - strict verdict labels: `correct`, `incorrect`, `unclear`
 - persisted metadata in `scored_cells.*` and `judge_records.jsonl`
 
-If a text field resolves to judge-backed scoring and no judge model is configured, evaluation fails immediately. Highly standardized text columns can opt into deterministic scoring in schema or proposal metadata.
+If a text field resolves to judge-backed scoring and LM Studio or the configured judge model is unavailable, evaluation fails immediately and truthfully. Highly standardized text columns can opt into deterministic scoring in schema or proposal metadata.
+
+### LM Studio quick start
+
+1. Load or serve `qwen/qwen3.5-35b-a3b` in LM Studio.
+2. Start the local OpenAI-compatible server in LM Studio.
+3. Run evaluation normally. Judge-backed text fields use LM Studio automatically unless the field is explicitly deterministic.
+
+Example:
+
+```bash
+python -m paper_eval evaluate \
+  --run tests/fixtures/example_eval/runs/run-a \
+  --gold tests/fixtures/example_eval/gold.csv \
+  --schema tests/fixtures/example_eval/schema.json \
+  --out out/example-single
+```
+
+Judge-backed cells and `judge_records.jsonl` persist:
+
+- `judge_provider`
+- `judge_configured_model_id`
+- `judge_resolved_model_id`
+- `judge_prompt_version`
+- `judge_prompt_hash`
+- `judge_verdict`
+- `judge_input_hash`
+
+`judge_model_id` is also written as a compatibility field and matches the configured judge model.
 
 ## What the main metrics mean
 
