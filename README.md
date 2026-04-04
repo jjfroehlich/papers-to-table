@@ -8,13 +8,14 @@ CLI-first evaluation for `extract-structured-info-from-papers` run bundles.
 python -m pip install -r requirements.txt
 ```
 
-## Batch 1 CLI
+## CLI
 
 ```bash
 python -m paper_eval evaluate --run path/to/run --gold gold.csv --out out/
 python -m paper_eval evaluate --run path/to/run --gold gold.xlsx --gold-sheet Sheet1 --out out/
 python -m paper_eval evaluate --run path/to/run-a --run path/to/run-b --gold gold.csv --out out/
 python -m paper_eval evaluate --runs-root path/to/runs --gold gold.csv --out out/
+python -m paper_eval compare --summaries out/per-run --out out/compare
 ```
 
 ## Current input contract
@@ -67,6 +68,15 @@ For wide format, optional `{column_name}__cell_id` columns preserve explicit gol
 - resolves numeric tolerances from schema per-column overrides first, then global defaults
 - leaves text fields unscored in Batch 1 and records them explicitly for later judge-backed handling
 
+## Current Batch 2 comparison and evidence behavior
+
+- `evaluate` now always writes per-run outputs plus a flat comparison table with one row per run
+- batch comparison artifacts are written to CSV, XLSX, and Parquet from the same normalized rows
+- comparison rows flatten run metadata into stable columns such as `run_id`, `mode`, `model_id`, `vision_model_id`, `parser_identity`, `parser_version`, `prompt_identity`, `schema_identity`, and `config_hash`
+- per-run summaries and comparison rows keep evidence quality separate from correctness with `anchor_valid_rate`, `correct_and_anchored_rate`, and `evidence_present_but_unvalidated_count`
+- anchor validation requires `page` plus `quote_text`, and when persisted page text is available the quote must be locatable on the cited page to count as `anchor_valid`
+- evidence with page and quote but without persisted text validation data is reported as `evidence_present_but_unvalidated` instead of counting as fully valid
+
 ## Outputs
 
 For each run:
@@ -79,8 +89,10 @@ out/
       scored_cells.csv
       run_summary.json
       run_summary.csv
+  compare/
+    runs_comparison.csv
+    runs_comparison.xlsx
+    runs_comparison.parquet
 ```
 
-`scored_cells.*` includes per-cell join status, raw values, normalized values, correctness, and diagnostics.
-
-Batch 1 supports scoring multiple runs in one invocation, but it still writes only per-run outputs. Combined comparison artifacts are deferred to Batch 2.
+`scored_cells.*` includes per-cell join status, raw values, normalized values, correctness, evidence outcome, and diagnostics.
