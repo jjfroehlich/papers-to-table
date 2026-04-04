@@ -1,27 +1,67 @@
 # extract-structured-info-from-papers-eval
 
-CLI-first evaluation for `extract-structured-info-from-papers` run bundles.
+`extract-structured-info-from-papers-eval` is a small CLI-first evaluator for run bundles produced by `extract-structured-info-from-papers`.
+
+Its job is to:
+
+- load one run or many run bundles from the main app
+- load a human-filled gold CSV or XLSX table
+- score extracted values against gold
+- keep structured scoring deterministic and inspectable
+- use a constrained local LLM judge for text fields when needed
+- write explicit per-cell, per-run, and batch comparison artifacts to disk
+
+It is intentionally **not** the main app, not a GUI, and not a general benchmark platform.
+
+## Relationship to the main app
+
+The main app and this evaluator have different responsibilities.
+
+The main app is responsible for:
+
+- generating eval-ready run bundles
+- masking target cells in eval mode
+- persisting stable identifiers and run metadata
+- persisting proposal and evidence artifacts
+
+This evaluator is responsible for:
+
+- reading those artifacts as files
+- validating the artifact contract
+- scoring proposals against gold
+- producing comparison outputs for benchmarking and debugging
+
+This repo does **not** import main-app Python code or recreate hidden main-app join logic.
 
 ## Install
+
+Install the dependencies before running the CLI or tests:
 
 ```bash
 python -m pip install -r requirements.txt
 ```
 
-## What inputs are required
+The current requirements include:
+
+- `openpyxl` for XLSX gold inputs and XLSX comparison outputs
+- `pyarrow` for Parquet comparison outputs
+
+## What inputs the evaluator expects
 
 You need:
 
-1. one run directory, many `--run` directories, or a `--runs-root`
+1. one run directory, repeated `--run` directories, or a `--runs-root`
 2. one gold CSV or XLSX file
-3. optional schema JSON when you want field types, numeric tolerances, aliases, or text scoring overrides
+3. an optional schema JSON file when you want explicit field types, numeric tolerances, aliases, or text scoring overrides
 
-### Required run-bundle files
+## Required main-app run artifacts
+
+Every run bundle must contain:
 
 - `run.json`
 - `proposals/proposals.jsonl`
 
-### Optional run-bundle files that the evaluator loads when present
+Optional files loaded when present:
 
 - `config.snapshot.json`
 - `inputs/input_summary.json`
@@ -36,7 +76,7 @@ You need:
 - `support/page_texts.json`
 - `support/pages.json`
 
-### Stable join-key contract required from the main app
+## Stable join-key contract required from the main app
 
 Every proposal row must publish:
 
@@ -44,35 +84,145 @@ Every proposal row must publish:
 - `column_name`
 - `cell_id`
 
-The evaluator scores by stable published join keys, not by reverse-engineering main-app ID logic. If any of `row_id`, `column_name`, or `cell_id` is missing, evaluation fails immediately with a contract error. `row_index` may be present for debugging context, but it is not used as the primary scoring join.
+The evaluator scores by those published stable join keys. It does **not** reverse-engineer hidden main-app row or cell ID logic.
 
-If gold publishes a `cell_id` and the matched proposal publishes a different `cell_id`, the cell is not scored. The mismatch is recorded in `scored_cells.*`, counted in `cell_id_mismatch_count`, and listed in `join_diagnostics`.
+If any of `row_id`, `column_name`, or `cell_id` is missing:
 
-### Eval-mode provenance contract
+- evaluation fails immediately with a contract error
 
-When a run is marked `run_mode=eval`, the evaluator now requires reproducibility fields for the source tables:
+If gold publishes a `cell_id` and the matched proposal publishes a different `cell_id`:
+
+- the cell is not scored
+- the mismatch is written into `scored_cells.*`
+- `cell_id_mismatch_count` increases
+- the problem is listed in `join_diagnostics`
+
+`row_index` may be present for debugging context, but it is not the primary scoring join.
+
+## Eval-mode provenance contract
+
+When a run is marked `run_mode=eval`, the evaluator requires reproducibility fields for the source tables:
 
 - `gold_table_hash`
 - `gold_table_snapshot_path`
 - `masked_table_hash`
 - `masked_table_snapshot_path`
 
-If either snapshot path is missing or points at a file that is not present in the run bundle, evaluation fails immediately.
+If a required eval-mode provenance field is missing, or a referenced snapshot path does not exist inside the run bundle, evaluation fails immediately.
 
-### Gold file formats
+## Gold file formats
 
 CSV and XLSX are supported.
 
-- XLSX scoring is exactly one worksheet per invocation.
-- `--gold-sheet` selects a worksheet explicitly.
-- If `--gold-sheet` is omitted, the first worksheet in workbook order is used.
+XLSX policy:
+
+- exactly one worksheet is scored per invocation
+- `--gold-sheet` selects a worksheet explicitly
+- if `--gold-sheet` is omitted, the first worksheet in workbook order is used
 
 Supported gold layouts:
 
-1. wide format with a required `row_id` column and one data column per field
-2. long format with `row_id`, `column_name`, `gold_value`, and optional `cell_id`
+1. **wide format** with a required `row_id` column and one data column per field
+2. **long format** with `row_id`, `column_name`, `gold_value`, and optional `cell_id`
 
-Wide-format gold may also include `{column_name}__cell_id` columns for explicit audit IDs. Gold cells must have unique `row_id + column_name` pairs; duplicate gold join keys fail fast.
+Wide-format gold may also include `{column_name}__cell_id` columns for explicit audit IDs.
+
+Gold contract hardening:
+
+- wide-format gold must include `row_id`
+- duplicate `row_id + column_name` pairs fail fast
+- missing required join fields fail fast
+- empty CSV files or missing header rows fail fast
+
+## Default scoring policy
+
+### Gold-present cells are scored by default
+
+Headline metrics only score **gold-present** cells by default.
+
+- gold-present cells are scored
+- gold-empty cells are excluded from headline accuracy
+- proposals on gold-empty cells are counted only as diagnostics
+
+This prevents incomplete gold tables from turning into false negatives in the main score.
+
+### Structured fields remain deterministic
+
+These field types are deterministic-first:
+
+- boolean
+- categorical
+- numeric
+
+### Text fields use the judge by default
+
+Text fields use the constrained judge by default unless a field is explicitly configured as deterministic in schema or proposal metadata.
+
+That means the evaluator is **not** a judge-only black box:
+
+- structured fields remain deterministic
+- text judging is constrained, bounded, and explicit
+- judge metadata is persisted for auditability
+
+## LM Studio judge path
+
+The default text judge path is **LM Studio** using its OpenAI-compatible local API.
+
+Default settings:
+
+- provider: `lm_studio`
+- API base: `http://127.0.0.1:1234/v1`
+- configured judge model: `qwen/qwen3.5-35b-a3b`
+- temperature: `0`
+
+### LM Studio setup
+
+1. Install and open LM Studio.
+2. Load or serve the model `qwen/qwen3.5-35b-a3b`.
+3. Start LM Studio's local OpenAI-compatible server.
+4. Run the evaluator normally.
+
+If your LM Studio server is on a different URL, pass `--judge-api-base` or set `PAPER_EVAL_JUDGE_API_BASE`.
+
+If you want a different configured judge model, pass `--judge-model` or set `PAPER_EVAL_JUDGE_MODEL`.
+
+If your LM Studio server requires authentication, set `PAPER_EVAL_JUDGE_API_KEY`.
+
+### Judge guardrails
+
+The judge path is intentionally narrow:
+
+- fixed model per evaluation run
+- structured JSON-schema-shaped output
+- bounded field name, description, gold value, proposal value, and evidence excerpt
+- strict verdicts: `correct`, `incorrect`, `unclear`
+- no long free-form reasoning written as a core artifact
+
+### What happens when the judge is unavailable
+
+If a text field resolves to judge-backed scoring and LM Studio or the configured judge model is unavailable:
+
+- evaluation fails truthfully
+- the evaluator does **not** silently claim that text fields were judged
+
+## What judge metadata is persisted
+
+Judge-backed text cells and `judge_records.jsonl` persist:
+
+- `judge_provider`
+- `judge_configured_model_id`
+- `judge_resolved_model_id`
+- `judge_prompt_version`
+- `judge_prompt_hash`
+- `judge_verdict`
+- `judge_input_hash`
+- `judge_temperature`
+
+Compatibility field:
+
+- `judge_model_id` is also written and matches the configured judge model
+
+The evaluator stores both the configured judge model and the actual runtime-served model id returned by LM Studio when available.
 
 ## How to evaluate one run
 
@@ -94,145 +244,28 @@ python -m paper_eval evaluate \
   --out out/example-batch
 ```
 
-You can also pass repeated `--run` arguments:
-
-```bash
-python -m paper_eval evaluate \
-  --run path/to/run-a \
-  --run path/to/run-b \
-  --gold gold.csv \
-  --out out/
-```
-
-## Rebuild comparison outputs without rescoring
-
-```bash
-python -m paper_eval compare --summaries out/example-batch/per-run --out out/example-batch/compare-rebuilt
-```
-
-## Text judge behavior
-
-Text fields use judge-backed scoring by default.
-
-- the default local-first judge provider is LM Studio through its OpenAI-compatible local API
-- start LM Studio local server before running judge-backed text evaluation
-- default judge API base: `http://127.0.0.1:1234/v1`
-- default configured judge model: `qwen/qwen3.5-35b-a3b`
-- pass `--judge-model` or set `PAPER_EVAL_JUDGE_MODEL` to override the configured judge model
-- optionally set `PAPER_EVAL_JUDGE_API_BASE` or pass `--judge-api-base` when LM Studio is exposed somewhere else
-- set `PAPER_EVAL_JUDGE_API_KEY` only if your LM Studio setup requires authentication
-
-Judge guardrails:
-
-- fixed model per evaluation run
-- temperature `0`
-- structured JSON schema output through the LM Studio OpenAI-compatible API
-- bounded field name, field description, gold value, proposed value, and optional evidence excerpt
-- strict verdict labels: `correct`, `incorrect`, `unclear`
-- persisted metadata in `scored_cells.*` and `judge_records.jsonl`
-
-If a text field resolves to judge-backed scoring and LM Studio or the configured judge model is unavailable, evaluation fails immediately and truthfully. Highly standardized text columns can opt into deterministic scoring in schema or proposal metadata.
-
-### LM Studio quick start
-
-1. Load or serve `qwen/qwen3.5-35b-a3b` in LM Studio.
-2. Start the local OpenAI-compatible server in LM Studio.
-3. Run evaluation normally. Judge-backed text fields use LM Studio automatically unless the field is explicitly deterministic.
-
-Example:
+You can also pass repeated run directories:
 
 ```bash
 python -m paper_eval evaluate \
   --run tests/fixtures/example_eval/runs/run-a \
+  --run tests/fixtures/example_eval/runs/run-b \
   --gold tests/fixtures/example_eval/gold.csv \
   --schema tests/fixtures/example_eval/schema.json \
-  --out out/example-single
+  --out out/example-batch
 ```
 
-Judge-backed cells and `judge_records.jsonl` persist:
+## How to rebuild comparison outputs without rescoring
 
-- `judge_provider`
-- `judge_configured_model_id`
-- `judge_resolved_model_id`
-- `judge_prompt_version`
-- `judge_prompt_hash`
-- `judge_verdict`
-- `judge_input_hash`
+```bash
+python -m paper_eval compare \
+  --summaries out/example-batch/per-run \
+  --out out/example-batch/compare-rebuilt
+```
 
-`judge_model_id` is also written as a compatibility field and matches the configured judge model.
+## Output artifacts
 
-## What the main metrics mean
-
-### Headline metrics
-
-- `structured_accuracy`: accuracy over scored boolean, categorical, and numeric gold-present cells
-- `boolean_accuracy`
-- `categorical_accuracy`
-- `numeric_accuracy`
-- `text_accuracy`: accuracy over scored text cells
-- `proposal_coverage_on_gold_present`: fraction of gold-present cells with exactly one scoreable matched proposal
-
-### Evidence metrics
-
-- `anchor_valid_rate`: fraction of scored cells with at least one fully validated evidence anchor
-- `correct_and_anchored_rate`: fraction of scored cells that are both correct and anchor-valid
-
-### Diagnostics
-
-- `gold_present_cell_count`
-- `gold_empty_cell_count`
-- `filled_on_gold_empty_count`
-- `missing_proposal_count`
-- `duplicate_proposal_join_count`
-- `cell_id_mismatch_count`
-- `unmatched_proposal_count`
-- `join_failure_count`
-- `evidence_present_but_unvalidated_count`
-
-## Headline vs diagnostic metrics
-
-Headline metrics are:
-
-- `structured_accuracy`
-- per-type structured accuracies
-- `text_accuracy`
-- `proposal_coverage_on_gold_present`
-
-Evidence and retrieval-style signals are separate from the headline score.
-
-- `anchor_valid_rate` and `correct_and_anchored_rate` are evidence metrics, not headline correctness
-- gold-empty proposals are diagnostics, not headline errors
-- join-key failures are diagnostics you can inspect, not silently guessed matches
-
-## Default gold-present-cell scoring policy
-
-By default the evaluator only scores gold-present cells in headline metrics.
-
-- gold-present cells are scored
-- gold-empty cells are left out of headline scoring
-- proposals on gold-empty cells are counted as diagnostics only
-
-This keeps incomplete gold tables from turning into false negatives.
-
-## Correctness and evidence are separate
-
-The evaluator does not blend answer correctness and evidence quality into one opaque score.
-
-- a cell can be correct but not anchor-valid
-- a cell can be anchor-valid but incorrect
-- `correct_and_anchored_rate` is reported separately so both dimensions stay inspectable
-
-## Diagnostics currently implemented
-
-- `anchor_valid_rate` checks whether evidence has a valid page, non-empty quote text, and locatable quote text when persisted page text is available
-- `evidence_present_but_unvalidated_count` captures cases where evidence exists but could not be fully validated
-- join diagnostics are written into per-cell outputs and summarized in `run_summary.json`
-
-`gold_in_document_rate` is not implemented yet.
-
-## Outputs
-
-Every evaluation run writes stable artifact names:
+Every evaluation writes stable artifact names:
 
 ```text
 out/
@@ -249,9 +282,78 @@ out/
     runs_comparison.parquet
 ```
 
-For the same input artifacts, schema, run ordering, and judge configuration, structured outputs are deterministic. Judge-backed text results are only as reproducible as the configured external model, but the evaluator fixes the judge request shape, temperature, and stored metadata.
+Notes:
 
-### Example `run_summary.json` excerpt
+- CSV is the easiest artifact to inspect or diff
+- XLSX and Parquet are alternate renderings of the same comparison rows
+- `judge_records.jsonl` is only written when judge-backed scoring actually runs
+
+## What the metrics mean
+
+### Headline metrics
+
+Headline metrics are the main correctness metrics you should compare across runs.
+
+- `structured_accuracy`: accuracy over scored boolean, categorical, and numeric gold-present cells
+- `boolean_accuracy`: accuracy over scored boolean gold-present cells
+- `categorical_accuracy`: accuracy over scored categorical gold-present cells
+- `numeric_accuracy`: accuracy over scored numeric gold-present cells
+- `text_accuracy`: accuracy over scored text gold-present cells under the resolved text scoring policy
+- `proposal_coverage_on_gold_present`: fraction of gold-present cells with exactly one scoreable matched proposal
+
+### Evidence metrics
+
+Evidence metrics are separate from correctness.
+
+- `anchor_valid_rate`: fraction of scored cells with at least one fully validated evidence anchor
+- `correct_and_anchored_rate`: fraction of scored cells that are both correct and anchor-valid
+
+### Diagnostic metrics
+
+Diagnostics explain failure modes and contract problems. They are **not** headline accuracy penalties.
+
+- `gold_present_cell_count`
+- `gold_empty_cell_count`
+- `filled_on_gold_empty_count`
+- `missing_proposal_count`
+- `duplicate_proposal_join_count`
+- `cell_id_mismatch_count`
+- `unmatched_proposal_count`
+- `join_failure_count`
+- `evidence_present_but_unvalidated_count`
+
+## Headline vs diagnostic behavior
+
+The evaluator keeps these concepts separate on purpose.
+
+Headline correctness:
+
+- `structured_accuracy`
+- per-type structured accuracies
+- `text_accuracy`
+- `proposal_coverage_on_gold_present`
+
+Evidence quality:
+
+- `anchor_valid_rate`
+- `correct_and_anchored_rate`
+
+Diagnostics:
+
+- gold-empty proposals
+- join-key failures
+- unmatched proposals
+- evidence-present-but-unvalidated counts
+
+This means:
+
+- a cell can be correct but not anchor-valid
+- a cell can be anchor-valid but incorrect
+- a proposal on a gold-empty cell is not automatically a headline failure
+
+## Example outputs
+
+### Example `run_summary.json`
 
 ```json
 {
@@ -265,7 +367,7 @@ For the same input artifacts, schema, run ordering, and judge configuration, str
 }
 ```
 
-### Example `scored_cells.csv` rows
+### Example `scored_cells.csv`
 
 ```text
 record_kind,row_id,column_name,join_status,was_scored,is_correct,evidence_outcome
@@ -273,7 +375,7 @@ gold_cell,row-1,status,matched,True,True,anchor_valid
 gold_cell,row-2,notes,matched,True,True,missing_evidence
 ```
 
-### Example `runs_comparison.csv` rows
+### Example `runs_comparison.csv`
 
 ```text
 run_id,structured_accuracy,text_accuracy,anchor_valid_rate,join_failure_count
@@ -281,27 +383,60 @@ run-a,1.0,1.0,0.3333333333333333,0
 run-b,0.6666666666666666,0.5,0.0,0
 ```
 
-## Current limitations
+## Error handling and contract hardening
+
+The evaluator now fails early and explicitly for common operator mistakes, including:
+
+- missing run bundle directories
+- invalid `--runs-root` paths
+- missing required run artifact files
+- malformed JSON in run metadata, proposals, sidecar evidence, schema files, or summary files
+- missing eval-mode provenance fields
+- missing provenance snapshot artifacts
+- unsupported gold file types
+- empty gold CSV files
+- missing required gold join fields
+- duplicate gold join keys
+- missing comparison-summary inputs for `compare`
+
+The goal is to make failures obvious instead of silently guessing.
+
+## Practical limitations
+
+Current limitations:
 
 - no GUI
 - no multi-sheet XLSX scoring in one invocation
 - no automatic fallback to hidden main-app join-key logic
 - no `gold_in_document_rate` metric yet
 - no structured-field support proxy metric yet
-- no heavyweight faithfulness or entailment system
+- no heavyweight entailment or faithfulness system
+- no live LM Studio smoke test in the test suite; judge integration is covered through contract-level mocks
 
-## Tested command paths
+## Non-goals
+
+This repo is not trying to:
+
+- run extraction itself
+- edit gold tables
+- become a general benchmark platform
+- replace deterministic scoring for structured fields with an opaque judge
+- mix correctness and evidence into one hidden composite score
+
+## Testing
 
 The repository test suite covers:
 
 - single-run evaluation
 - batch evaluation
-- comparison artifact rebuilding with `compare`
+- expected output generation
 - join-key failure behavior
 - eval-mode provenance validation
-- normalization, comparators, evidence checks, and text judge integration
+- normalization and deterministic comparators
+- evidence validation
+- LM Studio judge adapter and text judge integration
 
-Run the suite from the repo root:
+Run the suite from the repo root after installing requirements:
 
 ```bash
 python -m unittest discover -s tests -v

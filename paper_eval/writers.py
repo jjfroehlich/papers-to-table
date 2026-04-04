@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import json
 from dataclasses import asdict, is_dataclass
+from json import JSONDecodeError
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -67,14 +68,21 @@ def write_comparison_artifacts_from_rows(path: Path, rows: Iterable[dict[str, An
 
 
 def load_summary_rows_from_directory(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        raise ContractError(f"Summary input does not exist: {path}")
     summary_files: list[Path] = []
     if path.is_file():
         summary_files = [path]
     else:
+        if not path.is_dir():
+            raise ContractError(f"Summary input is neither a file nor a directory: {path}")
         summary_files = sorted(path.glob("*/run_summary.json"))
     rows: list[dict[str, Any]] = []
     for summary_path in summary_files:
-        payload = json.loads(summary_path.read_text(encoding="utf-8"))
+        try:
+            payload = json.loads(summary_path.read_text(encoding="utf-8"))
+        except JSONDecodeError as exc:
+            raise ContractError(f"Invalid JSON in summary file {summary_path}: {exc.msg}") from exc
         row = {
             "run_id": payload["run_id"],
             "run_dir": payload["run_dir"],
