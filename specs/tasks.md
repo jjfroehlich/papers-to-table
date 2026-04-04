@@ -98,7 +98,7 @@ Future coding-agent implementation should normally proceed by the canonical batc
 
 **Purpose:** tighten the extraction contract so the system is schema-first, empty-table-safe, deterministically matchable, provider-truthful, and evidence-strict before more UI polish lands.
 
-**Primary tasks:** `T020a`, `T024c`, `T034a`, `T038a`, `T040a`, `T041a`, `T042a`, `T044a`, `T047a`, `T047b`, `T047c`, `T049a`, `T049b`, `T050b`, `T052b`, `T052c`, `T056a`, `T057b`, `T058b`, `T059a`, `T062a`, `T062b`, `T067a`
+**Primary tasks:** `T009c`, `T013b`, `T020a`, `T021a`, `T024c`, `T024d`, `T034a`, `T038a`, `T040a`, `T041a`, `T042a`, `T044a`, `T047a`, `T047b`, `T047c`, `T049a`, `T049b`, `T050b`, `T052b`, `T052c`, `T056a`, `T056b`, `T057b`, `T057c`, `T058b`, `T059a`, `T062a`, `T062b`, `T067a`, `T067b`
 
 **Why this batch exists:** the next implementation pass should first fix extraction leakage risk, matching integrity, warning truth, and artifact shape. Otherwise later review UX polish will sit on top of weak or misleading backend semantics.
 
@@ -106,6 +106,7 @@ Future coding-agent implementation should normally proceed by the canonical batc
 
 - deterministic matching clearly favors DOI, author, and year signals over title-heavy scoring and explains duplicate-row conflicts distinctly from ordinary ambiguity
 - schema-first extraction works without prefilled cells, optional field typing is honored, and style profiles remain helper-only rather than semantic exemplars
+- Eval mode creates a masked working copy, rejects Verify-plus-Eval combinations early, and preserves the minimal downstream-ready artifact contract without leaking target gold values
 - retrieval rescue is bounded and explicit, whole-document mode is optional rather than default, and dead `retrieval.chunk_size` config is gone
 - provider-unavailable state hard-fails at run start, warning propagation is truthful, and the structured-output ladder is bounded and testable
 - proposal persistence uses `proposals.jsonl` plus an index or equivalent lookup structure
@@ -115,7 +116,7 @@ Future coding-agent implementation should normally proceed by the canonical batc
 
 **Purpose:** make the run and review workspace faster and more trustworthy by tightening setup and status truth, centering actionable counts, improving fast sequential review, and keeping export explicit.
 
-**Primary tasks:** `T023c`, `T024b`, `T068a`, `T075b`, `T080a`, `T082b`, `T084a`, `T086c`, `T090b`, `T091a`, `T093a`, `T094a`, `T095a`, `T096a`, `T101a`
+**Primary tasks:** `T023c`, `T024b`, `T068a`, `T075b`, `T076b`, `T080a`, `T082b`, `T084a`, `T086c`, `T090b`, `T091a`, `T093a`, `T093b`, `T094a`, `T094b`, `T095a`, `T096a`, `T101a`
 
 **Why this batch exists:** the current baseline already has a substantial review shell. The next useful step is to tighten reviewer throughput and truthfulness rather than rebuild the whole workspace again.
 
@@ -127,19 +128,20 @@ Future coding-agent implementation should normally proceed by the canonical batc
 - evidence navigation supports fast sequential review, including next or previous evidence and stronger highlight synchronization
 - explicit decisions auto-advance to the next reviewable proposal when one exists
 - parsing fallback, duplicate conflicts, evidence fallback, and provider-mode truth are surfaced consistently in review-facing summaries and diagnostics
+- Eval-mode run context is surfaced clearly in summaries, diagnostics, and review surfaces, including gold-table versus masked-table references and version context
 - export is an explicit manual reviewer action and never an implicit side effect
 
 ### Batch 3 — Regression protection, screenshots, and trustworthiness docs
 
 **Purpose:** close the loop with coverage and operator docs so the tightened workflow remains demonstrable, repeatable, and truthful.
 
-**Primary tasks:** `T107c`, `T107d`
+**Primary tasks:** `T107c`, `T107d`, `T107e`
 
 **Why this batch exists:** these changes are product-trust changes. They should ship with screenshots, lightweight trust guidance, and reproducible documentation rather than being left as implicit code behavior.
 
 **Batch 3 is complete when:**
 
-- operator docs explain schema descriptions, manual export, evidence semantics, and provider or parsing truth without drift
+- operator docs explain schema descriptions, manual export, evidence semantics, provider or parsing truth, and Eval-mode masking without drift
 - the README includes current screenshots for run setup, highlighted evidence review, and export or diagnostics views
 - screenshot capture is reproducible through Playwright or an equivalent checked-in workflow
 - the README includes a compact trustworthiness checklist aligned with local-first usage, evidence labeling, fallback visibility, review-before-export, and audit artifact access
@@ -254,6 +256,11 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T009b** Define the operator-facing terminology parity rules for provider, parser, model, Verify-mode, and run-state labels across the runtime config schema, checked-in config example, tests, docs, and UI copy.
 
+- [ ] **T009c** Extend the config contract with explicit Eval-mode semantics.
+  - define the three effective run modes: normal, Verify, and Eval
+  - treat `verify_mode = true` plus `eval_mode = true` as invalid
+  - keep config examples, runtime validation, docs, tests, and UI labels aligned on those mode meanings
+
 - [x] **T010** Implement config default resolution into one effective runtime config before any run work starts.
 
 - [x] **T011** Create `config.example.json` as a minimal but complete example config file for the full MVP.
@@ -285,6 +292,11 @@ The detailed task inventory below remains the source of truth for exact implemen
   - ensure the run can later be explained from the snapshot
 
 - [x] **T013a** Persist a resolved input-summary artifact early enough that readiness-failed and early-failed runs still expose table, schema, PDF-directory, output-directory, and Verify-mode context to the UI and diagnostics.
+
+- [ ] **T013b** Persist stable run-identity metadata needed by downstream eval tooling.
+  - include explicit mode truth in early run artifacts
+  - persist schema hash or schema version plus config hash or config snapshot reference
+  - preserve original gold-table and masked-working-table identifiers when Eval mode is enabled
 
 - [x] **T014** Audit, normalize, and document the canonical deterministic fixture corpus in `tests/fixtures/`.
   - reuse the existing checked-in workbook fixture with schema tab plus the existing four paper PDFs as the primary canonical fixture set when they cover the required scenarios
@@ -328,6 +340,12 @@ The detailed task inventory below remains the source of truth for exact implemen
 - [x] **T020a** Enforce that already-filled cells outside Verify mode remain diagnostics-only or entirely out of scope, rather than producing reviewer-facing placeholder proposals or synthetic blocked rationales.
 
 - [x] **T021** Implement Verify mode semantics so already-filled cells become eligible targets when Verify mode is enabled.
+
+- [ ] **T021a** Implement Eval-mode setup semantics from the completed gold table.
+  - reject Verify mode plus Eval mode before extraction begins
+  - create an app-owned masked working copy of target cells from the completed table
+  - keep the original completed table as the gold reference while routing extraction through the masked copy
+  - preserve both gold-table and masked-working-table identifiers in run artifacts
 
 - [x] **T022** Implement run lifecycle state transitions for at least:
   - `created`
@@ -381,6 +399,11 @@ The detailed task inventory below remains the source of truth for exact implemen
   - provider-unavailable at run start must produce readiness failure rather than `completed_with_warnings`
   - `completed_with_warnings` must remain reserved for partial-success runs where meaningful processing actually happened
   - run summaries and reviewer summaries must preserve that distinction
+
+- [ ] **T024d** Add backend tests for Eval-mode validation and staging.
+  - invalid Verify-plus-Eval combinations fail during validation or readiness
+  - masked working-table creation uses the completed gold table as input without mutating the original
+  - early run artifacts preserve mode truth plus gold-table and masked-working-table identifiers
 
 ---
 
@@ -619,6 +642,12 @@ The detailed task inventory below remains the source of truth for exact implemen
   - use an index or equivalent lookup structure for id-based loading and filtered list assembly
   - remove any remaining many-small-proposal-file direction from artifacts and docs
 
+- [ ] **T056b** Extend persisted proposal and evidence metadata for downstream eval compatibility.
+  - keep the contract minimal but sufficient for later scoring
+  - preserve stable row id, column identifier, cell id, pdf id, raw proposal value, proposal state, support label, and field type when known
+  - preserve evidence items with at least page, quote text, and evidence type
+  - preserve text model id, vision model id if used, parser identity or version, and prompt version when applicable
+
 - [x] **T057** Implement the per-target-cell extraction orchestrator that assembles:
   - row context
   - column definition
@@ -632,6 +661,11 @@ The detailed task inventory below remains the source of truth for exact implemen
   - pass optional schema `field_type` and `allowed_values` into extraction requests when present
   - keep numeric outputs internally typed as `exact`, `range`, or `approximate`
   - ensure the absence of field typing does not block extraction
+
+- [ ] **T057c** Enforce Eval-mode anti-leakage in extraction orchestration.
+  - ensure target-cell extraction reads from the masked working copy rather than the original completed table
+  - keep style-profile guidance helper-only and leakage-safe in Eval mode
+  - preserve original gold-table and masked-working-table references in the emitted run metadata
 
 - [x] **T057a** Add field-aware extraction handling for long-text targets so narrative outputs do not systematically fail because of short-answer-oriented response shaping or truncation assumptions.
 
@@ -713,6 +747,11 @@ The detailed task inventory below remains the source of truth for exact implemen
   - cover the bounded structured-output ladder exactly as specified
   - cover direct-evidence thresholding, multi-quote support, and figure-evidence subtype ranking
   - cover `proposals.jsonl` plus index persistence behavior
+
+- [ ] **T067b** Add backend tests for Eval-mode leakage protection and artifact emission.
+  - target-cell gold values do not reach the extraction path in Eval mode
+  - proposal and evidence artifacts include the minimal downstream-ready metadata contract
+  - Eval-mode artifacts preserve gold-table and masked-working-table identity distinctly
 
 ---
 
@@ -797,6 +836,12 @@ The detailed task inventory below remains the source of truth for exact implemen
   - local vs cloud status
   - provider mode and readiness outcome
   - internally consistent counts and warning flags derived from persisted data rather than speculative UI state
+
+- [ ] **T076b** Extend run-summary and reviewer-summary contracts for Eval-mode truth.
+  - surface run mode (`normal`, `verify`, `eval`) explicitly
+  - include parser identity, schema identity, config snapshot or hash, and prompt version when available
+  - include original gold-table and masked-working-table references for Eval mode
+  - keep downstream-eval metadata derived from persisted facts rather than UI-local heuristics
 
 - [x] **T077** Implement reviewer-outcome summary generation as a pure function of proposals and review decisions, and persist it in `summaries/reviewer_summary.json`, including at minimum:
   - proposals generated
@@ -1004,6 +1049,11 @@ The detailed task inventory below remains the source of truth for exact implemen
   - surface degraded parsing, OCR fallback, duplicate-row conflicts, and evidence fallback in reviewer-visible summaries and diagnostics
   - keep actionable-only progress as the primary headline while preserving secondary totals for context
 
+- [ ] **T093b** Surface Eval-mode context and artifact truth across the UI.
+  - label Eval-mode runs clearly in setup, run-summary, and review-context surfaces
+  - show which gold table and masked working table were involved
+  - show schema/config/model/parser version or identity context without implying that the app computed the final eval score
+
 - [ ] **T094** Add frontend tests for grouped queue behavior, group-header summaries, group ordering rules, queue filtering, item ordering rules, nonlinear review, evidence type labeling (direct quote vs. inferred vs. calculation vs. approximate vs. fallback), exact-highlight vs. approximate-highlight vs. quote-plus-page fallback rendering, synchronized quote-list and viewer behavior, viewer navigation (previous/next page, jump to page), figure-evidence rendering with full-page access, run-summary display including text and vision model identifiers, no-data workflow rendering, picker-driven setup flow, markdown-bullet rationale rendering, click-to-populate replace behavior, overlong-text staging behavior, tooltip shortcut surfacing, and bulk-accept confirmation flow.
 
 - [x] **T094a** Add frontend tests for the next reviewer-throughput contract.
@@ -1012,6 +1062,11 @@ The detailed task inventory below remains the source of truth for exact implemen
   - next or previous evidence navigation
   - auto-advance after explicit decisions
   - degraded parsing and provider-mode warning display in review-facing summaries
+
+- [ ] **T094b** Add frontend tests for Eval-mode run-summary and setup truth.
+  - Eval-mode labeling in setup and run-summary surfaces
+  - gold-table versus masked-working-table context display
+  - schema/config/model/parser context display without implying in-app benchmark scoring
 
 - [ ] **T095** Add Playwright e2e tests for the core review loop from proposal selection through grouped triage, group ordering, evidence interaction, no-data resolution, decision recording, picker-input staging, and summary updates.
 
@@ -1148,6 +1203,12 @@ The detailed task inventory below remains the source of truth for exact implemen
   - keep the workflow lightweight and local-first
   - store or document the commands needed to refresh README screenshots consistently
 
+- [ ] **T107e** Update `README.md` and related operator docs for Eval mode.
+  - explain what Eval mode is and why it masks target cells before extraction
+  - explain why Verify mode and Eval mode cannot both be enabled
+  - describe which downstream artifact fields the separate eval tool or repo consumes
+  - keep Eval mode documented as artifact emission for later scoring, not as an in-app metrics framework
+
 ---
 
 ## Explicit MVP exclusions for this task list
@@ -1167,6 +1228,7 @@ Do **not** add the following unless `spec.md` and `plan.md` are intentionally re
 - user-triggered figure review controls
 - unrestricted full-page vision on every page of every paper for every field
 - automated heterogeneous correctness scoring as the primary MVP evaluation metric
+- bundling a large dedicated evaluation framework or separate eval UI into the main app by default
 
 ---
 
@@ -1182,7 +1244,9 @@ This task list is complete enough when it can drive implementation toward a syst
 - persists proposals, evidence, review decisions, run summaries, reviewer summaries, diagnostics, and exports as inspectable artifact files
 - uses `proposals.jsonl` plus a proposal index or equivalent lookup structure as the canonical proposal persistence direction
 - supports Verify mode end to end
+- supports leakage-aware Eval mode end to end without exposing target gold values to extraction
 - generates reviewer-outcome summaries for the MVP
+- emits the minimal downstream-ready artifact contract for later Eval-mode scoring by a separate tool
 - exports a new XLSX plus audit log within the explicit content-only fidelity boundary
 - produces evidence with correct type labels (direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, `caption_grounded_figure_evidence`, `visual_interpretation_figure_evidence`) and ranks evidence by authority so the most authoritative item is primary
 - produces exact quote highlights from page-text alignment when possible and degrades honestly with labeled fallback when it fails; fallback evidence is never presented as exact
