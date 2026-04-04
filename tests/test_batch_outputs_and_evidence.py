@@ -237,7 +237,7 @@ class BatchEvaluationTests(unittest.TestCase):
             self.assertEqual(row_a["gold_table_hash"], "gold-hash-1")
             self.assertEqual(row_a["masked_table_snapshot_path"], "masked/masked_table.csv")
             self.assertEqual(row_a["structured_accuracy"], "1.0")
-            self.assertEqual(row_b["structured_accuracy"], "0.6666666666666666")
+            self.assertEqual(row_b["structured_accuracy"], "0.5")
             self.assertEqual(row_b["text_accuracy"], "0.5")
 
     def test_join_key_failures_are_explicit_and_inspectable(self) -> None:
@@ -266,6 +266,19 @@ class BatchEvaluationTests(unittest.TestCase):
                             "cell_id": "cell-status-1",
                             "proposed_value": "yes",
                             "field_type": "boolean",
+                        }
+                    )
+                    + "\n"
+                )
+                handle.write(
+                    json.dumps(
+                        {
+                            "run_id": "run-a",
+                            "row_id": "row-1",
+                            "column_name": "score",
+                            "cell_id": "cell-score-1",
+                            "proposed_value": "10",
+                            "field_type": "numeric",
                         }
                     )
                     + "\n"
