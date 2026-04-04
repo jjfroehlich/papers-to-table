@@ -1,5 +1,6 @@
 import csv
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -7,6 +8,8 @@ from pathlib import Path
 from paper_eval.cli import main
 from paper_eval.evidence import validate_evidence_anchors
 from paper_eval.run_loader import load_run
+
+FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures" / "example_eval"
 
 
 class EvidenceValidationTests(unittest.TestCase):
@@ -205,6 +208,159 @@ class BatchEvaluationTests(unittest.TestCase):
             self.assertEqual(summary_a["metrics"]["anchor_valid_rate"], 1.0)
             self.assertEqual(summary_b["metrics"]["anchor_valid_rate"], 0.0)
             self.assertEqual(summary_b["metrics"]["evidence_present_but_unvalidated_count"], 1)
+
+    def test_batch_evaluation_writes_expected_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            copied_fixture = Path(temp_dir) / "fixture"
+            shutil.copytree(FIXTURE_ROOT, copied_fixture)
+            output_dir = Path(temp_dir) / "out"
+
+            exit_code = main(
+                [
+                    "evaluate",
+                    "--runs-root",
+                    str(copied_fixture / "runs"),
+                    "--gold",
+                    str(copied_fixture / "gold.csv"),
+                    "--schema",
+                    str(copied_fixture / "schema.json"),
+                    "--out",
+                    str(output_dir),
+                ]
+            )
+
+            self.assertEqual(exit_code, 0)
+            csv_rows = self._read_csv(output_dir / "compare" / "runs_comparison.csv")
+            self.assertEqual(len(csv_rows), 2)
+            row_a = self._find_row(csv_rows, "run-a")
+            row_b = self._find_row(csv_rows, "run-b")
+            self.assertEqual(row_a["gold_table_hash"], "gold-hash-1")
+            self.assertEqual(row_a["masked_table_snapshot_path"], "masked/masked_table.csv")
+            self.assertEqual(row_a["structured_accuracy"], "1.0")
+            self.assertEqual(row_b["structured_accuracy"], "0.5")
+            self.assertEqual(row_b["text_accuracy"], "0.5")
+
+    def test_join_key_failures_are_explicit_and_inspectable(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            run_dir = self._create_run_bundle(
+                base / "run-a",
+                run_payload={"run_id": "run-a", "provider_text_model_id": "model-a"},
+                config_payload={"config_hash": "cfg-a"},
+                include_page_text=True,
+            )
+            gold_path = base / "gold.csv"
+            gold_path.write_text(
+                "row_id,status,score,score__cell_id\n"
+                "row-1,yes,10,cell-score-1\n"
+                "row-2,no,20,cell-score-2\n",
+                encoding="utf-8",
+            )
+            with (run_dir / "proposals" / "proposals.jsonl").open("w", encoding="utf-8") as handle:
+                handle.write(
+                    json.dumps(
+                        {
+                            "run_id": "run-a",
+                            "row_id": "row-1",
+                            "column_name": "status",
+                            "cell_id": "cell-status-1",
+                            "proposed_value": "yes",
+                            "field_type": "boolean",
+                        }
+                    )
+                    + "\n"
+                )
+                handle.write(
+                    json.dumps(
+                        {
+                            "run_id": "run-a",
+                            "row_id": "row-1",
+                            "column_name": "score",
+                            "cell_id": "cell-score-1",
+                            "proposed_value": "10",
+                            "field_type": "numeric",
+                        }
+                    )
+                    + "\n"
+                )
+                handle.write(
+                    json.dumps(
+                        {
+                            "run_id": "run-a",
+                            "row_id": "row-2",
+                            "column_name": "score",
+                            "cell_id": "wrong-cell-id",
+                            "proposed_value": "20",
+                            "field_type": "numeric",
+                        }
+                    )
+                    + "\n"
+                )
+                handle.write(
+                    json.dumps(
+                        {
+                            "run_id": "run-a",
+                            "row_id": "row-2",
+                            "column_name": "status",
+                            "cell_id": "cell-status-2a",
+                            "proposed_value": "no",
+                            "field_type": "boolean",
+                        }
+                    )
+                    + "\n"
+                )
+                handle.write(
+                    json.dumps(
+                        {
+                            "run_id": "run-a",
+                            "row_id": "row-2",
+                            "column_name": "status",
+                            "cell_id": "cell-status-2b",
+                            "proposed_value": "no",
+                            "field_type": "boolean",
+                        }
+                    )
+                    + "\n"
+                )
+                handle.write(
+                    json.dumps(
+                        {
+                            "run_id": "run-a",
+                            "row_id": "row-9",
+                            "column_name": "status",
+                            "cell_id": "cell-status-9",
+                            "proposed_value": "yes",
+                            "field_type": "boolean",
+                        }
+                    )
+                    + "\n"
+                )
+
+            output_dir = base / "out"
+            self.assertEqual(
+                main(
+                    [
+                        "evaluate",
+                        "--run",
+                        str(run_dir),
+                        "--gold",
+                        str(gold_path),
+                        "--out",
+                        str(output_dir),
+                    ]
+                ),
+                0,
+            )
+
+            summary = json.loads((output_dir / "per-run" / "run-a" / "run_summary.json").read_text(encoding="utf-8"))
+            self.assertEqual(summary["metrics"]["missing_proposal_count"], 0)
+            self.assertEqual(summary["metrics"]["duplicate_proposal_join_count"], 1)
+            self.assertEqual(summary["metrics"]["cell_id_mismatch_count"], 1)
+            self.assertEqual(summary["metrics"]["unmatched_proposal_count"], 1)
+            self.assertEqual(summary["metrics"]["join_failure_count"], 3)
+            self.assertIn("duplicate_proposals:row-2:status:None", summary["join_diagnostics"])
+            self.assertIn("cell_id_mismatch:row-2:score:cell-score-2", summary["join_diagnostics"])
+            self.assertIn("unmatched_proposal:row-9:status:cell-status-9", summary["join_diagnostics"])
 
     def test_compare_command_rebuilds_comparison_outputs_from_per_run_summaries(self) -> None:
         try:

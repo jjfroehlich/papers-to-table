@@ -87,8 +87,8 @@ Goal: add constrained text-field scoring without making the evaluator opaque.
 
 Goal: make the tool reliable, documented, and explicit about remaining contract dependencies.
 
-- [ ] E047 Add contract validation for eval-mode provenance fields such as gold and masked table hashes and snapshot paths when runs are marked as eval runs.
-- [ ] E048 Fail fast when the published stable join contract is missing or inconsistent, and document the contract gap clearly.
+- [x] E047 Add contract validation for eval-mode provenance fields such as gold and masked table hashes and snapshot paths when runs are marked as eval runs.
+- [x] E048 Fail fast when the published stable join contract is missing or inconsistent, and document the contract gap clearly.
 - [x] E049 Implement unit tests for boolean, categorical, and numeric normalization.
 - [x] E050 Implement unit tests for deterministic comparators.
 - [x] E051 Implement unit tests for gold-present and gold-empty detection.

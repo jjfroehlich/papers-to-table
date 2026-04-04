@@ -1,6 +1,7 @@
 import csv
 import io
 import json
+import shutil
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -12,6 +13,8 @@ from paper_eval.contracts import JudgeResponse
 from paper_eval.errors import ContractError
 from paper_eval.gold_loader import load_gold
 from paper_eval.run_loader import load_run
+
+FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures" / "example_eval"
 
 
 class LoaderAndCliTests(unittest.TestCase):
@@ -36,6 +39,26 @@ class LoaderAndCliTests(unittest.TestCase):
             with self.assertRaises(ContractError):
                 load_run(run_dir)
 
+    def test_run_loader_requires_eval_mode_provenance_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_dir = self._create_run_bundle(Path(temp_dir) / "run-a")
+            run_payload = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+            run_payload.pop("gold_table_hash")
+            (run_dir / "run.json").write_text(json.dumps(run_payload), encoding="utf-8")
+
+            with self.assertRaisesRegex(ContractError, "Missing fields for run 'run-a': gold_table_hash"):
+                load_run(run_dir)
+
+    def test_run_loader_requires_eval_mode_snapshot_paths_to_exist(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_dir = self._create_run_bundle(Path(temp_dir) / "run-a")
+            run_payload = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+            run_payload["masked_table_snapshot_path"] = "masked/missing.csv"
+            (run_dir / "run.json").write_text(json.dumps(run_payload), encoding="utf-8")
+
+            with self.assertRaisesRegex(ContractError, "references missing provenance artifact 'masked_table_snapshot_path'"):
+                load_run(run_dir)
+
     def test_gold_loader_marks_present_and_empty_cells(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             gold_path = Path(temp_dir) / "gold.csv"
@@ -53,6 +76,19 @@ class LoaderAndCliTests(unittest.TestCase):
             self.assertFalse(indexed[("row-1", "notes")].is_present)
             self.assertFalse(indexed[("row-2", "status")].is_present)
             self.assertTrue(indexed[("row-2", "notes")].is_present)
+
+    def test_gold_loader_rejects_duplicate_join_keys(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            gold_path = Path(temp_dir) / "gold.csv"
+            gold_path.write_text(
+                "row_id,column_name,gold_value\n"
+                "row-1,status,yes\n"
+                "row-1,status,no\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ContractError, "duplicate stable join keys"):
+                load_gold(gold_path)
 
     def test_gold_xlsx_uses_first_sheet_by_default_and_supports_selection(self) -> None:
         try:
@@ -205,6 +241,38 @@ class LoaderAndCliTests(unittest.TestCase):
             self.assertEqual(judge_records[0]["judge_verdict"], "correct")
             self.assertIsNotNone(judge_records[0]["judge_input_hash"])
 
+    def test_cli_evaluates_fixture_run_with_expected_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            copied_fixture = Path(temp_dir) / "fixture"
+            shutil.copytree(FIXTURE_ROOT, copied_fixture)
+            output_dir = Path(temp_dir) / "out"
+
+            exit_code = main(
+                [
+                    "evaluate",
+                    "--run",
+                    str(copied_fixture / "runs" / "run-a"),
+                    "--gold",
+                    str(copied_fixture / "gold.csv"),
+                    "--schema",
+                    str(copied_fixture / "schema.json"),
+                    "--out",
+                    str(output_dir),
+                ]
+            )
+
+            self.assertEqual(exit_code, 0)
+            run_output = output_dir / "per-run" / "run-a"
+            self.assertTrue((run_output / "scored_cells.jsonl").exists())
+            self.assertTrue((run_output / "run_summary.json").exists())
+            self.assertTrue((output_dir / "compare" / "runs_comparison.csv").exists())
+
+            summary = json.loads((run_output / "run_summary.json").read_text(encoding="utf-8"))
+            self.assertEqual(summary["metrics"]["gold_present_cell_count"], 6)
+            self.assertAlmostEqual(summary["metrics"]["structured_accuracy"], 1.0)
+            self.assertAlmostEqual(summary["metrics"]["text_accuracy"], 1.0)
+            self.assertAlmostEqual(summary["metrics"]["anchor_valid_rate"], 2 / 6)
+
     def test_cli_supports_runs_root_discovery(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             base = Path(temp_dir)
@@ -271,13 +339,27 @@ class LoaderAndCliTests(unittest.TestCase):
         (run_dir / "proposals").mkdir(parents=True)
         (run_dir / "inputs").mkdir(parents=True)
         (run_dir / "summaries").mkdir(parents=True)
+        (run_dir / "gold").mkdir(parents=True)
+        (run_dir / "masked").mkdir(parents=True)
         (run_dir / "run.json").write_text(
-            json.dumps({"run_id": run_dir.name, "run_mode": "eval", "provider_text_model_id": "model-1"}),
+            json.dumps(
+                {
+                    "run_id": run_dir.name,
+                    "run_mode": "eval",
+                    "provider_text_model_id": "model-1",
+                    "gold_table_hash": "gold-hash-1",
+                    "gold_table_snapshot_path": "gold/gold_snapshot.csv",
+                    "masked_table_hash": "masked-hash-1",
+                    "masked_table_snapshot_path": "masked/masked_table.csv",
+                }
+            ),
             encoding="utf-8",
         )
         (run_dir / "config.snapshot.json").write_text(json.dumps({"config_hash": "cfg-1"}), encoding="utf-8")
         (run_dir / "inputs" / "input_summary.json").write_text(json.dumps({"pdf_id": "pdf-1"}), encoding="utf-8")
         (run_dir / "summaries" / "run_summary.json").write_text(json.dumps({"status": "complete"}), encoding="utf-8")
+        (run_dir / "gold" / "gold_snapshot.csv").write_text("row_id,status\nrow-1,\n", encoding="utf-8")
+        (run_dir / "masked" / "masked_table.csv").write_text("row_id,status\nrow-1,\n", encoding="utf-8")
         proposal_rows = [
             {
                 "run_id": run_dir.name,

@@ -61,6 +61,11 @@ class RunMetadata:
     schema_version: str | None = None
     config_hash: str | None = None
     page_count: int | None = None
+    gold_source_ref: str | None = None
+    gold_table_hash: str | None = None
+    gold_table_snapshot_path: str | None = None
+    masked_table_hash: str | None = None
+    masked_table_snapshot_path: str | None = None
     extras: dict[str, Any] = field(default_factory=dict)
 
     def flat_metadata(self) -> dict[str, Any]:
@@ -84,6 +89,11 @@ class RunMetadata:
             "schema_version": self.schema_version,
             "config_hash": self.config_hash,
             "page_count": self.page_count,
+            "gold_source_ref": self.gold_source_ref,
+            "gold_table_hash": self.gold_table_hash,
+            "gold_table_snapshot_path": self.gold_table_snapshot_path,
+            "masked_table_hash": self.masked_table_hash,
+            "masked_table_snapshot_path": self.masked_table_snapshot_path,
         }
         row.update(_flatten_scalar_mapping(self.extras))
         return row
