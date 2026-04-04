@@ -204,7 +204,7 @@ class LMStudioTextJudge:
             },
         )
 
-# Backward-compatible alias for existing tests/imports while LM Studio remains the only concrete judge adapter.
+# Backward-compatible alias for existing imports; prefer LMStudioTextJudge in new code and remove this alias if the old name is no longer needed.
 OpenAICompatibleTextJudge = LMStudioTextJudge
 
 
