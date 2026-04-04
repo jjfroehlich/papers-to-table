@@ -5,13 +5,17 @@ import json
 from typing import Any, Protocol
 from urllib import error, request
 
-from paper_eval.contracts import JudgeConfig, JudgeRecord, JudgeRequest, JudgeResponse
+from paper_eval.contracts import (
+    DEFAULT_JUDGE_MODEL_ID,
+    DEFAULT_JUDGE_PROVIDER,
+    DEFAULT_LM_STUDIO_API_BASE,
+    JudgeConfig,
+    JudgeRecord,
+    JudgeRequest,
+    JudgeResponse,
+)
 from paper_eval.errors import EvaluationError
 from paper_eval.normalize import normalize_text_for_match, normalize_whitespace
-
-DEFAULT_JUDGE_PROVIDER = "lm_studio"
-DEFAULT_LM_STUDIO_API_BASE = "http://127.0.0.1:1234/v1"
-DEFAULT_JUDGE_MODEL_ID = "qwen/qwen3.5-35b-a3b"
 
 _PROMPT_TEMPLATE = """You are a reproducible evaluator for one text field.
 Decide whether the proposed answer is materially equivalent to the gold answer for the named field.
@@ -200,7 +204,7 @@ class LMStudioTextJudge:
             },
         )
 
-
+# Backward-compatible alias for existing tests/imports while LM Studio remains the only concrete judge adapter.
 OpenAICompatibleTextJudge = LMStudioTextJudge
 
 

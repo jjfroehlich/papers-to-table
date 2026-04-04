@@ -5,15 +5,15 @@ import os
 from pathlib import Path
 
 from paper_eval.aggregate import build_run_summary
-from paper_eval.contracts import JudgeConfig
-from paper_eval.errors import CliUsageError, ContractError, EvaluationError
-from paper_eval.gold_loader import load_gold
-from paper_eval.judge import (
+from paper_eval.contracts import (
     DEFAULT_JUDGE_MODEL_ID,
     DEFAULT_JUDGE_PROVIDER,
     DEFAULT_LM_STUDIO_API_BASE,
-    LMStudioTextJudge,
+    JudgeConfig,
 )
+from paper_eval.errors import CliUsageError, ContractError, EvaluationError
+from paper_eval.gold_loader import load_gold
+from paper_eval.judge import LMStudioTextJudge
 from paper_eval.output_paths import create_output_layout
 from paper_eval.run_loader import discover_run_directories, load_run
 from paper_eval.schema_loader import load_schema

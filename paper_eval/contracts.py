@@ -6,6 +6,9 @@ from typing import Any
 
 
 STRUCTURED_FIELD_TYPES = {"boolean", "categorical", "numeric"}
+DEFAULT_JUDGE_PROVIDER = "lm_studio"
+DEFAULT_JUDGE_MODEL_ID = "qwen/qwen3.5-35b-a3b"
+DEFAULT_LM_STUDIO_API_BASE = "http://127.0.0.1:1234/v1"
 
 
 @dataclass(frozen=True)
@@ -260,7 +263,7 @@ class EvidenceValidationResult:
 @dataclass(frozen=True)
 class JudgeConfig:
     model_id: str
-    provider: str = "lm_studio"
+    provider: str = DEFAULT_JUDGE_PROVIDER
     api_base: str | None = None
     api_key: str | None = None
     prompt_version: str = "batch3-text-judge-v1"
