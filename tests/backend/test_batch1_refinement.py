@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
+import openpyxl
 import pandas as pd
 import pytest
 
@@ -25,7 +26,13 @@ from backend.app.extraction import (
     run_figure_review,
 )
 from backend.app.ids import generate_cell_id, generate_proposal_id, generate_row_id
-from backend.app.ingest import get_eligible_cells, load_schema, validate_schema_columns
+from backend.app.ingest import (
+    create_masked_working_dataframe,
+    get_eligible_cells,
+    load_schema,
+    persist_masked_working_copy,
+    validate_schema_columns,
+)
 from backend.app.matching import (
     MatchResult,
     PaperMetadata,
@@ -180,6 +187,68 @@ class TestSchemaAndEligibilityRefinement:
         cells = get_eligible_cells(df, schema, verify_mode=False)
         assert {cell["column_name"] for cell in cells} == {"Dose"}
 
+    def test_eval_mode_marks_filled_cells_eligible(self):
+        df = pd.DataFrame(
+            [
+                {
+                    "Title": "Paper A",
+                    "Authors": "Smith, J.",
+                    "Publication Year": "2024",
+                    "Species": "Rat",
+                    "Dose": "5",
+                }
+            ]
+        )
+        schema = [
+            {"column_name": "Title", "description": "title"},
+            {"column_name": "Authors", "description": "authors"},
+            {"column_name": "Publication Year", "description": "year"},
+            {"column_name": "Species", "description": "species"},
+            {"column_name": "Dose", "description": "dose"},
+        ]
+        cells = get_eligible_cells(df, schema, verify_mode=False, eval_mode=True)
+        assert {cell["column_name"] for cell in cells} == {"Species", "Dose"}
+
+    def test_eval_mode_masked_working_copy_blanks_targets_without_mutating_original(self, tmp_path: pathlib.Path):
+        workbook_path = tmp_path / "gold.xlsx"
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        sheet.title = "Data"
+        sheet.append(["Title", "Authors", "Publication Year", "Species", "Dose"])
+        sheet.append(["Paper A", "Smith, J.", "2024", "Rat", "5"])
+        sheet.append(["Paper B", "Jones, A.", "2023", "Mouse", "10"])
+        workbook.create_sheet("Schema")
+        workbook.save(workbook_path)
+
+        df = pd.DataFrame(
+            [
+                {"Title": "Paper A", "Authors": "Smith, J.", "Publication Year": "2024", "Species": "Rat", "Dose": "5"},
+                {"Title": "Paper B", "Authors": "Jones, A.", "Publication Year": "2023", "Species": "Mouse", "Dose": "10"},
+            ]
+        )
+        schema = [
+            {"column_name": "Title", "description": "title"},
+            {"column_name": "Authors", "description": "authors"},
+            {"column_name": "Publication Year", "description": "year"},
+            {"column_name": "Species", "description": "species"},
+            {"column_name": "Dose", "description": "dose"},
+        ]
+
+        masked_df, summary = create_masked_working_dataframe(df, schema)
+        masked_path = tmp_path / "masked.xlsx"
+        persist_masked_working_copy(str(workbook_path), str(masked_path), schema, masked_df)
+
+        reloaded_original = openpyxl.load_workbook(workbook_path).active
+        reloaded_masked = openpyxl.load_workbook(masked_path).active
+
+        assert reloaded_original["D2"].value == "Rat"
+        assert reloaded_original["E2"].value == "5"
+        assert reloaded_masked["D2"].value in ("", None)
+        assert reloaded_masked["E2"].value in ("", None)
+        assert reloaded_masked["A2"].value == "Paper A"
+        assert summary["target_cell_count"] == 4
+        assert summary["masked_non_empty_cell_count"] == 4
+
 
 class TestMatchingRefinement:
     def test_doi_and_author_signals_dominate_title_similarity(self):
@@ -321,6 +390,69 @@ class TestExtractionRefinement:
 
         assert proposal.support == SupportLabel.inferred_from_evidence
         assert "fallback_evidence_used" in proposal.warning_flags
+
+    async def test_eval_artifact_metadata_propagates_to_proposal_and_evidence(
+        self,
+        run_dir: pathlib.Path,
+        minimal_doc_dict: dict,
+    ):
+        provider = AsyncMock()
+        provider.chat_complete_structured = AsyncMock(
+            return_value={
+                "proposed_value": "45.3%",
+                "state": "found",
+                "rationale": "- BVF reported directly.",
+                "calculation": None,
+                "numeric_value_form": "exact",
+                "quotes": [
+                    {
+                        "text": "Bone volume fraction (BVF) was measured as 45.3% at 12 weeks.",
+                        "page": 2,
+                        "source_type": "direct_quote",
+                    }
+                ],
+            }
+        )
+        proposal = await extract_cell(
+            run_id="run_test",
+            pdf_id="paper_test",
+            row_id="row_test",
+            cell_id="cell_eval_metadata",
+            column_name="Bone volume fraction",
+            column_description="BVF measurement",
+            row_context={"Title": "Paper"},
+            doc_dict=minimal_doc_dict,
+            run_dir=run_dir,
+            provider=provider,
+            text_model_id="text-model",
+            vision_model_id="vision-model",
+            artifact_context={
+                "run_mode": "eval",
+                "prompt_hash": "prompt-hash",
+                "config_hash": "config-hash",
+                "schema_hash": "schema-hash",
+                "parser_identity": "docling",
+                "gold_table_source_reference": "/tmp/gold.xlsx",
+                "gold_table_hash": "gold-hash",
+                "gold_table_snapshot_path": "inputs/gold_table.xlsx",
+                "masked_working_table_path": "inputs/masked_working_table.xlsx",
+                "masked_working_table_hash": "masked-hash",
+            },
+        )
+
+        evidence = [item for item in load_evidence(run_dir) if item.proposal_id == proposal.proposal_id]
+
+        assert proposal.run_mode == "eval"
+        assert proposal.prompt_hash == "prompt-hash"
+        assert proposal.config_hash == "config-hash"
+        assert proposal.schema_hash == "schema-hash"
+        assert proposal.parser_identity == "docling"
+        assert proposal.gold_table_hash == "gold-hash"
+        assert proposal.masked_working_table_hash == "masked-hash"
+        assert evidence[0].run_mode == "eval"
+        assert evidence[0].prompt_hash == "prompt-hash"
+        assert evidence[0].text_model_id == "text-model"
+        assert evidence[0].vision_model_id == "vision-model"
 
     async def test_direct_evidence_requires_quote_to_directly_support_value(self, run_dir: pathlib.Path, minimal_doc_dict: dict):
         provider = AsyncMock()

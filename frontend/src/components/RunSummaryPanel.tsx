@@ -99,6 +99,20 @@ export function RunSummaryPanel({ run, outputDir }: Props) {
         </>
       )}
 
+      {run.eval_mode && (
+        <>
+          <div className="w-px h-4 bg-gray-200" />
+          <span className="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 font-medium">
+            eval
+          </span>
+          {run.eval_artifacts?.masked_working_table?.path && (
+            <span className="text-gray-500">
+              masked {run.eval_artifacts.masked_working_table.path}
+            </span>
+          )}
+        </>
+      )}
+
       {(warnings.parsingFallback || warnings.duplicateConflicts || warnings.fallbackEvidence) && (
         <>
           <div className="w-px h-4 bg-gray-200" />

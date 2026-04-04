@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import pathlib
@@ -93,6 +94,22 @@ def write_json(path: pathlib.Path, data: Any) -> None:
     with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
     os.replace(tmp_path, path)
+
+
+def hash_file(path: pathlib.Path | str) -> str:
+    """Return the SHA-256 hash of a file."""
+    file_path = pathlib.Path(path)
+    digest = hashlib.sha256()
+    with open(file_path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def hash_json_data(data: Any) -> str:
+    """Return a deterministic SHA-256 hash of JSON-serializable data."""
+    canonical = json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def read_json(path: pathlib.Path) -> Any:

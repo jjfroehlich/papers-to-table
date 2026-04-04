@@ -106,6 +106,7 @@ The canonical provider token is `lm_studio`. Tokens such as `lmstudio`, `LMStudi
 | `pdf_dir` | Directory containing PDF files |
 | `output_dir` | Where run artifacts are stored (default: `./runs`) |
 | `verify_mode` | If `true`, already-filled cells are also extraction targets |
+| `eval_mode` | If `true`, the app stages a masked working copy for leakage-safe eval runs |
 | `provider.token` | Must be `"lm_studio"` |
 | `provider.base_url` | LM Studio API base URL (default: `http://localhost:1234`) |
 | `provider.text_model.model_id` | ID of the text model loaded in LM Studio |
@@ -148,6 +149,13 @@ Numeric answer forms stay truthful to the paper:
 
 The config file is the authoritative control surface for all run parameters. Path overrides entered in the browser UI apply to a single run only and do not change the config file.
 
+### Verify mode vs Eval mode
+
+- `verify_mode = true` compares proposals against already-filled cells inside the review workflow.
+- `eval_mode = true` uses the completed table as gold input, snapshots it into the run bundle, creates an app-owned masked working copy for extraction, and records prompt/config/schema provenance for later scoring.
+- `verify_mode = true` and `eval_mode = true` together are invalid and fail early with a clear config/readiness error.
+- The masked working copy preserves structure and extraction-relevant content, but it is an internal artifact and does not promise workbook-formatting fidelity.
+
 ---
 
 ## Primary workflow
@@ -164,6 +172,8 @@ The run progresses through: `created → validating → running → completed` (
 Active runs refresh automatically. If live refresh fails, the Run tab shows an explicit stale-status warning so you do not mistake old state for current state. Active runs can be aborted from the Run detail surface.
 
 A run reaches `completed_with_warnings` when it finished but encountered non-fatal issues (for example, matching ambiguity or fallback evidence quality warnings). The run is still reviewable and exportable.
+
+Eval-mode runs also persist `inputs/gold_table*` and `inputs/masked_working_table*` snapshots plus hashes in `run.json`, `inputs/input_summary.json`, and proposal artifacts so a separate eval tool can score the run later.
 
 ### 2. Review proposals
 

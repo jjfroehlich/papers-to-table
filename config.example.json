@@ -4,6 +4,7 @@
   "pdf_dir": "tests/fixtures/papers",
   "output_dir": "./runs",
   "verify_mode": false,
+  "eval_mode": false,
   "provider": {
     "token": "lm_studio",
     "base_url": "http://localhost:1234",

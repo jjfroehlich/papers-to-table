@@ -41,6 +41,8 @@ describe('App', () => {
             pdf_dir: 'pdfs',
             output_dir: './runs',
             verify_mode: false,
+            eval_mode: false,
+            run_mode: 'normal',
             provider_token: 'lm_studio',
             provider_locality: 'local',
             provider_mode: 'live_local',

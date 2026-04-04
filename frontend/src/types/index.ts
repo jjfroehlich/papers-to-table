@@ -35,12 +35,36 @@ export interface RunData {
   pdf_dir: string | null
   output_dir: string
   verify_mode: boolean
+  eval_mode: boolean
+  run_mode: 'normal' | 'verify' | 'eval'
   provider_token: string | null
   provider_locality: string | null
   provider_mode?: string | null
   provider_text_model_id?: string | null
   provider_vision_model_id?: string | null
   provider_readiness_error?: string | null
+  prompt_version?: string | null
+  prompt_hash?: string | null
+  config_hash?: string | null
+  config_snapshot_path?: string | null
+  schema_hash?: string | null
+  schema_version?: string | null
+  parser_identity?: string | null
+  parser_version?: string | null
+  eval_artifacts?: {
+    gold_table?: {
+      source_reference?: string | null
+      content_hash?: string | null
+      snapshot_path?: string | null
+    } | null
+    masked_working_table?: {
+      path?: string | null
+      content_hash?: string | null
+    } | null
+    target_columns?: string[]
+    target_cell_count?: number
+    masked_non_empty_cell_count?: number
+  } | null
   started_at: string | null
   completed_at: string | null
   current_stage: string | null
@@ -67,6 +91,8 @@ export interface InputSummary {
   pdf_dir: string | null
   output_dir: string
   verify_mode: boolean
+  eval_mode: boolean
+  run_mode: 'normal' | 'verify' | 'eval'
   table_rows: number | null
   schema_columns: number | null
   pdf_count: number | null

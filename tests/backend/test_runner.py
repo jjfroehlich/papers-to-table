@@ -6,6 +6,7 @@ import pathlib
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
+import openpyxl
 import pytest
 import respx
 import httpx
@@ -21,7 +22,7 @@ from backend.app.artifacts import (
     read_json,
     write_json,
 )
-from backend.app.extraction import ProposalRecord, persist_proposal
+from backend.app.extraction import ProposalRecord, load_proposals, persist_proposal
 from backend.app.config import RunConfig
 from backend.app.runner import get_initial_run_data, run_pipeline
 from backend.app.ids import generate_proposal_id
@@ -31,6 +32,7 @@ from backend.app.schemas import MatchOutcome, ProposalState, RunStatus, SupportL
 FIXTURE_TABLE = "tests/fixtures/tables/literature_fixture.xlsx"
 FIXTURE_SCHEMA = "tests/fixtures/tables/literature_fixture_schema.csv"
 FIXTURE_PDF_DIR = "tests/fixtures/papers"
+_CAPTURED_ROW_CONTEXTS: list[dict] = []
 
 
 def make_config(tmp_path: pathlib.Path, **kwargs) -> RunConfig:
@@ -60,7 +62,10 @@ class TestGetInitialRunData:
         assert data["status"] == RunStatus.created.value
         assert data["config_path"] == "config.json"
         assert data["verify_mode"] is False
+        assert data["eval_mode"] is False
+        assert data["run_mode"] == "normal"
         assert data["provider_token"] == "lm_studio"
+        assert data["prompt_hash"] is not None
 
     def test_timestamps(self, tmp_path):
         config = make_config(tmp_path)
@@ -132,6 +137,93 @@ class TestRunPipeline:
         assert summary["table_rows"] is not None
         assert summary["table_rows"] > 0
         assert summary["pdf_count"] is not None
+        assert summary["run_mode"] == "normal"
+        assert summary["prompt_hash"] is not None
+        assert summary["config_hash"] is not None
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_eval_mode_persists_masked_and_gold_artifacts(self, tmp_path, monkeypatch):
+        _CAPTURED_ROW_CONTEXTS.clear()
+        respx.get("http://localhost:1234/v1/models").mock(
+            return_value=httpx.Response(200, json={"data": [{"id": "qwen/qwen3-30b-a3b-2507"}]})
+        )
+        monkeypatch.setattr("backend.app.runner.initialize_provider", _fake_initialize_provider)
+
+        workbook_path = tmp_path / "gold.xlsx"
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        sheet.append(["Title", "Authors", "Publication Year", "assay"])
+        sheet.append(["Matched Paper", "Smith, J.", "2024", "STARR-seq"])
+        workbook.save(workbook_path)
+        pdf_dir = tmp_path / "pdfs"
+        pdf_dir.mkdir()
+        (pdf_dir / "paper_1.pdf").write_bytes(b"%PDF-1.4\n%stub")
+        schema_path = tmp_path / "schema.csv"
+        schema_path.write_text("column_name,description\nassay,Assay description\n", encoding="utf-8")
+
+        config = make_config(
+            tmp_path,
+            table_path=str(workbook_path),
+            schema_path=str(schema_path),
+            pdf_dir=str(pdf_dir),
+            eval_mode=True,
+        )
+        run_id = "run_eval_artifacts"
+        output_dir = str(tmp_path / "runs")
+        (tmp_path / "runs").mkdir(exist_ok=True)
+
+        monkeypatch.setattr("backend.app.runner.parse_pdf", _fake_parse_pdf)
+        monkeypatch.setattr("backend.app.runner.run_matching", lambda **kwargs: [
+            MatchResult(
+                pdf_id="paper_1",
+                pdf_path="paper_1.pdf",
+                outcome=MatchOutcome.matched,
+                matched_row_index=0,
+                matched_row_title="Matched Paper",
+                score=0.9,
+                runner_up_score=0.1,
+                runner_up_row_index=None,
+                reasoning="clear match",
+                blocked=False,
+                matched_at=datetime.now(timezone.utc).isoformat(),
+            )
+        ])
+        monkeypatch.setattr("backend.app.runner.persist_match_artifacts", lambda *args, **kwargs: None)
+        monkeypatch.setattr("backend.app.runner.run_style_profiles_stage", _fake_style_profiles)
+        monkeypatch.setattr("backend.app.runner.run_retrieval_for_cell", lambda **kwargs: None)
+        monkeypatch.setattr("backend.app.runner.extract_cell", _fake_extract_cell_capture)
+
+        await run_pipeline(run_id, config, "config.json", output_dir)
+
+        run_data = read_json(get_run_json_path(output_dir, run_id))
+        input_summary = read_json(get_input_summary_path(output_dir, run_id))
+        proposals = load_proposals(pathlib.Path(output_dir) / run_id)
+        masked_workbook_path = pathlib.Path(output_dir) / run_id / "inputs" / "masked_working_table.xlsx"
+        masked_sheet = openpyxl.load_workbook(masked_workbook_path).active
+        header_row = [cell.value for cell in masked_sheet[1]]
+        assay_column = header_row.index("assay") + 1
+
+        assert run_data["run_mode"] == "eval"
+        assert run_data["eval_mode"] is True
+        assert input_summary["run_mode"] == "eval"
+        assert run_data["prompt_hash"] is not None
+        assert run_data["config_hash"] is not None
+        assert run_data["schema_hash"] is not None
+        assert run_data["eval_artifacts"]["gold_table"]["source_reference"] == str(workbook_path)
+        assert run_data["eval_artifacts"]["gold_table"]["snapshot_path"] == "inputs/gold_table.xlsx"
+        assert run_data["eval_artifacts"]["masked_working_table"]["path"] == "inputs/masked_working_table.xlsx"
+        assert proposals[0].run_mode == "eval"
+        assert proposals[0].prompt_hash == run_data["prompt_hash"]
+        assert proposals[0].gold_table_hash == run_data["eval_artifacts"]["gold_table"]["content_hash"]
+        assert proposals[0].masked_working_table_hash == run_data["eval_artifacts"]["masked_working_table"]["content_hash"]
+
+        original_sheet = openpyxl.load_workbook(workbook_path).active
+        original_value = original_sheet.cell(row=2, column=assay_column).value
+        masked_value = masked_sheet.cell(row=2, column=assay_column).value
+        assert original_value == "STARR-seq"
+        assert masked_value in ("", None)
+        assert _CAPTURED_ROW_CONTEXTS[-1]["assay"] == ""
 
     @pytest.mark.asyncio
     @respx.mock
@@ -268,7 +360,10 @@ class TestRunPipeline:
         monkeypatch.setattr("backend.app.runner.validate_metadata_columns", lambda df: [])
         monkeypatch.setattr("backend.app.runner.load_schema", lambda schema_path, table_path: schema)
         monkeypatch.setattr("backend.app.runner.validate_schema_columns", lambda schema: [])
-        monkeypatch.setattr("backend.app.runner.get_eligible_cells", lambda df, schema, verify_mode: eligible)
+        monkeypatch.setattr(
+            "backend.app.runner.get_eligible_cells",
+            lambda df, schema, verify_mode, eval_mode=False: eligible,
+        )
         monkeypatch.setattr("backend.app.runner.parse_pdf", _fake_parse_pdf)
         monkeypatch.setattr("backend.app.runner.run_matching", lambda **kwargs: match_results)
         monkeypatch.setattr("backend.app.runner.persist_match_artifacts", lambda *args, **kwargs: None)
@@ -324,7 +419,10 @@ class TestRunPipeline:
         monkeypatch.setattr("backend.app.runner.validate_metadata_columns", lambda df: [])
         monkeypatch.setattr("backend.app.runner.load_schema", lambda schema_path, table_path: schema)
         monkeypatch.setattr("backend.app.runner.validate_schema_columns", lambda schema: [])
-        monkeypatch.setattr("backend.app.runner.get_eligible_cells", lambda df, schema, verify_mode: eligible)
+        monkeypatch.setattr(
+            "backend.app.runner.get_eligible_cells",
+            lambda df, schema, verify_mode, eval_mode=False: eligible,
+        )
         monkeypatch.setattr("backend.app.runner.parse_pdf", _fake_parse_pdf_with_warnings)
         monkeypatch.setattr("backend.app.runner.run_matching", lambda **kwargs: match_results)
         monkeypatch.setattr("backend.app.runner.persist_match_artifacts", lambda *args, **kwargs: None)
@@ -399,6 +497,7 @@ def _fake_parse_pdf_with_warnings(**kwargs):
 
 async def _fake_extract_cell(**kwargs):
     proposal_id = generate_proposal_id(kwargs["run_id"], kwargs["cell_id"])
+    artifact_context = kwargs.get("artifact_context") or {}
     proposal = ProposalRecord(
         proposal_id=proposal_id,
         run_id=kwargs["run_id"],
@@ -414,6 +513,22 @@ async def _fake_extract_cell(**kwargs):
         warning_flags=[],
         needs_more_evidence=False,
         is_verify_mode=False,
+        run_mode=artifact_context.get("run_mode", "normal"),
+        prompt_version=artifact_context.get("prompt_version"),
+        prompt_hash=artifact_context.get("prompt_hash"),
+        schema_hash=artifact_context.get("schema_hash"),
+        schema_version=artifact_context.get("schema_version"),
+        config_hash=artifact_context.get("config_hash"),
+        config_snapshot_path=artifact_context.get("config_snapshot_path"),
+        parser_identity=artifact_context.get("parser_identity"),
+        parser_version=artifact_context.get("parser_version"),
+        text_model_id=kwargs.get("text_model_id"),
+        vision_model_id=kwargs.get("vision_model_id"),
+        gold_table_source_reference=artifact_context.get("gold_table_source_reference"),
+        gold_table_hash=artifact_context.get("gold_table_hash"),
+        gold_table_snapshot_path=artifact_context.get("gold_table_snapshot_path"),
+        masked_working_table_path=artifact_context.get("masked_working_table_path"),
+        masked_working_table_hash=artifact_context.get("masked_working_table_hash"),
         created_at=datetime.now(timezone.utc).isoformat(),
     )
     persist_proposal(kwargs["run_dir"], proposal)
@@ -441,3 +556,8 @@ async def _fake_extract_cell_with_fallback(**kwargs):
     )
     persist_proposal(kwargs["run_dir"], proposal)
     return proposal
+
+
+async def _fake_extract_cell_capture(**kwargs):
+    _CAPTURED_ROW_CONTEXTS.append(dict(kwargs["row_context"]))
+    return await _fake_extract_cell(**kwargs)

@@ -84,6 +84,7 @@ class RunConfig(BaseModel):
     pdf_dir: str
     output_dir: str = "./runs"
     verify_mode: bool = False
+    eval_mode: bool = False
     provider: ProviderConfig
     parser: ParserConfig = Field(default_factory=ParserConfig)
     matching: MatchingConfig = Field(default_factory=MatchingConfig)
@@ -101,7 +102,26 @@ class RunConfig(BaseModel):
                 f"Supported providers: {sorted(CANONICAL_PROVIDERS)}. "
                 f"For LM Studio, use 'lm_studio'."
             )
+        if self.verify_mode and self.eval_mode:
+            raise ValueError(
+                "verify_mode=true and eval_mode=true cannot be used together. "
+                "Use verify_mode for reviewer comparison on filled cells, or eval_mode "
+                "for leakage-safe benchmark runs with a masked working copy."
+            )
         return self
+
+
+def get_run_mode(config: RunConfig) -> str:
+    if config.verify_mode and config.eval_mode:
+        raise ValueError(
+            "verify_mode=true and eval_mode=true cannot be used together. "
+            "Disable one mode before starting the run."
+        )
+    if config.eval_mode:
+        return "eval"
+    if config.verify_mode:
+        return "verify"
+    return "normal"
 
 
 def _resolve_path_value(value: object, base_dir: Path) -> object:
@@ -162,6 +182,12 @@ class ReadinessResult:
 async def check_readiness(config: RunConfig) -> ReadinessResult:
     """Check paths, schema, table, and provider reachability."""
     r = ReadinessResult()
+
+    if config.verify_mode and config.eval_mode:
+        r.fail(
+            "verify_mode=true and eval_mode=true cannot be used together. "
+            "Disable one mode before starting the run."
+        )
 
     if not os.path.exists(config.table_path):
         r.fail(f"table_path does not exist: {config.table_path}")

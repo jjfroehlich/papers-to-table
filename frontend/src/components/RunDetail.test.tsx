@@ -12,12 +12,18 @@ const baseRun: RunData = {
   pdf_dir: 'tests/fixtures/papers',
   output_dir: './runs',
   verify_mode: false,
+  eval_mode: false,
+  run_mode: 'normal',
   provider_token: 'lm_studio',
   provider_locality: 'local',
   provider_mode: 'unavailable',
   provider_text_model_id: 'text-model',
   provider_vision_model_id: null,
   provider_readiness_error: 'provider offline',
+  prompt_hash: 'prompt-hash',
+  config_hash: 'config-hash',
+  schema_hash: 'schema-hash',
+  parser_identity: 'docling',
   started_at: null,
   completed_at: null,
   current_stage: null,
@@ -65,9 +71,30 @@ describe('RunDetail', () => {
   })
 
   it('shows verify mode status', () => {
-    const verifyRun = { ...baseRun, verify_mode: true }
+    const verifyRun = { ...baseRun, verify_mode: true, run_mode: 'verify' as const }
     render(<RunDetail run={verifyRun} />)
     expect(screen.getByText('Yes')).toBeTruthy()
+  })
+
+  it('shows eval mode artifact truth', () => {
+    const evalRun = {
+      ...baseRun,
+      eval_mode: true,
+      run_mode: 'eval' as const,
+      eval_artifacts: {
+        gold_table: {
+          source_reference: '/tmp/gold.xlsx',
+          snapshot_path: 'inputs/gold_table.xlsx',
+        },
+        masked_working_table: {
+          path: 'inputs/masked_working_table.xlsx',
+        },
+      },
+    }
+    render(<RunDetail run={evalRun} />)
+    expect(screen.getByText('eval')).toBeTruthy()
+    expect(screen.getByText('/tmp/gold.xlsx')).toBeTruthy()
+    expect(screen.getByText('inputs/masked_working_table.xlsx')).toBeTruthy()
   })
 
   it('shows current stage when running', () => {

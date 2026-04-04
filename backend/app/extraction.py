@@ -22,6 +22,7 @@ T066  – Verify mode uses same extraction path
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import pathlib
 import re
@@ -75,6 +76,17 @@ class EvidenceRecord(BaseModel):
     reasoning: Optional[str] = None
     is_primary: bool = False
     is_figure_derived: bool = False
+    run_mode: str = "normal"
+    prompt_version: Optional[str] = None
+    prompt_hash: Optional[str] = None
+    schema_hash: Optional[str] = None
+    schema_version: Optional[str] = None
+    config_hash: Optional[str] = None
+    config_snapshot_path: Optional[str] = None
+    parser_identity: Optional[str] = None
+    parser_version: Optional[str] = None
+    text_model_id: Optional[str] = None
+    vision_model_id: Optional[str] = None
     created_at: str
 
 
@@ -107,6 +119,22 @@ class ProposalRecord(BaseModel):
     recall_rescue_used: bool = False
     whole_document_used: bool = False
     provider_mode: str = "unknown"
+    run_mode: str = "normal"
+    prompt_version: Optional[str] = None
+    prompt_hash: Optional[str] = None
+    schema_hash: Optional[str] = None
+    schema_version: Optional[str] = None
+    config_hash: Optional[str] = None
+    config_snapshot_path: Optional[str] = None
+    parser_identity: Optional[str] = None
+    parser_version: Optional[str] = None
+    text_model_id: Optional[str] = None
+    vision_model_id: Optional[str] = None
+    gold_table_source_reference: Optional[str] = None
+    gold_table_hash: Optional[str] = None
+    gold_table_snapshot_path: Optional[str] = None
+    masked_working_table_path: Optional[str] = None
+    masked_working_table_hash: Optional[str] = None
     created_at: str
 
 
@@ -260,6 +288,22 @@ _FIGURE_SYSTEM = (
     "If the figure does not contain useful evidence for this field, return state='unclear'. "
     "Respond ONLY with valid JSON matching the required schema."
 )
+
+PROMPT_VERSION: Optional[str] = None
+
+
+def get_prompt_identity() -> dict[str, Optional[str]]:
+    payload = {
+        "text_system": _EXTRACTION_SYSTEM,
+        "figure_system": _FIGURE_SYSTEM,
+        "text_schema": TEXT_EXTRACTION_SCHEMA,
+        "figure_schema": VISION_EXTRACTION_SCHEMA,
+    }
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return {
+        "prompt_version": PROMPT_VERSION,
+        "prompt_hash": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+    }
 
 
 def _build_style_guidance(profile: Optional[StyleProfile]) -> str:
@@ -1062,7 +1106,7 @@ def persist_evidence(
     e_dir = _safe_run_subpath(run_dir, "evidence")
     e_dir.mkdir(parents=True, exist_ok=True)
     path = _safe_run_subpath(run_dir, "evidence", f"{evidence.evidence_id}.json")
-    write_json(path, evidence.model_dump())
+    write_json(path, evidence.model_dump(mode="json"))
     return path
 
 
@@ -1127,6 +1171,7 @@ async def extract_cell(
     whole_document_mode: bool = False,
     whole_document_max_chars: int = 12000,
     provider_mode_str: str = "unknown",
+    artifact_context: Optional[dict] = None,
 ) -> ProposalRecord:
     """Extract one cell value and produce a proposal with evidence.
 
@@ -1141,6 +1186,21 @@ async def extract_cell(
             field_type = SchemaFieldType(str(field_type))
         except ValueError:
             field_type = None
+    artifact_context = artifact_context or {}
+    run_mode = str(artifact_context.get("run_mode") or ("verify" if is_verify_mode else "normal"))
+    prompt_version = artifact_context.get("prompt_version")
+    prompt_hash = artifact_context.get("prompt_hash")
+    schema_hash = artifact_context.get("schema_hash")
+    schema_version = artifact_context.get("schema_version")
+    config_hash = artifact_context.get("config_hash")
+    config_snapshot_path = artifact_context.get("config_snapshot_path")
+    parser_identity = artifact_context.get("parser_identity")
+    parser_version = artifact_context.get("parser_version")
+    gold_table_source_reference = artifact_context.get("gold_table_source_reference")
+    gold_table_hash = artifact_context.get("gold_table_hash")
+    gold_table_snapshot_path = artifact_context.get("gold_table_snapshot_path")
+    masked_working_table_path = artifact_context.get("masked_working_table_path")
+    masked_working_table_hash = artifact_context.get("masked_working_table_hash")
 
     long_text = is_long_text_field(column_name, column_description)
 
@@ -1186,6 +1246,22 @@ async def extract_cell(
             provider_mode=provider_mode_str,
             is_verify_mode=is_verify_mode,
             existing_value=existing_value,
+            run_mode=run_mode,
+            prompt_version=prompt_version,
+            prompt_hash=prompt_hash,
+            schema_hash=schema_hash,
+            schema_version=schema_version,
+            config_hash=config_hash,
+            config_snapshot_path=config_snapshot_path,
+            parser_identity=parser_identity,
+            parser_version=parser_version,
+            text_model_id=text_model_id,
+            vision_model_id=vision_model_id,
+            gold_table_source_reference=gold_table_source_reference,
+            gold_table_hash=gold_table_hash,
+            gold_table_snapshot_path=gold_table_snapshot_path,
+            masked_working_table_path=masked_working_table_path,
+            masked_working_table_hash=masked_working_table_hash,
             created_at=now,
         )
         persist_proposal(run_dir, proposal)
@@ -1257,6 +1333,22 @@ async def extract_cell(
                 allowed_values=allowed_values,
                 recall_rescue_used=recall_rescue_used,
                 whole_document_used=whole_document_used,
+                run_mode=run_mode,
+                prompt_version=prompt_version,
+                prompt_hash=prompt_hash,
+                schema_hash=schema_hash,
+                schema_version=schema_version,
+                config_hash=config_hash,
+                config_snapshot_path=config_snapshot_path,
+                parser_identity=parser_identity,
+                parser_version=parser_version,
+                text_model_id=text_model_id,
+                vision_model_id=vision_model_id,
+                gold_table_source_reference=gold_table_source_reference,
+                gold_table_hash=gold_table_hash,
+                gold_table_snapshot_path=gold_table_snapshot_path,
+                masked_working_table_path=masked_working_table_path,
+                masked_working_table_hash=masked_working_table_hash,
                 created_at=now,
             )
             persist_proposal(run_dir, proposal)
@@ -1309,6 +1401,17 @@ async def extract_cell(
                 anchor_confidence=0.0,
                 evidence_rank=99,
                 is_primary=False,
+                run_mode=run_mode,
+                prompt_version=prompt_version,
+                prompt_hash=prompt_hash,
+                schema_hash=schema_hash,
+                schema_version=schema_version,
+                config_hash=config_hash,
+                config_snapshot_path=config_snapshot_path,
+                parser_identity=parser_identity,
+                parser_version=parser_version,
+                text_model_id=text_model_id,
+                vision_model_id=vision_model_id,
                 created_at=datetime.now(timezone.utc).isoformat(),
             )
         else:
@@ -1330,6 +1433,17 @@ async def extract_cell(
                 anchor_confidence=confidence,
                 evidence_rank=99,
                 is_primary=False,
+                run_mode=run_mode,
+                prompt_version=prompt_version,
+                prompt_hash=prompt_hash,
+                schema_hash=schema_hash,
+                schema_version=schema_version,
+                config_hash=config_hash,
+                config_snapshot_path=config_snapshot_path,
+                parser_identity=parser_identity,
+                parser_version=parser_version,
+                text_model_id=text_model_id,
+                vision_model_id=vision_model_id,
                 created_at=datetime.now(timezone.utc).isoformat(),
             )
 
@@ -1382,6 +1496,18 @@ async def extract_cell(
             pass  # Figure review failure does not abort the proposal
 
     figure_evidence = [hit.evidence for hit in figure_hits]
+    for ev in figure_evidence:
+        ev.run_mode = run_mode
+        ev.prompt_version = prompt_version
+        ev.prompt_hash = prompt_hash
+        ev.schema_hash = schema_hash
+        ev.schema_version = schema_version
+        ev.config_hash = config_hash
+        ev.config_snapshot_path = config_snapshot_path
+        ev.parser_identity = parser_identity
+        ev.parser_version = parser_version
+        ev.text_model_id = text_model_id
+        ev.vision_model_id = vision_model_id
 
     all_evidence = evidence_records + figure_evidence
 
@@ -1452,6 +1578,22 @@ async def extract_cell(
         recall_rescue_used=recall_rescue_used,
         whole_document_used=whole_document_used,
         provider_mode=provider_mode_str,
+        run_mode=run_mode,
+        prompt_version=prompt_version,
+        prompt_hash=prompt_hash,
+        schema_hash=schema_hash,
+        schema_version=schema_version,
+        config_hash=config_hash,
+        config_snapshot_path=config_snapshot_path,
+        parser_identity=parser_identity,
+        parser_version=parser_version,
+        text_model_id=text_model_id,
+        vision_model_id=vision_model_id,
+        gold_table_source_reference=gold_table_source_reference,
+        gold_table_hash=gold_table_hash,
+        gold_table_snapshot_path=gold_table_snapshot_path,
+        masked_working_table_path=masked_working_table_path,
+        masked_working_table_hash=masked_working_table_hash,
         created_at=now,
     )
 

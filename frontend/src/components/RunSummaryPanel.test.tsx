@@ -22,6 +22,8 @@ const baseRun: RunData = {
   pdf_dir: 'pdfs',
   output_dir: './runs',
   verify_mode: false,
+  eval_mode: false,
+  run_mode: 'normal',
   provider_token: 'lm_studio',
   provider_locality: 'local',
   provider_mode: 'live_local',
@@ -86,5 +88,24 @@ describe('RunSummaryPanel', () => {
     })
     expect(screen.getByText(/duplicate conflicts/i)).toBeInTheDocument()
     expect(screen.getByText(/evidence fallback/i)).toBeInTheDocument()
+  })
+
+  it('shows eval mode badge and masked table path', async () => {
+    const evalRun = {
+      ...baseRun,
+      eval_mode: true,
+      run_mode: 'eval' as const,
+      eval_artifacts: {
+        masked_working_table: {
+          path: 'inputs/masked_working_table.xlsx',
+        },
+      },
+    }
+    render(<RunSummaryPanel run={evalRun} outputDir="./runs" />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/eval/i)).toBeInTheDocument()
+    })
+    expect(screen.getByText(/masked inputs\/masked_working_table.xlsx/i)).toBeInTheDocument()
   })
 })
