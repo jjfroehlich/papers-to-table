@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from json import JSONDecodeError
 from pathlib import Path
 from typing import Any
 
@@ -80,7 +81,17 @@ def discover_run_directories(run_paths: list[Path], runs_root: Path | None) -> l
 
     if run_paths:
         resolved = [path.resolve() for path in run_paths]
+        missing = [str(path) for path in resolved if not path.exists()]
+        if missing:
+            raise CliUsageError(f"Run path does not exist: {', '.join(missing)}")
+        not_directories = [str(path) for path in resolved if not path.is_dir()]
+        if not_directories:
+            raise CliUsageError(f"Run path is not a directory: {', '.join(not_directories)}")
     else:
+        if not runs_root.exists():
+            raise CliUsageError(f"Runs root does not exist: {runs_root}")
+        if not runs_root.is_dir():
+            raise CliUsageError(f"Runs root is not a directory: {runs_root}")
         resolved = sorted(
             path.resolve()
             for path in runs_root.iterdir()
@@ -93,6 +104,10 @@ def discover_run_directories(run_paths: list[Path], runs_root: Path | None) -> l
 
 
 def load_run(run_dir: Path) -> LoadedRun:
+    if not run_dir.exists():
+        raise ContractError(f"Run bundle directory does not exist: {run_dir}")
+    if not run_dir.is_dir():
+        raise ContractError(f"Run bundle path is not a directory: {run_dir}")
     missing_files = [relative_path for relative_path in _REQUIRED_RUN_FILES if not (run_dir / relative_path).exists()]
     if missing_files:
         raise ContractError(
@@ -145,7 +160,12 @@ def _load_proposals(
             line = line.strip()
             if not line:
                 continue
-            payload = json.loads(line)
+            try:
+                payload = json.loads(line)
+            except JSONDecodeError as exc:
+                raise ContractError(
+                    f"Invalid JSON in {proposal_path} line {line_number}: {exc.msg}"
+                ) from exc
             missing_fields = [
                 field_name
                 for field_name in ("row_id", "column_name", "cell_id")
@@ -343,7 +363,10 @@ def _first_present_int(*payloads: dict[str, Any], keys: tuple[tuple[str, ...], .
 
 
 def _load_json(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except JSONDecodeError as exc:
+        raise ContractError(f"Invalid JSON in {path}: {exc.msg}") from exc
 
 
 def _load_optional_json(path: Path) -> dict[str, Any]:
@@ -368,7 +391,10 @@ def _load_sidecar_evidence(run_dir: Path) -> dict[str, dict[str, Any]]:
                     line = line.strip()
                     if not line:
                         continue
-                    payload = json.loads(line)
+                    try:
+                        payload = json.loads(line)
+                    except JSONDecodeError as exc:
+                        raise ContractError(f"Invalid JSON in {path}: {exc.msg}") from exc
                     evidence_id = _required_text(payload.get("evidence_id") or payload.get("id"))
                     if evidence_id:
                         evidence_by_id[evidence_id] = payload

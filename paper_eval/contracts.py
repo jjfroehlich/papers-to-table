@@ -6,6 +6,9 @@ from typing import Any
 
 
 STRUCTURED_FIELD_TYPES = {"boolean", "categorical", "numeric"}
+DEFAULT_JUDGE_PROVIDER = "lm_studio"
+DEFAULT_JUDGE_MODEL_ID = "qwen/qwen3.5-35b-a3b"
+DEFAULT_LM_STUDIO_API_BASE = "http://127.0.0.1:1234/v1"
 
 
 @dataclass(frozen=True)
@@ -223,6 +226,9 @@ class ScoredCell:
     row_index: int | None = None
     normalized_gold: Any = None
     normalized_proposed: Any = None
+    judge_provider: str | None = None
+    judge_configured_model_id: str | None = None
+    judge_resolved_model_id: str | None = None
     judge_verdict: str | None = None
     judge_model_id: str | None = None
     judge_prompt_version: str | None = None
@@ -257,6 +263,7 @@ class EvidenceValidationResult:
 @dataclass(frozen=True)
 class JudgeConfig:
     model_id: str
+    provider: str = DEFAULT_JUDGE_PROVIDER
     api_base: str | None = None
     api_key: str | None = None
     prompt_version: str = "batch3-text-judge-v1"
@@ -299,6 +306,9 @@ class JudgeRecord:
     row_id: str | None
     column_name: str
     cell_id: str | None
+    judge_provider: str
+    judge_configured_model_id: str
+    judge_resolved_model_id: str | None
     judge_model_id: str
     judge_prompt_version: str
     judge_prompt_hash: str

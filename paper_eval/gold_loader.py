@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+from csv import Error as CsvError
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +11,10 @@ from paper_eval.normalize import is_empty_value
 
 
 def load_gold(path: Path, *, sheet_name: str | None = None) -> GoldDataset:
+    if not path.exists():
+        raise ContractError(f"Gold input does not exist: {path}")
+    if not path.is_file():
+        raise ContractError(f"Gold input is not a file: {path}")
     suffix = path.suffix.casefold()
     if suffix == ".csv":
         return _load_csv_gold(path)
@@ -19,10 +24,15 @@ def load_gold(path: Path, *, sheet_name: str | None = None) -> GoldDataset:
 
 
 def _load_csv_gold(path: Path) -> GoldDataset:
-    with path.open("r", encoding="utf-8", newline="") as handle:
-        reader = csv.DictReader(handle)
-        rows = list(reader)
-        fieldnames = list(reader.fieldnames or [])
+    try:
+        with path.open("r", encoding="utf-8", newline="") as handle:
+            reader = csv.DictReader(handle)
+            rows = list(reader)
+            fieldnames = list(reader.fieldnames or [])
+    except CsvError as exc:
+        raise ContractError(f"Gold CSV could not be parsed at {path}: {exc}") from exc
+    if not fieldnames:
+        raise ContractError(f"Gold CSV '{path}' is empty or missing a header row.")
     cells = _rows_to_gold_cells(rows, fieldnames, sheet_name=None)
     return GoldDataset(source_path=path, sheet_name=None, cells=cells)
 

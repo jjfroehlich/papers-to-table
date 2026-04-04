@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import unittest
+from argparse import Namespace
 from pathlib import Path
+from unittest import mock
+from urllib import error
 
+from paper_eval.cli import build_judge_config
 from paper_eval.contracts import (
     GoldCell,
     GoldDataset,
@@ -12,20 +16,128 @@ from paper_eval.contracts import (
     ProposalRecord,
     RunMetadata,
 )
-from paper_eval.errors import ContractError
-from paper_eval.judge import build_judge_request
+from paper_eval.errors import ContractError, EvaluationError
+from paper_eval.judge import (
+    DEFAULT_JUDGE_MODEL_ID,
+    DEFAULT_JUDGE_PROVIDER,
+    DEFAULT_LM_STUDIO_API_BASE,
+    LMStudioTextJudge,
+    build_judge_request,
+)
 from paper_eval.schema_loader import load_schema
 from paper_eval.score import score_run
 
 
 class FakeJudge:
-    def __init__(self, verdict: str = "correct") -> None:
+    def __init__(self, verdict: str = "correct", resolved_model_id: str | None = None) -> None:
         self.verdict = verdict
+        self.resolved_model_id = resolved_model_id or "lmstudio-runtime-model"
         self.requests = []
 
     def judge(self, judge_request) -> JudgeResponse:
         self.requests.append(judge_request)
-        return JudgeResponse(verdict=self.verdict, rationale_label="semantic_match")
+        return JudgeResponse(
+            verdict=self.verdict,
+            rationale_label="semantic_match",
+            metadata={
+                "provider": DEFAULT_JUDGE_PROVIDER,
+                "configured_model_id": "judge-model-1",
+                "resolved_model_id": self.resolved_model_id,
+            },
+        )
+
+
+class _FakeHTTPResponse:
+    def __init__(self, payload: dict) -> None:
+        self._payload = payload
+
+    def read(self) -> bytes:
+        import json
+
+        return json.dumps(self._payload).encode("utf-8")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> bool:
+        return False
+
+
+class LMStudioJudgeAdapterTests(unittest.TestCase):
+    def test_build_judge_config_defaults_to_lm_studio_and_default_model(self) -> None:
+        with mock.patch.dict("os.environ", {}, clear=True):
+            config = build_judge_config(Namespace(judge_model=None, judge_api_base=None))
+
+        self.assertIsNotNone(config)
+        assert config is not None
+        self.assertEqual(config.provider, DEFAULT_JUDGE_PROVIDER)
+        self.assertEqual(config.model_id, DEFAULT_JUDGE_MODEL_ID)
+        self.assertEqual(config.api_base, DEFAULT_LM_STUDIO_API_BASE)
+        self.assertEqual(config.temperature, 0.0)
+
+    def test_lm_studio_adapter_uses_structured_json_and_records_runtime_model(self) -> None:
+        judge_config = JudgeConfig(model_id="configured-model")
+        judge = LMStudioTextJudge(judge_config)
+        judge_request = build_judge_request(
+            judge_config=judge_config,
+            run_id="run-a",
+            row_id="row-1",
+            column_name="notes",
+            cell_id="cell-1",
+            gold_value="Gold answer",
+            proposed_value="Proposal answer",
+            field_description="Field description",
+            evidence_excerpt="Evidence excerpt",
+        )
+        captured_request = {}
+
+        def fake_urlopen(request_obj):
+            import json
+
+            captured_request["url"] = request_obj.full_url
+            captured_request["headers"] = dict(request_obj.header_items())
+            captured_request["payload"] = json.loads(request_obj.data.decode("utf-8"))
+            return _FakeHTTPResponse(
+                {
+                    "model": "resolved-runtime-model",
+                    "choices": [{"message": {"content": '{"verdict":"correct","rationale_label":"semantic_match"}'}}],
+                    "usage": {"prompt_tokens": 10, "completion_tokens": 4, "total_tokens": 14},
+                }
+            )
+
+        with mock.patch("paper_eval.judge.request.urlopen", side_effect=fake_urlopen):
+            response = judge.judge(judge_request)
+
+        self.assertEqual(captured_request["url"], f"{DEFAULT_LM_STUDIO_API_BASE}/chat/completions")
+        self.assertEqual(captured_request["payload"]["model"], "configured-model")
+        self.assertEqual(captured_request["payload"]["temperature"], 0.0)
+        self.assertEqual(captured_request["payload"]["response_format"]["type"], "json_schema")
+        self.assertEqual(response.verdict, "correct")
+        self.assertEqual(response.metadata["provider"], DEFAULT_JUDGE_PROVIDER)
+        self.assertEqual(response.metadata["configured_model_id"], "configured-model")
+        self.assertEqual(response.metadata["resolved_model_id"], "resolved-runtime-model")
+
+    def test_lm_studio_adapter_fails_truthfully_when_unavailable(self) -> None:
+        judge_config = JudgeConfig(model_id="configured-model")
+        judge = LMStudioTextJudge(judge_config)
+        judge_request = build_judge_request(
+            judge_config=judge_config,
+            run_id="run-a",
+            row_id="row-1",
+            column_name="notes",
+            cell_id="cell-1",
+            gold_value="Gold answer",
+            proposed_value="Proposal answer",
+            field_description=None,
+            evidence_excerpt=None,
+        )
+
+        with mock.patch(
+            "paper_eval.judge.request.urlopen",
+            side_effect=error.URLError("connection refused"),
+        ):
+            with self.assertRaisesRegex(EvaluationError, "LM Studio judge request failed"):
+                judge.judge(judge_request)
 
 
 class TextJudgeScoringTests(unittest.TestCase):
@@ -49,7 +161,7 @@ class TextJudgeScoringTests(unittest.TestCase):
                 is_present=True,
             )
         )
-        judge = FakeJudge(verdict="correct")
+        judge = FakeJudge(verdict="correct", resolved_model_id="runtime-qwen-model")
 
         result = score_run(
             loaded_run,
@@ -66,10 +178,16 @@ class TextJudgeScoringTests(unittest.TestCase):
         self.assertEqual(scored_cell.scoring_policy, "judge")
         self.assertTrue(scored_cell.was_scored)
         self.assertTrue(scored_cell.is_correct)
+        self.assertEqual(scored_cell.judge_provider, DEFAULT_JUDGE_PROVIDER)
+        self.assertEqual(scored_cell.judge_configured_model_id, "judge-model-1")
+        self.assertEqual(scored_cell.judge_resolved_model_id, "runtime-qwen-model")
         self.assertEqual(scored_cell.judge_verdict, "correct")
         self.assertEqual(scored_cell.judge_model_id, "judge-model-1")
         self.assertEqual(scored_cell.judge_prompt_version, "batch3-text-judge-v1")
         self.assertEqual(scored_cell.judge_input_hash, judge_record.judge_input_hash)
+        self.assertEqual(judge_record.judge_provider, DEFAULT_JUDGE_PROVIDER)
+        self.assertEqual(judge_record.judge_configured_model_id, "judge-model-1")
+        self.assertEqual(judge_record.judge_resolved_model_id, "runtime-qwen-model")
         self.assertEqual(judge_record.judge_verdict, "correct")
         self.assertEqual(judge_record.judge_model_id, "judge-model-1")
 
@@ -182,7 +300,7 @@ class TextJudgeScoringTests(unittest.TestCase):
                 is_present=True,
             ),
         )
-        judge = FakeJudge(verdict="correct")
+        judge = FakeJudge(verdict="correct", resolved_model_id="runtime-qwen-model")
 
         result = score_run(
             loaded_run,
@@ -199,6 +317,7 @@ class TextJudgeScoringTests(unittest.TestCase):
         self.assertTrue(status_cell.is_correct)
         self.assertIsNone(status_cell.judge_verdict)
         self.assertTrue(notes_cell.was_scored)
+        self.assertEqual(notes_cell.judge_resolved_model_id, "runtime-qwen-model")
         self.assertEqual(len(result.judge_records), 1)
 
     def _loaded_run(self, *proposals: ProposalRecord) -> LoadedRun:

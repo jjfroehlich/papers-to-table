@@ -5,7 +5,15 @@ import json
 from typing import Any, Protocol
 from urllib import error, request
 
-from paper_eval.contracts import JudgeConfig, JudgeRecord, JudgeRequest, JudgeResponse
+from paper_eval.contracts import (
+    DEFAULT_JUDGE_MODEL_ID,
+    DEFAULT_JUDGE_PROVIDER,
+    DEFAULT_LM_STUDIO_API_BASE,
+    JudgeConfig,
+    JudgeRecord,
+    JudgeRequest,
+    JudgeResponse,
+)
 from paper_eval.errors import EvaluationError
 from paper_eval.normalize import normalize_text_for_match, normalize_whitespace
 
@@ -99,11 +107,15 @@ def judge_record_from_result(
     judge_response: JudgeResponse,
 ) -> JudgeRecord:
     usage = judge_response.metadata.get("usage", {}) if isinstance(judge_response.metadata, dict) else {}
+    resolved_model_id = judge_response.metadata.get("resolved_model_id")
     return JudgeRecord(
         run_id=judge_request.run_id,
         row_id=judge_request.row_id,
         column_name=judge_request.column_name,
         cell_id=judge_request.cell_id,
+        judge_provider=judge_config.provider,
+        judge_configured_model_id=judge_config.model_id,
+        judge_resolved_model_id=resolved_model_id,
         judge_model_id=judge_config.model_id,
         judge_prompt_version=judge_request.prompt_version,
         judge_prompt_hash=judge_request.prompt_hash,
@@ -121,15 +133,15 @@ def judge_record_from_result(
     )
 
 
-class OpenAICompatibleTextJudge:
+class LMStudioTextJudge:
     def __init__(self, judge_config: JudgeConfig) -> None:
         self._judge_config = judge_config
 
     def judge(self, judge_request: JudgeRequest) -> JudgeResponse:
-        endpoint = (self._judge_config.api_base or "https://api.openai.com/v1").rstrip("/") + "/chat/completions"
+        endpoint = (self._judge_config.api_base or DEFAULT_LM_STUDIO_API_BASE).rstrip("/") + "/chat/completions"
         payload = {
             "model": self._judge_config.model_id,
-            "temperature": 0,
+            "temperature": self._judge_config.temperature,
             "max_tokens": self._judge_config.max_output_tokens,
             "response_format": {
                 "type": "json_schema",
@@ -165,9 +177,9 @@ class OpenAICompatibleTextJudge:
                 response_payload = json.loads(response.read().decode("utf-8"))
         except error.HTTPError as exc:  # pragma: no cover - exercised by integration environments
             detail = exc.read().decode("utf-8", errors="replace")
-            raise EvaluationError(f"Judge request failed with HTTP {exc.code}: {detail}") from exc
+            raise EvaluationError(f"LM Studio judge request failed with HTTP {exc.code}: {detail}") from exc
         except error.URLError as exc:  # pragma: no cover - exercised by integration environments
-            raise EvaluationError(f"Judge request failed: {exc.reason}") from exc
+            raise EvaluationError(f"LM Studio judge request failed at {endpoint}: {exc.reason}") from exc
 
         choice = ((response_payload.get("choices") or [{}])[0]).get("message") or {}
         content = choice.get("content")
@@ -184,8 +196,16 @@ class OpenAICompatibleTextJudge:
         return JudgeResponse(
             verdict=verdict,
             rationale_label=rationale_label,
-            metadata={"usage": response_payload.get("usage", {})},
+            metadata={
+                "provider": self._judge_config.provider,
+                "configured_model_id": self._judge_config.model_id,
+                "resolved_model_id": response_payload.get("model"),
+                "usage": response_payload.get("usage", {}),
+            },
         )
+
+# Backward-compatible alias for existing imports; prefer LMStudioTextJudge in new code and remove this alias if the old name is no longer needed.
+OpenAICompatibleTextJudge = LMStudioTextJudge
 
 
 def _user_prompt(judge_request: JudgeRequest) -> str:

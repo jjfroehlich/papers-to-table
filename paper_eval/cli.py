@@ -5,10 +5,15 @@ import os
 from pathlib import Path
 
 from paper_eval.aggregate import build_run_summary
-from paper_eval.contracts import JudgeConfig
+from paper_eval.contracts import (
+    DEFAULT_JUDGE_MODEL_ID,
+    DEFAULT_JUDGE_PROVIDER,
+    DEFAULT_LM_STUDIO_API_BASE,
+    JudgeConfig,
+)
 from paper_eval.errors import CliUsageError, ContractError, EvaluationError
 from paper_eval.gold_loader import load_gold
-from paper_eval.judge import OpenAICompatibleTextJudge
+from paper_eval.judge import LMStudioTextJudge
 from paper_eval.output_paths import create_output_layout
 from paper_eval.run_loader import discover_run_directories, load_run
 from paper_eval.schema_loader import load_schema
@@ -38,11 +43,11 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--schema", type=Path, help="Optional schema metadata JSON file.")
     evaluate.add_argument(
         "--judge-model",
-        help="Fixed judge model id for text fields that use judge-backed scoring.",
+        help=f"Judge model id for text fields. Defaults to {DEFAULT_JUDGE_MODEL_ID}.",
     )
     evaluate.add_argument(
         "--judge-api-base",
-        help="Optional OpenAI-compatible judge API base URL. Defaults to PAPER_EVAL_JUDGE_API_BASE when set.",
+        help=f"Optional LM Studio OpenAI-compatible API base URL. Defaults to {DEFAULT_LM_STUDIO_API_BASE}.",
     )
     evaluate.add_argument("--out", type=Path, required=True, help="Output directory for evaluation artifacts.")
     evaluate.set_defaults(handler=_handle_evaluate)
@@ -112,17 +117,16 @@ def _handle_compare(args: argparse.Namespace) -> int:
 
 
 def build_judge_config(args: argparse.Namespace) -> JudgeConfig | None:
-    model_id = args.judge_model or os.environ.get("PAPER_EVAL_JUDGE_MODEL")
-    if not model_id:
-        return None
+    model_id = args.judge_model or os.environ.get("PAPER_EVAL_JUDGE_MODEL") or DEFAULT_JUDGE_MODEL_ID
     return JudgeConfig(
         model_id=model_id,
-        api_base=args.judge_api_base or os.environ.get("PAPER_EVAL_JUDGE_API_BASE"),
+        provider=DEFAULT_JUDGE_PROVIDER,
+        api_base=args.judge_api_base or os.environ.get("PAPER_EVAL_JUDGE_API_BASE") or DEFAULT_LM_STUDIO_API_BASE,
         api_key=os.environ.get("PAPER_EVAL_JUDGE_API_KEY"),
     )
 
 
-def build_text_judge(judge_config: JudgeConfig | None) -> OpenAICompatibleTextJudge | None:
+def build_text_judge(judge_config: JudgeConfig | None) -> LMStudioTextJudge | None:
     if judge_config is None:
         return None
-    return OpenAICompatibleTextJudge(judge_config)
+    return LMStudioTextJudge(judge_config)

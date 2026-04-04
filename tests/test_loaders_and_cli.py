@@ -10,9 +10,10 @@ from unittest import mock
 
 from paper_eval.cli import main
 from paper_eval.contracts import JudgeResponse
-from paper_eval.errors import ContractError
+from paper_eval.errors import CliUsageError, ContractError
 from paper_eval.gold_loader import load_gold
-from paper_eval.run_loader import load_run
+from paper_eval.run_loader import discover_run_directories, load_run
+from paper_eval.schema_loader import load_schema
 
 FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures" / "example_eval"
 
@@ -59,6 +60,40 @@ class LoaderAndCliTests(unittest.TestCase):
             with self.assertRaisesRegex(ContractError, "references missing provenance artifact 'masked_table_snapshot_path'"):
                 load_run(run_dir)
 
+    def test_run_loader_invalid_json_has_explicit_message(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_dir = Path(temp_dir) / "run-a"
+            (run_dir / "proposals").mkdir(parents=True)
+            (run_dir / "run.json").write_text("{not json", encoding="utf-8")
+            (run_dir / "proposals" / "proposals.jsonl").write_text("{}", encoding="utf-8")
+
+            with self.assertRaisesRegex(ContractError, "Invalid JSON in .*run.json"):
+                load_run(run_dir)
+
+    def test_run_loader_invalid_proposals_jsonl_has_explicit_message(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_dir = Path(temp_dir) / "run-a"
+            (run_dir / "proposals").mkdir(parents=True)
+            (run_dir / "run.json").write_text(json.dumps({"run_id": "run-a"}), encoding="utf-8")
+            (run_dir / "proposals" / "proposals.jsonl").write_text("{bad json\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(ContractError, "Invalid JSON in .*proposals.jsonl line 1"):
+                load_run(run_dir)
+
+    def test_discover_run_directories_requires_existing_inputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            missing_run = Path(temp_dir) / "missing-run"
+            with self.assertRaisesRegex(CliUsageError, "Run path does not exist"):
+                discover_run_directories([missing_run], None)
+
+    def test_discover_runs_root_requires_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runs_root = Path(temp_dir) / "runs.txt"
+            runs_root.write_text("not a directory", encoding="utf-8")
+
+            with self.assertRaisesRegex(CliUsageError, "Runs root is not a directory"):
+                discover_run_directories([], runs_root)
+
     def test_gold_loader_marks_present_and_empty_cells(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             gold_path = Path(temp_dir) / "gold.csv"
@@ -89,6 +124,37 @@ class LoaderAndCliTests(unittest.TestCase):
 
             with self.assertRaisesRegex(ContractError, "duplicate stable join keys"):
                 load_gold(gold_path)
+
+    def test_gold_loader_missing_file_has_explicit_message(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            gold_path = Path(temp_dir) / "missing.csv"
+
+            with self.assertRaisesRegex(ContractError, "Gold input does not exist"):
+                load_gold(gold_path)
+
+    def test_gold_loader_empty_csv_has_explicit_message(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            gold_path = Path(temp_dir) / "gold.csv"
+            gold_path.write_text("", encoding="utf-8")
+
+            with self.assertRaisesRegex(ContractError, "empty or missing a header row"):
+                load_gold(gold_path)
+
+    def test_schema_loader_invalid_json_has_explicit_message(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            schema_path = Path(temp_dir) / "schema.json"
+            schema_path.write_text("{bad json", encoding="utf-8")
+
+            with self.assertRaisesRegex(ContractError, "Invalid JSON in schema file"):
+                load_schema(schema_path)
+
+    def test_schema_loader_rejects_invalid_columns_shape(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            schema_path = Path(temp_dir) / "schema.json"
+            schema_path.write_text(json.dumps({"columns": "bad"}), encoding="utf-8")
+
+            with self.assertRaisesRegex(ContractError, "Schema 'columns' must be either"):
+                load_schema(schema_path)
 
     def test_gold_xlsx_uses_first_sheet_by_default_and_supports_selection(self) -> None:
         try:
@@ -228,6 +294,9 @@ class LoaderAndCliTests(unittest.TestCase):
             self.assertEqual(row_3_score["join_status"], "cell_id_mismatch")
             self.assertEqual(note_row["was_scored"], "True")
             self.assertEqual(note_row["judge_verdict"], "correct")
+            self.assertEqual(note_row["judge_provider"], "lm_studio")
+            self.assertEqual(note_row["judge_configured_model_id"], "fake-judge-v1")
+            self.assertEqual(note_row["judge_resolved_model_id"], "")
             self.assertEqual(note_row["judge_model_id"], "fake-judge-v1")
             self.assertIn('"rationale_label": "semantic_match"', note_row["diagnostics"])
 
@@ -237,6 +306,9 @@ class LoaderAndCliTests(unittest.TestCase):
                 if line.strip()
             ]
             self.assertEqual(len(judge_records), 1)
+            self.assertEqual(judge_records[0]["judge_provider"], "lm_studio")
+            self.assertEqual(judge_records[0]["judge_configured_model_id"], "fake-judge-v1")
+            self.assertIsNone(judge_records[0]["judge_resolved_model_id"])
             self.assertEqual(judge_records[0]["judge_model_id"], "fake-judge-v1")
             self.assertEqual(judge_records[0]["judge_verdict"], "correct")
             self.assertIsNotNone(judge_records[0]["judge_input_hash"])
@@ -323,6 +395,16 @@ class LoaderAndCliTests(unittest.TestCase):
             self.assertEqual(exit_code, 0)
             self.assertTrue((output_dir / "per-run" / "run-a" / "run_summary.json").exists())
             self.assertTrue((output_dir / "per-run" / "run-b" / "run_summary.json").exists())
+
+    def test_compare_requires_existing_summary_input(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            missing = Path(temp_dir) / "missing"
+            output_dir = Path(temp_dir) / "out"
+
+            with self.assertRaises(SystemExit) as ctx:
+                main(["compare", "--summaries", str(missing), "--out", str(output_dir)])
+
+            self.assertEqual(ctx.exception.code, 2)
 
     def test_gold_loader_supports_long_form(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
