@@ -21,6 +21,7 @@ class NumericTolerance:
 class ColumnSchema:
     name: str
     field_type: str | None = None
+    description: str | None = None
     allowed_values: list[str] = field(default_factory=list)
     aliases: dict[str, str] = field(default_factory=dict)
     scoring_policy: str | None = None
@@ -174,6 +175,7 @@ class ResolvedFieldConfig:
     column_name: str
     field_type: str
     scoring_policy: str
+    description: str | None = None
     allowed_values: list[str] = field(default_factory=list)
     aliases: dict[str, str] = field(default_factory=dict)
     numeric_tolerance: NumericTolerance = field(default_factory=NumericTolerance)
@@ -211,6 +213,12 @@ class ScoredCell:
     row_index: int | None = None
     normalized_gold: Any = None
     normalized_proposed: Any = None
+    judge_verdict: str | None = None
+    judge_model_id: str | None = None
+    judge_prompt_version: str | None = None
+    judge_prompt_hash: str | None = None
+    judge_temperature: float | None = None
+    judge_input_hash: str | None = None
     diagnostic_flags: list[str] = field(default_factory=list)
     diagnostics: dict[str, Any] = field(default_factory=dict)
     selected_proposal_state: str | None = None
@@ -234,6 +242,73 @@ class EvidenceValidationResult:
     anchor_valid: bool
     evidence_present_but_unvalidated: bool
     diagnostics: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class JudgeConfig:
+    model_id: str
+    api_base: str | None = None
+    api_key: str | None = None
+    prompt_version: str = "batch3-text-judge-v1"
+    temperature: float = 0.0
+    max_field_name_chars: int = 80
+    max_field_description_chars: int = 240
+    max_value_chars: int = 600
+    max_evidence_chars: int = 240
+    max_output_tokens: int = 120
+
+
+@dataclass(frozen=True)
+class JudgeRequest:
+    run_id: str
+    row_id: str | None
+    column_name: str
+    cell_id: str | None
+    field_description: str | None
+    gold_value: str
+    proposed_value: str
+    normalized_gold: str
+    normalized_proposed: str
+    evidence_excerpt: str | None
+    prompt_version: str
+    prompt_hash: str
+    input_hash: str
+    was_truncated: bool
+
+
+@dataclass(frozen=True)
+class JudgeResponse:
+    verdict: str
+    rationale_label: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class JudgeRecord:
+    run_id: str
+    row_id: str | None
+    column_name: str
+    cell_id: str | None
+    judge_model_id: str
+    judge_prompt_version: str
+    judge_prompt_hash: str
+    judge_temperature: float
+    judge_verdict: str
+    judge_input_hash: str
+    rationale_label: str | None = None
+    request_tokens: int | None = None
+    response_tokens: int | None = None
+    total_tokens: int | None = None
+    input_was_truncated: bool = False
+    normalized_gold: str | None = None
+    normalized_proposed: str | None = None
+    evidence_excerpt: str | None = None
+
+
+@dataclass
+class ScoreRunResult:
+    scored_cells: list[ScoredCell]
+    judge_records: list[JudgeRecord] = field(default_factory=list)
 
 
 def _join_identity_and_version(identity: str | None, version: str | None) -> str | None:

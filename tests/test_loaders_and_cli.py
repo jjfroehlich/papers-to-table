@@ -5,8 +5,10 @@ import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 from paper_eval.cli import main
+from paper_eval.contracts import JudgeResponse
 from paper_eval.errors import ContractError
 from paper_eval.gold_loader import load_gold
 from paper_eval.run_loader import load_run
@@ -129,21 +131,29 @@ class LoaderAndCliTests(unittest.TestCase):
             )
             output_dir = base / "out"
 
+            class FakeJudge:
+                def judge(self, judge_request) -> JudgeResponse:
+                    self.last_request = judge_request
+                    return JudgeResponse(verdict="correct", rationale_label="semantic_match")
+
             stdout = io.StringIO()
-            with redirect_stdout(stdout):
-                exit_code = main(
-                    [
-                        "evaluate",
-                        "--run",
-                        str(run_dir),
-                        "--gold",
-                        str(gold_path),
-                        "--schema",
-                        str(schema_path),
-                        "--out",
-                        str(output_dir),
-                    ]
-                )
+            with mock.patch("paper_eval.cli.build_text_judge", return_value=FakeJudge()):
+                with redirect_stdout(stdout):
+                    exit_code = main(
+                        [
+                            "evaluate",
+                            "--run",
+                            str(run_dir),
+                            "--gold",
+                            str(gold_path),
+                            "--schema",
+                            str(schema_path),
+                            "--judge-model",
+                            "fake-judge-v1",
+                            "--out",
+                            str(output_dir),
+                        ]
+                    )
 
             self.assertEqual(exit_code, 0)
             self.assertIn("Scored run run-a", stdout.getvalue())
@@ -153,6 +163,7 @@ class LoaderAndCliTests(unittest.TestCase):
             self.assertTrue((run_output / "scored_cells.csv").exists())
             self.assertTrue((run_output / "run_summary.json").exists())
             self.assertTrue((run_output / "run_summary.csv").exists())
+            self.assertTrue((run_output / "judge_records.jsonl").exists())
 
             summary = json.loads((run_output / "run_summary.json").read_text(encoding="utf-8"))
             self.assertEqual(summary["metrics"]["gold_present_cell_count"], 6)
@@ -161,7 +172,10 @@ class LoaderAndCliTests(unittest.TestCase):
             self.assertEqual(summary["metrics"]["missing_proposal_count"], 0)
             self.assertEqual(summary["metrics"]["cell_id_mismatch_count"], 1)
             self.assertEqual(summary["metrics"]["unmatched_proposal_count"], 1)
-            self.assertEqual(summary["metrics"]["unscored_text_cell_count"], 1)
+            self.assertEqual(summary["metrics"]["unscored_text_cell_count"], 0)
+            self.assertEqual(summary["metrics"]["text_scored_cell_count"], 1)
+            self.assertEqual(summary["metrics"]["judge_text_scored_cell_count"], 1)
+            self.assertAlmostEqual(summary["metrics"]["text_accuracy"], 1.0)
             self.assertAlmostEqual(summary["metrics"]["structured_accuracy"], 1.0)
 
             rows = self._read_csv(run_output / "scored_cells.csv")
@@ -176,8 +190,20 @@ class LoaderAndCliTests(unittest.TestCase):
             self.assertEqual(row_2_status["join_status"], "gold_empty_diagnostic")
             self.assertIn("filled_on_gold_empty", row_2_status["diagnostic_flags"])
             self.assertEqual(row_3_score["join_status"], "cell_id_mismatch")
-            self.assertEqual(note_row["was_scored"], "False")
-            self.assertIn("text_scoring_not_implemented_in_batch_1", note_row["diagnostic_flags"])
+            self.assertEqual(note_row["was_scored"], "True")
+            self.assertEqual(note_row["judge_verdict"], "correct")
+            self.assertEqual(note_row["judge_model_id"], "fake-judge-v1")
+            self.assertIn('"rationale_label": "semantic_match"', note_row["diagnostics"])
+
+            judge_records = [
+                json.loads(line)
+                for line in (run_output / "judge_records.jsonl").read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            self.assertEqual(len(judge_records), 1)
+            self.assertEqual(judge_records[0]["judge_model_id"], "fake-judge-v1")
+            self.assertEqual(judge_records[0]["judge_verdict"], "correct")
+            self.assertIsNotNone(judge_records[0]["judge_input_hash"])
 
     def test_cli_supports_runs_root_discovery(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -8,7 +8,7 @@ from typing import Any, Iterable
 
 from paper_eval.aggregate import comparison_row_from_summary
 from paper_eval.errors import ContractError
-from paper_eval.contracts import RunSummary, ScoredCell
+from paper_eval.contracts import JudgeRecord, RunSummary, ScoredCell
 
 
 def write_scored_cells(path: Path, scored_cells: Iterable[ScoredCell]) -> None:
@@ -34,6 +34,14 @@ def write_run_summary(path: Path, summary: RunSummary) -> None:
     }
     summary_json_path.write_text(json.dumps(summary_payload, indent=2, sort_keys=True), encoding="utf-8")
     _write_csv(summary_csv_path, [comparison_row_from_summary(summary)])
+
+
+def write_judge_records(path: Path, judge_records: Iterable[JudgeRecord]) -> None:
+    judge_records = list(judge_records)
+    if not judge_records:
+        return
+    jsonl_path = path / "judge_records.jsonl"
+    _write_jsonl(jsonl_path, judge_records)
 
 
 def write_comparison_artifacts(path: Path, summaries: Iterable[RunSummary]) -> list[dict[str, Any]]:

@@ -74,6 +74,32 @@ def normalize_categorical(
     return normalized
 
 
+def normalize_text_for_match(value: Any) -> str | None:
+    if is_empty_value(value):
+        return None
+    text = normalize_whitespace(str(value)).casefold()
+    text = _PUNCT_RE.sub(" ", text)
+    return normalize_whitespace(text)
+
+
+def text_overlap_diagnostics(gold_value: Any, proposed_value: Any) -> dict[str, Any]:
+    normalized_gold = normalize_text_for_match(gold_value)
+    normalized_proposed = normalize_text_for_match(proposed_value)
+    gold_tokens = normalized_gold.split() if normalized_gold else []
+    proposed_tokens = normalized_proposed.split() if normalized_proposed else []
+    gold_token_set = set(gold_tokens)
+    proposed_token_set = set(proposed_tokens)
+    overlap_count = len(gold_token_set & proposed_token_set)
+    union_count = len(gold_token_set | proposed_token_set)
+    return {
+        "normalized_exact_match": normalized_gold is not None and normalized_gold == normalized_proposed,
+        "gold_token_count": len(gold_tokens),
+        "proposed_token_count": len(proposed_tokens),
+        "token_overlap_count": overlap_count,
+        "token_overlap_ratio": None if union_count == 0 else overlap_count / union_count,
+    }
+
+
 def _parse_float(text: str) -> float:
     return float(text.replace(",", ""))
 

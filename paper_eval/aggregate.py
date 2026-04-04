@@ -13,16 +13,20 @@ def build_run_summary(
 ) -> RunSummary:
     scored_cells = list(scored_cells)
     gold_cell_records = [cell for cell in scored_cells if cell.record_kind == "gold_cell"]
-    structured_records = [cell for cell in gold_cell_records if cell.was_scored]
+    scored_records = [cell for cell in gold_cell_records if cell.was_scored]
+    structured_records = [cell for cell in scored_records if cell.field_type in {"boolean", "categorical", "numeric"}]
     boolean_records = [cell for cell in structured_records if cell.field_type == "boolean"]
     categorical_records = [cell for cell in structured_records if cell.field_type == "categorical"]
     numeric_records = [cell for cell in structured_records if cell.field_type == "numeric"]
-    anchor_valid_records = [cell for cell in structured_records if cell.anchor_valid]
+    text_records = [cell for cell in scored_records if cell.field_type == "text"]
+    judge_text_records = [cell for cell in text_records if cell.scoring_policy == "judge"]
+    deterministic_text_records = [cell for cell in text_records if cell.scoring_policy == "deterministic"]
+    anchor_valid_records = [cell for cell in scored_records if cell.anchor_valid]
     evidence_unvalidated_records = [
-        cell for cell in structured_records if cell.evidence_present_but_unvalidated
+        cell for cell in scored_records if cell.evidence_present_but_unvalidated
     ]
     correct_and_anchored_records = [
-        cell for cell in structured_records if cell.is_correct and cell.anchor_valid
+        cell for cell in scored_records if cell.is_correct and cell.anchor_valid
     ]
 
     gold_present_records = [cell for cell in gold_cell_records if cell.is_gold_present]
@@ -43,21 +47,24 @@ def build_run_summary(
         "boolean_accuracy": _accuracy(boolean_records),
         "categorical_accuracy": _accuracy(categorical_records),
         "numeric_accuracy": _accuracy(numeric_records),
+        "text_accuracy": _accuracy(text_records),
         "proposal_coverage_on_gold_present": _ratio(len(covered_gold_present), len(gold_present_records)),
-        "anchor_valid_rate": _ratio(len(anchor_valid_records), len(structured_records)),
-        "correct_and_anchored_rate": _ratio(len(correct_and_anchored_records), len(structured_records)),
+        "anchor_valid_rate": _ratio(len(anchor_valid_records), len(scored_records)),
+        "correct_and_anchored_rate": _ratio(len(correct_and_anchored_records), len(scored_records)),
         "gold_present_cell_count": len(gold_present_records),
         "gold_empty_cell_count": len(gold_empty_records),
         "filled_on_gold_empty_count": sum(1 for cell in gold_empty_records if cell.proposal_count > 0),
         "structured_scored_cell_count": len(structured_records),
+        "scored_cell_count": len(scored_records),
         "boolean_scored_cell_count": len(boolean_records),
         "categorical_scored_cell_count": len(categorical_records),
         "numeric_scored_cell_count": len(numeric_records),
+        "text_scored_cell_count": len(text_records),
+        "judge_text_scored_cell_count": len(judge_text_records),
+        "deterministic_text_scored_cell_count": len(deterministic_text_records),
         "anchor_valid_count": len(anchor_valid_records),
         "evidence_present_but_unvalidated_count": len(evidence_unvalidated_records),
-        "unscored_text_cell_count": sum(
-            1 for cell in gold_present_records if "text_scoring_not_implemented_in_batch_1" in cell.diagnostic_flags
-        ),
+        "unscored_text_cell_count": sum(1 for cell in gold_present_records if cell.field_type == "text" and not cell.was_scored),
         "missing_proposal_count": sum(1 for cell in gold_present_records if cell.join_status == "missing_proposal"),
         "duplicate_proposal_join_count": sum(
             1 for cell in gold_present_records if cell.join_status == "duplicate_proposals"

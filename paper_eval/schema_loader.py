@@ -32,6 +32,7 @@ def load_schema(path: Path | None) -> EvaluatorSchema:
         columns[column_name] = ColumnSchema(
             name=column_name,
             field_type=item.get("field_type"),
+            description=item.get("description"),
             allowed_values=list(item.get("allowed_values", [])),
             aliases=dict(item.get("aliases", {})),
             scoring_policy=item.get("scoring_policy"),

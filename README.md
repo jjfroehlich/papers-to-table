@@ -13,10 +13,13 @@ python -m pip install -r requirements.txt
 ```bash
 python -m paper_eval evaluate --run path/to/run --gold gold.csv --out out/
 python -m paper_eval evaluate --run path/to/run --gold gold.xlsx --gold-sheet Sheet1 --out out/
+python -m paper_eval evaluate --run path/to/run --gold gold.csv --schema schema.json --judge-model gpt-4.1 --out out/
 python -m paper_eval evaluate --run path/to/run-a --run path/to/run-b --gold gold.csv --out out/
 python -m paper_eval evaluate --runs-root path/to/runs --gold gold.csv --out out/
 python -m paper_eval compare --summaries out/per-run --out out/compare
 ```
+
+`--judge-model` fixes the text-judge model for the evaluation run. The evaluator reads `PAPER_EVAL_JUDGE_API_KEY` for authentication and optionally `PAPER_EVAL_JUDGE_API_BASE` for an OpenAI-compatible API base URL.
 
 ## Current input contract
 
@@ -59,14 +62,25 @@ Supported gold layouts:
 
 For wide format, optional `{column_name}__cell_id` columns preserve explicit gold cell ids for audit and mismatch diagnostics.
 
-## Current Batch 1 scoring behavior
+## Current scoring behavior
 
 - scores only gold-present cells in headline structured metrics
 - keeps gold-empty cells out of headline scoring and reports them as diagnostics
 - uses stable join keys from artifacts instead of row-index-first alignment
 - deterministically scores boolean, categorical, and numeric fields
 - resolves numeric tolerances from schema per-column overrides first, then global defaults
-- leaves text fields unscored in Batch 1 and records them explicitly for later judge-backed handling
+- uses a constrained text judge by default for text fields, with per-field or per-column deterministic override for standardized text columns
+- keeps structured metrics deterministic-first and reports `text_accuracy` separately from structured accuracy
+- fails fast if a text field requires judge-backed scoring but no fixed judge model is configured
+
+## Text judge guardrails
+
+- fixed configurable judge model per evaluation run via `--judge-model`
+- temperature fixed at `0`
+- bounded field name, field description, gold value, proposed value, and optional evidence excerpt in judge requests
+- strict structured judge output with verdict labels `correct`, `incorrect`, or `unclear`
+- persisted judge metadata on scored text cells and in `judge_records.jsonl`, including model id, prompt version/hash, verdict, temperature, and input hash
+- no long free-form reasoning persisted in core artifacts; only short public rationale labels are stored when returned
 
 ## Current Batch 2 comparison and evidence behavior
 
@@ -87,6 +101,7 @@ out/
     {run_id}/
       scored_cells.jsonl
       scored_cells.csv
+      judge_records.jsonl
       run_summary.json
       run_summary.csv
   compare/
@@ -95,4 +110,4 @@ out/
     runs_comparison.parquet
 ```
 
-`scored_cells.*` includes per-cell join status, raw values, normalized values, correctness, evidence outcome, and diagnostics.
+`scored_cells.*` includes per-cell join status, raw values, normalized values, correctness, evidence outcome, text scoring policy, and judge metadata when used.
