@@ -63,10 +63,10 @@ class LoaderAndCliTests(unittest.TestCase):
             run_dir = self._create_run_bundle(base / "run-a")
             gold_path = base / "gold.csv"
             gold_path.write_text(
-                "row_id,row_index,status,score,notes\n"
-                "row-1,1,yes,10,\n"
-                "row-2,2,,11,Text gold\n"
-                "row-3,3,no,20,\n",
+                "row_id,row_index,status,score,score__cell_id,notes\n"
+                "row-1,1,yes,10,cell-score-1,\n"
+                "row-2,2,,11,cell-score-2,Text gold\n"
+                "row-3,3,no,20,cell-score-3,\n",
                 encoding="utf-8",
             )
             schema_path = base / "schema.json"
@@ -111,11 +111,12 @@ class LoaderAndCliTests(unittest.TestCase):
             self.assertTrue((run_output / "run_summary.csv").exists())
 
             summary = json.loads((run_output / "run_summary.json").read_text(encoding="utf-8"))
-            self.assertEqual(summary["metrics"]["gold_present_cell_count"], 5)
-            self.assertEqual(summary["metrics"]["gold_empty_cell_count"], 1)
+            self.assertEqual(summary["metrics"]["gold_present_cell_count"], 6)
+            self.assertEqual(summary["metrics"]["gold_empty_cell_count"], 3)
             self.assertEqual(summary["metrics"]["filled_on_gold_empty_count"], 1)
-            self.assertEqual(summary["metrics"]["missing_proposal_count"], 1)
+            self.assertEqual(summary["metrics"]["missing_proposal_count"], 0)
             self.assertEqual(summary["metrics"]["cell_id_mismatch_count"], 1)
+            self.assertEqual(summary["metrics"]["unmatched_proposal_count"], 1)
             self.assertEqual(summary["metrics"]["unscored_text_cell_count"], 1)
             self.assertAlmostEqual(summary["metrics"]["structured_accuracy"], 1.0)
 
@@ -157,6 +158,33 @@ class LoaderAndCliTests(unittest.TestCase):
 
             self.assertEqual(exit_code, 0)
             self.assertTrue((output_dir / "per-run" / "run-a" / "run_summary.json").exists())
+
+    def test_cli_supports_repeated_run_arguments(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            run_a = self._create_run_bundle(base / "run-a")
+            run_b = self._create_run_bundle(base / "run-b")
+            gold_path = base / "gold.csv"
+            gold_path.write_text("row_id,status\nrow-1,yes\n", encoding="utf-8")
+            output_dir = base / "out"
+
+            exit_code = main(
+                [
+                    "evaluate",
+                    "--run",
+                    str(run_a),
+                    "--run",
+                    str(run_b),
+                    "--gold",
+                    str(gold_path),
+                    "--out",
+                    str(output_dir),
+                ]
+            )
+
+            self.assertEqual(exit_code, 0)
+            self.assertTrue((output_dir / "per-run" / "run-a" / "run_summary.json").exists())
+            self.assertTrue((output_dir / "per-run" / "run-b" / "run_summary.json").exists())
 
     def test_gold_loader_supports_long_form(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -28,30 +28,30 @@ All tasks remain unchecked because implementation has not started.
 
 Goal: make one run scoreable from the CLI with deterministic structured metrics and inspectable outputs.
 
-- [ ] E001 Create the base package layout for the evaluator CLI and supporting modules.
-- [ ] E002 Implement CLI argument parsing for `evaluate` with `--run`, `--runs-root`, repeated `--run`, `--gold`, optional `--gold-sheet` for XLSX single-sheet scoring, optional `--schema`, and `--out`.
-- [ ] E003 Implement output-directory creation and run-level output path helpers.
-- [ ] E004 Define evaluator-owned typed contracts for loaded run metadata, proposal records, evidence records, gold cells, scored cells, and run summaries.
-- [ ] E005 Implement main-app run bundle discovery for one run, a runs root, and an explicit run list.
-- [ ] E006 Implement contract validation for required main-app artifact files and the published stable eval join fields.
-- [ ] E007 Implement proposal loading from `proposals/proposals.jsonl`.
-- [ ] E008 Implement loading of run metadata from `run.json`, `config.snapshot.json`, `inputs/input_summary.json`, and `summaries/run_summary.json` when present.
+- [x] E001 Create the base package layout for the evaluator CLI and supporting modules.
+- [x] E002 Implement CLI argument parsing for `evaluate` with `--run`, `--runs-root`, repeated `--run`, `--gold`, optional `--gold-sheet` for XLSX single-sheet scoring, optional `--schema`, and `--out`.
+- [x] E003 Implement output-directory creation and run-level output path helpers.
+- [x] E004 Define evaluator-owned typed contracts for loaded run metadata, proposal records, evidence records, gold cells, scored cells, and run summaries.
+- [x] E005 Implement main-app run bundle discovery for one run, a runs root, and an explicit run list.
+- [x] E006 Implement contract validation for required main-app artifact files and the published stable eval join fields.
+- [x] E007 Implement proposal loading from `proposals/proposals.jsonl`.
+- [x] E008 Implement loading of run metadata from `run.json`, `config.snapshot.json`, `inputs/input_summary.json`, and `summaries/run_summary.json` when present.
 - [ ] E009 Implement a loader or adapter path for evidence data when proposals do not already carry enough evidence detail.
-- [ ] E010 Implement explicit contract errors for missing required scoring fields, especially missing stable join identifiers such as `row_id`, `column_name`, and `cell_id`.
-- [ ] E011 Implement gold CSV loading.
-- [ ] E012 Implement gold XLSX loading with single-sheet selection per invocation and a documented default first-sheet behavior when no sheet is specified.
-- [ ] E013 Implement consistent gold-present versus gold-empty detection.
-- [ ] E014 Implement field-type resolution precedence across proposal metadata, schema metadata, and evaluator fallbacks, including field or column scoring-policy overrides for text fields.
-- [ ] E015 Implement boolean normalization.
-- [ ] E016 Implement categorical normalization with alias mapping and `allowed_values` support.
-- [ ] E017 Implement numeric normalization for exact, range, and approximate forms, plus numeric tolerance resolution with per-column override and global defaults.
-- [ ] E018 Implement deterministic boolean comparison.
-- [ ] E019 Implement deterministic categorical comparison.
-- [ ] E020 Implement deterministic numeric comparison with binary headline correctness under the resolved tolerance policy plus diagnostic error fields.
-- [ ] E021 Implement per-cell scoring orchestration for structured fields on gold-present cells only, consuming stable main-app identifiers rather than derived row-index joins.
-- [ ] E022 Write per-cell outputs for one run in JSONL and CSV.
-- [ ] E023 Implement per-run aggregation for structured metrics and diagnostic counts.
-- [ ] E024 Write per-run `run_summary.json` and `run_summary.csv`.
+- [x] E010 Implement explicit contract errors for missing required scoring fields, especially missing stable join identifiers such as `row_id`, `column_name`, and `cell_id`.
+- [x] E011 Implement gold CSV loading.
+- [x] E012 Implement gold XLSX loading with single-sheet selection per invocation and a documented default first-sheet behavior when no sheet is specified.
+- [x] E013 Implement consistent gold-present versus gold-empty detection.
+- [x] E014 Implement field-type resolution precedence across proposal metadata, schema metadata, and evaluator fallbacks, including field or column scoring-policy overrides for text fields.
+- [x] E015 Implement boolean normalization.
+- [x] E016 Implement categorical normalization with alias mapping and `allowed_values` support.
+- [x] E017 Implement numeric normalization for exact, range, and approximate forms, plus numeric tolerance resolution with per-column override and global defaults.
+- [x] E018 Implement deterministic boolean comparison.
+- [x] E019 Implement deterministic categorical comparison.
+- [x] E020 Implement deterministic numeric comparison with binary headline correctness under the resolved tolerance policy plus diagnostic error fields.
+- [x] E021 Implement per-cell scoring orchestration for structured fields on gold-present cells only, consuming stable main-app identifiers rather than derived row-index joins.
+- [x] E022 Write per-cell outputs for one run in JSONL and CSV.
+- [x] E023 Implement per-run aggregation for structured metrics and diagnostic counts.
+- [x] E024 Write per-run `run_summary.json` and `run_summary.csv`.
 
 ### Batch 2 - Multi-run evaluation, evidence checks, and comparison outputs
 
@@ -91,18 +91,18 @@ Goal: make the tool reliable, documented, and explicit about remaining contract 
 
 - [ ] E047 Add contract validation for eval-mode provenance fields such as gold and masked table hashes and snapshot paths when runs are marked as eval runs.
 - [ ] E048 Fail fast when the published stable join contract is missing or inconsistent, and document the contract gap clearly.
-- [ ] E049 Implement unit tests for boolean, categorical, and numeric normalization.
-- [ ] E050 Implement unit tests for deterministic comparators.
-- [ ] E051 Implement unit tests for gold-present and gold-empty detection.
+- [x] E049 Implement unit tests for boolean, categorical, and numeric normalization.
+- [x] E050 Implement unit tests for deterministic comparators.
+- [x] E051 Implement unit tests for gold-present and gold-empty detection.
 - [ ] E052 Implement unit tests for evidence anchor validation, including locatable versus present-but-unvalidated quote cases.
-- [ ] E053 Implement contract tests for required main-app artifact fields, worksheet selection behavior, and failure messages.
-- [ ] E054 Implement end-to-end tests for scoring one run.
+- [x] E053 Implement contract tests for required main-app artifact fields, worksheet selection behavior, and failure messages.
+- [x] E054 Implement end-to-end tests for scoring one run.
 - [ ] E055 Implement end-to-end tests for scoring multiple runs and writing batch comparison outputs.
 - [ ] E056 Implement mocked judge tests for text scoring under judge-by-default behavior and deterministic text override behavior.
-- [ ] E057 Write the initial `README.md` or operator documentation once actual commands, output paths, and examples exist.
-- [ ] E058 Document the published input artifact contract expected from the main app in operator-facing docs, including stable join identifiers and single-sheet XLSX behavior.
-- [ ] E059 Review `spec.md`, `plan.md`, `research.md`, and `tasks.md` together for consistency before the first code batch begins.
-- [ ] E060 Keep an explicit visible note in docs about the required stable join-key contract between the main app and the eval repo, with `row_index` treated only as fallback or debug context.
+- [x] E057 Write the initial `README.md` or operator documentation once actual commands, output paths, and examples exist.
+- [x] E058 Document the published input artifact contract expected from the main app in operator-facing docs, including stable join identifiers and single-sheet XLSX behavior.
+- [x] E059 Review `spec.md`, `plan.md`, `research.md`, and `tasks.md` together for consistency before the first code batch begins.
+- [x] E060 Keep an explicit visible note in docs about the required stable join-key contract between the main app and the eval repo, with `row_index` treated only as fallback or debug context.
 
 ---
 
