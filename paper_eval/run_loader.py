@@ -10,6 +10,14 @@ from paper_eval.errors import CliUsageError, ContractError
 _REQUIRED_RUN_FILES = ("run.json", "proposals/proposals.jsonl")
 _OPTIONAL_RUN_FILES = ("config.snapshot.json", "inputs/input_summary.json", "summaries/run_summary.json")
 _SIDE_CAR_EVIDENCE_FILES = ("evidence/evidence.jsonl", "evidence/evidence.json", "support/evidence.jsonl")
+_PAGE_TEXT_FILES = (
+    "evidence/page_text.json",
+    "evidence/page_texts.json",
+    "evidence/pages.json",
+    "support/page_text.json",
+    "support/page_texts.json",
+    "support/pages.json",
+)
 
 
 def discover_run_directories(run_paths: list[Path], runs_root: Path | None) -> list[Path]:
@@ -50,6 +58,7 @@ def load_run(run_dir: Path) -> LoadedRun:
     input_summary_payload = _load_optional_json(run_dir / "inputs" / "input_summary.json")
     run_summary_payload = _load_optional_json(run_dir / "summaries" / "run_summary.json")
     sidecar_evidence = _load_sidecar_evidence(run_dir)
+    page_text_by_page = _load_page_text_by_page(run_dir, sidecar_evidence)
 
     metadata = _build_run_metadata(
         run_dir=run_dir,
@@ -59,7 +68,13 @@ def load_run(run_dir: Path) -> LoadedRun:
         run_summary_payload=run_summary_payload,
     )
     proposals = _load_proposals(run_dir, metadata.run_id, sidecar_evidence)
-    return LoadedRun(run_dir=run_dir, metadata=metadata, proposals=proposals, contract_warnings=warnings)
+    return LoadedRun(
+        run_dir=run_dir,
+        metadata=metadata,
+        proposals=proposals,
+        page_text_by_page=page_text_by_page,
+        contract_warnings=warnings,
+    )
 
 
 def _load_proposals(
@@ -125,25 +140,80 @@ def _build_run_metadata(
     return RunMetadata(
         run_id=run_id,
         run_dir=run_dir,
-        run_mode=_first_present(run_payload, config_payload, keys=("run_mode", "mode")),
-        provider_token=_first_present(run_payload, config_payload, keys=("provider_token",)),
+        run_mode=_first_present(
+            run_payload,
+            config_payload,
+            keys=(("run_mode",), ("mode",)),
+        ),
+        provider_token=_first_present(
+            run_payload,
+            config_payload,
+            keys=(("provider_token",), ("provider", "token")),
+        ),
         text_model_id=_first_present(
             run_payload,
             config_payload,
-            keys=("provider_text_model_id", "text_model_id", "model_id"),
+            keys=(
+                ("provider_text_model_id",),
+                ("text_model_id",),
+                ("model_id",),
+                ("provider", "text_model_id"),
+                ("provider", "model_id"),
+                ("model", "id"),
+            ),
         ),
         vision_model_id=_first_present(
             run_payload,
             config_payload,
-            keys=("provider_vision_model_id", "vision_model_id"),
+            keys=(
+                ("provider_vision_model_id",),
+                ("vision_model_id",),
+                ("provider", "vision_model_id"),
+                ("vision_model", "id"),
+            ),
         ),
-        parser_identity=_first_present(run_payload, config_payload, keys=("parser_identity",)),
-        parser_version=_first_present(run_payload, config_payload, keys=("parser_version",)),
-        prompt_version=_first_present(run_payload, config_payload, keys=("prompt_version",)),
-        prompt_hash=_first_present(run_payload, config_payload, keys=("prompt_hash",)),
-        schema_hash=_first_present(run_payload, config_payload, keys=("schema_hash",)),
-        schema_version=_first_present(run_payload, config_payload, keys=("schema_version",)),
-        config_hash=_first_present(run_payload, config_payload, keys=("config_hash",)),
+        parser_identity=_first_present(
+            run_payload,
+            config_payload,
+            keys=(("parser_identity",), ("parser", "identity"), ("parser", "name")),
+        ),
+        parser_version=_first_present(
+            run_payload,
+            config_payload,
+            keys=(("parser_version",), ("parser", "version")),
+        ),
+        prompt_version=_first_present(
+            run_payload,
+            config_payload,
+            keys=(("prompt_version",), ("prompt", "version"), ("prompt", "id")),
+        ),
+        prompt_hash=_first_present(
+            run_payload,
+            config_payload,
+            keys=(("prompt_hash",), ("prompt", "hash")),
+        ),
+        schema_hash=_first_present(
+            run_payload,
+            config_payload,
+            keys=(("schema_hash",), ("schema", "hash")),
+        ),
+        schema_version=_first_present(
+            run_payload,
+            config_payload,
+            keys=(("schema_version",), ("schema", "version")),
+        ),
+        config_hash=_first_present(
+            run_payload,
+            config_payload,
+            keys=(("config_hash",), ("config", "hash")),
+        ),
+        page_count=_first_present_int(
+            run_payload,
+            config_payload,
+            input_summary_payload,
+            run_summary_payload,
+            keys=(("page_count",), ("total_pages",), ("num_pages",), ("document", "page_count")),
+        ),
         extras={
             "run": run_payload,
             "config_snapshot": config_payload,
@@ -153,12 +223,22 @@ def _build_run_metadata(
     )
 
 
-def _first_present(*payloads: dict[str, Any], keys: tuple[str, ...]) -> str | None:
+def _first_present(*payloads: dict[str, Any], keys: tuple[tuple[str, ...], ...]) -> str | None:
     for payload in payloads:
-        for key in keys:
-            value = _required_text(payload.get(key))
+        for key_path in keys:
+            value = _required_text(_lookup(payload, key_path))
             if value:
                 return value
+    return None
+
+
+def _first_present_int(*payloads: dict[str, Any], keys: tuple[tuple[str, ...], ...]) -> int | None:
+    for payload in payloads:
+        for key_path in keys:
+            value = _lookup(payload, key_path)
+            if value is None or value == "":
+                continue
+            return int(value)
     return None
 
 
@@ -196,6 +276,36 @@ def _load_sidecar_evidence(run_dir: Path) -> dict[str, dict[str, Any]]:
     return {}
 
 
+def _load_page_text_by_page(
+    run_dir: Path,
+    sidecar_evidence: dict[str, dict[str, Any]],
+) -> dict[int, str]:
+    for payload in sidecar_evidence.values():
+        page = _optional_int(payload.get("page"))
+        text = _required_text(payload.get("page_text") or payload.get("page_content") or payload.get("source_text"))
+        if page is not None and text:
+            page_text_by_page = {page: text}
+            for evidence_payload in sidecar_evidence.values():
+                evidence_page = _optional_int(evidence_payload.get("page"))
+                evidence_text = _required_text(
+                    evidence_payload.get("page_text")
+                    or evidence_payload.get("page_content")
+                    or evidence_payload.get("source_text")
+                )
+                if evidence_page is not None and evidence_text:
+                    page_text_by_page[evidence_page] = evidence_text
+            return page_text_by_page
+
+    for relative_path in _PAGE_TEXT_FILES:
+        path = run_dir / relative_path
+        if not path.exists():
+            continue
+        if path.suffix == ".json":
+            payload = _load_json(path)
+            return _page_text_mapping_from_payload(payload)
+    return {}
+
+
 def _extract_evidence_items(
     payload: dict[str, Any],
     sidecar_evidence: dict[str, dict[str, Any]],
@@ -226,6 +336,38 @@ def _extract_evidence_items(
             )
         )
     return evidence_items
+
+
+def _page_text_mapping_from_payload(payload: Any) -> dict[int, str]:
+    if isinstance(payload, dict):
+        if all(_optional_int(key) is not None for key in payload.keys()):
+            return {
+                int(key): text
+                for key, value in payload.items()
+                if (text := _required_text(value)) is not None
+            }
+        if isinstance(payload.get("pages"), list):
+            return _page_text_mapping_from_payload(payload["pages"])
+    if isinstance(payload, list):
+        mapping: dict[int, str] = {}
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            page = _optional_int(item.get("page") or item.get("page_number"))
+            text = _required_text(item.get("text") or item.get("page_text") or item.get("content"))
+            if page is not None and text:
+                mapping[page] = text
+        return mapping
+    return {}
+
+
+def _lookup(payload: dict[str, Any], key_path: tuple[str, ...]) -> Any:
+    current: Any = payload
+    for key in key_path:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    return current
 
 
 def _required_text(value: Any) -> str | None:

@@ -55,19 +55,19 @@ Goal: make one run scoreable from the CLI with deterministic structured metrics 
 
 Goal: make many runs directly comparable with explicit metadata and separate evidence metrics.
 
-- [ ] E025 Implement batch evaluation over a runs root and repeated explicit run paths.
-- [ ] E026 Normalize run metadata into one flat comparison row schema.
-- [ ] E027 Include core run metadata columns such as run id, mode, text model id, vision model id, parser identity or version, prompt version or hash, schema hash or version, and config hash.
-- [ ] E028 Implement the minimal evidence anchor contract check using page plus quote text, and quote locatability when persisted page text or equivalent text evidence is available.
-- [ ] E029 Implement `anchor_valid_rate`, counting only fully validated anchors and distinguishing evidence-present-but-unvalidated as a separate diagnostic state.
-- [ ] E030 Implement `correct_and_anchored_rate`.
+- [x] E025 Implement batch evaluation over a runs root and repeated explicit run paths.
+- [x] E026 Normalize run metadata into one flat comparison row schema.
+- [x] E027 Include core run metadata columns such as run id, mode, text model id, vision model id, parser identity or version, prompt version or hash, schema hash or version, and config hash.
+- [x] E028 Implement the minimal evidence anchor contract check using page plus quote text, and quote locatability when persisted page text or equivalent text evidence is available.
+- [x] E029 Implement `anchor_valid_rate`, counting only fully validated anchors and distinguishing evidence-present-but-unvalidated as a separate diagnostic state.
+- [x] E030 Implement `correct_and_anchored_rate`.
 - [ ] E031 Implement optional structured-field support proxy evaluation behind a narrow internal interface.
-- [ ] E032 Implement diagnostic counting for gold-empty proposals, including `filled_on_gold_empty_count`.
-- [ ] E033 Implement batch comparison row generation with one row per run.
-- [ ] E034 Write the canonical batch comparison CSV.
-- [ ] E035 Write batch comparison XLSX from the same normalized rows.
-- [ ] E036 Write batch comparison Parquet from the same normalized rows.
-- [ ] E037 Implement `compare` command support for rebuilding comparison artifacts from per-run summaries.
+- [x] E032 Implement diagnostic counting for gold-empty proposals, including `filled_on_gold_empty_count`.
+- [x] E033 Implement batch comparison row generation with one row per run.
+- [x] E034 Write the canonical batch comparison CSV.
+- [x] E035 Write batch comparison XLSX from the same normalized rows.
+- [x] E036 Write batch comparison Parquet from the same normalized rows.
+- [x] E037 Implement `compare` command support for rebuilding comparison artifacts from per-run summaries.
 
 ### Batch 3 - Text judge integration and reproducibility metadata
 
@@ -92,10 +92,10 @@ Goal: make the tool reliable, documented, and explicit about remaining contract 
 - [x] E049 Implement unit tests for boolean, categorical, and numeric normalization.
 - [x] E050 Implement unit tests for deterministic comparators.
 - [x] E051 Implement unit tests for gold-present and gold-empty detection.
-- [ ] E052 Implement unit tests for evidence anchor validation, including locatable versus present-but-unvalidated quote cases.
+- [x] E052 Implement unit tests for evidence anchor validation, including locatable versus present-but-unvalidated quote cases.
 - [x] E053 Implement contract tests for required main-app artifact fields, worksheet selection behavior, and failure messages.
 - [x] E054 Implement end-to-end tests for scoring one run.
-- [ ] E055 Implement end-to-end tests for scoring multiple runs and writing batch comparison outputs.
+- [x] E055 Implement end-to-end tests for scoring multiple runs and writing batch comparison outputs.
 - [ ] E056 Implement mocked judge tests for text scoring under judge-by-default behavior and deterministic text override behavior.
 - [x] E057 Write the initial `README.md` or operator documentation once actual commands, output paths, and examples exist.
 - [x] E058 Document the published input artifact contract expected from the main app in operator-facing docs, including stable join identifiers and single-sheet XLSX behavior.

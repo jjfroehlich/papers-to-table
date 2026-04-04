@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Iterable
 
 from paper_eval.contracts import GoldDataset, LoadedRun, RunSummary, ScoredCell
@@ -16,6 +17,13 @@ def build_run_summary(
     boolean_records = [cell for cell in structured_records if cell.field_type == "boolean"]
     categorical_records = [cell for cell in structured_records if cell.field_type == "categorical"]
     numeric_records = [cell for cell in structured_records if cell.field_type == "numeric"]
+    anchor_valid_records = [cell for cell in structured_records if cell.anchor_valid]
+    evidence_unvalidated_records = [
+        cell for cell in structured_records if cell.evidence_present_but_unvalidated
+    ]
+    correct_and_anchored_records = [
+        cell for cell in structured_records if cell.is_correct and cell.anchor_valid
+    ]
 
     gold_present_records = [cell for cell in gold_cell_records if cell.is_gold_present]
     gold_empty_records = [cell for cell in gold_cell_records if cell.is_gold_empty]
@@ -36,6 +44,8 @@ def build_run_summary(
         "categorical_accuracy": _accuracy(categorical_records),
         "numeric_accuracy": _accuracy(numeric_records),
         "proposal_coverage_on_gold_present": _ratio(len(covered_gold_present), len(gold_present_records)),
+        "anchor_valid_rate": _ratio(len(anchor_valid_records), len(structured_records)),
+        "correct_and_anchored_rate": _ratio(len(correct_and_anchored_records), len(structured_records)),
         "gold_present_cell_count": len(gold_present_records),
         "gold_empty_cell_count": len(gold_empty_records),
         "filled_on_gold_empty_count": sum(1 for cell in gold_empty_records if cell.proposal_count > 0),
@@ -43,6 +53,8 @@ def build_run_summary(
         "boolean_scored_cell_count": len(boolean_records),
         "categorical_scored_cell_count": len(categorical_records),
         "numeric_scored_cell_count": len(numeric_records),
+        "anchor_valid_count": len(anchor_valid_records),
+        "evidence_present_but_unvalidated_count": len(evidence_unvalidated_records),
         "unscored_text_cell_count": sum(
             1 for cell in gold_present_records if "text_scoring_not_implemented_in_batch_1" in cell.diagnostic_flags
         ),
@@ -71,6 +83,22 @@ def build_run_summary(
         contract_warnings=list(loaded_run.contract_warnings),
         join_diagnostics=join_diagnostics,
     )
+
+
+def comparison_row_from_summary(summary: RunSummary) -> dict[str, object]:
+    row: dict[str, object] = {
+        "run_id": summary.run_id,
+        "run_dir": str(summary.run_dir),
+        "gold_source": str(summary.gold_source),
+        "gold_sheet": summary.gold_sheet,
+        "contract_warning_count": len(summary.contract_warnings),
+        "join_diagnostic_count": len(summary.join_diagnostics),
+        "contract_warnings": json.dumps(summary.contract_warnings),
+        "join_diagnostics": json.dumps(summary.join_diagnostics),
+    }
+    row.update(summary.metadata)
+    row.update(summary.metrics)
+    return row
 
 
 def _accuracy(records: list[ScoredCell]) -> float | None:

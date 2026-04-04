@@ -10,7 +10,13 @@ from paper_eval.output_paths import create_output_layout
 from paper_eval.run_loader import discover_run_directories, load_run
 from paper_eval.schema_loader import load_schema
 from paper_eval.score import score_run
-from paper_eval.writers import write_run_summary, write_scored_cells
+from paper_eval.writers import (
+    load_summary_rows_from_directory,
+    write_comparison_artifacts,
+    write_comparison_artifacts_from_rows,
+    write_run_summary,
+    write_scored_cells,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -28,6 +34,16 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--schema", type=Path, help="Optional schema metadata JSON file.")
     evaluate.add_argument("--out", type=Path, required=True, help="Output directory for evaluation artifacts.")
     evaluate.set_defaults(handler=_handle_evaluate)
+
+    compare = subparsers.add_parser("compare", help="Rebuild comparison artifacts from per-run summary JSON files.")
+    compare.add_argument(
+        "--summaries",
+        type=Path,
+        required=True,
+        help="Path to the per-run summary root or a specific run_summary.json file.",
+    )
+    compare.add_argument("--out", type=Path, required=True, help="Output directory for comparison artifacts.")
+    compare.set_defaults(handler=_handle_compare)
     return parser
 
 
@@ -49,13 +65,26 @@ def _handle_evaluate(args: argparse.Namespace) -> int:
     gold_dataset = load_gold(args.gold.resolve(), sheet_name=args.gold_sheet)
     run_dirs = discover_run_directories([Path(path).resolve() for path in args.runs], args.runs_root.resolve() if args.runs_root else None)
 
+    summaries = []
     for run_dir in run_dirs:
         loaded_run = load_run(run_dir)
         scored_cells = score_run(loaded_run, gold_dataset, schema)
         summary = build_run_summary(loaded_run, gold_dataset, scored_cells)
+        summaries.append(summary)
         run_output_dir = output_layout.run_dir(summary.run_id)
         run_output_dir.mkdir(parents=True, exist_ok=True)
         write_scored_cells(run_output_dir, scored_cells)
         write_run_summary(run_output_dir, summary)
         print(f"Scored run {summary.run_id} -> {run_output_dir}")
+    write_comparison_artifacts(output_layout.compare_root, summaries)
+    print(f"Wrote comparison artifacts -> {output_layout.compare_root}")
+    return 0
+
+
+def _handle_compare(args: argparse.Namespace) -> int:
+    output_dir = args.out.resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    rows = load_summary_rows_from_directory(args.summaries.resolve())
+    write_comparison_artifacts_from_rows(output_dir, rows)
+    print(f"Wrote comparison artifacts -> {output_dir}")
     return 0
