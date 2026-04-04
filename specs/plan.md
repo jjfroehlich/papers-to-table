@@ -540,7 +540,7 @@ The MVP pipeline should run in these explicit stages:
     - validate required metadata columns
     - detect missing and already-filled cells
     - validate that Verify mode and Eval mode are not both enabled
-    - when Eval mode is enabled, create an app-owned masked working copy of the target cells and persist both gold-table and masked-working-table references before extraction begins
+    - when Eval mode is enabled, create an app-owned masked working copy of the target cells and persist both gold-table and masked-working-table provenance before extraction begins
 2. **Build per-column style profiles**
     - read existing filled cells per column
     - run a preprocessing LLM step per column
@@ -584,7 +584,7 @@ The MVP pipeline should run in these explicit stages:
 9. **Write proposal artifacts**
     - write proposals, proposal index, evidence, diagnostics, and run summaries as JSON artifacts
     - record provider mode, readiness results, and any explicit degraded or disabled status in run artifacts and summaries
-    - in Eval mode, persist the minimal downstream-eval metadata contract, including mode truth, stable ids, parser or prompt identity when available, schema or config identity, and gold-table versus masked-working-table references
+    - in Eval mode, persist the minimal downstream-eval metadata contract, including mode truth, stable ids, parser identity, prompt identity, schema or config identity, and gold-table versus masked-working-table provenance
 10. **Review in UI**
    - show resolved run setup context and direct access to config snapshot
    - keep the queue clearly non-actionable until the run is review-ready
@@ -1065,6 +1065,8 @@ The MVP should use:
 - one vision-capable model for figure review when configured, separate from the text model
 - both model identifiers recorded in run artifacts and shown in run summaries and reviewer context
 
+Every run should also persist prompt identity. If the implementation has explicit prompt versioning, store `prompt_version`. Otherwise store a deterministic `prompt_hash`. `prompt_hash` is the minimum required fallback so downstream eval and reproducibility never depend on prompt versioning already existing as infrastructure. If easy to capture, `git_commit` or equivalent run-code identity may be stored as secondary provenance, but it is not the core requirement.
+
 ## Run modes
 
 The same staged extraction architecture supports three product modes:
@@ -1090,6 +1092,7 @@ The technical boundary is intentionally narrow:
 - the main app persists the minimal metadata a downstream eval tool needs later
 - the main app does **not** compute the final benchmark metrics itself
 - the main app does **not** require a dedicated eval UI or a bundled evaluation framework
+- the masked working copy is an internal artifact, so preserving workbook formatting in it is not a required guarantee; preserving sheet or cell structure and content relevance is
 
 ## Style-profile preprocessing
 
@@ -1343,8 +1346,11 @@ Canonical run bundle:
 
 When Eval mode is enabled, the same bundle should also contain or reference:
 
-- the original gold-table source or snapshot identifier
-- the masked working-table source or snapshot identifier
+- the original gold-table source path or reference
+- the original gold-table content hash
+- the original gold-table snapshot path inside the run bundle when feasible
+- the masked working-table path inside the run bundle
+- the masked working-table content hash
 - stable mode truth (`normal`, `verify`, or `eval`)
 - downstream-eval metadata carried through run metadata, proposal artifacts, evidence artifacts, and summaries
 
@@ -1372,7 +1378,7 @@ The bundle should contain stable top-level categories such as:
 
 This artifact bundle is the canonical persisted state for MVP.
 
-When Eval mode is enabled, `inputs/` should also include or reference both the original gold table and the masked working table, while `run.json`, `config.snapshot.json`, `proposals/proposals.jsonl`, `evidence/evidence.jsonl`, and `summaries/run_summary.json` carry the stable identifiers and metadata needed later by the separate eval tool.
+When Eval mode is enabled, `inputs/` should normally include copied snapshots for both the original gold table and the masked working table. `run.json`, `config.snapshot.json`, `proposals/proposals.jsonl`, `evidence/evidence.jsonl`, and `summaries/run_summary.json` should then carry the source path or reference, run-bundle snapshot path, and content hash metadata needed later by the separate eval tool.
 
 ---
 
@@ -1389,7 +1395,7 @@ The bundle layout is the canonical persistence mechanism, but not every JSON fil
 
 Lower-level intermediate files may still evolve as implementation details so long as these categories remain discoverable and semantically consistent.
 
-For Eval mode, the stable downstream-facing contract should stay minimal. The main app should persist only what a later scoring tool needs to join proposals back to gold safely: run id, mode, stable row/column/cell identifiers, pdf id, raw proposal value, proposal state, support label, field type when known, evidence items with page plus quote text plus evidence type, text model id, vision model id if used, parser identity or version, prompt version if applicable, schema hash or schema version, config hash or config snapshot reference, and the original gold-table and masked-working-table identifiers.
+For Eval mode, the stable downstream-facing contract should stay minimal. The main app should persist only what a later scoring tool needs to join proposals back to gold safely: run id, mode, stable row/column/cell identifiers, pdf id, raw proposal value, proposal state, support label, field type when known, evidence items with page plus quote text plus evidence type, text model id, vision model id if used, parser identity or version, prompt identity using `prompt_version` when available and deterministic `prompt_hash` otherwise, schema hash or schema version, config hash or config snapshot reference, original gold-table source path or reference plus content hash and snapshot path when feasible, and masked working-table path plus content hash and snapshot artifact.
 
 ---
 

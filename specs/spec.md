@@ -181,7 +181,7 @@ A developer or advanced user who inspects diagnostics to understand matching, ex
 - Attached evidence does not automatically imply that a proposal is correct.
 - Locked cells are protected by default, except when a human explicitly accepts an update in verify mode.
 - The product supports three distinct run modes: normal extraction, Verify mode for in-app comparison on already-filled cells, and Eval mode for leakage-aware benchmark runs scored later by a separate tool.
-- Eval mode must never expose target-cell gold values to the extraction path; it uses an app-owned masked working copy and preserves auditable gold-table and masked-table identifiers in artifacts.
+- Eval mode must never expose target-cell gold values to the extraction path; it uses an app-owned masked working copy and preserves auditable gold-table and masked-table provenance in artifacts.
 - All runs are auditable.
 - The product is optimized for trustworthy extraction workflows, not maximal automation at any cost.
 - The product should preserve a clear distinction between directly supported values and inferred or derived values.
@@ -314,6 +314,8 @@ The system accepts:
 - Supplementary PDFs should ideally be merged with the main paper by the user before running the app.
 - The run configuration may select normal extraction, Verify mode, or Eval mode; Verify mode and Eval mode must not both be enabled for the same run.
 - In Eval mode, the user still provides a completed human-filled table as the gold input, but the app must create an app-owned masked working copy of target cells before extraction begins and retain identifiers for both the original gold table and the masked working table in artifacts.
+- In Eval mode, the original gold table should be persisted with source path or reference, content hash, and a copied snapshot path inside the run bundle when feasible.
+- In Eval mode, the masked working table should be persisted with its app-owned run-bundle path, a masked-table content hash, and the copied masked snapshot artifact used by the run.
 - Empty cells in the gold or human-filled table must remain unevaluated-by-default context, not proof that the paper definitely omits the field.
 
 ### Input guidance from existing cells
@@ -360,6 +362,9 @@ The run may also produce diagnostics-only records for blocked, skipped, unmatche
 - Runs that are aborted by the operator must persist an explicit interrupted outcome with enough context for the UI and diagnostics to distinguish interruption from failure.
 - Artifact persistence must sanitize runtime-derived filenames or use opaque identifiers so run behavior is robust across supported operating systems.
 - When Eval mode is used, the run summary, config snapshot, and diagnostics must identify the original gold table, the masked working table, the parser identity, the schema identity, the config snapshot or hash, and the model context used for the run.
+- Every run must persist prompt identity as part of reproducibility metadata. `prompt_version` is preferred when explicit versioning exists, but a deterministic `prompt_hash` is the required fallback for every run.
+- When Eval mode is used, those artifacts must also identify gold-table and masked-working-table provenance through path or reference, content hash, and run-bundle snapshot location when applicable.
+- The masked working copy does not carry a workbook-formatting guarantee. It must stay structurally and semantically usable for extraction and downstream evaluation, but formatting preservation is at most a best-effort implementation detail.
 - Eval-mode artifacts must preserve stable proposal metadata sufficient for a separate eval tool to score the run later, while keeping the main app's artifact contract minimal and auditable.
 - The main app must not require a dedicated eval UI or compute full benchmark metrics as part of Eval mode; it emits eval-ready run artifacts and leaves final metric computation to a separate tool.
 
@@ -426,7 +431,7 @@ Before the run leaves the validation/readiness phase, the system must also valid
 
 When both Verify mode and Eval mode are disabled, already-filled cells must remain out of scope for proposal generation and review. The system must not generate reviewer-facing placeholder proposals, fake blocked rationales, or verify-style comparison panes for those cells.
 
-When Eval mode is enabled, the runtime must load the completed human-filled table as the gold source, create an app-owned masked working copy of target cells before any extraction-stage consumer reads target-cell values, and preserve both gold-table and masked-working-table identifiers in run artifacts.
+When Eval mode is enabled, the runtime must load the completed human-filled table as the gold source, create an app-owned masked working copy of target cells before any extraction-stage consumer reads target-cell values, and preserve both gold-table and masked-working-table provenance in run artifacts.
 
 The product must preserve one clear primary local happy path: install dependencies, start backend and frontend, open the browser UI, provide a config path, launch the run, monitor state, review proposals, and export accepted changes. Developer shortcuts may exist for debugging, but they must not replace this documented operator path.
 
@@ -846,8 +851,9 @@ In Verify mode:
 In Eval mode:
 - extraction, style-profile shaping, and any current-cell context used for target cells must operate on the masked working copy rather than the original completed table
 - the original completed table remains the gold source and must remain unchanged
-- run artifacts must preserve the original gold-table path or identifier, the masked working-table path or identifier, and explicit mode truth
+- run artifacts must preserve explicit mode truth, per-run prompt identity, and eval-table provenance: original gold-table source path or reference plus hash and snapshot when feasible, and masked working-table path plus hash and snapshot
 - empty gold-table cells must not be interpreted by the main app as proof that the paper does not report the field
+- the masked working copy must preserve structure and content relevance needed for extraction and downstream evaluation, but workbook-formatting preservation in that internal artifact is not guaranteed
 - the main app must emit eval-ready artifacts but must not compute the final eval metrics or require a dedicated eval UI
 
 The system may treat single-space or similarly trivial placeholders as empty when configured to do so.
@@ -906,8 +912,8 @@ The system must provide a normal user-facing run summary with at least:
 - provider mode for proposal generation, such as live local, live cloud, unavailable, disabled, or explicit degraded/demo mode
 - configured parser choice plus the actual parser identity or version used when available
 - schema hash or schema version plus config snapshot reference or config hash
-- prompt version when prompt versioning is available
-- original gold-table and masked working-table identifiers when Eval mode is enabled
+- prompt identity for the run, using `prompt_version` when available and deterministic `prompt_hash` otherwise
+- original gold-table and masked working-table provenance when Eval mode is enabled
 - whether processing stayed local or used cloud providers
 - reviewer-outcome summary when Verify mode is enabled
 
@@ -950,7 +956,7 @@ Summary metrics and warning flags must be internally consistent across UI and ar
 
 Run summaries and reviewer summaries must remain derivable from persisted artifact data so they can be recomputed and inspected later.
 
-In Eval mode, the persisted artifact contract must remain minimal but sufficient for downstream scoring. Across `run.json`, `config.snapshot.json`, proposal or evidence artifacts, and summaries, the run must preserve at minimum: run id; mode; stable row id, column id, and cell id; pdf id; raw proposal value; proposal state; support label; field type when known; evidence items with at least page, quote text, and evidence type; text model id; vision model id if used; parser identity or version; prompt version if applicable; schema hash or schema version; config hash or config snapshot reference; original gold-table path or identifier; and masked working-table path or identifier.
+In Eval mode, the persisted artifact contract must remain minimal but sufficient for downstream scoring. Across `run.json`, `config.snapshot.json`, proposal or evidence artifacts, and summaries, the run must preserve at minimum: run id; mode; stable row id, column id, and cell id; pdf id; raw proposal value; proposal state; support label; field type when known; evidence items with at least page, quote text, and evidence type; text model id; vision model id if used; parser identity or version; prompt identity, using `prompt_version` when available and deterministic `prompt_hash` otherwise; schema hash or schema version; config hash or config snapshot reference; original gold-table source path or reference plus gold-table content hash and run-bundle snapshot path when feasible; and masked working-table run-bundle path plus masked-table hash and masked snapshot artifact.
 
 If retrieval or evidence-coverage diagnostics are emitted for Eval mode later, they must remain supporting diagnostics rather than becoming the main correctness score inside this app.
 
@@ -1224,7 +1230,7 @@ then it generates reviewable proposals for those cells, allows explicit accept/e
 
 Given Eval mode is enabled and Verify mode is disabled,
 when the system processes a completed human-filled table,
-then it creates and uses a masked working copy of the target cells for extraction, preserves explicit mode truth plus gold-table and masked-table identifiers in artifacts and summaries, and does not expose target-cell gold values to the extraction path.
+then it creates and uses a masked working copy of the target cells for extraction, preserves explicit mode truth plus gold-table and masked-table provenance in artifacts and summaries, and does not expose target-cell gold values to the extraction path.
 
 ### AC-8b Invalid Verify-plus-Eval configuration
 
@@ -1278,7 +1284,7 @@ then the system emits a warning or explicit limited-review status rather than a 
 
 Given Eval mode completes or reaches an inspectable terminal state after extraction work began,
 when the operator or a downstream tool inspects the run artifacts,
-then the bundle contains the stable proposal, evidence, mode, model, parser, schema, config, gold-table, and masked-working-table metadata needed for later scoring, labels the run as Eval mode in summaries and diagnostics, and does not claim that the main app already computed the final benchmark metrics.
+then the bundle contains the stable proposal, evidence, mode, model, parser, schema, config, prompt-identity, gold-table, and masked-working-table metadata needed for later scoring, including table hashes and snapshot references, labels the run as Eval mode in summaries and diagnostics, and does not claim that the main app already computed the final benchmark metrics.
 
 ### AC-15 Partial-review export behavior
 

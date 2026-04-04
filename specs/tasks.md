@@ -296,7 +296,8 @@ The detailed task inventory below remains the source of truth for exact implemen
 - [ ] **T013b** Persist stable run-identity metadata needed by downstream eval tooling.
   - include explicit mode truth in early run artifacts
   - persist schema hash or schema version plus config hash or config snapshot reference
-  - preserve original gold-table and masked-working-table identifiers when Eval mode is enabled
+  - persist prompt identity for every run, using `prompt_version` when available and deterministic `prompt_hash` otherwise
+  - preserve Eval-mode table provenance: gold-table source path or reference plus hash and snapshot when feasible, and masked-working-table path plus hash and snapshot
 
 - [x] **T014** Audit, normalize, and document the canonical deterministic fixture corpus in `tests/fixtures/`.
   - reuse the existing checked-in workbook fixture with schema tab plus the existing four paper PDFs as the primary canonical fixture set when they cover the required scenarios
@@ -345,7 +346,8 @@ The detailed task inventory below remains the source of truth for exact implemen
   - reject Verify mode plus Eval mode before extraction begins
   - create an app-owned masked working copy of target cells from the completed table
   - keep the original completed table as the gold reference while routing extraction through the masked copy
-  - preserve both gold-table and masked-working-table identifiers in run artifacts
+  - preserve required gold-table and masked-working-table provenance in run artifacts
+  - do not require workbook-formatting fidelity in the masked working copy beyond the structure and content relevance needed for extraction and downstream eval
 
 - [x] **T022** Implement run lifecycle state transitions for at least:
   - `created`
@@ -403,7 +405,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 - [ ] **T024d** Add backend tests for Eval-mode validation and staging.
   - invalid Verify-plus-Eval combinations fail during validation or readiness
   - masked working-table creation uses the completed gold table as input without mutating the original
-  - early run artifacts preserve mode truth plus gold-table and masked-working-table identifiers
+  - early run artifacts preserve mode truth plus gold-table and masked-working-table provenance
 
 ---
 
@@ -646,7 +648,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - keep the contract minimal but sufficient for later scoring
   - preserve stable row id, column identifier, cell id, pdf id, raw proposal value, proposal state, support label, and field type when known
   - preserve evidence items with at least page, quote text, and evidence type
-  - preserve text model id, vision model id if used, parser identity or version, and prompt version when applicable
+  - preserve text model id, vision model id if used, parser identity or version, and required prompt identity (`prompt_version` when available, otherwise `prompt_hash`)
 
 - [x] **T057** Implement the per-target-cell extraction orchestrator that assembles:
   - row context
@@ -751,7 +753,8 @@ The detailed task inventory below remains the source of truth for exact implemen
 - [ ] **T067b** Add backend tests for Eval-mode leakage protection and artifact emission.
   - target-cell gold values do not reach the extraction path in Eval mode
   - proposal and evidence artifacts include the minimal downstream-ready metadata contract
-  - Eval-mode artifacts preserve gold-table and masked-working-table identity distinctly
+  - Eval-mode artifacts preserve gold-table and masked-working-table provenance distinctly, including hashes and snapshot references
+  - prompt identity is persisted for every run, using `prompt_hash` as the fallback when explicit versioning is absent
 
 ---
 
@@ -839,8 +842,8 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [ ] **T076b** Extend run-summary and reviewer-summary contracts for Eval-mode truth.
   - surface run mode (`normal`, `verify`, `eval`) explicitly
-  - include parser identity, schema identity, config snapshot or hash, and prompt version when available
-  - include original gold-table and masked-working-table references for Eval mode
+  - include parser identity, schema identity, config snapshot or hash, and required prompt identity
+  - include original gold-table and masked-working-table provenance for Eval mode
   - keep downstream-eval metadata derived from persisted facts rather than UI-local heuristics
 
 - [x] **T077** Implement reviewer-outcome summary generation as a pure function of proposals and review decisions, and persist it in `summaries/reviewer_summary.json`, including at minimum:

@@ -904,6 +904,16 @@ This separation is especially helpful for:
 - experiment-specific filtering or cohort logic
 - evolving benchmark conventions that should not destabilize the main review app
 
+### Prompt identity must exist on every run
+
+Downstream eval and reproducibility need a stable per-run prompt identity even before full prompt-version infrastructure exists. Requiring prompt identity on every run avoids a gap where some runs are comparable and others are not.
+
+The practical decision is:
+
+- store `prompt_version` when explicit prompt versioning exists
+- otherwise store deterministic `prompt_hash`
+- allow `git_commit` or equivalent code identity as secondary provenance when useful, but do not treat it as the core requirement
+
 ## Evaluation hygiene and leakage
 
 Leakage-safe benchmark design should now be handled through a dedicated Eval mode rather than by overloading Verify mode. The key rule is simple: the completed human-filled table may be loaded as gold input, but target-cell gold values must be masked before extraction and must stay unavailable to downstream extraction prompts, helper context, and style-shaping paths.
@@ -915,6 +925,16 @@ Future automated Verify-mode scoring is still deferred. Verify mode remains an i
 An empty cell in the human-filled gold table does not prove that the paper definitely omits the field. Treating gold-empty cells as automatic negatives inside the main app would overstate certainty and mix scoring policy into the extraction product.
 
 The downstream eval tool may choose to score only gold-present cells by default or expose alternative policies, but that is a scoring-layer decision rather than a runtime behavior of the main app.
+
+### Internal masked-workbook fidelity should stay narrow
+
+The masked working copy is an internal staging artifact, not the user-facing export product. Requiring formatting preservation there would overstate what downstream eval actually needs and would blur the boundary between export fidelity and internal eval preparation.
+
+The right contract is narrower:
+
+- preserve sheet and cell structure
+- preserve content relevance for extraction and later joins
+- do not promise workbook-formatting fidelity for the masked copy
 
 ### Retrieval-style metrics should stay secondary
 
@@ -1349,6 +1369,15 @@ The rebuild should make leakage handling explicit rather than leaving it as a fu
 - persist enough stable metadata for a separate eval tool to score the run later
 
 This gives benchmark users a defensible path without forcing the main app to own scoring policy, metric design, or a second evaluation UI.
+
+### Practical eval-table provenance is path/reference + hash + snapshot
+
+For downstream eval joins, relying only on source paths is too fragile, while requiring a heavier dataset registry would be overkill for a local-first app. The practical middle path is to persist:
+
+- gold table: source path or reference, content hash, and copied run-bundle snapshot when feasible
+- masked table: run-bundle path, content hash, and copied masked snapshot artifact
+
+This keeps provenance simple, inspectable, and robust across local runs.
 
 ### Optional per-field schema typing
 
