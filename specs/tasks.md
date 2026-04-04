@@ -73,15 +73,15 @@ Goal: make many runs directly comparable with explicit metadata and separate evi
 
 Goal: add constrained text-field scoring without making the evaluator opaque.
 
-- [ ] E038 Define the judge request and response schema for text-field scoring under a judge-by-default policy for text fields.
-- [ ] E039 Implement judge prompt construction with bounded field context only.
-- [ ] E040 Implement a judge adapter with fixed model configuration, temperature 0, and strict structured output parsing.
-- [ ] E041 Implement text-field normalization helpers needed before judge invocation and deterministic override support for highly standardized text columns.
-- [ ] E042 Implement `text_accuracy` under the configured text scoring policy, with judge-backed scoring by default and deterministic override where configured.
-- [ ] E043 Persist judge metadata per scored text cell, including judge model id, prompt version or hash, and temperature.
-- [ ] E044 Write judge records to a separate inspectable artifact such as `judge_records.jsonl`.
-- [ ] E045 Ensure judge use is limited to text fields by default, while allowing explicit field or column deterministic override for standardized text fields.
-- [ ] E046 Add CLI flags or config inputs for fixed judge model selection without widening the tool into a broad config framework.
+- [x] E038 Define the judge request and response schema for text-field scoring under a judge-by-default policy for text fields.
+- [x] E039 Implement judge prompt construction with bounded field context only.
+- [x] E040 Implement a judge adapter with fixed model configuration, temperature 0, and strict structured output parsing.
+- [x] E041 Implement text-field normalization helpers needed before judge invocation and deterministic override support for highly standardized text columns.
+- [x] E042 Implement `text_accuracy` under the configured text scoring policy, with judge-backed scoring by default and deterministic override where configured.
+- [x] E043 Persist judge metadata per scored text cell, including judge model id, prompt version or hash, and temperature.
+- [x] E044 Write judge records to a separate inspectable artifact such as `judge_records.jsonl`.
+- [x] E045 Ensure judge use is limited to text fields by default, while allowing explicit field or column deterministic override for standardized text fields.
+- [x] E046 Add CLI flags or config inputs for fixed judge model selection without widening the tool into a broad config framework.
 
 ### Batch 4 - Contract hardening, tests, and operator docs
 
@@ -96,7 +96,7 @@ Goal: make the tool reliable, documented, and explicit about remaining contract 
 - [x] E053 Implement contract tests for required main-app artifact fields, worksheet selection behavior, and failure messages.
 - [x] E054 Implement end-to-end tests for scoring one run.
 - [x] E055 Implement end-to-end tests for scoring multiple runs and writing batch comparison outputs.
-- [ ] E056 Implement mocked judge tests for text scoring under judge-by-default behavior and deterministic text override behavior.
+- [x] E056 Implement mocked judge tests for text scoring under judge-by-default behavior and deterministic text override behavior.
 - [x] E057 Write the initial `README.md` or operator documentation once actual commands, output paths, and examples exist.
 - [x] E058 Document the published input artifact contract expected from the main app in operator-facing docs, including stable join identifiers and single-sheet XLSX behavior.
 - [x] E059 Review `spec.md`, `plan.md`, `research.md`, and `tasks.md` together for consistency before the first code batch begins.

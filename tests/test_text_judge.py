@@ -1,0 +1,216 @@
+from __future__ import annotations
+
+import unittest
+from pathlib import Path
+
+from paper_eval.contracts import (
+    GoldCell,
+    GoldDataset,
+    JudgeConfig,
+    JudgeResponse,
+    LoadedRun,
+    ProposalRecord,
+    RunMetadata,
+)
+from paper_eval.errors import ContractError
+from paper_eval.judge import build_judge_request
+from paper_eval.schema_loader import load_schema
+from paper_eval.score import score_run
+
+
+class FakeJudge:
+    def __init__(self, verdict: str = "correct") -> None:
+        self.verdict = verdict
+        self.requests = []
+
+    def judge(self, judge_request) -> JudgeResponse:
+        self.requests.append(judge_request)
+        return JudgeResponse(verdict=self.verdict, rationale_label="semantic_match")
+
+
+class TextJudgeScoringTests(unittest.TestCase):
+    def test_score_run_uses_judge_by_default_for_text_fields_and_persists_metadata(self) -> None:
+        loaded_run = self._loaded_run(
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="notes",
+                cell_id="cell-notes-1",
+                proposed_value="expanded biological description",
+                field_type="text",
+            )
+        )
+        gold = self._gold_dataset(
+            GoldCell(
+                row_id="row-1",
+                column_name="notes",
+                cell_id="cell-notes-1",
+                raw_value="Expanded biological description",
+                is_present=True,
+            )
+        )
+        judge = FakeJudge(verdict="correct")
+
+        result = score_run(
+            loaded_run,
+            gold,
+            load_schema(None),
+            text_judge=judge,
+            judge_config=JudgeConfig(model_id="judge-model-1"),
+        )
+
+        self.assertEqual(len(judge.requests), 1)
+        self.assertEqual(len(result.judge_records), 1)
+        scored_cell = result.scored_cells[0]
+        judge_record = result.judge_records[0]
+        self.assertEqual(scored_cell.scoring_policy, "judge")
+        self.assertTrue(scored_cell.was_scored)
+        self.assertTrue(scored_cell.is_correct)
+        self.assertEqual(scored_cell.judge_verdict, "correct")
+        self.assertEqual(scored_cell.judge_model_id, "judge-model-1")
+        self.assertEqual(scored_cell.judge_prompt_version, "batch3-text-judge-v1")
+        self.assertEqual(scored_cell.judge_input_hash, judge_record.judge_input_hash)
+        self.assertEqual(judge_record.judge_verdict, "correct")
+        self.assertEqual(judge_record.judge_model_id, "judge-model-1")
+
+    def test_text_fields_can_opt_into_deterministic_override(self) -> None:
+        loaded_run = self._loaded_run(
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="label",
+                cell_id="cell-label-1",
+                proposed_value="Study-A",
+                field_type="text",
+                scoring_policy="deterministic",
+            )
+        )
+        gold = self._gold_dataset(
+            GoldCell(
+                row_id="row-1",
+                column_name="label",
+                cell_id="cell-label-1",
+                raw_value="study a",
+                is_present=True,
+            )
+        )
+
+        result = score_run(loaded_run, gold, load_schema(None))
+
+        self.assertEqual(len(result.judge_records), 0)
+        scored_cell = result.scored_cells[0]
+        self.assertTrue(scored_cell.was_scored)
+        self.assertTrue(scored_cell.is_correct)
+        self.assertEqual(scored_cell.scoring_policy, "deterministic")
+        self.assertIsNone(scored_cell.judge_verdict)
+
+    def test_missing_judge_configuration_fails_truthfully_for_judge_text_policy(self) -> None:
+        loaded_run = self._loaded_run(
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="notes",
+                cell_id="cell-notes-1",
+                proposed_value="Some text",
+                field_type="text",
+            )
+        )
+        gold = self._gold_dataset(
+            GoldCell(
+                row_id="row-1",
+                column_name="notes",
+                cell_id="cell-notes-1",
+                raw_value="Some gold text",
+                is_present=True,
+            )
+        )
+
+        with self.assertRaisesRegex(ContractError, "--judge-model"):
+            score_run(loaded_run, gold, load_schema(None))
+
+    def test_judge_request_is_bounded_and_marks_truncation(self) -> None:
+        request = build_judge_request(
+            judge_config=JudgeConfig(model_id="judge-model", max_value_chars=20, max_evidence_chars=12),
+            run_id="run-a",
+            row_id="row-1",
+            column_name="notes",
+            cell_id="cell-notes-1",
+            gold_value="x" * 80,
+            proposed_value="y" * 80,
+            field_description="description",
+            evidence_excerpt="quoted evidence goes here",
+        )
+
+        self.assertTrue(request.was_truncated)
+        self.assertLessEqual(len(request.gold_value), 20)
+        self.assertLessEqual(len(request.proposed_value), 20)
+        self.assertLessEqual(len(request.evidence_excerpt or ""), 12)
+        self.assertTrue(request.gold_value.endswith("…"))
+
+    def test_structured_fields_remain_deterministic_when_text_judge_runs(self) -> None:
+        loaded_run = self._loaded_run(
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="status",
+                cell_id="cell-status-1",
+                proposed_value="yes",
+                field_type="boolean",
+            ),
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="notes",
+                cell_id="cell-notes-1",
+                proposed_value="semantic equivalent",
+                field_type="text",
+            ),
+        )
+        gold = self._gold_dataset(
+            GoldCell(
+                row_id="row-1",
+                column_name="status",
+                cell_id="cell-status-1",
+                raw_value="true",
+                is_present=True,
+            ),
+            GoldCell(
+                row_id="row-1",
+                column_name="notes",
+                cell_id="cell-notes-1",
+                raw_value="Semantic equivalent",
+                is_present=True,
+            ),
+        )
+        judge = FakeJudge(verdict="correct")
+
+        result = score_run(
+            loaded_run,
+            gold,
+            load_schema(None),
+            text_judge=judge,
+            judge_config=JudgeConfig(model_id="judge-model-1"),
+        )
+
+        self.assertEqual(len(judge.requests), 1)
+        status_cell = next(cell for cell in result.scored_cells if cell.column_name == "status")
+        notes_cell = next(cell for cell in result.scored_cells if cell.column_name == "notes")
+        self.assertTrue(status_cell.was_scored)
+        self.assertTrue(status_cell.is_correct)
+        self.assertIsNone(status_cell.judge_verdict)
+        self.assertTrue(notes_cell.was_scored)
+        self.assertEqual(len(result.judge_records), 1)
+
+    def _loaded_run(self, *proposals: ProposalRecord) -> LoadedRun:
+        return LoadedRun(
+            run_dir=Path("/tmp/run-a"),
+            metadata=RunMetadata(run_id="run-a", run_dir=Path("/tmp/run-a")),
+            proposals=list(proposals),
+        )
+
+    def _gold_dataset(self, *cells: GoldCell) -> GoldDataset:
+        return GoldDataset(source_path=Path("/tmp/gold.csv"), sheet_name=None, cells=list(cells))
+
+
+if __name__ == "__main__":
+    unittest.main()

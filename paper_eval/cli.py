@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 
 from paper_eval.aggregate import build_run_summary
+from paper_eval.contracts import JudgeConfig
 from paper_eval.errors import CliUsageError, ContractError, EvaluationError
 from paper_eval.gold_loader import load_gold
+from paper_eval.judge import OpenAICompatibleTextJudge
 from paper_eval.output_paths import create_output_layout
 from paper_eval.run_loader import discover_run_directories, load_run
 from paper_eval.schema_loader import load_schema
@@ -14,6 +17,7 @@ from paper_eval.writers import (
     load_summary_rows_from_directory,
     write_comparison_artifacts,
     write_comparison_artifacts_from_rows,
+    write_judge_records,
     write_run_summary,
     write_scored_cells,
 )
@@ -32,6 +36,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Worksheet name for XLSX gold inputs. Defaults to the first worksheet in workbook order.",
     )
     evaluate.add_argument("--schema", type=Path, help="Optional schema metadata JSON file.")
+    evaluate.add_argument(
+        "--judge-model",
+        help="Fixed judge model id for text fields that use judge-backed scoring.",
+    )
+    evaluate.add_argument(
+        "--judge-api-base",
+        help="Optional OpenAI-compatible judge API base URL. Defaults to PAPER_EVAL_JUDGE_API_BASE when set.",
+    )
     evaluate.add_argument("--out", type=Path, required=True, help="Output directory for evaluation artifacts.")
     evaluate.set_defaults(handler=_handle_evaluate)
 
@@ -64,16 +76,25 @@ def _handle_evaluate(args: argparse.Namespace) -> int:
     schema = load_schema(args.schema.resolve() if args.schema else None)
     gold_dataset = load_gold(args.gold.resolve(), sheet_name=args.gold_sheet)
     run_dirs = discover_run_directories([Path(path).resolve() for path in args.runs], args.runs_root.resolve() if args.runs_root else None)
+    judge_config = build_judge_config(args)
+    text_judge = build_text_judge(judge_config)
 
     summaries = []
     for run_dir in run_dirs:
         loaded_run = load_run(run_dir)
-        scored_cells = score_run(loaded_run, gold_dataset, schema)
-        summary = build_run_summary(loaded_run, gold_dataset, scored_cells)
+        score_result = score_run(
+            loaded_run,
+            gold_dataset,
+            schema,
+            text_judge=text_judge,
+            judge_config=judge_config,
+        )
+        summary = build_run_summary(loaded_run, gold_dataset, score_result.scored_cells)
         summaries.append(summary)
         run_output_dir = output_layout.run_dir(summary.run_id)
         run_output_dir.mkdir(parents=True, exist_ok=True)
-        write_scored_cells(run_output_dir, scored_cells)
+        write_scored_cells(run_output_dir, score_result.scored_cells)
+        write_judge_records(run_output_dir, score_result.judge_records)
         write_run_summary(run_output_dir, summary)
         print(f"Scored run {summary.run_id} -> {run_output_dir}")
     write_comparison_artifacts(output_layout.compare_root, summaries)
@@ -88,3 +109,20 @@ def _handle_compare(args: argparse.Namespace) -> int:
     write_comparison_artifacts_from_rows(output_dir, rows)
     print(f"Wrote comparison artifacts -> {output_dir}")
     return 0
+
+
+def build_judge_config(args: argparse.Namespace) -> JudgeConfig | None:
+    model_id = args.judge_model or os.environ.get("PAPER_EVAL_JUDGE_MODEL")
+    if not model_id:
+        return None
+    return JudgeConfig(
+        model_id=model_id,
+        api_base=args.judge_api_base or os.environ.get("PAPER_EVAL_JUDGE_API_BASE"),
+        api_key=os.environ.get("PAPER_EVAL_JUDGE_API_KEY"),
+    )
+
+
+def build_text_judge(judge_config: JudgeConfig | None) -> OpenAICompatibleTextJudge | None:
+    if judge_config is None:
+        return None
+    return OpenAICompatibleTextJudge(judge_config)
