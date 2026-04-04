@@ -24,7 +24,7 @@ Where a conclusion is not fully settled, it should be marked clearly using the c
 
 ## Status
 
-Updated: evidence quality, reviewer trust, proactive figure review, separate text/vision model direction, and integrity/workflow refinements
+Updated: evidence quality, reviewer trust, proactive figure review, separate text/vision model direction, integrity/workflow refinements, and leakage-aware eval-mode rationale
 
 This document contains the current baseline conclusions plus explicit open questions. It should be updated whenever a major implementation decision changes.
 
@@ -842,7 +842,7 @@ The key question was whether MVP should attempt an automated Verify-mode score a
 
 ## Main conclusion
 
-For MVP, evaluation should be based primarily on **reviewer-outcome summaries**, not on a single automated “correctness score” over heterogeneous field types.
+For MVP, evaluation inside the main app should be based primarily on **reviewer-outcome summaries**, not on a single automated “correctness score” over heterogeneous field types. When benchmark-style comparisons are needed, the app should provide a separate leakage-aware Eval mode that emits score-ready artifacts for an external eval tool rather than performing the scoring itself.
 
 ## Recommended MVP measurement model
 
@@ -860,6 +860,8 @@ The strongest current recommendation is to measure:
 - matched / unmatched / ambiguous PDF counts
 
 This is more trustworthy and easier to interpret than an automated aggregate score over free text, numeric, categorical, range, and reasoning-heavy fields.
+
+Eval mode should complement rather than replace that model. It lets the main app produce runs that are later comparable in a separate evaluation repo or CLI while keeping benchmark logic out of the production review workflow.
 
 Later spec tightening adds four durable implementation constraints to that measurement and review model:
 
@@ -882,9 +884,61 @@ A single automated scoring method that handles all field types well is possible 
 
 They align directly with the product’s purpose: reducing reviewer effort while preserving trust.
 
+### Eval mode exists to support leakage-safe comparison without turning the main app into a benchmark framework
+
+The product still benefits from reproducible benchmark runs, but the operational app should not expose gold values to its own extraction path or grow a large in-app scoring subsystem. A separate Eval mode lets the app:
+
+- accept the same completed human-filled table operators already maintain
+- mask target cells before extraction so proposals cannot see the gold values
+- preserve enough metadata for later scoring
+- keep the main app focused on launch, extraction, review, export, and truthful artifacts
+
+### Full scoring belongs in a separate eval tool or repo
+
+Benchmark scoring policy is likely to evolve faster than the main app's operator workflow. Keeping scoring outside the app avoids coupling product UX, benchmark math, and research iteration into one harder-to-maintain surface.
+
+This separation is especially helpful for:
+
+- field-type-specific comparison logic
+- alternative aggregation policies
+- experiment-specific filtering or cohort logic
+- evolving benchmark conventions that should not destabilize the main review app
+
+### Prompt identity must exist on every run
+
+Downstream eval and reproducibility need a stable per-run prompt identity even before full prompt-version infrastructure exists. Requiring prompt identity on every run avoids a gap where some runs are comparable and others are not.
+
+The practical decision is:
+
+- store `prompt_version` when explicit prompt versioning exists
+- otherwise store deterministic `prompt_hash`
+- allow `git_commit` or equivalent code identity as secondary provenance when useful, but do not treat it as the core requirement
+
 ## Evaluation hygiene and leakage
 
-Leakage-safe benchmark design is deferred because MVP does not depend on automated verification scoring. Future automated Verify-mode scoring is deferred and may be added later; if it is added, prompt-shaping inputs and evaluation targets will need explicit separation rules.
+Leakage-safe benchmark design should now be handled through a dedicated Eval mode rather than by overloading Verify mode. The key rule is simple: the completed human-filled table may be loaded as gold input, but target-cell gold values must be masked before extraction and must stay unavailable to downstream extraction prompts, helper context, and style-shaping paths.
+
+Future automated Verify-mode scoring is still deferred. Verify mode remains an in-app reviewer-comparison workflow, while Eval mode becomes the benchmark-preparation workflow.
+
+### Gold-empty-cell handling belongs to the downstream eval policy
+
+An empty cell in the human-filled gold table does not prove that the paper definitely omits the field. Treating gold-empty cells as automatic negatives inside the main app would overstate certainty and mix scoring policy into the extraction product.
+
+The downstream eval tool may choose to score only gold-present cells by default or expose alternative policies, but that is a scoring-layer decision rather than a runtime behavior of the main app.
+
+### Internal masked-workbook fidelity should stay narrow
+
+The masked working copy is an internal staging artifact, not the user-facing export product. Requiring formatting preservation there would overstate what downstream eval actually needs and would blur the boundary between export fidelity and internal eval preparation.
+
+The right contract is narrower:
+
+- preserve sheet and cell structure
+- preserve content relevance for extraction and later joins
+- do not promise workbook-formatting fidelity for the masked copy
+
+### Retrieval-style metrics should stay secondary
+
+Retrieval coverage, evidence-anchor rates, or similar diagnostics can still be useful during experimentation, but they should remain supporting diagnostics. They are not a substitute for the core correctness comparison and should not become the main score reported by the app.
 
 ## Measurement integrity requirements
 
@@ -898,6 +952,7 @@ This supports the current split between:
 
 - synthetic/parser fixtures
 - application-level review/verify summaries
+- leakage-aware eval-mode artifact emission for later external scoring
 - first-class run-level metrics that keep proposal rate, evidence rate, and reviewer acceptance separate
 - explicit warning states when evaluation is empty, skipped, or otherwise non-interpretable
 
@@ -957,7 +1012,7 @@ This supports:
 - schema-first extraction
 - preprocessing-LLM column style profiling
 - stronger distinction between format guidance and semantic evidence
-- future leakage-aware Verify mode design if automated scoring is ever added
+- future leakage-aware Eval mode design without changing the schema-first extraction contract
 
 ---
 
@@ -1304,6 +1359,26 @@ Extraction must not depend on prefilled spreadsheet cells. Prefilled cells are o
 
 This keeps empty-table workflows first-class and reduces leakage risk where raw example values bias proposals toward prior spreadsheet content rather than current-paper evidence.
 
+### Eval mode as the explicit leakage-aware benchmark path
+
+The rebuild should make leakage handling explicit rather than leaving it as a future caution. Eval mode is the clean way to do that:
+
+- load the completed table normally as the gold source
+- create an app-owned masked working copy of target cells before extraction
+- keep Verify mode separate for in-app reviewer comparison workflows
+- persist enough stable metadata for a separate eval tool to score the run later
+
+This gives benchmark users a defensible path without forcing the main app to own scoring policy, metric design, or a second evaluation UI.
+
+### Practical eval-table provenance is path/reference + hash + snapshot
+
+For downstream eval joins, relying only on source paths is too fragile, while requiring a heavier dataset registry would be overkill for a local-first app. The practical middle path is to persist:
+
+- gold table: source path or reference, content hash, and copied run-bundle snapshot when feasible
+- masked table: run-bundle path, content hash, and copied masked snapshot artifact
+
+This keeps provenance simple, inspectable, and robust across local runs.
+
 ### Optional per-field schema typing
 
 A small optional schema extension is justified for better extraction and evaluation consistency:
@@ -1350,6 +1425,8 @@ This preserves operator trust by preventing cosmetically complete but non-functi
 ### Warning/status semantic consistency
 
 Warning and status semantics must be canonical across persisted extraction artifacts, review APIs, and UI summaries. Reviewer-facing state should derive from persisted facts, not UI-local interpretation.
+
+Mode truth belongs in that same rule. If a run was normal, Verify, or Eval, summaries, config snapshots, diagnostics, and UI labels should all agree, and Eval mode should make gold-table versus masked-working-table context auditable rather than implicit.
 
 ### Remove dead retrieval.chunk_size
 
@@ -1454,6 +1531,7 @@ A compact README trust checklist should clarify core trust boundaries such as:
 - evidence type labeling
 - fallback visibility
 - review requirement before export
+- eval-mode masking and downstream-eval boundary
 - export fidelity boundary
 - audit artifact availability
 
@@ -1462,6 +1540,7 @@ A compact README trust checklist should clarify core trust boundaries such as:
 These refinements strengthen existing direction rather than replacing it:
 
 - schema-first extraction remains primary, with anti-leakage constraints made explicit
+- Eval mode becomes the explicit leakage-aware benchmark-preparation path while Verify mode stays reviewer-centered
 - deterministic matching and retrieval remain baseline, with bounded rescue improvements
 - evidence semantics are tightened around anchored direct support and figure evidence subtypes
 - status/warning truthfulness is enforced end-to-end across persistence, API, and UI

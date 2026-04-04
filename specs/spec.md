@@ -2,13 +2,15 @@
 
 ## Status
 
-Updated: schema-first extraction, evidence-first review, truthful provider semantics, and reviewer-workflow refinements including explicit export controls and fast-review navigation
+Updated: schema-first extraction, evidence-first review, truthful provider semantics, reviewer-workflow refinements including explicit export controls and fast-review navigation, and leakage-aware eval-mode artifacts
 
 ## Summary
 
 Extract Structured Info from Papers helps a researcher turn a folder of scientific PDFs plus a structured spreadsheet into reviewed spreadsheet updates.
 
 The system matches PDFs to spreadsheet rows, proposes values for schema-defined target cells using grounded evidence from the papers, and provides a review interface where a human can accept, edit, confirm no data, reject, or bulk-accept the currently visible filtered subset before any spreadsheet is updated.
+
+The system supports three operator-visible run modes: normal extraction for empty targets, Verify mode for reviewer comparison on already-filled cells, and Eval mode for leakage-aware benchmark runs. In Eval mode the app loads the completed human-filled table as the gold input, creates an app-owned masked working copy of the target cells before extraction, and preserves eval-ready artifacts for a separate scoring tool.
 
 The system extracts primarily from text and tables. Extraction is schema-first: column name, description, and optional field typing define what should be extracted, while existing filled cells are optional format helpers only. When vision capability is available, the system also reviews all relevant extracted figures as a normal supplemental evidence stage, allowing figure evidence to strengthen any proposal, corroborate text evidence, or rescue weak text-only results. This is proactive and targeted rather than a narrow last-resort fallback.
 
@@ -25,13 +27,13 @@ The review workspace must show actionable review items by default rather than ev
 The intended MVP workflow is:
 
 1. Start a run from the UI by typing the path to a run configuration file or using a `Browse...` affordance for local selection, then let the app validate and snapshot the resolved config, run explicit readiness checks, and surface the active proposal-generation mode before work begins.
-2. Normalize table columns and determine which cells are missing versus already filled.
+2. Normalize table columns, determine whether the run is in normal, Verify, or Eval mode, classify which cells are eligible, and create a masked working copy of target cells before extraction when Eval mode is enabled.
 3. Parse PDFs and extract paper-level metadata needed for row matching.
 4. Match each PDF to at most one row, while surfacing unmatched, ambiguous, and duplicate-row conflicts.
-5. Generate one best proposal per eligible target cell using schema-first extraction, with evidence and support labeling that do not depend on prefilled cell values.
+5. Generate one best proposal per eligible target cell using schema-first extraction, with evidence and support labeling that do not depend on prefilled cell values and that operate on the masked working copy rather than the original completed table in Eval mode.
 6. Let a human reviewer inspect, filter, accept, edit, confirm no data, reject, or bulk-accept the currently visible filtered subset, while navigating evidence and proposals quickly.
 7. Manually trigger export from the review UI to generate a new XLSX workbook containing only explicitly accepted changes plus an audit log and run summaries.
-8. Preserve diagnostics and artifacts so the run can be inspected later.
+8. Preserve diagnostics and artifacts so the run can be inspected later or scored later by a separate eval tool when Eval mode was used.
 9. Allow the operator to abort an active run from the UI and see that interruption reflected promptly in run state.
 
 This workflow is intentionally linear from the operator’s perspective even if the implementation uses multiple internal stages.
@@ -71,9 +73,9 @@ The browser UI is the normal operator-facing workflow surface for:
 - exporting and downloading outputs
 - aborting an active run
 
-The UI may expose the config path, resolved paths, Verify-mode status, and provider/model context, but broad parameter editing in the UI is not an MVP requirement and must not become the default control surface.
+The UI may expose the config path, resolved paths, active run mode (`normal`, `verify`, or `eval`), and provider/model context, but broad parameter editing in the UI is not an MVP requirement and must not become the default control surface.
 
-The checked-in config example, runtime config schema, README, and operator-visible UI terminology are part of one operator-facing contract. Names and meanings for provider, parser, model, Verify mode, and run-state settings must stay aligned across those surfaces. Operator docs should include at least one known-working LM Studio model example, clearly labeled as an example rather than as the only acceptable model choice.
+The checked-in config example, runtime config schema, README, and operator-visible UI terminology are part of one operator-facing contract. Names and meanings for provider, parser, model, Verify mode, Eval mode, and run-state settings must stay aligned across those surfaces. Operator docs should include at least one known-working LM Studio model example, clearly labeled as an example rather than as the only acceptable model choice.
 
 ### Provider contract, readiness, and mode truth
 
@@ -134,6 +136,7 @@ Extract Structured Info from Papers addresses this by turning PDF-to-table curat
 - Support proactive figure review across all relevant extracted figures when vision capability is available, allowing figure evidence to supplement, strengthen, or rescue any proposal regardless of field type.
 - Persist figure crop and full-page artifacts when figures are extracted so that review and vision analysis operate on the same concrete evidence.
 - Support verification against already-filled cells when enabled, so the user can compare proposals against existing entries and assess app performance through reviewer outcomes.
+- Produce leakage-aware eval-ready runs whose artifacts can be consumed later by a separate evaluation tool without turning the main app into a benchmark framework.
 
 ## Non-goals
 
@@ -143,6 +146,7 @@ Extract Structured Info from Papers addresses this by turning PDF-to-table curat
 - Multi-user collaboration workflows.
 - Full multimodal reasoning on every page by default; proactive figure review covers relevant extracted figures, not blanket per-page vision.
 - In-UI advanced parameter tuning; advanced run behavior is controlled through the run configuration.
+- Computing full benchmark metrics inside the main app, bundling a large evaluation framework into the main product, or requiring a dedicated eval UI for Eval mode.
 
 ---
 
@@ -176,11 +180,14 @@ A developer or advanced user who inspects diagnostics to understand matching, ex
 - A proposal being present does not imply that it is correct.
 - Attached evidence does not automatically imply that a proposal is correct.
 - Locked cells are protected by default, except when a human explicitly accepts an update in verify mode.
+- The product supports three distinct run modes: normal extraction, Verify mode for in-app comparison on already-filled cells, and Eval mode for leakage-aware benchmark runs scored later by a separate tool.
+- Eval mode must never expose target-cell gold values to the extraction path; it uses an app-owned masked working copy and preserves auditable gold-table and masked-table provenance in artifacts.
 - All runs are auditable.
 - The product is optimized for trustworthy extraction workflows, not maximal automation at any cost.
 - The product should preserve a clear distinction between directly supported values and inferred or derived values.
 - The reviewer is reviewing the paper, not the model, so evidence and paper context must remain visually primary over model-generated prose.
 - Confirmed absence of data in the paper is a valid review outcome and must remain distinct from model error or unsupported extraction.
+- Empty gold cells in Eval mode are not proof that the paper omits a value; any scoring policy for gold-absent cells belongs to the downstream eval tool rather than the main app.
 
 ## Product quality bar
 
@@ -234,6 +241,7 @@ That means:
 12. As a reviewer, I want to zoom, pan, drag the page naturally, navigate pages, select and copy text from the paper when possible, and click evidence into my edited-value workflow so that I am curating from the paper rather than copying information manually across panes.
 13. As a reviewer, I want the queue, detail pane, and PDF pane widths to be adjustable so that I can prioritize the content needed for the current decision.
 14. As an operator, I want active runs to refresh automatically and support cancellation so that I do not need to infer whether work is still happening.
+15. As a benchmark operator, I want eval mode to hide completed target-cell values from extraction while preserving gold and masked table references in artifacts, so that a separate eval tool can score the run later without leakage.
 
 ---
 
@@ -256,6 +264,7 @@ That means:
 - Proactive figure review across all relevant extracted figures when vision capability is available, allowing figure evidence to supplement, strengthen, or rescue any proposal regardless of field type.
 - Figure-derived evidence display in review when available, including caption-grounded and visual-interpretation figure evidence.
 - Verify mode: generating proposals for already-filled cells, showing them in review, and including reviewer decisions on them in run summaries.
+- Eval mode: loading a completed human-filled table as gold input, masking target cells in an app-owned working copy before extraction, and persisting minimal eval-ready artifacts for a separate scoring tool.
 - MVP filtering by row, column, PDF, evidence status, figure-derived evidence, and ambiguous or unmatched match status.
 - Accept, accept-with-edit, confirm-no-data, reject, and guarded bulk acceptance of the currently visible filtered proposal subset.
 - Navigation through proposals without recording a decision.
@@ -274,6 +283,7 @@ That means:
 - Fully automatic database synchronization to external systems.
 - Full multimodal reasoning on every page of every paper by default.
 - Headless or multi-user deployment as an MVP requirement.
+- Computing full automated benchmark metrics or retrieval-centric correctness scores inside the main app.
 
 ---
 
@@ -302,6 +312,11 @@ The system accepts:
 - Born-digital scientific PDFs are the main target.
 - OCR support may be used as a fallback for scanned or text-inaccessible PDFs.
 - Supplementary PDFs should ideally be merged with the main paper by the user before running the app.
+- The run configuration may select normal extraction, Verify mode, or Eval mode; Verify mode and Eval mode must not both be enabled for the same run.
+- In Eval mode, the user still provides a completed human-filled table as the gold input, but the app must create an app-owned masked working copy of target cells before extraction begins and retain identifiers for both the original gold table and the masked working table in artifacts.
+- In Eval mode, the original gold table should be persisted with source path or reference, content hash, and a copied snapshot path inside the run bundle when feasible.
+- In Eval mode, the masked working table should be persisted with its app-owned run-bundle path, a masked-table content hash, and the copied masked snapshot artifact used by the run.
+- Empty cells in the gold or human-filled table must remain unevaluated-by-default context, not proof that the paper definitely omits the field.
 
 ### Input guidance from existing cells
 
@@ -309,6 +324,7 @@ The system accepts:
 - Raw existing cells must not be passed into extraction prompts as semantic exemplars.
 - Extraction must remain functional when a table or a column is empty. Existing filled cells are optional helpers only and not a precondition for extraction.
 - Proposal content must remain grounded in the current PDF plus the schema definition for the target field.
+- In Eval mode, style-profile preprocessing and extraction must operate on the masked working copy or another leakage-safe representation so target-cell gold values are not exposed downstream.
 
 ---
 
@@ -323,6 +339,7 @@ For each run, the system must produce:
 - An exportable updated XLSX table.
 - An audit log of accepted changes.
 - Run diagnostics and reviewer-outcome summaries.
+- Eval-ready run metadata and artifact references when Eval mode is enabled.
 
 The run may also produce diagnostics-only records for blocked, skipped, unmatched, ambiguous, duplicate-conflict, or otherwise non-reviewable outcomes, but those records are distinct from reviewable proposals and must not be treated as normal queue items by default.
 
@@ -340,10 +357,16 @@ The run may also produce diagnostics-only records for blocked, skipped, unmatche
 - Verify-mode reviewer-outcome summaries must not silently report an all-zero result when no targets were actually reviewed.
 - Unreviewed proposals must not appear as accepted changes in the exported table.
 - Confirmed no-data outcomes must remain distinct from rejected-or-model-wrong outcomes in persisted review state, diagnostics, and user-facing summaries.
-- A concise run summary must report provider/model names used, whether processing stayed local or used cloud providers, and key run metrics.
+- A concise run summary must report run mode (`normal`, `verify`, or `eval`), provider/model names used, whether processing stayed local or used cloud providers, and key run metrics.
 - The run summary and UI must distinguish between live provider execution, explicit disabled mode, explicit stub or demo mode, and provider-unavailable or provider-unreachable outcomes.
 - Runs that are aborted by the operator must persist an explicit interrupted outcome with enough context for the UI and diagnostics to distinguish interruption from failure.
 - Artifact persistence must sanitize runtime-derived filenames or use opaque identifiers so run behavior is robust across supported operating systems.
+- When Eval mode is used, the run summary, config snapshot, and diagnostics must identify the original gold table, the masked working table, the parser identity, the schema identity, the config snapshot or hash, and the model context used for the run.
+- Every run must persist prompt identity as part of reproducibility metadata. `prompt_version` is preferred when explicit versioning exists, but a deterministic `prompt_hash` is the required fallback for every run.
+- When Eval mode is used, those artifacts must also identify gold-table and masked-working-table provenance through path or reference, content hash, and run-bundle snapshot location when applicable.
+- The masked working copy does not carry a workbook-formatting guarantee. It must stay structurally and semantically usable for extraction and downstream evaluation, but formatting preservation is at most a best-effort implementation detail.
+- Eval-mode artifacts must preserve stable proposal metadata sufficient for a separate eval tool to score the run later, while keeping the main app's artifact contract minimal and auditable.
+- The main app must not require a dedicated eval UI or compute full benchmark metrics as part of Eval mode; it emits eval-ready run artifacts and leaves final metric computation to a separate tool.
 
 ---
 
@@ -390,6 +413,8 @@ The primary happy path is that the operator starts a run from the UI by providin
 
 The system must normalize column identifiers and detect which cells are missing, already filled, or otherwise eligible for extraction or verification behavior.
 
+The system must support three product modes: normal extraction, Verify mode, and Eval mode. `verify_mode = true` and `eval_mode = true` is invalid and must fail during validation or readiness before extraction begins.
+
 Normalization must robustly handle common real-world input quirks such as BOM-marked CSV headers, surrounding header whitespace, and Excel-native date or datetime cells.
 
 The runtime must also resolve common path-input differences consistently, including relative versus absolute paths, browser-selected inputs, and platform-specific path spellings, and surface one clear resolved path context to the operator before work begins.
@@ -404,7 +429,9 @@ Before the run leaves the validation/readiness phase, the system must also valid
 - parser or OCR dependency availability when those paths are configured
 - output-path writability and other obvious broken-install or broken-setup conditions
 
-When Verify mode is disabled, already-filled cells must remain out of scope for proposal generation and review. The system must not generate reviewer-facing placeholder proposals, fake blocked rationales, or verify-style comparison panes for those cells.
+When both Verify mode and Eval mode are disabled, already-filled cells must remain out of scope for proposal generation and review. The system must not generate reviewer-facing placeholder proposals, fake blocked rationales, or verify-style comparison panes for those cells.
+
+When Eval mode is enabled, the runtime must load the completed human-filled table as the gold source, create an app-owned masked working copy of target cells before any extraction-stage consumer reads target-cell values, and preserve both gold-table and masked-working-table provenance in run artifacts.
 
 The product must preserve one clear primary local happy path: install dependencies, start backend and frontend, open the browser UI, provide a config path, launch the run, monitor state, review proposals, and export accepted changes. Developer shortcuts may exist for debugging, but they must not replace this documented operator path.
 
@@ -422,11 +449,13 @@ Manual raw absolute-path entry may remain available as a fallback, but it must n
 
 The config-path control must remain a text field so operators can paste or inspect the exact path, but the UI must also expose a `Browse...` action that supports normal local-first use.
 
-The UI must show the config path plus a concise resolved-input summary, including at least the table path, schema path when present, PDF directory, output directory, target-column count or list, and Verify-mode status.
+The UI must show the config path plus a concise resolved-input summary, including at least the table path, schema path when present, PDF directory, output directory, target-column count or list, and active run mode.
+
+When Eval mode is enabled, that setup summary must also identify the gold table source and the masked working-table handle or path that the run will use.
 
 The target-column list should be collapsible, truncated, or otherwise compact by default so the run/setup surface stays focused on what worked, what needs attention, and what the operator should do next.
 
-That resolved context must be preserved in run artifacts and remain visible in the UI even when the run fails during readiness or another early stage.
+That resolved context must be preserved in run artifacts and remain visible in the UI even when the run fails during readiness or another early stage, including explicit mode truth and Eval-mode gold or masked table references when applicable.
 
 The UI must also show a concise provider/readiness summary before the run starts or while validation is in progress, including the canonical provider name, configured model names when relevant, and whether the app currently sees the provider path as live, unavailable, disabled, or explicitly degraded.
 
@@ -799,19 +828,33 @@ Keyboard shortcuts must be surfaced in context through button tooltips or equiva
 
 Keyboard support must include fast sequential review behavior, including next or previous proposal navigation, focus edit input, and next or previous evidence navigation.
 
-### FR-10 Spreadsheet protection and verify mode
+### FR-10 Spreadsheet protection, Verify mode, and Eval mode
 
 The system must not overwrite already-filled cells by default.
 
-The system must support a single named mode, **Verify mode**, in which the system also generates proposals for already-filled cells.
+The system must support three operator-facing run modes:
+
+- **Normal mode**: generate proposals only for empty or missing target cells.
+- **Verify mode**: apply the normal extraction flow to already-filled cells so a reviewer can compare proposals against existing entries inside the app.
+- **Eval mode**: use the completed human-filled table as the gold source, but create an app-owned masked working copy of the target cells before extraction so proposal generation cannot see the gold target values.
 
 Verify mode must be configurable through the run configuration and enabled by default.
+
+`verify_mode = true` and `eval_mode = true` is invalid and must fail early. These modes have different purposes: Verify mode is for in-app reviewer comparison workflows, while Eval mode is for leakage-aware benchmark runs whose outputs are scored later by a separate eval tool.
 
 In Verify mode:
 - proposals for already-filled cells must be visible in the review interface
 - the reviewer must be able to compare the proposed value against the existing entry
 - accepted updates to already-filled cells must be exportable
 - reviewer decisions on verified cells must contribute to reviewer-outcome statistics and per-column review summaries for the run
+
+In Eval mode:
+- extraction, style-profile shaping, and any current-cell context used for target cells must operate on the masked working copy rather than the original completed table
+- the original completed table remains the gold source and must remain unchanged
+- run artifacts must preserve explicit mode truth, per-run prompt identity, and eval-table provenance: original gold-table source path or reference plus hash and snapshot when feasible, and masked working-table path plus hash and snapshot
+- empty gold-table cells must not be interpreted by the main app as proof that the paper does not report the field
+- the masked working copy must preserve structure and content relevance needed for extraction and downstream evaluation, but workbook-formatting preservation in that internal artifact is not guaranteed
+- the main app must emit eval-ready artifacts but must not compute the final eval metrics or require a dedicated eval UI
 
 The system may treat single-space or similarly trivial placeholders as empty when configured to do so.
 
@@ -854,6 +897,7 @@ The system must provide a normal user-facing run summary with at least:
 - current or terminal run state
 - actionable status or failure message
 - readiness or preflight outcome when the run did not proceed normally
+- run mode (`normal`, `verify`, or `eval`)
 - number of PDFs processed
 - number of PDFs matched, unmatched, and ambiguous
 - number of proposals generated
@@ -866,6 +910,10 @@ The system must provide a normal user-facing run summary with at least:
 - number of accepted changes
 - provider/model names used for the run, including separate identification of the text model and the vision model when both were used
 - provider mode for proposal generation, such as live local, live cloud, unavailable, disabled, or explicit degraded/demo mode
+- configured parser choice plus the actual parser identity or version used when available
+- schema hash or schema version plus config snapshot reference or config hash
+- prompt identity for the run, using `prompt_version` when available and deterministic `prompt_hash` otherwise
+- original gold-table and masked working-table provenance when Eval mode is enabled
 - whether processing stayed local or used cloud providers
 - reviewer-outcome summary when Verify mode is enabled
 
@@ -885,7 +933,7 @@ If no verified cells have been reviewed yet, reviewer-outcome reporting should r
 
 If a run completes but yields no reviewable proposals, the normal summary must make clear whether the reason was blocked matching, degraded parsing, explicit disabled or degraded mode, extraction failure, or another diagnostic class rather than collapsing all such cases into a generic `completed` result.
 
-In MVP, reviewer-outcome summaries are the primary reporting mechanism, and automated correctness scoring across heterogeneous field types is deferred.
+In MVP, reviewer-outcome summaries are the primary reporting mechanism inside the app, and full benchmark scoring across heterogeneous field types is delegated to a separate eval tool or repo.
 
 Reviewer-outcome summaries must include, at minimum:
 - reviewed verified-cell count
@@ -898,7 +946,7 @@ Reviewer-outcome summaries must include, at minimum:
 - evidence coverage
 - anchorable or highlightable evidence rates when applicable
 
-Verify mode may still compare proposals against already-filled cells, but future automated Verify-mode scoring is deferred and may be added later.
+Verify mode may still compare proposals against already-filled cells, but future automated Verify-mode scoring is deferred and may be added later. Eval mode should emit the minimal persisted data needed for later external scoring instead of implementing that scoring inside the main app.
 
 If there are too few reviewed proposals or verified proposals for meaningful interpretation, the system must warn explicitly.
 
@@ -907,6 +955,10 @@ If reviewer-outcome reporting may be biased or if any future automated evaluatio
 Summary metrics and warning flags must be internally consistent across UI and artifact files. Counts must reflect persisted underlying facts, and provisional or not-yet-evaluable states must be labeled clearly instead of being reported as final warnings or scores.
 
 Run summaries and reviewer summaries must remain derivable from persisted artifact data so they can be recomputed and inspected later.
+
+In Eval mode, the persisted artifact contract must remain minimal but sufficient for downstream scoring. Across `run.json`, `config.snapshot.json`, proposal or evidence artifacts, and summaries, the run must preserve at minimum: run id; mode; stable row id, column id, and cell id; pdf id; raw proposal value; proposal state; support label; field type when known; evidence items with at least page, quote text, and evidence type; text model id; vision model id if used; parser identity or version; prompt identity, using `prompt_version` when available and deterministic `prompt_hash` otherwise; schema hash or schema version; config hash or config snapshot reference; original gold-table source path or reference plus gold-table content hash and run-bundle snapshot path when feasible; and masked working-table run-bundle path plus masked-table hash and masked snapshot artifact.
+
+If retrieval or evidence-coverage diagnostics are emitted for Eval mode later, they must remain supporting diagnostics rather than becoming the main correctness score inside this app.
 
 ### FR-13 Structured-document support
 
@@ -972,6 +1024,8 @@ Single-user desktop or local operation is sufficient for the MVP.
 
 A completed run should preserve enough inputs, configuration, outputs, and decisions that the run can later be inspected, explained, and compared against other runs.
 
+For Eval mode, this includes preserving stable mode truth plus the gold-table and masked-working-table references needed to audit that masking occurred.
+
 Bit-for-bit deterministic replay is not required for the MVP.
 
 ### NFR-3 Inspectability
@@ -1016,7 +1070,7 @@ Usability for MVP specifically requires dense grouped triage, clear no-data hand
 
 The README, in-app labels, status text, and normal startup commands must describe the same real local workflow.
 
-The checked-in config example and runtime config schema are part of that same operator-facing contract and must use the same terminology and semantics for provider, parser, model, Verify-mode, and run-state settings as the README and UI.
+The checked-in config example and runtime config schema are part of that same operator-facing contract and must use the same terminology and semantics for provider, parser, model, Verify-mode, Eval-mode, and run-state settings as the README and UI.
 
 Operator-facing docs should include at least one known-working LM Studio model example while remaining explicit that better or newer models may also satisfy the contract.
 
@@ -1043,8 +1097,9 @@ Developer-only shortcuts, helper scripts, or partial implementation paths must n
 - Proposal identifiers remain unique within a run even when multiple PDFs surface the same row/column target.
 - Ambiguous PDF-to-row matches block extraction rather than silently proceeding.
 - Duplicate PDF matches to the same row block all conflicting PDFs until manual cleanup.
-- Verify mode is the only product-level mode for reviewing already-filled cells and generating reviewer-outcome summaries for those comparisons.
-- Verify mode is configurable and enabled by default.
+- Run mode is always one of `normal`, `verify`, or `eval`; Verify mode and Eval mode cannot both be enabled.
+- Verify mode is configurable and enabled by default for in-app comparison on already-filled cells.
+- Eval mode uses an app-owned masked working copy for leakage-aware benchmark runs and never treats gold-empty cells as proof of paper absence.
 - Confirmed no-data outcomes remain distinct from rejected-or-model-wrong outcomes in review state and summaries.
 
 ---
@@ -1055,7 +1110,7 @@ Developer-only shortcuts, helper scripts, or partial implementation paths must n
 
 Given a valid table, schema, PDF folder, and run configuration with standardized `Title`, `Authors`, and `Publication Year` columns,
 when the user starts a run,
-then the system records a resolved config snapshot and resolved input context, normalizes common real-world input quirks such as BOM-marked headers and Excel datetime cells, and identifies missing versus already-filled target cells.
+then the system records a resolved config snapshot and resolved input context, including explicit run mode, normalizes common real-world input quirks such as BOM-marked headers and Excel datetime cells, and identifies missing versus already-filled target cells.
 
 ### AC-1a Preflight and readiness truth
 
@@ -1171,6 +1226,18 @@ Given Verify mode is enabled, and Verify mode is on by default unless disabled i
 when the system processes already-filled cells,
 then it generates reviewable proposals for those cells, allows explicit accept/edit/confirm-no-data/reject decisions, and uses those reviewer decisions in reviewer-outcome statistics and per-column review summaries.
 
+### AC-8a Eval mode behavior
+
+Given Eval mode is enabled and Verify mode is disabled,
+when the system processes a completed human-filled table,
+then it creates and uses a masked working copy of the target cells for extraction, preserves explicit mode truth plus gold-table and masked-table provenance in artifacts and summaries, and does not expose target-cell gold values to the extraction path.
+
+### AC-8b Invalid Verify-plus-Eval configuration
+
+Given `verify_mode = true` and `eval_mode = true` in the same run configuration,
+when the user starts a run,
+then readiness fails early with an actionable validation error, no extraction begins, and the invalid combination is preserved truthfully in diagnostics or resolved config context.
+
 ### AC-9 Export integrity
 
 Given accepted proposals,
@@ -1213,6 +1280,12 @@ Given Verify mode is enabled but too few verified proposals were reviewed to sup
 when reviewer-outcome summaries are generated,
 then the system emits a warning or explicit limited-review status rather than a misleading normal reviewer-outcome summary, keeps provisional metrics clearly labeled as provisional, and does not show internally inconsistent counts or premature warning flags.
 
+### AC-14a Eval-ready artifact contract
+
+Given Eval mode completes or reaches an inspectable terminal state after extraction work began,
+when the operator or a downstream tool inspects the run artifacts,
+then the bundle contains the stable proposal, evidence, mode, model, parser, schema, config, prompt-identity, gold-table, and masked-working-table metadata needed for later scoring, including table hashes and snapshot references, labels the run as Eval mode in summaries and diagnostics, and does not claim that the main app already computed the final benchmark metrics.
+
 ### AC-15 Partial-review export behavior
 
 Given some proposals remain unreviewed,
@@ -1229,7 +1302,7 @@ then the summary identifies the provider or model names used, separately identif
 
 Given a new local operator following the documented primary happy path,
 when they install dependencies, start the backend and frontend, open the browser UI, enter a config path, and launch a run,
-then the app, README, checked-in config example, runtime config schema, and UI terminology agree on the same workflow, the operator can understand pre-review and in-progress states without consulting source code, the docs include at least one known-working LM Studio model example without treating it as the only valid model, and the same app surface remains the normal place to review proposals and export outputs.
+then the app, README, checked-in config example, runtime config schema, and UI terminology agree on the same workflow, the operator can understand pre-review and in-progress states without consulting source code, the docs include at least one known-working LM Studio model example without treating it as the only valid model, the docs explain what Eval mode is, why it masks target cells, why it cannot be combined with Verify mode, and that downstream scoring belongs to a separate eval tool, and the same app surface remains the normal place to review proposals and export outputs.
 
 ### AC-18 Canonical provider contract parity
 

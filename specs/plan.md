@@ -2,7 +2,7 @@
 
 ## Status
 
-Updated: schema-first extraction, truthful provider semantics, and reviewer-centered evidence workflow refinements including explicit export controls and fast-review navigation
+Updated: schema-first extraction, truthful provider semantics, reviewer-centered evidence workflow refinements including explicit export controls and fast-review navigation, and leakage-aware eval-mode planning
 
 ## Purpose
 
@@ -34,7 +34,7 @@ The intended implementation model for this repository is:
 - The JSON config file remains authoritative for advanced behavior and reproducibility.
 - The browser UI owns the normal operator workflow for launch, status visibility, review, and export.
 - The local onboarding path should stay clear and singular: start backend, start frontend, open the browser UI, supply a config path, start the run.
-- Treat `README.md`, the checked-in config example, the runtime config schema, and operator-visible UI copy as one operator-facing contract. Keep provider, parser, model, Verify-mode, and run-state terminology aligned across those surfaces.
+- Treat `README.md`, the checked-in config example, the runtime config schema, and operator-visible UI copy as one operator-facing contract. Keep provider, parser, model, Verify-mode, Eval-mode, and run-state terminology aligned across those surfaces.
 - Do not let early batches stop at a structurally correct shell. Provider-path scaffolding, placeholder proposal generation, or silent degraded modes do not count as a finished slice.
 - Do not let diagnostic-only outcomes masquerade as normal review proposals. If a pipeline result is not meant for reviewer decision-making, keep it visible through summaries and diagnostics rather than inflating the main queue.
 - If a batch changes operator-facing truth, update `README.md`, `spec.md`, `plan.md`, and `tasks.md` together in the same work pass.
@@ -58,6 +58,7 @@ Implementation for this phase is complete when the system satisfies the function
    - parse documents
    - match PDFs to rows
    - generate schema-driven proposals with evidence
+   - produce eval-ready runs when Eval mode is selected without leaking target gold values into extraction
    - review proposals in a dedicated UI
    - export an updated workbook and audit log
 
@@ -213,6 +214,8 @@ The system will use:
 
 The canonical proposal persistence shape is `proposals.jsonl` plus a lookup index or equivalent secondary structure that supports efficient filtering and id-based loading without reverting to many per-proposal JSON files.
 
+Eval mode should reuse the same artifact-first approach rather than introducing a second persistence subsystem. The same run bundle should preserve the original gold-table reference, the masked working-table reference, and the minimal downstream-eval metadata needed later without adding a heavyweight benchmark database or a parallel result store.
+
 **Artifact policy refinement:**
 Reviewable proposals and diagnostics-only outcomes should not be conflated merely because both are persisted as JSON. A large run may produce many blocked or skipped outcomes, but those should live in diagnostic artifacts or aggregate summaries unless they are intentionally reviewable. Runtime-derived artifact paths must use sanitized or opaque filenames so persistence is portable across supported operating systems.
 
@@ -288,12 +291,12 @@ When switching runs, the UI may preserve the active queue filter, but proposal s
 
 ---
 
-### TD-9: MVP evaluation is reviewer-outcome-based
+### TD-9: MVP evaluation is reviewer-outcome-based, with Eval mode emitting downstream-ready artifacts rather than in-app benchmark scores
 
-The MVP will evaluate performance primarily through reviewer outcomes rather than an automated correctness score across heterogeneous field types.
+The MVP will evaluate performance primarily through reviewer outcomes rather than an automated correctness score across heterogeneous field types. Eval mode is a separate leakage-aware run mode that prepares later scoring by an external eval tool or repo without changing the main app into a benchmark framework.
 
 **Rationale:**
-The product already requires human review. Reviewer decisions are the most trustworthy MVP measure of usefulness, while automated verify-mode scoring across mixed field types is still an open research problem.
+The product already requires human review. Reviewer decisions are the most trustworthy MVP measure of usefulness, while automated verify-mode scoring across mixed field types is still an open research problem. Eval mode solves a different need: preserving a masked extraction path plus a minimal, auditable artifact contract so a separate scoring tool can compare proposals against gold later.
 
 ---
 
@@ -467,6 +470,7 @@ The MVP uses a single JSON config file as the main control surface.
 This config file is the source of truth for:
 
 - inputs
+- run mode selection
 - parser settings
 - matching settings
 - style-profile preprocessing
@@ -490,7 +494,7 @@ Dead config keys should be removed rather than documented aspirationally. In par
 
 The UI should not expose a large parameter-tuning surface in MVP. Advanced behavior is configured by editing the config file directly.
 
-The UI should still expose enough config-derived context for safe operation: config path, resolved input locations, output location, Verify-mode status, and provider/model summary.
+The UI should still expose enough config-derived context for safe operation: config path, resolved input locations, output location, active run mode, and provider/model summary.
 
 The UI may allow picker-driven overrides for relevant input paths, but those overrides should be treated as explicit run-input selections layered over the config rather than as a broad in-UI settings surface.
 
@@ -505,6 +509,13 @@ This split is intentional: the config file owns advanced behavior and reproducib
 The config file should be sufficient to reproduce a run together with the input files and output artifact bundle.
 
 The config schema and checked-in example are not secondary docs. Runtime validation, persisted config snapshots, README terminology, and UI labels must all describe the same operator-facing settings. If a compatibility alias is supported, it should normalize into the same canonical stored value and appear consistently in docs and diagnostics.
+
+For run modes, the canonical direction is:
+
+- `verify_mode = false` and `eval_mode = false` means normal extraction mode
+- `verify_mode = true` and `eval_mode = false` means Verify mode
+- `verify_mode = false` and `eval_mode = true` means Eval mode
+- `verify_mode = true` and `eval_mode = true` is invalid and must fail during validation or readiness before extraction begins
 
 ---
 
@@ -524,15 +535,18 @@ The MVP pipeline should run in these explicit stages:
    - materialize picker-selected files or directories into backend-readable staged inputs or explicit server-side input handles rather than relying on browser-native absolute paths
    - load spreadsheet and schema
    - normalize BOM-marked or whitespace-padded headers in CSV or schema inputs before field validation
-   - normalize workbook date and datetime cells into a stable internal representation that preserves their intended meaning
-   - persist a resolved input summary before later stages can fail
-   - validate required metadata columns
-   - detect missing and already-filled cells
+    - normalize workbook date and datetime cells into a stable internal representation that preserves their intended meaning
+    - persist a resolved input summary before later stages can fail
+    - validate required metadata columns
+    - detect missing and already-filled cells
+    - validate that Verify mode and Eval mode are not both enabled
+    - when Eval mode is enabled, create an app-owned masked working copy of the target cells and persist both gold-table and masked-working-table provenance before extraction begins
 2. **Build per-column style profiles**
-   - read existing filled cells per column
-   - run a preprocessing LLM step per column
-   - produce a structured style/format profile for each column
-   - allow empty columns or empty tables without failing extraction
+    - read existing filled cells per column
+    - run a preprocessing LLM step per column
+    - produce a structured style/format profile for each column
+    - allow empty columns or empty tables without failing extraction
+    - in Eval mode, derive any style-profile guidance from the masked working copy or another leakage-safe representation so target gold values do not flow into extraction
 3. **Parse PDFs once**
    - parse each PDF with Docling
    - generate normalized parsed-document artifacts
@@ -551,8 +565,9 @@ The MVP pipeline should run in these explicit stages:
    - generate table-aware retrieval units when available
    - keep retrieval simple by default; no reranking, HyDE, or query expansion in the baseline
 6. **Extract proposals per target cell**
-   - gather row context, column definition, optional field type, style profile, and retrieved context
-   - prompt the model once per target cell
+    - gather row context, column definition, optional field type, style profile, and retrieved context
+    - in Eval mode, route target-cell extraction through the masked working copy rather than the original completed table
+    - prompt the model once per target cell
    - require structured JSON output
    - apply bounded recall rescue on `unclear` outcomes through expanded retrieval and optional section/full-text context
    - store one best proposal per target cell
@@ -567,8 +582,9 @@ The MVP pipeline should run in these explicit stages:
    - figure evidence may strengthen text-derived proposals, supplement weak proposals, or rescue failed text-only proposals
    - figure evidence is allowed for any field type, not restricted to figure-classified fields
 9. **Write proposal artifacts**
-   - write proposals, proposal index, evidence, diagnostics, and run summaries as JSON artifacts
-   - record provider mode, readiness results, and any explicit degraded or disabled status in run artifacts and summaries
+    - write proposals, proposal index, evidence, diagnostics, and run summaries as JSON artifacts
+    - record provider mode, readiness results, and any explicit degraded or disabled status in run artifacts and summaries
+    - in Eval mode, persist the minimal downstream-eval metadata contract, including mode truth, stable ids, parser identity, prompt identity, schema or config identity, and gold-table versus masked-working-table provenance
 10. **Review in UI**
    - show resolved run setup context and direct access to config snapshot
    - keep the queue clearly non-actionable until the run is review-ready
@@ -773,6 +789,8 @@ The main review workspace should expose:
 - run-summary context
 - reviewer-summary context
 - direct access to workbook, audit-log, run-summary, and reviewer-summary downloads
+
+When Eval mode is active, that context should also make it obvious that the run was leakage-aware Eval mode, which gold table and masked working table were involved, and which schema/config/model/parser versions or identities were used.
 
 The primary progress headline should use actionable or reviewable proposals by default. Attempted totals, duplicate-row conflicts, and other diagnostics remain visible but secondary.
 
@@ -1047,9 +1065,34 @@ The MVP should use:
 - one vision-capable model for figure review when configured, separate from the text model
 - both model identifiers recorded in run artifacts and shown in run summaries and reviewer context
 
+Every run should also persist prompt identity. If the implementation has explicit prompt versioning, store `prompt_version`. Otherwise store a deterministic `prompt_hash`. `prompt_hash` is the minimum required fallback so downstream eval and reproducibility never depend on prompt versioning already existing as infrastructure. If easy to capture, `git_commit` or equivalent run-code identity may be stored as secondary provenance, but it is not the core requirement.
+
+## Run modes
+
+The same staged extraction architecture supports three product modes:
+
+- **Normal mode**: extract only empty or missing target cells.
+- **Verify mode**: run the same extraction path on already-filled cells so reviewers can compare proposals against existing entries inside the app.
+- **Eval mode**: use the completed human-filled table as the gold source, but create an app-owned masked working copy of target cells before extraction so downstream proposal generation cannot see the gold values.
+
+Verify mode and Eval mode are mutually exclusive. They solve different problems and must not be blended into one fuzzy "scoring" path.
+
 ## Verify mode
 
-Verify mode is not a separate extraction architecture. It is the same extraction flow applied to already-filled cells with different review/export/evaluation semantics.
+Verify mode is not a separate extraction architecture. It is the same extraction flow applied to already-filled cells with different review and reviewer-summary semantics.
+
+## Eval mode
+
+Eval mode is also not a separate extraction architecture. It reuses the same parsing, matching, retrieval, extraction, evidence, and review stack, but it inserts one critical staging step before extraction: create and use a masked working copy of the target cells while preserving the original completed table as the gold reference.
+
+The technical boundary is intentionally narrow:
+
+- the main app creates the masked working copy
+- the main app runs extraction against that masked copy
+- the main app persists the minimal metadata a downstream eval tool needs later
+- the main app does **not** compute the final benchmark metrics itself
+- the main app does **not** require a dedicated eval UI or a bundled evaluation framework
+- the masked working copy is an internal artifact, so preserving workbook formatting in it is not a required guarantee; preserving sheet or cell structure and content relevance is
 
 ## Style-profile preprocessing
 
@@ -1068,6 +1111,8 @@ This profile is used only to shape output form.
 It must not encode likely scientific content for the target cell.
 
 Raw existing filled cells must not be injected into extraction prompts as semantic few-shot exemplars by default.
+
+In Eval mode, this same anti-leakage rule tightens further: target-cell gold values must not remain available to extraction through style-profile preprocessing, current-cell context, or other helper inputs. Mask first, then build leakage-safe helper context from the masked representation.
 
 Optional schema field types should remain the first-class semantic guidance for extraction:
 
@@ -1227,6 +1272,8 @@ The scope is targeted: relevant extracted figures per paper, not every page of e
 
 MVP does not require a separate automated figure-evaluation track. Figure-derived proposals should remain identifiable in artifacts and the UI, but usefulness is judged through the same human review outcomes as other proposals.
 
+Eval mode does not change that boundary. The main app may emit eval-ready proposal, evidence, and version metadata, but the separate eval tool or repo computes the actual benchmark metrics. If retrieval or evidence-coverage diagnostics are emitted later, they remain supporting diagnostics rather than replacing the core correctness score.
+
 ---
 
 ## Export strategy
@@ -1297,6 +1344,16 @@ Canonical run bundle:
 - exports
 - summary/report JSON
 
+When Eval mode is enabled, the same bundle should also contain or reference:
+
+- the original gold-table source path or reference
+- the original gold-table content hash
+- the original gold-table snapshot path inside the run bundle when feasible
+- the masked working-table path inside the run bundle
+- the masked working-table content hash
+- stable mode truth (`normal`, `verify`, or `eval`)
+- downstream-eval metadata carried through run metadata, proposal artifacts, evidence artifacts, and summaries
+
 ## Artifact bundle layout
 
 The MVP persists state as a run-specific artifact bundle in the output directory.
@@ -1321,6 +1378,8 @@ The bundle should contain stable top-level categories such as:
 
 This artifact bundle is the canonical persisted state for MVP.
 
+When Eval mode is enabled, `inputs/` should normally include copied snapshots for both the original gold table and the masked working table. `run.json`, `config.snapshot.json`, `proposals/proposals.jsonl`, `evidence/evidence.jsonl`, and `summaries/run_summary.json` should then carry the source path or reference, run-bundle snapshot path, and content hash metadata needed later by the separate eval tool.
+
 ---
 
 ## Artifact bundle contract
@@ -1335,6 +1394,8 @@ The bundle layout is the canonical persistence mechanism, but not every JSON fil
 - exported workbook and audit-log outputs
 
 Lower-level intermediate files may still evolve as implementation details so long as these categories remain discoverable and semantically consistent.
+
+For Eval mode, the stable downstream-facing contract should stay minimal. The main app should persist only what a later scoring tool needs to join proposals back to gold safely: run id, mode, stable row/column/cell identifiers, pdf id, raw proposal value, proposal state, support label, field type when known, evidence items with page plus quote text plus evidence type, text model id, vision model id if used, parser identity or version, prompt identity using `prompt_version` when available and deterministic `prompt_hash` otherwise, schema hash or schema version, config hash or config snapshot reference, original gold-table source path or reference plus content hash and snapshot path when feasible, and masked working-table path plus content hash and snapshot artifact.
 
 ---
 
@@ -1486,10 +1547,13 @@ The system should record and surface:
 At minimum this should appear in the normal run summary.
 
 The normal run summary should include:
+- run mode (`normal`, `verify`, or `eval`)
 - text model name
 - vision model name (when a vision model was configured or used)
 - whether execution stayed local or used cloud services
 - provider mode and readiness outcome for proposal generation
+- parser identity or version plus schema/config identity when available
+- original gold-table and masked-working-table references when Eval mode is active
 - PDFs processed
 - matched, unmatched, and ambiguous PDF counts
 - proposals generated
@@ -1542,6 +1606,7 @@ At minimum, the run summary should include:
 - rejected
 - changed cells exported
 - Verify mode on/off
+- Eval mode on/off
 - provider/model names
 - local vs cloud status
 
@@ -1559,6 +1624,8 @@ Use reviewer-outcome statistics as the primary product-level measurement:
 - evidence display success
 - matched/unmatched/ambiguous counts
 
+Eval mode is not a second in-app measurement system. It is a leakage-aware artifact-emission mode whose outputs can later be scored by a separate eval tool or repo.
+
 ## Verify mode semantics
 
 Verify mode should:
@@ -1568,6 +1635,17 @@ Verify mode should:
 
 It does **not** require a sophisticated automated correctness score in MVP. In MVP, Verify mode supports review and reporting, not benchmark-grade scoring.
 
+## Eval mode semantics
+
+Eval mode should:
+- use the completed human-filled table as the gold source
+- create and persist an app-owned masked working copy before extraction
+- prevent target-cell gold values from reaching extraction through direct cell reads, style-profile shaping, or equivalent helper context
+- preserve mode truth plus gold-table and masked-working-table references in artifacts, config snapshots, summaries, and diagnostics
+- emit only the minimal downstream-ready metadata needed for later scoring
+
+It does **not** score the run itself, require a dedicated eval UI, or redefine empty gold cells as proof that the paper lacks a value. Scoring only gold-present cells is a downstream eval-tool policy rather than main-app runtime behavior.
+
 ## Measurement integrity
 
 Always distinguish:
@@ -1576,7 +1654,7 @@ Always distinguish:
 - reviewer acceptance
 - evaluation emptiness/skips
 
-Never let zero-evaluable-target runs masquerade as normal scored runs. Leakage-safe benchmark design can be deferred until a later phase because MVP does not depend on automated verification scoring.
+Never let zero-evaluable-target runs masquerade as normal scored runs. Leakage-safe benchmark design for Eval mode belongs to the separate eval tool, while the main app's responsibility is to preserve leakage-safe artifacts and truthful run context.
 
 Run-summary and reviewer-summary counters and warning flags should be computed from persisted artifact facts rather than ad hoc UI heuristics, and provisional states should stay visibly provisional until their triggering conditions are truly met.
 
