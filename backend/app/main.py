@@ -48,7 +48,7 @@ from .export import run_export
 from .runner import abort_run, launch_run
 from .schemas import ReviewDecision, ReviewResolutionReason, RunStatus
 
-app = FastAPI(title="Paper Table Agent", version="0.1.0")
+app = FastAPI(title="Extract Structured Info from Papers", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,

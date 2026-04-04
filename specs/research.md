@@ -1,8 +1,8 @@
-# Paper Table Agent — `research.md`
+# Extract Structured Info from Papers — `research.md`
 
 ## Purpose
 
-This document summarizes the research that informed the current architecture and planning decisions for Paper Table Agent.
+This document summarizes the research that informed the current architecture and planning decisions for Extract Structured Info from Papers.
 
 It is not the product spec and not the implementation plan. Its purpose is to record:
 
@@ -1599,7 +1599,7 @@ This research supports the current direction of `plan.md` and suggests the follo
 
 The current research supports a clear implementation direction:
 
-Paper Table Agent should be built as a **local-first, workflow-centered paper-to-table review system** with:
+Extract Structured Info from Papers should be built as a **local-first, workflow-centered paper-to-table review system** with:
 
 - a dedicated queue-first local browser app built around a React frontend, a FastAPI backend, and a raw/custom PDF.js review viewer
 - Docling as the main parser with PDFium/pypdfium2 as the complementary low-level PDF backend for rendering/geometry/crops/highlight support and fallback page/image access

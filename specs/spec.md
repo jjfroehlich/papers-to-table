@@ -1,4 +1,4 @@
-# Paper Table Agent - spec.md
+# Extract Structured Info from Papers - spec.md
 
 ## Status
 
@@ -6,7 +6,7 @@ Updated: schema-first extraction, evidence-first review, truthful provider seman
 
 ## Summary
 
-Paper Table Agent helps a researcher turn a folder of scientific PDFs plus a structured spreadsheet into reviewed spreadsheet updates.
+Extract Structured Info from Papers helps a researcher turn a folder of scientific PDFs plus a structured spreadsheet into reviewed spreadsheet updates.
 
 The system matches PDFs to spreadsheet rows, proposes values for schema-defined target cells using grounded evidence from the papers, and provides a review interface where a human can accept, edit, confirm no data, reject, or bulk-accept the currently visible filtered subset before any spreadsheet is updated.
 
@@ -119,7 +119,7 @@ To compare technical parameters and findings across research projects and scient
 
 General chat-style document tools can answer questions about PDFs, but they do not reliably support row-aware extraction against a spreadsheet schema, evidence-backed human review, or audited spreadsheet export.
 
-Paper Table Agent addresses this by turning PDF-to-table curation into a structured review workflow rather than a chat interaction.
+Extract Structured Info from Papers addresses this by turning PDF-to-table curation into a structured review workflow rather than a chat interaction.
 
 ---
 
@@ -1327,4 +1327,4 @@ Technical architecture, parser strategy, retrieval strategy, model behavior, per
 
 ## Appendix: concise product statement
 
-Paper Table Agent is a local-first, evidence-first paper-to-table review system. It matches papers to spreadsheet rows and proposes values for missing or verified cells, attaching ranked, typed, and anchored evidence to each proposal. The reviewer can inspect direct quotes separately from reasoning and calculations, navigate multiple supporting evidence items in order, and accept, edit, confirm no data, or reject each proposal before exporting an audited XLSX table update. Evidence quality and reviewer trust are first-class product requirements.
+Extract Structured Info from Papers is a local-first, evidence-first paper-to-table review system. It matches papers to spreadsheet rows and proposes values for missing or verified cells, attaching ranked, typed, and anchored evidence to each proposal. The reviewer can inspect direct quotes separately from reasoning and calculations, navigate multiple supporting evidence items in order, and accept, edit, confirm no data, or reject each proposal before exporting an audited XLSX table update. Evidence quality and reviewer trust are first-class product requirements.

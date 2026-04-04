@@ -1,7 +1,7 @@
 {
   "run_id": "run_20260401_184013_xsva6m",
   "status": "completed",
-  "config_path": "D:/code/local/paper-table-agent/config.json",
+  "config_path": "D:/code/local/extract-structured-info-from-papers/config.json",
   "table_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
   "schema_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture_schema.csv",
   "pdf_dir": "C:/Users/jonat/Desktop/202601_MPRA_table",

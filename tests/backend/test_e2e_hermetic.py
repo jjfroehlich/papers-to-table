@@ -1,4 +1,4 @@
-"""Hermetic end-to-end tests for the core Paper Table Agent workflow.
+"""Hermetic end-to-end tests for the core Extract Structured Info from Papers workflow.
 
 These tests use the canonical fixture corpus and stub providers (via respx
 mocking) to verify the complete pipeline without any network calls.

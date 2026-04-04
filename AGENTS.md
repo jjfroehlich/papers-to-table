@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Repository operating manual for Paper Table Agent.
+Repository operating manual for Extract Structured Info from Papers.
 
 This repo is building a local-first paper-to-table review app that ingests PDFs plus a structured spreadsheet, generates evidence-backed cell proposals, supports human review in a browser UI, and exports audited XLSX updates.
 

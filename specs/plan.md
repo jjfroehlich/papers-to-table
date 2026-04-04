@@ -1,4 +1,4 @@
-# Paper Table Agent — `plan.md`
+# Extract Structured Info from Papers — `plan.md`
 
 ## Status
 
@@ -1699,7 +1699,7 @@ These are intentionally narrow questions. They should not reopen the larger arch
 
 ## Concise implementation summary
 
-Paper Table Agent will be implemented as a local-first workflow application with:
+Extract Structured Info from Papers will be implemented as a local-first workflow application with:
 
 - a React local browser UI
 - PDF.js in the frontend and PDFium/pypdfium2 in the backend
