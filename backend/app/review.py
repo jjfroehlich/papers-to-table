@@ -502,8 +502,27 @@ def compute_reviewer_summary(run_dir: pathlib.Path, run_id: str) -> ReviewerSumm
     """Pure function: compute reviewer summary from proposal + decision artifacts."""
     progress = get_progress(run_dir)
     actionable_progress = get_progress_for_review(run_dir)
+    run_data = load_run_json(run_dir)
     return ReviewerSummary(
         run_id=run_id,
+        verify_mode=bool(run_data.get("verify_mode", False)),
+        eval_mode=bool(run_data.get("eval_mode", False)),
+        run_mode=str(run_data.get("run_mode") or ("verify" if run_data.get("verify_mode") else "normal")),
+        provider_token=run_data.get("provider_token"),
+        provider_locality=run_data.get("provider_locality"),
+        provider_mode=run_data.get("provider_mode"),
+        provider_text_model_id=run_data.get("provider_text_model_id"),
+        provider_vision_model_id=run_data.get("provider_vision_model_id"),
+        provider_readiness_error=run_data.get("provider_readiness_error"),
+        prompt_version=run_data.get("prompt_version"),
+        prompt_hash=run_data.get("prompt_hash"),
+        config_hash=run_data.get("config_hash"),
+        config_snapshot_path=run_data.get("config_snapshot_path"),
+        schema_hash=run_data.get("schema_hash"),
+        schema_version=run_data.get("schema_version"),
+        parser_identity=run_data.get("parser_identity"),
+        parser_version=run_data.get("parser_version"),
+        eval_artifacts=run_data.get("eval_artifacts"),
         total_proposals=progress["total"],
         reviewed=progress["reviewed"],
         accepted=progress["accepted"],

@@ -166,6 +166,16 @@ The config file is the authoritative control surface for all run parameters. Pat
 - `verify_mode = true` and `eval_mode = true` together are invalid and fail early with a clear config/readiness error.
 - The masked working copy preserves structure and extraction-relevant content, but it is an internal artifact and does not promise workbook-formatting fidelity.
 
+Eval mode is artifact emission for a separate scorer, not an in-app benchmark dashboard. The main app persists downstream scoring context in run and proposal artifacts, including:
+
+- run mode truth (`run_mode: eval`)
+- `prompt_version` or `prompt_hash`
+- `config_hash` and `config.snapshot.json`
+- `schema_hash`
+- parser identity (`parser_identity`)
+- gold table provenance (`source_reference`, `content_hash`, `snapshot_path`)
+- masked working table provenance (`path`, `content_hash`)
+
 ---
 
 ## Primary workflow

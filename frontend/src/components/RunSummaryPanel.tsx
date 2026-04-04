@@ -105,9 +105,23 @@ export function RunSummaryPanel({ run, outputDir }: Props) {
           <span className="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 font-medium">
             eval
           </span>
+          {run.eval_artifacts?.gold_table?.snapshot_path && (
+            <span className="text-gray-500">
+              gold {run.eval_artifacts.gold_table.snapshot_path}
+            </span>
+          )}
           {run.eval_artifacts?.masked_working_table?.path && (
             <span className="text-gray-500">
               masked {run.eval_artifacts.masked_working_table.path}
+            </span>
+          )}
+          {(run.parser_identity || run.schema_hash || run.config_hash || run.prompt_hash) && (
+            <span className="text-gray-500" title="Eval provenance context">
+              provenance
+              {run.parser_identity ? ` parser:${run.parser_identity}` : ''}
+              {run.schema_hash ? ` schema:${run.schema_hash.slice(0, 8)}` : ''}
+              {run.config_hash ? ` config:${run.config_hash.slice(0, 8)}` : ''}
+              {run.prompt_hash ? ` prompt:${run.prompt_hash.slice(0, 8)}` : ''}
             </span>
           )}
         </>

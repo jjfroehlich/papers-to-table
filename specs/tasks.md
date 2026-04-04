@@ -870,7 +870,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - provider mode and readiness outcome
   - internally consistent counts and warning flags derived from persisted data rather than speculative UI state
 
-- [ ] **T076b** Extend run-summary and reviewer-summary contracts for Eval-mode truth.
+- [x] **T076b** Extend run-summary and reviewer-summary contracts for Eval-mode truth.
   - surface run mode (`normal`, `verify`, `eval`) explicitly
   - include parser identity, schema identity, config snapshot or hash, and required prompt identity
   - include original gold-table and masked-working-table provenance for Eval mode
@@ -1036,7 +1036,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - provide useful fallback actions such as opening the full PDF when scoped evidence is unavailable
   - never display approximate or fallback evidence as if it were exact highlighting
 
-- [ ] **T089** Implement the figure-evidence viewer with crop-first display, attached caption, figure-derived warning/status markers, and full-page access.
+- [x] **T089** Implement the figure-evidence viewer with crop-first display, attached caption, figure-derived warning/status markers, and full-page access.
 
 - [x] **T090** Implement the review action area with:
   - accept
@@ -1082,7 +1082,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - surface degraded parsing, OCR fallback, duplicate-row conflicts, and evidence fallback in reviewer-visible summaries and diagnostics
   - keep actionable-only progress as the primary headline while preserving secondary totals for context
 
-- [ ] **T093b** Surface Eval-mode context and artifact truth across the UI.
+- [x] **T093b** Surface Eval-mode context and artifact truth across the UI.
   - label Eval-mode runs clearly in setup, run-summary, and review-context surfaces
   - show which gold table and masked working table were involved
   - show schema/config/model/parser version or identity context without implying that the app computed the final eval score
@@ -1096,7 +1096,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - auto-advance after explicit decisions
   - degraded parsing and provider-mode warning display in review-facing summaries
 
-- [ ] **T094b** Add frontend tests for Eval-mode run-summary and setup truth.
+- [x] **T094b** Add frontend tests for Eval-mode run-summary and setup truth.
   - Eval-mode labeling in setup and run-summary surfaces
   - gold-table versus masked-working-table context display
   - schema/config/model/parser context display without implying in-app benchmark scoring
@@ -1236,7 +1236,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - keep the workflow lightweight and local-first
   - store or document the commands needed to refresh README screenshots consistently
 
-- [ ] **T107e** Update `README.md` and related operator docs for Eval mode.
+- [x] **T107e** Update `README.md` and related operator docs for Eval mode.
   - explain what Eval mode is and why it masks target cells before extraction
   - explain why Verify mode and Eval mode cannot both be enabled
   - describe which downstream artifact fields the separate eval tool or repo consumes

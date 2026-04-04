@@ -323,6 +323,11 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
         </div>
 
         <div className="flex items-center gap-2 text-xs">
+          {run.eval_mode && (
+            <span className="rounded-full bg-indigo-100 px-2 py-1 font-medium text-indigo-700">
+              Eval mode
+            </span>
+          )}
           {warningTruth.hasParsingTruth && (
             <span className="rounded-full bg-amber-100 px-2 py-1 font-medium text-amber-800">
               parsing fallback
@@ -339,6 +344,18 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
             </span>
           )}
         </div>
+
+        {run.eval_mode && (
+          <div className="min-w-[260px] rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-[11px] text-indigo-800">
+            <p className="font-semibold">Eval context (artifact-only, no in-app scoring)</p>
+            <p>
+              gold: {run.eval_artifacts?.gold_table?.snapshot_path ?? run.eval_artifacts?.gold_table?.source_reference ?? 'n/a'}
+            </p>
+            <p>
+              masked: {run.eval_artifacts?.masked_working_table?.path ?? 'n/a'}
+            </p>
+          </div>
+        )}
 
         <div className="ml-auto flex items-center gap-2 py-1.5">
           <button

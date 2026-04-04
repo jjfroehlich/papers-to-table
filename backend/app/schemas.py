@@ -197,6 +197,24 @@ class RunSummary(BaseModel):
 
 class ReviewerSummary(BaseModel):
     run_id: str
+    verify_mode: bool = False
+    eval_mode: bool = False
+    run_mode: str = "normal"
+    provider_token: Optional[str] = None
+    provider_locality: Optional[ProviderLocality] = None
+    provider_mode: Optional[str] = None
+    provider_text_model_id: Optional[str] = None
+    provider_vision_model_id: Optional[str] = None
+    provider_readiness_error: Optional[str] = None
+    prompt_version: Optional[str] = None
+    prompt_hash: Optional[str] = None
+    config_hash: Optional[str] = None
+    config_snapshot_path: Optional[str] = None
+    schema_hash: Optional[str] = None
+    schema_version: Optional[str] = None
+    parser_identity: Optional[str] = None
+    parser_version: Optional[str] = None
+    eval_artifacts: Optional[dict] = None
     total_proposals: int
     reviewed: int = 0
     accepted: int

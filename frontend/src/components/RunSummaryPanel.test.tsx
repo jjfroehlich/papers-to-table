@@ -95,7 +95,14 @@ describe('RunSummaryPanel', () => {
       ...baseRun,
       eval_mode: true,
       run_mode: 'eval' as const,
+      parser_identity: 'docling',
+      schema_hash: 'schemahash1234567890',
+      config_hash: 'confighash1234567890',
+      prompt_hash: 'prompthash1234567890',
       eval_artifacts: {
+        gold_table: {
+          snapshot_path: 'inputs/gold_table.xlsx',
+        },
         masked_working_table: {
           path: 'inputs/masked_working_table.xlsx',
         },
@@ -106,6 +113,8 @@ describe('RunSummaryPanel', () => {
     await waitFor(() => {
       expect(screen.getByText(/eval/i)).toBeInTheDocument()
     })
+    expect(screen.getByText(/gold inputs\/gold_table.xlsx/i)).toBeInTheDocument()
     expect(screen.getByText(/masked inputs\/masked_working_table.xlsx/i)).toBeInTheDocument()
+    expect(screen.getByText(/provenance parser:docling schema:schemaha config:configha prompt:promptha/i)).toBeInTheDocument()
   })
 })

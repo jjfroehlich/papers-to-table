@@ -168,6 +168,11 @@ export const api = {
     return `${API_BASE}/api/runs/${runId}/assets/figures/${pdfId}/${figureId}${q}`
   },
 
+  getPageImageUrl: (runId: string, pdfId: string, pageNumber: number, outputDir?: string): string => {
+    const q = outputDir ? `?output_dir=${encodeURIComponent(outputDir)}` : ''
+    return `${API_BASE}/api/runs/${runId}/assets/pages/${pdfId}/${pageNumber}${q}`
+  },
+
   openPdfInLocalViewer: (runId: string, pdfId: string, outputDir?: string) => {
     const q = outputDir ? `?output_dir=${encodeURIComponent(outputDir)}` : ''
     return request<{ run_id: string; pdf_id: string; status: string; path: string }>(

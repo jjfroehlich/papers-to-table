@@ -361,6 +361,7 @@ export function EvidenceViewer({
   const [quoteHighlights, setQuoteHighlights] = useState<HighlightBox[]>([])
   const [openLocalError, setOpenLocalError] = useState<string | null>(null)
   const [openingLocal, setOpeningLocal] = useState(false)
+  const [showFigureFullPage, setShowFigureFullPage] = useState(false)
   const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null)
   const autoFocusKeyRef = useRef<string | null>(null)
   const renderSequenceRef = useRef(0)
@@ -415,6 +416,10 @@ export function EvidenceViewer({
     setCurrentPage(page)
     setPageInput(String(page))
   }, [evidencePage, totalPages])
+
+  useEffect(() => {
+    setShowFigureFullPage(false)
+  }, [evidence?.evidence_id])
 
   useEffect(() => {
     if (!pdfDoc || !canvasRef.current) return
@@ -572,6 +577,11 @@ export function EvidenceViewer({
 
   if (isFigureEvidence && evidence?.figure_ref) {
     const figureUrl = api.getFigureUrl(runId, evidence.pdf_id, evidence.figure_ref, outputDir)
+    const figurePageNumber = inferEvidencePage(evidence)
+    const hasFullPageContext = Boolean(figurePageNumber)
+    const fullPageUrl = hasFullPageContext
+      ? api.getPageImageUrl(runId, evidence.pdf_id, figurePageNumber as number, outputDir)
+      : null
     return (
       <div className="flex flex-col h-full bg-slate-50">
         <div className="px-3 py-2 border-b border-slate-200 bg-white flex items-center gap-2">
@@ -579,7 +589,19 @@ export function EvidenceViewer({
           <span className="text-xs text-purple-600 bg-purple-100 px-1.5 rounded">
             {evidence.figure_ref}
           </span>
+          <span className="text-xs text-amber-700 bg-amber-100 px-1.5 rounded">
+            Figure-derived
+          </span>
           <div className="ml-auto flex items-center gap-2">
+            {hasFullPageContext && (
+              <button
+                type="button"
+                onClick={() => setShowFigureFullPage((value) => !value)}
+                className="rounded border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+              >
+                {showFigureFullPage ? 'Hide full page' : 'Show full page'}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -607,11 +629,25 @@ export function EvidenceViewer({
           </div>
         </div>
         <div className="flex-1 overflow-auto flex items-start justify-center p-4">
-          <img
-            src={figureUrl}
-            alt={`Figure ${evidence.figure_ref}`}
-            className="max-w-full object-contain shadow-sm"
-          />
+          <div className="w-full flex flex-col items-center gap-3">
+            <img
+              src={figureUrl}
+              alt={`Figure ${evidence.figure_ref}`}
+              className="max-w-full object-contain shadow-sm"
+            />
+            {showFigureFullPage && fullPageUrl && (
+              <div className="w-full border border-slate-200 rounded bg-white p-2">
+                <p className="mb-2 text-xs font-medium text-slate-600">
+                  Full-page context (page {figurePageNumber})
+                </p>
+                <img
+                  src={fullPageUrl}
+                  alt={`Full page ${figurePageNumber}`}
+                  className="max-w-full object-contain shadow-sm"
+                />
+              </div>
+            )}
+          </div>
         </div>
         {evidence.caption_text && (
           <div className="px-3 py-2 border-t border-slate-200 bg-white text-xs text-slate-600 italic">

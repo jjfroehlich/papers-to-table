@@ -234,4 +234,30 @@ describe('ReviewWorkspace', () => {
     expect(await screen.findByRole('link', { name: 'Workbook' })).toHaveAttribute('href', '/downloads/workbook')
     expect(screen.getByRole('link', { name: 'Audit log' })).toHaveAttribute('href', '/downloads/audit-log')
   })
+
+  it('shows eval context in the toolbar without implying in-app scoring', async () => {
+    const evalRun: RunData = {
+      ...baseRun,
+      eval_mode: true,
+      run_mode: 'eval',
+      eval_artifacts: {
+        gold_table: {
+          snapshot_path: 'inputs/gold_table.xlsx',
+        },
+        masked_working_table: {
+          path: 'inputs/masked_working_table.xlsx',
+        },
+      },
+    }
+
+    render(<ReviewWorkspace run={evalRun} outputDir="./runs" />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Eval mode/i)).toBeInTheDocument()
+    })
+
+    expect(screen.getByText(/artifact-only, no in-app scoring/i)).toBeInTheDocument()
+    expect(screen.getByText(/gold: inputs\/gold_table.xlsx/i)).toBeInTheDocument()
+    expect(screen.getByText(/masked: inputs\/masked_working_table.xlsx/i)).toBeInTheDocument()
+  })
 })

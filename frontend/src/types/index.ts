@@ -229,6 +229,24 @@ export interface ReviewProgress {
 
 export interface ReviewerSummary {
   run_id: string
+  verify_mode?: boolean
+  eval_mode?: boolean
+  run_mode?: 'normal' | 'verify' | 'eval'
+  provider_token?: string | null
+  provider_locality?: string | null
+  provider_mode?: string | null
+  provider_text_model_id?: string | null
+  provider_vision_model_id?: string | null
+  provider_readiness_error?: string | null
+  prompt_version?: string | null
+  prompt_hash?: string | null
+  config_hash?: string | null
+  config_snapshot_path?: string | null
+  schema_hash?: string | null
+  schema_version?: string | null
+  parser_identity?: string | null
+  parser_version?: string | null
+  eval_artifacts?: RunData['eval_artifacts']
   total_proposals: number
   reviewed: number
   pending: number

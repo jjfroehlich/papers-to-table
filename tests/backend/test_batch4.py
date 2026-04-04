@@ -711,6 +711,54 @@ class TestSummaryGeneration:
         assert summary.pending == 1
         assert summary.accepted == 0
 
+    def test_reviewer_summary_includes_eval_mode_provenance(self, tmp_path):
+        run_dir, run_id = _make_run(tmp_path)
+        run_data = read_json(run_dir / "run.json")
+        run_data.update(
+            {
+                "verify_mode": False,
+                "eval_mode": True,
+                "run_mode": "eval",
+                "provider_token": "lm_studio",
+                "provider_locality": "local",
+                "provider_mode": "live_local",
+                "provider_text_model_id": "text-model-id",
+                "provider_vision_model_id": "vision-model-id",
+                "prompt_hash": "prompt-hash",
+                "config_hash": "config-hash",
+                "schema_hash": "schema-hash",
+                "parser_identity": "docling",
+                "eval_artifacts": {
+                    "gold_table": {
+                        "source_reference": "/tmp/gold.xlsx",
+                        "snapshot_path": "inputs/gold_table.xlsx",
+                        "content_hash": "gold-hash",
+                    },
+                    "masked_working_table": {
+                        "path": "inputs/masked_working_table.xlsx",
+                        "content_hash": "masked-hash",
+                    },
+                },
+            }
+        )
+        write_json(run_dir / "run.json", run_data)
+
+        summary = compute_reviewer_summary(run_dir, run_id)
+
+        assert summary.eval_mode is True
+        assert summary.run_mode == "eval"
+        assert summary.provider_token == "lm_studio"
+        assert summary.provider_mode == "live_local"
+        assert summary.provider_text_model_id == "text-model-id"
+        assert summary.provider_vision_model_id == "vision-model-id"
+        assert summary.prompt_hash == "prompt-hash"
+        assert summary.config_hash == "config-hash"
+        assert summary.schema_hash == "schema-hash"
+        assert summary.parser_identity == "docling"
+        assert summary.eval_artifacts is not None
+        assert summary.eval_artifacts["gold_table"]["snapshot_path"] == "inputs/gold_table.xlsx"
+        assert summary.eval_artifacts["masked_working_table"]["path"] == "inputs/masked_working_table.xlsx"
+
 
 # ---------------------------------------------------------------------------
 # T078 — Summary recomputation

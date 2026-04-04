@@ -17,6 +17,8 @@ vi.mock('../api/client', () => ({
     getPdfUrl: (_runId: string, pdfId: string) => `http://localhost:8000/api/runs/r1/assets/pdf/${pdfId}`,
     getFigureUrl: (_runId: string, pdfId: string, figureId: string) =>
       `http://localhost:8000/api/runs/r1/assets/figures/${pdfId}/${figureId}`,
+    getPageImageUrl: (_runId: string, pdfId: string, pageNumber: number) =>
+      `http://localhost:8000/api/runs/r1/assets/pages/${pdfId}/${pageNumber}`,
     openPdfInLocalViewer: vi.fn().mockResolvedValue({ status: 'opened' }),
   },
 }))
@@ -95,7 +97,7 @@ const figureEvidence: EvidenceItem = {
   pdf_id: 'paper-a',
   source_type: 'caption_grounded_figure_evidence',
   quote_text: null,
-  page_number: null,
+  page_number: 4,
   exact_highlight_regions: null,
   approximate_highlight_regions: null,
   figure_ref: 'fig-001',
@@ -253,6 +255,32 @@ describe('EvidenceViewer', () => {
       />
     )
     expect(screen.getByText('Figure 1: Results overview')).toBeInTheDocument()
+  })
+
+  it('figure evidence can toggle full-page context and shows figure-derived marker', () => {
+    render(
+      <EvidenceViewer
+        runId="r1"
+        pdfId="paper-a"
+        evidence={figureEvidence}
+        evidenceList={[figureEvidence]}
+        selectedEvidenceId="ev3"
+        activeEvidenceIndex={0}
+        onSelectEvidence={onSelectEvidence}
+        outputDir="./runs"
+      />
+    )
+
+    expect(screen.getByText(/Figure-derived/i)).toBeInTheDocument()
+
+    const toggle = screen.getByRole('button', { name: /Show full page/i })
+    fireEvent.click(toggle)
+
+    expect(screen.getByText(/Full-page context \(page 4\)/i)).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: /Full page 4/i })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Hide full page/i }))
+    expect(screen.queryByText(/Full-page context \(page 4\)/i)).not.toBeInTheDocument()
   })
 
   it('shows Approx label for approximate highlight evidence after render', () => {
