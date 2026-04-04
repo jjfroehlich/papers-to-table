@@ -13,6 +13,7 @@ from paper_eval.contracts import (
     STRUCTURED_FIELD_TYPES,
     EvaluatorSchema,
 )
+from paper_eval.evidence import validate_evidence_anchors
 from paper_eval.normalize import normalize_boolean, normalize_numeric
 
 
@@ -135,6 +136,8 @@ def score_run(
                     comparison_kind="not_scored",
                     evidence_outcome="not_evaluated",
                     proposal_count=1,
+                    anchor_valid=False,
+                    evidence_present_but_unvalidated=False,
                     row_index=gold_cell.row_index,
                     diagnostic_flags=["proposal_cell_id_mismatch"],
                     diagnostics={"gold_cell_id": gold_cell.cell_id, "proposal_cell_id": proposal.cell_id},
@@ -143,6 +146,11 @@ def score_run(
             )
             continue
 
+        evidence_result = validate_evidence_anchors(
+            proposal.evidence_items,
+            page_text_by_page=loaded_run.page_text_by_page,
+            page_count=loaded_run.metadata.page_count,
+        )
         field_config = resolve_field_config(
             column_name=gold_cell.column_name,
             gold_value=gold_cell.raw_value,
@@ -167,11 +175,13 @@ def score_run(
                     is_correct=None,
                     join_status="matched",
                     comparison_kind="text",
-                    evidence_outcome="not_evaluated",
+                    evidence_outcome=evidence_result.outcome,
                     proposal_count=1,
+                    anchor_valid=evidence_result.anchor_valid,
+                    evidence_present_but_unvalidated=evidence_result.evidence_present_but_unvalidated,
                     row_index=gold_cell.row_index,
                     diagnostic_flags=["text_scoring_not_implemented_in_batch_1"],
-                    diagnostics={},
+                    diagnostics={"evidence": evidence_result.diagnostics},
                     selected_proposal_state=proposal.state,
                 )
             )
@@ -203,12 +213,17 @@ def score_run(
                 is_correct=comparison.is_correct,
                 join_status="matched",
                 comparison_kind=field_config.field_type,
-                evidence_outcome="not_evaluated",
+                evidence_outcome=evidence_result.outcome,
                 proposal_count=1,
+                anchor_valid=evidence_result.anchor_valid,
+                evidence_present_but_unvalidated=evidence_result.evidence_present_but_unvalidated,
                 row_index=gold_cell.row_index,
                 normalized_gold=comparison.normalized_gold,
                 normalized_proposed=comparison.normalized_proposed,
-                diagnostics=comparison.diagnostics,
+                diagnostics={
+                    **comparison.diagnostics,
+                    "evidence": evidence_result.diagnostics,
+                },
                 selected_proposal_state=proposal.state,
             )
         )

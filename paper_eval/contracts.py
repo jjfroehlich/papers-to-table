@@ -59,24 +59,33 @@ class RunMetadata:
     schema_hash: str | None = None
     schema_version: str | None = None
     config_hash: str | None = None
+    page_count: int | None = None
     extras: dict[str, Any] = field(default_factory=dict)
 
     def flat_metadata(self) -> dict[str, Any]:
-        return {
+        row = {
             "run_id": self.run_id,
             "run_dir": str(self.run_dir),
+            "mode": self.run_mode,
             "run_mode": self.run_mode,
             "provider_token": self.provider_token,
+            "model_id": self.text_model_id,
             "text_model_id": self.text_model_id,
             "vision_model_id": self.vision_model_id,
             "parser_identity": self.parser_identity,
             "parser_version": self.parser_version,
+            "parser_identity_version": _join_identity_and_version(self.parser_identity, self.parser_version),
+            "prompt_identity": self.prompt_version or self.prompt_hash,
             "prompt_version": self.prompt_version,
             "prompt_hash": self.prompt_hash,
+            "schema_identity": self.schema_version or self.schema_hash,
             "schema_hash": self.schema_hash,
             "schema_version": self.schema_version,
             "config_hash": self.config_hash,
+            "page_count": self.page_count,
         }
+        row.update(_flatten_scalar_mapping(self.extras))
+        return row
 
 
 @dataclass
@@ -108,6 +117,7 @@ class LoadedRun:
     run_dir: Path
     metadata: RunMetadata
     proposals: list[ProposalRecord]
+    page_text_by_page: dict[int, str] = field(default_factory=dict)
     contract_warnings: list[str] = field(default_factory=list)
 
 
@@ -196,6 +206,8 @@ class ScoredCell:
     comparison_kind: str
     evidence_outcome: str
     proposal_count: int
+    anchor_valid: bool = False
+    evidence_present_but_unvalidated: bool = False
     row_index: int | None = None
     normalized_gold: Any = None
     normalized_proposed: Any = None
@@ -214,3 +226,31 @@ class RunSummary:
     metadata: dict[str, Any]
     contract_warnings: list[str] = field(default_factory=list)
     join_diagnostics: list[str] = field(default_factory=list)
+
+
+@dataclass
+class EvidenceValidationResult:
+    outcome: str
+    anchor_valid: bool
+    evidence_present_but_unvalidated: bool
+    diagnostics: dict[str, Any] = field(default_factory=dict)
+
+
+def _join_identity_and_version(identity: str | None, version: str | None) -> str | None:
+    if identity and version:
+        return f"{identity}@{version}"
+    return identity or version
+
+
+def _flatten_scalar_mapping(payload: dict[str, Any], *, prefix: str = "") -> dict[str, Any]:
+    flat: dict[str, Any] = {}
+    for key, value in payload.items():
+        flattened_key = f"{prefix}{key}" if not prefix else f"{prefix}__{key}"
+        if isinstance(value, dict):
+            flat.update(_flatten_scalar_mapping(value, prefix=flattened_key))
+        elif isinstance(value, list):
+            if all(not isinstance(item, (dict, list)) for item in value):
+                flat[flattened_key] = "|".join("" if item is None else str(item) for item in value)
+        elif value is None or isinstance(value, (str, int, float, bool)):
+            flat[flattened_key] = value
+    return flat
