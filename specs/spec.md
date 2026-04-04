@@ -40,6 +40,7 @@ The evaluator is not a GUI product. Human-readable markdown output is optional. 
 - Produce one row per run comparison artifacts suitable for benchmarking.
 - Preserve inspectability by writing explicit per-cell and per-run outputs.
 - Keep the evaluator usable without the main app codebase at runtime.
+- Treat README and operator docs as a first-class product surface for MVP operator clarity.
 
 ## Non-goals
 
@@ -59,6 +60,7 @@ The evaluator is not a GUI product. Human-readable markdown output is optional. 
 - Stable contracts over convenient cross-repo imports.
 - Reproducibility over judge flexibility.
 - Comparative usefulness over exotic metrics.
+- Operator clarity over implicit repo knowledge.
 - Gold-present scoring by default, because incomplete gold is common.
 - Correctness and evidence quality must remain separate concepts.
 
@@ -354,6 +356,12 @@ Text fields use a constrained LLM judge by default in MVP.
 
 The judge should determine whether the proposal and the gold answer are materially equivalent for the field definition, not whether the strings are lexically identical.
 
+The default local-first judge path in MVP is LM Studio through its OpenAI-compatible local API.
+
+- The default configured judge model for MVP is `qwen/qwen3.5-35b-a3b`.
+- This LM Studio plus Qwen path is the default provider and model for MVP, not a claim that it is the only judge option the repo may ever support.
+- The evaluator should remain local-first by default for judge-backed scoring.
+
 Highly standardized text columns may opt into deterministic scoring instead when configured at the field or column level.
 
 Deterministic text diagnostics may still be reported, for example normalized exact match or token-overlap metrics, but they are not the main correctness path for free-text fields.
@@ -367,21 +375,29 @@ The evaluator uses an LLM judge primarily for text fields in MVP, with determini
 Judge guardrails for MVP:
 
 - fixed judge model per evaluation run
+- default provider is LM Studio via an OpenAI-compatible local API
+- default configured judge model for MVP is `qwen/qwen3.5-35b-a3b`
 - temperature `0`
-- strict structured output
-- bounded prompt inputs
-- no long hidden reasoning stored in core artifacts
+- strict structured output with a JSON-schema-shaped response contract
+- bounded prompt inputs and bounded outputs
+- no long free-form or hidden reasoning stored in core artifacts
 - judge metadata persisted in outputs
 - judge use limited to text fields by default, not the entire scoring stack
 - deterministic text override must remain field-scoped or column-scoped, not global by accident
+- deterministic structured scoring remains the default for boolean, categorical, and numeric fields, with the judge reserved primarily for text fields and any explicitly configured residual cases
 
 Each judge-scored record should persist enough metadata for reproducibility, including at minimum:
 
-- judge model id
+- judge provider
+- configured judge model id
+- resolved runtime-served judge model id
 - judge prompt version or hash
 - judge temperature
-- judge decision label
+- judge decision label or verdict
+- input hash
 - any normalized intermediate values the evaluator uses as part of the final score
+
+The evaluator must persist the actual resolved runtime model identity used for the judge call. It must not assume the configured model string is always identical to the runtime-served identifier returned by LM Studio or any future provider.
 
 ---
 
@@ -479,6 +495,26 @@ Human-readable markdown summary is optional, not required for MVP.
 
 ---
 
+## Documentation and operator clarity expectations
+
+README and operator-facing docs are part of the MVP surface, not an afterthought.
+
+They should clearly explain:
+
+- what this eval repo does
+- what input artifacts it expects from the main app
+- how to evaluate one run
+- how to evaluate many runs
+- what the headline metrics mean
+- which metrics are diagnostic versus headline
+- how LM Studio judge configuration works
+- what the default judge model is in MVP
+- what limitations remain in the current version
+
+Docs should be explicit enough that an operator can run the evaluator and interpret outputs without reading implementation code.
+
+---
+
 ## CLI-first product surface
 
 The evaluator is CLI-first.
@@ -526,7 +562,10 @@ The MVP is acceptable when:
 - boolean, categorical, and numeric scoring are deterministic
 - numeric tolerance resolution supports global defaults with per-column overrides
 - text scoring uses a constrained reproducible LLM judge by default, with deterministic field-level override available for standardized text columns
+- the default local-first text-judge path is LM Studio via an OpenAI-compatible local API with default configured model `qwen/qwen3.5-35b-a3b`
+- judge-scored outputs persist provider, configured judge model, resolved runtime judge model, prompt version or hash, verdict, and input hash
 - anchor-valid scoring distinguishes fully validated anchors from evidence that is merely present but not validated when persisted text is available
 - per-cell scored outputs and per-run summaries are inspectable on disk
 - batch comparison outputs contain one row per run with useful metadata for benchmarking
+- README and operator docs clearly explain inputs, one-run and many-run workflows, headline versus diagnostic metrics, LM Studio judge configuration, the default judge model, and current limitations
 - contract failures are explicit rather than silently guessed

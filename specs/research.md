@@ -137,6 +137,44 @@ The judge should be a scoped tool for text equivalence, not a replacement for th
 
 ---
 
+## Why LM Studio is the default local-first judge path
+
+This repo is explicitly local-first by default, so the default judge path should match that operating model.
+
+LM Studio is a practical MVP default because it:
+
+- provides a local operator-controlled runtime
+- exposes an OpenAI-compatible API that keeps integration narrow
+- fits the repo goal of inspectable, reproducible, low-coupling evaluation
+
+That makes it a better default than starting with a cloud-only judge dependency for MVP, while still leaving room for future provider options if the evaluator later needs them.
+
+---
+
+## Why `qwen/qwen3.5-35b-a3b` is the default judge model for now
+
+MVP needs one concrete default judge model so the repo, docs, and operator workflow are all aligned.
+
+Choosing a fixed default model for now:
+
+- reduces ambiguity in local setup
+- makes the default path easier to document and support
+- improves reproducibility across evaluations compared with an unspecified local model choice
+
+This is a default for MVP, not a statement that other models will never be supported.
+
+---
+
+## Why the evaluator must persist the resolved runtime model identity
+
+Configured model strings and runtime-served model identifiers are not always the same thing.
+
+An operator may configure a convenient alias, while LM Studio may report a different concrete served model id at runtime. If the evaluator stores only the configured string, later comparison and audit trails can become misleading.
+
+Persisting both the configured judge model and the resolved runtime model keeps the provenance honest and makes judge-backed results easier to reproduce and debug.
+
+---
+
 ## Why evidence scoring stays lightweight in MVP
 
 Faithfulness and support scoring can become an entire research program.
@@ -200,6 +238,22 @@ Those workflows benefit from outputs that are:
 - easy to regenerate
 
 That is why the MVP should write explicit per-cell and per-run files rather than storing evaluation only in a database or dashboard.
+
+---
+
+## Why strong README and operator docs matter in this repo
+
+This repo is a CLI-first evaluation tool that sits beside, not inside, the main app.
+
+That means operators need docs that clearly explain:
+
+- what the repo expects as input from the main app
+- how to run one evaluation or many evaluations
+- how to interpret headline versus diagnostic metrics
+- how the LM Studio judge path is configured
+- what limitations still exist
+
+If those expectations are not documented clearly, the repo becomes harder to trust and harder to operate, even if the scoring logic itself is sound.
 
 ---
 

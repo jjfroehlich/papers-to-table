@@ -16,7 +16,7 @@ This file turns `spec.md`, `plan.md`, and `research.md` into a concrete implemen
 - Keep runtime coupling to the main app at the artifact-file level only.
 - Keep outputs inspectable on disk.
 - Prefer one solid batch at a time over broad shallow scaffolding.
-- Update `README.md` or operator docs only when implementation begins and actual commands exist.
+- Treat `README.md` and operator docs as first-class deliverables once commands exist, with operator-facing clarity on inputs, workflows, metrics, judge configuration, and current limitations.
 
 ---
 
@@ -82,10 +82,12 @@ Goal: add constrained text-field scoring without making the evaluator opaque.
 - [x] E044 Write judge records to a separate inspectable artifact such as `judge_records.jsonl`.
 - [x] E045 Ensure judge use is limited to text fields by default, while allowing explicit field or column deterministic override for standardized text fields.
 - [x] E046 Add CLI flags or config inputs for fixed judge model selection without widening the tool into a broad config framework.
+- [ ] E061 Make LM Studio the default local-first judge provider through its OpenAI-compatible API, with `qwen/qwen3.5-35b-a3b` as the default configured judge model for MVP.
+- [ ] E062 Persist full judge provenance for judge-backed cells and judge records, including provider, configured judge model, resolved runtime judge model, prompt version or hash, verdict, and input hash.
 
 ### Batch 4 - Contract hardening, tests, and operator docs
 
-Goal: make the tool reliable, documented, and explicit about remaining contract dependencies.
+Goal: make the tool reliable, operator-clear, and explicit about remaining contract dependencies and limitations.
 
 - [x] E047 Add contract validation for eval-mode provenance fields such as gold and masked table hashes and snapshot paths when runs are marked as eval runs.
 - [x] E048 Fail fast when the published stable join contract is missing or inconsistent, and document the contract gap clearly.
@@ -101,6 +103,8 @@ Goal: make the tool reliable, documented, and explicit about remaining contract 
 - [x] E058 Document the published input artifact contract expected from the main app in operator-facing docs, including stable join identifiers and single-sheet XLSX behavior.
 - [x] E059 Review `spec.md`, `plan.md`, `research.md`, and `tasks.md` together for consistency before the first code batch begins.
 - [x] E060 Keep an explicit visible note in docs about the required stable join-key contract between the main app and the eval repo, with `row_index` treated only as fallback or debug context.
+- [ ] E063 Tighten `README.md` and operator docs so they clearly explain what the eval repo does, expected main-app inputs, one-run and many-run evaluation workflows, headline metrics, diagnostic metrics, and current limitations.
+- [ ] E064 Add explicit operator guidance and examples for the LM Studio judge path, including configuration, the default judge model `qwen/qwen3.5-35b-a3b`, and how persisted judge metadata should be interpreted.
 
 ---
 
@@ -113,4 +117,4 @@ The recommended first implementation sequence is:
 3. Batch 3
 4. Batch 4
 
-That order gets the repo to useful structured evaluation quickly, then adds comparison, then text judging, then hardening and docs.
+That order gets the repo to useful structured evaluation quickly, then adds comparison, then text judging, then hardening plus operator-grade documentation. A batch that changes operator workflows is not complete until the README and operator docs are clear enough for a new operator to run the tool and interpret the headline outputs.
