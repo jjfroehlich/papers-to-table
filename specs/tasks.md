@@ -256,7 +256,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T009b** Define the operator-facing terminology parity rules for provider, parser, model, Verify-mode, and run-state labels across the runtime config schema, checked-in config example, tests, docs, and UI copy.
 
-- [ ] **T009c** Extend the config contract with explicit Eval-mode semantics.
+- [x] **T009c** Extend the config contract with explicit Eval-mode semantics.
   - define the three effective run modes: normal, Verify, and Eval
   - treat `verify_mode = true` plus `eval_mode = true` as invalid
   - keep config examples, runtime validation, docs, tests, and UI labels aligned on those mode meanings
@@ -293,7 +293,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T013a** Persist a resolved input-summary artifact early enough that readiness-failed and early-failed runs still expose table, schema, PDF-directory, output-directory, and Verify-mode context to the UI and diagnostics.
 
-- [ ] **T013b** Persist stable run-identity metadata needed by downstream eval tooling.
+- [x] **T013b** Persist stable run-identity metadata needed by downstream eval tooling.
   - include explicit mode truth in early run artifacts
   - persist schema hash or schema version plus config hash or config snapshot reference
   - persist prompt identity for every run, using `prompt_version` when available and deterministic `prompt_hash` otherwise
@@ -342,7 +342,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T021** Implement Verify mode semantics so already-filled cells become eligible targets when Verify mode is enabled.
 
-- [ ] **T021a** Implement Eval-mode setup semantics from the completed gold table.
+- [x] **T021a** Implement Eval-mode setup semantics from the completed gold table.
   - reject Verify mode plus Eval mode before extraction begins
   - create an app-owned masked working copy of target cells from the completed table
   - keep the original completed table as the gold reference while routing extraction through the masked copy
@@ -402,7 +402,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - `completed_with_warnings` must remain reserved for partial-success runs where meaningful processing actually happened
   - run summaries and reviewer summaries must preserve that distinction
 
-- [ ] **T024d** Add backend tests for Eval-mode validation and staging.
+- [x] **T024d** Add backend tests for Eval-mode validation and staging.
   - invalid Verify-plus-Eval combinations fail during validation or readiness
   - masked working-table creation uses the completed gold table as input without mutating the original
   - early run artifacts preserve mode truth plus gold-table and masked-working-table provenance
@@ -644,7 +644,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - use an index or equivalent lookup structure for id-based loading and filtered list assembly
   - remove any remaining many-small-proposal-file direction from artifacts and docs
 
-- [ ] **T056b** Extend persisted proposal and evidence metadata for downstream eval compatibility.
+- [x] **T056b** Extend persisted proposal and evidence metadata for downstream eval compatibility.
   - keep the contract minimal but sufficient for later scoring
   - preserve stable row id, column identifier, cell id, pdf id, raw proposal value, proposal state, support label, and field type when known
   - preserve evidence items with at least page, quote text, and evidence type
@@ -664,7 +664,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - keep numeric outputs internally typed as `exact`, `range`, or `approximate`
   - ensure the absence of field typing does not block extraction
 
-- [ ] **T057c** Enforce Eval-mode anti-leakage in extraction orchestration.
+- [x] **T057c** Enforce Eval-mode anti-leakage in extraction orchestration.
   - ensure target-cell extraction reads from the masked working copy rather than the original completed table
   - keep style-profile guidance helper-only and leakage-safe in Eval mode
   - preserve original gold-table and masked-working-table references in the emitted run metadata
@@ -750,7 +750,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - cover direct-evidence thresholding, multi-quote support, and figure-evidence subtype ranking
   - cover `proposals.jsonl` plus index persistence behavior
 
-- [ ] **T067b** Add backend tests for Eval-mode leakage protection and artifact emission.
+- [x] **T067b** Add backend tests for Eval-mode leakage protection and artifact emission.
   - target-cell gold values do not reach the extraction path in Eval mode
   - proposal and evidence artifacts include the minimal downstream-ready metadata contract
   - Eval-mode artifacts preserve gold-table and masked-working-table provenance distinctly, including hashes and snapshot references

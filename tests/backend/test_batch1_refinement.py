@@ -391,6 +391,69 @@ class TestExtractionRefinement:
         assert proposal.support == SupportLabel.inferred_from_evidence
         assert "fallback_evidence_used" in proposal.warning_flags
 
+    async def test_eval_artifact_metadata_propagates_to_proposal_and_evidence(
+        self,
+        run_dir: pathlib.Path,
+        minimal_doc_dict: dict,
+    ):
+        provider = AsyncMock()
+        provider.chat_complete_structured = AsyncMock(
+            return_value={
+                "proposed_value": "45.3%",
+                "state": "found",
+                "rationale": "- BVF reported directly.",
+                "calculation": None,
+                "numeric_value_form": "exact",
+                "quotes": [
+                    {
+                        "text": "Bone volume fraction (BVF) was measured as 45.3% at 12 weeks.",
+                        "page": 2,
+                        "source_type": "direct_quote",
+                    }
+                ],
+            }
+        )
+        proposal = await extract_cell(
+            run_id="run_test",
+            pdf_id="paper_test",
+            row_id="row_test",
+            cell_id="cell_eval_metadata",
+            column_name="Bone volume fraction",
+            column_description="BVF measurement",
+            row_context={"Title": "Paper"},
+            doc_dict=minimal_doc_dict,
+            run_dir=run_dir,
+            provider=provider,
+            text_model_id="text-model",
+            vision_model_id="vision-model",
+            artifact_context={
+                "run_mode": "eval",
+                "prompt_hash": "prompt-hash",
+                "config_hash": "config-hash",
+                "schema_hash": "schema-hash",
+                "parser_identity": "docling",
+                "gold_table_source_reference": "/tmp/gold.xlsx",
+                "gold_table_hash": "gold-hash",
+                "gold_table_snapshot_path": "inputs/gold_table.xlsx",
+                "masked_working_table_path": "inputs/masked_working_table.xlsx",
+                "masked_working_table_hash": "masked-hash",
+            },
+        )
+
+        evidence = [item for item in load_evidence(run_dir) if item.proposal_id == proposal.proposal_id]
+
+        assert proposal.run_mode == "eval"
+        assert proposal.prompt_hash == "prompt-hash"
+        assert proposal.config_hash == "config-hash"
+        assert proposal.schema_hash == "schema-hash"
+        assert proposal.parser_identity == "docling"
+        assert proposal.gold_table_hash == "gold-hash"
+        assert proposal.masked_working_table_hash == "masked-hash"
+        assert evidence[0].run_mode == "eval"
+        assert evidence[0].prompt_hash == "prompt-hash"
+        assert evidence[0].text_model_id == "text-model"
+        assert evidence[0].vision_model_id == "vision-model"
+
     async def test_direct_evidence_requires_quote_to_directly_support_value(self, run_dir: pathlib.Path, minimal_doc_dict: dict):
         provider = AsyncMock()
         provider.chat_complete_structured = AsyncMock(

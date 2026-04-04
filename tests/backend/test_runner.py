@@ -355,7 +355,10 @@ class TestRunPipeline:
         monkeypatch.setattr("backend.app.runner.validate_metadata_columns", lambda df: [])
         monkeypatch.setattr("backend.app.runner.load_schema", lambda schema_path, table_path: schema)
         monkeypatch.setattr("backend.app.runner.validate_schema_columns", lambda schema: [])
-        monkeypatch.setattr("backend.app.runner.get_eligible_cells", lambda df, schema, verify_mode: eligible)
+        monkeypatch.setattr(
+            "backend.app.runner.get_eligible_cells",
+            lambda df, schema, verify_mode, eval_mode=False: eligible,
+        )
         monkeypatch.setattr("backend.app.runner.parse_pdf", _fake_parse_pdf)
         monkeypatch.setattr("backend.app.runner.run_matching", lambda **kwargs: match_results)
         monkeypatch.setattr("backend.app.runner.persist_match_artifacts", lambda *args, **kwargs: None)
@@ -411,7 +414,10 @@ class TestRunPipeline:
         monkeypatch.setattr("backend.app.runner.validate_metadata_columns", lambda df: [])
         monkeypatch.setattr("backend.app.runner.load_schema", lambda schema_path, table_path: schema)
         monkeypatch.setattr("backend.app.runner.validate_schema_columns", lambda schema: [])
-        monkeypatch.setattr("backend.app.runner.get_eligible_cells", lambda df, schema, verify_mode: eligible)
+        monkeypatch.setattr(
+            "backend.app.runner.get_eligible_cells",
+            lambda df, schema, verify_mode, eval_mode=False: eligible,
+        )
         monkeypatch.setattr("backend.app.runner.parse_pdf", _fake_parse_pdf_with_warnings)
         monkeypatch.setattr("backend.app.runner.run_matching", lambda **kwargs: match_results)
         monkeypatch.setattr("backend.app.runner.persist_match_artifacts", lambda *args, **kwargs: None)
