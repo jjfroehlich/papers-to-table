@@ -19,7 +19,7 @@ python -m paper_eval evaluate --runs-root path/to/runs --gold gold.csv --out out
 python -m paper_eval compare --summaries out/per-run --out out/compare
 ```
 
-`--judge-model` fixes the text-judge model for the evaluation run. The evaluator reads `PAPER_EVAL_JUDGE_API_KEY` for authentication and optionally `PAPER_EVAL_JUDGE_API_BASE` for an OpenAI-compatible API base URL.
+`--judge-model` fixes the text-judge model for the evaluation run. If omitted, the evaluator also accepts `PAPER_EVAL_JUDGE_MODEL`. The evaluator reads `PAPER_EVAL_JUDGE_API_KEY` for authentication and optionally `PAPER_EVAL_JUDGE_API_BASE` for an OpenAI-compatible API base URL.
 
 ## Current input contract
 
@@ -101,7 +101,7 @@ out/
     {run_id}/
       scored_cells.jsonl
       scored_cells.csv
-      judge_records.jsonl
+      judge_records.jsonl          # only when judge-backed text scoring is used
       run_summary.json
       run_summary.csv
   compare/
@@ -110,4 +110,4 @@ out/
     runs_comparison.parquet
 ```
 
-`scored_cells.*` includes per-cell join status, raw values, normalized values, correctness, evidence outcome, text scoring policy, and judge metadata when used.
+`scored_cells.*` includes per-cell join status, raw values, normalized values, correctness, evidence outcome, text scoring policy, and judge metadata when used. `judge_records.jsonl` is the per-cell inspectable judge artifact; the batch comparison tables keep only aggregated text metrics and run metadata.
