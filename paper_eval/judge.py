@@ -210,4 +210,4 @@ def _bounded_text(value: Any, limit: int) -> tuple[str | None, bool]:
     if len(normalized) <= limit:
         return normalized, False
     clipped = normalized[: max(limit - 1, 0)].rstrip()
-    return f"{clipped}…", True
+    return f"{clipped}…"[:limit], True

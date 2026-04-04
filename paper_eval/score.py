@@ -444,6 +444,7 @@ def _score_text_cell(
         judge_response=judge_response,
     )
     was_scored = judge_response.verdict in {"correct", "incorrect"}
+    is_correct = _is_correct_for_judge_verdict(judge_response.verdict)
     diagnostic_flags = []
     if judge_request.was_truncated:
         diagnostic_flags.append("judge_input_truncated")
@@ -463,7 +464,7 @@ def _score_text_cell(
             is_gold_present=True,
             is_gold_empty=False,
             was_scored=was_scored,
-            is_correct=True if judge_response.verdict == "correct" else False if judge_response.verdict == "incorrect" else None,
+            is_correct=is_correct,
             join_status="matched",
             comparison_kind="text",
             evidence_outcome=evidence_result.outcome,
@@ -499,4 +500,12 @@ def _first_evidence_excerpt(proposal: Any) -> str | None:
     for evidence_item in proposal.evidence_items:
         if evidence_item.quote_text:
             return evidence_item.quote_text
+    return None
+
+
+def _is_correct_for_judge_verdict(verdict: str) -> bool | None:
+    if verdict == "correct":
+        return True
+    if verdict == "incorrect":
+        return False
     return None
