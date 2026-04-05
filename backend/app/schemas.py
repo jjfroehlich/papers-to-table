@@ -99,6 +99,8 @@ class WarningCategory(str, Enum):
     weak_evidence = "weak_evidence"
     # Provider/readiness warnings
     provider_unreachable = "provider_unreachable"
+    model_unavailable = "model_unavailable"
+    structured_mode_capability_mismatch = "structured_mode_capability_mismatch"
     provider_disabled = "provider_disabled"
     provider_degraded = "provider_degraded"
     readiness_failure = "readiness_failure"
@@ -174,7 +176,10 @@ class RunSummary(BaseModel):
     provider_mode: Optional[str] = None
     provider_text_model_id: Optional[str] = None
     provider_vision_model_id: Optional[str] = None
+    structured_output_mode: Optional[str] = None
+    structured_output_fallback_used: bool = False
     provider_readiness_error: Optional[str] = None
+    provider_readiness_reason: Optional[str] = None
     prompt_version: Optional[str] = None
     prompt_hash: Optional[str] = None
     config_hash: Optional[str] = None
@@ -205,7 +210,10 @@ class ReviewerSummary(BaseModel):
     provider_mode: Optional[str] = None
     provider_text_model_id: Optional[str] = None
     provider_vision_model_id: Optional[str] = None
+    structured_output_mode: Optional[str] = None
+    structured_output_fallback_used: bool = False
     provider_readiness_error: Optional[str] = None
+    provider_readiness_reason: Optional[str] = None
     prompt_version: Optional[str] = None
     prompt_hash: Optional[str] = None
     config_hash: Optional[str] = None

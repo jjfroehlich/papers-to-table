@@ -71,7 +71,7 @@ Implementation for this phase is complete when the system satisfies the function
 
 4. Run artifacts, proposal state, review decisions, and exports are persisted in a reproducible local-first manner.
 
-5. The implementation supports structured-output-first extraction with bounded compatibility negotiation and recovery: `json_schema`, one stronger retry, minimal syntactic repair, then hard failure for that target.
+5. The implementation supports structured-output-first extraction with bounded compatibility negotiation and recovery: prefer `json_schema`, allow explicit degraded fallback to `json_object` when `json_schema` is unsupported, then one stronger retry, minimal syntactic repair, and hard failure for that target only when no valid structured result is recoverable.
 
 6. Diagnostics explain failures and low-quality results without requiring developers to inspect raw prompts manually.
 
@@ -106,6 +106,8 @@ Implementation for this phase is complete when the system satisfies the function
 16. Active runs refresh automatically in the UI, stale-state conditions are surfaced explicitly, and operators can abort a run from the main workflow surface.
 
 17. Provider-unavailable or provider-unreachable state discovered at run start produces a readiness failure rather than a misleading `completed_with_warnings` run.
+
+18. Provider readiness and structured-output capability outcomes remain distinct in UI and artifacts: provider unreachable, model unavailable, `json_schema` unsupported with `json_object` fallback, and no compatible structured mode are separate truth states.
 
 18. Parsing fallback, OCR use, or degraded parsing conditions are persisted and surfaced in summaries and reviewer-facing status.
 
@@ -260,7 +262,7 @@ The extraction path depends on predictable proposal and evidence objects. Separa
 **Readiness and fallback policy:**
 - provider unavailability at run start is a readiness failure, not a warning-only completion state
 - `completed_with_warnings` is reserved for partial-success runs where meaningful work actually happened
-- structured-output recovery is bounded: `json_schema`, one stronger retry, minimal syntactic repair, then hard failure for that target
+- structured-output recovery is bounded: `json_schema`, explicit `json_object` fallback when `json_schema` is unsupported, one stronger retry, minimal syntactic repair, then hard failure for that target
 
 ---
 
@@ -1505,15 +1507,20 @@ Provider adapters should probe or negotiate structured-output compatibility per 
 If a provider rejects the preferred guided-output mode, the adapter should follow a bounded ladder only if the same proposal contract can still be validated:
 
 1. `json_schema`
-2. one stronger-instruction retry
-3. minimal syntactic JSON repair
-4. otherwise hard failure for the affected target
+2. `json_object` fallback when `json_schema` is unsupported for that provider-model path, with explicit degraded-mode signaling
+3. one stronger-instruction retry
+4. minimal syntactic JSON repair
+5. otherwise hard failure for the affected target
+
+This ladder is intentionally bounded. It must not silently degrade into open-ended prompt-only JSON behavior by default.
 
 One structured-output mismatch or guided-JSON rejection must not poison an entire run by default. Compatibility handling should be contained to the affected provider-model path, request shape, or target-cell attempt, with truthful diagnostics and continued processing where the contract can still be preserved safely.
 
 Malformed structured responses should go through a bounded repair path before the target is finalized as a hard extraction error. The repair path should use a compact repair-oriented instruction or equivalent narrowly scoped recovery mechanism rather than reopening the full extraction request indefinitely.
 
 If a compatible structured path cannot be established, the run should record a clear provider or extraction failure rather than silently accepting unstructured output as a valid proposal.
+
+Provider and model readiness truth must remain separate from structured-output capability truth. Reporting should preserve at least these categories: provider unreachable or unavailable, model unavailable or not loaded, `json_schema` unsupported with `json_object` fallback used, and no compatible structured mode available.
 
 ## Preflight and readiness policy
 
@@ -1535,10 +1542,15 @@ Run artifacts and normal summaries should record at least:
 
 - configured provider token
 - resolved canonical provider token
-- model identifiers used
+- configured text model identifier
+- configured vision model identifier when configured
+- model identifiers actually used
 - locality (`local` or `cloud`)
 - proposal-generation mode (`live`, `unavailable`, `disabled`, or explicit `stub/demo/degraded`)
+- negotiated structured-output mode (`json_schema`, `json_object`, or `none`)
+- whether structured-output fallback was used
 - readiness checks performed and failing reasons where applicable
+- readiness and capability failure reason classification where applicable
 
 ## Transparency
 
@@ -1756,7 +1768,7 @@ Maintain a compact fixture set that covers:
 **Mitigation:** explicitly document the content-only export boundary and the non-guaranteed workbook features.
 
 ### R-5: Provider incompatibility or weak structured output
-**Mitigation:** capability probes, typed validation, prompt-only fallback.
+**Mitigation:** capability probes, typed validation, bounded `json_schema` to `json_object` negotiation, one stronger retry, minimal syntactic repair, and truthful target-level failure when no compatible structured mode is available.
 
 ### R-6: Runtime complexity grows back through helper passes
 **Mitigation:** helper passes remain opt-in until measured lift is shown.

@@ -170,6 +170,9 @@ class ReadinessResult:
         self.warnings: list[str] = []
         self.provider_mode: Optional[str] = None
         self.provider_readiness_error: Optional[str] = None
+        self.provider_readiness_reason: Optional[str] = None
+        self.structured_output_mode: Optional[str] = None
+        self.structured_output_fallback_used: bool = False
 
     def fail(self, msg: str) -> None:
         self.ok = False
@@ -218,6 +221,12 @@ async def check_readiness(config: RunConfig) -> ReadinessResult:
     if config.provider.token == "lm_studio":
         text_model_id = config.provider.text_model.model_id
         if not _is_configured_model_id(text_model_id):
+            r.provider_mode = "unavailable"
+            r.provider_readiness_reason = "model_unavailable"
+            r.provider_readiness_error = (
+                "provider.text_model.model_id must be set to a real LM Studio model id; "
+                '"default" is not allowed.'
+            )
             r.fail(
                 "provider.text_model.model_id must be set to a real LM Studio model id; "
                 '"default" is not allowed.'
@@ -241,6 +250,7 @@ async def check_readiness(config: RunConfig) -> ReadinessResult:
                             "Load that model or update provider.text_model.model_id."
                         )
                         r.provider_mode = "unavailable"
+                        r.provider_readiness_reason = "model_unavailable"
                         r.provider_readiness_error = message
                         r.fail(message)
 
@@ -252,6 +262,7 @@ async def check_readiness(config: RunConfig) -> ReadinessResult:
                                 "figure_review is enabled, but provider.vision_model.model_id is missing or invalid."
                             )
                             r.provider_mode = "unavailable"
+                            r.provider_readiness_reason = "model_unavailable"
                             r.provider_readiness_error = message
                             r.fail(message)
                         elif vision_model_id not in available_ids:
@@ -260,15 +271,22 @@ async def check_readiness(config: RunConfig) -> ReadinessResult:
                                 "Load that model or update provider.vision_model.model_id."
                             )
                             r.provider_mode = "unavailable"
+                            r.provider_readiness_reason = "model_unavailable"
                             r.provider_readiness_error = message
                             r.fail(message)
+
+                    if r.ok:
+                        r.provider_mode = "live_local"
         except Exception as e:
             message = (
                 f"Cannot reach LM Studio at {config.provider.base_url}: {e}. "
                 f"Is LM Studio running with a model loaded?"
             )
             r.provider_mode = "unavailable"
+            r.provider_readiness_reason = "provider_unreachable"
             r.provider_readiness_error = message
+            r.structured_output_mode = "none"
+            r.structured_output_fallback_used = False
             r.fail(message)
 
     # T026a / T031: Check parser and OCR dependencies

@@ -1,0 +1,9 @@
+{
+  "token": "lm_studio",
+  "locality": "local",
+  "mode": "unavailable",
+  "text_model_id": "qwen/qwen3.5-9b",
+  "vision_model_id": "qwen/qwen3.5-9b",
+  "readiness_error": "Configured provider/model does not support required json_schema structured output.",
+  "recorded_at": "2026-04-04T20:36:44.109411+00:00"
+}

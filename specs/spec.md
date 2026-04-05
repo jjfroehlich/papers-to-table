@@ -109,6 +109,15 @@ The operator must be able to tell whether proposal generation for a run is:
 - disabled by configuration
 - running in an explicit stub, demo, or degraded fallback mode
 
+Provider readiness and provider capability truth are distinct and must be reported distinctly. At minimum, operator-visible status, run summaries, and persisted artifacts must distinguish:
+
+- provider unreachable or unavailable
+- model unavailable or not loaded
+- provider reachable but `json_schema` unsupported
+- provider reachable but no compatible structured-output mode available
+
+These states must not be collapsed into one generic "provider unavailable" label.
+
 The app must not present a stub, demo, disabled, or degraded provider path as if it were the normal live proposal-generation happy path.
 
 If the configured live provider is unavailable at run start, the run must fail during readiness with an operator-facing reason. That condition is not a valid `completed with warnings` outcome.
@@ -427,6 +436,7 @@ Before the run leaves the validation/readiness phase, the system must also valid
 - provider identifier and provider-config shape
 - provider reachability when a live provider is configured
 - configured model availability or equivalent capability failure when it can be checked up front
+- structured-output compatibility readiness, including whether `json_schema` is supported and whether bounded `json_object` fallback is available when `json_schema` is unsupported
 - parser or OCR dependency availability when those paths are configured
 - output-path writability and other obvious broken-install or broken-setup conditions
 
@@ -459,6 +469,8 @@ The target-column list should be collapsible, truncated, or otherwise compact by
 That resolved context must be preserved in run artifacts and remain visible in the UI even when the run fails during readiness or another early stage, including explicit mode truth and Eval-mode gold or masked table references when applicable.
 
 The UI must also show a concise provider/readiness summary before the run starts or while validation is in progress, including the canonical provider name, configured model names when relevant, and whether the app currently sees the provider path as live, unavailable, disabled, or explicitly degraded.
+
+That summary must preserve readiness and capability truth by distinguishing unreachable provider state from model-unavailable state and from structured-output compatibility mismatches.
 
 The run setup and later run summary must also identify the configured parser choice and, when parsing begins, the actual parser path used. If the configured parser cannot be used, the default behavior must be an explicit failure or blocked readiness result unless the operator has explicitly enabled a documented fallback path that is surfaced in the UI and run artifacts.
 
@@ -549,11 +561,14 @@ The provider layer must probe or otherwise establish structured-output compatibi
 The bounded structured-output fallback ladder is:
 
 1. `json_schema`
-2. one retry with stronger instruction when the returned structure is invalid
-3. minimal JSON repair when the failure is purely syntactic
-4. otherwise mark extraction failed for that target
+2. if `json_schema` is unsupported for the configured provider-model path, fall back to `json_object` and mark provider mode as explicit degraded structured-output mode
+3. one retry with stronger instruction when the returned structure is invalid
+4. minimal JSON repair when the failure is purely syntactic
+5. otherwise mark extraction failed for that target
 
 The system must not add a longer implicit fallback ladder by default.
+
+Prompt-only broad fallback to unvalidated free-form output is not a baseline compatibility path in this phase.
 
 Long-text target fields must remain first-class extraction targets; the system must not systematically collapse them into empty, truncated, or schema-invalid outcomes merely because they exceed short-answer assumptions.
 
@@ -921,8 +936,13 @@ The system must provide a normal user-facing run summary with at least:
 - rejected count and rate
 - proposal coverage
 - number of accepted changes
-- provider/model names used for the run, including separate identification of the text model and the vision model when both were used
+- configured provider for the run
+- configured text model for the run
+- configured vision model for the run when configured
 - provider mode for proposal generation, such as live local, live cloud, unavailable, disabled, or explicit degraded/demo mode
+- negotiated structured-output mode for extraction (`json_schema`, `json_object`, or `none`)
+- whether structured-output fallback was used
+- readiness or structured-capability failure reason when applicable
 - configured parser choice plus the actual parser identity or version used when available
 - schema hash or schema version plus config snapshot reference or config hash
 - prompt identity for the run, using `prompt_version` when available and deterministic `prompt_hash` otherwise
@@ -1153,7 +1173,7 @@ then the system attempts each eligible target column, including long-text fields
 
 Given a live provider rejects the preferred guided-JSON or structured-output mode, or returns malformed structured JSON,
 when extraction is run,
-then the system tries `json_schema`, retries once with stronger instruction if the response is invalid, attempts minimal syntactic JSON repair when appropriate, preserves the proposal contract if recovery succeeds, and records a clear hard error only if that bounded recovery fails.
+then the system tries `json_schema`, may fall back to `json_object` when `json_schema` is unsupported for that provider-model path, labels that fallback as explicit degraded mode, retries once with stronger instruction if the response is invalid, attempts minimal syntactic JSON repair when appropriate, preserves the proposal contract if recovery succeeds, records a clear hard error only if that bounded recovery fails, and does not switch to broad prompt-only unstructured fallback by default.
 
 ### AC-2b Recall rescue and field typing
 
@@ -1274,6 +1294,12 @@ then the system provides diagnostics and resolved context explaining what happen
 Given the configured live provider is unavailable or unreachable before proposal generation can begin,
 when the operator starts a run,
 then the run fails during readiness with an actionable provider error and does not surface as `completed with warnings`.
+
+### AC-16b Provider readiness versus capability truth
+
+Given provider checks run during readiness or early extraction,
+when the system reports status in the UI, run summary, and persisted artifacts,
+then it distinguishes at minimum provider unreachable or unavailable, model unavailable or not loaded, `json_schema` unsupported with `json_object` fallback used, and no compatible structured mode available, and does not collapse those outcomes into one generic "provider unavailable" label.
 
 ### AC-12 Weak-evidence handling
 

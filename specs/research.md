@@ -805,7 +805,7 @@ The app should be **structured-output-first**, with:
 - typed contracts
 - capability probes
 - provider-specific compatibility handling
-- a bounded recovery ladder: `json_schema`, one stronger retry, minimal syntactic repair, then fail
+- a bounded recovery ladder: `json_schema`, `json_object` fallback only when `json_schema` is unsupported, one stronger retry, minimal syntactic repair, then fail
 
 ## Why this conclusion matters
 
@@ -825,6 +825,25 @@ This supports:
 - `ProviderProbe` records
 - typed extraction contracts
 - optional prompt/response logging
+
+### Why `json_object` is the right bounded compatibility step
+
+`json_object` is a useful bounded fallback because it still enforces a JSON object envelope and allows the same typed proposal validator to remain authoritative.
+
+That preserves the core contract (validated structured proposals) without requiring open-ended prompt-only parsing behavior.
+
+In contrast, broad prompt-only fallback increases silent contract drift risk and can blur the boundary between recoverable transport or formatting errors and true extraction failures.
+
+### Why readiness truth and capability truth must stay separate
+
+Provider reachability and structured-output compatibility are different failure classes with different operator actions.
+
+- provider unreachable or unavailable usually indicates service startup, networking, or endpoint problems
+- model unavailable or not loaded indicates model selection or provider-side model readiness issues
+- `json_schema` unsupported indicates capability mismatch where bounded `json_object` fallback may still preserve the proposal contract
+- no compatible structured mode available indicates hard capability failure where truthful target or run failure is required
+
+Collapsing these into one generic provider-unavailable label hides actionable diagnosis and can mislead operators about whether fallback was safely used.
 
 ## Current MVP provider choice
 
@@ -1462,11 +1481,14 @@ Structural improvements and deterministic rescue should be prioritized before ad
 Use bounded structured-output recovery:
 
 1. `json_schema` first
-2. one stronger-instruction retry if invalid
-3. minimal JSON repair for purely syntactic errors
-4. otherwise clean extraction failure
+2. `json_object` fallback only when `json_schema` is unsupported for the configured provider-model path
+3. one stronger-instruction retry if invalid
+4. minimal JSON repair for purely syntactic errors
+5. otherwise clean extraction failure
 
 Prefer honest bounded failure over long silent fallback ladders.
+
+Do not treat broad prompt-only JSON fallback as baseline behavior for MVP compatibility.
 
 ### Direct evidence must require anchored direct quote
 

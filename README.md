@@ -358,12 +358,24 @@ Example model IDs (any compatible model may be used):
 
 If the provider is unavailable at startup (or the configured model IDs are not available), readiness fails and the run ends in `failed` with an explicit startup error.
 
+Structured output behavior is negotiated per provider-model path:
+- Preferred: `json_schema`
+- Fallback: `json_object` (explicit degraded mode warning is recorded)
+- Hard fail: neither structured mode is supported
+
+Readiness and capability failures are classified separately in run artifacts and UI surfaces:
+- Provider unreachable/unavailable
+- Model unavailable/not loaded
+- Structured-mode capability mismatch (no compatible structured mode)
+- Negotiated `json_object` fallback (degraded but compatible)
+
 ---
 
 ## Provider, parsing, and fallback truth
 
 - `lm_studio` is the canonical live provider token for the local-first path.
 - The review summary surfaces provider mode directly so you can tell whether a run is `live local`, `live cloud`, `unavailable`, `disabled`, or `stub/demo`.
+- If a run uses `json_object` fallback, a `provider_degraded` warning is emitted so degraded structured-output mode is explicit.
 - Parsing fallback, OCR fallback, duplicate-row conflicts, and evidence fallback remain visible as warnings or badges instead of being hidden.
 - Fallback evidence is never relabeled as exact evidence.
 - If the configured live provider is unreachable at startup, the run fails during readiness rather than pretending to finish with warnings.

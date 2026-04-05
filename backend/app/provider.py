@@ -41,7 +41,7 @@ class ProviderCapabilities(BaseModel):
     """Detected capabilities of a provider/model pair."""
     supports_structured_output: bool = False
     structured_output_mode: str = "none"
-    """One of: 'json_schema' or 'none'."""
+    """One of: 'json_schema', 'json_object', or 'none'."""
     model_id: Optional[str] = None
     vision_capable: bool = False
     probed_at: Optional[str] = None
@@ -56,7 +56,10 @@ class ProviderMode(BaseModel):
     text_model_id: Optional[str] = None
     vision_model_id: Optional[str] = None
     capabilities: Optional[ProviderCapabilities] = None
+    structured_output_mode: Optional[str] = None
+    structured_output_fallback_used: bool = False
     readiness_error: Optional[str] = None
+    readiness_reason: Optional[str] = None
     recorded_at: str = ""
 
     def is_live(self) -> bool:
@@ -150,6 +153,7 @@ class ProviderAdapter(abc.ABC):
         vision_model_id: Optional[str],
         capabilities: Optional[ProviderCapabilities] = None,
         readiness_error: Optional[str] = None,
+        readiness_reason: Optional[str] = None,
     ) -> ProviderMode:
         if readiness_error:
             mode = "unavailable"
@@ -157,6 +161,7 @@ class ProviderAdapter(abc.ABC):
             mode = "live_cloud"
         else:
             mode = "live_local"
+        structured_output_mode = capabilities.structured_output_mode if capabilities else None
         return ProviderMode(
             token=self.token,
             locality=self.locality.value,
@@ -164,7 +169,10 @@ class ProviderAdapter(abc.ABC):
             text_model_id=text_model_id,
             vision_model_id=vision_model_id,
             capabilities=capabilities,
+            structured_output_mode=structured_output_mode,
+            structured_output_fallback_used=structured_output_mode == "json_object",
             readiness_error=readiness_error,
+            readiness_reason=readiness_reason,
             recorded_at=datetime.now(timezone.utc).isoformat(),
         )
 
@@ -179,9 +187,10 @@ class ProviderAdapter(abc.ABC):
 
 class ProviderError(Exception):
     """Hard provider error that should record an error proposal outcome."""
-    def __init__(self, message: str, recoverable: bool = False):
+    def __init__(self, message: str, recoverable: bool = False, reason: Optional[str] = None):
         super().__init__(message)
         self.recoverable = recoverable
+        self.reason = reason
 
 
 class StructuredOutputError(ProviderError):
@@ -191,12 +200,16 @@ class StructuredOutputError(ProviderError):
 
 class ModelUnavailableError(ProviderError):
     """Model is not loaded or available."""
-    pass
+
+    def __init__(self, message: str, recoverable: bool = False, reason: Optional[str] = None):
+        super().__init__(message, recoverable=recoverable, reason=reason or "model_unavailable")
 
 
 class ProviderTimeoutError(ProviderError):
     """Request timed out."""
-    pass
+
+    def __init__(self, message: str, recoverable: bool = False, reason: Optional[str] = None):
+        super().__init__(message, recoverable=recoverable, reason=reason or "provider_unreachable")
 
 
 # ---------------------------------------------------------------------------
@@ -306,23 +319,21 @@ class LMStudioProvider(ProviderAdapter):
                 self._bump("models_list")
                 resp = await client.get(f"{self._base_url}/v1/models")
                 if resp.status_code != 200:
-                    return ProviderCapabilities(
-                        supports_structured_output=False,
-                        structured_output_mode="none",
-                        model_id=text_model_id,
-                        probed_at=now,
+                    raise ProviderError(
+                        f"LM Studio at {self._base_url} returned HTTP {resp.status_code}.",
+                        reason="provider_unreachable",
                     )
                 models_data = resp.json()
                 available_ids = {
                     m.get("id", "") for m in models_data.get("data", [])
                 }
-        except Exception:
-            return ProviderCapabilities(
-                supports_structured_output=False,
-                structured_output_mode="none",
-                model_id=text_model_id,
-                probed_at=now,
-            )
+        except ProviderError:
+            raise
+        except Exception as e:
+            raise ProviderError(
+                f"Cannot reach LM Studio at {self._base_url}: {e}",
+                reason="provider_unreachable",
+            ) from e
 
         if not _has_explicit_model_id(text_model_id):
             raise ProviderError(
@@ -331,14 +342,14 @@ class LMStudioProvider(ProviderAdapter):
             )
 
         if text_model_id not in available_ids:
-            raise ProviderError(
+            raise ModelUnavailableError(
                 f"Configured text model '{text_model_id}' is not loaded in LM Studio. "
                 "Load that model or update provider.text_model.model_id."
             )
 
         if vision_model_id is not None and _has_explicit_model_id(vision_model_id):
             if vision_model_id not in available_ids:
-                raise ProviderError(
+                raise ModelUnavailableError(
                     f"Configured vision model '{vision_model_id}' is not loaded in LM Studio. "
                     "Load that model or update provider.vision_model.model_id."
                 )
@@ -357,7 +368,7 @@ class LMStudioProvider(ProviderAdapter):
         )
 
     async def _probe_structured_output_mode(self, model_id: str) -> str:
-        """Require json_schema support for the live extraction path."""
+        """Probe best supported structured mode for the live extraction path."""
         try:
             test_schema = {
                 "type": "object",
@@ -384,8 +395,32 @@ class LMStudioProvider(ProviderAdapter):
                 if resp.status_code == 200:
                     content = resp.json()["choices"][0]["message"]["content"]
                     parsed = _try_repair_json(content)
-                    if parsed is not None:
+                    if isinstance(parsed, dict):
                         return "json_schema"
+        except Exception:
+            pass
+
+        # Some model/runtime pairs reject json_schema but still support json_object.
+        try:
+            payload = {
+                "model": model_id,
+                "messages": [{"role": "user", "content": "Reply with {\"test\": \"ok\"}"}],
+                "response_format": {"type": "json_object"},
+                "max_tokens": 32,
+                "temperature": 0.0,
+            }
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                self._bump("http_total")
+                self._bump("completions_total")
+                self._bump("completions_probe_structured")
+                resp = await client.post(
+                    f"{self._base_url}/v1/chat/completions", json=payload
+                )
+                if resp.status_code == 200:
+                    content = resp.json()["choices"][0]["message"]["content"]
+                    parsed = _try_repair_json(content)
+                    if isinstance(parsed, dict):
+                        return "json_object"
         except Exception:
             pass
         return "none"
@@ -448,8 +483,8 @@ class LMStudioProvider(ProviderAdapter):
         """Structured-output chat completion with one bounded recovery ladder."""
         caps = self._capabilities
         structured_mode = caps.structured_output_mode if caps else "none"
-        if structured_mode != "json_schema":
-            raise StructuredOutputError("json_schema structured output is required.")
+        if structured_mode not in ("json_schema", "json_object"):
+            raise StructuredOutputError("A structured output mode is required (json_schema or json_object).")
 
         payload = self._build_payload(
             messages, model_id, max_tokens, temperature, response_schema, structured_mode
@@ -578,13 +613,18 @@ class LMStudioProvider(ProviderAdapter):
                 ],
             }
 
+        caps = self._capabilities
+        structured_mode = caps.structured_output_mode if caps else "none"
+        if structured_mode not in ("json_schema", "json_object"):
+            raise StructuredOutputError("A structured output mode is required (json_schema or json_object).")
+
         payload = self._build_payload(
             vision_messages,
             model_id,
             max_tokens,
             temperature,
             response_schema,
-            "json_schema",
+            structured_mode,
         )
 
         try:
@@ -607,7 +647,7 @@ class LMStudioProvider(ProviderAdapter):
                     min(max_tokens, 1024),
                     temperature,
                     response_schema,
-                    "json_schema",
+                    structured_mode,
                 )
                 retry_raw = await self._post_vision_payload(stronger_retry_payload, model_id)
                 try:
@@ -734,9 +774,11 @@ async def initialize_provider(
     try:
         provider = build_provider(config)
         caps = await provider.probe_capabilities(text_model_id, vision_model_id)
-        if caps.structured_output_mode != "json_schema":
-            raise ProviderError(
-                "Configured provider/model does not support required json_schema structured output."
+        if caps.structured_output_mode == "none":
+            raise StructuredOutputError(
+                "Configured provider/model has no compatible structured output mode "
+                "(json_schema/json_object unavailable).",
+                reason="no_compatible_structured_mode",
             )
         if isinstance(provider, LMStudioProvider):
             provider.set_capabilities(caps)
@@ -745,18 +787,17 @@ async def initialize_provider(
             vision_model_id=vision_model_id,
             capabilities=caps,
             readiness_error=None,
+            readiness_reason=None,
         )
         return provider, mode
     except ProviderError as e:
-        # T052a: return unavailable mode with honest error, not silent degradation
-        from .config import PROVIDER_DISPLAY_NAMES
-        mode = ProviderMode(
-            token=getattr(config, "token", "unknown"),
-            locality=ProviderLocality.local.value,
-            mode="unavailable",
-            text_model_id=text_model_id,
-            vision_model_id=vision_model_id,
-            readiness_error=str(e),
-            recorded_at=datetime.now(timezone.utc).isoformat(),
-        )
-        raise ProviderError(str(e)) from e
+        # T052a: propagate reason-classified provider failures for truthful warnings.
+        reason = getattr(e, "reason", None)
+        if not reason:
+            if isinstance(e, ModelUnavailableError):
+                reason = "model_unavailable"
+            elif isinstance(e, StructuredOutputError):
+                reason = "no_compatible_structured_mode"
+            else:
+                reason = "provider_unreachable"
+        raise ProviderError(str(e), reason=reason) from e

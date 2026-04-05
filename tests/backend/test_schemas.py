@@ -105,6 +105,8 @@ class TestWarningCategory:
         assert "unmatched_pdf" in values
         assert "ambiguous_match" in values
         assert "provider_unreachable" in values
+        assert "model_unavailable" in values
+        assert "structured_mode_capability_mismatch" in values
 
 
 class TestProposalModel:

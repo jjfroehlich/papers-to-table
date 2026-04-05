@@ -102,6 +102,9 @@ def get_initial_run_data(
         "provider_vision_model_id": (
             config.provider.vision_model.model_id if config.provider.vision_model else None
         ),
+        "structured_output_mode": None,
+        "structured_output_fallback_used": False,
+        "provider_readiness_reason": None,
         "provider_request_counts": {},
         "prompt_version": prompt_identity["prompt_version"],
         "prompt_hash": prompt_identity["prompt_hash"],
@@ -155,6 +158,29 @@ async def run_pipeline(
             get_reviewer_summary_path(output_dir, run_id),
             {
                 "run_id": run_id,
+                "verify_mode": bool(data.get("verify_mode", False)),
+                "eval_mode": bool(data.get("eval_mode", False)),
+                "run_mode": data.get("run_mode", "normal"),
+                "provider_token": data.get("provider_token"),
+                "provider_locality": data.get("provider_locality"),
+                "provider_mode": data.get("provider_mode"),
+                "provider_text_model_id": data.get("provider_text_model_id"),
+                "provider_vision_model_id": data.get("provider_vision_model_id"),
+                "structured_output_mode": data.get("structured_output_mode"),
+                "structured_output_fallback_used": bool(
+                    data.get("structured_output_fallback_used", False)
+                ),
+                "provider_readiness_error": data.get("provider_readiness_error"),
+                "provider_readiness_reason": data.get("provider_readiness_reason"),
+                "prompt_version": data.get("prompt_version"),
+                "prompt_hash": data.get("prompt_hash"),
+                "config_hash": data.get("config_hash"),
+                "config_snapshot_path": data.get("config_snapshot_path"),
+                "schema_hash": data.get("schema_hash"),
+                "schema_version": data.get("schema_version"),
+                "parser_identity": data.get("parser_identity"),
+                "parser_version": data.get("parser_version"),
+                "eval_artifacts": data.get("eval_artifacts"),
                 "total_proposals": proposals_generated,
                 "reviewed": 0,
                 "accepted": 0,
@@ -258,6 +284,13 @@ async def run_pipeline(
                 run_data["provider_mode"] = readiness.provider_mode
             if readiness.provider_readiness_error:
                 run_data["provider_readiness_error"] = readiness.provider_readiness_error
+            if readiness.provider_readiness_reason:
+                run_data["provider_readiness_reason"] = readiness.provider_readiness_reason
+            if readiness.structured_output_mode is not None:
+                run_data["structured_output_mode"] = readiness.structured_output_mode
+                run_data["structured_output_fallback_used"] = bool(
+                    readiness.structured_output_fallback_used
+                )
                 write_json(
                     get_run_dir(output_dir, run_id) / "provider_mode.json",
                     {
@@ -266,6 +299,9 @@ async def run_pipeline(
                         "mode": readiness.provider_mode or "unknown",
                         "text_model_id": text_model_id,
                         "vision_model_id": vision_model_id,
+                        "structured_output_mode": readiness.structured_output_mode,
+                        "structured_output_fallback_used": bool(readiness.structured_output_fallback_used),
+                        "readiness_reason": readiness.provider_readiness_reason,
                         "readiness_error": readiness.provider_readiness_error,
                         "recorded_at": datetime.now(timezone.utc).isoformat(),
                     },
@@ -369,8 +405,25 @@ async def run_pipeline(
             )
         except ProviderError as e:
             provider_init_error = str(e)
+            provider_init_reason = getattr(e, "reason", None) or "provider_unreachable"
+
+            warning_category = {
+                "provider_unreachable": WC.provider_unreachable.value,
+                "model_unavailable": WC.model_unavailable.value,
+                "no_compatible_structured_mode": WC.structured_mode_capability_mismatch.value,
+            }.get(provider_init_reason, WC.provider_unreachable.value)
+
+            warning_prefix = {
+                "provider_unreachable": "Provider unreachable",
+                "model_unavailable": "Model unavailable",
+                "no_compatible_structured_mode": "No compatible structured-output mode",
+            }.get(provider_init_reason, "Provider unavailable")
+
             run_data["provider_mode"] = "unavailable"
             run_data["provider_readiness_error"] = provider_init_error
+            run_data["provider_readiness_reason"] = provider_init_reason
+            run_data["structured_output_mode"] = "none"
+            run_data["structured_output_fallback_used"] = False
             write_json(
                 run_dir / "provider_mode.json",
                 {
@@ -379,14 +432,20 @@ async def run_pipeline(
                     "mode": "unavailable",
                     "text_model_id": text_model_id,
                     "vision_model_id": vision_model_id,
+                    "structured_output_mode": "none",
+                    "structured_output_fallback_used": False,
+                    "readiness_reason": provider_init_reason,
                     "readiness_error": provider_init_error,
                     "recorded_at": datetime.now(timezone.utc).isoformat(),
                 },
             )
             run_data.setdefault("warnings", []).append({
-                "category": WC.provider_unreachable.value,
-                "message": f"Provider unavailable: {provider_init_error}",
-                "context": {"provider": config.provider.token},
+                "category": warning_category,
+                "message": f"{warning_prefix}: {provider_init_error}",
+                "context": {
+                    "provider": config.provider.token,
+                    "readiness_reason": provider_init_reason,
+                },
             })
             save_run(run_data)
 
@@ -404,7 +463,23 @@ async def run_pipeline(
             run_data["provider_mode"] = provider_mode.mode
             run_data["provider_locality"] = provider_mode.locality
             run_data["provider_readiness_error"] = provider_mode.readiness_error
+            run_data["provider_readiness_reason"] = provider_mode.readiness_reason
+            run_data["structured_output_mode"] = provider_mode.structured_output_mode
+            run_data["structured_output_fallback_used"] = provider_mode.structured_output_fallback_used
             write_json(run_dir / "provider_mode.json", provider_mode.model_dump())
+            caps = provider_mode.capabilities
+            if caps and getattr(caps, "structured_output_mode", None) == "json_object":
+                run_data.setdefault("warnings", []).append({
+                    "category": WC.provider_degraded.value,
+                    "message": (
+                        "Provider is running in degraded structured-output mode (json_object fallback); "
+                        "json_schema is unavailable for this model/runtime combination."
+                    ),
+                    "context": {
+                        "provider": config.provider.token,
+                        "structured_output_mode": "json_object",
+                    },
+                })
             run_data = sync_provider_request_counts(run_data, provider, run_dir)
             save_run(run_data)
 
@@ -732,6 +807,29 @@ async def run_pipeline(
             reviewer_summary_path,
             {
                 "run_id": run_id,
+                "verify_mode": bool(run_data.get("verify_mode", False)),
+                "eval_mode": bool(run_data.get("eval_mode", False)),
+                "run_mode": run_data.get("run_mode", "normal"),
+                "provider_token": run_data.get("provider_token"),
+                "provider_locality": run_data.get("provider_locality"),
+                "provider_mode": run_data.get("provider_mode"),
+                "provider_text_model_id": run_data.get("provider_text_model_id"),
+                "provider_vision_model_id": run_data.get("provider_vision_model_id"),
+                "structured_output_mode": run_data.get("structured_output_mode"),
+                "structured_output_fallback_used": bool(
+                    run_data.get("structured_output_fallback_used", False)
+                ),
+                "provider_readiness_error": run_data.get("provider_readiness_error"),
+                "provider_readiness_reason": run_data.get("provider_readiness_reason"),
+                "prompt_version": run_data.get("prompt_version"),
+                "prompt_hash": run_data.get("prompt_hash"),
+                "config_hash": run_data.get("config_hash"),
+                "config_snapshot_path": run_data.get("config_snapshot_path"),
+                "schema_hash": run_data.get("schema_hash"),
+                "schema_version": run_data.get("schema_version"),
+                "parser_identity": run_data.get("parser_identity"),
+                "parser_version": run_data.get("parser_version"),
+                "eval_artifacts": run_data.get("eval_artifacts"),
                 "total_proposals": proposals_generated,
                 "reviewed": 0,
                 "accepted": 0,

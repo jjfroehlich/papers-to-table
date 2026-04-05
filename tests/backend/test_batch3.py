@@ -26,6 +26,7 @@ from __future__ import annotations
 import asyncio
 import json
 import pathlib
+from types import SimpleNamespace
 from typing import Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -59,6 +60,7 @@ from backend.app.provider import (
     ProviderMode,
     StructuredOutputError,
     _try_repair_json,
+    initialize_provider,
 )
 from backend.app.retrieval import (
     RetrievalChunk,
@@ -642,12 +644,12 @@ class TestProviderCapabilities:
         p = LMStudioProvider()
         assert p.locality == ProviderLocality.local
 
-    async def test_provider_unreachable_returns_unavailable_caps(self):
-        """T052: unreachable provider returns degraded capabilities, not silent success."""
+    async def test_provider_unreachable_raises_classified_error(self):
+        """T052d: provider-unreachable is classified distinctly from capability mismatch."""
         p = LMStudioProvider(base_url="http://localhost:9999")
-        caps = await p.probe_capabilities("test-model")
-        # Should return caps with supports_structured_output=False, not raise
-        assert caps.supports_structured_output is False
+        with pytest.raises(ProviderError) as exc:
+            await p.probe_capabilities("test-model")
+        assert getattr(exc.value, "reason", None) == "provider_unreachable"
 
     def test_build_provider_unknown_token_raises(self):
         from backend.app.provider import build_provider
@@ -664,6 +666,110 @@ class TestProviderCapabilities:
         mock_config.base_url = "http://localhost:1234"
         provider = build_provider(mock_config)
         assert isinstance(provider, LMStudioProvider)
+
+    @pytest.mark.asyncio
+    async def test_initialize_provider_accepts_json_object_mode(self):
+        config = SimpleNamespace(token="lm_studio", base_url="http://localhost:1234")
+        caps = ProviderCapabilities(
+            supports_structured_output=True,
+            structured_output_mode="json_object",
+            model_id="test-model",
+            vision_capable=False,
+        )
+        with patch.object(
+            LMStudioProvider,
+            "probe_capabilities",
+            new=AsyncMock(return_value=caps),
+        ):
+            provider, mode = await initialize_provider(
+                config,
+                text_model_id="test-model",
+                vision_model_id=None,
+            )
+        assert isinstance(provider, LMStudioProvider)
+        assert mode.mode == "live_local"
+        assert mode.capabilities is not None
+        assert mode.capabilities.structured_output_mode == "json_object"
+
+    @pytest.mark.asyncio
+    async def test_initialize_provider_fails_when_no_compatible_structured_mode(self):
+        config = SimpleNamespace(token="lm_studio", base_url="http://localhost:1234")
+        caps = ProviderCapabilities(
+            supports_structured_output=False,
+            structured_output_mode="none",
+            model_id="test-model",
+            vision_capable=False,
+        )
+        with patch.object(
+            LMStudioProvider,
+            "probe_capabilities",
+            new=AsyncMock(return_value=caps),
+        ):
+            with pytest.raises(ProviderError) as exc:
+                await initialize_provider(
+                    config,
+                    text_model_id="test-model",
+                    vision_model_id=None,
+                )
+        assert "no compatible structured output mode" in str(exc.value).lower()
+        assert getattr(exc.value, "reason", None) == "no_compatible_structured_mode"
+
+    @pytest.mark.asyncio
+    async def test_chat_complete_structured_supports_json_object_mode(self):
+        provider = LMStudioProvider(base_url="http://localhost:1234")
+        provider.set_capabilities(
+            ProviderCapabilities(
+                supports_structured_output=True,
+                structured_output_mode="json_object",
+                model_id="test-model",
+                vision_capable=False,
+            )
+        )
+
+        with patch.object(
+            provider,
+            "_post_structured_payload",
+            new=AsyncMock(return_value='{"value": "ok"}'),
+        ):
+            result = await provider.chat_complete_structured(
+                messages=[{"role": "user", "content": "test"}],
+                response_schema={
+                    "type": "object",
+                    "properties": {"value": {"type": "string"}},
+                    "required": ["value"],
+                },
+                model_id="test-model",
+            )
+
+        assert result["value"] == "ok"
+
+    @pytest.mark.asyncio
+    async def test_chat_complete_structured_rejects_invalid_unstructured_output(self):
+        provider = LMStudioProvider(base_url="http://localhost:1234")
+        provider.set_capabilities(
+            ProviderCapabilities(
+                supports_structured_output=True,
+                structured_output_mode="json_object",
+                model_id="test-model",
+                vision_capable=False,
+            )
+        )
+
+        with patch.object(
+            provider,
+            "_post_structured_payload",
+            new=AsyncMock(side_effect=["not json at all", "still not json"]),
+        ):
+            with pytest.raises(StructuredOutputError):
+                await provider.chat_complete_structured(
+                    messages=[{"role": "user", "content": "test"}],
+                    response_schema={
+                        "type": "object",
+                        "properties": {"value": {"type": "string"}},
+                        "required": ["value"],
+                    },
+                    model_id="test-model",
+                )
 
 
 # ===========================================================================

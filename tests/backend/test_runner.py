@@ -300,6 +300,52 @@ class TestRunPipeline:
         assert not (proposals_dir / "proposals.jsonl").exists()
 
     @pytest.mark.asyncio
+    @respx.mock
+    async def test_json_object_fallback_surfaces_provider_degraded_warning(self, tmp_path, monkeypatch):
+        respx.get("http://localhost:1234/v1/models").mock(
+            return_value=httpx.Response(200, json={"data": [{"id": "qwen/qwen3-30b-a3b-2507"}]})
+        )
+        config = make_config(tmp_path)
+        run_id = "run_provider_degraded"
+        output_dir = str(tmp_path / "runs")
+        (tmp_path / "runs").mkdir(exist_ok=True)
+
+        monkeypatch.setattr("backend.app.runner.initialize_provider", _fake_initialize_provider_json_object)
+
+        await run_pipeline(run_id, config, "config.json", output_dir)
+
+        run_data = read_json(get_run_json_path(output_dir, run_id))
+        warnings = run_data.get("warnings", [])
+        degraded = [w for w in warnings if w.get("category") == "provider_degraded"]
+        assert len(degraded) >= 1
+        assert "json_object" in degraded[0].get("message", "")
+        assert run_data.get("structured_output_mode") == "json_object"
+        assert run_data.get("structured_output_fallback_used") is True
+
+        provider_mode = read_json(pathlib.Path(output_dir) / run_id / "provider_mode.json")
+        assert provider_mode.get("structured_output_mode") == "json_object"
+        assert provider_mode.get("structured_output_fallback_used") is True
+
+    @pytest.mark.asyncio
+    async def test_provider_init_model_unavailable_is_not_classified_as_unreachable(self, tmp_path, monkeypatch):
+        config = make_config(tmp_path)
+        run_id = "run_model_unavailable"
+        output_dir = str(tmp_path / "runs")
+        (tmp_path / "runs").mkdir(exist_ok=True)
+
+        monkeypatch.setattr("backend.app.runner.check_readiness", _ready_ok)
+        monkeypatch.setattr("backend.app.runner.initialize_provider", _raise_model_unavailable_error)
+
+        await run_pipeline(run_id, config, "config.json", output_dir)
+
+        run_data = read_json(get_run_json_path(output_dir, run_id))
+        assert run_data["status"] == RunStatus.failed.value
+        assert run_data["provider_readiness_reason"] == "model_unavailable"
+        categories = [w.get("category") for w in run_data.get("warnings", [])]
+        assert "model_unavailable" in categories
+        assert "provider_unreachable" not in categories
+
+    @pytest.mark.asyncio
     async def test_only_usable_matched_rows_create_proposal_artifacts(self, tmp_path, monkeypatch):
         config = make_config(tmp_path)
         run_id = "run_matched_only"
@@ -451,13 +497,52 @@ async def _raise_provider_error(*args, **kwargs):
     raise ProviderError("provider offline")
 
 
+async def _raise_model_unavailable_error(*args, **kwargs):
+    from backend.app.provider import ProviderError
+
+    raise ProviderError("configured model not loaded", reason="model_unavailable")
+
+
 async def _fake_initialize_provider(*args, **kwargs):
     return object(), SimpleNamespace(
         mode="live_local",
         locality="local",
         readiness_error=None,
+        readiness_reason=None,
+        structured_output_mode="json_schema",
+        structured_output_fallback_used=False,
         capabilities=None,
-        model_dump=lambda: {"mode": "live_local", "locality": "local", "readiness_error": None},
+        model_dump=lambda: {
+            "mode": "live_local",
+            "locality": "local",
+            "readiness_error": None,
+            "readiness_reason": None,
+            "structured_output_mode": "json_schema",
+            "structured_output_fallback_used": False,
+        },
+    )
+
+
+async def _fake_initialize_provider_json_object(*args, **kwargs):
+    return object(), SimpleNamespace(
+        mode="live_local",
+        locality="local",
+        readiness_error=None,
+        readiness_reason=None,
+        structured_output_mode="json_object",
+        structured_output_fallback_used=True,
+        capabilities=SimpleNamespace(structured_output_mode="json_object"),
+        model_dump=lambda: {
+            "mode": "live_local",
+            "locality": "local",
+            "readiness_error": None,
+            "readiness_reason": None,
+            "structured_output_mode": "json_object",
+            "structured_output_fallback_used": True,
+            "capabilities": {
+                "structured_output_mode": "json_object",
+            },
+        },
     )
 
 

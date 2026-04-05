@@ -22,6 +22,10 @@ export function RunDetail({ run, onAbort, aborting }: Props) {
   const providerLabel = run.provider_token ? (PROVIDER_DISPLAY[run.provider_token] ?? run.provider_token) : '—'
   const providerMode =
     run.provider_mode == null ? null : run.provider_mode.replace(/_/g, ' ')
+  const structuredOutputMode =
+    run.structured_output_mode == null ? null : run.structured_output_mode.replace(/_/g, ' ')
+  const readinessReason =
+    run.provider_readiness_reason == null ? null : run.provider_readiness_reason.replace(/_/g, ' ')
   const runModeLabel = run.run_mode.replace(/_/g, ' ')
   const isAbortable =
     !!onAbort && (run.status === 'created' || run.status === 'validating' || run.status === 'running')
@@ -50,6 +54,16 @@ export function RunDetail({ run, onAbort, aborting }: Props) {
         <Field label="Run mode" value={runModeLabel} />
         <Field label="Text model" value={run.provider_text_model_id ?? null} />
         <Field label="Vision model" value={run.provider_vision_model_id ?? null} />
+        <Field label="Structured output" value={structuredOutputMode} />
+        <Field
+          label="Structured fallback used"
+          value={
+            run.structured_output_fallback_used == null
+              ? null
+              : (run.structured_output_fallback_used ? 'Yes' : 'No')
+          }
+        />
+        <Field label="Readiness reason" value={readinessReason} />
         <Field label="Verify mode" value={run.verify_mode ? 'Yes' : 'No'} />
         <Field label="Eval mode" value={run.eval_mode ? 'Yes' : 'No'} />
         <Field label="Table" value={run.table_path} />

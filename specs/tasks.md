@@ -98,7 +98,7 @@ Future coding-agent implementation should normally proceed by the canonical batc
 
 **Purpose:** tighten the extraction contract so the system is schema-first, empty-table-safe, deterministically matchable, provider-truthful, and evidence-strict before more UI polish lands.
 
-**Primary tasks:** `T009c`, `T013b`, `T020a`, `T021a`, `T024c`, `T024d`, `T034a`, `T038a`, `T040a`, `T041a`, `T042a`, `T044a`, `T047a`, `T047b`, `T047c`, `T049a`, `T049b`, `T050b`, `T052b`, `T052c`, `T056a`, `T056b`, `T057b`, `T057c`, `T058b`, `T059a`, `T062a`, `T062b`, `T067a`, `T067b`
+**Primary tasks:** `T009c`, `T013b`, `T020a`, `T021a`, `T024c`, `T024d`, `T034a`, `T038a`, `T040a`, `T041a`, `T042a`, `T044a`, `T047a`, `T047b`, `T047c`, `T049a`, `T049b`, `T050b`, `T052b`, `T052c`, `T052d`, `T056a`, `T056b`, `T057b`, `T057c`, `T058b`, `T059a`, `T062a`, `T062b`, `T067a`, `T067b`, `T067e`
 
 **Why this batch exists:** the next implementation pass should first fix extraction leakage risk, matching integrity, warning truth, and artifact shape. Otherwise later review UX polish will sit on top of weak or misleading backend semantics.
 
@@ -108,7 +108,7 @@ Future coding-agent implementation should normally proceed by the canonical batc
 - schema-first extraction works without prefilled cells, optional field typing is honored, and style profiles remain helper-only rather than semantic exemplars
 - Eval mode creates a masked working copy, rejects Verify-plus-Eval combinations early, and preserves the minimal downstream-ready artifact contract without leaking target gold values
 - retrieval rescue is bounded and explicit, whole-document mode is optional rather than default, and dead `retrieval.chunk_size` config is gone
-- provider-unavailable state hard-fails at run start, warning propagation is truthful, and the structured-output ladder is bounded and testable
+- provider-unavailable state hard-fails at run start, warning propagation is truthful, and structured-output fallback stays bounded with explicit degraded-mode signaling when `json_object` fallback is used
 - proposal persistence uses `proposals.jsonl` plus an index or equivalent lookup structure
 - direct evidence requires anchored direct support, multiple quotes are supported when genuinely needed, and figure evidence subtypes are ranked and labeled correctly
 
@@ -581,6 +581,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - expose canonical provider token, locality, readiness, and structured-output capability information through the abstraction
   - support separate model identifier fields for text extraction and vision extraction in the provider config
   - validate guided-JSON or equivalent structured-output compatibility instead of assuming one wire format
+  - probe both `json_schema` and `json_object` compatibility for the configured provider-model path so negotiation is explicit and bounded
   - keep structured-output compatibility handling scoped so one provider-schema mismatch does not poison unrelated proposal attempts by default
 
 - [x] **T050b** Enforce provider-unavailable hard-fail semantics at run start.
@@ -610,9 +611,11 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [x] **T052b** Tighten structured-output recovery to one bounded ladder.
   - `json_schema` first
+  - explicit `json_object` fallback only when `json_schema` is unsupported for the active provider-model path
   - one stronger-instruction retry if the response is invalid
   - minimal JSON repair only for purely syntactic failures
   - otherwise mark extraction failed for the affected target
+  - do not use broad prompt-only unstructured fallback as default behavior
 
 - [x] **T052c** Normalize warning and status propagation end to end.
   - keep evidence-fallback mapping keys consistent from extraction artifacts through review APIs and UI summaries
@@ -623,6 +626,12 @@ The detailed task inventory below remains the source of truth for exact implemen
   - prevent silent fallback from a configured live path into an unlabeled stub or degraded path
   - persist the resulting mode and readiness status in run artifacts and summaries
   - record text model and vision model identifiers separately in run artifacts and summaries when both are used
+  - persist negotiated structured-output mode (`json_schema`, `json_object`, or `none`) and whether fallback was used
+
+- [ ] **T052d** Distinguish readiness and capability failure classes end to end.
+  - classify and persist at minimum: provider unreachable or unavailable, model unavailable or not loaded, `json_schema` unsupported with `json_object` fallback used, and no compatible structured mode available
+  - surface those classes consistently in diagnostics, run summaries, reviewer summaries, and UI-facing payloads
+  - avoid collapsing all classes into generic provider-unavailable warnings
 
 - [x] **T053** Implement the extraction request builder for LM Studio structured JSON:
   - assemble per-cell extraction requests from row context, column name, column description, style profile, retrieved passages, and relevant table/caption context
@@ -770,6 +779,12 @@ The detailed task inventory below remains the source of truth for exact implemen
   - cover direct-evidence thresholding, multi-quote support, and figure-evidence subtype ranking
   - cover `proposals.jsonl` plus index persistence behavior
 
+- [ ] **T067e** Add tests for structured-output negotiation and capability-truth classification.
+  - cover `json_schema` success and `json_object` fallback when `json_schema` is unsupported
+  - cover invalid-structure retry and syntactic-repair boundaries without introducing open-ended fallback
+  - cover reporting truth for provider unreachable, model unavailable, `json_schema` unsupported with fallback used, and no compatible structured mode
+  - cover negotiated structured-output mode and fallback-used persistence in run artifacts and summaries
+
 - [x] **T067b** Add backend tests for Eval-mode leakage protection and artifact emission.
   - target-cell gold values do not reach the extraction path in Eval mode
   - proposal and evidence artifacts include the minimal downstream-ready metadata contract
@@ -793,7 +808,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 **Goal:** make proposals reviewable, filterable, auditable, asset-backed, and safe for partial review and export.
 
 - [x] **T068** Implement normalized warning and status surfaces:
-  - define categories for ambiguous match, duplicate-row conflict, weak evidence, quote+page fallback without highlight, figure-derived evidence, no reviewed verified cells, completed-with-warnings run outcome, readiness failure, provider unavailable, and explicit disabled or degraded provider mode
+  - define categories for ambiguous match, duplicate-row conflict, weak evidence, quote+page fallback without highlight, figure-derived evidence, no reviewed verified cells, completed-with-warnings run outcome, readiness failure, provider unavailable, model unavailable, structured-mode capability mismatch, and explicit disabled or degraded provider mode
   - persist these statuses in run and proposal artifacts
   - expose them consistently through API payloads
 
@@ -868,6 +883,8 @@ The detailed task inventory below remains the source of truth for exact implemen
   - provider/model names, with text model and vision model identified separately when both were used
   - local vs cloud status
   - provider mode and readiness outcome
+  - negotiated structured-output mode and fallback-used flag
+  - readiness or capability failure reason classification when applicable
   - internally consistent counts and warning flags derived from persisted data rather than speculative UI state
 
 - [x] **T076b** Extend run-summary and reviewer-summary contracts for Eval-mode truth.
