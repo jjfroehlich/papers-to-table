@@ -361,13 +361,19 @@ If the provider is unavailable at startup (or the configured model IDs are not a
 Structured output behavior is negotiated per provider-model path:
 - Preferred: `json_schema`
 - Fallback: `json_object` (explicit degraded mode warning is recorded)
-- Hard fail: neither structured mode is supported
+- Bounded fallback when both structured modes are unavailable: prompt-only JSON mode with strict app-side parsing/validation and bounded retry/repair
+
+Response handling remains app-validated even in degraded mode:
+- parsed JSON is validated against the expected response schema
+- mixed outputs are cleaned with wrapper stripping and balanced-object extraction before final failure
+- LM Studio regex/grammar-style 400s are classified explicitly as structured-output backend incompatibility
 
 Readiness and capability failures are classified separately in run artifacts and UI surfaces:
 - Provider unreachable/unavailable
 - Model unavailable/not loaded
-- Structured-mode capability mismatch (no compatible structured mode)
 - Negotiated `json_object` fallback (degraded but compatible)
+- Negotiated prompt-only JSON fallback when `json_schema/json_object` are unavailable (degraded but compatible)
+- Structured-output backend incompatibility when LM Studio rejects regex/grammar constraints for the active request shape
 
 ---
 
@@ -376,6 +382,7 @@ Readiness and capability failures are classified separately in run artifacts and
 - `lm_studio` is the canonical live provider token for the local-first path.
 - The review summary surfaces provider mode directly so you can tell whether a run is `live local`, `live cloud`, `unavailable`, `disabled`, or `stub/demo`.
 - If a run uses `json_object` fallback, a `provider_degraded` warning is emitted so degraded structured-output mode is explicit.
+- If a run must use prompt-only JSON fallback, a `provider_degraded` warning is emitted so that degraded compatibility mode is explicit.
 - Parsing fallback, OCR fallback, duplicate-row conflicts, and evidence fallback remain visible as warnings or badges instead of being hidden.
 - Fallback evidence is never relabeled as exact evidence.
 - If the configured live provider is unreachable at startup, the run fails during readiness rather than pretending to finish with warnings.

@@ -562,13 +562,15 @@ The bounded structured-output fallback ladder is:
 
 1. `json_schema`
 2. if `json_schema` is unsupported for the configured provider-model path, fall back to `json_object` and mark provider mode as explicit degraded structured-output mode
-3. one retry with stronger instruction when the returned structure is invalid
-4. minimal JSON repair when the failure is purely syntactic
-5. otherwise mark extraction failed for that target
+3. if the active request shape triggers provider regex or grammar incompatibility, downgrade within the same bounded ladder and record explicit backend-incompatibility truth in run artifacts
+4. if both structured modes are unavailable for the configured provider-model path, use explicit degraded prompt-only JSON mode with the same app-side proposal validation contract
+5. one retry with stronger instruction when the returned structure is invalid
+6. minimal JSON repair when the failure is purely syntactic, including wrapper stripping and balanced-object extraction from mixed output
+7. otherwise mark extraction failed for that target
 
 The system must not add a longer implicit fallback ladder by default.
 
-Prompt-only broad fallback to unvalidated free-form output is not a baseline compatibility path in this phase.
+Prompt-only compatibility fallback is allowed only as a bounded degraded mode that still enforces app-side JSON parsing, schema validation, and proposal-contract validation. Open-ended unvalidated free-form fallback is not allowed.
 
 Long-text target fields must remain first-class extraction targets; the system must not systematically collapse them into empty, truncated, or schema-invalid outcomes merely because they exceed short-answer assumptions.
 
@@ -1299,7 +1301,9 @@ then the run fails during readiness with an actionable provider error and does n
 
 Given provider checks run during readiness or early extraction,
 when the system reports status in the UI, run summary, and persisted artifacts,
-then it distinguishes at minimum provider unreachable or unavailable, model unavailable or not loaded, `json_schema` unsupported with `json_object` fallback used, and no compatible structured mode available, and does not collapse those outcomes into one generic "provider unavailable" label.
+then it distinguishes at minimum provider unreachable or unavailable, model unavailable or not loaded, `json_schema` unsupported with `json_object` fallback used, and prompt-only JSON fallback used when `json_schema/json_object` are unavailable, and does not collapse those outcomes into one generic "provider unavailable" label.
+
+When a live provider rejects guided output because of backend regex or grammar incompatibility for the active request shape, the run artifacts must preserve that reason explicitly rather than flattening it into a generic malformed-JSON or provider-unreachable label.
 
 ### AC-12 Weak-evidence handling
 

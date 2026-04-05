@@ -1,0 +1,14 @@
+{
+  "column_name": "Link",
+  "field_type_guess": "text",
+  "expected_length": "long",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "URL with domain and path",
+  "unit_style": null,
+  "format_notes": "All are HTTPS URLs ending in .html or .org",
+  "example_risk": "low",
+  "generated_at": "2026-04-05T09:16:02.723981+00:00",
+  "source_column_count": 223,
+  "provider_mode": "live_llm"
+}

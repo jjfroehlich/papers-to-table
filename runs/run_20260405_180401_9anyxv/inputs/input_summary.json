@@ -1,0 +1,40 @@
+{
+  "run_id": "run_20260405_180401_9anyxv",
+  "table_path": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table\\literature_fixture.xlsx",
+  "schema_path": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table\\literature_fixture_schema.csv",
+  "pdf_dir": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table",
+  "resolved_inputs": {
+    "table_path": {
+      "source_kind": "config",
+      "logical_source": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table\\literature_fixture.xlsx",
+      "runtime_locator": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table\\literature_fixture.xlsx"
+    },
+    "schema_path": {
+      "source_kind": "config",
+      "logical_source": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table\\literature_fixture_schema.csv",
+      "runtime_locator": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table\\literature_fixture_schema.csv"
+    },
+    "pdf_dir": {
+      "source_kind": "config",
+      "logical_source": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table",
+      "runtime_locator": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table"
+    }
+  },
+  "output_dir": "D:\\code\\local\\extract-structured-info-from-papers\\runs",
+  "verify_mode": true,
+  "eval_mode": false,
+  "run_mode": "verify",
+  "prompt_version": null,
+  "prompt_hash": "03c1f8d95e6ab5ba996d96b40750e440d3a819f0ad1faca4c90d447321905795",
+  "config_hash": "d84332aeedfea09c294f3266f16b8d9d485ab43f0946dcfd2d30ef2265768f06",
+  "config_snapshot_path": "config.snapshot.json",
+  "schema_hash": "cb85a287e0071d47941d9619dce7cc4484246fbb22ff0b3f6ec6843296a82ff7",
+  "schema_version": null,
+  "parser_identity": "docling",
+  "parser_version": null,
+  "eval_artifacts": null,
+  "table_rows": 241,
+  "schema_columns": 42,
+  "pdf_count": 1,
+  "recorded_at": "2026-04-05T18:04:03.086044+00:00"
+}

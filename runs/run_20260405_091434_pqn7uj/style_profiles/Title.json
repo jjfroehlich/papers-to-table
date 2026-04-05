@@ -1,0 +1,14 @@
+{
+  "column_name": "Title",
+  "field_type_guess": "text",
+  "expected_length": "medium",
+  "tone": "formal",
+  "detail_level": "high",
+  "value_shape": "string with multiple clauses",
+  "unit_style": null,
+  "format_notes": "titles are free-form strings, no units",
+  "example_risk": "low",
+  "generated_at": "2026-04-05T09:15:55.171737+00:00",
+  "source_column_count": 226,
+  "provider_mode": "live_llm"
+}

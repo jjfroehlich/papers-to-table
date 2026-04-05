@@ -1,0 +1,14 @@
+{
+  "column_name": "General library design category",
+  "field_type_guess": "categorical",
+  "expected_length": "short",
+  "tone": "formal",
+  "detail_level": "medium",
+  "value_shape": "string identifiers without units",
+  "unit_style": null,
+  "format_notes": "Values are textual category names, no numeric or date components.",
+  "example_risk": "low",
+  "generated_at": "2026-04-05T09:17:07.853797+00:00",
+  "source_column_count": 63,
+  "provider_mode": "live_llm"
+}

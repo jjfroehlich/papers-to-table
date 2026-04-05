@@ -59,6 +59,7 @@ from backend.app.provider import (
     ProviderError,
     ProviderMode,
     StructuredOutputError,
+    _coerce_message_content,
     _try_repair_json,
     initialize_provider,
 )
@@ -581,6 +582,12 @@ class TestProviderJSON:
         result = _try_repair_json("This is completely not JSON at all")
         assert result is None
 
+    def test_repair_strips_think_wrapper_and_extracts_balanced_object(self):
+        raw = '<think>reasoning here</think>\nHere is the answer:\n{"proposed_value":"45.3","state":"found","rationale":null,"calculation":null,"numeric_value_form":null,"quotes":[]}\nThanks'
+        result = _try_repair_json(raw)
+        assert result is not None
+        assert result["state"] == "found"
+
 
 class TestProviderCapabilities:
     """T050: Provider capability contract."""
@@ -667,6 +674,15 @@ class TestProviderCapabilities:
         provider = build_provider(mock_config)
         assert isinstance(provider, LMStudioProvider)
 
+    def test_coerce_message_content_from_parts(self):
+        content = [
+            {"type": "text", "text": "{\"value\":"},
+            {"type": "text", "text": " \"ok\"}"},
+        ]
+        normalized = _coerce_message_content(content)
+        assert '{"value":' in normalized
+        assert '"ok"}' in normalized
+
     @pytest.mark.asyncio
     async def test_initialize_provider_accepts_json_object_mode(self):
         config = SimpleNamespace(token="lm_studio", base_url="http://localhost:1234")
@@ -692,7 +708,7 @@ class TestProviderCapabilities:
         assert mode.capabilities.structured_output_mode == "json_object"
 
     @pytest.mark.asyncio
-    async def test_initialize_provider_fails_when_no_compatible_structured_mode(self):
+    async def test_initialize_provider_allows_prompt_only_fallback_when_no_structured_mode(self):
         config = SimpleNamespace(token="lm_studio", base_url="http://localhost:1234")
         caps = ProviderCapabilities(
             supports_structured_output=False,
@@ -705,14 +721,16 @@ class TestProviderCapabilities:
             "probe_capabilities",
             new=AsyncMock(return_value=caps),
         ):
-            with pytest.raises(ProviderError) as exc:
-                await initialize_provider(
-                    config,
-                    text_model_id="test-model",
-                    vision_model_id=None,
-                )
-        assert "no compatible structured output mode" in str(exc.value).lower()
-        assert getattr(exc.value, "reason", None) == "no_compatible_structured_mode"
+            provider, mode = await initialize_provider(
+                config,
+                text_model_id="test-model",
+                vision_model_id=None,
+            )
+        assert isinstance(provider, LMStudioProvider)
+        assert mode.mode == "live_local"
+        assert mode.capabilities is not None
+        assert mode.capabilities.structured_output_mode == "none"
+        assert mode.structured_output_fallback_used is True
 
     @pytest.mark.asyncio
     async def test_chat_complete_structured_supports_json_object_mode(self):
@@ -770,6 +788,104 @@ class TestProviderCapabilities:
                     },
                     model_id="test-model",
                 )
+
+    @pytest.mark.asyncio
+    async def test_chat_complete_structured_supports_prompt_only_json_fallback(self):
+        provider = LMStudioProvider(base_url="http://localhost:1234")
+        provider.set_capabilities(
+            ProviderCapabilities(
+                supports_structured_output=False,
+                structured_output_mode="none",
+                model_id="test-model",
+                vision_capable=False,
+            )
+        )
+
+        with patch.object(
+            provider,
+            "_post_structured_payload",
+            new=AsyncMock(return_value='{"value": "ok"}'),
+        ):
+            result = await provider.chat_complete_structured(
+                messages=[{"role": "user", "content": "test"}],
+                response_schema={
+                    "type": "object",
+                    "properties": {"value": {"type": "string"}},
+                    "required": ["value"],
+                },
+                model_id="test-model",
+            )
+
+        assert result["value"] == "ok"
+
+    @pytest.mark.asyncio
+    async def test_chat_complete_structured_validates_schema_after_parse(self):
+        provider = LMStudioProvider(base_url="http://localhost:1234")
+        provider.set_capabilities(
+            ProviderCapabilities(
+                supports_structured_output=True,
+                structured_output_mode="json_object",
+                model_id="test-model",
+                vision_capable=False,
+            )
+        )
+
+        with patch.object(
+            provider,
+            "_post_structured_payload",
+            new=AsyncMock(side_effect=['{"state": "found"}', '{"state": "found"}']),
+        ):
+            with pytest.raises(StructuredOutputError) as exc:
+                await provider.chat_complete_structured(
+                    messages=[{"role": "user", "content": "test"}],
+                    response_schema={
+                        "type": "object",
+                        "properties": {"value": {"type": "string"}, "state": {"type": "string"}},
+                        "required": ["value", "state"],
+                    },
+                    model_id="test-model",
+                )
+        assert "missing required field 'value'" in str(exc.value)
+
+    @pytest.mark.asyncio
+    async def test_chat_complete_structured_downgrades_after_regex_incompatibility(self):
+        provider = LMStudioProvider(base_url="http://localhost:1234")
+        provider.set_capabilities(
+            ProviderCapabilities(
+                supports_structured_output=True,
+                structured_output_mode="json_schema",
+                model_id="test-model",
+                vision_capable=False,
+            )
+        )
+
+        with patch.object(
+            provider,
+            "_post_structured_payload",
+            new=AsyncMock(
+                side_effect=[
+                    StructuredOutputError(
+                        "LM Studio rejected structured-output grammar/regex constraints: Failed to process regex",
+                        reason="structured_backend_incompatible",
+                    ),
+                    '{"value": "ok"}',
+                ]
+            ),
+        ):
+            result = await provider.chat_complete_structured(
+                messages=[{"role": "user", "content": "test"}],
+                response_schema={
+                    "type": "object",
+                    "properties": {"value": {"type": "string"}},
+                    "required": ["value"],
+                },
+                model_id="test-model",
+            )
+
+        assert result["value"] == "ok"
+        assert provider._capabilities is not None
+        assert provider._capabilities.structured_output_mode == "json_object"
+        assert provider._capabilities.structured_output_reason == "structured_backend_incompatible"
 
 
 # ===========================================================================
@@ -1252,6 +1368,43 @@ class TestExtractionOrchestrator:
         rationale = "- Scaffold implanted in tibial defect.\n- BVF was 45.3%."
         normalized = _normalize_rationale(rationale)
         assert normalized == rationale
+
+    def test_rationale_list_is_normalized(self):
+        from backend.app.extraction import _normalize_rationale
+
+        rationale = ["Scaffold implanted in tibial defect", "BVF was 45.3%"]
+        normalized = _normalize_rationale(rationale)
+        assert normalized is not None
+        assert "- Scaffold implanted in tibial defect." in normalized
+
+    async def test_list_shaped_llm_fields_do_not_crash_extraction(
+        self, run_dir: pathlib.Path, minimal_doc_dict: dict
+    ):
+        provider = self._make_mock_provider(response={
+            "proposed_value": ["Tibial defect"],
+            "state": "found",
+            "rationale": ["Scaffold implanted in tibial defect", "BVF was 45.3%"],
+            "calculation": ["No calculation needed"],
+            "quotes": [{"text": ["scaffold was implanted in the tibial defect"], "page": "1", "source_type": ["direct", "quote"]}],
+        })
+
+        proposal = await extract_cell(
+            run_id="run_test",
+            pdf_id="paper_test",
+            row_id="row_test",
+            cell_id="cell_listy",
+            column_name="Integration site",
+            column_description="Site of scaffold implantation",
+            row_context={"Title": "Scaffold study"},
+            doc_dict=minimal_doc_dict,
+            run_dir=run_dir,
+            provider=provider,
+            text_model_id="test-model",
+        )
+
+        assert proposal.state == ProposalState.found
+        assert proposal.proposed_value == "Tibial defect"
+        assert proposal.primary_evidence_id is not None
 
 
 class TestFigureReview:

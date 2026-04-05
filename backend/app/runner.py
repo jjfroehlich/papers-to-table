@@ -411,12 +411,14 @@ async def run_pipeline(
                 "provider_unreachable": WC.provider_unreachable.value,
                 "model_unavailable": WC.model_unavailable.value,
                 "no_compatible_structured_mode": WC.structured_mode_capability_mismatch.value,
+                "structured_backend_incompatible": WC.structured_mode_capability_mismatch.value,
             }.get(provider_init_reason, WC.provider_unreachable.value)
 
             warning_prefix = {
                 "provider_unreachable": "Provider unreachable",
                 "model_unavailable": "Model unavailable",
                 "no_compatible_structured_mode": "No compatible structured-output mode",
+                "structured_backend_incompatible": "Structured-output backend incompatibility",
             }.get(provider_init_reason, "Provider unavailable")
 
             run_data["provider_mode"] = "unavailable"
@@ -473,11 +475,35 @@ async def run_pipeline(
                     "category": WC.provider_degraded.value,
                     "message": (
                         "Provider is running in degraded structured-output mode (json_object fallback); "
-                        "json_schema is unavailable for this model/runtime combination."
+                        + (
+                            "LM Studio rejected structured-output grammar/regex constraints for this request shape."
+                            if getattr(caps, "structured_output_reason", None) == "structured_backend_incompatible"
+                            else "json_schema is unavailable for this model/runtime combination."
+                        )
                     ),
                     "context": {
                         "provider": config.provider.token,
                         "structured_output_mode": "json_object",
+                        "structured_output_reason": getattr(caps, "structured_output_reason", None),
+                        "structured_output_error": getattr(caps, "structured_output_error", None),
+                    },
+                })
+            elif caps and getattr(caps, "structured_output_mode", None) == "none":
+                run_data.setdefault("warnings", []).append({
+                    "category": WC.provider_degraded.value,
+                    "message": (
+                        "Provider is running in degraded prompt-only JSON mode; "
+                        + (
+                            "LM Studio rejected structured-output grammar/regex constraints for this request shape."
+                            if getattr(caps, "structured_output_reason", None) == "structured_backend_incompatible"
+                            else "json_schema/json_object are unavailable for this model/runtime combination."
+                        )
+                    ),
+                    "context": {
+                        "provider": config.provider.token,
+                        "structured_output_mode": "none",
+                        "structured_output_reason": getattr(caps, "structured_output_reason", None),
+                        "structured_output_error": getattr(caps, "structured_output_error", None),
                     },
                 })
             run_data = sync_provider_request_counts(run_data, provider, run_dir)
@@ -770,6 +796,18 @@ async def run_pipeline(
             )
 
             proposals_generated += 1
+
+        runtime_caps = getattr(provider, "_capabilities", None)
+        if provider_mode and runtime_caps is not None:
+            provider_mode.capabilities = runtime_caps
+            provider_mode.structured_output_mode = runtime_caps.structured_output_mode
+            provider_mode.structured_output_fallback_used = runtime_caps.structured_output_mode in ("json_object", "none")
+            if getattr(runtime_caps, "structured_output_reason", None):
+                provider_mode.readiness_reason = runtime_caps.structured_output_reason
+                run_data["provider_readiness_reason"] = runtime_caps.structured_output_reason
+            run_data["structured_output_mode"] = runtime_caps.structured_output_mode
+            run_data["structured_output_fallback_used"] = runtime_caps.structured_output_mode in ("json_object", "none")
+            write_json(run_dir / "provider_mode.json", provider_mode.model_dump())
 
         run_data["proposals_generated"] = proposals_generated
         proposals = load_proposals(run_dir)

@@ -1,0 +1,19 @@
+{
+  "token": "lm_studio",
+  "locality": "local",
+  "mode": "live_local",
+  "text_model_id": "nvidia/nemotron-3-nano-4b",
+  "vision_model_id": "zai-org/glm-4.6v-flash",
+  "capabilities": {
+    "supports_structured_output": false,
+    "structured_output_mode": "none",
+    "model_id": "nvidia/nemotron-3-nano-4b",
+    "vision_capable": true,
+    "probed_at": "2026-04-05T09:14:35.200247+00:00"
+  },
+  "structured_output_mode": "none",
+  "structured_output_fallback_used": true,
+  "readiness_error": null,
+  "readiness_reason": null,
+  "recorded_at": "2026-04-05T09:14:37.094047+00:00"
+}

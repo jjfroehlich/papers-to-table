@@ -1,0 +1,14 @@
+{
+  "column_name": "Promoter",
+  "field_type_guess": "categorical",
+  "expected_length": "medium",
+  "tone": "formal",
+  "detail_level": "high",
+  "value_shape": "string with optional comma-separated terms",
+  "unit_style": null,
+  "format_notes": "Values are textual promoter names; commas may separate name and source (e.g., \"PGK, tet-OFF\")",
+  "example_risk": "low",
+  "generated_at": "2026-04-05T09:16:45.670927+00:00",
+  "source_column_count": 67,
+  "provider_mode": "live_llm"
+}

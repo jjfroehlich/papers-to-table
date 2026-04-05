@@ -1,0 +1,14 @@
+{
+  "column_name": "If episomal: Ori in backbone?",
+  "field_type_guess": "mixed",
+  "expected_length": "medium",
+  "tone": "formal",
+  "detail_level": "high",
+  "value_shape": "text statement with optional parenthetical explanation",
+  "unit_style": null,
+  "format_notes": "Values are textual 'yes' responses possibly followed by explanatory parentheses; no numeric units.",
+  "example_risk": "low",
+  "generated_at": "2026-04-05T09:45:31.353799+00:00",
+  "source_column_count": 11,
+  "provider_mode": "live_llm"
+}

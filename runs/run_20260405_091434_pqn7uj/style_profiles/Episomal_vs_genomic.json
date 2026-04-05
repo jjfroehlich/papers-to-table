@@ -1,0 +1,14 @@
+{
+  "column_name": "Episomal vs genomic",
+  "field_type_guess": "categorical",
+  "expected_length": "short",
+  "tone": "formal",
+  "detail_level": "high",
+  "value_shape": "single word string",
+  "unit_style": null,
+  "format_notes": "Values are strings indicating genomic integration; no units.",
+  "example_risk": "none",
+  "generated_at": "2026-04-05T09:16:32.066331+00:00",
+  "source_column_count": 125,
+  "provider_mode": "live_llm"
+}

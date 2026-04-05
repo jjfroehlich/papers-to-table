@@ -1,0 +1,14 @@
+{
+  "column_name": "Species",
+  "field_type_guess": "categorical",
+  "expected_length": "medium",
+  "tone": "neutral",
+  "detail_level": "high",
+  "value_shape": "mixed text with optional slash-separated combo",
+  "unit_style": null,
+  "format_notes": "Values are species identifiers; may contain slash for hybrid entries.",
+  "example_risk": "low",
+  "generated_at": "2026-04-05T09:16:26.631821+00:00",
+  "source_column_count": 177,
+  "provider_mode": "live_llm"
+}

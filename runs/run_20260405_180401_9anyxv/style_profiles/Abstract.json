@@ -1,0 +1,14 @@
+{
+  "column_name": "Abstract",
+  "field_type_guess": "text",
+  "expected_length": "long",
+  "tone": "technical",
+  "detail_level": "medium",
+  "value_shape": "free text",
+  "unit_style": null,
+  "format_notes": null,
+  "example_risk": "none",
+  "generated_at": "2026-04-05T18:05:43.160651+00:00",
+  "source_column_count": 202,
+  "provider_mode": "heuristic"
+}

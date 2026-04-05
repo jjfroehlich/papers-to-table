@@ -1,0 +1,14 @@
+{
+  "column_name": "Integration method",
+  "field_type_guess": "categorical",
+  "expected_length": "short",
+  "tone": "neutral",
+  "detail_level": "medium",
+  "value_shape": "single word code",
+  "unit_style": null,
+  "format_notes": "Values are short, space‑free strings representing integration method codes.",
+  "example_risk": "low",
+  "generated_at": "2026-04-05T09:16:37.474770+00:00",
+  "source_column_count": 60,
+  "provider_mode": "live_llm"
+}

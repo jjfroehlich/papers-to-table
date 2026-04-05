@@ -42,6 +42,8 @@ class ProviderCapabilities(BaseModel):
     supports_structured_output: bool = False
     structured_output_mode: str = "none"
     """One of: 'json_schema', 'json_object', or 'none'."""
+    structured_output_reason: Optional[str] = None
+    structured_output_error: Optional[str] = None
     model_id: Optional[str] = None
     vision_capable: bool = False
     probed_at: Optional[str] = None
@@ -162,6 +164,7 @@ class ProviderAdapter(abc.ABC):
         else:
             mode = "live_local"
         structured_output_mode = capabilities.structured_output_mode if capabilities else None
+        fallback_used = structured_output_mode in ("json_object", "none")
         return ProviderMode(
             token=self.token,
             locality=self.locality.value,
@@ -170,7 +173,7 @@ class ProviderAdapter(abc.ABC):
             vision_model_id=vision_model_id,
             capabilities=capabilities,
             structured_output_mode=structured_output_mode,
-            structured_output_fallback_used=structured_output_mode == "json_object",
+            structured_output_fallback_used=fallback_used,
             readiness_error=readiness_error,
             readiness_reason=readiness_reason,
             recorded_at=datetime.now(timezone.utc).isoformat(),
@@ -221,39 +224,156 @@ def _try_repair_json(raw: str) -> Optional[dict]:
 
     Handles:
     - markdown code fences
+    - wrapper tags such as <think>...</think>
+    - balanced-object extraction from mixed output
     - trailing commas
-    - single quotes
     - truncated output (best-effort)
     """
-    # Strip markdown fences
-    cleaned = raw.strip()
-    if cleaned.startswith("```"):
-        lines = cleaned.split("\n")
-        inner = [l for l in lines if not l.startswith("```")]
-        cleaned = "\n".join(inner).strip()
-
-    # First try: direct parse
-    try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError:
-        pass
-
-    # Second try: extract first JSON object
-    match = re.search(r"\{.*\}", cleaned, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group(0))
-        except json.JSONDecodeError:
-            pass
-
-    # Third try: remove trailing commas
-    no_trailing = re.sub(r",\s*([}\]])", r"\1", cleaned)
-    try:
-        return json.loads(no_trailing)
-    except json.JSONDecodeError:
-        pass
-
+    cleaned = _strip_json_wrappers(raw)
+    for candidate in (cleaned, _extract_balanced_json_object(cleaned)):
+        parsed = _parse_json_candidate(candidate)
+        if isinstance(parsed, dict):
+            return parsed
     return None
+
+
+def _strip_json_wrappers(raw: str) -> str:
+    cleaned = raw.strip()
+    cleaned = re.sub(r"<(think|analysis)[^>]*>.*?</\1>", "", cleaned, flags=re.IGNORECASE | re.DOTALL)
+    if "```" in cleaned:
+        lines = cleaned.splitlines()
+        cleaned = "\n".join(line for line in lines if not line.strip().startswith("```"))
+    return cleaned.strip()
+
+
+def _extract_balanced_json_object(text: str) -> Optional[str]:
+    for start_index, char in enumerate(text):
+        if char != "{":
+            continue
+        depth = 0
+        in_string = False
+        escaped = False
+        for index in range(start_index, len(text)):
+            current = text[index]
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif current == "\\":
+                    escaped = True
+                elif current == '"':
+                    in_string = False
+                continue
+            if current == '"':
+                in_string = True
+            elif current == "{":
+                depth += 1
+            elif current == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[start_index:index + 1]
+    return None
+
+
+def _parse_json_candidate(candidate: Optional[str]) -> Optional[object]:
+    if not candidate:
+        return None
+    for raw_candidate in (candidate, re.sub(r",\s*([}\]])", r"\1", candidate)):
+        try:
+            return json.loads(raw_candidate)
+        except json.JSONDecodeError:
+            continue
+    return None
+
+
+def _value_matches_json_type(value: object, expected_type: str) -> bool:
+    if expected_type == "null":
+        return value is None
+    if expected_type == "string":
+        return isinstance(value, str)
+    if expected_type == "integer":
+        return isinstance(value, int) and not isinstance(value, bool)
+    if expected_type == "number":
+        return (isinstance(value, int) or isinstance(value, float)) and not isinstance(value, bool)
+    if expected_type == "boolean":
+        return isinstance(value, bool)
+    if expected_type == "object":
+        return isinstance(value, dict)
+    if expected_type == "array":
+        return isinstance(value, list)
+    return True
+
+
+def _validate_against_schema(value: object, schema: dict, path: str = "$") -> None:
+    allowed_types = schema.get("type")
+    if allowed_types is not None:
+        type_options = allowed_types if isinstance(allowed_types, list) else [allowed_types]
+        if not any(_value_matches_json_type(value, str(option)) for option in type_options):
+            expected = ", ".join(str(option) for option in type_options)
+            actual = type(value).__name__
+            raise StructuredOutputError(f"Schema validation failed at {path}: expected {expected}, got {actual}.")
+
+    if "enum" in schema and value not in schema["enum"]:
+        raise StructuredOutputError(f"Schema validation failed at {path}: value {value!r} is not in enum {schema['enum']!r}.")
+
+    if value is None:
+        return
+
+    if isinstance(value, dict):
+        required = schema.get("required", [])
+        for field_name in required:
+            if field_name not in value:
+                raise StructuredOutputError(f"Schema validation failed at {path}: missing required field '{field_name}'.")
+        for field_name, field_schema in schema.get("properties", {}).items():
+            if field_name in value:
+                _validate_against_schema(value[field_name], field_schema, f"{path}.{field_name}")
+        return
+
+    if isinstance(value, list) and "items" in schema:
+        for index, item in enumerate(value):
+            _validate_against_schema(item, schema["items"], f"{path}[{index}]")
+
+
+def _parse_and_validate_response(raw: str, response_schema: dict) -> dict:
+    parsed = _try_repair_json(raw)
+    if not isinstance(parsed, dict):
+        raise StructuredOutputError(f"LM Studio returned malformed JSON after bounded recovery: {raw[:200]}")
+    _validate_against_schema(parsed, response_schema)
+    return parsed
+
+
+def _classify_lm_studio_response_error(status_code: int, body_text: str) -> tuple[Optional[str], Optional[str]]:
+    body_preview = body_text[:300]
+    if status_code == 400 and re.search(r"failed to process regex|regex|grammar", body_text, flags=re.IGNORECASE):
+        return (
+            "structured_backend_incompatible",
+            f"LM Studio rejected structured-output grammar/regex constraints: {body_preview}",
+        )
+    return None, None
+
+
+def _fallback_modes_for(structured_mode: str) -> list[str]:
+    if structured_mode == "json_schema":
+        return ["json_schema", "json_object", "none"]
+    if structured_mode == "json_object":
+        return ["json_object", "none"]
+    return ["none"]
+
+
+def _coerce_message_content(raw: Any) -> str:
+    if isinstance(raw, str):
+        return raw
+    if isinstance(raw, list):
+        parts: list[str] = []
+        for item in raw:
+            coerced = _coerce_message_content(item)
+            if coerced:
+                parts.append(coerced)
+        return "\n".join(parts).strip()
+    if isinstance(raw, dict):
+        if "text" in raw:
+            return _coerce_message_content(raw.get("text"))
+        return json.dumps(raw, ensure_ascii=False, sort_keys=True)
+    return str(raw)
 
 
 # ---------------------------------------------------------------------------
@@ -357,18 +477,22 @@ class LMStudioProvider(ProviderAdapter):
         # Probe structured-output support (T050)
         # Try json_schema first (stricter), then json_object
         effective_model = text_model_id
-        structured_mode = await self._probe_structured_output_mode(effective_model)
+        structured_mode, structured_reason, structured_error = await self._probe_structured_output_mode(effective_model)
 
         return ProviderCapabilities(
             supports_structured_output=structured_mode != "none",
             structured_output_mode=structured_mode,
+            structured_output_reason=structured_reason,
+            structured_output_error=structured_error,
             model_id=effective_model,
             vision_capable=vision_model_id is not None,
             probed_at=now,
         )
 
-    async def _probe_structured_output_mode(self, model_id: str) -> str:
+    async def _probe_structured_output_mode(self, model_id: str) -> tuple[str, Optional[str], Optional[str]]:
         """Probe best supported structured mode for the live extraction path."""
+        structured_reason: Optional[str] = None
+        structured_error: Optional[str] = None
         try:
             test_schema = {
                 "type": "object",
@@ -393,10 +517,13 @@ class LMStudioProvider(ProviderAdapter):
                     f"{self._base_url}/v1/chat/completions", json=payload
                 )
                 if resp.status_code == 200:
-                    content = resp.json()["choices"][0]["message"]["content"]
-                    parsed = _try_repair_json(content)
-                    if isinstance(parsed, dict):
-                        return "json_schema"
+                    content = _coerce_message_content(resp.json()["choices"][0]["message"]["content"])
+                    _parse_and_validate_response(content, test_schema)
+                    return "json_schema", None, None
+                reason, message = _classify_lm_studio_response_error(resp.status_code, resp.text)
+                if reason:
+                    structured_reason = reason
+                    structured_error = message
         except Exception:
             pass
 
@@ -417,13 +544,16 @@ class LMStudioProvider(ProviderAdapter):
                     f"{self._base_url}/v1/chat/completions", json=payload
                 )
                 if resp.status_code == 200:
-                    content = resp.json()["choices"][0]["message"]["content"]
-                    parsed = _try_repair_json(content)
-                    if isinstance(parsed, dict):
-                        return "json_object"
+                    content = _coerce_message_content(resp.json()["choices"][0]["message"]["content"])
+                    _parse_and_validate_response(content, test_schema)
+                    return "json_object", structured_reason, structured_error
+                reason, message = _classify_lm_studio_response_error(resp.status_code, resp.text)
+                if reason and not structured_reason:
+                    structured_reason = reason
+                    structured_error = message
         except Exception:
             pass
-        return "none"
+        return "none", structured_reason, structured_error
 
     # --- Text completion ---
 
@@ -480,53 +610,96 @@ class LMStudioProvider(ProviderAdapter):
         max_tokens: int = 2048,
         temperature: float = 0.0,
     ) -> dict:
-        """Structured-output chat completion with one bounded recovery ladder."""
+        """Structured-output chat completion with one bounded recovery ladder.
+
+        Ladder:
+        1) json_schema if supported
+        2) json_object if supported
+        3) prompt-only JSON mode (no response_format), still parsed and bounded-recovered
+        """
         caps = self._capabilities
         structured_mode = caps.structured_output_mode if caps else "none"
-        if structured_mode not in ("json_schema", "json_object"):
-            raise StructuredOutputError("A structured output mode is required (json_schema or json_object).")
+        if structured_mode not in ("json_schema", "json_object", "none"):
+            structured_mode = "none"
 
-        payload = self._build_payload(
-            messages, model_id, max_tokens, temperature, response_schema, structured_mode
-        )
+        last_error: Optional[Exception] = None
         try:
-            first_raw = await self._post_structured_payload(payload, model_id)
-            try:
-                return json.loads(first_raw)
-            except json.JSONDecodeError:
-                self._bump("completion_retry_attempts")
-                stronger_retry_payload = self._build_payload(
-                    list(messages) + [
-                        {
-                            "role": "user",
-                            "content": (
-                                "Your previous response was not valid JSON. Return ONLY a JSON object "
-                                f"that matches this schema exactly: {json.dumps(response_schema)}"
-                            ),
-                        }
-                    ],
-                    model_id,
-                    min(max_tokens, 1024),
-                    temperature,
-                    response_schema,
-                    structured_mode,
-                )
-                retry_raw = await self._post_structured_payload(stronger_retry_payload, model_id)
+            for mode in _fallback_modes_for(structured_mode):
                 try:
-                    return json.loads(retry_raw)
-                except json.JSONDecodeError:
-                    repaired = _try_repair_json(retry_raw)
-                    if repaired is not None:
-                        return repaired
-                    raise StructuredOutputError(
-                        f"LM Studio returned malformed JSON after bounded recovery: {retry_raw[:200]}"
+                    return await self._complete_structured_with_mode(
+                        messages=messages,
+                        response_schema=response_schema,
+                        model_id=model_id,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        structured_mode=mode,
+                        post_method=self._post_structured_payload,
                     )
+                except StructuredOutputError as e:
+                    last_error = e
+                    if getattr(e, "reason", None) == "structured_backend_incompatible":
+                        self._record_structured_backend_incompatibility(e, mode)
+                        continue
+                    raise
+            if last_error is not None:
+                raise last_error
+            raise StructuredOutputError("Structured completion failed without a recorded error.")
         except (ProviderError, StructuredOutputError, ModelUnavailableError, ProviderTimeoutError):
             raise
         except httpx.TimeoutException as e:
             raise ProviderTimeoutError(f"Request timed out: {e}") from e
         except Exception as e:
             raise ProviderError(f"LM Studio request failed: {e}") from e
+
+    async def _complete_structured_with_mode(
+        self,
+        messages: list[dict],
+        response_schema: dict,
+        model_id: str,
+        max_tokens: int,
+        temperature: float,
+        structured_mode: str,
+        post_method,
+    ) -> dict:
+        payload = self._build_payload(
+            messages, model_id, max_tokens, temperature, response_schema, structured_mode
+        )
+        try:
+            first_raw = await post_method(payload, model_id)
+            return _parse_and_validate_response(first_raw, response_schema)
+        except StructuredOutputError as first_error:
+            if getattr(first_error, "reason", None) == "structured_backend_incompatible":
+                raise
+            self._bump("completion_retry_attempts")
+            retry_payload = self._build_payload(
+                list(messages) + [
+                    {
+                        "role": "user",
+                        "content": (
+                            "Your previous response did not satisfy the required JSON contract. "
+                            "Return ONLY one JSON object with no prose, no code fences, and no wrapper text. "
+                            f"Schema: {json.dumps(response_schema)}. Validation issue: {str(first_error)}"
+                        ),
+                    }
+                ],
+                model_id,
+                min(max_tokens, 1024),
+                temperature,
+                response_schema,
+                structured_mode,
+            )
+            retry_raw = await post_method(retry_payload, model_id)
+            return _parse_and_validate_response(retry_raw, response_schema)
+
+    def _record_structured_backend_incompatibility(self, error: StructuredOutputError, attempted_mode: str) -> None:
+        caps = self._capabilities
+        if caps is None:
+            return
+        remaining_modes = _fallback_modes_for(attempted_mode)
+        next_mode = remaining_modes[1] if len(remaining_modes) > 1 else "none"
+        caps.structured_output_mode = next_mode
+        caps.structured_output_reason = getattr(error, "reason", None) or "structured_backend_incompatible"
+        caps.structured_output_error = str(error)
 
     async def _post_structured_payload(self, payload: dict, model_id: str) -> str:
         async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
@@ -543,10 +716,13 @@ class LMStudioProvider(ProviderAdapter):
         if resp.status_code == 503:
             raise ModelUnavailableError("LM Studio is busy or model is not loaded.")
         if resp.status_code != 200:
+            reason, message = _classify_lm_studio_response_error(resp.status_code, resp.text)
+            if reason:
+                raise StructuredOutputError(message or resp.text[:300], reason=reason)
             raise ProviderError(
                 f"LM Studio returned HTTP {resp.status_code}: {resp.text[:300]}"
             )
-        return resp.json()["choices"][0]["message"]["content"]
+        return _coerce_message_content(resp.json()["choices"][0]["message"]["content"])
 
     def _build_payload(
         self,
@@ -615,50 +791,31 @@ class LMStudioProvider(ProviderAdapter):
 
         caps = self._capabilities
         structured_mode = caps.structured_output_mode if caps else "none"
-        if structured_mode not in ("json_schema", "json_object"):
-            raise StructuredOutputError("A structured output mode is required (json_schema or json_object).")
+        if structured_mode not in ("json_schema", "json_object", "none"):
+            structured_mode = "none"
 
-        payload = self._build_payload(
-            vision_messages,
-            model_id,
-            max_tokens,
-            temperature,
-            response_schema,
-            structured_mode,
-        )
-
+        last_error: Optional[Exception] = None
         try:
-            first_raw = await self._post_vision_payload(payload, model_id)
-            try:
-                return json.loads(first_raw)
-            except json.JSONDecodeError:
-                self._bump("completion_retry_attempts")
-                stronger_retry_payload = self._build_payload(
-                    vision_messages + [
-                        {
-                            "role": "user",
-                            "content": (
-                                "Return ONLY valid JSON that matches this schema exactly: "
-                                f"{json.dumps(response_schema)}"
-                            ),
-                        }
-                    ],
-                    model_id,
-                    min(max_tokens, 1024),
-                    temperature,
-                    response_schema,
-                    structured_mode,
-                )
-                retry_raw = await self._post_vision_payload(stronger_retry_payload, model_id)
+            for mode in _fallback_modes_for(structured_mode):
                 try:
-                    return json.loads(retry_raw)
-                except json.JSONDecodeError:
-                    repaired = _try_repair_json(retry_raw)
-                    if repaired is not None:
-                        return repaired
-                    raise StructuredOutputError(
-                        f"Vision model returned malformed JSON after bounded recovery: {retry_raw[:200]}"
+                    return await self._complete_structured_with_mode(
+                        messages=vision_messages,
+                        response_schema=response_schema,
+                        model_id=model_id,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        structured_mode=mode,
+                        post_method=self._post_vision_payload,
                     )
+                except StructuredOutputError as e:
+                    last_error = e
+                    if getattr(e, "reason", None) == "structured_backend_incompatible":
+                        self._record_structured_backend_incompatibility(e, mode)
+                        continue
+                    raise
+            if last_error is not None:
+                raise last_error
+            raise StructuredOutputError("Vision structured completion failed without a recorded error.")
         except (ProviderError, StructuredOutputError):
             raise
         except httpx.TimeoutException as e:
@@ -681,10 +838,13 @@ class LMStudioProvider(ProviderAdapter):
         if resp.status_code == 503:
             raise ModelUnavailableError("LM Studio is busy or vision model is not loaded.")
         if resp.status_code != 200:
+            reason, message = _classify_lm_studio_response_error(resp.status_code, resp.text)
+            if reason:
+                raise StructuredOutputError(message or resp.text[:200], reason=reason)
             raise ProviderError(
                 f"Vision completion failed HTTP {resp.status_code}: {resp.text[:200]}"
             )
-        return resp.json()["choices"][0]["message"]["content"]
+        return _coerce_message_content(resp.json()["choices"][0]["message"]["content"])
 
     def set_capabilities(self, caps: ProviderCapabilities) -> None:
         """Set probed capabilities so they are reused across requests."""
@@ -774,12 +934,6 @@ async def initialize_provider(
     try:
         provider = build_provider(config)
         caps = await provider.probe_capabilities(text_model_id, vision_model_id)
-        if caps.structured_output_mode == "none":
-            raise StructuredOutputError(
-                "Configured provider/model has no compatible structured output mode "
-                "(json_schema/json_object unavailable).",
-                reason="no_compatible_structured_mode",
-            )
         if isinstance(provider, LMStudioProvider):
             provider.set_capabilities(caps)
         mode = provider.get_provider_mode(
@@ -787,7 +941,7 @@ async def initialize_provider(
             vision_model_id=vision_model_id,
             capabilities=caps,
             readiness_error=None,
-            readiness_reason=None,
+            readiness_reason=caps.structured_output_reason,
         )
         return provider, mode
     except ProviderError as e:

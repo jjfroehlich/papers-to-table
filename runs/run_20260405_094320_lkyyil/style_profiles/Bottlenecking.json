@@ -1,0 +1,14 @@
+{
+  "column_name": "Bottlenecking",
+  "field_type_guess": "categorical",
+  "expected_length": "medium",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "mixed textual phrases",
+  "unit_style": null,
+  "format_notes": "Values are free‑text descriptions; may contain commas and the phrase 'max complexity'.",
+  "example_risk": "medium",
+  "generated_at": "2026-04-05T09:45:04.811883+00:00",
+  "source_column_count": 49,
+  "provider_mode": "live_llm"
+}

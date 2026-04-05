@@ -1,0 +1,14 @@
+{
+  "column_name": "what predicts activity? (e.g. accessible -> active in MPRA?)",
+  "field_type_guess": "text",
+  "expected_length": "medium",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "text description with embedded numbers and units",
+  "unit_style": null,
+  "format_notes": "Contains textual explanations with occasional numeric values (percentages, correlation coefficients) and no explicit units.",
+  "example_risk": "low",
+  "generated_at": "2026-04-05T09:17:37.036735+00:00",
+  "source_column_count": 7,
+  "provider_mode": "live_llm"
+}

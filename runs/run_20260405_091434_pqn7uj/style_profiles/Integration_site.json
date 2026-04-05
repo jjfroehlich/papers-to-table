@@ -1,0 +1,14 @@
+{
+  "column_name": "Integration site",
+  "field_type_guess": "categorical",
+  "expected_length": "medium",
+  "tone": "formal",
+  "detail_level": "high",
+  "value_shape": "text list of integration site identifiers",
+  "unit_style": null,
+  "format_notes": "Values are free‑form strings; some include parentheses and spaces (e.g., LP (Matreyek)). No units.",
+  "example_risk": "low",
+  "generated_at": "2026-04-05T09:16:39.798118+00:00",
+  "source_column_count": 53,
+  "provider_mode": "live_llm"
+}

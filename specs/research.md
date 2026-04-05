@@ -805,7 +805,7 @@ The app should be **structured-output-first**, with:
 - typed contracts
 - capability probes
 - provider-specific compatibility handling
-- a bounded recovery ladder: `json_schema`, `json_object` fallback only when `json_schema` is unsupported, one stronger retry, minimal syntactic repair, then fail
+- a bounded recovery ladder: `json_schema`, `json_object` fallback only when `json_schema` is unsupported, explicit downgrade when the active request shape hits backend regex or grammar incompatibility, explicit prompt-only JSON fallback when both structured modes are unavailable, one stronger retry, bounded syntactic repair with wrapper stripping and balanced-object extraction, then fail
 
 ## Why this conclusion matters
 
@@ -832,7 +832,7 @@ This supports:
 
 That preserves the core contract (validated structured proposals) without requiring open-ended prompt-only parsing behavior.
 
-In contrast, broad prompt-only fallback increases silent contract drift risk and can blur the boundary between recoverable transport or formatting errors and true extraction failures.
+In contrast, broad prompt-only fallback increases silent contract drift risk and can blur the boundary between recoverable transport or formatting errors and true extraction failures. If prompt-only fallback is used, it should remain explicit, bounded, app-validated, and schema-validated.
 
 ### Why readiness truth and capability truth must stay separate
 
@@ -841,7 +841,7 @@ Provider reachability and structured-output compatibility are different failure 
 - provider unreachable or unavailable usually indicates service startup, networking, or endpoint problems
 - model unavailable or not loaded indicates model selection or provider-side model readiness issues
 - `json_schema` unsupported indicates capability mismatch where bounded `json_object` fallback may still preserve the proposal contract
-- no compatible structured mode available indicates hard capability failure where truthful target or run failure is required
+- no compatible structured mode available indicates explicit degraded prompt-only JSON fallback should be used when app-side parsing and schema validation can still preserve the proposal contract; otherwise truthful target-level failure is required
 
 Collapsing these into one generic provider-unavailable label hides actionable diagnosis and can mislead operators about whether fallback was safely used.
 
@@ -1482,13 +1482,15 @@ Use bounded structured-output recovery:
 
 1. `json_schema` first
 2. `json_object` fallback only when `json_schema` is unsupported for the configured provider-model path
-3. one stronger-instruction retry if invalid
-4. minimal JSON repair for purely syntactic errors
-5. otherwise clean extraction failure
+3. explicit downgrade when the active request shape hits backend regex or grammar incompatibility
+4. prompt-only JSON fallback only when both structured modes are unavailable for the configured provider-model path
+5. one stronger-instruction retry if invalid
+6. minimal JSON repair for purely syntactic errors, including wrapper stripping and balanced-object extraction
+7. otherwise clean extraction failure
 
 Prefer honest bounded failure over long silent fallback ladders.
 
-Do not treat broad prompt-only JSON fallback as baseline behavior for MVP compatibility.
+Do not treat open-ended unvalidated prompt-only fallback as baseline behavior. When prompt-only mode is used for compatibility, keep it explicit and bounded with app-side parsing and schema validation.
 
 ### Direct evidence must require anchored direct quote
 

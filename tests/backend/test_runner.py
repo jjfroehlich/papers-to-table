@@ -319,11 +319,42 @@ class TestRunPipeline:
         degraded = [w for w in warnings if w.get("category") == "provider_degraded"]
         assert len(degraded) >= 1
         assert "json_object" in degraded[0].get("message", "")
+        assert degraded[0].get("context", {}).get("structured_output_reason") == "structured_backend_incompatible"
         assert run_data.get("structured_output_mode") == "json_object"
         assert run_data.get("structured_output_fallback_used") is True
+        assert run_data.get("provider_readiness_reason") == "structured_backend_incompatible"
 
         provider_mode = read_json(pathlib.Path(output_dir) / run_id / "provider_mode.json")
         assert provider_mode.get("structured_output_mode") == "json_object"
+        assert provider_mode.get("structured_output_fallback_used") is True
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_prompt_only_json_fallback_surfaces_provider_degraded_warning(self, tmp_path, monkeypatch):
+        respx.get("http://localhost:1234/v1/models").mock(
+            return_value=httpx.Response(200, json={"data": [{"id": "qwen/qwen3-30b-a3b-2507"}]})
+        )
+        config = make_config(tmp_path)
+        run_id = "run_provider_prompt_only"
+        output_dir = str(tmp_path / "runs")
+        (tmp_path / "runs").mkdir(exist_ok=True)
+
+        monkeypatch.setattr("backend.app.runner.initialize_provider", _fake_initialize_provider_prompt_only)
+
+        await run_pipeline(run_id, config, "config.json", output_dir)
+
+        run_data = read_json(get_run_json_path(output_dir, run_id))
+        warnings = run_data.get("warnings", [])
+        degraded = [w for w in warnings if w.get("category") == "provider_degraded"]
+        assert len(degraded) >= 1
+        assert "prompt-only" in degraded[0].get("message", "")
+        assert degraded[0].get("context", {}).get("structured_output_reason") == "structured_backend_incompatible"
+        assert run_data.get("structured_output_mode") == "none"
+        assert run_data.get("structured_output_fallback_used") is True
+        assert run_data.get("provider_readiness_reason") == "structured_backend_incompatible"
+
+        provider_mode = read_json(pathlib.Path(output_dir) / run_id / "provider_mode.json")
+        assert provider_mode.get("structured_output_mode") == "none"
         assert provider_mode.get("structured_output_fallback_used") is True
 
     @pytest.mark.asyncio
@@ -528,19 +559,54 @@ async def _fake_initialize_provider_json_object(*args, **kwargs):
         mode="live_local",
         locality="local",
         readiness_error=None,
-        readiness_reason=None,
+        readiness_reason="structured_backend_incompatible",
         structured_output_mode="json_object",
         structured_output_fallback_used=True,
-        capabilities=SimpleNamespace(structured_output_mode="json_object"),
+        capabilities=SimpleNamespace(
+            structured_output_mode="json_object",
+            structured_output_reason="structured_backend_incompatible",
+            structured_output_error="LM Studio rejected structured-output grammar/regex constraints: Failed to process regex",
+        ),
         model_dump=lambda: {
             "mode": "live_local",
             "locality": "local",
             "readiness_error": None,
-            "readiness_reason": None,
+            "readiness_reason": "structured_backend_incompatible",
             "structured_output_mode": "json_object",
             "structured_output_fallback_used": True,
             "capabilities": {
                 "structured_output_mode": "json_object",
+                "structured_output_reason": "structured_backend_incompatible",
+                "structured_output_error": "LM Studio rejected structured-output grammar/regex constraints: Failed to process regex",
+            },
+        },
+    )
+
+
+async def _fake_initialize_provider_prompt_only(*args, **kwargs):
+    return object(), SimpleNamespace(
+        mode="live_local",
+        locality="local",
+        readiness_error=None,
+        readiness_reason="structured_backend_incompatible",
+        structured_output_mode="none",
+        structured_output_fallback_used=True,
+        capabilities=SimpleNamespace(
+            structured_output_mode="none",
+            structured_output_reason="structured_backend_incompatible",
+            structured_output_error="LM Studio rejected structured-output grammar/regex constraints: Failed to process regex",
+        ),
+        model_dump=lambda: {
+            "mode": "live_local",
+            "locality": "local",
+            "readiness_error": None,
+            "readiness_reason": "structured_backend_incompatible",
+            "structured_output_mode": "none",
+            "structured_output_fallback_used": True,
+            "capabilities": {
+                "structured_output_mode": "none",
+                "structured_output_reason": "structured_backend_incompatible",
+                "structured_output_error": "LM Studio rejected structured-output grammar/regex constraints: Failed to process regex",
             },
         },
     )

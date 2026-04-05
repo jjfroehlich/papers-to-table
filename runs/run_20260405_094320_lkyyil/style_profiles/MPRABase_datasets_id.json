@@ -1,0 +1,14 @@
+{
+  "column_name": "MPRABase_datasets_id",
+  "field_type_guess": "mixed",
+  "expected_length": "medium",
+  "tone": "neutral",
+  "detail_level": "high",
+  "value_shape": "alphanumeric ID or placeholder",
+  "unit_style": null,
+  "format_notes": "IDs follow DS00xx pattern; 'not in MPRABase' indicates missing/non-existent entry.",
+  "example_risk": "medium",
+  "generated_at": "2026-04-05T09:44:47.941274+00:00",
+  "source_column_count": 143,
+  "provider_mode": "live_llm"
+}

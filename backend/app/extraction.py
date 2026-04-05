@@ -29,7 +29,7 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel
 
@@ -734,7 +734,8 @@ def adjudicate_state(
 
     T058a: prefer unclear over guesses with weak support.
     """
-    if not proposed_value or not proposed_value.strip():
+    normalized_value = _coerce_text_value(proposed_value, joiner="; ")
+    if not normalized_value:
         return ProposalState.unclear, SupportLabel.blocked
 
     has_any_quote = bool(quotes)
@@ -887,7 +888,7 @@ async def attempt_evidence_recovery(
             model_id=text_model_id,
             max_tokens=256,
         )
-        quote_text = result.get("quote", "").strip()
+        quote_text = _coerce_text_value(result.get("quote"), joiner=" ") or ""
         page_num = result.get("page")
         if not quote_text:
             return None
@@ -1689,15 +1690,15 @@ async def extract_cell(
             return proposal
 
     # Parse and adjudicate result (T058)
-    raw_state = raw_result.get("state", "unclear")
-    proposed_value = raw_result.get("proposed_value")
-    rationale = raw_result.get("rationale")
-    calculation = raw_result.get("calculation")
+    raw_state = str(raw_result.get("state", "unclear") or "unclear")
+    proposed_value = _coerce_text_value(raw_result.get("proposed_value"), joiner="; ")
+    rationale = _coerce_text_value(raw_result.get("rationale"), joiner="\n")
+    calculation = _coerce_text_value(raw_result.get("calculation"), joiner="\n")
     numeric_value_form = _normalize_numeric_value_form(
         raw_result.get("numeric_value_form"),
         field_type,
     )
-    quotes: list[dict] = raw_result.get("quotes") or []
+    quotes = _normalize_quotes_payload(raw_result.get("quotes"))
 
     # T053a: ensure rationale is compact bullets
     rationale = _normalize_rationale(rationale)
@@ -1708,7 +1709,7 @@ async def extract_cell(
     evidence_records: list[EvidenceRecord] = []
 
     for q in quotes:
-        quote_text = q.get("text", "").strip()
+        quote_text = _coerce_text_value(q.get("text"), joiner=" ") or ""
         page_num = q.get("page")
         raw_source_type = q.get("source_type", "direct_quote")
 
@@ -1997,6 +1998,7 @@ async def extract_cell(
 
 def _normalize_rationale(rationale: Optional[str]) -> Optional[str]:
     """Ensure rationale is compact markdown bullets (T053a)."""
+    rationale = _coerce_text_value(rationale, joiner="\n")
     if not rationale:
         return None
     stripped = rationale.strip()
@@ -2009,6 +2011,51 @@ def _normalize_rationale(rationale: Optional[str]) -> Optional[str]:
         return "\n".join(f"- {s}." for s in sentences[:3])
     # Truncate to 3 bullets
     return "\n".join(f"- {s}." for s in sentences[:3]) + "\n- ..."
+
+
+def _coerce_text_value(value: Any, joiner: str = "\n") -> Optional[str]:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        text = value
+    elif isinstance(value, list):
+        parts = [part for item in value if (part := _coerce_text_value(item, joiner=joiner))]
+        text = joiner.join(parts)
+    elif isinstance(value, dict):
+        if "text" in value:
+            return _coerce_text_value(value.get("text"), joiner=joiner)
+        text = json.dumps(value, ensure_ascii=False, sort_keys=True)
+    else:
+        text = str(value)
+    stripped = text.strip()
+    return stripped or None
+
+
+def _normalize_quotes_payload(value: Any) -> list[dict]:
+    if value is None:
+        return []
+    raw_items = value if isinstance(value, list) else [value]
+    normalized: list[dict] = []
+    for item in raw_items:
+        if isinstance(item, dict):
+            quote_text = _coerce_text_value(item.get("text"), joiner=" ")
+            if not quote_text:
+                continue
+            page = item.get("page")
+            if isinstance(page, str) and page.strip().isdigit():
+                page = int(page.strip())
+            normalized.append(
+                {
+                    "text": quote_text,
+                    "page": page,
+                    "source_type": _coerce_text_value(item.get("source_type"), joiner="_") or "direct_quote",
+                }
+            )
+        else:
+            quote_text = _coerce_text_value(item, joiner=" ")
+            if quote_text:
+                normalized.append({"text": quote_text, "page": None, "source_type": "direct_quote"})
+    return normalized
 
 
 def _safe_run_subpath(run_dir: pathlib.Path, *parts: str) -> pathlib.Path:

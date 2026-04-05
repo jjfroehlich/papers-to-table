@@ -1,0 +1,14 @@
+{
+  "column_name": "Delivery",
+  "field_type_guess": "mixed",
+  "expected_length": "long",
+  "tone": "formal",
+  "detail_level": "high",
+  "value_shape": "text with embedded numeric values and units",
+  "unit_style": null,
+  "format_notes": "Values are free‑form sentences mixing method names, cell counts, reagents, and units; inconsistent formatting.",
+  "example_risk": "medium",
+  "generated_at": "2026-04-05T09:46:47.839265+00:00",
+  "source_column_count": 9,
+  "provider_mode": "live_llm"
+}

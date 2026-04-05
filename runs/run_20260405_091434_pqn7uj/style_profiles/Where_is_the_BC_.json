@@ -1,0 +1,14 @@
+{
+  "column_name": "Where is the BC?",
+  "field_type_guess": "categorical",
+  "expected_length": "medium",
+  "tone": "formal",
+  "detail_level": "high",
+  "value_shape": "text phrase",
+  "unit_style": null,
+  "format_notes": "Values are textual descriptions of BC location, may include 'no BC' or location phrases.",
+  "example_risk": "low",
+  "generated_at": "2026-04-05T09:17:01.495609+00:00",
+  "source_column_count": 47,
+  "provider_mode": "live_llm"
+}

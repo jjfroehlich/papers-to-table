@@ -1,0 +1,14 @@
+{
+  "column_name": "Scale",
+  "field_type_guess": "mixed",
+  "expected_length": "short",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "numeric descriptor phrase",
+  "unit_style": null,
+  "format_notes": "Values are textual phrases combining a number and a biological term; length varies.",
+  "example_risk": "low",
+  "generated_at": "2026-04-05T09:16:54.251206+00:00",
+  "source_column_count": 50,
+  "provider_mode": "live_llm"
+}

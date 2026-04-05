@@ -612,10 +612,13 @@ The detailed task inventory below remains the source of truth for exact implemen
 - [x] **T052b** Tighten structured-output recovery to one bounded ladder.
   - `json_schema` first
   - explicit `json_object` fallback only when `json_schema` is unsupported for the active provider-model path
+  - explicit downgrade when the active request shape hits provider regex or grammar incompatibility
+  - explicit prompt-only JSON fallback only when `json_schema/json_object` are unavailable for the active provider-model path
   - one stronger-instruction retry if the response is invalid
-  - minimal JSON repair only for purely syntactic failures
+  - minimal JSON repair only for purely syntactic failures, including wrapper stripping and balanced-object extraction from mixed output
+  - parsed responses must still satisfy the expected response schema before acceptance
   - otherwise mark extraction failed for the affected target
-  - do not use broad prompt-only unstructured fallback as default behavior
+  - do not use open-ended unvalidated prompt-only fallback as default behavior
 
 - [x] **T052c** Normalize warning and status propagation end to end.
   - keep evidence-fallback mapping keys consistent from extraction artifacts through review APIs and UI summaries
@@ -629,7 +632,7 @@ The detailed task inventory below remains the source of truth for exact implemen
   - persist negotiated structured-output mode (`json_schema`, `json_object`, or `none`) and whether fallback was used
 
 - [ ] **T052d** Distinguish readiness and capability failure classes end to end.
-  - classify and persist at minimum: provider unreachable or unavailable, model unavailable or not loaded, `json_schema` unsupported with `json_object` fallback used, and no compatible structured mode available
+  - classify and persist at minimum: provider unreachable or unavailable, model unavailable or not loaded, `json_schema` unsupported with `json_object` fallback used, provider regex or grammar incompatibility for the active request shape, and explicit prompt-only JSON fallback used when structured modes are unavailable
   - surface those classes consistently in diagnostics, run summaries, reviewer summaries, and UI-facing payloads
   - avoid collapsing all classes into generic provider-unavailable warnings
 
@@ -781,8 +784,9 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [ ] **T067e** Add tests for structured-output negotiation and capability-truth classification.
   - cover `json_schema` success and `json_object` fallback when `json_schema` is unsupported
+  - cover explicit prompt-only JSON fallback when both structured modes are unavailable
   - cover invalid-structure retry and syntactic-repair boundaries without introducing open-ended fallback
-  - cover reporting truth for provider unreachable, model unavailable, `json_schema` unsupported with fallback used, and no compatible structured mode
+  - cover reporting truth for provider unreachable, model unavailable, `json_schema` unsupported with fallback used, and explicit prompt-only JSON fallback mode
   - cover negotiated structured-output mode and fallback-used persistence in run artifacts and summaries
 
 - [x] **T067b** Add backend tests for Eval-mode leakage protection and artifact emission.
