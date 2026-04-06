@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "extract-structured-info-from-papers-optimizer"
+version = "0.1.0"
+description = "CLI-first orchestration optimizer for extract-structured-info-from-papers"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "matplotlib>=3.8",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+]
+
+[project.scripts]
+paper-optimizer = "paper_optimizer.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["paper_optimizer*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

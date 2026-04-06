@@ -1,0 +1,109 @@
+from __future__ import annotations
+
+import csv
+import json
+from pathlib import Path
+from typing import Any
+
+from .contracts import CandidateResult, RoundSummary
+from .utils import write_json
+
+
+class ResultsWriter:
+    def __init__(self, experiment_dir: Path) -> None:
+        self.experiment_dir = experiment_dir
+        self.results_dir = experiment_dir / "results"
+        self.plots_dir = experiment_dir / "plots"
+        self.rounds_dir = experiment_dir / "rounds"
+        self.results_dir.mkdir(parents=True, exist_ok=True)
+        self.plots_dir.mkdir(parents=True, exist_ok=True)
+        self.rounds_dir.mkdir(parents=True, exist_ok=True)
+
+        self.csv_path = self.results_dir / "results.csv"
+        self.jsonl_path = self.results_dir / "results.jsonl"
+        self._csv_fieldnames: list[str] | None = None
+
+    def write_experiment_manifest(self, manifest: dict[str, Any]) -> None:
+        write_json(self.experiment_dir / "experiment.json", manifest)
+
+    def write_best_candidate(self, payload: dict[str, Any]) -> None:
+        write_json(self.experiment_dir / "best_candidate.json", payload)
+
+    def write_round_summary(self, summary: RoundSummary) -> None:
+        write_json(self.rounds_dir / f"round_{summary.round_index:04d}.json", summary.to_dict())
+
+    def append_result(self, result: CandidateResult) -> None:
+        row = self._flatten_row(result)
+        self._append_csv(row)
+        self._append_jsonl(result.to_dict())
+
+    def _flatten_row(self, result: CandidateResult) -> dict[str, Any]:
+        row: dict[str, Any] = {
+            "schema_version": result.schema_version,
+            "experiment_id": result.experiment_id,
+            "study_type": result.study_type,
+            "candidate_id": result.candidate_id,
+            "parent_candidate_id": result.parent_candidate_id,
+            "round_index": result.round_index,
+            "benchmark_id": result.benchmark_id,
+            "prompt_bundle_id": result.prompt_bundle_id,
+            "text_model_id": result.text_model_id,
+            "vision_model_id": result.vision_model_id,
+            "runtime_seconds": result.runtime_seconds,
+            "started_at": result.started_at,
+            "ended_at": result.ended_at,
+            "promotion_decision": result.promotion_decision,
+            "decision_reason": result.decision_reason,
+            "main_app_run_id": result.main_app_run_ref.get("run_id"),
+            "main_app_run_path": result.main_app_run_ref.get("run_path"),
+            "eval_output_path": result.eval_output_ref.get("output_path"),
+        }
+
+        for key, value in result.optimizer_knobs_flat.items():
+            row[f"knob.{key}"] = value
+        for key, value in result.primary_metrics.items():
+            row[f"primary.{key}"] = value
+        for key, value in result.guardrail_metrics.items():
+            row[f"guardrail.{key}"] = value
+        for key, value in result.diagnostic_metrics.items():
+            row[f"diagnostic.{key}"] = value
+
+        return row
+
+    def _append_csv(self, row: dict[str, Any]) -> None:
+        if self._csv_fieldnames is None:
+            if self.csv_path.exists():
+                with self.csv_path.open("r", encoding="utf-8", newline="") as handle:
+                    reader = csv.DictReader(handle)
+                    self._csv_fieldnames = list(reader.fieldnames or [])
+            else:
+                self._csv_fieldnames = list(row.keys())
+
+        for key in row:
+            if key not in self._csv_fieldnames:
+                self._csv_fieldnames.append(key)
+
+        existing_rows: list[dict[str, Any]] = []
+        if self.csv_path.exists():
+            with self.csv_path.open("r", encoding="utf-8", newline="") as handle:
+                reader = csv.DictReader(handle)
+                existing_rows = list(reader)
+
+        existing_rows.append({k: row.get(k) for k in self._csv_fieldnames})
+        with self.csv_path.open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=self._csv_fieldnames)
+            writer.writeheader()
+            for existing in existing_rows:
+                writer.writerow(existing)
+
+    def _append_jsonl(self, payload: dict[str, Any]) -> None:
+        with self.jsonl_path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload, ensure_ascii=True, sort_keys=True) + "\n")
+
+
+def load_results_jsonl(experiment_dir: Path) -> list[dict[str, Any]]:
+    path = experiment_dir / "results" / "results.jsonl"
+    if not path.exists():
+        return []
+    lines = path.read_text(encoding="utf-8").splitlines()
+    return [json.loads(line) for line in lines if line.strip()]
