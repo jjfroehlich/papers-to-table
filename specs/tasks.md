@@ -2,20 +2,21 @@
 
 ## Status
 
-Implementation checklist for the full intended MVP, plus the current baseline-strengthening pass.
+Implementation checklist for the full intended MVP, plus the current narrow diagnostic-artifact pass.
 
 Reality-checked on 2026-04-06 against current backend code, tests, and recent run artifacts:
 
 - completed: resolved `config.snapshot.json` persistence and `resolved_inputs` run artifact context
 - completed: lexical baseline retrieval with persisted per-cell retrieval artifacts
 - completed: prompt identity via `prompt_hash`/`prompt_version` in run/proposal/evidence artifacts
+- completed: manifest-based prompt bundle loader, config-driven bundle selection, and run-artifact prompt bundle metadata (`prompt_bundle_*`, `prompt_manifest_hash`, `prompt_keys_used`)
+- completed: stable non-UI automation entrypoint for tooling (`python -m backend.app.automation`) with machine-readable start/wait/status outputs
 - completed: provider request counter artifact via `provider_request_counts.json`
-- missing: truthful canonical retrieval naming cleanup (current canonical value still `semantic_chunks`)
-- missing: structured run-stats timing and repeated-work artifacts
-- missing: prompt externalization into dedicated prompt files
-- missing: explicit retrieval-policy visibility artifact fields beyond embedded query hints
-- missing: hybrid retrieval opt-in mode and baseline-vs-hybrid artifact visibility
-- missing: dedicated tests for the missing baseline-strengthening items above
+- missing: explicit main-app artifact completeness/parity summary
+- missing: persisted provider/runtime attempt diagnostics beyond request counters
+- missing: proposal-level retrieval failure classification for questionable cells
+- missing: aggregate figure-review ROI summary
+- missing: dedicated tests for the diagnostic-artifact items above
 
 ## Purpose
 
@@ -173,7 +174,7 @@ Future coding-agent implementation should normally proceed by the canonical batc
   - add narrow structured run-stats artifacts for stage timing and repeated-work diagnosis
   - keep artifact shape compact and manually inspectable
   - preserve existing `provider_request_counts` and add focused provider/evidence/retrieval counters
-- [ ] **T110 — Prompt externalization**
+- [x] **T110 — Prompt externalization**
   - move important system prompts into dedicated prompt files
   - keep prompt file structure small and intentional
   - preserve prompt identity/provenance in run artifacts
@@ -195,6 +196,32 @@ Future coding-agent implementation should normally proceed by the canonical batc
 - prompt files remain few, clear, and non-sprawling
 
 The detailed task inventory below remains the source of truth for exact implementation work inside each batch.
+
+### Batch 5 — Narrow diagnostic artifact pass
+
+**Purpose:** add the next small, inspectable observability slice without broadening retrieval or runtime architecture.
+
+**Ordered execution checklist (must stay in this order):**
+
+- [ ] **T113 — Artifact completeness and parity summary**
+  - add an explicit main-app artifact summary for presence/absence and parity signals
+  - keep missing review/export/log artifacts visible rather than implicit
+- [ ] **T114 — Provider/runtime failure diagnostics**
+  - persist compact per-attempt provider diagnostics with durations, failure categories, and truncated payload previews
+  - explain high cell runtime when no valid text result is recovered
+- [ ] **T115 — Retrieval-failure diagnostics**
+  - add compact proposal-level classification for questionable cells
+  - distinguish parser/source gap, retrieval miss, retrieval-policy limit, evidence anchoring gap, and reasoning gap using existing artifacts
+- [ ] **T116 — Figure-review ROI diagnostics**
+  - persist trigger, hit, useful-evidence, rescue, and time-cost summaries per cell and per run
+
+**Batch 5 completion standard:**
+
+- lexical retrieval remains the baseline behavior
+- no dense retrieval or HyDE work is introduced
+- no retrieval cache/state architecture is introduced
+- no broad chunk-quality overhaul is introduced
+- no broad provider/runtime optimization work is introduced beyond instrumentation-enabling changes
 
 ---
 
@@ -1394,23 +1421,24 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 ### C. Prompt externalization
 
-- [ ] **T110a** Move extraction and style-profile system prompts into dedicated prompt files.
+- [x] **T110a** Move extraction and style-profile system prompts into dedicated prompt files.
   - affected backend modules: `backend/app/extraction.py`, `backend/app/style_profiles.py`
-  - add prompt file directory: `backend/app/prompts/`
-  - minimum files: text extraction system prompt, figure extraction system prompt, style-profile system prompt
+  - implemented prompt bundle directory: `backend/app/prompt_bundles/default/`
+  - implemented files include text extraction system+user, figure extraction system+user, evidence recovery system+user, and style-profile system prompts
 
-- [ ] **T110b** Implement prompt loading and composition helpers with deterministic failure semantics.
+- [x] **T110b** Implement prompt loading and composition helpers with deterministic failure semantics.
   - affected backend modules: `backend/app/prompts.py` (new) or equivalent helper module
-  - fail fast with actionable errors when required prompt files are missing/unreadable
+  - implemented manifest validation, required-key checks, and clear missing-file failure behavior
+  - implemented bundle hashing (`prompt_manifest_hash`, `prompt_bundle_hash`) and per-file provenance
 
-- [ ] **T110c** Extend prompt identity/provenance in artifacts.
+- [x] **T110c** Extend prompt identity/provenance in artifacts.
   - affected backend modules: `backend/app/extraction.py`, `backend/app/runner.py`
   - keep `prompt_hash`/`prompt_version`
-  - add prompt-file provenance map (file path + hash) to run artifacts
+  - add prompt-bundle identity fields plus prompt-file provenance map to run/input/summary artifacts
 
-- [ ] **T110d** Add prompt externalization tests.
+- [x] **T110d** Add prompt externalization tests.
   - affected tests: `tests/backend/test_runner.py`, `tests/backend/test_batch1_refinement.py` (or equivalent prompt contract tests)
-  - verify prompt loading from files, prompt hash changes when file contents change, and missing-file failure behavior
+  - verify default bundle loading, explicit bundle selection, explicit bundle-path precedence, hash stability, prompt hash changes after prompt file edits, and missing manifest/file failure behavior
 
 ### D. Transparent schema-aware retrieval heuristics
 
@@ -1517,3 +1545,20 @@ This task list is complete enough when it can drive implementation toward a syst
 - keeps manual export explicit, actionable-only review counts primary, and parsing/provider fallback truth visible to reviewers
 - ships with a truthful user-facing `README.md` and related operator docs that match the implemented commands, architecture, workflow, exports, and limitations
 - stays inside the MVP architecture boundary defined by `spec.md`, `research.md`, and `plan.md`
+
+### Non-UI automation entrypoint slice
+
+- [x] **T117a** Add a stable non-UI automation entrypoint for tooling while preserving browser-first operator workflow.
+  - affected backend modules: `backend/app/automation.py`
+  - command surface: `start`, `status`, and `wait`
+  - startup contract includes run id, status, mode, run directory, and key artifact paths
+
+- [x] **T117b** Support optional wait-until-terminal behavior and deterministic machine-readable terminal output.
+  - affected backend modules: `backend/app/automation.py`
+  - payloads include explicit `schema_version` and `is_terminal` fields
+  - terminal output includes final status plus summary/export paths when present
+  - deterministic exit behavior for completed, failed, timeout, and not-found states
+
+- [x] **T117c** Add hermetic tests for automation start/wait/status and failure reporting.
+  - affected tests: `tests/backend/test_automation.py`
+  - no live LM Studio dependency

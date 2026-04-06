@@ -41,7 +41,7 @@ from .artifacts import (
     write_json,
 )
 from .ids import generate_evidence_id, generate_proposal_id
-from .prompts import get_prompt_bundle, load_prompt_text
+from .prompts import get_prompt_bundle, load_prompt_text, render_prompt_template
 from .provider import (
     ProviderAdapter,
 )
@@ -143,6 +143,9 @@ class ProposalRecord(BaseModel):
     masked_working_table_hash: Optional[str] = None
     vision_trigger_reasons: list[str] = []
     vision_shortlist: Optional[list[dict]] = None
+    provider_diagnostics: Optional[dict] = None
+    retrieval_diagnostics: Optional[dict] = None
+    figure_review_diagnostics: Optional[dict] = None
     created_at: str
 
 
@@ -306,10 +309,18 @@ VISION_EXTRACTION_SCHEMA = {
 PROMPT_VERSION: Optional[str] = None
 
 
-def get_prompt_identity() -> dict[str, Optional[str]]:
-    prompt_bundle = get_prompt_bundle()
+def get_prompt_identity(
+    *,
+    prompt_bundle_name: Optional[str] = None,
+    prompt_bundle_path: Optional[str] = None,
+) -> dict[str, object]:
+    prompt_bundle = get_prompt_bundle(bundle=prompt_bundle_name, bundle_path=prompt_bundle_path)
     payload = {
         "prompt_bundle_hash": prompt_bundle["bundle_hash"],
+        "prompt_manifest_hash": prompt_bundle["manifest_hash"],
+        "prompt_bundle_id": prompt_bundle["bundle_id"],
+        "prompt_bundle_version": prompt_bundle.get("bundle_version"),
+        "prompt_keys": prompt_bundle.get("prompt_keys", []),
         "prompt_files": prompt_bundle["prompt_files"],
         "text_schema": TEXT_EXTRACTION_SCHEMA,
         "figure_schema": VISION_EXTRACTION_SCHEMA,
@@ -317,6 +328,12 @@ def get_prompt_identity() -> dict[str, Optional[str]]:
     return {
         "prompt_version": PROMPT_VERSION,
         "prompt_hash": hash_json_data(payload),
+        "prompt_bundle_id": prompt_bundle["bundle_id"],
+        "prompt_bundle_version": prompt_bundle.get("bundle_version"),
+        "prompt_bundle_path": prompt_bundle["bundle_path"],
+        "prompt_manifest_hash": prompt_bundle["manifest_hash"],
+        "prompt_bundle_hash": prompt_bundle["bundle_hash"],
+        "prompt_keys_used": prompt_bundle.get("prompt_keys", []),
         "prompt_files": prompt_bundle["prompt_files"],
     }
 
@@ -371,6 +388,8 @@ def build_text_extraction_prompt(
     is_verify_mode: bool = False,
     existing_value: Optional[str] = None,
     is_long_text: bool = False,
+    prompt_bundle_name: Optional[str] = None,
+    prompt_bundle_path: Optional[str] = None,
 ) -> list[dict]:
     """Build the text-model extraction prompt (T053, T053a, T057a)."""
 
@@ -408,28 +427,32 @@ def build_text_extraction_prompt(
             f"{whole_document_text}"
         )
 
-    user_content = (
-        f"Extract: {column_name}\n"
-        f"Field description: {column_description}\n\n"
-        f"Paper row context:\n{row_block}"
-        f"{verify_block}"
-        f"{long_text_note}"
-        f"{field_contract}"
-        f"{style_block}\n\n"
-        f"{context_block}\n\n"
-        f"{whole_document_block}\n\n"
-        "Instructions:\n"
-        "1. Return proposed_value=null and state='unclear' if the paper does not clearly support a value.\n"
-        "2. Use state='found' for directly stated values, 'inferred' for derived/reasoned values.\n"
-        "3. Include one or more evidence quotes when they are genuinely needed to support the value.\n"
-        "4. Rationale must be ≤3 concise markdown bullets (- bullet text).\n"
-        "5. Never fabricate quotes; only use text that appears in the passages above.\n"
-        "6. Only set numeric_value_form when the field is numeric; otherwise return null.\n"
-        "7. Return ONLY valid JSON matching the schema."
+    user_content = render_prompt_template(
+        "text_extraction_user",
+        {
+            "column_name": column_name,
+            "column_description": column_description,
+            "row_block": row_block,
+            "verify_block": verify_block,
+            "long_text_note": long_text_note,
+            "field_contract": field_contract,
+            "style_block": style_block,
+            "context_block": context_block,
+            "whole_document_block": whole_document_block,
+        },
+        bundle=prompt_bundle_name,
+        bundle_path=prompt_bundle_path,
     )
 
     return [
-        {"role": "system", "content": load_prompt_text("text_extraction_system")},
+        {
+            "role": "system",
+            "content": load_prompt_text(
+                "text_extraction_system",
+                bundle=prompt_bundle_name,
+                bundle_path=prompt_bundle_path,
+            ),
+        },
         {"role": "user", "content": user_content},
     ]
 
@@ -444,6 +467,8 @@ def build_figure_extraction_prompt(
     section_context: Optional[str] = None,
     field_type: Optional[SchemaFieldType] = None,
     allowed_values: Optional[list[str]] = None,
+    prompt_bundle_name: Optional[str] = None,
+    prompt_bundle_path: Optional[str] = None,
 ) -> list[dict]:
     """Build the vision-model figure extraction prompt (T063)."""
     caption_block = f"Figure caption: {caption_text}" if caption_text else "No caption available."
@@ -458,24 +483,31 @@ def build_figure_extraction_prompt(
         reference_block = f"Figure-reference snippets from the paper:\n{reference_block}"
     section_block = f"Likely section context: {section_context}" if section_context else ""
 
-    user_content = (
-        f"Field to extract: {column_name}\n"
-        f"Field description: {column_description}\n\n"
-        f"{_build_field_contract(field_type, allowed_values)}\n\n"
-        f"{caption_block}\n"
-        f"{nearby_block}\n\n"
-        f"{retrieval_block}\n"
-        f"{reference_block}\n"
-        f"{section_block}\n\n"
-        "Analyze the figure image. "
-        "Does this figure provide evidence for the field above? "
-        "If yes, extract the value. If not, return state='unclear'. "
-        "If estimating a value from a graph/plot, set numeric_value_form='approximate' or 'range' honestly. "
-        "Return ONLY valid JSON matching the schema."
+    user_content = render_prompt_template(
+        "figure_extraction_user",
+        {
+            "column_name": column_name,
+            "column_description": column_description,
+            "field_contract": _build_field_contract(field_type, allowed_values),
+            "caption_block": caption_block,
+            "nearby_block": nearby_block,
+            "retrieval_block": retrieval_block,
+            "reference_block": reference_block,
+            "section_block": section_block,
+        },
+        bundle=prompt_bundle_name,
+        bundle_path=prompt_bundle_path,
     )
 
     return [
-        {"role": "system", "content": load_prompt_text("figure_extraction_system")},
+        {
+            "role": "system",
+            "content": load_prompt_text(
+                "figure_extraction_system",
+                bundle=prompt_bundle_name,
+                bundle_path=prompt_bundle_path,
+            ),
+        },
         {"role": "user", "content": user_content},
     ]
 
@@ -824,6 +856,8 @@ async def attempt_evidence_recovery(
     provider: ProviderAdapter,
     text_model_id: str,
     caps,  # ProviderCapabilities
+    prompt_bundle_name: Optional[str] = None,
+    prompt_bundle_path: Optional[str] = None,
 ) -> Optional[EvidenceRecord]:
     """One narrow recovery pass when initial evidence is missing or unusable.
 
@@ -839,20 +873,23 @@ async def attempt_evidence_recovery(
     recovery_messages = [
         {
             "role": "system",
-            "content": (
-                "You are a scientific evidence extractor. "
-                "Find the single best verbatim quote from the passages that most directly "
-                "supports the value for the given field. "
-                "Return ONLY a JSON object with: "
-                '{"quote": "verbatim text", "page": page_number_or_null}'
+            "content": load_prompt_text(
+                "evidence_recovery_system",
+                bundle=prompt_bundle_name,
+                bundle_path=prompt_bundle_path,
             ),
         },
         {
             "role": "user",
-            "content": (
-                f"Field: {column_name} — {column_description}\n\n"
-                f"Passages:\n{context_passages}\n\n"
-                "Return the single best verbatim quote."
+            "content": render_prompt_template(
+                "evidence_recovery_user",
+                {
+                    "column_name": column_name,
+                    "column_description": column_description,
+                    "context_passages": context_passages,
+                },
+                bundle=prompt_bundle_name,
+                bundle_path=prompt_bundle_path,
             ),
         },
     ]
@@ -1187,6 +1224,8 @@ async def run_figure_review(
     allowed_values: Optional[list[str]] = None,
     trigger_reasons: Optional[list[str]] = None,
     max_figures: int = 5,
+    prompt_bundle_name: Optional[str] = None,
+    prompt_bundle_path: Optional[str] = None,
 ) -> list[FigureReviewHit]:
     """Proactive figure review (T062): run vision model over relevant figures.
 
@@ -1232,6 +1271,8 @@ async def run_figure_review(
             section_context=candidate.section_context,
             field_type=field_type,
             allowed_values=allowed_values,
+            prompt_bundle_name=prompt_bundle_name,
+            prompt_bundle_path=prompt_bundle_path,
         )
 
         try:
@@ -1522,6 +1563,10 @@ async def extract_cell(
     whole_document_used = False
     needs_more = False
     figure_hits: list[FigureReviewHit] = []
+    provider_diag_cursor = _get_provider_diagnostics_cursor(provider)
+    provider_diag_summary: Optional[dict] = None
+    retrieval_diag_summary: Optional[dict] = None
+    figure_review_diag_summary: Optional[dict] = None
 
     def finalize_stats(proposal: Optional[ProposalRecord] = None) -> None:
         if stats_sink is None:
@@ -1542,6 +1587,9 @@ async def extract_cell(
                 "whole_document_used": whole_document_used,
                 "needs_more_evidence": needs_more,
                 "figure_hits_count": len(figure_hits),
+                "provider_diagnostics": provider_diag_summary,
+                "retrieval_diagnostics": retrieval_diag_summary,
+                "figure_review_diagnostics": figure_review_diag_summary,
             }
         )
         if proposal is not None:
@@ -1550,8 +1598,13 @@ async def extract_cell(
             stats_sink["proposal_state"] = state_value
             stats_sink["proposal_support"] = support_value
             stats_sink["warning_flags"] = list(proposal.warning_flags)
+            stats_sink["figure_review_triggered"] = bool((proposal.figure_review_diagnostics or {}).get("triggered"))
+            stats_sink["figure_review_useful"] = bool((proposal.figure_review_diagnostics or {}).get("useful"))
+            stats_sink["figure_review_rescued"] = bool((proposal.figure_review_diagnostics or {}).get("rescued_value"))
 
     run_mode = str(artifact_context.get("run_mode") or ("verify" if is_verify_mode else "normal"))
+    prompt_bundle_name = artifact_context.get("prompt_bundle_name")
+    prompt_bundle_path = artifact_context.get("prompt_bundle_path")
     prompt_version = artifact_context.get("prompt_version")
     prompt_hash = artifact_context.get("prompt_hash")
     schema_hash = artifact_context.get("schema_hash")
@@ -1580,6 +1633,8 @@ async def extract_cell(
         is_verify_mode=is_verify_mode,
         existing_value=existing_value,
         is_long_text=long_text,
+        prompt_bundle_name=prompt_bundle_name,
+        prompt_bundle_path=prompt_bundle_path,
     )
 
     # T057a: long text fields get more tokens
@@ -1597,6 +1652,9 @@ async def extract_cell(
         text_model_calls += 1
     except Exception as e:
         # Hard provider error — record error proposal
+        provider_diag_summary = _summarize_provider_attempts(
+            _get_provider_diagnostics_since(provider, provider_diag_cursor)
+        )
         proposal = ProposalRecord(
             proposal_id=proposal_id,
             run_id=run_id,
@@ -1629,6 +1687,7 @@ async def extract_cell(
             gold_table_snapshot_path=gold_table_snapshot_path,
             masked_working_table_path=masked_working_table_path,
             masked_working_table_hash=masked_working_table_hash,
+            provider_diagnostics=provider_diag_summary,
             created_at=now,
         )
         persist_proposal(run_dir, proposal)
@@ -1673,6 +1732,8 @@ async def extract_cell(
             is_verify_mode=is_verify_mode,
             existing_value=existing_value,
             is_long_text=long_text,
+            prompt_bundle_name=prompt_bundle_name,
+            prompt_bundle_path=prompt_bundle_path,
         )
         try:
             rescue_request_started = perf_counter()
@@ -1685,6 +1746,9 @@ async def extract_cell(
             text_model_ms += (perf_counter() - rescue_request_started) * 1000.0
             text_model_calls += 1
         except Exception as e:
+            provider_diag_summary = _summarize_provider_attempts(
+                _get_provider_diagnostics_since(provider, provider_diag_cursor)
+            )
             proposal = ProposalRecord(
                 proposal_id=proposal_id,
                 run_id=run_id,
@@ -1721,6 +1785,7 @@ async def extract_cell(
                 gold_table_snapshot_path=gold_table_snapshot_path,
                 masked_working_table_path=masked_working_table_path,
                 masked_working_table_hash=masked_working_table_hash,
+                provider_diagnostics=provider_diag_summary,
                 created_at=now,
             )
             persist_proposal(run_dir, proposal)
@@ -1851,6 +1916,8 @@ async def extract_cell(
             provider=provider,
             text_model_id=text_model_id,
             caps=caps,
+            prompt_bundle_name=prompt_bundle_name,
+            prompt_bundle_path=prompt_bundle_path,
         )
         recovery_elapsed_ms = (perf_counter() - recovery_started) * 1000.0
         evidence_recovery_ms += recovery_elapsed_ms
@@ -1920,6 +1987,8 @@ async def extract_cell(
                 allowed_values=allowed_values,
                 trigger_reasons=vision_trigger_reasons,
                 max_figures=max_figures_for_review,
+                prompt_bundle_name=prompt_bundle_name,
+                prompt_bundle_path=prompt_bundle_path,
             )
             figure_review_ms += (perf_counter() - figure_review_started) * 1000.0
             figure_review_calls += 1
@@ -1946,6 +2015,7 @@ async def extract_cell(
     ranked_evidence = rank_evidence(all_evidence)
 
     # Allow figure evidence to rescue an empty text proposal (T062)
+    proposed_value_before_figure = proposed_value
     if figure_hits and not proposed_value:
         best_figure_hit = figure_hits[0]
         proposed_value = best_figure_hit.proposed_value
@@ -1962,15 +2032,6 @@ async def extract_cell(
         proposed_value=proposed_value,
         field_type=field_type,
     )
-
-    # Persist evidence records
-    for ev in ranked_evidence:
-        persist_evidence(run_dir, ev)
-
-    # Build final proposal
-    primary_ev_id = ranked_evidence[0].evidence_id if ranked_evidence else None
-    supporting_ids = [ev.evidence_id for ev in ranked_evidence[1:]]
-    all_ev_ids = [ev.evidence_id for ev in ranked_evidence]
 
     warning_flags = []
     if needs_more:
@@ -1989,6 +2050,42 @@ async def extract_cell(
         warning_flags.append("approximate_value")
     if numeric_value_form == NumericValueForm.range:
         warning_flags.append("range_value")
+
+    provider_diag_summary = _summarize_provider_attempts(
+        _get_provider_diagnostics_since(provider, provider_diag_cursor)
+    )
+    retrieval_diag_summary = _build_retrieval_diagnostics(
+        doc_dict=doc_dict,
+        retrieval=retrieval,
+        state=state,
+        support=support,
+        proposed_value=proposed_value,
+        quotes=quotes,
+        evidence_records=ranked_evidence,
+        needs_more_evidence=needs_more,
+        recall_rescue_used=recall_rescue_used,
+        whole_document_used=whole_document_used,
+        warning_flags=warning_flags,
+    )
+    figure_review_diag_summary = _build_figure_review_diagnostics(
+        triggered=should_run_vision,
+        trigger_reasons=vision_trigger_reasons,
+        shortlist_metadata=shortlist_metadata,
+        figure_review_calls=figure_review_calls,
+        figure_review_ms=figure_review_ms,
+        figure_hits=figure_hits,
+        ranked_evidence=ranked_evidence,
+        figure_rescued_value=bool(figure_hits and not proposed_value_before_figure and proposed_value),
+    )
+
+    # Persist evidence records
+    for ev in ranked_evidence:
+        persist_evidence(run_dir, ev)
+
+    # Build final proposal
+    primary_ev_id = ranked_evidence[0].evidence_id if ranked_evidence else None
+    supporting_ids = [ev.evidence_id for ev in ranked_evidence[1:]]
+    all_ev_ids = [ev.evidence_id for ev in ranked_evidence]
 
     proposal = ProposalRecord(
         proposal_id=proposal_id,
@@ -2033,6 +2130,9 @@ async def extract_cell(
         masked_working_table_hash=masked_working_table_hash,
         vision_trigger_reasons=vision_trigger_reasons,
         vision_shortlist=shortlist_metadata or None,
+        provider_diagnostics=provider_diag_summary,
+        retrieval_diagnostics=retrieval_diag_summary,
+        figure_review_diagnostics=figure_review_diag_summary,
         created_at=now,
     )
 
@@ -2078,6 +2178,205 @@ def _coerce_text_value(value: Any, joiner: str = "\n") -> Optional[str]:
         text = str(value)
     stripped = text.strip()
     return stripped or None
+
+
+def _get_provider_diagnostics_cursor(provider: ProviderAdapter) -> Optional[int]:
+    if not any("get_diagnostics_cursor" in cls.__dict__ for cls in type(provider).mro()):
+        return None
+    getter = getattr(provider, "get_diagnostics_cursor", None)
+    if not callable(getter):
+        return None
+    try:
+        value = getter()
+    except Exception:
+        return None
+    if hasattr(value, "__await__"):
+        return None
+    try:
+        return int(value)
+    except Exception:
+        return None
+
+
+def _get_provider_diagnostics_since(provider: ProviderAdapter, cursor: Optional[int]) -> list[dict]:
+    if cursor is None:
+        return []
+    if not any("get_diagnostics_since" in cls.__dict__ for cls in type(provider).mro()):
+        return []
+    getter = getattr(provider, "get_diagnostics_since", None)
+    if not callable(getter):
+        return []
+    try:
+        results = getter(cursor)
+    except Exception:
+        return []
+    if hasattr(results, "__await__"):
+        return []
+    return [dict(item) for item in results or [] if isinstance(item, dict)]
+
+
+def _summarize_provider_attempts(attempts: list[dict]) -> Optional[dict]:
+    if not attempts:
+        return None
+    request_kinds: dict[str, int] = {}
+    outcomes: dict[str, int] = {}
+    total_duration_ms = 0.0
+    last_error: Optional[dict] = None
+    for attempt in attempts:
+        request_kind = str(attempt.get("request_kind") or "unknown")
+        outcome = str(attempt.get("outcome") or "unknown")
+        request_kinds[request_kind] = request_kinds.get(request_kind, 0) + 1
+        outcomes[outcome] = outcomes.get(outcome, 0) + 1
+        total_duration_ms += float(attempt.get("duration_ms", 0.0) or 0.0)
+        if outcome != "success":
+            last_error = {
+                "request_kind": request_kind,
+                "structured_mode": attempt.get("structured_mode"),
+                "error_reason": attempt.get("error_reason"),
+                "error_message": attempt.get("error_message"),
+                "http_status": attempt.get("http_status"),
+            }
+    return {
+        "attempt_count": len(attempts),
+        "failure_count": sum(1 for attempt in attempts if str(attempt.get("outcome") or "") != "success"),
+        "total_duration_ms": round(total_duration_ms, 3),
+        "request_kinds": request_kinds,
+        "outcomes": outcomes,
+        "last_error": last_error,
+    }
+
+
+def _normalized_text_for_match(value: Optional[str]) -> str:
+    if not value:
+        return ""
+    return re.sub(r"[^a-z0-9]+", " ", value.lower()).strip()
+
+
+def _value_mentioned_in_retrieval(text: Optional[str], retrieval: Optional[RetrievalResult]) -> bool:
+    normalized = _normalized_text_for_match(text)
+    if len(normalized) < 4 or retrieval is None:
+        return False
+    return any(
+        normalized in _normalized_text_for_match((chunk.display_text or "") + " " + (chunk.retrieval_text or ""))
+        for chunk in retrieval.chunks
+    )
+
+
+def _parser_gap_signals(doc_dict: dict) -> list[str]:
+    signals: list[str] = []
+    if doc_dict.get("fallback_used"):
+        signals.append("parser_fallback_used")
+    if doc_dict.get("ocr_used"):
+        signals.append("ocr_used")
+    if doc_dict.get("parse_warnings"):
+        signals.append("parse_warnings_present")
+    return signals
+
+
+def _build_retrieval_diagnostics(
+    *,
+    doc_dict: dict,
+    retrieval: Optional[RetrievalResult],
+    state: ProposalState,
+    support: SupportLabel,
+    proposed_value: Optional[str],
+    quotes: list[dict],
+    evidence_records: list[EvidenceRecord],
+    needs_more_evidence: bool,
+    recall_rescue_used: bool,
+    whole_document_used: bool,
+    warning_flags: list[str],
+) -> dict:
+    parser_signals = _parser_gap_signals(doc_dict)
+    retrieval_chunks = retrieval.chunks if retrieval is not None else []
+    chunk_types = [str(chunk.chunk_type) for chunk in retrieval_chunks[:5]]
+    exact_evidence = sum(1 for ev in evidence_records if ev.source_type == EvidenceSourceType.direct_quote)
+    approximate_evidence = sum(1 for ev in evidence_records if ev.source_type == EvidenceSourceType.approximate_highlight)
+    fallback_evidence = sum(1 for ev in evidence_records if ev.source_type == EvidenceSourceType.quote_plus_page)
+    figure_evidence = sum(1 for ev in evidence_records if ev.is_figure_derived)
+    quoted_text_present = any(_value_mentioned_in_retrieval(quote.get("text"), retrieval) for quote in quotes)
+    proposed_value_present = _value_mentioned_in_retrieval(proposed_value, retrieval)
+
+    signals = list(parser_signals)
+    if not retrieval_chunks:
+        signals.append("no_retrieval_chunks")
+    if recall_rescue_used:
+        signals.append("recall_rescue_used")
+    if whole_document_used:
+        signals.append("whole_document_used")
+    if approximate_evidence:
+        signals.append("approximate_highlight_only")
+    if fallback_evidence:
+        signals.append("quote_plus_page_fallback")
+    if proposed_value_present:
+        signals.append("proposed_value_seen_in_retrieval")
+    if quoted_text_present:
+        signals.append("quote_seen_in_retrieval")
+    if figure_evidence:
+        signals.append("figure_evidence_present")
+
+    classification = "not_needed"
+    if "provider_error" in warning_flags or state == ProposalState.error:
+        classification = "provider_failure"
+    elif state in (ProposalState.blocked, ProposalState.skipped):
+        classification = "blocked_upstream"
+    elif not retrieval_chunks:
+        classification = "parser_source_gap" if parser_signals else "retrieval_miss"
+    elif exact_evidence == 0 and (approximate_evidence > 0 or fallback_evidence > 0):
+        classification = "evidence_anchoring_gap"
+    elif recall_rescue_used or whole_document_used:
+        classification = "retrieval_policy_limit"
+    elif (state == ProposalState.unclear or needs_more_evidence or support == SupportLabel.weak_evidence) and (proposed_value_present or quoted_text_present):
+        classification = "reasoning_gap"
+    elif state == ProposalState.unclear or needs_more_evidence or support == SupportLabel.weak_evidence:
+        classification = "retrieval_miss"
+    elif parser_signals and exact_evidence == 0:
+        classification = "parser_source_gap"
+
+    return {
+        "classification": classification,
+        "signals": signals,
+        "query": retrieval.query if retrieval is not None else None,
+        "request_mode": retrieval.request_mode if retrieval is not None else None,
+        "retrieval_mode": retrieval.mode if retrieval is not None else None,
+        "top_k": retrieval.top_k if retrieval is not None else None,
+        "retrieved_chunk_count": len(retrieval_chunks),
+        "top_chunk_types": chunk_types,
+        "parser_gap_signals": parser_signals,
+        "quote_count": len(quotes),
+        "exact_evidence_count": exact_evidence,
+        "approximate_evidence_count": approximate_evidence,
+        "fallback_evidence_count": fallback_evidence,
+        "figure_evidence_count": figure_evidence,
+        "proposed_value_seen_in_retrieval": proposed_value_present,
+        "quoted_text_seen_in_retrieval": quoted_text_present,
+    }
+
+
+def _build_figure_review_diagnostics(
+    *,
+    triggered: bool,
+    trigger_reasons: list[str],
+    shortlist_metadata: list[dict],
+    figure_review_calls: int,
+    figure_review_ms: float,
+    figure_hits: list[FigureReviewHit],
+    ranked_evidence: list[EvidenceRecord],
+    figure_rescued_value: bool,
+) -> dict:
+    figure_evidence_persisted = sum(1 for ev in ranked_evidence if ev.is_figure_derived)
+    useful = figure_evidence_persisted > 0 or figure_rescued_value
+    return {
+        "triggered": triggered,
+        "trigger_reasons": list(trigger_reasons),
+        "shortlist_size": len(shortlist_metadata),
+        "review_calls": figure_review_calls,
+        "review_ms": round(figure_review_ms, 3),
+        "hit_count": len(figure_hits),
+        "useful": useful,
+        "figure_evidence_persisted": figure_evidence_persisted,
+        "rescued_value": figure_rescued_value,
+    }
 
 
 def _normalize_quotes_payload(value: Any) -> list[dict]:

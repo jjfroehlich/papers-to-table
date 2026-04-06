@@ -20,17 +20,16 @@ The reviewer is reviewing what the paper supports, not grading the model, so the
 
 The review workspace must show actionable review items by default rather than every recorded pipeline outcome. Diagnostic-only outcomes such as unmatched rows, blocked extraction caused by missing or ambiguous paper matching, skipped cells outside Verify mode, or other non-reviewable pipeline results must remain visible through diagnostics and summaries, but they must not dominate the main proposal queue or inflate reviewer-facing counts.
 
-## Current baseline-strengthening priorities
+## Current diagnostic-artifact priorities
 
-The next implementation pass should be framed as a narrow baseline-strengthening pass, not as a retrieval-platform rewrite.
+The next implementation pass should stay narrow and measurement-first. It is not a retrieval-platform rewrite.
 
-Priority order for that pass is:
+Priority order for this pass is:
 
-1. config and naming cleanup
-2. measurement-first timing and repeated-work instrumentation
-3. prompt externalization into dedicated prompt files
-4. small transparent schema-aware retrieval heuristics
-5. experimental hybrid retrieval benchmark path
+1. main-app artifact completeness and parity signals
+2. provider/runtime failure diagnostics
+3. retrieval-failure diagnostics for questionable cells
+4. figure-review ROI diagnostics
 
 Guardrails for this pass:
 
@@ -38,11 +37,12 @@ Guardrails for this pass:
 - do not introduce multi-agent orchestration
 - do not turn this into a retrieval platform
 - keep default behavior simple and quality-first for mostly digital scientific PDFs
-- keep lexical retrieval as baseline behavior
-- keep hybrid retrieval experimental and opt-in only
+- keep lexical retrieval as the baseline behavior
+- do not add dense retrieval or HyDE in this pass
+- do not add retrieval cache or paper-local retrieval state in this pass
+- do not do a broad chunk-quality overhaul in this pass
+- do not do broad provider/runtime speedup work beyond instrumentation-enabling changes
 - keep instrumentation narrow, structured, and inspectable rather than building a telemetry platform
-- keep retrieval heuristics transparent and inspectable rather than introducing hidden planner logic
-- avoid prompt sprawl; use a small intentional prompt-file structure
 
 ---
 
@@ -98,6 +98,10 @@ The browser UI is the normal operator-facing workflow surface for:
 - aborting an active run
 
 The UI may expose the config path, resolved paths, active run mode (`normal`, `verify`, or `eval`), and provider/model context, but broad parameter editing in the UI is not an MVP requirement and must not become the default control surface.
+
+In addition to the browser UI, the product should expose one stable non-UI automation entrypoint for tooling. That automation path should support config-path-driven run start, narrow path overrides already supported by the runtime contract, optional wait-until-terminal behavior, and machine-readable outputs derived from run artifacts. This automation path is additive and must not replace the browser UI as the normal human workflow.
+
+The automation payload contract should remain explicit and stable for tooling use. At minimum it should include a payload schema tag (for example `schema_version`), string status, explicit terminal-state boolean, run id, run mode, and key run artifact paths.
 
 The checked-in config example, runtime config schema, README, and operator-visible UI terminology are part of one operator-facing contract. Names and meanings for provider, parser, model, Verify mode, Eval mode, and run-state settings must stay aligned across those surfaces. Operator docs should include at least one known-working LM Studio model example, clearly labeled as an example rather than as the only acceptable model choice.
 
@@ -627,7 +631,7 @@ The config may offer an optional whole-document mode for important fields when p
 
 The system must not treat a syntactically completed extraction stage as functional proposal success if the active provider path was unreachable, stubbed, disabled, silently degraded, or otherwise unable to generate meaningful proposals.
 
-Important system prompts used by extraction-critical stages should be loaded from dedicated prompt files rather than only inline string literals. Prompt-file identity should remain inspectable and reproducible through run artifacts.
+Extraction-critical prompt wording should be managed through a small manifest-based prompt-bundle layout rather than scattered inline literals. Dynamic runtime assembly, schema construction, retrieval insertion, and provider fallback control flow remain code-owned. Run artifacts must persist prompt-bundle identity and file provenance so prompt variation is inspectable and reproducible.
 
 ### FR-5 Proposal behavior and derived reasoning
 
@@ -997,7 +1001,7 @@ The system must provide a normal user-facing run summary with at least:
 - readiness or structured-capability failure reason when applicable
 - configured parser choice plus the actual parser identity or version used when available
 - schema hash or schema version plus config snapshot reference or config hash
-- prompt identity for the run, using `prompt_version` when available and deterministic `prompt_hash` otherwise
+- prompt identity for the run, including prompt-bundle identity (`prompt_bundle_id`, optional `prompt_bundle_version`, `prompt_bundle_path`), prompt-bundle hashes (`prompt_manifest_hash`, `prompt_bundle_hash`), prompt file provenance map, and effective prompt-contract identity (`prompt_hash`; `prompt_version` when available)
 - original gold-table and masked working-table provenance when Eval mode is enabled
 - whether processing stayed local or used cloud providers
 - reviewer-outcome summary when Verify mode is enabled

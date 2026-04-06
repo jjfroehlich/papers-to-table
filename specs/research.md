@@ -72,6 +72,7 @@ The main research questions for this phase were:
 - Retrieval should operate over **typed chunks** and may use contextualized `retrieval_text`, but reviewer-visible evidence must remain anchored to source-preserving text.
 - Table-aware retrieval looks like a likely structural improvement for this product, but more advanced retrieval helpers must prove lift before becoming baseline.
 - The review experience requires a **dedicated Run/Review UI**, and the current practical MVP direction is a **queue-first / list-detail review workflow** rather than a spreadsheet-first or wizard-only design.
+- A stable **non-UI automation entrypoint** is still useful for downstream tooling such as optimizer loops, provided it reuses the same backend run pipeline and artifact contracts and does not displace the browser UI as the normal human workflow.
 - The current practical MVP implementation direction is a **local browser app** centered on a **React frontend**, a **small Python FastAPI backend**, and a **raw/custom PDF.js evidence viewer**, with no desktop shell required for MVP. TypeScript, Vite, Tailwind, shadcn/ui, TanStack Table, and TanStack Virtual are sensible practical defaults rather than architectural requirements.
 - The system should use **filesystem artifact bundles plus JSON files as the canonical and sufficient MVP state**, with no database required for MVP.
 - Export should generate a **new updated XLSX workbook plus audit log**, not patch arbitrary workbooks in place, and **openpyxl** is the most realistic Python engine for that MVP behavior. The fidelity promise should be **content-only fidelity plus changed-cell highlighting**, with workbook behavior and advanced sheet features out of guarantee.
@@ -929,8 +930,10 @@ Downstream eval and reproducibility need a stable per-run prompt identity even b
 
 The practical decision is:
 
-- store `prompt_version` when explicit prompt versioning exists
-- otherwise store deterministic `prompt_hash`
+- use a small manifest-based prompt-bundle layout for controllable prompt variation
+- persist prompt-bundle identity (`prompt_bundle_id`, optional `prompt_bundle_version`, `prompt_bundle_path`) and hashes (`prompt_manifest_hash`, `prompt_bundle_hash`)
+- persist effective prompt-contract identity as deterministic `prompt_hash` (`prompt_version` when explicit versioning exists)
+- persist prompt file provenance and logical keys used for reproducible run comparison
 - allow `git_commit` or equivalent code identity as secondary provenance when useful, but do not treat it as the core requirement
 
 ## Evaluation hygiene and leakage

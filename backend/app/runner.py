@@ -8,10 +8,12 @@ from time import perf_counter
 from typing import Optional
 
 from .artifacts import (
+    get_artifact_summary_path,
     hash_file,
     hash_json_data,
     get_config_snapshot_path,
     get_input_summary_path,
+    get_provider_diagnostics_path,
     get_reviewer_summary_path,
     get_run_dir,
     get_run_json_path,
@@ -68,7 +70,10 @@ def get_initial_run_data(
 ) -> dict:
     now = datetime.now(timezone.utc).isoformat()
     run_mode = get_run_mode(config)
-    prompt_identity = get_prompt_identity()
+    prompt_identity = get_prompt_identity(
+        prompt_bundle_name=config.prompt.bundle,
+        prompt_bundle_path=config.prompt.bundle_path,
+    )
     return {
         "run_id": run_id,
         "status": RunStatus.created.value,
@@ -109,12 +114,22 @@ def get_initial_run_data(
         "provider_readiness_reason": None,
         "provider_request_counts": {},
         "retrieval_mode": config.retrieval.mode,
+        "prompt_bundle_name": config.prompt.bundle,
+        "prompt_bundle_config_path": config.prompt.bundle_path,
         "prompt_version": prompt_identity["prompt_version"],
         "prompt_hash": prompt_identity["prompt_hash"],
+        "prompt_bundle_id": prompt_identity["prompt_bundle_id"],
+        "prompt_bundle_version": prompt_identity.get("prompt_bundle_version"),
+        "prompt_bundle_path": prompt_identity["prompt_bundle_path"],
+        "prompt_manifest_hash": prompt_identity["prompt_manifest_hash"],
+        "prompt_bundle_hash": prompt_identity["prompt_bundle_hash"],
+        "prompt_keys_used": prompt_identity.get("prompt_keys_used", []),
         "prompt_files": prompt_identity.get("prompt_files", {}),
         "config_hash": None,
         "config_snapshot_path": None,
         "run_stats_path": None,
+        "provider_diagnostics_path": None,
+        "artifact_summary_path": None,
         "schema_hash": None,
         "schema_version": None,
         "parser_identity": config.parser.backend,
@@ -142,6 +157,10 @@ async def run_pipeline(
     resolved_inputs: Optional[dict[str, object]] = None,
 ) -> None:
     """Main staged runner - runs as asyncio task."""
+    prompt_identity = get_prompt_identity(
+        prompt_bundle_name=config.prompt.bundle,
+        prompt_bundle_path=config.prompt.bundle_path,
+    )
     run_json_path = get_run_json_path(output_dir, run_id)
     run_stats_path = get_run_stats_path(output_dir, run_id)
     stats_started_at = datetime.now(timezone.utc).isoformat()
@@ -150,8 +169,14 @@ async def run_pipeline(
         "run_id": run_id,
         "retrieval_mode": config.retrieval.mode,
         "provider_token": config.provider.token,
-        "prompt_hash": get_prompt_identity()["prompt_hash"],
-        "prompt_files": get_prompt_identity().get("prompt_files", {}),
+        "prompt_hash": prompt_identity["prompt_hash"],
+        "prompt_bundle_id": prompt_identity["prompt_bundle_id"],
+        "prompt_bundle_version": prompt_identity.get("prompt_bundle_version"),
+        "prompt_bundle_path": prompt_identity["prompt_bundle_path"],
+        "prompt_manifest_hash": prompt_identity["prompt_manifest_hash"],
+        "prompt_bundle_hash": prompt_identity["prompt_bundle_hash"],
+        "prompt_keys_used": prompt_identity.get("prompt_keys_used", []),
+        "prompt_files": prompt_identity.get("prompt_files", {}),
         "per_run": {
             "started_at": stats_started_at,
             "completed_at": None,
@@ -171,6 +196,11 @@ async def run_pipeline(
             "whole_document_cells": 0,
             "needs_more_evidence_cells": 0,
             "figure_review_cells": 0,
+            "figure_review_triggered_cells": 0,
+            "figure_review_hit_cells": 0,
+            "figure_review_useful_cells": 0,
+            "figure_review_rescue_cells": 0,
+            "figure_review_hits_total": 0,
         },
         "recorded_at": stats_started_at,
     }
@@ -255,6 +285,12 @@ async def run_pipeline(
                 "retrieval_mode": data.get("retrieval_mode"),
                 "prompt_version": data.get("prompt_version"),
                 "prompt_hash": data.get("prompt_hash"),
+                "prompt_bundle_id": data.get("prompt_bundle_id"),
+                "prompt_bundle_version": data.get("prompt_bundle_version"),
+                "prompt_bundle_path": data.get("prompt_bundle_path"),
+                "prompt_manifest_hash": data.get("prompt_manifest_hash"),
+                "prompt_bundle_hash": data.get("prompt_bundle_hash"),
+                "prompt_keys_used": data.get("prompt_keys_used", []),
                 "prompt_files": data.get("prompt_files"),
                 "config_hash": data.get("config_hash"),
                 "config_snapshot_path": data.get("config_snapshot_path"),
@@ -281,17 +317,106 @@ async def run_pipeline(
                 "generated_at": datetime.now(timezone.utc).isoformat(),
             },
         )
+        data = persist_artifact_summary(data, run_dir)
+        save_run(data)
+        write_json(get_run_summary_path(output_dir, run_id), data)
 
-    def sync_provider_request_counts(data: dict, provider_obj: object, run_dir: pathlib.Path) -> dict:
-        """Persist provider request counters into run artifacts and run.json."""
-        if provider_obj is None:
-            return data
-        get_counts = getattr(provider_obj, "get_request_counts", None)
-        if not callable(get_counts):
-            return data
+    def _count_artifact_files(path: pathlib.Path) -> int:
+        if not path.exists():
+            return 0
+        return sum(1 for item in path.rglob("*") if item.is_file())
+
+    def _proposal_metadata_coverage(proposals: list) -> dict:
+        total = len(proposals)
+        return {
+            "total_proposals": total,
+            "prompt_hash_present": sum(bool(p.prompt_hash) for p in proposals),
+            "config_snapshot_path_present": sum(bool(p.config_snapshot_path) for p in proposals),
+            "schema_hash_present": sum(bool(p.schema_hash) for p in proposals),
+            "parser_identity_present": sum(bool(p.parser_identity) for p in proposals),
+            "provider_diagnostics_present": sum(bool(p.provider_diagnostics) for p in proposals),
+            "retrieval_diagnostics_present": sum(bool(p.retrieval_diagnostics) for p in proposals),
+            "figure_review_diagnostics_present": sum(bool(p.figure_review_diagnostics) for p in proposals),
+            "gold_table_snapshot_path_present": sum(bool(p.gold_table_snapshot_path) for p in proposals),
+            "masked_working_table_path_present": sum(bool(p.masked_working_table_path) for p in proposals),
+        }
+
+    def persist_artifact_summary(data: dict, run_dir: pathlib.Path) -> dict:
+        proposals = load_proposals(run_dir)
+        artifact_path = get_artifact_summary_path(output_dir, run_id)
+        proposal_coverage = _proposal_metadata_coverage(proposals)
+        eval_expected = bool(data.get("eval_mode", False))
+        run_files = {
+            "config_snapshot": "config.snapshot.json",
+            "provider_mode": "provider_mode.json",
+            "provider_request_counts": "provider_request_counts.json",
+            "provider_diagnostics": "provider_diagnostics.json",
+            "input_summary": "inputs/input_summary.json",
+            "match_summary": "matching/match_summary.json",
+            "proposals_jsonl": "proposals/proposals.jsonl",
+            "proposal_index": "proposals/proposal_index.json",
+            "run_stats": "summaries/run_stats.json",
+            "run_summary": "summaries/run_summary.json",
+            "reviewer_summary": "summaries/reviewer_summary.json",
+        }
+        files = {}
+        missing_expected: list[str] = []
+        for label, relative_path in run_files.items():
+            target = run_dir / relative_path
+            present = target.exists()
+            files[label] = {"path": relative_path, "present": present}
+            if label not in {"proposals_jsonl", "proposal_index", "match_summary"} and not present:
+                missing_expected.append(relative_path)
+
+        gold_path = run_dir / "inputs" / f"gold_table{pathlib.Path(config.table_path).suffix}"
+        masked_path = run_dir / "inputs" / f"masked_working_table{pathlib.Path(config.table_path).suffix}"
+        eval_parity = {
+            "expected": eval_expected,
+            "eval_artifacts_present": bool(data.get("eval_artifacts")),
+            "gold_table_snapshot_present": gold_path.exists(),
+            "masked_working_table_present": masked_path.exists(),
+            "proposal_gold_metadata_complete": None if not proposals else proposal_coverage["gold_table_snapshot_path_present"] == len(proposals),
+            "proposal_masked_metadata_complete": None if not proposals else proposal_coverage["masked_working_table_path_present"] == len(proposals),
+        }
+        if eval_expected and not eval_parity["gold_table_snapshot_present"]:
+            missing_expected.append(str(gold_path.relative_to(run_dir)).replace("\\", "/"))
+        if eval_expected and not eval_parity["masked_working_table_present"]:
+            missing_expected.append(str(masked_path.relative_to(run_dir)).replace("\\", "/"))
+
+        summary = {
+            "run_id": run_id,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "files": files,
+            "directories": {
+                "parsed": {"path": "parsed", "file_count": _count_artifact_files(run_dir / "parsed")},
+                "retrieval": {"path": "retrieval", "file_count": _count_artifact_files(run_dir / "retrieval")},
+                "proposals": {"path": "proposals", "file_count": _count_artifact_files(run_dir / "proposals")},
+                "evidence": {"path": "evidence", "file_count": _count_artifact_files(run_dir / "evidence")},
+                "review": {"path": "review", "file_count": _count_artifact_files(run_dir / "review")},
+                "exports": {"path": "exports", "file_count": _count_artifact_files(run_dir / "exports")},
+                "logs": {"path": "logs", "file_count": _count_artifact_files(run_dir / "logs")},
+            },
+            "proposal_metadata_coverage": proposal_coverage,
+            "eval_artifact_parity": eval_parity,
+            "missing_expected_artifacts": sorted(set(missing_expected)),
+        }
+        write_json(artifact_path, summary)
+        data = dict(data)
+        data["artifact_summary_path"] = _relative_run_path(run_dir, artifact_path)
+        return data
+
+    def sync_provider_artifacts(data: dict, provider_obj: object, run_dir: pathlib.Path) -> dict:
+        """Persist provider request counters and diagnostics into run artifacts and run.json."""
+        data = dict(data)
+        counts: dict[str, int] = {}
+        if provider_obj is not None:
+            get_counts = getattr(provider_obj, "get_request_counts", None)
+            if callable(get_counts):
+                try:
+                    counts = get_counts() or {}
+                except Exception:
+                    counts = {}
         try:
-            counts = get_counts() or {}
-            data = dict(data)
             data["provider_request_counts"] = counts
             run_stats["counters"]["provider_request_counts"] = counts
             write_json(
@@ -303,9 +428,35 @@ async def run_pipeline(
                     "recorded_at": datetime.now(timezone.utc).isoformat(),
                 },
             )
-            return data
         except Exception:
-            return data
+            pass
+
+        diagnostics = {
+            "run_id": run_id,
+            "provider_token": config.provider.token,
+            "provider_mode": data.get("provider_mode"),
+            "structured_output_mode": data.get("structured_output_mode"),
+            "provider_readiness_reason": data.get("provider_readiness_reason"),
+            "provider_readiness_error": data.get("provider_readiness_error"),
+            "attempt_count": 0,
+            "total_duration_ms": 0.0,
+            "by_outcome": {},
+            "by_request_kind": {},
+            "last_error": None,
+            "attempts": [],
+            "recorded_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if provider_obj is not None:
+            get_diagnostics = getattr(provider_obj, "get_diagnostics", None)
+            if callable(get_diagnostics):
+                try:
+                    diagnostics.update(get_diagnostics() or {})
+                except Exception:
+                    pass
+        provider_diag_path = get_provider_diagnostics_path(output_dir, run_id)
+        write_json(provider_diag_path, diagnostics)
+        data["provider_diagnostics_path"] = _relative_run_path(run_dir, provider_diag_path)
+        return data
 
     run_data = get_initial_run_data(run_id, config, config_path, resolved_inputs=resolved_inputs)
     init_run_bundle(output_dir, run_id)
@@ -344,6 +495,12 @@ async def run_pipeline(
             "retrieval_mode": run_data["retrieval_mode"],
             "prompt_version": run_data["prompt_version"],
             "prompt_hash": run_data["prompt_hash"],
+            "prompt_bundle_id": run_data.get("prompt_bundle_id"),
+            "prompt_bundle_version": run_data.get("prompt_bundle_version"),
+            "prompt_bundle_path": run_data.get("prompt_bundle_path"),
+            "prompt_manifest_hash": run_data.get("prompt_manifest_hash"),
+            "prompt_bundle_hash": run_data.get("prompt_bundle_hash"),
+            "prompt_keys_used": run_data.get("prompt_keys_used", []),
             "prompt_files": run_data.get("prompt_files", {}),
             "config_hash": run_data["config_hash"],
             "config_snapshot_path": run_data["config_snapshot_path"],
@@ -395,6 +552,7 @@ async def run_pipeline(
                         "recorded_at": datetime.now(timezone.utc).isoformat(),
                     },
                 )
+            run_data = sync_provider_artifacts(run_data, None, run_dir)
             run_data = fail_run(run_data, "; ".join(readiness.errors))
             save_run(run_data)
             write_final_summaries(run_data)
@@ -542,6 +700,7 @@ async def run_pipeline(
             save_run(run_data)
 
         if provider is None:
+            run_data = sync_provider_artifacts(run_data, None, run_dir)
             run_data = fail_run(
                 run_data,
                 provider_init_error or "Provider unavailable during initialization",
@@ -596,7 +755,7 @@ async def run_pipeline(
                         "structured_output_error": getattr(caps, "structured_output_error", None),
                     },
                 })
-            run_data = sync_provider_request_counts(run_data, provider, run_dir)
+            run_data = sync_provider_artifacts(run_data, provider, run_dir)
             save_run(run_data)
 
         # Stage: parse
@@ -744,6 +903,8 @@ async def run_pipeline(
             schema=schema,
             provider=provider,  # None → heuristic fallback
             model_id=text_model_id if provider is not None else None,
+            prompt_bundle_name=config.prompt.bundle,
+            prompt_bundle_path=run_data.get("prompt_bundle_path") or config.prompt.bundle_path,
         )
 
         # Stage: extraction (T057)
@@ -809,6 +970,8 @@ async def run_pipeline(
             artifact_context = {
                 "run_mode": run_data["run_mode"],
                 "retrieval_mode": run_data["retrieval_mode"],
+                "prompt_bundle_name": config.prompt.bundle,
+                "prompt_bundle_path": run_data.get("prompt_bundle_path") or config.prompt.bundle_path,
                 "prompt_version": run_data["prompt_version"],
                 "prompt_hash": run_data["prompt_hash"],
                 "schema_hash": run_data["schema_hash"],
@@ -950,8 +1113,17 @@ async def run_pipeline(
                 run_stats["counters"]["whole_document_cells"] += 1
             if cell_stats.get("needs_more_evidence"):
                 run_stats["counters"]["needs_more_evidence_cells"] += 1
+            if cell_stats.get("figure_review_triggered"):
+                run_stats["counters"]["figure_review_triggered_cells"] += 1
             if cell_stats.get("figure_review_calls"):
                 run_stats["counters"]["figure_review_cells"] += 1
+            if cell_stats.get("figure_hits_count"):
+                run_stats["counters"]["figure_review_hit_cells"] += 1
+                run_stats["counters"]["figure_review_hits_total"] += int(cell_stats.get("figure_hits_count", 0) or 0)
+            if cell_stats.get("figure_review_useful"):
+                run_stats["counters"]["figure_review_useful_cells"] += 1
+            if cell_stats.get("figure_review_rescued"):
+                run_stats["counters"]["figure_review_rescue_cells"] += 1
             pdf_stats["cells_processed"] += 1
             cell_stats["proposal_id"] = proposal.proposal_id
             run_stats["per_cell"].append(cell_stats)
@@ -970,6 +1142,21 @@ async def run_pipeline(
 
         run_data["proposals_generated"] = proposals_generated
         run_stats["counters"]["proposals_generated"] = proposals_generated
+        figure_review_total_ms = round(
+            sum(float(cell.get("figure_review_ms", 0.0) or 0.0) for cell in run_stats["per_cell"]),
+            3,
+        )
+        triggered_cells = int(run_stats["counters"].get("figure_review_triggered_cells", 0) or 0)
+        run_stats["per_run"]["figure_review_roi"] = {
+            "triggered_cells": triggered_cells,
+            "reviewed_cells": int(run_stats["counters"].get("figure_review_cells", 0) or 0),
+            "hit_cells": int(run_stats["counters"].get("figure_review_hit_cells", 0) or 0),
+            "useful_cells": int(run_stats["counters"].get("figure_review_useful_cells", 0) or 0),
+            "rescue_cells": int(run_stats["counters"].get("figure_review_rescue_cells", 0) or 0),
+            "hits_total": int(run_stats["counters"].get("figure_review_hits_total", 0) or 0),
+            "total_ms": figure_review_total_ms,
+            "avg_ms_per_triggered_cell": round(figure_review_total_ms / triggered_cells, 3) if triggered_cells else 0.0,
+        }
         proposals = load_proposals(run_dir)
         fallback_count = sum("fallback_evidence_used" in proposal.warning_flags for proposal in proposals)
         weak_count = sum(proposal.support == SupportLabel.weak_evidence for proposal in proposals)
@@ -985,7 +1172,7 @@ async def run_pipeline(
                 "message": f"{weak_count} proposal(s) have weak evidence.",
                 "context": {"count": weak_count},
             })
-        run_data = sync_provider_request_counts(run_data, provider, run_dir)
+        run_data = sync_provider_artifacts(run_data, provider, run_dir)
         save_run(run_data)
 
         warnings = run_data.get("warnings", [])
@@ -997,7 +1184,7 @@ async def run_pipeline(
         run_data["current_stage"] = None
         run_stats["per_run"]["completed_at"] = run_data.get("completed_at")
         run_stats["per_run"]["run_total_ms"] = round((perf_counter() - run_started_perf) * 1000.0, 3)
-        run_data = sync_provider_request_counts(run_data, provider, run_dir)
+        run_data = sync_provider_artifacts(run_data, provider, run_dir)
         save_run(run_data)
         save_run_stats()
 
@@ -1026,6 +1213,12 @@ async def run_pipeline(
                 "retrieval_mode": run_data.get("retrieval_mode"),
                 "prompt_version": run_data.get("prompt_version"),
                 "prompt_hash": run_data.get("prompt_hash"),
+                "prompt_bundle_id": run_data.get("prompt_bundle_id"),
+                "prompt_bundle_version": run_data.get("prompt_bundle_version"),
+                "prompt_bundle_path": run_data.get("prompt_bundle_path"),
+                "prompt_manifest_hash": run_data.get("prompt_manifest_hash"),
+                "prompt_bundle_hash": run_data.get("prompt_bundle_hash"),
+                "prompt_keys_used": run_data.get("prompt_keys_used", []),
                 "prompt_files": run_data.get("prompt_files"),
                 "config_hash": run_data.get("config_hash"),
                 "config_snapshot_path": run_data.get("config_snapshot_path"),
@@ -1052,6 +1245,9 @@ async def run_pipeline(
                 "generated_at": datetime.now(timezone.utc).isoformat(),
             },
         )
+        run_data = persist_artifact_summary(run_data, run_dir)
+        save_run(run_data)
+        write_json(run_summary_path, run_data)
 
     except asyncio.CancelledError:
         _finalize_active_stage()
@@ -1061,8 +1257,8 @@ async def run_pipeline(
         run_data["current_stage"] = None
         run_stats["per_run"]["completed_at"] = run_data["completed_at"]
         run_stats["per_run"]["run_total_ms"] = round((perf_counter() - run_started_perf) * 1000.0, 3)
-        if "provider" in locals() and "run_dir" in locals():
-            run_data = sync_provider_request_counts(run_data, provider, run_dir)
+        if "run_dir" in locals():
+            run_data = sync_provider_artifacts(run_data, locals().get("provider"), run_dir)
         save_run(run_data)
         save_run_stats()
         raise
@@ -1079,8 +1275,8 @@ async def run_pipeline(
         run_data["current_stage"] = None
         run_stats["per_run"]["completed_at"] = run_data.get("completed_at") or datetime.now(timezone.utc).isoformat()
         run_stats["per_run"]["run_total_ms"] = round((perf_counter() - run_started_perf) * 1000.0, 3)
-        if "provider" in locals() and "run_dir" in locals():
-            run_data = sync_provider_request_counts(run_data, provider, run_dir)
+        if "run_dir" in locals():
+            run_data = sync_provider_artifacts(run_data, locals().get("provider"), run_dir)
         save_run(run_data)
         write_final_summaries(run_data, run_data.get("proposals_generated", 0))
 

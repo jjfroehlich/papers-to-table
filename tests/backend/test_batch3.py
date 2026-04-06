@@ -566,12 +566,46 @@ class TestRetrievalChunks:
         assert result.stats["candidate_chunk_count"] >= result.stats["selected_chunk_count"]
 
     def test_prompt_identity_tracks_external_prompt_files(self, tmp_path: pathlib.Path, monkeypatch):
-        prompt_dir = tmp_path / "prompts"
-        prompt_dir.mkdir()
-        (prompt_dir / "text_extraction_system.txt").write_text("System prompt A", encoding="utf-8")
-        (prompt_dir / "figure_extraction_system.txt").write_text("Figure prompt A", encoding="utf-8")
-        (prompt_dir / "style_profile_system.txt").write_text("Style prompt A", encoding="utf-8")
-        monkeypatch.setattr("backend.app.prompts.PROMPTS_DIR", prompt_dir)
+        from backend.app.prompts import clear_prompt_bundle_cache
+
+        bundles_root = tmp_path / "prompt_bundles"
+        bundle_dir = bundles_root / "default"
+        (bundle_dir / "text_extraction").mkdir(parents=True)
+        (bundle_dir / "figure_extraction").mkdir(parents=True)
+        (bundle_dir / "evidence_recovery").mkdir(parents=True)
+        (bundle_dir / "style_profile").mkdir(parents=True)
+
+        (bundle_dir / "manifest.json").write_text(
+            json.dumps(
+                {
+                    "bundle_id": "default",
+                    "bundle_version": "test",
+                    "files": {
+                        "text_extraction_system": "text_extraction/system.md",
+                        "text_extraction_user": "text_extraction/user.md",
+                        "figure_extraction_system": "figure_extraction/system.md",
+                        "figure_extraction_user": "figure_extraction/user.md",
+                        "evidence_recovery_system": "evidence_recovery/system.md",
+                        "evidence_recovery_user": "evidence_recovery/user.md",
+                        "style_profile_system": "style_profile/system.md",
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        (bundle_dir / "text_extraction" / "system.md").write_text("System prompt A", encoding="utf-8")
+        (bundle_dir / "text_extraction" / "user.md").write_text(
+            "Extract: $column_name\nField description: $column_description\n\nPaper row context:\n$row_block$verify_block$long_text_note$field_contract$style_block\n\n$context_block\n\n$whole_document_block\n\nInstructions:\nReturn ONLY valid JSON matching the schema.",
+            encoding="utf-8",
+        )
+        (bundle_dir / "figure_extraction" / "system.md").write_text("Figure prompt A", encoding="utf-8")
+        (bundle_dir / "figure_extraction" / "user.md").write_text("Field to extract: $column_name", encoding="utf-8")
+        (bundle_dir / "evidence_recovery" / "system.md").write_text("Recovery system", encoding="utf-8")
+        (bundle_dir / "evidence_recovery" / "user.md").write_text("Recovery user", encoding="utf-8")
+        (bundle_dir / "style_profile" / "system.md").write_text("Style prompt A", encoding="utf-8")
+
+        monkeypatch.setattr("backend.app.prompts.PROMPT_BUNDLES_DIR", bundles_root)
+        clear_prompt_bundle_cache()
 
         identity_a = get_prompt_identity()
         messages = build_text_extraction_prompt(
@@ -582,10 +616,12 @@ class TestRetrievalChunks:
             style_profile=None,
         )
 
-        (prompt_dir / "text_extraction_system.txt").write_text("System prompt B", encoding="utf-8")
+        (bundle_dir / "text_extraction" / "system.md").write_text("System prompt B", encoding="utf-8")
+        clear_prompt_bundle_cache()
         identity_b = get_prompt_identity()
 
-        assert identity_a["prompt_files"]["text_extraction_system"]["path"].endswith("text_extraction_system.txt")
+        assert identity_a["prompt_bundle_id"] == "default"
+        assert identity_a["prompt_files"]["text_extraction_system"]["relative_path"] == "text_extraction/system.md"
         assert messages[0]["content"] == "System prompt A"
         assert identity_b["prompt_hash"] != identity_a["prompt_hash"]
 
@@ -868,6 +904,41 @@ class TestProviderCapabilities:
             )
 
         assert result["value"] == "ok"
+
+    @pytest.mark.asyncio
+    async def test_chat_complete_structured_records_attempt_diagnostics(self):
+        provider = LMStudioProvider(base_url="http://localhost:1234")
+        provider.set_capabilities(
+            ProviderCapabilities(
+                supports_structured_output=True,
+                structured_output_mode="json_object",
+                model_id="test-model",
+                vision_capable=False,
+            )
+        )
+
+        with patch.object(
+            provider,
+            "_post_structured_payload",
+            new=AsyncMock(side_effect=["not json at all", '{"value": "ok"}']),
+        ):
+            result = await provider.chat_complete_structured(
+                messages=[{"role": "user", "content": "test"}],
+                response_schema={
+                    "type": "object",
+                    "properties": {"value": {"type": "string"}},
+                    "required": ["value"],
+                },
+                model_id="test-model",
+            )
+
+        diagnostics = provider.get_diagnostics()
+
+        assert result["value"] == "ok"
+        assert diagnostics["attempt_count"] == 2
+        assert diagnostics["by_outcome"]["structured_output_error"] == 1
+        assert diagnostics["by_outcome"]["success"] == 1
+        assert diagnostics["by_request_kind"]["text_structured"] == 2
 
     @pytest.mark.asyncio
     async def test_chat_complete_structured_validates_schema_after_parse(self):
@@ -1375,6 +1446,86 @@ class TestExtractionOrchestrator:
             provider_mode_str="live_local",
         )
         assert proposal.provider_mode == "live_local"
+
+    async def test_persists_provider_retrieval_and_figure_review_diagnostics(
+        self,
+        run_dir: pathlib.Path,
+        minimal_doc_dict: dict,
+    ):
+        crop_path = run_dir / "fig_diag.png"
+        crop_path.write_bytes(_minimal_png_bytes())
+        doc_dict = dict(minimal_doc_dict)
+        doc_dict["figures"] = [{**minimal_doc_dict["figures"][0], "crop_path": str(crop_path), "figure_id": "fig_diag"}]
+
+        retrieval = run_retrieval_for_cell(
+            run_id="run_test",
+            pdf_id="paper_test",
+            column_name="Bone volume fraction",
+            column_description="BVF measurement",
+            doc_dict=doc_dict,
+            run_dir=run_dir,
+            top_k=3,
+        )
+
+        class ProviderStub:
+            async def chat_complete_structured(self, **_kwargs):
+                return {
+                    "proposed_value": None,
+                    "state": "unclear",
+                    "rationale": None,
+                    "calculation": None,
+                    "numeric_value_form": None,
+                    "quotes": [],
+                }
+
+            async def vision_complete_structured(self, **_kwargs):
+                return {
+                    "proposed_value": "45.3%",
+                    "state": "found",
+                    "rationale": "- Figure supports BVF value.",
+                    "numeric_value_form": "exact",
+                    "figure_description": "Bar height indicates 45.3%.",
+                    "caption_relevant": True,
+                }
+
+            def get_diagnostics_cursor(self):
+                return 0
+
+            def get_diagnostics_since(self, _cursor):
+                return [
+                    {
+                        "request_kind": "text_structured",
+                        "outcome": "success",
+                        "duration_ms": 12.5,
+                    },
+                    {
+                        "request_kind": "vision_structured",
+                        "outcome": "success",
+                        "duration_ms": 22.0,
+                    },
+                ]
+
+        proposal = await extract_cell(
+            run_id="run_test",
+            pdf_id="paper_test",
+            row_id="row_test",
+            cell_id="cell_diag",
+            column_name="Bone volume fraction",
+            column_description="BVF measurement",
+            row_context={"Title": "Paper"},
+            doc_dict=doc_dict,
+            run_dir=run_dir,
+            provider=ProviderStub(),
+            text_model_id="text-model",
+            vision_model_id="vision-model",
+            retrieval=retrieval,
+        )
+
+        assert proposal.provider_diagnostics["attempt_count"] == 2
+        assert proposal.retrieval_diagnostics["retrieved_chunk_count"] >= 1
+        assert proposal.figure_review_diagnostics["triggered"] is True
+        assert proposal.figure_review_diagnostics["useful"] is True
+        assert proposal.figure_review_diagnostics["rescued_value"] is True
 
     async def test_long_text_field_gets_more_tokens(
         self, run_dir: pathlib.Path, minimal_doc_dict: dict

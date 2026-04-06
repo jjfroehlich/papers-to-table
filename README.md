@@ -86,6 +86,63 @@ For a compact screenshot-backed operator guide, see [`docs/operator-workflow.md`
 
 ---
 
+## Non-UI Automation Entrypoint
+
+The browser UI remains the normal human workflow.
+
+For tooling (for example an optimizer), the backend exposes a stable non-UI automation entrypoint via:
+
+```bash
+python -m backend.app.automation start --config-path config.json
+```
+
+This entrypoint uses the same backend run pipeline and artifact model.
+It does not replace the browser workflow.
+
+### Start and return immediately
+
+```bash
+python -m backend.app.automation start --config-path config.json
+```
+
+### Start and wait for terminal state
+
+```bash
+python -m backend.app.automation start --config-path config.json --wait
+```
+
+### Optional narrow input overrides
+
+```bash
+python -m backend.app.automation start \
+  --config-path config.json \
+  --table-path tests/fixtures/tables/literature_fixture.xlsx \
+  --schema-path tests/fixtures/tables/literature_fixture_schema.csv \
+  --pdf-dir tests/fixtures/papers
+```
+
+### Read status from artifacts
+
+```bash
+python -m backend.app.automation status --run-id <run_id> --output-dir ./runs
+```
+
+### Wait by run id until terminal
+
+```bash
+python -m backend.app.automation wait --run-id <run_id> --output-dir ./runs
+```
+
+Outputs are machine-readable JSON and include run id, status, resolved mode, artifact root paths, summary paths when present, and failure/readiness context when relevant.
+
+Automation payloads include explicit contract helpers for orchestration:
+
+- `schema_version` (automation payload schema tag)
+- `status` (string status)
+- `is_terminal` (boolean terminal-state flag)
+
+---
+
 ## Configuration
 
 All run parameters are controlled by a JSON config file. Copy the example to get started:
@@ -111,11 +168,19 @@ The canonical provider token is `lm_studio`. Tokens such as `lmstudio`, `LMStudi
 | `provider.base_url` | LM Studio API base URL (default: `http://localhost:1234`) |
 | `provider.text_model.model_id` | ID of the text model loaded in LM Studio |
 | `provider.vision_model.model_id` | ID of the vision model (optional) |
+| `prompt.bundle` | Optional built-in prompt bundle name (`default` when omitted) |
+| `prompt.bundle_path` | Optional explicit prompt bundle path (takes precedence over `prompt.bundle`) |
 | `figure_review.enabled` | Enables text-guided figure review as supplemental evidence (global, not schema-per-column) |
 | `retrieval.mode` | Retrieval scorer mode: `lexical` by default or opt-in `hybrid_experimental` |
 | `retrieval.top_k` | Focused retrieval passage count for the first pass (default: `6`) |
 | `retrieval.recall_rescue_enabled` | Retry `unclear` results with deterministic expanded retrieval (default: `true`) |
 | `retrieval.whole_document_mode` | Opt-in whole-document rescue context for short parsed papers (default: `false`) |
+
+Prompt bundle selection precedence is:
+
+1. `prompt.bundle_path` when provided
+2. otherwise `prompt.bundle`
+3. otherwise built-in `default`
 
 ### Schema-first extraction guidance
 
@@ -171,6 +236,9 @@ Eval mode is artifact emission for a separate scorer, not an in-app benchmark da
 
 - run mode truth (`run_mode: eval`)
 - `prompt_version` or `prompt_hash`
+- prompt bundle identity (`prompt_bundle_id`, `prompt_bundle_version`, `prompt_bundle_path`)
+- prompt bundle hashes (`prompt_manifest_hash`, `prompt_bundle_hash`)
+- prompt files and logical keys used (`prompt_files`, `prompt_keys_used`)
 - `config_hash` and `config.snapshot.json`
 - `schema_hash`
 - parser identity (`parser_identity`)

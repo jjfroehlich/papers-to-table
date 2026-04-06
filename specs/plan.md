@@ -33,6 +33,7 @@ The intended implementation model for this repository is:
 - Each batch should be delivered as a polished, coherent slice that a later batch can safely build on.
 - The JSON config file remains authoritative for advanced behavior and reproducibility.
 - The browser UI owns the normal operator workflow for launch, status visibility, review, and export.
+- A narrow non-UI automation entrypoint may be used by tooling (for example an optimizer) to start and monitor runs without driving the frontend; it must reuse the same backend run pipeline and artifact contracts. The tooling contract should include start, status-by-run-id, and wait-by-run-id behavior with explicit machine-readable terminal signaling.
 - The local onboarding path should stay clear and singular: start backend, start frontend, open the browser UI, supply a config path, start the run.
 - Treat `README.md`, the checked-in config example, the runtime config schema, and operator-visible UI copy as one operator-facing contract. Keep provider, parser, model, Verify-mode, Eval-mode, and run-state terminology aligned across those surfaces.
 - Do not let early batches stop at a structurally correct shell. Provider-path scaffolding, placeholder proposal generation, or silent degraded modes do not count as a finished slice.
@@ -46,11 +47,10 @@ The intended implementation model for this repository is:
 
 For the next implementation pass, sequence work in this explicit order:
 
-1. config and naming cleanup with canonical truth in persisted artifacts
-2. narrow measurement-first instrumentation for stage timing and repeated-work diagnosis
-3. prompt externalization into dedicated prompt files
-4. small transparent schema-aware retrieval heuristics (inspectable policy, no hidden planner)
-5. experimental hybrid retrieval benchmark path (opt-in, baseline lexical unchanged)
+1. main-app artifact completeness and parity signals
+2. provider/runtime failure diagnostics
+3. retrieval-failure diagnostics for questionable cells
+4. figure-review ROI diagnostics
 
 This remains one coherent deterministic pipeline pass, not a shift to multi-agent orchestration, retrieval-platform architecture, or telemetry-platform design.
 
@@ -60,12 +60,11 @@ Current code and run-artifact state relevant to this priority order:
 
 - implemented: resolved config snapshot persistence (`config.snapshot.json`) with resolved input context
 - implemented: lexical retrieval baseline path and persisted per-cell retrieval artifacts
-- implemented: prompt identity persistence (`prompt_hash`/`prompt_version`) and provider request counts
-- missing: truthful canonical retrieval naming cleanup (current config still uses `semantic_chunks`)
-- missing: structured run-stats timing and repeated-work instrumentation artifacts
-- missing: prompt externalization into dedicated prompt files
-- missing: explicit persisted retrieval-policy visibility fields beyond query text hints
-- missing: hybrid retrieval opt-in mode and explicit baseline-vs-hybrid run visibility
+- implemented: prompt-bundle identity and prompt-contract identity persistence (`prompt_bundle_*`, `prompt_manifest_hash`, `prompt_bundle_hash`, `prompt_hash`) plus provider request counts
+- missing: explicit artifact completeness/parity summary for main-app runs
+- missing: rich persisted provider/runtime attempt diagnostics beyond request counters
+- missing: proposal-level retrieval failure classification for questionable cells
+- missing: explicit aggregate figure-review ROI summary beyond raw timing fields
 
 ---
 
@@ -168,14 +167,14 @@ Implementation for this phase is complete when the system satisfies the function
 - No giant user-facing config surface.
 - No assumption that more fallback layers automatically improve the product.
 
-For the next baseline-strengthening pass, these items are explicitly deferred:
+For the next diagnostic-artifact pass, these items are explicitly deferred:
 
 - paper-local retrieval state or cache architecture
 - broad chunk-quality overhaul
 - broad provider/runtime speedup work beyond instrumentation-ready design
 - dense retrieval as default behavior
 - HyDE as default behavior
-- broad main-app versus eval-app artifact-contract cleanup
+- broad main-app versus eval-app redesign or separate eval-app work
 
 ---
 
@@ -1100,7 +1099,7 @@ The extraction model should receive, at minimum:
 - retrieved evidence context
 - instructions for proposal state and evidence output
 
-Important system prompts for style profiling, extraction, and figure-review guidance should live in dedicated prompt files with a small intentional directory structure. Run artifacts should preserve prompt identity with enough prompt-file provenance for reproducibility.
+Prompt wording for style profiling, extraction, figure guidance, and evidence recovery should live in a small manifest-based prompt-bundle structure (for example `backend/app/prompt_bundles/default/manifest.json` plus referenced files). Prompt bundles are for optimizer-friendly wording variation; dynamic runtime assembly and reliability-critical control flow remain in Python.
 
 The extraction contract must remain valid when no style profile exists because the table or column had no filled examples.
 
@@ -1120,7 +1119,7 @@ The MVP should use:
 - one vision-capable model for figure review when configured, separate from the text model
 - both model identifiers recorded in run artifacts and shown in run summaries and reviewer context
 
-Every run should also persist prompt identity. If the implementation has explicit prompt versioning, store `prompt_version`. Otherwise store a deterministic `prompt_hash`. `prompt_hash` is the minimum required fallback so downstream eval and reproducibility never depend on prompt versioning already existing as infrastructure. If easy to capture, `git_commit` or equivalent run-code identity may be stored as secondary provenance, but it is not the core requirement.
+Every run should persist both prompt-bundle identity and effective prompt-contract identity. Persist at minimum: `prompt_bundle_id`, optional `prompt_bundle_version`, `prompt_bundle_path`, `prompt_manifest_hash`, `prompt_bundle_hash`, prompt file provenance (`prompt_files` with logical keys and file hashes), `prompt_keys_used`, and effective `prompt_hash` (`prompt_version` when explicit versioning exists). `prompt_bundle_hash` and `prompt_hash` serve different purposes and must not be conflated.
 
 ## Run modes
 

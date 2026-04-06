@@ -1,0 +1,14 @@
+{
+  "bundle_id": "default",
+  "bundle_version": "1.0.0",
+  "notes": "Default prompt bundle for extraction, evidence recovery, and style profile behavior.",
+  "files": {
+    "text_extraction_system": "text_extraction/system.md",
+    "text_extraction_user": "text_extraction/user.md",
+    "figure_extraction_system": "figure_extraction/system.md",
+    "figure_extraction_user": "figure_extraction/user.md",
+    "evidence_recovery_system": "evidence_recovery/system.md",
+    "evidence_recovery_user": "evidence_recovery/user.md",
+    "style_profile_system": "style_profile/system.md"
+  }
+}

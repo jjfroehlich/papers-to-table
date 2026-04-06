@@ -72,6 +72,7 @@ class TestLoadConfig:
         assert config.schema_path == str(pathlib.Path(FIXTURE_SCHEMA).resolve())
         assert config.pdf_dir == str(pathlib.Path(FIXTURE_PDF_DIR).resolve())
         assert config.retrieval.mode == "lexical"
+        assert config.prompt.bundle == "default"
 
     def test_file_not_found(self):
         with pytest.raises(FileNotFoundError):
@@ -102,6 +103,8 @@ class TestLoadConfig:
         assert config.matching.ambiguity_threshold == 0.15
         assert config.retrieval.top_k == 6
         assert config.retrieval.mode == "lexical"
+        assert config.prompt.bundle is None
+        assert config.prompt.bundle_path is None
 
     def test_legacy_retrieval_strategy_normalizes_to_mode(self, tmp_path):
         data = {
@@ -155,6 +158,27 @@ class TestLoadConfig:
         assert config.schema_path == str((tmp_path / "schema.csv").resolve())
         assert config.pdf_dir == str((tmp_path / "pdfs").resolve())
         assert config.output_dir == str((tmp_path / "runs").resolve())
+
+    def test_prompt_bundle_path_resolves_against_config_location(self, tmp_path):
+        config_dir = tmp_path / "nested"
+        config_dir.mkdir()
+        data = {
+            "table_path": "../table.xlsx",
+            "pdf_dir": "../pdfs",
+            "provider": {
+                "token": "lm_studio",
+                "text_model": {"model_id": "qwen/qwen3-30b-a3b-2507"},
+            },
+            "prompt": {
+                "bundle_path": "../prompt_bundles/variant_a",
+            },
+        }
+        config_path = config_dir / "config.json"
+        config_path.write_text(json.dumps(data), encoding="utf-8")
+
+        config = load_config(str(config_path))
+
+        assert config.prompt.bundle_path == str((tmp_path / "prompt_bundles" / "variant_a").resolve())
 
     def test_text_model_id_default_preserved_until_readiness(self, tmp_path):
         data = {

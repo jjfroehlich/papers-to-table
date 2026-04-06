@@ -113,6 +113,11 @@ class ExportConfig(BaseModel):
     include_audit_log: bool = True
 
 
+class PromptConfig(BaseModel):
+    bundle: Optional[str] = None
+    bundle_path: Optional[str] = None
+
+
 class RunConfig(BaseModel):
     table_path: str
     schema_path: Optional[str] = None
@@ -128,6 +133,7 @@ class RunConfig(BaseModel):
     figure_review: FigureReviewConfig = Field(default_factory=FigureReviewConfig)
     review: ReviewConfig = Field(default_factory=ReviewConfig)
     export: ExportConfig = Field(default_factory=ExportConfig)
+    prompt: PromptConfig = Field(default_factory=PromptConfig)
 
     @model_validator(mode="after")
     def validate_provider_token(self) -> RunConfig:
@@ -173,6 +179,11 @@ def _resolve_config_paths(data: dict, base_dir: Path) -> dict:
     for key in ("table_path", "schema_path", "pdf_dir", "output_dir"):
         if key in resolved:
             resolved[key] = _resolve_path_value(resolved.get(key), base_dir)
+    prompt_data = resolved.get("prompt")
+    if isinstance(prompt_data, dict) and "bundle_path" in prompt_data:
+        prompt_resolved = dict(prompt_data)
+        prompt_resolved["bundle_path"] = _resolve_path_value(prompt_data.get("bundle_path"), base_dir)
+        resolved["prompt"] = prompt_resolved
     return resolved
 
 

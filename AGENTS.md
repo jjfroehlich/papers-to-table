@@ -106,7 +106,8 @@ If the real structure changes, update this map.
 
 ## Compounding Lessons
 
-Write a compounding lesson only when a bug, edge case, or workflow mistake reveals a reusable repo-level lesson and the repo is actively using those notes. Keep them under a consistent location, `/docs/engineering-lessons`.
+- Write a compounding lesson only when a bug, edge case, or workflow mistake reveals a reusable repo-level lesson and the repo is actively using those notes. Keep them under a consistent location, `/docs/engineering-lessons`.
+- If you run into issues that could be edge cases or bugs observed previously, there could be useful info in these engineering lessons.
 
 ## Final Rule
 

@@ -162,6 +162,8 @@ async def generate_style_profile(
     filled_values: list[str],
     provider: Optional[object] = None,  # ProviderAdapter from provider.py
     model_id: Optional[str] = None,
+    prompt_bundle_name: Optional[str] = None,
+    prompt_bundle_path: Optional[str] = None,
 ) -> StyleProfile:
     """Generate a style profile for a column.
 
@@ -183,7 +185,11 @@ async def generate_style_profile(
 
             prompt = _build_style_prompt(column_name, description, nonempty)
             request_kwargs = {
-                "system": load_prompt_text("style_profile_system"),
+                "system": load_prompt_text(
+                    "style_profile_system",
+                    bundle=prompt_bundle_name,
+                    bundle_path=prompt_bundle_path,
+                ),
                 "user": prompt,
                 "max_tokens": 512,
             }
@@ -282,6 +288,8 @@ async def run_style_profiles_stage(
     schema: list[dict],
     provider: Optional[object] = None,
     model_id: Optional[str] = None,
+    prompt_bundle_name: Optional[str] = None,
+    prompt_bundle_path: Optional[str] = None,
 ) -> dict[str, StyleProfile]:
     """Generate and persist style profiles for all schema columns.
 
@@ -311,6 +319,8 @@ async def run_style_profiles_stage(
             filled,
             provider,
             model_id,
+            prompt_bundle_name=prompt_bundle_name,
+            prompt_bundle_path=prompt_bundle_path,
         )
         persist_style_profile(run_dir, profile)
         profiles[col_name] = profile

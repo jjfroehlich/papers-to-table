@@ -18,6 +18,7 @@ import json
 import re
 import textwrap
 from datetime import datetime, timezone
+from time import perf_counter
 from typing import Any, Optional
 
 import httpx
@@ -182,6 +183,18 @@ class ProviderAdapter(abc.ABC):
     def get_request_counts(self) -> dict[str, int]:
         """Return provider request counters for run artifacts."""
         return {}
+
+    def get_diagnostics(self) -> dict[str, Any]:
+        """Return provider attempt diagnostics for run artifacts."""
+        return {}
+
+    def get_diagnostics_cursor(self) -> int:
+        """Return an opaque cursor for later incremental diagnostic reads."""
+        return 0
+
+    def get_diagnostics_since(self, cursor: int) -> list[dict[str, Any]]:
+        """Return provider attempt diagnostics recorded after the given cursor."""
+        return []
 
 
 # ---------------------------------------------------------------------------
@@ -404,12 +417,159 @@ class LMStudioProvider(ProviderAdapter):
             "completions_probe_structured": 0,
             "completion_retry_attempts": 0,
         }
+        self._diagnostic_attempts: list[dict[str, Any]] = []
+        self._pending_transport_metadata: Optional[dict[str, Any]] = None
 
     def _bump(self, key: str, amount: int = 1) -> None:
         self._request_counts[key] = self._request_counts.get(key, 0) + amount
 
     def get_request_counts(self) -> dict[str, int]:
         return dict(self._request_counts)
+
+    def get_diagnostics(self) -> dict[str, Any]:
+        attempts = list(self._diagnostic_attempts)
+        by_outcome: dict[str, int] = {}
+        by_request_kind: dict[str, int] = {}
+        total_duration_ms = 0.0
+        last_error: Optional[dict[str, Any]] = None
+        for attempt in attempts:
+            outcome = str(attempt.get("outcome") or "unknown")
+            request_kind = str(attempt.get("request_kind") or "unknown")
+            by_outcome[outcome] = by_outcome.get(outcome, 0) + 1
+            by_request_kind[request_kind] = by_request_kind.get(request_kind, 0) + 1
+            total_duration_ms += float(attempt.get("duration_ms", 0.0) or 0.0)
+            if outcome != "success":
+                last_error = {
+                    "request_kind": request_kind,
+                    "structured_mode": attempt.get("structured_mode"),
+                    "error_reason": attempt.get("error_reason"),
+                    "error_message": attempt.get("error_message"),
+                    "http_status": attempt.get("http_status"),
+                    "recorded_at": attempt.get("recorded_at"),
+                }
+        return {
+            "attempt_count": len(attempts),
+            "total_duration_ms": round(total_duration_ms, 3),
+            "by_outcome": by_outcome,
+            "by_request_kind": by_request_kind,
+            "last_error": last_error,
+            "attempts": attempts,
+        }
+
+    def get_diagnostics_cursor(self) -> int:
+        return len(self._diagnostic_attempts)
+
+    def get_diagnostics_since(self, cursor: int) -> list[dict[str, Any]]:
+        safe_cursor = max(0, int(cursor or 0))
+        return [dict(item) for item in self._diagnostic_attempts[safe_cursor:]]
+
+    def _truncate_preview(self, value: Optional[str], limit: int = 240) -> Optional[str]:
+        if value is None:
+            return None
+        collapsed = re.sub(r"\s+", " ", value).strip()
+        if not collapsed:
+            return None
+        if len(collapsed) <= limit:
+            return collapsed
+        return collapsed[: limit - 3] + "..."
+
+    def _set_pending_transport_metadata(
+        self,
+        *,
+        request_kind: str,
+        structured_mode: Optional[str],
+        model_id: str,
+        duration_ms: float,
+        http_status: Optional[int],
+        raw_preview: Optional[str] = None,
+    ) -> None:
+        self._pending_transport_metadata = {
+            "request_kind": request_kind,
+            "structured_mode": structured_mode,
+            "model_id": model_id,
+            "duration_ms": round(duration_ms, 3),
+            "http_status": http_status,
+            "raw_preview": self._truncate_preview(raw_preview),
+        }
+
+    def _consume_pending_transport_metadata(
+        self,
+        *,
+        request_kind: str,
+        structured_mode: Optional[str],
+        model_id: str,
+        fallback_duration_ms: float,
+        raw_preview: Optional[str] = None,
+    ) -> dict[str, Any]:
+        pending = self._pending_transport_metadata or {
+            "request_kind": request_kind,
+            "structured_mode": structured_mode,
+            "model_id": model_id,
+            "duration_ms": round(fallback_duration_ms, 3),
+            "http_status": None,
+            "raw_preview": self._truncate_preview(raw_preview),
+        }
+        self._pending_transport_metadata = None
+        if raw_preview and not pending.get("raw_preview"):
+            pending["raw_preview"] = self._truncate_preview(raw_preview)
+        return pending
+
+    def _record_attempt(
+        self,
+        *,
+        request_kind: str,
+        structured_mode: Optional[str],
+        model_id: str,
+        outcome: str,
+        duration_ms: float,
+        http_status: Optional[int] = None,
+        error_reason: Optional[str] = None,
+        error_message: Optional[str] = None,
+        raw_preview: Optional[str] = None,
+    ) -> None:
+        self._diagnostic_attempts.append(
+            {
+                "sequence": len(self._diagnostic_attempts) + 1,
+                "request_kind": request_kind,
+                "structured_mode": structured_mode,
+                "model_id": model_id,
+                "outcome": outcome,
+                "duration_ms": round(duration_ms, 3),
+                "http_status": http_status,
+                "error_reason": error_reason,
+                "error_message": self._truncate_preview(error_message),
+                "raw_preview": self._truncate_preview(raw_preview),
+                "recorded_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+
+    def _record_exception_attempt(
+        self,
+        *,
+        request_kind: str,
+        structured_mode: Optional[str],
+        model_id: str,
+        duration_ms: float,
+        error: Exception,
+    ) -> None:
+        if isinstance(error, ModelUnavailableError):
+            outcome = "model_unavailable"
+        elif isinstance(error, ProviderTimeoutError):
+            outcome = "timeout"
+        elif isinstance(error, StructuredOutputError):
+            reason = getattr(error, "reason", None)
+            outcome = "structured_backend_incompatible" if reason == "structured_backend_incompatible" else "structured_output_error"
+        else:
+            outcome = "provider_error"
+        self._record_attempt(
+            request_kind=request_kind,
+            structured_mode=structured_mode,
+            model_id=model_id,
+            outcome=outcome,
+            duration_ms=duration_ms,
+            error_reason=getattr(error, "reason", None),
+            error_message=str(error),
+        )
 
     @property
     def token(self) -> str:
@@ -633,6 +793,7 @@ class LMStudioProvider(ProviderAdapter):
                         max_tokens=max_tokens,
                         temperature=temperature,
                         structured_mode=mode,
+                        request_kind="text_structured",
                         post_method=self._post_structured_payload,
                     )
                 except StructuredOutputError as e:
@@ -659,15 +820,62 @@ class LMStudioProvider(ProviderAdapter):
         max_tokens: int,
         temperature: float,
         structured_mode: str,
+        request_kind: str,
         post_method,
     ) -> dict:
         payload = self._build_payload(
             messages, model_id, max_tokens, temperature, response_schema, structured_mode
         )
+        call_started = perf_counter()
         try:
             first_raw = await post_method(payload, model_id)
-            return _parse_and_validate_response(first_raw, response_schema)
+            metadata = self._consume_pending_transport_metadata(
+                request_kind=request_kind,
+                structured_mode=structured_mode,
+                model_id=model_id,
+                fallback_duration_ms=(perf_counter() - call_started) * 1000.0,
+                raw_preview=first_raw,
+            )
+            parsed = _parse_and_validate_response(first_raw, response_schema)
+            self._record_attempt(
+                request_kind=request_kind,
+                structured_mode=structured_mode,
+                model_id=model_id,
+                outcome="success",
+                duration_ms=float(metadata.get("duration_ms", 0.0) or 0.0),
+                http_status=metadata.get("http_status"),
+                raw_preview=metadata.get("raw_preview"),
+            )
+            return parsed
         except StructuredOutputError as first_error:
+            if self._pending_transport_metadata is not None:
+                metadata = self._consume_pending_transport_metadata(
+                    request_kind=request_kind,
+                    structured_mode=structured_mode,
+                    model_id=model_id,
+                    fallback_duration_ms=(perf_counter() - call_started) * 1000.0,
+                )
+                reason = getattr(first_error, "reason", None)
+                outcome = "structured_backend_incompatible" if reason == "structured_backend_incompatible" else "structured_output_error"
+                self._record_attempt(
+                    request_kind=request_kind,
+                    structured_mode=structured_mode,
+                    model_id=model_id,
+                    outcome=outcome,
+                    duration_ms=float(metadata.get("duration_ms", 0.0) or 0.0),
+                    http_status=metadata.get("http_status"),
+                    error_reason=reason,
+                    error_message=str(first_error),
+                    raw_preview=metadata.get("raw_preview"),
+                )
+            else:
+                self._record_exception_attempt(
+                    request_kind=request_kind,
+                    structured_mode=structured_mode,
+                    model_id=model_id,
+                    duration_ms=(perf_counter() - call_started) * 1000.0,
+                    error=first_error,
+                )
             if getattr(first_error, "reason", None) == "structured_backend_incompatible":
                 raise
             self._bump("completion_retry_attempts")
@@ -688,8 +896,38 @@ class LMStudioProvider(ProviderAdapter):
                 response_schema,
                 structured_mode,
             )
+            retry_started = perf_counter()
             retry_raw = await post_method(retry_payload, model_id)
-            return _parse_and_validate_response(retry_raw, response_schema)
+            metadata = self._consume_pending_transport_metadata(
+                request_kind=request_kind,
+                structured_mode=structured_mode,
+                model_id=model_id,
+                fallback_duration_ms=(perf_counter() - retry_started) * 1000.0,
+                raw_preview=retry_raw,
+            )
+            parsed = _parse_and_validate_response(retry_raw, response_schema)
+            self._record_attempt(
+                request_kind=request_kind,
+                structured_mode=structured_mode,
+                model_id=model_id,
+                outcome="success",
+                duration_ms=float(metadata.get("duration_ms", 0.0) or 0.0),
+                http_status=metadata.get("http_status"),
+                raw_preview=metadata.get("raw_preview"),
+            )
+            return parsed
+        except (ProviderError, ModelUnavailableError, ProviderTimeoutError) as provider_error:
+            if self._pending_transport_metadata is None:
+                self._record_exception_attempt(
+                    request_kind=request_kind,
+                    structured_mode=structured_mode,
+                    model_id=model_id,
+                    duration_ms=(perf_counter() - call_started) * 1000.0,
+                    error=provider_error,
+                )
+            else:
+                self._pending_transport_metadata = None
+            raise
 
     def _record_structured_backend_incompatibility(self, error: StructuredOutputError, attempted_mode: str) -> None:
         caps = self._capabilities
@@ -702,6 +940,7 @@ class LMStudioProvider(ProviderAdapter):
         caps.structured_output_error = str(error)
 
     async def _post_structured_payload(self, payload: dict, model_id: str) -> str:
+        started = perf_counter()
         async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
             self._bump("http_total")
             self._bump("completions_total")
@@ -709,20 +948,70 @@ class LMStudioProvider(ProviderAdapter):
             resp = await client.post(
                 f"{self._base_url}/v1/chat/completions", json=payload
             )
+        duration_ms = (perf_counter() - started) * 1000.0
+        structured_mode = payload.get("response_format", {}).get("type") if isinstance(payload.get("response_format"), dict) else "none"
         if resp.status_code == 404:
+            self._record_attempt(
+                request_kind="text_structured",
+                structured_mode=structured_mode,
+                model_id=model_id,
+                outcome="model_unavailable",
+                duration_ms=duration_ms,
+                http_status=404,
+                error_message=f"Model '{model_id}' not found at LM Studio. Ensure the model is loaded.",
+            )
             raise ModelUnavailableError(
                 f"Model '{model_id}' not found at LM Studio. Ensure the model is loaded."
             )
         if resp.status_code == 503:
+            self._record_attempt(
+                request_kind="text_structured",
+                structured_mode=structured_mode,
+                model_id=model_id,
+                outcome="model_unavailable",
+                duration_ms=duration_ms,
+                http_status=503,
+                error_message="LM Studio is busy or model is not loaded.",
+            )
             raise ModelUnavailableError("LM Studio is busy or model is not loaded.")
         if resp.status_code != 200:
             reason, message = _classify_lm_studio_response_error(resp.status_code, resp.text)
             if reason:
+                self._record_attempt(
+                    request_kind="text_structured",
+                    structured_mode=structured_mode,
+                    model_id=model_id,
+                    outcome="structured_backend_incompatible",
+                    duration_ms=duration_ms,
+                    http_status=resp.status_code,
+                    error_reason=reason,
+                    error_message=message or resp.text[:300],
+                    raw_preview=resp.text,
+                )
                 raise StructuredOutputError(message or resp.text[:300], reason=reason)
+            self._record_attempt(
+                request_kind="text_structured",
+                structured_mode=structured_mode,
+                model_id=model_id,
+                outcome="provider_error",
+                duration_ms=duration_ms,
+                http_status=resp.status_code,
+                error_message=f"LM Studio returned HTTP {resp.status_code}: {resp.text[:300]}",
+                raw_preview=resp.text,
+            )
             raise ProviderError(
                 f"LM Studio returned HTTP {resp.status_code}: {resp.text[:300]}"
             )
-        return _coerce_message_content(resp.json()["choices"][0]["message"]["content"])
+        raw = _coerce_message_content(resp.json()["choices"][0]["message"]["content"])
+        self._set_pending_transport_metadata(
+            request_kind="text_structured",
+            structured_mode=structured_mode,
+            model_id=model_id,
+            duration_ms=duration_ms,
+            http_status=resp.status_code,
+            raw_preview=raw,
+        )
+        return raw
 
     def _build_payload(
         self,
@@ -805,6 +1094,7 @@ class LMStudioProvider(ProviderAdapter):
                         max_tokens=max_tokens,
                         temperature=temperature,
                         structured_mode=mode,
+                        request_kind="vision_structured",
                         post_method=self._post_vision_payload,
                     )
                 except StructuredOutputError as e:
@@ -824,6 +1114,7 @@ class LMStudioProvider(ProviderAdapter):
             raise ProviderError(f"Vision request failed: {e}") from e
 
     async def _post_vision_payload(self, payload: dict, model_id: str) -> str:
+        started = perf_counter()
         async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT * 2) as client:
             self._bump("http_total")
             self._bump("completions_total")
@@ -831,20 +1122,70 @@ class LMStudioProvider(ProviderAdapter):
             resp = await client.post(
                 f"{self._base_url}/v1/chat/completions", json=payload
             )
+        duration_ms = (perf_counter() - started) * 1000.0
+        structured_mode = payload.get("response_format", {}).get("type") if isinstance(payload.get("response_format"), dict) else "none"
         if resp.status_code == 404:
+            self._record_attempt(
+                request_kind="vision_structured",
+                structured_mode=structured_mode,
+                model_id=model_id,
+                outcome="model_unavailable",
+                duration_ms=duration_ms,
+                http_status=404,
+                error_message=f"Vision model '{model_id}' not found at LM Studio. Ensure the model is loaded.",
+            )
             raise ModelUnavailableError(
                 f"Vision model '{model_id}' not found at LM Studio. Ensure the model is loaded."
             )
         if resp.status_code == 503:
+            self._record_attempt(
+                request_kind="vision_structured",
+                structured_mode=structured_mode,
+                model_id=model_id,
+                outcome="model_unavailable",
+                duration_ms=duration_ms,
+                http_status=503,
+                error_message="LM Studio is busy or vision model is not loaded.",
+            )
             raise ModelUnavailableError("LM Studio is busy or vision model is not loaded.")
         if resp.status_code != 200:
             reason, message = _classify_lm_studio_response_error(resp.status_code, resp.text)
             if reason:
+                self._record_attempt(
+                    request_kind="vision_structured",
+                    structured_mode=structured_mode,
+                    model_id=model_id,
+                    outcome="structured_backend_incompatible",
+                    duration_ms=duration_ms,
+                    http_status=resp.status_code,
+                    error_reason=reason,
+                    error_message=message or resp.text[:200],
+                    raw_preview=resp.text,
+                )
                 raise StructuredOutputError(message or resp.text[:200], reason=reason)
+            self._record_attempt(
+                request_kind="vision_structured",
+                structured_mode=structured_mode,
+                model_id=model_id,
+                outcome="provider_error",
+                duration_ms=duration_ms,
+                http_status=resp.status_code,
+                error_message=f"Vision completion failed HTTP {resp.status_code}: {resp.text[:200]}",
+                raw_preview=resp.text,
+            )
             raise ProviderError(
                 f"Vision completion failed HTTP {resp.status_code}: {resp.text[:200]}"
             )
-        return _coerce_message_content(resp.json()["choices"][0]["message"]["content"])
+        raw = _coerce_message_content(resp.json()["choices"][0]["message"]["content"])
+        self._set_pending_transport_metadata(
+            request_kind="vision_structured",
+            structured_mode=structured_mode,
+            model_id=model_id,
+            duration_ms=duration_ms,
+            http_status=resp.status_code,
+            raw_preview=raw,
+        )
+        return raw
 
     def set_capabilities(self, caps: ProviderCapabilities) -> None:
         """Set probed capabilities so they are reused across requests."""

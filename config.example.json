@@ -33,6 +33,9 @@
     "enabled": true,
     "max_examples": 3
   },
+  "prompt": {
+    "bundle": "default"
+  },
   "retrieval": {
     "mode": "lexical",
     "top_k": 10,
