@@ -396,6 +396,86 @@ class LoaderAndCliTests(unittest.TestCase):
             self.assertTrue((output_dir / "per-run" / "run-a" / "run_summary.json").exists())
             self.assertTrue((output_dir / "per-run" / "run-b" / "run_summary.json").exists())
 
+    def test_cli_evaluate_json_output_mode_emits_machine_readable_payload(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            run_dir = self._create_run_bundle(base / "run-a")
+            gold_path = base / "gold.csv"
+            gold_path.write_text("row_id,status\nrow-1,yes\n", encoding="utf-8")
+            output_dir = base / "out"
+
+            stdout = io.StringIO()
+            with redirect_stdout(stdout):
+                exit_code = main(
+                    [
+                        "evaluate",
+                        "--run",
+                        str(run_dir),
+                        "--gold",
+                        str(gold_path),
+                        "--out",
+                        str(output_dir),
+                        "--json-output",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            payload = json.loads(stdout.getvalue().strip())
+            self.assertEqual(payload["schema_version"], "paper_eval_cli.v1")
+            self.assertEqual(payload["command"], "evaluate")
+            self.assertTrue(payload["success"])
+            self.assertEqual(payload["run_count"], 1)
+            self.assertEqual(payload["run_ids"], ["run-a"])
+            self.assertTrue((output_dir / "per-run" / "run-a" / "run_summary.json").exists())
+            self.assertTrue((output_dir / "compare" / "runs_comparison.csv").exists())
+
+    def test_cli_compare_json_output_mode_emits_machine_readable_payload(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            run_dir = self._create_run_bundle(base / "run-a")
+            gold_path = base / "gold.csv"
+            gold_path.write_text("row_id,status\nrow-1,yes\n", encoding="utf-8")
+            output_dir = base / "out"
+
+            self.assertEqual(
+                main(
+                    [
+                        "evaluate",
+                        "--run",
+                        str(run_dir),
+                        "--gold",
+                        str(gold_path),
+                        "--out",
+                        str(output_dir),
+                    ]
+                ),
+                0,
+            )
+
+            rebuilt_dir = base / "rebuilt"
+            stdout = io.StringIO()
+            with redirect_stdout(stdout):
+                exit_code = main(
+                    [
+                        "compare",
+                        "--summaries",
+                        str(output_dir / "per-run"),
+                        "--out",
+                        str(rebuilt_dir),
+                        "--json-output",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            payload = json.loads(stdout.getvalue().strip())
+            self.assertEqual(payload["schema_version"], "paper_eval_cli.v1")
+            self.assertEqual(payload["command"], "compare")
+            self.assertTrue(payload["success"])
+            self.assertGreaterEqual(payload["row_count"], 1)
+            self.assertTrue((rebuilt_dir / "runs_comparison.csv").exists())
+            self.assertTrue((rebuilt_dir / "runs_comparison.xlsx").exists())
+            self.assertTrue((rebuilt_dir / "runs_comparison.parquet").exists())
+
     def test_compare_requires_existing_summary_input(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             missing = Path(temp_dir) / "missing"

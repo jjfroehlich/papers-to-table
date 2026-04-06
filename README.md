@@ -263,6 +263,27 @@ python -m paper_eval compare \
   --out out/example-batch/compare-rebuilt
 ```
 
+## Optional machine-readable stdout mode
+
+Artifact files remain the canonical scoring contract.
+
+For orchestration tools, the CLI also supports optional machine-readable completion payloads on stdout:
+
+```bash
+python -m paper_eval evaluate \
+  --run tests/fixtures/example_eval/runs/run-a \
+  --gold tests/fixtures/example_eval/gold.csv \
+  --out out/example-single \
+  --json-output
+
+python -m paper_eval compare \
+  --summaries out/example-batch/per-run \
+  --out out/example-batch/compare-rebuilt \
+  --json-output
+```
+
+JSON stdout payloads include `schema_version`, command kind, success status, output directory, and key produced artifact paths. They are a convenience surface only; files written under `out/` are still the source of truth.
+
 ## Output artifacts
 
 Every evaluation writes stable artifact names:

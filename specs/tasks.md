@@ -105,6 +105,8 @@ Goal: make the tool reliable, operator-clear, and explicit about remaining contr
 - [x] E060 Keep an explicit visible note in docs about the required stable join-key contract between the main app and the eval repo, with `row_index` treated only as fallback or debug context.
 - [x] E063 Tighten `README.md` and operator docs so they clearly explain what the eval repo does, expected main-app inputs, one-run and many-run evaluation workflows, headline metrics, diagnostic metrics, and current limitations.
 - [x] E064 Add explicit operator guidance and examples for the LM Studio judge path, including configuration, the default judge model `qwen/qwen3.5-35b-a3b`, and how persisted judge metadata should be interpreted.
+- [x] E065 Add optional machine-readable JSON stdout completion mode for `evaluate` and `compare`, while keeping file artifacts canonical.
+- [x] E066 Add tests and docs for JSON stdout mode, including payload schema tagging and key produced artifact paths.
 
 ---
 

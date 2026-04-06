@@ -27,6 +27,8 @@ The product is a command-line tool that:
 
 The evaluator is not a GUI product. Human-readable markdown output is optional. The primary outputs are structured files that can be inspected directly or loaded into notebooks, spreadsheets, or downstream analysis scripts.
 
+For orchestration convenience, the CLI may optionally emit a small machine-readable completion payload on stdout. This stdout payload is additive and does not replace artifact-file outputs as the canonical contract.
+
 ---
 
 ## Goals

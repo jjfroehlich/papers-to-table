@@ -53,6 +53,8 @@ paper-eval compare --summaries out/per-run --out out/compare
 
 This split keeps normal scoring simple while allowing cheap re-rendering of comparison tables.
 
+Both commands may optionally expose a machine-readable completion payload on stdout for orchestration tools, while keeping file artifacts under `out/` as the primary source of truth.
+
 ---
 
 ## Proposed repo architecture
