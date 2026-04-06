@@ -793,6 +793,7 @@ class TestProviderCapabilities:
         assert mode.mode == "live_local"
         assert mode.capabilities is not None
         assert mode.capabilities.structured_output_mode == "json_object"
+        assert mode.structured_output_reason == "json_schema_unsupported"
 
     @pytest.mark.asyncio
     async def test_initialize_provider_allows_prompt_only_fallback_when_no_structured_mode(self):
@@ -817,6 +818,7 @@ class TestProviderCapabilities:
         assert mode.mode == "live_local"
         assert mode.capabilities is not None
         assert mode.capabilities.structured_output_mode == "none"
+        assert mode.structured_output_reason == "structured_modes_unavailable"
         assert mode.structured_output_fallback_used is True
 
     @pytest.mark.asyncio

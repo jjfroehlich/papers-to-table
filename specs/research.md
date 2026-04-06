@@ -22,11 +22,11 @@ Where a conclusion is not fully settled, it should be marked clearly using the c
 
 ---
 
-## Status
+## How To Use This Document
 
-Updated: evidence quality, reviewer trust, text-guided targeted figure review, separate text/vision model direction, integrity/workflow refinements, and leakage-aware eval-mode rationale
+This document captures baseline conclusions and explicit open questions.
 
-This document contains the current baseline conclusions plus explicit open questions. It should be updated whenever a major implementation decision changes.
+Implementation progress and current-state verification live in `tasks.md`.
 
 ### Decision confidence levels
 

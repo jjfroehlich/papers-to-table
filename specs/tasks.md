@@ -1,1564 +1,298 @@
-# Extract Structured Info from Papers — `tasks.md`
-
-## Status
-
-Implementation checklist for the full intended MVP, plus the current narrow diagnostic-artifact pass.
-
-Reality-checked on 2026-04-06 against current backend code, tests, and recent run artifacts:
-
-- completed: resolved `config.snapshot.json` persistence and `resolved_inputs` run artifact context
-- completed: lexical baseline retrieval with persisted per-cell retrieval artifacts
-- completed: prompt identity via `prompt_hash`/`prompt_version` in run/proposal/evidence artifacts
-- completed: manifest-based prompt bundle loader, config-driven bundle selection, and run-artifact prompt bundle metadata (`prompt_bundle_*`, `prompt_manifest_hash`, `prompt_keys_used`)
-- completed: stable non-UI automation entrypoint for tooling (`python -m backend.app.automation`) with machine-readable start/wait/status outputs
-- completed: provider request counter artifact via `provider_request_counts.json`
-- completed: explicit main-app artifact completeness/parity summary with user-facing versus diagnostics sections in `summaries/artifact_summary.json`
-- completed: persisted provider/runtime attempt diagnostics beyond request counters, including `diagnostics/provider_diagnostics.json`, `diagnostics/provider_probe.json`, and optional `diagnostics/provider_trace.jsonl`
-- completed: proposal-level retrieval failure classification for questionable cells
-- completed: aggregate figure-review ROI diagnostics at per-cell and per-run level
-- completed: dedicated backend tests for diagnostic-artifact paths and probe persistence
+# Extract Structured Info from Papers — tasks.md
 
 ## Purpose
 
-This document turns `spec.md`, `research.md`, and `plan.md` into a concrete implementation task list for coding agents.
-
-It is intentionally exhaustive and describes the **full intended MVP implementation**, not a reduced sprint slice.
-Tasks remain ordered by **dependency and architecture constraints**, not by human sprint scope reduction.
-If a task below is part of the intended finished MVP, it stays in the list even if it feels like later-stage polish.
-
-`spec.md` remains the source of truth for product requirements and acceptance criteria.
-`plan.md` remains the source of truth for architecture and technical direction.
-`tasks.md` defines the exhaustive implementation inventory and the canonical execution batches for future coding-agent work.
-
-## MVP architecture constraints
-
-Preserve these constraints throughout implementation:
-
-- local browser app, **not Tauri for MVP**
-- **React** frontend
-- small **Python FastAPI** backend
-- **Docling** as main parser
-- **PDFium via `pypdfium2`** as low-level PDF backend
-- evidence viewer with synchronized quote list and viewer navigation, preserving standard PDF-reading affordances in at least one explicit mode
-- **LM Studio localhost API** as the initial provider path
-- **separate text-model and vision-model configuration** in the provider config
-- **filesystem artifact bundles + JSON files only**
-- **no database in MVP**
-- **no background job framework by default in MVP**
-- **content-only XLSX export**
-- **reviewer-outcome summaries** in MVP
-- **per-column preprocessing LLM** for style profiles
-- **no raw semantic example injection by default**
-- **text-guided targeted figure review when a vision model is configured**
-- figure evidence allowed for any field type; not restricted to figure-classified fields
-- **no unrestricted full-page vision on every page by default**
-- **no user-triggered figure-review rerun control**
-- **evidence ranking**: primary evidence selected by authority and relevance, not by model output order
-- **evidence type taxonomy**: direct quote, inferred reasoning, calculation, approximate highlight fallback, quote-plus-page fallback, caption-grounded figure evidence, and visual-interpretation figure evidence; each labeled and rendered distinctly
-- **exact quote highlighting from page-text alignment** with honest labeled fallback to approximate highlight or quote-plus-page
-
-If implementation pressure suggests changing any of these constraints, update `spec.md` and `plan.md` first, then update this file in the same work pass.
-
-## Working assumptions
-
-- Tasks are listed in required dependency order unless a task explicitly says it is safe to parallelize.
-- Later tasks may assume earlier tasks are complete.
-- Keep contracts stable before adding orchestration complexity.
-- Keep persistence logic centralized in the artifact subsystem rather than scattering ad hoc JSON reads and writes across the codebase.
-- Keep prompt/request construction separate from orchestration logic.
-- Resolve config defaults into one effective runtime config before snapshotting.
-- Keep unsupported or out-of-scope features explicitly blocked so coding agents do not silently broaden the MVP.
-- A task is not truly done when a code path exists; it is done when the user-facing behavior, verification, and docs for that slice are strong enough to support the next batch.
-- For UI-affecting tasks, browser verification or equivalent end-to-end coverage is part of done.
-- Provider-path scaffolding is not a completed slice by itself. The canonical LM Studio path must either work on the canonical fixture set or fail early with a clear readiness error.
-- Keep canonical provider naming, config shape, README/docs wording, tests, and UI labels in parity. Unknown provider identifiers must be rejected explicitly.
-- Treat `README.md`, the checked-in config example, the runtime config schema, and operator-visible UI copy as one operator-facing contract. Keep provider, parser, model, Verify-mode, and run-state terminology aligned across those surfaces.
-- Do not allow a clean shell to hide disabled, stubbed, degraded, or unreachable proposal generation.
-- Treat the reviewer as reviewing the paper, not the model. Review-state semantics, no-data handling, and evidence interaction should reflect that throughout implementation.
-- Evidence quality and reviewer trust are first-class implementation requirements. A proposal with an evidence record does not satisfy evidence requirements unless the evidence is ranked, typed, and labeled correctly. The first model-returned quote is not automatically primary.
-- Evidence ranking must be authoritatively ordered. Implementation that treats supporting evidence items as unordered or treats all items as equivalent does not satisfy the evidence contract.
-- Keep reviewable proposals, diagnostics-only outcomes, and reviewer-facing counts as separate concepts. The main queue must not become a raw dump of every blocked, skipped, ambiguous, or failed cell artifact.
-
-## Assumed repo shape
-
-Use or map tasks onto a local-first repo shape such as:
-
-- `backend/` — FastAPI app, staged runner, parsing/matching/retrieval/extraction/export logic
-- `frontend/` — React review UI
-- `tests/` — unit, integration, contract, and e2e tests
-- `tests/fixtures/` — deterministic spreadsheet/PDF fixture corpus
-- `docs/` — optional internal notes if needed
-
-If the repo already uses different names, preserve the existing structure and map the tasks accordingly.
-
-## How to use this file
-
-This file is intentionally exhaustive. Do **not** shrink it into a sprint checklist and do **not** treat a broad one-pass implementation as the default just because every task is listed here.
-
-Future coding-agent implementation should normally proceed by the canonical batches below.
-
-### Batch execution rules
-
-- Implement one batch at a time unless the user explicitly asks for a different scope.
-- Finish the current batch deeply enough that a normal operator can use that slice without guesswork.
-- Do not satisfy a user-facing batch with backend support alone; verify the actual browser or operator-visible behavior for that slice.
-- When a batch changes workflow truth, update `README.md`, `spec.md`, `plan.md`, and this file in the same pass.
-- End each operator-facing batch by generating or updating the user-facing `README.md` and any other operator docs needed for that slice so they truthfully match the implemented behavior before the next batch begins.
-- Do not mark tasks complete merely because code exists already. Re-check current behavior against the spec and batch completion standard.
-
-## Canonical implementation batches
-
-### Batch 1 — Extraction truth, matching, and persistence refinement
-
-**Purpose:** tighten the extraction contract so the system is schema-first, empty-table-safe, deterministically matchable, provider-truthful, and evidence-strict before more UI polish lands.
-
-**Primary tasks:** `T009c`, `T013b`, `T020a`, `T021a`, `T024c`, `T024d`, `T034a`, `T038a`, `T040a`, `T041a`, `T042a`, `T044a`, `T047a`, `T047b`, `T047c`, `T049a`, `T049b`, `T050b`, `T052b`, `T052c`, `T052d`, `T056a`, `T056b`, `T057b`, `T057c`, `T058b`, `T059a`, `T062a`, `T062b`, `T067a`, `T067b`, `T067e`
-
-**Why this batch exists:** the next implementation pass should first fix extraction leakage risk, matching integrity, warning truth, and artifact shape. Otherwise later review UX polish will sit on top of weak or misleading backend semantics.
-
-**Batch 1 is complete when:**
-
-- deterministic matching clearly favors DOI, author, and year signals over title-heavy scoring and explains duplicate-row conflicts distinctly from ordinary ambiguity
-- schema-first extraction works without prefilled cells, optional field typing is honored, and style profiles remain helper-only rather than semantic exemplars
-- Eval mode creates a masked working copy, rejects Verify-plus-Eval combinations early, and preserves the minimal downstream-ready artifact contract without leaking target gold values
-- retrieval rescue is bounded and explicit, whole-document mode is optional rather than default, and dead `retrieval.chunk_size` config is gone
-- provider-unavailable state hard-fails at run start, warning propagation is truthful, and structured-output fallback stays bounded with explicit degraded-mode signaling when `json_object` fallback is used
-- proposal persistence uses `proposals.jsonl` plus an index or equivalent lookup structure
-- direct evidence requires anchored direct support, multiple quotes are supported when genuinely needed, and figure evidence subtypes are ranked and labeled correctly
-
-### Batch 2 — Reviewer workflow, viewer navigation, and export control
-
-**Purpose:** make the run and review workspace faster and more trustworthy by tightening setup and status truth, centering actionable counts, improving fast sequential review, and keeping export explicit.
-
-**Primary tasks:** `T023c`, `T024b`, `T068a`, `T075b`, `T076b`, `T080a`, `T082b`, `T084a`, `T086c`, `T090b`, `T091a`, `T093a`, `T093b`, `T094a`, `T094b`, `T095a`, `T096a`, `T101a`
-
-**Why this batch exists:** the current baseline already has a substantial review shell. The next useful step is to tighten reviewer throughput and truthfulness rather than rebuild the whole workspace again.
-
-**Batch 2 is complete when:**
-
-- active runs refresh automatically, cancellation is explicit, and stale-refresh failures are surfaced instead of silently leaving the operator with stale state
-- the review workspace headline and progress controls default to actionable or reviewable proposals instead of broader attempted totals
-- the config path remains editable as text while also supporting a `Browse...` control for normal use
-- evidence navigation supports fast sequential review, including next or previous evidence and stronger highlight synchronization
-- explicit decisions auto-advance to the next reviewable proposal when one exists
-- parsing fallback, duplicate conflicts, evidence fallback, and provider-mode truth are surfaced consistently in review-facing summaries and diagnostics
-- Eval-mode run context is surfaced clearly in summaries, diagnostics, and review surfaces, including gold-table versus masked-table references and version context
-- export is an explicit manual reviewer action and never an implicit side effect
-
-### Batch 3 — Regression protection, screenshots, and trustworthiness docs
-
-**Purpose:** close the loop with coverage and operator docs so the tightened workflow remains demonstrable, repeatable, and truthful.
-
-**Primary tasks:** `T107c`, `T107d`, `T107e`
-
-**Why this batch exists:** these changes are product-trust changes. They should ship with screenshots, lightweight trust guidance, and reproducible documentation rather than being left as implicit code behavior.
-
-**Batch 3 is complete when:**
-
-- operator docs explain schema descriptions, manual export, evidence semantics, provider or parsing truth, and Eval-mode masking without drift
-- the README includes current screenshots for run setup, highlighted evidence review, and export or diagnostics views
-- screenshot capture is reproducible through Playwright or an equivalent checked-in workflow
-- the README includes a compact trustworthiness checklist aligned with local-first usage, evidence labeling, fallback visibility, review-before-export, and audit artifact access
-
-### Batch 4 — Baseline strengthening (single long implementation pass)
-
-**Purpose:** execute one coherent implementation pass that strengthens the baseline without widening architecture scope.
-
-**Ordered execution checklist (must stay in this order):**
-
-- [ ] **T108 — Config and naming truth cleanup**
-  - align retrieval and related config naming to implemented behavior
-  - keep compatibility handling pragmatic, but make canonical naming explicit in schema/docs/artifacts
-  - keep persisted resolved effective config artifacts as the reproducibility source
-- [ ] **T109 — Measurement-first run instrumentation**
-  - add narrow structured run-stats artifacts for stage timing and repeated-work diagnosis
-  - keep artifact shape compact and manually inspectable
-  - preserve existing `provider_request_counts` and add focused provider/evidence/retrieval counters
-- [x] **T110 — Prompt externalization**
-  - move important system prompts into dedicated prompt files
-  - keep prompt file structure small and intentional
-  - preserve prompt identity/provenance in run artifacts
-- [ ] **T111 — Transparent schema-aware retrieval heuristics**
-  - derive only small coarse heuristics from existing schema inputs (column name and description)
-  - keep behavior inspectable in outputs/logs/artifacts
-  - do not introduce hidden planner logic
-- [ ] **T112 — Experimental hybrid retrieval benchmark path**
-  - keep lexical retrieval as default baseline
-  - add hybrid retrieval as explicit opt-in benchmark mode only
-  - ensure baseline vs hybrid mode is visible in artifacts/logs/summaries
-
-**Batch 4 completion standard:**
-
-- the deterministic staged pipeline remains intact with no multi-agent orchestration
-- no retrieval-platform/cache architecture is introduced
-- instrumentation remains narrow and diagnostic-focused, not telemetry-platform shaped
-- hybrid retrieval cannot become default accidentally
-- prompt files remain few, clear, and non-sprawling
-
-The detailed task inventory below remains the source of truth for exact implementation work inside each batch.
-
-### Batch 5 — Narrow diagnostic artifact pass
-
-**Purpose:** add the next small, inspectable observability slice without broadening retrieval or runtime architecture.
-
-**Ordered execution checklist (must stay in this order):**
-
-- [x] **T113 — Artifact completeness and parity summary**
-  - add an explicit main-app artifact summary for presence/absence and parity signals
-  - keep missing review/export/log artifacts visible rather than implicit
-- [x] **T114 — Provider/runtime failure diagnostics**
-  - persist compact per-attempt provider diagnostics with durations, failure categories, and truncated payload previews
-  - explain high cell runtime when no valid text result is recovered
-- [x] **T115 — Retrieval-failure diagnostics**
-  - add compact proposal-level classification for questionable cells
-  - distinguish parser/source gap, retrieval miss, retrieval-policy limit, evidence anchoring gap, and reasoning gap using existing artifacts
-- [x] **T116 — Figure-review ROI diagnostics**
-  - persist trigger, hit, useful-evidence, rescue, and time-cost summaries per cell and per run
-
-**Batch 5 completion standard:**
-
-- lexical retrieval remains the baseline behavior
-- no dense retrieval or HyDE work is introduced
-- no retrieval cache/state architecture is introduced
-- no broad chunk-quality overhaul is introduced
-- no broad provider/runtime optimization work is introduced beyond instrumentation-enabling changes
-
----
-
-## Phase 0 — Foundation, contracts, config, identifiers, and deterministic test harness
-
-**Goal:** establish stable schemas, stable identifiers, filesystem persistence, config behavior, and test scaffolding for the full MVP.
-
-- [x] **T001** Create the base project skeleton for `backend/`, `frontend/`, and `tests/`, plus a short root-level development note that describes the local-first architecture and canonical pipeline stages.
-
-- [x] **T002** Define the shared domain enums and common JSON/Pydantic/TypeScript schemas for at least:
-  - run status
-  - match outcome
-  - proposal state
-  - support label
-  - evidence source type
-  - review decision
-  - review resolution reason
-  - warning/status category
-  - provider locality (`local` vs `cloud`)
-
-- [x] **T003** Define and implement stable identifier generation for runs, PDFs, rows, cells, proposals, evidence items, and review decisions, including at minimum:
-  - deterministic `cell_id`
-  - stable `pdf_id` assignment within a run
-  - proposal and evidence ids that are unique and traceable, including cases where multiple PDFs target the same row/cell within one run
-  - stable review-decision ids linked back to proposal and cell context
-
-- [x] **T004** Implement the stable run artifact bundle layout with at least:
-  - `run.json`
-  - `config.snapshot.json`
-  - `inputs/`
-  - `style_profiles/`
-  - `parsed/`
-  - `matching/`
-  - `retrieval/`
-  - `proposals/`
-  - `evidence/`
-  - `review/`
-  - `summaries/run_summary.json`
-  - `summaries/reviewer_summary.json`
-  - `exports/`
-  - `logs/`
-
-- [x] **T005** Implement the artifact I/O helper layer:
-  - shared helpers for writing and reading JSON snapshot files
-  - shared helpers for appending and reading JSONL files
-  - stable artifact-path generation inside a run bundle
-  - lookup helpers for proposals, evidence, and review decisions by id
-  - run-summary and reviewer-summary recomputation from artifact files
-  - write behavior that is atomic enough for local single-user reliability
-
-- [x] **T006** Define the proposal JSON schema and contract for one proposal object per target cell per run, including at least:
-  - `proposal_id`
-  - `run_id`
-  - `pdf_id`
-  - `row_id`
-  - `column_name`
-  - `cell_id`
-  - `source_mode`
-  - `proposal_state`
-  - `support_label`
-  - `proposed_value`
-  - `rationale`
-  - `calculation`
-  - `needs_more_evidence`
-  - `primary_evidence_id` (the single most authoritative evidence item, selected by evidence ranking)
-  - `ordered_supporting_evidence_ids` (ordered list of additional evidence item ids, ranked by authority and relevance, most authoritative first)
-
-- [x] **T007** Define the evidence JSON schema and contract for separate evidence records linked to proposals, including at least:
-  - `evidence_id`
-  - `proposal_id`
-  - `pdf_id`
-  - `source_type` (one of: `direct_quote`, `inferred_reasoning`, `calculation`, `approximate_highlight`, `quote_plus_page`, `caption_grounded_figure_evidence`, `visual_interpretation_figure_evidence`)
-  - `page`
-  - `quote_text` (verbatim text for direct quote, inferred reasoning, calculation, and quote-plus-page types)
-  - `exact_highlight_regions` (bounding regions from page-text alignment when available)
-  - `approximate_highlight_regions` (bounding regions from parser geometry when exact alignment failed; labeled as approximate)
-  - `figure_ref`
-  - `caption_text`
-  - `crop_path`
-  - `full_page_path`
-  - `anchor_confidence`
-  - `evidence_rank` (integer rank within the proposal, lower = more authoritative; primary evidence has rank 1)
-
-- [x] **T008** Define the review-decision JSON schema plus the run-summary and reviewer-summary JSON schemas.
-  - review decisions must remain persistable as explicit records, not only as in-place proposal mutations
-  - preserve a distinct confirmed-no-data outcome and structured resolution reasons for non-accepted or manually resolved states
-
-- [x] **T009** Define the single JSON config schema covering:
-  - input table and schema paths
-  - PDF directory path
-  - parser settings
-  - OCR fallback settings
-  - matching settings
-  - style-profile settings
-  - retrieval settings
-  - provider/model settings, including separate fields for text model identifier and vision model identifier
-  - figure-review settings (scope, relevance selection strategy)
-  - review settings
-  - export settings
-
-- [x] **T009a** Define the canonical provider token policy and settings contract shared across runtime validation, config examples, tests, docs, and UI labels.
-  - use `lm_studio` as the canonical LM Studio config token and `LM Studio` as the canonical operator-visible label
-  - specify how optional cloud providers fit behind the same typed interface
-  - document any allowed aliases in one place only and normalize them into canonical stored values
-  - reject unknown, obsolete, or misspelled provider identifiers explicitly
-  - provider settings must include separate model identifier fields for text extraction and for vision extraction; a single shared model field is not sufficient
-
-- [x] **T009b** Define the operator-facing terminology parity rules for provider, parser, model, Verify-mode, and run-state labels across the runtime config schema, checked-in config example, tests, docs, and UI copy.
-
+This is the canonical implementation checklist and status tracker for the MVP.
+
+Use this file for checked/unchecked task state. Keep product behavior in `spec.md`, architecture in `plan.md`, rationale in `research.md`, operator workflow in `README.md`, and editing rules in `AGENTS.md`.
+
+## Canonical Editing Rules
+
+- Keep one checked/unchecked checklist only.
+- Each task id appears exactly once in the canonical list.
+- Preserve the section structure below when editing.
+- Put temporary or historical notes in the appendix, not in the main checklist.
+- Do not add new batch or phase frameworks unless explicitly asked.
+
+## Current Repo-Truth Notes
+
+Reality-checked on 2026-04-06 against current backend/frontend source, targeted tests, historical run artifacts, and live browser behavior.
+
+- Implemented: resolved `config.snapshot.json` persistence and resolved input context.
+- Implemented: lexical retrieval baseline with persisted per-cell retrieval artifacts.
+- Implemented: prompt bundle loading plus persisted prompt identity/provenance.
+- Implemented: stable non-UI automation entrypoint with machine-readable start/status/wait outputs.
+- Implemented: provider/runtime diagnostics, artifact completeness summary, retrieval-failure diagnostics, and figure-review ROI diagnostics.
+- Implemented in the latest pass: readiness-versus-capability truth split for provider status across backend artifacts, automation payloads, and UI summaries.
+- Still incomplete: `T109` measurement-first instrumentation and `T111` run-level heuristic visibility remain partial/incomplete.
+- Historical run bundles under `runs/` are useful examples but are not the canonical artifact-shape source of truth.
+
+## Canonical Checklist
+
+### Foundation / contracts / config
+
+- [x] **T001** Create the base `backend/`, `frontend/`, and `tests/` project skeleton and root architecture note.
+- [x] **T002** Define shared domain enums and JSON/Pydantic/TypeScript schemas for run state, matching, proposals, evidence, review, warnings, and provider locality.
+- [x] **T003** Define stable identifiers for runs, PDFs, rows, cells, proposals, evidence, and review decisions.
+- [x] **T004** Implement the stable run artifact bundle layout.
+- [x] **T005** Implement shared artifact I/O helpers for JSON, JSONL, stable paths, lookups, and summary recomputation.
+- [x] **T006** Define the canonical proposal schema.
+- [x] **T007** Define the canonical evidence schema.
+- [x] **T008** Define review-decision, run-summary, and reviewer-summary schemas.
+- [x] **T009** Define the single JSON config schema for inputs, parsing, matching, retrieval, style profiles, providers, review, and export.
+- [x] **T009a** Define the canonical provider-token policy shared across runtime validation, examples, docs, tests, and UI labels.
+- [x] **T009b** Define operator-facing terminology parity rules for provider, parser, model, Verify mode, Eval mode, and run states.
 - [x] **T009c** Extend the config contract with explicit Eval-mode semantics.
-  - define the three effective run modes: normal, Verify, and Eval
-  - treat `verify_mode = true` plus `eval_mode = true` as invalid
-  - keep config examples, runtime validation, docs, tests, and UI labels aligned on those mode meanings
-
-- [x] **T010** Implement config default resolution into one effective runtime config before any run work starts.
-
-- [x] **T011** Create `config.example.json` as a minimal but complete example config file for the full MVP.
-  - keep `lm_studio` and `LM Studio` as the canonical live local config token and operator label
-  - do not hardcode cloud credentials in committed examples
-
-- [x] **T011a** Add provider-contract example coverage for the checked-in configs and tests.
-  - ensure checked-in example configs, fixture configs, and test helpers use the same canonical provider tokens and settings shape as runtime validation
-  - prefer environment-variable or secret references for optional cloud-provider examples
-
-- [x] **T012** Implement config/path validation and required metadata/schema validation:
-  - validate that configured paths exist and are readable
-  - resolve relative, absolute, browser-selected, and platform-specific path spellings into one explicit resolved-run context before execution
-  - validate that schema columns include at least `column_name` and `description`
-  - validate that the source table contains `Title`, `Authors`, and `Publication Year`
-  - fail early with actionable diagnostics when validation fails
-
+- [x] **T010** Resolve config defaults into one effective runtime config before work starts.
+- [x] **T011** Create `config.example.json` as a minimal but complete example config.
+- [x] **T011a** Add provider-contract example coverage for checked-in configs and tests.
+- [x] **T012** Implement config/path validation and required metadata/schema validation.
 - [x] **T012a** Implement run-start preflight and readiness validation for the configured execution path.
-  - validate provider token and provider-config shape
-  - validate provider reachability for live providers
-  - validate configured model availability or capability failure when it can be checked cheaply
-  - validate parser and OCR dependency availability when those paths are configured
-  - validate output-directory writability and other obvious broken local setup conditions
-  - stop before normal processing when readiness fails, and persist actionable readiness diagnostics
-
-- [x] **T013** Implement config snapshotting into run artifacts:
-  - validate config at run start
-  - persist the resolved effective config as `config.snapshot.json`
-  - ensure the run can later be explained from the snapshot
-
-- [x] **T013a** Persist a resolved input-summary artifact early enough that readiness-failed and early-failed runs still expose table, schema, PDF-directory, output-directory, and Verify-mode context to the UI and diagnostics.
-
+- [x] **T013** Snapshot the resolved config into run artifacts.
+- [x] **T013a** Persist a resolved input-summary artifact early enough for readiness-failed and early-failed runs.
 - [x] **T013b** Persist stable run-identity metadata needed by downstream eval tooling.
-  - include explicit mode truth in early run artifacts
-  - persist schema hash or schema version plus config hash or config snapshot reference
-  - persist prompt identity for every run, using `prompt_version` when available and deterministic `prompt_hash` otherwise
-  - preserve Eval-mode table provenance: gold-table source path or reference plus hash and snapshot when feasible, and masked-working-table path plus hash and snapshot
-
-- [x] **T014** Audit, normalize, and document the canonical deterministic fixture corpus in `tests/fixtures/`.
-  - reuse the existing checked-in workbook fixture with schema tab plus the existing four paper PDFs as the primary canonical fixture set when they cover the required scenarios
-  - map those fixtures to success, OCR or text-access edge cases, unmatched or ambiguous cases, duplicate-row-conflict cases, and figure-heavy coverage where applicable
-  - add text-based companion configs, manifests, expected outputs, or assertions when more precision is needed
-  - avoid requiring new binary fixtures unless a real coverage gap cannot be addressed otherwise
-
-- [x] **T015** Set up backend unit/integration/contract test tooling, including provider stubs/fakes and fixture helpers.
-
+- [x] **T014** Audit, normalize, and document the canonical deterministic fixture corpus under `tests/fixtures/`.
+- [x] **T015** Set up backend unit/integration/contract test tooling with provider stubs/fakes and fixture helpers.
 - [x] **T015a** Add contract-parity tests for provider naming and config semantics.
-  - verify canonical provider tokens across runtime schemas, example configs, and test fixtures
-  - verify unknown provider identifiers fail early with clear diagnostics
+- [x] **T016** Set up frontend test tooling and Playwright e2e scaffolding.
+- [x] **T016a** Harden the Playwright harness so fixture preparation and server startup are shell-robust.
+- [x] **T108** Clean up config and naming truth for retrieval-related settings.
+- [x] **T108a** Canonicalize retrieval config naming so it describes the implemented lexical baseline truthfully.
+- [x] **T108b** Normalize legacy retrieval aliases while persisting canonical values.
+- [x] **T108c** Add config naming tests for canonicalization and unknown-value failure behavior.
+- [x] **T110** Externalize important prompts while preserving deterministic prompt identity/provenance.
+- [x] **T110a** Move extraction and style-profile system prompts into dedicated prompt files.
+- [x] **T110b** Implement prompt loading/composition helpers with deterministic failure semantics.
+- [x] **T110c** Extend prompt identity/provenance in artifacts.
+- [x] **T110d** Add prompt externalization tests.
 
-- [x] **T016** Set up frontend test tooling and Playwright e2e scaffolding for the review workflow.
-- [x] **T016a** Harden the Playwright harness so fixture preparation is separate from server startup and browser/server processes start without shell-dependent heredocs or command chaining.
-  - distinguish missing browser/runtime dependencies from application failures when practical
-  - retain screenshots, traces, or similarly useful browser-failure artifacts when practical
-
----
-
-## Phase 1 — Run creation, input loading, normalization, and lifecycle
-
-**Goal:** the system can start a run, validate and snapshot inputs, and compute which cells are eligible for extraction or verification.
+### Run lifecycle and inputs
 
 - [x] **T017** Implement spreadsheet loading for CSV and XLSX inputs.
-  - handle BOM-marked headers safely for CSV inputs
-  - normalize Excel-native date and datetime cells into stable internal values instead of leaking raw serials
-
 - [x] **T018** Implement schema loading from workbook or separate schema file.
-  - normalize BOM-marked or whitespace-padded headers for CSV-based schema sources before field validation
-
-- [x] **T019** Implement table normalization and required metadata-column validation for `Title`, `Authors`, and `Publication Year`.
-  - perform header normalization before checking canonical field names
-
-- [x] **T020** Implement cell eligibility classification for at least:
-  - empty / missing
-  - already-filled
-  - trivial placeholder treated as empty when configured
-  - skipped / ineligible
-
-- [x] **T020a** Enforce that already-filled cells outside Verify mode remain diagnostics-only or entirely out of scope, rather than producing reviewer-facing placeholder proposals or synthetic blocked rationales.
-
-- [x] **T021** Implement Verify mode semantics so already-filled cells become eligible targets when Verify mode is enabled.
-
+- [x] **T019** Implement table normalization and required metadata-column validation.
+- [x] **T020** Implement cell-eligibility classification.
+- [x] **T020a** Keep already-filled cells outside Verify mode diagnostics-only or out of scope.
+- [x] **T021** Implement Verify-mode semantics so already-filled cells become eligible when Verify mode is enabled.
 - [x] **T021a** Implement Eval-mode setup semantics from the completed gold table.
-  - reject Verify mode plus Eval mode before extraction begins
-  - create an app-owned masked working copy of target cells from the completed table
-  - keep the original completed table as the gold reference while routing extraction through the masked copy
-  - preserve required gold-table and masked-working-table provenance in run artifacts
-  - do not require workbook-formatting fidelity in the masked working copy beyond the structure and content relevance needed for extraction and downstream eval
-
-- [x] **T022** Implement run lifecycle state transitions for at least:
-  - `created`
-  - `validating`
-  - `running`
-  - `completed`
-  - `completed_with_warnings`
-  - `failed`
-  - `interrupted`
-  - treat `created` and `interrupted` as internal or artifact-level states when useful, but map UI state to the normative operator-visible lifecycle defined in `spec.md`
-
-- [x] **T023** Implement run creation and inspection API endpoints for:
-  - create run
-  - list runs
-  - get run summary
-  - fetch config snapshot
-  - fetch input summary
-
+- [x] **T022** Implement run lifecycle state transitions.
+- [x] **T023** Implement run creation and inspection API endpoints.
+- [x] **T023a** Keep run creation UI-driven while execution runs under app-owned backend control.
+- [x] **T023b** Support picker-driven input overrides while preserving config-file authority.
+- [x] **T023b1** Materialize browser-selected files/directories into staged backend-readable input handles.
 - [x] **T023c** Implement active-run auto-refresh and cancellation support end to end.
-  - expose a backend run-cancel endpoint or equivalent control path
-  - persist interrupted state distinctly from failed state
-  - make UI polling or streaming keep active status current without requiring manual refresh as the primary mechanism
-  - surface stale-refresh failures explicitly in the UI
-
-- [x] **T023b** Support picker-driven input overrides in the run-creation flow while preserving config-file authority.
-  - accept explicit run-input overrides for relevant file or folder paths
-  - return the resolved path context that the UI should display back to the operator
-  - distinguish logical input source from backend-visible runtime locator in the returned run context
-  - keep override handling narrow and input-focused rather than turning the API into a broad settings editor
-
-- [x] **T023b1** Materialize browser-selected files or directories into app-owned staged inputs or another explicit backend-readable input handle before execution so `Browse...` becomes more than filename prefill.
-
-- [x] **T023a** Keep run creation UI-driven in practice by returning a created run immediately, then launching execution under app-owned backend control using a lightweight in-process background mechanism for MVP, with no external job framework required, while exposing validating/running/terminal state transitions, actionable failure messaging, and diagnostics/config access.
-
-- [x] **T024** Add tests covering valid input readiness, metadata-column rejection, missing-path rejection, placeholder handling, and Verify mode behavior.
-
+- [x] **T024** Add tests for valid-input readiness, metadata rejection, missing-path rejection, placeholder handling, and Verify mode behavior.
 - [x] **T024a** Add tests covering readiness and startup truth.
-  - invalid provider token rejection
-  - provider-unreachable readiness failure
-  - model-unavailable readiness failure where applicable
-  - missing parser or OCR dependency readiness failure where applicable
-  - broken output-path or similarly broken local setup failure
-
 - [x] **T024b** Add tests covering path-resolution and picker-driven setup truth.
-  - relative versus absolute path resolution
-  - browser-selected input override handling
-  - backend staging or input-handle materialization for browser-selected inputs
-  - resolved-path reporting in early-failure and success cases
-
 - [x] **T024c** Add tests for provider hard-fail truth and warning semantics.
-  - provider-unavailable at run start must produce readiness failure rather than `completed_with_warnings`
-  - `completed_with_warnings` must remain reserved for partial-success runs where meaningful processing actually happened
-  - run summaries and reviewer summaries must preserve that distinction
-
 - [x] **T024d** Add backend tests for Eval-mode validation and staging.
-  - invalid Verify-plus-Eval combinations fail during validation or readiness
-  - masked working-table creation uses the completed gold table as input without mutating the original
-  - early run artifacts preserve mode truth plus gold-table and masked-working-table provenance
+- [x] **T102** Implement the app-owned staged runner that executes the canonical pipeline while keeping the API responsive.
+- [x] **T103** Ensure interrupted or failed runs keep inspectable partial artifacts and that reruns create new run directories.
+- [x] **T117a** Add a stable non-UI automation entrypoint for tooling while preserving browser-first operator workflow.
+- [x] **T117b** Support optional wait-until-terminal behavior and deterministic machine-readable terminal output.
+- [x] **T117c** Add hermetic tests for automation start/wait/status and failure reporting.
 
----
+### Parsing and normalized document contract
 
-## Phase 2 — Parsing baseline, PDF backend, OCR fallback, and normalized parsed-document artifacts
-
-**Goal:** parse PDFs once, normalize them into one internal contract, and generate the low-level artifacts needed later for evidence review.
-
-- [x] **T025** Define the internal `ParsedDocument` schema/contract with fields for:
-  - document identity
-  - extracted metadata
-  - pages
-  - typed blocks/elements
-  - source-preserving text
-  - normalized text
-  - reading order
-  - figure/caption relationships when available
-  - table regions when available
-  - provenance links
-  - optional geometry/bounding boxes
-
-- [x] **T026** Implement the parser adapter interface and register **Docling** as the main parser.
-
+- [x] **T025** Define the internal `ParsedDocument` contract.
+- [x] **T026** Implement the parser adapter interface and register Docling as the main parser.
 - [x] **T026a** Implement explicit parser-selection and fallback-policy handling.
-  - record configured parser choice separately from actual parser used
-  - if the configured parser cannot be used, fail readiness or parsing by default unless an explicit lower-quality fallback policy was enabled for debugging or constrained environments
-  - surface any explicit fallback path in run artifacts, diagnostics, and operator-visible summaries
-
-- [x] **T027** Implement the low-level PDF abstraction using **`pypdfium2` / PDFium** for rendering, geometry, crop extraction, and page/image access.
-
-- [x] **T028** Integrate OCR fallback for scanned or text-inaccessible PDFs:
-  - default OCR fallback tool = **OCRmyPDF**
-  - use OCR fallback only when text extraction is empty or clearly insufficient
-  - normalize OCR output into the same `ParsedDocument` contract as born-digital PDFs
-  - store OCR-affected artifacts in the run bundle
-
-- [x] **T029** Implement parse-stage persistence so parser-native outputs and normalized parsed-document artifacts are both stored under stable run paths.
-
-- [x] **T030** Generate page-render artifacts and crop helpers needed later for text evidence, figure evidence, and PDF review.
-
-- [x] **T031** Add parser diagnostics per PDF, including configured parser choice, actual parser path used, OCR used or not, and major extraction gaps.
-
+- [x] **T027** Implement the low-level PDF abstraction using `pypdfium2` / PDFium.
+- [x] **T028** Integrate OCR fallback for scanned or text-inaccessible PDFs.
+- [x] **T029** Persist parser-native outputs and normalized parsed-document artifacts under stable run paths.
+- [x] **T030** Generate page-render artifacts and crop helpers for text evidence, figure evidence, and PDF review.
+- [x] **T031** Add per-PDF parser diagnostics, including parser path, OCR use, and major extraction gaps.
 - [x] **T032** Add tests covering clean parse, OCR fallback, normalized parsed-document output, and stored page/crop artifacts.
 
----
+### Matching
 
-## Phase 3 — PDF-to-row matching and blocked-match handling
-
-**Goal:** each PDF ends in a trustworthy match state before extraction begins.
-
-- [x] **T033** Implement grounded paper-metadata extraction from parsed documents for title, authors, publication year, and identifiers when available.
-
+- [x] **T033** Implement grounded paper-metadata extraction from parsed documents.
 - [x] **T034** Implement deterministic matching scoring using publication metadata signals.
-
 - [x] **T034a** Rebalance deterministic matching so exact and near-exact signals dominate title similarity.
-  - prioritize DOI and other stable identifiers when present
-  - strengthen first-author match, broader author overlap, and year consistency signals
-  - lower title dominance so title similarity cannot outweigh stronger identifier or author/year evidence by itself
-  - allow optional abstract similarity only as a secondary deterministic signal when available
-
 - [x] **T035** Implement limited fallback adjudication only for plausible ambiguous cases.
-
-- [x] **T036** Implement final match outcome assignment for:
-  - `matched`
-  - `ambiguous`
-  - `unmatched`
-  - duplicate-row conflict
-
-- [x] **T037** Implement duplicate-row conflict detection that blocks all conflicting PDFs for extraction.
-
-- [x] **T038** Persist matching artifacts and reasoning summaries so unmatched, ambiguous, and conflict cases are inspectable later.
-
+- [x] **T036** Implement final match outcome assignment.
+- [x] **T037** Implement duplicate-row conflict detection that blocks conflicting PDFs from extraction.
+- [x] **T038** Persist matching artifacts and reasoning summaries.
 - [x] **T038a** Persist duplicate-row conflicts as first-class diagnostic records.
-  - record the conflicting PDF set, target row, and per-signal rationale
-  - keep duplicate-row conflicts distinct from ordinary ambiguity in artifacts, summaries, and UI-facing payloads
-
-- [x] **T039** Expose unmatched, ambiguous, and duplicate-row-conflict records through API endpoints for the UI.
-
-- [x] **T040** Add tests for deterministic match success, ambiguous-block behavior, unmatched behavior, and duplicate-row-conflict behavior.
-
+- [x] **T039** Expose unmatched, ambiguous, and duplicate-row-conflict records through API endpoints.
+- [x] **T040** Add tests for deterministic match success, ambiguous blocking, unmatched behavior, and duplicate-row conflicts.
 - [x] **T040a** Add tests for the tightened matching heuristic contract.
-  - DOI or identifier matches must outrank title-only similarity
-  - first-author and author-overlap signals must change ranking materially
-  - year mismatches and duplicate-row conflicts must remain explainable in persisted diagnostics
 
----
+### Retrieval
 
-## Phase 4 — Style profiles and MVP retrieval artifacts
-
-**Goal:** generate safe per-column style guidance and bounded retrieval artifacts without semantic example leakage.
-
-- [x] **T041** Define the style-profile JSON schema with at least:
-  - `field_type_guess`
-  - `expected_length`
-  - `tone`
-  - `detail_level`
-  - `value_shape`
-  - `unit_style`
-  - `format_notes`
-  - `example_risk`
-
+- [x] **T041** Define the style-profile schema.
 - [x] **T041a** Extend the schema contract with optional field typing.
-  - add optional `field_type` values: `text`, `number`, `categorical`, `boolean`
-  - add optional `allowed_values` for `categorical` only
-  - do not require `normalization_notes`
-  - document numeric answer forms `exact`, `range`, and `approximate` in the extraction contract
-
-- [x] **T042** Implement the per-column preprocessing LLM step that analyzes existing filled cells and produces one structured style profile per schema column.
-
+- [x] **T042** Implement per-column preprocessing that produces structured style profiles.
 - [x] **T042a** Make style-profile preprocessing helper-only and empty-table-safe.
-  - allow extraction to proceed when a table or target column has no filled examples
-  - treat missing style profiles as expected input conditions rather than extraction failures
-  - preserve schema-first behavior when style-profile preprocessing yields no useful profile
-
-- [x] **T043** Persist style profiles under `style_profiles/` and ensure they guide only output form, not semantic content.
-
-- [x] **T044** Enforce the no-leakage baseline for style profiles:
-  - do not inject raw filled cells as semantic exemplars by default
-  - keep the preprocessing output limited to style/format guidance
-  - keep any leakage-risk markers visible in artifacts and diagnostics
-
+- [x] **T043** Persist style profiles under `style_profiles/` and restrict them to output-form guidance.
+- [x] **T044** Enforce the no-leakage baseline for style profiles.
 - [x] **T044a** Tighten extraction request construction against schema leakage.
-  - pass column name, description, optional field type, and style-profile summary only
-  - do not pass raw historical cell values into extraction prompts as semantic examples
-  - keep extraction behavior schema-first even when Verify mode is enabled
-
-- [x] **T045** Create MVP retrieval chunks for at least:
-  - paragraphs
-  - section blocks
-  - captions
-  - table regions
-
-- [x] **T046** Implement contextualized retrieval text while preserving separate source-preserving display text for review.
-
-- [x] **T047** Implement MVP retrieval assembly defaults:
-  - `top_k = 6`
-  - include captions and tables when relevant
-  - include one neighbor window around selected text chunks
-  - do **not** implement reranking, HyDE, or query expansion in the MVP baseline
-
-- [x] **T047a** Remove dead `retrieval.chunk_size` config from schema, examples, docs, and tests if the runtime does not use it.
-
+- [x] **T045** Create MVP retrieval chunks for the supported parsed-document content types.
+- [x] **T046** Implement contextualized retrieval text while preserving separate source-preserving display text.
+- [x] **T047** Implement MVP retrieval assembly defaults.
+- [x] **T047a** Remove dead `retrieval.chunk_size` config from schema, examples, docs, and tests.
 - [x] **T047b** Implement deterministic recall rescue for `unclear` first-pass results.
-  - start with focused retrieval-based extraction
-  - on `unclear`, expand retrieval context or promote to section-level context
-  - keep the rescue path explicit in artifacts and diagnostics rather than hidden in prompt construction
-
 - [x] **T047c** Add optional config-controlled whole-document mode.
-  - keep it off by default
-  - enable it only when parsed text fits comfortably in the active model context and the field is important enough to justify the broader pass
-  - record when whole-document mode was used in run artifacts and summaries
-
-- [x] **T048** Persist retrieval artifacts and diagnostics so selected chunks, contextualized text, and source-preserving review text remain inspectable.
-
-- [x] **T049** Add tests covering style-profile generation, no raw-example leakage into extraction inputs, typed chunk generation, retrieval-text/display-text separation, and retrieval defaults.
-
+- [x] **T048** Persist retrieval artifacts and diagnostics so selected chunks and review text remain inspectable.
+- [x] **T049** Add tests covering style profiles, no raw-example leakage, typed chunks, retrieval-text/display-text separation, and retrieval defaults.
 - [x] **T049a** Add tests for schema-first extraction and optional field typing.
-  - empty-table or empty-column cases must still extract without error
-  - `categorical` fields must honor `allowed_values` when provided
-  - numeric fields must accept `exact`, `range`, and `approximate` forms in the internal contract
-
 - [x] **T049b** Add tests for bounded recall rescue and optional whole-document mode.
-  - first-pass `unclear` outcomes should trigger the configured rescue path
-  - whole-document mode must remain opt-in and visible in artifacts when used
+- [ ] **T111** Make schema-aware retrieval heuristics transparent and inspectable at the run level.
+- [ ] **T111a** Define a small explicit retrieval-heuristic policy contract.
+- [ ] **T111b** Persist heuristic policy details in retrieval artifacts.
+- [ ] **T111c** Surface heuristic-policy usage summaries in run outputs.
+- [ ] **T111d** Add heuristic-policy tests.
+- [x] **T112** Add an opt-in experimental hybrid retrieval benchmark path while keeping lexical retrieval as default.
+- [x] **T112a** Add a retrieval-mode toggle in config with lexical default baseline.
+- [x] **T112b** Implement the hybrid retrieval path behind explicit opt-in mode.
+- [x] **T112c** Persist and expose retrieval mode in run artifacts and summaries.
+- [x] **T112d** Add hybrid-mode tests.
 
----
-
-## Phase 5 — Provider abstraction, extraction request building, proposal generation, evidence persistence, and failure handling
-
-**Goal:** produce one best proposal per eligible target cell with inspectable evidence and stable structured contracts.
+### Extraction and provider behavior
 
 - [x] **T050** Implement the provider abstraction and capability-probe model for structured-output support.
-  - keep one typed interface that supports LM Studio as the default local-first path and optional cloud providers behind the same contract
-  - expose canonical provider token, locality, readiness, and structured-output capability information through the abstraction
-  - support separate model identifier fields for text extraction and vision extraction in the provider config
-  - validate guided-JSON or equivalent structured-output compatibility instead of assuming one wire format
-  - probe both `json_schema` and `json_object` compatibility for the configured provider-model path so negotiation is explicit and bounded
-  - keep structured-output compatibility handling scoped so one provider-schema mismatch does not poison unrelated proposal attempts by default
-
 - [x] **T050b** Enforce provider-unavailable hard-fail semantics at run start.
-  - fail readiness when a configured live provider is unavailable or unreachable before proposal generation begins
-  - reserve `completed_with_warnings` for partial-success runs only
-  - keep provider-mode truth explicit in artifacts, summaries, and UI-facing payloads
-
-- [x] **T051** Implement **LM Studio localhost API** integration as the initial MVP provider path.
-  - keep config parsing, runtime behavior, artifacts, and UI-visible summaries aligned with the canonical provider contract
-
+- [x] **T051** Implement LM Studio localhost API integration as the initial provider path.
 - [x] **T051a** Implement optional cloud-provider adapter slots behind the same provider interface.
-  - support environment- or secret-based credential resolution
-  - keep cloud providers optional and outside the committed local-first happy path
-  - do not require opt-in live cloud tests for the default MVP path
-
-- [x] **T052** Implement provider error handling and structured-output failure policy for LM Studio, including:
-  - timeout handling
-  - model-unavailable handling
-  - capability checks for required structured-output behavior
-  - guided-JSON rejection handling with compatible fallback when the same proposal contract can still be preserved
-  - malformed JSON and malformed structured-output handling
-  - a bounded repair or retry path before recording a hard extraction error
-  - a compact repair-oriented instruction or equivalent narrowly scoped recovery step for malformed JSON
-  - containment of compatibility failures so the affected target or request path fails truthfully without unnecessarily poisoning the rest of the run
-  - explicit fail-fast rules when recovery cannot preserve the proposal contract
-  - request/response logging policy with actionable diagnostics
-
-- [x] **T052b** Tighten structured-output recovery to one bounded ladder.
-  - `json_schema` first
-  - explicit `json_object` fallback only when `json_schema` is unsupported for the active provider-model path
-  - explicit downgrade when the active request shape hits provider regex or grammar incompatibility
-  - explicit prompt-only JSON fallback only when `json_schema/json_object` are unavailable for the active provider-model path
-  - one stronger-instruction retry if the response is invalid
-  - minimal JSON repair only for purely syntactic failures, including wrapper stripping and balanced-object extraction from mixed output
-  - parsed responses must still satisfy the expected response schema before acceptance
-  - otherwise mark extraction failed for the affected target
-  - do not use open-ended unvalidated prompt-only fallback as default behavior
-
-- [x] **T052c** Normalize warning and status propagation end to end.
-  - keep evidence-fallback mapping keys consistent from extraction artifacts through review APIs and UI summaries
-  - ensure provider-mode truth and fallback-status truth are derived from persisted facts rather than UI-local heuristics
-
+- [x] **T052** Implement provider error handling and structured-output failure policy for LM Studio.
 - [x] **T052a** Make provider-mode truth explicit across runtime artifacts and operator surfaces.
-  - classify proposal generation at minimum as live local, live cloud, unavailable, disabled, or explicit stub/demo/degraded mode
-  - prevent silent fallback from a configured live path into an unlabeled stub or degraded path
-  - persist the resulting mode and readiness status in run artifacts and summaries
-  - record text model and vision model identifiers separately in run artifacts and summaries when both are used
-  - persist negotiated structured-output mode (`json_schema`, `json_object`, or `none`) and whether fallback was used
-
-- [ ] **T052d** Distinguish readiness and capability failure classes end to end.
-  - classify and persist at minimum: provider unreachable or unavailable, model unavailable or not loaded, `json_schema` unsupported with `json_object` fallback used, provider regex or grammar incompatibility for the active request shape, and explicit prompt-only JSON fallback used when structured modes are unavailable
-  - surface those classes consistently in diagnostics, run summaries, reviewer summaries, and UI-facing payloads
-  - avoid collapsing all classes into generic provider-unavailable warnings
-
-- [x] **T053** Implement the extraction request builder for LM Studio structured JSON:
-  - assemble per-cell extraction requests from row context, column name, column description, style profile, retrieved passages, and relevant table/caption context
-  - keep prompt/request construction separate from orchestration logic
-  - support rationale and calculation fields in the response contract
-
-- [x] **T053a** Request concise markdown-bullet rationale from the extraction layer when rationale is returned.
-  - prefer short scientific-review bullets over dense prose
-  - keep the rationale output compact enough for the middle review pane by default
-
-- [x] **T054** Build the structured JSON schema/request payload for the text model path.
-
-- [x] **T055** Build the structured JSON schema/request payload for the vision-capable model path.
-
-- [x] **T056** Implement proposal/evidence serialization using the shared artifact I/O layer so proposals and evidence are stored as separate linked records under stable bundle locations.
-
+- [x] **T052b** Tighten structured-output recovery to one bounded ladder.
+- [x] **T052c** Normalize warning and status propagation end to end.
+- [x] **T052d** Distinguish readiness and capability failure classes end to end.
+- [x] **T053** Implement the extraction request builder for LM Studio structured JSON.
+- [x] **T053a** Request concise markdown-bullet rationale when rationale is returned.
+- [x] **T054** Build the structured JSON schema/request payload for the text-model path.
+- [x] **T055** Build the structured JSON schema/request payload for the vision-model path.
+- [x] **T056** Implement proposal/evidence serialization using the shared artifact layer.
 - [x] **T056a** Migrate canonical proposal persistence to `proposals.jsonl` plus proposal index.
-  - keep filesystem-first JSON persistence
-  - use an index or equivalent lookup structure for id-based loading and filtered list assembly
-  - remove any remaining many-small-proposal-file direction from artifacts and docs
-
-- [x] **T056b** Extend persisted proposal and evidence metadata for downstream eval compatibility.
-  - keep the contract minimal but sufficient for later scoring
-  - preserve stable row id, column identifier, cell id, pdf id, raw proposal value, proposal state, support label, and field type when known
-  - preserve evidence items with at least page, quote text, and evidence type
-  - preserve text model id, vision model id if used, parser identity or version, and required prompt identity (`prompt_version` when available, otherwise `prompt_hash`)
-
-- [x] **T057** Implement the per-target-cell extraction orchestrator that assembles:
-  - row context
-  - column definition
-  - current cell value when relevant
-  - style profile
-  - retrieved evidence context
-  - Verify mode state
-  - text-model or vision-model request path as routed
-
+- [x] **T056b** Extend proposal and evidence metadata for downstream eval compatibility.
+- [x] **T057** Implement the per-target-cell extraction orchestrator.
+- [x] **T057a** Add field-aware extraction handling for long-text targets.
 - [x] **T057b** Add schema-aware field-type handling to extraction and proposal contracts.
-  - pass optional schema `field_type` and `allowed_values` into extraction requests when present
-  - keep numeric outputs internally typed as `exact`, `range`, or `approximate`
-  - ensure the absence of field typing does not block extraction
-
 - [x] **T057c** Enforce Eval-mode anti-leakage in extraction orchestration.
-  - ensure target-cell extraction reads from the masked working copy rather than the original completed table
-  - keep style-profile guidance helper-only and leakage-safe in Eval mode
-  - preserve original gold-table and masked-working-table references in the emitted run metadata
-
-- [x] **T057a** Add field-aware extraction handling for long-text targets so narrative outputs do not systematically fail because of short-answer-oriented response shaping or truncation assumptions.
-
-- [x] **T058** Implement proposal-state handling for at least:
-  - `found`
-  - `inferred`
-  - `unclear`
-  - `blocked`
-  - `error`
-  - `skipped`
-
+- [x] **T058** Implement canonical proposal-state handling.
 - [x] **T058a** Enforce the anti-guessing rule in extraction adjudication.
-  - prefer `unclear` over guesses supported mainly by prior spreadsheet values, common practice, or weak implication
-  - keep style profiles and prior table content as output-shaping context only, not as semantic evidence substitutes
+
+### Evidence and figure review
 
 - [x] **T058b** Fix direct-evidence support semantics.
-  - require anchored direct quote support before labeling a proposal as direct evidence
-  - downgrade quote-plus-reasoning cases to inferred or weak evidence when the quote does not directly state the answer
-
-- [x] **T059** Implement text-evidence anchoring and highlight production using a page-text alignment strategy:
-  - attempt exact quote matching against the rendered page text layer to produce character-level highlight regions
-  - store resulting regions as `exact_highlight_regions` in the evidence record
-  - if exact page-text alignment fails, attempt to derive approximate regions from parser geometry and store them as `approximate_highlight_regions`, labeled as approximate
-  - if neither succeeds, fall back to quote-plus-page evidence, labeled as such
-  - never present approximate or fallback highlights as exact highlights
-  - store the `source_type` that reflects the achieved highlight fidelity
-
+- [x] **T059** Implement text-evidence anchoring and highlight production with honest fallback.
 - [x] **T059a** Support multiple quote evidence items for one proposal when genuinely needed.
-  - preserve ranked ordering across multiple quotes, calculations, and supporting evidence items
-  - avoid collapsing multi-part support into one synthetic quote blob when separate quotes are clearer for review
-
-- [x] **T060** Implement the single narrow evidence-recovery pass when evidence is weak, missing, or unusable for display.
-
-- [x] **T061** Keep weak-but-reviewable proposals available when quote + page evidence exists even if precise highlighting fails.
-  - preserve the fallback as clearly rendered text evidence rather than letting it appear blank, missing, or mislabeled
-
-- [x] **T062** Implement proactive figure review when a vision model is configured:
-  - when a vision model is configured, run text-guided targeted figure review as a normal supplemental evidence stage, not only when text extraction has failed
-  - shortlist relevant figures or panels using retrieved field text, caption relevance, and figure-reference snippets (for example, Fig. 2a or Figure 3B), rather than processing every figure indiscriminately
-  - figure evidence may support any field type, not only fields classified as figure-derived
-  - figure evidence may strengthen text-derived proposals, supplement weak evidence, or rescue weak, unclear, or failed text-only proposals
-  - figure review produces additional evidence items ranked by authority and relevance alongside existing text evidence
-  - no user-triggered figure review control is part of MVP; figure review runs automatically based on configuration
-
+- [x] **T060** Implement the single narrow evidence-recovery pass.
+- [x] **T061** Keep weak-but-reviewable proposals available when quote-plus-page evidence exists.
+- [x] **T062** Implement proactive figure review when a vision model is configured.
 - [x] **T062a** Split figure evidence into reviewer-visible subtypes.
-  - persist `caption_grounded_figure_evidence` separately from `visual_interpretation_figure_evidence`
-  - expose both subtypes through artifacts, API payloads, and UI labels
-
 - [x] **T062b** Tighten figure-evidence ranking semantics.
-  - rank caption-grounded figure evidence above generic inferred reasoning when otherwise comparably relevant
-  - keep pure visual-interpretation evidence visibly distinct and subject to higher reviewer scrutiny
-
 - [x] **T062c** Implement figure-reference-aware candidate shortlisting.
-  - detect and normalize figure and panel references in retrieved text (for example, Fig. 2a, Figure 3B, Fig. 4a-c)
-  - link references to candidate figures or panels with confidence scoring and traceable rationale
-  - persist shortlist provenance so reviewers and diagnostics can see why a candidate was selected
-
 - [x] **T062d** Implement caption-plus-reference ranking for targeted figure calls.
-  - combine caption relevance, figure-reference evidence, and local section context into one ranking score
-  - require top-ranked shortlist selection before vision calls by default
-  - allow bounded widening only when ranking confidence is too low
-
 - [x] **T062e** Implement evidence-aware vision triggering for all fields.
-  - trigger vision primarily when text evidence is unclear, weak, contradictory, or needs confirmation
-  - keep vision rescue available for any field type without requiring schema-side vision policy
-  - record the trigger reason in artifacts and diagnostics for reviewer trust
-
-- [x] **T063** Build the figure-fallback input package containing:
-  - crop
-  - caption
-  - nearby text
-  - full-page reference
-
+- [x] **T063** Build the figure-fallback input package.
 - [x] **T063a** Pass figure-referencing textual context into vision requests.
-  - include retrieved field text and figure-reference snippets alongside crop and caption
-  - ensure vision prompts are context-guided rather than blind figure-only interpretation
-  - persist the exact context bundle used for each vision request
-
-- [x] **T064** Persist figure-derived evidence records distinctly from text evidence while keeping figure-derived proposals as normal proposals with figure-marked evidence.
-
-- [x] **T065** Implement reviewer-facing support-label mapping and evidence type labeling:
-  - map internal proposal states to reviewer-facing labels such as `Direct evidence` and `Inferred from evidence`
-  - label each evidence item's type visibly in the UI: direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, `caption_grounded_figure_evidence`, or `visual_interpretation_figure_evidence`
-  - ensure the primary evidence item is visually distinguished as primary
-  - ensure supporting evidence items are shown in ranked order
-  - ensure direct quotes are visually separated from reasoning and calculations in the detail pane
-
-- [x] **T066** Ensure Verify mode uses the same extraction path for already-filled cells and persists reviewable proposals for them.
-
-- [x] **T067** Add tests covering structured-output parsing, provider failure handling, proposal/evidence serialization, blocked outcomes, unclear outcomes, evidence recovery, evidence ranking (primary selection by authority), evidence type labeling, exact-highlight vs. approximate-highlight vs. quote-plus-page fallback evidence paths, proactive figure review triggering, figure evidence support for any field type, figure rescue of weak text proposals, separate text and vision model config, and Verify mode extraction on filled cells.
-  - include contract-parity and provider-mode truth assertions where applicable
-  - cover compatibility mismatches that should not poison the rest of the run
-  - cover malformed-JSON repair behavior and compact bullet-rationale output shape
-  - cover evidence ranking behavior: proposals must have the highest-authority quote as primary
-  - cover the honest fallback chain: exact → approximate → quote-plus-page, each with correct source_type
-
+- [x] **T064** Persist figure-derived evidence records distinctly from text evidence.
+- [x] **T065** Implement reviewer-facing support-label mapping and evidence-type labeling.
+- [x] **T066** Ensure Verify mode uses the same extraction path for already-filled cells.
+- [x] **T067** Add tests covering structured-output parsing, provider failure handling, proposal/evidence serialization, blocked and unclear outcomes, evidence ranking, evidence typing, fallback chains, figure review, text/vision config, and Verify mode extraction.
 - [x] **T067a** Add tests for the tightened extraction-truth contract.
-  - cover provider hard-fail semantics at run start
-  - cover the bounded structured-output ladder exactly as specified
-  - cover direct-evidence thresholding, multi-quote support, and figure-evidence subtype ranking
-  - cover `proposals.jsonl` plus index persistence behavior
-
-- [ ] **T067e** Add tests for structured-output negotiation and capability-truth classification.
-  - cover `json_schema` success and `json_object` fallback when `json_schema` is unsupported
-  - cover explicit prompt-only JSON fallback when both structured modes are unavailable
-  - cover invalid-structure retry and syntactic-repair boundaries without introducing open-ended fallback
-  - cover reporting truth for provider unreachable, model unavailable, `json_schema` unsupported with fallback used, and explicit prompt-only JSON fallback mode
-  - cover negotiated structured-output mode and fallback-used persistence in run artifacts and summaries
-
 - [x] **T067b** Add backend tests for Eval-mode leakage protection and artifact emission.
-  - target-cell gold values do not reach the extraction path in Eval mode
-  - proposal and evidence artifacts include the minimal downstream-ready metadata contract
-  - Eval-mode artifacts preserve gold-table and masked-working-table provenance distinctly, including hashes and snapshot references
-  - prompt identity is persisted for every run, using `prompt_hash` as the fallback when explicit versioning is absent
-
 - [x] **T067c** Add backend tests for text-guided figure shortlisting.
-  - shortlist selection must use retrieved text, caption relevance, and figure-reference snippets
-  - broad untargeted figure calls should not occur when shortlist confidence is adequate
-  - trigger reasons for vision calls must be persisted and testable
-
 - [x] **T067d** Add backend tests for figure-derived approximate numeric proposals.
-  - graph-derived outputs may be stored as `approximate` or `range` numeric forms when exact text values are unavailable
-  - proposals must remain reviewer-visible with honest figure-derived and approximation labeling
-  - evidence typing must preserve caption-grounded versus visual-interpretation distinctions for approximate outputs
+- [x] **T067e** Add tests for structured-output negotiation and capability-truth classification.
 
----
+### Review UI
 
-## Phase 6 — Review-state backend, review-asset serving, warnings/status policy, filtering, and summaries
-
-**Goal:** make proposals reviewable, filterable, auditable, asset-backed, and safe for partial review and export.
-
-- [x] **T068** Implement normalized warning and status surfaces:
-  - define categories for ambiguous match, duplicate-row conflict, weak evidence, quote+page fallback without highlight, figure-derived evidence, no reviewed verified cells, completed-with-warnings run outcome, readiness failure, provider unavailable, model unavailable, structured-mode capability mismatch, and explicit disabled or degraded provider mode
-  - persist these statuses in run and proposal artifacts
-  - expose them consistently through API payloads
-
-- [x] **T068a** Surface degraded parsing, duplicate-row conflicts, and evidence-fallback truth consistently.
-  - carry parse-fallback and low-text warnings from parsing artifacts into run summaries and review payloads
-  - keep duplicate-row conflicts distinct from ambiguous matches in status categories and API responses
-  - ensure evidence-fallback states remain reviewer-visible without inflating the main actionable queue
-
-- [x] **T069** Implement proposal-list APIs with filters for at least:
-  - row
-  - column
-  - PDF
-  - evidence status
-  - figure-derived evidence
-  - ambiguous/unmatched match status
-  - review decision status
-  - expose compact triage fields needed for grouped sidebar rendering by paper and by column
-
-- [x] **T070** Implement proposal-detail API payloads containing:
-  - row context
-  - column definition
-  - current cell value
-  - proposal state
-  - support label
-  - rationale
-  - calculation
-  - primary evidence (the single most authoritative evidence item)
-  - ordered supporting evidence (additional evidence items ranked by authority and relevance)
-  - evidence type for each evidence item
-  - warning/status flags
-  - no-value or manual-resolution affordances needed by the middle pane
-
-- [x] **T071** Implement review-asset serving endpoints for the review UI, including:
-  - safe browser access to original PDFs for the PDF.js viewer
-  - page-image serving
-  - figure-crop serving
-  - evidence metadata lookups needed by the viewer and detail pane
-
-- [x] **T072** Implement review-decision persistence for:
-  - accept as-is
-  - accept with edit
-  - confirm no data
-  - reject
-  - no decision yet
-  - persist explicit review-decision records that can later drive audit logs and summary recomputation
-  - preserve structured resolution reasons for non-accepted or manually resolved outcomes
-
-- [x] **T073** Preserve prior proposal state and review history for auditability when a review decision is recorded.
-
-- [x] **T074** Implement guarded bulk-accept semantics limited to the currently visible filtered subset of undecided proposals.
-
+- [x] **T068** Implement normalized warning and status surfaces for review.
+- [x] **T068a** Surface degraded parsing, duplicate conflicts, and evidence-fallback truth consistently.
+- [x] **T069** Implement proposal-list APIs with the MVP filter set.
+- [x] **T070** Implement proposal-detail API payloads.
+- [x] **T071** Implement review-asset serving endpoints.
+- [x] **T072** Implement review-decision persistence.
+- [x] **T073** Preserve prior proposal state and review history for auditability.
+- [x] **T074** Implement guarded bulk-accept semantics limited to the visible filtered subset.
 - [x] **T075** Implement progress counters and decision-breakdown aggregation.
-
-- [x] **T075a** Ensure review aggregates distinguish confirmed-no-data outcomes from rejected-or-model-wrong outcomes in both backend summaries and API payloads.
-
+- [x] **T075a** Distinguish confirmed-no-data outcomes from rejected/model-wrong outcomes.
 - [x] **T075b** Make actionable-only counts the default review-progress source.
-  - compute primary progress from reviewable or actionable proposals
-  - expose broader attempted totals, blocked counts, and diagnostic totals only as secondary context
-
-- [x] **T076** Implement run-summary generation and persistence in `summaries/run_summary.json`, including at minimum:
-  - PDFs processed
-  - matched / unmatched / ambiguous PDFs
-  - proposals generated
-  - reviewed proposals
-  - accepted as-is
-  - accepted with edit
-  - confirmed no-data outcomes when applicable
-  - rejected
-  - pending / undecided
-  - changed cells exported
-  - Verify mode on/off
-  - provider/model names, with text model and vision model identified separately when both were used
-  - local vs cloud status
-  - provider mode and readiness outcome
-  - negotiated structured-output mode and fallback-used flag
-  - readiness or capability failure reason classification when applicable
-  - internally consistent counts and warning flags derived from persisted data rather than speculative UI state
-
+- [x] **T076** Implement run-summary generation and persistence.
 - [x] **T076b** Extend run-summary and reviewer-summary contracts for Eval-mode truth.
-  - surface run mode (`normal`, `verify`, `eval`) explicitly
-  - include parser identity, schema identity, config snapshot or hash, and required prompt identity
-  - include original gold-table and masked-working-table provenance for Eval mode
-  - keep downstream-eval metadata derived from persisted facts rather than UI-local heuristics
-
-- [x] **T077** Implement reviewer-outcome summary generation as a pure function of proposals and review decisions, and persist it in `summaries/reviewer_summary.json`, including at minimum:
-  - proposals generated
-  - reviewed proposals
-  - accepted as-is
-  - accepted with edit
-  - confirmed no-data outcomes when applicable
-  - rejected
-  - pending / undecided
-  - changed cells exported
-  - matched / unmatched / ambiguous PDFs
-  - Verify mode on/off
-  - provider/model names, with text model and vision model identified separately when both were used
-  - local vs cloud status
-  - provider mode and readiness outcome where relevant to interpretation
-  - explicit provisional labeling when too little reviewed data exists for meaningful interpretation
-
-- [x] **T078** Support summary recomputation from artifact files so both run and reviewer summaries stay derivable and inspectable.
-
-- [x] **T078a** Add summary-integrity checks that reject internally inconsistent counts, misleading zero-value rollups, and warning flags that fire before their triggering conditions are met.
-
-- [x] **T079** Ensure export candidate selection uses only explicitly accepted proposals and excludes unreviewed proposals by construction.
-
-- [x] **T080** Add tests covering review decision recording, audit history, visible-subset bulk acceptance, warning/status semantics, review-asset serving, run-summary recomputation, reviewer-summary recomputation, and partial-review behavior.
-  - cover distinct confirmed-no-data persistence and summary reporting
-
+- [x] **T077** Implement reviewer-outcome summary generation as a pure function of proposals and decisions.
+- [x] **T078** Support summary recomputation from artifact files.
+- [x] **T078a** Add summary-integrity checks for inconsistent counts and premature warning flags.
+- [x] **T079** Ensure export candidate selection uses only explicitly accepted proposals.
+- [x] **T080** Add tests covering review decision recording, audit history, bulk acceptance, warning/status semantics, review assets, and summary recomputation.
 - [x] **T080a** Add tests for warning/status truth across artifacts, APIs, and summaries.
-  - parse fallback, provider-mode truth, duplicate-row conflicts, and evidence-fallback warnings must stay consistent across surfaces
-  - actionable-only counts must remain distinct from broader attempted totals in summary payloads
-
----
-
-## Phase 7 — Review UI shell, three-pane workspace, ordering rules, and evidence viewer
-
-**Goal:** implement the dedicated queue-first local browser review application required by the MVP.
-
 - [x] **T081** Build the React frontend shell with Run and Review views.
-
-- [x] **T082** Implement the concise run summary view showing at least:
-  - PDFs processed
-  - matched / unmatched / ambiguous PDFs
-  - proposals generated
-  - reviewed proposals
-  - accepted as-is
-  - accepted with edit
-  - confirmed no-data outcomes when applicable
-  - rejected
-  - changed cells exported
-  - Verify mode on/off
-  - provider/model names, with text model and vision model identified separately when both were used
-  - local vs cloud status
-  - provider mode and readiness outcome
-  - direct links or equivalent access to workbook, audit-log, run-summary, and reviewer-summary downloads
-
-- [x] **T082a** Implement a run-launch and setup context surface in the UI that:
-  - starts a run from a config-file path without exposing a broad advanced-settings editor
-  - shows the config path and concise resolved input summary, including on readiness-failed or early-failed runs when that context is known
-  - supports browser-compatible picker controls for relevant file and folder inputs while preserving config-file authority for advanced behavior
-  - materializes picker-selected inputs into backend-readable staged files or directories, or another explicit server-side input handle, instead of relying on raw browser-native paths
-  - shows picker-based overrides as explicit resolved run-input selections rather than hiding them
-  - shows both logical input source and backend-visible runtime locator when picker overrides are used
-  - keeps target-columns display collapsible, truncated, or otherwise compact by default
-  - shows provider/readiness context clearly before the queue is reviewable
-  - keeps empty/loading/warning/failure states explicit before the review queue is ready
-  - makes the next operator action obvious when no run exists yet or when the selected run is not reviewable
-
+- [x] **T082** Implement the concise run summary view.
+- [x] **T082a** Implement a run-launch and setup context surface in the UI.
 - [x] **T082b** Add a `Browse...` control next to the config-path text field.
-  - keep the text field as the canonical visible path control
-  - allow normal local-first file selection without hiding or replacing the path value
-
-- [x] **T083** Implement the three-pane review workspace:
-  - left pane = grouped review queue or sidebar
-  - center pane = detail and decision workflow
-  - right pane = evidence viewer
-  - visible run/reviewer summary context in the main workspace
-  - top bar or equivalent queue controls = grouping toggle, counters, filters, saved views or presets when implemented, and warnings
-
+- [x] **T083** Implement the three-pane review workspace.
 - [x] **T083a** Implement grouped-queue client state and grouped rendering behavior.
-  - support `Group by Paper` and `Group by Column`
-  - show group-header summary context including total count, pending count, and any warning or manual-attention badge needed for triage
-  - order groups with pending-actionable groups first, configured column order for column groups, and stable matched-row or PDF-name order for paper groups
-  - preserve collapsible group state when helpful
-  - keep grouping state, filters, and saved views or presets usable for both triage and deeper investigation
-
-- [x] **T084** Implement the proposal queue pane with the full MVP filter set, stable selection behavior, and explicit proposal ordering rules:
-  - render compact grouped cards rather than a flat tall list
-  - show only essential triage information on compact cards: target column, triage status, and support/confidence
-  - add high-scan state markers such as left-border colors for pending, accepted, and manual-attention states
-  - keep review decision state, support quality, and match outcome visually distinct rather than collapsing them into one status chip
-  - default groups with pending actionable items before fully resolved or manual-attention-only groups
-  - within grouped-by-column mode, preserve configured target-column order inside the same group-priority bucket
-  - within grouped-by-paper mode, preserve stable matched-row order when available, otherwise stable PDF-name order inside the same group-priority bucket
-  - default pending / undecided proposals before reviewed proposals
-  - within undecided proposals, actionable proposals before blocked or unresolved items
-  - within the same decision-status bucket, preserve stable spreadsheet row order, then column order, then `proposal_id`
-  - do not auto-promote figure-derived or quote+page-fallback proposals unless the user applies filters
-  - keep blocked, ambiguous, unmatched, and duplicate-row-conflict items visible without letting them dominate the main actionable queue by default
-  - do not record review decisions implicitly from navigation or selection changes
-  - allow filter continuity across run switches when practical, but do not preserve stale proposal/detail/evidence state across runs
-
+- [x] **T084** Implement the proposal queue pane with the full MVP filter set, stable selection behavior, and explicit ordering rules.
 - [x] **T084a** Make actionable-only progress explicit in the review workspace.
-  - use reviewable or actionable proposal counts in the main headline and primary counters
-  - keep broader totals available secondarily without dominating queue triage
-
-- [x] **T085** Implement the proposal detail pane showing row context, target column definition, current value in Verify mode, proposed value, support label, rationale, calculation, warning/status flags, and evidence list with primary and ordered supporting items.
-  - status, evidence source, and warning state should be distinguishable at a glance
-  - keep explicit row context near the top
-  - present existing-versus-proposed comparison clearly in Verify mode
-  - render concise rationale by default and fuller rationale through expansion
-  - render markdown-bullet rationale cleanly when provided in bullet form
-  - show direct quotes separately from inferred reasoning and calculations; each evidence type must be visually labeled
-  - show the primary evidence item prominently and supporting items in ranked order
-  - support explicit no-value reviewer actions including edited-value entry and confirmed-no-data resolution
-  - surface structured resolution reasons for non-accepted or manually resolved outcomes
-
-- [x] **T086** Implement the evidence viewer pane for MVP-core annotated evidence inspection plus browser-realistic reading support.
-  - include zoom controls and page navigation (previous/next and jump-to-page)
-  - keep highlight fidelity and evidence-navigation synchronization primary
-  - focus on the currently selected evidence item when it changes: scroll to and center or highlight the relevant region
-  - refocus stably when evidence selection or zoom changes, without arbitrary jumping
-  - support figure-to-full-page context: figure evidence viewable as focused crop and as full page from the same pane
-  - provide an explicit local-PDF-viewer fallback for workflows that need native pan/select/search behavior beyond the in-pane annotated mode
-
+- [x] **T085** Implement the proposal detail pane.
+- [x] **T086** Implement the evidence viewer pane for annotated evidence inspection plus browser-realistic reading support.
+- [x] **T086a** Synchronize the quote list and document viewer.
 - [x] **T086b** Preserve ordinary PDF-viewer fallback affordances from the review pane.
-  - expose an obvious action to open the current PDF in a fuller browser-native viewer when scoped evidence or in-pane controls are insufficient
-  - treat in-viewer text search as recommended when supported cleanly by the chosen viewer mode or browser PDF surface, but do not require a brittle custom search layer for MVP
-  - do not force reviewers to remain in an overlay-only mode when they need to read or copy from the paper naturally
-
-- [x] **T086c** Strengthen evidence navigation and highlight behavior in the viewer.
-  - add explicit next and previous evidence controls in the evidence pane
-  - keep highlight focus synchronized as the reviewer cycles evidence items
-  - prioritize highlight and navigation quality over forcing every native-reader affordance into the same in-app mode
-
-- [x] **T086a** Implement synchronized quote list and document viewer:
-  - maintain an ordered list of evidence items for the current proposal (primary first, then supporting in ranked order)
-  - when the reviewer selects an evidence item in the quote list, update the viewer to show that item's page and location
-  - when evidence selection changes programmatically (e.g., proposal selection changes), update both the quote list selection and the viewer location
-  - the viewer and quote list must never be out of sync when the reviewer navigates between evidence items
-
-- [x] **T087** Implement backend-to-viewer highlight coordinate conversion and evidence type rendering:
-  - map canonical PDF/page coordinates from backend evidence records into PDF.js viewer overlay coordinates
-  - render exact highlight overlays from `exact_highlight_regions` when available
-  - render approximate highlight overlays from `approximate_highlight_regions` with a distinct visual label indicating they are approximate
-  - render stable text highlight overlays
-  - handle zoom and viewport changes correctly
-  - do not emit fabricated placeholder highlight boxes when reliable anchor geometry is unavailable
-  - display direct-quote evidence, inferred-reasoning evidence, and calculation evidence with distinct visual labels so the reviewer can tell which type they are inspecting
-  - support click-to-populate flows from selected quote or highlight evidence into the active proposed-value or edited-value input
-  - treat populate as replace-active-input by default rather than append unless an explicit append action is offered separately
-  - limit automatic populate to textual evidence spans or figure-caption text, not raw image crops alone
-  - use only the explicitly clicked or reviewer-selected span range rather than concatenating all visible evidence implicitly
-  - stage overlong text for reviewer trim or confirmation rather than silently truncating or auto-saving it
-
-- [x] **T088** Implement honest fallback display for each evidence quality level:
-  - for approximate highlights: show the approximate region with a visible label indicating it is approximate, not exact
-  - for quote-plus-page fallback: display the quote text and page number with a visible label indicating this is fallback text evidence because highlighting was not available
-  - explain missing exact highlight geometry explicitly rather than silently showing nothing
-  - provide useful fallback actions such as opening the full PDF when scoped evidence is unavailable
-  - never display approximate or fallback evidence as if it were exact highlighting
-
-- [x] **T089** Implement the figure-evidence viewer with crop-first display, attached caption, figure-derived warning/status markers, and full-page access.
-
-- [x] **T090** Implement the review action area with:
-  - accept
-  - accept with edit
-  - confirm no data
-  - reject
-  - next
-  - previous
-  - bulk accept visible subset
-  - disable accept actions for blocked items or items without a reviewable proposal value
-
-- [x] **T090a** Make bulk acceptance and edited acceptance behavior explicit and reviewer-safe:
-  - confirm bulk acceptance against the currently visible filtered subset
-  - present accept-with-edit as a distinct save-edited-value action rather than a vague duplicate of plain acceptance
-  - keep confirmed-no-data resolution visibly distinct from rejection
-
+- [x] **T086c** Strengthen evidence navigation and highlight behavior.
+- [x] **T087** Implement backend-to-viewer highlight coordinate conversion and evidence-type rendering.
+- [x] **T088** Implement honest fallback display for each evidence quality level.
+- [x] **T089** Implement the figure-evidence viewer with crop-first display and full-page access.
+- [x] **T090** Implement the review action area.
+- [x] **T090a** Make bulk acceptance and edited acceptance behavior explicit and reviewer-safe.
 - [x] **T090b** Auto-advance after explicit review decisions.
-  - after `accept`, `accept_with_edit`, `confirm_no_data`, or `reject`, move to the next reviewable proposal when one exists
-  - do not auto-advance on mere selection changes or partial edits
-
-- [x] **T091** Implement keyboard shortcuts for next/previous navigation, accept current proposal, reject current proposal, focus edit control, and focus/open evidence viewer.
-  - surface shortcuts in button tooltips or equivalent inline affordances on the relevant controls
-
+- [x] **T091** Implement keyboard shortcuts for review workflow actions.
 - [x] **T091a** Extend keyboard support for fast sequential review.
-  - add next and previous evidence shortcuts
-  - preserve focus-edit behavior for quick accept-with-edit flows
-  - keep shortcut handling safe when text inputs are focused
-
-- [x] **T092** Implement unmatched, ambiguous, and duplicate-row-conflict inspection views in the UI.
-  - identify the affected PDF, unresolved outcome, and rationale directly in the review workspace without requiring raw artifact inspection
-  - keep this surface inspect-only for MVP rather than adding direct rematch or reassignment actions
-
-- [x] **T093** Surface warnings/statuses, run-summary fields, reviewer-summary fields, provider/model names, and local-vs-cloud status consistently across the review UI and run-summary UI.
-  - show coarse running progress as current stage plus current item when available
-  - show provider mode and readiness truth without hiding disabled, unavailable, or degraded proposal generation
-  - show both text model and vision model identifiers separately when both were used for a run
-  - show configured parser choice, actual parser used, and any explicit fallback state when relevant
-  - if zero verified cells have been reviewed, keep per-column lines visible only as evidence-coverage context with explicit wording that reviewer outcomes are not yet meaningful
-  - do not show limited-review or similar warnings before their real triggering conditions are met
-  - keep confirmed-no-data outcomes distinct from rejected-or-model-wrong outcomes in visible summaries and badges
-
+- [x] **T092** Implement unmatched, ambiguous, and duplicate-row-conflict inspection views.
+- [x] **T093** Surface warnings, summaries, provider/model names, and locality truth consistently across the UI.
 - [x] **T093a** Tighten review-surface truth for parsing fallback and actionable counts.
-  - surface degraded parsing, OCR fallback, duplicate-row conflicts, and evidence fallback in reviewer-visible summaries and diagnostics
-  - keep actionable-only progress as the primary headline while preserving secondary totals for context
-
 - [x] **T093b** Surface Eval-mode context and artifact truth across the UI.
-  - label Eval-mode runs clearly in setup, run-summary, and review-context surfaces
-  - show which gold table and masked working table were involved
-  - show schema/config/model/parser version or identity context without implying that the app computed the final eval score
-
 - [x] **T094** Add frontend tests for MVP-core reviewer workflow behavior.
-  - grouped queue behavior and group-header summaries
-  - actionable-first ordering and filtering behavior for common triage flows
-  - evidence type labeling and fallback rendering (exact vs approximate vs quote-plus-page)
-  - synchronized evidence selection and viewer navigation controls
-  - figure-evidence rendering with full-page access
-  - run-summary display including text/vision model identifiers and Eval-mode context
-  - no-data workflow rendering and bulk-accept confirmation behavior
-  - picker-driven setup flow and resolved input-context display
-
-- [ ] **T094c** Add extended frontend regression coverage beyond MVP-core.
-  - expanded queue ordering matrix and less-common filter interactions
-  - markdown-rationale edge cases, click-to-populate variants, overlong-text staging edge cases
-  - deeper keyboard-tooltip and accessibility-state assertions
-
-- [x] **T094a** Add frontend tests for the next reviewer-throughput contract.
-  - actionable-only headline counts
-  - config-path `Browse...` control
-  - next or previous evidence navigation
-  - auto-advance after explicit decisions
-  - degraded parsing and provider-mode warning display in review-facing summaries
-
+- [x] **T094a** Add frontend tests for the reviewer-throughput contract.
 - [x] **T094b** Add frontend tests for Eval-mode run-summary and setup truth.
-  - Eval-mode labeling in setup and run-summary surfaces
-  - gold-table versus masked-working-table context display
-  - schema/config/model/parser context display without implying in-app benchmark scoring
-
+- [ ] **T094c** Add extended frontend regression coverage beyond MVP-core.
 - [x] **T095** Add bounded Playwright e2e coverage for the hermetic core review loop.
-  - proposal selection, grouped triage, and actionable ordering in the main queue
-  - evidence interaction (including fallback evidence navigation) and decision recording
-  - no-data resolution and summary updates
-  - picker-input staging flow for browser-selected overrides
-  - stable locator strategy and deterministic assertions on user-visible behavior
-
-- [ ] **T095b** Add expanded Playwright coverage beyond MVP-core.
-  - broader grouped-ordering permutations and advanced filter combinations
-  - additional cross-pane interaction and long-run navigation scenarios
-
 - [x] **T095a** Add Playwright coverage for fast sequential review and explicit export flow.
-  - evidence cycling and auto-advance after explicit decisions
-  - manual export trigger from the review UI
-  - highlighted-evidence review flow suitable for README screenshot capture
+- [ ] **T095b** Add expanded Playwright coverage beyond MVP-core.
 
----
+### Export and artifacts
 
-## Phase 8 — Export, audit log, unsupported-feature warnings, diagnostics, and final downloads
-
-**Goal:** safely export only explicitly accepted changes, stay honest about the workbook fidelity boundary, and make the finished run inspectable.
-
-- [x] **T096** Implement content-only XLSX export with changed-cell highlighting:
-  - preserve cell contents only
-  - apply only explicitly accepted changes
-  - highlight changed cells
-  - do **not** attempt to preserve formulas, filters, frozen panes, hidden rows/columns, merged cells, conditional formatting, comments, named ranges, charts, shapes, or macros
-
+- [x] **T096** Implement content-only XLSX export with changed-cell highlighting.
 - [x] **T096a** Keep export explicitly manual in the product workflow.
-  - require the reviewer to trigger export from the review UI
-  - ensure run completion and decision recording never auto-export implicitly
-
-- [x] **T097** Implement best-effort detection and reporting of unsupported workbook features during export:
-  - inspect the source workbook for unsupported advanced features when feasible
-  - record warnings in diagnostics and logs
-  - keep export behavior aligned with the content-only fidelity boundary
-  - warn and ignore rather than trying to preserve unsupported features in MVP
-
-- [x] **T098** Implement audit-log generation with at least:
-  - row identifier
-  - column identifier
-  - old value
-  - new value
-  - proposal source
-  - reviewer decision
-  - decision timestamp
-  - derive decision timestamps from persisted review-decision records when available instead of placeholder strings
-
-- [x] **T099** Implement diagnostics JSON for:
-  - matching failures
-  - blocked outcomes
-  - unclear / skipped / error outcomes
-  - weak evidence and evidence recovery
-  - unsupported workbook feature warnings
-  - completed-with-warnings runs
-
-- [x] **T100** Implement final download endpoints for:
-  - updated workbook
-  - audit log
-  - `summaries/run_summary.json`
-  - `summaries/reviewer_summary.json`
-  - final downloadable run artifacts and relevant JSON outputs
-  - keep the UI truthful about which downloads are actually ready versus not yet written
-
-- [x] **T101** Add tests covering export integrity, content-only fidelity, changed-cell highlighting, accepted-only export behavior, unsupported-feature warnings, audit-log completeness, and completed-with-warnings semantics.
-
+- [x] **T097** Detect and report unsupported workbook features during export.
+- [x] **T098** Implement audit-log generation.
+- [x] **T099** Implement diagnostics JSON for matching failures, blocked outcomes, weak evidence, unsupported workbook features, and warning-state runs.
+- [x] **T100** Implement final download endpoints for workbook, audit log, summaries, and downloadable run artifacts.
+- [x] **T101** Add tests covering export integrity, content-only fidelity, highlighting, accepted-only export behavior, unsupported-feature warnings, audit-log completeness, and completed-with-warnings semantics.
 - [x] **T101a** Add tests for manual-export truth.
-  - exports must not appear automatically after run completion alone
-  - changed-cell highlighting must remain visible in the explicit export output
-  - diagnostics should reflect manual-export timing truthfully
+- [x] **T113** Add an artifact completeness/parity summary for main-app runs.
 
----
+### Diagnostics / eval / observability
 
-## Phase 9 — Orchestration, hardening, regression protection, and README updates
-
-**Goal:** prove the full MVP workflow works end to end and stays inside the intended architecture boundary.
-
-- [x] **T102** Implement the app-owned staged runner that executes the canonical pipeline stages under backend control while the API remains responsive enough for UI-driven launch, polling, diagnostics, and review-state loading.
-
-- [x] **T103** Ensure interrupted or failed runs leave inspectable partial artifacts and that a new run creates a new run directory rather than resuming in place by default.
-
-- [x] **T104** Add hermetic end-to-end tests using stub providers over the fixture corpus for:
-  - successful matched extraction
-  - unmatched / ambiguous / duplicate-row blocked flows
-  - weak-evidence quote+page review
-  - exact highlight vs. approximate highlight vs. quote-plus-page fallback evidence paths
-  - Verify mode reviewed-cell flow
-  - text-guided targeted figure review flow with figure evidence supporting a proposal
-  - figure rescue of a weak text-only proposal
-  - export with accepted-only changes
-  - use the canonical checked-in fixture set as the main proof target and prefer text-based expected outputs over new binary fixtures
-
-- [x] **T105** Add one realistic non-hermetic smoke test path for local LM Studio execution behind an opt-in flag.
-  - use `tests/fixtures/tables/literature_fixture.xlsx` plus `tests/fixtures/papers/paper_1.pdf` as the canonical live-smoke fixture target
-  - require at least one non-empty proposal with reviewer-usable evidence when the environment is correctly configured
-  - when readiness fails, capture and report the explicit readiness error rather than treating the run as a normal success
-
-- [x] **T105a** Add optional live cloud-provider smoke coverage only behind separate opt-in flags when cloud adapters are implemented.
-  - use environment- or secret-based credentials only
-  - keep cloud smoke coverage separate from the default local-first acceptance path
-  - *Note: Cloud adapters are not implemented in this MVP; this task is complete as a no-op pending T051a cloud adapter work.*
-
-- [x] **T106** Add a performance smoke test for representative small and medium batches so obvious regressions in parsing, retrieval, extraction, and review loading are caught.
-
-- [x] **T107** Update `README` with MVP run instructions:
-  - how to prepare config
-  - how to start the FastAPI backend and React UI
-  - how to run a sample workflow
-  - how picker-driven setup and path overrides work while config-file authority is preserved
-  - where artifacts and exports are written
-  - how Verify mode behaves
-  - what the export fidelity boundary is
-  - what provider tokens and provider modes mean in practice
-  - how readiness and startup failures are surfaced
-  - include at least one known-working LM Studio model example while making clear that stronger or newer compatible models may also be used
-  - make every documented command and workflow match the implementation that currently ships
-- [x] **T107a** Preserve user-facing onboarding in `README`, including clone/install steps, config-file purpose, LM Studio expectations, backend/frontend run commands, testing commands, artifact locations, and the export fidelity boundary.
-  - do not remove useful onboarding content unless it is obsolete and replaced with something clearer in the same work pass
-  - keep the checked-in config example, runtime config schema, and README terminology aligned for provider, parser, model, Verify mode, and run states
-  - do not keep obsolete onboarding text, superseded commands, or alternate startup paths that are not real supported workflows
-
-- [x] **T107b** Keep README aligned with the real primary happy path:
-  - start backend and frontend
-  - launch a run from the browser using a config path plus picker-driven input selection when supported
-  - observe run lifecycle state in the UI
-  - review/export from the same surface
-  - describe the canonical LM Studio live path truthfully and avoid implying live proposal generation when the implementation is stubbed, disabled, or degraded
-  - document the real config workflow, run lifecycle, review flow, export behavior, and limitations of the implemented MVP
-  - do not document speculative helpers or workflows that do not exist
-
-- [x] **T107c** Update `README.md` and related operator docs for the tightened workflow contract.
-  - add guidance for writing strong schema descriptions
-  - include at least one concrete schema snippet showing `column_name`, `description`, optional `field_type`, and categorical `allowed_values`
-  - present schema-first empty-table operation as the normal/default mental model, not just a supported edge case
-  - include numeric answer-form examples for `exact`, `range`, and `approximate`, such as `5`, `5-7`, `~5`, or estimated-from-graph cases
-  - describe manual export explicitly instead of implying automatic export
-  - include screenshot expectations for run setup, highlighted-evidence review workspace, and export or diagnostics views
-  - add a lightweight trustworthiness checklist covering provider path, evidence labeling, fallback visibility, review-before-export, and audit artifacts
-
-- [x] **T107d** Add a reproducible screenshot-capture workflow for docs.
-  - prefer Playwright-based capture tied to real UI states
-  - keep the workflow lightweight and local-first
-  - store or document the commands needed to refresh README screenshots consistently
-
-- [x] **T107e** Update `README.md` and related operator docs for Eval mode.
-  - explain what Eval mode is and why it masks target cells before extraction
-  - explain why Verify mode and Eval mode cannot both be enabled
-  - describe which downstream artifact fields the separate eval tool or repo consumes
-  - keep Eval mode documented as artifact emission for later scoring, not as an in-app metrics framework
-
----
-
-## Phase 10 — Baseline-strengthening implementation pass (pending)
-
-**Goal:** complete the still-missing baseline-strengthening work with concrete, benchmarkable, and inspectable behavior while preserving the current deterministic pipeline.
-
-### A. Config and naming cleanup
-
-- [ ] **T108a** Canonicalize retrieval config naming to truthfully describe implemented behavior.
-  - affected backend modules: `backend/app/config.py`, `backend/app/retrieval.py`, `backend/app/runner.py`
-  - affected operator surfaces: `config.example.json`, `README.md`, `specs/spec.md` terminology references
-  - replace canonical retrieval value `semantic_chunks` with a lexical-baseline truthful canonical value
-  - keep runtime behavior unchanged unless mode toggles explicitly request otherwise
-
-- [ ] **T108b** Add compatibility normalization for legacy retrieval naming while persisting canonical values.
-  - affected backend modules: `backend/app/config.py`
-  - normalize known legacy aliases to canonical retrieval value at config load/validation
-  - persist canonical value in `config.snapshot.json`
-  - reject unknown retrieval naming with actionable validation errors
-
-- [ ] **T108c** Add config naming tests for canonicalization and failure behavior.
-  - affected tests: `tests/backend/test_config.py`, `tests/backend/test_runner.py`
-  - verify canonical default retrieval value
-  - verify legacy alias normalization in run snapshot
-  - verify unknown retrieval value rejection
-
-### B. Measurement-first instrumentation
-
+- [ ] **T109** Strengthen measurement-first run instrumentation.
 - [ ] **T109a** Add run-level stage timing capture.
-  - affected backend modules: `backend/app/runner.py`
-  - persist at minimum: `run_total_ms`, `stage_validating_ms`, `stage_matching_ms`, `stage_parsing_ms`, `stage_style_profiles_ms`, `stage_extraction_ms`
-
 - [ ] **T109b** Add per-PDF timing and counts.
-  - affected backend modules: `backend/app/runner.py`, `backend/app/parsing.py`, `backend/app/retrieval.py`
-  - persist at minimum: `parse_pdf_ms`, `retrieval_prep_ms`, `pdf_cell_count`
-  - include rollups: `pdf_count`, `cells_per_pdf`
-
 - [ ] **T109c** Add per-cell timing capture.
-  - affected backend modules: `backend/app/runner.py`, `backend/app/extraction.py`, `backend/app/retrieval.py`
-  - persist at minimum: `retrieval_query_ms`, `text_model_ms`, `evidence_anchoring_ms`, conditional `figure_review_ms`, `cell_total_ms`
-
 - [ ] **T109d** Add retrieval repeated-work and chunk counters.
-  - affected backend modules: `backend/app/retrieval.py`, `backend/app/runner.py`
-  - persist at minimum: `retrieval_calls`, `retrieval_calls_per_pdf`, `chunk_build_count_per_pdf`, `idf_build_count_per_pdf`, `neighbor_chunks_added_count`, `chunk_count_total`, `chunk_count_by_type`
-
 - [ ] **T109e** Add provider and evidence counters into run stats.
-  - affected backend modules: `backend/app/provider.py`, `backend/app/extraction.py`, `backend/app/runner.py`
-  - preserve existing `provider_request_counts`
-  - add at minimum: `text_model_call_count`, `vision_model_call_count`, `evidence_item_count`, `direct_quote_count`, `approximate_highlight_count`, `quote_plus_page_count`, `needs_more_evidence_count`, `recall_rescue_used_count`, `whole_document_used_count`, `figure_review_triggered_count`, `figure_derived_evidence_count`
-
 - [ ] **T109f** Persist a compact structured run-stats artifact and expose it as a first-class run output.
-  - affected backend modules: `backend/app/runner.py`, `backend/app/artifacts.py`
-  - artifact target: `diagnostics/run_stats.json` (or equivalent documented stable path)
-  - keep schema shallow and manually inspectable
-
 - [ ] **T109g** Add run-stats tests for structure and consistency.
-  - affected tests: `tests/backend/test_runner.py`, `tests/backend/test_artifacts.py`, `tests/backend/test_performance_smoke.py`
-  - verify artifact existence and required fields
-  - verify counters/timings are non-negative and internally consistent on fixture runs
+- [x] **T114** Persist compact provider/runtime failure diagnostics.
+- [x] **T115** Add proposal-level retrieval-failure diagnostics.
+- [x] **T116** Persist figure-review ROI diagnostics at per-cell and per-run level.
 
-### C. Prompt externalization
+### Docs / verification / screenshots
 
-- [x] **T110a** Move extraction and style-profile system prompts into dedicated prompt files.
-  - affected backend modules: `backend/app/extraction.py`, `backend/app/style_profiles.py`
-  - implemented prompt bundle directory: `backend/app/prompt_bundles/default/`
-  - implemented files include text extraction system+user, figure extraction system+user, evidence recovery system+user, and style-profile system prompts
+- [x] **T104** Add hermetic end-to-end tests using stub providers over the canonical fixture corpus.
+- [x] **T105** Add an opt-in realistic local LM Studio smoke-test path.
+- [x] **T105a** Keep optional cloud-provider smoke coverage gated behind separate opt-in flags until a concrete cloud provider adapter is implemented.
+- [x] **T106** Add a performance smoke test for representative small and medium batches.
+- [x] **T107** Update `README.md` with real MVP run instructions, workflow, artifacts, and limitations.
+- [x] **T107a** Preserve user-facing onboarding in `README.md` while removing obsolete commands and flows.
+- [x] **T107b** Keep `README.md` aligned with the real primary happy path.
+- [x] **T107c** Update `README.md` and related operator docs for the tightened workflow contract.
+- [x] **T107d** Add a reproducible screenshot-capture workflow for docs.
+- [x] **T107e** Update `README.md` and related operator docs for Eval mode.
 
-- [x] **T110b** Implement prompt loading and composition helpers with deterministic failure semantics.
-  - affected backend modules: `backend/app/prompts.py` (new) or equivalent helper module
-  - implemented manifest validation, required-key checks, and clear missing-file failure behavior
-  - implemented bundle hashing (`prompt_manifest_hash`, `prompt_bundle_hash`) and per-file provenance
+## Appendix: Historical Notes (Non-Canonical)
 
-- [x] **T110c** Extend prompt identity/provenance in artifacts.
-  - affected backend modules: `backend/app/extraction.py`, `backend/app/runner.py`
-  - keep `prompt_hash`/`prompt_version`
-  - add prompt-bundle identity fields plus prompt-file provenance map to run/input/summary artifacts
-
-- [x] **T110d** Add prompt externalization tests.
-  - affected tests: `tests/backend/test_runner.py`, `tests/backend/test_batch1_refinement.py` (or equivalent prompt contract tests)
-  - verify default bundle loading, explicit bundle selection, explicit bundle-path precedence, hash stability, prompt hash changes after prompt file edits, and missing manifest/file failure behavior
-
-### D. Transparent schema-aware retrieval heuristics
-
-- [ ] **T111a** Define a small explicit retrieval-heuristic policy contract.
-  - affected backend modules: `backend/app/retrieval.py`
-  - inputs limited to column name + column description (+ existing schema metadata already available)
-  - policy remains lexical, coarse, and deterministic
-
-- [ ] **T111b** Persist selected heuristic policy details in retrieval artifacts.
-  - affected backend modules: `backend/app/retrieval.py`
-  - include policy tags and applied hint terms in each retrieval artifact
-  - avoid hidden planner behavior
-
-- [ ] **T111c** Surface heuristic-policy usage summaries in run outputs.
-  - affected backend modules: `backend/app/runner.py`, `backend/app/review.py`
-  - add compact policy usage counters for inspectability
-
-- [ ] **T111d** Add heuristic-policy tests.
-  - affected tests: `tests/backend/test_batch3.py`, `tests/backend/test_runner.py`
-  - verify deterministic policy assignment and persisted visibility fields
-
-### E. Experimental hybrid retrieval benchmark path
-
-- [ ] **T112a** Add retrieval mode toggle in config with lexical default baseline.
-  - affected backend modules: `backend/app/config.py`
-  - config must support baseline lexical mode plus opt-in hybrid experimental mode
-  - default remains lexical baseline
-
-- [ ] **T112b** Implement hybrid retrieval path behind explicit opt-in mode.
-  - affected backend modules: `backend/app/retrieval.py`, `backend/app/runner.py`
-  - keep implementation narrow and benchmark-oriented
-  - do not alter lexical baseline behavior when mode is unset
-
-- [ ] **T112c** Persist and expose retrieval mode in run artifacts and summaries.
-  - affected backend modules: `backend/app/runner.py`, `backend/app/review.py`
-  - include retrieval mode in `run.json`, run summary payload, and reviewer-visible summary surfaces
-
-- [ ] **T112d** Add hybrid-mode tests.
-  - affected tests: `tests/backend/test_config.py`, `tests/backend/test_runner.py`, `tests/backend/test_batch3.py`
-  - verify lexical default, hybrid opt-in, and baseline-vs-hybrid visibility in artifacts
-
-### F. Explicit deferred work for this phase (do not implement now)
-
-The following remain deferred/out of scope for this phase and must not be converted into unchecked implementation tasks:
-
-- paper-local retrieval state/cache
-- chunk quality overhaul
-- provider/runtime speedups beyond instrumentation-ready design
-- dense retrieval by default
-- HyDE default behavior
-- main-app ↔ eval-app parity cleanup
-
----
-
-## Explicit MVP exclusions for this task list
-
-Do **not** add the following unless `spec.md` and `plan.md` are intentionally revised first:
-
-- Tauri or Electron shell as a baseline requirement
-- database-first persistence
-- background jobs as baseline runtime behavior
-- multi-user review or collaboration workflows
-- chat-first or agent-shell UX
-- reranking, HyDE, or query expansion as baseline retrieval
-- GROBID as a required parser dependency
-- in-place workbook patching
-- workbook fidelity guarantees beyond content-only export plus changed-cell highlighting
-- raw semantic example injection from filled cells as the default extraction strategy
-- user-triggered figure review controls
-- unrestricted full-page vision on every page of every paper for every field
-- automated heterogeneous correctness scoring as the primary MVP evaluation metric
-- bundling a large dedicated evaluation framework or separate eval UI into the main app by default
-- retrieval-platform architecture creep, including persistent per-paper retrieval caches as baseline
-- opaque hidden policy planner logic for retrieval behavior
-- broad telemetry-platform rollout beyond narrow run-stats instrumentation
-- hybrid retrieval as implicit or default behavior
-- prompt-file sprawl without clear scope and ownership
-
----
-
-## Definition of done for this task list
-
-This task list is complete enough when it can drive implementation toward a system that:
-
-- runs the end-to-end paper-to-table workflow locally in a browser app
-- makes the startup and pre-review workflow understandable without requiring the operator to infer the happy path from source code or test fixtures
-- uses React + FastAPI + Docling + `pypdfium2` + raw/custom PDF.js + LM Studio + filesystem artifact bundles
-- enforces canonical provider/config/runtime/docs/tests parity and fails early on unknown or broken provider setups
-- keeps human review mandatory before spreadsheet mutation
-- persists proposals, evidence, review decisions, run summaries, reviewer summaries, diagnostics, and exports as inspectable artifact files
-- uses `proposals.jsonl` plus a proposal index or equivalent lookup structure as the canonical proposal persistence direction
-- supports Verify mode end to end
-- supports leakage-aware Eval mode end to end without exposing target gold values to extraction
-- generates reviewer-outcome summaries for the MVP
-- emits the minimal downstream-ready artifact contract for later Eval-mode scoring by a separate tool
-- exports a new XLSX plus audit log within the explicit content-only fidelity boundary
-- produces evidence with correct type labels (direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page fallback, `caption_grounded_figure_evidence`, `visual_interpretation_figure_evidence`) and ranks evidence by authority so the most authoritative item is primary
-- produces exact quote highlights from page-text alignment when possible and degrades honestly with labeled fallback when it fails; fallback evidence is never presented as exact
-- keeps the quote list and document viewer synchronized around the selected evidence item, with stable refocus on selection or zoom changes, previous/next/jump-to-page navigation, and figure-to-full-page context
-- runs text-guided targeted figure review when a vision model is configured, with figure evidence allowed for any field type, including corroboration and rescue of weak text-only proposals
-- records text model and vision model identifiers separately in run artifacts, run summaries, and reviewer-visible context
-- keeps loading, empty, warning, failure, and not-yet-reviewable states explicit and actionable in the operator workflow
-- proves the canonical LM Studio path can generate at least one non-empty reviewable proposal with evidence on the canonical checked-in fixture set, or fails early with a clear readiness error
-- keeps manual export explicit, actionable-only review counts primary, and parsing/provider fallback truth visible to reviewers
-- ships with a truthful user-facing `README.md` and related operator docs that match the implemented commands, architecture, workflow, exports, and limitations
-- stays inside the MVP architecture boundary defined by `spec.md`, `research.md`, and `plan.md`
-
-### Non-UI automation entrypoint slice
-
-- [x] **T117a** Add a stable non-UI automation entrypoint for tooling while preserving browser-first operator workflow.
-  - affected backend modules: `backend/app/automation.py`
-  - command surface: `start`, `status`, and `wait`
-  - startup contract includes run id, status, mode, run directory, and key artifact paths
-
-- [x] **T117b** Support optional wait-until-terminal behavior and deterministic machine-readable terminal output.
-  - affected backend modules: `backend/app/automation.py`
-  - payloads include explicit `schema_version` and `is_terminal` fields
-  - terminal output includes final status plus summary/export paths when present
-  - deterministic exit behavior for completed, failed, timeout, and not-found states
-
-- [x] **T117c** Add hermetic tests for automation start/wait/status and failure reporting.
-  - affected tests: `tests/backend/test_automation.py`
-  - no live LM Studio dependency
+- The previous batch/phase framing has been removed from the canonical checklist.
+- Historical implementation audits and pass-specific notes should live in supporting docs such as `docs/spec-implementation-audit.md`.
+- If future work needs temporary sequencing guidance, keep it outside the canonical checklist or in a clearly labeled appendix.

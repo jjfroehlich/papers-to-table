@@ -21,24 +21,25 @@ If these artifacts conflict, fix the smallest coherent set of docs first before 
 - `spec.md`: product behavior, user-facing requirements, acceptance criteria
 - `plan.md`: technical architecture and implementation direction
 - `research.md`: decisions, tradeoffs, evidence, deferred questions
-- `tasks.md`: canonical implementation checklist and batch structure
+- `tasks.md`: canonical implementation checklist and verified progress state
 
 ## Documentation Sync Rules
 
-- Update only the spec docs whose truth actually changed, but do it in the same pass.
-- If user-facing behavior changes, update `spec.md`.
-- If architecture, runtime shape, parser strategy, UI stack, persistence strategy, or sequencing changes, update `plan.md`.
-- If a decision changed because the tradeoff or rationale changed, update `research.md`.
-- If spec-driven execution progress changed, keep `tasks.md` aligned.
+- Keep current implementation truth in one canonical place. Prefer `tasks.md` for status, with any separate audit doc serving as supporting evidence rather than a second progress tracker.
+- Update only the spec docs whose truth actually changed, in the same pass as the related code or status change.
 - Remove stale text rather than leaving both old and new descriptions in place.
+- Preserve the existing canonical section structure of each spec file when editing.
+- Prefer editing the correct existing section over appending an ad hoc note or temporary section.
+- Do not insert pass-specific instructions, temporary status banners, or execution-order notes into `spec.md`, `plan.md`, or `research.md`.
+- If historical or temporary context is worth keeping, place it in a clearly labeled appendix or supporting audit doc rather than in the main body.
 
-## Batch Discipline
+## Task Discipline
 
 - Treat `tasks.md` as canonical for implementation progress.
-- A checked task is not proof of quality; validate the current app against `spec.md`, `plan.md`, and the active batch completion standard.
-- Implement one batch deeply rather than many batches shallowly.
-- Do not mark a batch complete if startup truth, run-state visibility, review readiness, warning or failure states, or docs truth for that slice are still weak.
-- Do not let a later batch excuse a hollow provider path in an earlier polished-looking shell.
+- A checked task is not proof of quality; validate the current app against `spec.md`, `plan.md`, and the relevant task completion standard.
+- Do not create new batch or phase overlays in `tasks.md` unless explicitly asked.
+- Do not mark a task area complete if startup truth, run-state visibility, review readiness, warning or failure states, or docs truth for that slice are still weak.
+- Do not let later task areas excuse a hollow provider path in an earlier polished-looking shell.
 
 ## Quality Standard for Spec Work
 
@@ -56,8 +57,9 @@ Keep the following explicit when relevant:
 
 ## Editing Guidance
 
-- Prefer additive sharpening over deleting useful repo-specific detail.
-- Compress repetition when the same rule is already stated clearly once.
+- Prefer moving text to the document that owns it over restating the same rule in multiple places.
+- Keep product requirements in `spec.md`, architecture in `plan.md`, rationale in `research.md`, and progress in `tasks.md`.
+- When a file has accumulated scattered edits that weaken structure, reorganize it in the same pass instead of appending another patchwork section.
 - Do not turn spec docs into vague governance prose.
 - Do not widen product scope just to make an architecture section sound more flexible.
 - Keep optional future extensions clearly secondary to the current MVP.

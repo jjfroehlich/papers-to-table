@@ -1,9 +1,5 @@
 # Extract Structured Info from Papers - spec.md
 
-## Status
-
-Updated: schema-first extraction, evidence-first review, truthful provider semantics, reviewer-workflow refinements including explicit export controls and fast-review navigation, leakage-aware eval-mode artifacts, and a baseline-strengthening pass focused on config naming truth, measurement-first instrumentation, transparent retrieval heuristics, prompt externalization, and experimental hybrid retrieval benchmarking
-
 ## Summary
 
 Extract Structured Info from Papers helps a researcher turn a folder of scientific PDFs plus a structured spreadsheet into reviewed spreadsheet updates.
@@ -20,29 +16,13 @@ The reviewer is reviewing what the paper supports, not grading the model, so the
 
 The review workspace must show actionable review items by default rather than every recorded pipeline outcome. Diagnostic-only outcomes such as unmatched rows, blocked extraction caused by missing or ambiguous paper matching, skipped cells outside Verify mode, or other non-reviewable pipeline results must remain visible through diagnostics and summaries, but they must not dominate the main proposal queue or inflate reviewer-facing counts.
 
-## Current diagnostic-artifact priorities
+## Document role
 
-The next implementation pass should stay narrow and measurement-first. It is not a retrieval-platform rewrite.
+This file defines product behavior, operator expectations, and acceptance criteria.
 
-Priority order for this pass is:
-
-1. main-app artifact completeness and parity signals
-2. provider/runtime failure diagnostics
-3. retrieval-failure diagnostics for questionable cells
-4. figure-review ROI diagnostics
-
-Guardrails for this pass:
-
-- keep the existing single deterministic staged extraction pipeline
-- do not introduce multi-agent orchestration
-- do not turn this into a retrieval platform
-- keep default behavior simple and quality-first for mostly digital scientific PDFs
-- keep lexical retrieval as the baseline behavior
-- do not add dense retrieval or HyDE in this pass
-- do not add retrieval cache or paper-local retrieval state in this pass
-- do not do a broad chunk-quality overhaul in this pass
-- do not do broad provider/runtime speedup work beyond instrumentation-enabling changes
-- keep instrumentation narrow, structured, and inspectable rather than building a telemetry platform
+Keep architecture and implementation direction in `plan.md`.
+Keep rationale and tradeoffs in `research.md`.
+Keep execution order and verified completion status in `tasks.md`.
 
 ---
 
@@ -332,7 +312,7 @@ That means:
 - Headless or multi-user deployment as an MVP requirement.
 - Computing full automated benchmark metrics or retrieval-centric correctness scores inside the main app.
 
-### Explicitly deferred for this baseline-strengthening pass
+### Deferred for this MVP
 
 - paper-local retrieval state or cache architecture
 - broad chunk-quality overhaul

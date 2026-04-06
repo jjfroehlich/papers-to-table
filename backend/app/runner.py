@@ -47,7 +47,7 @@ from .ingest import (
 from .lifecycle import apply_transition
 from .matching import MatchResult, persist_match_artifacts, run_matching
 from .parsing import parse_pdf
-from .provider import ProviderError, initialize_provider
+from .provider import ProviderError, _canonical_structured_output_reason, initialize_provider
 from .retrieval import run_retrieval_for_cell
 from .schemas import MatchOutcome, RunStatus, SupportLabel, WarningCategory
 from .style_profiles import run_style_profiles_stage
@@ -115,7 +115,10 @@ def get_initial_run_data(
             config.provider.vision_model.model_id if config.provider.vision_model else None
         ),
         "structured_output_mode": None,
+        "structured_output_reason": None,
         "structured_output_fallback_used": False,
+        "vision_structured_output_mode": None,
+        "vision_structured_output_reason": None,
         "provider_readiness_reason": None,
         "provider_request_counts": {},
         "retrieval_mode": config.retrieval.mode,
@@ -283,9 +286,12 @@ async def run_pipeline(
                 "provider_text_model_id": data.get("provider_text_model_id"),
                 "provider_vision_model_id": data.get("provider_vision_model_id"),
                 "structured_output_mode": data.get("structured_output_mode"),
+                "structured_output_reason": data.get("structured_output_reason"),
                 "structured_output_fallback_used": bool(
                     data.get("structured_output_fallback_used", False)
                 ),
+                "vision_structured_output_mode": data.get("vision_structured_output_mode"),
+                "vision_structured_output_reason": data.get("vision_structured_output_reason"),
                 "provider_readiness_error": data.get("provider_readiness_error"),
                 "provider_readiness_reason": data.get("provider_readiness_reason"),
                 "retrieval_mode": data.get("retrieval_mode"),
@@ -453,6 +459,7 @@ async def run_pipeline(
             "provider_token": config.provider.token,
             "provider_mode": data.get("provider_mode"),
             "structured_output_mode": data.get("structured_output_mode"),
+            "structured_output_reason": data.get("structured_output_reason"),
             "provider_readiness_reason": data.get("provider_readiness_reason"),
             "provider_readiness_error": data.get("provider_readiness_error"),
             "attempt_count": 0,
@@ -593,7 +600,10 @@ async def run_pipeline(
                         "text_model_id": text_model_id,
                         "vision_model_id": vision_model_id,
                         "structured_output_mode": readiness.structured_output_mode,
+                        "structured_output_reason": None,
                         "structured_output_fallback_used": bool(readiness.structured_output_fallback_used),
+                        "vision_structured_output_mode": None,
+                        "vision_structured_output_reason": None,
                         "readiness_reason": readiness.provider_readiness_reason,
                         "readiness_error": readiness.provider_readiness_error,
                         "recorded_at": datetime.now(timezone.utc).isoformat(),
@@ -721,7 +731,10 @@ async def run_pipeline(
             run_data["provider_readiness_error"] = provider_init_error
             run_data["provider_readiness_reason"] = provider_init_reason
             run_data["structured_output_mode"] = "none"
+            run_data["structured_output_reason"] = None
             run_data["structured_output_fallback_used"] = False
+            run_data["vision_structured_output_mode"] = None
+            run_data["vision_structured_output_reason"] = None
             write_json(
                 get_provider_mode_path(output_dir, run_id),
                 {
@@ -731,7 +744,10 @@ async def run_pipeline(
                     "text_model_id": text_model_id,
                     "vision_model_id": vision_model_id,
                     "structured_output_mode": "none",
+                    "structured_output_reason": None,
                     "structured_output_fallback_used": False,
+                    "vision_structured_output_mode": None,
+                    "vision_structured_output_reason": None,
                     "readiness_reason": provider_init_reason,
                     "readiness_error": provider_init_error,
                     "recorded_at": datetime.now(timezone.utc).isoformat(),
@@ -764,7 +780,10 @@ async def run_pipeline(
             run_data["provider_readiness_error"] = provider_mode.readiness_error
             run_data["provider_readiness_reason"] = provider_mode.readiness_reason
             run_data["structured_output_mode"] = provider_mode.structured_output_mode
+            run_data["structured_output_reason"] = provider_mode.structured_output_reason
             run_data["structured_output_fallback_used"] = provider_mode.structured_output_fallback_used
+            run_data["vision_structured_output_mode"] = provider_mode.vision_structured_output_mode
+            run_data["vision_structured_output_reason"] = provider_mode.vision_structured_output_reason
             write_json(get_provider_mode_path(output_dir, run_id), provider_mode.model_dump())
             caps = provider_mode.capabilities
             if caps and getattr(caps, "structured_output_mode", None) == "json_object":
@@ -1202,12 +1221,21 @@ async def run_pipeline(
         if provider_mode and runtime_caps is not None:
             provider_mode.capabilities = runtime_caps
             provider_mode.structured_output_mode = runtime_caps.structured_output_mode
+            provider_mode.structured_output_reason = _canonical_structured_output_reason(
+                runtime_caps.structured_output_mode,
+                getattr(runtime_caps, "structured_output_reason", None),
+            )
             provider_mode.structured_output_fallback_used = runtime_caps.structured_output_mode in ("json_object", "none")
-            if getattr(runtime_caps, "structured_output_reason", None):
-                provider_mode.readiness_reason = runtime_caps.structured_output_reason
-                run_data["provider_readiness_reason"] = runtime_caps.structured_output_reason
+            provider_mode.vision_structured_output_mode = runtime_caps.vision_structured_output_mode
+            provider_mode.vision_structured_output_reason = _canonical_structured_output_reason(
+                runtime_caps.vision_structured_output_mode,
+                getattr(runtime_caps, "vision_structured_output_reason", None),
+            )
             run_data["structured_output_mode"] = runtime_caps.structured_output_mode
+            run_data["structured_output_reason"] = provider_mode.structured_output_reason
             run_data["structured_output_fallback_used"] = runtime_caps.structured_output_mode in ("json_object", "none")
+            run_data["vision_structured_output_mode"] = provider_mode.vision_structured_output_mode
+            run_data["vision_structured_output_reason"] = provider_mode.vision_structured_output_reason
             write_json(get_provider_mode_path(output_dir, run_id), provider_mode.model_dump())
 
         run_data["proposals_generated"] = proposals_generated
@@ -1275,9 +1303,12 @@ async def run_pipeline(
                 "provider_text_model_id": run_data.get("provider_text_model_id"),
                 "provider_vision_model_id": run_data.get("provider_vision_model_id"),
                 "structured_output_mode": run_data.get("structured_output_mode"),
+                "structured_output_reason": run_data.get("structured_output_reason"),
                 "structured_output_fallback_used": bool(
                     run_data.get("structured_output_fallback_used", False)
                 ),
+                "vision_structured_output_mode": run_data.get("vision_structured_output_mode"),
+                "vision_structured_output_reason": run_data.get("vision_structured_output_reason"),
                 "provider_readiness_error": run_data.get("provider_readiness_error"),
                 "provider_readiness_reason": run_data.get("provider_readiness_reason"),
                 "retrieval_mode": run_data.get("retrieval_mode"),

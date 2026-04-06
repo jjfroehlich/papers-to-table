@@ -4,12 +4,11 @@ A local-first paper-to-table review app. Ingest scientific PDFs and a structured
 
 ---
 
-## Architecture
+## What It Does
 
-- **Backend:** Python 3.11+, FastAPI, Pydantic v2
-- **Frontend:** React + TypeScript + Vite + Tailwind CSS + PDF.js
-- **Storage:** Filesystem artifact bundles (JSON files), no database
-- **Default provider:** LM Studio (local), via `http://localhost:1234`
+- Launch a paper-to-table extraction run from a JSON config file.
+- Review evidence-backed proposals in a browser UI before any spreadsheet update is exported.
+- Export an audited XLSX plus diagnostics after explicit reviewer action.
 
 ---
 
@@ -134,6 +133,8 @@ python -m backend.app.automation wait --run-id <run_id> --output-dir ./runs
 ```
 
 Outputs are machine-readable JSON and include run id, status, resolved mode, artifact root paths, summary paths when present, and failure/readiness context when relevant.
+
+For degraded-but-live provider cases, automation payloads also expose structured-output capability truth, including `structured_output_mode`, `structured_output_reason`, `vision_structured_output_mode`, and `vision_structured_output_reason` when available.
 
 Automation payloads include explicit contract helpers for orchestration:
 
@@ -432,6 +433,8 @@ Structured output behavior is negotiated per provider-model path:
 - Fallback: `json_object` (explicit degraded mode warning is recorded)
 - Bounded fallback when both structured modes are unavailable: prompt-only JSON mode with strict app-side parsing/validation and bounded retry/repair
 
+When both text and vision models are configured, structured-output capability is tracked separately for the text path and the vision path.
+
 Response handling remains app-validated even in degraded mode:
 - parsed JSON is validated against the expected response schema
 - mixed outputs are cleaned with wrapper stripping and balanced-object extraction before final failure
@@ -468,67 +471,6 @@ Readiness and capability failures are classified separately in run artifacts and
 
 ---
 
-## Testing
-
-### Backend tests
-
-```bash
-python -m pytest tests/backend -v
-```
-
-### Frontend tests
-
-```bash
-cd frontend
-npm run test -- --run
-```
-
-### Frontend lint + build
-
-```bash
-cd frontend
-npm run lint && npm run build
-```
-
-### End-to-end tests (opt-in, auto-start deterministic local stack)
-
-```bash
-pip install -e ./backend[test]
-python -m playwright install chromium
-cd frontend && npm install && cd ..
-python -m pytest tests/e2e -m e2e
-```
-
-This currently exercises the implemented Playwright slice for run-setup gating, picker staging/prefill truth, fast review, evidence cycling, explicit export, and screenshot capture.
-
-### Refresh README screenshots
-
-```bash
-pip install -e ./backend[test]
-python -m playwright install chromium
-cd frontend && npm install && cd ..
-python -m pytest tests/e2e/test_doc_screenshots.py -m e2e --capture-doc-screenshots
-```
-
-### Live LM Studio smoke test (opt-in)
-
-```bash
-LM_STUDIO_TEXT_MODEL=<model-id> PAPER_TABLE_SMOKE=1 python -m pytest tests/backend/test_smoke_lmstudio.py -v -m smoke
-```
-
----
-
-## Fixtures
-
-Canonical test fixtures are in `tests/fixtures/`:
-
-- `tests/fixtures/tables/literature_fixture.xlsx` — example workbook
-- `tests/fixtures/tables/literature_fixture_schema.csv` — column schema
-- `tests/fixtures/papers/paper_1.pdf` … `paper_4.pdf` — matched PDFs
-- `tests/fixtures/papers/unmatched_1.pdf` — intentionally unmatched PDF
-
----
-
 ## Known MVP limitations
 
 - **LM Studio must be running** at run start. The readiness check fails early with a clear error if unreachable.
@@ -538,17 +480,3 @@ Canonical test fixtures are in `tests/fixtures/`:
 - **No in-place workbook patching.** The export always writes a new XLSX file; the source workbook is never modified.
 - **Browser file pickers cannot provide native local paths.** For overrides, use staged handles (`Stage...` / `Stage PDFs...`) or type backend-readable paths explicitly.
 
----
-
-## Development commands reference
-
-| Command | What it does |
-|---|---|
-| `python -m uvicorn backend.app.main:app --reload` | Start backend (dev, auto-reload) |
-| `cd frontend && npm run dev` | Start frontend dev server |
-| `cd frontend && npm run build` | Build frontend for production |
-| `cd frontend && npm run lint` | Run ESLint |
-| `cd frontend && npm run test -- --run` | Run frontend unit tests |
-| `python -m pytest tests/backend -v` | Run backend tests |
-| `python -m pytest tests/e2e -m e2e` | Run Playwright e2e tests against the deterministic local demo stack |
-| `python -m pytest tests/e2e/test_doc_screenshots.py -m e2e --capture-doc-screenshots` | Refresh the checked-in README screenshots |

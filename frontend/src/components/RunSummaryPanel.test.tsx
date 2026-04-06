@@ -90,6 +90,22 @@ describe('RunSummaryPanel', () => {
     expect(screen.getByText(/evidence fallback/i)).toBeInTheDocument()
   })
 
+  it('shows structured-output fallback classification without treating it as readiness failure', async () => {
+    const degradedRun = {
+      ...baseRun,
+      structured_output_mode: 'json_object' as const,
+      structured_output_reason: 'json_schema_unsupported',
+      structured_output_fallback_used: true,
+      provider_readiness_reason: null,
+    }
+    render(<RunSummaryPanel run={degradedRun} outputDir="./runs" />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/json_object fallback/i)).toBeInTheDocument()
+    })
+    expect(screen.getByText(/json schema unsupported/i)).toBeInTheDocument()
+  })
+
   it('shows eval mode badge and masked table path', async () => {
     const evalRun = {
       ...baseRun,

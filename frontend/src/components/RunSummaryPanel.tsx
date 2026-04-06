@@ -55,6 +55,14 @@ export function RunSummaryPanel({ run, outputDir }: Props) {
       stub: 'bg-amber-100 text-amber-700',
       unknown: 'bg-gray-100 text-gray-700',
     }[providerMode] ?? 'bg-gray-100 text-gray-700'
+  const structuredFallbackLabel =
+    run.structured_output_mode === 'json_object'
+      ? 'json_object fallback'
+      : run.structured_output_mode === 'none' && run.structured_output_fallback_used
+      ? 'prompt-only fallback'
+      : null
+  const structuredReasonLabel =
+    run.structured_output_reason == null ? null : run.structured_output_reason.replace(/_/g, ' ')
 
   return (
     <div className="bg-white border-b border-gray-200 px-4 py-2 flex flex-wrap items-center gap-4 text-xs text-gray-600">
@@ -88,6 +96,14 @@ export function RunSummaryPanel({ run, outputDir }: Props) {
         <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${providerModeClass}`}>
           {providerModeLabel}
         </span>
+        {structuredFallbackLabel && (
+          <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-medium">
+            {structuredFallbackLabel}
+          </span>
+        )}
+        {structuredReasonLabel && (
+          <span className="text-amber-700">{structuredReasonLabel}</span>
+        )}
       </div>
 
       {run.verify_mode && (

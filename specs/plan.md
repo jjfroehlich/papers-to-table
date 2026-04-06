@@ -1,9 +1,5 @@
 # Extract Structured Info from Papers — `plan.md`
 
-## Status
-
-Updated: schema-first extraction, truthful provider semantics, reviewer-centered evidence workflow refinements including explicit export controls and fast-review navigation, leakage-aware eval-mode planning, and a baseline-strengthening execution order centered on naming truth, measurement-first instrumentation, prompt externalization, transparent retrieval heuristics, and opt-in hybrid benchmarking
-
 ## Purpose
 
 This document defines the technical approach for implementing the product requirements in `spec.md`.
@@ -29,44 +25,19 @@ The core documentation set for this phase is `spec.md`, `plan.md`, and `research
 
 The intended implementation model for this repository is:
 
-- `tasks.md` remains exhaustive, but execution should happen in the explicit batches defined there rather than as one giant undifferentiated pass.
-- Each batch should be delivered as a polished, coherent slice that a later batch can safely build on.
+- `tasks.md` remains exhaustive, but execution and status tracking belong there rather than in this architecture document.
+- Work should preserve the canonical product-area structure in `tasks.md` instead of introducing temporary batch or phase overlays unless explicitly requested.
 - The JSON config file remains authoritative for advanced behavior and reproducibility.
 - The browser UI owns the normal operator workflow for launch, status visibility, review, and export.
 - A narrow non-UI automation entrypoint may be used by tooling (for example an optimizer) to start and monitor runs without driving the frontend; it must reuse the same backend run pipeline and artifact contracts. The tooling contract should include start, status-by-run-id, and wait-by-run-id behavior with explicit machine-readable terminal signaling.
 - The local onboarding path should stay clear and singular: start backend, start frontend, open the browser UI, supply a config path, start the run.
 - Treat `README.md`, the checked-in config example, the runtime config schema, and operator-visible UI copy as one operator-facing contract. Keep provider, parser, model, Verify-mode, Eval-mode, and run-state terminology aligned across those surfaces.
-- Do not let early batches stop at a structurally correct shell. Provider-path scaffolding, placeholder proposal generation, or silent degraded modes do not count as a finished slice.
+- Do not let early work stop at a structurally correct shell. Provider-path scaffolding, placeholder proposal generation, or silent degraded modes do not count as a finished slice.
 - Do not let diagnostic-only outcomes masquerade as normal review proposals. If a pipeline result is not meant for reviewer decision-making, keep it visible through summaries and diagnostics rather than inflating the main queue.
-- If a batch changes operator-facing truth, update `README.md`, `spec.md`, `plan.md`, and `tasks.md` together in the same work pass.
-- End-of-batch documentation updates are mandatory for operator-facing changes; `README.md` must trail implementation by zero batches, not by a later cleanup pass.
+- If a task changes operator-facing truth, update `README.md`, `spec.md`, `plan.md`, and `tasks.md` together in the same work pass.
+- Documentation updates are mandatory for operator-facing changes; `README.md` must trail implementation by zero passes, not by a later cleanup pass.
 - `README.md` and any other user-facing docs must only describe commands, config behavior, lifecycle states, review actions, downloads, exports, and limitations that exist in the implemented slice.
 - When operator docs describe LM Studio setup, include at least one verified model example while keeping the implementation contract open to stronger or newer models that satisfy the same interface.
-
-### Current execution priority for the next implementation pass
-
-For the next implementation pass, sequence work in this explicit order:
-
-1. main-app artifact completeness and parity signals
-2. provider/runtime failure diagnostics
-3. retrieval-failure diagnostics for questionable cells
-4. figure-review ROI diagnostics
-
-This remains one coherent deterministic pipeline pass, not a shift to multi-agent orchestration, retrieval-platform architecture, or telemetry-platform design.
-
-### Implementation reality snapshot (2026-04-06)
-
-Current code and run-artifact state relevant to this priority order:
-
-- implemented: resolved config snapshot persistence (`config.snapshot.json`) with resolved input context
-- implemented: lexical retrieval baseline path and persisted per-cell retrieval artifacts
-- implemented: prompt-bundle identity and prompt-contract identity persistence (`prompt_bundle_*`, `prompt_manifest_hash`, `prompt_bundle_hash`, `prompt_hash`) plus provider request counts
-- implemented: explicit artifact completeness/parity summary for main-app runs, split into user-facing versus diagnostics sections
-- implemented: rich persisted provider/runtime attempt diagnostics beyond request counters, including provider probe reporting and optional verbose trace output
-- implemented: proposal-level retrieval failure classification for questionable cells
-- implemented: explicit aggregate figure-review ROI summary beyond raw timing fields
-- implemented: separate text-path and vision-path structured-output capability truth in provider artifacts and readiness-derived summaries
-- implemented: prompt-only degraded vision-path suppression for figure review behind an explicit config toggle
 
 ---
 
@@ -1777,38 +1748,6 @@ Maintain a compact fixture set that covers:
 - weak evidence
 - no-value cases
 - Verify-mode reviewed cells
-
----
-
-## Implementation phases
-
-## P0 — Core workflow foundation
-- finalize parser contract
-- implement ingest + validate inputs
-- implement per-column style-profile preprocessing
-- implement main parser + low-level PDF fallback
-- implement OCR fallback for scanned PDFs
-- implement matching
-- implement proposal/evidence persistence
-- implement queue-first Run/Review UI skeleton
-- implement XLSX export + audit log
-- implement reviewer-outcome summaries
-- implement Verify mode basic flow
-
-## P1 — Retrieval and review hardening
-- typed chunking
-- contextualized retrieval text
-- table-aware retrieval artifacts
-- narrow evidence validator + locator
-- proactive targeted figure review
-- review filters, counters, and progress UX
-
-## P2 — Measured extensions
-- optional parser enrichments
-- optional retrieval helpers if they prove lift
-- optional richer figure handling
-- optional automated Verify-mode scoring research prototype
-- optional stronger diagnostics and developer tooling
 
 ---
 

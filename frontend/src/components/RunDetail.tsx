@@ -24,8 +24,14 @@ export function RunDetail({ run, onAbort, aborting }: Props) {
     run.provider_mode == null ? null : run.provider_mode.replace(/_/g, ' ')
   const structuredOutputMode =
     run.structured_output_mode == null ? null : run.structured_output_mode.replace(/_/g, ' ')
+  const structuredOutputReason =
+    run.structured_output_reason == null ? null : run.structured_output_reason.replace(/_/g, ' ')
   const readinessReason =
     run.provider_readiness_reason == null ? null : run.provider_readiness_reason.replace(/_/g, ' ')
+  const visionStructuredOutputMode =
+    run.vision_structured_output_mode == null ? null : run.vision_structured_output_mode.replace(/_/g, ' ')
+  const visionStructuredOutputReason =
+    run.vision_structured_output_reason == null ? null : run.vision_structured_output_reason.replace(/_/g, ' ')
   const runModeLabel = run.run_mode.replace(/_/g, ' ')
   const isAbortable =
     !!onAbort && (run.status === 'created' || run.status === 'validating' || run.status === 'running')
@@ -55,6 +61,7 @@ export function RunDetail({ run, onAbort, aborting }: Props) {
         <Field label="Text model" value={run.provider_text_model_id ?? null} />
         <Field label="Vision model" value={run.provider_vision_model_id ?? null} />
         <Field label="Structured output" value={structuredOutputMode} />
+        <Field label="Structured reason" value={structuredOutputReason} />
         <Field
           label="Structured fallback used"
           value={
@@ -63,6 +70,8 @@ export function RunDetail({ run, onAbort, aborting }: Props) {
               : (run.structured_output_fallback_used ? 'Yes' : 'No')
           }
         />
+        <Field label="Vision structured output" value={visionStructuredOutputMode} />
+        <Field label="Vision structured reason" value={visionStructuredOutputReason} />
         <Field label="Readiness reason" value={readinessReason} />
         <Field label="Verify mode" value={run.verify_mode ? 'Yes' : 'No'} />
         <Field label="Eval mode" value={run.eval_mode ? 'Yes' : 'No'} />

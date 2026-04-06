@@ -8,13 +8,19 @@ This repo is building a local-first paper-to-table review app that ingests PDFs 
 
 ## Quick Reference
 
-- Current repo state: spec-first rebuild. The implementation has not restarted yet in this snapshot.
-- Current source of truth: `specs/spec.md`, `specs/plan.md`, `specs/tasks.md`, and this file.
+- Current repo state: active local-first implementation with a FastAPI backend, React frontend, backend/frontend tests, and Playwright-backed e2e coverage.
+- Current source of truth: `specs/spec.md` for product requirements, `specs/plan.md` for architecture, `specs/tasks.md` for verified implementation status, and this file for repo-level operating rules.
 - Preferred shell: Git Bash on Windows.
 - Canonical fixture root: `tests/fixtures/`.
 - Current fixture folders: `tests/fixtures/tables/` and `tests/fixtures/papers/`.
-- Expected implementation shape: `backend/` for FastAPI services and pipeline logic, `frontend/` for the React review UI.
-- No canonical backend, frontend, lint, or test commands exist yet in this repo snapshot. Do not invent them in docs. When Batch 1 introduces them, add them here and in `README.md` in the same pass.
+- Implementation shape: `backend/` for FastAPI services and pipeline logic, `frontend/` for the React review UI.
+- Canonical local startup path:
+	- install backend: `pip install -e ./backend`
+	- install frontend: `cd frontend && npm install`
+	- start backend: `python -m uvicorn backend.app.main:app --reload --port 8000`
+	- start frontend: `cd frontend && npm run dev`
+	- backend tests: `pytest`
+	- frontend tests: `cd frontend && npm test`
 - When working inside `specs/`, follow `specs/AGENTS.md` for the spec-specific workflow.
 
 ## Work Modes
@@ -63,6 +69,12 @@ Done means the operator can understand what to do next without reading source co
 
 - Update only the docs whose truth changed, but do it in the same pass as the code or behavior change.
 - Remove stale text rather than letting old and new descriptions coexist.
+- Preserve the existing canonical section structure when editing `spec.md`, `plan.md`, `research.md`, `tasks.md`, `README.md`, and both `AGENTS.md` files.
+- Prefer editing the correct existing section over appending an ad hoc new section near the bottom.
+- Do not insert temporary pass-specific instructions, execution notes, or status banners into stable product or architecture docs.
+- Keep implementation status in its canonical tracking location instead of restating it across multiple docs.
+- If a change is temporary, historical, or one-pass-specific, place it in an appendix, audit note, or status-tracking document rather than in the main body of stable docs.
+- When a file starts to accumulate scattered edits, reorganize it in the same pass instead of only appending more text.
 - Keep `README.md` aligned with the real happy path, not developer shortcuts or speculative workflows.
 - If the user-facing workflow changes, update `README.md` and the relevant spec docs together.
 - If the interface design changes, update screenshots that are part of the docs and `README.md`.
@@ -79,11 +91,12 @@ Done means the operator can understand what to do next without reading source co
 	- produces at least one non-empty proposal with reviewer-usable evidence on the canonical checked-in fixture path, or
 	- fails early with a clear readiness error explaining why proposal generation cannot proceed.
 
-## Batch Discipline
+## Execution Discipline
 
-- Implement one batch deeply rather than many batches shallowly.
-- Do not claim a batch is complete if onboarding, startup, run-state visibility, review safety, or docs truth for that slice are still rough.
-- Do not let later-batch work excuse a hollow provider path in an earlier polished-looking shell.
+- Implement one coherent slice deeply rather than many slices shallowly.
+- Do not create new batch, phase, or pass frameworks in stable docs unless explicitly asked.
+- Do not claim a slice is complete if onboarding, startup, run-state visibility, review safety, or docs truth for that slice are still rough.
+- Do not let later work excuse a hollow provider path in an earlier polished-looking shell.
 
 ## Repo Map
 
@@ -91,8 +104,8 @@ Done means the operator can understand what to do next without reading source co
 - `README.md`: user and developer entrypoint
 - `specs/`: product, technical, research, and execution docs
 - `tests/fixtures/`: canonical workbook and PDF fixtures
-- `backend/`: planned FastAPI app and pipeline code
-- `frontend/`: planned React review UI
+- `backend/`: FastAPI app and pipeline code
+- `frontend/`: React review UI
 
 If the real structure changes, update this map.
 

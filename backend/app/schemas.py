@@ -177,7 +177,10 @@ class RunSummary(BaseModel):
     provider_text_model_id: Optional[str] = None
     provider_vision_model_id: Optional[str] = None
     structured_output_mode: Optional[str] = None
+    structured_output_reason: Optional[str] = None
     structured_output_fallback_used: bool = False
+    vision_structured_output_mode: Optional[str] = None
+    vision_structured_output_reason: Optional[str] = None
     provider_readiness_error: Optional[str] = None
     provider_readiness_reason: Optional[str] = None
     prompt_version: Optional[str] = None
@@ -218,7 +221,10 @@ class ReviewerSummary(BaseModel):
     provider_text_model_id: Optional[str] = None
     provider_vision_model_id: Optional[str] = None
     structured_output_mode: Optional[str] = None
+    structured_output_reason: Optional[str] = None
     structured_output_fallback_used: bool = False
+    vision_structured_output_mode: Optional[str] = None
+    vision_structured_output_reason: Optional[str] = None
     provider_readiness_error: Optional[str] = None
     provider_readiness_reason: Optional[str] = None
     prompt_version: Optional[str] = None

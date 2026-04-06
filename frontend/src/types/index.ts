@@ -63,7 +63,10 @@ export interface RunData {
   provider_text_model_id?: string | null
   provider_vision_model_id?: string | null
   structured_output_mode?: 'json_schema' | 'json_object' | 'none' | null
+  structured_output_reason?: string | null
   structured_output_fallback_used?: boolean
+  vision_structured_output_mode?: 'json_schema' | 'json_object' | 'none' | null
+  vision_structured_output_reason?: string | null
   provider_readiness_error?: string | null
   provider_readiness_reason?: string | null
   prompt_version?: string | null
@@ -273,7 +276,10 @@ export interface ReviewerSummary {
   provider_text_model_id?: string | null
   provider_vision_model_id?: string | null
   structured_output_mode?: 'json_schema' | 'json_object' | 'none' | null
+  structured_output_reason?: string | null
   structured_output_fallback_used?: boolean
+  vision_structured_output_mode?: 'json_schema' | 'json_object' | 'none' | null
+  vision_structured_output_reason?: string | null
   provider_readiness_error?: string | null
   provider_readiness_reason?: string | null
   prompt_version?: string | null

@@ -161,12 +161,17 @@ def _build_output_payload(
         payload["error_message"] = run_data.get("error_message")
         payload["provider_readiness_error"] = run_data.get("provider_readiness_error")
         payload["provider_readiness_reason"] = run_data.get("provider_readiness_reason")
+        payload["structured_output_reason"] = run_data.get("structured_output_reason")
+        payload["vision_structured_output_mode"] = run_data.get("vision_structured_output_mode")
+        payload["vision_structured_output_reason"] = run_data.get("vision_structured_output_reason")
         payload["warnings"] = run_data.get("warnings") or []
         payload["run_summary"] = {
             "prompt_hash": run_data.get("prompt_hash"),
             "prompt_bundle_id": run_data.get("prompt_bundle_id"),
             "retrieval_mode": run_data.get("retrieval_mode"),
             "provider_mode": run_data.get("provider_mode"),
+            "structured_output_mode": run_data.get("structured_output_mode"),
+            "structured_output_reason": run_data.get("structured_output_reason"),
         }
     return payload
 

@@ -78,6 +78,7 @@ class TestGetInitialRunData:
         assert data["prompt_bundle_path"] is not None
         assert data["prompt_keys_used"]
         assert data["prompt_files"]
+        assert data["structured_output_reason"] is None
 
     def test_timestamps(self, tmp_path):
         config = make_config(tmp_path)
@@ -397,6 +398,10 @@ class TestRunPipeline:
         (tmp_path / "runs").mkdir(exist_ok=True)
 
         monkeypatch.setattr("backend.app.runner.initialize_provider", _fake_initialize_provider_json_object)
+        monkeypatch.setattr("backend.app.runner.parse_pdf", _fake_parse_pdf)
+        monkeypatch.setattr("backend.app.runner.run_matching", lambda **kwargs: [])
+        monkeypatch.setattr("backend.app.runner.persist_match_artifacts", lambda *args, **kwargs: None)
+        monkeypatch.setattr("backend.app.runner.run_style_profiles_stage", _fake_style_profiles)
 
         await run_pipeline(run_id, config, "config.json", output_dir)
 
@@ -407,12 +412,17 @@ class TestRunPipeline:
         assert "json_object" in degraded[0].get("message", "")
         assert degraded[0].get("context", {}).get("structured_output_reason") == "structured_backend_incompatible"
         assert run_data.get("structured_output_mode") == "json_object"
+        assert run_data.get("structured_output_reason") == "structured_backend_incompatible"
         assert run_data.get("structured_output_fallback_used") is True
-        assert run_data.get("provider_readiness_reason") == "structured_backend_incompatible"
+        assert run_data.get("provider_readiness_reason") is None
 
         provider_mode = read_json(get_provider_mode_path(output_dir, run_id))
         assert provider_mode.get("structured_output_mode") == "json_object"
+        assert provider_mode.get("structured_output_reason") == "structured_backend_incompatible"
         assert provider_mode.get("structured_output_fallback_used") is True
+
+        reviewer_summary = read_json(get_reviewer_summary_path(output_dir, run_id))
+        assert reviewer_summary.get("structured_output_reason") == "structured_backend_incompatible"
 
     @pytest.mark.asyncio
     @respx.mock
@@ -426,6 +436,10 @@ class TestRunPipeline:
         (tmp_path / "runs").mkdir(exist_ok=True)
 
         monkeypatch.setattr("backend.app.runner.initialize_provider", _fake_initialize_provider_prompt_only)
+        monkeypatch.setattr("backend.app.runner.parse_pdf", _fake_parse_pdf)
+        monkeypatch.setattr("backend.app.runner.run_matching", lambda **kwargs: [])
+        monkeypatch.setattr("backend.app.runner.persist_match_artifacts", lambda *args, **kwargs: None)
+        monkeypatch.setattr("backend.app.runner.run_style_profiles_stage", _fake_style_profiles)
 
         await run_pipeline(run_id, config, "config.json", output_dir)
 
@@ -436,12 +450,17 @@ class TestRunPipeline:
         assert "prompt-only" in degraded[0].get("message", "")
         assert degraded[0].get("context", {}).get("structured_output_reason") == "structured_backend_incompatible"
         assert run_data.get("structured_output_mode") == "none"
+        assert run_data.get("structured_output_reason") == "structured_backend_incompatible"
         assert run_data.get("structured_output_fallback_used") is True
-        assert run_data.get("provider_readiness_reason") == "structured_backend_incompatible"
+        assert run_data.get("provider_readiness_reason") is None
 
         provider_mode = read_json(get_provider_mode_path(output_dir, run_id))
         assert provider_mode.get("structured_output_mode") == "none"
+        assert provider_mode.get("structured_output_reason") == "structured_backend_incompatible"
         assert provider_mode.get("structured_output_fallback_used") is True
+
+        reviewer_summary = read_json(get_reviewer_summary_path(output_dir, run_id))
+        assert reviewer_summary.get("structured_output_reason") == "structured_backend_incompatible"
 
     @pytest.mark.asyncio
     async def test_provider_init_model_unavailable_is_not_classified_as_unreachable(self, tmp_path, monkeypatch):
@@ -458,6 +477,7 @@ class TestRunPipeline:
         run_data = read_json(get_run_json_path(output_dir, run_id))
         assert run_data["status"] == RunStatus.failed.value
         assert run_data["provider_readiness_reason"] == "model_unavailable"
+        assert run_data.get("structured_output_reason") is None
         categories = [w.get("category") for w in run_data.get("warnings", [])]
         assert "model_unavailable" in categories
         assert "provider_unreachable" not in categories
@@ -627,7 +647,10 @@ async def _fake_initialize_provider(*args, **kwargs):
         readiness_error=None,
         readiness_reason=None,
         structured_output_mode="json_schema",
+        structured_output_reason=None,
         structured_output_fallback_used=False,
+        vision_structured_output_mode=None,
+        vision_structured_output_reason=None,
         capabilities=None,
         model_dump=lambda: {
             "mode": "live_local",
@@ -635,7 +658,10 @@ async def _fake_initialize_provider(*args, **kwargs):
             "readiness_error": None,
             "readiness_reason": None,
             "structured_output_mode": "json_schema",
+            "structured_output_reason": None,
             "structured_output_fallback_used": False,
+            "vision_structured_output_mode": None,
+            "vision_structured_output_reason": None,
         },
     )
 
@@ -645,9 +671,12 @@ async def _fake_initialize_provider_json_object(*args, **kwargs):
         mode="live_local",
         locality="local",
         readiness_error=None,
-        readiness_reason="structured_backend_incompatible",
+        readiness_reason=None,
         structured_output_mode="json_object",
+        structured_output_reason="structured_backend_incompatible",
         structured_output_fallback_used=True,
+        vision_structured_output_mode=None,
+        vision_structured_output_reason=None,
         capabilities=SimpleNamespace(
             structured_output_mode="json_object",
             structured_output_reason="structured_backend_incompatible",
@@ -657,9 +686,12 @@ async def _fake_initialize_provider_json_object(*args, **kwargs):
             "mode": "live_local",
             "locality": "local",
             "readiness_error": None,
-            "readiness_reason": "structured_backend_incompatible",
+            "readiness_reason": None,
             "structured_output_mode": "json_object",
+            "structured_output_reason": "structured_backend_incompatible",
             "structured_output_fallback_used": True,
+            "vision_structured_output_mode": None,
+            "vision_structured_output_reason": None,
             "capabilities": {
                 "structured_output_mode": "json_object",
                 "structured_output_reason": "structured_backend_incompatible",
@@ -674,9 +706,12 @@ async def _fake_initialize_provider_prompt_only(*args, **kwargs):
         mode="live_local",
         locality="local",
         readiness_error=None,
-        readiness_reason="structured_backend_incompatible",
+        readiness_reason=None,
         structured_output_mode="none",
+        structured_output_reason="structured_backend_incompatible",
         structured_output_fallback_used=True,
+        vision_structured_output_mode=None,
+        vision_structured_output_reason=None,
         capabilities=SimpleNamespace(
             structured_output_mode="none",
             structured_output_reason="structured_backend_incompatible",
@@ -686,9 +721,12 @@ async def _fake_initialize_provider_prompt_only(*args, **kwargs):
             "mode": "live_local",
             "locality": "local",
             "readiness_error": None,
-            "readiness_reason": "structured_backend_incompatible",
+            "readiness_reason": None,
             "structured_output_mode": "none",
+            "structured_output_reason": "structured_backend_incompatible",
             "structured_output_fallback_used": True,
+            "vision_structured_output_mode": None,
+            "vision_structured_output_reason": None,
             "capabilities": {
                 "structured_output_mode": "none",
                 "structured_output_reason": "structured_backend_incompatible",

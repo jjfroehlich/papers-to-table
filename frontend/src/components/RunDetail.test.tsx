@@ -53,6 +53,21 @@ describe('RunDetail', () => {
     expect(screen.getByText('text-model')).toBeTruthy()
   })
 
+  it('shows structured-output capability reason separately from readiness reason', () => {
+    const degradedRun = {
+      ...baseRun,
+      structured_output_mode: 'json_object' as const,
+      structured_output_reason: 'json_schema_unsupported',
+      structured_output_fallback_used: true,
+      provider_readiness_error: null,
+      provider_readiness_reason: null,
+    }
+    render(<RunDetail run={degradedRun} />)
+    expect(screen.getByText('json object')).toBeTruthy()
+    expect(screen.getByText('json schema unsupported')).toBeTruthy()
+    expect(screen.getByText('Yes')).toBeTruthy()
+  })
+
   it('shows error message when failed', () => {
     const failedRun = { ...baseRun, status: 'failed' as const, error_message: 'Cannot reach LM Studio' }
     render(<RunDetail run={failedRun} />)

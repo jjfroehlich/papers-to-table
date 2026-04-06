@@ -53,6 +53,21 @@ class ProviderCapabilities(BaseModel):
     probed_at: Optional[str] = None
 
 
+def _canonical_structured_output_reason(
+    structured_output_mode: Optional[str],
+    structured_output_reason: Optional[str],
+) -> Optional[str]:
+    if structured_output_mode == "json_schema":
+        return None
+    if structured_output_reason == "structured_backend_incompatible":
+        return structured_output_reason
+    if structured_output_mode == "json_object":
+        return "json_schema_unsupported"
+    if structured_output_mode == "none":
+        return "structured_modes_unavailable"
+    return structured_output_reason
+
+
 class ProviderMode(BaseModel):
     """Runtime provider mode — persisted in run artifacts (T052a)."""
     token: str
@@ -63,7 +78,10 @@ class ProviderMode(BaseModel):
     vision_model_id: Optional[str] = None
     capabilities: Optional[ProviderCapabilities] = None
     structured_output_mode: Optional[str] = None
+    structured_output_reason: Optional[str] = None
     structured_output_fallback_used: bool = False
+    vision_structured_output_mode: Optional[str] = None
+    vision_structured_output_reason: Optional[str] = None
     readiness_error: Optional[str] = None
     readiness_reason: Optional[str] = None
     recorded_at: str = ""
@@ -168,6 +186,10 @@ class ProviderAdapter(abc.ABC):
         else:
             mode = "live_local"
         structured_output_mode = capabilities.structured_output_mode if capabilities else None
+        structured_output_reason = _canonical_structured_output_reason(
+            structured_output_mode,
+            capabilities.structured_output_reason if capabilities else None,
+        )
         fallback_used = structured_output_mode in ("json_object", "none")
         return ProviderMode(
             token=self.token,
@@ -177,7 +199,19 @@ class ProviderAdapter(abc.ABC):
             vision_model_id=vision_model_id,
             capabilities=capabilities,
             structured_output_mode=structured_output_mode,
+            structured_output_reason=structured_output_reason,
             structured_output_fallback_used=fallback_used,
+            vision_structured_output_mode=(
+                capabilities.vision_structured_output_mode if capabilities else None
+            ),
+            vision_structured_output_reason=(
+                _canonical_structured_output_reason(
+                    capabilities.vision_structured_output_mode if capabilities else None,
+                    capabilities.vision_structured_output_reason if capabilities else None,
+                )
+                if capabilities
+                else None
+            ),
             readiness_error=readiness_error,
             readiness_reason=readiness_reason,
             recorded_at=datetime.now(timezone.utc).isoformat(),
@@ -1028,11 +1062,22 @@ class LMStudioProvider(ProviderAdapter):
         report["json_object"] = json_object_record
         if json_object_ok:
             report["best_mode"] = "json_object"
-            return "json_object", structured_reason, structured_error, report
+            fallback_reason = _canonical_structured_output_reason("json_object", structured_reason)
+            fallback_error = structured_error
+            if fallback_reason == "json_schema_unsupported" and not fallback_error:
+                fallback_error = (
+                    "LM Studio did not provide json_schema support for this model/runtime combination."
+                )
+            return "json_object", fallback_reason, fallback_error, report
         if not structured_reason:
             structured_reason = json_object_reason
             structured_error = json_object_error
         report["best_mode"] = "none"
+        structured_reason = _canonical_structured_output_reason("none", structured_reason)
+        if structured_reason == "structured_modes_unavailable" and not structured_error:
+            structured_error = (
+                "LM Studio did not provide a compatible structured-output mode for this model/runtime combination."
+            )
         return "none", structured_reason, structured_error, report
 
     # --- Text completion ---
@@ -1679,7 +1724,7 @@ async def initialize_provider(
             vision_model_id=vision_model_id,
             capabilities=caps,
             readiness_error=None,
-            readiness_reason=caps.structured_output_reason,
+            readiness_reason=None,
         )
         return provider, mode
     except ProviderError as e:
