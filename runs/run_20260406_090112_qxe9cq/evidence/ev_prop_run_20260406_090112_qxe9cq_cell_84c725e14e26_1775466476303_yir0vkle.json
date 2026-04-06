@@ -1,0 +1,43 @@
+{
+  "evidence_id": "ev_prop_run_20260406_090112_qxe9cq_cell_84c725e14e26_1775466476303_yir0vkle",
+  "run_id": "run_20260406_090112_qxe9cq",
+  "proposal_id": "prop_run_20260406_090112_qxe9cq_cell_84c725e14e26_1775466476303",
+  "pdf_id": "paper_2",
+  "source_type": "direct_quote",
+  "quote_text": "using whole-genome STARR-sequencing",
+  "page_number": 9,
+  "exact_highlight_regions": [
+    {
+      "x0": 39.636975930000034,
+      "y0": 324.4562702920313,
+      "x1": 286.33477580543985,
+      "y1": 311.1789497773143,
+      "page": 9
+    }
+  ],
+  "approximate_highlight_regions": null,
+  "figure_ref": null,
+  "caption_text": null,
+  "crop_path": null,
+  "full_page_path": null,
+  "anchor_confidence": 1.0,
+  "evidence_rank": 1,
+  "reasoning": null,
+  "is_primary": true,
+  "is_figure_derived": false,
+  "run_mode": "verify",
+  "prompt_version": null,
+  "prompt_hash": "6e2f5976184665e29bf7e8a88fe5cda46a5130b5985b0c19111491eecc8c6673",
+  "schema_hash": "cb85a287e0071d47941d9619dce7cc4484246fbb22ff0b3f6ec6843296a82ff7",
+  "schema_version": null,
+  "config_hash": "d63ba01dfccdd4e8da7113bea7b7fe65ab5712dcc708f1acc37d5316a095b4c4",
+  "config_snapshot_path": "config.snapshot.json",
+  "parser_identity": "docling",
+  "parser_version": null,
+  "text_model_id": "nvidia/nemotron-3-nano-4b",
+  "vision_model_id": "nvidia/nemotron-3-nano-4b",
+  "vision_context_bundle": null,
+  "vision_trigger_reasons": null,
+  "shortlist_metadata": null,
+  "created_at": "2026-04-06T09:08:03.344505+00:00"
+}

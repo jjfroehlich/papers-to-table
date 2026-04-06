@@ -42,6 +42,7 @@ from backend.app.extraction import (
     extract_cell,
     find_approximate_highlight_regions,
     find_exact_highlight_regions,
+    get_prompt_identity,
     is_long_text_field,
     load_evidence,
     load_proposals,
@@ -460,6 +461,10 @@ class TestRetrievalChunks:
         for chunk_data in data["chunks"]:
             assert "display_text" in chunk_data
             assert "retrieval_text" in chunk_data
+        assert data["mode"] == "lexical"
+        assert data["request_mode"] == "baseline"
+        assert data["policy"]["query_mode"].startswith("lexical")
+        assert data["stats"]["total_ms"] >= 0
 
     def test_run_retrieval_for_cell_sanitizes_windows_unsafe_filename(
         self,
@@ -537,6 +542,52 @@ class TestRetrievalChunks:
         )
 
         assert any("604,268" in chunk.display_text for chunk in result.chunks)
+        assert "count_like" in result.policy["heuristic_tags"]
+        assert "pairs" in result.policy["hint_terms"]
+
+    def test_hybrid_retrieval_mode_is_opt_in(
+        self,
+        run_dir: pathlib.Path,
+        minimal_doc_dict: dict,
+    ):
+        result = run_retrieval_for_cell(
+            run_id="run_test001",
+            pdf_id="paper_test",
+            column_name="Bone volume fraction",
+            column_description="Measured BVF value and supporting context",
+            doc_dict=minimal_doc_dict,
+            run_dir=run_dir,
+            top_k=4,
+            retrieval_mode="hybrid_experimental",
+        )
+
+        assert result.mode == "hybrid_experimental"
+        assert result.policy["scoring_profile"] == "bm25_plus_token_coverage"
+        assert result.stats["candidate_chunk_count"] >= result.stats["selected_chunk_count"]
+
+    def test_prompt_identity_tracks_external_prompt_files(self, tmp_path: pathlib.Path, monkeypatch):
+        prompt_dir = tmp_path / "prompts"
+        prompt_dir.mkdir()
+        (prompt_dir / "text_extraction_system.txt").write_text("System prompt A", encoding="utf-8")
+        (prompt_dir / "figure_extraction_system.txt").write_text("Figure prompt A", encoding="utf-8")
+        (prompt_dir / "style_profile_system.txt").write_text("Style prompt A", encoding="utf-8")
+        monkeypatch.setattr("backend.app.prompts.PROMPTS_DIR", prompt_dir)
+
+        identity_a = get_prompt_identity()
+        messages = build_text_extraction_prompt(
+            column_name="Assay",
+            column_description="Assay name",
+            row_context={},
+            retrieval=None,
+            style_profile=None,
+        )
+
+        (prompt_dir / "text_extraction_system.txt").write_text("System prompt B", encoding="utf-8")
+        identity_b = get_prompt_identity()
+
+        assert identity_a["prompt_files"]["text_extraction_system"]["path"].endswith("text_extraction_system.txt")
+        assert messages[0]["content"] == "System prompt A"
+        assert identity_b["prompt_hash"] != identity_a["prompt_hash"]
 
     def test_bm25_scores_relevant_higher(self, minimal_doc_dict: dict):
         """BM25 should score relevant chunks higher."""

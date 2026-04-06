@@ -528,6 +528,9 @@ def _extract_metadata_from_text(
                     title = re.sub(r"\s+", " ", text[:200])
                     break
 
+    # Authors: extract from first-page style lines immediately after title.
+    authors = _extract_authors_from_lines(first_pages_text, title=title)
+
     # Abstract: look for abstract block
     for block in blocks:
         if block.block_type == "abstract" or "abstract" in block.text[:50].lower():
@@ -619,6 +622,85 @@ def _extract_title_from_lines(text: str) -> Optional[str]:
         combined = re.sub(r"\s+", " ", combined).strip()
         return combined[:300] if combined else None
     return None
+
+
+def _extract_authors_from_lines(text: str, title: Optional[str] = None) -> Optional[list[str]]:
+    """Extract author names from front-matter lines.
+
+    The goal is to recover common author-list layouts found directly under titles.
+    """
+    if not text.strip():
+        return None
+
+    stop_at = re.compile(
+        r"^(abstract|introduction|keywords?|background|summary|correspondence|"
+        r"received|accepted|published|copyright|doi\s*:|"
+        r"supplementary|materials?\s+and\s+methods?)",
+        re.IGNORECASE,
+    )
+    disqualify_anywhere = re.compile(
+        r"(doi\s*:|@|http[s]?://|www\.|university|department|institute|"
+        r"hospital|school|faculty|address|affiliation)",
+        re.IGNORECASE,
+    )
+    name_pattern = re.compile(
+        r"\b"
+        r"(?:[A-Z][a-zA-Z'`-]+|[A-Z]\.)"
+        r"(?:\s+(?:[A-Z][a-zA-Z'`-]+|[A-Z]\.)){1,4}"
+        r"\b"
+    )
+
+    lines = [re.sub(r"\s+", " ", line).strip() for line in text.split("\n")]
+    lines = [line for line in lines if line]
+    if not lines:
+        return None
+
+    start_idx = 0
+    if title:
+        title_norm = re.sub(r"\s+", " ", title).strip().lower()
+        for i, line in enumerate(lines[:40]):
+            if title_norm and title_norm in line.lower():
+                start_idx = i + 1
+                break
+
+    authors: list[str] = []
+    seen: set[str] = set()
+
+    for line in lines[start_idx:start_idx + 12]:
+        if stop_at.match(line):
+            break
+        if len(line) > 220:
+            continue
+        if disqualify_anywhere.search(line):
+            continue
+
+        # Strip common affiliation markers and note symbols.
+        cleaned = line
+        cleaned = re.sub(r"[\u00B9\u00B2\u00B3\u2070-\u2079]", "", cleaned)
+        cleaned = re.sub(r"(?<=\w)[\d†‡*]+", "", cleaned)
+        cleaned = re.sub(r"\([^)]*\)", "", cleaned)
+        cleaned = re.sub(r"\s+", " ", cleaned).strip(" ,;:")
+        if not cleaned:
+            continue
+
+        matches = name_pattern.findall(cleaned)
+        if len(matches) < 2:
+            # Most author lines include at least two names.
+            continue
+
+        for name in matches:
+            normalized = re.sub(r"\s+", " ", name).strip(" ,;:")
+            key = normalized.lower()
+            if not normalized or key in seen:
+                continue
+            seen.add(key)
+            authors.append(normalized)
+
+        # Once we have a plausible author line, stop at the first strong hit.
+        if len(authors) >= 2:
+            break
+
+    return authors or None
 
 
 # ---------------------------------------------------------------------------
@@ -951,6 +1033,9 @@ def _extract_docling_metadata(doc: object) -> DocumentMetadata:
         )
         if abs_match:
             abstract = re.sub(r"\s+", " ", abs_match.group(1)).strip()
+
+    if not authors and full_text:
+        authors = _extract_authors_from_lines(full_text, title=title)
 
     return DocumentMetadata(title=title, authors=authors, year=year, doi=doi, abstract=abstract)
 

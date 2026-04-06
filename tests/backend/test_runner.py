@@ -16,6 +16,7 @@ from backend.app.artifacts import (
     get_config_snapshot_path,
     get_input_summary_path,
     get_run_json_path,
+    get_run_stats_path,
     get_reviewer_summary_path,
     get_run_summary_path,
     init_run_bundle,
@@ -65,7 +66,9 @@ class TestGetInitialRunData:
         assert data["eval_mode"] is False
         assert data["run_mode"] == "normal"
         assert data["provider_token"] == "lm_studio"
+        assert data["retrieval_mode"] == "lexical"
         assert data["prompt_hash"] is not None
+        assert data["prompt_files"]
 
     def test_timestamps(self, tmp_path):
         config = make_config(tmp_path)
@@ -116,6 +119,30 @@ class TestRunPipeline:
         assert snap_path.exists()
         snap = read_json(snap_path)
         assert snap["provider"]["token"] == "lm_studio"
+        assert snap["retrieval"]["mode"] == "lexical"
+        assert "strategy" not in snap["retrieval"]
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_writes_run_stats_summary(self, tmp_path, monkeypatch):
+        respx.get("http://localhost:1234/v1/models").mock(
+            return_value=httpx.Response(200, json={"data": [{"id": "qwen/qwen3-30b-a3b-2507"}]})
+        )
+        monkeypatch.setattr("backend.app.runner.initialize_provider", _fake_initialize_provider)
+        config = make_config(tmp_path)
+        run_id = "run_stats"
+        output_dir = str(tmp_path / "runs")
+        (tmp_path / "runs").mkdir(exist_ok=True)
+
+        await run_pipeline(run_id, config, "config.json", output_dir)
+
+        stats_path = get_run_stats_path(output_dir, run_id)
+        assert stats_path.exists()
+        stats = read_json(stats_path)
+        assert stats["retrieval_mode"] == "lexical"
+        assert stats["per_run"]["run_total_ms"] is not None
+        assert "parse" in stats["per_run"]["stage_ms"]
+        assert "provider_request_counts" in stats["counters"]
 
     @pytest.mark.asyncio
     @respx.mock
@@ -138,7 +165,9 @@ class TestRunPipeline:
         assert summary["table_rows"] > 0
         assert summary["pdf_count"] is not None
         assert summary["run_mode"] == "normal"
+        assert summary["retrieval_mode"] == "lexical"
         assert summary["prompt_hash"] is not None
+        assert summary["prompt_files"]
         assert summary["config_hash"] is not None
 
     @pytest.mark.asyncio

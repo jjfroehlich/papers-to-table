@@ -1,0 +1,14 @@
+{
+  "column_name": "Where is the BC?",
+  "field_type_guess": "categorical",
+  "expected_length": "medium",
+  "tone": "neutral",
+  "detail_level": "high",
+  "value_shape": "text phrase",
+  "unit_style": null,
+  "format_notes": "Values are free‑form text descriptions; may include abbreviations like 'UTR'.",
+  "example_risk": "low",
+  "generated_at": "2026-04-06T09:03:19.503407+00:00",
+  "source_column_count": 47,
+  "provider_mode": "live_llm"
+}

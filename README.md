@@ -112,6 +112,7 @@ The canonical provider token is `lm_studio`. Tokens such as `lmstudio`, `LMStudi
 | `provider.text_model.model_id` | ID of the text model loaded in LM Studio |
 | `provider.vision_model.model_id` | ID of the vision model (optional) |
 | `figure_review.enabled` | Enables text-guided figure review as supplemental evidence (global, not schema-per-column) |
+| `retrieval.mode` | Retrieval scorer mode: `lexical` by default or opt-in `hybrid_experimental` |
 | `retrieval.top_k` | Focused retrieval passage count for the first pass (default: `6`) |
 | `retrieval.recall_rescue_enabled` | Retry `unclear` results with deterministic expanded retrieval (default: `true`) |
 | `retrieval.whole_document_mode` | Opt-in whole-document rescue context for short parsed papers (default: `false`) |

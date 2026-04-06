@@ -34,7 +34,7 @@
     "max_examples": 3
   },
   "retrieval": {
-    "strategy": "semantic_chunks",
+    "mode": "lexical",
     "top_k": 10,
     "recall_rescue_enabled": true,
     "whole_document_mode": false,

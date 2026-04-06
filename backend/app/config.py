@@ -10,6 +10,12 @@ from pydantic import BaseModel, Field, model_validator
 
 CANONICAL_PROVIDERS = {"lm_studio"}
 PROVIDER_DISPLAY_NAMES = {"lm_studio": "LM Studio"}
+CANONICAL_RETRIEVAL_MODES = {"lexical", "hybrid_experimental"}
+LEGACY_RETRIEVAL_MODE_ALIASES = {
+    "semantic_chunks": "lexical",
+    "baseline": "lexical",
+    "hybrid": "hybrid_experimental",
+}
 
 
 class TextModelConfig(BaseModel):
@@ -57,11 +63,40 @@ class StyleProfileConfig(BaseModel):
 
 
 class RetrievalConfig(BaseModel):
-    strategy: str = "semantic_chunks"
+    mode: str = "lexical"
     top_k: int = 6
     recall_rescue_enabled: bool = True
     whole_document_mode: bool = False
     whole_document_max_chars: int = 12000
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_mode(cls, data: object) -> object:
+        if not isinstance(data, dict):
+            return data
+        normalized = dict(data)
+        raw_mode = normalized.get("mode")
+        if raw_mode is None and "strategy" in normalized:
+            raw_mode = normalized.pop("strategy")
+        elif "strategy" in normalized:
+            normalized.pop("strategy")
+
+        mode = str(raw_mode or "lexical").strip().lower()
+        normalized["mode"] = LEGACY_RETRIEVAL_MODE_ALIASES.get(mode, mode)
+        return normalized
+
+    @model_validator(mode="after")
+    def validate_mode(self) -> RetrievalConfig:
+        if self.mode not in CANONICAL_RETRIEVAL_MODES:
+            raise ValueError(
+                f"Unknown retrieval.mode '{self.mode}'. "
+                f"Supported retrieval modes: {sorted(CANONICAL_RETRIEVAL_MODES)}."
+            )
+        return self
+
+    @property
+    def strategy(self) -> str:
+        return self.mode
 
 
 class FigureReviewConfig(BaseModel):

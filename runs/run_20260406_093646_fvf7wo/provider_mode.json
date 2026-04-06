@@ -1,0 +1,21 @@
+{
+  "token": "lm_studio",
+  "locality": "local",
+  "mode": "live_local",
+  "text_model_id": "qwen/qwen3.5-9b",
+  "vision_model_id": "qwen/qwen3.5-9b",
+  "capabilities": {
+    "supports_structured_output": false,
+    "structured_output_mode": "none",
+    "structured_output_reason": null,
+    "structured_output_error": null,
+    "model_id": "qwen/qwen3.5-9b",
+    "vision_capable": true,
+    "probed_at": "2026-04-06T09:36:46.786594+00:00"
+  },
+  "structured_output_mode": "none",
+  "structured_output_fallback_used": true,
+  "readiness_error": null,
+  "readiness_reason": null,
+  "recorded_at": "2026-04-06T09:36:48.766442+00:00"
+}

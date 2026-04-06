@@ -4,6 +4,7 @@ import asyncio
 import os
 import pathlib
 from datetime import datetime, timezone
+from time import perf_counter
 from typing import Optional
 
 from .artifacts import (
@@ -14,6 +15,7 @@ from .artifacts import (
     get_reviewer_summary_path,
     get_run_dir,
     get_run_json_path,
+    get_run_stats_path,
     get_run_summary_path,
     init_run_bundle,
     write_json,
@@ -106,10 +108,13 @@ def get_initial_run_data(
         "structured_output_fallback_used": False,
         "provider_readiness_reason": None,
         "provider_request_counts": {},
+        "retrieval_mode": config.retrieval.mode,
         "prompt_version": prompt_identity["prompt_version"],
         "prompt_hash": prompt_identity["prompt_hash"],
+        "prompt_files": prompt_identity.get("prompt_files", {}),
         "config_hash": None,
         "config_snapshot_path": None,
+        "run_stats_path": None,
         "schema_hash": None,
         "schema_version": None,
         "parser_identity": config.parser.backend,
@@ -138,21 +143,96 @@ async def run_pipeline(
 ) -> None:
     """Main staged runner - runs as asyncio task."""
     run_json_path = get_run_json_path(output_dir, run_id)
+    run_stats_path = get_run_stats_path(output_dir, run_id)
+    stats_started_at = datetime.now(timezone.utc).isoformat()
+    run_started_perf = perf_counter()
+    run_stats: dict[str, object] = {
+        "run_id": run_id,
+        "retrieval_mode": config.retrieval.mode,
+        "provider_token": config.provider.token,
+        "prompt_hash": get_prompt_identity()["prompt_hash"],
+        "prompt_files": get_prompt_identity().get("prompt_files", {}),
+        "per_run": {
+            "started_at": stats_started_at,
+            "completed_at": None,
+            "run_total_ms": None,
+            "stage_ms": {},
+        },
+        "per_pdf": {},
+        "per_cell": [],
+        "counters": {
+            "provider_request_counts": {},
+            "parse_errors": 0,
+            "parse_warnings": 0,
+            "matched_pdfs": 0,
+            "eligible_cells": 0,
+            "processed_cells": 0,
+            "recall_rescue_cells": 0,
+            "whole_document_cells": 0,
+            "needs_more_evidence_cells": 0,
+            "figure_review_cells": 0,
+        },
+        "recorded_at": stats_started_at,
+    }
+    stage_state = {"current": None, "started": None}
 
     def save_run(data: dict) -> None:
         write_json(run_json_path, data)
 
+    def save_run_stats() -> None:
+        run_stats["recorded_at"] = datetime.now(timezone.utc).isoformat()
+        write_json(run_stats_path, run_stats)
+
+    def _finalize_active_stage() -> None:
+        current_stage = stage_state.get("current")
+        started = stage_state.get("started")
+        if current_stage is None or started is None:
+            return
+        stage_ms = (perf_counter() - started) * 1000.0
+        run_stats["per_run"]["stage_ms"][current_stage] = round(
+            run_stats["per_run"]["stage_ms"].get(current_stage, 0.0) + stage_ms,
+            3,
+        )
+        stage_state["current"] = None
+        stage_state["started"] = None
+
+    def ensure_pdf_stats(pdf_id: str) -> dict:
+        per_pdf = run_stats.setdefault("per_pdf", {})
+        if pdf_id not in per_pdf:
+            per_pdf[pdf_id] = {
+                "parse_pdf_ms": 0.0,
+                "retrieval_prep_ms": 0.0,
+                "retrieval_query_ms": 0.0,
+                "retrieval_calls": 0,
+                "chunk_build_count": 0,
+                "idf_build_count": 0,
+                "chunk_count_total": 0,
+                "chunk_count_by_type": {},
+                "cells_processed": 0,
+            }
+        return per_pdf[pdf_id]
+
     def update_stage(data: dict, stage: str) -> dict:
+        _finalize_active_stage()
+        stage_state["current"] = stage
+        stage_state["started"] = perf_counter()
         data = dict(data)
         data["current_stage"] = stage
         return data
 
     def fail_run(data: dict, error_message: str) -> dict:
+        _finalize_active_stage()
         data = apply_transition(data, RunStatus.failed, error_message=error_message)
         data["current_stage"] = None
         return data
 
     def write_final_summaries(data: dict, proposals_generated: int = 0) -> None:
+        _finalize_active_stage()
+        if run_stats["per_run"].get("completed_at") is None:
+            run_stats["per_run"]["completed_at"] = data.get("completed_at") or datetime.now(timezone.utc).isoformat()
+        if run_stats["per_run"].get("run_total_ms") is None:
+            run_stats["per_run"]["run_total_ms"] = round((perf_counter() - run_started_perf) * 1000.0, 3)
+        save_run_stats()
         write_json(get_run_summary_path(output_dir, run_id), data)
         write_json(
             get_reviewer_summary_path(output_dir, run_id),
@@ -172,10 +252,13 @@ async def run_pipeline(
                 ),
                 "provider_readiness_error": data.get("provider_readiness_error"),
                 "provider_readiness_reason": data.get("provider_readiness_reason"),
+                "retrieval_mode": data.get("retrieval_mode"),
                 "prompt_version": data.get("prompt_version"),
                 "prompt_hash": data.get("prompt_hash"),
+                "prompt_files": data.get("prompt_files"),
                 "config_hash": data.get("config_hash"),
                 "config_snapshot_path": data.get("config_snapshot_path"),
+                "run_stats_path": data.get("run_stats_path"),
                 "schema_hash": data.get("schema_hash"),
                 "schema_version": data.get("schema_version"),
                 "parser_identity": data.get("parser_identity"),
@@ -210,6 +293,7 @@ async def run_pipeline(
             counts = get_counts() or {}
             data = dict(data)
             data["provider_request_counts"] = counts
+            run_stats["counters"]["provider_request_counts"] = counts
             write_json(
                 run_dir / "provider_request_counts.json",
                 {
@@ -241,7 +325,9 @@ async def run_pipeline(
         write_json(config_snap_path, config_snapshot)
         run_data["config_hash"] = hash_json_data(config_snapshot)
         run_data["config_snapshot_path"] = _relative_run_path(run_dir, config_snap_path)
+        run_data["run_stats_path"] = _relative_run_path(run_dir, run_stats_path)
         save_run(run_data)
+        save_run_stats()
 
         input_summary_path = get_input_summary_path(output_dir, run_id)
         now = datetime.now(timezone.utc).isoformat()
@@ -255,10 +341,13 @@ async def run_pipeline(
             "verify_mode": config.verify_mode,
             "eval_mode": config.eval_mode,
             "run_mode": run_data["run_mode"],
+            "retrieval_mode": run_data["retrieval_mode"],
             "prompt_version": run_data["prompt_version"],
             "prompt_hash": run_data["prompt_hash"],
+            "prompt_files": run_data.get("prompt_files", {}),
             "config_hash": run_data["config_hash"],
             "config_snapshot_path": run_data["config_snapshot_path"],
+            "run_stats_path": run_data.get("run_stats_path"),
             "schema_hash": None,
             "schema_version": None,
             "parser_identity": config.parser.backend,
@@ -387,6 +476,7 @@ async def run_pipeline(
 
         run_data["total_rows"] = len(df)
         run_data["eligible_cells"] = len(eligible)
+        run_stats["counters"]["eligible_cells"] = len(eligible)
         save_run(run_data)
 
         # Stage: initialize provider (T050, T052a)
@@ -520,8 +610,10 @@ async def run_pipeline(
         for pdf_file in pdf_files:
             pdf_path = os.path.join(config.pdf_dir, pdf_file)
             pdf_id = pathlib.Path(pdf_file).stem
+            pdf_stats = ensure_pdf_stats(pdf_id)
             await asyncio.sleep(0)  # yield to event loop between PDFs
             try:
+                parse_started = perf_counter()
                 doc, diagnostics, _page_paths = parse_pdf(
                     pdf_path=pdf_path,
                     pdf_id=pdf_id,
@@ -532,11 +624,13 @@ async def run_pipeline(
                     run_dir=run_dir,
                     generate_pages=True,
                 )
+                pdf_stats["parse_pdf_ms"] = round((perf_counter() - parse_started) * 1000.0, 3)
                 parsed_docs.append(doc.model_dump())
 
                 if diagnostics.fallback_used:
                     key = (pdf_id, "fallback")
                     if key not in parse_warning_messages:
+                        run_stats["counters"]["parse_warnings"] += 1
                         run_data.setdefault("warnings", []).append({
                             "category": WC.partial_extraction.value,
                             "message": (
@@ -554,6 +648,7 @@ async def run_pipeline(
                 if diagnostics.ocr_used:
                     key = (pdf_id, "ocr")
                     if key not in parse_warning_messages:
+                        run_stats["counters"]["parse_warnings"] += 1
                         run_data.setdefault("warnings", []).append({
                             "category": WC.partial_extraction.value,
                             "message": f"OCR fallback used for {pdf_id}.",
@@ -568,6 +663,7 @@ async def run_pipeline(
                     key = (pdf_id, warning)
                     if key in parse_warning_messages:
                         continue
+                    run_stats["counters"]["parse_warnings"] += 1
                     run_data.setdefault("warnings", []).append({
                         "category": WC.partial_extraction.value,
                         "message": f"{pdf_id}: {warning}",
@@ -579,6 +675,7 @@ async def run_pipeline(
                     key = (pdf_id, gap)
                     if key in parse_warning_messages:
                         continue
+                    run_stats["counters"]["parse_warnings"] += 1
                     run_data.setdefault("warnings", []).append({
                         "category": WC.partial_extraction.value,
                         "message": f"{pdf_id}: {gap}",
@@ -586,6 +683,7 @@ async def run_pipeline(
                     })
                     parse_warning_messages.add(key)
             except Exception as e:
+                run_stats["counters"]["parse_errors"] += 1
                 parse_errors.append(f"{pdf_file}: {e}")
 
         if parse_errors:
@@ -631,6 +729,8 @@ async def run_pipeline(
                         "conflict_pdf_ids": mr.conflict_pdf_ids,
                     },
                 })
+            elif mr.outcome == MatchOutcome.matched:
+                run_stats["counters"]["matched_pdfs"] += 1
         save_run(run_data)
 
         # Stage: style profiles (T041-T044)
@@ -708,6 +808,7 @@ async def run_pipeline(
             existing_value = cell.get("current_value")
             artifact_context = {
                 "run_mode": run_data["run_mode"],
+                "retrieval_mode": run_data["retrieval_mode"],
                 "prompt_version": run_data["prompt_version"],
                 "prompt_hash": run_data["prompt_hash"],
                 "schema_hash": run_data["schema_hash"],
@@ -761,13 +862,58 @@ async def run_pipeline(
                 doc_dict=doc_dict,
                 run_dir=run_dir,
                 top_k=config.retrieval.top_k,
+                retrieval_mode=config.retrieval.mode,
             )
 
+            retrieval_stats = {}
+            pdf_stats = ensure_pdf_stats(pdf_id)
+            retrieval_mode = config.retrieval.mode
+            retrieval_request_mode = "baseline"
+            retrieval_policy: dict[str, object] = {}
+            if retrieval is not None:
+                retrieval_mode = getattr(retrieval, "mode", retrieval_mode)
+                retrieval_request_mode = getattr(retrieval, "request_mode", retrieval_request_mode)
+                retrieval_policy = dict(getattr(retrieval, "policy", {}) or {})
+                retrieval_stats = getattr(retrieval, "stats", {}) if isinstance(getattr(retrieval, "stats", {}), dict) else {}
+                pdf_stats["retrieval_calls"] += 1
+                pdf_stats["retrieval_prep_ms"] = round(
+                    pdf_stats["retrieval_prep_ms"]
+                    + float(retrieval_stats.get("chunk_build_ms", 0.0) or 0.0)
+                    + float(retrieval_stats.get("idf_build_ms", 0.0) or 0.0),
+                    3,
+                )
+                pdf_stats["retrieval_query_ms"] = round(
+                    pdf_stats["retrieval_query_ms"] + float(retrieval_stats.get("total_ms", 0.0) or 0.0),
+                    3,
+                )
+                pdf_stats["chunk_build_count"] += int(retrieval_stats.get("chunk_build_count", 0) or 0)
+                pdf_stats["idf_build_count"] += int(retrieval_stats.get("idf_build_count", 0) or 0)
+                if not pdf_stats.get("chunk_count_total"):
+                    pdf_stats["chunk_count_total"] = int(retrieval_stats.get("chunk_count_total", 0) or 0)
+                    pdf_stats["chunk_count_by_type"] = dict(retrieval_stats.get("chunk_count_by_type", {}) or {})
+
             style_profile = style_profiles.get(col_name)
+            cell_stats: dict[str, object] = {
+                "cell_id": cell_id,
+                "pdf_id": pdf_id,
+                "row_index": row_idx,
+                "column_name": col_name,
+                "retrieval_mode": retrieval_mode,
+                "retrieval_request_mode": retrieval_request_mode,
+                "retrieval_policy": retrieval_policy,
+                "retrieval_query_ms": float(retrieval_stats.get("total_ms", 0.0) or 0.0),
+                "retrieval_prep_ms": round(
+                    float(retrieval_stats.get("chunk_build_ms", 0.0) or 0.0)
+                    + float(retrieval_stats.get("idf_build_ms", 0.0) or 0.0),
+                    3,
+                ),
+                "chunk_count_total": int(retrieval_stats.get("chunk_count_total", 0) or 0),
+                "chunk_count_by_type": dict(retrieval_stats.get("chunk_count_by_type", {}) or {}),
+            }
 
             await asyncio.sleep(0)  # yield between cells
 
-            await extract_cell(
+            proposal = await extract_cell(
                 run_id=run_id,
                 pdf_id=pdf_id,
                 row_id=row_id,
@@ -793,9 +939,22 @@ async def run_pipeline(
                 provider_mode_str=provider_mode.mode if provider_mode else "unknown",
                 artifact_context=artifact_context,
                 max_figures_for_review=max(1, config.figure_review.max_figures_per_paper),
+                stats_sink=cell_stats,
             )
 
             proposals_generated += 1
+            run_stats["counters"]["processed_cells"] += 1
+            if cell_stats.get("recall_rescue_used"):
+                run_stats["counters"]["recall_rescue_cells"] += 1
+            if cell_stats.get("whole_document_used"):
+                run_stats["counters"]["whole_document_cells"] += 1
+            if cell_stats.get("needs_more_evidence"):
+                run_stats["counters"]["needs_more_evidence_cells"] += 1
+            if cell_stats.get("figure_review_calls"):
+                run_stats["counters"]["figure_review_cells"] += 1
+            pdf_stats["cells_processed"] += 1
+            cell_stats["proposal_id"] = proposal.proposal_id
+            run_stats["per_cell"].append(cell_stats)
 
         runtime_caps = getattr(provider, "_capabilities", None)
         if provider_mode and runtime_caps is not None:
@@ -810,6 +969,7 @@ async def run_pipeline(
             write_json(run_dir / "provider_mode.json", provider_mode.model_dump())
 
         run_data["proposals_generated"] = proposals_generated
+        run_stats["counters"]["proposals_generated"] = proposals_generated
         proposals = load_proposals(run_dir)
         fallback_count = sum("fallback_evidence_used" in proposal.warning_flags for proposal in proposals)
         weak_count = sum(proposal.support == SupportLabel.weak_evidence for proposal in proposals)
@@ -832,10 +992,14 @@ async def run_pipeline(
         final_status = (
             RunStatus.completed_with_warnings if warnings else RunStatus.completed
         )
+        _finalize_active_stage()
         run_data = apply_transition(run_data, final_status)
         run_data["current_stage"] = None
+        run_stats["per_run"]["completed_at"] = run_data.get("completed_at")
+        run_stats["per_run"]["run_total_ms"] = round((perf_counter() - run_started_perf) * 1000.0, 3)
         run_data = sync_provider_request_counts(run_data, provider, run_dir)
         save_run(run_data)
+        save_run_stats()
 
         run_summary_path = get_run_summary_path(output_dir, run_id)
         write_json(run_summary_path, run_data)
@@ -859,10 +1023,13 @@ async def run_pipeline(
                 ),
                 "provider_readiness_error": run_data.get("provider_readiness_error"),
                 "provider_readiness_reason": run_data.get("provider_readiness_reason"),
+                "retrieval_mode": run_data.get("retrieval_mode"),
                 "prompt_version": run_data.get("prompt_version"),
                 "prompt_hash": run_data.get("prompt_hash"),
+                "prompt_files": run_data.get("prompt_files"),
                 "config_hash": run_data.get("config_hash"),
                 "config_snapshot_path": run_data.get("config_snapshot_path"),
+                "run_stats_path": run_data.get("run_stats_path"),
                 "schema_hash": run_data.get("schema_hash"),
                 "schema_version": run_data.get("schema_version"),
                 "parser_identity": run_data.get("parser_identity"),
@@ -887,15 +1054,20 @@ async def run_pipeline(
         )
 
     except asyncio.CancelledError:
+        _finalize_active_stage()
         run_data = dict(run_data)
         run_data["status"] = RunStatus.interrupted.value
         run_data["completed_at"] = datetime.now(timezone.utc).isoformat()
         run_data["current_stage"] = None
+        run_stats["per_run"]["completed_at"] = run_data["completed_at"]
+        run_stats["per_run"]["run_total_ms"] = round((perf_counter() - run_started_perf) * 1000.0, 3)
         if "provider" in locals() and "run_dir" in locals():
             run_data = sync_provider_request_counts(run_data, provider, run_dir)
         save_run(run_data)
+        save_run_stats()
         raise
     except Exception as e:
+        _finalize_active_stage()
         try:
             run_data = apply_transition(
                 run_data, RunStatus.failed, error_message=str(e)
@@ -905,6 +1077,8 @@ async def run_pipeline(
             run_data["status"] = RunStatus.failed.value
             run_data["error_message"] = str(e)
         run_data["current_stage"] = None
+        run_stats["per_run"]["completed_at"] = run_data.get("completed_at") or datetime.now(timezone.utc).isoformat()
+        run_stats["per_run"]["run_total_ms"] = round((perf_counter() - run_started_perf) * 1000.0, 3)
         if "provider" in locals() and "run_dir" in locals():
             run_data = sync_provider_request_counts(run_data, provider, run_dir)
         save_run(run_data)

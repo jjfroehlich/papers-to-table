@@ -1,0 +1,2072 @@
+{
+  "run_id": "run_20260406_093646_fvf7wo",
+  "retrieval_mode": "lexical",
+  "provider_token": "lm_studio",
+  "prompt_hash": "6e2f5976184665e29bf7e8a88fe5cda46a5130b5985b0c19111491eecc8c6673",
+  "prompt_files": {
+    "text_extraction_system": {
+      "path": "backend/app/prompts/text_extraction_system.txt",
+      "sha256": "5e7e2268755b4ff660af9d1424f18a51727daaaae1dc3916c5aadf53c210d8df"
+    },
+    "figure_extraction_system": {
+      "path": "backend/app/prompts/figure_extraction_system.txt",
+      "sha256": "91dd78b3bbbb9635718bdcc60127832779312c1e336b5277c460646c9ba28906"
+    },
+    "style_profile_system": {
+      "path": "backend/app/prompts/style_profile_system.txt",
+      "sha256": "33c7fbbfa35c4b39d1b7206c20cfd00e3b64e6065b3b81ab440170b05833c8fb"
+    }
+  },
+  "per_run": {
+    "started_at": "2026-04-06T09:36:46.037349+00:00",
+    "completed_at": "2026-04-06T10:06:14.223326+00:00",
+    "run_total_ms": 1768183.413,
+    "stage_ms": {
+      "validating": 644.458,
+      "load_inputs": 94.006,
+      "provider_init": 1980.091,
+      "parse": 74381.875,
+      "match": 30.182,
+      "style_profiles": 252629.864,
+      "extraction": 1438413.035
+    }
+  },
+  "per_pdf": {
+    "paper_2": {
+      "parse_pdf_ms": 74380.685,
+      "retrieval_prep_ms": 462.816,
+      "retrieval_query_ms": 966.327,
+      "retrieval_calls": 39,
+      "chunk_build_count": 39,
+      "idf_build_count": 39,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cells_processed": 39
+    }
+  },
+  "per_cell": [
+    {
+      "cell_id": "cell_4b91e28c2b28",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "UMI?",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 23.729,
+      "retrieval_prep_ms": 10.652,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35610.752,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_4b91e28c2b28_1775468535838"
+    },
+    {
+      "cell_id": "cell_e11ce6617d58",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Bottlenecking",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "count_like",
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "count",
+          "total",
+          "number",
+          "pairs",
+          "pair",
+          "combinations",
+          "constructed",
+          "tested",
+          "included",
+          "coverage",
+          "sequences",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 26.016,
+      "retrieval_prep_ms": 11.321,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35858.636,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_e11ce6617d58_1775468571480"
+    },
+    {
+      "cell_id": "cell_61c8c7cbd920",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "mean reads per sequence/variant",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "count_like",
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "count",
+          "total",
+          "number",
+          "pairs",
+          "pair",
+          "combinations",
+          "constructed",
+          "tested",
+          "included",
+          "coverage",
+          "sequences",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 30.432,
+      "retrieval_prep_ms": 14.522,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35878.111,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_61c8c7cbd920_1775468607372"
+    },
+    {
+      "cell_id": "cell_7258606c253a",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "BC length (bp)",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 22.967,
+      "retrieval_prep_ms": 11.666,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35326.373,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_7258606c253a_1775468643276"
+    },
+    {
+      "cell_id": "cell_3290a4290e26",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Journal",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 24.439,
+      "retrieval_prep_ms": 13.061,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35788.571,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_3290a4290e26_1775468678625"
+    },
+    {
+      "cell_id": "cell_0bd5d9c4d3ee",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "library seq",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence",
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes",
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 24.396,
+      "retrieval_prep_ms": 11.109,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 36236.657,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_0bd5d9c4d3ee_1775468714442"
+    },
+    {
+      "cell_id": "cell_84c725e14e26",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Scale",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 29.232,
+      "retrieval_prep_ms": 16.128,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 36127.17,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_84c725e14e26_1775468750705"
+    },
+    {
+      "cell_id": "cell_14efc2925524",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Type of variants",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 24.601,
+      "retrieval_prep_ms": 11.563,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 36162.727,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_14efc2925524_1775468786867"
+    },
+    {
+      "cell_id": "cell_0a563b86fb9e",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "DNA library",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 23.187,
+      "retrieval_prep_ms": 11.322,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 36306.177,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_0a563b86fb9e_1775468823055"
+    },
+    {
+      "cell_id": "cell_31ca7bae7535",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Cloning",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 24.112,
+      "retrieval_prep_ms": 13.126,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 30907.304,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_31ca7bae7535_1775468859388"
+    },
+    {
+      "cell_id": "cell_aa99e2a3a3c0",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Episomal vs genomic",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence",
+          "vector_or_backbone",
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes",
+          "episomal",
+          "plasmid",
+          "vector",
+          "backbone",
+          "origin",
+          "replication",
+          "polya",
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 26.179,
+      "retrieval_prep_ms": 12.681,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 36555.676,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_aa99e2a3a3c0_1775468890318"
+    },
+    {
+      "cell_id": "cell_3380a1ae4865",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Promoter",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 28.367,
+      "retrieval_prep_ms": 12.07,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 36977.674,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_3380a1ae4865_1775468926910"
+    },
+    {
+      "cell_id": "cell_15870f236367",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Integration method",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "vector_or_backbone"
+        ],
+        "hint_terms": [
+          "episomal",
+          "plasmid",
+          "vector",
+          "backbone",
+          "origin",
+          "replication",
+          "polya"
+        ]
+      },
+      "retrieval_query_ms": 30.59,
+      "retrieval_prep_ms": 13.754,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 60319.552,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_15870f236367_1775468963918"
+    },
+    {
+      "cell_id": "cell_f1cf8829a45a",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Link",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 20.98,
+      "retrieval_prep_ms": 10.965,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35586.291,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_f1cf8829a45a_1775469024263"
+    },
+    {
+      "cell_id": "cell_74f24947a12f",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "# Variants tested",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "count_like",
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "count",
+          "total",
+          "number",
+          "pairs",
+          "pair",
+          "combinations",
+          "constructed",
+          "tested",
+          "included",
+          "coverage",
+          "sequences",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 22.389,
+      "retrieval_prep_ms": 10.17,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35611.768,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_74f24947a12f_1775469059873"
+    },
+    {
+      "cell_id": "cell_ccdf26728131",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "RNA library",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 21.339,
+      "retrieval_prep_ms": 9.985,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35584.929,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_ccdf26728131_1775469095504"
+    },
+    {
+      "cell_id": "cell_b966a213c7f5",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Abstract",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 21.424,
+      "retrieval_prep_ms": 11.534,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 57645.365,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_b966a213c7f5_1775469131116"
+    },
+    {
+      "cell_id": "cell_88af7b440025",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Approach",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 28.33,
+      "retrieval_prep_ms": 13.599,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34671.315,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_88af7b440025_1775469188785"
+    },
+    {
+      "cell_id": "cell_01e0eed636de",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "MPRABase_datasets_id",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 34.358,
+      "retrieval_prep_ms": 17.295,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34866.02,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_01e0eed636de_1775469223504"
+    },
+    {
+      "cell_id": "cell_e41dea4d0b6e",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "what predicts activity? (e.g. accessible -> active in MPRA?)",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 21.601,
+      "retrieval_prep_ms": 9.868,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34876.825,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_e41dea4d0b6e_1775469258394"
+    },
+    {
+      "cell_id": "cell_765ef86661b5",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Number of Conditions",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "count_like",
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "count",
+          "total",
+          "number",
+          "pairs",
+          "pair",
+          "combinations",
+          "constructed",
+          "tested",
+          "included",
+          "coverage",
+          "sequences",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 25.92,
+      "retrieval_prep_ms": 12.518,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34777.243,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_765ef86661b5_1775469293297"
+    },
+    {
+      "cell_id": "cell_46b00be3c065",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Date Added",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 26.144,
+      "retrieval_prep_ms": 15.025,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34651.082,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_46b00be3c065_1775469328100"
+    },
+    {
+      "cell_id": "cell_fbe4d5c81159",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Integration site",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 21.741,
+      "retrieval_prep_ms": 9.894,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34865.543,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_fbe4d5c81159_1775469362780"
+    },
+    {
+      "cell_id": "cell_0c3a3e294837",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Synthetic designs",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 36.34,
+      "retrieval_prep_ms": 16.973,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34814.985,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_0c3a3e294837_1775469397678"
+    },
+    {
+      "cell_id": "cell_77d5c4c71548",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "mean # Barcodes per sequence",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "count_like",
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "count",
+          "total",
+          "number",
+          "pairs",
+          "pair",
+          "combinations",
+          "constructed",
+          "tested",
+          "included",
+          "coverage",
+          "sequences",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 22.252,
+      "retrieval_prep_ms": 10.17,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34720.36,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_77d5c4c71548_1775469432523"
+    },
+    {
+      "cell_id": "cell_9ef12768e33d",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "library construction",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 24.451,
+      "retrieval_prep_ms": 12.928,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34730.875,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_9ef12768e33d_1775469467268"
+    },
+    {
+      "cell_id": "cell_c97ce86605d2",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Where is the BC?",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence",
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes",
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 26.164,
+      "retrieval_prep_ms": 13.081,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34803.579,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_c97ce86605d2_1775469502025"
+    },
+    {
+      "cell_id": "cell_d714824bc8bb",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Delivery",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 20.731,
+      "retrieval_prep_ms": 9.97,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34720.653,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_d714824bc8bb_1775469536847"
+    },
+    {
+      "cell_id": "cell_4a4e118c2b65",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "library composition",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "count_like",
+          "variant_or_sequence",
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "count",
+          "total",
+          "number",
+          "pairs",
+          "pair",
+          "combinations",
+          "constructed",
+          "tested",
+          "included",
+          "coverage",
+          "sequences",
+          "plasmids",
+          "barcodes",
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 22.891,
+      "retrieval_prep_ms": 9.783,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34722.442,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_4a4e118c2b65_1775469571600"
+    },
+    {
+      "cell_id": "cell_ab9e3091884b",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "If episomal: Ori in backbone?",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence",
+          "vector_or_backbone"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes",
+          "episomal",
+          "plasmid",
+          "vector",
+          "backbone",
+          "origin",
+          "replication",
+          "polya"
+        ]
+      },
+      "retrieval_query_ms": 24.007,
+      "retrieval_prep_ms": 9.9,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34921.649,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_ab9e3091884b_1775469606349"
+    },
+    {
+      "cell_id": "cell_97ea8879a5f6",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Readout",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 21.343,
+      "retrieval_prep_ms": 9.95,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34867.556,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_97ea8879a5f6_1775469641294"
+    },
+    {
+      "cell_id": "cell_6831809f3011",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "MPRABase_Total_Variants_Tested",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 21.269,
+      "retrieval_prep_ms": 10.066,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34705.025,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_6831809f3011_1775469676184"
+    },
+    {
+      "cell_id": "cell_48adfab85eb5",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Other notes",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 19.836,
+      "retrieval_prep_ms": 9.953,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 56743.021,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_48adfab85eb5_1775469710906"
+    },
+    {
+      "cell_id": "cell_28df0f22dc3a",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Model system",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 20.448,
+      "retrieval_prep_ms": 9.885,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 32380.304,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_28df0f22dc3a_1775469767681"
+    },
+    {
+      "cell_id": "cell_a9b440d9bb3f",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Type of Condition",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 22.939,
+      "retrieval_prep_ms": 9.995,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34790.957,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_a9b440d9bb3f_1775469800086"
+    },
+    {
+      "cell_id": "cell_482e9d1c5b38",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "length of sequences (bp)",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 21.302,
+      "retrieval_prep_ms": 9.927,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34751.669,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_482e9d1c5b38_1775469834899"
+    },
+    {
+      "cell_id": "cell_b90a48892caf",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "General library design category",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence",
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes",
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 24.759,
+      "retrieval_prep_ms": 10.009,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34862.568,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_b90a48892caf_1775469869675"
+    },
+    {
+      "cell_id": "cell_0d59e8a7e5eb",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Focus",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 20.771,
+      "retrieval_prep_ms": 9.899,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34665.409,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_0d59e8a7e5eb_1775469904563"
+    },
+    {
+      "cell_id": "cell_800bc1a56a0e",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Species",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 34.351,
+      "retrieval_prep_ms": 16.499,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34953.94,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "proposal_id": "prop_run_20260406_093646_fvf7wo_cell_800bc1a56a0e_1775469939268"
+    }
+  ],
+  "counters": {
+    "provider_request_counts": {
+      "http_total": 123,
+      "models_list": 1,
+      "completions_total": 122,
+      "completions_text_raw": 42,
+      "completions_text_structured": 78,
+      "completions_vision_structured": 0,
+      "completions_probe_structured": 2,
+      "completion_retry_attempts": 39
+    },
+    "parse_errors": 0,
+    "parse_warnings": 2,
+    "matched_pdfs": 1,
+    "eligible_cells": 9399,
+    "processed_cells": 39,
+    "recall_rescue_cells": 0,
+    "whole_document_cells": 0,
+    "needs_more_evidence_cells": 0,
+    "figure_review_cells": 0,
+    "proposals_generated": 39
+  },
+  "recorded_at": "2026-04-06T10:06:14.228678+00:00"
+}

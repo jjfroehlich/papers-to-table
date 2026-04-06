@@ -45,6 +45,8 @@ from backend.app.parsing import (
     normalize_text,
     parse_pdf,
     persist_parse_artifacts,
+    _extract_metadata_from_text,
+    _extract_authors_from_lines,
     _unwrap_docling_item,
 )
 from backend.app.schemas import MatchOutcome
@@ -201,6 +203,42 @@ class TestParserAdapterInterface:
         assert figure.crop_path is not None
         assert figure.full_page_path == "parsed/paper_2/pages/page_0001.png"
         assert (run_dir / pathlib.Path(figure.crop_path)).exists()
+
+
+class TestMetadataHeuristics:
+    def test_extract_authors_from_standard_header_line(self):
+        first_pages_text = (
+            "Engineering mammalian cells for robust reporter assays\n"
+            "Drew T. Bergman1,2,9, Thouis R. Jones1, Miguel Martinez-Ara1,2\n"
+            "Abstract\n"
+            "We present..."
+        )
+
+        authors = _extract_authors_from_lines(
+            first_pages_text,
+            title="Engineering mammalian cells for robust reporter assays",
+        )
+
+        assert authors is not None
+        assert "Drew T. Bergman" in authors
+        assert "Thouis R. Jones" in authors
+        assert "Miguel Martinez-Ara" in authors
+
+    def test_extract_metadata_populates_authors_when_doc_header_is_normal(self):
+        first_pages_text = (
+            "A practical atlas of enhancer perturbation\n"
+            "Jane Q. Smith1,2, Alan R. Doe1, Priya K. Patel3\n"
+            "Abstract\n"
+            "Long abstract text..."
+        )
+        metadata = _extract_metadata_from_text(
+            blocks=[],
+            first_pages_text=first_pages_text,
+            full_text=first_pages_text,
+        )
+
+        assert metadata.authors is not None
+        assert metadata.authors[:2] == ["Jane Q. Smith", "Alan R. Doe"]
 
     def test_fallback_disabled_raises_when_configured_parser_fails(self, tmp_path):
         """T026a: without allow_basic_fallback, a broken parser should raise."""

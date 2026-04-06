@@ -22,24 +22,26 @@ T066  – Verify mode uses same extraction path
 from __future__ import annotations
 
 import base64
-import hashlib
 import json
 import pathlib
 import re
 import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from time import perf_counter
 from typing import Any, Optional
 
 from pydantic import BaseModel
 
 from .artifacts import (
     append_jsonl,
+    hash_json_data,
     read_json,
     read_jsonl,
     write_json,
 )
 from .ids import generate_evidence_id, generate_proposal_id
+from .prompts import get_prompt_bundle, load_prompt_text
 from .provider import (
     ProviderAdapter,
 )
@@ -301,38 +303,21 @@ VISION_EXTRACTION_SCHEMA = {
 # Prompt building (T053, T053a, T057a)
 # ---------------------------------------------------------------------------
 
-_EXTRACTION_SYSTEM = (
-    "You are an expert scientific data extractor. "
-    "Your job is to extract a specific piece of information from a scientific paper. "
-    "Extract ONLY information that is actually stated or can be directly calculated from the paper. "
-    "Do NOT guess based on common knowledge, general practice, or prior spreadsheet values. "
-    "If the information is not clearly supported by the paper, return state='unclear'. "
-    "Return concise markdown-bullet rationale (at most 3 bullets). "
-    "Respond ONLY with valid JSON matching the required schema."
-)
-
-_FIGURE_SYSTEM = (
-    "You are an expert scientific data extractor analyzing a figure from a scientific paper. "
-    "Your job is to determine whether this figure provides evidence for a specific data field. "
-    "Extract information ONLY from what is visible in the figure and its caption. "
-    "If the figure does not contain useful evidence for this field, return state='unclear'. "
-    "Respond ONLY with valid JSON matching the required schema."
-)
-
 PROMPT_VERSION: Optional[str] = None
 
 
 def get_prompt_identity() -> dict[str, Optional[str]]:
+    prompt_bundle = get_prompt_bundle()
     payload = {
-        "text_system": _EXTRACTION_SYSTEM,
-        "figure_system": _FIGURE_SYSTEM,
+        "prompt_bundle_hash": prompt_bundle["bundle_hash"],
+        "prompt_files": prompt_bundle["prompt_files"],
         "text_schema": TEXT_EXTRACTION_SCHEMA,
         "figure_schema": VISION_EXTRACTION_SCHEMA,
     }
-    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return {
         "prompt_version": PROMPT_VERSION,
-        "prompt_hash": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+        "prompt_hash": hash_json_data(payload),
+        "prompt_files": prompt_bundle["prompt_files"],
     }
 
 
@@ -444,7 +429,7 @@ def build_text_extraction_prompt(
     )
 
     return [
-        {"role": "system", "content": _EXTRACTION_SYSTEM},
+        {"role": "system", "content": load_prompt_text("text_extraction_system")},
         {"role": "user", "content": user_content},
     ]
 
@@ -490,7 +475,7 @@ def build_figure_extraction_prompt(
     )
 
     return [
-        {"role": "system", "content": _FIGURE_SYSTEM},
+        {"role": "system", "content": load_prompt_text("figure_extraction_system")},
         {"role": "user", "content": user_content},
     ]
 
@@ -1507,6 +1492,7 @@ async def extract_cell(
     provider_mode_str: str = "unknown",
     artifact_context: Optional[dict] = None,
     max_figures_for_review: int = 5,
+    stats_sink: Optional[dict[str, object]] = None,
 ) -> ProposalRecord:
     """Extract one cell value and produce a proposal with evidence.
 
@@ -1522,6 +1508,49 @@ async def extract_cell(
         except ValueError:
             field_type = None
     artifact_context = artifact_context or {}
+    cell_started = perf_counter()
+    text_model_ms = 0.0
+    evidence_anchoring_ms = 0.0
+    figure_review_ms = 0.0
+    evidence_recovery_ms = 0.0
+    recall_rescue_retrieval_ms = 0.0
+    recall_rescue_retrieval_prep_ms = 0.0
+    text_model_calls = 0
+    evidence_anchor_attempts = 0
+    figure_review_calls = 0
+    recall_rescue_used = False
+    whole_document_used = False
+    needs_more = False
+    figure_hits: list[FigureReviewHit] = []
+
+    def finalize_stats(proposal: Optional[ProposalRecord] = None) -> None:
+        if stats_sink is None:
+            return
+        stats_sink.update(
+            {
+                "cell_total_ms": round((perf_counter() - cell_started) * 1000.0, 3),
+                "text_model_ms": round(text_model_ms, 3),
+                "text_model_calls": text_model_calls,
+                "evidence_anchoring_ms": round(evidence_anchoring_ms, 3),
+                "evidence_anchor_attempts": evidence_anchor_attempts,
+                "figure_review_ms": round(figure_review_ms, 3),
+                "figure_review_calls": figure_review_calls,
+                "evidence_recovery_ms": round(evidence_recovery_ms, 3),
+                "recall_rescue_retrieval_ms": round(recall_rescue_retrieval_ms, 3),
+                "recall_rescue_retrieval_prep_ms": round(recall_rescue_retrieval_prep_ms, 3),
+                "recall_rescue_used": recall_rescue_used,
+                "whole_document_used": whole_document_used,
+                "needs_more_evidence": needs_more,
+                "figure_hits_count": len(figure_hits),
+            }
+        )
+        if proposal is not None:
+            state_value = proposal.state.value if hasattr(proposal.state, "value") else str(proposal.state)
+            support_value = proposal.support.value if hasattr(proposal.support, "value") else str(proposal.support)
+            stats_sink["proposal_state"] = state_value
+            stats_sink["proposal_support"] = support_value
+            stats_sink["warning_flags"] = list(proposal.warning_flags)
+
     run_mode = str(artifact_context.get("run_mode") or ("verify" if is_verify_mode else "normal"))
     prompt_version = artifact_context.get("prompt_version")
     prompt_hash = artifact_context.get("prompt_hash")
@@ -1557,12 +1586,15 @@ async def extract_cell(
     max_tokens = 4096 if long_text else 2048
 
     try:
+        request_started = perf_counter()
         raw_result = await provider.chat_complete_structured(
             messages=messages,
             response_schema=TEXT_EXTRACTION_SCHEMA,
             model_id=text_model_id,
             max_tokens=max_tokens,
         )
+        text_model_ms += (perf_counter() - request_started) * 1000.0
+        text_model_calls += 1
     except Exception as e:
         # Hard provider error — record error proposal
         proposal = ProposalRecord(
@@ -1600,10 +1632,8 @@ async def extract_cell(
             created_at=now,
         )
         persist_proposal(run_dir, proposal)
+        finalize_stats(proposal)
         return proposal
-
-    recall_rescue_used = False
-    whole_document_used = False
 
     raw_state = raw_result.get("state", "unclear")
     if raw_state == "unclear" and recall_rescue_enabled:
@@ -1623,6 +1653,10 @@ async def extract_cell(
                 mode="recall_rescue",
                 rescue_reason="first_pass_unclear",
             )
+            rescue_stats = rescue_retrieval.stats if isinstance(rescue_retrieval.stats, dict) else {}
+            recall_rescue_retrieval_ms += float(rescue_stats.get("total_ms", 0.0) or 0.0)
+            recall_rescue_retrieval_prep_ms += float(rescue_stats.get("chunk_build_ms", 0.0) or 0.0)
+            recall_rescue_retrieval_prep_ms += float(rescue_stats.get("idf_build_ms", 0.0) or 0.0)
         whole_document_text = None
         if whole_document_mode:
             whole_document_text = build_whole_document_context(doc_dict, whole_document_max_chars)
@@ -1641,12 +1675,15 @@ async def extract_cell(
             is_long_text=long_text,
         )
         try:
+            rescue_request_started = perf_counter()
             raw_result = await provider.chat_complete_structured(
                 messages=rescue_messages,
                 response_schema=TEXT_EXTRACTION_SCHEMA,
                 model_id=text_model_id,
                 max_tokens=max_tokens,
             )
+            text_model_ms += (perf_counter() - rescue_request_started) * 1000.0
+            text_model_calls += 1
         except Exception as e:
             proposal = ProposalRecord(
                 proposal_id=proposal_id,
@@ -1687,6 +1724,7 @@ async def extract_cell(
                 created_at=now,
             )
             persist_proposal(run_dir, proposal)
+            finalize_stats(proposal)
             return proposal
 
     # Parse and adjudicate result (T058)
@@ -1751,9 +1789,12 @@ async def extract_cell(
             )
         else:
             # Attempt anchoring (T059)
+            anchor_started = perf_counter()
             anchored_type, exact_regions, approx_regions, confidence = anchor_evidence(
                 quote_text, page_num, doc_dict
             )
+            evidence_anchoring_ms += (perf_counter() - anchor_started) * 1000.0
+            evidence_anchor_attempts += 1
             resolved_page = (
                 (exact_regions[0].get("page") if exact_regions else None)
                 or (approx_regions[0].get("page") if approx_regions else None)
@@ -1798,6 +1839,7 @@ async def extract_cell(
     needs_more = not has_usable_evidence and state != ProposalState.unclear
 
     if needs_more and proposed_value:
+        recovery_started = perf_counter()
         recovery_ev = await attempt_evidence_recovery(
             proposal_id=proposal_id,
             run_id=run_id,
@@ -1810,12 +1852,15 @@ async def extract_cell(
             text_model_id=text_model_id,
             caps=caps,
         )
+        recovery_elapsed_ms = (perf_counter() - recovery_started) * 1000.0
+        evidence_recovery_ms += recovery_elapsed_ms
+        text_model_ms += recovery_elapsed_ms
+        text_model_calls += 1
         if recovery_ev:
             evidence_records.append(recovery_ev)
             needs_more = False
 
     # Proactive figure review (T062): when vision model configured
-    figure_hits: list[FigureReviewHit] = []
     preliminary_support = determine_support_label(
         state,
         evidence_records,
@@ -1858,6 +1903,7 @@ async def extract_cell(
 
     if should_run_vision:
         try:
+            figure_review_started = perf_counter()
             figure_hits = await run_figure_review(
                 proposal_id=proposal_id,
                 run_id=run_id,
@@ -1875,6 +1921,8 @@ async def extract_cell(
                 trigger_reasons=vision_trigger_reasons,
                 max_figures=max_figures_for_review,
             )
+            figure_review_ms += (perf_counter() - figure_review_started) * 1000.0
+            figure_review_calls += 1
         except Exception:
             pass  # Figure review failure does not abort the proposal
 
@@ -1989,6 +2037,7 @@ async def extract_cell(
     )
 
     persist_proposal(run_dir, proposal)
+    finalize_stats(proposal)
     return proposal
 
 

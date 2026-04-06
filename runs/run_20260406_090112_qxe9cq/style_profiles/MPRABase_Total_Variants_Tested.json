@@ -1,0 +1,14 @@
+{
+  "column_name": "MPRABase_Total_Variants_Tested",
+  "field_type_guess": "numeric",
+  "expected_length": "long",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "single number",
+  "unit_style": null,
+  "format_notes": "integer only, no decimals",
+  "example_risk": "low",
+  "generated_at": "2026-04-06T09:03:05.853404+00:00",
+  "source_column_count": 39,
+  "provider_mode": "live_llm"
+}

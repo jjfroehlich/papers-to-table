@@ -1,0 +1,14 @@
+{
+  "column_name": "Delivery",
+  "field_type_guess": "text",
+  "expected_length": "long",
+  "tone": "formal",
+  "detail_level": "high",
+  "value_shape": "sentence describing method and cell count with units",
+  "unit_style": "standard scientific units",
+  "format_notes": null,
+  "example_risk": "low",
+  "generated_at": "2026-04-06T09:03:39.593262+00:00",
+  "source_column_count": 9,
+  "provider_mode": "live_llm"
+}

@@ -29,6 +29,7 @@ def _safe_filename(name: str, max_len: int = 64) -> str:
     return safe[:max_len]
 
 from .artifacts import write_json
+from .prompts import load_prompt_text
 
 
 # ---------------------------------------------------------------------------
@@ -132,14 +133,6 @@ def _heuristic_profile(column_name: str, filled_values: list[str]) -> StyleProfi
 # LLM-assisted profile generation (T042)
 # ---------------------------------------------------------------------------
 
-_STYLE_SYSTEM_PROMPT = (
-    "You are an expert scientific data curator analyzing a spreadsheet column. "
-    "Your job is to describe the OUTPUT FORMAT and STYLE of a spreadsheet column, "
-    "NOT to interpret the content. "
-    "Respond ONLY with a JSON object matching the required schema."
-)
-
-
 def _build_style_prompt(column_name: str, description: str, filled_values: list[str]) -> str:
     # Limit to avoid bloating the context; T044: never include more values than needed
     sample = filled_values[:10]
@@ -190,7 +183,7 @@ async def generate_style_profile(
 
             prompt = _build_style_prompt(column_name, description, nonempty)
             request_kwargs = {
-                "system": _STYLE_SYSTEM_PROMPT,
+                "system": load_prompt_text("style_profile_system"),
                 "user": prompt,
                 "max_tokens": 512,
             }

@@ -71,6 +71,7 @@ class TestLoadConfig:
         assert config.table_path == str(pathlib.Path(FIXTURE_TABLE).resolve())
         assert config.schema_path == str(pathlib.Path(FIXTURE_SCHEMA).resolve())
         assert config.pdf_dir == str(pathlib.Path(FIXTURE_PDF_DIR).resolve())
+        assert config.retrieval.mode == "lexical"
 
     def test_file_not_found(self):
         with pytest.raises(FileNotFoundError):
@@ -100,6 +101,37 @@ class TestLoadConfig:
         assert config.parser.backend == "docling"
         assert config.matching.ambiguity_threshold == 0.15
         assert config.retrieval.top_k == 6
+        assert config.retrieval.mode == "lexical"
+
+    def test_legacy_retrieval_strategy_normalizes_to_mode(self, tmp_path):
+        data = {
+            "table_path": "t.xlsx",
+            "pdf_dir": "pdfs/",
+            "provider": {
+                "token": "lm_studio",
+                "text_model": {"model_id": "qwen/qwen3-30b-a3b-2507"},
+            },
+            "retrieval": {"strategy": "semantic_chunks"},
+        }
+        p = tmp_path / "config.json"
+        p.write_text(json.dumps(data), encoding="utf-8")
+
+        config = load_config(str(p))
+
+        assert config.retrieval.mode == "lexical"
+        assert config.retrieval.strategy == "lexical"
+
+    def test_rejects_unknown_retrieval_mode(self):
+        with pytest.raises(Exception, match="Unknown retrieval.mode"):
+            RunConfig.model_validate({
+                "table_path": "t.xlsx",
+                "pdf_dir": "pdfs/",
+                "provider": {
+                    "token": "lm_studio",
+                    "text_model": {"model_id": "qwen/qwen3-30b-a3b-2507"},
+                },
+                "retrieval": {"mode": "semantic"},
+            })
 
     def test_relative_paths_resolve_against_config_location(self, tmp_path):
         config_dir = tmp_path / "nested"

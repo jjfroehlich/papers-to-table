@@ -1,9 +1,0 @@
-{
-  "token": "lm_studio",
-  "locality": "local",
-  "mode": "unavailable",
-  "text_model_id": "nvidia/nemotron-3-nano-4b",
-  "vision_model_id": "zai-org/glm-4.6v-flash",
-  "readiness_error": "Configured provider/model does not support required json_schema structured output.",
-  "recorded_at": "2026-04-04T20:38:26.552677+00:00"
-}

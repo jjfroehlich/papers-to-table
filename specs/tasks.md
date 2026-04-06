@@ -2,7 +2,20 @@
 
 ## Status
 
-Implementation checklist for the full intended MVP.
+Implementation checklist for the full intended MVP, plus the current baseline-strengthening pass.
+
+Reality-checked on 2026-04-06 against current backend code, tests, and recent run artifacts:
+
+- completed: resolved `config.snapshot.json` persistence and `resolved_inputs` run artifact context
+- completed: lexical baseline retrieval with persisted per-cell retrieval artifacts
+- completed: prompt identity via `prompt_hash`/`prompt_version` in run/proposal/evidence artifacts
+- completed: provider request counter artifact via `provider_request_counts.json`
+- missing: truthful canonical retrieval naming cleanup (current canonical value still `semantic_chunks`)
+- missing: structured run-stats timing and repeated-work artifacts
+- missing: prompt externalization into dedicated prompt files
+- missing: explicit retrieval-policy visibility artifact fields beyond embedded query hints
+- missing: hybrid retrieval opt-in mode and baseline-vs-hybrid artifact visibility
+- missing: dedicated tests for the missing baseline-strengthening items above
 
 ## Purpose
 
@@ -145,6 +158,41 @@ Future coding-agent implementation should normally proceed by the canonical batc
 - the README includes current screenshots for run setup, highlighted evidence review, and export or diagnostics views
 - screenshot capture is reproducible through Playwright or an equivalent checked-in workflow
 - the README includes a compact trustworthiness checklist aligned with local-first usage, evidence labeling, fallback visibility, review-before-export, and audit artifact access
+
+### Batch 4 — Baseline strengthening (single long implementation pass)
+
+**Purpose:** execute one coherent implementation pass that strengthens the baseline without widening architecture scope.
+
+**Ordered execution checklist (must stay in this order):**
+
+- [ ] **T108 — Config and naming truth cleanup**
+  - align retrieval and related config naming to implemented behavior
+  - keep compatibility handling pragmatic, but make canonical naming explicit in schema/docs/artifacts
+  - keep persisted resolved effective config artifacts as the reproducibility source
+- [ ] **T109 — Measurement-first run instrumentation**
+  - add narrow structured run-stats artifacts for stage timing and repeated-work diagnosis
+  - keep artifact shape compact and manually inspectable
+  - preserve existing `provider_request_counts` and add focused provider/evidence/retrieval counters
+- [ ] **T110 — Prompt externalization**
+  - move important system prompts into dedicated prompt files
+  - keep prompt file structure small and intentional
+  - preserve prompt identity/provenance in run artifacts
+- [ ] **T111 — Transparent schema-aware retrieval heuristics**
+  - derive only small coarse heuristics from existing schema inputs (column name and description)
+  - keep behavior inspectable in outputs/logs/artifacts
+  - do not introduce hidden planner logic
+- [ ] **T112 — Experimental hybrid retrieval benchmark path**
+  - keep lexical retrieval as default baseline
+  - add hybrid retrieval as explicit opt-in benchmark mode only
+  - ensure baseline vs hybrid mode is visible in artifacts/logs/summaries
+
+**Batch 4 completion standard:**
+
+- the deterministic staged pipeline remains intact with no multi-agent orchestration
+- no retrieval-platform/cache architecture is introduced
+- instrumentation remains narrow and diagnostic-focused, not telemetry-platform shaped
+- hybrid retrieval cannot become default accidentally
+- prompt files remain few, clear, and non-sprawling
 
 The detailed task inventory below remains the source of truth for exact implementation work inside each batch.
 
@@ -1286,6 +1334,137 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 ---
 
+## Phase 10 — Baseline-strengthening implementation pass (pending)
+
+**Goal:** complete the still-missing baseline-strengthening work with concrete, benchmarkable, and inspectable behavior while preserving the current deterministic pipeline.
+
+### A. Config and naming cleanup
+
+- [ ] **T108a** Canonicalize retrieval config naming to truthfully describe implemented behavior.
+  - affected backend modules: `backend/app/config.py`, `backend/app/retrieval.py`, `backend/app/runner.py`
+  - affected operator surfaces: `config.example.json`, `README.md`, `specs/spec.md` terminology references
+  - replace canonical retrieval value `semantic_chunks` with a lexical-baseline truthful canonical value
+  - keep runtime behavior unchanged unless mode toggles explicitly request otherwise
+
+- [ ] **T108b** Add compatibility normalization for legacy retrieval naming while persisting canonical values.
+  - affected backend modules: `backend/app/config.py`
+  - normalize known legacy aliases to canonical retrieval value at config load/validation
+  - persist canonical value in `config.snapshot.json`
+  - reject unknown retrieval naming with actionable validation errors
+
+- [ ] **T108c** Add config naming tests for canonicalization and failure behavior.
+  - affected tests: `tests/backend/test_config.py`, `tests/backend/test_runner.py`
+  - verify canonical default retrieval value
+  - verify legacy alias normalization in run snapshot
+  - verify unknown retrieval value rejection
+
+### B. Measurement-first instrumentation
+
+- [ ] **T109a** Add run-level stage timing capture.
+  - affected backend modules: `backend/app/runner.py`
+  - persist at minimum: `run_total_ms`, `stage_validating_ms`, `stage_matching_ms`, `stage_parsing_ms`, `stage_style_profiles_ms`, `stage_extraction_ms`
+
+- [ ] **T109b** Add per-PDF timing and counts.
+  - affected backend modules: `backend/app/runner.py`, `backend/app/parsing.py`, `backend/app/retrieval.py`
+  - persist at minimum: `parse_pdf_ms`, `retrieval_prep_ms`, `pdf_cell_count`
+  - include rollups: `pdf_count`, `cells_per_pdf`
+
+- [ ] **T109c** Add per-cell timing capture.
+  - affected backend modules: `backend/app/runner.py`, `backend/app/extraction.py`, `backend/app/retrieval.py`
+  - persist at minimum: `retrieval_query_ms`, `text_model_ms`, `evidence_anchoring_ms`, conditional `figure_review_ms`, `cell_total_ms`
+
+- [ ] **T109d** Add retrieval repeated-work and chunk counters.
+  - affected backend modules: `backend/app/retrieval.py`, `backend/app/runner.py`
+  - persist at minimum: `retrieval_calls`, `retrieval_calls_per_pdf`, `chunk_build_count_per_pdf`, `idf_build_count_per_pdf`, `neighbor_chunks_added_count`, `chunk_count_total`, `chunk_count_by_type`
+
+- [ ] **T109e** Add provider and evidence counters into run stats.
+  - affected backend modules: `backend/app/provider.py`, `backend/app/extraction.py`, `backend/app/runner.py`
+  - preserve existing `provider_request_counts`
+  - add at minimum: `text_model_call_count`, `vision_model_call_count`, `evidence_item_count`, `direct_quote_count`, `approximate_highlight_count`, `quote_plus_page_count`, `needs_more_evidence_count`, `recall_rescue_used_count`, `whole_document_used_count`, `figure_review_triggered_count`, `figure_derived_evidence_count`
+
+- [ ] **T109f** Persist a compact structured run-stats artifact and expose it as a first-class run output.
+  - affected backend modules: `backend/app/runner.py`, `backend/app/artifacts.py`
+  - artifact target: `summaries/run_stats.json` (or equivalent documented stable path)
+  - keep schema shallow and manually inspectable
+
+- [ ] **T109g** Add run-stats tests for structure and consistency.
+  - affected tests: `tests/backend/test_runner.py`, `tests/backend/test_artifacts.py`, `tests/backend/test_performance_smoke.py`
+  - verify artifact existence and required fields
+  - verify counters/timings are non-negative and internally consistent on fixture runs
+
+### C. Prompt externalization
+
+- [ ] **T110a** Move extraction and style-profile system prompts into dedicated prompt files.
+  - affected backend modules: `backend/app/extraction.py`, `backend/app/style_profiles.py`
+  - add prompt file directory: `backend/app/prompts/`
+  - minimum files: text extraction system prompt, figure extraction system prompt, style-profile system prompt
+
+- [ ] **T110b** Implement prompt loading and composition helpers with deterministic failure semantics.
+  - affected backend modules: `backend/app/prompts.py` (new) or equivalent helper module
+  - fail fast with actionable errors when required prompt files are missing/unreadable
+
+- [ ] **T110c** Extend prompt identity/provenance in artifacts.
+  - affected backend modules: `backend/app/extraction.py`, `backend/app/runner.py`
+  - keep `prompt_hash`/`prompt_version`
+  - add prompt-file provenance map (file path + hash) to run artifacts
+
+- [ ] **T110d** Add prompt externalization tests.
+  - affected tests: `tests/backend/test_runner.py`, `tests/backend/test_batch1_refinement.py` (or equivalent prompt contract tests)
+  - verify prompt loading from files, prompt hash changes when file contents change, and missing-file failure behavior
+
+### D. Transparent schema-aware retrieval heuristics
+
+- [ ] **T111a** Define a small explicit retrieval-heuristic policy contract.
+  - affected backend modules: `backend/app/retrieval.py`
+  - inputs limited to column name + column description (+ existing schema metadata already available)
+  - policy remains lexical, coarse, and deterministic
+
+- [ ] **T111b** Persist selected heuristic policy details in retrieval artifacts.
+  - affected backend modules: `backend/app/retrieval.py`
+  - include policy tags and applied hint terms in each retrieval artifact
+  - avoid hidden planner behavior
+
+- [ ] **T111c** Surface heuristic-policy usage summaries in run outputs.
+  - affected backend modules: `backend/app/runner.py`, `backend/app/review.py`
+  - add compact policy usage counters for inspectability
+
+- [ ] **T111d** Add heuristic-policy tests.
+  - affected tests: `tests/backend/test_batch3.py`, `tests/backend/test_runner.py`
+  - verify deterministic policy assignment and persisted visibility fields
+
+### E. Experimental hybrid retrieval benchmark path
+
+- [ ] **T112a** Add retrieval mode toggle in config with lexical default baseline.
+  - affected backend modules: `backend/app/config.py`
+  - config must support baseline lexical mode plus opt-in hybrid experimental mode
+  - default remains lexical baseline
+
+- [ ] **T112b** Implement hybrid retrieval path behind explicit opt-in mode.
+  - affected backend modules: `backend/app/retrieval.py`, `backend/app/runner.py`
+  - keep implementation narrow and benchmark-oriented
+  - do not alter lexical baseline behavior when mode is unset
+
+- [ ] **T112c** Persist and expose retrieval mode in run artifacts and summaries.
+  - affected backend modules: `backend/app/runner.py`, `backend/app/review.py`
+  - include retrieval mode in `run.json`, run summary payload, and reviewer-visible summary surfaces
+
+- [ ] **T112d** Add hybrid-mode tests.
+  - affected tests: `tests/backend/test_config.py`, `tests/backend/test_runner.py`, `tests/backend/test_batch3.py`
+  - verify lexical default, hybrid opt-in, and baseline-vs-hybrid visibility in artifacts
+
+### F. Explicit deferred work for this phase (do not implement now)
+
+The following remain deferred/out of scope for this phase and must not be converted into unchecked implementation tasks:
+
+- paper-local retrieval state/cache
+- chunk quality overhaul
+- provider/runtime speedups beyond instrumentation-ready design
+- dense retrieval by default
+- HyDE default behavior
+- main-app ↔ eval-app parity cleanup
+
+---
+
 ## Explicit MVP exclusions for this task list
 
 Do **not** add the following unless `spec.md` and `plan.md` are intentionally revised first:
@@ -1304,6 +1483,11 @@ Do **not** add the following unless `spec.md` and `plan.md` are intentionally re
 - unrestricted full-page vision on every page of every paper for every field
 - automated heterogeneous correctness scoring as the primary MVP evaluation metric
 - bundling a large dedicated evaluation framework or separate eval UI into the main app by default
+- retrieval-platform architecture creep, including persistent per-paper retrieval caches as baseline
+- opaque hidden policy planner logic for retrieval behavior
+- broad telemetry-platform rollout beyond narrow run-stats instrumentation
+- hybrid retrieval as implicit or default behavior
+- prompt-file sprawl without clear scope and ownership
 
 ---
 

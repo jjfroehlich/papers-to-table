@@ -2,7 +2,7 @@
 
 ## Status
 
-Updated: schema-first extraction, evidence-first review, truthful provider semantics, reviewer-workflow refinements including explicit export controls and fast-review navigation, and leakage-aware eval-mode artifacts
+Updated: schema-first extraction, evidence-first review, truthful provider semantics, reviewer-workflow refinements including explicit export controls and fast-review navigation, leakage-aware eval-mode artifacts, and a baseline-strengthening pass focused on config naming truth, measurement-first instrumentation, transparent retrieval heuristics, prompt externalization, and experimental hybrid retrieval benchmarking
 
 ## Summary
 
@@ -19,6 +19,30 @@ The product is designed for high-trust extraction workflows where proposed value
 The reviewer is reviewing what the paper supports, not grading the model, so the review workspace must keep paper evidence, reviewer judgment, and explicit curation outcomes primary.
 
 The review workspace must show actionable review items by default rather than every recorded pipeline outcome. Diagnostic-only outcomes such as unmatched rows, blocked extraction caused by missing or ambiguous paper matching, skipped cells outside Verify mode, or other non-reviewable pipeline results must remain visible through diagnostics and summaries, but they must not dominate the main proposal queue or inflate reviewer-facing counts.
+
+## Current baseline-strengthening priorities
+
+The next implementation pass should be framed as a narrow baseline-strengthening pass, not as a retrieval-platform rewrite.
+
+Priority order for that pass is:
+
+1. config and naming cleanup
+2. measurement-first timing and repeated-work instrumentation
+3. prompt externalization into dedicated prompt files
+4. small transparent schema-aware retrieval heuristics
+5. experimental hybrid retrieval benchmark path
+
+Guardrails for this pass:
+
+- keep the existing single deterministic staged extraction pipeline
+- do not introduce multi-agent orchestration
+- do not turn this into a retrieval platform
+- keep default behavior simple and quality-first for mostly digital scientific PDFs
+- keep lexical retrieval as baseline behavior
+- keep hybrid retrieval experimental and opt-in only
+- keep instrumentation narrow, structured, and inspectable rather than building a telemetry platform
+- keep retrieval heuristics transparent and inspectable rather than introducing hidden planner logic
+- avoid prompt sprawl; use a small intentional prompt-file structure
 
 ---
 
@@ -76,6 +100,10 @@ The browser UI is the normal operator-facing workflow surface for:
 The UI may expose the config path, resolved paths, active run mode (`normal`, `verify`, or `eval`), and provider/model context, but broad parameter editing in the UI is not an MVP requirement and must not become the default control surface.
 
 The checked-in config example, runtime config schema, README, and operator-visible UI terminology are part of one operator-facing contract. Names and meanings for provider, parser, model, Verify mode, Eval mode, and run-state settings must stay aligned across those surfaces. Operator docs should include at least one known-working LM Studio model example, clearly labeled as an example rather than as the only acceptable model choice.
+
+Config naming must describe actual implemented behavior rather than aspirational behavior. Canonical config names must be explicit and truthful for reproducibility, operator comprehension, and benchmark comparability.
+
+Every run must persist a resolved effective config artifact in run outputs. Compatibility aliases may be accepted pragmatically, but persisted artifacts and docs must use canonical names.
 
 ### Provider contract, readiness, and mode truth
 
@@ -293,6 +321,15 @@ That means:
 - Full multimodal reasoning on every page of every paper by default.
 - Headless or multi-user deployment as an MVP requirement.
 - Computing full automated benchmark metrics or retrieval-centric correctness scores inside the main app.
+
+### Explicitly deferred for this baseline-strengthening pass
+
+- paper-local retrieval state or cache architecture
+- broad chunk-quality overhaul
+- broad provider or runtime speedup work beyond instrumentation-ready design
+- dense retrieval as default behavior
+- HyDE default behavior
+- broad main-app versus eval-app artifact-contract cleanup beyond maintaining minimal eval-ready metadata
 
 ---
 
@@ -576,9 +613,21 @@ Long-text target fields must remain first-class extraction targets; the system m
 
 The first extraction pass should use focused retrieval by default. When that pass returns `unclear`, the system must use a bounded deterministic recall-rescue path: expanded retrieval, then section-level or full-text context when configured and justified.
 
+Lexical retrieval remains the baseline default path for MVP behavior and benchmark comparisons.
+
+Hybrid retrieval may be supported only as an experimental opt-in config mode for benchmark comparison. It must not become default behavior implicitly.
+
+The active retrieval mode (baseline lexical versus experimental hybrid) must be persisted in run artifacts and visible in run summaries so comparisons remain clean.
+
+The system may derive small schema-aware retrieval heuristics from column name and description, optionally assisted during style profiling, but final retrieval policy must remain coarse, explicit, and inspectable in persisted artifacts.
+
+Inputs for those heuristics remain column name and column description plus schema metadata already in scope. Additional user-facing schema burden is out of scope.
+
 The config may offer an optional whole-document mode for important fields when parsed text fits comfortably within the active model context, but that mode must remain optional and non-default.
 
 The system must not treat a syntactically completed extraction stage as functional proposal success if the active provider path was unreachable, stubbed, disabled, silently degraded, or otherwise unable to generate meaningful proposals.
+
+Important system prompts used by extraction-critical stages should be loaded from dedicated prompt files rather than only inline string literals. Prompt-file identity should remain inspectable and reproducible through run artifacts.
 
 ### FR-5 Proposal behavior and derived reasoning
 
@@ -752,7 +801,7 @@ The review workspace must also handle pre-review states well, including:
 
 In those pre-review states, the UI must explain whether the operator should start a run, wait for processing, inspect warnings, or inspect diagnostics, instead of only showing the absence of proposals.
 
-When a run is in `running`, the user-facing status surface should show coarse progress at the level of current pipeline stage plus current item when available. MVP does not require a full job monitor, resumable task graph, or fine-grained per-substep telemetry.
+When a run is in `running`, the user-facing status surface should show coarse progress at the level of current pipeline stage plus current item when available. MVP does not require a full job monitor or resumable task graph. Minimal structured stage and repeated-work timing stats are required for diagnosis, but broad telemetry-platform behavior is out of scope.
 
 Inspection of unmatched, ambiguous, and duplicate-row-conflict PDFs must remain available from the same review workspace, and it must identify at least the PDF name, match outcome, and rationale for the unresolved state.
 
@@ -944,6 +993,7 @@ The system must provide a normal user-facing run summary with at least:
 - provider mode for proposal generation, such as live local, live cloud, unavailable, disabled, or explicit degraded/demo mode
 - negotiated structured-output mode for extraction (`json_schema`, `json_object`, or `none`)
 - whether structured-output fallback was used
+- retrieval mode for the run (baseline lexical or experimental hybrid)
 - readiness or structured-capability failure reason when applicable
 - configured parser choice plus the actual parser identity or version used when available
 - schema hash or schema version plus config snapshot reference or config hash
@@ -951,6 +1001,22 @@ The system must provide a normal user-facing run summary with at least:
 - original gold-table and masked working-table provenance when Eval mode is enabled
 - whether processing stayed local or used cloud providers
 - reviewer-outcome summary when Verify mode is enabled
+
+In addition to summaries, the run must persist a compact structured run-stats artifact (or an equivalent small set of structured artifacts) for bottleneck and repeated-work diagnosis.
+
+The run-stats scope should stay intentionally narrow, manually inspectable, and benchmark-friendly.
+
+Target observability dimensions are:
+
+- per-run timing: `run_total_ms`, `stage_validating_ms`, `stage_matching_ms`, `stage_parsing_ms`, `stage_style_profiles_ms`, `stage_extraction_ms`
+- per-PDF timing and shape: `parse_pdf_ms`, `retrieval_prep_ms`, `pdf_cell_count`
+- per-cell timing: `retrieval_query_ms`, `text_model_ms`, `evidence_anchoring_ms`, conditional `figure_review_ms` when triggered, and `cell_total_ms`
+- run or PDF counters: `pdf_count`, `eligible_cell_count`, `cells_per_pdf`, `chunk_count_total`, and `chunk_count_by_type` for paragraph, section, caption, table_region, abstract, and list_item
+- retrieval counters: `retrieval_calls`, `retrieval_calls_per_pdf`, `chunk_build_count_per_pdf`, `idf_build_count_per_pdf`, `neighbor_chunks_added_count`
+- provider counters: `text_model_call_count`, `vision_model_call_count`, and existing `provider_request_counts` when present
+- evidence counters: `evidence_item_count`, `direct_quote_count`, `approximate_highlight_count`, `quote_plus_page_count`, `needs_more_evidence_count`, `recall_rescue_used_count`, `whole_document_used_count`, `figure_review_triggered_count`, `figure_derived_evidence_count`
+
+Implementation may roll out a practical subset first, but artifacts and naming should clearly target these dimensions so later expansion does not require redesign.
 
 Detailed logs and deeper diagnostics may exist as advanced outputs for development and troubleshooting.
 

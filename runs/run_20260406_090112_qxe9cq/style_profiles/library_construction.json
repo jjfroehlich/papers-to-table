@@ -1,0 +1,14 @@
+{
+  "column_name": "library construction",
+  "field_type_guess": "text",
+  "expected_length": "medium",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "sentence fragment",
+  "unit_style": null,
+  "format_notes": "Each entry is a descriptive phrase; no delimiters or units.",
+  "example_risk": "low",
+  "generated_at": "2026-04-06T09:03:30.963399+00:00",
+  "source_column_count": 22,
+  "provider_mode": "live_llm"
+}

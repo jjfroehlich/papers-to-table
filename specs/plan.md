@@ -2,7 +2,7 @@
 
 ## Status
 
-Updated: schema-first extraction, truthful provider semantics, reviewer-centered evidence workflow refinements including explicit export controls and fast-review navigation, and leakage-aware eval-mode planning
+Updated: schema-first extraction, truthful provider semantics, reviewer-centered evidence workflow refinements including explicit export controls and fast-review navigation, leakage-aware eval-mode planning, and a baseline-strengthening execution order centered on naming truth, measurement-first instrumentation, prompt externalization, transparent retrieval heuristics, and opt-in hybrid benchmarking
 
 ## Purpose
 
@@ -41,6 +41,31 @@ The intended implementation model for this repository is:
 - End-of-batch documentation updates are mandatory for operator-facing changes; `README.md` must trail implementation by zero batches, not by a later cleanup pass.
 - `README.md` and any other user-facing docs must only describe commands, config behavior, lifecycle states, review actions, downloads, exports, and limitations that exist in the implemented slice.
 - When operator docs describe LM Studio setup, include at least one verified model example while keeping the implementation contract open to stronger or newer models that satisfy the same interface.
+
+### Current execution priority for the next implementation pass
+
+For the next implementation pass, sequence work in this explicit order:
+
+1. config and naming cleanup with canonical truth in persisted artifacts
+2. narrow measurement-first instrumentation for stage timing and repeated-work diagnosis
+3. prompt externalization into dedicated prompt files
+4. small transparent schema-aware retrieval heuristics (inspectable policy, no hidden planner)
+5. experimental hybrid retrieval benchmark path (opt-in, baseline lexical unchanged)
+
+This remains one coherent deterministic pipeline pass, not a shift to multi-agent orchestration, retrieval-platform architecture, or telemetry-platform design.
+
+### Implementation reality snapshot (2026-04-06)
+
+Current code and run-artifact state relevant to this priority order:
+
+- implemented: resolved config snapshot persistence (`config.snapshot.json`) with resolved input context
+- implemented: lexical retrieval baseline path and persisted per-cell retrieval artifacts
+- implemented: prompt identity persistence (`prompt_hash`/`prompt_version`) and provider request counts
+- missing: truthful canonical retrieval naming cleanup (current config still uses `semantic_chunks`)
+- missing: structured run-stats timing and repeated-work instrumentation artifacts
+- missing: prompt externalization into dedicated prompt files
+- missing: explicit persisted retrieval-policy visibility fields beyond query text hints
+- missing: hybrid retrieval opt-in mode and explicit baseline-vs-hybrid run visibility
 
 ---
 
@@ -142,6 +167,15 @@ Implementation for this phase is complete when the system satisfies the function
 - No graph-first orchestration unless the workflow later clearly requires it.
 - No giant user-facing config surface.
 - No assumption that more fallback layers automatically improve the product.
+
+For the next baseline-strengthening pass, these items are explicitly deferred:
+
+- paper-local retrieval state or cache architecture
+- broad chunk-quality overhaul
+- broad provider/runtime speedup work beyond instrumentation-ready design
+- dense retrieval as default behavior
+- HyDE as default behavior
+- broad main-app versus eval-app artifact-contract cleanup
 
 ---
 
@@ -429,7 +463,7 @@ The system will consist of five major layers:
 4. **Parsing/retrieval/extraction layer**
    - parser adapters
    - low-level PDF rendering/anchoring
-   - retrieval/indexing
+   - retrieval assembly and context selection
    - extraction and proactive targeted figure review
 
 5. **Persistence layer**
@@ -495,6 +529,8 @@ Provider settings should follow one typed schema that covers at least:
 - explicit disabled or stub/demo mode only when intentionally supported
 
 Dead config keys should be removed rather than documented aspirationally. In particular, `retrieval.chunk_size` is not part of the canonical direction unless the runtime actually consumes it.
+
+Config names should reflect implemented behavior directly. Canonical naming should prefer operational truth over aspirational architecture language.
 
 The UI should not expose a large parameter-tuning surface in MVP. Advanced behavior is configured by editing the config file directly.
 
@@ -567,6 +603,7 @@ The MVP pipeline should run in these explicit stages:
    - generate typed chunks
    - generate contextualized retrieval text
    - generate table-aware retrieval units when available
+   - compute and persist narrow repeated-work counters for retrieval preparation and query work
    - keep retrieval simple by default; no reranking, HyDE, or query expansion in the baseline
 6. **Extract proposals per target cell**
     - gather row context, column definition, optional field type, style profile, and retrieved context
@@ -608,6 +645,12 @@ The MVP pipeline should run in these explicit stages:
    - confirmed-no-data
    - rejected
    - per-column breakdown
+13. **Persist narrow run-stats diagnostics**
+   - persist per-run stage timing totals
+   - persist per-PDF parse and retrieval-prep timing
+   - persist per-cell retrieval/model/evidence timing
+   - persist repeated-work counters for retrieval/chunk/IDF work and evidence-mode usage
+   - keep this artifact compact, structured, and manually inspectable
 
 This explicit stage list is the canonical implementation sequence for MVP.
 
@@ -996,6 +1039,12 @@ The default retrieval stack should be intentionally narrow:
 - no HyDE in the MVP baseline
 - no query expansion in the MVP baseline
 
+Lexical retrieval remains the baseline default behavior.
+
+Hybrid retrieval may be exposed only as an experimental opt-in benchmark mode. It must remain clearly non-default in config, artifacts, and summaries.
+
+Schema-aware retrieval heuristics should stay small and transparent. Heuristic decisions should be inspectable from persisted artifacts rather than hidden inside opaque planner logic.
+
 Advanced helpers must prove lift before becoming baseline behavior.
 
 ## Context strategy
@@ -1050,6 +1099,8 @@ The extraction model should receive, at minimum:
 - per-column style/format profile
 - retrieved evidence context
 - instructions for proposal state and evidence output
+
+Important system prompts for style profiling, extraction, and figure-review guidance should live in dedicated prompt files with a small intentional directory structure. Run artifacts should preserve prompt identity with enough prompt-file provenance for reproducibility.
 
 The extraction contract must remain valid when no style profile exists because the table or column had no filled examples.
 

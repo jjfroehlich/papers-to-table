@@ -17,14 +17,16 @@ import pathlib
 import re
 import unicodedata
 from datetime import datetime, timezone
+from time import perf_counter
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .artifacts import write_json
 
 _INVALID_FILENAME_CHARS = re.compile(r'[\\/:*?"<>|]')
 _COUNT_LIKE_PATTERN = re.compile(r"(^\s*#)|\b(how many|number|count|total|sample size|n\s*=)\b", re.IGNORECASE)
+SUPPORTED_RETRIEVAL_MODES = frozenset({"lexical", "hybrid_experimental"})
 
 
 def _safe_filename(name: str, max_len: int = 48) -> str:
@@ -66,9 +68,33 @@ class RetrievalResult(BaseModel):
     query: str
     top_k: int
     chunks: list[RetrievalChunk]
-    mode: str = "baseline"
+    mode: str = "lexical"
+    request_mode: str = "baseline"
+    policy: dict[str, object] = Field(default_factory=dict)
+    stats: dict[str, object] = Field(default_factory=dict)
     rescue_reason: Optional[str] = None
     retrieved_at: str
+
+
+class RetrievalPolicy(BaseModel):
+    query_mode: str = "lexical"
+    scoring_profile: str = "bm25_lite"
+    heuristic_tags: list[str] = Field(default_factory=list)
+    hint_terms: list[str] = Field(default_factory=list)
+
+
+class RetrievalStats(BaseModel):
+    chunk_build_ms: float = 0.0
+    idf_build_ms: float = 0.0
+    scoring_ms: float = 0.0
+    total_ms: float = 0.0
+    chunk_count_total: int = 0
+    chunk_count_by_type: dict[str, int] = Field(default_factory=dict)
+    candidate_chunk_count: int = 0
+    selected_chunk_count: int = 0
+    neighbor_chunk_count: int = 0
+    chunk_build_count: int = 1
+    idf_build_count: int = 1
 
 
 # ---------------------------------------------------------------------------
@@ -165,17 +191,13 @@ def _unique_terms(terms: list[str]) -> list[str]:
     return ordered
 
 
-def build_retrieval_query(column_name: str, column_description: str) -> str:
-    """Build a retrieval query with light field-aware expansion.
-
-    The expansion is intentionally lexical and conservative. It helps columns whose
-    user-facing wording does not closely match how papers describe the answer.
-    """
-    base_query = f"{column_name}: {column_description}".strip()
+def _build_retrieval_query_policy(column_name: str, column_description: str) -> RetrievalPolicy:
     combined = f"{column_name} {column_description}".lower()
     hints: list[str] = []
+    heuristic_tags: list[str] = []
 
     if _COUNT_LIKE_PATTERN.search(combined):
+        heuristic_tags.append("count_like")
         hints.extend([
             "count",
             "total",
@@ -190,6 +212,7 @@ def build_retrieval_query(column_name: str, column_description: str) -> str:
         ])
 
     if re.search(r"\b(variant|variants|sequence|sequences|pair|pairs|barcode|barcodes|construct|constructs|plasmid|plasmids|element|elements)\b", combined):
+        heuristic_tags.append("variant_or_sequence")
         hints.extend([
             "sequences",
             "pairs",
@@ -199,6 +222,7 @@ def build_retrieval_query(column_name: str, column_description: str) -> str:
         ])
 
     if re.search(r"\b(episomal|ori|origin of replication|backbone|vector)\b", combined):
+        heuristic_tags.append("vector_or_backbone")
         hints.extend([
             "episomal",
             "plasmid",
@@ -210,6 +234,7 @@ def build_retrieval_query(column_name: str, column_description: str) -> str:
         ])
 
     if re.search(r"\b(clon|library|design|construct|assay format|readout)\b", combined):
+        heuristic_tags.append("methods_or_library")
         hints.extend([
             "methods",
             "design",
@@ -219,10 +244,34 @@ def build_retrieval_query(column_name: str, column_description: str) -> str:
         ])
 
     hint_terms = _unique_terms(hints)
+    return RetrievalPolicy(
+        query_mode="lexical_with_hints" if hint_terms else "lexical",
+        heuristic_tags=heuristic_tags,
+        hint_terms=hint_terms,
+    )
+
+
+def build_retrieval_query(column_name: str, column_description: str) -> str:
+    """Build a retrieval query with light field-aware expansion.
+
+    The expansion is intentionally lexical and conservative. It helps columns whose
+    user-facing wording does not closely match how papers describe the answer.
+    """
+    base_query = f"{column_name}: {column_description}".strip()
+    hint_terms = _build_retrieval_query_policy(column_name, column_description).hint_terms
     if not hint_terms:
         return base_query
 
     return f"{base_query}\nRetrieval hints: {' '.join(hint_terms)}"
+
+
+def _build_retrieval_query_with_policy(
+    column_name: str,
+    column_description: str,
+) -> tuple[str, RetrievalPolicy]:
+    policy = _build_retrieval_query_policy(column_name, column_description)
+    query = build_retrieval_query(column_name, column_description)
+    return query, policy
 
 
 def _build_idf(chunks: list[RetrievalChunk]) -> dict[str, float]:
@@ -262,24 +311,67 @@ def _bm25_score(
     return score
 
 
-def score_chunks(query: str, chunks: list[RetrievalChunk]) -> list[tuple[float, RetrievalChunk]]:
-    """BM25-lite scoring of chunks against a query."""
+def _coverage_score(query_terms: list[str], chunk_text: str) -> float:
+    if not query_terms:
+        return 0.0
+    query_vocab = set(query_terms)
+    chunk_vocab = set(_tokenize(chunk_text))
+    if not chunk_vocab:
+        return 0.0
+    return len(query_vocab & chunk_vocab) / len(query_vocab)
+
+
+def _score_chunks_with_metadata(
+    query: str,
+    chunks: list[RetrievalChunk],
+    retrieval_mode: str = "lexical",
+) -> tuple[list[tuple[float, RetrievalChunk]], dict[str, float]]:
     if not chunks:
-        return []
+        return [], {"idf_build_ms": 0.0, "scoring_ms": 0.0}
+
+    if retrieval_mode not in SUPPORTED_RETRIEVAL_MODES:
+        retrieval_mode = "lexical"
 
     query_terms = _tokenize(query)
     if not query_terms:
-        return [(0.0, c) for c in chunks]
+        return [(0.0, c) for c in chunks], {"idf_build_ms": 0.0, "scoring_ms": 0.0}
 
+    idf_started = perf_counter()
     idf = _build_idf(chunks)
+    idf_build_ms = (perf_counter() - idf_started) * 1000.0
     total_len = sum(len(_tokenize(c.retrieval_text)) for c in chunks)
     avgdl = total_len / len(chunks) if chunks else 100.0
 
-    scored = [
+    scoring_started = perf_counter()
+    base_scores = [
         (_bm25_score(query_terms, c.retrieval_text, idf, avgdl=avgdl), c)
         for c in chunks
     ]
+    if retrieval_mode == "hybrid_experimental":
+        max_bm25 = max((score for score, _ in base_scores), default=0.0)
+        scored = []
+        for bm25_score, chunk in base_scores:
+            bm25_component = (bm25_score / max_bm25) if max_bm25 > 0 else 0.0
+            coverage_component = _coverage_score(query_terms, chunk.retrieval_text)
+            scored.append(((bm25_component * 0.7) + (coverage_component * 0.3), chunk))
+    else:
+        scored = base_scores
+
     scored.sort(key=lambda x: -x[0])
+    scoring_ms = (perf_counter() - scoring_started) * 1000.0
+    return scored, {
+        "idf_build_ms": round(idf_build_ms, 3),
+        "scoring_ms": round(scoring_ms, 3),
+    }
+
+
+def score_chunks(
+    query: str,
+    chunks: list[RetrievalChunk],
+    retrieval_mode: str = "lexical",
+) -> list[tuple[float, RetrievalChunk]]:
+    """Score chunks against a query using the configured retrieval mode."""
+    scored, _metadata = _score_chunks_with_metadata(query, chunks, retrieval_mode=retrieval_mode)
     return scored
 
 
@@ -330,15 +422,16 @@ def _add_neighbor_window(
 # Main retrieval entry point (T047)
 # ---------------------------------------------------------------------------
 
-def retrieve(
+def _retrieve_with_metadata(
     query: str,
     doc_dict: dict,
     top_k: int = 6,
     include_captions: bool = True,
     include_tables: bool = True,
     include_neighbor_window: bool = True,
-) -> list[RetrievalChunk]:
-    """Retrieve top-k relevant chunks from a ParsedDocument dict.
+    retrieval_mode: str = "lexical",
+) -> tuple[list[RetrievalChunk], RetrievalStats]:
+    """Retrieve top-k relevant chunks from a ParsedDocument dict with stats.
 
     T047:
     - top_k = 6 default
@@ -346,9 +439,16 @@ def retrieve(
     - one neighbor window added per selected chunk
     - NO reranking, HyDE, or query expansion in MVP baseline
     """
+    total_started = perf_counter()
+    chunk_started = perf_counter()
     all_chunks = build_chunks_from_parsed_doc(doc_dict)
+    chunk_build_ms = (perf_counter() - chunk_started) * 1000.0
     if not all_chunks:
-        return []
+        return [], RetrievalStats(chunk_build_ms=round(chunk_build_ms, 3), total_ms=round((perf_counter() - total_started) * 1000.0, 3))
+
+    chunk_count_by_type: dict[str, int] = {}
+    for chunk in all_chunks:
+        chunk_count_by_type[chunk.chunk_type] = chunk_count_by_type.get(chunk.chunk_type, 0) + 1
 
     # Filter to relevant chunk types
     allowed_types = {"paragraph", "section", "abstract", "list_item"}
@@ -361,7 +461,11 @@ def retrieve(
     if not candidate_chunks:
         candidate_chunks = all_chunks
 
-    scored = score_chunks(query, candidate_chunks)
+    scored, scoring_meta = _score_chunks_with_metadata(
+        query,
+        candidate_chunks,
+        retrieval_mode=retrieval_mode,
+    )
     top_chunks = [chunk for _, chunk in scored[:top_k]]
     selected_ids = {c.chunk_id for c in top_chunks}
 
@@ -370,7 +474,43 @@ def retrieve(
     else:
         result = sorted(top_chunks, key=lambda c: (c.page_number, c.reading_order))
 
-    return result
+    neighbor_chunk_count = sum(1 for chunk in result if chunk.is_neighbor)
+    stats = RetrievalStats(
+        chunk_build_ms=round(chunk_build_ms, 3),
+        idf_build_ms=scoring_meta["idf_build_ms"],
+        scoring_ms=scoring_meta["scoring_ms"],
+        total_ms=round((perf_counter() - total_started) * 1000.0, 3),
+        chunk_count_total=len(all_chunks),
+        chunk_count_by_type=chunk_count_by_type,
+        candidate_chunk_count=len(candidate_chunks),
+        selected_chunk_count=len(top_chunks),
+        neighbor_chunk_count=neighbor_chunk_count,
+        chunk_build_count=1,
+        idf_build_count=1,
+    )
+    return result, stats
+
+
+def retrieve(
+    query: str,
+    doc_dict: dict,
+    top_k: int = 6,
+    include_captions: bool = True,
+    include_tables: bool = True,
+    include_neighbor_window: bool = True,
+    retrieval_mode: str = "lexical",
+) -> list[RetrievalChunk]:
+    """Retrieve top-k relevant chunks from a ParsedDocument dict."""
+    chunks, _stats = _retrieve_with_metadata(
+        query,
+        doc_dict,
+        top_k=top_k,
+        include_captions=include_captions,
+        include_tables=include_tables,
+        include_neighbor_window=include_neighbor_window,
+        retrieval_mode=retrieval_mode,
+    )
+    return chunks
 
 
 # ---------------------------------------------------------------------------
@@ -424,10 +564,17 @@ def run_retrieval_for_cell(
     top_k: int = 6,
     mode: str = "baseline",
     rescue_reason: Optional[str] = None,
+    retrieval_mode: str = "lexical",
 ) -> RetrievalResult:
     """Build and persist retrieval result for one (pdf, column) pair."""
-    query = build_retrieval_query(column_name, column_description)
-    chunks = retrieve(query, doc_dict, top_k=top_k)
+    query, policy = _build_retrieval_query_with_policy(column_name, column_description)
+    chunks, stats = _retrieve_with_metadata(
+        query,
+        doc_dict,
+        top_k=top_k,
+        retrieval_mode=retrieval_mode,
+    )
+    scoring_profile = "bm25_plus_token_coverage" if retrieval_mode == "hybrid_experimental" else "bm25_lite"
     result = RetrievalResult(
         run_id=run_id,
         pdf_id=pdf_id,
@@ -435,7 +582,10 @@ def run_retrieval_for_cell(
         query=query,
         top_k=top_k,
         chunks=chunks,
-        mode=mode,
+        mode=retrieval_mode,
+        request_mode=mode,
+        policy=policy.model_copy(update={"scoring_profile": scoring_profile}).model_dump(),
+        stats=stats.model_dump(),
         rescue_reason=rescue_reason,
         retrieved_at=datetime.now(timezone.utc).isoformat(),
     )

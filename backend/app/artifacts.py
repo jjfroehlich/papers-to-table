@@ -47,6 +47,10 @@ def get_run_summary_path(output_dir: str, run_id: str) -> pathlib.Path:
     return get_run_dir(output_dir, run_id) / "summaries" / "run_summary.json"
 
 
+def get_run_stats_path(output_dir: str, run_id: str) -> pathlib.Path:
+    return get_run_dir(output_dir, run_id) / "summaries" / "run_stats.json"
+
+
 def get_reviewer_summary_path(output_dir: str, run_id: str) -> pathlib.Path:
     return get_run_dir(output_dir, run_id) / "summaries" / "reviewer_summary.json"
 

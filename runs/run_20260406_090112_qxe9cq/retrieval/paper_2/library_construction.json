@@ -1,0 +1,423 @@
+{
+  "run_id": "run_20260406_090112_qxe9cq",
+  "pdf_id": "paper_2",
+  "column_name": "library construction",
+  "query": "library construction: How the MPRA library is cloned and prepare (before delivering it to the cells)\nRetrieval hints: methods design library cloning construct",
+  "top_k": 10,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_2_p10_146",
+      "source_block_id": "paper_2_p10_146",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 146,
+      "display_text": "We designed ExP STARR-seq to systematically measure the intrinsic, sequence-encoded compatibility or specificity of many pairs of human enhancer and promoter sequences. The key design features we considered when developing this assay were the ability to measure the activity of individual enhancer-promoter sequence combinations, to precisely quantify the expression of each enhancer-promoter pair and to test hundreds of thousands of combinations to identify patterns of compatibility or specificity across a large number of human sequences.",
+      "retrieval_text": "[Section: Design of ExP STARR-seq] We designed ExP STARR-seq to systematically measure the intrinsic, sequence-encoded compatibility or specificity of many pairs of human enhancer and promoter sequences. The key design features we considered when developing this assay were the ability to measure the activity of individual enhancer-promoter sequence combinations, to precisely quantify the expression of each enhancer-promoter pair and to test hundreds of thousands of combinations to identify patterns of compatibility or specificity across a large number of human sequences.",
+      "bbox": [
+        39.68500137,
+        666.0569306620313,
+        296.3959299489973,
+        583.1502242170313
+      ],
+      "provenance": "docling",
+      "section_context": "Design of ExP STARR-seq",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_147",
+      "source_block_id": "paper_2_p10_147",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 147,
+      "display_text": "Accordingly,  we  designed  a  new  variant  of  the  STARR-seq high-throughput plasmid reporter assay called ExP STARR-seq. In both STARR-seq and ExP STARR-seq, enhancer sequences are cloned downstream of a promoter, transfected into cells and transcribed to produce a reporter mRNA transcript, which is then sequenced to quantify the relative expression levels of plasmids containing different enhancer sequences 13 . In ExP STARR-seq, we modified the cloning and RNA-seq strategy to enable testing of different enhancer sequences in combination with different promoter sequences.",
+      "retrieval_text": "[Section: Design of ExP STARR-seq] Accordingly,  we  designed  a  new  variant  of  the  STARR-seq high-throughput plasmid reporter assay called ExP STARR-seq. In both STARR-seq and ExP STARR-seq, enhancer sequences are cloned downstream of a promoter, transfected into cells and transcribed to produce a reporter mRNA transcript, which is then sequenced to quantify the relative expression levels of plasmids containing different enhancer sequences 13 . In ExP STARR-seq, we modified the cloning and RNA-seq strategy to enable testing of different enhancer sequences in combination with different promoter sequences.",
+      "bbox": [
+        39.68500137,
+        580.0568085920313,
+        296.3805921073868,
+        486.40034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Design of ExP STARR-seq",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_148",
+      "source_block_id": "paper_2_p10_148",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 148,
+      "display_text": "To clone combinations of enhancer and promoter sequences into a reporter plasmid, we synthesized 264 bp enhancer and promoter sequences in an oligonucleotide pool format, PCR amplified enhancer and promoter sequences separately and inserted them into the hSTARR-seq_SCP1 vector_blocking 4 vector 17 in the promoter position (replacing the original SCP1 promoter) or enhancer position in a single pooled cloning step using Gibson assembly to generate all pairwise combinations of chosen enhancer and promoter sequences (Fig. 1a and Extended Data Fig. 1a). We chose this specific STARR-seq vector with four polyA sequences upstream of the promoter position because it was specifically designed to avoid spurious transcription initiation from the origin of replication 17 , which would interfere with the STARR-seq signal from the cloned enhancer-promoter pairs. This STARR-seq vector also includes 5′ and 3′ splice sites upstream of the enhancer that allows the use of a PCR primer that targets the splice junction to specifically amplify cDNA derived from the reporter mRNA while avoiding amplifying the plasmid DNA sequence.",
+      "retrieval_text": "[Section: Design of ExP STARR-seq] To clone combinations of enhancer and promoter sequences into a reporter plasmid, we synthesized 264 bp enhancer and promoter sequences in an oligonucleotide pool format, PCR amplified enhancer and promoter sequences separately and inserted them into the hSTARR-seq_SCP1 vector_blocking 4 vector 17 in the promoter position (replacing the original SCP1 promoter) or enhancer position in a single pooled cloning step using Gibson assembly to generate all pairwise combinations of chosen enhancer and promoter sequences (Fig. 1a and Extended Data Fig. 1a). We chose this specific STARR-seq vector with four polyA sequences upstream of the promoter position because it was specifically designed to avoid spurious transcription initiation from the origin of replication 17 , which would interfere with the STARR-seq signal from the cloned enhancer-promoter pairs. This STARR-seq vector also includes 5′ and 3′ splice sites upstream of the enhancer that allows the use of a PCR primer that targets the splice junction to specifically amplify cDNA derived from the reporter mRNA while avoiding amplifying the plasmid DNA sequence.",
+      "bbox": [
+        39.68500137,
+        483.3069306620313,
+        296.40434591770565,
+        303.65034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Design of ExP STARR-seq",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_149",
+      "source_block_id": "paper_2_p10_149",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 149,
+      "display_text": "To quantify the reporter mRNA transcripts and determine which enhancer-promoter pair they correspond to, we further adapted the cloning and RNA-seq design. In the standard STARR-seq assay, the reporter mRNA contains the enhancer sequence but not the full promoter sequence, and therefore it cannot determine from which promoter a given reporter mRNA is derived. Accordingly, in ExP STARR-seq we introduced a random 16-mer sequence located immediately upstream of the enhancer sequence that we use as a plasmid barcode to identify which enhancer reporter mRNAs are derived from which enhancer-promoter pairs (Fig. 1a). After cloning the plasmid pool, we mapped which plasmid barcodes correspond to which promoters by applying Illumina high-throughput sequencing to a PCR amplicon that contains the promoter sequence and plasmid barcode. From this, we built a dictionary to look up, for a given reporter mRNA containing a plasmid barcode and enhancer sequence, which enhancer-promoterplasmid barcode construct that mRNA is derived from.",
+      "retrieval_text": "[Section: Design of ExP STARR-seq] To quantify the reporter mRNA transcripts and determine which enhancer-promoter pair they correspond to, we further adapted the cloning and RNA-seq design. In the standard STARR-seq assay, the reporter mRNA contains the enhancer sequence but not the full promoter sequence, and therefore it cannot determine from which promoter a given reporter mRNA is derived. Accordingly, in ExP STARR-seq we introduced a random 16-mer sequence located immediately upstream of the enhancer sequence that we use as a plasmid barcode to identify which enhancer reporter mRNAs are derived from which enhancer-promoter pairs (Fig. 1a). After cloning the plasmid pool, we mapped which plasmid barcodes correspond to which promoters by applying Illumina high-throughput sequencing to a PCR amplicon that contains the promoter sequence and plasmid barcode. From this, we built a dictionary to look up, for a given reporter mRNA containing a plasmid barcode and enhancer sequence, which enhancer-promoterplasmid barcode construct that mRNA is derived from.",
+      "bbox": [
+        39.68500137,
+        300.5569306620313,
+        296.3953385218614,
+        131.6503462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Design of ExP STARR-seq",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_150",
+      "source_block_id": "paper_2_p10_150",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 150,
+      "display_text": "Finally, we selected the number of constructed tested (about 1 million pairs of enhancer and promoter sequences cloned, with an average of 6.3 plasmid barcodes per pair) and sequencing depth (>1 billion reads per replicate) to enable highly precise measurements of expression for each enhancer-promoter pair. We obtained high reproducibility of enhancer-promoter expression levels between biological replicates ( R 2 = 0.92), allowing us to develop quantitative models of how enhancer and promoter activities combine.",
+      "retrieval_text": "[Section: Design of ExP STARR-seq] Finally, we selected the number of constructed tested (about 1 million pairs of enhancer and promoter sequences cloned, with an average of 6.3 plasmid barcodes per pair) and sequencing depth (>1 billion reads per replicate) to enable highly precise measurements of expression for each enhancer-promoter pair. We obtained high reproducibility of enhancer-promoter expression levels between biological replicates ( R 2 = 0.92), allowing us to develop quantitative models of how enhancer and promoter activities combine.",
+      "bbox": [
+        39.68500137,
+        128.55693066203128,
+        296.3608401713342,
+        45.65034246703124
+      ],
+      "provenance": "docling",
+      "section_context": "Design of ExP STARR-seq",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_166",
+      "source_block_id": "paper_2_p10_166",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 166,
+      "display_text": "All enhancer sequences were taken from the hg19 reference in the positive strand direction.",
+      "retrieval_text": "[Section: Selection of enhancer and promoter sequences for ExP STARR-seq] All enhancer sequences were taken from the hg19 reference in the positive strand direction.",
+      "bbox": [
+        306.14181518,
+        107.05693066203128,
+        562.7425529249545,
+        88.6503462870312
+      ],
+      "provenance": "docling",
+      "section_context": "Selection of enhancer and promoter sequences for ExP STARR-seq",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_167",
+      "source_block_id": "paper_2_p10_167",
+      "chunk_type": "section",
+      "page_number": 10,
+      "reading_order": 167,
+      "display_text": "Library cloning",
+      "retrieval_text": "Library cloning",
+      "bbox": [
+        306.14181518,
+        75.98743066203122,
+        367.77871517983004,
+        68.10790423716082
+      ],
+      "provenance": "docling",
+      "section_context": "Library cloning",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_168",
+      "source_block_id": "paper_2_p10_168",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 168,
+      "display_text": "We ordered 264 bp sequences in an oligonucleotide array format from Twist Bioscience with separate pairs of 18 bp adaptors (total length of",
+      "retrieval_text": "[Section: Library cloning] We ordered 264 bp sequences in an oligonucleotide array format from Twist Bioscience with separate pairs of 18 bp adaptors (total length of",
+      "bbox": [
+        306.14181518,
+        64.05692684203132,
+        562.7560070066884,
+        45.65034246703124
+      ],
+      "provenance": "docling",
+      "section_context": "Library cloning",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p11_169",
+      "source_block_id": "paper_2_p11_169",
+      "chunk_type": "section",
+      "page_number": 11,
+      "reading_order": 169,
+      "display_text": "Article",
+      "retrieval_text": "Article",
+      "bbox": [
+        39.68500137,
+        762.4145463820312,
+        82.46900137000003,
+        749.4215547153646
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p11_178",
+      "source_block_id": "paper_2_p11_178",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 178,
+      "display_text": "We maintained K562 erythroleukaemia cells (American Type Culture Collection) at a density between 100,000 and 1,000,000 cells per ml in RPMI-1640 (Thermo Fisher Scientific) with 10% heat-inactivated FBS, 2 mM L-glutamine and 100 units per ml streptomycin and 100 mg ml -1 penicillin by diluting cells 1:8 in fresh medium every 3 days. Cell lines were regularly tested for mycoplasma and authenticated through analysis of RNA-seq and ATAC-seq data.",
+      "retrieval_text": "[Section: Cell culture] We maintained K562 erythroleukaemia cells (American Type Culture Collection) at a density between 100,000 and 1,000,000 cells per ml in RPMI-1640 (Thermo Fisher Scientific) with 10% heat-inactivated FBS, 2 mM L-glutamine and 100 units per ml streptomycin and 100 mg ml -1 penicillin by diluting cells 1:8 in fresh medium every 3 days. Cell lines were regularly tested for mycoplasma and authenticated through analysis of RNA-seq and ATAC-seq data.",
+      "bbox": [
+        306.14169311,
+        676.8069306620313,
+        562.8222889984446,
+        604.6502242170313
+      ],
+      "provenance": "docling",
+      "section_context": "Cell culture",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p11_179",
+      "source_block_id": "paper_2_p11_179",
+      "chunk_type": "section",
+      "page_number": 11,
+      "reading_order": 179,
+      "display_text": "Library transfection",
+      "retrieval_text": "Library transfection",
+      "bbox": [
+        306.14169311,
+        591.9873085920312,
+        387.17559310983006,
+        584.1077821671608
+      ],
+      "provenance": "docling",
+      "section_context": "Library transfection",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p11_180",
+      "source_block_id": "paper_2_p11_180",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 180,
+      "display_text": "We nucleofected 10 million K562 cells with 15 μg of the ExP plasmid library in 100 μl cuvettes with a Lonza 4D-Nucleofector using settings and protocols specified by the manufacturer for K562 cells (T-016). We pooled 5 nucleofections together during recovery to form 50 million cell biological transfection replicates and generated 4 replicates for a total of 200 million cells. After 24 h, we collected the cells in Qiagen buffer RLT (79216) and proceeded with STARR-seq library preparation. For the motif ExP STARR-seq experiment, we collected 6.5-10 million nucleofected cells per replicate.",
+      "retrieval_text": "[Section: Library transfection] We nucleofected 10 million K562 cells with 15 μg of the ExP plasmid library in 100 μl cuvettes with a Lonza 4D-Nucleofector using settings and protocols specified by the manufacturer for K562 cells (T-016). We pooled 5 nucleofections together during recovery to form 50 million cell biological transfection replicates and generated 4 replicates for a total of 200 million cells. After 24 h, we collected the cells in Qiagen buffer RLT (79216) and proceeded with STARR-seq library preparation. For the motif ExP STARR-seq experiment, we collected 6.5-10 million nucleofected cells per replicate.",
+      "bbox": [
+        306.14169311,
+        580.0568085920313,
+        562.8226111446842,
+        486.40059653453125
+      ],
+      "provenance": "docling",
+      "section_context": "Library transfection",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p11_181",
+      "source_block_id": "paper_2_p11_181",
+      "chunk_type": "section",
+      "page_number": 11,
+      "reading_order": 181,
+      "display_text": "STARR-seq library preparation",
+      "retrieval_text": "STARR-seq library preparation",
+      "bbox": [
+        306.14169311,
+        473.7374306620313,
+        428.4218431066849,
+        465.8579042371608
+      ],
+      "provenance": "docling",
+      "section_context": "STARR-seq library preparation",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p11_182",
+      "source_block_id": "paper_2_p11_182",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 182,
+      "display_text": "We proceeded with STARR-seq library preparation using an adapted protocol 13 . We split the 50 million cell transfection replicates in half and extracted total RNA using three Qiagen RNeasy mini columns (74134), performing the on-column DNase step. We isolated polyA+ mRNA using a Qiagen Oligotex mRNA kit for the 1,000 × 1,000 ExP dataset (note this kit has been discontinued, we now use the Poly(A) Purist MAG kit from Thermo Fisher Scientific, AM1922). Following mRNA elution, TURBO DNase (Thermo Fisher Scientific, AM2238) was added in 100 μl reactions and incubated at 37 °C for 30 min, then another 2 μl of TURBO DNase was added and incubated at 37 °C for 15 min. We purified the RNA following DNA digestion with Zymo RNA Clean & Concentrator 5 (R1013) (R1018 for the motif ExP STARR-seq experiment). We reverse-transcribed the polyA+ mRNA using Thermo SuperScriptIV using the STARR_RT primer (CAAACTCATCAATGTATCT TATCATG) in 20 μl reactions according to the manufacturer's recommendations. We included 1 μl of the ribonuclease inhibitor RNaseOUT (Invitrogen, 10777019). Following reverse transcription, we added 1 μl of RNaseH (Thermo Fisher Scientific, EN0201) and incubated at 37 °C for 20 min. We purified the cDNA with 1.8× volume of AMPure XP beads. We selectively amplified the reporter transcript using intron-spanning junction primers with Q5 polymerase in 50 μl reactions (98 °C for 45 s; 15 cycles of 98 °C for 15 s, 65 °C for 30 s and 72 °C for 70 s, jPCR_fwd: TCGTGAGGCACTGGGCAG*G*T*G*T*C, jPCR_rev: CTTATCATGTCTGCTCGA*A*G*C, where the asterisk represents phosphorothioate bonds). Following purifications with 0.8× volume of AMPure XP beads, we performed a test final sequencing-ready PCR with a dilution of the junction PCR product to determine the optimal cycle number, then proceeded with the final PCR using Q5 polymerase in 50 μl reactions (98 °C for 45 s; about 9 cycles of 98 °C for 10 s, 65 °C for 30 s and 72 °C for 30 s, ExP_GFP_fwd_I2: AATGATACGGCGACCACC GAGATCTACAC[index-2]GGCTTAAGCATGGCTAGCAAAG, ExP_P4_rev: CAAGCAGAAGACGGCATACGAGATTCATTCCATGGCATCTCACG. For the 1,000 × 1,000 ExP STARR-seq experiment, we purified the final libraries with 2 rounds of 0.8× volume of SPRISelect (Beckman Coulter, B23318) (1 round of 0.7× SPRISelect for the motif ExP STARR-seq experiment).",
+      "retrieval_text": "[Section: STARR-seq library preparation] We proceeded with STARR-seq library preparation using an adapted protocol 13 . We split the 50 million cell transfection replicates in half and extracted total RNA using three Qiagen RNeasy mini columns (74134), performing the on-column DNase step. We isolated polyA+ mRNA using a Qiagen Oligotex mRNA kit for the 1,000 × 1,000 ExP dataset (note this kit has been discontinued, we now use the Poly(A) Purist MAG kit from Thermo Fisher Scientific, AM1922). Following mRNA elution, TURBO DNase (Thermo Fisher Scientific, AM2238) was added in 100 μl reactions and incubated at 37 °C for 30 min, then another 2 μl of TURBO DNase was added and incubated at 37 °C for 15 min. We purified the RNA following DNA digestion with Zymo RNA Clean & Concentrator 5 (R1013) (R1018 for the motif ExP STARR-seq experiment). We reverse-transcribed the polyA+ mRNA using Thermo SuperScriptIV using the STARR_RT primer (CAAACTCATCAATGTATCT TATCATG) in 20 μl reactions according to the manufacturer's recommendations. We included 1 μl of the ribonuclease inhibitor RNaseOUT (Invitrogen, 10777019). Following reverse transcription, we added 1 μl of RNaseH (Thermo Fisher Scientific, EN0201) and incubated at 37 °C for 20 min. We purified the cDNA with 1.8× volume of AMPure XP beads. We selectively amplified the reporter transcript using intron-spanning junction primers with Q5 polymerase in 50 μl reactions (98 °C for 45 s; 15 cycles of 98 °C for 15 s, 65 °C for 30 s and 72 °C for 70 s, jPCR_fwd: TCGTGAGGCACTGGGCAG*G*T*G*T*C, jPCR_rev: CTTATCATGTCTGCTCGA*A*G*C, where the asterisk represents phosphorothioate bonds). Following purifications with 0.8× volume of AMPure XP beads, we performed a test final sequencing-ready PCR with a dilution of the junction PCR product to determine the optimal cycle number, then proceeded with the final PCR using Q5 polymerase in 50 μl reactions (98 °C for 45 s; about 9 cycles of 98 °C for 10 s, 65 °C for 30 s and 72 °C for 30 s, ExP_GFP_fwd_I2: AATGATACGGCGACCACC GAGATCTACAC[index-2]GGCTTAAGCATGGCTAGCAAAG, ExP_P4_rev: CAAGCAGAAGACGGCATACGAGATTCATTCCATGGCATCTCACG. For the 1,000 × 1,000 ExP STARR-seq experiment, we purified the final libraries with 2 rounds of 0.8× volume of SPRISelect (Beckman Coulter, B23318) (1 round of 0.7× SPRISelect for the motif ExP STARR-seq experiment).",
+      "bbox": [
+        306.14169311,
+        461.8069306620313,
+        562.8409834813318,
+        88.6503462870312
+      ],
+      "provenance": "docling",
+      "section_context": "STARR-seq library preparation",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_248",
+      "source_block_id": "paper_2_p14_248",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 248,
+      "display_text": "Analysis of variance (ANOVA) results were computed on the basis of intrinsic activities, and represent the sequential sum of squares (type I ANOVA) analyses. For example, in Extended Data Fig. 2j,k, we calculated the proportion of variance explained by promoters, the proportion of variance explained by enhancers after controlling for promoter activity, the proportion of variance explained by class interactions after controlling for promoter and enhancer activity, and, finally, any remaining variance.",
+      "retrieval_text": "[Section: Analysis of variance] Analysis of variance (ANOVA) results were computed on the basis of intrinsic activities, and represent the sequential sum of squares (type I ANOVA) analyses. For example, in Extended Data Fig. 2j,k, we calculated the proportion of variance explained by promoters, the proportion of variance explained by enhancers after controlling for promoter activity, the proportion of variance explained by class interactions after controlling for promoter and enhancer activity, and, finally, any remaining variance.",
+      "bbox": [
+        306.14169311,
+        171.55693066203128,
+        562.8454270364433,
+        88.65059653453125
+      ],
+      "provenance": "docling",
+      "section_context": "Analysis of variance",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_249",
+      "source_block_id": "paper_2_p14_249",
+      "chunk_type": "section",
+      "page_number": 14,
+      "reading_order": 249,
+      "display_text": "Motif ExP STARR-seq library design",
+      "retrieval_text": "Motif ExP STARR-seq library design",
+      "bbox": [
+        306.14169311,
+        75.98743066203122,
+        446.36449310966003,
+        68.10790423716082
+      ],
+      "provenance": "docling",
+      "section_context": "Motif ExP STARR-seq library design",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_250",
+      "source_block_id": "paper_2_p14_250",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 250,
+      "display_text": "For the motif-insertion experiment, we selected 15 promoters from the P1 and P2 promoter clusters that had also been previously studied 22 ,",
+      "retrieval_text": "[Section: Motif ExP STARR-seq library design] For the motif-insertion experiment, we selected 15 promoters from the P1 and P2 promoter clusters that had also been previously studied 22 ,",
+      "bbox": [
+        306.14169311,
+        64.05692684203132,
+        562.72215436942,
+        45.65034246703124
+      ],
+      "provenance": "docling",
+      "section_context": "Motif ExP STARR-seq library design",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_251",
+      "source_block_id": "paper_2_p15_251",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 251,
+      "display_text": "Article",
+      "retrieval_text": "Article",
+      "bbox": [
+        39.68500137,
+        762.4145463820312,
+        82.46900137000003,
+        749.4215547153646
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_272",
+      "source_block_id": "paper_2_p15_272",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 272,
+      "display_text": "Code for fitting the multiplicative ExP model is available at https://doi. org/10.5281/zenodo.6514733 or https://github.com/broadinstitute/ ExP-model-fit.",
+      "retrieval_text": "[Section: Code availability] Code for fitting the multiplicative ExP model is available at https://doi. org/10.5281/zenodo.6514733 or https://github.com/broadinstitute/ ExP-model-fit.",
+      "bbox": [
+        306.14181518,
+        128.55693066203128,
+        561.3709789646083,
+        99.4003462870312
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_273",
+      "source_block_id": "paper_2_p15_273",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 273,
+      "display_text": "49. Wang, T., Lander, E. S. & Sabatini, D. M. Large-scale single guide RNA library construction and use for CRISPR-Cas9-based genetic screens. Cold Spring Harb. Protoc. 2016 , db.top086892 (2016).",
+      "retrieval_text": "[Section: Code availability] 49. Wang, T., Lander, E. S. & Sabatini, D. M. Large-scale single guide RNA library construction and use for CRISPR-Cas9-based genetic screens. Cold Spring Harb. Protoc. 2016 , db.top086892 (2016).",
+      "bbox": [
+        306.14181518,
+        83.78873083203132,
+        559.9418150600006,
+        62.495410557314244
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_274",
+      "source_block_id": "paper_2_p15_274",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 274,
+      "display_text": "50. Engreitz, J. M. et al. Local regulation of gene expression by lncRNA promoters, transcription and splicing. Nature 539 , 452-455 (2016).",
+      "retrieval_text": "[Section: Code availability] 50. Engreitz, J. M. et al. Local regulation of gene expression by lncRNA promoters, transcription and splicing. Nature 539 , 452-455 (2016).",
+      "bbox": [
+        306.14182946,
+        59.74073155203132,
+        531.7256293354415,
+        46.463411037314245
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical_with_hints",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [
+      "methods_or_library"
+    ],
+    "hint_terms": [
+      "methods",
+      "design",
+      "library",
+      "cloning",
+      "construct"
+    ]
+  },
+  "stats": {
+    "chunk_build_ms": 1.377,
+    "idf_build_ms": 6.778,
+    "scoring_ms": 7.651,
+    "total_ms": 19.807,
+    "chunk_count_total": 325,
+    "chunk_count_by_type": {
+      "section": 59,
+      "paragraph": 173,
+      "caption": 17,
+      "list_item": 76
+    },
+    "candidate_chunk_count": 325,
+    "selected_chunk_count": 10,
+    "neighbor_chunk_count": 11,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-06T09:11:31.693567+00:00"
+}
