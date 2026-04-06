@@ -1,0 +1,4471 @@
+{
+  "run_id": "run_20260406_133410_v1yldd",
+  "retrieval_mode": "lexical",
+  "provider_token": "lm_studio",
+  "prompt_hash": "bdaa44abfb1a94d5ebc42c5d5ca347715c76faf4dc9f9192e51c545f2f7c6f62",
+  "prompt_bundle_id": "default",
+  "prompt_bundle_version": "1.0.0",
+  "prompt_bundle_path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default",
+  "prompt_manifest_hash": "60f9792ee6b40316b7b121bd33a6774af7a64238a431428b9973ee54114376b9",
+  "prompt_bundle_hash": "d594aa8cd6d563fcc2988485a268d0a9559c0a618ec816573090437b1ee6be43",
+  "prompt_keys_used": [
+    "evidence_recovery_system",
+    "evidence_recovery_user",
+    "figure_extraction_system",
+    "figure_extraction_user",
+    "style_profile_system",
+    "text_extraction_system",
+    "text_extraction_user"
+  ],
+  "prompt_files": {
+    "text_extraction_system": {
+      "logical_key": "text_extraction_system",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\text_extraction\\system.md",
+      "relative_path": "text_extraction/system.md",
+      "sha256": "b4bb59273298d9bab714527b571fc308434c58bc4d1eab86b00c09002931a501"
+    },
+    "text_extraction_user": {
+      "logical_key": "text_extraction_user",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\text_extraction\\user.md",
+      "relative_path": "text_extraction/user.md",
+      "sha256": "2b8373f8e25f0fe5c6b3cd7167de14d0d7361dc83fa86bb4d8d7a863ec1a9327"
+    },
+    "figure_extraction_system": {
+      "logical_key": "figure_extraction_system",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\figure_extraction\\system.md",
+      "relative_path": "figure_extraction/system.md",
+      "sha256": "82f9f9a9b145389345d766e1043d95e9e56f5f2842f07c0631cd33da3214101c"
+    },
+    "figure_extraction_user": {
+      "logical_key": "figure_extraction_user",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\figure_extraction\\user.md",
+      "relative_path": "figure_extraction/user.md",
+      "sha256": "a7e1d77fb57e8e6238446e0d84e9c0aedda2762b1a9c471bdc4d75504475c7d1"
+    },
+    "evidence_recovery_system": {
+      "logical_key": "evidence_recovery_system",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\evidence_recovery\\system.md",
+      "relative_path": "evidence_recovery/system.md",
+      "sha256": "19c2e7a0cc80ee1a5f3696fde8c123007a5a8a59cec96f7c4218d1a9fdd0bb7a"
+    },
+    "evidence_recovery_user": {
+      "logical_key": "evidence_recovery_user",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\evidence_recovery\\user.md",
+      "relative_path": "evidence_recovery/user.md",
+      "sha256": "f0db7f5f1621aaaac8c644e645dfcd98090be8eceea5e0c4a036fd49ea333c55"
+    },
+    "style_profile_system": {
+      "logical_key": "style_profile_system",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\style_profile\\system.md",
+      "relative_path": "style_profile/system.md",
+      "sha256": "db428a31aa4062754ce828da9afc853422c8aacbfafb1a007cfe4f17baadf5de"
+    }
+  },
+  "per_run": {
+    "started_at": "2026-04-06T13:34:10.700820+00:00",
+    "completed_at": "2026-04-06T14:11:16.761751+00:00",
+    "run_total_ms": 2226057.265,
+    "stage_ms": {
+      "validating": 645.128,
+      "load_inputs": 122.561,
+      "provider_init": 2121.984,
+      "parse": 56885.37,
+      "match": 51.999,
+      "style_profiles": 116477.252,
+      "extraction": 2049730.971
+    },
+    "figure_review_roi": {
+      "triggered_cells": 33,
+      "reviewed_cells": 33,
+      "hit_cells": 0,
+      "useful_cells": 0,
+      "rescue_cells": 0,
+      "hits_total": 0,
+      "total_ms": 1654379.335,
+      "avg_ms_per_triggered_cell": 50132.707
+    }
+  },
+  "per_pdf": {
+    "paper_2": {
+      "parse_pdf_ms": 56880.471,
+      "retrieval_prep_ms": 391.59,
+      "retrieval_query_ms": 884.186,
+      "retrieval_calls": 39,
+      "chunk_build_count": 39,
+      "idf_build_count": 39,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cells_processed": 39
+    }
+  },
+  "per_cell": [
+    {
+      "cell_id": "cell_84c725e14e26",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Scale",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 26.097,
+      "retrieval_prep_ms": 10.814,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 6957.588,
+      "text_model_ms": 6939.543,
+      "text_model_calls": 1,
+      "evidence_anchoring_ms": 0.691,
+      "evidence_anchor_attempts": 1,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 2,
+        "failure_count": 1,
+        "total_duration_ms": 6939.139,
+        "request_kinds": {
+          "text_structured": 2
+        },
+        "outcomes": {
+          "structured_output_error": 1,
+          "success": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'calculation'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "not_needed",
+        "signals": [
+          "proposed_value_seen_in_retrieval",
+          "quote_seen_in_retrieval"
+        ],
+        "query": "Scale: If the tested sequences where randomly taken from the whole genome or if the experiment covered the whole genome\nRetrieval hints: sequences pairs combinations plasmids barcodes",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 29,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "section",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 1,
+        "exact_evidence_count": 1,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": true,
+        "quoted_text_seen_in_retrieval": true
+      },
+      "figure_review_diagnostics": {
+        "triggered": false,
+        "trigger_reasons": [],
+        "shortlist_size": 0,
+        "review_calls": 0,
+        "review_ms": 0.0,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "direct_evidence",
+      "warning_flags": [],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_84c725e14e26_1775482627061"
+    },
+    {
+      "cell_id": "cell_765ef86661b5",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Number of Conditions",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "count_like",
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "count",
+          "total",
+          "number",
+          "pairs",
+          "pair",
+          "combinations",
+          "constructed",
+          "tested",
+          "included",
+          "coverage",
+          "sequences",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 25.202,
+      "retrieval_prep_ms": 11.333,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 19778.385,
+      "text_model_ms": 7774.117,
+      "text_model_calls": 1,
+      "evidence_anchoring_ms": 0.115,
+      "evidence_anchor_attempts": 1,
+      "figure_review_ms": 11931.734,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 5,
+        "failure_count": 4,
+        "total_duration_ms": 15310.097,
+        "request_kinds": {
+          "text_structured": 2,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 2,
+          "success": 1,
+          "provider_error": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Vision completion failed HTTP 400: {\"error\":\"Model reloaded.\"}",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "not_needed",
+        "signals": [
+          "quote_seen_in_retrieval"
+        ],
+        "query": "Number of Conditions: In case the study performed the MPRA with the same sequences in different conditions (e.g. different media, different time points, different concentrations of agonist), then the number of different conditions\nRetrieval hints: count total number pairs pair combinations constructed tested included coverage sequences plasmids barcodes",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 29,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "section",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 1,
+        "exact_evidence_count": 1,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": true
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "confirmation_useful"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 11931.734,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "inferred_from_evidence",
+      "warning_flags": [],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_765ef86661b5_1775482634047"
+    },
+    {
+      "cell_id": "cell_14efc2925524",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Type of variants",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 38.316,
+      "retrieval_prep_ms": 16.897,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 32955.875,
+      "text_model_ms": 9134.999,
+      "text_model_calls": 1,
+      "evidence_anchoring_ms": 0.112,
+      "evidence_anchor_attempts": 1,
+      "figure_review_ms": 23715.067,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 5,
+        "failure_count": 4,
+        "total_duration_ms": 28131.319,
+        "request_kinds": {
+          "text_structured": 2,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 2,
+          "success": 1,
+          "provider_error": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Vision completion failed HTTP 400: {\"error\":\"The model has crashed without additional information. (Exit code: 18446744072635810000)\"}",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "not_needed",
+        "signals": [
+          "proposed_value_seen_in_retrieval",
+          "quote_seen_in_retrieval"
+        ],
+        "query": "Type of variants: What kind of sequence the study tests, e.g. mainly comparing different sequences (fragments), or comparing different variations of a sequence (point, del), or completely synthetic sequences\nRetrieval hints: sequences pairs combinations plasmids barcodes",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 28,
+        "top_chunk_types": [
+          "section",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 1,
+        "exact_evidence_count": 1,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": true,
+        "quoted_text_seen_in_retrieval": true
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "confirmation_useful",
+          "text_contradictory"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 23715.067,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "inferred_from_evidence",
+      "warning_flags": [],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_14efc2925524_1775482653860"
+    },
+    {
+      "cell_id": "cell_61c8c7cbd920",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "mean reads per sequence/variant",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "count_like",
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "count",
+          "total",
+          "number",
+          "pairs",
+          "pair",
+          "combinations",
+          "constructed",
+          "tested",
+          "included",
+          "coverage",
+          "sequences",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 24.506,
+      "retrieval_prep_ms": 12.346,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 39831.042,
+      "text_model_ms": 12147.346,
+      "text_model_calls": 2,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 27519.438,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 23.084,
+      "recall_rescue_retrieval_prep_ms": 10.581,
+      "recall_rescue_used": true,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 7,
+        "failure_count": 5,
+        "total_duration_ms": 35962.934,
+        "request_kinds": {
+          "text_structured": 4,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 3,
+          "success": 2,
+          "provider_error": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Vision completion failed HTTP 400: {\"error\":\"Model reloaded.\"}",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "retrieval_policy_limit",
+        "signals": [
+          "recall_rescue_used"
+        ],
+        "query": "mean reads per sequence/variant: How many sequencing reads for each tested sequence/variant where required or achieved?\nRetrieval hints: count total number pairs pair combinations constructed tested included coverage sequences plasmids barcodes",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 28,
+        "top_chunk_types": [
+          "section",
+          "paragraph",
+          "paragraph",
+          "section",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 0,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "text_unclear"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 27519.438,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "unclear",
+      "proposal_support": "blocked",
+      "warning_flags": [
+        "recall_rescue_used"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_61c8c7cbd920_1775482686846"
+    },
+    {
+      "cell_id": "cell_e41dea4d0b6e",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "what predicts activity? (e.g. accessible -> active in MPRA?)",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 20.822,
+      "retrieval_prep_ms": 9.203,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 60644.056,
+      "text_model_ms": 9531.652,
+      "text_model_calls": 1,
+      "evidence_anchoring_ms": 1.177,
+      "evidence_anchor_attempts": 1,
+      "figure_review_ms": 50941.3,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 4,
+        "failure_count": 3,
+        "total_duration_ms": 40570.166,
+        "request_kinds": {
+          "text_structured": 2,
+          "vision_structured": 2
+        },
+        "outcomes": {
+          "structured_output_error": 3,
+          "success": 1
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'proposed_value'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "evidence_anchoring_gap",
+        "signals": [
+          "approximate_highlight_only"
+        ],
+        "query": "what predicts activity? (e.g. accessible -> active in MPRA?): What chromatin features or sequence features correlated well with activitiy in the MPRA.\nRetrieval hints: sequences pairs combinations plasmids barcodes",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 28,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "section",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 1,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 1,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "confirmation_useful"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 50941.3,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "inferred_from_evidence",
+      "warning_flags": [
+        "approximate_highlight"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_e41dea4d0b6e_1775482726705"
+    },
+    {
+      "cell_id": "cell_28df0f22dc3a",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Model system",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 35.035,
+      "retrieval_prep_ms": 16.501,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 97759.144,
+      "text_model_ms": 9308.866,
+      "text_model_calls": 2,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 88326.033,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 37.345,
+      "recall_rescue_retrieval_prep_ms": 17.195,
+      "recall_rescue_used": true,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 7,
+        "failure_count": 5,
+        "total_duration_ms": 51480.289,
+        "request_kinds": {
+          "text_structured": 4,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 3,
+          "success": 2,
+          "provider_error": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'proposed_value'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "retrieval_policy_limit",
+        "signals": [
+          "recall_rescue_used"
+        ],
+        "query": "Model system: The model system (e.g. which cell line).",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 29,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "caption",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 0,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "text_unclear",
+          "figure_graph_promising",
+          "figure_rescue_candidate"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 88326.033,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "unclear",
+      "proposal_support": "blocked",
+      "warning_flags": [
+        "recall_rescue_used"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_28df0f22dc3a_1775482787388"
+    },
+    {
+      "cell_id": "cell_e11ce6617d58",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Bottlenecking",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "count_like",
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "count",
+          "total",
+          "number",
+          "pairs",
+          "pair",
+          "combinations",
+          "constructed",
+          "tested",
+          "included",
+          "coverage",
+          "sequences",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 25.348,
+      "retrieval_prep_ms": 10.533,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 127411.066,
+      "text_model_ms": 14795.041,
+      "text_model_calls": 2,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 112512.392,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 24.218,
+      "recall_rescue_retrieval_prep_ms": 10.922,
+      "recall_rescue_used": true,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 7,
+        "failure_count": 5,
+        "total_duration_ms": 63958.056,
+        "request_kinds": {
+          "text_structured": 4,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 4,
+          "success": 2,
+          "provider_error": 1
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Vision completion failed HTTP 400: {\"error\":\"The model has crashed without additional information. (Exit code: 18446744072635810000)\"}",
+          "http_status": 400
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "retrieval_policy_limit",
+        "signals": [
+          "recall_rescue_used"
+        ],
+        "query": "Bottlenecking: If there was bottle-necking used in the cloning to achieve a specific number of barcodes per sequence. And if so, how the bottle-necking was done (liquid culture, scraping colonies).\nRetrieval hints: count total number pairs pair combinations constructed tested included coverage sequences plasmids barcodes",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 28,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "section",
+          "section",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 0,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "text_unclear"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 112512.392,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "unclear",
+      "proposal_support": "blocked",
+      "warning_flags": [
+        "recall_rescue_used"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_e11ce6617d58_1775482885174"
+    },
+    {
+      "cell_id": "cell_6831809f3011",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "MPRABase_Total_Variants_Tested",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 23.399,
+      "retrieval_prep_ms": 11.09,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 31577.879,
+      "text_model_ms": 10084.434,
+      "text_model_calls": 2,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 21398.462,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 22.383,
+      "recall_rescue_retrieval_prep_ms": 10.27,
+      "recall_rescue_used": true,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 6,
+        "failure_count": 4,
+        "total_duration_ms": 22649.522,
+        "request_kinds": {
+          "text_structured": 4,
+          "vision_structured": 2
+        },
+        "outcomes": {
+          "structured_output_error": 4,
+          "success": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'proposed_value'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "retrieval_policy_limit",
+        "signals": [
+          "recall_rescue_used"
+        ],
+        "query": "MPRABase_Total_Variants_Tested: Only for publications that are catalogued in MPRAbase database.",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 30,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 0,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "text_unclear"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 21398.462,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "unclear",
+      "proposal_support": "blocked",
+      "warning_flags": [
+        "recall_rescue_used"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_6831809f3011_1775483012607"
+    },
+    {
+      "cell_id": "cell_0a563b86fb9e",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "DNA library",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 20.466,
+      "retrieval_prep_ms": 9.577,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 123700.68,
+      "text_model_ms": 10658.184,
+      "text_model_calls": 1,
+      "evidence_anchoring_ms": 1.351,
+      "evidence_anchor_attempts": 2,
+      "figure_review_ms": 112954.993,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 5,
+        "failure_count": 4,
+        "total_duration_ms": 63928.578,
+        "request_kinds": {
+          "text_structured": 2,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 2,
+          "success": 1,
+          "provider_error": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'proposed_value'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "not_needed",
+        "signals": [
+          "quote_seen_in_retrieval"
+        ],
+        "query": "DNA library: How the DNA library is prepared when the assay is being conducted\nRetrieval hints: methods design library cloning construct",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 26,
+        "top_chunk_types": [
+          "section",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 2,
+        "exact_evidence_count": 2,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": true
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "text_contradictory"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 112954.993,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "direct_evidence",
+      "warning_flags": [],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_0a563b86fb9e_1775483044212"
+    },
+    {
+      "cell_id": "cell_a9b440d9bb3f",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Type of Condition",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 32.28,
+      "retrieval_prep_ms": 11.601,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 209555.901,
+      "text_model_ms": 14409.985,
+      "text_model_calls": 2,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 194932.504,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 38.259,
+      "recall_rescue_retrieval_prep_ms": 16.071,
+      "recall_rescue_used": true,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 6,
+        "failure_count": 4,
+        "total_duration_ms": 77270.162,
+        "request_kinds": {
+          "text_structured": 4,
+          "vision_structured": 2
+        },
+        "outcomes": {
+          "structured_output_error": 4,
+          "success": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'proposed_value'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "retrieval_policy_limit",
+        "signals": [
+          "recall_rescue_used"
+        ],
+        "query": "Type of Condition: In case the study performed the MPRA with the same sequences in different conditions (e.g. different media, different time points, different concentrations of agonist), then the type of conditions that were tested\nRetrieval hints: sequences pairs combinations plasmids barcodes",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 28,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 0,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "text_unclear"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 194932.504,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "unclear",
+      "proposal_support": "blocked",
+      "warning_flags": [
+        "recall_rescue_used"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_a9b440d9bb3f_1775483167941"
+    },
+    {
+      "cell_id": "cell_0c3a3e294837",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Synthetic designs",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 25.567,
+      "retrieval_prep_ms": 11.975,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 100974.256,
+      "text_model_ms": 7344.425,
+      "text_model_calls": 1,
+      "evidence_anchoring_ms": 0.287,
+      "evidence_anchor_attempts": 1,
+      "figure_review_ms": 93551.326,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 5,
+        "failure_count": 4,
+        "total_duration_ms": 31096.449,
+        "request_kinds": {
+          "text_structured": 2,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 2,
+          "success": 1,
+          "provider_error": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Vision completion failed HTTP 400: {\"error\":\"The model has crashed without additional information. (Exit code: 18446744072635810000)\"}",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "not_needed",
+        "signals": [
+          "quote_seen_in_retrieval"
+        ],
+        "query": "Synthetic designs: If the study tests only native sequences or if sequences are changed.\nRetrieval hints: sequences pairs combinations plasmids barcodes",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 29,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "section",
+          "section",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 1,
+        "exact_evidence_count": 1,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": true
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "confirmation_useful",
+          "figure_graph_promising"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 93551.326,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "inferred_from_evidence",
+      "warning_flags": [],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_0c3a3e294837_1775483377532"
+    },
+    {
+      "cell_id": "cell_0d59e8a7e5eb",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Focus",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 24.521,
+      "retrieval_prep_ms": 11.739,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 31722.862,
+      "text_model_ms": 12002.004,
+      "text_model_calls": 2,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 19649.469,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 4534.075,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": true,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 6,
+        "failure_count": 5,
+        "total_duration_ms": 24719.524,
+        "request_kinds": {
+          "text_structured": 3,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 3,
+          "success": 1,
+          "provider_error": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Vision completion failed HTTP 400: {\"error\":\"The model has crashed without additional information. (Exit code: 18446744072635810000)\"}",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "reasoning_gap",
+        "signals": [
+          "proposed_value_seen_in_retrieval"
+        ],
+        "query": "Focus: What the general focus of the publication is (e.g. transcriptional regulation, UTRs, coding, or other)",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 24,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 0,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": true,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "text_weak"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 19649.469,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "inferred",
+      "proposal_support": "weak_evidence",
+      "warning_flags": [
+        "needs_more_evidence"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_0d59e8a7e5eb_1775483478532"
+    },
+    {
+      "cell_id": "cell_9ef12768e33d",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "library construction",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 22.051,
+      "retrieval_prep_ms": 10.72,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 27898.245,
+      "text_model_ms": 8408.607,
+      "text_model_calls": 1,
+      "evidence_anchoring_ms": 0.577,
+      "evidence_anchor_attempts": 1,
+      "figure_review_ms": 19390.424,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 5,
+        "failure_count": 4,
+        "total_duration_ms": 22410.685,
+        "request_kinds": {
+          "text_structured": 2,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 2,
+          "success": 1,
+          "provider_error": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Vision completion failed HTTP 400: {\"error\":\"The model has crashed without additional information. (Exit code: 18446744072635810000)\"}",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "not_needed",
+        "signals": [],
+        "query": "library construction: How the MPRA library is cloned and prepare (before delivering it to the cells)\nRetrieval hints: methods design library cloning construct",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 21,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 1,
+        "exact_evidence_count": 1,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "text_contradictory"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 19390.424,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "direct_evidence",
+      "warning_flags": [],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_9ef12768e33d_1775483510274"
+    },
+    {
+      "cell_id": "cell_800bc1a56a0e",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Species",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 20.409,
+      "retrieval_prep_ms": 9.656,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 6695.206,
+      "text_model_ms": 6674.979,
+      "text_model_calls": 1,
+      "evidence_anchoring_ms": 0.189,
+      "evidence_anchor_attempts": 2,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 2,
+        "failure_count": 1,
+        "total_duration_ms": 6674.714,
+        "request_kinds": {
+          "text_structured": 2
+        },
+        "outcomes": {
+          "structured_output_error": 1,
+          "success": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'calculation'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "not_needed",
+        "signals": [
+          "proposed_value_seen_in_retrieval",
+          "quote_seen_in_retrieval"
+        ],
+        "query": "Species: Which species the model system is from.",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 27,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 2,
+        "exact_evidence_count": 2,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": true,
+        "quoted_text_seen_in_retrieval": true
+      },
+      "figure_review_diagnostics": {
+        "triggered": false,
+        "trigger_reasons": [],
+        "shortlist_size": 0,
+        "review_calls": 0,
+        "review_ms": 0.0,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "direct_evidence",
+      "warning_flags": [],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_800bc1a56a0e_1775483538204"
+    },
+    {
+      "cell_id": "cell_01e0eed636de",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "MPRABase_datasets_id",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 20.926,
+      "retrieval_prep_ms": 10.253,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 32455.421,
+      "text_model_ms": 12766.631,
+      "text_model_calls": 2,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 19546.265,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 20.402,
+      "recall_rescue_retrieval_prep_ms": 10.185,
+      "recall_rescue_used": true,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 6,
+        "failure_count": 4,
+        "total_duration_ms": 24850.791,
+        "request_kinds": {
+          "text_structured": 4,
+          "vision_structured": 2
+        },
+        "outcomes": {
+          "structured_output_error": 4,
+          "success": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'proposed_value'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "retrieval_policy_limit",
+        "signals": [
+          "recall_rescue_used"
+        ],
+        "query": "MPRABase_datasets_id: Dataset ID for the publication in the \"MPRAbase\" database.",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 24,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 0,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "text_unclear"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 19546.265,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "unclear",
+      "proposal_support": "blocked",
+      "warning_flags": [
+        "recall_rescue_used"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_01e0eed636de_1775483544922"
+    },
+    {
+      "cell_id": "cell_7258606c253a",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "BC length (bp)",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 20.37,
+      "retrieval_prep_ms": 10.229,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 16337.498,
+      "text_model_ms": 7860.081,
+      "text_model_calls": 1,
+      "evidence_anchoring_ms": 10.009,
+      "evidence_anchor_attempts": 1,
+      "figure_review_ms": 8394.306,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 5,
+        "failure_count": 4,
+        "total_duration_ms": 13825.958,
+        "request_kinds": {
+          "text_structured": 2,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 2,
+          "success": 1,
+          "provider_error": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Vision completion failed HTTP 400: {\"error\":\"The model has crashed without additional information. (Exit code: 18446744072635810000)\"}",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "not_needed",
+        "signals": [
+          "quote_seen_in_retrieval"
+        ],
+        "query": "BC length (bp): How long the barcode sequences are.\nRetrieval hints: sequences pairs combinations plasmids barcodes",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 26,
+        "top_chunk_types": [
+          "paragraph",
+          "caption",
+          "paragraph",
+          "paragraph",
+          "section"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 1,
+        "exact_evidence_count": 1,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": true
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "figure_graph_promising"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 8394.306,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "direct_evidence",
+      "warning_flags": [],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_7258606c253a_1775483577394"
+    },
+    {
+      "cell_id": "cell_fbe4d5c81159",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Integration site",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 22.342,
+      "retrieval_prep_ms": 10.037,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35881.951,
+      "text_model_ms": 12272.794,
+      "text_model_calls": 2,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 23513.03,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 23.043,
+      "recall_rescue_retrieval_prep_ms": 10.746,
+      "recall_rescue_used": true,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 6,
+        "failure_count": 4,
+        "total_duration_ms": 23764.065,
+        "request_kinds": {
+          "text_structured": 4,
+          "vision_structured": 2
+        },
+        "outcomes": {
+          "structured_output_error": 4,
+          "success": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'proposed_value'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "retrieval_policy_limit",
+        "signals": [
+          "recall_rescue_used"
+        ],
+        "query": "Integration site: In case the assay is genomic integrated, then where it is integrated. Lenti or PiggyBac would be random, recombinases/landing pad based systems would have a specific locus usually.",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 27,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "section",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 0,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "text_unclear",
+          "figure_graph_promising",
+          "figure_rescue_candidate"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 23513.03,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "unclear",
+      "proposal_support": "blocked",
+      "warning_flags": [
+        "recall_rescue_used"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_fbe4d5c81159_1775483593756"
+    },
+    {
+      "cell_id": "cell_31ca7bae7535",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Cloning",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 19.831,
+      "retrieval_prep_ms": 9.694,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 19750.228,
+      "text_model_ms": 6482.581,
+      "text_model_calls": 1,
+      "evidence_anchoring_ms": 1.241,
+      "evidence_anchor_attempts": 1,
+      "figure_review_ms": 13171.601,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 5,
+        "failure_count": 4,
+        "total_duration_ms": 14312.707,
+        "request_kinds": {
+          "text_structured": 2,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 2,
+          "success": 1,
+          "provider_error": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Vision completion failed HTTP 400: {\"error\":\"The model has crashed without additional information. (Exit code: 18446744072635810000)\"}",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "evidence_anchoring_gap",
+        "signals": [
+          "quote_plus_page_fallback",
+          "proposed_value_seen_in_retrieval",
+          "quote_seen_in_retrieval"
+        ],
+        "query": "Cloning: How the library was cloned.\nRetrieval hints: methods design library cloning construct",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 25,
+        "top_chunk_types": [
+          "section",
+          "paragraph",
+          "paragraph",
+          "list_item",
+          "list_item"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 1,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 1,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": true,
+        "quoted_text_seen_in_retrieval": true
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "confirmation_useful"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 13171.601,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "inferred_from_evidence",
+      "warning_flags": [
+        "fallback_evidence_used"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_31ca7bae7535_1775483629667"
+    },
+    {
+      "cell_id": "cell_b966a213c7f5",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Abstract",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 19.707,
+      "retrieval_prep_ms": 9.907,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35328.679,
+      "text_model_ms": 14802.967,
+      "text_model_calls": 2,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 20437.15,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 19.514,
+      "recall_rescue_retrieval_prep_ms": 10.007,
+      "recall_rescue_used": true,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 7,
+        "failure_count": 5,
+        "total_duration_ms": 28887.542,
+        "request_kinds": {
+          "text_structured": 4,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 3,
+          "success": 2,
+          "provider_error": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Vision completion failed HTTP 400: {\"error\":\"The model has crashed without additional information. (Exit code: 18446744072635810000)\"}",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "retrieval_policy_limit",
+        "signals": [
+          "recall_rescue_used"
+        ],
+        "query": "Abstract: Abstract text of the publication.",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 28,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 0,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "text_unclear",
+          "figure_graph_promising",
+          "figure_rescue_candidate"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 20437.15,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "unclear",
+      "proposal_support": "blocked",
+      "warning_flags": [
+        "recall_rescue_used"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_b966a213c7f5_1775483649439"
+    },
+    {
+      "cell_id": "cell_3380a1ae4865",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Promoter",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 20.171,
+      "retrieval_prep_ms": 8.515,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 29510.209,
+      "text_model_ms": 12461.299,
+      "text_model_calls": 2,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 16952.636,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 21.938,
+      "recall_rescue_retrieval_prep_ms": 9.897,
+      "recall_rescue_used": true,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 7,
+        "failure_count": 5,
+        "total_duration_ms": 25820.024,
+        "request_kinds": {
+          "text_structured": 4,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 3,
+          "success": 2,
+          "provider_error": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Vision completion failed HTTP 400: {\"error\":\"Model reloaded.\"}",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "retrieval_policy_limit",
+        "signals": [
+          "recall_rescue_used"
+        ],
+        "query": "Promoter: With which promoter the assay is performed, for studies of transcription this is often some kind of minimal promoter. Also add which specific minimal promoter is used (and the source of that minimal promoter if stated).",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 27,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "section",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 0,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "text_unclear"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 16952.636,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "unclear",
+      "proposal_support": "blocked",
+      "warning_flags": [
+        "recall_rescue_used"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_3380a1ae4865_1775483684782"
+    },
+    {
+      "cell_id": "cell_b90a48892caf",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "General library design category",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence",
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes",
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 23.221,
+      "retrieval_prep_ms": 8.744,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 45460.079,
+      "text_model_ms": 8764.37,
+      "text_model_calls": 1,
+      "evidence_anchoring_ms": 0.078,
+      "evidence_anchor_attempts": 1,
+      "figure_review_ms": 36625.819,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 4,
+        "failure_count": 3,
+        "total_duration_ms": 30012.762,
+        "request_kinds": {
+          "text_structured": 2,
+          "vision_structured": 2
+        },
+        "outcomes": {
+          "structured_output_error": 3,
+          "success": 1
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'proposed_value'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "not_needed",
+        "signals": [
+          "quote_seen_in_retrieval"
+        ],
+        "query": "General library design category: Transcriptional reporter assays often are based on a few general designs. There is STARRseq (where the tested sequence is expressed in the 3'UTR of the reporter) and LentiMPRA (where the barcode is part of the 5'UTR of the reporter mRNA), and there are possibly a few more.\nRetrieval hints: sequences pairs combinations plasmids barcodes methods design library cloning construct",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 25,
+        "top_chunk_types": [
+          "caption",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 1,
+        "exact_evidence_count": 1,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": true
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "figure_graph_promising"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 36625.819,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "direct_evidence",
+      "warning_flags": [],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_b90a48892caf_1775483714326"
+    },
+    {
+      "cell_id": "cell_4a4e118c2b65",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "library composition",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "count_like",
+          "variant_or_sequence",
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "count",
+          "total",
+          "number",
+          "pairs",
+          "pair",
+          "combinations",
+          "constructed",
+          "tested",
+          "included",
+          "coverage",
+          "sequences",
+          "plasmids",
+          "barcodes",
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 22.804,
+      "retrieval_prep_ms": 10.488,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 13566.058,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 6741.338,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'proposed_value'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_4a4e118c2b65_1775483759811"
+    },
+    {
+      "cell_id": "cell_48adfab85eb5",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Other notes",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 18.34,
+      "retrieval_prep_ms": 9.319,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 12648.593,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 5801.245,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'calculation'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_48adfab85eb5_1775483773397"
+    },
+    {
+      "cell_id": "cell_3290a4290e26",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Journal",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 18.704,
+      "retrieval_prep_ms": 9.305,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 21067.458,
+      "text_model_ms": 10987.266,
+      "text_model_calls": 2,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 9988.169,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 19.695,
+      "recall_rescue_retrieval_prep_ms": 9.906,
+      "recall_rescue_used": true,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 7,
+        "failure_count": 5,
+        "total_duration_ms": 17062.172,
+        "request_kinds": {
+          "text_structured": 4,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 4,
+          "success": 2,
+          "provider_error": 1
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Vision completion failed HTTP 400: {\"error\":\"The model has crashed without additional information. (Exit code: 18446744072635810000)\"}",
+          "http_status": 400
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "retrieval_policy_limit",
+        "signals": [
+          "recall_rescue_used"
+        ],
+        "query": "Journal: Journal the paper was published in.",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 30,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 0,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "text_unclear"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 9988.169,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "unclear",
+      "proposal_support": "blocked",
+      "warning_flags": [
+        "recall_rescue_used"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_3290a4290e26_1775483786067"
+    },
+    {
+      "cell_id": "cell_15870f236367",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Integration method",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "vector_or_backbone"
+        ],
+        "hint_terms": [
+          "episomal",
+          "plasmid",
+          "vector",
+          "backbone",
+          "origin",
+          "replication",
+          "polya"
+        ]
+      },
+      "retrieval_query_ms": 22.302,
+      "retrieval_prep_ms": 9.587,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 33655.783,
+      "text_model_ms": 12787.374,
+      "text_model_calls": 2,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 20776.637,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 21.331,
+      "recall_rescue_retrieval_prep_ms": 9.865,
+      "recall_rescue_used": true,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 7,
+        "failure_count": 5,
+        "total_duration_ms": 25111.402,
+        "request_kinds": {
+          "text_structured": 4,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 3,
+          "success": 2,
+          "provider_error": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Vision completion failed HTTP 400: {\"error\":\"The model has crashed without additional information. (Exit code: 18446744072635810000)\"}",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "retrieval_policy_limit",
+        "signals": [
+          "recall_rescue_used"
+        ],
+        "query": "Integration method: Which method is used to integrate the reporter in the genome, only applies if the assay is genomically integrated (and not episomal)\nRetrieval hints: episomal plasmid vector backbone origin replication polya",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 26,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "section",
+          "paragraph",
+          "caption"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 0,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "text_unclear",
+          "figure_graph_promising",
+          "figure_rescue_candidate"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 20776.637,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "unclear",
+      "proposal_support": "blocked",
+      "warning_flags": [
+        "recall_rescue_used"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_15870f236367_1775483807156"
+    },
+    {
+      "cell_id": "cell_482e9d1c5b38",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "length of sequences (bp)",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 19.743,
+      "retrieval_prep_ms": 9.283,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 32050.829,
+      "text_model_ms": 6822.706,
+      "text_model_calls": 1,
+      "evidence_anchoring_ms": 1.147,
+      "evidence_anchor_attempts": 2,
+      "figure_review_ms": 25154.751,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 4,
+        "failure_count": 3,
+        "total_duration_ms": 19014.195,
+        "request_kinds": {
+          "text_structured": 2,
+          "vision_structured": 2
+        },
+        "outcomes": {
+          "structured_output_error": 3,
+          "success": 1
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'proposed_value'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "not_needed",
+        "signals": [
+          "quote_plus_page_fallback",
+          "quote_seen_in_retrieval"
+        ],
+        "query": "length of sequences (bp): How long the sequences are that are tested\nRetrieval hints: sequences pairs combinations plasmids barcodes",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 27,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "section",
+          "caption",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 2,
+        "exact_evidence_count": 1,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 1,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": true
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "text_contradictory",
+          "figure_graph_promising"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 25154.751,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "direct_evidence",
+      "warning_flags": [
+        "fallback_evidence_used"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_482e9d1c5b38_1775483840830"
+    },
+    {
+      "cell_id": "cell_c97ce86605d2",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Where is the BC?",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence",
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes",
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 19.677,
+      "retrieval_prep_ms": 7.391,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 83403.123,
+      "text_model_ms": 12708.035,
+      "text_model_calls": 2,
+      "evidence_anchoring_ms": 0.15,
+      "evidence_anchor_attempts": 1,
+      "figure_review_ms": 70574.063,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 22.026,
+      "recall_rescue_retrieval_prep_ms": 9.925,
+      "recall_rescue_used": true,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 7,
+        "failure_count": 5,
+        "total_duration_ms": 42306.937,
+        "request_kinds": {
+          "text_structured": 4,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 3,
+          "success": 2,
+          "provider_error": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'proposed_value'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "retrieval_policy_limit",
+        "signals": [
+          "recall_rescue_used"
+        ],
+        "query": "Where is the BC?: Where the barcode is located in the reporter design (often that can be 5'UTR or 3'UTR, but might be different in special cases)\nRetrieval hints: sequences pairs combinations plasmids barcodes methods design library cloning construct",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 25,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "caption"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 1,
+        "exact_evidence_count": 1,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "figure_graph_promising"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 70574.063,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "direct_evidence",
+      "warning_flags": [
+        "recall_rescue_used"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_c97ce86605d2_1775483872907"
+    },
+    {
+      "cell_id": "cell_ab9e3091884b",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "If episomal: Ori in backbone?",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence",
+          "vector_or_backbone"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes",
+          "episomal",
+          "plasmid",
+          "vector",
+          "backbone",
+          "origin",
+          "replication",
+          "polya"
+        ]
+      },
+      "retrieval_query_ms": 30.299,
+      "retrieval_prep_ms": 11.175,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 125978.048,
+      "text_model_ms": 13383.977,
+      "text_model_calls": 2,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 112496.227,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 23.52,
+      "recall_rescue_retrieval_prep_ms": 10.058,
+      "recall_rescue_used": true,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 7,
+        "failure_count": 5,
+        "total_duration_ms": 48217.316,
+        "request_kinds": {
+          "text_structured": 4,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 3,
+          "success": 2,
+          "provider_error": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Vision completion failed HTTP 400: {\"error\":\"The model has crashed without additional information. (Exit code: 18446744072635810000)\"}",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "retrieval_policy_limit",
+        "signals": [
+          "recall_rescue_used"
+        ],
+        "query": "If episomal: Ori in backbone?: In case the assay is episomal (and not genomically integrated): if the backbone plasmid contained an Ori and if the authors prevented activity of the Ori (which might interfere with the assay)\nRetrieval hints: sequences pairs combinations plasmids barcodes episomal plasmid vector backbone origin replication polya",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 28,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "section",
+          "caption",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 0,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "text_unclear",
+          "figure_graph_promising",
+          "figure_rescue_candidate"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 112496.227,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "unclear",
+      "proposal_support": "blocked",
+      "warning_flags": [
+        "recall_rescue_used"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_ab9e3091884b_1775483956345"
+    },
+    {
+      "cell_id": "cell_46b00be3c065",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Date Added",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 22.289,
+      "retrieval_prep_ms": 10.041,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35284.47,
+      "text_model_ms": 12820.178,
+      "text_model_calls": 2,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 22371.502,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 20.906,
+      "recall_rescue_retrieval_prep_ms": 10.177,
+      "recall_rescue_used": true,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 7,
+        "failure_count": 4,
+        "total_duration_ms": 30877.152,
+        "request_kinds": {
+          "text_structured": 4,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 4,
+          "success": 3
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'proposed_value'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "retrieval_policy_limit",
+        "signals": [
+          "recall_rescue_used"
+        ],
+        "query": "Date Added: Date the paper was added to the bibliography or library.\nRetrieval hints: methods design library cloning construct",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 25,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "section"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 0,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "text_unclear"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 22371.502,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "unclear",
+      "proposal_support": "blocked",
+      "warning_flags": [
+        "recall_rescue_used"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_46b00be3c065_1775484082345"
+    },
+    {
+      "cell_id": "cell_97ea8879a5f6",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Readout",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 20.086,
+      "retrieval_prep_ms": 9.111,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 129294.848,
+      "text_model_ms": 6966.681,
+      "text_model_calls": 1,
+      "evidence_anchoring_ms": 0.125,
+      "evidence_anchor_attempts": 1,
+      "figure_review_ms": 122243.437,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 4,
+        "failure_count": 3,
+        "total_duration_ms": 10380.573,
+        "request_kinds": {
+          "text_structured": 2,
+          "vision_structured": 2
+        },
+        "outcomes": {
+          "structured_output_error": 1,
+          "success": 1,
+          "provider_error": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Vision completion failed HTTP 400: {\"error\":\"The model has crashed without additional information. (Exit code: 18446744072635810000)\"}",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "not_needed",
+        "signals": [
+          "quote_seen_in_retrieval"
+        ],
+        "query": "Readout: How the expression is read out. By RNA levels (RNAseq, scRNAseq), or by FACS sorting followed by DNAseq (FACS)\nRetrieval hints: methods design library cloning construct",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 27,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 1,
+        "exact_evidence_count": 1,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": true
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "confirmation_useful"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 122243.437,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "inferred_from_evidence",
+      "warning_flags": [],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_97ea8879a5f6_1775484117650"
+    },
+    {
+      "cell_id": "cell_4b91e28c2b28",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "UMI?",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 22.965,
+      "retrieval_prep_ms": 9.447,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 85141.021,
+      "text_model_ms": 10292.209,
+      "text_model_calls": 2,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 74747.012,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 21.962,
+      "recall_rescue_retrieval_prep_ms": 10.599,
+      "recall_rescue_used": true,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 7,
+        "failure_count": 5,
+        "total_duration_ms": 40765.772,
+        "request_kinds": {
+          "text_structured": 4,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 3,
+          "success": 2,
+          "provider_error": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'proposed_value'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "retrieval_policy_limit",
+        "signals": [
+          "recall_rescue_used"
+        ],
+        "query": "UMI?: If the RNA/DNA library prep includes a UMI (and how it is added)\nRetrieval hints: methods design library cloning construct",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 26,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "section",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 0,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "text_unclear"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 74747.012,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "unclear",
+      "proposal_support": "blocked",
+      "warning_flags": [
+        "recall_rescue_used"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_4b91e28c2b28_1775484246968"
+    },
+    {
+      "cell_id": "cell_aa99e2a3a3c0",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Episomal vs genomic",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence",
+          "vector_or_backbone",
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes",
+          "episomal",
+          "plasmid",
+          "vector",
+          "backbone",
+          "origin",
+          "replication",
+          "polya",
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 26.169,
+      "retrieval_prep_ms": 11.229,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 131046.807,
+      "text_model_ms": 7492.037,
+      "text_model_calls": 1,
+      "evidence_anchoring_ms": 0.328,
+      "evidence_anchor_attempts": 2,
+      "figure_review_ms": 123470.609,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 5,
+        "failure_count": 4,
+        "total_duration_ms": 72864.582,
+        "request_kinds": {
+          "text_structured": 2,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 2,
+          "success": 1,
+          "provider_error": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Vision completion failed HTTP 400: {\"error\":\"Model reloaded.\"}",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "not_needed",
+        "signals": [
+          "proposed_value_seen_in_retrieval",
+          "quote_seen_in_retrieval"
+        ],
+        "query": "Episomal vs genomic: If the reporter construct is integrated in the genome (genomic) or not and transiently transfected (episomal)\nRetrieval hints: sequences pairs combinations plasmids barcodes episomal plasmid vector backbone origin replication polya methods design library cloning construct",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 25,
+        "top_chunk_types": [
+          "caption",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 2,
+        "exact_evidence_count": 2,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": true,
+        "quoted_text_seen_in_retrieval": true
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "figure_graph_promising"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 123470.609,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "direct_evidence",
+      "warning_flags": [],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_aa99e2a3a3c0_1775484332145"
+    },
+    {
+      "cell_id": "cell_ccdf26728131",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "RNA library",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 21.312,
+      "retrieval_prep_ms": 8.661,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35844.718,
+      "text_model_ms": 9439.522,
+      "text_model_calls": 2,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 26310.654,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 20.951,
+      "recall_rescue_retrieval_prep_ms": 10.149,
+      "recall_rescue_used": true,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 6,
+        "failure_count": 4,
+        "total_duration_ms": 23974.301,
+        "request_kinds": {
+          "text_structured": 4,
+          "vision_structured": 2
+        },
+        "outcomes": {
+          "structured_output_error": 4,
+          "success": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'proposed_value'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "retrieval_policy_limit",
+        "signals": [
+          "recall_rescue_used"
+        ],
+        "query": "RNA library: How the RNA library is prepared when the assay is being conducted\nRetrieval hints: methods design library cloning construct",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 26,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 0,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "text_unclear"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 26310.654,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "unclear",
+      "proposal_support": "blocked",
+      "warning_flags": [
+        "recall_rescue_used"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_ccdf26728131_1775484463210"
+    },
+    {
+      "cell_id": "cell_0bd5d9c4d3ee",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "library seq",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence",
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes",
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 19.195,
+      "retrieval_prep_ms": 7.413,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 23414.337,
+      "text_model_ms": 9536.363,
+      "text_model_calls": 1,
+      "evidence_anchoring_ms": 1.062,
+      "evidence_anchor_attempts": 1,
+      "figure_review_ms": 13803.172,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 5,
+        "failure_count": 4,
+        "total_duration_ms": 18119.31,
+        "request_kinds": {
+          "text_structured": 2,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 2,
+          "success": 1,
+          "provider_error": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Vision completion failed HTTP 400: {\"error\":\"Model reloaded.\"}",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "evidence_anchoring_gap",
+        "signals": [
+          "approximate_highlight_only"
+        ],
+        "query": "library seq: How the MPRA library is sequenced (e.g. to associate barcodes with sequences), before it is delivered to the cells\nRetrieval hints: sequences pairs combinations plasmids barcodes methods design library cloning construct",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 27,
+        "top_chunk_types": [
+          "section",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 1,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 1,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "confirmation_useful"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 13803.172,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "inferred_from_evidence",
+      "warning_flags": [
+        "approximate_highlight"
+      ],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_0bd5d9c4d3ee_1775484499082"
+    },
+    {
+      "cell_id": "cell_77d5c4c71548",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "mean # Barcodes per sequence",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "count_like",
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "count",
+          "total",
+          "number",
+          "pairs",
+          "pair",
+          "combinations",
+          "constructed",
+          "tested",
+          "included",
+          "coverage",
+          "sequences",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 19.368,
+      "retrieval_prep_ms": 7.792,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 6441.925,
+      "text_model_ms": 6420.777,
+      "text_model_calls": 1,
+      "evidence_anchoring_ms": 0.3,
+      "evidence_anchor_attempts": 1,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 2,
+        "failure_count": 1,
+        "total_duration_ms": 6420.534,
+        "request_kinds": {
+          "text_structured": 2
+        },
+        "outcomes": {
+          "structured_output_error": 1,
+          "success": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'calculation'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "not_needed",
+        "signals": [
+          "quote_seen_in_retrieval"
+        ],
+        "query": "mean # Barcodes per sequence: How many different barcodes there are for each tested sequence.\nRetrieval hints: count total number pairs pair combinations constructed tested included coverage sequences plasmids barcodes",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 30,
+        "top_chunk_types": [
+          "section",
+          "paragraph",
+          "paragraph",
+          "section",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 1,
+        "exact_evidence_count": 1,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": true
+      },
+      "figure_review_diagnostics": {
+        "triggered": false,
+        "trigger_reasons": [],
+        "shortlist_size": 0,
+        "review_calls": 0,
+        "review_ms": 0.0,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "direct_evidence",
+      "warning_flags": [],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_77d5c4c71548_1775484522515"
+    },
+    {
+      "cell_id": "cell_88af7b440025",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Approach",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 17.134,
+      "retrieval_prep_ms": 7.54,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 40377.827,
+      "text_model_ms": 10950.138,
+      "text_model_calls": 1,
+      "evidence_anchoring_ms": 0.121,
+      "evidence_anchor_attempts": 2,
+      "figure_review_ms": 29356.186,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 4,
+        "failure_count": 3,
+        "total_duration_ms": 27134.07,
+        "request_kinds": {
+          "text_structured": 2,
+          "vision_structured": 2
+        },
+        "outcomes": {
+          "structured_output_error": 3,
+          "success": 1
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'proposed_value'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "not_needed",
+        "signals": [
+          "quote_seen_in_retrieval"
+        ],
+        "query": "Approach: General approach",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 17,
+        "top_chunk_types": [
+          "caption",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 2,
+        "exact_evidence_count": 2,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": true
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "confirmation_useful",
+          "figure_graph_promising"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 29356.186,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "inferred_from_evidence",
+      "warning_flags": [],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_88af7b440025_1775484528977"
+    },
+    {
+      "cell_id": "cell_f1cf8829a45a",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Link",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 16.999,
+      "retrieval_prep_ms": 7.46,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 26493.221,
+      "text_model_ms": 6609.51,
+      "text_model_calls": 1,
+      "evidence_anchoring_ms": 0.032,
+      "evidence_anchor_attempts": 1,
+      "figure_review_ms": 19814.8,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 5,
+        "failure_count": 3,
+        "total_duration_ms": 21572.596,
+        "request_kinds": {
+          "text_structured": 2,
+          "vision_structured": 3
+        },
+        "outcomes": {
+          "structured_output_error": 3,
+          "success": 2
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'proposed_value'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "not_needed",
+        "signals": [
+          "proposed_value_seen_in_retrieval",
+          "quote_seen_in_retrieval"
+        ],
+        "query": "Link: DOI link.",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 23,
+        "top_chunk_types": [
+          "section",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 1,
+        "exact_evidence_count": 1,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": true,
+        "quoted_text_seen_in_retrieval": true
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "text_contradictory",
+          "figure_graph_promising"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 19814.8,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "direct_evidence",
+      "warning_flags": [],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_f1cf8829a45a_1775484569374"
+    },
+    {
+      "cell_id": "cell_74f24947a12f",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "# Variants tested",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "count_like",
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "count",
+          "total",
+          "number",
+          "pairs",
+          "pair",
+          "combinations",
+          "constructed",
+          "tested",
+          "included",
+          "coverage",
+          "sequences",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 19.0,
+      "retrieval_prep_ms": 7.599,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 75455.234,
+      "text_model_ms": 7573.404,
+      "text_model_calls": 1,
+      "evidence_anchoring_ms": 0.086,
+      "evidence_anchor_attempts": 1,
+      "figure_review_ms": 67808.167,
+      "figure_review_calls": 1,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 4,
+        "failure_count": 3,
+        "total_duration_ms": 51570.677,
+        "request_kinds": {
+          "text_structured": 2,
+          "vision_structured": 2
+        },
+        "outcomes": {
+          "structured_output_error": 3,
+          "success": 1
+        },
+        "last_error": {
+          "request_kind": "vision_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'proposed_value'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "not_needed",
+        "signals": [
+          "quote_seen_in_retrieval"
+        ],
+        "query": "# Variants tested: How many different sequences (or variants) where being evaluated in the study\nRetrieval hints: count total number pairs pair combinations constructed tested included coverage sequences plasmids barcodes",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 30,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "section",
+          "section",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 1,
+        "exact_evidence_count": 1,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": true
+      },
+      "figure_review_diagnostics": {
+        "triggered": true,
+        "trigger_reasons": [
+          "confirmation_useful",
+          "text_contradictory"
+        ],
+        "shortlist_size": 2,
+        "review_calls": 1,
+        "review_ms": 67808.167,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "inferred_from_evidence",
+      "warning_flags": [],
+      "figure_review_triggered": true,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_74f24947a12f_1775484595886"
+    },
+    {
+      "cell_id": "cell_d714824bc8bb",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Delivery",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 17.213,
+      "retrieval_prep_ms": 7.385,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 5389.621,
+      "text_model_ms": 5369.691,
+      "text_model_calls": 1,
+      "evidence_anchoring_ms": 0.07,
+      "evidence_anchor_attempts": 1,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 2,
+        "failure_count": 1,
+        "total_duration_ms": 5369.442,
+        "request_kinds": {
+          "text_structured": 2
+        },
+        "outcomes": {
+          "structured_output_error": 1,
+          "success": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'calculation'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": {
+        "classification": "not_needed",
+        "signals": [
+          "proposed_value_seen_in_retrieval",
+          "quote_seen_in_retrieval"
+        ],
+        "query": "Delivery: How the library was delivered to cells.\nRetrieval hints: methods design library cloning construct",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 22,
+        "top_chunk_types": [
+          "section",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 1,
+        "exact_evidence_count": 1,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": true,
+        "quoted_text_seen_in_retrieval": true
+      },
+      "figure_review_diagnostics": {
+        "triggered": false,
+        "trigger_reasons": [],
+        "shortlist_size": 0,
+        "review_calls": 0,
+        "review_ms": 0.0,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "found",
+      "proposal_support": "direct_evidence",
+      "warning_flags": [],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_133410_v1yldd_cell_d714824bc8bb_1775484671360"
+    }
+  ],
+  "counters": {
+    "provider_request_counts": {
+      "http_total": 269,
+      "models_list": 1,
+      "completions_total": 268,
+      "completions_text_raw": 42,
+      "completions_text_structured": 112,
+      "completions_vision_structured": 112,
+      "completions_probe_structured": 2,
+      "completion_retry_attempts": 102
+    },
+    "parse_errors": 0,
+    "parse_warnings": 2,
+    "matched_pdfs": 1,
+    "eligible_cells": 9399,
+    "processed_cells": 39,
+    "recall_rescue_cells": 16,
+    "whole_document_cells": 0,
+    "needs_more_evidence_cells": 1,
+    "figure_review_cells": 33,
+    "figure_review_triggered_cells": 33,
+    "figure_review_hit_cells": 0,
+    "figure_review_useful_cells": 0,
+    "figure_review_rescue_cells": 0,
+    "figure_review_hits_total": 0,
+    "proposals_generated": 39
+  },
+  "recorded_at": "2026-04-06T14:11:16.761751+00:00"
+}

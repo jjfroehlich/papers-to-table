@@ -61,10 +61,12 @@ Current code and run-artifact state relevant to this priority order:
 - implemented: resolved config snapshot persistence (`config.snapshot.json`) with resolved input context
 - implemented: lexical retrieval baseline path and persisted per-cell retrieval artifacts
 - implemented: prompt-bundle identity and prompt-contract identity persistence (`prompt_bundle_*`, `prompt_manifest_hash`, `prompt_bundle_hash`, `prompt_hash`) plus provider request counts
-- missing: explicit artifact completeness/parity summary for main-app runs
-- missing: rich persisted provider/runtime attempt diagnostics beyond request counters
-- missing: proposal-level retrieval failure classification for questionable cells
-- missing: explicit aggregate figure-review ROI summary beyond raw timing fields
+- implemented: explicit artifact completeness/parity summary for main-app runs, split into user-facing versus diagnostics sections
+- implemented: rich persisted provider/runtime attempt diagnostics beyond request counters, including provider probe reporting and optional verbose trace output
+- implemented: proposal-level retrieval failure classification for questionable cells
+- implemented: explicit aggregate figure-review ROI summary beyond raw timing fields
+- implemented: separate text-path and vision-path structured-output capability truth in provider artifacts and readiness-derived summaries
+- implemented: prompt-only degraded vision-path suppression for figure review behind an explicit config toggle
 
 ---
 
@@ -1541,6 +1543,7 @@ Each provider entry should capture, as applicable:
 - model identifier for text extraction
 - model identifier for vision extraction (separate field; may be the same model or a different one)
 - timeout and capability-probe settings
+- diagnostics verbosity settings where relevant
 - credential environment-variable or secret references for cloud providers
 - explicit disabled flag or explicit stub/demo mode only when intentionally supported
 
@@ -1553,6 +1556,8 @@ When a vision model is configured and used, run artifacts and run summaries must
 ## Structured-output compatibility and response recovery
 
 Provider adapters should probe or negotiate structured-output compatibility per provider/model path rather than assuming one guided-JSON mechanism will work everywhere.
+
+When both text and vision models are configured, capability probing should preserve separate truth for those paths rather than treating one probe result as globally valid for the provider.
 
 If a provider rejects the preferred guided-output mode, the adapter should follow a bounded ladder only if the same proposal contract can still be validated:
 
@@ -1572,6 +1577,8 @@ Malformed structured responses should go through a bounded repair path before th
 If a compatible structured path cannot be established, the run should record a clear provider or extraction failure rather than silently accepting unstructured output as a valid proposal.
 
 Provider and model readiness truth must remain separate from structured-output capability truth. Reporting should preserve at least these categories: provider unreachable or unavailable, model unavailable or not loaded, `json_schema` unsupported with `json_object` fallback used, and prompt-only JSON fallback used when structured modes are unavailable.
+
+Provider/runtime observability should be split into stable user-facing summaries versus deeper diagnostics. Summary-area artifacts should expose the negotiated provider mode and other operator-facing truth, while deeper diagnostics should hold run stats, request counts, probe reports, provider diagnostics, and optional verbose traces.
 
 ## Preflight and readiness policy
 
@@ -1599,6 +1606,7 @@ Run artifacts and normal summaries should record at least:
 - locality (`local` or `cloud`)
 - proposal-generation mode (`live`, `unavailable`, `disabled`, or explicit `stub/demo/degraded`)
 - negotiated structured-output mode (`json_schema`, `json_object`, or `none` where `none` means explicit prompt-only JSON fallback mode)
+- negotiated structured-output mode for the text path and, when configured, the corresponding truth for the vision path
 - whether structured-output fallback was used
 - readiness checks performed and failing reasons where applicable
 - readiness and capability failure reason classification where applicable

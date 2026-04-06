@@ -12,11 +12,11 @@ Reality-checked on 2026-04-06 against current backend code, tests, and recent ru
 - completed: manifest-based prompt bundle loader, config-driven bundle selection, and run-artifact prompt bundle metadata (`prompt_bundle_*`, `prompt_manifest_hash`, `prompt_keys_used`)
 - completed: stable non-UI automation entrypoint for tooling (`python -m backend.app.automation`) with machine-readable start/wait/status outputs
 - completed: provider request counter artifact via `provider_request_counts.json`
-- missing: explicit main-app artifact completeness/parity summary
-- missing: persisted provider/runtime attempt diagnostics beyond request counters
-- missing: proposal-level retrieval failure classification for questionable cells
-- missing: aggregate figure-review ROI summary
-- missing: dedicated tests for the diagnostic-artifact items above
+- completed: explicit main-app artifact completeness/parity summary with user-facing versus diagnostics sections in `summaries/artifact_summary.json`
+- completed: persisted provider/runtime attempt diagnostics beyond request counters, including `diagnostics/provider_diagnostics.json`, `diagnostics/provider_probe.json`, and optional `diagnostics/provider_trace.jsonl`
+- completed: proposal-level retrieval failure classification for questionable cells
+- completed: aggregate figure-review ROI diagnostics at per-cell and per-run level
+- completed: dedicated backend tests for diagnostic-artifact paths and probe persistence
 
 ## Purpose
 
@@ -203,16 +203,16 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 **Ordered execution checklist (must stay in this order):**
 
-- [ ] **T113 — Artifact completeness and parity summary**
+- [x] **T113 — Artifact completeness and parity summary**
   - add an explicit main-app artifact summary for presence/absence and parity signals
   - keep missing review/export/log artifacts visible rather than implicit
-- [ ] **T114 — Provider/runtime failure diagnostics**
+- [x] **T114 — Provider/runtime failure diagnostics**
   - persist compact per-attempt provider diagnostics with durations, failure categories, and truncated payload previews
   - explain high cell runtime when no valid text result is recovered
-- [ ] **T115 — Retrieval-failure diagnostics**
+- [x] **T115 — Retrieval-failure diagnostics**
   - add compact proposal-level classification for questionable cells
   - distinguish parser/source gap, retrieval miss, retrieval-policy limit, evidence anchoring gap, and reasoning gap using existing artifacts
-- [ ] **T116 — Figure-review ROI diagnostics**
+- [x] **T116 — Figure-review ROI diagnostics**
   - persist trigger, hit, useful-evidence, rescue, and time-cost summaries per cell and per run
 
 **Batch 5 completion standard:**
@@ -1411,7 +1411,7 @@ The detailed task inventory below remains the source of truth for exact implemen
 
 - [ ] **T109f** Persist a compact structured run-stats artifact and expose it as a first-class run output.
   - affected backend modules: `backend/app/runner.py`, `backend/app/artifacts.py`
-  - artifact target: `summaries/run_stats.json` (or equivalent documented stable path)
+  - artifact target: `diagnostics/run_stats.json` (or equivalent documented stable path)
   - keep schema shallow and manually inspectable
 
 - [ ] **T109g** Add run-stats tests for structure and consistency.

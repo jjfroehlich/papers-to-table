@@ -1,0 +1,3028 @@
+{
+  "run_id": "run_20260406_141527_p1k39x",
+  "retrieval_mode": "lexical",
+  "provider_token": "lm_studio",
+  "prompt_hash": "bdaa44abfb1a94d5ebc42c5d5ca347715c76faf4dc9f9192e51c545f2f7c6f62",
+  "prompt_bundle_id": "default",
+  "prompt_bundle_version": "1.0.0",
+  "prompt_bundle_path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default",
+  "prompt_manifest_hash": "60f9792ee6b40316b7b121bd33a6774af7a64238a431428b9973ee54114376b9",
+  "prompt_bundle_hash": "d594aa8cd6d563fcc2988485a268d0a9559c0a618ec816573090437b1ee6be43",
+  "prompt_keys_used": [
+    "evidence_recovery_system",
+    "evidence_recovery_user",
+    "figure_extraction_system",
+    "figure_extraction_user",
+    "style_profile_system",
+    "text_extraction_system",
+    "text_extraction_user"
+  ],
+  "prompt_files": {
+    "text_extraction_system": {
+      "logical_key": "text_extraction_system",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\text_extraction\\system.md",
+      "relative_path": "text_extraction/system.md",
+      "sha256": "b4bb59273298d9bab714527b571fc308434c58bc4d1eab86b00c09002931a501"
+    },
+    "text_extraction_user": {
+      "logical_key": "text_extraction_user",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\text_extraction\\user.md",
+      "relative_path": "text_extraction/user.md",
+      "sha256": "2b8373f8e25f0fe5c6b3cd7167de14d0d7361dc83fa86bb4d8d7a863ec1a9327"
+    },
+    "figure_extraction_system": {
+      "logical_key": "figure_extraction_system",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\figure_extraction\\system.md",
+      "relative_path": "figure_extraction/system.md",
+      "sha256": "82f9f9a9b145389345d766e1043d95e9e56f5f2842f07c0631cd33da3214101c"
+    },
+    "figure_extraction_user": {
+      "logical_key": "figure_extraction_user",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\figure_extraction\\user.md",
+      "relative_path": "figure_extraction/user.md",
+      "sha256": "a7e1d77fb57e8e6238446e0d84e9c0aedda2762b1a9c471bdc4d75504475c7d1"
+    },
+    "evidence_recovery_system": {
+      "logical_key": "evidence_recovery_system",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\evidence_recovery\\system.md",
+      "relative_path": "evidence_recovery/system.md",
+      "sha256": "19c2e7a0cc80ee1a5f3696fde8c123007a5a8a59cec96f7c4218d1a9fdd0bb7a"
+    },
+    "evidence_recovery_user": {
+      "logical_key": "evidence_recovery_user",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\evidence_recovery\\user.md",
+      "relative_path": "evidence_recovery/user.md",
+      "sha256": "f0db7f5f1621aaaac8c644e645dfcd98090be8eceea5e0c4a036fd49ea333c55"
+    },
+    "style_profile_system": {
+      "logical_key": "style_profile_system",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\style_profile\\system.md",
+      "relative_path": "style_profile/system.md",
+      "sha256": "db428a31aa4062754ce828da9afc853422c8aacbfafb1a007cfe4f17baadf5de"
+    }
+  },
+  "per_run": {
+    "started_at": "2026-04-06T14:15:27.035976+00:00",
+    "completed_at": "2026-04-06T14:44:26.373494+00:00",
+    "run_total_ms": 1739338.13,
+    "stage_ms": {
+      "validating": 1372.522,
+      "load_inputs": 117.769,
+      "provider_init": 2044.173,
+      "parse": 48953.686,
+      "match": 21.568,
+      "style_profiles": 249666.037,
+      "extraction": 1437156.57
+    },
+    "figure_review_roi": {
+      "triggered_cells": 0,
+      "reviewed_cells": 0,
+      "hit_cells": 0,
+      "useful_cells": 0,
+      "rescue_cells": 0,
+      "hits_total": 0,
+      "total_ms": 0.0,
+      "avg_ms_per_triggered_cell": 0.0
+    }
+  },
+  "per_pdf": {
+    "paper_2": {
+      "parse_pdf_ms": 48952.157,
+      "retrieval_prep_ms": 419.988,
+      "retrieval_query_ms": 912.514,
+      "retrieval_calls": 39,
+      "chunk_build_count": 39,
+      "idf_build_count": 39,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cells_processed": 39
+    }
+  },
+  "per_cell": [
+    {
+      "cell_id": "cell_84c725e14e26",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Scale",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 23.151,
+      "retrieval_prep_ms": 11.555,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34085.127,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 22424.751,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_84c725e14e26_1775485229246"
+    },
+    {
+      "cell_id": "cell_765ef86661b5",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Number of Conditions",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "count_like",
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "count",
+          "total",
+          "number",
+          "pairs",
+          "pair",
+          "combinations",
+          "constructed",
+          "tested",
+          "included",
+          "coverage",
+          "sequences",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 38.752,
+      "retrieval_prep_ms": 16.276,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34628.694,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 22863.516,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_765ef86661b5_1775485263372"
+    },
+    {
+      "cell_id": "cell_14efc2925524",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Type of variants",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 21.702,
+      "retrieval_prep_ms": 9.731,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34990.98,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23102.05,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_14efc2925524_1775485298027"
+    },
+    {
+      "cell_id": "cell_61c8c7cbd920",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "mean reads per sequence/variant",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "count_like",
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "count",
+          "total",
+          "number",
+          "pairs",
+          "pair",
+          "combinations",
+          "constructed",
+          "tested",
+          "included",
+          "coverage",
+          "sequences",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 22.537,
+      "retrieval_prep_ms": 10.421,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35552.942,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23454.372,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_61c8c7cbd920_1775485333043"
+    },
+    {
+      "cell_id": "cell_e41dea4d0b6e",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "what predicts activity? (e.g. accessible -> active in MPRA?)",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 21.376,
+      "retrieval_prep_ms": 9.837,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35379.671,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23398.02,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_e41dea4d0b6e_1775485368620"
+    },
+    {
+      "cell_id": "cell_28df0f22dc3a",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Model system",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 22.696,
+      "retrieval_prep_ms": 12.095,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35400.697,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23432.864,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_28df0f22dc3a_1775485404023"
+    },
+    {
+      "cell_id": "cell_e11ce6617d58",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Bottlenecking",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "count_like",
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "count",
+          "total",
+          "number",
+          "pairs",
+          "pair",
+          "combinations",
+          "constructed",
+          "tested",
+          "included",
+          "coverage",
+          "sequences",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 23.795,
+      "retrieval_prep_ms": 10.984,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35284.8,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23318.879,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_e11ce6617d58_1775485439449"
+    },
+    {
+      "cell_id": "cell_6831809f3011",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "MPRABase_Total_Variants_Tested",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 20.426,
+      "retrieval_prep_ms": 9.848,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35183.026,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23223.903,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_6831809f3011_1775485474750"
+    },
+    {
+      "cell_id": "cell_0a563b86fb9e",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "DNA library",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 30.003,
+      "retrieval_prep_ms": 10.884,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35363.64,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23451.183,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_0a563b86fb9e_1775485509966"
+    },
+    {
+      "cell_id": "cell_a9b440d9bb3f",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Type of Condition",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 22.51,
+      "retrieval_prep_ms": 9.788,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35339.816,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23293.699,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_a9b440d9bb3f_1775485545361"
+    },
+    {
+      "cell_id": "cell_0c3a3e294837",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Synthetic designs",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 21.063,
+      "retrieval_prep_ms": 10.057,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35451.956,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23307.474,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_0c3a3e294837_1775485580727"
+    },
+    {
+      "cell_id": "cell_0d59e8a7e5eb",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Focus",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 20.355,
+      "retrieval_prep_ms": 9.758,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35182.397,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23213.849,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_0d59e8a7e5eb_1775485616197"
+    },
+    {
+      "cell_id": "cell_9ef12768e33d",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "library construction",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 21.716,
+      "retrieval_prep_ms": 10.021,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35267.243,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23279.895,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_9ef12768e33d_1775485651407"
+    },
+    {
+      "cell_id": "cell_800bc1a56a0e",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Species",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 24.814,
+      "retrieval_prep_ms": 14.432,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35489.454,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23616.071,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_800bc1a56a0e_1775485686701"
+    },
+    {
+      "cell_id": "cell_01e0eed636de",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "MPRABase_datasets_id",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 20.023,
+      "retrieval_prep_ms": 9.796,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35423.371,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23517.249,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_01e0eed636de_1775485722212"
+    },
+    {
+      "cell_id": "cell_7258606c253a",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "BC length (bp)",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 21.352,
+      "retrieval_prep_ms": 9.921,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35488.839,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23474.917,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_7258606c253a_1775485757657"
+    },
+    {
+      "cell_id": "cell_fbe4d5c81159",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Integration site",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 21.681,
+      "retrieval_prep_ms": 9.793,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35599.071,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23645.349,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_fbe4d5c81159_1775485793172"
+    },
+    {
+      "cell_id": "cell_31ca7bae7535",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Cloning",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 33.441,
+      "retrieval_prep_ms": 15.94,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35604.699,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23628.698,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_31ca7bae7535_1775485828805"
+    },
+    {
+      "cell_id": "cell_b966a213c7f5",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Abstract",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 19.742,
+      "retrieval_prep_ms": 9.828,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 57096.713,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 45121.049,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_b966a213c7f5_1775485864425"
+    },
+    {
+      "cell_id": "cell_3380a1ae4865",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Promoter",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 37.884,
+      "retrieval_prep_ms": 16.211,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35448.025,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23573.344,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_3380a1ae4865_1775485921563"
+    },
+    {
+      "cell_id": "cell_b90a48892caf",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "General library design category",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence",
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes",
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 23.89,
+      "retrieval_prep_ms": 9.604,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35976.806,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23790.361,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_b90a48892caf_1775485957046"
+    },
+    {
+      "cell_id": "cell_4a4e118c2b65",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "library composition",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "count_like",
+          "variant_or_sequence",
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "count",
+          "total",
+          "number",
+          "pairs",
+          "pair",
+          "combinations",
+          "constructed",
+          "tested",
+          "included",
+          "coverage",
+          "sequences",
+          "plasmids",
+          "barcodes",
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 22.663,
+      "retrieval_prep_ms": 9.817,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35245.774,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23232.312,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_4a4e118c2b65_1775485993048"
+    },
+    {
+      "cell_id": "cell_48adfab85eb5",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Other notes",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 19.631,
+      "retrieval_prep_ms": 9.86,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 57944.484,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 45768.469,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery: { \"proposed_value\": \"Both classes contained a large fraction of sequences predicted to be an enhancer in at least one other related or unrelated cell type (90% of E1 and 70% of E2...",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_48adfab85eb5_1775486028315"
+    },
+    {
+      "cell_id": "cell_3290a4290e26",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Journal",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 23.875,
+      "retrieval_prep_ms": 12.775,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35467.325,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23537.545,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_3290a4290e26_1775486086286"
+    },
+    {
+      "cell_id": "cell_15870f236367",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Integration method",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "vector_or_backbone"
+        ],
+        "hint_terms": [
+          "episomal",
+          "plasmid",
+          "vector",
+          "backbone",
+          "origin",
+          "replication",
+          "polya"
+        ]
+      },
+      "retrieval_query_ms": 21.384,
+      "retrieval_prep_ms": 9.525,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 57617.65,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 45676.478,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_15870f236367_1775486121777"
+    },
+    {
+      "cell_id": "cell_482e9d1c5b38",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "length of sequences (bp)",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 20.066,
+      "retrieval_prep_ms": 9.247,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34658.639,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 22894.41,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'calculation'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_482e9d1c5b38_1775486179417"
+    },
+    {
+      "cell_id": "cell_c97ce86605d2",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Where is the BC?",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence",
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes",
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 22.496,
+      "retrieval_prep_ms": 9.675,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34992.577,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23122.414,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_c97ce86605d2_1775486214100"
+    },
+    {
+      "cell_id": "cell_ab9e3091884b",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "If episomal: Ori in backbone?",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence",
+          "vector_or_backbone"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes",
+          "episomal",
+          "plasmid",
+          "vector",
+          "backbone",
+          "origin",
+          "replication",
+          "polya"
+        ]
+      },
+      "retrieval_query_ms": 39.425,
+      "retrieval_prep_ms": 15.714,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34986.311,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23201.278,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_ab9e3091884b_1775486249134"
+    },
+    {
+      "cell_id": "cell_46b00be3c065",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Date Added",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 21.182,
+      "retrieval_prep_ms": 10.216,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34947.806,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23040.752,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_46b00be3c065_1775486284144"
+    },
+    {
+      "cell_id": "cell_97ea8879a5f6",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Readout",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 21.002,
+      "retrieval_prep_ms": 9.764,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34898.801,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23115.605,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_97ea8879a5f6_1775486319116"
+    },
+    {
+      "cell_id": "cell_4b91e28c2b28",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "UMI?",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 23.129,
+      "retrieval_prep_ms": 10.464,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34811.155,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23109.834,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_4b91e28c2b28_1775486354036"
+    },
+    {
+      "cell_id": "cell_aa99e2a3a3c0",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Episomal vs genomic",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence",
+          "vector_or_backbone",
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes",
+          "episomal",
+          "plasmid",
+          "vector",
+          "backbone",
+          "origin",
+          "replication",
+          "polya",
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 22.654,
+      "retrieval_prep_ms": 9.727,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 33748.99,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 22041.441,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "Schema validation failed at $: missing required field 'calculation'.",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_aa99e2a3a3c0_1775486388876"
+    },
+    {
+      "cell_id": "cell_ccdf26728131",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "RNA library",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 21.322,
+      "retrieval_prep_ms": 9.97,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34832.503,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 22969.402,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_ccdf26728131_1775486422649"
+    },
+    {
+      "cell_id": "cell_0bd5d9c4d3ee",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "library seq",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "variant_or_sequence",
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "sequences",
+          "pairs",
+          "combinations",
+          "plasmids",
+          "barcodes",
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 21.068,
+      "retrieval_prep_ms": 9.318,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34731.079,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23034.813,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_0bd5d9c4d3ee_1775486457498"
+    },
+    {
+      "cell_id": "cell_77d5c4c71548",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "mean # Barcodes per sequence",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "count_like",
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "count",
+          "total",
+          "number",
+          "pairs",
+          "pair",
+          "combinations",
+          "constructed",
+          "tested",
+          "included",
+          "coverage",
+          "sequences",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 20.588,
+      "retrieval_prep_ms": 9.189,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34765.406,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 22926.371,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_77d5c4c71548_1775486492259"
+    },
+    {
+      "cell_id": "cell_88af7b440025",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Approach",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 18.712,
+      "retrieval_prep_ms": 9.278,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34531.847,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 22843.956,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_88af7b440025_1775486527037"
+    },
+    {
+      "cell_id": "cell_f1cf8829a45a",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Link",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 18.47,
+      "retrieval_prep_ms": 9.229,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 34400.634,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 22668.653,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_f1cf8829a45a_1775486561589"
+    },
+    {
+      "cell_id": "cell_74f24947a12f",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "# Variants tested",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "count_like",
+          "variant_or_sequence"
+        ],
+        "hint_terms": [
+          "count",
+          "total",
+          "number",
+          "pairs",
+          "pair",
+          "combinations",
+          "constructed",
+          "tested",
+          "included",
+          "coverage",
+          "sequences",
+          "plasmids",
+          "barcodes"
+        ]
+      },
+      "retrieval_query_ms": 20.819,
+      "retrieval_prep_ms": 9.474,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35073.229,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23066.912,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_74f24947a12f_1775486596013"
+    },
+    {
+      "cell_id": "cell_d714824bc8bb",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Delivery",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 21.119,
+      "retrieval_prep_ms": 9.966,
+      "chunk_count_total": 325,
+      "chunk_count_by_type": {
+        "section": 59,
+        "paragraph": 173,
+        "caption": 17,
+        "list_item": 76
+      },
+      "cell_total_ms": 35246.632,
+      "text_model_ms": 0.0,
+      "text_model_calls": 0,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 0.0,
+      "recall_rescue_retrieval_prep_ms": 0.0,
+      "recall_rescue_used": false,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 1,
+        "failure_count": 1,
+        "total_duration_ms": 23274.336,
+        "request_kinds": {
+          "text_structured": 1
+        },
+        "outcomes": {
+          "structured_output_error": 1
+        },
+        "last_error": {
+          "request_kind": "text_structured",
+          "structured_mode": "none",
+          "error_reason": null,
+          "error_message": "LM Studio returned malformed JSON after bounded recovery:",
+          "http_status": null
+        }
+      },
+      "retrieval_diagnostics": null,
+      "figure_review_diagnostics": null,
+      "proposal_state": "error",
+      "proposal_support": "error",
+      "warning_flags": [
+        "provider_error"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260406_141527_p1k39x_cell_d714824bc8bb_1775486631115"
+    }
+  ],
+  "counters": {
+    "provider_request_counts": {
+      "http_total": 123,
+      "models_list": 1,
+      "completions_total": 122,
+      "completions_text_raw": 42,
+      "completions_text_structured": 78,
+      "completions_vision_structured": 0,
+      "completions_probe_structured": 2,
+      "completion_retry_attempts": 39
+    },
+    "parse_errors": 0,
+    "parse_warnings": 2,
+    "matched_pdfs": 1,
+    "eligible_cells": 9399,
+    "processed_cells": 39,
+    "recall_rescue_cells": 0,
+    "whole_document_cells": 0,
+    "needs_more_evidence_cells": 0,
+    "figure_review_cells": 0,
+    "figure_review_triggered_cells": 0,
+    "figure_review_hit_cells": 0,
+    "figure_review_useful_cells": 0,
+    "figure_review_rescue_cells": 0,
+    "figure_review_hits_total": 0,
+    "proposals_generated": 39
+  },
+  "recorded_at": "2026-04-06T14:44:26.377515+00:00"
+}

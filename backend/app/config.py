@@ -102,6 +102,7 @@ class RetrievalConfig(BaseModel):
 class FigureReviewConfig(BaseModel):
     enabled: bool = False
     max_figures_per_paper: int = 20
+    skip_when_prompt_only_degraded: bool = True
 
 
 class ReviewConfig(BaseModel):
@@ -116,6 +117,11 @@ class ExportConfig(BaseModel):
 class PromptConfig(BaseModel):
     bundle: Optional[str] = None
     bundle_path: Optional[str] = None
+
+
+class DiagnosticsConfig(BaseModel):
+    verbose_provider_logging: bool = False
+    provider_preview_chars: int = 240
 
 
 class RunConfig(BaseModel):
@@ -134,6 +140,7 @@ class RunConfig(BaseModel):
     review: ReviewConfig = Field(default_factory=ReviewConfig)
     export: ExportConfig = Field(default_factory=ExportConfig)
     prompt: PromptConfig = Field(default_factory=PromptConfig)
+    diagnostics: DiagnosticsConfig = Field(default_factory=DiagnosticsConfig)
 
     @model_validator(mode="after")
     def validate_provider_token(self) -> RunConfig:

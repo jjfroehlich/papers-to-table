@@ -41,7 +41,7 @@
     "whole_document_max_chars": 12000
   },
   "figure_review": {
-    "enabled": true,
+    "enabled": false,
     "max_figures_per_paper": 20
   },
   "review": {

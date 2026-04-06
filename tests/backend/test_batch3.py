@@ -1981,6 +1981,53 @@ class TestFigureReview:
         assert proposal.vision_trigger_reasons == []
         assert provider.vision_complete_structured.call_count == 0
 
+    async def test_prompt_only_degraded_vision_mode_suppresses_figure_review(
+        self, run_dir: pathlib.Path, minimal_doc_dict: dict
+    ):
+        doc_with_crop = dict(minimal_doc_dict)
+        crop_path = run_dir / "fig_crop_prompt_only.png"
+        crop_path.write_bytes(_minimal_png_bytes())
+        doc_with_crop["figures"] = [{**minimal_doc_dict["figures"][0], "crop_path": str(crop_path)}]
+
+        provider = AsyncMock()
+        provider.chat_complete_structured = AsyncMock(return_value={
+            "proposed_value": None,
+            "state": "unclear",
+            "rationale": None,
+            "calculation": None,
+            "numeric_value_form": None,
+            "quotes": [],
+        })
+        provider.vision_complete_structured = AsyncMock(return_value={
+            "proposed_value": "45.3%",
+            "state": "found",
+            "rationale": "- Figure shows BVF = 45.3%.",
+            "numeric_value_form": "exact",
+            "figure_description": "BVF bar chart",
+            "caption_relevant": True,
+        })
+
+        proposal = await extract_cell(
+            run_id="run_test",
+            pdf_id="paper_test",
+            row_id="row_test",
+            cell_id="cell_prompt_only_suppressed",
+            column_name="Bone volume fraction",
+            column_description="BVF",
+            row_context={},
+            doc_dict=doc_with_crop,
+            run_dir=run_dir,
+            provider=provider,
+            text_model_id="text-model",
+            vision_model_id="vision-model",
+            caps=SimpleNamespace(vision_structured_output_mode="none"),
+            skip_figure_review_when_prompt_only_degraded=True,
+        )
+
+        assert proposal.figure_review_diagnostics["triggered"] is False
+        assert proposal.figure_review_diagnostics["suppressed_reason"] == "prompt_only_provider_mode"
+        assert provider.vision_complete_structured.call_count == 0
+
     async def test_figure_approximate_or_range_numeric_rescue_is_honest(
         self, run_dir: pathlib.Path, minimal_doc_dict: dict
     ):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import pathlib
 from datetime import datetime, timezone
@@ -14,6 +15,10 @@ from .artifacts import (
     get_config_snapshot_path,
     get_input_summary_path,
     get_provider_diagnostics_path,
+    get_provider_mode_path,
+    get_provider_probe_path,
+    get_provider_request_counts_path,
+    get_provider_trace_path,
     get_reviewer_summary_path,
     get_run_dir,
     get_run_json_path,
@@ -129,6 +134,7 @@ def get_initial_run_data(
         "config_snapshot_path": None,
         "run_stats_path": None,
         "provider_diagnostics_path": None,
+        "provider_probe_path": None,
         "artifact_summary_path": None,
         "schema_hash": None,
         "schema_version": None,
@@ -346,26 +352,31 @@ async def run_pipeline(
         artifact_path = get_artifact_summary_path(output_dir, run_id)
         proposal_coverage = _proposal_metadata_coverage(proposals)
         eval_expected = bool(data.get("eval_mode", False))
-        run_files = {
+        user_facing_files = {
             "config_snapshot": "config.snapshot.json",
-            "provider_mode": "provider_mode.json",
-            "provider_request_counts": "provider_request_counts.json",
-            "provider_diagnostics": "provider_diagnostics.json",
             "input_summary": "inputs/input_summary.json",
+            "provider_mode": "summaries/provider_mode.json",
             "match_summary": "matching/match_summary.json",
             "proposals_jsonl": "proposals/proposals.jsonl",
             "proposal_index": "proposals/proposal_index.json",
-            "run_stats": "summaries/run_stats.json",
             "run_summary": "summaries/run_summary.json",
             "reviewer_summary": "summaries/reviewer_summary.json",
+            "artifact_summary": "summaries/artifact_summary.json",
+        }
+        diagnostics_files = {
+            "run_stats": "diagnostics/run_stats.json",
+            "provider_request_counts": "diagnostics/provider_request_counts.json",
+            "provider_diagnostics": "diagnostics/provider_diagnostics.json",
+            "provider_probe": "diagnostics/provider_probe.json",
+            "provider_trace": "diagnostics/provider_trace.jsonl",
         }
         files = {}
         missing_expected: list[str] = []
-        for label, relative_path in run_files.items():
+        for label, relative_path in {**user_facing_files, **diagnostics_files}.items():
             target = run_dir / relative_path
             present = target.exists()
             files[label] = {"path": relative_path, "present": present}
-            if label not in {"proposals_jsonl", "proposal_index", "match_summary"} and not present:
+            if label not in {"proposals_jsonl", "proposal_index", "match_summary", "provider_trace"} and not present:
                 missing_expected.append(relative_path)
 
         gold_path = run_dir / "inputs" / f"gold_table{pathlib.Path(config.table_path).suffix}"
@@ -387,12 +398,17 @@ async def run_pipeline(
             "run_id": run_id,
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "files": files,
+            "sections": {
+                "user_facing": sorted(user_facing_files.values()),
+                "diagnostics": sorted(diagnostics_files.values()),
+            },
             "directories": {
                 "parsed": {"path": "parsed", "file_count": _count_artifact_files(run_dir / "parsed")},
                 "retrieval": {"path": "retrieval", "file_count": _count_artifact_files(run_dir / "retrieval")},
                 "proposals": {"path": "proposals", "file_count": _count_artifact_files(run_dir / "proposals")},
                 "evidence": {"path": "evidence", "file_count": _count_artifact_files(run_dir / "evidence")},
                 "review": {"path": "review", "file_count": _count_artifact_files(run_dir / "review")},
+                "diagnostics": {"path": "diagnostics", "file_count": _count_artifact_files(run_dir / "diagnostics")},
                 "exports": {"path": "exports", "file_count": _count_artifact_files(run_dir / "exports")},
                 "logs": {"path": "logs", "file_count": _count_artifact_files(run_dir / "logs")},
             },
@@ -419,8 +435,9 @@ async def run_pipeline(
         try:
             data["provider_request_counts"] = counts
             run_stats["counters"]["provider_request_counts"] = counts
+            counts_path = get_provider_request_counts_path(output_dir, run_id)
             write_json(
-                run_dir / "provider_request_counts.json",
+                counts_path,
                 {
                     "run_id": run_id,
                     "provider_token": config.provider.token,
@@ -456,6 +473,36 @@ async def run_pipeline(
         provider_diag_path = get_provider_diagnostics_path(output_dir, run_id)
         write_json(provider_diag_path, diagnostics)
         data["provider_diagnostics_path"] = _relative_run_path(run_dir, provider_diag_path)
+
+        probe_report = {
+            "provider": config.provider.token,
+            "recorded_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if provider_obj is not None:
+            get_probe_report = getattr(provider_obj, "get_probe_report", None)
+            if callable(get_probe_report):
+                try:
+                    probe_report.update(get_probe_report() or {})
+                except Exception:
+                    pass
+        provider_probe_path = get_provider_probe_path(output_dir, run_id)
+        write_json(provider_probe_path, probe_report)
+        data["provider_probe_path"] = _relative_run_path(run_dir, provider_probe_path)
+
+        trace_records: list[dict] = []
+        if provider_obj is not None:
+            get_trace_records = getattr(provider_obj, "get_trace_records", None)
+            if callable(get_trace_records):
+                try:
+                    trace_records = get_trace_records() or []
+                except Exception:
+                    trace_records = []
+        trace_path = get_provider_trace_path(output_dir, run_id)
+        if trace_records:
+            trace_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(trace_path, "w", encoding="utf-8") as handle:
+                for record in trace_records:
+                    handle.write(json.dumps(record, ensure_ascii=False) + "\n")
         return data
 
     run_data = get_initial_run_data(run_id, config, config_path, resolved_inputs=resolved_inputs)
@@ -538,7 +585,7 @@ async def run_pipeline(
                     readiness.structured_output_fallback_used
                 )
                 write_json(
-                    get_run_dir(output_dir, run_id) / "provider_mode.json",
+                    get_provider_mode_path(output_dir, run_id),
                     {
                         "token": config.provider.token,
                         "locality": config.provider.locality,
@@ -650,6 +697,7 @@ async def run_pipeline(
                 config.provider,
                 text_model_id=text_model_id,
                 vision_model_id=vision_model_id,
+                diagnostics_config=config.diagnostics,
             )
         except ProviderError as e:
             provider_init_error = str(e)
@@ -675,7 +723,7 @@ async def run_pipeline(
             run_data["structured_output_mode"] = "none"
             run_data["structured_output_fallback_used"] = False
             write_json(
-                run_dir / "provider_mode.json",
+                get_provider_mode_path(output_dir, run_id),
                 {
                     "token": config.provider.token,
                     "locality": config.provider.locality,
@@ -717,7 +765,7 @@ async def run_pipeline(
             run_data["provider_readiness_reason"] = provider_mode.readiness_reason
             run_data["structured_output_mode"] = provider_mode.structured_output_mode
             run_data["structured_output_fallback_used"] = provider_mode.structured_output_fallback_used
-            write_json(run_dir / "provider_mode.json", provider_mode.model_dump())
+            write_json(get_provider_mode_path(output_dir, run_id), provider_mode.model_dump())
             caps = provider_mode.capabilities
             if caps and getattr(caps, "structured_output_mode", None) == "json_object":
                 run_data.setdefault("warnings", []).append({
@@ -753,6 +801,25 @@ async def run_pipeline(
                         "structured_output_mode": "none",
                         "structured_output_reason": getattr(caps, "structured_output_reason", None),
                         "structured_output_error": getattr(caps, "structured_output_error", None),
+                    },
+                })
+            if (
+                caps
+                and config.figure_review.enabled
+                and config.figure_review.skip_when_prompt_only_degraded
+                and getattr(caps, "vision_structured_output_mode", None) == "none"
+            ):
+                run_data.setdefault("warnings", []).append({
+                    "category": WC.provider_degraded.value,
+                    "message": (
+                        "Figure review will be suppressed for this run because the configured vision path only supports "
+                        "prompt-only JSON mode."
+                    ),
+                    "context": {
+                        "provider": config.provider.token,
+                        "vision_structured_output_mode": "none",
+                        "vision_structured_output_reason": getattr(caps, "vision_structured_output_reason", None),
+                        "vision_structured_output_error": getattr(caps, "vision_structured_output_error", None),
                     },
                 })
             run_data = sync_provider_artifacts(run_data, provider, run_dir)
@@ -1102,6 +1169,9 @@ async def run_pipeline(
                 provider_mode_str=provider_mode.mode if provider_mode else "unknown",
                 artifact_context=artifact_context,
                 max_figures_for_review=max(1, config.figure_review.max_figures_per_paper),
+                skip_figure_review_when_prompt_only_degraded=(
+                    config.figure_review.skip_when_prompt_only_degraded
+                ),
                 stats_sink=cell_stats,
             )
 
@@ -1138,7 +1208,7 @@ async def run_pipeline(
                 run_data["provider_readiness_reason"] = runtime_caps.structured_output_reason
             run_data["structured_output_mode"] = runtime_caps.structured_output_mode
             run_data["structured_output_fallback_used"] = runtime_caps.structured_output_mode in ("json_object", "none")
-            write_json(run_dir / "provider_mode.json", provider_mode.model_dump())
+            write_json(get_provider_mode_path(output_dir, run_id), provider_mode.model_dump())
 
         run_data["proposals_generated"] = proposals_generated
         run_stats["counters"]["proposals_generated"] = proposals_generated

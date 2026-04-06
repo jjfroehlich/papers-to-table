@@ -1533,6 +1533,7 @@ async def extract_cell(
     provider_mode_str: str = "unknown",
     artifact_context: Optional[dict] = None,
     max_figures_for_review: int = 5,
+    skip_figure_review_when_prompt_only_degraded: bool = False,
     stats_sink: Optional[dict[str, object]] = None,
 ) -> ProposalRecord:
     """Extract one cell value and produce a proposal with evidence.
@@ -1942,11 +1943,19 @@ async def extract_cell(
         needs_more_evidence=needs_more,
         proposed_value=proposed_value,
     )
+    figure_review_suppressed_reason: Optional[str] = None
     should_run_vision = bool(
         vision_model_id
         and doc_dict.get("figures")
         and vision_trigger_reasons
     )
+    if (
+        should_run_vision
+        and skip_figure_review_when_prompt_only_degraded
+        and getattr(caps, "vision_structured_output_mode", None) == "none"
+    ):
+        should_run_vision = False
+        figure_review_suppressed_reason = "prompt_only_provider_mode"
 
     shortlist_metadata: list[dict] = []
     if should_run_vision:
@@ -2076,6 +2085,7 @@ async def extract_cell(
         figure_hits=figure_hits,
         ranked_evidence=ranked_evidence,
         figure_rescued_value=bool(figure_hits and not proposed_value_before_figure and proposed_value),
+        suppressed_reason=figure_review_suppressed_reason,
     )
 
     # Persist evidence records
@@ -2363,12 +2373,14 @@ def _build_figure_review_diagnostics(
     figure_hits: list[FigureReviewHit],
     ranked_evidence: list[EvidenceRecord],
     figure_rescued_value: bool,
+    suppressed_reason: Optional[str] = None,
 ) -> dict:
     figure_evidence_persisted = sum(1 for ev in ranked_evidence if ev.is_figure_derived)
     useful = figure_evidence_persisted > 0 or figure_rescued_value
     return {
         "triggered": triggered,
         "trigger_reasons": list(trigger_reasons),
+        "suppressed_reason": suppressed_reason,
         "shortlist_size": len(shortlist_metadata),
         "review_calls": figure_review_calls,
         "review_ms": round(figure_review_ms, 3),

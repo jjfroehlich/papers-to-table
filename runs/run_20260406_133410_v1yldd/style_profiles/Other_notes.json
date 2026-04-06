@@ -1,0 +1,14 @@
+{
+  "column_name": "Other notes",
+  "field_type_guess": "mixed",
+  "expected_length": "medium",
+  "tone": "formal",
+  "detail_level": "high",
+  "value_shape": "free text with occasional numeric values and units",
+  "unit_style": "%",
+  "format_notes": null,
+  "example_risk": "medium",
+  "generated_at": "2026-04-06T13:36:59.319204+00:00",
+  "source_column_count": 34,
+  "provider_mode": "live_llm"
+}

@@ -1,0 +1,14 @@
+{
+  "column_name": "Journal",
+  "field_type_guess": "categorical",
+  "expected_length": "short",
+  "tone": "formal",
+  "detail_level": "medium",
+  "value_shape": "single string",
+  "unit_style": null,
+  "format_notes": null,
+  "example_risk": "low",
+  "generated_at": "2026-04-06T13:35:20.208618+00:00",
+  "source_column_count": 182,
+  "provider_mode": "live_llm"
+}

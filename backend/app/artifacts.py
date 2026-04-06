@@ -15,6 +15,14 @@ def get_run_json_path(output_dir: str, run_id: str) -> pathlib.Path:
     return get_run_dir(output_dir, run_id) / "run.json"
 
 
+def get_summaries_dir(output_dir: str, run_id: str) -> pathlib.Path:
+    return get_run_dir(output_dir, run_id) / "summaries"
+
+
+def get_diagnostics_dir(output_dir: str, run_id: str) -> pathlib.Path:
+    return get_run_dir(output_dir, run_id) / "diagnostics"
+
+
 def get_config_snapshot_path(output_dir: str, run_id: str) -> pathlib.Path:
     return get_run_dir(output_dir, run_id) / "config.snapshot.json"
 
@@ -44,23 +52,39 @@ def get_review_dir(output_dir: str, run_id: str) -> pathlib.Path:
 
 
 def get_run_summary_path(output_dir: str, run_id: str) -> pathlib.Path:
-    return get_run_dir(output_dir, run_id) / "summaries" / "run_summary.json"
+    return get_summaries_dir(output_dir, run_id) / "run_summary.json"
 
 
 def get_run_stats_path(output_dir: str, run_id: str) -> pathlib.Path:
-    return get_run_dir(output_dir, run_id) / "summaries" / "run_stats.json"
+    return get_diagnostics_dir(output_dir, run_id) / "run_stats.json"
 
 
 def get_artifact_summary_path(output_dir: str, run_id: str) -> pathlib.Path:
-    return get_run_dir(output_dir, run_id) / "summaries" / "artifact_summary.json"
+    return get_summaries_dir(output_dir, run_id) / "artifact_summary.json"
 
 
 def get_reviewer_summary_path(output_dir: str, run_id: str) -> pathlib.Path:
-    return get_run_dir(output_dir, run_id) / "summaries" / "reviewer_summary.json"
+    return get_summaries_dir(output_dir, run_id) / "reviewer_summary.json"
+
+
+def get_provider_mode_path(output_dir: str, run_id: str) -> pathlib.Path:
+    return get_summaries_dir(output_dir, run_id) / "provider_mode.json"
 
 
 def get_provider_diagnostics_path(output_dir: str, run_id: str) -> pathlib.Path:
-    return get_run_dir(output_dir, run_id) / "provider_diagnostics.json"
+    return get_diagnostics_dir(output_dir, run_id) / "provider_diagnostics.json"
+
+
+def get_provider_request_counts_path(output_dir: str, run_id: str) -> pathlib.Path:
+    return get_diagnostics_dir(output_dir, run_id) / "provider_request_counts.json"
+
+
+def get_provider_probe_path(output_dir: str, run_id: str) -> pathlib.Path:
+    return get_diagnostics_dir(output_dir, run_id) / "provider_probe.json"
+
+
+def get_provider_trace_path(output_dir: str, run_id: str) -> pathlib.Path:
+    return get_diagnostics_dir(output_dir, run_id) / "provider_trace.jsonl"
 
 
 def get_logs_dir(output_dir: str, run_id: str) -> pathlib.Path:
@@ -90,6 +114,7 @@ def init_run_bundle(output_dir: str, run_id: str) -> pathlib.Path:
         "evidence",
         "review",
         "summaries",
+        "diagnostics",
         "exports",
         "logs",
     ]

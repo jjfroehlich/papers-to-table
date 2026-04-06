@@ -1,0 +1,14 @@
+{
+  "column_name": "UMI?",
+  "field_type_guess": "boolean",
+  "expected_length": "short",
+  "tone": "neutral",
+  "detail_level": "high",
+  "value_shape": "single text value",
+  "unit_style": null,
+  "format_notes": null,
+  "example_risk": "low",
+  "generated_at": "2026-04-06T13:36:50.931561+00:00",
+  "source_column_count": 38,
+  "provider_mode": "live_llm"
+}

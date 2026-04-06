@@ -155,7 +155,7 @@ def _build_demo_run(
         },
     )
     write_json(
-        run_dir / "provider_mode.json",
+        run_dir / "summaries" / "provider_mode.json",
         {
             "provider_mode": "live_local",
             "provider_locality": "local",

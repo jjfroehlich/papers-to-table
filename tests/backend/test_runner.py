@@ -17,6 +17,8 @@ from backend.app.artifacts import (
     get_config_snapshot_path,
     get_input_summary_path,
     get_provider_diagnostics_path,
+    get_provider_mode_path,
+    get_provider_probe_path,
     get_run_json_path,
     get_run_stats_path,
     get_reviewer_summary_path,
@@ -171,15 +173,21 @@ class TestRunPipeline:
 
         artifact_summary = read_json(get_artifact_summary_path(output_dir, run_id))
         provider_diagnostics = read_json(get_provider_diagnostics_path(output_dir, run_id))
+        provider_probe = read_json(get_provider_probe_path(output_dir, run_id))
         run_data = read_json(get_run_json_path(output_dir, run_id))
 
         assert artifact_summary["files"]["provider_diagnostics"]["present"] is True
+        assert artifact_summary["files"]["provider_probe"]["present"] is True
         assert artifact_summary["directories"]["exports"]["file_count"] == 0
         assert artifact_summary["directories"]["review"]["file_count"] == 0
         assert artifact_summary["directories"]["logs"]["file_count"] == 0
+        assert artifact_summary["directories"]["diagnostics"]["file_count"] >= 3
+        assert "diagnostics/provider_diagnostics.json" in artifact_summary["sections"]["diagnostics"]
         assert provider_diagnostics["attempt_count"] == 0
+        assert provider_probe["provider"] == "lm_studio"
         assert run_data["artifact_summary_path"] == "summaries/artifact_summary.json"
-        assert run_data["provider_diagnostics_path"] == "provider_diagnostics.json"
+        assert run_data["provider_diagnostics_path"] == "diagnostics/provider_diagnostics.json"
+        assert run_data["provider_probe_path"] == "diagnostics/provider_probe.json"
 
     @pytest.mark.asyncio
     @respx.mock
@@ -402,7 +410,7 @@ class TestRunPipeline:
         assert run_data.get("structured_output_fallback_used") is True
         assert run_data.get("provider_readiness_reason") == "structured_backend_incompatible"
 
-        provider_mode = read_json(pathlib.Path(output_dir) / run_id / "provider_mode.json")
+        provider_mode = read_json(get_provider_mode_path(output_dir, run_id))
         assert provider_mode.get("structured_output_mode") == "json_object"
         assert provider_mode.get("structured_output_fallback_used") is True
 
@@ -431,7 +439,7 @@ class TestRunPipeline:
         assert run_data.get("structured_output_fallback_used") is True
         assert run_data.get("provider_readiness_reason") == "structured_backend_incompatible"
 
-        provider_mode = read_json(pathlib.Path(output_dir) / run_id / "provider_mode.json")
+        provider_mode = read_json(get_provider_mode_path(output_dir, run_id))
         assert provider_mode.get("structured_output_mode") == "none"
         assert provider_mode.get("structured_output_fallback_used") is True
 

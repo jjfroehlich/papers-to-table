@@ -1,0 +1,15 @@
+{
+  "run_id": "run_20260406_133410_v1yldd",
+  "provider_token": "lm_studio",
+  "counts": {
+    "http_total": 269,
+    "models_list": 1,
+    "completions_total": 268,
+    "completions_text_raw": 42,
+    "completions_text_structured": 112,
+    "completions_vision_structured": 112,
+    "completions_probe_structured": 2,
+    "completion_retry_attempts": 102
+  },
+  "recorded_at": "2026-04-06T14:11:16.761751+00:00"
+}

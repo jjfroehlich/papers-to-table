@@ -1,0 +1,18 @@
+[
+  {
+    "pdf_id": "paper_2",
+    "pdf_path": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table\\paper_2.pdf",
+    "outcome": "matched",
+    "matched_row_index": 157,
+    "matched_row_title": "Compatibility rules of human enhancer and promoter sequences",
+    "score": 0.66,
+    "runner_up_score": 0.145,
+    "runner_up_row_index": 50,
+    "conflict_pdf_ids": [],
+    "conflict_row_indices": [],
+    "reasoning": "Clear match: score 0.660 vs runner-up 0.145 (gap 0.515 >= 0.15). Matched to row 157: 'Compatibility rules of human enhancer and promoter sequences'",
+    "blocked": false,
+    "blocked_reason": null,
+    "matched_at": "2026-04-06T14:16:19.538439+00:00"
+  }
+]

@@ -1,0 +1,14 @@
+{
+  "column_name": "Other notes",
+  "field_type_guess": "text",
+  "expected_length": "medium",
+  "tone": "technical",
+  "detail_level": "medium",
+  "value_shape": "free text",
+  "unit_style": null,
+  "format_notes": null,
+  "example_risk": "none",
+  "generated_at": "2026-04-06T14:20:17.276789+00:00",
+  "source_column_count": 34,
+  "provider_mode": "heuristic"
+}

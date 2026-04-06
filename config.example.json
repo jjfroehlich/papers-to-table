@@ -36,6 +36,10 @@
   "prompt": {
     "bundle": "default"
   },
+  "diagnostics": {
+    "verbose_provider_logging": false,
+    "provider_preview_chars": 240
+  },
   "retrieval": {
     "mode": "lexical",
     "top_k": 10,
@@ -45,7 +49,8 @@
   },
   "figure_review": {
     "enabled": true,
-    "max_figures_per_paper": 20
+    "max_figures_per_paper": 20,
+    "skip_when_prompt_only_degraded": true
   },
   "review": {
     "max_proposals_per_cell": 1

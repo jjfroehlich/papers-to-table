@@ -9,15 +9,23 @@ import pytest
 from backend.app.artifacts import (
     append_jsonl,
     get_config_snapshot_path,
+    get_diagnostics_dir,
     get_evidence_dir,
     get_input_summary_path,
     get_logs_dir,
+    get_provider_diagnostics_path,
+    get_provider_mode_path,
+    get_provider_probe_path,
+    get_provider_request_counts_path,
+    get_provider_trace_path,
     get_proposals_dir,
     get_review_dir,
     get_reviewer_summary_path,
     get_run_dir,
     get_run_json_path,
     get_run_summary_path,
+    get_run_stats_path,
+    get_summaries_dir,
     init_run_bundle,
     list_run_ids,
     lookup_by_id,
@@ -63,9 +71,47 @@ class TestPathHelpers:
         assert p.name == "run_summary.json"
         assert "summaries" in str(p)
 
+    def test_get_summaries_dir(self, tmp_path):
+        p = get_summaries_dir(str(tmp_path), "run_abc")
+        assert p.name == "summaries"
+
+    def test_get_diagnostics_dir(self, tmp_path):
+        p = get_diagnostics_dir(str(tmp_path), "run_abc")
+        assert p.name == "diagnostics"
+
     def test_get_reviewer_summary_path(self, tmp_path):
         p = get_reviewer_summary_path(str(tmp_path), "run_abc")
         assert p.name == "reviewer_summary.json"
+
+    def test_get_run_stats_path(self, tmp_path):
+        p = get_run_stats_path(str(tmp_path), "run_abc")
+        assert p.name == "run_stats.json"
+        assert "diagnostics" in str(p)
+
+    def test_get_provider_mode_path(self, tmp_path):
+        p = get_provider_mode_path(str(tmp_path), "run_abc")
+        assert p.name == "provider_mode.json"
+        assert "summaries" in str(p)
+
+    def test_get_provider_diagnostics_path(self, tmp_path):
+        p = get_provider_diagnostics_path(str(tmp_path), "run_abc")
+        assert p.name == "provider_diagnostics.json"
+        assert "diagnostics" in str(p)
+
+    def test_get_provider_request_counts_path(self, tmp_path):
+        p = get_provider_request_counts_path(str(tmp_path), "run_abc")
+        assert p.name == "provider_request_counts.json"
+        assert "diagnostics" in str(p)
+
+    def test_get_provider_probe_path(self, tmp_path):
+        p = get_provider_probe_path(str(tmp_path), "run_abc")
+        assert p.name == "provider_probe.json"
+        assert "diagnostics" in str(p)
+
+    def test_get_provider_trace_path(self, tmp_path):
+        p = get_provider_trace_path(str(tmp_path), "run_abc")
+        assert p.name == "provider_trace.jsonl"
+        assert "diagnostics" in str(p)
 
     def test_get_logs_dir(self, tmp_path):
         p = get_logs_dir(str(tmp_path), "run_abc")
@@ -78,6 +124,7 @@ class TestInitRunBundle:
         required_subdirs = [
             "inputs", "style_profiles", "parsed", "matching",
             "retrieval", "proposals", "evidence", "review",
+            "diagnostics",
             "summaries", "exports", "logs",
         ]
         for sub in required_subdirs:

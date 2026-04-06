@@ -721,7 +721,7 @@ class TestRunnerProviderTruth:
         assert run_data["provider_mode"] == "unavailable"
         assert run_data["provider_readiness_error"] == "provider offline"
         assert parse_called["value"] is False
-        provider_mode = json.loads((tmp_path / "runs" / "run_provider_fail" / "provider_mode.json").read_text(encoding="utf-8"))
+        provider_mode = json.loads((tmp_path / "runs" / "run_provider_fail" / "summaries" / "provider_mode.json").read_text(encoding="utf-8"))
         reviewer_summary = json.loads((tmp_path / "runs" / "run_provider_fail" / "summaries" / "reviewer_summary.json").read_text(encoding="utf-8"))
         assert provider_mode["mode"] == "unavailable"
         assert reviewer_summary["total_proposals"] == 0

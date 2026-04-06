@@ -1,0 +1,14 @@
+{
+  "column_name": "DNA library",
+  "field_type_guess": "text",
+  "expected_length": "medium",
+  "tone": "technical",
+  "detail_level": "high",
+  "value_shape": "string phrase",
+  "unit_style": null,
+  "format_notes": "Descriptive phrases only; no numeric values or units.",
+  "example_risk": "low",
+  "generated_at": "2026-04-06T13:36:47.992511+00:00",
+  "source_column_count": 20,
+  "provider_mode": "live_llm"
+}

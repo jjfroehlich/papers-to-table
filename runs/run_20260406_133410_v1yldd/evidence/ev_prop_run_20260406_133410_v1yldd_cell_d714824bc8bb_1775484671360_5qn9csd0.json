@@ -1,0 +1,43 @@
+{
+  "evidence_id": "ev_prop_run_20260406_133410_v1yldd_cell_d714824bc8bb_1775484671360_5qn9csd0",
+  "run_id": "run_20260406_133410_v1yldd",
+  "proposal_id": "prop_run_20260406_133410_v1yldd_cell_d714824bc8bb_1775484671360",
+  "pdf_id": "paper_2",
+  "source_type": "direct_quote",
+  "quote_text": "transfected the plasmid pool into K562 cells",
+  "page_number": 3,
+  "exact_highlight_regions": [
+    {
+      "x0": 39.68500137,
+      "y0": 741.3069306620313,
+      "x1": 296.3974531656081,
+      "y1": 593.9004744645314,
+      "page": 3
+    }
+  ],
+  "approximate_highlight_regions": null,
+  "figure_ref": null,
+  "caption_text": null,
+  "crop_path": null,
+  "full_page_path": null,
+  "anchor_confidence": 1.0,
+  "evidence_rank": 1,
+  "reasoning": null,
+  "is_primary": true,
+  "is_figure_derived": false,
+  "run_mode": "verify",
+  "prompt_version": null,
+  "prompt_hash": "bdaa44abfb1a94d5ebc42c5d5ca347715c76faf4dc9f9192e51c545f2f7c6f62",
+  "schema_hash": "cb85a287e0071d47941d9619dce7cc4484246fbb22ff0b3f6ec6843296a82ff7",
+  "schema_version": null,
+  "config_hash": "b5a75a66a9e5370d1ea0e52bd22b5b75f7fdcb7dd9868884471af685ecc8d4a5",
+  "config_snapshot_path": "config.snapshot.json",
+  "parser_identity": "docling",
+  "parser_version": null,
+  "text_model_id": "nvidia/nemotron-3-nano-4b",
+  "vision_model_id": "zai-org/glm-4.6v-flash",
+  "vision_context_bundle": null,
+  "vision_trigger_reasons": null,
+  "shortlist_metadata": null,
+  "created_at": "2026-04-06T14:11:16.731055+00:00"
+}

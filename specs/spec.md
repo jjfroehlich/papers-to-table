@@ -99,6 +99,8 @@ The browser UI is the normal operator-facing workflow surface for:
 
 The UI may expose the config path, resolved paths, active run mode (`normal`, `verify`, or `eval`), and provider/model context, but broad parameter editing in the UI is not an MVP requirement and must not become the default control surface.
 
+The config may expose narrow diagnostics controls for provider logging verbosity and preview length, but those controls remain config-owned rather than becoming a broad UI settings surface. Default behavior should stay low-noise, with detailed provider traces opt-in.
+
 In addition to the browser UI, the product should expose one stable non-UI automation entrypoint for tooling. That automation path should support config-path-driven run start, narrow path overrides already supported by the runtime contract, optional wait-until-terminal behavior, and machine-readable outputs derived from run artifacts. This automation path is additive and must not replace the browser UI as the normal human workflow.
 
 The automation payload contract should remain explicit and stable for tooling use. At minimum it should include a payload schema tag (for example `schema_version`), string status, explicit terminal-state boolean, run id, run mode, and key run artifact paths.
@@ -149,6 +151,10 @@ Provider readiness and provider capability truth are distinct and must be report
 - provider reachable but no compatible structured-output mode available
 
 These states must not be collapsed into one generic "provider unavailable" label.
+
+When separate text and vision model paths are configured, structured-output capability truth must remain separable for those paths. A text model reaching one structured-output mode must not imply that the configured vision path supports the same mode.
+
+Run artifacts should also separate user-facing summaries from deeper implementation diagnostics. Reviewer-facing and operator-facing summary artifacts should live in a stable summary area, while verbose provider/runtime diagnostics, probes, traces, and run statistics should live in a dedicated diagnostics area.
 
 The app must not present a stub, demo, disabled, or degraded provider path as if it were the normal live proposal-generation happy path.
 
@@ -713,6 +719,8 @@ Vision should behave like scientific reading: read relevant text, follow figure 
 Vision is available for all fields as fallback, rescue, and corroboration. The system must not require a schema-side per-field vision policy to enable this.
 
 The default trigger for the vision path is weak or uncertain text evidence. Vision should usually be invoked when text evidence is unclear, weak, contradictory, or needs confirmation. Vision may also be used when text does not state the answer directly but a figure can provide a useful approximate answer.
+
+If the configured vision path only supports explicit prompt-only degraded JSON mode and the run configuration opts to skip figure review in that state, the system should suppress figure-review calls rather than spend vision budget on a weak contract. That suppression must be recorded explicitly in figure-review diagnostics rather than appearing as if no figure-review decision was made.
 
 Text-guided targeted figure review makes figure evidence available to:
 - strengthen and corroborate text-derived proposals

@@ -47,6 +47,9 @@ class ProviderCapabilities(BaseModel):
     structured_output_error: Optional[str] = None
     model_id: Optional[str] = None
     vision_capable: bool = False
+    vision_structured_output_mode: Optional[str] = None
+    vision_structured_output_reason: Optional[str] = None
+    vision_structured_output_error: Optional[str] = None
     probed_at: Optional[str] = None
 
 
@@ -196,6 +199,14 @@ class ProviderAdapter(abc.ABC):
         """Return provider attempt diagnostics recorded after the given cursor."""
         return []
 
+    def get_probe_report(self) -> dict[str, Any]:
+        """Return capability-probe details suitable for diagnostics artifacts."""
+        return {}
+
+    def get_trace_records(self) -> list[dict[str, Any]]:
+        """Return verbose provider trace records when enabled."""
+        return []
+
 
 # ---------------------------------------------------------------------------
 # Provider errors (T052)
@@ -233,30 +244,58 @@ class ProviderTimeoutError(ProviderError):
 # ---------------------------------------------------------------------------
 
 def _try_repair_json(raw: str) -> Optional[dict]:
-    """Bounded JSON repair attempt for common LLM output artifacts.
+    parsed, _meta = _try_repair_json_with_metadata(raw)
+    return parsed
 
-    Handles:
-    - markdown code fences
-    - wrapper tags such as <think>...</think>
-    - balanced-object extraction from mixed output
-    - trailing commas
-    - truncated output (best-effort)
-    """
-    cleaned = _strip_json_wrappers(raw)
-    for candidate in (cleaned, _extract_balanced_json_object(cleaned)):
-        parsed = _parse_json_candidate(candidate)
+
+def _try_repair_json_with_metadata(raw: str) -> tuple[Optional[dict], dict[str, Any]]:
+    """Bounded JSON repair attempt for common LLM output artifacts."""
+    cleaned, wrapper_meta = _strip_json_wrappers(raw)
+    metadata: dict[str, Any] = {
+        **wrapper_meta,
+        "balanced_object_extracted": False,
+        "parsed_from": None,
+        "trailing_comma_repaired": False,
+        "failure_stage": None,
+        "validation_error": None,
+    }
+    parsed, trailing_comma_fixed = _parse_json_candidate(cleaned)
+    if isinstance(parsed, dict):
+        metadata["parsed_from"] = "cleaned"
+        metadata["trailing_comma_repaired"] = trailing_comma_fixed
+        return parsed, metadata
+
+    balanced = _extract_balanced_json_object(cleaned)
+    if balanced is not None:
+        metadata["balanced_object_extracted"] = True
+        parsed, trailing_comma_fixed = _parse_json_candidate(balanced)
         if isinstance(parsed, dict):
-            return parsed
-    return None
+            metadata["parsed_from"] = "balanced_object"
+            metadata["trailing_comma_repaired"] = trailing_comma_fixed
+            return parsed, metadata
+
+    metadata["failure_stage"] = "malformed_json"
+    return None, metadata
 
 
-def _strip_json_wrappers(raw: str) -> str:
+def _strip_json_wrappers(raw: str) -> tuple[str, dict[str, Any]]:
     cleaned = raw.strip()
-    cleaned = re.sub(r"<(think|analysis)[^>]*>.*?</\1>", "", cleaned, flags=re.IGNORECASE | re.DOTALL)
+    wrappers_removed = False
+    fences_removed = False
+    without_wrappers = re.sub(r"<(think|analysis)[^>]*>.*?</\1>", "", cleaned, flags=re.IGNORECASE | re.DOTALL)
+    if without_wrappers != cleaned:
+        wrappers_removed = True
+        cleaned = without_wrappers
     if "```" in cleaned:
         lines = cleaned.splitlines()
-        cleaned = "\n".join(line for line in lines if not line.strip().startswith("```"))
-    return cleaned.strip()
+        next_cleaned = "\n".join(line for line in lines if not line.strip().startswith("```"))
+        if next_cleaned != cleaned:
+            fences_removed = True
+            cleaned = next_cleaned
+    return cleaned.strip(), {
+        "wrapper_tags_removed": wrappers_removed,
+        "code_fences_removed": fences_removed,
+    }
 
 
 def _extract_balanced_json_object(text: str) -> Optional[str]:
@@ -287,15 +326,16 @@ def _extract_balanced_json_object(text: str) -> Optional[str]:
     return None
 
 
-def _parse_json_candidate(candidate: Optional[str]) -> Optional[object]:
+def _parse_json_candidate(candidate: Optional[str]) -> tuple[Optional[object], bool]:
     if not candidate:
-        return None
-    for raw_candidate in (candidate, re.sub(r",\s*([}\]])", r"\1", candidate)):
+        return None, False
+    repaired_candidate = re.sub(r",\s*([}\]])", r"\1", candidate)
+    for index, raw_candidate in enumerate((candidate, repaired_candidate)):
         try:
-            return json.loads(raw_candidate)
+            return json.loads(raw_candidate), index == 1 and repaired_candidate != candidate
         except json.JSONDecodeError:
             continue
-    return None
+    return None, False
 
 
 def _value_matches_json_type(value: object, expected_type: str) -> bool:
@@ -346,11 +386,25 @@ def _validate_against_schema(value: object, schema: dict, path: str = "$") -> No
             _validate_against_schema(item, schema["items"], f"{path}[{index}]")
 
 
-def _parse_and_validate_response(raw: str, response_schema: dict) -> dict:
-    parsed = _try_repair_json(raw)
+def _parse_and_validate_response_with_details(raw: str, response_schema: dict) -> tuple[dict, dict[str, Any]]:
+    parsed, details = _try_repair_json_with_metadata(raw)
     if not isinstance(parsed, dict):
-        raise StructuredOutputError(f"LM Studio returned malformed JSON after bounded recovery: {raw[:200]}")
-    _validate_against_schema(parsed, response_schema)
+        error = StructuredOutputError(f"LM Studio returned malformed JSON after bounded recovery: {raw[:200]}")
+        error.details = details
+        raise error
+    try:
+        _validate_against_schema(parsed, response_schema)
+    except StructuredOutputError as error:
+        details["failure_stage"] = "schema_validation"
+        details["validation_error"] = str(error)
+        error.details = details
+        raise
+    details["failure_stage"] = "ok"
+    return parsed, details
+
+
+def _parse_and_validate_response(raw: str, response_schema: dict) -> dict:
+    parsed, _details = _parse_and_validate_response_with_details(raw, response_schema)
     return parsed
 
 
@@ -389,6 +443,28 @@ def _coerce_message_content(raw: Any) -> str:
     return str(raw)
 
 
+_PROBE_RESPONSE_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "proposed_value": {"type": ["string", "null"]},
+        "state": {"type": "string", "enum": ["found", "unclear"]},
+        "rationale": {"type": ["string", "null"]},
+        "calculation": {"type": ["string", "null"]},
+    },
+    "required": ["proposed_value", "state", "rationale", "calculation"],
+}
+
+_PROBE_TEXT = (
+    "Return ONLY one JSON object with keys proposed_value, state, rationale, and calculation. "
+    "Use state='found', proposed_value='ok', rationale=null, calculation=null."
+)
+
+_MINIMAL_PNG_DATA_URL = (
+    "data:image/png;base64,"
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9sWcN4sAAAAASUVORK5CYII="
+)
+
+
 # ---------------------------------------------------------------------------
 # LM Studio provider (T051)
 # ---------------------------------------------------------------------------
@@ -404,9 +480,17 @@ class LMStudioProvider(ProviderAdapter):
     Uses the OpenAI-compatible /v1/chat/completions endpoint.
     """
 
-    def __init__(self, base_url: str = "http://localhost:1234"):
+    def __init__(
+        self,
+        base_url: str = "http://localhost:1234",
+        *,
+        verbose_logging: bool = False,
+        preview_limit: int = 240,
+    ):
         self._base_url = base_url.rstrip("/")
         self._capabilities: Optional[ProviderCapabilities] = None
+        self._verbose_logging = verbose_logging
+        self._preview_limit = max(80, int(preview_limit or 240))
         self._request_counts: dict[str, int] = {
             "http_total": 0,
             "models_list": 0,
@@ -418,6 +502,15 @@ class LMStudioProvider(ProviderAdapter):
             "completion_retry_attempts": 0,
         }
         self._diagnostic_attempts: list[dict[str, Any]] = []
+        self._probe_report: dict[str, Any] = {
+            "provider": "lm_studio",
+            "base_url": self._base_url,
+            "logging_mode": "verbose" if self._verbose_logging else "standard",
+            "text": None,
+            "vision": None,
+            "recorded_at": None,
+        }
+        self._trace_records: list[dict[str, Any]] = []
         self._pending_transport_metadata: Optional[dict[str, Any]] = None
 
     def _bump(self, key: str, amount: int = 1) -> None:
@@ -448,6 +541,7 @@ class LMStudioProvider(ProviderAdapter):
                     "recorded_at": attempt.get("recorded_at"),
                 }
         return {
+            "logging_mode": "verbose" if self._verbose_logging else "standard",
             "attempt_count": len(attempts),
             "total_duration_ms": round(total_duration_ms, 3),
             "by_outcome": by_outcome,
@@ -463,15 +557,97 @@ class LMStudioProvider(ProviderAdapter):
         safe_cursor = max(0, int(cursor or 0))
         return [dict(item) for item in self._diagnostic_attempts[safe_cursor:]]
 
+    def get_probe_report(self) -> dict[str, Any]:
+        return dict(self._probe_report)
+
+    def get_trace_records(self) -> list[dict[str, Any]]:
+        return [dict(item) for item in self._trace_records]
+
     def _truncate_preview(self, value: Optional[str], limit: int = 240) -> Optional[str]:
         if value is None:
             return None
         collapsed = re.sub(r"\s+", " ", value).strip()
         if not collapsed:
             return None
-        if len(collapsed) <= limit:
+        effective_limit = max(40, int(limit or self._preview_limit))
+        if len(collapsed) <= effective_limit:
             return collapsed
-        return collapsed[: limit - 3] + "..."
+        return collapsed[: effective_limit - 3] + "..."
+
+    def _preview_for_logging(self, value: Optional[str]) -> Optional[str]:
+        if not self._verbose_logging:
+            return None
+        return self._truncate_preview(value, self._preview_limit)
+
+    def _summarize_payload(self, payload: dict[str, Any]) -> dict[str, Any]:
+        response_format = payload.get("response_format")
+        messages = payload.get("messages") or []
+        summary: dict[str, Any] = {
+            "model": payload.get("model"),
+            "max_tokens": payload.get("max_tokens"),
+            "temperature": payload.get("temperature"),
+            "response_format_type": response_format.get("type") if isinstance(response_format, dict) else None,
+            "message_count": len(messages),
+            "message_roles": [msg.get("role") for msg in messages if isinstance(msg, dict)],
+        }
+        if not self._verbose_logging:
+            return summary
+        message_summaries: list[dict[str, Any]] = []
+        for msg in messages:
+            if not isinstance(msg, dict):
+                continue
+            content = msg.get("content")
+            if isinstance(content, str):
+                message_summaries.append(
+                    {
+                        "role": msg.get("role"),
+                        "content_type": "text",
+                        "char_count": len(content),
+                        "preview": self._preview_for_logging(content),
+                    }
+                )
+            elif isinstance(content, list):
+                text_parts = [
+                    item.get("text", "")
+                    for item in content
+                    if isinstance(item, dict) and item.get("type") == "text"
+                ]
+                image_count = sum(
+                    1
+                    for item in content
+                    if isinstance(item, dict) and item.get("type") == "image_url"
+                )
+                joined_text = "\n".join(part for part in text_parts if part)
+                message_summaries.append(
+                    {
+                        "role": msg.get("role"),
+                        "content_type": "multimodal",
+                        "text_char_count": len(joined_text),
+                        "text_preview": self._preview_for_logging(joined_text),
+                        "image_count": image_count,
+                    }
+                )
+        if message_summaries:
+            summary["messages"] = message_summaries
+        if isinstance(response_format, dict):
+            response_summary = {"type": response_format.get("type")}
+            if response_format.get("type") == "json_schema":
+                json_schema = response_format.get("json_schema") or {}
+                schema = json_schema.get("schema") or {}
+                response_summary["schema_name"] = json_schema.get("name")
+                response_summary["strict"] = json_schema.get("strict")
+                response_summary["schema_required"] = schema.get("required", [])
+                response_summary["schema_property_count"] = len(schema.get("properties", {}))
+            summary["response_format"] = response_summary
+        return summary
+
+    def _append_trace_record(self, record: dict[str, Any]) -> None:
+        if not self._verbose_logging:
+            return
+        enriched = dict(record)
+        enriched["sequence"] = len(self._trace_records) + 1
+        enriched["recorded_at"] = datetime.now(timezone.utc).isoformat()
+        self._trace_records.append(enriched)
 
     def _set_pending_transport_metadata(
         self,
@@ -482,6 +658,7 @@ class LMStudioProvider(ProviderAdapter):
         duration_ms: float,
         http_status: Optional[int],
         raw_preview: Optional[str] = None,
+        payload_summary: Optional[dict[str, Any]] = None,
     ) -> None:
         self._pending_transport_metadata = {
             "request_kind": request_kind,
@@ -489,7 +666,8 @@ class LMStudioProvider(ProviderAdapter):
             "model_id": model_id,
             "duration_ms": round(duration_ms, 3),
             "http_status": http_status,
-            "raw_preview": self._truncate_preview(raw_preview),
+            "raw_preview": self._preview_for_logging(raw_preview),
+            "payload_summary": payload_summary,
         }
 
     def _consume_pending_transport_metadata(
@@ -500,6 +678,7 @@ class LMStudioProvider(ProviderAdapter):
         model_id: str,
         fallback_duration_ms: float,
         raw_preview: Optional[str] = None,
+        payload_summary: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         pending = self._pending_transport_metadata or {
             "request_kind": request_kind,
@@ -507,11 +686,14 @@ class LMStudioProvider(ProviderAdapter):
             "model_id": model_id,
             "duration_ms": round(fallback_duration_ms, 3),
             "http_status": None,
-            "raw_preview": self._truncate_preview(raw_preview),
+            "raw_preview": self._preview_for_logging(raw_preview),
+            "payload_summary": payload_summary,
         }
         self._pending_transport_metadata = None
         if raw_preview and not pending.get("raw_preview"):
-            pending["raw_preview"] = self._truncate_preview(raw_preview)
+            pending["raw_preview"] = self._preview_for_logging(raw_preview)
+        if payload_summary and not pending.get("payload_summary"):
+            pending["payload_summary"] = payload_summary
         return pending
 
     def _record_attempt(
@@ -526,10 +708,14 @@ class LMStudioProvider(ProviderAdapter):
         error_reason: Optional[str] = None,
         error_message: Optional[str] = None,
         raw_preview: Optional[str] = None,
+        phase: str = "request",
+        error_details: Optional[dict[str, Any]] = None,
+        payload_summary: Optional[dict[str, Any]] = None,
     ) -> None:
         self._diagnostic_attempts.append(
             {
                 "sequence": len(self._diagnostic_attempts) + 1,
+                "phase": phase,
                 "request_kind": request_kind,
                 "structured_mode": structured_mode,
                 "model_id": model_id,
@@ -538,7 +724,9 @@ class LMStudioProvider(ProviderAdapter):
                 "http_status": http_status,
                 "error_reason": error_reason,
                 "error_message": self._truncate_preview(error_message),
-                "raw_preview": self._truncate_preview(raw_preview),
+                "error_details": error_details,
+                "raw_preview": self._preview_for_logging(raw_preview),
+                "payload_summary": payload_summary if self._verbose_logging else None,
                 "recorded_at": datetime.now(timezone.utc).isoformat(),
             }
         )
@@ -569,6 +757,7 @@ class LMStudioProvider(ProviderAdapter):
             duration_ms=duration_ms,
             error_reason=getattr(error, "reason", None),
             error_message=str(error),
+            error_details=getattr(error, "details", None),
         )
 
     @property
@@ -634,10 +823,35 @@ class LMStudioProvider(ProviderAdapter):
                     "Load that model or update provider.vision_model.model_id."
                 )
 
-        # Probe structured-output support (T050)
-        # Try json_schema first (stricter), then json_object
         effective_model = text_model_id
-        structured_mode, structured_reason, structured_error = await self._probe_structured_output_mode(effective_model)
+        structured_mode, structured_reason, structured_error, text_probe = await self._probe_structured_output_mode(
+            effective_model,
+            modality="text",
+        )
+
+        vision_structured_mode: Optional[str] = None
+        vision_structured_reason: Optional[str] = None
+        vision_structured_error: Optional[str] = None
+        vision_probe: Optional[dict[str, Any]] = None
+        if vision_model_id is not None and _has_explicit_model_id(vision_model_id):
+            (
+                vision_structured_mode,
+                vision_structured_reason,
+                vision_structured_error,
+                vision_probe,
+            ) = await self._probe_structured_output_mode(
+                vision_model_id,
+                modality="vision",
+            )
+
+        self._probe_report = {
+            "provider": "lm_studio",
+            "base_url": self._base_url,
+            "logging_mode": "verbose" if self._verbose_logging else "standard",
+            "text": text_probe,
+            "vision": vision_probe,
+            "recorded_at": now,
+        }
 
         return ProviderCapabilities(
             supports_structured_output=structured_mode != "none",
@@ -646,74 +860,180 @@ class LMStudioProvider(ProviderAdapter):
             structured_output_error=structured_error,
             model_id=effective_model,
             vision_capable=vision_model_id is not None,
+            vision_structured_output_mode=vision_structured_mode,
+            vision_structured_output_reason=vision_structured_reason,
+            vision_structured_output_error=vision_structured_error,
             probed_at=now,
         )
 
-    async def _probe_structured_output_mode(self, model_id: str) -> tuple[str, Optional[str], Optional[str]]:
-        """Probe best supported structured mode for the live extraction path."""
+    def _build_probe_messages(self, modality: str) -> list[dict[str, Any]]:
+        if modality == "vision":
+            return [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": _PROBE_TEXT},
+                        {"type": "image_url", "image_url": {"url": _MINIMAL_PNG_DATA_URL}},
+                    ],
+                }
+            ]
+        return [{"role": "user", "content": _PROBE_TEXT}]
+
+    async def _probe_structured_output_mode(
+        self,
+        model_id: str,
+        *,
+        modality: str,
+    ) -> tuple[str, Optional[str], Optional[str], dict[str, Any]]:
+        """Probe best supported structured mode for a text or vision request shape."""
+
+        async def _run_probe(mode: str) -> tuple[bool, Optional[str], Optional[str], dict[str, Any]]:
+            payload: dict[str, Any] = {
+                "model": model_id,
+                "messages": self._build_probe_messages(modality),
+                "max_tokens": 96,
+                "temperature": 0.0,
+            }
+            if mode == "json_schema":
+                payload["response_format"] = {
+                    "type": "json_schema",
+                    "json_schema": {"name": f"{modality}_probe", "schema": _PROBE_RESPONSE_SCHEMA},
+                }
+            elif mode == "json_object":
+                payload["response_format"] = {"type": "json_object"}
+
+            payload_summary = self._summarize_payload(payload)
+            started = perf_counter()
+            record: dict[str, Any] = {
+                "modality": modality,
+                "model_id": model_id,
+                "structured_mode": mode,
+                "supported": False,
+                "payload_summary": payload_summary if self._verbose_logging else None,
+            }
+            try:
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    self._bump("http_total")
+                    self._bump("completions_total")
+                    self._bump("completions_probe_structured")
+                    resp = await client.post(
+                        f"{self._base_url}/v1/chat/completions", json=payload
+                    )
+                duration_ms = round((perf_counter() - started) * 1000.0, 3)
+                record["duration_ms"] = duration_ms
+                record["http_status"] = resp.status_code
+                if resp.status_code == 200:
+                    content = _coerce_message_content(resp.json()["choices"][0]["message"]["content"])
+                    try:
+                        _parsed, parse_details = _parse_and_validate_response_with_details(content, _PROBE_RESPONSE_SCHEMA)
+                        record["supported"] = True
+                        record["parse_details"] = parse_details
+                        record["response_preview"] = self._preview_for_logging(content)
+                        self._append_trace_record(
+                            {
+                                "phase": "probe",
+                                "request_kind": f"{modality}_probe",
+                                "structured_mode": mode,
+                                "model_id": model_id,
+                                "outcome": "success",
+                                "duration_ms": duration_ms,
+                                "http_status": resp.status_code,
+                                "payload_summary": payload_summary,
+                                "response_preview": self._preview_for_logging(content),
+                                "parse_details": parse_details,
+                            }
+                        )
+                        return True, None, None, record
+                    except StructuredOutputError as error:
+                        details = getattr(error, "details", None)
+                        record["error_reason"] = getattr(error, "reason", None)
+                        record["error_message"] = str(error)
+                        record["parse_details"] = details
+                        record["response_preview"] = self._preview_for_logging(content)
+                        self._append_trace_record(
+                            {
+                                "phase": "probe",
+                                "request_kind": f"{modality}_probe",
+                                "structured_mode": mode,
+                                "model_id": model_id,
+                                "outcome": "structured_output_error",
+                                "duration_ms": duration_ms,
+                                "http_status": resp.status_code,
+                                "payload_summary": payload_summary,
+                                "response_preview": self._preview_for_logging(content),
+                                "parse_details": details,
+                                "error_message": str(error),
+                            }
+                        )
+                        return False, getattr(error, "reason", None), str(error), record
+
+                reason, message = _classify_lm_studio_response_error(resp.status_code, resp.text)
+                record["error_reason"] = reason
+                record["error_message"] = message or self._truncate_preview(resp.text, 300)
+                record["response_preview"] = self._preview_for_logging(resp.text)
+                self._append_trace_record(
+                    {
+                        "phase": "probe",
+                        "request_kind": f"{modality}_probe",
+                        "structured_mode": mode,
+                        "model_id": model_id,
+                        "outcome": "structured_backend_incompatible" if reason == "structured_backend_incompatible" else "provider_error",
+                        "duration_ms": duration_ms,
+                        "http_status": resp.status_code,
+                        "payload_summary": payload_summary,
+                        "response_preview": self._preview_for_logging(resp.text),
+                        "error_reason": reason,
+                        "error_message": message or self._truncate_preview(resp.text, 300),
+                    }
+                )
+                return False, reason, message or self._truncate_preview(resp.text, 300), record
+            except Exception as error:
+                duration_ms = round((perf_counter() - started) * 1000.0, 3)
+                record["duration_ms"] = duration_ms
+                record["error_reason"] = "probe_exception"
+                record["error_message"] = self._truncate_preview(str(error), 300)
+                self._append_trace_record(
+                    {
+                        "phase": "probe",
+                        "request_kind": f"{modality}_probe",
+                        "structured_mode": mode,
+                        "model_id": model_id,
+                        "outcome": "provider_error",
+                        "duration_ms": duration_ms,
+                        "payload_summary": payload_summary,
+                        "error_reason": "probe_exception",
+                        "error_message": self._truncate_preview(str(error), 300),
+                    }
+                )
+                return False, "probe_exception", self._truncate_preview(str(error), 300), record
+
         structured_reason: Optional[str] = None
         structured_error: Optional[str] = None
-        try:
-            test_schema = {
-                "type": "object",
-                "properties": {"test": {"type": "string"}},
-                "required": ["test"],
-            }
-            payload = {
-                "model": model_id,
-                "messages": [{"role": "user", "content": "Reply with {\"test\": \"ok\"}"}],
-                "response_format": {
-                    "type": "json_schema",
-                    "json_schema": {"name": "test", "schema": test_schema},
-                },
-                "max_tokens": 32,
-                "temperature": 0.0,
-            }
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                self._bump("http_total")
-                self._bump("completions_total")
-                self._bump("completions_probe_structured")
-                resp = await client.post(
-                    f"{self._base_url}/v1/chat/completions", json=payload
-                )
-                if resp.status_code == 200:
-                    content = _coerce_message_content(resp.json()["choices"][0]["message"]["content"])
-                    _parse_and_validate_response(content, test_schema)
-                    return "json_schema", None, None
-                reason, message = _classify_lm_studio_response_error(resp.status_code, resp.text)
-                if reason:
-                    structured_reason = reason
-                    structured_error = message
-        except Exception:
-            pass
+        json_schema_ok, json_schema_reason, json_schema_error, json_schema_record = await _run_probe("json_schema")
+        report: dict[str, Any] = {
+            "modality": modality,
+            "model_id": model_id,
+            "best_mode": None,
+            "json_schema": json_schema_record,
+            "json_object": None,
+            "recorded_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if json_schema_ok:
+            report["best_mode"] = "json_schema"
+            return "json_schema", None, None, report
+        structured_reason = json_schema_reason
+        structured_error = json_schema_error
 
-        # Some model/runtime pairs reject json_schema but still support json_object.
-        try:
-            payload = {
-                "model": model_id,
-                "messages": [{"role": "user", "content": "Reply with {\"test\": \"ok\"}"}],
-                "response_format": {"type": "json_object"},
-                "max_tokens": 32,
-                "temperature": 0.0,
-            }
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                self._bump("http_total")
-                self._bump("completions_total")
-                self._bump("completions_probe_structured")
-                resp = await client.post(
-                    f"{self._base_url}/v1/chat/completions", json=payload
-                )
-                if resp.status_code == 200:
-                    content = _coerce_message_content(resp.json()["choices"][0]["message"]["content"])
-                    _parse_and_validate_response(content, test_schema)
-                    return "json_object", structured_reason, structured_error
-                reason, message = _classify_lm_studio_response_error(resp.status_code, resp.text)
-                if reason and not structured_reason:
-                    structured_reason = reason
-                    structured_error = message
-        except Exception:
-            pass
-        return "none", structured_reason, structured_error
+        json_object_ok, json_object_reason, json_object_error, json_object_record = await _run_probe("json_object")
+        report["json_object"] = json_object_record
+        if json_object_ok:
+            report["best_mode"] = "json_object"
+            return "json_object", structured_reason, structured_error, report
+        if not structured_reason:
+            structured_reason = json_object_reason
+            structured_error = json_object_error
+        report["best_mode"] = "none"
+        return "none", structured_reason, structured_error, report
 
     # --- Text completion ---
 
@@ -826,6 +1146,7 @@ class LMStudioProvider(ProviderAdapter):
         payload = self._build_payload(
             messages, model_id, max_tokens, temperature, response_schema, structured_mode
         )
+        payload_summary = self._summarize_payload(payload)
         call_started = perf_counter()
         try:
             first_raw = await post_method(payload, model_id)
@@ -835,8 +1156,9 @@ class LMStudioProvider(ProviderAdapter):
                 model_id=model_id,
                 fallback_duration_ms=(perf_counter() - call_started) * 1000.0,
                 raw_preview=first_raw,
+                payload_summary=payload_summary,
             )
-            parsed = _parse_and_validate_response(first_raw, response_schema)
+            parsed, parse_details = _parse_and_validate_response_with_details(first_raw, response_schema)
             self._record_attempt(
                 request_kind=request_kind,
                 structured_mode=structured_mode,
@@ -845,6 +1167,23 @@ class LMStudioProvider(ProviderAdapter):
                 duration_ms=float(metadata.get("duration_ms", 0.0) or 0.0),
                 http_status=metadata.get("http_status"),
                 raw_preview=metadata.get("raw_preview"),
+                phase="initial",
+                error_details=parse_details if self._verbose_logging else None,
+                payload_summary=metadata.get("payload_summary"),
+            )
+            self._append_trace_record(
+                {
+                    "phase": "initial",
+                    "request_kind": request_kind,
+                    "structured_mode": structured_mode,
+                    "model_id": model_id,
+                    "outcome": "success",
+                    "duration_ms": float(metadata.get("duration_ms", 0.0) or 0.0),
+                    "http_status": metadata.get("http_status"),
+                    "payload_summary": metadata.get("payload_summary"),
+                    "response_preview": metadata.get("raw_preview"),
+                    "parse_details": parse_details,
+                }
             )
             return parsed
         except StructuredOutputError as first_error:
@@ -854,6 +1193,7 @@ class LMStudioProvider(ProviderAdapter):
                     structured_mode=structured_mode,
                     model_id=model_id,
                     fallback_duration_ms=(perf_counter() - call_started) * 1000.0,
+                    payload_summary=payload_summary,
                 )
                 reason = getattr(first_error, "reason", None)
                 outcome = "structured_backend_incompatible" if reason == "structured_backend_incompatible" else "structured_output_error"
@@ -867,6 +1207,25 @@ class LMStudioProvider(ProviderAdapter):
                     error_reason=reason,
                     error_message=str(first_error),
                     raw_preview=metadata.get("raw_preview"),
+                    phase="initial",
+                    error_details=getattr(first_error, "details", None),
+                    payload_summary=metadata.get("payload_summary"),
+                )
+                self._append_trace_record(
+                    {
+                        "phase": "initial",
+                        "request_kind": request_kind,
+                        "structured_mode": structured_mode,
+                        "model_id": model_id,
+                        "outcome": outcome,
+                        "duration_ms": float(metadata.get("duration_ms", 0.0) or 0.0),
+                        "http_status": metadata.get("http_status"),
+                        "payload_summary": metadata.get("payload_summary"),
+                        "response_preview": metadata.get("raw_preview"),
+                        "error_reason": reason,
+                        "error_message": str(first_error),
+                        "parse_details": getattr(first_error, "details", None),
+                    }
                 )
             else:
                 self._record_exception_attempt(
@@ -896,6 +1255,7 @@ class LMStudioProvider(ProviderAdapter):
                 response_schema,
                 structured_mode,
             )
+            retry_payload_summary = self._summarize_payload(retry_payload)
             retry_started = perf_counter()
             retry_raw = await post_method(retry_payload, model_id)
             metadata = self._consume_pending_transport_metadata(
@@ -904,8 +1264,9 @@ class LMStudioProvider(ProviderAdapter):
                 model_id=model_id,
                 fallback_duration_ms=(perf_counter() - retry_started) * 1000.0,
                 raw_preview=retry_raw,
+                payload_summary=retry_payload_summary,
             )
-            parsed = _parse_and_validate_response(retry_raw, response_schema)
+            parsed, parse_details = _parse_and_validate_response_with_details(retry_raw, response_schema)
             self._record_attempt(
                 request_kind=request_kind,
                 structured_mode=structured_mode,
@@ -914,6 +1275,23 @@ class LMStudioProvider(ProviderAdapter):
                 duration_ms=float(metadata.get("duration_ms", 0.0) or 0.0),
                 http_status=metadata.get("http_status"),
                 raw_preview=metadata.get("raw_preview"),
+                phase="retry",
+                error_details=parse_details if self._verbose_logging else None,
+                payload_summary=metadata.get("payload_summary"),
+            )
+            self._append_trace_record(
+                {
+                    "phase": "retry",
+                    "request_kind": request_kind,
+                    "structured_mode": structured_mode,
+                    "model_id": model_id,
+                    "outcome": "success",
+                    "duration_ms": float(metadata.get("duration_ms", 0.0) or 0.0),
+                    "http_status": metadata.get("http_status"),
+                    "payload_summary": metadata.get("payload_summary"),
+                    "response_preview": metadata.get("raw_preview"),
+                    "parse_details": parse_details,
+                }
             )
             return parsed
         except (ProviderError, ModelUnavailableError, ProviderTimeoutError) as provider_error:
@@ -941,6 +1319,7 @@ class LMStudioProvider(ProviderAdapter):
 
     async def _post_structured_payload(self, payload: dict, model_id: str) -> str:
         started = perf_counter()
+        payload_summary = self._summarize_payload(payload)
         async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
             self._bump("http_total")
             self._bump("completions_total")
@@ -959,6 +1338,7 @@ class LMStudioProvider(ProviderAdapter):
                 duration_ms=duration_ms,
                 http_status=404,
                 error_message=f"Model '{model_id}' not found at LM Studio. Ensure the model is loaded.",
+                payload_summary=payload_summary,
             )
             raise ModelUnavailableError(
                 f"Model '{model_id}' not found at LM Studio. Ensure the model is loaded."
@@ -972,6 +1352,7 @@ class LMStudioProvider(ProviderAdapter):
                 duration_ms=duration_ms,
                 http_status=503,
                 error_message="LM Studio is busy or model is not loaded.",
+                payload_summary=payload_summary,
             )
             raise ModelUnavailableError("LM Studio is busy or model is not loaded.")
         if resp.status_code != 200:
@@ -987,6 +1368,7 @@ class LMStudioProvider(ProviderAdapter):
                     error_reason=reason,
                     error_message=message or resp.text[:300],
                     raw_preview=resp.text,
+                    payload_summary=payload_summary,
                 )
                 raise StructuredOutputError(message or resp.text[:300], reason=reason)
             self._record_attempt(
@@ -998,6 +1380,7 @@ class LMStudioProvider(ProviderAdapter):
                 http_status=resp.status_code,
                 error_message=f"LM Studio returned HTTP {resp.status_code}: {resp.text[:300]}",
                 raw_preview=resp.text,
+                payload_summary=payload_summary,
             )
             raise ProviderError(
                 f"LM Studio returned HTTP {resp.status_code}: {resp.text[:300]}"
@@ -1010,6 +1393,7 @@ class LMStudioProvider(ProviderAdapter):
             duration_ms=duration_ms,
             http_status=resp.status_code,
             raw_preview=raw,
+            payload_summary=payload_summary,
         )
         return raw
 
@@ -1115,6 +1499,7 @@ class LMStudioProvider(ProviderAdapter):
 
     async def _post_vision_payload(self, payload: dict, model_id: str) -> str:
         started = perf_counter()
+        payload_summary = self._summarize_payload(payload)
         async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT * 2) as client:
             self._bump("http_total")
             self._bump("completions_total")
@@ -1133,6 +1518,7 @@ class LMStudioProvider(ProviderAdapter):
                 duration_ms=duration_ms,
                 http_status=404,
                 error_message=f"Vision model '{model_id}' not found at LM Studio. Ensure the model is loaded.",
+                payload_summary=payload_summary,
             )
             raise ModelUnavailableError(
                 f"Vision model '{model_id}' not found at LM Studio. Ensure the model is loaded."
@@ -1146,6 +1532,7 @@ class LMStudioProvider(ProviderAdapter):
                 duration_ms=duration_ms,
                 http_status=503,
                 error_message="LM Studio is busy or vision model is not loaded.",
+                payload_summary=payload_summary,
             )
             raise ModelUnavailableError("LM Studio is busy or vision model is not loaded.")
         if resp.status_code != 200:
@@ -1161,6 +1548,7 @@ class LMStudioProvider(ProviderAdapter):
                     error_reason=reason,
                     error_message=message or resp.text[:200],
                     raw_preview=resp.text,
+                    payload_summary=payload_summary,
                 )
                 raise StructuredOutputError(message or resp.text[:200], reason=reason)
             self._record_attempt(
@@ -1172,6 +1560,7 @@ class LMStudioProvider(ProviderAdapter):
                 http_status=resp.status_code,
                 error_message=f"Vision completion failed HTTP {resp.status_code}: {resp.text[:200]}",
                 raw_preview=resp.text,
+                payload_summary=payload_summary,
             )
             raise ProviderError(
                 f"Vision completion failed HTTP {resp.status_code}: {resp.text[:200]}"
@@ -1184,6 +1573,7 @@ class LMStudioProvider(ProviderAdapter):
             duration_ms=duration_ms,
             http_status=resp.status_code,
             raw_preview=raw,
+            payload_summary=payload_summary,
         )
         return raw
 
@@ -1242,7 +1632,7 @@ class CloudProviderAdapter(ProviderAdapter):
 # Provider factory (T050)
 # ---------------------------------------------------------------------------
 
-def build_provider(config: object) -> ProviderAdapter:
+def build_provider(config: object, diagnostics_config: Optional[object] = None) -> ProviderAdapter:
     """Build the appropriate ProviderAdapter from RunConfig.provider.
 
     T050: one typed interface, LM Studio as default local-first path.
@@ -1252,7 +1642,13 @@ def build_provider(config: object) -> ProviderAdapter:
 
     token = config.token  # type: ignore[attr-defined]
     if token == "lm_studio":
-        return LMStudioProvider(base_url=config.base_url)  # type: ignore[attr-defined]
+        verbose_logging = bool(getattr(diagnostics_config, "verbose_provider_logging", False))
+        preview_limit = int(getattr(diagnostics_config, "provider_preview_chars", 240) or 240)
+        return LMStudioProvider(  # type: ignore[attr-defined]
+            base_url=config.base_url,
+            verbose_logging=verbose_logging,
+            preview_limit=preview_limit,
+        )
 
     # Cloud provider slot (T051a)
     # If custom registry entries are added later, map them here.
@@ -1267,13 +1663,14 @@ async def initialize_provider(
     config: object,  # RunConfig.provider
     text_model_id: str,
     vision_model_id: Optional[str],
+    diagnostics_config: Optional[object] = None,
 ) -> tuple[ProviderAdapter, ProviderMode]:
     """Build provider, probe capabilities, return (adapter, mode).
 
     T052a: mode is recorded truthfully; never returns a degraded mode silently.
     """
     try:
-        provider = build_provider(config)
+        provider = build_provider(config, diagnostics_config=diagnostics_config)
         caps = await provider.probe_capabilities(text_model_id, vision_model_id)
         if isinstance(provider, LMStudioProvider):
             provider.set_capabilities(caps)

@@ -1,0 +1,14 @@
+{
+  "column_name": "Number of Conditions",
+  "field_type_guess": "numeric",
+  "expected_length": "short",
+  "tone": "formal",
+  "detail_level": "high",
+  "value_shape": "integer count",
+  "unit_style": null,
+  "format_notes": "positive integer only, no units",
+  "example_risk": "low",
+  "generated_at": "2026-04-06T13:37:02.518705+00:00",
+  "source_column_count": 40,
+  "provider_mode": "live_llm"
+}
