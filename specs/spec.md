@@ -16,19 +16,54 @@ The optimizer is intentionally narrow. It is an orchestration harness over an ex
 
 The optimizer should:
 
-1. start from a baseline candidate bundle
-2. generate a small batch of candidate variants from a bounded search surface
-3. run the main app on a fixed dev benchmark through a stable automation entrypoint
-4. run the eval app on the produced runs through a stable automation entrypoint
-5. compare candidate scores using a gated acceptance rule
-6. promote the winner only if it satisfies the acceptance rule
-7. record machine-readable artifacts, logs, and plots for every round
-8. repeat for a fixed number of rounds
-9. validate the promoted best candidate on holdout outside the main search loop
+1. support two explicit study modes: `compare` and `optimize`
+2. evaluate candidate bundles by running the main app on fixed benchmarks through a stable automation entrypoint
+3. score produced runs by running the eval app through a stable automation entrypoint
+4. compare candidate outcomes under a gated acceptance policy when promotion is enabled
+5. record machine-readable artifacts, logs, and static plots
+6. keep immutable candidate bundles and lineage for audit and reproducibility
+7. keep holdout usage separate from dev-set search behavior
 
-Conceptually, the loop is:
+In `optimize` mode, the loop is:
 
-propose -> run main app -> run eval app -> score -> log -> plot -> keep winner -> repeat
+propose -> run main app -> run eval app -> score -> gate -> promote or keep incumbent -> log -> plot -> repeat
+
+In `compare` mode, there is no iterative promotion loop:
+
+materialize fixed candidates -> run main app -> run eval app -> score -> log -> plot -> compare
+
+---
+
+## Study modes
+
+The optimizer must support two study modes in MVP.
+
+Both modes use the same main-app execution contract and eval-app scoring contract; only study control flow and summaries differ.
+
+### A. `compare`
+
+`compare` mode evaluates a fixed explicit set of candidate bundles and reports comparative results.
+
+Typical uses:
+
+- compare text model ids
+- compare optional vision model ids
+- compare prompt bundle variants
+- compare bounded parameter presets
+
+`compare` mode does not require multi-round incumbent promotion.
+
+### B. `optimize`
+
+`optimize` mode runs the iterative incumbent/challenger loop:
+
+1. start from a baseline candidate
+2. generate a small deterministic batch from the bounded search surface
+3. evaluate challengers on the dev benchmark
+4. promote only if the gated acceptance rule passes
+5. repeat for bounded rounds
+
+`optimize` mode is where optimization-history lineage and round-based progress plots are expected.
 
 ---
 
@@ -197,14 +232,15 @@ The optimizer assumes scoring belongs outside the main app and should remain in 
 
 - Loading a baseline prompt or config bundle.
 - Loading an explicit bounded search space.
-- Generating a small candidate batch per round.
+- Running fixed-candidate comparative studies in `compare` mode.
+- Generating a small candidate batch per round in `optimize` mode.
 - Launching the main app on a fixed benchmark.
 - Launching the eval app on produced runs.
-- Applying a gated acceptance rule.
-- Promoting the best accepted candidate.
+- Applying a gated acceptance rule when promotion is in play.
+- Promoting the best accepted candidate in `optimize` mode.
 - Recording candidate lineage, metadata, scores, and summaries.
-- Producing machine-readable results tables and simple progress plots.
-- Supporting dev-set optimization and holdout validation.
+- Producing machine-readable results tables and mode-appropriate static plots.
+- Supporting dev-set search and holdout validation policies by study mode.
 
 ### Out of scope for MVP
 
@@ -219,6 +255,8 @@ The optimizer assumes scoring belongs outside the main app and should remain in 
 ---
 
 ## Core optimization loop
+
+This section defines `optimize` mode behavior.
 
 ### Baseline and initialization
 
@@ -277,6 +315,11 @@ Benchmark definitions should support:
 - a bounded runtime budget
 
 The optimizer must not use holdout results to choose candidates during the main search loop.
+
+Holdout behavior by mode:
+
+- `optimize`: validate the final promoted candidate on holdout after dev-loop search.
+- `compare`: optionally validate top-k candidates on holdout after dev comparison, but do not use holdout as the main ranking driver during dev comparisons.
 
 ---
 
@@ -352,18 +395,76 @@ Expected artifacts include:
 - round summaries
 - candidate bundle manifests and hashes
 - launch metadata for main-app and eval-app invocations
-- plots such as:
-  - best score by round
-  - candidate scores by round
-  - runtime by round
-  - correctness versus evidence quality
-  - null or failure trends
+- plots and summaries appropriate to study mode
+
+### Minimum optimizer-owned result record contract
+
+Each candidate result record must include at minimum:
+
+- `schema_version`
+- `experiment_id`
+- `study_type` (`compare` or `optimize`)
+- `candidate_id`
+- `parent_candidate_id` (nullable)
+- `round_index` (nullable in `compare` mode)
+- `benchmark_id`
+- prompt bundle identity
+- text model id
+- vision model id when present
+- flattened optimizer-controlled config knobs
+- primary metrics
+- guardrail metrics
+- diagnostic metrics
+- runtime and timing fields
+- promotion or rejection decision and reason
+- main-app run reference
+- eval output reference
+
+The record format should be practical and machine-readable in both flat and rich forms (for example CSV plus JSONL).
+
+### Plotting requirements
+
+MVP plotting should remain simple and static (CSV-backed summaries plus PNG outputs are sufficient).
+
+Required `compare` mode plot families:
+
+- primary metric by candidate, model, and preset
+- correctness versus runtime scatter
+- correctness versus evidence-quality scatter
+- null or failure trend summaries
+- parameter-comparison plots for bounded sweeps
+- optional higher-dimensional parameter relationship plots later
+
+Required `optimize` mode plot families:
+
+- best score by round
+- all candidate scores by round
+- runtime by round
+- incumbent or champion lineage
+- score delta or improvement by round
+- autoresearch-style optimization-history line plot
+
+### Optional confirmation reruns
+
+Top candidates may optionally be re-run to reduce noise before final promotion (`optimize`) or final recommendation (`compare`).
+
+This confirmation policy may be deferred to a later implementation batch, but it is in scope for planning and research rationale.
 
 The optimizer should keep enough metadata to reproduce how a promoted candidate was chosen.
 
 ---
 
 ## Operator workflows
+
+### Compare fixed candidate bundles
+
+An operator points the optimizer at:
+
+- an explicit candidate set
+- a benchmark split (normally dev)
+- paths or commands for the main app and eval app
+
+The optimizer evaluates all listed candidates, writes comparable result records, and generates `compare`-mode summaries and plots.
 
 ### Optimize on dev
 
@@ -394,13 +495,14 @@ An operator can regenerate summaries and plots from recorded candidate-level res
 
 The MVP is done only when a normal operator can:
 
+- run `compare` mode on explicit candidate bundles and inspect candidate-by-candidate results
 - define a bounded search space
 - start from a baseline bundle
-- run a fixed number of optimization rounds on a dev benchmark
+- run a fixed number of `optimize` rounds on a dev benchmark
 - see candidate-by-candidate machine-readable results
 - understand why a candidate was or was not promoted
 - inspect the current best candidate and its lineage
-- validate the current best on holdout
+- validate holdout in a way consistent with the selected study mode
 - regenerate summary tables and plots without hand-editing artifacts
 
 The optimizer should remain small, understandable, and truthful about what it controls.

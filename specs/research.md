@@ -29,6 +29,33 @@ The cleaner MVP shape is a harness that changes only an explicit search surface 
 
 ---
 
+## Why separate `compare` and `optimize` study modes
+
+The optimizer has two valid but distinct operator goals:
+
+- fixed comparison of explicit candidates
+- iterative improvement from a baseline incumbent
+
+Treating these as explicit study modes keeps behavior easier to understand.
+
+`compare` mode is best when the operator already has concrete alternatives, for example:
+
+- model A versus model B
+- prompt bundle version A versus B versus C
+- parameter preset small versus medium versus large
+
+`optimize` mode is best when the operator wants bounded iterative search with promotion gates and lineage.
+
+Keeping both modes under one shared app contract is useful because:
+
+- main-app and eval-app launch logic stays identical
+- result records remain comparable across studies
+- only control flow and summaries differ by mode
+
+This supports a narrow MVP without forcing every comparison problem into a multi-round optimization loop.
+
+---
+
 ## Why deterministic-first MVP is preferred
 
 The first shipping optimizer should maximize reproducibility and auditability.
@@ -106,6 +133,13 @@ The dev versus holdout split is therefore mandatory:
 
 Holdout must stay outside the main search loop. If holdout results influence candidate promotion round by round, it stops being a holdout.
 
+Mode-specific implications:
+
+- `optimize`: validate the final promoted candidate on holdout
+- `compare`: optionally validate top-k on holdout after dev ranking
+
+In both cases, holdout is not the primary driver of dev-time candidate selection.
+
 ---
 
 ## Why gated acceptance is necessary
@@ -127,6 +161,12 @@ The gated rule is a better fit because it preserves distinct metric roles:
 
 This keeps promotion logic explicit and easier to audit later.
 
+The same metric partitioning is still useful in `compare` mode even without iterative promotion:
+
+- primary metrics support ranking and reporting
+- guardrails flag unsafe or operationally costly candidates
+- diagnostics explain behavior differences between bundles
+
 ---
 
 ## Why immutable candidate bundles are necessary
@@ -142,6 +182,67 @@ Immutable candidate bundles provide several benefits:
 - easier summary regeneration and plot rebuilding
 
 Without immutable bundles, the system becomes harder to reason about because the same candidate id could mean different actual settings over time.
+
+This remains true in both modes. `compare` mode may skip iterative lineage steps, but each evaluated bundle still needs immutable identity and traceable provenance.
+
+---
+
+## Why optimize-style line plots fit `optimize` better than fixed comparisons
+
+Autoresearch-style optimization-history line plots assume sequential rounds and incumbent progression.
+
+Those assumptions naturally match `optimize` mode:
+
+- each round has challengers versus incumbent
+- promotion decisions create a lineage path
+- score deltas by round have direct meaning
+
+In fixed-candidate `compare` studies, round-based trend lines are less meaningful because there is no iterative promotion process.
+
+So plotting expectations should differ by mode rather than forcing one visualization style across both.
+
+---
+
+## Why parameter and model comparisons need different plot families
+
+Fixed-candidate comparisons answer cross-sectional questions, not temporal ones.
+
+Useful `compare` plots therefore emphasize:
+
+- grouped primary-score comparisons across models, prompts, and presets
+- correctness versus runtime tradeoff scatter
+- correctness versus evidence-quality tradeoff scatter
+- null or failure behavior summaries
+- bounded sweep-style parameter comparisons
+
+Useful `optimize` plots emphasize trajectory and progression:
+
+- best score by round
+- all candidate scores by round
+- runtime by round
+- incumbent lineage
+- score improvements by round
+
+Keeping this distinction improves interpretability while still using simple static plotting outputs in MVP.
+
+---
+
+## Why optional confirmation reruns may help later
+
+Candidate ranking can be noisy, especially when runtime conditions or model nondeterminism introduce variance.
+
+A bounded optional confirmation step can reduce false promotions or unstable final recommendations:
+
+- rerun top candidates before final promotion in `optimize`
+- rerun top candidates before final recommendation in `compare`
+
+This should stay narrow and practical:
+
+- only top candidates
+- capped rerun counts
+- explicit linkage between original and confirmation results
+
+It is reasonable to defer implementation, but the plan and schema should reserve space for it.
 
 ---
 

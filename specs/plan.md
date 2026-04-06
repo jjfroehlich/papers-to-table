@@ -10,6 +10,11 @@ This document translates `spec.md` into a concrete implementation direction for 
 
 The goal is not to build a general agent framework or a self-improving codebase. The goal is to implement the smallest robust orchestration tool that can compare bounded prompt, model, and config variants against a fixed benchmark and promote improvements under a gated rule.
 
+The plan supports two explicit study modes under one app contract:
+
+- `compare`: fixed explicit candidate-set comparison
+- `optimize`: iterative incumbent/challenger promotion loop
+
 ---
 
 ## Technical principles
@@ -23,6 +28,8 @@ The goal is not to build a general agent framework or a self-improving codebase.
 - Keep results inspectable through filesystem artifacts.
 - Keep the default behavior deterministic-first.
 - Keep holdout validation separate from the main search loop.
+- Share one core execution-and-scoring pipeline across both study modes.
+- Keep mode differences isolated to loop control and summaries.
 
 ---
 
@@ -32,13 +39,18 @@ The MVP should expose four top-level commands.
 
 ### `optimize`
 
-Runs the multi-round optimization loop on the dev benchmark.
+Runs either `compare` or `optimize` study behavior with shared execution contracts.
 
 Representative form:
 
 ```bash
-paper-optimizer optimize --config optimizer.json --out runs/optimizer/dev_run
+paper-optimizer optimize --study-type optimize --config optimizer.json --out runs/optimizer/dev_run
+paper-optimizer optimize --study-type compare --config optimizer.json --out runs/optimizer/compare_run
 ```
+
+In `compare` mode, this command evaluates an explicit fixed candidate set and does not run iterative promotion rounds.
+
+In `optimize` mode, this command runs bounded iterative rounds with gated promotion.
 
 ### `evaluate-candidate`
 
@@ -89,6 +101,7 @@ The repo should remain small and explicit. A reasonable MVP module layout is:
 - `launch_eval.py`: eval-app launch orchestration and summary loading
 - `acceptance.py`: primary metrics, guardrails, deterministic checks, and promotion decisions
 - `loop.py`: multi-round optimization loop
+- `study.py`: shared study-mode dispatch and mode-specific loop control
 - `results.py`: result-row writing, experiment manifests, best-candidate state, and audit logs
 - `plotting.py`: simple static progress plots
 - `contracts.py`: typed optimizer-owned records for candidates, rounds, results, and decisions
@@ -305,8 +318,18 @@ Recommended experiment outputs:
 
 Each candidate record should capture at minimum:
 
+- `schema_version`
+- `experiment_id`
+- `study_type`
 - candidate metadata and lineage
+- `candidate_id`
+- `parent_candidate_id` (nullable)
+- `round_index` (nullable for `compare`)
 - benchmark id
+- prompt bundle identity
+- text model id
+- optional vision model id
+- flattened optimizer-controlled config knobs
 - main-app run id and run path
 - eval output path
 - primary, guardrail, and diagnostic metrics
@@ -314,21 +337,39 @@ Each candidate record should capture at minimum:
 - acceptance or rejection reasons
 - timestamps and runtime durations
 
+The results layer should emit both:
+
+- flat tabular output for plotting and filtering (for example CSV)
+- richer event-like rows for audit and diagnostics (for example JSONL)
+
 ---
 
 ## Plotting strategy
 
 Plotting should stay simple and static in MVP.
 
-Recommended plots:
+Shared output expectation:
+
+- CSV-backed plotting inputs plus static PNG plots
+
+Required `compare` mode plots:
+
+- primary metric by candidate, model, and parameter preset
+- correctness versus runtime scatter
+- correctness versus evidence-quality scatter
+- null or failure trend summaries
+- bounded parameter-comparison sweep plots
+
+Required `optimize` mode plots:
 
 - best primary score by round
 - all candidate primary scores by round
 - runtime by round
-- primary score versus evidence-quality metric
-- null or failure trend by round
+- incumbent or champion lineage view
+- score delta or improvement by round
+- autoresearch-style optimization-history line plot
 
-Static PNG outputs plus the underlying flat CSV data are sufficient for MVP.
+The plotting system should not overbuild beyond these static outputs in MVP.
 
 ---
 
@@ -350,6 +391,15 @@ The multi-round optimizer should follow this sequence:
 
 The loop should stop after the configured round count. Optional early stopping can be added later, but it is not required for MVP.
 
+`compare` mode should reuse the same launch, eval, result, and plotting contracts, but with simpler control flow:
+
+1. initialize experiment metadata
+2. materialize or load the explicit candidate set
+3. run main app plus eval app for each candidate
+4. write candidate-level records and comparative summaries
+5. optionally trigger bounded confirmation reruns for top candidates
+6. optionally validate top-k on holdout after dev comparison
+
 ---
 
 ## Holdout validation strategy
@@ -358,11 +408,22 @@ Holdout validation is separate from the main search loop.
 
 The MVP holdout path should:
 
-- run only on an explicit promoted candidate, normally the current best
+- in `optimize`: run on an explicit promoted candidate, normally the current best
+- in `compare`: optionally run on top-k candidates after dev ranking
 - write a separate holdout validation record
-- never feed holdout results back into candidate selection during the same optimization run
+- never feed holdout results into dev-set search as the primary ranking signal
 
 Periodic holdout validation may be supported later, but it should still remain informational rather than a search driver.
+
+## Optional confirmation policy
+
+The plan should reserve a bounded optional confirmation step:
+
+- rerun top candidates to reduce noise before final promotion (`optimize`) or recommendation (`compare`)
+- keep rerun counts explicitly capped
+- record confirmation linkage in result records
+
+This can be deferred to a later batch if MVP scope must stay tighter, but the contract should anticipate it.
 
 ---
 
