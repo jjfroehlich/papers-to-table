@@ -31,7 +31,7 @@
     "bundle": "default"
   },
   "diagnostics": {
-    "verbose_provider_logging": false,
+    "verbose_provider_logging": true,
     "provider_preview_chars": 240
   },
   "retrieval": {
