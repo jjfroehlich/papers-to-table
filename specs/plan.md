@@ -1401,17 +1401,26 @@ The bundle should contain stable top-level categories such as:
 - `matching/`
 - `retrieval/`
 - `proposals/proposals.jsonl`
-- `proposals/index.json`
-- `evidence/evidence.jsonl`
+- `proposals/proposal_index.json`
+- `evidence/`
 - `review/decisions.jsonl`
-- `review/reviewer_summary.json`
-- `exports/updated_table.xlsx`
-- `exports/audit_log.csv`
-- `logs/`
+- `summaries/provider_mode.json`
+- `summaries/run_summary.json`
+- `summaries/reviewer_summary.json`
+- `summaries/artifact_summary.json`
+- `diagnostics/run_stats.json`
+- `diagnostics/provider_diagnostics.json`
+- `diagnostics/provider_probe.json`
+- `diagnostics/provider_model_management.json`
+- `diagnostics/provider_request_counts.json`
+- `diagnostics/provider_trace.jsonl`
+- `exports/workbook_{timestamp}.xlsx`
+- `exports/audit_log_{timestamp}.json`
+- `exports/diagnostics_{timestamp}.json`
 
 This artifact bundle is the canonical persisted state for MVP.
 
-When Eval mode is enabled, `inputs/` should normally include copied snapshots for both the original gold table and the masked working table. `run.json`, `config.snapshot.json`, `proposals/proposals.jsonl`, `evidence/evidence.jsonl`, and `summaries/run_summary.json` should then carry the source path or reference, run-bundle snapshot path, and content hash metadata needed later by the separate eval tool.
+When Eval mode is enabled, `inputs/` should normally include copied snapshots for both the original gold table and the masked working table. `run.json`, `config.snapshot.json`, `proposals/proposals.jsonl`, evidence artifacts under `evidence/`, and `summaries/run_summary.json` should then carry the source path or reference, run-bundle snapshot path, and content hash metadata needed later by the separate eval tool.
 
 ---
 

@@ -122,7 +122,7 @@ def test_lookup_by_id(tmp_path):
 def test_init_run_bundle(tmp_path):
     run_dir = init_run_bundle(str(tmp_path), "run_test_123")
     assert run_dir.exists()
-    for sub in ["inputs", "proposals", "evidence", "review", "summaries", "logs"]:
+    for sub in ["inputs", "proposals", "evidence", "review", "summaries"]:
         assert (run_dir / sub).exists()
 
 

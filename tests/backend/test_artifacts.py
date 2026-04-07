@@ -12,7 +12,6 @@ from backend.app.artifacts import (
     get_diagnostics_dir,
     get_evidence_dir,
     get_input_summary_path,
-    get_logs_dir,
     get_provider_diagnostics_path,
     get_provider_mode_path,
     get_provider_model_management_path,
@@ -118,11 +117,6 @@ class TestPathHelpers:
         assert p.name == "provider_trace.jsonl"
         assert "diagnostics" in str(p)
 
-    def test_get_logs_dir(self, tmp_path):
-        p = get_logs_dir(str(tmp_path), "run_abc")
-        assert p.name == "logs"
-
-
 class TestInitRunBundle:
     def test_creates_all_subdirs(self, tmp_path):
         run_dir = init_run_bundle(str(tmp_path), "run_test")
@@ -130,7 +124,7 @@ class TestInitRunBundle:
             "inputs", "style_profiles", "parsed", "matching",
             "retrieval", "proposals", "evidence", "review",
             "diagnostics",
-            "summaries", "exports", "logs",
+            "summaries", "exports",
         ]
         for sub in required_subdirs:
             assert (run_dir / sub).is_dir(), f"Missing subdir: {sub}"

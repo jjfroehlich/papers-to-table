@@ -10,30 +10,22 @@
     "base_url": "http://localhost:1234",
     "text_model": {
       "model_id": "qwen/qwen3.5-35b-a3b",
-      "temperature": 0.0,
-      "max_tokens": 2048,
       "working_context_budget": 25000,
       "load_context_length": 32000
     },
     "vision_model": {
-      "model_id": "google/gemma-4-26b-a4b",
-      "temperature": 0.0,
-      "max_tokens": 2048
+      "model_id": "google/gemma-4-26b-a4b"
     },
     "locality": "local"
   },
   "parser": {
     "backend": "docling",
     "ocr_enabled": false,
-    "ocr_language": "en"
+    "ocr_language": "en",
+    "allow_basic_fallback": false
   },
   "matching": {
-    "strategy": "title_authors",
     "ambiguity_threshold": 0.15
-  },
-  "style_profiles": {
-    "enabled": true,
-    "max_examples": 3
   },
   "prompt": {
     "bundle": "default"
@@ -53,12 +45,5 @@
     "enabled": true,
     "max_figures_per_paper": 20,
     "skip_when_prompt_only_degraded": true
-  },
-  "review": {
-    "max_proposals_per_cell": 1
-  },
-  "export": {
-    "highlight_changes": true,
-    "include_audit_log": true
   }
 }

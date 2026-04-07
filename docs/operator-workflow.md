@@ -32,6 +32,7 @@ This guide stays intentionally close to the implemented MVP. It documents the cu
 - Export stays manual: the reviewer must click **Export reviewed workbook**.
 - Download links appear only after that explicit export.
 - Diagnostics are written alongside the workbook and audit log in `{output_dir}/{run_id}/exports/`.
+- For full run-bundle folder and file semantics (including conditional outputs), see [run-artifacts.md](run-artifacts.md).
 
 ## Writing better schema descriptions
 

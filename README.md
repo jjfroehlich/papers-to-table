@@ -172,13 +172,39 @@ The canonical provider token is `lm_studio`. Tokens such as `lmstudio`, `LMStudi
 | `provider.text_model.load_context_length` | Optional LM Studio load-time context length; if omitted, the app derives it from `working_context_budget` |
 | `provider.vision_model.model_id` | ID of the vision model (optional) |
 | `provider.vision_model.load_context_length` | Optional LM Studio load-time context length for the vision model |
+| `provider.locality` | Provider-locality label persisted in run artifacts (for example, `local`) |
+| `parser.backend` | Parser backend (default: `docling`) |
+| `parser.ocr_enabled` | Enables OCR fallback support in parser paths that can use OCR |
+| `parser.ocr_language` | OCR language code used when OCR is enabled |
+| `parser.allow_basic_fallback` | If `true`, allows basic text-extraction fallback when the configured parser path fails |
+| `matching.ambiguity_threshold` | Match-score gap threshold for deciding ambiguous-vs-matched outcomes |
 | `prompt.bundle` | Optional built-in prompt bundle name (`default` when omitted) |
 | `prompt.bundle_path` | Optional explicit prompt bundle path (takes precedence over `prompt.bundle`) |
+| `diagnostics.verbose_provider_logging` | Enables detailed provider request diagnostics in run artifacts |
+| `diagnostics.provider_preview_chars` | Character limit for request/response previews in provider diagnostics |
 | `figure_review.enabled` | Enables text-guided figure review as supplemental evidence (global, not schema-per-column) |
+| `figure_review.max_figures_per_paper` | Maximum shortlisted figures considered per paper |
+| `figure_review.skip_when_prompt_only_degraded` | Suppress figure-review calls when provider structured output is in prompt-only degraded mode |
 | `retrieval.mode` | Retrieval scorer mode: `lexical` by default or opt-in `hybrid_experimental` |
 | `retrieval.top_k` | Focused retrieval passage count for the first pass (default: `6`) |
 | `retrieval.recall_rescue_enabled` | Retry `unclear` results with deterministic expanded retrieval (default: `true`) |
 | `retrieval.whole_document_mode` | Opt-in whole-document rescue context for short parsed papers (default: `false`) |
+| `retrieval.whole_document_max_chars` | Character cap for whole-document rescue context |
+
+The checked-in `config.example.json` intentionally includes only parameters currently wired into runtime behavior.
+
+The following older knobs are omitted because they are not currently consumed by runtime logic:
+
+- `provider.text_model.temperature`
+- `provider.text_model.max_tokens`
+- `provider.vision_model.temperature`
+- `provider.vision_model.max_tokens`
+- `matching.strategy`
+- `style_profiles.enabled`
+- `style_profiles.max_examples`
+- `review.max_proposals_per_cell`
+- `export.highlight_changes`
+- `export.include_audit_log`
 
 Prompt bundle selection precedence is:
 
@@ -409,22 +435,37 @@ The exported XLSX always contains all rows and columns from the source workbook,
   config.snapshot.json            # Frozen config used for this run
   inputs/
     input_summary.json            # Table/schema/PDF metadata
+    gold_table*                   # Eval mode only (snapshot of original table)
+    masked_working_table*         # Eval mode only (masked table used for extraction)
+  style_profiles/                 # Per-column style profiles used during extraction
+  parsed/                         # Per-PDF parsed docs, diagnostics, page images, figure crops
+  matching/                       # Match results + unmatched/ambiguous/conflict breakdowns
+  retrieval/                      # Per-(pdf,column) retrieval artifacts
   proposals/
     proposals.jsonl              # Append-only proposal records
     proposal_index.json          # Proposal lookup metadata
-  provider_mode.json             # Persisted provider/mode/readiness truth
   evidence/                       # Per-proposal evidence (JSON files)
   review/
     decisions.jsonl               # Append-only review decision log
   summaries/
+    provider_mode.json            # Persisted provider/mode/readiness truth
     run_summary.json              # Final run summary
     reviewer_summary.json         # Reviewer outcome counts
+    artifact_summary.json         # Artifact completeness and section coverage
+  diagnostics/
+    run_stats.json                # Per-run, per-pdf, per-cell timing/counter diagnostics
+    provider_diagnostics.json     # Structured provider diagnostics
+    provider_probe.json           # Provider capability probe snapshot
+    provider_model_management.json # Model load/reuse context and outcomes
+    provider_request_counts.json  # Provider request counters
+    provider_trace.jsonl          # Verbose provider trace when enabled
   exports/
     workbook_{ts}.xlsx            # Updated workbook (after export triggered)
     audit_log_{ts}.json           # Decision audit log
     diagnostics_{ts}.json         # Diagnostics and warnings
-  logs/                           # Diagnostic logs
 ```
+
+For a folder-by-folder explanation of what is always present versus conditional (for example Eval mode, figure review, explicit export, verbose diagnostics), see [docs/run-artifacts.md](docs/run-artifacts.md).
 
 ---
 

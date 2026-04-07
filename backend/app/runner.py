@@ -428,7 +428,6 @@ async def run_pipeline(
                 "review": {"path": "review", "file_count": _count_artifact_files(run_dir / "review")},
                 "diagnostics": {"path": "diagnostics", "file_count": _count_artifact_files(run_dir / "diagnostics")},
                 "exports": {"path": "exports", "file_count": _count_artifact_files(run_dir / "exports")},
-                "logs": {"path": "logs", "file_count": _count_artifact_files(run_dir / "logs")},
             },
             "proposal_metadata_coverage": proposal_coverage,
             "eval_artifact_parity": eval_parity,

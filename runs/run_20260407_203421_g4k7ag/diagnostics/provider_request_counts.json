@@ -1,0 +1,17 @@
+{
+  "run_id": "run_20260407_203421_g4k7ag",
+  "provider_token": "lm_studio",
+  "counts": {
+    "http_total": 26,
+    "models_list": 1,
+    "model_management_list": 2,
+    "model_management_load": 1,
+    "completions_total": 22,
+    "completions_text_raw": 3,
+    "completions_text_structured": 15,
+    "completions_vision_structured": 0,
+    "completions_probe_structured": 4,
+    "completion_retry_attempts": 7
+  },
+  "recorded_at": "2026-04-07T20:42:33.089311+00:00"
+}

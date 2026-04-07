@@ -91,10 +91,6 @@ def get_provider_trace_path(output_dir: str, run_id: str) -> pathlib.Path:
     return get_diagnostics_dir(output_dir, run_id) / "provider_trace.jsonl"
 
 
-def get_logs_dir(output_dir: str, run_id: str) -> pathlib.Path:
-    return get_run_dir(output_dir, run_id) / "logs"
-
-
 def get_parsed_base_dir(output_dir: str, run_id: str) -> pathlib.Path:
     """Root directory for all per-PDF parse artifacts."""
     return get_run_dir(output_dir, run_id) / "parsed"
@@ -120,7 +116,6 @@ def init_run_bundle(output_dir: str, run_id: str) -> pathlib.Path:
         "summaries",
         "diagnostics",
         "exports",
-        "logs",
     ]
     run_dir.mkdir(parents=True, exist_ok=True)
     for sub in subdirs:
