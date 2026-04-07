@@ -9,6 +9,7 @@ from .contracts import Candidate, CandidateResult
 from .launch_eval import launch_eval_app, map_eval_summary_to_metric_groups
 from .launch_main import LaunchError, launch_main_app
 from .utils import flatten_dict
+from .validation import validate_eval_summary_contract, validate_main_launch_contract
 
 
 def _failure_result(
@@ -149,6 +150,24 @@ def evaluate_candidate_once(
             extra_metadata={"failure_stage": "main_app_launch"},
         )
 
+    main_contract_errors = validate_main_launch_contract(candidate, main_launch)
+    if main_contract_errors:
+        return _failure_result(
+            config,
+            candidate=candidate,
+            benchmark_id=benchmark_id,
+            study_type=study_type,
+            decision=decision,
+            reason="main_app_contract_invalid",
+            candidate_dir=candidate_dir,
+            main_launch=main_launch,
+            extra_metadata={
+                "failure_stage": "main_app_contract",
+                "contract_errors": main_contract_errors,
+                "deterministic_gate": {"stage": "main_app_contract", "passed": False, "failures": main_contract_errors},
+            },
+        )
+
     try:
         eval_launch, eval_summary = launch_eval_app(
             config,
@@ -183,6 +202,25 @@ def evaluate_candidate_once(
             main_launch=main_launch,
             eval_launch=eval_launch,
             extra_metadata={"failure_stage": "eval_launch"},
+        )
+
+    eval_contract_errors = validate_eval_summary_contract(config, eval_launch, eval_summary)
+    if eval_contract_errors:
+        return _failure_result(
+            config,
+            candidate=candidate,
+            benchmark_id=benchmark_id,
+            study_type=study_type,
+            decision=decision,
+            reason="eval_contract_invalid",
+            candidate_dir=candidate_dir,
+            main_launch=main_launch,
+            eval_launch=eval_launch,
+            extra_metadata={
+                "failure_stage": "eval_contract",
+                "contract_errors": eval_contract_errors,
+                "deterministic_gate": {"stage": "eval_contract", "passed": False, "failures": eval_contract_errors},
+            },
         )
 
     primary_metrics, guardrail_metrics, diagnostic_metrics = map_eval_summary_to_metric_groups(eval_summary, config["eval_app"])
@@ -238,6 +276,8 @@ def evaluate_candidate_once(
             "artifact_paths": eval_launch.artifact_paths,
         },
         metadata={
+            "deterministic_gate": {"stage": "acceptance", "passed": True, "failures": []},
+            "contract_errors": [],
             "eval_summary": eval_summary,
             "eval_metadata": eval_metadata,
             "main_stdout": main_launch.stdout,

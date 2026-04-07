@@ -11,6 +11,7 @@ from .search_space import load_search_space
 from .settings import load_config
 from .study import run_compare_mode, run_optimize_mode, summarize, validate_best
 from .utils import read_json
+from .validation import validate_preflight
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -44,6 +45,7 @@ def _cmd_optimize(args: argparse.Namespace) -> None:
     config = load_config(args.config)
     benchmarks = load_benchmarks(config)
     search_space = load_search_space(config)
+    validate_preflight(config, benchmarks, require_holdout=False)
 
     if args.study_type == "compare":
         run_compare_mode(config, benchmarks, args.out)
@@ -54,6 +56,7 @@ def _cmd_optimize(args: argparse.Namespace) -> None:
 def _cmd_evaluate_candidate(args: argparse.Namespace) -> None:
     config = load_config(args.config)
     benchmarks = load_benchmarks(config)
+    validate_preflight(config, benchmarks, require_holdout=False)
 
     payload = read_json(args.candidate_file)
     candidate = build_candidate_from_dict(
@@ -88,11 +91,14 @@ def _cmd_evaluate_candidate(args: argparse.Namespace) -> None:
 def _cmd_validate_best(args: argparse.Namespace) -> None:
     config = load_config(args.config)
     benchmarks = load_benchmarks(config)
+    validate_preflight(config, benchmarks, require_holdout=True, experiment_dir=args.experiment)
     validate_best(config, benchmarks, args.experiment, args.out)
 
 
 def _cmd_summarize(args: argparse.Namespace) -> None:
     config = load_config(args.config)
+    benchmarks = load_benchmarks(config)
+    validate_preflight(config, benchmarks, require_holdout=False, experiment_dir=args.experiment)
     summarize(config, args.experiment)
 
 

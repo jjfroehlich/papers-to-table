@@ -35,11 +35,34 @@ def _guardrail_ok(metric_name: str, value: float | None, incumbent_value: float 
     return True, "ok"
 
 
+def _deterministic_gate_ok(result: CandidateResult, *, role: str) -> tuple[bool, str]:
+    if result.candidate_status != "completed":
+        return False, f"{role} candidate did not complete"
+
+    gate = result.metadata.get("deterministic_gate", {}) if isinstance(result.metadata, dict) else {}
+    if not isinstance(gate, dict):
+        return False, f"{role} deterministic gate metadata missing"
+    if not gate.get("passed", False):
+        failures = gate.get("failures", [])
+        if isinstance(failures, list) and failures:
+            return False, f"{role} deterministic checks failed: {failures[0]}"
+        return False, f"{role} deterministic checks failed"
+    return True, "ok"
+
+
 def evaluate_promotion(
     incumbent: CandidateResult,
     challenger: CandidateResult,
     acceptance_cfg: dict[str, Any],
 ) -> tuple[bool, str]:
+    incumbent_ok, incumbent_reason = _deterministic_gate_ok(incumbent, role="incumbent")
+    if not incumbent_ok:
+        return False, incumbent_reason
+
+    challenger_ok, challenger_reason = _deterministic_gate_ok(challenger, role="challenger")
+    if not challenger_ok:
+        return False, challenger_reason
+
     primary_metric = acceptance_cfg["primary_metric"]
     min_improvement = float(acceptance_cfg.get("min_improvement", 0.0))
 

@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 import csv
+import re
 from pathlib import Path
 from typing import Any
+
+import matplotlib
+
+matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 
@@ -35,6 +40,53 @@ def _write_plot_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         writer.writeheader()
         for row in rows:
             writer.writerow(row)
+
+
+def _slugify(name: str) -> str:
+    return re.sub(r"[^a-zA-Z0-9]+", "_", name).strip("_").lower()
+
+
+def _category_score_rows(rows: list[dict[str, str]], *, category_key: str, primary_key: str) -> list[dict[str, Any]]:
+    grouped: dict[str, list[float]] = {}
+    for row in rows:
+        category = row.get(category_key)
+        score = _safe_float(row.get(primary_key))
+        if category in (None, "") or score is None:
+            continue
+        grouped.setdefault(str(category), []).append(score)
+
+    return [
+        {
+            category_key: category,
+            "candidate_count": len(scores),
+            "best_primary_score": max(scores),
+            "avg_primary_score": sum(scores) / len(scores),
+        }
+        for category, scores in sorted(grouped.items())
+    ]
+
+
+def _write_category_plot(
+    *,
+    plots_dir: Path,
+    rows: list[dict[str, Any]],
+    category_key: str,
+    title: str,
+    filename_prefix: str,
+) -> None:
+    if not rows:
+        return
+    _write_plot_csv(plots_dir / f"{filename_prefix}.csv", rows)
+    labels = [str(row[category_key]) for row in rows]
+    values = [float(row["best_primary_score"]) for row in rows]
+    plt.figure(figsize=(8, 4))
+    plt.bar(labels, values)
+    plt.xticks(rotation=45, ha="right")
+    plt.ylabel("primary_score")
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(plots_dir / f"{filename_prefix}.png")
+    plt.close()
 
 
 def _first_present_key(row: dict[str, str], candidates: list[str]) -> str | None:
@@ -87,6 +139,32 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
         plt.ylabel(primary_metric)
         plt.savefig(plots_dir / "compare_primary_by_candidate.png")
         plt.close()
+
+    for category_key, title, filename_prefix in [
+        ("text_model_id", "Best primary score by text model", "compare_primary_by_text_model"),
+        ("prompt_bundle_id", "Best primary score by prompt bundle", "compare_primary_by_prompt_bundle"),
+    ]:
+        category_rows = _category_score_rows(rows, category_key=category_key, primary_key=primary_key)
+        _write_category_plot(
+            plots_dir=plots_dir,
+            rows=category_rows,
+            category_key=category_key,
+            title=title,
+            filename_prefix=filename_prefix,
+        )
+
+    knob_keys = sorted(key for key in rows[0].keys() if key.startswith("knob."))
+    for knob_key in knob_keys:
+        knob_rows = _category_score_rows(rows, category_key=knob_key, primary_key=primary_key)
+        if not knob_rows:
+            continue
+        _write_category_plot(
+            plots_dir=plots_dir,
+            rows=knob_rows,
+            category_key=knob_key,
+            title=f"Best primary score by {knob_key}",
+            filename_prefix=f"compare_primary_by_{_slugify(knob_key)}",
+        )
 
     scatter_rows_runtime: list[dict[str, Any]] = []
     scatter_rows_evidence: list[dict[str, Any]] = []
@@ -276,6 +354,19 @@ def generate_optimize_plots(experiment_dir: Path, primary_metric: str) -> None:
     _write_plot_csv(plots_dir / "optimize_delta_by_round.csv", delta_rows)
     _write_plot_csv(plots_dir / "optimize_runtime_by_round.csv", runtime_rows)
 
+    decision_counts_rows: list[dict[str, Any]] = []
+    for rnd in rounds:
+        entries = by_round[rnd]
+        decision_counts_rows.append(
+            {
+                "round_index": rnd,
+                "promoted_count": sum(1 for row in entries if row["promotion_decision"] == "promoted"),
+                "rejected_count": sum(1 for row in entries if row["promotion_decision"] == "rejected"),
+                "incumbent_count": sum(1 for row in entries if row["promotion_decision"] == "incumbent"),
+            }
+        )
+    _write_plot_csv(plots_dir / "optimize_decision_counts_by_round.csv", decision_counts_rows)
+
     plt.figure(figsize=(7, 4))
     plt.plot(rounds, best_by_round, marker="o", label="best_score")
     plt.xlabel("round")
@@ -337,3 +428,51 @@ def generate_optimize_plots(experiment_dir: Path, primary_metric: str) -> None:
     plt.tight_layout()
     plt.savefig(plots_dir / "optimize_history_best_so_far.png")
     plt.close()
+
+    if decision_counts_rows:
+        plt.figure(figsize=(8, 4))
+        plt.plot(rounds, [row["promoted_count"] for row in decision_counts_rows], marker="o", label="promoted")
+        plt.plot(rounds, [row["rejected_count"] for row in decision_counts_rows], marker="x", label="rejected")
+        plt.plot(rounds, [row["incumbent_count"] for row in decision_counts_rows], marker="s", label="incumbent")
+        plt.xlabel("round")
+        plt.ylabel("candidate_count")
+        plt.title("Decision counts by round")
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(plots_dir / "optimize_decision_counts_by_round.png")
+        plt.close()
+
+    sample_row = rows[0]
+    knob_keys = sorted(key for key in sample_row.keys() if key.startswith("knob."))
+    for knob_key in knob_keys:
+        sweep_rows: list[dict[str, Any]] = []
+        xs: list[float] = []
+        ys: list[float] = []
+        for row in rows:
+            knob_value = _safe_float(row.get(knob_key))
+            score = _safe_float(row.get(primary_key))
+            round_index = _safe_float(row.get("round_index"))
+            if knob_value is None or score is None or round_index is None:
+                continue
+            xs.append(knob_value)
+            ys.append(score)
+            sweep_rows.append(
+                {
+                    "round_index": int(round_index),
+                    knob_key: knob_value,
+                    "primary_score": score,
+                    "candidate_id": row.get("candidate_id", ""),
+                }
+            )
+        if not sweep_rows:
+            continue
+        base_name = f"optimize_primary_by_{_slugify(knob_key)}"
+        _write_plot_csv(plots_dir / f"{base_name}.csv", sweep_rows)
+        plt.figure(figsize=(7, 4))
+        plt.scatter(xs, ys)
+        plt.xlabel(knob_key)
+        plt.ylabel(primary_metric)
+        plt.title(f"Primary score by {knob_key}")
+        plt.tight_layout()
+        plt.savefig(plots_dir / f"{base_name}.png")
+        plt.close()

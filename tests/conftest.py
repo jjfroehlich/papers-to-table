@@ -13,6 +13,7 @@ def stub_scripts(tmp_path: Path) -> dict[str, str]:
     eval_repo = tmp_path / "eval_repo"
     main_repo.mkdir(parents=True, exist_ok=True)
     eval_repo.mkdir(parents=True, exist_ok=True)
+    (main_repo / "backend" / "app" / "prompt_bundles" / "default").mkdir(parents=True, exist_ok=True)
 
     main_script = main_repo / "main_stub.py"
     eval_script = eval_repo / "eval_stub.py"
@@ -66,6 +67,7 @@ run_payload = {
     "prompt_bundle_id": config["prompt"]["bundle"],
     "retrieval_mode": config["retrieval"]["mode"],
     "provider_mode": "live_local",
+    "provider_text_model_id": text_model_id,
     "warnings": [],
     "current_stage": None,
     "error_message": None,

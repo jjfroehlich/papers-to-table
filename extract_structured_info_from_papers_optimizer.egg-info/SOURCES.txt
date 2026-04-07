@@ -27,4 +27,5 @@ tests/test_compare_mode.py
 tests/test_holdout_and_summarize.py
 tests/test_optimize_mode.py
 tests/test_pipeline_subprocess.py
+tests/test_real_integration_adapters.py
 tests/test_settings_and_search_space.py

@@ -10,23 +10,34 @@ Requires-Dist: pytest>=8.0; extra == "dev"
 
 # extract-structured-info-from-papers-optimizer
 
-CLI-first orchestration optimizer for evaluating bounded candidate bundles against fixed benchmarks.
+CLI-first optimizer for orchestrating candidate evaluation runs across:
 
-## What this optimizer does
+- `extract-structured-info-from-papers` (execution)
+- `extract-structured-info-from-papers-eval` (scoring)
 
-- Supports two study modes:
-  - `compare`: evaluate an explicit fixed candidate set.
-  - `optimize`: run bounded deterministic rounds with gated promotion.
-- Treats the main app as execution engine.
-- Treats the eval app as scoring oracle.
-- Writes machine-readable artifacts and static plots.
+This repo owns orchestration, candidate tracking, and result artifacts. It does not own extraction or scoring logic.
 
-## What this optimizer does not do
+## Responsibilities
 
-- Does not edit code in any repository.
-- Does not reimplement extraction logic.
-- Does not reimplement scoring logic.
-- Does not mutate eval definitions or benchmark definitions.
+- Load optimizer config, benchmark manifests, and bounded search space.
+- Materialize immutable candidate bundles.
+- Launch main app and eval app for each candidate.
+- Apply acceptance gates (optimize mode).
+- Persist candidate-level records, summaries, and plots.
+
+## Study modes
+
+### compare
+
+- Evaluates an explicit fixed candidate set on the `dev` benchmark.
+- Writes ranked compare summaries and compare plots.
+- Optionally supports holdout validation of top-k candidates via `compare.holdout_top_k`.
+
+### optimize
+
+- Evaluates a baseline candidate, then bounded deterministic challenger rounds.
+- Applies primary metric + guardrail acceptance gates before promotion.
+- Writes round summaries, incumbent updates, and optimize plots.
 
 ## Install
 
@@ -41,40 +52,76 @@ paper-optimizer optimize --study-type compare --config optimizer.json --out runs
 paper-optimizer optimize --study-type optimize --config optimizer.json --out runs/optimize
 paper-optimizer evaluate-candidate --config optimizer.json --candidate-file candidate.json --benchmark dev --out runs/eval_one
 paper-optimizer validate-best --config optimizer.json --experiment runs/optimize --out runs/holdout
-paper-optimizer summarize --experiment runs/optimize
+paper-optimizer summarize --config optimizer.json --experiment runs/optimize
 ```
 
-## Config overview
+## Config shape (high level)
 
-The optimizer config controls only orchestration and bounded search fields.
+Top-level fields used by current code:
 
 - `schema_version`
 - `experiment_id`
 - `baseline_candidate`
-- `compare_candidates` (for compare mode)
-- `search_space` (for optimize mode deterministic proposer)
+- `compare_candidates`
+- `search_space`
 - `benchmarks`
 - `main_app`
 - `eval_app`
 - `acceptance`
 - `optimize`
+- `compare` (for holdout top-k behavior in compare mode)
 
-See tests for minimal working examples.
+### main_app section
 
-## Artifacts
+Current adapter supports two integration styles:
 
-The experiment directory contains:
+1. legacy command template (`main_app.command`)
+2. real integration (`main_app.repo_root` + `main_app.base_config_path` + optional `main_app.command_prefix`)
+
+Real integration writes candidate-owned launch files under:
+
+- `runs/<candidate_id>/main/main_config_overlay.json`
+- `runs/<candidate_id>/main/resolved_main_config.json`
+- `runs/<candidate_id>/main/automation_result.json`
+
+### eval_app section
+
+Current adapter supports two integration styles:
+
+1. legacy command template (`eval_app.command`)
+2. real integration (`eval_app.repo_root` + optional `eval_app.command_prefix`)
+
+Metric projection uses `eval_app.metric_groups` to map eval summary metrics into optimizer-owned groups:
+
+- `primary`
+- `guardrail`
+- `diagnostic`
+
+## Artifact layout
+
+Experiment output directory contains:
 
 - `experiment.json`
+- `summary.json`
+- `best_candidate.json` (when winner/incumbent is recorded)
 - `candidates/<candidate_id>/candidate.json`
 - `results/results.csv`
 - `results/results.jsonl`
 - `rounds/round_<n>.json` (optimize mode)
-- `best_candidate.json` (optimize mode)
-- `plots/*.png`
 - `plots/*.csv`
+- `plots/*.png`
+- candidate launch folders under `runs/<candidate_id>/{main,eval}`
 
-## Holdout behavior
+## Known limitations
 
-- `optimize`: validate final promoted best on holdout.
-- `compare`: optional top-k holdout checks for reporting, not dev-search ranking.
+- Confirmation reruns are not implemented.
+- Deterministic pre-promotion checks are partially represented through launch/eval success but are not yet a dedicated explicit gate stage.
+- In optimize studies, `validate-best` currently selects the top-scoring recorded candidate on the configured primary metric rather than strictly following promoted-incumbent lineage.
+
+## Verification snapshot
+
+Current local test suite (`tests/`) passes with a non-interactive plotting backend:
+
+```bash
+MPLBACKEND=Agg python -m pytest -q
+```

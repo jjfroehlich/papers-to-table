@@ -17,3 +17,5 @@ def test_compare_mode_outputs(base_config: dict, tmp_path: Path) -> None:
     assert (out / "results" / "results.jsonl").exists()
     assert (out / "plots" / "compare_primary_by_candidate.png").exists()
     assert (out / "plots" / "compare_correctness_vs_runtime.png").exists()
+    assert (out / "plots" / "compare_primary_by_text_model.png").exists()
+    assert (out / "plots" / "compare_primary_by_knob_retrieval_top_k.png").exists()

@@ -1,0 +1,138 @@
+{
+  "schema_version": "1.0",
+  "experiment_id": "optimize_overnight",
+  "operator_todo": {
+    "notes": [
+      "Optimize is fixed to google/gemma-4-26b-a4b for tonight's run.",
+      "evidence_strict is removed for tonight because the main repo currently exposes only the default prompt bundle.",
+      "Skip holdout for tonight; add a real holdout split before re-enabling validate-best."
+    ]
+  },
+  "baseline_candidate": {
+    "prompt_bundle_id": "default",
+    "text_model_id": "google/gemma-4-26b-a4b",
+    "vision_model_id": null,
+    "optimizer_knobs": {
+      "retrieval_top_k": 6,
+      "recall_rescue_enabled": true,
+      "whole_document_mode": false,
+      "whole_document_max_chars": 12000,
+      "style_profiles_enabled": true,
+      "style_profiles_max_examples": 3,
+      "figure_review_enabled": false
+    }
+  },
+  "compare_candidates": [],
+  "search_space": {
+    "prompt_bundle_ids": [
+      "default"
+    ],
+    "text_model_ids": [
+      "google/gemma-4-26b-a4b"
+    ],
+    "vision_model_ids": [],
+    "numeric_knobs": {
+      "retrieval_top_k": {
+        "values": [
+          6,
+          8,
+          10
+        ]
+      },
+      "style_profiles_max_examples": {
+        "values": [
+          2,
+          3,
+          4
+        ]
+      }
+    }
+  },
+  "benchmarks": {
+    "smoke": "bench_smoke",
+    "dev": "bench_dev",
+    "manifests": {
+      "bench_smoke": {
+        "table_path": "../../extract-structured-info-from-papers/tests/fixtures/tables/literature_fixture.xlsx",
+        "schema_path": "../../extract-structured-info-from-papers/tests/fixtures/tables/literature_fixture_schema.csv",
+        "pdf_dir": "../../extract-structured-info-from-papers/tests/fixtures/papers",
+        "gold_path": "../../extract-structured-info-from-papers/tests/fixtures/tables/literature_fixture.xlsx",
+        "eval_schema_path": "../../extract-structured-info-from-papers-eval/tests/fixtures/example_eval/schema.json",
+        "main_args": [],
+        "eval_args": [],
+        "expected_items": 5
+      },
+      "bench_dev": {
+        "table_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
+        "schema_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture_schema.csv",
+        "pdf_dir": "C:/Users/jonat/Desktop/202601_MPRA_table",
+        "gold_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
+        "main_args": [],
+        "eval_args": [],
+        "expected_items": 100
+      }
+    }
+  },
+  "main_app": {
+    "repo_root": "../../extract-structured-info-from-papers",
+    "base_config_path": "../../extract-structured-info-from-papers/config.json",
+    "command_prefix": [
+      "python",
+      "-m",
+      "backend.app.automation"
+    ],
+    "optimizer_knob_map": {
+      "retrieval_top_k": "retrieval.top_k",
+      "recall_rescue_enabled": "retrieval.recall_rescue_enabled",
+      "whole_document_mode": "retrieval.whole_document_mode",
+      "whole_document_max_chars": "retrieval.whole_document_max_chars",
+      "style_profiles_enabled": "style_profiles.enabled",
+      "style_profiles_max_examples": "style_profiles.max_examples",
+      "figure_review_enabled": "figure_review.enabled"
+    }
+  },
+  "eval_app": {
+    "repo_root": "../../extract-structured-info-from-papers-eval",
+    "command_prefix": [
+      "python",
+      "-m",
+      "paper_eval"
+    ],
+    "metric_groups": {
+      "primary": {
+        "correctness": "structured_accuracy"
+      },
+      "guardrail": {
+        "evidence_quality": "anchor_valid_rate",
+        "null_count": "missing_proposal_count",
+        "failure_count": "join_failure_count"
+      },
+      "diagnostic": {
+        "contract_warning_count": "contract_warning_count"
+      }
+    }
+  },
+  "acceptance": {
+    "primary_metric": "correctness",
+    "min_improvement": 0.01,
+    "guardrails": {
+      "evidence_quality": {
+        "min": 0.85
+      },
+      "null_count": {
+        "max": 5,
+        "max_delta": 1
+      },
+      "failure_count": {
+        "max": 0
+      }
+    }
+  },
+  "optimize": {
+    "rounds": 6,
+    "batch_size": 4
+  },
+  "compare": {
+    "holdout_top_k": 0
+  }
+}

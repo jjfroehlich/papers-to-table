@@ -1,0 +1,181 @@
+{
+  "schema_version": "1.0",
+  "experiment_id": "paper_optimizer_example",
+  "baseline_candidate": {
+    "prompt_bundle_id": "default",
+    "text_model_id": "REPLACE_TEXT_MODEL",
+    "vision_model_id": null,
+    "optimizer_knobs": {
+      "retrieval_top_k": 8,
+      "recall_rescue_enabled": true,
+      "whole_document_mode": false,
+      "whole_document_max_chars": 16000,
+      "style_profiles_enabled": true,
+      "style_profiles_max_examples": 3,
+      "figure_review_enabled": false
+    }
+  },
+  "compare_candidates": [
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "REPLACE_TEXT_MODEL_A",
+      "vision_model_id": null,
+      "optimizer_knobs": {
+        "retrieval_top_k": 8,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 16000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false
+      }
+    },
+    {
+      "prompt_bundle_id": "evidence_strict",
+      "text_model_id": "REPLACE_TEXT_MODEL_B",
+      "vision_model_id": null,
+      "optimizer_knobs": {
+        "retrieval_top_k": 10,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 4,
+        "figure_review_enabled": false
+      }
+    }
+  ],
+  "search_space": {
+    "prompt_bundle_ids": [
+      "default",
+      "evidence_strict"
+    ],
+    "text_model_ids": [
+      "REPLACE_TEXT_MODEL_A",
+      "REPLACE_TEXT_MODEL_B"
+    ],
+    "vision_model_ids": [],
+    "numeric_knobs": {
+      "retrieval_top_k": {
+        "values": [
+          6,
+          8,
+          10
+        ]
+      },
+      "whole_document_max_chars": {
+        "values": [
+          12000,
+          16000,
+          20000
+        ]
+      },
+      "style_profiles_max_examples": {
+        "values": [
+          2,
+          3,
+          4
+        ]
+      }
+    }
+  },
+  "benchmarks": {
+    "smoke": "bench_smoke",
+    "dev": "bench_dev",
+    "holdout": "bench_holdout",
+    "manifests": {
+      "bench_smoke": {
+        "table_path": "REPLACE_WITH_SMOKE_TABLE.xlsx",
+        "schema_path": "REPLACE_WITH_SCHEMA.json",
+        "pdf_dir": "REPLACE_WITH_PDF_DIR",
+        "gold_path": "REPLACE_WITH_SMOKE_GOLD.csv",
+        "eval_schema_path": "REPLACE_WITH_EVAL_SCHEMA.json",
+        "main_args": [],
+        "eval_args": [],
+        "expected_items": 5
+      },
+      "bench_dev": {
+        "table_path": "REPLACE_WITH_DEV_TABLE.xlsx",
+        "schema_path": "REPLACE_WITH_SCHEMA.json",
+        "pdf_dir": "REPLACE_WITH_PDF_DIR",
+        "gold_path": "REPLACE_WITH_DEV_GOLD.csv",
+        "eval_schema_path": "REPLACE_WITH_EVAL_SCHEMA.json",
+        "main_args": [],
+        "eval_args": [],
+        "expected_items": 50
+      },
+      "bench_holdout": {
+        "table_path": "REPLACE_WITH_HOLDOUT_TABLE.xlsx",
+        "schema_path": "REPLACE_WITH_SCHEMA.json",
+        "pdf_dir": "REPLACE_WITH_PDF_DIR",
+        "gold_path": "REPLACE_WITH_HOLDOUT_GOLD.csv",
+        "eval_schema_path": "REPLACE_WITH_EVAL_SCHEMA.json",
+        "main_args": [],
+        "eval_args": [],
+        "expected_items": 50
+      }
+    }
+  },
+  "main_app": {
+    "repo_root": "../extract-structured-info-from-papers",
+    "base_config_path": "../extract-structured-info-from-papers/config.json",
+    "command_prefix": [
+      "python",
+      "-m",
+      "backend.app.automation"
+    ],
+    "optimizer_knob_map": {
+      "retrieval_top_k": "retrieval.top_k",
+      "recall_rescue_enabled": "retrieval.recall_rescue_enabled",
+      "whole_document_mode": "retrieval.whole_document_mode",
+      "whole_document_max_chars": "retrieval.whole_document_max_chars",
+      "style_profiles_enabled": "style_profiles.enabled",
+      "style_profiles_max_examples": "style_profiles.max_examples",
+      "figure_review_enabled": "figure_review.enabled"
+    }
+  },
+  "eval_app": {
+    "repo_root": "../extract-structured-info-from-papers-eval",
+    "command_prefix": [
+      "python",
+      "-m",
+      "paper_eval"
+    ],
+    "metric_groups": {
+      "primary": {
+        "correctness": "structured_accuracy"
+      },
+      "guardrail": {
+        "evidence_quality": "anchor_valid_rate",
+        "null_count": "missing_proposal_count",
+        "failure_count": "join_failure_count"
+      },
+      "diagnostic": {
+        "contract_warning_count": "contract_warning_count"
+      }
+    }
+  },
+  "acceptance": {
+    "primary_metric": "correctness",
+    "min_improvement": 0.01,
+    "guardrails": {
+      "evidence_quality": {
+        "min": 0.85
+      },
+      "null_count": {
+        "max": 5,
+        "max_delta": 1
+      },
+      "failure_count": {
+        "max": 0
+      }
+    }
+  },
+  "optimize": {
+    "rounds": 6,
+    "batch_size": 4
+  },
+  "compare": {
+    "holdout_top_k": 2
+  }
+}

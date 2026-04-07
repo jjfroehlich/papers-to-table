@@ -17,3 +17,5 @@ def test_optimize_mode_outputs(base_config: dict, tmp_path: Path) -> None:
     assert (out / "rounds" / "round_0001.json").exists()
     assert (out / "plots" / "optimize_best_by_round.png").exists()
     assert (out / "plots" / "optimize_history_best_so_far.png").exists()
+    assert (out / "plots" / "optimize_decision_counts_by_round.png").exists()
+    assert (out / "plots" / "optimize_primary_by_knob_retrieval_top_k.png").exists()

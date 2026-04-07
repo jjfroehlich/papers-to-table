@@ -1,0 +1,299 @@
+from __future__ import annotations
+
+import shutil
+from pathlib import Path
+from typing import Any
+
+from .benchmarks import Benchmarks
+from .contracts import Candidate, LaunchResult
+from .utils import read_json
+
+
+class PreflightError(ValueError):
+    pass
+
+
+def _is_non_empty_string(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _existing_path(path_str: str | None) -> bool:
+    return bool(path_str) and Path(path_str).exists()
+
+
+def _command_head_exists(token: str, working_dir: Path | None = None) -> bool:
+    if not token or "{" in token:
+        return True
+    token_path = Path(token)
+    if token_path.is_absolute():
+        return token_path.exists()
+    if any(sep in token for sep in ("/", "\\")):
+        if working_dir is None:
+            return token_path.exists()
+        return (working_dir / token_path).exists()
+    return shutil.which(token) is not None
+
+
+def _script_token_exists(token: str, working_dir: Path | None = None) -> bool:
+    if not token or "{" in token:
+        return True
+    if not any(token.endswith(ext) for ext in (".py", ".exe", ".bat", ".cmd", ".ps1", ".sh")):
+        return True
+    token_path = Path(token)
+    if token_path.is_absolute():
+        return token_path.exists()
+    if working_dir is not None:
+        return (working_dir / token_path).exists()
+    return token_path.exists()
+
+
+def _validate_command_tokens(
+    *,
+    section_name: str,
+    command: list[str],
+    errors: list[str],
+    working_dir: Path | None,
+) -> None:
+    if not command:
+        errors.append(f"{section_name} command is empty")
+        return
+    if not _command_head_exists(command[0], working_dir=working_dir):
+        errors.append(f"{section_name} command executable is not available: {command[0]}")
+    for token in command[1:]:
+        if not _script_token_exists(token, working_dir=working_dir):
+            errors.append(f"{section_name} command references a missing script or executable: {token}")
+
+
+def _candidate_prompt_ids(config: dict[str, Any]) -> list[str]:
+    prompt_ids: list[str] = []
+    baseline = config.get("baseline_candidate", {})
+    if _is_non_empty_string(baseline.get("prompt_bundle_id")):
+        prompt_ids.append(str(baseline["prompt_bundle_id"]))
+
+    for row in config.get("compare_candidates", []) or []:
+        if isinstance(row, dict) and _is_non_empty_string(row.get("prompt_bundle_id")):
+            prompt_ids.append(str(row["prompt_bundle_id"]))
+
+    search_space = config.get("search_space", {})
+    if isinstance(search_space, dict):
+        for prompt_id in search_space.get("prompt_bundle_ids", []):
+            if _is_non_empty_string(prompt_id):
+                prompt_ids.append(str(prompt_id))
+
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for prompt_id in prompt_ids:
+        if prompt_id in seen:
+            continue
+        seen.add(prompt_id)
+        ordered.append(prompt_id)
+    return ordered
+
+
+def _mapping_has_target(mapping: dict[str, str] | list[str] | None, target_name: str) -> bool:
+    if mapping is None:
+        return False
+    if isinstance(mapping, list):
+        return target_name in mapping
+    return target_name in mapping
+
+
+def validate_preflight(
+    config: dict[str, Any],
+    benchmarks: Benchmarks,
+    *,
+    require_holdout: bool,
+    experiment_dir: Path | None = None,
+) -> None:
+    errors: list[str] = []
+
+    main_cfg = config["main_app"]
+    eval_cfg = config["eval_app"]
+
+    main_working_dir = Path(main_cfg["repo_root"]).resolve() if "repo_root" in main_cfg else None
+    eval_working_dir = Path(eval_cfg["repo_root"]).resolve() if "repo_root" in eval_cfg else None
+
+    if main_working_dir is not None and not main_working_dir.exists():
+        errors.append(f"main_app.repo_root does not exist: {main_working_dir}")
+    if eval_working_dir is not None and not eval_working_dir.exists():
+        errors.append(f"eval_app.repo_root does not exist: {eval_working_dir}")
+
+    if "base_config_path" in main_cfg and not Path(main_cfg["base_config_path"]).exists():
+        errors.append(f"main_app.base_config_path does not exist: {main_cfg['base_config_path']}")
+
+    for section_name, section, working_dir in [
+        ("main_app", main_cfg, main_working_dir),
+        ("eval_app", eval_cfg, eval_working_dir),
+    ]:
+        if "command" in section:
+            _validate_command_tokens(section_name=section_name, command=list(section["command"]), errors=errors, working_dir=working_dir)
+        if "command_prefix" in section:
+            _validate_command_tokens(
+                section_name=f"{section_name}.command_prefix",
+                command=list(section["command_prefix"]),
+                errors=errors,
+                working_dir=working_dir,
+            )
+
+    for benchmark_id, manifest in benchmarks.manifests.items():
+        for label, path_str in [
+            (f"benchmarks.manifests.{benchmark_id}.table_path", manifest.table_path),
+            (f"benchmarks.manifests.{benchmark_id}.pdf_dir", manifest.pdf_dir),
+            (f"benchmarks.manifests.{benchmark_id}.gold_path", manifest.gold_path),
+        ]:
+            if not _existing_path(path_str):
+                errors.append(f"{label} does not exist: {path_str}")
+        if manifest.schema_path and not Path(manifest.schema_path).exists():
+            errors.append(f"benchmarks.manifests.{benchmark_id}.schema_path does not exist: {manifest.schema_path}")
+        if manifest.eval_schema_path and not Path(manifest.eval_schema_path).exists():
+            errors.append(f"benchmarks.manifests.{benchmark_id}.eval_schema_path does not exist: {manifest.eval_schema_path}")
+
+    if require_holdout and "holdout" not in benchmarks.split_to_id:
+        errors.append("holdout benchmark split is required for unattended workflow")
+
+    prompt_bundle_root = None
+    if main_working_dir is not None:
+        prompt_bundle_root = main_working_dir / "backend" / "app" / "prompt_bundles"
+        if not prompt_bundle_root.exists():
+            errors.append(f"Prompt bundle directory does not exist under main_app.repo_root: {prompt_bundle_root}")
+
+    if prompt_bundle_root is not None and prompt_bundle_root.exists():
+        for prompt_id in _candidate_prompt_ids(config):
+            bundle_dir = prompt_bundle_root / prompt_id
+            if not bundle_dir.exists():
+                errors.append(f"Prompt bundle does not exist under main_app.repo_root: {bundle_dir}")
+
+    metric_groups = eval_cfg.get("metric_groups", {}) if isinstance(eval_cfg.get("metric_groups"), dict) else {}
+    primary_metric = str(config["acceptance"]["primary_metric"])
+    if metric_groups:
+        if not _mapping_has_target(metric_groups.get("primary"), primary_metric):
+            errors.append(
+                f"eval_app.metric_groups.primary is missing the configured acceptance.primary_metric target: {primary_metric}"
+            )
+
+        guardrails = config.get("acceptance", {}).get("guardrails", {})
+        guardrail_mapping = metric_groups.get("guardrail")
+        for metric_name in guardrails:
+            if metric_name == "runtime_seconds":
+                continue
+            if not _mapping_has_target(guardrail_mapping, metric_name):
+                errors.append(f"eval_app.metric_groups.guardrail is missing configured guardrail target: {metric_name}")
+
+    if experiment_dir is not None:
+        results_jsonl = experiment_dir / "results" / "results.jsonl"
+        if not results_jsonl.exists():
+            errors.append(f"Experiment results were not found: {results_jsonl}")
+
+    if errors:
+        raise PreflightError("Preflight validation failed:\n- " + "\n- ".join(errors))
+
+
+def validate_main_launch_contract(candidate: Candidate, launch: LaunchResult) -> list[str]:
+    errors: list[str] = []
+    payload = launch.payload if isinstance(launch.payload, dict) else {}
+
+    if payload.get("schema_version") != "main_app_automation.v1":
+        errors.append("main-app automation payload schema_version is missing or invalid")
+
+    for key in ["run_id", "status", "mode"]:
+        if not _is_non_empty_string(payload.get(key)):
+            errors.append(f"main-app automation payload is missing required field: {key}")
+
+    run_summary = payload.get("run_summary")
+    if not isinstance(run_summary, dict):
+        errors.append("main-app automation payload is missing run_summary")
+    else:
+        for key in ["prompt_hash", "prompt_bundle_id", "retrieval_mode", "provider_mode"]:
+            if not _is_non_empty_string(run_summary.get(key)):
+                errors.append(f"main-app automation payload run_summary is missing required field: {key}")
+        if run_summary.get("prompt_bundle_id") != candidate.prompt_bundle_id:
+            errors.append("main-app automation payload prompt_bundle_id does not match candidate prompt_bundle_id")
+
+    artifacts = payload.get("artifacts")
+    if not isinstance(artifacts, dict):
+        errors.append("main-app automation payload is missing artifacts")
+        artifacts = {}
+
+    for key in ["run_dir", "run_json_path", "config_snapshot_path", "run_summary_path"]:
+        path_str = artifacts.get(key)
+        if not _is_non_empty_string(path_str):
+            errors.append(f"main-app automation payload artifacts is missing required path: {key}")
+            continue
+        if not Path(path_str).exists():
+            errors.append(f"main-app automation payload path does not exist for {key}: {path_str}")
+
+    run_json_path = artifacts.get("run_json_path")
+    if _is_non_empty_string(run_json_path) and Path(str(run_json_path)).exists():
+        run_payload = read_json(Path(str(run_json_path)))
+        for key in ["run_id", "run_mode", "provider_mode", "retrieval_mode", "prompt_bundle_id", "prompt_hash", "provider_text_model_id"]:
+            if not _is_non_empty_string(run_payload.get(key)):
+                errors.append(f"main-app run.json is missing required provenance field: {key}")
+        if run_payload.get("prompt_bundle_id") != candidate.prompt_bundle_id:
+            errors.append("main-app run.json prompt_bundle_id does not match candidate prompt_bundle_id")
+        if run_payload.get("provider_text_model_id") != candidate.text_model_id:
+            errors.append("main-app run.json provider_text_model_id does not match candidate text_model_id")
+        if candidate.vision_model_id is not None and run_payload.get("provider_vision_model_id") != candidate.vision_model_id:
+            errors.append("main-app run.json provider_vision_model_id does not match candidate vision_model_id")
+
+    return errors
+
+
+def validate_eval_summary_contract(config: dict[str, Any], launch: LaunchResult, eval_summary: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+
+    if not isinstance(eval_summary, dict):
+        return ["eval summary is not a JSON object"]
+
+    if not _is_non_empty_string(launch.summary_path):
+        errors.append("eval launch did not record summary_path")
+    elif not Path(str(launch.summary_path)).exists():
+        errors.append(f"eval summary_path does not exist: {launch.summary_path}")
+
+    for key in ["run_id", "run_dir"]:
+        if not _is_non_empty_string(eval_summary.get(key)):
+            errors.append(f"eval summary is missing required field: {key}")
+
+    metrics = eval_summary.get("metrics")
+    if not isinstance(metrics, dict):
+        errors.append("eval summary is missing required metrics object")
+        metrics = {}
+
+    metadata = eval_summary.get("metadata")
+    if not isinstance(metadata, dict):
+        errors.append("eval summary is missing required metadata object")
+
+    grouped_metrics_present = any(
+        isinstance(eval_summary.get(group_name), dict)
+        for group_name in ["primary_metrics", "guardrail_metrics", "diagnostic_metrics"]
+    )
+
+    primary_metric = str(config["acceptance"]["primary_metric"])
+    if grouped_metrics_present:
+        primary_group = eval_summary.get("primary_metrics", {}) if isinstance(eval_summary.get("primary_metrics"), dict) else {}
+        if primary_metric not in primary_group:
+            errors.append(f"eval summary primary_metrics is missing required metric: {primary_metric}")
+
+        guardrail_group = eval_summary.get("guardrail_metrics", {}) if isinstance(eval_summary.get("guardrail_metrics"), dict) else {}
+        for metric_name in config.get("acceptance", {}).get("guardrails", {}):
+            if metric_name == "runtime_seconds":
+                continue
+            if metric_name not in guardrail_group:
+                errors.append(f"eval summary guardrail_metrics is missing required metric: {metric_name}")
+    else:
+        metric_groups = config["eval_app"].get("metric_groups", {}) if isinstance(config["eval_app"].get("metric_groups"), dict) else {}
+        for group_name in ["primary", "guardrail", "diagnostic"]:
+            mapping = metric_groups.get(group_name)
+            if isinstance(mapping, dict):
+                for target_name, source_name in mapping.items():
+                    if source_name not in metrics and source_name not in eval_summary:
+                        errors.append(
+                            f"eval summary is missing source metric '{source_name}' required for metric_groups.{group_name}.{target_name}"
+                        )
+            elif isinstance(mapping, list):
+                for metric_name in mapping:
+                    if metric_name not in metrics and metric_name not in eval_summary:
+                        errors.append(
+                            f"eval summary is missing source metric '{metric_name}' required for metric_groups.{group_name}"
+                        )
+
+    return errors
