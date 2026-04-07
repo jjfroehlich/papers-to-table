@@ -83,6 +83,10 @@ def get_provider_probe_path(output_dir: str, run_id: str) -> pathlib.Path:
     return get_diagnostics_dir(output_dir, run_id) / "provider_probe.json"
 
 
+def get_provider_model_management_path(output_dir: str, run_id: str) -> pathlib.Path:
+    return get_diagnostics_dir(output_dir, run_id) / "provider_model_management.json"
+
+
 def get_provider_trace_path(output_dir: str, run_id: str) -> pathlib.Path:
     return get_diagnostics_dir(output_dir, run_id) / "provider_trace.jsonl"
 

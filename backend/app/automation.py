@@ -12,6 +12,7 @@ from typing import Any, Optional
 
 from .artifacts import (
     get_config_snapshot_path,
+    get_provider_model_management_path,
     get_reviewer_summary_path,
     get_run_dir,
     get_run_json_path,
@@ -121,12 +122,16 @@ def _run_artifact_paths(output_dir: str, run_id: str) -> dict[str, Optional[str]
     config_snapshot = get_config_snapshot_path(output_dir, run_id)
     run_summary = get_run_summary_path(output_dir, run_id)
     reviewer_summary = get_reviewer_summary_path(output_dir, run_id)
+    provider_model_management = get_provider_model_management_path(output_dir, run_id)
     return {
         "run_dir": str(run_dir.resolve()),
         "run_json_path": str(run_json.resolve()),
         "config_snapshot_path": str(config_snapshot.resolve()) if config_snapshot.exists() else None,
         "run_summary_path": str(run_summary.resolve()) if run_summary.exists() else None,
         "reviewer_summary_path": str(reviewer_summary.resolve()) if reviewer_summary.exists() else None,
+        "provider_model_management_path": (
+            str(provider_model_management.resolve()) if provider_model_management.exists() else None
+        ),
         "latest_export_path": _latest_export_path(run_dir),
     }
 

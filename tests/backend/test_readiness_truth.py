@@ -43,16 +43,15 @@ async def test_readiness_reports_provider_unreachable(tmp_path: pathlib.Path):
 
 
 @pytest.mark.asyncio
-async def test_readiness_reports_missing_loaded_model(tmp_path: pathlib.Path):
+async def test_readiness_allows_model_loading_to_happen_during_provider_init(tmp_path: pathlib.Path):
     config = RunConfig.model_validate(_config_dict(tmp_path))
 
     response = httpx.Response(200, json={"data": [{"id": "other-model"}]})
     with patch("backend.app.config.httpx.AsyncClient.get", return_value=response):
         readiness = await check_readiness(config)
 
-    assert readiness.ok is False
-    assert readiness.provider_mode == "unavailable"
-    assert any("not loaded in LM Studio" in error for error in readiness.errors)
+    assert readiness.ok is True
+    assert readiness.provider_mode == "live_local"
 
 
 @pytest.mark.asyncio

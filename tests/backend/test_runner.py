@@ -17,6 +17,7 @@ from backend.app.artifacts import (
     get_config_snapshot_path,
     get_input_summary_path,
     get_provider_diagnostics_path,
+    get_provider_model_management_path,
     get_provider_mode_path,
     get_provider_probe_path,
     get_run_json_path,
@@ -175,20 +176,25 @@ class TestRunPipeline:
         artifact_summary = read_json(get_artifact_summary_path(output_dir, run_id))
         provider_diagnostics = read_json(get_provider_diagnostics_path(output_dir, run_id))
         provider_probe = read_json(get_provider_probe_path(output_dir, run_id))
+        provider_model_management = read_json(get_provider_model_management_path(output_dir, run_id))
         run_data = read_json(get_run_json_path(output_dir, run_id))
 
         assert artifact_summary["files"]["provider_diagnostics"]["present"] is True
         assert artifact_summary["files"]["provider_probe"]["present"] is True
+        assert artifact_summary["files"]["provider_model_management"]["present"] is True
         assert artifact_summary["directories"]["exports"]["file_count"] == 0
         assert artifact_summary["directories"]["review"]["file_count"] == 0
         assert artifact_summary["directories"]["logs"]["file_count"] == 0
-        assert artifact_summary["directories"]["diagnostics"]["file_count"] >= 3
+        assert artifact_summary["directories"]["diagnostics"]["file_count"] >= 4
         assert "diagnostics/provider_diagnostics.json" in artifact_summary["sections"]["diagnostics"]
         assert provider_diagnostics["attempt_count"] == 0
         assert provider_probe["provider"] == "lm_studio"
+        assert provider_model_management["text_model"]["requested_load_context"] == 32000
+        assert provider_model_management["text_model"]["reused_loaded_model"] is True
         assert run_data["artifact_summary_path"] == "summaries/artifact_summary.json"
         assert run_data["provider_diagnostics_path"] == "diagnostics/provider_diagnostics.json"
         assert run_data["provider_probe_path"] == "diagnostics/provider_probe.json"
+        assert run_data["provider_model_management_path"] == "diagnostics/provider_model_management.json"
 
     @pytest.mark.asyncio
     @respx.mock
@@ -641,7 +647,7 @@ async def _raise_model_unavailable_error(*args, **kwargs):
 
 
 async def _fake_initialize_provider(*args, **kwargs):
-    return object(), SimpleNamespace(
+    return _fake_provider_object(), SimpleNamespace(
         mode="live_local",
         locality="local",
         readiness_error=None,
@@ -652,6 +658,7 @@ async def _fake_initialize_provider(*args, **kwargs):
         vision_structured_output_mode=None,
         vision_structured_output_reason=None,
         capabilities=None,
+        model_management=_fake_model_management_report(),
         model_dump=lambda: {
             "mode": "live_local",
             "locality": "local",
@@ -662,12 +669,13 @@ async def _fake_initialize_provider(*args, **kwargs):
             "structured_output_fallback_used": False,
             "vision_structured_output_mode": None,
             "vision_structured_output_reason": None,
+            "model_management": _fake_model_management_report(),
         },
     )
 
 
 async def _fake_initialize_provider_json_object(*args, **kwargs):
-    return object(), SimpleNamespace(
+    return _fake_provider_object(), SimpleNamespace(
         mode="live_local",
         locality="local",
         readiness_error=None,
@@ -677,6 +685,7 @@ async def _fake_initialize_provider_json_object(*args, **kwargs):
         structured_output_fallback_used=True,
         vision_structured_output_mode=None,
         vision_structured_output_reason=None,
+        model_management=_fake_model_management_report(load_requested=True, reused=False),
         capabilities=SimpleNamespace(
             structured_output_mode="json_object",
             structured_output_reason="structured_backend_incompatible",
@@ -692,6 +701,7 @@ async def _fake_initialize_provider_json_object(*args, **kwargs):
             "structured_output_fallback_used": True,
             "vision_structured_output_mode": None,
             "vision_structured_output_reason": None,
+            "model_management": _fake_model_management_report(load_requested=True, reused=False),
             "capabilities": {
                 "structured_output_mode": "json_object",
                 "structured_output_reason": "structured_backend_incompatible",
@@ -702,7 +712,7 @@ async def _fake_initialize_provider_json_object(*args, **kwargs):
 
 
 async def _fake_initialize_provider_prompt_only(*args, **kwargs):
-    return object(), SimpleNamespace(
+    return _fake_provider_object(), SimpleNamespace(
         mode="live_local",
         locality="local",
         readiness_error=None,
@@ -712,6 +722,7 @@ async def _fake_initialize_provider_prompt_only(*args, **kwargs):
         structured_output_fallback_used=True,
         vision_structured_output_mode=None,
         vision_structured_output_reason=None,
+        model_management=_fake_model_management_report(load_requested=True, reused=False),
         capabilities=SimpleNamespace(
             structured_output_mode="none",
             structured_output_reason="structured_backend_incompatible",
@@ -727,6 +738,7 @@ async def _fake_initialize_provider_prompt_only(*args, **kwargs):
             "structured_output_fallback_used": True,
             "vision_structured_output_mode": None,
             "vision_structured_output_reason": None,
+            "model_management": _fake_model_management_report(load_requested=True, reused=False),
             "capabilities": {
                 "structured_output_mode": "none",
                 "structured_output_reason": "structured_backend_incompatible",
@@ -734,6 +746,36 @@ async def _fake_initialize_provider_prompt_only(*args, **kwargs):
             },
         },
     )
+
+
+def _fake_provider_object():
+    return SimpleNamespace(
+        get_model_management_report=lambda: _fake_model_management_report(),
+    )
+
+
+def _fake_model_management_report(*, load_requested: bool = False, reused: bool = True):
+    return {
+        "provider": "lm_studio",
+        "base_url": "http://localhost:1234",
+        "text_model": {
+            "model_id": "qwen/qwen3-30b-a3b-2507",
+            "working_context_budget": 25000,
+            "configured_load_context": 32000,
+            "requested_load_context": 32000,
+            "load_context_is_derived": False,
+            "load_requested": load_requested,
+            "reused_loaded_model": reused,
+            "loaded_instance_id": "qwen/qwen3-30b-a3b-2507",
+            "loaded_instance_context_length": 32000,
+            "actual_load_config": {"context_length": 32000},
+            "load_time_seconds": 4.2 if load_requested else None,
+            "status": "loaded_via_api" if load_requested else "reused_loaded_instance",
+            "failure": None,
+        },
+        "vision_model": None,
+        "recorded_at": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 async def _fake_style_profiles(**kwargs):

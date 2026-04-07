@@ -82,6 +82,7 @@ class ProviderMode(BaseModel):
     structured_output_fallback_used: bool = False
     vision_structured_output_mode: Optional[str] = None
     vision_structured_output_reason: Optional[str] = None
+    model_management: Optional[dict[str, Any]] = None
     readiness_error: Optional[str] = None
     readiness_reason: Optional[str] = None
     recorded_at: str = ""
@@ -176,6 +177,7 @@ class ProviderAdapter(abc.ABC):
         text_model_id: Optional[str],
         vision_model_id: Optional[str],
         capabilities: Optional[ProviderCapabilities] = None,
+        model_management: Optional[dict[str, Any]] = None,
         readiness_error: Optional[str] = None,
         readiness_reason: Optional[str] = None,
     ) -> ProviderMode:
@@ -212,6 +214,7 @@ class ProviderAdapter(abc.ABC):
                 if capabilities
                 else None
             ),
+            model_management=model_management,
             readiness_error=readiness_error,
             readiness_reason=readiness_reason,
             recorded_at=datetime.now(timezone.utc).isoformat(),
@@ -237,6 +240,10 @@ class ProviderAdapter(abc.ABC):
         """Return capability-probe details suitable for diagnostics artifacts."""
         return {}
 
+    def get_model_management_report(self) -> dict[str, Any]:
+        """Return model-management details suitable for diagnostics artifacts."""
+        return {}
+
     def get_trace_records(self) -> list[dict[str, Any]]:
         """Return verbose provider trace records when enabled."""
         return []
@@ -248,10 +255,17 @@ class ProviderAdapter(abc.ABC):
 
 class ProviderError(Exception):
     """Hard provider error that should record an error proposal outcome."""
-    def __init__(self, message: str, recoverable: bool = False, reason: Optional[str] = None):
+    def __init__(
+        self,
+        message: str,
+        recoverable: bool = False,
+        reason: Optional[str] = None,
+        details: Optional[dict[str, Any]] = None,
+    ):
         super().__init__(message)
         self.recoverable = recoverable
         self.reason = reason
+        self.details = details
 
 
 class StructuredOutputError(ProviderError):
@@ -262,15 +276,37 @@ class StructuredOutputError(ProviderError):
 class ModelUnavailableError(ProviderError):
     """Model is not loaded or available."""
 
-    def __init__(self, message: str, recoverable: bool = False, reason: Optional[str] = None):
-        super().__init__(message, recoverable=recoverable, reason=reason or "model_unavailable")
+    def __init__(
+        self,
+        message: str,
+        recoverable: bool = False,
+        reason: Optional[str] = None,
+        details: Optional[dict[str, Any]] = None,
+    ):
+        super().__init__(
+            message,
+            recoverable=recoverable,
+            reason=reason or "model_unavailable",
+            details=details,
+        )
 
 
 class ProviderTimeoutError(ProviderError):
     """Request timed out."""
 
-    def __init__(self, message: str, recoverable: bool = False, reason: Optional[str] = None):
-        super().__init__(message, recoverable=recoverable, reason=reason or "provider_unreachable")
+    def __init__(
+        self,
+        message: str,
+        recoverable: bool = False,
+        reason: Optional[str] = None,
+        details: Optional[dict[str, Any]] = None,
+    ):
+        super().__init__(
+            message,
+            recoverable=recoverable,
+            reason=reason or "provider_unreachable",
+            details=details,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -528,6 +564,8 @@ class LMStudioProvider(ProviderAdapter):
         self._request_counts: dict[str, int] = {
             "http_total": 0,
             "models_list": 0,
+            "model_management_list": 0,
+            "model_management_load": 0,
             "completions_total": 0,
             "completions_text_raw": 0,
             "completions_text_structured": 0,
@@ -546,6 +584,13 @@ class LMStudioProvider(ProviderAdapter):
         }
         self._trace_records: list[dict[str, Any]] = []
         self._pending_transport_metadata: Optional[dict[str, Any]] = None
+        self._model_management_report: dict[str, Any] = {
+            "provider": "lm_studio",
+            "base_url": self._base_url,
+            "text_model": None,
+            "vision_model": None,
+            "recorded_at": None,
+        }
 
     def _bump(self, key: str, amount: int = 1) -> None:
         self._request_counts[key] = self._request_counts.get(key, 0) + amount
@@ -596,6 +641,9 @@ class LMStudioProvider(ProviderAdapter):
 
     def get_trace_records(self) -> list[dict[str, Any]]:
         return [dict(item) for item in self._trace_records]
+
+    def get_model_management_report(self) -> dict[str, Any]:
+        return dict(self._model_management_report)
 
     def _truncate_preview(self, value: Optional[str], limit: int = 240) -> Optional[str]:
         if value is None:
@@ -776,6 +824,8 @@ class LMStudioProvider(ProviderAdapter):
     ) -> None:
         if isinstance(error, ModelUnavailableError):
             outcome = "model_unavailable"
+        elif getattr(error, "reason", None) == "model_load_failed":
+            outcome = "model_load_failed"
         elif isinstance(error, ProviderTimeoutError):
             outcome = "timeout"
         elif isinstance(error, StructuredOutputError):
@@ -793,6 +843,316 @@ class LMStudioProvider(ProviderAdapter):
             error_message=str(error),
             error_details=getattr(error, "details", None),
         )
+
+    def _rest_url(self, path: str) -> str:
+        return f"{self._base_url}{path}"
+
+    @staticmethod
+    def _coerce_positive_int(value: Any) -> Optional[int]:
+        if value is None:
+            return None
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return None
+        return parsed if parsed > 0 else None
+
+    @classmethod
+    def _loaded_instance_context_length(cls, instance: dict[str, Any]) -> Optional[int]:
+        config = instance.get("config") or {}
+        return cls._coerce_positive_int(config.get("context_length"))
+
+    @staticmethod
+    def _model_matches_requested_id(model_entry: dict[str, Any], model_id: str) -> bool:
+        if str(model_entry.get("key") or "") == model_id:
+            return True
+        loaded_instances = model_entry.get("loaded_instances") or []
+        return any(str(instance.get("id") or "") == model_id for instance in loaded_instances)
+
+    @classmethod
+    def _find_requested_model(cls, models_payload: dict[str, Any], model_id: str) -> Optional[dict[str, Any]]:
+        models = models_payload.get("models") or []
+        for model_entry in models:
+            if isinstance(model_entry, dict) and cls._model_matches_requested_id(model_entry, model_id):
+                return model_entry
+        return None
+
+    @classmethod
+    def _find_compatible_loaded_instance(
+        cls,
+        model_entry: dict[str, Any],
+        required_load_context: Optional[int],
+    ) -> Optional[dict[str, Any]]:
+        loaded_instances = model_entry.get("loaded_instances") or []
+        compatible: list[tuple[int, dict[str, Any]]] = []
+        for instance in loaded_instances:
+            if not isinstance(instance, dict):
+                continue
+            context_length = cls._loaded_instance_context_length(instance)
+            if required_load_context is None:
+                compatible.append((context_length or 0, instance))
+                continue
+            if context_length is not None and context_length >= required_load_context:
+                compatible.append((context_length, instance))
+        if not compatible:
+            return None
+        compatible.sort(key=lambda item: item[0])
+        return compatible[0][1]
+
+    @classmethod
+    def _loaded_instance_summaries(cls, model_entry: dict[str, Any]) -> list[dict[str, Any]]:
+        loaded_instances = model_entry.get("loaded_instances") or []
+        summaries: list[dict[str, Any]] = []
+        for instance in loaded_instances:
+            if not isinstance(instance, dict):
+                continue
+            summaries.append(
+                {
+                    "instance_id": instance.get("id"),
+                    "context_length": cls._loaded_instance_context_length(instance),
+                    "config": instance.get("config") or {},
+                }
+            )
+        return summaries
+
+    async def _list_rest_models(self) -> dict[str, Any]:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                self._bump("http_total")
+                self._bump("model_management_list")
+                resp = await client.get(self._rest_url("/api/v1/models"))
+            if resp.status_code != 200:
+                raise ProviderError(
+                    f"LM Studio model-management API at {self._rest_url('/api/v1/models')} returned HTTP {resp.status_code}.",
+                    reason="provider_unreachable",
+                )
+            return resp.json()
+        except ProviderError:
+            raise
+        except Exception as error:
+            raise ProviderError(
+                f"Cannot reach LM Studio model-management API at {self._rest_url('/api/v1/models')}: {error}",
+                reason="provider_unreachable",
+            ) from error
+
+    async def _load_model_via_rest(
+        self,
+        *,
+        role: str,
+        model_id: str,
+        required_load_context: Optional[int],
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "model": model_id,
+            "echo_load_config": True,
+        }
+        if required_load_context is not None:
+            payload["context_length"] = required_load_context
+
+        load_started = perf_counter()
+        try:
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                self._bump("http_total")
+                self._bump("model_management_load")
+                resp = await client.post(self._rest_url("/api/v1/models/load"), json=payload)
+            duration_ms = (perf_counter() - load_started) * 1000.0
+            if resp.status_code != 200:
+                message = (
+                    f"LM Studio failed to load {role} model '{model_id}' via /api/v1/models/load "
+                    f"(HTTP {resp.status_code}): {resp.text[:300]}"
+                )
+                error = ProviderError(message, reason="model_load_failed")
+                self._record_exception_attempt(
+                    request_kind=f"{role}_model_load",
+                    structured_mode=None,
+                    model_id=model_id,
+                    duration_ms=duration_ms,
+                    error=error,
+                )
+                raise error
+
+            response_data = resp.json()
+            self._record_attempt(
+                request_kind=f"{role}_model_load",
+                structured_mode=None,
+                model_id=model_id,
+                outcome="success",
+                duration_ms=duration_ms,
+                http_status=resp.status_code,
+                raw_preview=resp.text,
+                phase="model_management",
+                payload_summary=self._summarize_payload(payload),
+            )
+            return response_data
+        except ProviderError:
+            raise
+        except Exception as error:
+            duration_ms = (perf_counter() - load_started) * 1000.0
+            wrapped = ProviderError(
+                f"LM Studio model load request failed for {role} model '{model_id}': {error}",
+                reason="model_load_failed",
+            )
+            self._record_exception_attempt(
+                request_kind=f"{role}_model_load",
+                structured_mode=None,
+                model_id=model_id,
+                duration_ms=duration_ms,
+                error=wrapped,
+            )
+            raise wrapped from error
+
+    async def _ensure_role_model_ready(
+        self,
+        *,
+        role: str,
+        model_id: str,
+        required_load_context: Optional[int],
+        working_context_budget: Optional[int] = None,
+        load_context_is_derived: Optional[bool] = None,
+    ) -> dict[str, Any]:
+        report: dict[str, Any] = {
+            "model_id": model_id,
+            "working_context_budget": working_context_budget,
+            "configured_load_context": None if load_context_is_derived else required_load_context,
+            "requested_load_context": required_load_context,
+            "load_context_is_derived": bool(load_context_is_derived),
+            "load_requested": False,
+            "reused_loaded_model": False,
+            "loaded_instance_id": None,
+            "loaded_instance_context_length": None,
+            "existing_loaded_instances": [],
+            "max_context_length": None,
+            "actual_load_config": None,
+            "load_time_seconds": None,
+            "status": "pending",
+            "failure": None,
+        }
+
+        models_payload = await self._list_rest_models()
+        model_entry = self._find_requested_model(models_payload, model_id)
+        if model_entry is None:
+            message = (
+                f"Configured {role} model '{model_id}' is not available in LM Studio. "
+                "Download it in LM Studio or update the configured model id."
+            )
+            report["status"] = "failed"
+            report["failure"] = {"reason": "model_unavailable", "message": message}
+            raise ModelUnavailableError(
+                message,
+                details={"model_management": report},
+            )
+
+        report["existing_loaded_instances"] = self._loaded_instance_summaries(model_entry)
+        report["max_context_length"] = self._coerce_positive_int(model_entry.get("max_context_length"))
+
+        if (
+            required_load_context is not None
+            and report["max_context_length"] is not None
+            and required_load_context > report["max_context_length"]
+        ):
+            message = (
+                f"Configured {role} model '{model_id}' cannot satisfy requested load context "
+                f"{required_load_context}; LM Studio reports max_context_length={report['max_context_length']}."
+            )
+            report["status"] = "failed"
+            report["failure"] = {"reason": "model_load_failed", "message": message}
+            raise ProviderError(
+                message,
+                reason="model_load_failed",
+                details={"model_management": report},
+            )
+
+        compatible_instance = self._find_compatible_loaded_instance(model_entry, required_load_context)
+        if compatible_instance is not None:
+            report["reused_loaded_model"] = True
+            report["loaded_instance_id"] = compatible_instance.get("id")
+            report["loaded_instance_context_length"] = self._loaded_instance_context_length(compatible_instance)
+            report["actual_load_config"] = compatible_instance.get("config") or {}
+            report["status"] = "reused_loaded_instance"
+            return report
+
+        try:
+            load_result = await self._load_model_via_rest(
+                role=role,
+                model_id=model_id,
+                required_load_context=required_load_context,
+            )
+        except ProviderError as error:
+            report["status"] = "failed"
+            report["load_requested"] = True
+            report["failure"] = {
+                "reason": getattr(error, "reason", None) or "model_load_failed",
+                "message": str(error),
+            }
+            raise ProviderError(
+                str(error),
+                recoverable=getattr(error, "recoverable", False),
+                reason=getattr(error, "reason", None) or "model_load_failed",
+                details={"model_management": report},
+            ) from error
+        report["load_requested"] = True
+        report["loaded_instance_id"] = load_result.get("instance_id")
+        report["load_time_seconds"] = load_result.get("load_time_seconds")
+        report["actual_load_config"] = load_result.get("load_config")
+        report["loaded_instance_context_length"] = self._coerce_positive_int(
+            (load_result.get("load_config") or {}).get("context_length")
+        )
+        report["status"] = "loaded_via_api"
+        return report
+
+    async def ensure_model_availability(
+        self,
+        *,
+        text_model_id: str,
+        text_working_context_budget: Optional[int] = None,
+        text_load_context_length: Optional[int] = None,
+        text_load_context_is_derived: bool = False,
+        vision_model_id: Optional[str] = None,
+        vision_load_context_length: Optional[int] = None,
+    ) -> dict[str, Any]:
+        report: dict[str, Any] = {
+            "provider": "lm_studio",
+            "base_url": self._base_url,
+            "text_model": None,
+            "vision_model": None,
+            "recorded_at": datetime.now(timezone.utc).isoformat(),
+        }
+        try:
+            text_report = await self._ensure_role_model_ready(
+                role="text",
+                model_id=text_model_id,
+                required_load_context=text_load_context_length,
+                working_context_budget=text_working_context_budget,
+                load_context_is_derived=text_load_context_is_derived,
+            )
+            report["text_model"] = text_report
+
+            if vision_model_id is not None and _has_explicit_model_id(vision_model_id):
+                vision_report = await self._ensure_role_model_ready(
+                    role="vision",
+                    model_id=vision_model_id,
+                    required_load_context=vision_load_context_length,
+                )
+                report["vision_model"] = vision_report
+
+            self._model_management_report = report
+            return report
+        except ProviderError as error:
+            details = dict(getattr(error, "details", None) or {})
+            role_report = details.get("model_management")
+            if isinstance(role_report, dict):
+                failed_model_id = role_report.get("model_id")
+                if failed_model_id == vision_model_id:
+                    report["vision_model"] = role_report
+                else:
+                    report["text_model"] = role_report
+            self._model_management_report = report
+            raise ProviderError(
+                str(error),
+                recoverable=getattr(error, "recoverable", False),
+                reason=getattr(error, "reason", None),
+                details={"model_management": report},
+            ) from error
 
     @property
     def token(self) -> str:
@@ -1714,8 +2074,24 @@ async def initialize_provider(
 
     T052a: mode is recorded truthfully; never returns a degraded mode silently.
     """
+    provider: Optional[ProviderAdapter] = None
     try:
         provider = build_provider(config, diagnostics_config=diagnostics_config)
+        model_management: Optional[dict[str, Any]] = None
+        ensure_models = getattr(provider, "ensure_model_availability", None)
+        text_model_config = getattr(config, "text_model", None)
+        vision_model_config = getattr(config, "vision_model", None)
+        if callable(ensure_models) and (text_model_config is not None or vision_model_config is not None):
+            model_management = await ensure_models(
+                text_model_id=text_model_id,
+                text_working_context_budget=getattr(text_model_config, "working_context_budget", None),
+                text_load_context_length=getattr(text_model_config, "required_load_context_length", None),
+                text_load_context_is_derived=bool(
+                    getattr(text_model_config, "load_context_is_derived", False)
+                ),
+                vision_model_id=vision_model_id,
+                vision_load_context_length=getattr(vision_model_config, "load_context_length", None),
+            )
         caps = await provider.probe_capabilities(text_model_id, vision_model_id)
         if isinstance(provider, LMStudioProvider):
             provider.set_capabilities(caps)
@@ -1723,6 +2099,7 @@ async def initialize_provider(
             text_model_id=text_model_id,
             vision_model_id=vision_model_id,
             capabilities=caps,
+            model_management=model_management,
             readiness_error=None,
             readiness_reason=None,
         )
@@ -1737,4 +2114,11 @@ async def initialize_provider(
                 reason = "no_compatible_structured_mode"
             else:
                 reason = "provider_unreachable"
-        raise ProviderError(str(e), reason=reason) from e
+        details = dict(getattr(e, "details", None) or {})
+        if provider is not None and not details.get("model_management"):
+            get_model_management = getattr(provider, "get_model_management_report", None)
+            if callable(get_model_management):
+                model_management = get_model_management() or {}
+                if model_management:
+                    details["model_management"] = model_management
+        raise ProviderError(str(e), reason=reason, details=details or None) from e

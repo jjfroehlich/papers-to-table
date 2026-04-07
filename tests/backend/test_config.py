@@ -105,6 +105,59 @@ class TestLoadConfig:
         assert config.retrieval.mode == "lexical"
         assert config.prompt.bundle is None
         assert config.prompt.bundle_path is None
+        assert config.provider.text_model.working_context_budget == 12000
+        assert config.provider.text_model.required_load_context_length == 12000
+
+    def test_text_model_supports_separate_working_and_load_context(self):
+        config = RunConfig.model_validate({
+            "table_path": "t.xlsx",
+            "pdf_dir": "pdfs/",
+            "provider": {
+                "token": "lm_studio",
+                "text_model": {
+                    "model_id": "qwen/qwen3-30b-a3b-2507",
+                    "working_context_budget": 25000,
+                    "load_context_length": 32000,
+                },
+            },
+        })
+
+        assert config.provider.text_model.working_context_budget == 25000
+        assert config.provider.text_model.load_context_length == 32000
+        assert config.provider.text_model.required_load_context_length == 32000
+        assert config.provider.text_model.load_context_is_derived is False
+
+    def test_text_model_derives_load_context_from_working_budget_when_omitted(self):
+        config = RunConfig.model_validate({
+            "table_path": "t.xlsx",
+            "pdf_dir": "pdfs/",
+            "provider": {
+                "token": "lm_studio",
+                "text_model": {
+                    "model_id": "qwen/qwen3-30b-a3b-2507",
+                    "working_context_budget": 25000,
+                },
+            },
+        })
+
+        assert config.provider.text_model.load_context_length is None
+        assert config.provider.text_model.required_load_context_length == 25000
+        assert config.provider.text_model.load_context_is_derived is True
+
+    def test_rejects_load_context_shorter_than_working_budget(self):
+        with pytest.raises(Exception, match="load_context_length must be greater than or equal"):
+            RunConfig.model_validate({
+                "table_path": "t.xlsx",
+                "pdf_dir": "pdfs/",
+                "provider": {
+                    "token": "lm_studio",
+                    "text_model": {
+                        "model_id": "qwen/qwen3-30b-a3b-2507",
+                        "working_context_budget": 25000,
+                        "load_context_length": 16000,
+                    },
+                },
+            })
 
     def test_legacy_retrieval_strategy_normalizes_to_mode(self, tmp_path):
         data = {
@@ -288,7 +341,7 @@ class TestReadiness:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_rejects_unloaded_text_model(self, tmp_path, minimal_config_dict, monkeypatch):
+    async def test_does_not_require_text_model_to_be_preloaded(self, tmp_path, minimal_config_dict, monkeypatch):
         minimal_config_dict["output_dir"] = str(tmp_path / "runs")
         config = RunConfig.model_validate(minimal_config_dict)
         monkeypatch.setattr("backend.app.parsing.check_parser_readiness", lambda *_args: [])
@@ -297,8 +350,7 @@ class TestReadiness:
             return_value=httpx.Response(200, json={"data": [{"id": "some-other-model"}]})
         )
         result = await check_readiness(config)
-        assert result.ok is False
-        assert any("not loaded in LM Studio" in e for e in result.errors)
+        assert result.ok is True
 
     @pytest.mark.asyncio
     @respx.mock

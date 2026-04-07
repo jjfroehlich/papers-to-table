@@ -250,6 +250,8 @@ LLM interaction will be schema-first using typed contracts. The initial supporte
 
 The provider configuration must support separate model identifiers for text extraction and vision extraction. The text model and vision model may differ: local deployments often have separate chat and vision endpoints, and operators should be able to configure each independently.
 
+For LM Studio, the provider configuration must also separate the app's working context budget from the LM Studio load-time context length. The working budget is used by prompt and retrieval planning. The load-time context length is used only when ensuring the model is loaded in LM Studio. When no explicit LM Studio load context is configured, the app may derive it from the working budget.
+
 When both a text model and a vision model are used in a run, the run summary and reviewer-visible context must identify both models separately so the reviewer understands what capability extracted what.
 
 **Rationale:**
@@ -260,6 +262,8 @@ The extraction path depends on predictable proposal and evidence objects. Separa
 - the canonical LM Studio operator-visible label is `LM Studio`
 - provider identifiers come from one canonical enum or equivalent central registry
 - provider config carries separate model identifier fields for text extraction and for vision extraction
+- the app, not the operator, is responsible for ensuring the configured LM Studio model is loaded before proposal generation
+- LM Studio load/reuse behavior and echoed load config must be persisted in run diagnostics for reproducibility
 - compatibility aliases, if any, must normalize into canonical stored values and stay documented in one place
 - unknown provider identifiers fail early
 - cloud-provider credentials are resolved from environment or secret references, not committed example secrets
@@ -1557,6 +1561,7 @@ Before normal run execution begins, the app should perform the smallest coherent
 
 - config schema and canonical provider-token validation
 - provider reachability for live providers
+- provider reachability for live providers, followed by provider-owned model load/reuse if the provider supports model management
 - configured model availability or capability failure where it can be checked cheaply
 - parser and OCR dependency availability for configured paths
 - output-path writability and other obvious broken local setup conditions
@@ -1579,6 +1584,7 @@ Run artifacts and normal summaries should record at least:
 - negotiated structured-output mode (`json_schema`, `json_object`, or `none` where `none` means explicit prompt-only JSON fallback mode)
 - negotiated structured-output mode for the text path and, when configured, the corresponding truth for the vision path
 - whether structured-output fallback was used
+- whether the model was reused versus loaded through LM Studio, the requested load context, and the actual LM Studio load config when available
 - readiness checks performed and failing reasons where applicable
 - readiness and capability failure reason classification where applicable
 

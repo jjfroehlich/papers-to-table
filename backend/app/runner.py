@@ -15,6 +15,7 @@ from .artifacts import (
     get_config_snapshot_path,
     get_input_summary_path,
     get_provider_diagnostics_path,
+    get_provider_model_management_path,
     get_provider_mode_path,
     get_provider_probe_path,
     get_provider_request_counts_path,
@@ -111,8 +112,13 @@ def get_initial_run_data(
         "provider_locality": config.provider.locality,
         "provider_mode": "unknown",
         "provider_text_model_id": config.provider.text_model.model_id,
+        "provider_text_working_context_budget": config.provider.text_model.working_context_budget,
+        "provider_text_load_context_length": config.provider.text_model.required_load_context_length,
         "provider_vision_model_id": (
             config.provider.vision_model.model_id if config.provider.vision_model else None
+        ),
+        "provider_vision_load_context_length": (
+            config.provider.vision_model.load_context_length if config.provider.vision_model else None
         ),
         "structured_output_mode": None,
         "structured_output_reason": None,
@@ -138,6 +144,7 @@ def get_initial_run_data(
         "run_stats_path": None,
         "provider_diagnostics_path": None,
         "provider_probe_path": None,
+        "provider_model_management_path": None,
         "artifact_summary_path": None,
         "schema_hash": None,
         "schema_version": None,
@@ -284,7 +291,10 @@ async def run_pipeline(
                 "provider_locality": data.get("provider_locality"),
                 "provider_mode": data.get("provider_mode"),
                 "provider_text_model_id": data.get("provider_text_model_id"),
+                "provider_text_working_context_budget": data.get("provider_text_working_context_budget"),
+                "provider_text_load_context_length": data.get("provider_text_load_context_length"),
                 "provider_vision_model_id": data.get("provider_vision_model_id"),
+                "provider_vision_load_context_length": data.get("provider_vision_load_context_length"),
                 "structured_output_mode": data.get("structured_output_mode"),
                 "structured_output_reason": data.get("structured_output_reason"),
                 "structured_output_fallback_used": bool(
@@ -294,6 +304,7 @@ async def run_pipeline(
                 "vision_structured_output_reason": data.get("vision_structured_output_reason"),
                 "provider_readiness_error": data.get("provider_readiness_error"),
                 "provider_readiness_reason": data.get("provider_readiness_reason"),
+                "provider_model_management_path": data.get("provider_model_management_path"),
                 "retrieval_mode": data.get("retrieval_mode"),
                 "prompt_version": data.get("prompt_version"),
                 "prompt_hash": data.get("prompt_hash"),
@@ -374,6 +385,7 @@ async def run_pipeline(
             "provider_request_counts": "diagnostics/provider_request_counts.json",
             "provider_diagnostics": "diagnostics/provider_diagnostics.json",
             "provider_probe": "diagnostics/provider_probe.json",
+            "provider_model_management": "diagnostics/provider_model_management.json",
             "provider_trace": "diagnostics/provider_trace.jsonl",
         }
         files = {}
@@ -427,7 +439,12 @@ async def run_pipeline(
         data["artifact_summary_path"] = _relative_run_path(run_dir, artifact_path)
         return data
 
-    def sync_provider_artifacts(data: dict, provider_obj: object, run_dir: pathlib.Path) -> dict:
+    def sync_provider_artifacts(
+        data: dict,
+        provider_obj: object,
+        run_dir: pathlib.Path,
+        provider_error_details: Optional[dict[str, object]] = None,
+    ) -> dict:
         """Persist provider request counters and diagnostics into run artifacts and run.json."""
         data = dict(data)
         counts: dict[str, int] = {}
@@ -495,6 +512,29 @@ async def run_pipeline(
         provider_probe_path = get_provider_probe_path(output_dir, run_id)
         write_json(provider_probe_path, probe_report)
         data["provider_probe_path"] = _relative_run_path(run_dir, provider_probe_path)
+
+        model_management_report = {
+            "provider": config.provider.token,
+            "base_url": config.provider.base_url,
+            "recorded_at": datetime.now(timezone.utc).isoformat(),
+            "text_model": None,
+            "vision_model": None,
+        }
+        if provider_error_details and isinstance(provider_error_details.get("model_management"), dict):
+            model_management_report.update(provider_error_details["model_management"])
+        elif provider_obj is not None:
+            get_model_management_report = getattr(provider_obj, "get_model_management_report", None)
+            if callable(get_model_management_report):
+                try:
+                    model_management_report.update(get_model_management_report() or {})
+                except Exception:
+                    pass
+        provider_model_management_path = get_provider_model_management_path(output_dir, run_id)
+        write_json(provider_model_management_path, model_management_report)
+        data["provider_model_management_path"] = _relative_run_path(
+            run_dir,
+            provider_model_management_path,
+        )
 
         trace_records: list[dict] = []
         if provider_obj is not None:
@@ -701,6 +741,7 @@ async def run_pipeline(
         provider = None
         provider_mode = None
         provider_init_error: Optional[str] = None
+        provider_init_details: Optional[dict[str, object]] = None
 
         try:
             provider, provider_mode = await initialize_provider(
@@ -712,10 +753,12 @@ async def run_pipeline(
         except ProviderError as e:
             provider_init_error = str(e)
             provider_init_reason = getattr(e, "reason", None) or "provider_unreachable"
+            provider_init_details = getattr(e, "details", None)
 
             warning_category = {
                 "provider_unreachable": WC.provider_unreachable.value,
                 "model_unavailable": WC.model_unavailable.value,
+                "model_load_failed": WC.model_unavailable.value,
                 "no_compatible_structured_mode": WC.structured_mode_capability_mismatch.value,
                 "structured_backend_incompatible": WC.structured_mode_capability_mismatch.value,
             }.get(provider_init_reason, WC.provider_unreachable.value)
@@ -723,6 +766,7 @@ async def run_pipeline(
             warning_prefix = {
                 "provider_unreachable": "Provider unreachable",
                 "model_unavailable": "Model unavailable",
+                "model_load_failed": "Model load failed",
                 "no_compatible_structured_mode": "No compatible structured-output mode",
                 "structured_backend_incompatible": "Structured-output backend incompatibility",
             }.get(provider_init_reason, "Provider unavailable")
@@ -748,6 +792,11 @@ async def run_pipeline(
                     "structured_output_fallback_used": False,
                     "vision_structured_output_mode": None,
                     "vision_structured_output_reason": None,
+                        "model_management": (
+                            provider_init_details.get("model_management")
+                            if isinstance(provider_init_details, dict)
+                            else None
+                        ),
                     "readiness_reason": provider_init_reason,
                     "readiness_error": provider_init_error,
                     "recorded_at": datetime.now(timezone.utc).isoformat(),
@@ -764,7 +813,12 @@ async def run_pipeline(
             save_run(run_data)
 
         if provider is None:
-            run_data = sync_provider_artifacts(run_data, None, run_dir)
+            run_data = sync_provider_artifacts(
+                run_data,
+                None,
+                run_dir,
+                provider_error_details=provider_init_details,
+            )
             run_data = fail_run(
                 run_data,
                 provider_init_error or "Provider unavailable during initialization",

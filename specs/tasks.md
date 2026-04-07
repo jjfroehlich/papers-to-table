@@ -153,6 +153,7 @@ Reality-checked on 2026-04-06 against current backend/frontend source, targeted 
 - [x] **T050** Implement the provider abstraction and capability-probe model for structured-output support.
 - [x] **T050b** Enforce provider-unavailable hard-fail semantics at run start.
 - [x] **T051** Implement LM Studio localhost API integration as the initial provider path.
+- [x] **T051b** Add app-owned LM Studio model-management with separate working-budget versus load-context config, compatible loaded-model reuse, API-driven load before extraction, and persisted load diagnostics.
 - [x] **T051a** Implement optional cloud-provider adapter slots behind the same provider interface.
 - [x] **T052** Implement provider error handling and structured-output failure policy for LM Studio.
 - [x] **T052a** Make provider-mode truth explicit across runtime artifacts and operator surfaces.

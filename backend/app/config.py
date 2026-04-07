@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import httpx
 from pydantic import BaseModel, Field, model_validator
@@ -22,12 +22,35 @@ class TextModelConfig(BaseModel):
     model_id: str = "default"
     temperature: float = 0.0
     max_tokens: int = 2048
+    working_context_budget: int = Field(default=12000, ge=1)
+    load_context_length: Optional[int] = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def validate_context_contract(self) -> TextModelConfig:
+        if (
+            self.load_context_length is not None
+            and self.load_context_length < self.working_context_budget
+        ):
+            raise ValueError(
+                "provider.text_model.load_context_length must be greater than or equal to "
+                "provider.text_model.working_context_budget."
+            )
+        return self
+
+    @property
+    def required_load_context_length(self) -> int:
+        return int(self.load_context_length or self.working_context_budget)
+
+    @property
+    def load_context_is_derived(self) -> bool:
+        return self.load_context_length is None
 
 
 class VisionModelConfig(BaseModel):
     model_id: str = "default"
     temperature: float = 0.0
     max_tokens: int = 2048
+    load_context_length: Optional[int] = Field(default=None, ge=1)
 
 
 class ProviderConfig(BaseModel):
@@ -226,6 +249,7 @@ class ReadinessResult:
         self.provider_readiness_reason: Optional[str] = None
         self.structured_output_mode: Optional[str] = None
         self.structured_output_fallback_used: bool = False
+        self.provider_model_management: Optional[dict[str, Any]] = None
 
     def fail(self, msg: str) -> None:
         self.ok = False
@@ -293,47 +317,23 @@ async def check_readiness(config: RunConfig) -> ReadinessResult:
                         f"Is LM Studio running?"
                     )
                 else:
-                    models_data = resp.json()
-                    available_ids = {
-                        model.get("id", "") for model in models_data.get("data", [])
-                    }
-                    if _is_configured_model_id(text_model_id) and text_model_id not in available_ids:
+                    vision_model = config.provider.vision_model
+                    vision_model_id = vision_model.model_id if vision_model else None
+                    if config.figure_review.enabled and not _is_configured_model_id(vision_model_id):
                         message = (
-                            f"Configured text model '{text_model_id}' is not loaded in LM Studio. "
-                            "Load that model or update provider.text_model.model_id."
+                            "figure_review is enabled, but provider.vision_model.model_id is missing or invalid."
                         )
                         r.provider_mode = "unavailable"
                         r.provider_readiness_reason = "model_unavailable"
                         r.provider_readiness_error = message
                         r.fail(message)
 
-                    vision_model = config.provider.vision_model
-                    vision_model_id = vision_model.model_id if vision_model else None
-                    if config.figure_review.enabled:
-                        if not _is_configured_model_id(vision_model_id):
-                            message = (
-                                "figure_review is enabled, but provider.vision_model.model_id is missing or invalid."
-                            )
-                            r.provider_mode = "unavailable"
-                            r.provider_readiness_reason = "model_unavailable"
-                            r.provider_readiness_error = message
-                            r.fail(message)
-                        elif vision_model_id not in available_ids:
-                            message = (
-                                f"Configured vision model '{vision_model_id}' is not loaded in LM Studio. "
-                                "Load that model or update provider.vision_model.model_id."
-                            )
-                            r.provider_mode = "unavailable"
-                            r.provider_readiness_reason = "model_unavailable"
-                            r.provider_readiness_error = message
-                            r.fail(message)
-
                     if r.ok:
                         r.provider_mode = "live_local"
         except Exception as e:
             message = (
                 f"Cannot reach LM Studio at {config.provider.base_url}: {e}. "
-                f"Is LM Studio running with a model loaded?"
+                f"Is LM Studio running?"
             )
             r.provider_mode = "unavailable"
             r.provider_readiness_reason = "provider_unreachable"

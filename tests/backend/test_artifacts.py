@@ -15,6 +15,7 @@ from backend.app.artifacts import (
     get_logs_dir,
     get_provider_diagnostics_path,
     get_provider_mode_path,
+    get_provider_model_management_path,
     get_provider_probe_path,
     get_provider_request_counts_path,
     get_provider_trace_path,
@@ -106,6 +107,10 @@ class TestPathHelpers:
     def test_get_provider_probe_path(self, tmp_path):
         p = get_provider_probe_path(str(tmp_path), "run_abc")
         assert p.name == "provider_probe.json"
+
+    def test_get_provider_model_management_path(self, tmp_path):
+        p = get_provider_model_management_path(str(tmp_path), "run_abc")
+        assert p.name == "provider_model_management.json"
         assert "diagnostics" in str(p)
 
     def test_get_provider_trace_path(self, tmp_path):

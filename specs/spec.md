@@ -126,11 +126,13 @@ The operator must be able to tell whether proposal generation for a run is:
 Provider readiness and provider capability truth are distinct and must be reported distinctly. At minimum, operator-visible status, run summaries, and persisted artifacts must distinguish:
 
 - provider unreachable or unavailable
-- model unavailable or not loaded
+- model unavailable, load failed, or not compatible with requested load context
 - provider reachable but `json_schema` unsupported
 - provider reachable but no compatible structured-output mode available
 
 These states must not be collapsed into one generic "provider unavailable" label.
+
+For LM Studio runs, the app must manage model readiness itself: it should inspect the configured model, reuse a compatible loaded instance when possible, and otherwise load the configured model with the required load-time context before extraction begins. Structured output is enabled per extraction request through the LM Studio OpenAI-compatible request contract rather than through a separate operator toggle.
 
 When separate text and vision model paths are configured, structured-output capability truth must remain separable for those paths. A text model reaching one structured-output mode must not imply that the configured vision path supports the same mode.
 
@@ -1360,6 +1362,8 @@ then the run fails during readiness with an actionable provider error and does n
 Given provider checks run during readiness or early extraction,
 when the system reports status in the UI, run summary, and persisted artifacts,
 then it distinguishes at minimum provider unreachable or unavailable, model unavailable or not loaded, `json_schema` unsupported with `json_object` fallback used, and prompt-only JSON fallback used when `json_schema/json_object` are unavailable, and does not collapse those outcomes into one generic "provider unavailable" label.
+
+For LM Studio runs, persisted artifacts must also record whether the app reused an already-loaded model or requested a load, the requested load context, and the load configuration actually applied when LM Studio returns it.
 
 When a live provider rejects guided output because of backend regex or grammar incompatibility for the active request shape, the run artifacts must preserve that reason explicitly rather than flattening it into a generic malformed-JSON or provider-unreachable label.
 

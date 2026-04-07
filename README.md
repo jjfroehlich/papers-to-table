@@ -16,7 +16,7 @@ A local-first paper-to-table review app. Ingest scientific PDFs and a structured
 
 - Python 3.11 or later
 - Node.js 18 or later and npm
-- [LM Studio](https://lmstudio.ai/) running locally with a model loaded (required for actual proposal generation)
+- [LM Studio](https://lmstudio.ai/) running locally as a server (required for actual proposal generation)
 
 ---
 
@@ -167,8 +167,11 @@ The canonical provider token is `lm_studio`. Tokens such as `lmstudio`, `LMStudi
 | `eval_mode` | If `true`, the app stages a masked working copy for leakage-safe eval runs |
 | `provider.token` | Must be `"lm_studio"` |
 | `provider.base_url` | LM Studio API base URL (default: `http://localhost:1234`) |
-| `provider.text_model.model_id` | ID of the text model loaded in LM Studio |
+| `provider.text_model.model_id` | ID of the text model the app should ensure is loaded in LM Studio |
+| `provider.text_model.working_context_budget` | App-side context budget used for retrieval and prompt planning |
+| `provider.text_model.load_context_length` | Optional LM Studio load-time context length; if omitted, the app derives it from `working_context_budget` |
 | `provider.vision_model.model_id` | ID of the vision model (optional) |
+| `provider.vision_model.load_context_length` | Optional LM Studio load-time context length for the vision model |
 | `prompt.bundle` | Optional built-in prompt bundle name (`default` when omitted) |
 | `prompt.bundle_path` | Optional explicit prompt bundle path (takes precedence over `prompt.bundle`) |
 | `figure_review.enabled` | Enables text-guided figure review as supplemental evidence (global, not schema-per-column) |
@@ -182,6 +185,15 @@ Prompt bundle selection precedence is:
 1. `prompt.bundle_path` when provided
 2. otherwise `prompt.bundle`
 3. otherwise built-in `default`
+
+LM Studio model management is app-owned:
+
+- the app checks whether the configured model is already loaded with sufficient context
+- it reuses a compatible loaded instance when possible
+- otherwise it loads the model through LM Studio before extraction begins
+- it records load/reuse behavior and echoed LM Studio load config in run artifacts
+
+Structured output does not require a separate LM Studio toggle in the config. The app enables it per request by sending `response_format` to `/v1/chat/completions`, probes whether the configured model/runtime supports `json_schema`, and falls back honestly when LM Studio only supports weaker modes.
 
 ### Schema-first extraction guidance
 
@@ -418,7 +430,7 @@ The exported XLSX always contains all rows and columns from the source workbook,
 
 ## Provider requirements
 
-LM Studio must be running and have a model loaded before starting a run. The app checks reachability at run start and fails early with a clear error if LM Studio is unreachable.
+LM Studio must be running before starting a run. The app checks reachability at run start, ensures the configured model is loaded with the required load context, and fails early with a clear error if LM Studio is unreachable or model loading fails.
 
 The canonical provider token is `lm_studio`. No other token is accepted.
 
@@ -426,7 +438,7 @@ Example model IDs (any compatible model may be used):
 - Text: `lmstudio-community/Meta-Llama-3.1-8B-Instruct-GGUF`
 - Vision: `lmstudio-community/llava-v1.6-mistral-7b-gguf` (optional)
 
-If the provider is unavailable at startup (or the configured model IDs are not available), readiness fails and the run ends in `failed` with an explicit startup error.
+If the provider is unavailable at startup, the configured model IDs do not exist, or LM Studio cannot load the requested model/context combination, readiness fails and the run ends in `failed` with an explicit startup error.
 
 Structured output behavior is negotiated per provider-model path:
 - Preferred: `json_schema`
