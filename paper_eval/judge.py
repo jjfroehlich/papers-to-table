@@ -138,6 +138,7 @@ class LMStudioTextJudge:
         self._judge_config = judge_config
 
     def judge(self, judge_request: JudgeRequest) -> JudgeResponse:
+        self._ensure_model_loaded(self._judge_config.model_id)
         endpoint = (self._judge_config.api_base or DEFAULT_LM_STUDIO_API_BASE).rstrip("/") + "/chat/completions"
         payload = {
             "model": self._judge_config.model_id,
@@ -203,6 +204,80 @@ class LMStudioTextJudge:
                 "usage": response_payload.get("usage", {}),
             },
         )
+
+    def _ensure_model_loaded(self, model_id: str) -> None:
+        if self._is_model_loaded(model_id):
+            return
+        self._load_model(model_id)
+        if not self._is_model_loaded(model_id):
+            raise EvaluationError(
+                f"LM Studio reported a successful load request for judge model '{model_id}', but the model is still not listed at the OpenAI-compatible models endpoint."
+            )
+
+    def _is_model_loaded(self, model_id: str) -> bool:
+        endpoint = (self._judge_config.api_base or DEFAULT_LM_STUDIO_API_BASE).rstrip("/") + "/models"
+        http_request = request.Request(endpoint, headers=self._build_headers(), method="GET")
+        try:
+            with request.urlopen(http_request) as response:
+                response_payload = json.loads(response.read().decode("utf-8"))
+        except error.HTTPError as exc:  # pragma: no cover - exercised by integration environments
+            detail = exc.read().decode("utf-8", errors="replace")
+            raise EvaluationError(
+                f"LM Studio judge request failed during model probe with HTTP {exc.code}: {detail}"
+            ) from exc
+        except error.URLError as exc:  # pragma: no cover - exercised by integration environments
+            raise EvaluationError(
+                f"LM Studio judge request failed during model probe at {endpoint}: {exc.reason}"
+            ) from exc
+
+        models = response_payload.get("data")
+        if not isinstance(models, list):
+            return False
+        for entry in models:
+            if not isinstance(entry, dict):
+                continue
+            if str(entry.get("id") or "").strip() == model_id:
+                return True
+        return False
+
+    def _load_model(self, model_id: str) -> None:
+        endpoint = self._rest_api_base().rstrip("/") + "/api/v1/models/load"
+        payload = {
+            "model": model_id,
+            "echo_load_config": True,
+        }
+        http_request = request.Request(
+            endpoint,
+            data=json.dumps(payload).encode("utf-8"),
+            headers=self._build_headers(content_type=True),
+            method="POST",
+        )
+        try:
+            with request.urlopen(http_request) as response:
+                response.read()
+        except error.HTTPError as exc:  # pragma: no cover - exercised by integration environments
+            detail = exc.read().decode("utf-8", errors="replace")
+            raise EvaluationError(
+                f"LM Studio judge request failed during model load with HTTP {exc.code}: {detail}"
+            ) from exc
+        except error.URLError as exc:  # pragma: no cover - exercised by integration environments
+            raise EvaluationError(
+                f"LM Studio judge request failed during model load at {endpoint}: {exc.reason}"
+            ) from exc
+
+    def _rest_api_base(self) -> str:
+        api_base = (self._judge_config.api_base or DEFAULT_LM_STUDIO_API_BASE).rstrip("/")
+        if api_base.endswith("/v1"):
+            return api_base[: -len("/v1")]
+        return api_base
+
+    def _build_headers(self, *, content_type: bool = False) -> dict[str, str]:
+        headers: dict[str, str] = {}
+        if content_type:
+            headers["Content-Type"] = "application/json"
+        if self._judge_config.api_key:
+            headers["Authorization"] = f"Bearer {self._judge_config.api_key}"
+        return headers
 
 # Backward-compatible alias for existing imports; prefer LMStudioTextJudge in new code and remove this alias if the old name is no longer needed.
 OpenAICompatibleTextJudge = LMStudioTextJudge

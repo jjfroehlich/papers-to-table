@@ -46,21 +46,24 @@ def _load_xlsx_gold(path: Path, *, sheet_name: str | None) -> GoldDataset:
         ) from exc
 
     workbook = load_workbook(path, read_only=True, data_only=True)
-    selected_sheet_name = sheet_name or workbook.sheetnames[0]
-    if selected_sheet_name not in workbook.sheetnames:
-        raise ContractError(
-            f"Worksheet '{selected_sheet_name}' was not found in {path.name}. "
-            f"Available sheets: {', '.join(workbook.sheetnames)}"
-        )
+    try:
+        selected_sheet_name = sheet_name or workbook.sheetnames[0]
+        if selected_sheet_name not in workbook.sheetnames:
+            raise ContractError(
+                f"Worksheet '{selected_sheet_name}' was not found in {path.name}. "
+                f"Available sheets: {', '.join(workbook.sheetnames)}"
+            )
 
-    worksheet = workbook[selected_sheet_name]
-    rows = list(worksheet.iter_rows(values_only=True))
-    if not rows:
-        raise ContractError(f"Gold worksheet '{selected_sheet_name}' is empty.")
-    fieldnames = [str(value).strip() if value is not None else "" for value in rows[0]]
-    data_rows = [dict(zip(fieldnames, values)) for values in rows[1:]]
-    cells = _rows_to_gold_cells(data_rows, fieldnames, sheet_name=selected_sheet_name)
-    return GoldDataset(source_path=path, sheet_name=selected_sheet_name, cells=cells)
+        worksheet = workbook[selected_sheet_name]
+        rows = list(worksheet.iter_rows(values_only=True))
+        if not rows:
+            raise ContractError(f"Gold worksheet '{selected_sheet_name}' is empty.")
+        fieldnames = [str(value).strip() if value is not None else "" for value in rows[0]]
+        data_rows = [dict(zip(fieldnames, values)) for values in rows[1:]]
+        cells = _rows_to_gold_cells(data_rows, fieldnames, sheet_name=selected_sheet_name)
+        return GoldDataset(source_path=path, sheet_name=selected_sheet_name, cells=cells)
+    finally:
+        workbook.close()
 
 
 def _rows_to_gold_cells(

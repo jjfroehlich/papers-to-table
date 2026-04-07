@@ -129,13 +129,16 @@ def _write_xlsx(path: Path, rows: list[dict[str, Any]]) -> None:
         raise ContractError("XLSX outputs require openpyxl; install requirements.txt before writing XLSX artifacts.") from exc
 
     workbook = Workbook()
-    worksheet = workbook.active
-    worksheet.title = "runs_comparison"
-    fieldnames = _fieldnames(rows)
-    worksheet.append(fieldnames)
-    for row in rows:
-        worksheet.append([_csv_value(row.get(field)) for field in fieldnames])
-    workbook.save(path)
+    try:
+        worksheet = workbook.active
+        worksheet.title = "runs_comparison"
+        fieldnames = _fieldnames(rows)
+        worksheet.append(fieldnames)
+        for row in rows:
+            worksheet.append([_csv_value(row.get(field)) for field in fieldnames])
+        workbook.save(path)
+    finally:
+        workbook.close()
 
 
 def _write_parquet(path: Path, rows: list[dict[str, Any]]) -> None:

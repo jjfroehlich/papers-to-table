@@ -94,6 +94,8 @@ class LMStudioJudgeAdapterTests(unittest.TestCase):
         def fake_urlopen(request_obj):
             import json
 
+            if request_obj.full_url.endswith("/models"):
+                return _FakeHTTPResponse({"data": [{"id": "configured-model"}]})
             captured_request["url"] = request_obj.full_url
             captured_request["headers"] = dict(request_obj.header_items())
             captured_request["payload"] = json.loads(request_obj.data.decode("utf-8"))
@@ -115,6 +117,54 @@ class LMStudioJudgeAdapterTests(unittest.TestCase):
         self.assertEqual(response.verdict, "correct")
         self.assertEqual(response.metadata["provider"], DEFAULT_JUDGE_PROVIDER)
         self.assertEqual(response.metadata["configured_model_id"], "configured-model")
+        self.assertEqual(response.metadata["resolved_model_id"], "resolved-runtime-model")
+
+    def test_lm_studio_adapter_loads_model_when_not_already_loaded(self) -> None:
+        judge_config = JudgeConfig(model_id="configured-model")
+        judge = LMStudioTextJudge(judge_config)
+        judge_request = build_judge_request(
+            judge_config=judge_config,
+            run_id="run-a",
+            row_id="row-1",
+            column_name="notes",
+            cell_id="cell-1",
+            gold_value="Gold answer",
+            proposed_value="Proposal answer",
+            field_description=None,
+            evidence_excerpt=None,
+        )
+        seen_urls: list[str] = []
+        model_probe_count = {"count": 0}
+        load_payload = {}
+
+        def fake_urlopen(request_obj):
+            import json
+
+            seen_urls.append(request_obj.full_url)
+            if request_obj.full_url.endswith("/v1/models"):
+                model_probe_count["count"] += 1
+                if model_probe_count["count"] == 1:
+                    return _FakeHTTPResponse({"data": []})
+                return _FakeHTTPResponse({"data": [{"id": "configured-model"}]})
+            if request_obj.full_url.endswith("/api/v1/models/load"):
+                load_payload.update(json.loads(request_obj.data.decode("utf-8")))
+                return _FakeHTTPResponse({"status": "loaded"})
+            if request_obj.full_url.endswith("/chat/completions"):
+                return _FakeHTTPResponse(
+                    {
+                        "model": "resolved-runtime-model",
+                        "choices": [{"message": {"content": '{"verdict":"correct","rationale_label":"semantic_match"}'}}],
+                        "usage": {"prompt_tokens": 10, "completion_tokens": 4, "total_tokens": 14},
+                    }
+                )
+            raise AssertionError(f"Unexpected URL {request_obj.full_url}")
+
+        with mock.patch("paper_eval.judge.request.urlopen", side_effect=fake_urlopen):
+            response = judge.judge(judge_request)
+
+        self.assertEqual(load_payload["model"], "configured-model")
+        self.assertTrue(any(url.endswith("/api/v1/models/load") for url in seen_urls))
+        self.assertTrue(any(url.endswith("/chat/completions") for url in seen_urls))
         self.assertEqual(response.metadata["resolved_model_id"], "resolved-runtime-model")
 
     def test_lm_studio_adapter_fails_truthfully_when_unavailable(self) -> None:

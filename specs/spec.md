@@ -1,573 +1,180 @@
-# Extract Structured Info from Papers Eval - spec.md
-
-## Status
-
-Initial product specification for a separate CLI-first evaluation repository.
+# Extract Structured Info from Papers Eval Specification
 
 ## Purpose
 
-This repository evaluates run artifact bundles produced by `extract-structured-info-from-papers` against a completed human-filled gold table or workbook.
+`extract-structured-info-from-papers-eval` is a CLI-first evaluator for run bundles produced by `extract-structured-info-from-papers`.
 
-The evaluator is intentionally separate from the production app. The main app is responsible for generating eval-ready runs. This repo is responsible for scoring those runs, surfacing diagnostics, and producing comparison tables that are useful for model, prompt, parser, and configuration benchmarking.
+It reads run artifacts as files, scores proposals against a human-filled gold table, and writes inspectable per-cell, per-run, and cross-run comparison artifacts.
 
-The evaluator must stay small, inspectable, reproducible, and loosely coupled to the main app. It must not depend on the main app frontend, backend runtime, or internal Python imports.
+## Product Surface
 
----
+The evaluator provides two operator workflows:
 
-## Product summary
+1. Evaluate one or more run bundles against a gold CSV or XLSX input.
+2. Rebuild comparison artifacts from previously written per-run summaries.
 
-The product is a command-line tool that:
+The evaluator is not a GUI product and does not run extraction itself.
 
-1. loads one run, many runs, or a directory of runs from the main app
-2. loads a human-filled gold workbook or table
-3. aligns run proposals to gold cells through a stable published artifact contract
-4. scores proposal correctness and evidence quality separately
-5. writes per-cell scored records, per-run summaries, and multi-run comparison tables
-6. makes cross-run comparison easy for models, prompts, parser settings, and other run parameters
+## Supported Inputs
 
-The evaluator is not a GUI product. Human-readable markdown output is optional. The primary outputs are structured files that can be inspected directly or loaded into notebooks, spreadsheets, or downstream analysis scripts.
+The evaluator accepts:
 
-For orchestration convenience, the CLI may optionally emit a small machine-readable completion payload on stdout. This stdout payload is additive and does not replace artifact-file outputs as the canonical contract.
+- one `--run` directory, repeated `--run` directories, or one `--runs-root`
+- one gold CSV or XLSX file
+- one optional schema JSON file
 
----
+### Run Bundle Contract
 
-## Goals
-
-- Evaluate one or many app runs against a completed human-filled gold table.
-- Keep the main headline score simple and comparable across runs.
-- Separate answer correctness from evidence quality.
-- Prefer deterministic scoring for structured fields.
-- Allow constrained LLM judging for text fields.
-- Treat retrieval-style signals as diagnostics, not as the main score.
-- Produce one row per run comparison artifacts suitable for benchmarking.
-- Preserve inspectability by writing explicit per-cell and per-run outputs.
-- Keep the evaluator usable without the main app codebase at runtime.
-- Treat README and operator docs as a first-class product surface for MVP operator clarity.
-
-## Non-goals
-
-- No GUI requirement.
-- No attempt to become a general benchmarking platform.
-- No deep runtime imports from the main app.
-- No heavyweight faithfulness or entailment framework in MVP.
-- No attempt to prove that gold-empty cells are truly absent from the paper.
-- No opaque single composite score that mixes correctness, evidence, and retrieval.
-
----
-
-## Product principles
-
-- Simplicity over benchmark-framework breadth.
-- Inspectable artifacts over hidden scoring state.
-- Stable contracts over convenient cross-repo imports.
-- Reproducibility over judge flexibility.
-- Comparative usefulness over exotic metrics.
-- Operator clarity over implicit repo knowledge.
-- Gold-present scoring by default, because incomplete gold is common.
-- Correctness and evidence quality must remain separate concepts.
-
----
-
-## Primary user workflows
-
-### Evaluate one run
-
-An operator points the evaluator at one run directory plus a gold workbook or table and receives:
-
-- per-cell scored records
-- per-run summary metrics
-- an optional human-readable summary
-
-### Evaluate many runs
-
-An operator points the evaluator at a runs root or an explicit list of run directories plus a gold workbook or table and receives:
-
-- one scored output directory per run
-- a combined comparison table with one row per run
-- consistent run metadata columns for side-by-side analysis
-
-### Compare runs across settings
-
-An operator uses the comparison artifact to compare runs across:
-
-- text model
-- vision model if present
-- parser identity or version
-- prompt version or prompt hash
-- schema hash or version
-- config hash
-- run mode and other available run parameters
-
----
-
-## Scope
-
-### In scope
-
-- Loading run artifact bundles from the main app.
-- Loading gold CSV or XLSX data.
-- Scoring one run or many runs.
-- Producing per-cell correctness and evidence outputs.
-- Producing per-run summary JSON and CSV outputs.
-- Producing multi-run comparison CSV, XLSX, and Parquet outputs.
-- Optional constrained LLM judging for text fields.
-
-### Out of scope for MVP
-
-- Editing the gold table.
-- Running extraction.
-- Re-ranking retrieval.
-- Re-parsing PDFs.
-- Online dashboards.
-- Human annotation tooling.
-- Full evidence entailment or claim-verification systems.
-
----
-
-## Input contract
-
-The evaluator consumes:
-
-- one run directory, or
-- a directory containing multiple run directories, or
-- an explicit list of run directories,
-
-plus:
-
-- one gold workbook or table,
-- and optionally one schema file or schema metadata file when the run artifacts do not already contain enough field metadata.
-
-### Gold input policy
-
-The gold table may be incomplete.
-
-- Gold-present cells are scored by default.
-- Gold-empty cells are treated as unknown and unscored by default.
-- Values proposed for gold-empty cells are reported as diagnostics only by default.
-
-### Stable run artifact contract expected from the main app
-
-The evaluator reads run artifacts as data files, not through Python imports.
-
-The recommended eval-ready run bundle contains:
+Each run bundle must contain:
 
 - `run.json`
+- `proposals/proposals.jsonl`
+
+The evaluator may also load these files when present:
+
 - `config.snapshot.json`
 - `inputs/input_summary.json`
-- `proposals/proposals.jsonl`
 - `summaries/run_summary.json`
-- optional evidence artifacts if proposal records do not already include enough evidence data
+- sidecar evidence files
+- persisted page-text artifacts
 
-### Required proposal-level fields for scoring
+Each proposal record must publish these stable join fields:
 
-Each scored proposal record must expose, directly or via a stable linked artifact contract:
-
-- `run_id`
 - `row_id`
 - `column_name`
 - `cell_id`
-- a published stable row or cell join contract that a separate repo can use without importing main-app code
-- `pdf_id`
-- `proposed_value`
-- `state`
-- `support`
-- `field_type` when known
-- `allowed_values` when relevant
-- `numeric_value_form` when relevant
-- evidence items, or a stable link to them
 
-### Required reproducibility and comparison metadata
+The evaluator scores against published stable identifiers and does not infer hidden main-app join logic.
 
-Each run should expose, when available:
+### Eval-Mode Provenance
 
-- `run_id`
-- `mode` or `run_mode`
-- `provider_token`
-- `provider_text_model_id` or equivalent text model id
-- `provider_vision_model_id` or equivalent vision model id
-- `parser_identity`
-- `parser_version`
-- `prompt_version` when available
-- `prompt_hash` as the fallback prompt identity
-- `schema_hash` or `schema_version`
-- `config_hash`
-- any other key run parameters safe to project into a flat comparison row
+When a run is marked as eval mode, the evaluator requires reproducibility metadata for the gold and masked tables, including hashes and snapshot paths.
 
-### Eval-mode provenance expected from the main app
+### Gold Input Contract
 
-For eval-mode runs, the stable contract should also carry:
+Gold inputs may be CSV or XLSX.
 
-- gold table source reference if available
-- gold table content hash
-- gold table snapshot path in the run bundle when available
-- masked working table snapshot path
-- masked working table content hash
+Supported gold layouts are:
 
-The evaluator should consume these fields if present, but must not require the main app runtime in order to interpret them.
+- wide format with `row_id` and one column per field
+- long format with `row_id`, `column_name`, and `gold_value`
 
-### Contract publication requirement
+For XLSX inputs, one worksheet is scored per invocation. If no worksheet is selected, the first worksheet in workbook order is used.
 
-This repo must not reverse-engineer hidden ID logic from the main app.
+Gold inputs must provide unique `row_id + column_name` pairs.
 
-For decoupled scoring, the main app must publish an explicit stable eval join contract that a separate repo can use directly.
+## Scoring Behavior
 
-The normative primary join fields are:
+### Gold-Present Policy
 
-- `row_id` or an equivalent stable published row key
-- `column_name`
-- `cell_id`
+Headline scoring includes only gold-present cells by default.
 
-`row_index` may be included for fallback diagnostics, debugging, or contract migration support, but it is not the normative primary scoring join path.
+Gold-empty cells are not part of the headline score. Proposals on gold-empty cells are reported as diagnostics.
 
-The evaluator should consume stable identifiers emitted by the main app rather than re-implementing hidden row-ID logic.
+### Field-Type Scoring
 
-Acceptable published join contracts include:
+The evaluator resolves a field type per cell and applies one of these scoring paths:
 
-- explicit `cell_id` plus `column_name` when needed for auditing context
-- explicit `row_id` or stable row key plus `column_name`
-- both `row_id` and `cell_id` on proposal records, with `column_name` preserved as the human-readable field key
+- boolean: deterministic normalization and exact comparison
+- categorical: deterministic normalization with alias and `allowed_values` support
+- numeric: deterministic normalization with global tolerance defaults and optional per-column overrides
+- text: judge-backed scoring by default, with deterministic override when explicitly configured
 
-If none of those are present, the evaluator may fail fast with a clear contract error rather than silently scoring against an inferred join.
+### Join Handling
 
-### XLSX worksheet policy
+For gold-present cells, the evaluator distinguishes at least these join outcomes:
 
-For XLSX gold inputs, MVP scoring is single-sheet per evaluation invocation.
+- matched proposal
+- missing proposal
+- duplicate proposals for one join key
+- `cell_id` mismatch between gold and proposal
 
-- The evaluator scores exactly one selected worksheet per invocation.
-- Multi-sheet scoring is deferred.
-- The CLI should support explicit worksheet selection when needed.
-- If no worksheet is specified, the evaluator must use one clear default worksheet policy, documented as the first worksheet in workbook order.
+Proposals with no matching gold cell are written as diagnostics and do not count as scored cells.
 
-MVP must avoid ambiguous multi-sheet behavior.
+## Evidence Behavior
 
----
+Evidence quality is reported separately from correctness.
 
-## Headline scoring policy
+The evaluator validates lightweight evidence anchors based on page and quote text.
 
-### Core rule
+Evidence outcomes distinguish at least these cases:
 
-The evaluator scores only gold-present cells by default.
+- `anchor_valid`
+- `evidence_present_but_unvalidated`
+- `anchor_invalid`
+- `missing_evidence`
 
-This means the headline score does not penalize a run for proposing a value where the gold cell is empty, because a gold-empty cell does not prove that the paper does not contain a valid answer.
+Evidence metrics do not replace correctness metrics.
 
-### Correctness and evidence are separate
+## Outputs
 
-The evaluator reports answer correctness and evidence quality separately.
+Each evaluated run writes:
 
-It must not collapse them into one opaque blended score.
+- `scored_cells.jsonl`
+- `scored_cells.csv`
+- `run_summary.json`
+- `run_summary.csv`
+- `judge_records.jsonl` when judge-backed text scoring runs
 
-### Field-type-aware scoring
+Batch evaluation and `compare` write:
 
-The evaluator uses field-type-aware scoring:
+- `runs_comparison.csv`
+- `runs_comparison.xlsx`
+- `runs_comparison.parquet`
 
-- boolean: deterministic
-- categorical: deterministic
-- numeric: deterministic
-- text: constrained LLM judge by default, with field-level deterministic override allowed for highly standardized text columns and deterministic text diagnostics allowed alongside it
+The CLI may also emit an optional JSON completion payload on stdout. File artifacts remain the canonical contract.
 
-### Retrieval-style metrics are diagnostic only
+## Reported Metrics
 
-If retrieval-style metrics are included, they explain likely failure modes. They do not define the main score.
+The evaluator reports headline correctness metrics, evidence metrics, and diagnostics separately.
 
----
+Headline correctness metrics include:
 
-## Core metrics
-
-### Headline correctness metrics
-
-- `structured_accuracy`: accuracy over scored structured cells, meaning boolean, categorical, and numeric cells with gold-present values
+- `structured_accuracy`
 - `boolean_accuracy`
 - `categorical_accuracy`
 - `numeric_accuracy`
-- `text_accuracy`: accuracy over scored text cells under the configured text scoring policy, using judge-backed scoring by default and deterministic override where explicitly configured
-- `proposal_coverage_on_gold_present`: fraction of gold-present cells for which the run produced a scoreable proposal record
+- `text_accuracy`
+- `proposal_coverage_on_gold_present`
 
-### Evidence metrics
+Evidence metrics include:
 
-- `anchor_valid_rate`: fraction of scored cells whose selected proposal has at least one fully validated usable evidence anchor
-- `correct_and_anchored_rate`: fraction of scored cells that are both correct and anchor-valid
-- optional `structured_supported_by_evidence_rate`: a simple structured-field support proxy, not a heavyweight faithfulness score
+- `anchor_valid_rate`
+- `correct_and_anchored_rate`
 
-### Diagnostic metrics
+Diagnostics include counts such as:
 
 - `gold_present_cell_count`
 - `gold_empty_cell_count`
 - `filled_on_gold_empty_count`
-- optional `gold_in_document_rate`
-- optional later `gold_in_retrieved_context_rate`
-
-Diagnostic metrics must be reported, but they must not be folded into the headline score.
-
----
-
-## Field-type-aware scoring rules
-
-### Boolean
-
-Boolean scoring is deterministic after normalization.
-
-Normalization should handle common equivalents such as:
-
-- `true`, `yes`, `present`, `positive`, `1`
-- `false`, `no`, `absent`, `negative`, `0`
-
-After normalization, boolean scoring is exact-match binary correctness.
-
-### Categorical
-
-Categorical scoring is deterministic after normalization.
-
-Normalization should support:
-
-- case folding
-- whitespace normalization
-- punctuation simplification where appropriate
-- `allowed_values`
-- alias mapping when provided by schema metadata or evaluator config
-
-The headline outcome is binary correct or incorrect against the normalized gold category.
-
-### Numeric
-
-Numeric scoring is deterministic.
-
-Normalization should support:
-
-- exact values
-- ranges
-- approximate values
-- unit normalization when feasible and explicitly configured
-
-Numeric tolerance policy for MVP is:
-
-- global default tolerances exist for simple setup
-- per-column tolerance settings may override the global defaults
-- per-column settings take precedence when present
-- numeric columns are not required to define their own tolerance settings
-
-The MVP headline score is binary:
-
-- correct within the configured tolerance or overlap rule
-- otherwise incorrect
-
-The evaluator may also report diagnostics such as absolute error, relative error, or interval overlap, but those are not part of the MVP headline score.
-
-### Text
-
-Text fields use a constrained LLM judge by default in MVP.
-
-The judge should determine whether the proposal and the gold answer are materially equivalent for the field definition, not whether the strings are lexically identical.
-
-The default local-first judge path in MVP is LM Studio through its OpenAI-compatible local API.
-
-- The default configured judge model for MVP is `qwen/qwen3.5-35b-a3b`.
-- This LM Studio plus Qwen path is the default provider and model for MVP, not a claim that it is the only judge option the repo may ever support.
-- The evaluator should remain local-first by default for judge-backed scoring.
-
-Highly standardized text columns may opt into deterministic scoring instead when configured at the field or column level.
-
-Deterministic text diagnostics may still be reported, for example normalized exact match or token-overlap metrics, but they are not the main correctness path for free-text fields.
-
----
-
-## LLM judge policy
-
-The evaluator uses an LLM judge primarily for text fields in MVP, with deterministic per-column override allowed for highly standardized text fields.
-
-Judge guardrails for MVP:
-
-- fixed judge model per evaluation run
-- default provider is LM Studio via an OpenAI-compatible local API
-- default configured judge model for MVP is `qwen/qwen3.5-35b-a3b`
-- temperature `0`
-- strict structured output with a JSON-schema-shaped response contract
-- bounded prompt inputs and bounded outputs
-- no long free-form or hidden reasoning stored in core artifacts
-- judge metadata persisted in outputs
-- judge use limited to text fields by default, not the entire scoring stack
-- deterministic text override must remain field-scoped or column-scoped, not global by accident
-- deterministic structured scoring remains the default for boolean, categorical, and numeric fields, with the judge reserved primarily for text fields and any explicitly configured residual cases
-
-Each judge-scored record should persist enough metadata for reproducibility, including at minimum:
-
-- judge provider
-- configured judge model id
-- resolved runtime-served judge model id
-- judge prompt version or hash
-- judge temperature
-- judge decision label or verdict
-- input hash
-- any normalized intermediate values the evaluator uses as part of the final score
-
-The evaluator must persist the actual resolved runtime model identity used for the judge call. It must not assume the configured model string is always identical to the runtime-served identifier returned by LM Studio or any future provider.
-
----
-
-## Evidence policy
-
-Evidence quality is evaluated separately from answer correctness.
-
-### MVP evidence contract
-
-The minimal usable evidence anchor contract is:
-
-- `page`
-- `quote_text`
-
-When available, the evaluator may use additional fields, but MVP evidence scoring should not depend on a heavyweight entailment system.
-
-### MVP evidence checks
-
-At minimum, the evaluator should validate whether anchored evidence exists and is usable.
-
-`anchor_valid` in MVP means:
-
-- a page reference is present and valid when page bounds are known
-- `quote_text` is non-empty
-- when persisted parsed page text or equivalent text evidence is available, the quote is locatable on the cited page or in the cited text source
-- the evidence item is attached to the scored proposal or can be resolved through a stable linked artifact
-
-If quote text is present but cannot be validated against persisted text evidence when such text is available, the evidence should not count as fully `anchor_valid`.
-
-The evaluator may record a secondary diagnostic state such as `evidence_present_but_unvalidated` to distinguish:
-
-- missing evidence
-- present but unvalidated evidence
-- fully anchor-valid evidence
-
-The evaluator may later add a simple structured-field support proxy, but that remains secondary to the anchor-valid check.
-
----
-
-## Output artifacts
-
-The evaluator writes explicit outputs.
-
-### Per-cell outputs
-
-Per-cell scored records should include at minimum:
-
-- run id
-- row locator
-- column name
-- cell id when available
-- gold value
-- proposed value
-- field type
-- correctness outcome
-- evidence outcome
-- judge outcome when used
-- diagnostic flags
-
-These records should be written in an inspectable machine-readable format such as JSONL or CSV, and may be written in both.
-
-Per-cell scored records should also include the resolved join fields used for scoring, including stable `row_id` and `cell_id` when present, with `row_index` treated only as optional fallback or debug context.
-
-### Per-run outputs
-
-For each run, the evaluator should write:
-
-- `run_summary.json`
-- `run_summary.csv`
-
-### Batch outputs
-
-For multi-run evaluation, the evaluator should write a comparison table with one row per run in:
-
-- CSV
-- XLSX
-- Parquet
-
-The batch summary row should include run metadata columns such as:
-
-- `run_id`
-- `run_mode`
-- `model_id` or text model id
-- `vision_model_id` if present
-- `parser_identity` or parser version
-- `prompt_version` or prompt hash
-- `schema_hash` or schema version
-- `config_hash`
-- key run parameters when available
-- headline correctness metrics
-- evidence metrics
-- diagnostic counts
-
-Human-readable markdown summary is optional, not required for MVP.
-
----
-
-## Documentation and operator clarity expectations
-
-README and operator-facing docs are part of the MVP surface, not an afterthought.
-
-They should clearly explain:
-
-- what this eval repo does
-- what input artifacts it expects from the main app
-- how to evaluate one run
-- how to evaluate many runs
-- what the headline metrics mean
-- which metrics are diagnostic versus headline
-- how LM Studio judge configuration works
-- what the default judge model is in MVP
-- what limitations remain in the current version
-
-Docs should be explicit enough that an operator can run the evaluator and interpret outputs without reading implementation code.
-
----
-
-## CLI-first product surface
-
-The evaluator is CLI-first.
-
-The MVP should support:
-
-- scoring one run
-- scoring many runs under a runs root
-- scoring an explicit list of runs
-- emitting outputs to a chosen output directory
-
-It should not require a server or GUI.
-
----
-
-## Relationship to the main app
-
-The main app is responsible for:
-
-- generating eval-ready run bundles
-- masking target cells in eval mode
-- persisting stable ids and run metadata
-- persisting proposal and evidence artifacts
-
-This eval repo is responsible for:
-
-- loading those artifacts as data
-- scoring against the gold table
-- producing per-cell and per-run outputs
-- producing cross-run comparison tables
-
-This split keeps the production app lightweight and keeps benchmarking optional.
-
----
-
-## Acceptance criteria for MVP
-
-The MVP is acceptable when:
-
-- one run can be scored from the CLI without importing the main app codebase
-- many runs can be scored in one batch from a runs root or explicit list
-- gold XLSX inputs are evaluated one worksheet at a time with explicit or clearly defaulted worksheet selection
-- only gold-present cells are included in headline scoring by default
-- correctness and evidence metrics are reported separately
-- boolean, categorical, and numeric scoring are deterministic
-- numeric tolerance resolution supports global defaults with per-column overrides
-- text scoring uses a constrained reproducible LLM judge by default, with deterministic field-level override available for standardized text columns
-- the default local-first text-judge path is LM Studio via an OpenAI-compatible local API with default configured model `qwen/qwen3.5-35b-a3b`
-- judge-scored outputs persist provider, configured judge model, resolved runtime judge model, prompt version or hash, verdict, and input hash
-- anchor-valid scoring distinguishes fully validated anchors from evidence that is merely present but not validated when persisted text is available
-- per-cell scored outputs and per-run summaries are inspectable on disk
-- batch comparison outputs contain one row per run with useful metadata for benchmarking
-- README and operator docs clearly explain inputs, one-run and many-run workflows, headline versus diagnostic metrics, LM Studio judge configuration, the default judge model, and current limitations
-- contract failures are explicit rather than silently guessed
+- `missing_proposal_count`
+- `duplicate_proposal_join_count`
+- `cell_id_mismatch_count`
+- `unmatched_proposal_count`
+- `join_failure_count`
+- `evidence_present_but_unvalidated_count`
+
+## Non-Goals
+
+This evaluator does not:
+
+- run extraction
+- edit gold tables
+- provide a GUI
+- import main-app Python code at runtime
+- fold correctness and evidence into one opaque score
+- score multiple XLSX worksheets in one invocation
+
+## Acceptance Criteria
+
+The product is acceptable when:
+
+1. One run or many runs can be scored from the CLI against CSV or XLSX gold inputs.
+2. The evaluator fails explicitly when required artifact files or stable join fields are missing.
+3. Headline scoring uses only gold-present cells by default.
+4. Boolean, categorical, and numeric scoring remain deterministic.
+5. Text fields use a constrained judge by default, with explicit deterministic override support.
+6. Correctness metrics and evidence metrics are reported separately.
+7. Per-run and batch artifacts are written with stable filenames.
+8. The comparison artifact contains one row per run with run metadata, metrics, and diagnostics.
+9. Optional JSON stdout mode supplements, but does not replace, file outputs.

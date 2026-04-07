@@ -23,11 +23,13 @@ _EVAL_MODE = "eval"
 _EVAL_PROVENANCE_TEXT_FIELDS = {
     "gold_source_ref": (
         ("gold_source_ref",),
+        ("gold_table_source_reference",),
         ("gold_table_source_ref",),
         ("eval", "gold_source_ref"),
         ("eval", "gold_table_source_ref"),
         ("provenance", "gold_source_ref"),
         ("provenance", "gold_table_source_ref"),
+        ("eval_artifacts", "gold_table", "source_reference"),
     ),
     "gold_table_hash": (
         ("gold_table_hash",),
@@ -37,6 +39,7 @@ _EVAL_PROVENANCE_TEXT_FIELDS = {
         ("eval", "gold_table_content_hash"),
         ("provenance", "gold_table_hash"),
         ("provenance", "gold_table_content_hash"),
+        ("eval_artifacts", "gold_table", "content_hash"),
     ),
     "gold_table_snapshot_path": (
         ("gold_table_snapshot_path",),
@@ -45,6 +48,7 @@ _EVAL_PROVENANCE_TEXT_FIELDS = {
         ("eval", "gold_snapshot_path"),
         ("provenance", "gold_table_snapshot_path"),
         ("provenance", "gold_snapshot_path"),
+        ("eval_artifacts", "gold_table", "snapshot_path"),
     ),
     "masked_table_hash": (
         ("masked_table_hash",),
@@ -54,15 +58,20 @@ _EVAL_PROVENANCE_TEXT_FIELDS = {
         ("eval", "masked_working_table_hash"),
         ("provenance", "masked_table_hash"),
         ("provenance", "masked_working_table_hash"),
+        ("eval_artifacts", "masked_working_table", "content_hash"),
     ),
     "masked_table_snapshot_path": (
         ("masked_table_snapshot_path",),
+        ("masked_working_table_path",),
         ("masked_working_table_snapshot_path",),
         ("masked_snapshot_path",),
         ("eval", "masked_table_snapshot_path"),
+        ("eval", "masked_working_table_path"),
         ("eval", "masked_working_table_snapshot_path"),
         ("provenance", "masked_table_snapshot_path"),
+        ("provenance", "masked_working_table_path"),
         ("provenance", "masked_working_table_snapshot_path"),
+        ("eval_artifacts", "masked_working_table", "path"),
     ),
 }
 _REQUIRED_EVAL_PROVENANCE_FIELDS = (

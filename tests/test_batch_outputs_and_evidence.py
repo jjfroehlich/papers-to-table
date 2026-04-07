@@ -194,10 +194,13 @@ class BatchEvaluationTests(unittest.TestCase):
             self.assertEqual(row_b["evidence_present_but_unvalidated_count"], "1")
 
             workbook = load_workbook(xlsx_path, read_only=True, data_only=True)
-            worksheet = workbook["runs_comparison"]
-            workbook_rows = list(worksheet.iter_rows(values_only=True))
-            self.assertEqual(len(workbook_rows), 3)
-            self.assertIn("run_id", workbook_rows[0])
+            try:
+                worksheet = workbook["runs_comparison"]
+                workbook_rows = list(worksheet.iter_rows(values_only=True))
+                self.assertEqual(len(workbook_rows), 3)
+                self.assertIn("run_id", workbook_rows[0])
+            finally:
+                workbook.close()
 
             parquet_rows = pq.read_table(parquet_path).to_pylist()
             self.assertEqual(len(parquet_rows), 2)

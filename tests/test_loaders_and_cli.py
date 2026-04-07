@@ -60,6 +60,59 @@ class LoaderAndCliTests(unittest.TestCase):
             with self.assertRaisesRegex(ContractError, "references missing provenance artifact 'masked_table_snapshot_path'"):
                 load_run(run_dir)
 
+    def test_run_loader_accepts_main_app_eval_artifacts_shape(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_dir = Path(temp_dir) / "run-a"
+            (run_dir / "proposals").mkdir(parents=True)
+            (run_dir / "inputs").mkdir(parents=True)
+            (run_dir / "summaries").mkdir(parents=True)
+            (run_dir / "inputs" / "gold_table.xlsx").write_text("gold", encoding="utf-8")
+            (run_dir / "inputs" / "masked_working_table.xlsx").write_text("masked", encoding="utf-8")
+            run_payload = {
+                "run_id": "run-a",
+                "run_mode": "eval",
+                "provider_text_model_id": "text-model-1",
+                "prompt_hash": "prompt-hash",
+                "schema_hash": "schema-hash",
+                "config_hash": "config-hash",
+                "parser_identity": "docling",
+                "eval_artifacts": {
+                    "gold_table": {
+                        "source_reference": "D:/tables/gold.xlsx",
+                        "content_hash": "gold-hash",
+                        "snapshot_path": "inputs/gold_table.xlsx",
+                    },
+                    "masked_working_table": {
+                        "path": "inputs/masked_working_table.xlsx",
+                        "content_hash": "masked-hash",
+                    },
+                },
+            }
+            (run_dir / "run.json").write_text(json.dumps(run_payload), encoding="utf-8")
+            (run_dir / "proposals" / "proposals.jsonl").write_text(
+                json.dumps(
+                    {
+                        "run_id": "run-a",
+                        "row_id": "row-1",
+                        "column_name": "notes",
+                        "cell_id": "cell-1",
+                        "proposed_value": "Some value",
+                        "field_type": "text",
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            loaded = load_run(run_dir)
+
+            self.assertEqual(loaded.metadata.run_mode, "eval")
+            self.assertEqual(loaded.metadata.gold_source_ref, "D:/tables/gold.xlsx")
+            self.assertEqual(loaded.metadata.gold_table_hash, "gold-hash")
+            self.assertEqual(loaded.metadata.gold_table_snapshot_path, "inputs/gold_table.xlsx")
+            self.assertEqual(loaded.metadata.masked_table_hash, "masked-hash")
+            self.assertEqual(loaded.metadata.masked_table_snapshot_path, "inputs/masked_working_table.xlsx")
+
     def test_run_loader_invalid_json_has_explicit_message(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             run_dir = Path(temp_dir) / "run-a"
