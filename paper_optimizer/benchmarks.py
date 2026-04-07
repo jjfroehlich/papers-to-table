@@ -12,6 +12,12 @@ class BenchmarkError(ValueError):
 class BenchmarkManifest:
     benchmark_id: str
     expected_items: int | None
+    table_path: str | None
+    schema_path: str | None
+    pdf_dir: str | None
+    gold_path: str | None
+    gold_sheet: str | None
+    eval_schema_path: str | None
     main_args: list[str]
     eval_args: list[str]
 
@@ -34,6 +40,12 @@ def load_benchmarks(config: dict[str, Any]) -> Benchmarks:
         manifests[bench_id] = BenchmarkManifest(
             benchmark_id=bench_id,
             expected_items=manifest.get("expected_items"),
+            table_path=manifest.get("table_path"),
+            schema_path=manifest.get("schema_path"),
+            pdf_dir=manifest.get("pdf_dir"),
+            gold_path=manifest.get("gold_path"),
+            gold_sheet=manifest.get("gold_sheet"),
+            eval_schema_path=manifest.get("eval_schema_path"),
             main_args=list(manifest.get("main_args", [])),
             eval_args=list(manifest.get("eval_args", [])),
         )

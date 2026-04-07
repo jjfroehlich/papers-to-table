@@ -32,3 +32,5 @@ def test_single_candidate_pipeline(base_config: dict, tmp_path: Path) -> None:
     assert result.candidate_id == "cand_0001"
     assert "correctness" in result.primary_metrics
     assert result.main_app_run_ref.get("run_id") == "run_cand_0001"
+    assert result.candidate_status == "completed"
+    assert result.eval_output_ref.get("summary_path")

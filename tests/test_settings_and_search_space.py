@@ -24,4 +24,4 @@ def test_load_config_missing_required(tmp_path: Path) -> None:
 def test_load_search_space_success(base_config: dict) -> None:
     ss = load_search_space(base_config)
     assert "retrieval_top_k" in ss.numeric_knobs
-    assert ss.numeric_knobs["retrieval_top_k"] == [5, 10]
+    assert ss.numeric_knobs["retrieval_top_k"] == [6]

@@ -6,6 +6,8 @@ from .contracts import CandidateResult
 
 
 def _metric_value(result: CandidateResult, metric_name: str) -> float | None:
+    if metric_name == "runtime_seconds":
+        return result.runtime_seconds
     if metric_name in result.primary_metrics:
         return result.primary_metrics[metric_name]
     if metric_name in result.guardrail_metrics:

@@ -48,11 +48,14 @@ def materialize_candidate_bundle(base_dir: Path, candidate: Candidate, benchmark
     candidate_dir = base_dir / "candidates" / candidate.candidate_id
     candidate_dir.mkdir(parents=True, exist_ok=True)
 
+    candidate_hash_value = candidate_hash(candidate)
+
     manifest = {
-        "candidate": candidate.to_dict(),
+        **candidate.to_dict(),
         "benchmark_id": benchmark_id,
-        "candidate_hash": candidate_hash(candidate),
+        "candidate_hash": candidate_hash_value,
         "optimizer_knobs_flat": flatten_dict(candidate.optimizer_knobs),
+        "candidate": candidate.to_dict(),
     }
     write_json(candidate_dir / "candidate.json", manifest)
     return candidate_dir

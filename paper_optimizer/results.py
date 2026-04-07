@@ -32,6 +32,9 @@ class ResultsWriter:
     def write_round_summary(self, summary: RoundSummary) -> None:
         write_json(self.rounds_dir / f"round_{summary.round_index:04d}.json", summary.to_dict())
 
+    def write_experiment_summary(self, payload: dict[str, Any]) -> None:
+        write_json(self.experiment_dir / "summary.json", payload)
+
     def append_result(self, result: CandidateResult) -> None:
         row = self._flatten_row(result)
         self._append_csv(row)
@@ -42,21 +45,34 @@ class ResultsWriter:
             "schema_version": result.schema_version,
             "experiment_id": result.experiment_id,
             "study_type": result.study_type,
+            "candidate_status": result.candidate_status,
             "candidate_id": result.candidate_id,
             "parent_candidate_id": result.parent_candidate_id,
             "round_index": result.round_index,
             "benchmark_id": result.benchmark_id,
+            "candidate_hash": result.candidate_hash,
+            "candidate_manifest_path": result.candidate_manifest_path,
+            "candidate_bundle_dir": result.candidate_bundle_dir,
             "prompt_bundle_id": result.prompt_bundle_id,
             "text_model_id": result.text_model_id,
             "vision_model_id": result.vision_model_id,
             "runtime_seconds": result.runtime_seconds,
+            "runtime.main_app_duration_seconds": result.runtime_metadata.get("main_app_duration_seconds"),
+            "runtime.eval_duration_seconds": result.runtime_metadata.get("eval_duration_seconds"),
+            "runtime.total_duration_seconds": result.runtime_metadata.get("total_duration_seconds"),
             "started_at": result.started_at,
             "ended_at": result.ended_at,
             "promotion_decision": result.promotion_decision,
             "decision_reason": result.decision_reason,
             "main_app_run_id": result.main_app_run_ref.get("run_id"),
             "main_app_run_path": result.main_app_run_ref.get("run_path"),
+            "main_app_output_path": result.main_app_run_ref.get("output_path"),
+            "main_app_return_code": result.main_app_run_ref.get("return_code"),
+            "main_app_resolved_config_path": (result.main_app_run_ref.get("artifact_paths") or {}).get("resolved_main_config_path"),
+            "main_app_overlay_path": (result.main_app_run_ref.get("artifact_paths") or {}).get("main_config_overlay_path"),
             "eval_output_path": result.eval_output_ref.get("output_path"),
+            "eval_return_code": result.eval_output_ref.get("return_code"),
+            "eval_summary_path": result.eval_output_ref.get("summary_path"),
         }
 
         for key, value in result.optimizer_knobs_flat.items():

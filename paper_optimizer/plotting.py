@@ -37,6 +37,13 @@ def _write_plot_csv(path: Path, rows: list[dict[str, Any]]) -> None:
             writer.writerow(row)
 
 
+def _first_present_key(row: dict[str, str], candidates: list[str]) -> str | None:
+    for key in candidates:
+        if key in row and row.get(key) not in (None, ""):
+            return key
+    return None
+
+
 def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
     results_csv = experiment_dir / "results" / "results.csv"
     rows = _load_rows(results_csv)
@@ -65,6 +72,7 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
                 "candidate_id": row.get("candidate_id", ""),
                 "text_model_id": row.get("text_model_id", ""),
                 "prompt_bundle_id": row.get("prompt_bundle_id", ""),
+                "candidate_status": row.get("candidate_status", ""),
                 "primary_score": score,
             }
         )
@@ -91,25 +99,67 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
     for row in rows:
         score = _safe_float(row.get(primary_key))
         runtime = _safe_float(row.get(runtime_key))
-        evidence = _safe_float(row.get("guardrail.evidence_quality"))
-        null_rate = _safe_float(row.get("guardrail.null_rate"))
-        failure_rate = _safe_float(row.get("guardrail.failure_rate"))
+        evidence_key = _first_present_key(
+            row,
+            [
+                "guardrail.evidence_quality",
+                "guardrail.anchor_valid_rate",
+                "guardrail.correct_and_anchored_rate",
+                "primary.correct_and_anchored_rate",
+            ],
+        )
+        null_key = _first_present_key(
+            row,
+            [
+                "guardrail.null_rate",
+                "guardrail.null_count",
+                "guardrail.missing_proposal_count",
+                "diagnostic.unscored_text_cell_count",
+            ],
+        )
+        failure_key = _first_present_key(
+            row,
+            [
+                "guardrail.failure_rate",
+                "guardrail.failure_count",
+                "guardrail.join_failure_count",
+                "diagnostic.join_failure_count",
+                "diagnostic.contract_warning_count",
+            ],
+        )
+        evidence = _safe_float(row.get(evidence_key)) if evidence_key is not None else None
+        null_rate = _safe_float(row.get(null_key)) if null_key is not None else None
+        failure_rate = _safe_float(row.get(failure_key)) if failure_key is not None else None
 
         if score is not None and runtime is not None:
             xs_runtime.append(runtime)
             ys_runtime.append(score)
-            scatter_rows_runtime.append({"runtime_seconds": runtime, "primary_score": score, "candidate_id": row.get("candidate_id", "")})
+            scatter_rows_runtime.append({
+                "runtime_seconds": runtime,
+                "primary_score": score,
+                "candidate_id": row.get("candidate_id", ""),
+                "text_model_id": row.get("text_model_id", ""),
+            })
 
         if score is not None and evidence is not None:
             xs_evidence.append(evidence)
             ys_evidence.append(score)
-            scatter_rows_evidence.append({"evidence_quality": evidence, "primary_score": score, "candidate_id": row.get("candidate_id", "")})
+            scatter_rows_evidence.append({
+                "evidence_metric_value": evidence,
+                "evidence_metric_name": evidence_key,
+                "primary_score": score,
+                "candidate_id": row.get("candidate_id", ""),
+                "text_model_id": row.get("text_model_id", ""),
+            })
 
         trend_rows.append(
             {
                 "candidate_id": row.get("candidate_id", ""),
-                "null_rate": null_rate,
-                "failure_rate": failure_rate,
+                "null_metric_name": null_key,
+                "null_metric_value": null_rate,
+                "failure_metric_name": failure_key,
+                "failure_metric_value": failure_rate,
+                "candidate_status": row.get("candidate_status", ""),
             }
         )
 
@@ -130,7 +180,8 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
     if xs_evidence and ys_evidence:
         plt.figure(figsize=(6, 4))
         plt.scatter(xs_evidence, ys_evidence)
-        plt.xlabel("evidence_quality")
+        evidence_label = scatter_rows_evidence[0].get("evidence_metric_name") or "evidence_metric"
+        plt.xlabel(str(evidence_label))
         plt.ylabel(primary_metric)
         plt.title("Correctness vs evidence quality")
         plt.tight_layout()
@@ -139,11 +190,13 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
 
     if trend_rows:
         labels = [r["candidate_id"] for r in trend_rows]
-        null_vals = [r["null_rate"] if r["null_rate"] is not None else 0.0 for r in trend_rows]
-        fail_vals = [r["failure_rate"] if r["failure_rate"] is not None else 0.0 for r in trend_rows]
+        null_vals = [r["null_metric_value"] if r["null_metric_value"] is not None else 0.0 for r in trend_rows]
+        fail_vals = [r["failure_metric_value"] if r["failure_metric_value"] is not None else 0.0 for r in trend_rows]
         plt.figure(figsize=(10, 4))
-        plt.plot(labels, null_vals, marker="o", label="null_rate")
-        plt.plot(labels, fail_vals, marker="x", label="failure_rate")
+        null_label = trend_rows[0].get("null_metric_name") or "null_metric"
+        fail_label = trend_rows[0].get("failure_metric_name") or "failure_metric"
+        plt.plot(labels, null_vals, marker="o", label=str(null_label))
+        plt.plot(labels, fail_vals, marker="x", label=str(fail_label))
         plt.xticks(rotation=45, ha="right")
         plt.legend()
         plt.tight_layout()

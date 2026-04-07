@@ -6,12 +6,28 @@ from typing import Any
 from .acceptance import evaluate_promotion
 from .benchmarks import Benchmarks, benchmark_id_for_split
 from .bundle import build_candidate_from_dict
-from .contracts import Candidate, RoundSummary
+from .contracts import Candidate, CandidateResult, RoundSummary
 from .pipeline import evaluate_candidate_once
 from .plotting import generate_compare_plots, generate_optimize_plots
 from .propose import propose_candidates
 from .results import ResultsWriter, load_results_jsonl
 from .utils import read_json
+
+
+def _primary_metric_value(result: CandidateResult, metric_name: str) -> float:
+    return float(result.primary_metrics.get(metric_name, float("-inf")))
+
+
+def _rank_compare_results(results: list[CandidateResult], primary_metric: str) -> list[CandidateResult]:
+    return sorted(
+        results,
+        key=lambda item: (
+            item.candidate_status == "completed",
+            _primary_metric_value(item, primary_metric),
+            -(item.runtime_seconds or float("inf")),
+        ),
+        reverse=True,
+    )
 
 
 def _baseline_candidate(config: dict[str, Any]) -> Candidate:
@@ -36,6 +52,7 @@ def _candidate_from_dict_with_id(index: int, payload: dict[str, Any], round_inde
 def run_compare_mode(config: dict[str, Any], benchmarks: Benchmarks, experiment_dir: Path) -> None:
     writer = ResultsWriter(experiment_dir)
     benchmark_id = benchmark_id_for_split(benchmarks, "dev")
+    primary_metric = config["acceptance"]["primary_metric"]
     writer.write_experiment_manifest(
         {
             "schema_version": config["schema_version"],
@@ -54,6 +71,8 @@ def run_compare_mode(config: dict[str, Any], benchmarks: Benchmarks, experiment_
         for i, row in enumerate(candidates_raw)
     ]
 
+    results: list[CandidateResult] = []
+
     for candidate in candidates:
         result = evaluate_candidate_once(
             config,
@@ -65,8 +84,44 @@ def run_compare_mode(config: dict[str, Any], benchmarks: Benchmarks, experiment_
             reason="compare_mode_fixed_comparison",
         )
         writer.append_result(result)
+        results.append(result)
 
-    generate_compare_plots(experiment_dir, config["acceptance"]["primary_metric"])
+    ranked_results = _rank_compare_results(results, primary_metric)
+    winner = ranked_results[0] if ranked_results and ranked_results[0].candidate_status == "completed" else None
+    if winner is not None:
+        writer.write_best_candidate(
+            {
+                "candidate_id": winner.candidate_id,
+                "benchmark_id": benchmark_id,
+                "study_type": "compare",
+                "primary_metric": primary_metric,
+                "primary_metric_value": winner.primary_metrics.get(primary_metric),
+                "candidate_hash": winner.candidate_hash,
+            }
+        )
+    writer.write_experiment_summary(
+        {
+            "experiment_id": config["experiment_id"],
+            "study_type": "compare",
+            "benchmark_id": benchmark_id,
+            "primary_metric": primary_metric,
+            "winner_candidate_id": winner.candidate_id if winner is not None else None,
+            "candidate_count": len(results),
+            "completed_candidate_count": sum(1 for result in results if result.candidate_status == "completed"),
+            "failed_candidate_count": sum(1 for result in results if result.candidate_status != "completed"),
+            "ranked_candidates": [
+                {
+                    "candidate_id": result.candidate_id,
+                    "candidate_status": result.candidate_status,
+                    "primary_metric_value": result.primary_metrics.get(primary_metric),
+                    "runtime_seconds": result.runtime_seconds,
+                }
+                for result in ranked_results
+            ],
+        }
+    )
+
+    generate_compare_plots(experiment_dir, primary_metric)
 
 
 def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_space: Any, experiment_dir: Path) -> None:
@@ -99,6 +154,15 @@ def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_spa
         "candidate_id": incumbent_candidate.candidate_id,
         "reason": "baseline",
     })
+    writer.write_experiment_summary(
+        {
+            "experiment_id": config["experiment_id"],
+            "study_type": "optimize",
+            "benchmark_id": benchmark_id,
+            "primary_metric": config["acceptance"]["primary_metric"],
+            "current_best_candidate_id": incumbent_candidate.candidate_id,
+        }
+    )
 
     rounds = int(config.get("optimize", {}).get("rounds", 0))
     batch_size = int(config.get("optimize", {}).get("batch_size", 1))
@@ -197,6 +261,17 @@ def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_spa
                     "candidate_id": incumbent_result.candidate_id,
                     "round_index": round_index,
                     "reason": "promoted",
+                }
+            )
+            writer.write_experiment_summary(
+                {
+                    "experiment_id": config["experiment_id"],
+                    "study_type": "optimize",
+                    "benchmark_id": benchmark_id,
+                    "primary_metric": config["acceptance"]["primary_metric"],
+                    "current_best_candidate_id": incumbent_result.candidate_id,
+                    "current_best_score": incumbent_result.primary_metrics.get(config["acceptance"]["primary_metric"]),
+                    "last_completed_round": round_index,
                 }
             )
 

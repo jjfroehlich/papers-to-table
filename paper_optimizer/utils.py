@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -28,6 +29,46 @@ def flatten_dict(source: dict[str, Any], prefix: str = "") -> dict[str, Any]:
         else:
             out[full_key] = value
     return out
+
+
+def deep_merge_dicts(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
+    merged = deepcopy(base)
+    for key, value in overlay.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = deep_merge_dicts(merged[key], value)
+        else:
+            merged[key] = deepcopy(value)
+    return merged
+
+
+def set_nested_value(target: dict[str, Any], dotted_path: str, value: Any) -> None:
+    parts = [part for part in dotted_path.split(".") if part]
+    if not parts:
+        raise ValueError("dotted_path must not be empty")
+
+    cursor = target
+    for part in parts[:-1]:
+        existing = cursor.get(part)
+        if not isinstance(existing, dict):
+            existing = {}
+            cursor[part] = existing
+        cursor = existing
+    cursor[parts[-1]] = value
+
+
+def resolve_path_fields(payload: Any, *, base_dir: Path, field_names: set[str]) -> Any:
+    if isinstance(payload, dict):
+        resolved: dict[str, Any] = {}
+        for key, value in payload.items():
+            if key in field_names and isinstance(value, str) and value.strip():
+                candidate = Path(value)
+                resolved[key] = str(candidate.resolve()) if candidate.is_absolute() else str((base_dir / candidate).resolve())
+            else:
+                resolved[key] = resolve_path_fields(value, base_dir=base_dir, field_names=field_names)
+        return resolved
+    if isinstance(payload, list):
+        return [resolve_path_fields(item, base_dir=base_dir, field_names=field_names) for item in payload]
+    return payload
 
 
 def write_json(path: Path, data: Any) -> None:

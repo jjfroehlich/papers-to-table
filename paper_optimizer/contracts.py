@@ -30,7 +30,11 @@ class LaunchResult:
     duration_seconds: float
     run_id: str | None = None
     run_path: str | None = None
+    summary_path: str | None = None
+    working_dir: str | None = None
     output_path: str | None = None
+    payload: dict[str, Any] = field(default_factory=dict)
+    artifact_paths: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -42,6 +46,9 @@ class CandidateResult:
     candidate_id: str
     parent_candidate_id: str | None
     round_index: int | None
+    candidate_hash: str
+    candidate_manifest_path: str
+    candidate_bundle_dir: str
     prompt_bundle_id: str
     text_model_id: str
     vision_model_id: str | None
@@ -49,9 +56,11 @@ class CandidateResult:
     primary_metrics: dict[str, float]
     guardrail_metrics: dict[str, float]
     diagnostic_metrics: dict[str, float]
-    runtime_seconds: float
+    runtime_seconds: float | None
+    runtime_metadata: dict[str, Any]
     started_at: str
     ended_at: str
+    candidate_status: str
     promotion_decision: str
     decision_reason: str
     main_app_run_ref: dict[str, Any]
