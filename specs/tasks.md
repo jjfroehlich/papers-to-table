@@ -24,7 +24,8 @@ Reality-checked on 2026-04-06 against current backend/frontend source, targeted 
 - Implemented: stable non-UI automation entrypoint with machine-readable start/status/wait outputs.
 - Implemented: provider/runtime diagnostics, artifact completeness summary, retrieval-failure diagnostics, and figure-review ROI diagnostics.
 - Implemented in the latest pass: readiness-versus-capability truth split for provider status across backend artifacts, automation payloads, and UI summaries.
-- Still incomplete: `T109` measurement-first instrumentation and `T111` run-level heuristic visibility remain partial/incomplete.
+- Still incomplete: `T111` run-level heuristic visibility remains partial/incomplete.
+- Implemented in the latest pass: compact structured `run_stats.json` diagnostics with explicit stage/PDF/cell timings, repeated-work counters, provider/evidence rollups, and consistency coverage.
 - Historical run bundles under `runs/` are useful examples but are not the canonical artifact-shape source of truth.
 
 ## Canonical Checklist
@@ -267,14 +268,14 @@ Reality-checked on 2026-04-06 against current backend/frontend source, targeted 
 
 ### Diagnostics / eval / observability
 
-- [ ] **T109** Strengthen measurement-first run instrumentation.
-- [ ] **T109a** Add run-level stage timing capture.
-- [ ] **T109b** Add per-PDF timing and counts.
-- [ ] **T109c** Add per-cell timing capture.
-- [ ] **T109d** Add retrieval repeated-work and chunk counters.
-- [ ] **T109e** Add provider and evidence counters into run stats.
-- [ ] **T109f** Persist a compact structured run-stats artifact and expose it as a first-class run output.
-- [ ] **T109g** Add run-stats tests for structure and consistency.
+- [x] **T109** Strengthen measurement-first run instrumentation.
+- [x] **T109a** Add run-level stage timing capture.
+- [x] **T109b** Add per-PDF timing and counts.
+- [x] **T109c** Add per-cell timing capture.
+- [x] **T109d** Add retrieval repeated-work and chunk counters.
+- [x] **T109e** Add provider and evidence counters into run stats.
+- [x] **T109f** Persist a compact structured run-stats artifact and expose it as a first-class run output.
+- [x] **T109g** Add run-stats tests for structure and consistency.
 - [x] **T114** Persist compact provider/runtime failure diagnostics.
 - [x] **T115** Add proposal-level retrieval-failure diagnostics.
 - [x] **T116** Persist figure-review ROI diagnostics at per-cell and per-run level.

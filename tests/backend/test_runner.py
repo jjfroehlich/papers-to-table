@@ -28,12 +28,12 @@ from backend.app.artifacts import (
     read_json,
     write_json,
 )
-from backend.app.extraction import ProposalRecord, load_proposals, persist_proposal
+from backend.app.extraction import EvidenceRecord, ProposalRecord, load_proposals, persist_evidence, persist_proposal
 from backend.app.config import RunConfig
 from backend.app.runner import get_initial_run_data, run_pipeline
 from backend.app.ids import generate_proposal_id
 from backend.app.matching import MatchResult
-from backend.app.schemas import MatchOutcome, ProposalState, RunStatus, SupportLabel
+from backend.app.schemas import EvidenceSourceType, MatchOutcome, ProposalState, RunStatus, SupportLabel
 
 FIXTURE_TABLE = "tests/fixtures/tables/literature_fixture.xlsx"
 FIXTURE_SCHEMA = "tests/fixtures/tables/literature_fixture_schema.csv"
@@ -140,6 +140,10 @@ class TestRunPipeline:
             return_value=httpx.Response(200, json={"data": [{"id": "qwen/qwen3-30b-a3b-2507"}]})
         )
         monkeypatch.setattr("backend.app.runner.initialize_provider", _fake_initialize_provider)
+        monkeypatch.setattr("backend.app.runner.parse_pdf", _fake_parse_pdf)
+        monkeypatch.setattr("backend.app.runner.run_matching", lambda **kwargs: [])
+        monkeypatch.setattr("backend.app.runner.persist_match_artifacts", lambda *args, **kwargs: None)
+        monkeypatch.setattr("backend.app.runner.run_style_profiles_stage", _fake_style_profiles)
         config = make_config(tmp_path)
         run_id = "run_stats"
         output_dir = str(tmp_path / "runs")
@@ -153,7 +157,118 @@ class TestRunPipeline:
         assert stats["retrieval_mode"] == "lexical"
         assert stats["per_run"]["run_total_ms"] is not None
         assert "parse" in stats["per_run"]["stage_ms"]
+        assert "stage_parsing_ms" in stats["per_run"]["stage_timing_ms"]
         assert "provider_request_counts" in stats["counters"]
+        assert "run_stats_path" in read_json(get_run_summary_path(output_dir, run_id))
+
+    @pytest.mark.asyncio
+    async def test_run_stats_include_compact_rollups_and_consistency(self, tmp_path, monkeypatch):
+        pdf_dir = tmp_path / "pdfs"
+        pdf_dir.mkdir()
+        (pdf_dir / "paper_1.pdf").write_bytes(b"%PDF-1.4\n%stub")
+
+        config = make_config(tmp_path, pdf_dir=str(pdf_dir))
+        run_id = "run_stats_rollups"
+        output_dir = str(tmp_path / "runs")
+        (tmp_path / "runs").mkdir(exist_ok=True)
+
+        df = pd.DataFrame([
+            {
+                "Title": "Matched Paper",
+                "Authors": "Smith, J.",
+                "Publication Year": "2024",
+                "assay": "",
+            }
+        ])
+        schema = [{"column_name": "assay", "description": "Assay description"}]
+        eligible = [{"row_index": 0, "column_name": "assay", "current_value": "", "eligibility": "eligible"}]
+        match_results = [
+            MatchResult(
+                pdf_id="paper_1",
+                pdf_path="paper_1.pdf",
+                outcome=MatchOutcome.matched,
+                matched_row_index=0,
+                matched_row_title="Matched Paper",
+                score=0.9,
+                runner_up_score=0.1,
+                runner_up_row_index=None,
+                reasoning="clear match",
+                blocked=False,
+                matched_at=datetime.now(timezone.utc).isoformat(),
+            )
+        ]
+
+        monkeypatch.setattr("backend.app.runner.check_readiness", _ready_ok)
+        monkeypatch.setattr("backend.app.runner.load_table", lambda path: df)
+        monkeypatch.setattr("backend.app.runner.validate_metadata_columns", lambda df: [])
+        monkeypatch.setattr("backend.app.runner.load_schema", lambda schema_path, table_path: schema)
+        monkeypatch.setattr("backend.app.runner.validate_schema_columns", lambda schema: [])
+        monkeypatch.setattr(
+            "backend.app.runner.get_eligible_cells",
+            lambda df, schema, verify_mode, eval_mode=False: eligible,
+        )
+        monkeypatch.setattr("backend.app.runner.parse_pdf", _fake_parse_pdf_with_blocks)
+        monkeypatch.setattr("backend.app.runner.run_matching", lambda **kwargs: match_results)
+        monkeypatch.setattr("backend.app.runner.persist_match_artifacts", lambda *args, **kwargs: None)
+        monkeypatch.setattr("backend.app.runner.initialize_provider", _fake_initialize_provider)
+        monkeypatch.setattr("backend.app.runner.run_style_profiles_stage", _fake_style_profiles)
+        monkeypatch.setattr("backend.app.runner.run_retrieval_for_cell", _fake_retrieval_result)
+        monkeypatch.setattr("backend.app.runner.extract_cell", _fake_extract_cell_with_metrics)
+
+        await run_pipeline(run_id, config, "config.json", output_dir)
+
+        stats = read_json(get_run_stats_path(output_dir, run_id))
+        counters = stats["counters"]
+        pdf_stats = stats["per_pdf"]["paper_1"]
+        cell_stats = stats["per_cell"][0]
+
+        assert counters["pdf_count"] == 1
+        assert counters["eligible_cell_count"] == 1
+        assert counters["processed_cell_count"] == 1
+        assert counters["matched_pdf_count"] == 1
+        assert counters["retrieval_calls"] == 1
+        assert counters["retrieval_calls_per_pdf"] == {"paper_1": 1}
+        assert counters["chunk_build_count_per_pdf"] == {"paper_1": 3}
+        assert counters["idf_build_count_per_pdf"] == {"paper_1": 2}
+        assert counters["neighbor_chunks_added_count"] == 2
+        assert counters["chunk_build_repeated_work_count"] == 2
+        assert counters["idf_build_repeated_work_count"] == 1
+        assert counters["retrieval_repeated_work_count"] == 3
+        assert counters["text_model_call_count"] == 1
+        assert counters["vision_model_call_count"] == 1
+        assert counters["evidence_item_count"] == 4
+        assert counters["direct_quote_count"] == 1
+        assert counters["approximate_highlight_count"] == 1
+        assert counters["quote_plus_page_count"] == 1
+        assert counters["figure_derived_evidence_count"] == 1
+        assert counters["needs_more_evidence_count"] == 1
+        assert counters["recall_rescue_used_count"] == 1
+        assert counters["figure_review_triggered_count"] == 1
+        assert counters["cells_per_pdf"] == {"paper_1": 1}
+        assert counters["chunk_count_total"] == 6
+        assert counters["chunk_count_by_type"]["paragraph"] == 2
+        assert counters["chunk_count_by_type"]["caption"] == 1
+
+        assert pdf_stats["pdf_cell_count"] == 1
+        assert pdf_stats["retrieval_calls"] == 1
+        assert pdf_stats["neighbor_chunks_added_count"] == 2
+        assert pdf_stats["text_model_call_count"] == 1
+        assert pdf_stats["vision_model_call_count"] == 1
+
+        assert cell_stats["candidate_chunk_count"] == 4
+        assert cell_stats["selected_chunk_count"] == 2
+        assert cell_stats["neighbor_chunks_added_count"] == 2
+        assert cell_stats["evidence_item_count"] == 4
+        assert cell_stats["direct_quote_count"] == 1
+        assert cell_stats["approximate_highlight_count"] == 1
+        assert cell_stats["quote_plus_page_count"] == 1
+        assert cell_stats["figure_derived_evidence_count"] == 1
+
+        assert stats["consistency"]["processed_cells_match_per_cell_records"] is True
+        assert stats["consistency"]["retrieval_calls_match_per_pdf_sum"] is True
+        assert stats["consistency"]["evidence_items_match_persisted_records"] is True
+        assert stats["consistency"]["text_model_calls_match_per_cell_sum"] is True
+        assert stats["consistency"]["vision_model_calls_match_per_cell_sum"] is True
 
     @pytest.mark.asyncio
     @respx.mock
@@ -796,6 +911,33 @@ def _fake_parse_pdf(**kwargs):
     return doc, diagnostics, []
 
 
+def _fake_parse_pdf_with_blocks(**kwargs):
+    pdf_id = kwargs["pdf_id"]
+    doc = SimpleNamespace(
+        model_dump=lambda: {
+            "pdf_id": pdf_id,
+            "blocks": [
+                {"block_id": "b1", "block_type": "paragraph", "text": "intro", "page_number": 1, "reading_order": 1},
+                {"block_id": "b2", "block_type": "paragraph", "text": "methods", "page_number": 1, "reading_order": 2},
+                {"block_id": "b3", "block_type": "caption", "text": "figure caption", "page_number": 1, "reading_order": 3},
+                {"block_id": "b4", "block_type": "section_heading", "text": "Results", "page_number": 1, "reading_order": 4},
+                {"block_id": "b5", "block_type": "list_item", "text": "item 1", "page_number": 1, "reading_order": 5},
+                {"block_id": "b6", "block_type": "section_heading", "text": "Discussion", "page_number": 1, "reading_order": 6},
+            ],
+        }
+    )
+    diagnostics = SimpleNamespace(
+        fallback_used=False,
+        actual_parser_used="docling",
+        configured_parser="docling",
+        ocr_used=False,
+        ocr_reason=None,
+        parse_warnings=[],
+        major_extraction_gaps=[],
+    )
+    return doc, diagnostics, []
+
+
 def _fake_parse_pdf_with_warnings(**kwargs):
     pdf_id = kwargs["pdf_id"]
     doc = SimpleNamespace(model_dump=lambda: {"pdf_id": pdf_id, "blocks": []})
@@ -871,6 +1013,113 @@ async def _fake_extract_cell_with_fallback(**kwargs):
         created_at=datetime.now(timezone.utc).isoformat(),
     )
     persist_proposal(kwargs["run_dir"], proposal)
+    return proposal
+
+
+def _fake_retrieval_result(**kwargs):
+    return SimpleNamespace(
+        mode="lexical",
+        request_mode="baseline",
+        policy={"query_mode": "lexical_with_hints", "heuristic_tags": ["count_like"], "hint_terms": ["count"]},
+        stats={
+            "total_ms": 4.0,
+            "chunk_build_ms": 1.25,
+            "idf_build_ms": 0.75,
+            "chunk_build_count": 3,
+            "idf_build_count": 2,
+            "candidate_chunk_count": 4,
+            "selected_chunk_count": 2,
+            "neighbor_chunk_count": 2,
+            "chunk_count_total": 6,
+            "chunk_count_by_type": {
+                "paragraph": 2,
+                "caption": 1,
+                "section": 2,
+                "list_item": 1,
+            },
+        },
+    )
+
+
+async def _fake_extract_cell_with_metrics(**kwargs):
+    proposal_id = generate_proposal_id(kwargs["run_id"], kwargs["cell_id"])
+    stats_sink = kwargs.get("stats_sink")
+    if stats_sink is not None:
+        stats_sink.update(
+            {
+                "cell_total_ms": 15.0,
+                "text_model_ms": 7.0,
+                "text_model_calls": 1,
+                "evidence_anchoring_ms": 2.0,
+                "evidence_anchor_attempts": 1,
+                "figure_review_ms": 3.0,
+                "figure_review_calls": 1,
+                "evidence_recovery_ms": 1.0,
+                "recall_rescue_retrieval_ms": 0.5,
+                "recall_rescue_retrieval_prep_ms": 0.25,
+                "recall_rescue_used": True,
+                "whole_document_used": False,
+                "needs_more_evidence": True,
+                "figure_hits_count": 1,
+                "provider_diagnostics": {
+                    "attempt_count": 2,
+                    "request_kinds": {"text_structured": 1, "vision_structured": 1},
+                    "outcomes": {"success": 2},
+                },
+                "retrieval_diagnostics": {"classification": "reasoning_gap"},
+                "figure_review_diagnostics": {"triggered": True, "useful": True, "rescued_value": False},
+                "figure_review_triggered": True,
+                "figure_review_useful": True,
+                "figure_review_rescued": False,
+            }
+        )
+
+    proposal = ProposalRecord(
+        proposal_id=proposal_id,
+        run_id=kwargs["run_id"],
+        pdf_id=kwargs["pdf_id"],
+        row_id=kwargs["row_id"],
+        column_name=kwargs["column_name"],
+        cell_id=kwargs["cell_id"],
+        state=ProposalState.unclear,
+        support=SupportLabel.weak_evidence,
+        proposed_value="candidate",
+        rationale="- extracted",
+        primary_evidence_id="ev_direct",
+        evidence_ids=["ev_direct", "ev_approx", "ev_fallback", "ev_figure"],
+        warning_flags=["fallback_evidence_used"],
+        needs_more_evidence=True,
+        recall_rescue_used=True,
+        whole_document_used=False,
+        figure_review_diagnostics={"triggered": True, "useful": True, "rescued_value": False},
+        created_at=datetime.now(timezone.utc).isoformat(),
+    )
+    persist_proposal(kwargs["run_dir"], proposal)
+
+    evidence_specs = [
+        ("ev_direct", EvidenceSourceType.direct_quote, False),
+        ("ev_approx", EvidenceSourceType.approximate_highlight, False),
+        ("ev_fallback", EvidenceSourceType.quote_plus_page, False),
+        ("ev_figure", EvidenceSourceType.caption_grounded_figure_evidence, True),
+    ]
+    for evidence_id, source_type, is_figure_derived in evidence_specs:
+        persist_evidence(
+            kwargs["run_dir"],
+            EvidenceRecord(
+                evidence_id=evidence_id,
+                run_id=kwargs["run_id"],
+                proposal_id=proposal_id,
+                pdf_id=kwargs["pdf_id"],
+                source_type=source_type,
+                quote_text="evidence",
+                page_number=1,
+                anchor_confidence=0.9,
+                is_primary=evidence_id == "ev_direct",
+                is_figure_derived=is_figure_derived,
+                created_at=datetime.now(timezone.utc).isoformat(),
+            ),
+        )
+
     return proposal
 
 

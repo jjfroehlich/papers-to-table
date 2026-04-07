@@ -194,6 +194,7 @@ class RunSummary(BaseModel):
     prompt_files: Optional[dict] = None
     config_hash: Optional[str] = None
     config_snapshot_path: Optional[str] = None
+    run_stats_path: Optional[str] = None
     schema_hash: Optional[str] = None
     schema_version: Optional[str] = None
     parser_identity: Optional[str] = None
@@ -238,6 +239,7 @@ class ReviewerSummary(BaseModel):
     prompt_files: Optional[dict] = None
     config_hash: Optional[str] = None
     config_snapshot_path: Optional[str] = None
+    run_stats_path: Optional[str] = None
     schema_hash: Optional[str] = None
     schema_version: Optional[str] = None
     parser_identity: Optional[str] = None
@@ -282,6 +284,7 @@ class InputSummary(BaseModel):
     prompt_files: Optional[dict] = None
     config_hash: Optional[str] = None
     config_snapshot_path: Optional[str] = None
+    run_stats_path: Optional[str] = None
     schema_hash: Optional[str] = None
     schema_version: Optional[str] = None
     parser_identity: Optional[str] = None

@@ -32,6 +32,7 @@ from .config import RunConfig, check_readiness, get_run_mode
 from .extraction import (
     extract_cell,
     get_prompt_identity,
+    load_evidence,
     load_proposals,
 )
 from .ids import generate_cell_id, generate_row_id, generate_run_id
@@ -50,11 +51,49 @@ from .matching import MatchResult, persist_match_artifacts, run_matching
 from .parsing import parse_pdf
 from .provider import ProviderError, _canonical_structured_output_reason, initialize_provider
 from .retrieval import run_retrieval_for_cell
-from .schemas import MatchOutcome, RunStatus, SupportLabel, WarningCategory
+from .schemas import EvidenceSourceType, MatchOutcome, RunStatus, SupportLabel, WarningCategory
 from .style_profiles import run_style_profiles_stage
 
 _active_runs: dict[str, asyncio.Task] = {}
 _active_runs_lock: asyncio.Lock | None = None
+
+_STAGE_TIMING_KEYS = {
+    "validating": "stage_validating_ms",
+    "load_inputs": "stage_load_inputs_ms",
+    "provider_init": "stage_provider_init_ms",
+    "parse": "stage_parsing_ms",
+    "match": "stage_matching_ms",
+    "style_profiles": "stage_style_profiles_ms",
+    "extraction": "stage_extraction_ms",
+}
+_RETRIEVAL_CHUNK_TYPES = (
+    "paragraph",
+    "section",
+    "caption",
+    "table_region",
+    "abstract",
+    "list_item",
+)
+
+
+def _empty_chunk_type_counts() -> dict[str, int]:
+    return {chunk_type: 0 for chunk_type in _RETRIEVAL_CHUNK_TYPES}
+
+
+def _normalized_chunk_type_counts(raw_counts: Optional[dict[str, object]]) -> dict[str, int]:
+    counts = _empty_chunk_type_counts()
+    if not isinstance(raw_counts, dict):
+        return counts
+    for key, value in raw_counts.items():
+        counts[str(key)] = int(value or 0)
+    return counts
+
+
+def _accumulate_chunk_type_counts(total: dict[str, int], counts: dict[str, int]) -> dict[str, int]:
+    merged = dict(total)
+    for key, value in counts.items():
+        merged[key] = int(merged.get(key, 0) or 0) + int(value or 0)
+    return merged
 
 
 def _relative_run_path(run_dir: pathlib.Path, artifact_path: pathlib.Path) -> str:
@@ -198,6 +237,7 @@ async def run_pipeline(
             "completed_at": None,
             "run_total_ms": None,
             "stage_ms": {},
+            "stage_timing_ms": {},
         },
         "per_pdf": {},
         "per_cell": [],
@@ -206,6 +246,9 @@ async def run_pipeline(
             "parse_errors": 0,
             "parse_warnings": 0,
             "matched_pdfs": 0,
+            "unmatched_pdfs": 0,
+            "ambiguous_pdfs": 0,
+            "duplicate_conflict_pdfs": 0,
             "eligible_cells": 0,
             "processed_cells": 0,
             "recall_rescue_cells": 0,
@@ -217,17 +260,43 @@ async def run_pipeline(
             "figure_review_useful_cells": 0,
             "figure_review_rescue_cells": 0,
             "figure_review_hits_total": 0,
+            "pdf_count": 0,
+            "eligible_cell_count": 0,
+            "processed_cell_count": 0,
+            "matched_pdf_count": 0,
+            "unmatched_pdf_count": 0,
+            "ambiguous_pdf_count": 0,
+            "duplicate_conflict_pdf_count": 0,
+            "cells_per_pdf": {},
+            "retrieval_calls": 0,
+            "retrieval_calls_per_pdf": {},
+            "chunk_count_total": 0,
+            "chunk_count_by_type": _empty_chunk_type_counts(),
+            "chunk_build_count_per_pdf": {},
+            "idf_build_count_per_pdf": {},
+            "neighbor_chunks_added_count": 0,
+            "chunk_build_repeated_work_count": 0,
+            "idf_build_repeated_work_count": 0,
+            "retrieval_repeated_work_count": 0,
+            "text_model_call_count": 0,
+            "vision_model_call_count": 0,
+            "evidence_item_count": 0,
+            "direct_quote_count": 0,
+            "approximate_highlight_count": 0,
+            "quote_plus_page_count": 0,
+            "figure_derived_evidence_count": 0,
+            "needs_more_evidence_count": 0,
+            "recall_rescue_used_count": 0,
+            "whole_document_used_count": 0,
+            "figure_review_triggered_count": 0,
         },
+        "consistency": {},
         "recorded_at": stats_started_at,
     }
     stage_state = {"current": None, "started": None}
 
     def save_run(data: dict) -> None:
         write_json(run_json_path, data)
-
-    def save_run_stats() -> None:
-        run_stats["recorded_at"] = datetime.now(timezone.utc).isoformat()
-        write_json(run_stats_path, run_stats)
 
     def _finalize_active_stage() -> None:
         current_stage = stage_state.get("current")
@@ -253,10 +322,180 @@ async def run_pipeline(
                 "chunk_build_count": 0,
                 "idf_build_count": 0,
                 "chunk_count_total": 0,
-                "chunk_count_by_type": {},
+                "chunk_count_by_type": _empty_chunk_type_counts(),
+                "neighbor_chunks_added_count": 0,
+                "selected_chunk_count_total": 0,
+                "candidate_chunk_count_total": 0,
                 "cells_processed": 0,
+                "pdf_cell_count": 0,
+                "text_model_call_count": 0,
+                "vision_model_call_count": 0,
+                "evidence_item_count": 0,
             }
         return per_pdf[pdf_id]
+
+    def refresh_run_stats_rollups() -> None:
+        per_run = run_stats.setdefault("per_run", {})
+        counters = run_stats.setdefault("counters", {})
+        per_pdf = run_stats.setdefault("per_pdf", {})
+        per_cell = run_stats.setdefault("per_cell", [])
+
+        stage_ms = per_run.get("stage_ms", {})
+        per_run["stage_timing_ms"] = {
+            timing_key: round(float(stage_ms.get(stage_name, 0.0) or 0.0), 3)
+            for stage_name, timing_key in _STAGE_TIMING_KEYS.items()
+        }
+        per_run["stage_total_ms_recorded"] = round(
+            sum(float(value or 0.0) for value in stage_ms.values()),
+            3,
+        )
+
+        retrieval_calls_per_pdf: dict[str, int] = {}
+        chunk_build_count_per_pdf: dict[str, int] = {}
+        idf_build_count_per_pdf: dict[str, int] = {}
+        cells_per_pdf: dict[str, int] = {}
+        chunk_count_by_type_total = _empty_chunk_type_counts()
+        chunk_count_total = 0
+        retrieval_calls_total = 0
+        neighbor_chunks_added_count = 0
+        chunk_build_repeated_work_count = 0
+        idf_build_repeated_work_count = 0
+
+        for pdf_id, pdf_stats in sorted(per_pdf.items()):
+            pdf_stats["chunk_count_by_type"] = _normalized_chunk_type_counts(pdf_stats.get("chunk_count_by_type"))
+            pdf_stats["pdf_cell_count"] = int(pdf_stats.get("cells_processed", 0) or 0)
+            pdf_stats["parse_pdf_ms"] = round(float(pdf_stats.get("parse_pdf_ms", 0.0) or 0.0), 3)
+            pdf_stats["retrieval_prep_ms"] = round(float(pdf_stats.get("retrieval_prep_ms", 0.0) or 0.0), 3)
+            pdf_stats["retrieval_query_ms"] = round(float(pdf_stats.get("retrieval_query_ms", 0.0) or 0.0), 3)
+
+            retrieval_calls = int(pdf_stats.get("retrieval_calls", 0) or 0)
+            chunk_build_count = int(pdf_stats.get("chunk_build_count", 0) or 0)
+            idf_build_count = int(pdf_stats.get("idf_build_count", 0) or 0)
+            neighbor_count = int(pdf_stats.get("neighbor_chunks_added_count", 0) or 0)
+
+            retrieval_calls_per_pdf[pdf_id] = retrieval_calls
+            chunk_build_count_per_pdf[pdf_id] = chunk_build_count
+            idf_build_count_per_pdf[pdf_id] = idf_build_count
+            cells_per_pdf[pdf_id] = int(pdf_stats.get("pdf_cell_count", 0) or 0)
+
+            retrieval_calls_total += retrieval_calls
+            neighbor_chunks_added_count += neighbor_count
+            chunk_build_repeated_work_count += max(chunk_build_count - 1, 0)
+            idf_build_repeated_work_count += max(idf_build_count - 1, 0)
+            chunk_count_total += int(pdf_stats.get("chunk_count_total", 0) or 0)
+            chunk_count_by_type_total = _accumulate_chunk_type_counts(
+                chunk_count_by_type_total,
+                pdf_stats["chunk_count_by_type"],
+            )
+
+        proposals = load_proposals(run_dir) if run_dir.exists() else []
+        evidence_records = load_evidence(run_dir) if run_dir.exists() else []
+        proposal_by_id = {proposal.proposal_id: proposal for proposal in proposals}
+        evidence_by_proposal_id: dict[str, list] = {}
+        for evidence in evidence_records:
+            evidence_by_proposal_id.setdefault(evidence.proposal_id, []).append(evidence)
+
+        evidence_item_count = len(evidence_records)
+        direct_quote_count = 0
+        approximate_highlight_count = 0
+        quote_plus_page_count = 0
+        figure_derived_evidence_count = 0
+
+        for evidence in evidence_records:
+            if evidence.source_type == EvidenceSourceType.direct_quote:
+                direct_quote_count += 1
+            elif evidence.source_type == EvidenceSourceType.approximate_highlight:
+                approximate_highlight_count += 1
+            elif evidence.source_type == EvidenceSourceType.quote_plus_page:
+                quote_plus_page_count += 1
+            if bool(evidence.is_figure_derived):
+                figure_derived_evidence_count += 1
+
+        for cell_stats in per_cell:
+            cell_stats.setdefault("retrieval_query_ms", 0.0)
+            cell_stats.setdefault("retrieval_prep_ms", 0.0)
+            cell_stats.setdefault("text_model_ms", 0.0)
+            cell_stats.setdefault("evidence_anchoring_ms", 0.0)
+            cell_stats.setdefault("figure_review_ms", 0.0)
+            cell_stats.setdefault("cell_total_ms", 0.0)
+            cell_stats.setdefault("neighbor_chunks_added_count", 0)
+            proposal_id = str(cell_stats.get("proposal_id") or "")
+            proposal = proposal_by_id.get(proposal_id)
+            proposal_evidence = evidence_by_proposal_id.get(proposal_id, [])
+            cell_stats["evidence_item_count"] = len(proposal_evidence)
+            cell_stats["direct_quote_count"] = sum(
+                1 for evidence in proposal_evidence if evidence.source_type == EvidenceSourceType.direct_quote
+            )
+            cell_stats["approximate_highlight_count"] = sum(
+                1 for evidence in proposal_evidence if evidence.source_type == EvidenceSourceType.approximate_highlight
+            )
+            cell_stats["quote_plus_page_count"] = sum(
+                1 for evidence in proposal_evidence if evidence.source_type == EvidenceSourceType.quote_plus_page
+            )
+            cell_stats["figure_derived_evidence_count"] = sum(
+                1 for evidence in proposal_evidence if bool(evidence.is_figure_derived)
+            )
+            if proposal is not None:
+                cell_stats.setdefault("warning_flags", list(proposal.warning_flags))
+
+        text_model_call_count = sum(int(cell.get("text_model_calls", 0) or 0) for cell in per_cell)
+        vision_model_call_count = sum(int(cell.get("figure_review_calls", 0) or 0) for cell in per_cell)
+        needs_more_evidence_count = sum(1 for cell in per_cell if bool(cell.get("needs_more_evidence")))
+        recall_rescue_used_count = sum(1 for cell in per_cell if bool(cell.get("recall_rescue_used")))
+        whole_document_used_count = sum(1 for cell in per_cell if bool(cell.get("whole_document_used")))
+        figure_review_triggered_count = sum(1 for cell in per_cell if bool(cell.get("figure_review_triggered")))
+        processed_cell_count = len(per_cell)
+
+        counters["pdf_count"] = max(int(counters.get("pdf_count", 0) or 0), len(per_pdf))
+        counters["eligible_cell_count"] = int(counters.get("eligible_cells", 0) or 0)
+        counters["processed_cell_count"] = processed_cell_count
+        counters["matched_pdf_count"] = int(counters.get("matched_pdfs", 0) or 0)
+        counters["unmatched_pdf_count"] = int(counters.get("unmatched_pdfs", 0) or 0)
+        counters["ambiguous_pdf_count"] = int(counters.get("ambiguous_pdfs", 0) or 0)
+        counters["duplicate_conflict_pdf_count"] = int(counters.get("duplicate_conflict_pdfs", 0) or 0)
+        counters["cells_per_pdf"] = cells_per_pdf
+        counters["retrieval_calls"] = retrieval_calls_total
+        counters["retrieval_calls_per_pdf"] = retrieval_calls_per_pdf
+        counters["chunk_count_total"] = chunk_count_total
+        counters["chunk_count_by_type"] = chunk_count_by_type_total
+        counters["chunk_build_count_per_pdf"] = chunk_build_count_per_pdf
+        counters["idf_build_count_per_pdf"] = idf_build_count_per_pdf
+        counters["neighbor_chunks_added_count"] = neighbor_chunks_added_count
+        counters["chunk_build_repeated_work_count"] = chunk_build_repeated_work_count
+        counters["idf_build_repeated_work_count"] = idf_build_repeated_work_count
+        counters["retrieval_repeated_work_count"] = (
+            chunk_build_repeated_work_count + idf_build_repeated_work_count
+        )
+        counters["text_model_call_count"] = text_model_call_count
+        counters["vision_model_call_count"] = vision_model_call_count
+        counters["evidence_item_count"] = evidence_item_count
+        counters["direct_quote_count"] = direct_quote_count
+        counters["approximate_highlight_count"] = approximate_highlight_count
+        counters["quote_plus_page_count"] = quote_plus_page_count
+        counters["figure_derived_evidence_count"] = figure_derived_evidence_count
+        counters["needs_more_evidence_count"] = needs_more_evidence_count
+        counters["recall_rescue_used_count"] = recall_rescue_used_count
+        counters["whole_document_used_count"] = whole_document_used_count
+        counters["figure_review_triggered_count"] = figure_review_triggered_count
+
+        run_stats["consistency"] = {
+            "processed_cells_match_per_cell_records": int(counters.get("processed_cells", 0) or 0) == processed_cell_count,
+            "retrieval_calls_match_per_pdf_sum": retrieval_calls_total == sum(retrieval_calls_per_pdf.values()),
+            "evidence_items_match_persisted_records": evidence_item_count == sum(
+                len(items) for items in evidence_by_proposal_id.values()
+            ),
+            "text_model_calls_match_per_cell_sum": text_model_call_count == sum(
+                int(cell.get("text_model_calls", 0) or 0) for cell in per_cell
+            ),
+            "vision_model_calls_match_per_cell_sum": vision_model_call_count == sum(
+                int(cell.get("figure_review_calls", 0) or 0) for cell in per_cell
+            ),
+        }
+
+    def save_run_stats() -> None:
+        refresh_run_stats_rollups()
+        run_stats["recorded_at"] = datetime.now(timezone.utc).isoformat()
+        write_json(run_stats_path, run_stats)
 
     def update_stage(data: dict, stage: str) -> dict:
         _finalize_active_stage()
@@ -718,6 +957,7 @@ async def run_pipeline(
             input_summary_base["eval_artifacts"] = None
 
         pdf_files = [f for f in os.listdir(config.pdf_dir) if f.lower().endswith(".pdf")]
+        run_stats["counters"]["pdf_count"] = len(pdf_files)
 
         input_summary = {
             **input_summary_base,
@@ -731,6 +971,7 @@ async def run_pipeline(
         run_data["total_rows"] = len(df)
         run_data["eligible_cells"] = len(eligible)
         run_stats["counters"]["eligible_cells"] = len(eligible)
+        run_stats["counters"]["eligible_cell_count"] = len(eligible)
         save_run(run_data)
 
         # Stage: initialize provider (T050, T052a)
@@ -1006,18 +1247,21 @@ async def run_pipeline(
 
         for mr in match_results:
             if mr.outcome == MatchOutcome.unmatched:
+                run_stats["counters"]["unmatched_pdfs"] += 1
                 run_data.setdefault("warnings", []).append({
                     "category": WC.unmatched_pdf.value,
                     "message": f"PDF not matched to any table row: {mr.pdf_id}",
                     "context": {"pdf_id": mr.pdf_id},
                 })
             elif mr.outcome == MatchOutcome.ambiguous:
+                run_stats["counters"]["ambiguous_pdfs"] += 1
                 run_data.setdefault("warnings", []).append({
                     "category": WC.ambiguous_match.value,
                     "message": f"PDF match ambiguous: {mr.pdf_id}",
                     "context": {"pdf_id": mr.pdf_id},
                 })
             elif mr.outcome == MatchOutcome.duplicate_row_conflict:
+                run_stats["counters"]["duplicate_conflict_pdfs"] += 1
                 run_data.setdefault("warnings", []).append({
                     "category": WC.duplicate_row_conflict.value,
                     "message": f"Duplicate row conflict: {mr.pdf_id}",
@@ -1190,9 +1434,20 @@ async def run_pipeline(
                 )
                 pdf_stats["chunk_build_count"] += int(retrieval_stats.get("chunk_build_count", 0) or 0)
                 pdf_stats["idf_build_count"] += int(retrieval_stats.get("idf_build_count", 0) or 0)
+                pdf_stats["neighbor_chunks_added_count"] += int(
+                    retrieval_stats.get("neighbor_chunk_count", 0) or 0
+                )
+                pdf_stats["selected_chunk_count_total"] += int(
+                    retrieval_stats.get("selected_chunk_count", 0) or 0
+                )
+                pdf_stats["candidate_chunk_count_total"] += int(
+                    retrieval_stats.get("candidate_chunk_count", 0) or 0
+                )
                 if not pdf_stats.get("chunk_count_total"):
                     pdf_stats["chunk_count_total"] = int(retrieval_stats.get("chunk_count_total", 0) or 0)
-                    pdf_stats["chunk_count_by_type"] = dict(retrieval_stats.get("chunk_count_by_type", {}) or {})
+                    pdf_stats["chunk_count_by_type"] = _normalized_chunk_type_counts(
+                        dict(retrieval_stats.get("chunk_count_by_type", {}) or {})
+                    )
 
             style_profile = style_profiles.get(col_name)
             cell_stats: dict[str, object] = {
@@ -1209,8 +1464,13 @@ async def run_pipeline(
                     + float(retrieval_stats.get("idf_build_ms", 0.0) or 0.0),
                     3,
                 ),
+                "candidate_chunk_count": int(retrieval_stats.get("candidate_chunk_count", 0) or 0),
+                "selected_chunk_count": int(retrieval_stats.get("selected_chunk_count", 0) or 0),
+                "neighbor_chunks_added_count": int(retrieval_stats.get("neighbor_chunk_count", 0) or 0),
                 "chunk_count_total": int(retrieval_stats.get("chunk_count_total", 0) or 0),
-                "chunk_count_by_type": dict(retrieval_stats.get("chunk_count_by_type", {}) or {}),
+                "chunk_count_by_type": _normalized_chunk_type_counts(
+                    dict(retrieval_stats.get("chunk_count_by_type", {}) or {})
+                ),
             }
 
             await asyncio.sleep(0)  # yield between cells
@@ -1267,6 +1527,9 @@ async def run_pipeline(
             if cell_stats.get("figure_review_rescued"):
                 run_stats["counters"]["figure_review_rescue_cells"] += 1
             pdf_stats["cells_processed"] += 1
+            pdf_stats["pdf_cell_count"] = pdf_stats["cells_processed"]
+            pdf_stats["text_model_call_count"] += int(cell_stats.get("text_model_calls", 0) or 0)
+            pdf_stats["vision_model_call_count"] += int(cell_stats.get("figure_review_calls", 0) or 0)
             cell_stats["proposal_id"] = proposal.proposal_id
             run_stats["per_cell"].append(cell_stats)
 
