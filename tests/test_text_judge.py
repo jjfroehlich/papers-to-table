@@ -47,6 +47,16 @@ class FakeJudge:
         )
 
 
+class FailingJudge:
+    def __init__(self, message: str = "Judge returned non-JSON output despite strict structured-output request.") -> None:
+        self.message = message
+        self.requests = []
+
+    def judge(self, judge_request) -> JudgeResponse:
+        self.requests.append(judge_request)
+        raise EvaluationError(self.message)
+
+
 class _FakeHTTPResponse:
     def __init__(self, payload: dict) -> None:
         self._payload = payload
@@ -369,6 +379,51 @@ class TextJudgeScoringTests(unittest.TestCase):
         self.assertTrue(notes_cell.was_scored)
         self.assertEqual(notes_cell.judge_resolved_model_id, "runtime-qwen-model")
         self.assertEqual(len(result.judge_records), 1)
+
+    def test_judge_runtime_failure_becomes_unclear_record_instead_of_aborting(self) -> None:
+        loaded_run = self._loaded_run(
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="notes",
+                cell_id="cell-notes-1",
+                proposed_value="semantic equivalent",
+                field_type="text",
+            )
+        )
+        gold = self._gold_dataset(
+            GoldCell(
+                row_id="row-1",
+                column_name="notes",
+                cell_id="cell-notes-1",
+                raw_value="Semantic equivalent",
+                is_present=True,
+            )
+        )
+        judge = FailingJudge()
+
+        result = score_run(
+            loaded_run,
+            gold,
+            load_schema(None),
+            text_judge=judge,
+            judge_config=JudgeConfig(model_id="judge-model-1"),
+        )
+
+        self.assertEqual(len(judge.requests), 1)
+        self.assertEqual(len(result.judge_records), 1)
+        scored_cell = result.scored_cells[0]
+        self.assertFalse(scored_cell.was_scored)
+        self.assertIsNone(scored_cell.is_correct)
+        self.assertEqual(scored_cell.judge_verdict, "unclear")
+        self.assertIn("judge_verdict_unclear", scored_cell.diagnostic_flags)
+        self.assertIn("judge_request_failed", scored_cell.diagnostic_flags)
+        self.assertEqual(
+            scored_cell.diagnostics["judge"]["error_message"],
+            "Judge returned non-JSON output despite strict structured-output request.",
+        )
+        self.assertEqual(result.judge_records[0].judge_verdict, "unclear")
+        self.assertEqual(result.judge_records[0].rationale_label, "judge_error")
 
     def _loaded_run(self, *proposals: ProposalRecord) -> LoadedRun:
         return LoadedRun(

@@ -82,6 +82,18 @@ _REQUIRED_EVAL_PROVENANCE_FIELDS = (
 )
 
 
+def _normalize_optional_list(value: Any) -> list[Any]:
+    if value is None:
+        return []
+    return list(value)
+
+
+def _normalize_optional_dict(value: Any) -> dict[str, Any]:
+    if value is None:
+        return {}
+    return dict(value)
+
+
 def discover_run_directories(run_paths: list[Path], runs_root: Path | None) -> list[Path]:
     if run_paths and runs_root is not None:
         raise CliUsageError("Use either repeated --run values or --runs-root, not both.")
@@ -197,10 +209,10 @@ def _load_proposals(
                     state=_required_text(payload.get("state")),
                     support=payload.get("support"),
                     field_type=_required_text(payload.get("field_type")),
-                    allowed_values=list(payload.get("allowed_values", [])),
+                    allowed_values=_normalize_optional_list(payload.get("allowed_values")),
                     numeric_value_form=_required_text(payload.get("numeric_value_form")),
                     scoring_policy=_required_text(payload.get("scoring_policy")),
-                    aliases=dict(payload.get("aliases", {})),
+                    aliases=_normalize_optional_dict(payload.get("aliases")),
                     evidence_items=_extract_evidence_items(payload, sidecar_evidence),
                     row_index=_optional_int(payload.get("row_index")),
                     raw=payload,

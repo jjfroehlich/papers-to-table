@@ -80,6 +80,8 @@ The evaluator resolves a field type per cell and applies one of these scoring pa
 - numeric: deterministic normalization with global tolerance defaults and optional per-column overrides
 - text: judge-backed scoring by default, with deterministic override when explicitly configured
 
+When a text field uses judge-backed scoring and an individual judge request fails at runtime, the evaluator must preserve a per-cell output instead of aborting the whole run. That cell is recorded as unscored with `judge_verdict = "unclear"` and explicit judge-failure diagnostics.
+
 ### Join Handling
 
 For gold-present cells, the evaluator distinguishes at least these join outcomes:
@@ -123,6 +125,8 @@ Batch evaluation and `compare` write:
 - `runs_comparison.parquet`
 
 The CLI may also emit an optional JSON completion payload on stdout. File artifacts remain the canonical contract.
+
+Judge-backed text scoring failures must remain visible in file artifacts through `judge_records.jsonl`, `scored_cells.*`, and run summaries rather than terminating batch evaluation for otherwise valid run bundles.
 
 ## Reported Metrics
 

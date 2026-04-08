@@ -34,7 +34,7 @@ Override settings with:
 - `PAPER_EVAL_JUDGE_API_BASE`
 - `PAPER_EVAL_JUDGE_API_KEY`
 
-If judge-backed text scoring is needed and the judge is unavailable, evaluation fails explicitly.
+If judge-backed text scoring is needed and an individual judge request fails at runtime, the affected text cell is recorded as `unclear` with judge-failure diagnostics instead of aborting the full evaluation.
 
 When the configured judge model is not already active in LM Studio, the evaluator attempts to load it through LM Studio's model-management API before sending judge requests.
 
@@ -198,7 +198,7 @@ The evaluator resolves one scoring path per cell:
 - boolean: deterministic
 - categorical: deterministic with alias and `allowed_values` support
 - numeric: deterministic with global tolerances and optional per-column overrides
-- text: judge-backed by default, with explicit deterministic override support
+- text: judge-backed by default, with explicit deterministic override support; judge runtime failures degrade to `unclear` scored outputs with diagnostics
 
 ### Evidence
 

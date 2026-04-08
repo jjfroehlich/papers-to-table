@@ -7,6 +7,7 @@ from paper_eval.compare_structured import compare_boolean, compare_categorical, 
 from paper_eval.contracts import (
     GoldDataset,
     JudgeConfig,
+    JudgeResponse,
     LoadedRun,
     NumericTolerance,
     ResolvedFieldConfig,
@@ -456,7 +457,21 @@ def _score_text_cell(
         field_description=field_config.description,
         evidence_excerpt=_first_evidence_excerpt(proposal),
     )
-    judge_response = text_judge.judge(judge_request)
+    judge_failure_message = None
+    try:
+        judge_response = text_judge.judge(judge_request)
+    except EvaluationError as exc:
+        judge_failure_message = str(exc)
+        judge_response = JudgeResponse(
+            verdict="unclear",
+            rationale_label="judge_error",
+            metadata={
+                "provider": judge_config.provider,
+                "configured_model_id": judge_config.model_id,
+                "resolved_model_id": None,
+                "error_message": judge_failure_message,
+            },
+        )
     if judge_response.verdict not in {"correct", "incorrect", "unclear"}:
         raise EvaluationError(f"Unsupported judge verdict '{judge_response.verdict}'.")
     judge_record = judge_record_from_result(
@@ -472,6 +487,8 @@ def _score_text_cell(
         diagnostic_flags.append("judge_input_truncated")
     if judge_response.verdict == "unclear":
         diagnostic_flags.append("judge_verdict_unclear")
+    if judge_failure_message is not None:
+        diagnostic_flags.append("judge_request_failed")
     return (
         ScoredCell(
             record_kind="gold_cell",
@@ -515,6 +532,7 @@ def _score_text_cell(
                     "verdict": judge_response.verdict,
                     "rationale_label": judge_response.rationale_label,
                     "input_was_truncated": judge_request.was_truncated,
+                    "error_message": judge_failure_message,
                 },
                 "evidence": evidence_result.diagnostics,
             },

@@ -9,6 +9,18 @@ from paper_eval.contracts import ColumnSchema, EvaluatorSchema, NumericTolerance
 from paper_eval.errors import ContractError
 
 
+def _normalize_optional_list(value: Any) -> list[Any]:
+    if value is None:
+        return []
+    return list(value)
+
+
+def _normalize_optional_dict(value: Any) -> dict[str, Any]:
+    if value is None:
+        return {}
+    return dict(value)
+
+
 def _parse_numeric_tolerance(payload: dict[str, Any] | None) -> NumericTolerance | None:
     if not payload:
         return None
@@ -57,8 +69,8 @@ def load_schema(path: Path | None) -> EvaluatorSchema:
             name=column_name,
             field_type=item.get("field_type"),
             description=item.get("description"),
-            allowed_values=list(item.get("allowed_values", [])),
-            aliases=dict(item.get("aliases", {})),
+            allowed_values=_normalize_optional_list(item.get("allowed_values")),
+            aliases=_normalize_optional_dict(item.get("aliases")),
             scoring_policy=item.get("scoring_policy"),
             numeric_tolerance=_parse_numeric_tolerance(item.get("numeric_tolerance")),
         )

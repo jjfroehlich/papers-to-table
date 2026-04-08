@@ -113,6 +113,32 @@ class LoaderAndCliTests(unittest.TestCase):
             self.assertEqual(loaded.metadata.masked_table_hash, "masked-hash")
             self.assertEqual(loaded.metadata.masked_table_snapshot_path, "inputs/masked_working_table.xlsx")
 
+    def test_run_loader_normalizes_nullable_collection_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_dir = self._create_run_bundle(Path(temp_dir) / "run-a")
+            (run_dir / "proposals" / "proposals.jsonl").write_text(
+                json.dumps(
+                    {
+                        "run_id": "run-a",
+                        "row_id": "row-1",
+                        "column_name": "notes",
+                        "cell_id": "cell-1",
+                        "proposed_value": None,
+                        "state": "error",
+                        "field_type": None,
+                        "allowed_values": None,
+                        "aliases": None,
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            loaded = load_run(run_dir)
+
+            self.assertEqual(loaded.proposals[0].allowed_values, [])
+            self.assertEqual(loaded.proposals[0].aliases, {})
+
     def test_run_loader_invalid_json_has_explicit_message(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             run_dir = Path(temp_dir) / "run-a"
