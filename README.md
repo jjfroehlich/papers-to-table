@@ -17,7 +17,7 @@ Current runtime dependencies:
 
 ## When LM Studio Is Required
 
-LM Studio is only required when a scored field resolves to judge-backed text scoring.
+LM Studio is only required when a text field cannot be resolved by deterministic exact-match scoring and therefore still needs judge-backed text scoring.
 
 Defaults:
 
@@ -36,7 +36,7 @@ Override settings with:
 
 If judge-backed text scoring is needed and an individual judge request fails at runtime, the affected text cell is recorded as `unclear` with judge-failure diagnostics instead of aborting the full evaluation.
 
-When the configured judge model is not already active in LM Studio, the evaluator attempts to load it through LM Studio's model-management API before sending judge requests.
+When the configured judge model is not already active in LM Studio, the evaluator attempts to load it through LM Studio's model-management API before sending judge requests. The evaluator verifies judge-model readiness once per evaluation process and reuses that result instead of probing LM Studio before every scored cell.
 
 ## Inputs
 
@@ -198,7 +198,7 @@ The evaluator resolves one scoring path per cell:
 - boolean: deterministic
 - categorical: deterministic with alias and `allowed_values` support
 - numeric: deterministic with global tolerances and optional per-column overrides
-- text: judge-backed by default, with explicit deterministic override support; judge runtime failures degrade to `unclear` scored outputs with diagnostics
+- text: normalized exact matches are scored deterministically first; remaining text mismatches are judge-backed by default, with explicit deterministic override support; judge runtime failures degrade to `unclear` scored outputs with diagnostics
 
 ### Evidence
 

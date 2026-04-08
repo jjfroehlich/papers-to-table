@@ -136,6 +136,7 @@ def judge_record_from_result(
 class LMStudioTextJudge:
     def __init__(self, judge_config: JudgeConfig) -> None:
         self._judge_config = judge_config
+        self._verified_loaded_model_id: str | None = None
 
     def judge(self, judge_request: JudgeRequest) -> JudgeResponse:
         self._ensure_model_loaded(self._judge_config.model_id)
@@ -206,13 +207,17 @@ class LMStudioTextJudge:
         )
 
     def _ensure_model_loaded(self, model_id: str) -> None:
+        if self._verified_loaded_model_id == model_id:
+            return
         if self._is_model_loaded(model_id):
+            self._verified_loaded_model_id = model_id
             return
         self._load_model(model_id)
         if not self._is_model_loaded(model_id):
             raise EvaluationError(
                 f"LM Studio reported a successful load request for judge model '{model_id}', but the model is still not listed at the OpenAI-compatible models endpoint."
             )
+        self._verified_loaded_model_id = model_id
 
     def _is_model_loaded(self, model_id: str) -> bool:
         endpoint = (self._judge_config.api_base or DEFAULT_LM_STUDIO_API_BASE).rstrip("/") + "/models"

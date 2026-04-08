@@ -395,6 +395,49 @@ def _score_text_cell(
         "normalized_gold_text": normalized_gold,
         "normalized_proposed_text": normalized_proposed,
     }
+    if normalized_gold is not None and normalized_gold == normalized_proposed:
+        return (
+            ScoredCell(
+                record_kind="gold_cell",
+                run_id=loaded_run.metadata.run_id,
+                row_id=gold_cell.row_id,
+                column_name=gold_cell.column_name,
+                cell_id=proposal.cell_id,
+                gold_value=gold_cell.raw_value,
+                proposed_value=proposal.proposed_value,
+                field_type=field_config.field_type,
+                scoring_policy="deterministic",
+                is_gold_present=True,
+                is_gold_empty=False,
+                was_scored=True,
+                is_correct=True,
+                join_status="matched",
+                comparison_kind="text",
+                evidence_outcome=evidence_result.outcome,
+                proposal_count=1,
+                anchor_valid=evidence_result.anchor_valid,
+                evidence_present_but_unvalidated=evidence_result.evidence_present_but_unvalidated,
+                row_index=gold_cell.row_index,
+                normalized_gold=normalized_gold,
+                normalized_proposed=normalized_proposed,
+                judge_provider=None,
+                judge_configured_model_id=None,
+                judge_resolved_model_id=None,
+                judge_verdict=None,
+                judge_model_id=None,
+                judge_prompt_version=None,
+                judge_prompt_hash=None,
+                judge_temperature=None,
+                judge_input_hash=None,
+                diagnostic_flags=["text_exact_match_fast_path"],
+                diagnostics={
+                    "text": text_diagnostics,
+                    "evidence": evidence_result.diagnostics,
+                },
+                selected_proposal_state=proposal.state,
+            ),
+            None,
+        )
     if field_config.scoring_policy == "deterministic":
         is_correct = normalized_gold is not None and normalized_gold == normalized_proposed
         return (

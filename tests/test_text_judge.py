@@ -177,6 +177,45 @@ class LMStudioJudgeAdapterTests(unittest.TestCase):
         self.assertTrue(any(url.endswith("/chat/completions") for url in seen_urls))
         self.assertEqual(response.metadata["resolved_model_id"], "resolved-runtime-model")
 
+    def test_lm_studio_adapter_reuses_verified_model_without_repeat_probe(self) -> None:
+        judge_config = JudgeConfig(model_id="configured-model")
+        judge = LMStudioTextJudge(judge_config)
+        judge_request = build_judge_request(
+            judge_config=judge_config,
+            run_id="run-a",
+            row_id="row-1",
+            column_name="notes",
+            cell_id="cell-1",
+            gold_value="Gold answer",
+            proposed_value="Proposal answer",
+            field_description=None,
+            evidence_excerpt=None,
+        )
+        model_probe_count = {"count": 0}
+        completion_count = {"count": 0}
+
+        def fake_urlopen(request_obj):
+            if request_obj.full_url.endswith("/models"):
+                model_probe_count["count"] += 1
+                return _FakeHTTPResponse({"data": [{"id": "configured-model"}]})
+            if request_obj.full_url.endswith("/chat/completions"):
+                completion_count["count"] += 1
+                return _FakeHTTPResponse(
+                    {
+                        "model": "resolved-runtime-model",
+                        "choices": [{"message": {"content": '{"verdict":"correct","rationale_label":"semantic_match"}'}}],
+                        "usage": {"prompt_tokens": 10, "completion_tokens": 4, "total_tokens": 14},
+                    }
+                )
+            raise AssertionError(f"Unexpected URL {request_obj.full_url}")
+
+        with mock.patch("paper_eval.judge.request.urlopen", side_effect=fake_urlopen):
+            judge.judge(judge_request)
+            judge.judge(judge_request)
+
+        self.assertEqual(model_probe_count["count"], 1)
+        self.assertEqual(completion_count["count"], 2)
+
     def test_lm_studio_adapter_fails_truthfully_when_unavailable(self) -> None:
         judge_config = JudgeConfig(model_id="configured-model")
         judge = LMStudioTextJudge(judge_config)
@@ -208,7 +247,7 @@ class TextJudgeScoringTests(unittest.TestCase):
                 row_id="row-1",
                 column_name="notes",
                 cell_id="cell-notes-1",
-                proposed_value="expanded biological description",
+                proposed_value="expanded biology description with assay context",
                 field_type="text",
             )
         )
@@ -217,7 +256,7 @@ class TextJudgeScoringTests(unittest.TestCase):
                 row_id="row-1",
                 column_name="notes",
                 cell_id="cell-notes-1",
-                raw_value="Expanded biological description",
+                raw_value="Expanded biological description for the assay",
                 is_present=True,
             )
         )
@@ -306,6 +345,44 @@ class TextJudgeScoringTests(unittest.TestCase):
         with self.assertRaisesRegex(ContractError, "--judge-model"):
             score_run(loaded_run, gold, load_schema(None))
 
+    def test_exact_text_match_skips_judge_even_when_policy_defaults_to_judge(self) -> None:
+        loaded_run = self._loaded_run(
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="notes",
+                cell_id="cell-notes-1",
+                proposed_value="Expanded biological description",
+                field_type="text",
+            )
+        )
+        gold = self._gold_dataset(
+            GoldCell(
+                row_id="row-1",
+                column_name="notes",
+                cell_id="cell-notes-1",
+                raw_value="expanded   biological description",
+                is_present=True,
+            )
+        )
+        judge = FakeJudge(verdict="incorrect")
+
+        result = score_run(
+            loaded_run,
+            gold,
+            load_schema(None),
+            text_judge=judge,
+            judge_config=JudgeConfig(model_id="judge-model-1"),
+        )
+
+        self.assertEqual(len(judge.requests), 0)
+        self.assertEqual(len(result.judge_records), 0)
+        scored_cell = result.scored_cells[0]
+        self.assertTrue(scored_cell.was_scored)
+        self.assertTrue(scored_cell.is_correct)
+        self.assertEqual(scored_cell.scoring_policy, "deterministic")
+        self.assertIn("text_exact_match_fast_path", scored_cell.diagnostic_flags)
+
     def test_judge_request_is_bounded_and_marks_truncation(self) -> None:
         request = build_judge_request(
             judge_config=JudgeConfig(model_id="judge-model", max_value_chars=20, max_evidence_chars=12),
@@ -340,7 +417,7 @@ class TextJudgeScoringTests(unittest.TestCase):
                 row_id="row-1",
                 column_name="notes",
                 cell_id="cell-notes-1",
-                proposed_value="semantic equivalent",
+                proposed_value="semantic match with added context",
                 field_type="text",
             ),
         )
@@ -356,7 +433,7 @@ class TextJudgeScoringTests(unittest.TestCase):
                 row_id="row-1",
                 column_name="notes",
                 cell_id="cell-notes-1",
-                raw_value="Semantic equivalent",
+                raw_value="Semantically matching context",
                 is_present=True,
             ),
         )
@@ -387,7 +464,7 @@ class TextJudgeScoringTests(unittest.TestCase):
                 row_id="row-1",
                 column_name="notes",
                 cell_id="cell-notes-1",
-                proposed_value="semantic equivalent",
+                proposed_value="semantic match with added context",
                 field_type="text",
             )
         )
@@ -396,7 +473,7 @@ class TextJudgeScoringTests(unittest.TestCase):
                 row_id="row-1",
                 column_name="notes",
                 cell_id="cell-notes-1",
-                raw_value="Semantic equivalent",
+                raw_value="Semantically matching context",
                 is_present=True,
             )
         )
