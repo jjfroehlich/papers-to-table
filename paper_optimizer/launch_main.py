@@ -9,7 +9,16 @@ from typing import Any
 
 from .benchmarks import BenchmarkManifest
 from .contracts import Candidate, LaunchResult
-from .utils import deep_merge_dicts, read_json, set_nested_value, sha256_text, stable_json_dumps, utc_now_iso, write_json
+from .utils import (
+    deep_merge_dicts,
+    normalize_python_command_prefix,
+    read_json,
+    set_nested_value,
+    sha256_text,
+    stable_json_dumps,
+    utc_now_iso,
+    write_json,
+)
 
 
 class LaunchError(RuntimeError):
@@ -121,7 +130,7 @@ def _write_launch_metadata_files(
 
 
 def _build_real_main_command(main_cfg: dict[str, Any], resolved_config_path: Path, benchmark: BenchmarkManifest) -> tuple[list[str], str]:
-    command_prefix = list(
+    command_prefix = normalize_python_command_prefix(
         main_cfg.get(
             "command_prefix",
             [main_cfg.get("python_executable") or sys.executable, "-m", main_cfg.get("module", "backend.app.automation")],

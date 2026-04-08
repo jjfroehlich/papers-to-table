@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sys
 from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
@@ -69,6 +70,15 @@ def resolve_path_fields(payload: Any, *, base_dir: Path, field_names: set[str]) 
     if isinstance(payload, list):
         return [resolve_path_fields(item, base_dir=base_dir, field_names=field_names) for item in payload]
     return payload
+
+
+def normalize_python_command_prefix(command_prefix: list[str]) -> list[str]:
+    if not command_prefix:
+        return []
+    executable = Path(command_prefix[0]).name.lower()
+    if executable in {"python", "python.exe", "python3", "python3.exe", "py"}:
+        return [sys.executable, *command_prefix[1:]]
+    return list(command_prefix)
 
 
 def write_json(path: Path, data: Any) -> None:

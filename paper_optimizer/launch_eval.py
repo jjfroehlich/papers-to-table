@@ -9,7 +9,7 @@ from typing import Any
 
 from .benchmarks import BenchmarkManifest
 from .contracts import LaunchResult
-from .utils import read_json, utc_now_iso, write_json
+from .utils import normalize_python_command_prefix, read_json, utc_now_iso, write_json
 
 
 def _render_command(command_template: list[str], replacements: dict[str, str]) -> list[str]:
@@ -183,7 +183,7 @@ def launch_eval_app(
     if not gold_path:
         raise ValueError(f"Benchmark '{benchmark_id}' is missing gold_path required for eval")
 
-    command_prefix = list(
+    command_prefix = normalize_python_command_prefix(
         eval_cfg.get(
             "command_prefix",
             [eval_cfg.get("python_executable") or sys.executable, "-m", eval_cfg.get("module", "paper_eval")],
