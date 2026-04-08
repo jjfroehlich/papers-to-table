@@ -44,8 +44,8 @@ coverage/
 logs/
 *.log
 
-# # runs
-# runs/
+# runs
+runs/
 artifacts/
 # playwright runtime
 .playwright-runtime/
