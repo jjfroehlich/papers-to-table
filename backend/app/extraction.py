@@ -22,6 +22,7 @@ T066  – Verify mode uses same extraction path
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import pathlib
 import re
@@ -1465,7 +1466,7 @@ def persist_evidence(
     """Persist an evidence record as JSON under evidence/."""
     e_dir = _safe_run_subpath(run_dir, "evidence")
     e_dir.mkdir(parents=True, exist_ok=True)
-    path = _safe_run_subpath(run_dir, "evidence", f"{evidence.evidence_id}.json")
+    path = _safe_run_subpath(run_dir, "evidence", f"{_safe_evidence_filename(evidence.evidence_id)}.json")
     write_json(path, evidence.model_dump(mode="json"))
     return path
 
@@ -2426,6 +2427,20 @@ def _safe_run_subpath(run_dir: pathlib.Path, *parts: str) -> pathlib.Path:
     if path == base or base not in path.parents:
         raise ValueError("Artifact path must stay within the run directory.")
     return path
+
+
+def _safe_evidence_filename(evidence_id: str, max_len: int = 16) -> str:
+    """Return a deterministic short filename stem for persisted evidence."""
+    safe = re.sub(r'[\\/:*?"<>|]', "_", evidence_id)
+    safe = safe.replace(" ", "_")
+    safe = re.sub(r"_+", "_", safe).strip("._")
+    if not safe:
+        safe = "evidence"
+    if len(safe) <= max_len:
+        return safe
+    digest = hashlib.sha1(evidence_id.encode("utf-8")).hexdigest()[:10]
+    truncated = safe[:max_len].rstrip("._") or "evidence"
+    return f"{truncated}_{digest}"
 
 
 def make_blocked_proposal(

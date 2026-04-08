@@ -193,6 +193,34 @@ def create_masked_working_dataframe(
     }
 
 
+def build_eval_snapshot_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """Build an eval-ready table snapshot with stable join columns."""
+    from .ids import generate_row_id
+
+    snapshot_df = df.copy(deep=True)
+    row_indices = [int(row_idx) for row_idx in snapshot_df.index]
+    row_ids = [
+        generate_row_id(int(row_idx), str(snapshot_df.loc[row_idx].get("Title", "")))
+        for row_idx in snapshot_df.index
+    ]
+
+    snapshot_df.insert(0, "row_id", row_ids)
+    snapshot_df.insert(1, "row_index", row_indices)
+    return snapshot_df
+
+
+def persist_eval_table_snapshot(destination_path: str, snapshot_df: pd.DataFrame) -> None:
+    """Persist an eval-ready table snapshot with stable join columns."""
+    destination = pathlib.Path(destination_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+
+    if destination.suffix.lower() in (".xlsx", ".xlsm", ".xltx", ".xltm", ".xls"):
+        snapshot_df.to_excel(destination, index=False)
+        return
+
+    snapshot_df.to_csv(destination, index=False)
+
+
 def persist_table_snapshot(source_path: str, destination_path: str) -> None:
     destination = pathlib.Path(destination_path)
     destination.parent.mkdir(parents=True, exist_ok=True)

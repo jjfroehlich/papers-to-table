@@ -70,6 +70,8 @@ from backend.app.retrieval import (
     _tokenize,
     build_retrieval_query,
     build_chunks_from_parsed_doc,
+    load_retrieval_result,
+    persist_retrieval_result,
     retrieve,
     run_retrieval_for_cell,
     score_chunks,
@@ -421,6 +423,28 @@ class TestRetrievalChunks:
             assert c.retrieval_text != c.display_text, (
                 f"Chunk {c.chunk_id} should have different retrieval vs display text"
             )
+
+    def test_long_retrieval_filename_is_shortened_deterministically(self, run_dir: pathlib.Path):
+        import datetime
+
+        long_name = "what_predicts_activity_(e.g._accessible_-_active_in_MPRA_)"
+        result = RetrievalResult(
+            run_id="run_test",
+            pdf_id="paper_2",
+            column_name=long_name,
+            query="activity accessibility mpra",
+            top_k=1,
+            chunks=[],
+            retrieved_at=datetime.datetime.now().isoformat(),
+        )
+
+        path = persist_retrieval_result(run_dir, result)
+
+        assert path.exists()
+        assert len(path.stem) < len(long_name)
+        loaded = load_retrieval_result(run_dir, "paper_2", long_name)
+        assert loaded is not None
+        assert loaded.column_name == long_name
 
     def test_top_k_default(self, minimal_doc_dict: dict):
         """T047: top_k default is 6."""
@@ -816,7 +840,7 @@ class TestProviderCapabilities:
         assert mode.structured_output_reason == "json_schema_unsupported"
 
     @pytest.mark.asyncio
-    async def test_initialize_provider_allows_prompt_only_fallback_when_no_structured_mode(self):
+    async def test_initialize_provider_rejects_prompt_only_fallback_when_no_structured_mode(self):
         config = SimpleNamespace(token="lm_studio", base_url="http://localhost:1234")
         caps = ProviderCapabilities(
             supports_structured_output=False,
@@ -829,17 +853,14 @@ class TestProviderCapabilities:
             "probe_capabilities",
             new=AsyncMock(return_value=caps),
         ):
-            provider, mode = await initialize_provider(
-                config,
-                text_model_id="test-model",
-                vision_model_id=None,
-            )
-        assert isinstance(provider, LMStudioProvider)
-        assert mode.mode == "live_local"
-        assert mode.capabilities is not None
-        assert mode.capabilities.structured_output_mode == "none"
-        assert mode.structured_output_reason == "structured_modes_unavailable"
-        assert mode.structured_output_fallback_used is True
+            with pytest.raises(ProviderError) as exc:
+                await initialize_provider(
+                    config,
+                    text_model_id="test-model",
+                    vision_model_id=None,
+                )
+        assert getattr(exc.value, "reason", None) == "no_compatible_structured_mode"
+        assert "structured-output mode" in str(exc.value)
 
     @pytest.mark.asyncio
     async def test_chat_complete_structured_supports_json_object_mode(self):
@@ -1383,8 +1404,8 @@ class TestExtractionOrchestrator:
             text_model_id="test-model",
         )
         if proposal.evidence_ids:
-            ev_path = run_dir / "evidence" / f"{proposal.evidence_ids[0]}.json"
-            assert ev_path.exists()
+            persisted_ids = {ev.evidence_id for ev in load_evidence(run_dir)}
+            assert proposal.evidence_ids[0] in persisted_ids
 
     async def test_verify_mode_uses_same_extraction_path(
         self, run_dir: pathlib.Path, minimal_doc_dict: dict
@@ -2175,6 +2196,32 @@ class TestProposalPersistence:
         assert loaded_proposals[0].state == ProposalState.found
         assert len(loaded_evidence) == 1
         assert loaded_evidence[0].source_type == EvidenceSourceType.direct_quote
+
+    def test_long_evidence_filename_is_shortened_deterministically(self, run_dir: pathlib.Path):
+        import datetime
+
+        long_evidence_id = "ev_prop_run_20260408_110915_2es0wn_cell_482e9d1c5b38_1775646744681_p8c9n0oc"
+        ev = EvidenceRecord(
+            evidence_id=long_evidence_id,
+            run_id="run_test",
+            proposal_id="prop_roundtrip",
+            pdf_id="pdf_test",
+            source_type=EvidenceSourceType.direct_quote,
+            quote_text="test quote",
+            page_number=1,
+            anchor_confidence=1.0,
+            evidence_rank=1,
+            is_primary=True,
+            created_at=datetime.datetime.now().isoformat(),
+        )
+
+        path = persist_evidence(run_dir, ev)
+
+        assert path.exists()
+        assert len(path.stem) < len(long_evidence_id)
+        loaded_evidence = load_evidence(run_dir)
+        assert len(loaded_evidence) == 1
+        assert loaded_evidence[0].evidence_id == long_evidence_id
 
 
 # ===========================================================================

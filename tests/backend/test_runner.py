@@ -399,8 +399,11 @@ class TestRunPipeline:
         run_data = read_json(get_run_json_path(output_dir, run_id))
         input_summary = read_json(get_input_summary_path(output_dir, run_id))
         proposals = load_proposals(pathlib.Path(output_dir) / run_id)
+        gold_workbook_path = pathlib.Path(output_dir) / run_id / "inputs" / "gold_table.xlsx"
         masked_workbook_path = pathlib.Path(output_dir) / run_id / "inputs" / "masked_working_table.xlsx"
+        gold_sheet = openpyxl.load_workbook(gold_workbook_path).active
         masked_sheet = openpyxl.load_workbook(masked_workbook_path).active
+        gold_header_row = [cell.value for cell in gold_sheet[1]]
         header_row = [cell.value for cell in masked_sheet[1]]
         assay_column = header_row.index("assay") + 1
 
@@ -413,6 +416,8 @@ class TestRunPipeline:
         assert run_data["eval_artifacts"]["gold_table"]["source_reference"] == str(workbook_path)
         assert run_data["eval_artifacts"]["gold_table"]["snapshot_path"] == "inputs/gold_table.xlsx"
         assert run_data["eval_artifacts"]["masked_working_table"]["path"] == "inputs/masked_working_table.xlsx"
+        assert gold_header_row[:2] == ["row_id", "row_index"]
+        assert header_row[:2] == ["row_id", "row_index"]
         assert proposals[0].run_mode == "eval"
         assert proposals[0].prompt_hash == run_data["prompt_hash"]
         assert proposals[0].gold_table_hash == run_data["eval_artifacts"]["gold_table"]["content_hash"]
@@ -426,7 +431,9 @@ class TestRunPipeline:
         assert artifact_summary["proposal_metadata_coverage"]["masked_working_table_path_present"] == 1
 
         original_sheet = openpyxl.load_workbook(workbook_path).active
-        original_value = original_sheet.cell(row=2, column=assay_column).value
+        original_header_row = [cell.value for cell in original_sheet[1]]
+        original_assay_column = original_header_row.index("assay") + 1
+        original_value = original_sheet.cell(row=2, column=original_assay_column).value
         masked_value = masked_sheet.cell(row=2, column=assay_column).value
         assert original_value == "STARR-seq"
         assert masked_value in ("", None)
@@ -546,7 +553,7 @@ class TestRunPipeline:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_prompt_only_json_fallback_surfaces_provider_degraded_warning(self, tmp_path, monkeypatch):
+    async def test_prompt_only_provider_mode_fails_readiness_with_capability_mismatch(self, tmp_path, monkeypatch):
         respx.get("http://localhost:1234/v1/models").mock(
             return_value=httpx.Response(200, json={"data": [{"id": "qwen/qwen3-30b-a3b-2507"}]})
         )
@@ -555,7 +562,7 @@ class TestRunPipeline:
         output_dir = str(tmp_path / "runs")
         (tmp_path / "runs").mkdir(exist_ok=True)
 
-        monkeypatch.setattr("backend.app.runner.initialize_provider", _fake_initialize_provider_prompt_only)
+        monkeypatch.setattr("backend.app.runner.initialize_provider", _raise_no_compatible_structured_mode_error)
         monkeypatch.setattr("backend.app.runner.parse_pdf", _fake_parse_pdf)
         monkeypatch.setattr("backend.app.runner.run_matching", lambda **kwargs: [])
         monkeypatch.setattr("backend.app.runner.persist_match_artifacts", lambda *args, **kwargs: None)
@@ -565,22 +572,23 @@ class TestRunPipeline:
 
         run_data = read_json(get_run_json_path(output_dir, run_id))
         warnings = run_data.get("warnings", [])
-        degraded = [w for w in warnings if w.get("category") == "provider_degraded"]
-        assert len(degraded) >= 1
-        assert "prompt-only" in degraded[0].get("message", "")
-        assert degraded[0].get("context", {}).get("structured_output_reason") == "structured_backend_incompatible"
+        mismatch = [w for w in warnings if w.get("category") == "structured_mode_capability_mismatch"]
+        assert run_data["status"] == RunStatus.failed.value
+        assert len(mismatch) >= 1
+        assert "No compatible structured-output mode" in mismatch[0].get("message", "")
+        assert run_data.get("provider_readiness_reason") == "no_compatible_structured_mode"
         assert run_data.get("structured_output_mode") == "none"
         assert run_data.get("structured_output_reason") == "structured_backend_incompatible"
-        assert run_data.get("structured_output_fallback_used") is True
-        assert run_data.get("provider_readiness_reason") is None
+        assert run_data.get("structured_output_fallback_used") is False
 
         provider_mode = read_json(get_provider_mode_path(output_dir, run_id))
         assert provider_mode.get("structured_output_mode") == "none"
         assert provider_mode.get("structured_output_reason") == "structured_backend_incompatible"
-        assert provider_mode.get("structured_output_fallback_used") is True
+        assert provider_mode.get("readiness_reason") == "no_compatible_structured_mode"
+        assert provider_mode.get("structured_output_fallback_used") is False
 
         reviewer_summary = read_json(get_reviewer_summary_path(output_dir, run_id))
-        assert reviewer_summary.get("structured_output_reason") == "structured_backend_incompatible"
+        assert reviewer_summary.get("provider_readiness_reason") == "no_compatible_structured_mode"
 
     @pytest.mark.asyncio
     async def test_provider_init_model_unavailable_is_not_classified_as_unreachable(self, tmp_path, monkeypatch):
@@ -758,6 +766,23 @@ async def _raise_model_unavailable_error(*args, **kwargs):
     from backend.app.provider import ProviderError
 
     raise ProviderError("configured model not loaded", reason="model_unavailable")
+
+
+async def _raise_no_compatible_structured_mode_error(*args, **kwargs):
+    from backend.app.provider import ProviderError
+
+    raise ProviderError(
+        "Provider 'lm_studio' cannot run extraction for text model 'qwen/qwen3-30b-a3b-2507' without a compatible structured-output mode.",
+        reason="no_compatible_structured_mode",
+        details={
+            "capabilities": {
+                "structured_output_mode": "none",
+                "structured_output_reason": "structured_backend_incompatible",
+                "structured_output_error": "LM Studio rejected structured-output grammar/regex constraints: Failed to process regex",
+            },
+            "model_management": _fake_model_management_report(load_requested=True, reused=False),
+        },
+    )
 
 
 async def _fake_initialize_provider(*args, **kwargs):

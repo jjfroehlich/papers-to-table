@@ -12,6 +12,7 @@ Retrieval text separation is honest:
 
 from __future__ import annotations
 
+import hashlib
 import math
 import pathlib
 import re
@@ -29,11 +30,18 @@ _COUNT_LIKE_PATTERN = re.compile(r"(^\s*#)|\b(how many|number|count|total|sample
 SUPPORTED_RETRIEVAL_MODES = frozenset({"lexical", "hybrid_experimental"})
 
 
-def _safe_filename(name: str, max_len: int = 48) -> str:
+def _safe_filename(name: str, max_len: int = 16) -> str:
     """Return a filename-safe version of *name* for all platforms."""
     safe = _INVALID_FILENAME_CHARS.sub("_", name)
     safe = safe.replace(" ", "_")
-    return safe[:max_len]
+    safe = re.sub(r"_+", "_", safe).strip("._")
+    if not safe:
+        safe = "artifact"
+    if len(safe) <= max_len:
+        return safe
+    digest = hashlib.sha1(name.encode("utf-8")).hexdigest()[:10]
+    truncated = safe[:max_len].rstrip("._") or "artifact"
+    return f"{truncated}_{digest}"
 
 # ---------------------------------------------------------------------------
 # Retrieval chunk contract (T045)

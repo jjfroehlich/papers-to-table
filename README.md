@@ -484,7 +484,7 @@ If the provider is unavailable at startup, the configured model IDs do not exist
 Structured output behavior is negotiated per provider-model path:
 - Preferred: `json_schema`
 - Fallback: `json_object` (explicit degraded mode warning is recorded)
-- Bounded fallback when both structured modes are unavailable: prompt-only JSON mode with strict app-side parsing/validation and bounded retry/repair
+- If both structured modes are unavailable for the configured provider-model path, readiness fails before extraction begins
 
 When both text and vision models are configured, structured-output capability is tracked separately for the text path and the vision path.
 
@@ -497,7 +497,7 @@ Readiness and capability failures are classified separately in run artifacts and
 - Provider unreachable/unavailable
 - Model unavailable/not loaded
 - Negotiated `json_object` fallback (degraded but compatible)
-- Negotiated prompt-only JSON fallback when `json_schema/json_object` are unavailable (degraded but compatible)
+- No compatible structured-output mode for the configured provider-model path
 - Structured-output backend incompatibility when LM Studio rejects regex/grammar constraints for the active request shape
 
 ---

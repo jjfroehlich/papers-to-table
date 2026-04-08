@@ -2235,6 +2235,23 @@ async def initialize_provider(
         caps = await provider.probe_capabilities(text_model_id, vision_model_id)
         if isinstance(provider, LMStudioProvider):
             provider.set_capabilities(caps)
+        if caps.structured_output_mode == "none":
+            detail = (
+                caps.structured_output_error
+                or caps.structured_output_reason
+                or "No compatible structured-output mode was detected."
+            )
+            raise ProviderError(
+                (
+                    f"Provider '{config.token}' cannot run extraction for text model '{text_model_id}' "
+                    f"without a compatible structured-output mode. {detail}"
+                ),
+                reason="no_compatible_structured_mode",
+                details={
+                    "capabilities": caps.model_dump(mode="json"),
+                    "model_management": model_management,
+                },
+            )
         mode = provider.get_provider_mode(
             text_model_id=text_model_id,
             vision_model_id=vision_model_id,

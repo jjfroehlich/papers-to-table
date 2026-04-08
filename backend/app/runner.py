@@ -37,10 +37,12 @@ from .extraction import (
 )
 from .ids import generate_cell_id, generate_row_id, generate_run_id
 from .ingest import (
+    build_eval_snapshot_dataframe,
     create_masked_working_dataframe,
     get_eligible_cells,
     load_schema,
     load_table,
+    persist_eval_table_snapshot,
     persist_masked_working_copy,
     persist_table_snapshot,
     validate_metadata_columns,
@@ -935,9 +937,11 @@ async def run_pipeline(
         if config.eval_mode:
             gold_snapshot_path = run_dir / "inputs" / f"gold_table{pathlib.Path(config.table_path).suffix}"
             masked_path = run_dir / "inputs" / f"masked_working_table{pathlib.Path(config.table_path).suffix}"
-            persist_table_snapshot(config.table_path, str(gold_snapshot_path))
+            gold_snapshot_df = build_eval_snapshot_dataframe(df)
+            persist_eval_table_snapshot(str(gold_snapshot_path), gold_snapshot_df)
             masked_df, masking_summary = create_masked_working_dataframe(df, schema)
-            persist_masked_working_copy(config.table_path, str(masked_path), schema, masked_df)
+            masked_snapshot_df = build_eval_snapshot_dataframe(masked_df)
+            persist_eval_table_snapshot(str(masked_path), masked_snapshot_df)
             extraction_df = masked_df
             style_profile_df = masked_df
             run_data["eval_artifacts"] = {
@@ -1011,14 +1015,20 @@ async def run_pipeline(
                 "structured_backend_incompatible": "Structured-output backend incompatibility",
             }.get(provider_init_reason, "Provider unavailable")
 
+            capability_details = (
+                provider_init_details.get("capabilities")
+                if isinstance(provider_init_details, dict)
+                else None
+            ) or {}
+
             run_data["provider_mode"] = "unavailable"
             run_data["provider_readiness_error"] = provider_init_error
             run_data["provider_readiness_reason"] = provider_init_reason
-            run_data["structured_output_mode"] = "none"
-            run_data["structured_output_reason"] = None
+            run_data["structured_output_mode"] = capability_details.get("structured_output_mode", "none")
+            run_data["structured_output_reason"] = capability_details.get("structured_output_reason")
             run_data["structured_output_fallback_used"] = False
-            run_data["vision_structured_output_mode"] = None
-            run_data["vision_structured_output_reason"] = None
+            run_data["vision_structured_output_mode"] = capability_details.get("vision_structured_output_mode")
+            run_data["vision_structured_output_reason"] = capability_details.get("vision_structured_output_reason")
             write_json(
                 get_provider_mode_path(output_dir, run_id),
                 {
@@ -1027,11 +1037,12 @@ async def run_pipeline(
                     "mode": "unavailable",
                     "text_model_id": text_model_id,
                     "vision_model_id": vision_model_id,
-                    "structured_output_mode": "none",
-                    "structured_output_reason": None,
+                    "structured_output_mode": capability_details.get("structured_output_mode", "none"),
+                    "structured_output_reason": capability_details.get("structured_output_reason"),
                     "structured_output_fallback_used": False,
-                    "vision_structured_output_mode": None,
-                    "vision_structured_output_reason": None,
+                    "vision_structured_output_mode": capability_details.get("vision_structured_output_mode"),
+                    "vision_structured_output_reason": capability_details.get("vision_structured_output_reason"),
+                    "capabilities": capability_details or None,
                         "model_management": (
                             provider_init_details.get("model_management")
                             if isinstance(provider_init_details, dict)
