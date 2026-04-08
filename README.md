@@ -77,14 +77,15 @@ Prepared configs in `configs/`:
 
 - `compare_models_smoke.json`: small preflight compare that points the optimizer's `dev` split at the smoke fixture benchmark.
 - `compare_models_dev.json`: overnight compare of three explicit text models in this order: `qwen/qwen3.5-9b`, `google/gemma-4-26b-a4b`, `qwen/qwen3.5-35b-a3b`.
-- `compare_prompts_dev.json`: temporarily reduced to a disabled-tonight placeholder because only the `default` prompt bundle exists in the checked-in main repo.
-- `compare_retrieval_dev.json`: tonight's retrieval sweep on `google/gemma-4-26b-a4b` for `retrieval_top_k = 6 / 8 / 10`.
-- `optimize_overnight.json`: tonight's bounded optimize config fixed to `google/gemma-4-26b-a4b` with the requested deterministic search surface.
+- `compare_prompts_dev.json`: prompt-bundle compare between `default` and `evidence_strict`, materialized by `run_overnight.sh` onto the winner of the model-compare stage.
+- `compare_retrieval_dev.json`: retrieval sweep for `retrieval_top_k = 6 / 8 / 10`, materialized by `run_overnight.sh` onto the winner of the prompt-compare stage.
+- `optimize_overnight.json`: bounded optimize template whose baseline is materialized by `run_overnight.sh` from the retrieval-compare winner while keeping both prompt bundles live in the search space.
 
 Two repo-grounded TODOs remain before every config is trustworthy in production:
 
-- The checked-in main repo currently exposes only the `default` prompt bundle, so prompt comparison is skipped for tonight.
 - A distinct real holdout benchmark is still not configured, so tonight's configs intentionally skip holdout instead of pretending `dev == holdout`.
+
+The main repo now also includes a built-in `evidence_strict` prompt bundle. It tightens row-specific relevance, direct-evidence preference, and earlier `unclear` outcomes when support is weak or conflicting.
 
 ## Config model
 
@@ -110,6 +111,7 @@ Important current behavior:
 - `benchmarks.dev` drives compare and optimize decisions.
 - `benchmarks.holdout` is only used for post-study validation.
 - CLI commands now run an explicit preflight before launching work. Missing benchmark files, missing prompt bundles, invalid command prefixes, and missing metric mappings fail early.
+- Prepared overnight configs pass explicit eval-judge arguments so text scoring stays reproducible instead of depending on ambient eval defaults.
 
 For tonight's unattended runs, holdout is intentionally skipped and `diagnostics.verbose_provider_logging` is enabled in the main app's checked-in base config.
 
@@ -125,8 +127,9 @@ For tonight's unattended runs, holdout is intentionally skipped and `diagnostics
 
 1. smoke compare preflight
 2. overnight compare-model study
-3. Gemma retrieval sweep
-4. overnight optimize study on Gemma
+3. prompt compare on the model-compare winner
+4. retrieval sweep on the prompt-compare winner
+5. overnight optimize study on the retrieval-compare winner
 
 ### Recommended order
 
@@ -134,10 +137,9 @@ Run studies in this order:
 
 1. `compare_models_smoke.json`
 2. `compare_models_dev.json`
-3. `compare_retrieval_dev.json`
-4. `optimize_overnight.json`
-
-Skip `compare_prompts_dev.json` tonight.
+3. `compare_prompts_dev.json`
+4. `compare_retrieval_dev.json`
+5. `optimize_overnight.json`
 
 ### Exact Git Bash commands
 
@@ -153,7 +155,7 @@ Overnight compare of explicit models:
 PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash scripts/run_study.sh compare configs/compare_models_dev.json compare_models_dev
 ```
 
-Prompt-bundle compare after you have a real `evidence_strict` bundle:
+Prompt-bundle compare:
 
 ```bash
 PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash scripts/run_study.sh compare configs/compare_prompts_dev.json compare_prompts_dev
@@ -171,7 +173,7 @@ Direct optimize run from the prepared optimize template:
 PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash scripts/run_study.sh optimize configs/optimize_overnight.json optimize_overnight
 ```
 
-Recommended unattended wrapper that derives optimize from the compare winner:
+Recommended unattended wrapper that derives prompt, retrieval, and optimize stages from earlier winners:
 
 ```bash
 bash scripts/run_overnight.sh overnight_batch_01
@@ -190,6 +192,7 @@ Practical operator guidance for overnight runs:
 
 - Run the smoke compare first. If it fails, do not start the longer studies.
 - Set explicit `command_prefix` values if the optimizer, main app, and eval app do not share one Python environment.
+- Ensure LM Studio can serve both the extraction models and the eval judge model named in `eval_args`.
 - Keep `optimize.rounds` and `optimize.batch_size` bounded to match expected runtime.
 - Holdout is skipped for tonight. Do not call `validate-best` until you configure a real holdout split.
 
@@ -244,7 +247,6 @@ Each experiment directory contains:
 ## Known limitations
 
 - Confirmation reruns are still not implemented.
-- The checked-in repo does not currently include an `evidence_strict` prompt bundle.
 - A trustworthy real holdout split still needs to be configured before re-enabling overnight holdout validation.
 
 ## Verification snapshot

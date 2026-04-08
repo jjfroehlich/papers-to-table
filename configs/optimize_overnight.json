@@ -3,8 +3,8 @@
   "experiment_id": "optimize_overnight",
   "operator_todo": {
     "notes": [
-      "Optimize is fixed to google/gemma-4-26b-a4b for tonight's run.",
-      "evidence_strict is removed for tonight because the main repo currently exposes only the default prompt bundle.",
+      "run_overnight.sh materializes this config onto the winner of the preceding retrieval-compare stage.",
+      "The search space keeps both prompt bundles live so optimize can still challenge the incumbent on prompt choice.",
       "Skip holdout for tonight; add a real holdout split before re-enabling validate-best."
     ]
   },
@@ -25,7 +25,8 @@
   "compare_candidates": [],
   "search_space": {
     "prompt_bundle_ids": [
-      "default"
+      "default",
+      "evidence_strict"
     ],
     "text_model_ids": [
       "google/gemma-4-26b-a4b"
@@ -59,16 +60,26 @@
         "gold_path": "../../extract-structured-info-from-papers/tests/fixtures/tables/literature_fixture.xlsx",
         "eval_schema_path": "../../extract-structured-info-from-papers-eval/tests/fixtures/example_eval/schema.json",
         "main_args": [],
-        "eval_args": [],
+        "eval_args": [
+          "--judge-model",
+          "qwen/qwen3.5-35b-a3b",
+          "--judge-api-base",
+          "http://127.0.0.1:1234/v1"
+        ],
         "expected_items": 5
       },
       "bench_dev": {
         "table_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
-        "schema_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture_schema.csv",
+        "schema_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture_schema_improved.csv",
         "pdf_dir": "C:/Users/jonat/Desktop/202601_MPRA_table",
         "gold_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
         "main_args": [],
-        "eval_args": [],
+        "eval_args": [
+          "--judge-model",
+          "qwen/qwen3.5-35b-a3b",
+          "--judge-api-base",
+          "http://127.0.0.1:1234/v1"
+        ],
         "expected_items": 100
       }
     }

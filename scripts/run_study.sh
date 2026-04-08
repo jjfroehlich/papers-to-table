@@ -2,127 +2,92 @@
 
 set -euo pipefail
 
-if [[ $# -lt 2 || $# -gt 3 ]]; then
-  echo "Usage: bash scripts/run_study.sh <compare|optimize> <config-path> [label]" >&2
-  exit 2
-fi
-
-study_type="$1"
-config_path="$2"
-label="${3:-manual}"
-
-if [[ "$study_type" != "compare" && "$study_type" != "optimize" ]]; then
-  echo "study_type must be compare or optimize" >&2
-  exit 2
-fi
+study_type="${1:?usage: run_study.sh <compare|optimize> <config-path> [label]}"
+config_path="${2:?usage: run_study.sh <compare|optimize> <config-path> [label]}"
+label="${3:-study}"
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
-if [[ ! -f "$config_path" ]]; then
-  echo "Config file does not exist: $config_path" >&2
-  exit 2
-fi
-
-config_skip_holdout="$({
-  python - "$config_path" "$study_type" <<'PY'
-import json
-import sys
-from pathlib import Path
-
-config_path = Path(sys.argv[1])
-study_type = sys.argv[2]
-config = json.loads(config_path.read_text(encoding="utf-8"))
-benchmarks = config.get("benchmarks", {}) if isinstance(config.get("benchmarks"), dict) else {}
-compare_cfg = config.get("compare", {}) if isinstance(config.get("compare"), dict) else {}
-
-skip = False
-if "holdout" not in benchmarks:
-    skip = True
-elif study_type == "compare" and int(compare_cfg.get("holdout_top_k", 0) or 0) <= 0:
-    skip = True
-
-print("1" if skip else "0")
-PY
-} 2>/dev/null || printf '0')"
-
-timestamp="$(date +%Y%m%d_%H%M%S)"
+session_id="$(date +%Y%m%d_%H%M%S)"
 safe_label="$(printf '%s' "$label" | tr ' /:' '___')"
-run_name="${PAPER_OPTIMIZER_RUN_NAME:-${timestamp}_${study_type}_${safe_label}}"
+run_name="${PAPER_OPTIMIZER_RUN_NAME:-${session_id}_${study_type}_${safe_label}}"
 run_root="$repo_root/runs/$run_name"
 experiment_dir="$run_root/experiment"
 holdout_dir="$run_root/holdout"
-logs_dir="$repo_root/logs"
-log_file="$logs_dir/$run_name.log"
-optimizer_cmd="${PAPER_OPTIMIZER_CMD:-paper-optimizer}"
-optimizer_python="${PAPER_OPTIMIZER_PYTHON:-python}"
-skip_holdout="${PAPER_OPTIMIZER_SKIP_HOLDOUT:-0}"
+log_file="$repo_root/logs/${run_name}.log"
 metadata_file="$run_root/run_metadata.json"
+mkdir -p "$run_root" "$experiment_dir" "$repo_root/logs"
 
-if [[ "$config_skip_holdout" == "1" ]]; then
-  skip_holdout="1"
-fi
+optimizer_python="${PAPER_OPTIMIZER_PYTHON:-python}"
+status="running"
+holdout_status="not_run"
 
-optimizer_cmd_kind="direct"
-optimizer_cmd_display="$optimizer_cmd"
+write_metadata() {
+  "$optimizer_python" - "$metadata_file" <<'PY'
+import json
+import os
+import sys
 
-if [[ "$optimizer_cmd" != *"/"* && "$optimizer_cmd" != *"\\"* ]]; then
-  if ! command -v "$optimizer_cmd" >/dev/null 2>&1; then
-    if command -v "$optimizer_python" >/dev/null 2>&1; then
-      optimizer_cmd_kind="python-module"
-      optimizer_cmd_display="$optimizer_python -m paper_optimizer.cli"
-    else
-      echo "Optimizer command is not on PATH: $optimizer_cmd" >&2
-      echo "Fallback python is not on PATH either: $optimizer_python" >&2
-      exit 2
-    fi
-  fi
-elif [[ ! -x "$optimizer_cmd" && ! -f "$optimizer_cmd" ]]; then
-  echo "Optimizer command path does not exist: $optimizer_cmd" >&2
-  exit 2
-fi
-
-mkdir -p "$experiment_dir" "$logs_dir" "$run_root"
-
-exec > >(tee -a "$log_file") 2>&1
-
-cat > "$metadata_file" <<EOF
-{
-  "run_name": "${run_name}",
-  "study_type": "${study_type}",
-  "config_path": "${config_path}",
-  "experiment_dir": "${experiment_dir}",
-  "holdout_dir": "${holdout_dir}",
-  "log_file": "${log_file}"
+metadata_path = sys.argv[1]
+payload = {
+    "run_name": os.environ["RUN_NAME"],
+    "study_type": os.environ["STUDY_TYPE"],
+    "config_path": os.environ["CONFIG_PATH"],
+    "experiment_dir": os.environ["EXPERIMENT_DIR"],
+    "holdout_dir": os.environ["HOLDOUT_DIR"],
+    "log_file": os.environ["LOG_FILE"],
+    "status": os.environ["RUN_STATUS"],
+    "holdout_status": os.environ["HOLDOUT_STATUS"],
+    "skip_holdout": os.environ["SKIP_HOLDOUT"],
+    "exit_code": int(os.environ["EXIT_CODE"]),
 }
-EOF
+with open(metadata_path, "w", encoding="utf-8") as handle:
+    json.dump(payload, handle, indent=2, sort_keys=True)
+PY
+}
 
-echo "[$(date -Iseconds)] Starting $study_type study"
-echo "Config: $config_path"
-echo "Experiment dir: $experiment_dir"
-echo "Holdout dir: $holdout_dir"
-echo "Log file: $log_file"
-echo "Optimizer command: $optimizer_cmd_display"
+on_exit() {
+  local rc=$?
+  RUN_NAME="$run_name" \
+  STUDY_TYPE="$study_type" \
+  CONFIG_PATH="$config_path" \
+  EXPERIMENT_DIR="$experiment_dir" \
+  HOLDOUT_DIR="$holdout_dir" \
+  LOG_FILE="$log_file" \
+  RUN_STATUS="$status" \
+  HOLDOUT_STATUS="$holdout_status" \
+  SKIP_HOLDOUT="${PAPER_OPTIMIZER_SKIP_HOLDOUT:-0}" \
+  EXIT_CODE="$rc" \
+  write_metadata
+  exit "$rc"
+}
 
-if [[ "$optimizer_cmd_kind" == "python-module" ]]; then
-  "$optimizer_python" -m paper_optimizer.cli optimize --study-type "$study_type" --config "$config_path" --out "$experiment_dir"
-  "$optimizer_python" -m paper_optimizer.cli summarize --config "$config_path" --experiment "$experiment_dir"
-else
-  "$optimizer_cmd" optimize --study-type "$study_type" --config "$config_path" --out "$experiment_dir"
-  "$optimizer_cmd" summarize --config "$config_path" --experiment "$experiment_dir"
-fi
+trap on_exit EXIT
 
-if [[ "$skip_holdout" == "1" ]]; then
-  echo "[$(date -Iseconds)] Skipping holdout validation because PAPER_OPTIMIZER_SKIP_HOLDOUT=1"
-else
-  if [[ "$optimizer_cmd_kind" == "python-module" ]]; then
-    "$optimizer_python" -m paper_optimizer.cli validate-best --config "$config_path" --experiment "$experiment_dir" --out "$holdout_dir"
-  else
-    "$optimizer_cmd" validate-best --config "$config_path" --experiment "$experiment_dir" --out "$holdout_dir"
-  fi
-fi
+{
+  echo "[$(date -Iseconds)] Starting $study_type study"
+  echo "Config: $config_path"
+  echo "Experiment dir: $experiment_dir"
+  echo "Holdout dir: $holdout_dir"
+  echo "Log file: $log_file"
+  echo "Optimizer command: $optimizer_python -m paper_optimizer.cli"
 
-echo "[$(date -Iseconds)] Finished $study_type study"
-echo "Summary: $experiment_dir/summary.json"
-echo "Best candidate: $experiment_dir/best_candidate.json"
-echo "Run metadata: $metadata_file"
+  (
+    cd "$repo_root"
+    "$optimizer_python" -m paper_optimizer.cli optimize --study-type "$study_type" --config "$config_path" --out "$experiment_dir"
+    "$optimizer_python" -m paper_optimizer.cli summarize --config "$config_path" --experiment "$experiment_dir"
+    if [[ "${PAPER_OPTIMIZER_SKIP_HOLDOUT:-0}" == "1" ]]; then
+      holdout_status="skipped"
+      echo "[$(date -Iseconds)] Skipping holdout validation because PAPER_OPTIMIZER_SKIP_HOLDOUT=1"
+    else
+      "$optimizer_python" -m paper_optimizer.cli validate-best --config "$config_path" --experiment "$experiment_dir" --out "$holdout_dir"
+      holdout_status="completed"
+    fi
+  )
 
+  status="completed"
+  echo "[$(date -Iseconds)] Finished $study_type study"
+  echo "Summary: $experiment_dir/summary.json"
+  echo "Best candidate: $experiment_dir/best_candidate.json"
+  echo "Run metadata: $metadata_file"
+} 2>&1 | tee "$log_file"

@@ -3,13 +3,13 @@
   "experiment_id": "compare_prompts_dev",
   "operator_todo": {
     "notes": [
-      "Prompt compare is skipped for tonight because the main repo currently exposes only the default prompt bundle.",
-      "Reintroduce evidence_strict only after a real second prompt bundle exists under backend/app/prompt_bundles/."
+      "run_overnight.sh materializes this config onto the winner of the preceding model-compare stage.",
+      "This prompt compare is intentionally bounded to one alternative prompt bundle so the overnight run remains tractable."
     ]
   },
   "baseline_candidate": {
     "prompt_bundle_id": "default",
-    "text_model_id": "qwen/qwen3.5-9b",
+    "text_model_id": "google/gemma-4-26b-a4b",
     "vision_model_id": null,
     "optimizer_knobs": {
       "retrieval_top_k": 6,
@@ -24,7 +24,21 @@
   "compare_candidates": [
     {
       "prompt_bundle_id": "default",
-      "text_model_id": "qwen/qwen3.5-9b",
+      "text_model_id": "google/gemma-4-26b-a4b",
+      "vision_model_id": null,
+      "optimizer_knobs": {
+        "retrieval_top_k": 6,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 12000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false
+      }
+    },
+    {
+      "prompt_bundle_id": "evidence_strict",
+      "text_model_id": "google/gemma-4-26b-a4b",
       "vision_model_id": null,
       "optimizer_knobs": {
         "retrieval_top_k": 6,
@@ -39,10 +53,11 @@
   ],
   "search_space": {
     "prompt_bundle_ids": [
-      "default"
+      "default",
+      "evidence_strict"
     ],
     "text_model_ids": [
-      "qwen/qwen3.5-9b"
+      "google/gemma-4-26b-a4b"
     ],
     "vision_model_ids": [],
     "numeric_knobs": {
@@ -64,16 +79,26 @@
         "gold_path": "../../extract-structured-info-from-papers/tests/fixtures/tables/literature_fixture.xlsx",
         "eval_schema_path": "../../extract-structured-info-from-papers-eval/tests/fixtures/example_eval/schema.json",
         "main_args": [],
-        "eval_args": [],
+        "eval_args": [
+          "--judge-model",
+          "qwen/qwen3.5-35b-a3b",
+          "--judge-api-base",
+          "http://127.0.0.1:1234/v1"
+        ],
         "expected_items": 5
       },
       "bench_dev": {
         "table_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
-        "schema_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture_schema.csv",
+        "schema_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture_schema_improved.csv",
         "pdf_dir": "C:/Users/jonat/Desktop/202601_MPRA_table",
         "gold_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
         "main_args": [],
-        "eval_args": [],
+        "eval_args": [
+          "--judge-model",
+          "qwen/qwen3.5-35b-a3b",
+          "--judge-api-base",
+          "http://127.0.0.1:1234/v1"
+        ],
         "expected_items": 100
       }
     }

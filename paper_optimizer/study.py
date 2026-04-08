@@ -175,6 +175,10 @@ def run_compare_mode(config: dict[str, Any], benchmarks: Benchmarks, experiment_
                 "primary_metric": primary_metric,
                 "primary_metric_value": winner.primary_metrics.get(primary_metric),
                 "candidate_hash": winner.candidate_hash,
+                "text_model_id": winner.text_model_id,
+                "prompt_bundle_id": winner.prompt_bundle_id,
+                "vision_model_id": winner.vision_model_id,
+                "optimizer_knobs_flat": winner.optimizer_knobs_flat,
             }
         )
     writer.write_experiment_summary(

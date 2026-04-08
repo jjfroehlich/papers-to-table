@@ -94,16 +94,26 @@
         "gold_path": "../../extract-structured-info-from-papers/tests/fixtures/tables/literature_fixture.xlsx",
         "eval_schema_path": "../../extract-structured-info-from-papers-eval/tests/fixtures/example_eval/schema.json",
         "main_args": [],
-        "eval_args": [],
+        "eval_args": [
+          "--judge-model",
+          "qwen/qwen3.5-35b-a3b",
+          "--judge-api-base",
+          "http://127.0.0.1:1234/v1"
+        ],
         "expected_items": 5
       },
       "bench_dev": {
         "table_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
-        "schema_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture_schema.csv",
+        "schema_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture_schema_improved.csv",
         "pdf_dir": "C:/Users/jonat/Desktop/202601_MPRA_table",
         "gold_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
         "main_args": [],
-        "eval_args": [],
+        "eval_args": [
+          "--judge-model",
+          "qwen/qwen3.5-35b-a3b",
+          "--judge-api-base",
+          "http://127.0.0.1:1234/v1"
+        ],
         "expected_items": 100
       }
     }
