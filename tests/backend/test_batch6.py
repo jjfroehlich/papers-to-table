@@ -99,6 +99,26 @@ def _make_xlsx_table(tmp_path: pathlib.Path, rows: list[dict]) -> pathlib.Path:
     return path
 
 
+def _make_xlsx_table_with_inline_descriptions(
+    tmp_path: pathlib.Path,
+    descriptions: dict[str, str],
+    rows: list[dict],
+) -> pathlib.Path:
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    headers = list(rows[0].keys())
+    for ci, header in enumerate(headers, start=1):
+        ws.cell(row=1, column=ci, value=header)
+        ws.cell(row=2, column=ci, value=descriptions.get(header, ""))
+    for ri, row in enumerate(rows, start=3):
+        for ci, header in enumerate(headers, start=1):
+            ws.cell(row=ri, column=ci, value=row.get(header, ""))
+    path = tmp_path / "table_inline.xlsx"
+    wb.save(str(path))
+    return path
+
+
 def _make_proposal_and_accept(
     run_dir: pathlib.Path,
     run_id: str,
@@ -241,6 +261,34 @@ class TestGenerateXlsxExport:
         headers = [ws.cell(row=1, column=c).value for c in range(1, ws.max_column + 1)]
         method_col = headers.index("Method") + 1
         assert ws.cell(row=2, column=method_col).value == "PCR"
+
+    def test_inline_description_row_preserved_and_data_row_updated(self, tmp_path: pathlib.Path):
+        run_dir, run_id = _make_run(tmp_path)
+        table_path = _make_xlsx_table_with_inline_descriptions(
+            tmp_path,
+            descriptions={
+                "Title": "Exact title of the publication",
+                "Authors": "Full author list of the paper",
+                "Publication Year": "4-digit year of publication",
+                "Species": "Species of origin of the biological system being assayed",
+            },
+            rows=[
+                {"Title": "Paper A", "Authors": "Smith", "Publication Year": "2024", "Species": "human"},
+                {"Title": "Paper B", "Authors": "Jones", "Publication Year": "2023", "Species": "mouse"},
+            ],
+        )
+        _make_proposal_and_accept(run_dir, run_id, 0, "Paper A", "Species", "rat")
+        candidates = get_export_candidates(run_dir)
+
+        out = generate_xlsx_export(run_dir, candidates, str(table_path))
+        wb = openpyxl.load_workbook(str(out))
+        ws = wb.active
+        assert ws is not None
+
+        assert ws["D2"].value == "Species of origin of the biological system being assayed"
+        assert ws["D3"].value == "rat"
+        assert ws["D4"].value == "mouse"
+        assert ws["D3"].fill.fill_type == "solid"
 
     def test_accepted_with_edit_uses_edited_value(self, tmp_path: pathlib.Path):
         run_dir, run_id = _make_run(tmp_path)

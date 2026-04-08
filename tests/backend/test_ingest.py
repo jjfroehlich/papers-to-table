@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import csv
 import io
+import pathlib
 
+import openpyxl
 import pandas as pd
 import pytest
 
@@ -17,6 +19,7 @@ from backend.app.ingest import (
     load_table,
     validate_metadata_columns,
     validate_schema_columns,
+    xlsx_data_start_row,
 )
 
 FIXTURE_TABLE = "tests/fixtures/tables/literature_fixture.xlsx"
@@ -76,6 +79,71 @@ class TestLoadSchema:
         # No schema_path and no Schema sheet in XLSX
         schema = load_schema(None, str(tmp_path / "nonexistent.xlsx"))
         assert schema == []
+
+    def test_loads_improved_description_alias_from_csv(self, tmp_path: pathlib.Path):
+        schema_path = tmp_path / "schema.csv"
+        schema_path.write_text(
+            "column_name,improved_description\n"
+            "Species,Animal species used in the assay\n",
+            encoding="utf-8",
+        )
+
+        schema = load_schema(str(schema_path), str(tmp_path / "table.xlsx"))
+
+        assert schema == [
+            {
+                "column_name": "Species",
+                "description": "Animal species used in the assay",
+                "field_type": None,
+                "allowed_values": None,
+            }
+        ]
+
+    def test_loads_inline_schema_row_from_xlsx_when_no_schema_path(self, tmp_path: pathlib.Path):
+        workbook_path = tmp_path / "inline.xlsx"
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        assert sheet is not None
+        sheet.append(["Title", "Authors", "Publication Year", "Species", "Model system"])
+        sheet.append([
+            "Exact title of the publication",
+            "Full author list of the paper",
+            "4-digit year of publication",
+            "Species of origin of the biological system being assayed",
+            "Experimental system in which the assay was performed",
+        ])
+        sheet.append(["Paper A", "Smith", "2024", "human", "HEK293T"])
+        workbook.save(workbook_path)
+
+        schema = load_schema(None, str(workbook_path))
+
+        assert xlsx_data_start_row(str(workbook_path)) == 3
+        assert schema[0]["column_name"] == "Title"
+        assert schema[0]["description"] == "Exact title of the publication"
+        assert any(entry["column_name"] == "Species" for entry in schema)
+
+
+class TestInlineSchemaTableLayout:
+    def test_load_table_skips_inline_description_row(self, tmp_path: pathlib.Path):
+        workbook_path = tmp_path / "inline.xlsx"
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        assert sheet is not None
+        sheet.append(["Title", "Authors", "Publication Year", "Species"])
+        sheet.append([
+            "Exact title of the publication",
+            "Full author list of the paper",
+            "4-digit year of publication",
+            "Species of origin of the biological system being assayed",
+        ])
+        sheet.append(["Paper A", "Smith", "2024", "human"])
+        sheet.append(["Paper B", "Jones", "2023", "mouse"])
+        workbook.save(workbook_path)
+
+        df = load_table(str(workbook_path))
+
+        assert list(df["Title"]) == ["Paper A", "Paper B"]
+        assert xlsx_data_start_row(str(workbook_path)) == 3
 
 
 class TestValidateMetadataColumns:

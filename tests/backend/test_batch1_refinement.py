@@ -637,6 +637,7 @@ class TestExtractionRefinement:
         prompt = messages[1]["content"]
         assert "allowed_values: Rat, Mouse" in prompt
         assert "Whole-document rescue context" in prompt
+        assert "not evidence; do not copy into the answer" in prompt
 
 
 class TestReviewWarningTruth:

@@ -160,7 +160,7 @@ The canonical provider token is `lm_studio`. Tokens such as `lmstudio`, `LMStudi
 | Field | Description |
 |---|---|
 | `table_path` | Path to spreadsheet (XLSX or CSV) |
-| `schema_path` | Path to schema CSV (`column_name`, `description`, optional `field_type`, optional `allowed_values`) |
+| `schema_path` | Optional path to schema CSV (`column_name`, `description` or `improved_description`, optional `field_type`, optional `allowed_values`) |
 | `pdf_dir` | Directory containing PDF files |
 | `output_dir` | Where run artifacts are stored (default: `./runs`) |
 | `verify_mode` | If `true`, already-filled cells are also extraction targets |
@@ -178,7 +178,7 @@ The canonical provider token is `lm_studio`. Tokens such as `lmstudio`, `LMStudi
 | `parser.ocr_language` | OCR language code used when OCR is enabled |
 | `parser.allow_basic_fallback` | If `true`, allows basic text-extraction fallback when the configured parser path fails |
 | `matching.ambiguity_threshold` | Match-score gap threshold for deciding ambiguous-vs-matched outcomes |
-| `prompt.bundle` | Optional built-in prompt bundle name (`default` when omitted) |
+| `prompt.bundle` | Optional built-in prompt bundle name (`default` when omitted, `evidence_strict` for stricter row-specific evidence grounding) |
 | `prompt.bundle_path` | Optional explicit prompt bundle path (takes precedence over `prompt.bundle`) |
 | `diagnostics.verbose_provider_logging` | Enables detailed provider request diagnostics in run artifacts |
 | `diagnostics.provider_preview_chars` | Character limit for request/response previews in provider diagnostics |
@@ -192,6 +192,8 @@ The canonical provider token is `lm_studio`. Tokens such as `lmstudio`, `LMStudi
 | `retrieval.whole_document_max_chars` | Character cap for whole-document rescue context |
 
 The checked-in `config.example.json` intentionally includes only parameters currently wired into runtime behavior.
+
+If `schema_path` is omitted for an XLSX table, the app also supports inline column descriptions in the main worksheet: keep row 1 as column headers, row 2 as per-column descriptions, and start real paper rows on row 3.
 
 The following older knobs are omitted because they are not currently consumed by runtime logic:
 

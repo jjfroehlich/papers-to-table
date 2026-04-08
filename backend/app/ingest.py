@@ -14,11 +14,69 @@ TRIVIAL_PLACEHOLDERS = {"n/a", "na", "tbd", "tba", "unknown", "-", "--", "none",
 REQUIRED_METADATA_COLS = {"Title", "Authors", "Publication Year"}
 
 
+def _normalize_cell_text(value: object) -> str:
+    return str(value or "").strip()
+
+
+def _read_active_worksheet_rows(path: str, row_numbers: tuple[int, ...]) -> dict[int, list[str]]:
+    workbook = openpyxl.load_workbook(path, data_only=True)
+    try:
+        worksheet = workbook.worksheets[0]
+        return {
+            row_number: [_normalize_cell_text(cell.value) for cell in worksheet[row_number]]
+            for row_number in row_numbers
+        }
+    finally:
+        workbook.close()
+
+
+def _looks_like_inline_description_row(header_values: list[str], row_values: list[str]) -> bool:
+    header_set = {value for value in header_values if value}
+    described_columns = [value for value in row_values[: len(header_values)] if value]
+    if not header_set or len(described_columns) < max(3, len(header_set) // 2):
+        return False
+
+    metadata_expectations = {
+        "Title": {"title", "paper", "publication"},
+        "Authors": {"author", "authors", "publication"},
+        "Publication Year": {"year", "publication", "date"},
+    }
+    for metadata_column, expected_terms in metadata_expectations.items():
+        if metadata_column not in header_set:
+            continue
+        column_index = header_values.index(metadata_column)
+        if column_index >= len(row_values):
+            return False
+        description_text = row_values[column_index].lower()
+        if not description_text or not any(term in description_text for term in expected_terms):
+            return False
+
+    repeated_headers = 0
+    for header_value, row_value in zip(header_values, row_values):
+        if header_value and row_value and row_value.lower() == header_value.lower():
+            repeated_headers += 1
+    if repeated_headers > 1:
+        return False
+
+    return True
+
+
+def xlsx_data_start_row(path: str) -> int:
+    p = pathlib.Path(path)
+    if p.suffix.lower() not in (".xlsx", ".xlsm", ".xltx", ".xltm", ".xls") or not p.exists():
+        return 2
+    try:
+        rows = _read_active_worksheet_rows(path, (1, 2))
+    except Exception:
+        return 2
+    return 3 if _looks_like_inline_description_row(rows.get(1, []), rows.get(2, [])) else 2
+
+
 def load_table(path: str) -> pd.DataFrame:
     """Load table from CSV (BOM-safe) or XLSX, normalize missing values to empty string."""
     p = pathlib.Path(path)
     if p.suffix.lower() in (".xlsx", ".xls"):
-        df = pd.read_excel(path, dtype=str)
+        df = pd.read_excel(path, dtype=str, skiprows=[1] if xlsx_data_start_row(path) == 3 else None)
         for col in df.columns:
             df[col] = df[col].fillna("")
         return df
@@ -51,12 +109,39 @@ def _normalize_allowed_values(value: object) -> Optional[list[str]]:
 
 def _schema_row_to_dict(row: dict) -> dict:
     field_type = str(row.get("field_type", "") or "").strip() or None
+    description = _normalize_cell_text(
+        row.get("description")
+        or row.get("improved_description")
+        or row.get("column_description")
+    )
     return {
-        "column_name": str(row.get("column_name", "") or "").strip(),
-        "description": str(row.get("description", "") or "").strip(),
+        "column_name": _normalize_cell_text(row.get("column_name")),
+        "description": description,
         "field_type": field_type,
         "allowed_values": _normalize_allowed_values(row.get("allowed_values")),
     }
+
+
+def _load_inline_schema_from_table(table_path: str) -> list[dict]:
+    rows = _read_active_worksheet_rows(table_path, (1, 2))
+    header_values = rows.get(1, [])
+    row_values = rows.get(2, [])
+    if not _looks_like_inline_description_row(header_values, row_values):
+        return []
+
+    schema: list[dict] = []
+    for header_value, description in zip(header_values, row_values):
+        if not header_value or not description:
+            continue
+        schema.append(
+            {
+                "column_name": header_value,
+                "description": description,
+                "field_type": None,
+                "allowed_values": None,
+            }
+        )
+    return schema
 
 
 def load_schema(schema_path: Optional[str], table_path: str) -> list[dict]:
@@ -73,6 +158,12 @@ def load_schema(schema_path: Optional[str], table_path: str) -> list[dict]:
             df = pd.read_excel(table_path, sheet_name="Schema", dtype=str)
             if "column_name" in df.columns:
                 return [_schema_row_to_dict(r.to_dict()) for _, r in df.iterrows()]
+        except Exception:
+            pass
+        try:
+            inline_schema = _load_inline_schema_from_table(table_path)
+            if inline_schema:
+                return inline_schema
         except Exception:
             pass
     return []
@@ -255,7 +346,7 @@ def persist_masked_working_copy(
             column_index = header_map.get(column_name)
             if column_index is None:
                 continue
-            for row_index in range(2, worksheet.max_row + 1):
+            for row_index in range(xlsx_data_start_row(str(source)), worksheet.max_row + 1):
                 worksheet.cell(row=row_index, column=column_index).value = ""
         workbook.save(destination)
         return

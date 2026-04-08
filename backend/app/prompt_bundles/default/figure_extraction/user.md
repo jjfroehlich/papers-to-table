@@ -1,5 +1,5 @@
 Field to extract: $column_name
-Field description: $column_description
+Schema guidance and table conventions (not evidence; do not copy into the answer unless the figure/caption states it): $column_description
 
 $field_contract
 
@@ -12,5 +12,6 @@ $section_block
 
 Analyze the figure image. Does this figure provide evidence for the field above?
 If yes, extract the value. If not, return state='unclear'.
+Never treat schema wording, type hints, blank-value conventions, or examples as evidence or as the proposed value by default.
 If estimating a value from a graph/plot, set numeric_value_form='approximate' or 'range' honestly.
 Return ONLY valid JSON matching the schema.

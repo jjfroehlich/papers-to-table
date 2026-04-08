@@ -16,7 +16,7 @@ from openpyxl.utils import get_column_letter
 
 from .artifacts import read_json, write_json
 from .extraction import load_proposals
-from .ingest import load_table
+from .ingest import load_table, xlsx_data_start_row
 from .matching import load_unmatched, load_ambiguous, load_conflicts
 from .review import get_export_candidates, get_latest_decision
 from .schemas import ProposalState, SupportLabel, WarningCategory
@@ -219,8 +219,8 @@ def generate_xlsx_export(
 
     # Apply accepted changes and highlight
     for (row_index, col_name), export_value in changes.items():
-        # row_index is 0-based; xlsx row 1 = header, row 2 = first data row
-        xlsx_row = row_index + 2
+        # row_index is 0-based; data starts on row 2 normally or row 3 when row 2 stores inline descriptions.
+        xlsx_row = row_index + xlsx_data_start_row(str(source_path))
         col_idx = col_name_to_col_idx.get(col_name)
         if col_idx is None:
             continue
