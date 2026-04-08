@@ -1,6 +1,0 @@
-{
-  "benchmark_id": "bench_smoke",
-  "experiment_id": "compare_models_smoke",
-  "schema_version": "1.0",
-  "study_type": "compare"
-}

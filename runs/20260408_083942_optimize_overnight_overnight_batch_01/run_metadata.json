@@ -1,8 +1,0 @@
-{
-  "run_name": "20260408_083942_optimize_overnight_overnight_batch_01",
-  "study_type": "optimize",
-  "config_path": "/d/code/local/extract-structured-info-from-papers-optimizer/configs/optimize_overnight.json",
-  "experiment_dir": "/d/code/local/extract-structured-info-from-papers-optimizer/runs/20260408_083942_optimize_overnight_overnight_batch_01/experiment",
-  "holdout_dir": "/d/code/local/extract-structured-info-from-papers-optimizer/runs/20260408_083942_optimize_overnight_overnight_batch_01/holdout",
-  "log_file": "/d/code/local/extract-structured-info-from-papers-optimizer/logs/20260408_083942_optimize_overnight_overnight_batch_01.log"
-}

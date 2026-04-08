@@ -1,8 +1,0 @@
-{
-  "run_name": "20260407_233940_compare_smoke_models",
-  "study_type": "compare",
-  "config_path": "configs/compare_models_smoke.json",
-  "experiment_dir": "/d/code/local/extract-structured-info-from-papers-optimizer/runs/20260407_233940_compare_smoke_models/experiment",
-  "holdout_dir": "/d/code/local/extract-structured-info-from-papers-optimizer/runs/20260407_233940_compare_smoke_models/holdout",
-  "log_file": "/d/code/local/extract-structured-info-from-papers-optimizer/logs/20260407_233940_compare_smoke_models.log"
-}
