@@ -170,6 +170,14 @@ class TestWriteReadJson:
         result = read_json(p)
         assert result["text"] == "日本語テスト"
 
+    def test_tmp_name_does_not_inherit_long_target_name(self, tmp_path):
+        nested = tmp_path / ("nested_" * 8)
+        p = nested / ("x" * 80 + ".json")
+        write_json(p, {"ok": True})
+        assert p.exists()
+        tmp_files = list(nested.glob("*.tmp"))
+        assert tmp_files == []
+
 
 class TestJsonl:
     def test_append_and_read(self, tmp_path):

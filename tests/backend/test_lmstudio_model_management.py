@@ -111,6 +111,109 @@ async def test_loads_model_when_requested_model_is_not_currently_loaded():
 
 @pytest.mark.asyncio
 @respx.mock
+async def test_unloads_other_models_before_loading_new_model():
+    provider = LMStudioProvider(base_url="http://localhost:1234")
+    respx.get("http://localhost:1234/api/v1/models").mock(
+        side_effect=[
+            httpx.Response(
+                200,
+                json=_models_payload(
+                    loaded_instances=[],
+                ),
+            ),
+            httpx.Response(
+                200,
+                json={
+                    "models": [
+                        {
+                            "type": "llm",
+                            "key": "text-model",
+                            "max_context_length": 65536,
+                            "loaded_instances": [],
+                        },
+                        {
+                            "type": "llm",
+                            "key": "other-model",
+                            "max_context_length": 32768,
+                            "loaded_instances": [
+                                {"id": "other-instance", "config": {"context_length": 8192}}
+                            ],
+                        },
+                    ]
+                },
+            ),
+        ]
+    )
+    unload_route = respx.post("http://localhost:1234/api/v1/models/unload").mock(
+        return_value=httpx.Response(200, json={"instance_id": "other-instance"})
+    )
+    respx.post("http://localhost:1234/api/v1/models/load").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "type": "llm",
+                "instance_id": "text-model",
+                "load_time_seconds": 4.2,
+                "status": "loaded",
+                "load_config": {"context_length": 32000},
+            },
+        )
+    )
+
+    report = await provider.ensure_model_availability(
+        text_model_id="text-model",
+        text_working_context_budget=25000,
+        text_load_context_length=32000,
+        text_load_context_is_derived=False,
+    )
+
+    assert unload_route.called is True
+    assert report["unloads"]["attempted"][0]["instance_id"] == "other-instance"
+    assert report["unloads"]["succeeded"][0]["instance_id"] == "other-instance"
+    assert report["unloads"]["failed"] == []
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_does_not_unload_when_requested_model_is_already_reusable():
+    provider = LMStudioProvider(base_url="http://localhost:1234")
+    respx.get("http://localhost:1234/api/v1/models").mock(
+        side_effect=[
+            httpx.Response(
+                200,
+                json=_models_payload(
+                    loaded_instances=[
+                        {"id": "text-instance", "config": {"context_length": 32000}}
+                    ]
+                ),
+            ),
+            httpx.Response(
+                200,
+                json=_models_payload(
+                    loaded_instances=[
+                        {"id": "text-instance", "config": {"context_length": 32000}}
+                    ]
+                ),
+            ),
+        ]
+    )
+    unload_route = respx.post("http://localhost:1234/api/v1/models/unload").mock(
+        return_value=httpx.Response(200, json={"instance_id": "other-instance"})
+    )
+
+    report = await provider.ensure_model_availability(
+        text_model_id="text-model",
+        text_working_context_budget=25000,
+        text_load_context_length=32000,
+        text_load_context_is_derived=False,
+    )
+
+    assert unload_route.called is False
+    assert report["unloads"]["attempted"] == []
+
+
+@pytest.mark.asyncio
+@respx.mock
 async def test_loads_model_when_loaded_context_is_insufficient():
     provider = LMStudioProvider(base_url="http://localhost:1234")
     respx.get("http://localhost:1234/api/v1/models").mock(

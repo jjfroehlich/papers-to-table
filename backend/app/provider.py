@@ -566,6 +566,7 @@ class LMStudioProvider(ProviderAdapter):
             "models_list": 0,
             "model_management_list": 0,
             "model_management_load": 0,
+            "model_management_unload": 0,
             "completions_total": 0,
             "completions_text_raw": 0,
             "completions_text_structured": 0,
@@ -915,6 +916,54 @@ class LMStudioProvider(ProviderAdapter):
             )
         return summaries
 
+    @classmethod
+    def _loaded_instances_for_model_ids(
+        cls,
+        models_payload: dict[str, Any],
+        requested_model_ids: dict[str, Optional[int]],
+    ) -> set[str]:
+        keep_instance_ids: set[str] = set()
+        for model_id, required_load_context in requested_model_ids.items():
+            if not _has_explicit_model_id(model_id):
+                continue
+            model_entry = cls._find_requested_model(models_payload, model_id)
+            if model_entry is None:
+                continue
+            compatible = cls._find_compatible_loaded_instance(model_entry, required_load_context)
+            if compatible is None:
+                continue
+            instance_id = str(compatible.get("id") or "")
+            if instance_id:
+                keep_instance_ids.add(instance_id)
+        return keep_instance_ids
+
+    @classmethod
+    def _plan_model_unloads(
+        cls,
+        models_payload: dict[str, Any],
+        requested_model_ids: dict[str, Optional[int]],
+    ) -> list[dict[str, Any]]:
+        keep_instance_ids = cls._loaded_instances_for_model_ids(models_payload, requested_model_ids)
+        unloads: list[dict[str, Any]] = []
+        for model_entry in models_payload.get("models") or []:
+            if not isinstance(model_entry, dict):
+                continue
+            model_key = str(model_entry.get("key") or "")
+            for instance in model_entry.get("loaded_instances") or []:
+                if not isinstance(instance, dict):
+                    continue
+                instance_id = str(instance.get("id") or "")
+                if not instance_id or instance_id in keep_instance_ids:
+                    continue
+                unloads.append(
+                    {
+                        "instance_id": instance_id,
+                        "model_id": model_key,
+                        "context_length": cls._loaded_instance_context_length(instance),
+                    }
+                )
+        return unloads
+
     async def _list_rest_models(self) -> dict[str, Any]:
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
@@ -996,6 +1045,59 @@ class LMStudioProvider(ProviderAdapter):
                 request_kind=f"{role}_model_load",
                 structured_mode=None,
                 model_id=model_id,
+                duration_ms=duration_ms,
+                error=wrapped,
+            )
+            raise wrapped from error
+
+    async def _unload_model_via_rest(self, *, instance_id: str) -> dict[str, Any]:
+        payload = {"instance_id": instance_id}
+        load_started = perf_counter()
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                self._bump("http_total")
+                self._bump("model_management_unload")
+                resp = await client.post(self._rest_url("/api/v1/models/unload"), json=payload)
+            duration_ms = (perf_counter() - load_started) * 1000.0
+            if resp.status_code != 200:
+                message = (
+                    f"LM Studio failed to unload model instance '{instance_id}' via /api/v1/models/unload "
+                    f"(HTTP {resp.status_code}): {resp.text[:300]}"
+                )
+                error = ProviderError(message, reason="model_unload_failed")
+                self._record_exception_attempt(
+                    request_kind="model_unload",
+                    structured_mode=None,
+                    model_id=instance_id,
+                    duration_ms=duration_ms,
+                    error=error,
+                )
+                raise error
+            response_data = resp.json()
+            self._record_attempt(
+                request_kind="model_unload",
+                structured_mode=None,
+                model_id=instance_id,
+                outcome="success",
+                duration_ms=duration_ms,
+                http_status=resp.status_code,
+                raw_preview=resp.text,
+                phase="model_management",
+                payload_summary=self._summarize_payload(payload),
+            )
+            return response_data
+        except ProviderError:
+            raise
+        except Exception as error:
+            duration_ms = (perf_counter() - load_started) * 1000.0
+            wrapped = ProviderError(
+                f"LM Studio model unload request failed for instance '{instance_id}': {error}",
+                reason="model_unload_failed",
+            )
+            self._record_exception_attempt(
+                request_kind="model_unload",
+                structured_mode=None,
+                model_id=instance_id,
                 duration_ms=duration_ms,
                 error=wrapped,
             )
@@ -1115,9 +1217,47 @@ class LMStudioProvider(ProviderAdapter):
             "base_url": self._base_url,
             "text_model": None,
             "vision_model": None,
+            "unloads": {
+                "attempted": [],
+                "succeeded": [],
+                "failed": [],
+            },
             "recorded_at": datetime.now(timezone.utc).isoformat(),
         }
         try:
+            requested_model_ids = {
+                text_model_id: text_load_context_length,
+            }
+            if vision_model_id is not None and _has_explicit_model_id(vision_model_id):
+                requested_model_ids[vision_model_id] = vision_load_context_length
+
+            preflight_models = await self._list_rest_models()
+            keep_instance_ids = self._loaded_instances_for_model_ids(preflight_models, requested_model_ids)
+            unload_plan = self._plan_model_unloads(preflight_models, requested_model_ids)
+            if unload_plan and len(keep_instance_ids) < sum(
+                1
+                for model_id in requested_model_ids
+                if _has_explicit_model_id(model_id)
+            ):
+                report["unloads"]["attempted"] = unload_plan
+                for unload_item in unload_plan:
+                    try:
+                        response = await self._unload_model_via_rest(instance_id=unload_item["instance_id"])
+                        report["unloads"]["succeeded"].append(
+                            {
+                                **unload_item,
+                                "response_instance_id": response.get("instance_id"),
+                            }
+                        )
+                    except ProviderError as error:
+                        report["unloads"]["failed"].append(
+                            {
+                                **unload_item,
+                                "reason": getattr(error, "reason", None),
+                                "message": str(error),
+                            }
+                        )
+
             text_report = await self._ensure_role_model_ready(
                 role="text",
                 model_id=text_model_id,

@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import pathlib
+import tempfile
 from typing import Any
 
 
@@ -126,10 +127,23 @@ def init_run_bundle(output_dir: str, run_id: str) -> pathlib.Path:
 def write_json(path: pathlib.Path, data: Any) -> None:
     """Atomic write: write to .tmp then rename."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = path.with_suffix(path.suffix + ".tmp")
-    with open(tmp_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-    os.replace(tmp_path, path)
+    fd, tmp_name = tempfile.mkstemp(
+        prefix=".tmp-",
+        suffix=path.suffix or ".json",
+        dir=path.parent,
+        text=True,
+    )
+    tmp_path = pathlib.Path(tmp_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        os.replace(tmp_path, path)
+    except Exception:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+        raise
 
 
 def hash_file(path: pathlib.Path | str) -> str:

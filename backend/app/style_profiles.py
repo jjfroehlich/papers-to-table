@@ -12,6 +12,7 @@ Proposal content must remain grounded in the current PDF evidence.
 
 from __future__ import annotations
 
+import hashlib
 import pathlib
 import re
 from datetime import datetime, timezone
@@ -22,11 +23,18 @@ from pydantic import BaseModel
 _INVALID_FILENAME_CHARS = re.compile(r'[\\/:*?"<>|]')
 
 
-def _safe_filename(name: str, max_len: int = 64) -> str:
+def _safe_filename(name: str, max_len: int = 32) -> str:
     """Return a filename-safe version of *name* for all platforms."""
     safe = _INVALID_FILENAME_CHARS.sub("_", name)
     safe = safe.replace(" ", "_")
-    return safe[:max_len]
+    safe = re.sub(r"_+", "_", safe).strip("._")
+    if not safe:
+        safe = "column"
+    if len(safe) <= max_len:
+        return safe
+    digest = hashlib.sha1(name.encode("utf-8")).hexdigest()[:10]
+    truncated = safe[:max_len].rstrip("._") or "column"
+    return f"{truncated}_{digest}"
 
 from .artifacts import write_json
 from .prompts import load_prompt_text

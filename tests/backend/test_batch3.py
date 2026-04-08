@@ -317,7 +317,7 @@ class TestStyleProfileSchema:
         assert loaded is not None
         assert loaded.column_name == "Integration site"
         # T044: raw cell values must NOT appear in the persisted style profile file
-        path = run_dir / "style_profiles" / "Integration_site.json"
+        path = persist_style_profile(run_dir, profile)
         content = path.read_text()
         # These are raw cell values that were used for format analysis — must not persist
         assert "Tibial" not in content
@@ -343,6 +343,26 @@ class TestStyleProfileSchema:
         # Profiles must be persisted
         assert (run_dir / "style_profiles" / "Integration_site.json").exists()
         assert (run_dir / "style_profiles" / "Species.json").exists()
+
+    def test_long_style_profile_filename_is_shortened_deterministically(self, run_dir: pathlib.Path):
+        import datetime
+        long_name = "what_predicts_activity_(e.g._accessible_-_active_in_MPRA_)"
+        profile = StyleProfile(
+            column_name=long_name,
+            field_type_guess="text",
+            expected_length="short",
+            tone="technical",
+            detail_level="medium",
+            value_shape="free text",
+            generated_at=datetime.datetime.now().isoformat(),
+            source_column_count=2,
+        )
+        path = persist_style_profile(run_dir, profile)
+        assert path.exists()
+        assert len(path.stem) < len(long_name)
+        loaded = load_style_profile(run_dir, long_name)
+        assert loaded is not None
+        assert loaded.column_name == long_name
 
 
 # ===========================================================================
