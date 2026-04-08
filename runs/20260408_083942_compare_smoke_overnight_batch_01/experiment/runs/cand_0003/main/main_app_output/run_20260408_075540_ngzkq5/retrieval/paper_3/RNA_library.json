@@ -1,0 +1,370 @@
+{
+  "run_id": "run_20260408_075540_ngzkq5",
+  "pdf_id": "paper_3",
+  "column_name": "RNA library",
+  "query": "RNA library: How the RNA library is prepared when the assay is being conducted\nRetrieval hints: methods design library cloning construct",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_3_p4_39",
+      "source_block_id": "paper_3_p4_39",
+      "chunk_type": "paragraph",
+      "page_number": 4,
+      "reading_order": 39,
+      "display_text": "Among the 86 included TFs are many tissue-specific TFs. We therefore probed the reporter library in nine different cell lines from distinct tissues (Figure 1C). Since TF-binding specificities are highly conserved between human and mouse, 36,37 wetested the library in cell lines derived from both human ( n =7) and mouse ( n = 2). Furthermore, we extensively perturbed TF activities by (1) activating or inhibiting upstream signaling pathways ( n = 25) or (2) changing the TF abundance by overexpressing, knocking down or degrading individual TFs ( n = 73). We thus queried all 5,530 reporters across 98 TF perturbation conditions (Figure 1C; Table S2).",
+      "retrieval_text": "[Section: Systematic probing of a TF reporter library] Among the 86 included TFs are many tissue-specific TFs. We therefore probed the reporter library in nine different cell lines from distinct tissues (Figure 1C). Since TF-binding specificities are highly conserved between human and mouse, 36,37 wetested the library in cell lines derived from both human ( n =7) and mouse ( n = 2). Furthermore, we extensively perturbed TF activities by (1) activating or inhibiting upstream signaling pathways ( n = 25) or (2) changing the TF abundance by overexpressing, knocking down or degrading individual TFs ( n = 73). We thus queried all 5,530 reporters across 98 TF perturbation conditions (Figure 1C; Table S2).",
+      "bbox": [
+        304.15716528,
+        242.96561532921874,
+        543.24359978,
+        125.5621667292188
+      ],
+      "provenance": "docling",
+      "section_context": "Systematic probing of a TF reporter library",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p4_40",
+      "source_block_id": "paper_3_p4_40",
+      "chunk_type": "paragraph",
+      "page_number": 4,
+      "reading_order": 40,
+      "display_text": "(C) Experimental layout. The TF reporter plasmid library was probed in nine distinct cell lines and in 98 TF perturbation conditions. Barcodes are then counted per condition from RNA (reverse transcribed to cDNA) using high-throughput sequencing. To calculate reporter activities, RNA barcode counts were normalized to the input plasmid DNA barcode counts and then to the normalized median count of the TF-neg reporters.",
+      "retrieval_text": "[Section: Systematic probing of a TF reporter library] (C) Experimental layout. The TF reporter plasmid library was probed in nine distinct cell lines and in 98 TF perturbation conditions. Barcodes are then counted per condition from RNA (reverse transcribed to cDNA) using high-throughput sequencing. To calculate reporter activities, RNA barcode counts were normalized to the input plasmid DNA barcode counts and then to the normalized median count of the TF-neg reporters.",
+      "bbox": [
+        53.12119999999993,
+        101.35731614921872,
+        543.25799588,
+        75.98523698921872
+      ],
+      "provenance": "docling",
+      "section_context": "Systematic probing of a TF reporter library",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p4_41",
+      "source_block_id": "paper_3_p4_41",
+      "chunk_type": "paragraph",
+      "page_number": 4,
+      "reading_order": 41,
+      "display_text": "(D) Correlation of all reporter activities (i.e., activation compared with TF-neg reporters) measured in biological replicate 1 compared with replicate 2 of reporters with mutated TFBSs (gray) and consensus TFBSs (red). Reporter activities in all nine cell lines are displayed together.",
+      "retrieval_text": "[Section: Systematic probing of a TF reporter library] (D) Correlation of all reporter activities (i.e., activation compared with TF-neg reporters) measured in biological replicate 1 compared with replicate 2 of reporters with mutated TFBSs (gray) and consensus TFBSs (red). Reporter activities in all nine cell lines are displayed together.",
+      "bbox": [
+        53.12119999999993,
+        72.95442350921871,
+        543.18546836,
+        57.04997522921872
+      ],
+      "provenance": "docling",
+      "section_context": "Systematic probing of a TF reporter library",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_127",
+      "source_block_id": "paper_3_p15_127",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 127,
+      "display_text": "Materials availability",
+      "retrieval_text": "Materials availability",
+      "bbox": [
+        310.84719999999993,
+        613.9747478892189,
+        382.7101168600001,
+        608.9954546892188
+      ],
+      "provenance": "docling",
+      "section_context": "Materials availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_128",
+      "source_block_id": "paper_3_p15_128",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 128,
+      "display_text": "The TF reporter plasmid library generated in this study is available upon request.",
+      "retrieval_text": "[Section: Materials availability] The TF reporter plasmid library generated in this study is available upon request.",
+      "bbox": [
+        310.84719999999993,
+        604.5071170092189,
+        549.8755897600006,
+        588.6026687292189
+      ],
+      "provenance": "docling",
+      "section_context": "Materials availability",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_129",
+      "source_block_id": "paper_3_p15_129",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 129,
+      "display_text": "Data and code availability",
+      "retrieval_text": "Data and code availability",
+      "bbox": [
+        310.84719999999993,
+        575.0267722692189,
+        400.22760508000016,
+        570.0474790692189
+      ],
+      "provenance": "docling",
+      "section_context": "Data and code availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_131",
+      "source_block_id": "paper_3_p15_131",
+      "chunk_type": "list_item",
+      "page_number": 15,
+      "reading_order": 131,
+      "display_text": "d Original code and analysis pipelines are available at GitHub (https:// github.com/mtrauernicht/TF_MPRA). A released version of the GitHub repository is available at Zenodo (DOI is listed in the key resources table).",
+      "retrieval_text": "[Section: Data and code availability] d Original code and analysis pipelines are available at GitHub (https:// github.com/mtrauernicht/TF_MPRA). A released version of the GitHub repository is available at Zenodo (DOI is listed in the key resources table).",
+      "bbox": [
+        322.8094,
+        546.6800161492188,
+        549.9144384,
+        511.8403061092187
+      ],
+      "provenance": "docling",
+      "section_context": "Data and code availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_132",
+      "source_block_id": "paper_3_p15_132",
+      "chunk_type": "list_item",
+      "page_number": 15,
+      "reading_order": 132,
+      "display_text": "d RNA-seq of the mNPCs, mESCs, and HEPG2 cells is available at the Gene Expression Omnibus (accession number is listed in the key resources table).",
+      "retrieval_text": "[Section: Data and code availability] d RNA-seq of the mNPCs, mESCs, and HEPG2 cells is available at the Gene Expression Omnibus (accession number is listed in the key resources table).",
+      "bbox": [
+        322.8094,
+        508.8091161492187,
+        549.9165305400006,
+        483.4370369892187
+      ],
+      "provenance": "docling",
+      "section_context": "Data and code availability",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_133",
+      "source_block_id": "paper_3_p15_133",
+      "chunk_type": "list_item",
+      "page_number": 15,
+      "reading_order": 133,
+      "display_text": "d Raw sequencing data of the RNA-seq and all MPRAs is available at the Sequence Read Archive (accession number is listed in the key resources table).",
+      "retrieval_text": "[Section: Data and code availability] d Raw sequencing data of the RNA-seq and all MPRAs is available at the Sequence Read Archive (accession number is listed in the key resources table).",
+      "bbox": [
+        322.8094,
+        480.40591614921874,
+        549.9158331600006,
+        455.03383698921874
+      ],
+      "provenance": "docling",
+      "section_context": "Data and code availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p16_148",
+      "source_block_id": "paper_3_p16_148",
+      "chunk_type": "list_item",
+      "page_number": 16,
+      "reading_order": 148,
+      "display_text": "B TF reporter library design",
+      "retrieval_text": "[Section: Article] B TF reporter library design",
+      "bbox": [
+        76.989,
+        673.2752161492187,
+        164.5850609399999,
+        666.8383987492188
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p16_149",
+      "source_block_id": "paper_3_p16_149",
+      "chunk_type": "list_item",
+      "page_number": 16,
+      "reading_order": 149,
+      "display_text": "B Cloning of the TF reporter library",
+      "retrieval_text": "[Section: Article] B Cloning of the TF reporter library",
+      "bbox": [
+        76.989,
+        663.8074161492187,
+        187.34614937999987,
+        657.3705987492187
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p16_150",
+      "source_block_id": "paper_3_p16_150",
+      "chunk_type": "list_item",
+      "page_number": 16,
+      "reading_order": 150,
+      "display_text": "B Reporter library transfection and pathway perturbations",
+      "retrieval_text": "[Section: Article] B Reporter library transfection and pathway perturbations",
+      "bbox": [
+        76.989,
+        654.3398161492188,
+        258.87153431999974,
+        647.9029987492188
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p22_240",
+      "source_block_id": "paper_3_p22_240",
+      "chunk_type": "paragraph",
+      "page_number": 22,
+      "reading_order": 240,
+      "display_text": "inactive. 32 For each TF, this TFBS-devoid core promoter was attached to one reporter design only (background #4, promoter distance 21 bp). Second, two different positive controls were included to benchmark the expression levels of the synthetic TF reporters: 1) a 183-bp region of the hPGK promoter, and 2) 120 (40 for each of the three core promoters minP, minCMV, and minHBG) 100-bp regions of Klf2 gene enhancers with known activity in reporter assays. 35 Each of these control reporters were also linked to five to eight different barcodes. All reporter sequences were completed with 18 bp primer adapter sequences (that were also scanned using FIMO) in both flanks for cloning purposes. The final pool of sequences was again scanned for quality checks with FIMO, and individual reporters were checked for specific motif matches sequences with MoLoTool. 54 The resulting sequence pool had a total length of on average 202 bp (at least 148 bp up to 297 bp) and was ordered as oligonucleotide library from Twist Biosciences.",
+      "retrieval_text": "[Section: Article] inactive. 32 For each TF, this TFBS-devoid core promoter was attached to one reporter design only (background #4, promoter distance 21 bp). Second, two different positive controls were included to benchmark the expression levels of the synthetic TF reporters: 1) a 183-bp region of the hPGK promoter, and 2) 120 (40 for each of the three core promoters minP, minCMV, and minHBG) 100-bp regions of Klf2 gene enhancers with known activity in reporter assays. 35 Each of these control reporters were also linked to five to eight different barcodes. All reporter sequences were completed with 18 bp primer adapter sequences (that were also scanned using FIMO) in both flanks for cloning purposes. The final pool of sequences was again scanned for quality checks with FIMO, and individual reporters were checked for specific motif matches sequences with MoLoTool. 54 The resulting sequence pool had a total length of on average 202 bp (at least 148 bp up to 297 bp) and was ordered as oligonucleotide library from Twist Biosciences.",
+      "bbox": [
+        53.1212,
+        683.0413815492187,
+        543.2460886200004,
+        596.7938079292188
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p22_241",
+      "source_block_id": "paper_3_p22_241",
+      "chunk_type": "section",
+      "page_number": 22,
+      "reading_order": 241,
+      "display_text": "Cloning of the TF reporter library",
+      "retrieval_text": "Cloning of the TF reporter library",
+      "bbox": [
+        53.12212701999999,
+        582.6696971492188,
+        192.2563466599999,
+        576.6234023492187
+      ],
+      "provenance": "docling",
+      "section_context": "Cloning of the TF reporter library",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p22_242",
+      "source_block_id": "paper_3_p22_242",
+      "chunk_type": "paragraph",
+      "page_number": 22,
+      "reading_order": 242,
+      "display_text": "The vector backbone was constructed as mentioned previously. 32 The oligonucleotide library was resuspended in TE buffer (Invitrogen) to a final concentration of 20 ng/ m l. 10 ng of the oligonucleotide library was then PCR amplified (1' 95 \u000e C, 6x(15'' 95 \u000e C, 15'' 57 \u000e C, 15'' 72 \u000e C), 1' 72 \u000e C) by MyTaq Red mix (Bioline) using primers that add overhangs with EcoRI (MT024) or NheI (MT025) restriction enzyme sites. The PCR product was then purified using CleanPCR beads (#CPCR, CleanNA) at 1.8:1 beads:sample ratio, digested with EcoRI-HF (#R3101, NEB) and NheI-HF (#3131, NEB) by incubating the PCR product at 37 \u000e Cfor 1 h, and then again bead purified as before. 1 m g of the entry vector was also digested with EcoRI-HF and NheI-HF and the linearized product was purified from a 2% agarose gel using PCR Isolate II PCR and Gel Kit (Bioline). The digested and purified reporter pool was then ligated into 80 ng of the linearized entry vector using Takara ligation kit v1.0 (#6021; Takara) at a 1:3 (vector:insert) ratio. The ligation mix was then bead purified as before and transformed into MegaX DH10B T1R Electrocomp Ô Cells (Invitrogen) using 1 m l of the ligation mix. The library complexity was estimated from plated serial dilutions of the transformed cells to be \u0018 300,000 colony forming units. Transformed cells were transferred to 200 ml standard Luria Broth (LB) plus kanamycin (50 m g/ml), grown overnight and purified using a Maxi plasmid purification kit (#12162; Qiagen).",
+      "retrieval_text": "[Section: Cloning of the TF reporter library] The vector backbone was constructed as mentioned previously. 32 The oligonucleotide library was resuspended in TE buffer (Invitrogen) to a final concentration of 20 ng/ m l. 10 ng of the oligonucleotide library was then PCR amplified (1' 95 \u000e C, 6x(15'' 95 \u000e C, 15'' 57 \u000e C, 15'' 72 \u000e C), 1' 72 \u000e C) by MyTaq Red mix (Bioline) using primers that add overhangs with EcoRI (MT024) or NheI (MT025) restriction enzyme sites. The PCR product was then purified using CleanPCR beads (#CPCR, CleanNA) at 1.8:1 beads:sample ratio, digested with EcoRI-HF (#R3101, NEB) and NheI-HF (#3131, NEB) by incubating the PCR product at 37 \u000e Cfor 1 h, and then again bead purified as before. 1 m g of the entry vector was also digested with EcoRI-HF and NheI-HF and the linearized product was purified from a 2% agarose gel using PCR Isolate II PCR and Gel Kit (Bioline). The digested and purified reporter pool was then ligated into 80 ng of the linearized entry vector using Takara ligation kit v1.0 (#6021; Takara) at a 1:3 (vector:insert) ratio. The ligation mix was then bead purified as before and transformed into MegaX DH10B T1R Electrocomp Ô Cells (Invitrogen) using 1 m l of the ligation mix. The library complexity was estimated from plated serial dilutions of the transformed cells to be \u0018 300,000 colony forming units. Transformed cells were transferred to 200 ml standard Luria Broth (LB) plus kanamycin (50 m g/ml), grown overnight and purified using a Maxi plasmid purification kit (#12162; Qiagen).",
+      "bbox": [
+        53.12157596,
+        573.4539815492187,
+        543.2640757600004,
+        443.3825667292188
+      ],
+      "provenance": "docling",
+      "section_context": "Cloning of the TF reporter library",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p23_254",
+      "source_block_id": "paper_3_p23_254",
+      "chunk_type": "section",
+      "page_number": 23,
+      "reading_order": 254,
+      "display_text": "RNA-seq data generation",
+      "retrieval_text": "RNA-seq data generation",
+      "bbox": [
+        59.755408120000034,
+        396.37679714921876,
+        165.81961311999999,
+        390.33050234921876
+      ],
+      "provenance": "docling",
+      "section_context": "RNA-seq data generation",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p23_255",
+      "source_block_id": "paper_3_p23_255",
+      "chunk_type": "paragraph",
+      "page_number": 23,
+      "reading_order": 255,
+      "display_text": "For mNPCs, 1x10 6 mNPCs were collected on two separate days and resuspended in 600 m l RLT buffer (#79216, Qiagen). RNA was isolated using RNeasy column purification (#74104, Qiagen). For mESCs and HEPG2 cells, cells were transfected as mentioned in the ''reporter library transfection and pathway perturbations'' section, and for the KD conditions treated as mentioned in the ''siRNA TF knockdown experiments'' section, after which RNA was isolated as mentioned in the ''RNA extraction, reverse transcription and barcode amplification'' section. Sequencing libraries were prepared using TruSeq polyA stranded mRNA library prep kit (#20020595, Illumina) and sequenced on a NovaSeq 6000 with 51 bp paired-end reads yielding 20x10 6 reads per sample.",
+      "retrieval_text": "[Section: RNA-seq data generation] For mNPCs, 1x10 6 mNPCs were collected on two separate days and resuspended in 600 m l RLT buffer (#79216, Qiagen). RNA was isolated using RNeasy column purification (#74104, Qiagen). For mESCs and HEPG2 cells, cells were transfected as mentioned in the ''reporter library transfection and pathway perturbations'' section, and for the KD conditions treated as mentioned in the ''siRNA TF knockdown experiments'' section, after which RNA was isolated as mentioned in the ''RNA extraction, reverse transcription and barcode amplification'' section. Sequencing libraries were prepared using TruSeq polyA stranded mRNA library prep kit (#20020595, Illumina) and sequenced on a NovaSeq 6000 with 51 bp paired-end reads yielding 20x10 6 reads per sample.",
+      "bbox": [
+        59.75405467999991,
+        387.16108154921875,
+        549.9154880000002,
+        322.79678916921875
+      ],
+      "provenance": "docling",
+      "section_context": "RNA-seq data generation",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p23_256",
+      "source_block_id": "paper_3_p23_256",
+      "chunk_type": "section",
+      "page_number": 23,
+      "reading_order": 256,
+      "display_text": "QUANTIFICATION AND STATISTICAL ANALYSIS",
+      "retrieval_text": "QUANTIFICATION AND STATISTICAL ANALYSIS",
+      "bbox": [
+        59.75480104000002,
+        308.7295953092188,
+        259.79739599999994,
+        302.6833005092188
+      ],
+      "provenance": "docling",
+      "section_context": "QUANTIFICATION AND STATISTICAL ANALYSIS",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical_with_hints",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [
+      "methods_or_library"
+    ],
+    "hint_terms": [
+      "methods",
+      "design",
+      "library",
+      "cloning",
+      "construct"
+    ]
+  },
+  "stats": {
+    "chunk_build_ms": 1.459,
+    "idf_build_ms": 5.693,
+    "scoring_ms": 8.218,
+    "total_ms": 20.226,
+    "chunk_count_total": 269,
+    "chunk_count_by_type": {
+      "section": 59,
+      "list_item": 95,
+      "paragraph": 102,
+      "caption": 8,
+      "table_region": 5
+    },
+    "candidate_chunk_count": 269,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 12,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T09:49:18.577186+00:00"
+}

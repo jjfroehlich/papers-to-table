@@ -1,0 +1,322 @@
+{
+  "run_id": "run_20260408_075540_ngzkq5",
+  "pdf_id": "paper_1",
+  "column_name": "library seq",
+  "query": "library seq: How the MPRA library is sequenced (e.g. to associate barcodes with sequences), before it is delivered to the cells\nRetrieval hints: sequences pairs combinations plasmids barcodes methods design library cloning construct",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_1_p2_18",
+      "source_block_id": "paper_1_p2_18",
+      "chunk_type": "section",
+      "page_number": 2,
+      "reading_order": 18,
+      "display_text": "Optimization of lentiMPRA",
+      "retrieval_text": "Optimization of lentiMPRA",
+      "bbox": [
+        39.685001373,
+        507.8899306640312,
+        166.84352637299995,
+        498.86696498780174
+      ],
+      "provenance": "docling",
+      "section_context": "Optimization of lentiMPRA",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p2_19",
+      "source_block_id": "paper_1_p2_19",
+      "chunk_type": "paragraph",
+      "page_number": 2,
+      "reading_order": 19,
+      "display_text": "To scale up lentiMPRA 10,14 , we revised our established protocol to add random barcodes to the assayed sequences during the library amplification step along with the minimal promoter 16 (Extended Data Fig. 1a). Subsequently, element-barcode associations were reconstructed through sequencing (Extended Data Fig. 1b) and analysed with MPRAflow 16 . To evaluate the robustness of this revised lentiMPRA approach, we designed two pilot libraries (Supplementary Fig. 1a). As DNase accessibility, centred on the midpoint of a peak, has been shown to be a good predictor of regulatory elements 17  and MPRA activity 13,18 , we used it as our main selection criteria for cCREs. The first pilot library encompassed 9,372 elements in HepG2 cells and consisted of: (1) 9,172 cCREs, centred at DNase hypersensitivity peaks that did not overlap promoters; (2) 50 positive and 50 negative controls of synthetically engineered sequences (that is, engineered to have multiple binding sites for known transcription factors or no known binding sites, respectively) 19 ; and (3) 50 positive and 50 negative controls of naturally occurring enhancers (sequences observed to exhibit high and low enhancer activity, respectively) 10 . The second pilot library encompassed 7,500 elements in K562 cells and consisted of: (1) 6,394 cCREs, centred at DNase hypersensitivity peaks that did not overlap promoters; (2) 290 positive and 276 negative controls, identified by coupling CRISPR interference (CRISPRi) to single cell RNA-sequencing measurements to identify functional enhancer-gene pairs 20 ; (3) 250 negative controls derived from dinucleotide shuffling cCREs randomly selected from our library; (4) 50 positive and 200 negative controls of naturally occurring enhancers (sequences observed to exhibit high and low enhancer activity, respectively) 18 ; and (5) 24 positive and 16 negative manually selected controls in loci of interest such as α-globin, β-globin, GATA1 and MYC 21 (Supplementary Table 1).",
+      "retrieval_text": "[Section: Optimization of lentiMPRA] To scale up lentiMPRA 10,14 , we revised our established protocol to add random barcodes to the assayed sequences during the library amplification step along with the minimal promoter 16 (Extended Data Fig. 1a). Subsequently, element-barcode associations were reconstructed through sequencing (Extended Data Fig. 1b) and analysed with MPRAflow 16 . To evaluate the robustness of this revised lentiMPRA approach, we designed two pilot libraries (Supplementary Fig. 1a). As DNase accessibility, centred on the midpoint of a peak, has been shown to be a good predictor of regulatory elements 17  and MPRA activity 13,18 , we used it as our main selection criteria for cCREs. The first pilot library encompassed 9,372 elements in HepG2 cells and consisted of: (1) 9,172 cCREs, centred at DNase hypersensitivity peaks that did not overlap promoters; (2) 50 positive and 50 negative controls of synthetically engineered sequences (that is, engineered to have multiple binding sites for known transcription factors or no known binding sites, respectively) 19 ; and (3) 50 positive and 50 negative controls of naturally occurring enhancers (sequences observed to exhibit high and low enhancer activity, respectively) 10 . The second pilot library encompassed 7,500 elements in K562 cells and consisted of: (1) 6,394 cCREs, centred at DNase hypersensitivity peaks that did not overlap promoters; (2) 290 positive and 276 negative controls, identified by coupling CRISPR interference (CRISPRi) to single cell RNA-sequencing measurements to identify functional enhancer-gene pairs 20 ; (3) 250 negative controls derived from dinucleotide shuffling cCREs randomly selected from our library; (4) 50 positive and 200 negative controls of naturally occurring enhancers (sequences observed to exhibit high and low enhancer activity, respectively) 18 ; and (5) 24 positive and 16 negative manually selected controls in loci of interest such as α-globin, β-globin, GATA1 and MYC 21 (Supplementary Table 1).",
+      "bbox": [
+        39.684912820929995,
+        495.1805255941293,
+        296.3890185826124,
+        185.4003462890313
+      ],
+      "provenance": "docling",
+      "section_context": "Optimization of lentiMPRA",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p2_20",
+      "source_block_id": "paper_1_p2_20",
+      "chunk_type": "paragraph",
+      "page_number": 2,
+      "reading_order": 20,
+      "display_text": "These pilot lentiMPRA libraries were used to transduce cells in triplicate and barcodes were sequenced at the DNA and RNA levels as described 16 . Activity scores for each element were calculated as the log2 -transformed normalized count of RNA molecules from all barcodes corresponding to the element divided by the normalized number of DNA molecules from all barcodes corresponding to the element (Extended Data Fig. 1c and Supplementary Table 2). We observed a range of 50-250 median barcodes per element in each replicate (Supplementary Fig. 1b), providing a large number of independent measurements for each element, and activity scores (that is, log2-transformed RNA/ DNA ratios) that were highly concordant across replicates (0.88-0.96 Pearson correlation; Supplementary Fig. 1c,d). Averaging across the three replicates, the distribution of element activity scores was strongly divergent between most positive and negative controls (Supplementary Fig. 1e). An exception to this trend was observed for controls derived from CRISPRi-based screening efforts 20,21 , which exhibited a slightly weaker signal than positive controls, indicating that in our reporter assays and outside their epigenetic context, they were still capable of activating transcription (Supplementary Fig. 1e).",
+      "retrieval_text": "[Section: Optimization of lentiMPRA] These pilot lentiMPRA libraries were used to transduce cells in triplicate and barcodes were sequenced at the DNA and RNA levels as described 16 . Activity scores for each element were calculated as the log2 -transformed normalized count of RNA molecules from all barcodes corresponding to the element divided by the normalized number of DNA molecules from all barcodes corresponding to the element (Extended Data Fig. 1c and Supplementary Table 2). We observed a range of 50-250 median barcodes per element in each replicate (Supplementary Fig. 1b), providing a large number of independent measurements for each element, and activity scores (that is, log2-transformed RNA/ DNA ratios) that were highly concordant across replicates (0.88-0.96 Pearson correlation; Supplementary Fig. 1c,d). Averaging across the three replicates, the distribution of element activity scores was strongly divergent between most positive and negative controls (Supplementary Fig. 1e). An exception to this trend was observed for controls derived from CRISPRi-based screening efforts 20,21 , which exhibited a slightly weaker signal than positive controls, indicating that in our reporter assays and outside their epigenetic context, they were still capable of activating transcription (Supplementary Fig. 1e).",
+      "bbox": [
+        39.685001373,
+        182.30693066403126,
+        296.4094588793003,
+        45.65034247403128
+      ],
+      "provenance": "docling",
+      "section_context": "Optimization of lentiMPRA",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p12_153",
+      "source_block_id": "paper_1_p12_153",
+      "chunk_type": "section",
+      "page_number": 12,
+      "reading_order": 153,
+      "display_text": "Generation of MPRA libraries",
+      "retrieval_text": "Generation of MPRA libraries",
+      "bbox": [
+        39.685001373,
+        333.98743066403125,
+        156.18940137299992,
+        326.1079042391608
+      ],
+      "provenance": "docling",
+      "section_context": "Generation of MPRA libraries",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p12_154",
+      "source_block_id": "paper_1_p12_154",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 154,
+      "display_text": "The MPRA libraries were generated as previously described 16 . In brief, the Agilent oligonucleotide pool was amplified by 5-cycle PCR using forward primer (pLSmP-enh-f, Supplementary Table 13) and reverse primer (minP-enh-r, Supplementary Table 13) that adds a minimal promoter and spacer sequences downstream of the cCRE. The amplified fragments were purified with 0.8x AMPure XP (Beckman coulter), and amplified for 15 additional cycles using the forward primer (pLSmP-enh-f) and reverse primer (pLSmP-bc-primer-r, Supplementary Table 13) to add 15 bp of random sequence that serves as a barcode. The amplified fragments were then inserted into SbfI / AgeI site of the pLS-SceI vector (Addgene, 137725) using NEBuilder HiFi DNA Assembly mix (NEB), followed by transformation into 10-beta competent cells (NEB, C3020) using the Gemini X2 machine (BTX). Colonies were allowed to grow up overnight on carbenicillin plates and midiprepped (Qiagen, 12945). For HepG2 and K562 pilot libraries, we collected approximately 1 million and 1.3 million colonies, so that on average 50 and 100 barcodes were associated with each cCRE, respectively. For HepG2, K562 and WTC11 large-scale libraries, we collected approximately 8 million, 12 million and 3 million colonies aiming to associate approximately 50, 50 and 40 barcodes per cCRE, respectively. For the joint library, we collected approximately 3.3 million colonies, aiming to associate approximately 55 barcodes per cCRE. To determine the sequences of the random barcodes and their association to each cCRE, the cCRE-mP-barcodes fragment was amplified from each plasmid library using primers that contain flowcell adapters (P7-pLSmP-ass-gfp and P5-pLSmP-ass-i17, Supplementary Table 13). The fragment was then sequenced with a NextSeq mid-output 300 cycle kit using custom primers (Read 1, pLSmP-ass-seq-R1; Index read, pLSmP-ass-seq-ind1; Read 2, pLSmP-ass-seq-R2, Supplementary Table 13).",
+      "retrieval_text": "[Section: Generation of MPRA libraries] The MPRA libraries were generated as previously described 16 . In brief, the Agilent oligonucleotide pool was amplified by 5-cycle PCR using forward primer (pLSmP-enh-f, Supplementary Table 13) and reverse primer (minP-enh-r, Supplementary Table 13) that adds a minimal promoter and spacer sequences downstream of the cCRE. The amplified fragments were purified with 0.8x AMPure XP (Beckman coulter), and amplified for 15 additional cycles using the forward primer (pLSmP-enh-f) and reverse primer (pLSmP-bc-primer-r, Supplementary Table 13) to add 15 bp of random sequence that serves as a barcode. The amplified fragments were then inserted into SbfI / AgeI site of the pLS-SceI vector (Addgene, 137725) using NEBuilder HiFi DNA Assembly mix (NEB), followed by transformation into 10-beta competent cells (NEB, C3020) using the Gemini X2 machine (BTX). Colonies were allowed to grow up overnight on carbenicillin plates and midiprepped (Qiagen, 12945). For HepG2 and K562 pilot libraries, we collected approximately 1 million and 1.3 million colonies, so that on average 50 and 100 barcodes were associated with each cCRE, respectively. For HepG2, K562 and WTC11 large-scale libraries, we collected approximately 8 million, 12 million and 3 million colonies aiming to associate approximately 50, 50 and 40 barcodes per cCRE, respectively. For the joint library, we collected approximately 3.3 million colonies, aiming to associate approximately 55 barcodes per cCRE. To determine the sequences of the random barcodes and their association to each cCRE, the cCRE-mP-barcodes fragment was amplified from each plasmid library using primers that contain flowcell adapters (P7-pLSmP-ass-gfp and P5-pLSmP-ass-i17, Supplementary Table 13). The fragment was then sequenced with a NextSeq mid-output 300 cycle kit using custom primers (Read 1, pLSmP-ass-seq-R1; Index read, pLSmP-ass-seq-ind1; Read 2, pLSmP-ass-seq-R2, Supplementary Table 13).",
+      "bbox": [
+        39.685001373,
+        323.1805255941293,
+        296.402164512497,
+        45.65034247403128
+      ],
+      "provenance": "docling",
+      "section_context": "Generation of MPRA libraries",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p12_155",
+      "source_block_id": "paper_1_p12_155",
+      "chunk_type": "section",
+      "page_number": 12,
+      "reading_order": 155,
+      "display_text": "Cell culture, lentivirus packaging and titration",
+      "retrieval_text": "Cell culture, lentivirus packaging and titration",
+      "bbox": [
+        306.141693115,
+        699.4874306640312,
+        490.99374311500003,
+        691.6079042391608
+      ],
+      "provenance": "docling",
+      "section_context": "Cell culture, lentivirus packaging and titration",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p12_157",
+      "source_block_id": "paper_1_p12_157",
+      "chunk_type": "section",
+      "page_number": 12,
+      "reading_order": 157,
+      "display_text": "Lentiviral infections and DNA and RNA barcode sequencing",
+      "retrieval_text": "Lentiviral infections and DNA and RNA barcode sequencing",
+      "bbox": [
+        306.141693115,
+        323.23743066403125,
+        541.4063931149999,
+        315.3579042391608
+      ],
+      "provenance": "docling",
+      "section_context": "Lentiviral infections and DNA and RNA barcode sequencing",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p12_158",
+      "source_block_id": "paper_1_p12_158",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 158,
+      "display_text": "For the HepG2 and K562 pilot libraries, 2.4 M HepG2 or 10 M K562 cells per replicate were seeded in 10 cm dishes or T75 flasks, respectively, and incubated for 24 h. The HepG2 and K562 cells were infected with the lentiviral libraries along with 8 μg ml -1 Polybrene, with an estimated MOI of 50 or 10, respectively. The higher MOI in HepG2 is due to these cells being adherent compared to K562 that grow in suspension. For the large-scale HepG2 library, 15 M HepG2 cells per replicate were seeded in 3× 15 cm dishes (5 million per dish), incubated for 24 h, and infected with the library along with 8 μg ml -1 Polybrene, with an estimated MOI of 50. For the large-scale K562 library, 85 million K562 cells per replicate were seeded in 3 T225 flasks (28.3 M per flask), incubated for 24 h, and infected with the library along with 8 μg ml -1 Polybrene, with an estimated MOI of 10. For the large-scale WTC11 library, 38.4 million WTC11 cells per replicate were seeded in four 10 cm dishes (9.6 M per dish), incubated for 24 h, and infected with the library along with 8 μg ml -1 Polybrene, with an estimated MOI of 10, due to higher MOIs being lethal for these cells. For the joint library, 5 million HepG2, 28 million K562 and 38.4 million WTC11 cells were infected with the estimated MOI of 50, 10 and 10, respectively. For each experiment, three independent infections were performed to obtain three biological replicates. After three days of culture, genomic DNA and total RNA were extracted from the infected cells using AllPrep DNA/RNA mini kit (Qiagen), and sequencing library preparations were performed as previously described 16 . The libraries were then sequenced with a NextSeq high-output 75 cycle kit using custom primers (Read 1, pLSmP-5bc-seq-R1; Index1 (unique molecular idenitifier (UMI) read), pLSmP-UMI-seq; Index2, pLSmP-5bc-seq-R2; Read 2, pLSmP-bc-seq; Supplementary Table 13) 16 .",
+      "retrieval_text": "[Section: Lentiviral infections and DNA and RNA barcode sequencing] For the HepG2 and K562 pilot libraries, 2.4 M HepG2 or 10 M K562 cells per replicate were seeded in 10 cm dishes or T75 flasks, respectively, and incubated for 24 h. The HepG2 and K562 cells were infected with the lentiviral libraries along with 8 μg ml -1 Polybrene, with an estimated MOI of 50 or 10, respectively. The higher MOI in HepG2 is due to these cells being adherent compared to K562 that grow in suspension. For the large-scale HepG2 library, 15 M HepG2 cells per replicate were seeded in 3× 15 cm dishes (5 million per dish), incubated for 24 h, and infected with the library along with 8 μg ml -1 Polybrene, with an estimated MOI of 50. For the large-scale K562 library, 85 million K562 cells per replicate were seeded in 3 T225 flasks (28.3 M per flask), incubated for 24 h, and infected with the library along with 8 μg ml -1 Polybrene, with an estimated MOI of 10. For the large-scale WTC11 library, 38.4 million WTC11 cells per replicate were seeded in four 10 cm dishes (9.6 M per dish), incubated for 24 h, and infected with the library along with 8 μg ml -1 Polybrene, with an estimated MOI of 10, due to higher MOIs being lethal for these cells. For the joint library, 5 million HepG2, 28 million K562 and 38.4 million WTC11 cells were infected with the estimated MOI of 50, 10 and 10, respectively. For each experiment, three independent infections were performed to obtain three biological replicates. After three days of culture, genomic DNA and total RNA were extracted from the infected cells using AllPrep DNA/RNA mini kit (Qiagen), and sequencing library preparations were performed as previously described 16 . The libraries were then sequenced with a NextSeq high-output 75 cycle kit using custom primers (Read 1, pLSmP-5bc-seq-R1; Index1 (unique molecular idenitifier (UMI) read), pLSmP-UMI-seq; Index2, pLSmP-5bc-seq-R2; Read 2, pLSmP-bc-seq; Supplementary Table 13) 16 .",
+      "bbox": [
+        306.141693115,
+        311.30693066403126,
+        562.8527737275617,
+        45.65034247403128
+      ],
+      "provenance": "docling",
+      "section_context": "Lentiviral infections and DNA and RNA barcode sequencing",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p13_159",
+      "source_block_id": "paper_1_p13_159",
+      "chunk_type": "section",
+      "page_number": 13,
+      "reading_order": 159,
+      "display_text": "MPRA processing pipeline",
+      "retrieval_text": "MPRA processing pipeline",
+      "bbox": [
+        39.685001373,
+        710.2374306640312,
+        144.40670137624696,
+        702.3579042391608
+      ],
+      "provenance": "docling",
+      "section_context": "MPRA processing pipeline",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p13_160",
+      "source_block_id": "paper_1_p13_160",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 160,
+      "display_text": "Associating barcodes to designed elements. For each of the barcode association libraries, we generated FASTQ files with bcl2fastq v.2.20 (parameters '--no-lane-splitting --create-fastq-for-index-reads --use-bases-mask Y*,I*,I*,Y*'), splitting the sequencing data into paired-end index files delineating the barcodes (I1 and I2) and paired-end read files delineating the corresponding element linked to the barcode (R1 and R2). These files were used to associated barcodes to elements using the association utility of MPRAflow 1.0 16 (run as: nextflow run association.nf --fastq-insert 'R1.fastq.gz' --fastq-insertPE 'R2.fastq.gz' --fastq-bc 'I1.fastq.gz' --fastq-bcPE 'I2.fastq.gz' --aligner 'bt2_strand' --design 'designed_sequences.fa'). Here, designed_se-quences.fa was a FASTA file incorporating all of the element sequences that had been ordered from the corresponding Agilent library, and bt2_strand was used to map elements in a strand-aware fashion to accommodate the existence of elements tested in both orientations. The final output of this utility was a filtered_coords_to_barcodes.pickle file mapping barcodes to elements.",
+      "retrieval_text": "[Section: MPRA processing pipeline] Associating barcodes to designed elements. For each of the barcode association libraries, we generated FASTQ files with bcl2fastq v.2.20 (parameters '--no-lane-splitting --create-fastq-for-index-reads --use-bases-mask Y*,I*,I*,Y*'), splitting the sequencing data into paired-end index files delineating the barcodes (I1 and I2) and paired-end read files delineating the corresponding element linked to the barcode (R1 and R2). These files were used to associated barcodes to elements using the association utility of MPRAflow 1.0 16 (run as: nextflow run association.nf --fastq-insert 'R1.fastq.gz' --fastq-insertPE 'R2.fastq.gz' --fastq-bc 'I1.fastq.gz' --fastq-bcPE 'I2.fastq.gz' --aligner 'bt2_strand' --design 'designed_sequences.fa'). Here, designed_se-quences.fa was a FASTA file incorporating all of the element sequences that had been ordered from the corresponding Agilent library, and bt2_strand was used to map elements in a strand-aware fashion to accommodate the existence of elements tested in both orientations. The final output of this utility was a filtered_coords_to_barcodes.pickle file mapping barcodes to elements.",
+      "bbox": [
+        39.685001373,
+        698.3069306640313,
+        296.4051933277865,
+        518.6502242180313
+      ],
+      "provenance": "docling",
+      "section_context": "MPRA processing pipeline",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p13_161",
+      "source_block_id": "paper_1_p13_161",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 161,
+      "display_text": "Replicates, normalization and RNA/DNA activity scores. For each of the indexed DNA and RNA libraries, we demultiplexed the  sequencing  run  and  generated  Fastq  files  with  bcl2fastq v.2.20  (parameters  '--barcode-mismatches  2  --sample-sheet SampleSheet.csv --use-bases-mask Y*,Y*,I*,Y* --no-lane-splitting --minimum-trimmed-read-length 0 --mask-short-adapter-reads 0'), where SampleSheet.csv catalogued the correspondence between the index sequence and DNA or RNA replicate sample of origin. In several instances, the '--barcode-mismatches 2' resulted in an index assignment clash, requiring us to instead use '--barcode-mismatches 1'. These commands split the sequencing data into paired-end read files delineating the barcodes (R1 and R3) and a file indicating the UMI (R2) for each DNA or RNA replicate sample. We compiled a table of these files to indicate the 3 RNA and 3 DNA files for each of the three replicates in the file experiment.csv. Finally, we used the count utility of MPRAflow 1.0 16 (run as: nextflow run count.nf --e 'experiment.csv' --design 'designed_sequences.fa' --association 'filtered_coords_to_barcodes. pickle') to compute activity scores for each element and replicate as log 2 (RNA/DNA). Elements with which were measured with fewer than 10 independent barcodes were removed to reduce the impact of measurement noise in downstream analysis. This filter led to the following number of retained elements: (1) HepG2 pilot library, 9,153/9,372 (97.7%); (2) K562 pilot library, 7,323/7,500 (97.6%); (3) HepG2 large-scale library, 139,886/164,307 (85.1%); (4) K562 large-scale library, 226,255/243,780 (92.8%); (5) WTC11 large-scale library, 56,093/75,542 (74.2%); (6) HepG2 joint library, 56,018/60,000 (93.4%); (7) K562 joint library, 56,008/60,000 (93.3%); and (8) WTC11 joint library, 55,983/60,000 (93.3%). To combine the data from all three replicates, the distribution of activity values was normalized to the median activity value within each replicate, and then the activity values were averaged across the three replicates.",
+      "retrieval_text": "[Section: MPRA processing pipeline] Replicates, normalization and RNA/DNA activity scores. For each of the indexed DNA and RNA libraries, we demultiplexed the  sequencing  run  and  generated  Fastq  files  with  bcl2fastq v.2.20  (parameters  '--barcode-mismatches  2  --sample-sheet SampleSheet.csv --use-bases-mask Y*,Y*,I*,Y* --no-lane-splitting --minimum-trimmed-read-length 0 --mask-short-adapter-reads 0'), where SampleSheet.csv catalogued the correspondence between the index sequence and DNA or RNA replicate sample of origin. In several instances, the '--barcode-mismatches 2' resulted in an index assignment clash, requiring us to instead use '--barcode-mismatches 1'. These commands split the sequencing data into paired-end read files delineating the barcodes (R1 and R3) and a file indicating the UMI (R2) for each DNA or RNA replicate sample. We compiled a table of these files to indicate the 3 RNA and 3 DNA files for each of the three replicates in the file experiment.csv. Finally, we used the count utility of MPRAflow 1.0 16 (run as: nextflow run count.nf --e 'experiment.csv' --design 'designed_sequences.fa' --association 'filtered_coords_to_barcodes. pickle') to compute activity scores for each element and replicate as log 2 (RNA/DNA). Elements with which were measured with fewer than 10 independent barcodes were removed to reduce the impact of measurement noise in downstream analysis. This filter led to the following number of retained elements: (1) HepG2 pilot library, 9,153/9,372 (97.7%); (2) K562 pilot library, 7,323/7,500 (97.6%); (3) HepG2 large-scale library, 139,886/164,307 (85.1%); (4) K562 large-scale library, 226,255/243,780 (92.8%); (5) WTC11 large-scale library, 56,093/75,542 (74.2%); (6) HepG2 joint library, 56,018/60,000 (93.4%); (7) K562 joint library, 56,008/60,000 (93.3%); and (8) WTC11 joint library, 55,983/60,000 (93.3%). To combine the data from all three replicates, the distribution of activity values was normalized to the median activity value within each replicate, and then the activity values were averaged across the three replicates.",
+      "bbox": [
+        39.6851,
+        504.80693066403126,
+        296.446409762984,
+        174.6503462890313
+      ],
+      "provenance": "docling",
+      "section_context": "MPRA processing pipeline",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p17_205",
+      "source_block_id": "paper_1_p17_205",
+      "chunk_type": "paragraph",
+      "page_number": 17,
+      "reading_order": 205,
+      "display_text": "Extended Data Fig. 1 | A next-generation lentiviral massively parallel reporter assay (lentiMPRA) strategy to measure the transcriptional regulatory activity of > 6,000-240,000 enhancers simultaneously.",
+      "retrieval_text": "[Section: Article] Extended Data Fig. 1 | A next-generation lentiviral massively parallel reporter assay (lentiMPRA) strategy to measure the transcriptional regulatory activity of > 6,000-240,000 enhancers simultaneously.",
+      "bbox": [
+        39.685001373,
+        741.4162104490313,
+        272.50080132357294,
+        714.932183809687
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p17_206",
+      "source_block_id": "paper_1_p17_206",
+      "chunk_type": "paragraph",
+      "page_number": 17,
+      "reading_order": 206,
+      "display_text": "a , Designed 230nt oligos corresponding to thousands of cCREs are synthesized on an Agilent array. The 1st round of PCR adds on a minimal promoter, while the 2nd round of PCR adds random barcodes to these sequences. The library is then cloned into a pLS-SceI vector harboring an EGFP reporter to generate the final element library. b , The element-barcode fragments within the library are amplified by PCR and sequenced using an Illumina NextSeq instrument. This enables reconstruction of element-barcode pairings. c , The element library is packaged into lentiviruses and transduced into HepG2, K562, or WTC11 cells in a series of three replicates. Cells are grown in cultured medium for three days prior to the harvesting of RNA and DNA. Each RNA and DNA",
+      "retrieval_text": "[Section: Article] a , Designed 230nt oligos corresponding to thousands of cCREs are synthesized on an Agilent array. The 1st round of PCR adds on a minimal promoter, while the 2nd round of PCR adds random barcodes to these sequences. The library is then cloned into a pLS-SceI vector harboring an EGFP reporter to generate the final element library. b , The element-barcode fragments within the library are amplified by PCR and sequenced using an Illumina NextSeq instrument. This enables reconstruction of element-barcode pairings. c , The element library is packaged into lentiviruses and transduced into HepG2, K562, or WTC11 cells in a series of three replicates. Cells are grown in cultured medium for three days prior to the harvesting of RNA and DNA. Each RNA and DNA",
+      "bbox": [
+        39.68500062399997,
+        711.4072104490311,
+        296.05230133824494,
+        614.8837146156975
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p17_207",
+      "source_block_id": "paper_1_p17_207",
+      "chunk_type": "paragraph",
+      "page_number": 17,
+      "reading_order": 207,
+      "display_text": "sample from each replicate is extracted, and barcodes are sequenced on an Illumina NextSeq instrument. Finally, DNA and RNA-derived barcodes are counted to compute a normalized activity score for each element in each replicate. d , UCSC genome browser tracks annotating, from top to bottom: i) Lead single nucleotide polymorphisms (SNPs) from published Genome-wide Association Studies (GWAS); ii) Common SNPs from the 1000 Genomes Phase 3 dataset; iii) GENCODE gene track; iv) MPRA activity scores from the pilot K562 MPRA library for each of the five enhancers tested, with stronger red indicative of higher activity; v) MPRA scores corresponding to the large-scale K562 MPRA library, tested in both orientations; vi) H3K27Ac; vii) DNase I hypersensitivity signal in K562 cells; viii) base conservation among 100 vertebrate species; and ix) the five enhancers (HS1-HS5) of the globin locus tested in the pilot and largescale K562 MPRA libraries. Image of DNA sequencer created with BioRender.com.",
+      "retrieval_text": "[Section: Article] sample from each replicate is extracted, and barcodes are sequenced on an Illumina NextSeq instrument. Finally, DNA and RNA-derived barcodes are counted to compute a normalized activity score for each element in each replicate. d , UCSC genome browser tracks annotating, from top to bottom: i) Lead single nucleotide polymorphisms (SNPs) from published Genome-wide Association Studies (GWAS); ii) Common SNPs from the 1000 Genomes Phase 3 dataset; iii) GENCODE gene track; iv) MPRA activity scores from the pilot K562 MPRA library for each of the five enhancers tested, with stronger red indicative of higher activity; v) MPRA scores corresponding to the large-scale K562 MPRA library, tested in both orientations; vi) H3K27Ac; vii) DNase I hypersensitivity signal in K562 cells; viii) base conservation among 100 vertebrate species; and ix) the five enhancers (HS1-HS5) of the globin locus tested in the pilot and largescale K562 MPRA libraries. Image of DNA sequencer created with BioRender.com.",
+      "bbox": [
+        306.13999100599995,
+        741.3812079920308,
+        561.0092923215662,
+        614.848712158697
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p18_208",
+      "source_block_id": "paper_1_p18_208",
+      "chunk_type": "section",
+      "page_number": 18,
+      "reading_order": 208,
+      "display_text": "Article",
+      "retrieval_text": "Article",
+      "bbox": [
+        39.685001373,
+        762.4145463860312,
+        85.85700137300003,
+        749.4584931073427
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical_with_hints",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [
+      "variant_or_sequence",
+      "methods_or_library"
+    ],
+    "hint_terms": [
+      "sequences",
+      "pairs",
+      "combinations",
+      "plasmids",
+      "barcodes",
+      "methods",
+      "design",
+      "library",
+      "cloning",
+      "construct"
+    ]
+  },
+  "stats": {
+    "chunk_build_ms": 3.835,
+    "idf_build_ms": 7.124,
+    "scoring_ms": 10.207,
+    "total_ms": 26.744,
+    "chunk_count_total": 318,
+    "chunk_count_by_type": {
+      "section": 52,
+      "paragraph": 179,
+      "caption": 14,
+      "list_item": 72,
+      "table_region": 1
+    },
+    "candidate_chunk_count": 318,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 9,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T09:07:27.636920+00:00"
+}

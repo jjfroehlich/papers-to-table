@@ -1,0 +1,333 @@
+{
+  "run_id": "run_20260408_075540_ngzkq5",
+  "pdf_id": "paper_2",
+  "column_name": "BC length (bp)",
+  "query": "BC length (bp): How long the barcode sequences are.\nRetrieval hints: sequences pairs combinations plasmids barcodes",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_2_p1_14",
+      "source_block_id": "paper_2_p1_14",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 14,
+      "display_text": "1 Broad Institute of MIT and Harvard, Cambridge, MA, USA. 2 Geisel School of Medicine at Dartmouth, Hanover, NH, USA. 3 Department of Genetics, Stanford University School of Medicine, Stanford, CA, USA. 4 Biophysics Graduate Program, Harvard University, Cambridge, MA, USA. 5 BASE Initiative, Betty Irene Moore Children's Heart Center, Lucile Packard Children's Hospital, Stanford University School of Medicine, Stanford, CA, USA. 6 Department of Biology, MIT, Cambridge, MA, USA. 7 Department of Systems Biology, Harvard Medical School, Boston, MA, USA. 8 Present address: Bristol Myers Squibb, Cambridge, MA, USA. 9 These authors contributed equally: Drew T. Bergman, Thouis R. Jones. ✉ e-mail: engreitz@stanford.edu",
+      "retrieval_text": "[Section: Measuring enhancer-promoter compatibility] 1 Broad Institute of MIT and Harvard, Cambridge, MA, USA. 2 Geisel School of Medicine at Dartmouth, Hanover, NH, USA. 3 Department of Genetics, Stanford University School of Medicine, Stanford, CA, USA. 4 Biophysics Graduate Program, Harvard University, Cambridge, MA, USA. 5 BASE Initiative, Betty Irene Moore Children's Heart Center, Lucile Packard Children's Hospital, Stanford University School of Medicine, Stanford, CA, USA. 6 Department of Biology, MIT, Cambridge, MA, USA. 7 Department of Systems Biology, Harvard Medical School, Boston, MA, USA. 8 Present address: Bristol Myers Squibb, Cambridge, MA, USA. 9 These authors contributed equally: Drew T. Bergman, Thouis R. Jones. ✉ e-mail: engreitz@stanford.edu",
+      "bbox": [
+        39.683502250000004,
+        79.47442601053126,
+        549.4354147383203,
+        46.37910608731431
+      ],
+      "provenance": "docling",
+      "section_context": "Measuring enhancer-promoter compatibility",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p2_15",
+      "source_block_id": "paper_2_p2_15",
+      "chunk_type": "caption",
+      "page_number": 2,
+      "reading_order": 15,
+      "display_text": "Fig. 1 | ExP STARR-seq. a , Schematic of the ExP STARR-seq method used to measure the activities of enhancer and promoter sequences and test their compatibilities. (1) Sequences 264 bp in length were selected and cloned in all pairwise combinations into the promoter and enhancer positions of a plasmid vector together with a plasmid barcode (BC). (2) We built a dictionary linking promoter-BC-enhancer triplets through sequencing (Extended Data Fig. 1a). (3) We then transfected the ExP STARR-seq plasmid pool into cells, in which the promoter sequence on a given plasmid initiates transcription of a polyadenylated RNA containing the plasmid BC and enhancer. (4) We sequenced these RNAs and calculated STARR-seq expression as the frequency of RNAs observed for each plasmid normalized by the frequency of that plasmid in the input DNA plasmid pool. b , Correlation of ExP STARR-seq expression between biological replicate experiments, calculated for individual enhancer-promoter pairs with unique plasmid BCs. Axes represent the average STARR-seq expression (RNA/DNA) of two biological replicates. Density",
+      "retrieval_text": "[Section: Measuring enhancer-promoter compatibility] Fig. 1 | ExP STARR-seq. a , Schematic of the ExP STARR-seq method used to measure the activities of enhancer and promoter sequences and test their compatibilities. (1) Sequences 264 bp in length were selected and cloned in all pairwise combinations into the promoter and enhancer positions of a plasmid vector together with a plasmid barcode (BC). (2) We built a dictionary linking promoter-BC-enhancer triplets through sequencing (Extended Data Fig. 1a). (3) We then transfected the ExP STARR-seq plasmid pool into cells, in which the promoter sequence on a given plasmid initiates transcription of a polyadenylated RNA containing the plasmid BC and enhancer. (4) We sequenced these RNAs and calculated STARR-seq expression as the frequency of RNAs observed for each plasmid normalized by the frequency of that plasmid in the input DNA plasmid pool. b , Correlation of ExP STARR-seq expression between biological replicate experiments, calculated for individual enhancer-promoter pairs with unique plasmid BCs. Axes represent the average STARR-seq expression (RNA/DNA) of two biological replicates. Density",
+      "bbox": [
+        39.68500094999999,
+        466.68293408203124,
+        295.78000093851995,
+        320.14443628869816
+      ],
+      "provenance": "docling",
+      "section_context": "Measuring enhancer-promoter compatibility",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p2_16",
+      "source_block_id": "paper_2_p2_16",
+      "chunk_type": "paragraph",
+      "page_number": 2,
+      "reading_order": 16,
+      "display_text": "cloned them in all pairwise combinations located about 340-bp apart in the modified human STARR-seq plasmid-based reporter vector 17 (Fig. 1a and Extended Data Fig. 1a). In STARR-seq assays, the enhancer sequence is transcribed and quantified using targeted RNA sequencing (RNA-seq) to determine the level of expression of each plasmid 13 . For ExP STARR-seq, we introduced a unique 16-bp plasmid barcode adjacent to the enhancer sequence that enabled us to determine which reporter transcripts are produced from which enhancer-promoter pair. We transiently transfected this pool of plasmids into cells, measured the level of reporter transcripts produced and calculated STARR-seq expression as the amount of RNA normalized to DNA input for each plasmid. This approach enabled us to quantitatively measure the expression of hundreds of thousands of combinations of enhancer and promoter sequences, estimate the activities of individual enhancers and promoters and test their compatibilities (Methods).",
+      "retrieval_text": "[Section: Measuring enhancer-promoter compatibility] cloned them in all pairwise combinations located about 340-bp apart in the modified human STARR-seq plasmid-based reporter vector 17 (Fig. 1a and Extended Data Fig. 1a). In STARR-seq assays, the enhancer sequence is transcribed and quantified using targeted RNA sequencing (RNA-seq) to determine the level of expression of each plasmid 13 . For ExP STARR-seq, we introduced a unique 16-bp plasmid barcode adjacent to the enhancer sequence that enabled us to determine which reporter transcripts are produced from which enhancer-promoter pair. We transiently transfected this pool of plasmids into cells, measured the level of reporter transcripts produced and calculated STARR-seq expression as the amount of RNA normalized to DNA input for each plasmid. This approach enabled us to quantitatively measure the expression of hundreds of thousands of combinations of enhancer and promoter sequences, estimate the activities of individual enhancers and promoters and test their compatibilities (Methods).",
+      "bbox": [
+        39.68500137,
+        289.8069306620313,
+        296.41913151221763,
+        131.6503462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Measuring enhancer-promoter compatibility",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p2_17",
+      "source_block_id": "paper_2_p2_17",
+      "chunk_type": "paragraph",
+      "page_number": 2,
+      "reading_order": 17,
+      "display_text": "Hereafter, for clarity, we use the terms 'enhancer sequences' and 'promoter sequences' to refer to sequences cloned into the enhancer and promoter positions, respectively, in the ExP STARR-seq assay, and 'genomic enhancers' and 'genomic promoters' to refer to the corresponding elements in the genome.",
+      "retrieval_text": "[Section: Measuring enhancer-promoter compatibility] Hereafter, for clarity, we use the terms 'enhancer sequences' and 'promoter sequences' to refer to sequences cloned into the enhancer and promoter positions, respectively, in the ExP STARR-seq assay, and 'genomic enhancers' and 'genomic promoters' to refer to the corresponding elements in the genome.",
+      "bbox": [
+        39.68500137,
+        128.55693066203128,
+        296.4136495379502,
+        77.9003462870312
+      ],
+      "provenance": "docling",
+      "section_context": "Measuring enhancer-promoter compatibility",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_168",
+      "source_block_id": "paper_2_p10_168",
+      "chunk_type": "section",
+      "page_number": 10,
+      "reading_order": 168,
+      "display_text": "Library cloning",
+      "retrieval_text": "Library cloning",
+      "bbox": [
+        306.14181518,
+        75.98743066203122,
+        367.77871517983004,
+        68.10790423716082
+      ],
+      "provenance": "docling",
+      "section_context": "Library cloning",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_169",
+      "source_block_id": "paper_2_p10_169",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 169,
+      "display_text": "We ordered 264 bp sequences in an oligonucleotide array format from Twist Bioscience with separate pairs of 18 bp adaptors (total length of",
+      "retrieval_text": "[Section: Library cloning] We ordered 264 bp sequences in an oligonucleotide array format from Twist Bioscience with separate pairs of 18 bp adaptors (total length of",
+      "bbox": [
+        306.14181518,
+        64.05692684203132,
+        562.7560070066884,
+        45.65034246703124
+      ],
+      "provenance": "docling",
+      "section_context": "Library cloning",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p11_170",
+      "source_block_id": "paper_2_p11_170",
+      "chunk_type": "section",
+      "page_number": 11,
+      "reading_order": 170,
+      "display_text": "Article",
+      "retrieval_text": "Article",
+      "bbox": [
+        39.68500137,
+        762.4145463820312,
+        82.46900137000003,
+        749.4215547153646
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p11_175",
+      "source_block_id": "paper_2_p11_175",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 175,
+      "display_text": "We introduced a unique 16 bp plasmid barcode adjacent to the enhancer sequence to enable us to determine from which promoter each transcript originated, which, together with the self-transcribed enhancer, allowed us to map each transcript to a promoter-enhancer pair.",
+      "retrieval_text": "[Section: Building the barcode-promoter dictionary] We introduced a unique 16 bp plasmid barcode adjacent to the enhancer sequence to enable us to determine from which promoter each transcript originated, which, together with the self-transcribed enhancer, allowed us to map each transcript to a promoter-enhancer pair.",
+      "bbox": [
+        39.68500137,
+        236.05693066203128,
+        296.37453756346144,
+        196.1503462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Building the barcode-promoter dictionary",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p11_176",
+      "source_block_id": "paper_2_p11_176",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 176,
+      "display_text": "To build the map from 16 bp plasmid barcodes to promoters, we PCR amplified a fragment containing both the promoter and plasmid barcode from the plasmid library (98 °C for 1 min; 16 cycles of 98 °C for 10 s, 66 °C for 15 s and 72 °C for 25 s; ExP_P1_fwd_I2: AATGAT ACGGCGACCACCGAGATCTACAC[index-2]GGGAGGTATTGGACAGGC, ExP_P3_rev: CAAGCAGAAGACGGCATACGAGATGCATGGGTAGAAGTT AGCTGAAC) and sequenced the promoter position with paired-end reads (using the custom sequencing primers ExP_P1_fwd_seq_R1: GAGTGAGCTCTCGTTCATCATGTGGGACATCAAGC, ExP_P2_rev_seq_R2: TGGTAGCAAGCTTAGATAAGGTGGACTCACTATGC) and the plasmid barcode with an index read (using the custom sequencing primer ExP_ fwd_BC_seq: GTCCCAATTCTTGTTGAATTAGATTGATCTAGAGCATGCA). We mapped these sequences to a specially constructed index of the promoter sequences using bowtie2 (X: -q -met-stderr -maxins 2000 -p",
+      "retrieval_text": "[Section: Building the barcode-promoter dictionary] To build the map from 16 bp plasmid barcodes to promoters, we PCR amplified a fragment containing both the promoter and plasmid barcode from the plasmid library (98 °C for 1 min; 16 cycles of 98 °C for 10 s, 66 °C for 15 s and 72 °C for 25 s; ExP_P1_fwd_I2: AATGAT ACGGCGACCACCGAGATCTACAC[index-2]GGGAGGTATTGGACAGGC, ExP_P3_rev: CAAGCAGAAGACGGCATACGAGATGCATGGGTAGAAGTT AGCTGAAC) and sequenced the promoter position with paired-end reads (using the custom sequencing primers ExP_P1_fwd_seq_R1: GAGTGAGCTCTCGTTCATCATGTGGGACATCAAGC, ExP_P2_rev_seq_R2: TGGTAGCAAGCTTAGATAAGGTGGACTCACTATGC) and the plasmid barcode with an index read (using the custom sequencing primer ExP_ fwd_BC_seq: GTCCCAATTCTTGTTGAATTAGATTGATCTAGAGCATGCA). We mapped these sequences to a specially constructed index of the promoter sequences using bowtie2 (X: -q -met-stderr -maxins 2000 -p",
+      "bbox": [
+        39.68500137,
+        193.05693066203128,
+        296.3239594970037,
+        45.65034246703124
+      ],
+      "provenance": "docling",
+      "section_context": "Building the barcode-promoter dictionary",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p11_177",
+      "source_block_id": "paper_2_p11_177",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 177,
+      "display_text": "4 -no-mixed -dovetail -fast). We dropped any barcod-promoter pairs with singleton reads, then removed ambiguous pairings (more than one promoter for the same barcode), and finally thresholded pairs with at least five reads to build the barcode-promoter dictionary.",
+      "retrieval_text": "[Section: Building the barcode-promoter dictionary] 4 -no-mixed -dovetail -fast). We dropped any barcod-promoter pairs with singleton reads, then removed ambiguous pairings (more than one promoter for the same barcode), and finally thresholded pairs with at least five reads to build the barcode-promoter dictionary.",
+      "bbox": [
+        306.14169311,
+        741.3069306620313,
+        562.8257291260725,
+        701.4005965345314
+      ],
+      "provenance": "docling",
+      "section_context": "Building the barcode-promoter dictionary",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p12_190",
+      "source_block_id": "paper_2_p12_190",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 190,
+      "display_text": "To assess the technical reproducibility of ExP-STARR-seq, we first compared STARR-seq expression between biological replicate experiments. Specifically, we first combined data from biological replicates 1 and 2 and replicates 3 and 4. Next, we correlated log 2 (RNA/DNA) for these groups before (Fig. 1b and Extended Data Fig. 1b) and after (Extended Data Fig. 1e,f), averaging across plasmid barcodes corresponding to the same enhancer-promoter pair.",
+      "retrieval_text": "[Section: Computing technical reproducibility and influence of plasmid barcode sequences] To assess the technical reproducibility of ExP-STARR-seq, we first compared STARR-seq expression between biological replicate experiments. Specifically, we first combined data from biological replicates 1 and 2 and replicates 3 and 4. Next, we correlated log 2 (RNA/DNA) for these groups before (Fig. 1b and Extended Data Fig. 1b) and after (Extended Data Fig. 1e,f), averaging across plasmid barcodes corresponding to the same enhancer-promoter pair.",
+      "bbox": [
+        39.68500137,
+        451.0569306620313,
+        296.3754237185464,
+        378.90034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Computing technical reproducibility and influence of plasmid barcode sequences",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p12_191",
+      "source_block_id": "paper_2_p12_191",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 191,
+      "display_text": "We next assessed the variation between plasmids with the same enhancer and promoter sequences but different random 16 bp plasmid barcodes, because these 16 nucleotides of random sequence might contain TF motifs or other sequences that affect STARR-seq expression. To do so, we combined data from all biological replicate experiments and created two virtual replicates for each enhancer-promoter pair by splitting the corresponding plasmid barcodes into two groups. For example, an enhancer-promoter pair with six plasmid barcodes was split into two virtual replicates each with three barcodes). We averaged log2 (STARR-seq expression) within enhancer-promoter pairs (across different barcodes) and correlated these virtual replicates. We compared versions of this analysis for increasing thresholds on the minimum number of barcodes in each virtual replicate (Extended Data Fig. 1e,f).",
+      "retrieval_text": "[Section: Computing technical reproducibility and influence of plasmid barcode sequences] We next assessed the variation between plasmids with the same enhancer and promoter sequences but different random 16 bp plasmid barcodes, because these 16 nucleotides of random sequence might contain TF motifs or other sequences that affect STARR-seq expression. To do so, we combined data from all biological replicate experiments and created two virtual replicates for each enhancer-promoter pair by splitting the corresponding plasmid barcodes into two groups. For example, an enhancer-promoter pair with six plasmid barcodes was split into two virtual replicates each with three barcodes). We averaged log2 (STARR-seq expression) within enhancer-promoter pairs (across different barcodes) and correlated these virtual replicates. We compared versions of this analysis for increasing thresholds on the minimum number of barcodes in each virtual replicate (Extended Data Fig. 1e,f).",
+      "bbox": [
+        39.68500137,
+        375.8069306620313,
+        296.3932829739952,
+        239.1503462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Computing technical reproducibility and influence of plasmid barcode sequences",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p12_192",
+      "source_block_id": "paper_2_p12_192",
+      "chunk_type": "section",
+      "page_number": 12,
+      "reading_order": 192,
+      "display_text": "Estimating enhancer and promoter activities using the naive averaging approach",
+      "retrieval_text": "Estimating enhancer and promoter activities using the naive averaging approach",
+      "bbox": [
+        39.68500137,
+        226.48743066203133,
+        281.04505137068,
+        207.8554044071608
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating enhancer and promoter activities using the naive averaging approach",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p17_301",
+      "source_block_id": "paper_2_p17_301",
+      "chunk_type": "section",
+      "page_number": 17,
+      "reading_order": 301,
+      "display_text": "Article",
+      "retrieval_text": "Article",
+      "bbox": [
+        39.68500137,
+        762.4145463820312,
+        85.85700137000003,
+        749.4584931033427
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p17_302",
+      "source_block_id": "paper_2_p17_302",
+      "chunk_type": "caption",
+      "page_number": 17,
+      "reading_order": 302,
+      "display_text": "Extended Data Fig. 1 | Design and reproducibility of ExP STARR-seq. a . ExP STARR-seq reporter construct (pA = polyadenylation signal; purple = promoter sequencing adaptors; angled = spliced sequence; trGFP = truncated GFP open reading frame with start and stop codon; BC = 16 bp N-mer plasmid barcode; red = enhancer sequencing adaptors) and 1000x1000 K562 library contents. b . Correlation of ExP STARR-seq expression between biological replicate experiments, calculated for individual enhancer-promoter pairs with unique plasmid barcodes. Axes represent the average STARR-seq expression (RNA/ DNA) of individual biological replicates. Density: number of enhancerpromoter plasmids. c . Fraction of remaining enhancer-promoter plasmids passing DNA (>25) and RNA (>1) threshold (y-axis) with downsampling of sequencing reads (x-axis). d . Distribution of plasmid barcodes per enhancer-promoter pair, red dotted-line is threshold of two plasmid barcodes. e . Correlation between virtual replicates, formed by sampling two nonoverlapping groups of three plasmid barcodes from pairs with at least 6",
+      "retrieval_text": "[Section: Article] Extended Data Fig. 1 | Design and reproducibility of ExP STARR-seq. a . ExP STARR-seq reporter construct (pA = polyadenylation signal; purple = promoter sequencing adaptors; angled = spliced sequence; trGFP = truncated GFP open reading frame with start and stop codon; BC = 16 bp N-mer plasmid barcode; red = enhancer sequencing adaptors) and 1000x1000 K562 library contents. b . Correlation of ExP STARR-seq expression between biological replicate experiments, calculated for individual enhancer-promoter pairs with unique plasmid barcodes. Axes represent the average STARR-seq expression (RNA/ DNA) of individual biological replicates. Density: number of enhancerpromoter plasmids. c . Fraction of remaining enhancer-promoter plasmids passing DNA (>25) and RNA (>1) threshold (y-axis) with downsampling of sequencing reads (x-axis). d . Distribution of plasmid barcodes per enhancer-promoter pair, red dotted-line is threshold of two plasmid barcodes. e . Correlation between virtual replicates, formed by sampling two nonoverlapping groups of three plasmid barcodes from pairs with at least 6",
+      "bbox": [
+        39.68500137,
+        197.11233166203124,
+        295.08842300245004,
+        50.573833868697875
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p17_303",
+      "source_block_id": "paper_2_p17_303",
+      "chunk_type": "paragraph",
+      "page_number": 17,
+      "reading_order": 303,
+      "display_text": "barcodes, and averaging log2(RNA/DNA) within groups. f . Correlation between virtual replicates as in ( c ) for increasing numbers of plasmid barcodes per pair in virtual replicates. g . DNase-seq, H3K27ac ChIP-seq, and PRO-seq (RPM) by increasing quartile of autonomous promoter activity and average enhancer activity in ExP STARR-seq (n = 800). Box: median and interquartile range (IQR). Whiskers: +/- 1.5 x IQR. h . Activation in ExP STARR-seq (expression versus genomic controls in distal position) of GATA1 and HDAC6 promoters by eHDAC6 (chrX:48641342-48641606). Ctrl = activity of promoters with random genomic controls in enhancer position. Error bars: 95% CI across plasmid barcodes. n = 7 (GATA1-ctrl), 381 (HDAC6-ctrl), 4 (eHDAC6-GATA1), 37 (eHDAC6-HDAC6). i . Average enhancer activity (STARR-seq expression of plasmids containing a given enhancer averaged across all promoters) of enhancer sequences derived from random genomic controls (n = 87), accessible elements (n = 725), and genomic enhancers validated in CRISPR experiments (n = 89).",
+      "retrieval_text": "[Section: Article] barcodes, and averaging log2(RNA/DNA) within groups. f . Correlation between virtual replicates as in ( c ) for increasing numbers of plasmid barcodes per pair in virtual replicates. g . DNase-seq, H3K27ac ChIP-seq, and PRO-seq (RPM) by increasing quartile of autonomous promoter activity and average enhancer activity in ExP STARR-seq (n = 800). Box: median and interquartile range (IQR). Whiskers: +/- 1.5 x IQR. h . Activation in ExP STARR-seq (expression versus genomic controls in distal position) of GATA1 and HDAC6 promoters by eHDAC6 (chrX:48641342-48641606). Ctrl = activity of promoters with random genomic controls in enhancer position. Error bars: 95% CI across plasmid barcodes. n = 7 (GATA1-ctrl), 381 (HDAC6-ctrl), 4 (eHDAC6-GATA1), 37 (eHDAC6-HDAC6). i . Average enhancer activity (STARR-seq expression of plasmids containing a given enhancer averaged across all promoters) of enhancer sequences derived from random genomic controls (n = 87), accessible elements (n = 725), and genomic enhancers validated in CRISPR experiments (n = 89).",
+      "bbox": [
+        306.1400139699999,
+        197.11233166203124,
+        561.3498010828798,
+        50.573833868697875
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical_with_hints",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [
+      "variant_or_sequence"
+    ],
+    "hint_terms": [
+      "sequences",
+      "pairs",
+      "combinations",
+      "plasmids",
+      "barcodes"
+    ]
+  },
+  "stats": {
+    "chunk_build_ms": 5.343,
+    "idf_build_ms": 11.936,
+    "scoring_ms": 7.907,
+    "total_ms": 29.806,
+    "chunk_count_total": 326,
+    "chunk_count_by_type": {
+      "section": 59,
+      "paragraph": 174,
+      "caption": 17,
+      "list_item": 76
+    },
+    "candidate_chunk_count": 326,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 10,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T08:15:47.586074+00:00"
+}

@@ -1,0 +1,344 @@
+{
+  "run_id": "run_20260408_075540_ngzkq5",
+  "pdf_id": "paper_3",
+  "column_name": "Focus",
+  "query": "Focus: What the general focus of the publication is (e.g. transcriptional regulation, UTRs, coding, or other)",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_3_p7_62",
+      "source_block_id": "paper_3_p7_62",
+      "chunk_type": "section",
+      "page_number": 7,
+      "reading_order": 62,
+      "display_text": "Cell-type dependence of TF reporter activities",
+      "retrieval_text": "Cell-type dependence of TF reporter activities",
+      "bbox": [
+        310.84745876,
+        560.6724596292187,
+        505.8963561800002,
+        554.6261648292186
+      ],
+      "provenance": "docling",
+      "section_context": "Cell-type dependence of TF reporter activities",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p7_63",
+      "source_block_id": "paper_3_p7_63",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 63,
+      "display_text": "After identifying the features facilitating high reporter activity, we aimed to characterize the TF specificity of each reporter. One line of evidence for such specificity would be if the activity of a reporter correlates positively with the abundance of the corresponding TF across the nine tested cell lines. Therefore, we generated mRNA-seq data for mNPCs, mESCs, and HEPG2 cells and collected publicly available mRNA-seq data for the other six probed cell lines (see STAR Methods and Figure S4A). We then conducted a transcript abundance correlation analysis for 37 TFs that showed sufficient variation in expression level across the cell lines (Figure 3A). For some TFs (e.g., POU5F1:: SOX2, HNF1A), the activities of all reporters significantly correlated with TF transcript abundance. For other TFs (e.g., IRX3), none of the reporters had a significant correlation. While this could indicate that the reporters for these TFs lack specificity, it is also possible that the activity of those TFs is controlled primarily by intracellular signaling or by certain co-factors; alternatively, their protein abundance is not reliably predicted by their mRNA level.",
+      "retrieval_text": "[Section: Cell-type dependence of TF reporter activities] After identifying the features facilitating high reporter activity, we aimed to characterize the TF specificity of each reporter. One line of evidence for such specificity would be if the activity of a reporter correlates positively with the abundance of the corresponding TF across the nine tested cell lines. Therefore, we generated mRNA-seq data for mNPCs, mESCs, and HEPG2 cells and collected publicly available mRNA-seq data for the other six probed cell lines (see STAR Methods and Figure S4A). We then conducted a transcript abundance correlation analysis for 37 TFs that showed sufficient variation in expression level across the cell lines (Figure 3A). For some TFs (e.g., POU5F1:: SOX2, HNF1A), the activities of all reporters significantly correlated with TF transcript abundance. For other TFs (e.g., IRX3), none of the reporters had a significant correlation. While this could indicate that the reporters for these TFs lack specificity, it is also possible that the activity of those TFs is controlled primarily by intracellular signaling or by certain co-factors; alternatively, their protein abundance is not reliably predicted by their mRNA level.",
+      "bbox": [
+        310.84745876,
+        549.7306984092187,
+        549.9352302799999,
+        344.6791631492187
+      ],
+      "provenance": "docling",
+      "section_context": "Cell-type dependence of TF reporter activities",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p7_64",
+      "source_block_id": "paper_3_p7_64",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 64,
+      "display_text": "For most TFs, only a subset of reporters significantly correlated with TF transcript abundance (e.g., GATA4, GATA1, TFCP2L1, and GBX2; Figure 3A, highlighted in red). For example, for GATA4, which is an important regulator of the endoderm 42 and is highest expressed in HEPG2 cells among our set of investigated cell lines, one reporter with spacer sequence #4 was not active in any cell type, but the same reporter design (i.e., the same core promoter, promoter distance, and spacer length) with spacer sequence #6 was highly activated specifically in HEPG2 (Figure 3B). Indeed, all GATA4 reporters with spacer sequence #6 displayed activities that significantly correlated with GATA4 transcript abundance (Figure S4B), suggesting that this spacer sequence renders GATA4 reporters GATA4 specific. In line with these findings, spacer sequence #6 was also identified as the most important feature in the log-linear model for GATA4 (note that this model was fit in HEPG2, Figure 2D). We observed a similar spacer sequence-dependent TF specificity for GBX2, which is a TF involved in maintaining pluripotency 38,39 and is mainly expressed in mESCs. GBX2 reporters with a spacer sequence #3, but not any other spacer sequence, displayed activity specifically in mESCs (Figures 3C and S4C).",
+      "retrieval_text": "[Section: Cell-type dependence of TF reporter activities] For most TFs, only a subset of reporters significantly correlated with TF transcript abundance (e.g., GATA4, GATA1, TFCP2L1, and GBX2; Figure 3A, highlighted in red). For example, for GATA4, which is an important regulator of the endoderm 42 and is highest expressed in HEPG2 cells among our set of investigated cell lines, one reporter with spacer sequence #4 was not active in any cell type, but the same reporter design (i.e., the same core promoter, promoter distance, and spacer length) with spacer sequence #6 was highly activated specifically in HEPG2 (Figure 3B). Indeed, all GATA4 reporters with spacer sequence #6 displayed activities that significantly correlated with GATA4 transcript abundance (Figure S4B), suggesting that this spacer sequence renders GATA4 reporters GATA4 specific. In line with these findings, spacer sequence #6 was also identified as the most important feature in the log-linear model for GATA4 (note that this model was fit in HEPG2, Figure 2D). We observed a similar spacer sequence-dependent TF specificity for GBX2, which is a TF involved in maintaining pluripotency 38,39 and is mainly expressed in mESCs. GBX2 reporters with a spacer sequence #3, but not any other spacer sequence, displayed activity specifically in mESCs (Figures 3C and S4C).",
+      "bbox": [
+        310.8469014,
+        341.49681358921873,
+        549.9408992600002,
+        114.50720976921878
+      ],
+      "provenance": "docling",
+      "section_context": "Cell-type dependence of TF reporter activities",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p7_65",
+      "source_block_id": "paper_3_p7_65",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 65,
+      "display_text": "For GATA1, which is an important regulator in erythroid cell gene expression 43 and is only highly expressed in erythroleukemic cell line K562, reporters were more K562-specific with a 10 bp rather than a 21 bp promoter distance (Figures 2D, 3D, and S4D). The latter displayed activity in GATA1-lacking cell types, possibly because these reporters respond to other GATAs (e.g., GATA3 in MCF7 or GATA4 in HEPG2). TFCP2L1,",
+      "retrieval_text": "[Section: Cell-type dependence of TF reporter activities] For GATA1, which is an important regulator in erythroid cell gene expression 43 and is only highly expressed in erythroleukemic cell line K562, reporters were more K562-specific with a 10 bp rather than a 21 bp promoter distance (Figures 2D, 3D, and S4D). The latter displayed activity in GATA1-lacking cell types, possibly because these reporters respond to other GATAs (e.g., GATA3 in MCF7 or GATA4 in HEPG2). TFCP2L1,",
+      "bbox": [
+        310.8466619599999,
+        111.3815971492188,
+        549.9158034400001,
+        37.8015891692188
+      ],
+      "provenance": "docling",
+      "section_context": "Cell-type dependence of TF reporter activities",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p8_66",
+      "source_block_id": "paper_3_p8_66",
+      "chunk_type": "caption",
+      "page_number": 8,
+      "reading_order": 66,
+      "display_text": "Figure 3. Investigating cell-type specificity of reporters",
+      "retrieval_text": "[Section: Cell-type dependence of TF reporter activities] Figure 3. Investigating cell-type specificity of reporters",
+      "bbox": [
+        53.1212,
+        240.44038814921873,
+        249.7236846800001,
+        233.64852194921878
+      ],
+      "provenance": "docling",
+      "section_context": "Cell-type dependence of TF reporter activities",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p9_75",
+      "source_block_id": "paper_3_p9_75",
+      "chunk_type": "paragraph",
+      "page_number": 9,
+      "reading_order": 75,
+      "display_text": "For some of those TFs (e.g., WNT pathway mediator TCF7 upon removal of WNT activator CHIR-99021), we saw robust responses across almost all reporter designs (Figure 4A). The most potent TF-stimulating condition was activation of VDR reporters by its ligand calcitriol. In U2OS cells this yielded activation levels up to 180-fold (Figures 4A and 4B). Other strong reporter responses were also achieved by stimulating the heat-shockresponsive HSF1 at 43 \u000e C (Figure 4C); the bile acid receptor NR1H4 by the bile acid CDCA (Figure 4D), the oxidative stress response factor NFE2L2 by treatment with hydroquinone (Figure 4E), the cyclic AMP (cAMP)-responsive TF CREB1 by cAMP activator forskolin (Figure 4F), and STAT3 by removal of JAK-STAT activator leukemia inhibitory factor (LIF) (Figure 4G).",
+      "retrieval_text": "[Section: Response of TF reporters to pathway stimulation and inactivation] For some of those TFs (e.g., WNT pathway mediator TCF7 upon removal of WNT activator CHIR-99021), we saw robust responses across almost all reporter designs (Figure 4A). The most potent TF-stimulating condition was activation of VDR reporters by its ligand calcitriol. In U2OS cells this yielded activation levels up to 180-fold (Figures 4A and 4B). Other strong reporter responses were also achieved by stimulating the heat-shockresponsive HSF1 at 43 \u000e C (Figure 4C); the bile acid receptor NR1H4 by the bile acid CDCA (Figure 4D), the oxidative stress response factor NFE2L2 by treatment with hydroquinone (Figure 4E), the cyclic AMP (cAMP)-responsive TF CREB1 by cAMP activator forskolin (Figure 4F), and STAT3 by removal of JAK-STAT activator leukemia inhibitory factor (LIF) (Figure 4G).",
+      "bbox": [
+        59.75382141999998,
+        560.7859335092187,
+        298.8835657,
+        421.44238916921876
+      ],
+      "provenance": "docling",
+      "section_context": "Response of TF reporters to pathway stimulation and inactivation",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p9_76",
+      "source_block_id": "paper_3_p9_76",
+      "chunk_type": "paragraph",
+      "page_number": 9,
+      "reading_order": 76,
+      "display_text": "Overall, there was a marked variation in the strength of the response between reporters of the same TF. The strength of the responses in the examples above strongly depended on the core promoter (VDR, HSF1, and NR1H4), or the spacer sequences (NFE2L2 and STAT3), which is in line with the findings of the log-linear model (Figure 2D). For other TFs (e.g., AHR::ARNT, NR4A2), only a few the reporters showed a clear response (fold-change > 2). The published reporters for VDR and NR1H4 showed a relatively poor response, as did a subset of the published NFE2L2, CREB1, HSF1, and STAT3 reporters. In total, of the 36 TFs targeted by the 23 perturbations, for 28 TFs we identified at least one reporter that responded in the expected direction by at least 2-fold (Figure 4A).",
+      "retrieval_text": "[Section: Response of TF reporters to pathway stimulation and inactivation] Overall, there was a marked variation in the strength of the response between reporters of the same TF. The strength of the responses in the examples above strongly depended on the core promoter (VDR, HSF1, and NR1H4), or the spacer sequences (NFE2L2 and STAT3), which is in line with the findings of the log-linear model (Figure 2D). For other TFs (e.g., AHR::ARNT, NR4A2), only a few the reporters showed a clear response (fold-change > 2). The published reporters for VDR and NR1H4 showed a relatively poor response, as did a subset of the published NFE2L2, CREB1, HSF1, and STAT3 reporters. In total, of the 36 TFs targeted by the 23 perturbations, for 28 TFs we identified at least one reporter that responded in the expected direction by at least 2-fold (Figure 4A).",
+      "bbox": [
+        59.75466824000003,
+        418.3167765492188,
+        298.8822403,
+        278.97254554921886
+      ],
+      "provenance": "docling",
+      "section_context": "Response of TF reporters to pathway stimulation and inactivation",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p9_77",
+      "source_block_id": "paper_3_p9_77",
+      "chunk_type": "section",
+      "page_number": 9,
+      "reading_order": 77,
+      "display_text": "Testing reporters by TF depletion or overexpression",
+      "retrieval_text": "Testing reporters by TF depletion or overexpression",
+      "bbox": [
+        59.75466824000003,
+        264.79169782921895,
+        279.13947881999985,
+        258.7454030292189
+      ],
+      "provenance": "docling",
+      "section_context": "Testing reporters by TF depletion or overexpression",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p14_115",
+      "source_block_id": "paper_3_p14_115",
+      "chunk_type": "section",
+      "page_number": 14,
+      "reading_order": 115,
+      "display_text": "Applicability of the identified prime reporters",
+      "retrieval_text": "Applicability of the identified prime reporters",
+      "bbox": [
+        53.1212,
+        177.14515410921877,
+        243.3085037999998,
+        171.09885930921882
+      ],
+      "provenance": "docling",
+      "section_context": "Applicability of the identified prime reporters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p14_116",
+      "source_block_id": "paper_3_p14_116",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 116,
+      "display_text": "We here present the systematic design and identification of a large collection of optimized ''prime'' TF reporters. This collection encompasses reporters that outperform currently available reporters (e.g., VDR, SOX2, and PAX6), and reporters for TFs for which no reliable reporters were available yet (e.g., GATA4, TFCP2L1, and KLF4). The sequences of the prime reporter for each TF are documented in Table S4, which can be used for various purposes. For instance, the prime reporters can be used individually in a conventional fluorescence/luminescence reporter assay to better characterize the role of single TFs in certain biological processes. Alternatively, the identified 62 prime reporters can be employed in a multiplexed fashion, where each TF drives a unique barcode. A dedicated small library consisting of only the prime reporters (with each prime reporter coupled to at least five unique barcodes) can be delivered as a plasmid pool or as a lentiviral library into any cell line of interest. Given the low complexity of this library (<500 barcodes for all 62 TFs including negative controls), highquality data may be retrieved even from hard-to-transfect cell models such as organoids. This low complexity also enables the detection of TF activities from a small number of cells, making it suitable for applications such as 96-well screens. Signaling pathways could be challenged by an array of inhibitors or activators, similar to what has been done in this study, to unveil novel roles of TFs in signaling pathways. Likewise, TF responses can be tracked upon TF depletion to dissect TF-TF communications. Potentially, this can also be done in single cells and in time course experiments to detect cascades of TF activities. Although the prime reporters are top-rated based on our performance criteria, there may be instances where other reporters with specific attributes are preferred for certain TFs (e.g., high cell-type specificity or responsiveness to perturbation of related TFs). The heatmaps in Data S1 can aid in",
+      "retrieval_text": "[Section: Applicability of the identified prime reporters] We here present the systematic design and identification of a large collection of optimized ''prime'' TF reporters. This collection encompasses reporters that outperform currently available reporters (e.g., VDR, SOX2, and PAX6), and reporters for TFs for which no reliable reporters were available yet (e.g., GATA4, TFCP2L1, and KLF4). The sequences of the prime reporter for each TF are documented in Table S4, which can be used for various purposes. For instance, the prime reporters can be used individually in a conventional fluorescence/luminescence reporter assay to better characterize the role of single TFs in certain biological processes. Alternatively, the identified 62 prime reporters can be employed in a multiplexed fashion, where each TF drives a unique barcode. A dedicated small library consisting of only the prime reporters (with each prime reporter coupled to at least five unique barcodes) can be delivered as a plasmid pool or as a lentiviral library into any cell line of interest. Given the low complexity of this library (<500 barcodes for all 62 TFs including negative controls), highquality data may be retrieved even from hard-to-transfect cell models such as organoids. This low complexity also enables the detection of TF activities from a small number of cells, making it suitable for applications such as 96-well screens. Signaling pathways could be challenged by an array of inhibitors or activators, similar to what has been done in this study, to unveil novel roles of TFs in signaling pathways. Likewise, TF responses can be tracked upon TF depletion to dissect TF-TF communications. Potentially, this can also be done in single cells and in time course experiments to detect cascades of TF activities. Although the prime reporters are top-rated based on our performance criteria, there may be instances where other reporters with specific attributes are preferred for certain TFs (e.g., high cell-type specificity or responsiveness to perturbation of related TFs). The heatmaps in Data S1 can aid in",
+      "bbox": [
+        53.1212,
+        166.14665594921883,
+        292.21574608000003,
+        37.80092310921884
+      ],
+      "provenance": "docling",
+      "section_context": "Applicability of the identified prime reporters",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_117",
+      "source_block_id": "paper_3_p15_117",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 117,
+      "display_text": "identifying such cases (e.g., for identifying generic STAT reporters instead of STAT3-specific reporters).",
+      "retrieval_text": "[Section: Applicability of the identified prime reporters] identifying such cases (e.g., for identifying generic STAT reporters instead of STAT3-specific reporters).",
+      "bbox": [
+        59.7543,
+        681.3155177492188,
+        298.82344148000004,
+        662.5576079292188
+      ],
+      "provenance": "docling",
+      "section_context": "Applicability of the identified prime reporters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_120",
+      "source_block_id": "paper_3_p15_120",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 120,
+      "display_text": "Increased TF specificity of prime reporters",
+      "retrieval_text": "Increased TF specificity of prime reporters",
+      "bbox": [
+        59.75443652000001,
+        462.0837989892188,
+        240.30492871999988,
+        456.0375041892188
+      ],
+      "provenance": "docling",
+      "section_context": "Increased TF specificity of prime reporters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_121",
+      "source_block_id": "paper_3_p15_121",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 121,
+      "display_text": "We have shown that our synthetic reporters outperform published reporters for >80% of all comparisons. This underscores that a subset of currently available reporters is suboptimal in terms of sensitivity (e.g., VDR, PAX6, and NR1H4) or specificity (e.g., CLOCK, TP53, and POU2F1). In comparison with published TF reporters, which rely on genomic response elements or unoptimized synthetic designs, the designed prime reporters exclusively contain TFBSs for the candidate TF and are highly optimized to enable effective transcription. Through careful optimization of the spacer sequences between the TFBSs and the choice of the core promoter, we were able to achieve reporters with increased TF sensitivity and specificity. In some cases, this even enabled us to identify specific reporters for TFs with highly similar TFBSs (e.g., GATA1/GATA4 and TFCP2L1/ GRHL1). While we established prime reporters for 62 TFs, good reporters for many other TFs are still lacking. For instance, our set of TFs did not include a large number of important activator TFs that belong the basic domain or homeodomain TF superclass, many of which have non-unique binding motifs. 28 These TFs can have crucial roles in development (e.g., HOX TFs); hence, generating reporters for these TFs would be important to dissect the roles of TFs during differentiation. Although it remains challenging to generate specific reporters for TFs with non-unique TFBSs, careful optimization of TFBS spacer sequences and thorough evaluation of reporter responses to a variety of target TF and off-target TF perturbations could offer solutions.",
+      "retrieval_text": "[Section: Increased TF specificity of prime reporters] We have shown that our synthetic reporters outperform published reporters for >80% of all comparisons. This underscores that a subset of currently available reporters is suboptimal in terms of sensitivity (e.g., VDR, PAX6, and NR1H4) or specificity (e.g., CLOCK, TP53, and POU2F1). In comparison with published TF reporters, which rely on genomic response elements or unoptimized synthetic designs, the designed prime reporters exclusively contain TFBSs for the candidate TF and are highly optimized to enable effective transcription. Through careful optimization of the spacer sequences between the TFBSs and the choice of the core promoter, we were able to achieve reporters with increased TF sensitivity and specificity. In some cases, this even enabled us to identify specific reporters for TFs with highly similar TFBSs (e.g., GATA1/GATA4 and TFCP2L1/ GRHL1). While we established prime reporters for 62 TFs, good reporters for many other TFs are still lacking. For instance, our set of TFs did not include a large number of important activator TFs that belong the basic domain or homeodomain TF superclass, many of which have non-unique binding motifs. 28 These TFs can have crucial roles in development (e.g., HOX TFs); hence, generating reporters for these TFs would be important to dissect the roles of TFs during differentiation. Although it remains challenging to generate specific reporters for TFs with non-unique TFBSs, careful optimization of TFBS spacer sequences and thorough evaluation of reporter responses to a variety of target TF and off-target TF perturbations could offer solutions.",
+      "bbox": [
+        59.7543,
+        451.1420377692188,
+        298.88610616000005,
+        158.38726672921882
+      ],
+      "provenance": "docling",
+      "section_context": "Increased TF specificity of prime reporters",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_122",
+      "source_block_id": "paper_3_p15_122",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 122,
+      "display_text": "Importance of validation",
+      "retrieval_text": "Importance of validation",
+      "bbox": [
+        59.7543,
+        144.2631559492188,
+        162.38295625999993,
+        138.21686114921886
+      ],
+      "provenance": "docling",
+      "section_context": "Importance of validation",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p23_257",
+      "source_block_id": "paper_3_p23_257",
+      "chunk_type": "section",
+      "page_number": 23,
+      "reading_order": 257,
+      "display_text": "RNA-seq data analysis",
+      "retrieval_text": "RNA-seq data analysis",
+      "bbox": [
+        59.75480104000002,
+        286.7893359292188,
+        154.26838123999997,
+        280.7430411292188
+      ],
+      "provenance": "docling",
+      "section_context": "RNA-seq data analysis",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p23_258",
+      "source_block_id": "paper_3_p23_258",
+      "chunk_type": "paragraph",
+      "page_number": 23,
+      "reading_order": 258,
+      "display_text": "For mESC, mNPC and HEPG2, data retrieved from the ''RNA-seq data generation'' was used. Reads were aligned to GRCh38 (for human cells) or GRCm38 (for mouse cells) and counted in gencode v38 (human) or M10 (mouse) genes with STAR 2.5.4a. 52 Data for all other cell lines was collected from the Human Protein Atlas (https://www.proteinatlas.org/about/download, #25 - RNA HPA cell line gene data, The Human Protein Atlas version 23.0, Ensembl version 109). For all cell lines and all protein-coding genes, transcripts per million (TPM) were calculated, scaled to a sum of one million (pTPM) and then normalized to nTPM using Trimmed mean of M values 53 to allow for between-sample comparisons. To compute correlations between TF reporter activity and TF expression, only TFs with differences in expression across cell lines were included (nTPM > 8 in at least one cell line, nTPM < 1 in at least one cell line). Additionally, TFs that were not active in any cell line (reporter activity (log2) < 0.75) were excluded. Several TFs (TEAD1, GLI1, NFAT5, ESRRB, RUNX2, GRHL1) that did not pass one of the applied filters were still included in the analysis. In case of heterodimeric TFs (e.g., POU5F1::SOX2), we considered in each cell line the nTPM value of the TF with the lowest abundance, since this TF is the limiting factor of the heterodimer.",
+      "retrieval_text": "[Section: RNA-seq data analysis] For mESC, mNPC and HEPG2, data retrieved from the ''RNA-seq data generation'' was used. Reads were aligned to GRCh38 (for human cells) or GRCm38 (for mouse cells) and counted in gencode v38 (human) or M10 (mouse) genes with STAR 2.5.4a. 52 Data for all other cell lines was collected from the Human Protein Atlas (https://www.proteinatlas.org/about/download, #25 - RNA HPA cell line gene data, The Human Protein Atlas version 23.0, Ensembl version 109). For all cell lines and all protein-coding genes, transcripts per million (TPM) were calculated, scaled to a sum of one million (pTPM) and then normalized to nTPM using Trimmed mean of M values 53 to allow for between-sample comparisons. To compute correlations between TF reporter activity and TF expression, only TFs with differences in expression across cell lines were included (nTPM > 8 in at least one cell line, nTPM < 1 in at least one cell line). Additionally, TFs that were not active in any cell line (reporter activity (log2) < 0.75) were excluded. Several TFs (TEAD1, GLI1, NFAT5, ESRRB, RUNX2, GRHL1) that did not pass one of the applied filters were still included in the analysis. In case of heterodimeric TFs (e.g., POU5F1::SOX2), we considered in each cell line the nTPM value of the TF with the lowest abundance, since this TF is the limiting factor of the heterodimer.",
+      "bbox": [
+        59.754490960000005,
+        275.8475747092188,
+        549.9416389600001,
+        158.44414854921877
+      ],
+      "provenance": "docling",
+      "section_context": "RNA-seq data analysis",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p23_259",
+      "source_block_id": "paper_3_p23_259",
+      "chunk_type": "section",
+      "page_number": 23,
+      "reading_order": 259,
+      "display_text": "Reporter activity computation and normalizations",
+      "retrieval_text": "Reporter activity computation and normalizations",
+      "bbox": [
+        59.75508131999999,
+        144.32003776921874,
+        268.7460232199999,
+        138.2737429692188
+      ],
+      "provenance": "docling",
+      "section_context": "Reporter activity computation and normalizations",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [],
+    "hint_terms": []
+  },
+  "stats": {
+    "chunk_build_ms": 2.2,
+    "idf_build_ms": 9.645,
+    "scoring_ms": 6.064,
+    "total_ms": 23.049,
+    "chunk_count_total": 269,
+    "chunk_count_by_type": {
+      "section": 59,
+      "list_item": 95,
+      "paragraph": 102,
+      "caption": 8,
+      "table_region": 5
+    },
+    "candidate_chunk_count": 269,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 11,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T09:45:16.144642+00:00"
+}

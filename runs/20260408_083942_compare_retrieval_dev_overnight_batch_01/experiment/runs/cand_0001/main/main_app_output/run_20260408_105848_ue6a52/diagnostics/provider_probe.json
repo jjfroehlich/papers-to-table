@@ -1,0 +1,62 @@
+{
+  "provider": "lm_studio",
+  "recorded_at": "2026-04-08T10:59:08.509345+00:00",
+  "base_url": "http://localhost:1234",
+  "logging_mode": "verbose",
+  "text": {
+    "modality": "text",
+    "model_id": "google/gemma-4-26b-a4b",
+    "best_mode": "json_schema",
+    "json_schema": {
+      "modality": "text",
+      "model_id": "google/gemma-4-26b-a4b",
+      "structured_mode": "json_schema",
+      "supported": true,
+      "payload_summary": {
+        "model": "google/gemma-4-26b-a4b",
+        "max_tokens": 96,
+        "temperature": 0.0,
+        "response_format_type": "json_schema",
+        "message_count": 1,
+        "message_roles": [
+          "user"
+        ],
+        "messages": [
+          {
+            "role": "user",
+            "content_type": "text",
+            "char_count": 162,
+            "preview": "Return ONLY one JSON object with keys proposed_value, state, rationale, and calculation. Use state='found', proposed_value='ok', rationale=null, calculation=null."
+          }
+        ],
+        "response_format": {
+          "type": "json_schema",
+          "schema_name": "text_probe",
+          "strict": null,
+          "schema_required": [
+            "proposed_value",
+            "state",
+            "rationale",
+            "calculation"
+          ],
+          "schema_property_count": 4
+        }
+      },
+      "duration_ms": 1171.597,
+      "http_status": 200,
+      "parse_details": {
+        "wrapper_tags_removed": false,
+        "code_fences_removed": false,
+        "balanced_object_extracted": false,
+        "parsed_from": "cleaned",
+        "trailing_comma_repaired": false,
+        "failure_stage": "ok",
+        "validation_error": null
+      },
+      "response_preview": "{\"proposed_value\": \"ok\", \"state\": \"found\", \"rationale\": null, \"calculation\": null}"
+    },
+    "json_object": null,
+    "recorded_at": "2026-04-08T10:59:10.155224+00:00"
+  },
+  "vision": null
+}

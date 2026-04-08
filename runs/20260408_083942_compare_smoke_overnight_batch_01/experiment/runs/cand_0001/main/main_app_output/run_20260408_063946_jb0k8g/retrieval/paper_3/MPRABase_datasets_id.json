@@ -1,0 +1,362 @@
+{
+  "run_id": "run_20260408_063946_jb0k8g",
+  "pdf_id": "paper_3",
+  "column_name": "MPRABase_datasets_id",
+  "query": "MPRABase_datasets_id: Dataset ID for the publication in the \"MPRAbase\" database.",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_3_p4_33",
+      "source_block_id": "paper_3_p4_33",
+      "chunk_type": "paragraph",
+      "page_number": 4,
+      "reading_order": 33,
+      "display_text": "domains and thus also highly similar TFBSs, which complicates the design of reporters that are specific for a single TF.",
+      "retrieval_text": "[Section: Article] domains and thus also highly similar TFBSs, which complicates the design of reporters that are specific for a single TF.",
+      "bbox": [
+        53.1212,
+        681.3155177492188,
+        292.14291956,
+        662.5576079292188
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p4_34",
+      "source_block_id": "paper_3_p4_34",
+      "chunk_type": "paragraph",
+      "page_number": 4,
+      "reading_order": 34,
+      "display_text": "Here, we report the generation of highly optimized reporters for a large collection of TFs. Our aim was to identify reporter designs that would allow for measurements of the activity of individual TFs with the highest possible sensitivity and specificity. With a few exceptions (see below), we did not consider combinatorial activity of multiple TFs. In order to test a large number of candidate reporters, we made use of massively parallel reporter assays (MPRAs) with a systematically designed library of 5,530 different reporter designs for 86 TFs, including TFs that respond to diverse signaling pathways and a variety of cell-type-specific TFs. For each TF, we optimized the design of the reporter by varying the spacer sequences and spacer length between TFBSs, the distance to the core promoter and the core promoter itself. We evaluated the specificity and sensitivity of the generated TF reporters by probing the library across nine cell lines and almost 100 TF perturbation conditions. Detailed analysis of this rich dataset provided insights into the rules that determine the sensitivity and specificity of reporters for each TF and yielded a collection of ''prime'' reporters for 62 TFs, for many of which no reporters were available yet. Our synthetic prime reporters outperform published reporters in >80% of all comparisons. We demonstrate the utility of the identified prime reporter set by detecting signaling pathway interdependencies upon pluripotency-challenging perturbations in mouse embryonic stem cells (mESCs).",
+      "retrieval_text": "[Section: Article] Here, we report the generation of highly optimized reporters for a large collection of TFs. Our aim was to identify reporter designs that would allow for measurements of the activity of individual TFs with the highest possible sensitivity and specificity. With a few exceptions (see below), we did not consider combinatorial activity of multiple TFs. In order to test a large number of candidate reporters, we made use of massively parallel reporter assays (MPRAs) with a systematically designed library of 5,530 different reporter designs for 86 TFs, including TFs that respond to diverse signaling pathways and a variety of cell-type-specific TFs. For each TF, we optimized the design of the reporter by varying the spacer sequences and spacer length between TFBSs, the distance to the core promoter and the core promoter itself. We evaluated the specificity and sensitivity of the generated TF reporters by probing the library across nine cell lines and almost 100 TF perturbation conditions. Detailed analysis of this rich dataset provided insights into the rules that determine the sensitivity and specificity of reporters for each TF and yielded a collection of ''prime'' reporters for 62 TFs, for many of which no reporters were available yet. Our synthetic prime reporters outperform published reporters in >80% of all comparisons. We demonstrate the utility of the identified prime reporter set by detecting signaling pathway interdependencies upon pluripotency-challenging perturbations in mouse embryonic stem cells (mESCs).",
+      "bbox": [
+        53.1212,
+        659.3752583692187,
+        292.30042808000013,
+        399.50144312921867
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p4_35",
+      "source_block_id": "paper_3_p4_35",
+      "chunk_type": "section",
+      "page_number": 4,
+      "reading_order": 35,
+      "display_text": "RESULTS",
+      "retrieval_text": "RESULTS",
+      "bbox": [
+        53.1212,
+        385.4340692892187,
+        93.218127,
+        379.3877744892187
+      ],
+      "provenance": "docling",
+      "section_context": "RESULTS",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p6_54",
+      "source_block_id": "paper_3_p6_54",
+      "chunk_type": "list_item",
+      "page_number": 6,
+      "reading_order": 54,
+      "display_text": "(D) Coefficient weight heatmap for all TFs with a significant log-linear model fit and a total explained variance of >50%. As in (C), all weights are computed in contrast to the reference variables minP (core promoter), 10 bp (promoter distance), and #1 (spacer sequence). Weights of features that did not significantly contribute to the model ( p R 0.1) are set to 0 in this visualization. TFs highlighted in red display spacer sequence preferences, TFs in blue spacer length preferences. TFs indicated in bold are mentioned in the text.",
+      "retrieval_text": "[Section: Understanding TF-specific reporter design rules] (D) Coefficient weight heatmap for all TFs with a significant log-linear model fit and a total explained variance of >50%. As in (C), all weights are computed in contrast to the reference variables minP (core promoter), 10 bp (promoter distance), and #1 (spacer sequence). Weights of features that did not significantly contribute to the model ( p R 0.1) are set to 0 in this visualization. TFs highlighted in red display spacer sequence preferences, TFs in blue spacer length preferences. TFs indicated in bold are mentioned in the text.",
+      "bbox": [
+        53.12119999999993,
+        171.88349262921872,
+        543.2726408599999,
+        137.04378258921872
+      ],
+      "provenance": "docling",
+      "section_context": "Understanding TF-specific reporter design rules",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p6_55",
+      "source_block_id": "paper_3_p6_55",
+      "chunk_type": "list_item",
+      "page_number": 6,
+      "reading_order": 55,
+      "display_text": "(E) Total variance explained by the individual design features for all TFs displayed in (D). Red line indicates the median. The color of the dots indicates the total explained variance of the log-linear model. Statistical significance of the difference in variance explained was tested using unpaired Student's t tests, *** p <0.001. (F) Average difference between the weights of 10-bp spacer sequences in the log-linear model and the 5-bp spacer sequences, separately per monomeric and dimeric/multimeric TFBSs. The color of the dots indicates TFs with consistent preference for 5-bp (light blue) or 10-bp spacer lengths (dark blue). Statistical significance of the difference in variance is estimated by Levene's test.",
+      "retrieval_text": "[Section: Understanding TF-specific reporter design rules] (E) Total variance explained by the individual design features for all TFs displayed in (D). Red line indicates the median. The color of the dots indicates the total explained variance of the log-linear model. Statistical significance of the difference in variance explained was tested using unpaired Student's t tests, *** p <0.001. (F) Average difference between the weights of 10-bp spacer sequences in the log-linear model and the 5-bp spacer sequences, separately per monomeric and dimeric/multimeric TFBSs. The color of the dots indicates TFs with consistent preference for 5-bp (light blue) or 10-bp spacer lengths (dark blue). Statistical significance of the difference in variance is estimated by Levene's test.",
+      "bbox": [
+        53.121199999999874,
+        134.01296910921872,
+        543.2789172800001,
+        89.70562818921871
+      ],
+      "provenance": "docling",
+      "section_context": "Understanding TF-specific reporter design rules",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p6_56",
+      "source_block_id": "paper_3_p6_56",
+      "chunk_type": "paragraph",
+      "page_number": 6,
+      "reading_order": 56,
+      "display_text": "by 10 bp and that the spacer sequence can strongly impact reporter activity, even though the spacers were designed not to contain any known TF motif.",
+      "retrieval_text": "[Section: Understanding TF-specific reporter design rules] by 10 bp and that the spacer sequence can strongly impact reporter activity, even though the spacers were designed not to contain any known TF motif.",
+      "bbox": [
+        53.1212,
+        67.55811774921881,
+        292.19034148000003,
+        37.801709769218746
+      ],
+      "provenance": "docling",
+      "section_context": "Understanding TF-specific reporter design rules",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p9_75",
+      "source_block_id": "paper_3_p9_75",
+      "chunk_type": "paragraph",
+      "page_number": 9,
+      "reading_order": 75,
+      "display_text": "For some of those TFs (e.g., WNT pathway mediator TCF7 upon removal of WNT activator CHIR-99021), we saw robust responses across almost all reporter designs (Figure 4A). The most potent TF-stimulating condition was activation of VDR reporters by its ligand calcitriol. In U2OS cells this yielded activation levels up to 180-fold (Figures 4A and 4B). Other strong reporter responses were also achieved by stimulating the heat-shockresponsive HSF1 at 43 \u000e C (Figure 4C); the bile acid receptor NR1H4 by the bile acid CDCA (Figure 4D), the oxidative stress response factor NFE2L2 by treatment with hydroquinone (Figure 4E), the cyclic AMP (cAMP)-responsive TF CREB1 by cAMP activator forskolin (Figure 4F), and STAT3 by removal of JAK-STAT activator leukemia inhibitory factor (LIF) (Figure 4G).",
+      "retrieval_text": "[Section: Response of TF reporters to pathway stimulation and inactivation] For some of those TFs (e.g., WNT pathway mediator TCF7 upon removal of WNT activator CHIR-99021), we saw robust responses across almost all reporter designs (Figure 4A). The most potent TF-stimulating condition was activation of VDR reporters by its ligand calcitriol. In U2OS cells this yielded activation levels up to 180-fold (Figures 4A and 4B). Other strong reporter responses were also achieved by stimulating the heat-shockresponsive HSF1 at 43 \u000e C (Figure 4C); the bile acid receptor NR1H4 by the bile acid CDCA (Figure 4D), the oxidative stress response factor NFE2L2 by treatment with hydroquinone (Figure 4E), the cyclic AMP (cAMP)-responsive TF CREB1 by cAMP activator forskolin (Figure 4F), and STAT3 by removal of JAK-STAT activator leukemia inhibitory factor (LIF) (Figure 4G).",
+      "bbox": [
+        59.75382141999998,
+        560.7859335092187,
+        298.8835657,
+        421.44238916921876
+      ],
+      "provenance": "docling",
+      "section_context": "Response of TF reporters to pathway stimulation and inactivation",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p9_76",
+      "source_block_id": "paper_3_p9_76",
+      "chunk_type": "paragraph",
+      "page_number": 9,
+      "reading_order": 76,
+      "display_text": "Overall, there was a marked variation in the strength of the response between reporters of the same TF. The strength of the responses in the examples above strongly depended on the core promoter (VDR, HSF1, and NR1H4), or the spacer sequences (NFE2L2 and STAT3), which is in line with the findings of the log-linear model (Figure 2D). For other TFs (e.g., AHR::ARNT, NR4A2), only a few the reporters showed a clear response (fold-change > 2). The published reporters for VDR and NR1H4 showed a relatively poor response, as did a subset of the published NFE2L2, CREB1, HSF1, and STAT3 reporters. In total, of the 36 TFs targeted by the 23 perturbations, for 28 TFs we identified at least one reporter that responded in the expected direction by at least 2-fold (Figure 4A).",
+      "retrieval_text": "[Section: Response of TF reporters to pathway stimulation and inactivation] Overall, there was a marked variation in the strength of the response between reporters of the same TF. The strength of the responses in the examples above strongly depended on the core promoter (VDR, HSF1, and NR1H4), or the spacer sequences (NFE2L2 and STAT3), which is in line with the findings of the log-linear model (Figure 2D). For other TFs (e.g., AHR::ARNT, NR4A2), only a few the reporters showed a clear response (fold-change > 2). The published reporters for VDR and NR1H4 showed a relatively poor response, as did a subset of the published NFE2L2, CREB1, HSF1, and STAT3 reporters. In total, of the 36 TFs targeted by the 23 perturbations, for 28 TFs we identified at least one reporter that responded in the expected direction by at least 2-fold (Figure 4A).",
+      "bbox": [
+        59.75466824000003,
+        418.3167765492188,
+        298.8822403,
+        278.97254554921886
+      ],
+      "provenance": "docling",
+      "section_context": "Response of TF reporters to pathway stimulation and inactivation",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p9_77",
+      "source_block_id": "paper_3_p9_77",
+      "chunk_type": "section",
+      "page_number": 9,
+      "reading_order": 77,
+      "display_text": "Testing reporters by TF depletion or overexpression",
+      "retrieval_text": "Testing reporters by TF depletion or overexpression",
+      "bbox": [
+        59.75466824000003,
+        264.79169782921895,
+        279.13947881999985,
+        258.7454030292189
+      ],
+      "provenance": "docling",
+      "section_context": "Testing reporters by TF depletion or overexpression",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p10_86",
+      "source_block_id": "paper_3_p10_86",
+      "chunk_type": "caption",
+      "page_number": 10,
+      "reading_order": 86,
+      "display_text": "Figure 4. Response to signaling pathway perturbations",
+      "retrieval_text": "[Section: A collection of prime TF reporters] Figure 4. Response to signaling pathway perturbations",
+      "bbox": [
+        53.1212,
+        164.69858814921872,
+        249.86639606000014,
+        157.90672194921876
+      ],
+      "provenance": "docling",
+      "section_context": "A collection of prime TF reporters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p10_87",
+      "source_block_id": "paper_3_p10_87",
+      "chunk_type": "caption",
+      "page_number": 10,
+      "reading_order": 87,
+      "display_text": "(A) Change in TF reporter activities upon signaling pathway perturbations. Shown are only the responses of the direct targets of the perturbations. Activating perturbations are shown in blue, repressing conditions in orange. Conditions that were selected as best perturbation condition for the TF (i.e., strongest average response of the tested perturbations for that TF, see STAR Methods) are denoted by an asterisk. TFs highlighted in the text are indicated in bold. TFs depicted in (B)-(G) are indicated by letter. LIF, leukemia inhibitory factor; PMA, phorbol 12-myristate 13-acetate; HQ, hydroquinone; CDCA, chenodeoxycholic acid. (B-G) Response of reporters of six different TFs to TF-targeted pathway perturbation conditions. TFs for which reporters are displayed is denoted on top of each figure. Reporter activities (log2) in the basal condition are displayed on the x axis and in the perturbation condition on the y axis. Reporter design features are indicated by color, published reporters by shape.",
+      "retrieval_text": "[Section: A collection of prime TF reporters] (A) Change in TF reporter activities upon signaling pathway perturbations. Shown are only the responses of the direct targets of the perturbations. Activating perturbations are shown in blue, repressing conditions in orange. Conditions that were selected as best perturbation condition for the TF (i.e., strongest average response of the tested perturbations for that TF, see STAR Methods) are denoted by an asterisk. TFs highlighted in the text are indicated in bold. TFs depicted in (B)-(G) are indicated by letter. LIF, leukemia inhibitory factor; PMA, phorbol 12-myristate 13-acetate; HQ, hydroquinone; CDCA, chenodeoxycholic acid. (B-G) Response of reporters of six different TFs to TF-targeted pathway perturbation conditions. TFs for which reporters are displayed is denoted on top of each figure. Reporter activities (log2) in the basal condition are displayed on the x axis and in the perturbation condition on the y axis. Reporter design features are indicated by color, published reporters by shape.",
+      "bbox": [
+        53.12119999999993,
+        154.87531614921875,
+        543.2837989399999,
+        91.6323678692188
+      ],
+      "provenance": "docling",
+      "section_context": "A collection of prime TF reporters",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p10_88",
+      "source_block_id": "paper_3_p10_88",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 88,
+      "display_text": "required reporters to display high and explainable activities (according to the log-linear model), have activities that correlate with the abundance of the TF across the tested cell lines, and show a substantial response to a relevant signaling pathway or TF perturbation, without responding to off-target perturbations. Figure 6B illustrates how each of the confidence level criteria",
+      "retrieval_text": "[Section: A collection of prime TF reporters] required reporters to display high and explainable activities (according to the log-linear model), have activities that correlate with the abundance of the TF across the tested cell lines, and show a substantial response to a relevant signaling pathway or TF perturbation, without responding to off-target perturbations. Figure 6B illustrates how each of the confidence level criteria",
+      "bbox": [
+        53.1212,
+        67.55811774921881,
+        292.18526056,
+        37.801709769218746
+      ],
+      "provenance": "docling",
+      "section_context": "A collection of prime TF reporters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_118",
+      "source_block_id": "paper_3_p15_118",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 118,
+      "display_text": "An alternative to TF activity inference",
+      "retrieval_text": "An alternative to TF activity inference",
+      "bbox": [
+        59.7543,
+        648.4334971492187,
+        218.6431365999999,
+        642.3872023492187
+      ],
+      "provenance": "docling",
+      "section_context": "An alternative to TF activity inference",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_119",
+      "source_block_id": "paper_3_p15_119",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 119,
+      "display_text": "We envision that multiplexed TF reporter measurements could complement indirect TF activity inference methods that rely on ATAC-seq, ChIP-seq, or RNA-seq data. 3,4,6-11 In contrast to these whole-genome-sequencing-based inference methods, low-complexity TF reporter assays allow screening of TF activities across many experimental conditions in parallel while remaining cost effective. Furthermore, while TF activity inference methods are able to impute activities for any TF with a reliable motif from commonly available datasets, they are not necessarily predictive of transcriptional activity and remain inferential. 14 TF inference methods also often struggle to discern the activity of individual TFs, instead reporting on the activity of TF clusters sharing similar TFBSs. 9,45 Multiplexed (prime) TF reporter assays offer an orthogonal approach that provides functional evidence of TF activity with high specificity for the candidate TF.",
+      "retrieval_text": "[Section: An alternative to TF activity inference] We envision that multiplexed TF reporter measurements could complement indirect TF activity inference methods that rely on ATAC-seq, ChIP-seq, or RNA-seq data. 3,4,6-11 In contrast to these whole-genome-sequencing-based inference methods, low-complexity TF reporter assays allow screening of TF activities across many experimental conditions in parallel while remaining cost effective. Furthermore, while TF activity inference methods are able to impute activities for any TF with a reliable motif from commonly available datasets, they are not necessarily predictive of transcriptional activity and remain inferential. 14 TF inference methods also often struggle to discern the activity of individual TFs, instead reporting on the activity of TF clusters sharing similar TFBSs. 9,45 Multiplexed (prime) TF reporter assays offer an orthogonal approach that provides functional evidence of TF activity with high specificity for the candidate TF.",
+      "bbox": [
+        59.7543,
+        637.4349989892187,
+        298.8722300000001,
+        476.20790976921876
+      ],
+      "provenance": "docling",
+      "section_context": "An alternative to TF activity inference",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_120",
+      "source_block_id": "paper_3_p15_120",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 120,
+      "display_text": "Increased TF specificity of prime reporters",
+      "retrieval_text": "Increased TF specificity of prime reporters",
+      "bbox": [
+        59.75443652000001,
+        462.0837989892188,
+        240.30492871999988,
+        456.0375041892188
+      ],
+      "provenance": "docling",
+      "section_context": "Increased TF specificity of prime reporters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p24_264",
+      "source_block_id": "paper_3_p24_264",
+      "chunk_type": "paragraph",
+      "page_number": 24,
+      "reading_order": 264,
+      "display_text": "log 2 ð reporter activity Þ \u0018 core promoter + promoter distance + spacer length : spacer sequence",
+      "retrieval_text": "[Section: Log-linear model of reporter activities] log 2 ð reporter activity Þ \u0018 core promoter + promoter distance + spacer length : spacer sequence",
+      "bbox": [
+        118.71503038,
+        644.7000193492188,
+        477.60327318000014,
+        629.7959873492188
+      ],
+      "provenance": "docling",
+      "section_context": "Log-linear model of reporter activities",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p24_265",
+      "source_block_id": "paper_3_p24_265",
+      "chunk_type": "paragraph",
+      "page_number": 24,
+      "reading_order": 265,
+      "display_text": "The reporter activities were fit for each TF in three different conditions where the TF is a) expressed highest, or b) stimulated or overexpressed (if data available). We reasoned that these conditions would represent the most TF-specific conditions. The condition with the best model performance was chosen as representative model for the TF and is displayed in Figure 2D. See Table S2 for chosen reference conditions. All input features in the model were used as categorical variables. Models were fit using the lm function in R from the stats package (version 3.6.2).",
+      "retrieval_text": "[Section: Log-linear model of reporter activities] The reporter activities were fit for each TF in three different conditions where the TF is a) expressed highest, or b) stimulated or overexpressed (if data available). We reasoned that these conditions would represent the most TF-specific conditions. The condition with the best model performance was chosen as representative model for the TF and is displayed in Figure 2D. See Table S2 for chosen reference conditions. All input features in the model were used as categorical variables. Models were fit using the lm function in R from the stats package (version 3.6.2).",
+      "bbox": [
+        53.122892700000065,
+        627.2868596892188,
+        543.2513000400004,
+        575.5901923292187
+      ],
+      "provenance": "docling",
+      "section_context": "Log-linear model of reporter activities",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p24_266",
+      "source_block_id": "paper_3_p24_266",
+      "chunk_type": "section",
+      "page_number": 24,
+      "reading_order": 266,
+      "display_text": "Reporter confidence level and reporter score computation",
+      "retrieval_text": "Reporter confidence level and reporter score computation",
+      "bbox": [
+        53.122892700000136,
+        561.5228184892187,
+        299.30870946000005,
+        555.4765236892187
+      ],
+      "provenance": "docling",
+      "section_context": "Reporter confidence level and reporter score computation",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [],
+    "hint_terms": []
+  },
+  "stats": {
+    "chunk_build_ms": 1.578,
+    "idf_build_ms": 7.969,
+    "scoring_ms": 4.675,
+    "total_ms": 18.722,
+    "chunk_count_total": 269,
+    "chunk_count_by_type": {
+      "section": 59,
+      "list_item": 95,
+      "paragraph": 102,
+      "caption": 8,
+      "table_region": 5
+    },
+    "candidate_chunk_count": 269,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 12,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T07:40:42.667362+00:00"
+}

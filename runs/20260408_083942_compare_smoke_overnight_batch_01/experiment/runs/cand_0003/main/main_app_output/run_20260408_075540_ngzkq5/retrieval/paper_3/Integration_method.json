@@ -1,0 +1,372 @@
+{
+  "run_id": "run_20260408_075540_ngzkq5",
+  "pdf_id": "paper_3",
+  "column_name": "Integration method",
+  "query": "Integration method: Which method is used to integrate the reporter in the genome, only applies if the assay is genomically integrated (and not episomal)\nRetrieval hints: episomal plasmid vector backbone origin replication polya",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_3_p2_23",
+      "source_block_id": "paper_3_p2_23",
+      "chunk_type": "section",
+      "page_number": 2,
+      "reading_order": 23,
+      "display_text": "INTRODUCTION",
+      "retrieval_text": "INTRODUCTION",
+      "bbox": [
+        53.1212,
+        345.80691774921877,
+        120.2824942,
+        339.76062294921877
+      ],
+      "provenance": "docling",
+      "section_context": "INTRODUCTION",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p2_24",
+      "source_block_id": "paper_3_p2_24",
+      "chunk_type": "paragraph",
+      "page_number": 2,
+      "reading_order": 24,
+      "display_text": "Intra- and extracellular signals intricately control the activity of dozens of interwoven signaling pathways, often converging on transcription factors (TFs). TFs respond to these upstream signaling cascades and translate them to orchestrate the regulation of the genome. If we knew the activity of all TFs in any given cell type, we might be able to understand how TFs interpret incoming signals, how they drive the downstream changes in gene expression, and how cascades of TF activities progress over time. However, we currently have no reliable method to directly detect many TF activities in parallel.",
+      "retrieval_text": "[Section: INTRODUCTION] Intra- and extracellular signals intricately control the activity of dozens of interwoven signaling pathways, often converging on transcription factors (TFs). TFs respond to these upstream signaling cascades and translate them to orchestrate the regulation of the genome. If we knew the activity of all TFs in any given cell type, we might be able to understand how TFs interpret incoming signals, how they drive the downstream changes in gene expression, and how cascades of TF activities progress over time. However, we currently have no reliable method to directly detect many TF activities in parallel.",
+      "bbox": [
+        53.1212,
+        323.8666583692188,
+        292.19034148000003,
+        217.40444796921884
+      ],
+      "provenance": "docling",
+      "section_context": "INTRODUCTION",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p2_25",
+      "source_block_id": "paper_3_p2_25",
+      "chunk_type": "paragraph",
+      "page_number": 2,
+      "reading_order": 25,
+      "display_text": "A variety of computational approaches have been developed to infer TF activities from genome-wide data such as TF-binding data (chromatin immunoprecipitation [ChIP] sequencing 1 ), chromatin accessibility maps (assay for transposase-accessible chromatin [ATAC] sequencing 2 ), 3,4 TF or target gene transcript abundance data (RNA sequencing [RNA-seq] 5 ), 6-8 or a combination of these methods. 9-11 While these methods provide convenient tools to compute TF activities from well-established genomics assays, they do not directly measure the transcriptional activity of TFs and might therefore lack precision. For example, it is known that maps of TF binding poorly reflect TF activity 12,13 ; ATAC-seq detects open chromatin regions, which are not necessarily predictive of transcription activity 14 ; and inferring TF activity from mRNA-seq data requires assumptions regarding the distance over which each TF may be able to control gene activity.",
+      "retrieval_text": "[Section: INTRODUCTION] A variety of computational approaches have been developed to infer TF activities from genome-wide data such as TF-binding data (chromatin immunoprecipitation [ChIP] sequencing 1 ), chromatin accessibility maps (assay for transposase-accessible chromatin [ATAC] sequencing 2 ), 3,4 TF or target gene transcript abundance data (RNA sequencing [RNA-seq] 5 ), 6-8 or a combination of these methods. 9-11 While these methods provide convenient tools to compute TF activities from well-established genomics assays, they do not directly measure the transcriptional activity of TFs and might therefore lack precision. For example, it is known that maps of TF binding poorly reflect TF activity 12,13 ; ATAC-seq detects open chromatin regions, which are not necessarily predictive of transcription activity 14 ; and inferring TF activity from mRNA-seq data requires assumptions regarding the distance over which each TF may be able to control gene activity.",
+      "bbox": [
+        53.121012820000004,
+        214.27883534921887,
+        292.2070907000001,
+        42.11038548921874
+      ],
+      "provenance": "docling",
+      "section_context": "INTRODUCTION",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p2_26",
+      "source_block_id": "paper_3_p2_26",
+      "chunk_type": "paragraph",
+      "page_number": 2,
+      "reading_order": 26,
+      "display_text": "Traditional reporter assays offer a direct method for measuring TFactivities by using fluorescent or luminescent proteins that are expressed by TF response sequences. 15-25 These assays have been used for decades and detect TF activity with great sensitivity. However, conventional reporter assays do not allow to detect multiple TFs at once. A previous study circumvented this limitation and measured 58 TF activities in parallel from previously published TF reporters by utilizing RNA barcodes as reporters. 26 This study also showed that TF reporter measurements can be more accurate than RNA-seq-inferred TF activities for a subset of TFs. Thus, directly measuring TF activities in a high-throughput fashion using barcoded reporters offers a direct and precise alternative to computational inference approaches.",
+      "retrieval_text": "[Section: INTRODUCTION] Traditional reporter assays offer a direct method for measuring TFactivities by using fluorescent or luminescent proteins that are expressed by TF response sequences. 15-25 These assays have been used for decades and detect TF activity with great sensitivity. However, conventional reporter assays do not allow to detect multiple TFs at once. A previous study circumvented this limitation and measured 58 TF activities in parallel from previously published TF reporters by utilizing RNA barcodes as reporters. 26 This study also showed that TF reporter measurements can be more accurate than RNA-seq-inferred TF activities for a subset of TFs. Thus, directly measuring TF activities in a high-throughput fashion using barcoded reporters offers a direct and precise alternative to computational inference approaches.",
+      "bbox": [
+        304.15714494,
+        345.8062889092188,
+        543.2672635400005,
+        195.5212261092188
+      ],
+      "provenance": "docling",
+      "section_context": "INTRODUCTION",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p2_27",
+      "source_block_id": "paper_3_p2_27",
+      "chunk_type": "paragraph",
+      "page_number": 2,
+      "reading_order": 27,
+      "display_text": "Despite the advantages of multiplexed TF reporter assays, there are still several challenges in achieving accurate high-throughput TF activity detection. First, reporters are only available for a limited number of TFs. Expanding the collection of TF reporters will be crucial to make multiplexed reporter assays more scalable. Second, most of the published TF reporters rely on either (1) TF response elements found in the genome, 17,18,22,23 which might lack specificity to the intended TF due to the presence of other TF-binding sites (TFBSs), or (2) poorly optimized synthetic TF response sequences, 15,16,27 which could be suboptimal in terms of sensitivity and specificity. Hence, it is necessary to optimize TF reporters to obtain more reliable activity measurements. Finally, it is known that TFs within the same TF family, especially TF paralogs, can have highly similar DNA-binding",
+      "retrieval_text": "[Section: INTRODUCTION] Despite the advantages of multiplexed TF reporter assays, there are still several challenges in achieving accurate high-throughput TF activity detection. First, reporters are only available for a limited number of TFs. Expanding the collection of TF reporters will be crucial to make multiplexed reporter assays more scalable. Second, most of the published TF reporters rely on either (1) TF response elements found in the genome, 17,18,22,23 which might lack specificity to the intended TF due to the presence of other TF-binding sites (TFBSs), or (2) poorly optimized synthetic TF response sequences, 15,16,27 which could be suboptimal in terms of sensitivity and specificity. Hence, it is necessary to optimize TF reporters to obtain more reliable activity measurements. Finally, it is known that TFs within the same TF family, especially TF paralogs, can have highly similar DNA-binding",
+      "bbox": [
+        304.1574,
+        192.39561348921882,
+        543.2695938,
+        42.11028732921875
+      ],
+      "provenance": "docling",
+      "section_context": "INTRODUCTION",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p3_28",
+      "source_block_id": "paper_3_p3_28",
+      "chunk_type": "caption",
+      "page_number": 3,
+      "reading_order": 28,
+      "display_text": "Figure 1. Systematic design and probing of TF reporters",
+      "retrieval_text": "[Section: INTRODUCTION] Figure 1. Systematic design and probing of TF reporters",
+      "bbox": [
+        59.7543,
+        112.14428814921871,
+        260.7210630600001,
+        105.35242194921875
+      ],
+      "provenance": "docling",
+      "section_context": "INTRODUCTION",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p9_77",
+      "source_block_id": "paper_3_p9_77",
+      "chunk_type": "section",
+      "page_number": 9,
+      "reading_order": 77,
+      "display_text": "Testing reporters by TF depletion or overexpression",
+      "retrieval_text": "Testing reporters by TF depletion or overexpression",
+      "bbox": [
+        59.75466824000003,
+        264.79169782921895,
+        279.13947881999985,
+        258.7454030292189
+      ],
+      "provenance": "docling",
+      "section_context": "Testing reporters by TF depletion or overexpression",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p9_78",
+      "source_block_id": "paper_3_p9_78",
+      "chunk_type": "paragraph",
+      "page_number": 9,
+      "reading_order": 78,
+      "display_text": "Finally, as a more direct method of perturbing TF activity, we tested the response of all reporters to transient knockdown (KD), protein degradation, or overexpression of individual TFs. Among our set of 86 TFs, we knocked down 16 TFs in mESCs and 28 TFs in HEPG2 cells by RNA interference. For SOX2 and POU5F1, we additionally used degron-mediated depletion in mESCs. 44 Moreover, to evaluate specificity and off-target responses of the TF reporters, we also included nine KDs in mESCs and 13 KDs in HEPG2 cells of related TFs that have similar TFBSs as our candidate TFs. Finally, we overexpressed four TFs that are not naturally expressed in mESCs. To validate the experimental design, we tested and confirmed efficient downregulation of three of the TFs that were targeted by KD in HEPG2 cells using RNA-seq (Figure S5A). However, the scale of the perturbation experiments prohibited the verification of the KD or overexpression efficiency for each individual TF. For this reason, a lack of a response of reporters to the perturbation of their cognate TF does not necessarily imply that the reporters lack specificity; it is possible that we simply failed to alter the level of the TF sufficiently. Conversely, however, a strong",
+      "retrieval_text": "[Section: Testing reporters by TF depletion or overexpression] Finally, as a more direct method of perturbing TF activity, we tested the response of all reporters to transient knockdown (KD), protein degradation, or overexpression of individual TFs. Among our set of 86 TFs, we knocked down 16 TFs in mESCs and 28 TFs in HEPG2 cells by RNA interference. For SOX2 and POU5F1, we additionally used degron-mediated depletion in mESCs. 44 Moreover, to evaluate specificity and off-target responses of the TF reporters, we also included nine KDs in mESCs and 13 KDs in HEPG2 cells of related TFs that have similar TFBSs as our candidate TFs. Finally, we overexpressed four TFs that are not naturally expressed in mESCs. To validate the experimental design, we tested and confirmed efficient downregulation of three of the TFs that were targeted by KD in HEPG2 cells using RNA-seq (Figure S5A). However, the scale of the perturbation experiments prohibited the verification of the KD or overexpression efficiency for each individual TF. For this reason, a lack of a response of reporters to the perturbation of their cognate TF does not necessarily imply that the reporters lack specificity; it is possible that we simply failed to alter the level of the TF sufficiently. Conversely, however, a strong",
+      "bbox": [
+        59.75438684000001,
+        253.84993660921896,
+        298.8794184400002,
+        37.801225529218755
+      ],
+      "provenance": "docling",
+      "section_context": "Testing reporters by TF depletion or overexpression",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p9_79",
+      "source_block_id": "paper_3_p9_79",
+      "chunk_type": "section",
+      "page_number": 9,
+      "reading_order": 79,
+      "display_text": "Article",
+      "retrieval_text": "Article",
+      "bbox": [
+        503.7731,
+        713.7442093492187,
+        549.9257084000001,
+        703.7856229492188
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p14_113",
+      "source_block_id": "paper_3_p14_113",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 113,
+      "display_text": "(B) Reporter activities (max-normalized) of the synthetic HNF4A prime reporter (red) and the highest-ranking published HNF4A reporter per cell line. (C) Changes in prime reporter TF activities upon various TF perturbations in mESCs. TF targets of perturbations are indicated by black rectangles and asterisks. Only TFs expressed in mESCs (nTPM > 4) and with a substantial perturbation response (fold-change > 2) in at least one condition are displayed. DEG, degradation.",
+      "retrieval_text": "[Section: Multiple ways to define TF activity] (B) Reporter activities (max-normalized) of the synthetic HNF4A prime reporter (red) and the highest-ranking published HNF4A reporter per cell line. (C) Changes in prime reporter TF activities upon various TF perturbations in mESCs. TF targets of perturbations are indicated by black rectangles and asterisks. Only TFs expressed in mESCs (nTPM > 4) and with a substantial perturbation response (fold-change > 2) in at least one condition are displayed. DEG, degradation.",
+      "bbox": [
+        53.12119999999999,
+        320.70225438921875,
+        543.2231268800007,
+        285.86254434921875
+      ],
+      "provenance": "docling",
+      "section_context": "Multiple ways to define TF activity",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p14_114",
+      "source_block_id": "paper_3_p14_114",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 114,
+      "display_text": "reporters are driven by four copies of a single TFBS, and thus the activity measured is reflecting the ability of the TF to bind to and activate from that particular TFBS. We emphasize that this activity is not necessarily predictive of the activity of the probed TF at individual natural promoters and enhancers in the genome, which often involves combinatorial interactions with other TFBSs.",
+      "retrieval_text": "[Section: Multiple ways to define TF activity] reporters are driven by four copies of a single TFBS, and thus the activity measured is reflecting the ability of the TF to bind to and activate from that particular TFBS. We emphasize that this activity is not necessarily predictive of the activity of the probed TF at individual natural promoters and enhancers in the genome, which often involves combinatorial interactions with other TFBSs.",
+      "bbox": [
+        53.1212,
+        264.7927177492188,
+        292.19372876000006,
+        191.21252794921884
+      ],
+      "provenance": "docling",
+      "section_context": "Multiple ways to define TF activity",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p14_115",
+      "source_block_id": "paper_3_p14_115",
+      "chunk_type": "section",
+      "page_number": 14,
+      "reading_order": 115,
+      "display_text": "Applicability of the identified prime reporters",
+      "retrieval_text": "Applicability of the identified prime reporters",
+      "bbox": [
+        53.1212,
+        177.14515410921877,
+        243.3085037999998,
+        171.09885930921882
+      ],
+      "provenance": "docling",
+      "section_context": "Applicability of the identified prime reporters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_127",
+      "source_block_id": "paper_3_p15_127",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 127,
+      "display_text": "Materials availability",
+      "retrieval_text": "Materials availability",
+      "bbox": [
+        310.84719999999993,
+        613.9747478892189,
+        382.7101168600001,
+        608.9954546892188
+      ],
+      "provenance": "docling",
+      "section_context": "Materials availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_128",
+      "source_block_id": "paper_3_p15_128",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 128,
+      "display_text": "The TF reporter plasmid library generated in this study is available upon request.",
+      "retrieval_text": "[Section: Materials availability] The TF reporter plasmid library generated in this study is available upon request.",
+      "bbox": [
+        310.84719999999993,
+        604.5071170092189,
+        549.8755897600006,
+        588.6026687292189
+      ],
+      "provenance": "docling",
+      "section_context": "Materials availability",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_129",
+      "source_block_id": "paper_3_p15_129",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 129,
+      "display_text": "Data and code availability",
+      "retrieval_text": "Data and code availability",
+      "bbox": [
+        310.84719999999993,
+        575.0267722692189,
+        400.22760508000016,
+        570.0474790692189
+      ],
+      "provenance": "docling",
+      "section_context": "Data and code availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p24_264",
+      "source_block_id": "paper_3_p24_264",
+      "chunk_type": "paragraph",
+      "page_number": 24,
+      "reading_order": 264,
+      "display_text": "log 2 ð reporter activity Þ \u0018 core promoter + promoter distance + spacer length : spacer sequence",
+      "retrieval_text": "[Section: Log-linear model of reporter activities] log 2 ð reporter activity Þ \u0018 core promoter + promoter distance + spacer length : spacer sequence",
+      "bbox": [
+        118.71503038,
+        644.7000193492188,
+        477.60327318000014,
+        629.7959873492188
+      ],
+      "provenance": "docling",
+      "section_context": "Log-linear model of reporter activities",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p24_265",
+      "source_block_id": "paper_3_p24_265",
+      "chunk_type": "paragraph",
+      "page_number": 24,
+      "reading_order": 265,
+      "display_text": "The reporter activities were fit for each TF in three different conditions where the TF is a) expressed highest, or b) stimulated or overexpressed (if data available). We reasoned that these conditions would represent the most TF-specific conditions. The condition with the best model performance was chosen as representative model for the TF and is displayed in Figure 2D. See Table S2 for chosen reference conditions. All input features in the model were used as categorical variables. Models were fit using the lm function in R from the stats package (version 3.6.2).",
+      "retrieval_text": "[Section: Log-linear model of reporter activities] The reporter activities were fit for each TF in three different conditions where the TF is a) expressed highest, or b) stimulated or overexpressed (if data available). We reasoned that these conditions would represent the most TF-specific conditions. The condition with the best model performance was chosen as representative model for the TF and is displayed in Figure 2D. See Table S2 for chosen reference conditions. All input features in the model were used as categorical variables. Models were fit using the lm function in R from the stats package (version 3.6.2).",
+      "bbox": [
+        53.122892700000065,
+        627.2868596892188,
+        543.2513000400004,
+        575.5901923292187
+      ],
+      "provenance": "docling",
+      "section_context": "Log-linear model of reporter activities",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p24_266",
+      "source_block_id": "paper_3_p24_266",
+      "chunk_type": "section",
+      "page_number": 24,
+      "reading_order": 266,
+      "display_text": "Reporter confidence level and reporter score computation",
+      "retrieval_text": "Reporter confidence level and reporter score computation",
+      "bbox": [
+        53.122892700000136,
+        561.5228184892187,
+        299.30870946000005,
+        555.4765236892187
+      ],
+      "provenance": "docling",
+      "section_context": "Reporter confidence level and reporter score computation",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical_with_hints",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [
+      "vector_or_backbone"
+    ],
+    "hint_terms": [
+      "episomal",
+      "plasmid",
+      "vector",
+      "backbone",
+      "origin",
+      "replication",
+      "polya"
+    ]
+  },
+  "stats": {
+    "chunk_build_ms": 1.995,
+    "idf_build_ms": 9.609,
+    "scoring_ms": 7.272,
+    "total_ms": 24.465,
+    "chunk_count_total": 269,
+    "chunk_count_by_type": {
+      "section": 59,
+      "list_item": 95,
+      "paragraph": 102,
+      "caption": 8,
+      "table_region": 5
+    },
+    "candidate_chunk_count": 269,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 12,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T09:27:05.387848+00:00"
+}

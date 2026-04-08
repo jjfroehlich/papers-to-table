@@ -1,0 +1,362 @@
+{
+  "run_id": "run_20260408_063946_jb0k8g",
+  "pdf_id": "paper_1",
+  "column_name": "Integration site",
+  "query": "Integration site: In case the assay is genomic integrated, then where it is integrated. Lenti or PiggyBac would be random, recombinases/landing pad based systems would have a specific locus usually.",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_1_p1_12",
+      "source_block_id": "paper_1_p1_12",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 12,
+      "display_text": "The emergence of genome-scale biochemical technologies to globally catalogue regions of open chromatin, transcription factor binding, histone modifications and mRNA expression levels has provided a framework to investigate gene regulatory and transcriptional landscapes in hundreds of cell types 4 . These efforts have led to the discovery of millions of cCREs in the human genome. However, these approaches",
+      "retrieval_text": "[Section: Massively parallel characterization of transcriptional regulatory elements] The emergence of genome-scale biochemical technologies to globally catalogue regions of open chromatin, transcription factor binding, histone modifications and mRNA expression levels has provided a framework to investigate gene regulatory and transcriptional landscapes in hundreds of cell types 4 . These efforts have led to the discovery of millions of cCREs in the human genome. However, these approaches",
+      "bbox": [
+        39.685001373,
+        203.80693066403126,
+        296.430165885984,
+        142.4003462890313
+      ],
+      "provenance": "docling",
+      "section_context": "Massively parallel characterization of transcriptional regulatory elements",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p1_13",
+      "source_block_id": "paper_1_p1_13",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 13,
+      "display_text": "Massively parallel reporter assays (MPRAs) overcome these limitations by testing thousands of sequences or variants for regulatory activity in a multiplex fashion 5 . Previous work has utilized MPRAs or a derivative assay, the self-transcribing active regulatory region sequencing (STARR-seq), to test large numbers of cCREs for regulatory activity in human cells 6-9 . However, these assays rely on transient transfection, providing an episomal ('out of genome') readout, and are mostly limited to established cell types that can be robustly transfected and grown in large quantities. To address this, we developed a lentiMPRA 10 , which enables reproducibility and multiplexability, extends to cell lines that are difficult to transfect such as neurons or organoids 11,12 , and provides an 'in genome' readout. As lentiviral integrations are random, lentiMPRA measures the functional effect of cCREs averaged across different genomic locations. lentiMPRA is more strongly correlated with ENCODE annotations and sequence-based models 10 and provides higher cell-type",
+      "retrieval_text": "[Section: Massively parallel characterization of transcriptional regulatory elements] Massively parallel reporter assays (MPRAs) overcome these limitations by testing thousands of sequences or variants for regulatory activity in a multiplex fashion 5 . Previous work has utilized MPRAs or a derivative assay, the self-transcribing active regulatory region sequencing (STARR-seq), to test large numbers of cCREs for regulatory activity in human cells 6-9 . However, these assays rely on transient transfection, providing an episomal ('out of genome') readout, and are mostly limited to established cell types that can be robustly transfected and grown in large quantities. To address this, we developed a lentiMPRA 10 , which enables reproducibility and multiplexability, extends to cell lines that are difficult to transfect such as neurons or organoids 11,12 , and provides an 'in genome' readout. As lentiviral integrations are random, lentiMPRA measures the functional effect of cCREs averaged across different genomic locations. lentiMPRA is more strongly correlated with ENCODE annotations and sequence-based models 10 and provides higher cell-type",
+      "bbox": [
+        306.141693115,
+        300.55693066403126,
+        562.8811241391303,
+        142.4003462890313
+      ],
+      "provenance": "docling",
+      "section_context": "Massively parallel characterization of transcriptional regulatory elements",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p1_14",
+      "source_block_id": "paper_1_p1_14",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 14,
+      "display_text": "1 Department of Genome Sciences, University of Washington, Seattle, WA, USA. 2 mRNA Center of Excellence, Sanofi, Waltham, MA, USA. 3 Department of Bioengineering and Therapeutic Sciences, University of California, San Francisco, San Francisco, CA, USA. 4 Institute for Human Genetics, University of California, San Francisco, San Francisco, CA, USA. 5 Institute for the Advanced Study of Human Biology (WPI-ASHBi), Kyoto University, Kyoto, Japan. 6 Berlin Institute of Health at Charité-Universitätsmedizin Berlin, Berlin, Germany. 7 Vavilov Institute of General Genetics, Russian Academy of Sciences, Moscow, Russia. 8 Institute of Protein Research, Russian Academy of Sciences, Pushchino, Russia. 9 Institute of Translational Medicine, Pirogov Russian National Research Medical University, Moscow, Russia. 10 Institute of Human Genetics, University Medical Center Schleswig-Holstein, University of Lübeck, Lübeck, Germany. 11 Institute for Personalized Medicine, Department of Biochemistry and Molecular Biology, The Pennsylvania State University College of Medicine, Hershey, PA, USA. 12 Paul G. Allen School of Computer Science and Engineering, University of Washington, Seattle, WA, USA. 13 Knight Cancer Institute, Oregon Health and Science University, Portland, OR, USA. 14 Cancer Early Detection Advanced Research Center, Oregon Health and Science University, Portland, OR, USA. 15 Life Improvement by Future Technologies (LIFT) Center, Moscow, Russia. 16 Howard Hughes Medical Institute, Seattle, WA, USA. 17 Brotman Baty Institute for Precision Medicine, University of Washington, Seattle, WA, USA. 18 Seattle Hub for Synthetic Biology, Seattle, Washington, USA. 19 These authors contributed equally: Vikram Agarwal, Fumitaka Inoue. ✉ e-mail: vikram.agarwal@sanofi.com; shendure@uw.edu; nadav.ahituv@ucsf.edu",
+      "retrieval_text": "[Section: Massively parallel characterization of transcriptional regulatory elements] 1 Department of Genome Sciences, University of Washington, Seattle, WA, USA. 2 mRNA Center of Excellence, Sanofi, Waltham, MA, USA. 3 Department of Bioengineering and Therapeutic Sciences, University of California, San Francisco, San Francisco, CA, USA. 4 Institute for Human Genetics, University of California, San Francisco, San Francisco, CA, USA. 5 Institute for the Advanced Study of Human Biology (WPI-ASHBi), Kyoto University, Kyoto, Japan. 6 Berlin Institute of Health at Charité-Universitätsmedizin Berlin, Berlin, Germany. 7 Vavilov Institute of General Genetics, Russian Academy of Sciences, Moscow, Russia. 8 Institute of Protein Research, Russian Academy of Sciences, Pushchino, Russia. 9 Institute of Translational Medicine, Pirogov Russian National Research Medical University, Moscow, Russia. 10 Institute of Human Genetics, University Medical Center Schleswig-Holstein, University of Lübeck, Lübeck, Germany. 11 Institute for Personalized Medicine, Department of Biochemistry and Molecular Biology, The Pennsylvania State University College of Medicine, Hershey, PA, USA. 12 Paul G. Allen School of Computer Science and Engineering, University of Washington, Seattle, WA, USA. 13 Knight Cancer Institute, Oregon Health and Science University, Portland, OR, USA. 14 Cancer Early Detection Advanced Research Center, Oregon Health and Science University, Portland, OR, USA. 15 Life Improvement by Future Technologies (LIFT) Center, Moscow, Russia. 16 Howard Hughes Medical Institute, Seattle, WA, USA. 17 Brotman Baty Institute for Precision Medicine, University of Washington, Seattle, WA, USA. 18 Seattle Hub for Synthetic Biology, Seattle, Washington, USA. 19 These authors contributed equally: Vikram Agarwal, Fumitaka Inoue. ✉ e-mail: vikram.agarwal@sanofi.com; shendure@uw.edu; nadav.ahituv@ucsf.edu",
+      "bbox": [
+        39.68338720700001,
+        133.4744337150313,
+        562.856387207001,
+        46.37910609431424
+      ],
+      "provenance": "docling",
+      "section_context": "Massively parallel characterization of transcriptional regulatory elements",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p2_24",
+      "source_block_id": "paper_1_p2_24",
+      "chunk_type": "paragraph",
+      "page_number": 2,
+      "reading_order": 24,
+      "display_text": "We observed 20-50 median barcodes per element in each replicate among all cell types (Supplementary Fig. 2a); elements supported with at least 10 barcodes (our minimum threshold) exhibited a substantially reduced standard deviation across replicates (Supplementary Fig. 2b). Element activity scores were also strongly concordant across replicate pairs, with Pearson correlations of 0.94 (HepG2), 0.76 (K562) and 0.76 (WTC11) (Supplementary Table 4 and Supplementary Fig. 2c-e). Averaging across the three replicates, we also observed strong correlations among element activity scores between cCREs common to our pilot and large-scale libraries (Pearson r = 0.94 in HepG2 cells and r = 0.81 in K562 cells; Supplementary Fig. 2f). Similarly, visualizing the large-scale K562 library in the HBE1 locus (Extended Data Fig. 1d) and the other six disease-associated loci (Extended Data Fig. 2 and Supplementary Fig. 3) confirmed strong agreement with the K562 pilot library, with the large-scale library having greater density and highlighting additional functional regulatory elements. The inter-replicate correlations for both large-scale libraries were lower than for the pilot libraries owing",
+      "retrieval_text": "[Section: cCRE characterization with lentiMPRA] We observed 20-50 median barcodes per element in each replicate among all cell types (Supplementary Fig. 2a); elements supported with at least 10 barcodes (our minimum threshold) exhibited a substantially reduced standard deviation across replicates (Supplementary Fig. 2b). Element activity scores were also strongly concordant across replicate pairs, with Pearson correlations of 0.94 (HepG2), 0.76 (K562) and 0.76 (WTC11) (Supplementary Table 4 and Supplementary Fig. 2c-e). Averaging across the three replicates, we also observed strong correlations among element activity scores between cCREs common to our pilot and large-scale libraries (Pearson r = 0.94 in HepG2 cells and r = 0.81 in K562 cells; Supplementary Fig. 2f). Similarly, visualizing the large-scale K562 library in the HBE1 locus (Extended Data Fig. 1d) and the other six disease-associated loci (Extended Data Fig. 2 and Supplementary Fig. 3) confirmed strong agreement with the K562 pilot library, with the large-scale library having greater density and highlighting additional functional regulatory elements. The inter-replicate correlations for both large-scale libraries were lower than for the pilot libraries owing",
+      "bbox": [
+        306.141693115,
+        225.30693066403126,
+        562.860091122095,
+        45.65034247403128
+      ],
+      "provenance": "docling",
+      "section_context": "cCRE characterization with lentiMPRA",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p3_25",
+      "source_block_id": "paper_1_p3_25",
+      "chunk_type": "caption",
+      "page_number": 3,
+      "reading_order": 25,
+      "display_text": "Fig. 1 | lentiMPRA in three cell types. a , lentiMPRA strategy for large-scale libraries. Thousands of cCREs including potential enhancers (marked by DNase peaks) and promoters (centred at the transcription start site (TSS)) are inserted into a reporter plasmid in both orientations together with barcodes. The libraries are infected into cells using lentivirus and the integrated DNA and transcribed RNA barcodes are sequenced to quantify cCRE activity. b , Composition of the HepG2, K562 and WTC11 libraries. Thousands of potential",
+      "retrieval_text": "[Section: cCRE characterization with lentiMPRA] Fig. 1 | lentiMPRA in three cell types. a , lentiMPRA strategy for large-scale libraries. Thousands of cCREs including potential enhancers (marked by DNase peaks) and promoters (centred at the transcription start site (TSS)) are inserted into a reporter plasmid in both orientations together with barcodes. The libraries are infected into cells using lentivirus and the integrated DNA and transcribed RNA barcodes are sequenced to quantify cCRE activity. b , Composition of the HepG2, K562 and WTC11 libraries. Thousands of potential",
+      "bbox": [
+        39.6851,
+        418.4003413080312,
+        295.910301332891,
+        351.885845474698
+      ],
+      "provenance": "docling",
+      "section_context": "cCRE characterization with lentiMPRA",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p3_26",
+      "source_block_id": "paper_1_p3_26",
+      "chunk_type": "paragraph",
+      "page_number": 3,
+      "reading_order": 26,
+      "display_text": "to the trade-off between library size and per element sequencing depth. To further investigate this trade-off, we downsampled barcodes. Downsampling to 90% of the barcodes led to a near-perfect Spearman correlation with respect to element activity scores relative to those derived from the full dataset, whereas smaller proportions of the barcodes degraded this correlation (Supplementary Fig. 2g). The distributions of standard deviations for element activity scores across barcodes became tighter when considering larger barcode downsampling proportions (Supplementary Fig. 2h) and more replicates (Supplementary Fig. 2i).",
+      "retrieval_text": "[Section: cCRE characterization with lentiMPRA] to the trade-off between library size and per element sequencing depth. To further investigate this trade-off, we downsampled barcodes. Downsampling to 90% of the barcodes led to a near-perfect Spearman correlation with respect to element activity scores relative to those derived from the full dataset, whereas smaller proportions of the barcodes degraded this correlation (Supplementary Fig. 2g). The distributions of standard deviations for element activity scores across barcodes became tighter when considering larger barcode downsampling proportions (Supplementary Fig. 2h) and more replicates (Supplementary Fig. 2i).",
+      "bbox": [
+        39.685001373,
+        332.80693066403126,
+        296.38648555138707,
+        239.1503462890313
+      ],
+      "provenance": "docling",
+      "section_context": "cCRE characterization with lentiMPRA",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p3_28",
+      "source_block_id": "paper_1_p3_28",
+      "chunk_type": "caption",
+      "page_number": 3,
+      "reading_order": 28,
+      "display_text": "enhancers and promoters, negative controls and positive controls are included in each library 18,19,24 . Bars are coloured according to orientation tested and the number of tested elements is shown above the bars and coloured according to element type. c , Violin plots of element activity, measured as log 2-transformed RNA/DNA ratios for cCREs and negative and positive controls. Promoter and enhancer distributions were compared against the shuffled category using a one-sided Wilcoxon rank-sum test, followed by Bonferroni correction (* P < 10 -8 ).",
+      "retrieval_text": "[Section: cCRE characterization with lentiMPRA] enhancers and promoters, negative controls and positive controls are included in each library 18,19,24 . Bars are coloured according to orientation tested and the number of tested elements is shown above the bars and coloured according to element type. c , Violin plots of element activity, measured as log 2-transformed RNA/DNA ratios for cCREs and negative and positive controls. Promoter and enhancer distributions were compared against the shuffled category using a one-sided Wilcoxon rank-sum test, followed by Bonferroni correction (* P < 10 -8 ).",
+      "bbox": [
+        306.138603271,
+        418.3793413080313,
+        561.8648107936846,
+        351.89484547469795
+      ],
+      "provenance": "docling",
+      "section_context": "cCRE characterization with lentiMPRA",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p3_29",
+      "source_block_id": "paper_1_p3_29",
+      "chunk_type": "paragraph",
+      "page_number": 3,
+      "reading_order": 29,
+      "display_text": "power analysis indicated that our ability to detect functional regulatory elements was plateauing after barcode downsampling, suggesting that additional sequencing depth would be unlikely to lead to substantially altered estimates (Supplementary Fig. 2j).",
+      "retrieval_text": "[Section: cCRE characterization with lentiMPRA] power analysis indicated that our ability to detect functional regulatory elements was plateauing after barcode downsampling, suggesting that additional sequencing depth would be unlikely to lead to substantially altered estimates (Supplementary Fig. 2j).",
+      "bbox": [
+        306.141693115,
+        332.80693066403126,
+        562.8395164473538,
+        292.90034628903123
+      ],
+      "provenance": "docling",
+      "section_context": "cCRE characterization with lentiMPRA",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p3_30",
+      "source_block_id": "paper_1_p3_30",
+      "chunk_type": "paragraph",
+      "page_number": 3,
+      "reading_order": 30,
+      "display_text": "To assess whether our potential enhancers could be used to validate significant enhancer-promoter interactions and/or predict CRISPRi results, we intersected this set against those tested in three different CRISPRi perturbation studies 20,25,26 . We examined the proportion of our binned activity scores that were associated with significantly regulating a promoter. We observed that the bins with the highest activity had nearly a twofold increase in the proportion of validated enhancers relative to bins with low activity (Supplementary Fig. 4a), suggesting that our MPRA datasets could be used to predict sequences with larger CRISPRi effects. Considering our activity scores alongside activity-by-contact (ABC) scores 25 , we observed that our scores only subtly improved performance in the task of discriminating significant from non-significant enhancer-promoter interactions in two of these three studies (Supplementary Fig. 4b). This small improvement in performance may be partially explained by the observation that the H3K27ac signal, which is already considered in the ABC model, has the advantage of integrating local and distal regulatory information, which may overshadow the consideration of an element's local activity alone.",
+      "retrieval_text": "[Section: cCRE characterization with lentiMPRA] To assess whether our potential enhancers could be used to validate significant enhancer-promoter interactions and/or predict CRISPRi results, we intersected this set against those tested in three different CRISPRi perturbation studies 20,25,26 . We examined the proportion of our binned activity scores that were associated with significantly regulating a promoter. We observed that the bins with the highest activity had nearly a twofold increase in the proportion of validated enhancers relative to bins with low activity (Supplementary Fig. 4a), suggesting that our MPRA datasets could be used to predict sequences with larger CRISPRi effects. Considering our activity scores alongside activity-by-contact (ABC) scores 25 , we observed that our scores only subtly improved performance in the task of discriminating significant from non-significant enhancer-promoter interactions in two of these three studies (Supplementary Fig. 4b). This small improvement in performance may be partially explained by the observation that the H3K27ac signal, which is already considered in the ABC model, has the advantage of integrating local and distal regulatory information, which may overshadow the consideration of an element's local activity alone.",
+      "bbox": [
+        306.141693115,
+        289.80693066403126,
+        562.8699611023362,
+        99.40034628903129
+      ],
+      "provenance": "docling",
+      "section_context": "cCRE characterization with lentiMPRA",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p12_150",
+      "source_block_id": "paper_1_p12_150",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 150,
+      "display_text": "Representative subset selection. Given the limited number of testable elements in the large-scale K562 and WTC11 libraries, we designed a subset selection procedure to more optimally sample a non-redundant subset of elements associated with diverse biochemical features. For K562 cells, we used ground sets of non-overlapping 200-bp windows uniformly covering each of 7 genetic loci; for WTC11 cells, we used ground sets of 83,201 potential enhancers and 19,104 promoters. To perform representative subset selection with these ground sets, we utilized an objective function called facility location. This submodular set function can be optimized using a greedy algorithm, and yields a subset of elements that covers the epigenetic diversity of the ground set 62 . The facility location function is given as:",
+      "retrieval_text": "[Section: Article] Representative subset selection. Given the limited number of testable elements in the large-scale K562 and WTC11 libraries, we designed a subset selection procedure to more optimally sample a non-redundant subset of elements associated with diverse biochemical features. For K562 cells, we used ground sets of non-overlapping 200-bp windows uniformly covering each of 7 genetic loci; for WTC11 cells, we used ground sets of 83,201 potential enhancers and 19,104 promoters. To perform representative subset selection with these ground sets, we utilized an objective function called facility location. This submodular set function can be optimized using a greedy algorithm, and yields a subset of elements that covers the epigenetic diversity of the ground set 62 . The facility location function is given as:",
+      "bbox": [
+        39.685001373,
+        687.5569306640313,
+        296.4120101525042,
+        561.6502242180313
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p12_151",
+      "source_block_id": "paper_1_p12_151",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 151,
+      "display_text": "where V is the ground set, A is a subset of V with k elements and φ is a nonnegative similarity function. Optimization of the facility function was performed using the Python package apricot (https://github.com/ jmschrei/apricot/) 63 . For this study, we set k = 2,231 for each of the 7 loci in K562 cells, k = 30,121 for WTC11 potential enhancers, and k = 7,500 for promoters in WTC11. From the 7 loci, we then filtered out the tiles that overlapped DNase peaks as they had already been tested, and then subsampled to ~2,131 tiles per locus to retrieve 14,918 tiles among all loci.",
+      "retrieval_text": "[Section: Article] where V is the ground set, A is a subset of V with k elements and φ is a nonnegative similarity function. Optimization of the facility function was performed using the Python package apricot (https://github.com/ jmschrei/apricot/) 63 . For this study, we set k = 2,231 for each of the 7 loci in K562 cells, k = 30,121 for WTC11 potential enhancers, and k = 7,500 for promoters in WTC11. From the 7 loci, we then filtered out the tiles that overlapped DNase peaks as they had already been tested, and then subsampled to ~2,131 tiles per locus to retrieve 14,918 tiles among all loci.",
+      "bbox": [
+        39.685001373,
+        515.5569306640313,
+        296.3442949102922,
+        432.65034628903123
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p12_152",
+      "source_block_id": "paper_1_p12_152",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 152,
+      "display_text": "To assess the pairwise similarity of each element, we utilized hundreds of ENCODE histone and transcription factor ChIP-seq experiments derived from K562 and WTC11-H1 embryonic stem cells (Supplementary Table 6). For each 200-bp tile in the ground set, we computed the mean signal for each ChIP-seq dataset, resulting in a vector of biochemical measurements for each 200-bp tile. We used the Pearson correlation coefficient as a similarity function given these ChIP-seq features.",
+      "retrieval_text": "[Section: Article] To assess the pairwise similarity of each element, we utilized hundreds of ENCODE histone and transcription factor ChIP-seq experiments derived from K562 and WTC11-H1 embryonic stem cells (Supplementary Table 6). For each 200-bp tile in the ground set, we computed the mean signal for each ChIP-seq dataset, resulting in a vector of biochemical measurements for each 200-bp tile. We used the Pearson correlation coefficient as a similarity function given these ChIP-seq features.",
+      "bbox": [
+        39.683001676,
+        429.55693066403126,
+        296.4035234049431,
+        346.65034628903123
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p14_181",
+      "source_block_id": "paper_1_p14_181",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 181,
+      "display_text": "Code to train and interpret MPRAnn and MPRALegNet is available at https://github.com/visze/sequence_cnn_models and https://github. com/autosome-ru/human_legnet. Pretrained models and code have also been deposited at Zenodo (https://zenodo.org/records/10558183 (ref. 67) and https://zenodo.org/records/13908857 (ref. 68)).",
+      "retrieval_text": "[Section: Code availability] Code to train and interpret MPRAnn and MPRALegNet is available at https://github.com/visze/sequence_cnn_models and https://github. com/autosome-ru/human_legnet. Pretrained models and code have also been deposited at Zenodo (https://zenodo.org/records/10558183 (ref. 67) and https://zenodo.org/records/13908857 (ref. 68)).",
+      "bbox": [
+        306.141693115,
+        440.30693066403126,
+        562.8734017608424,
+        389.65034628903123
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p14_182",
+      "source_block_id": "paper_1_p14_182",
+      "chunk_type": "list_item",
+      "page_number": 14,
+      "reading_order": 182,
+      "display_text": "ENCODE Project Consortium. An integrated encyclopedia of DNA elements in the human genome. Nature 489 , 57-74 (2012).",
+      "retrieval_text": "[Section: Code availability] ENCODE Project Consortium. An integrated encyclopedia of DNA elements in the human genome. Nature 489 , 57-74 (2012).",
+      "bbox": [
+        306.141815185,
+        369.8734323730313,
+        561.3206151850009,
+        356.59611161831424
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p14_183",
+      "source_block_id": "paper_1_p14_183",
+      "chunk_type": "list_item",
+      "page_number": 14,
+      "reading_order": 183,
+      "display_text": "Lizio, M. et al. Gateways to the FANTOM5 promoter level mammalian expression atlas. Genome Biol. 16 , 22 (2015).",
+      "retrieval_text": "[Section: Code availability] Lizio, M. et al. Gateways to the FANTOM5 promoter level mammalian expression atlas. Genome Biol. 16 , 22 (2015).",
+      "bbox": [
+        306.135816559,
+        353.84143237303124,
+        552.3776165590011,
+        340.5641116183142
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p34_292",
+      "source_block_id": "paper_1_p34_292",
+      "chunk_type": "section",
+      "page_number": 34,
+      "reading_order": 292,
+      "display_text": "Reporting for specific materials, systems and methods",
+      "retrieval_text": "Reporting for specific materials, systems and methods",
+      "bbox": [
+        23.51,
+        306.04499877899997,
+        458.8580437019736,
+        293.72250471724226
+      ],
+      "provenance": "docling",
+      "section_context": "Reporting for specific materials, systems and methods",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p34_293",
+      "source_block_id": "paper_1_p34_293",
+      "chunk_type": "paragraph",
+      "page_number": 34,
+      "reading_order": 293,
+      "display_text": "Werequire information from authors about some types of materials, experimental systems and methods used in many studies. Here, indicate whether each material, system or method listed is relevant to your study. If you are not sure if a list item applies to your research, read the appropriate section before selecting a response.",
+      "retrieval_text": "[Section: Reporting for specific materials, systems and methods] Werequire information from authors about some types of materials, experimental systems and methods used in many studies. Here, indicate whether each material, system or method listed is relevant to your study. If you are not sure if a list item applies to your research, read the appropriate section before selecting a response.",
+      "bbox": [
+        24.959999084,
+        285.525009631,
+        557.7585110369095,
+        270.9949421989668
+      ],
+      "provenance": "docling",
+      "section_context": "Reporting for specific materials, systems and methods",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p34_294",
+      "source_block_id": "paper_1_p34_294",
+      "chunk_type": "section",
+      "page_number": 34,
+      "reading_order": 294,
+      "display_text": "Materials & experimental systems Methods",
+      "retrieval_text": "Materials & experimental systems Methods",
+      "bbox": [
+        27.83,
+        249.95500230699997,
+        260.71095408337544,
+        243.1693255122541
+      ],
+      "provenance": "docling",
+      "section_context": "Materials & experimental systems Methods",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [],
+    "hint_terms": []
+  },
+  "stats": {
+    "chunk_build_ms": 4.288,
+    "idf_build_ms": 10.32,
+    "scoring_ms": 8.358,
+    "total_ms": 27.566,
+    "chunk_count_total": 318,
+    "chunk_count_by_type": {
+      "section": 52,
+      "paragraph": 179,
+      "caption": 14,
+      "list_item": 72,
+      "table_region": 1
+    },
+    "candidate_chunk_count": 318,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 12,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T07:06:25.601689+00:00"
+}

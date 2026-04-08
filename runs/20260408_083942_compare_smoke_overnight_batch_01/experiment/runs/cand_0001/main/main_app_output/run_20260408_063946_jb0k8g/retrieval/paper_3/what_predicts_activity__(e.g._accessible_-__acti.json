@@ -1,0 +1,370 @@
+{
+  "run_id": "run_20260408_063946_jb0k8g",
+  "pdf_id": "paper_3",
+  "column_name": "what predicts activity? (e.g. accessible -> active in MPRA?)",
+  "query": "what predicts activity? (e.g. accessible -> active in MPRA?): What chromatin features or sequence features correlated well with activitiy in the MPRA.\nRetrieval hints: sequences pairs combinations plasmids barcodes",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_3_p2_21",
+      "source_block_id": "paper_3_p2_21",
+      "chunk_type": "section",
+      "page_number": 2,
+      "reading_order": 21,
+      "display_text": "SUMMARY",
+      "retrieval_text": "SUMMARY",
+      "bbox": [
+        53.1212,
+        513.1643177492188,
+        98.43453819999999,
+        507.11802294921876
+      ],
+      "provenance": "docling",
+      "section_context": "SUMMARY",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p2_22",
+      "source_block_id": "paper_3_p2_22",
+      "chunk_type": "paragraph",
+      "page_number": 2,
+      "reading_order": 22,
+      "display_text": "In any given cell type, dozens of transcription factors (TFs) act in concert to control the activity of the genome by binding to specific DNA sequences in regulatory elements. Despite their considerable importance, we currently lack simple tools to directly measure the activity of many TFs in parallel. Massively parallel reporter assays (MPRAs) allow the detection of TF activities in a multiplexed fashion; however, we lack basic understanding to rationally design sensitive reporters for many TFs. Here, we use an MPRA to systematically optimize transcriptional reporters for 86 TFs and evaluate the specificity of all reporters across a wide array of TF perturbation conditions. We thus identified critical TF reporter design features and obtained highly sensitive and specific reporters for 62 TFs, many of which outperform available reporters. The resulting collection of ''prime'' TF reporters can be used to uncover TF regulatory networks and to illuminate signaling pathways. A record of this paper's transparent peer review process is included in the supplemental information.",
+      "retrieval_text": "[Section: SUMMARY] In any given cell type, dozens of transcription factors (TFs) act in concert to control the activity of the genome by binding to specific DNA sequences in regulatory elements. Despite their considerable importance, we currently lack simple tools to directly measure the activity of many TFs in parallel. Massively parallel reporter assays (MPRAs) allow the detection of TF activities in a multiplexed fashion; however, we lack basic understanding to rationally design sensitive reporters for many TFs. Here, we use an MPRA to systematically optimize transcriptional reporters for 86 TFs and evaluate the specificity of all reporters across a wide array of TF perturbation conditions. We thus identified critical TF reporter design features and obtained highly sensitive and specific reporters for 62 TFs, many of which outperform available reporters. The resulting collection of ''prime'' TF reporters can be used to uncover TF regulatory networks and to illuminate signaling pathways. A record of this paper's transparent peer review process is included in the supplemental information.",
+      "bbox": [
+        53.1212,
+        492.3478193492188,
+        543.2641835800001,
+        375.60009498921875
+      ],
+      "provenance": "docling",
+      "section_context": "SUMMARY",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p2_23",
+      "source_block_id": "paper_3_p2_23",
+      "chunk_type": "section",
+      "page_number": 2,
+      "reading_order": 23,
+      "display_text": "INTRODUCTION",
+      "retrieval_text": "INTRODUCTION",
+      "bbox": [
+        53.1212,
+        345.80691774921877,
+        120.2824942,
+        339.76062294921877
+      ],
+      "provenance": "docling",
+      "section_context": "INTRODUCTION",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p5_48",
+      "source_block_id": "paper_3_p5_48",
+      "chunk_type": "section",
+      "page_number": 5,
+      "reading_order": 48,
+      "display_text": "Understanding TF-specific reporter design rules",
+      "retrieval_text": "Understanding TF-specific reporter design rules",
+      "bbox": [
+        310.84652368,
+        177.1451171692188,
+        514.2399853800001,
+        171.09882236921885
+      ],
+      "provenance": "docling",
+      "section_context": "Understanding TF-specific reporter design rules",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p5_49",
+      "source_block_id": "paper_3_p5_49",
+      "chunk_type": "paragraph",
+      "page_number": 5,
+      "reading_order": 49,
+      "display_text": "To investigate the relation between reporter design and reporter activity, we fitted for each TF a log-linear model using the reporter design features (core promoter identity, promoter distance, spacer sequence, and length) as categorical input variables (Figure 2A). This analysis enabled us to extract which features contribute to the variation in reporter activity. For example, for STAT3 the model accurately reflected the measured reporter activities (adjusted R 2 = 0.95; Figure 2B) and indicated that spacer length and spacer sequence were crucial to achieve high transcriptional activity, while promoter identity contributed moderately, and promoter distance was largely irrelevant (Figure 2C). This suggested that STAT3 is more active with TFBSs spaced",
+      "retrieval_text": "[Section: Understanding TF-specific reporter design rules] To investigate the relation between reporter design and reporter activity, we fitted for each TF a log-linear model using the reporter design features (core promoter identity, promoter distance, spacer sequence, and length) as categorical input variables (Figure 2A). This analysis enabled us to extract which features contribute to the variation in reporter activity. For example, for STAT3 the model accurately reflected the measured reporter activities (adjusted R 2 = 0.95; Figure 2B) and indicated that spacer length and spacer sequence were crucial to achieve high transcriptional activity, while promoter identity contributed moderately, and promoter distance was largely irrelevant (Figure 2C). This suggested that STAT3 is more active with TFBSs spaced",
+      "bbox": [
+        310.84603472000003,
+        166.14661900921874,
+        549.92279758,
+        37.801687329218794
+      ],
+      "provenance": "docling",
+      "section_context": "Understanding TF-specific reporter design rules",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p6_50",
+      "source_block_id": "paper_3_p6_50",
+      "chunk_type": "caption",
+      "page_number": 6,
+      "reading_order": 50,
+      "display_text": "Figure 2. Identification of design features causative of TF reporter activity",
+      "retrieval_text": "[Section: Understanding TF-specific reporter design rules] Figure 2. Identification of design features causative of TF reporter activity",
+      "bbox": [
+        53.1212,
+        219.5206881492188,
+        316.6172157200002,
+        212.72882194921874
+      ],
+      "provenance": "docling",
+      "section_context": "Understanding TF-specific reporter design rules",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p6_54",
+      "source_block_id": "paper_3_p6_54",
+      "chunk_type": "list_item",
+      "page_number": 6,
+      "reading_order": 54,
+      "display_text": "(D) Coefficient weight heatmap for all TFs with a significant log-linear model fit and a total explained variance of >50%. As in (C), all weights are computed in contrast to the reference variables minP (core promoter), 10 bp (promoter distance), and #1 (spacer sequence). Weights of features that did not significantly contribute to the model ( p R 0.1) are set to 0 in this visualization. TFs highlighted in red display spacer sequence preferences, TFs in blue spacer length preferences. TFs indicated in bold are mentioned in the text.",
+      "retrieval_text": "[Section: Understanding TF-specific reporter design rules] (D) Coefficient weight heatmap for all TFs with a significant log-linear model fit and a total explained variance of >50%. As in (C), all weights are computed in contrast to the reference variables minP (core promoter), 10 bp (promoter distance), and #1 (spacer sequence). Weights of features that did not significantly contribute to the model ( p R 0.1) are set to 0 in this visualization. TFs highlighted in red display spacer sequence preferences, TFs in blue spacer length preferences. TFs indicated in bold are mentioned in the text.",
+      "bbox": [
+        53.12119999999993,
+        171.88349262921872,
+        543.2726408599999,
+        137.04378258921872
+      ],
+      "provenance": "docling",
+      "section_context": "Understanding TF-specific reporter design rules",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p6_55",
+      "source_block_id": "paper_3_p6_55",
+      "chunk_type": "list_item",
+      "page_number": 6,
+      "reading_order": 55,
+      "display_text": "(E) Total variance explained by the individual design features for all TFs displayed in (D). Red line indicates the median. The color of the dots indicates the total explained variance of the log-linear model. Statistical significance of the difference in variance explained was tested using unpaired Student's t tests, *** p <0.001. (F) Average difference between the weights of 10-bp spacer sequences in the log-linear model and the 5-bp spacer sequences, separately per monomeric and dimeric/multimeric TFBSs. The color of the dots indicates TFs with consistent preference for 5-bp (light blue) or 10-bp spacer lengths (dark blue). Statistical significance of the difference in variance is estimated by Levene's test.",
+      "retrieval_text": "[Section: Understanding TF-specific reporter design rules] (E) Total variance explained by the individual design features for all TFs displayed in (D). Red line indicates the median. The color of the dots indicates the total explained variance of the log-linear model. Statistical significance of the difference in variance explained was tested using unpaired Student's t tests, *** p <0.001. (F) Average difference between the weights of 10-bp spacer sequences in the log-linear model and the 5-bp spacer sequences, separately per monomeric and dimeric/multimeric TFBSs. The color of the dots indicates TFs with consistent preference for 5-bp (light blue) or 10-bp spacer lengths (dark blue). Statistical significance of the difference in variance is estimated by Levene's test.",
+      "bbox": [
+        53.121199999999874,
+        134.01296910921872,
+        543.2789172800001,
+        89.70562818921871
+      ],
+      "provenance": "docling",
+      "section_context": "Understanding TF-specific reporter design rules",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p6_56",
+      "source_block_id": "paper_3_p6_56",
+      "chunk_type": "paragraph",
+      "page_number": 6,
+      "reading_order": 56,
+      "display_text": "by 10 bp and that the spacer sequence can strongly impact reporter activity, even though the spacers were designed not to contain any known TF motif.",
+      "retrieval_text": "[Section: Understanding TF-specific reporter design rules] by 10 bp and that the spacer sequence can strongly impact reporter activity, even though the spacers were designed not to contain any known TF motif.",
+      "bbox": [
+        53.1212,
+        67.55811774921881,
+        292.19034148000003,
+        37.801709769218746
+      ],
+      "provenance": "docling",
+      "section_context": "Understanding TF-specific reporter design rules",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p6_57",
+      "source_block_id": "paper_3_p6_57",
+      "chunk_type": "paragraph",
+      "page_number": 6,
+      "reading_order": 57,
+      "display_text": "Next, we asked whether active TF reporters can be designed according to universal reporter design rules, or whether each TF requires its own specific rules. We applied the log-linear model",
+      "retrieval_text": "[Section: Understanding TF-specific reporter design rules] Next, we asked whether active TF reporters can be designed according to universal reporter design rules, or whether each TF requires its own specific rules. We applied the log-linear model",
+      "bbox": [
+        304.1567549,
+        67.55811774921881,
+        543.2191218200004,
+        37.801709769218746
+      ],
+      "provenance": "docling",
+      "section_context": "Understanding TF-specific reporter design rules",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p7_58",
+      "source_block_id": "paper_3_p7_58",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 58,
+      "display_text": "analysis to each of the 86 TFs, focusing on the cell line and culture condition in which the TF is most active (see STAR Methods). For 65 out of 86 TFs (76%) the models reached statistical significance (adjusted p < 0.05; Figure S3A) and explained >50% of the variance in reporter activity. For these models, we then extracted the underlying weights of the individual reporter design features (Figure 2D). This analysis revealed several important insights. First, for almost all tested TFs, reporters were more active when having a minCMV or minHBG promoter compared with a minP promoter. Note that the fitted activities are normalized to the background activity of the core promoter (as described above), i.e., reporter activities are defined here as the TF-induced activity change compared with the promoter-only activity. Thus, minCMV and minHBG promoters allow for stronger induction, regardless of the TF. Second, although the promoter distance explained the least variance compared with all other investigated features (Figures 2D and 2E), the majority of TFs had a slightly decreased activity when the core promoter was placed 21 bp away from the first TFBS instead of 10 bp. This suggests that for many TFs, placing the TFBS closer to the TSS can subtly increase transcription activity.",
+      "retrieval_text": "[Section: Understanding TF-specific reporter design rules] analysis to each of the 86 TFs, focusing on the cell line and culture condition in which the TF is most active (see STAR Methods). For 65 out of 86 TFs (76%) the models reached statistical significance (adjusted p < 0.05; Figure S3A) and explained >50% of the variance in reporter activity. For these models, we then extracted the underlying weights of the individual reporter design features (Figure 2D). This analysis revealed several important insights. First, for almost all tested TFs, reporters were more active when having a minCMV or minHBG promoter compared with a minP promoter. Note that the fitted activities are normalized to the background activity of the core promoter (as described above), i.e., reporter activities are defined here as the TF-induced activity change compared with the promoter-only activity. Thus, minCMV and minHBG promoters allow for stronger induction, regardless of the TF. Second, although the promoter distance explained the least variance compared with all other investigated features (Figures 2D and 2E), the majority of TFs had a slightly decreased activity when the core promoter was placed 21 bp away from the first TFBS instead of 10 bp. This suggests that for many TFs, placing the TFBS closer to the TSS can subtly increase transcription activity.",
+      "bbox": [
+        59.75345318000002,
+        681.3155177492188,
+        298.87509750000004,
+        454.32372310921863
+      ],
+      "provenance": "docling",
+      "section_context": "Understanding TF-specific reporter design rules",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p7_59",
+      "source_block_id": "paper_3_p7_59",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 59,
+      "display_text": "Besides the generic role of the core promoter and the core promoter distance, we found a striking TF-specific role for the spacer length between the TFBSs. For 13 TFs, all three 10-bp spacer sequences consistently increased activity compared with the 5-bp spacer sequences (Figure 2D, TFs highlighted in dark blue). A readily interpretable example is HNF4A, for which >90% of all variance in the reporter activity was caused by changing the spacer length from 5 to 10 bp (Figures 2D and 2E); this increased reporter activity by roughly 8-fold on average (Figure S3B). Conversely, eight TFs had significant negative weights for all three 10-bp spacer sequences and hence favored the shorter 5-bp spacer length (Figure 2D, highlighted in light blue). We then examined in greater detail which TFs exhibited these spacer length preferences. Interestingly, we observed that TFs that bind DNA as monomers tended to be unaffected by changes in spacer length, while dimeric or multimeric TFs had significantly stronger spacer length preferences (Figure 2F). In fact, 20 out of 21 TFs with consistent spacer length preferences were TFs that bind to its TFBS as dimer or multimer. Possibly, dimeric or multimeric TF assemblies have more complex DNA interactions and might therefore need precise relative positioning to be able to activate efficiently from adjacent TFBSs. For some TFs (e.g., CREB1 29 and TP53 32 ), it was previously described that optimal helical positioning of adjacent TFBSs (i.e., on the same face of the DNA helix) facilitates robust activation. We found similar TFBS spacer length preferences for these described TFs and identified many more candidate TFs that might have similar helical positioning dependencies.",
+      "retrieval_text": "[Section: Understanding TF-specific reporter design rules] Besides the generic role of the core promoter and the core promoter distance, we found a striking TF-specific role for the spacer length between the TFBSs. For 13 TFs, all three 10-bp spacer sequences consistently increased activity compared with the 5-bp spacer sequences (Figure 2D, TFs highlighted in dark blue). A readily interpretable example is HNF4A, for which >90% of all variance in the reporter activity was caused by changing the spacer length from 5 to 10 bp (Figures 2D and 2E); this increased reporter activity by roughly 8-fold on average (Figure S3B). Conversely, eight TFs had significant negative weights for all three 10-bp spacer sequences and hence favored the shorter 5-bp spacer length (Figure 2D, highlighted in light blue). We then examined in greater detail which TFs exhibited these spacer length preferences. Interestingly, we observed that TFs that bind DNA as monomers tended to be unaffected by changes in spacer length, while dimeric or multimeric TFs had significantly stronger spacer length preferences (Figure 2F). In fact, 20 out of 21 TFs with consistent spacer length preferences were TFs that bind to its TFBS as dimer or multimer. Possibly, dimeric or multimeric TF assemblies have more complex DNA interactions and might therefore need precise relative positioning to be able to activate efficiently from adjacent TFBSs. For some TFs (e.g., CREB1 29 and TP53 32 ), it was previously described that optimal helical positioning of adjacent TFBSs (i.e., on the same face of the DNA helix) facilitates robust activation. We found similar TFBS spacer length preferences for these described TFs and identified many more candidate TFs that might have similar helical positioning dependencies.",
+      "bbox": [
+        59.75260636000009,
+        451.19811048921866,
+        298.86818608,
+        136.50388916921884
+      ],
+      "provenance": "docling",
+      "section_context": "Understanding TF-specific reporter design rules",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p7_63",
+      "source_block_id": "paper_3_p7_63",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 63,
+      "display_text": "After identifying the features facilitating high reporter activity, we aimed to characterize the TF specificity of each reporter. One line of evidence for such specificity would be if the activity of a reporter correlates positively with the abundance of the corresponding TF across the nine tested cell lines. Therefore, we generated mRNA-seq data for mNPCs, mESCs, and HEPG2 cells and collected publicly available mRNA-seq data for the other six probed cell lines (see STAR Methods and Figure S4A). We then conducted a transcript abundance correlation analysis for 37 TFs that showed sufficient variation in expression level across the cell lines (Figure 3A). For some TFs (e.g., POU5F1:: SOX2, HNF1A), the activities of all reporters significantly correlated with TF transcript abundance. For other TFs (e.g., IRX3), none of the reporters had a significant correlation. While this could indicate that the reporters for these TFs lack specificity, it is also possible that the activity of those TFs is controlled primarily by intracellular signaling or by certain co-factors; alternatively, their protein abundance is not reliably predicted by their mRNA level.",
+      "retrieval_text": "[Section: Cell-type dependence of TF reporter activities] After identifying the features facilitating high reporter activity, we aimed to characterize the TF specificity of each reporter. One line of evidence for such specificity would be if the activity of a reporter correlates positively with the abundance of the corresponding TF across the nine tested cell lines. Therefore, we generated mRNA-seq data for mNPCs, mESCs, and HEPG2 cells and collected publicly available mRNA-seq data for the other six probed cell lines (see STAR Methods and Figure S4A). We then conducted a transcript abundance correlation analysis for 37 TFs that showed sufficient variation in expression level across the cell lines (Figure 3A). For some TFs (e.g., POU5F1:: SOX2, HNF1A), the activities of all reporters significantly correlated with TF transcript abundance. For other TFs (e.g., IRX3), none of the reporters had a significant correlation. While this could indicate that the reporters for these TFs lack specificity, it is also possible that the activity of those TFs is controlled primarily by intracellular signaling or by certain co-factors; alternatively, their protein abundance is not reliably predicted by their mRNA level.",
+      "bbox": [
+        310.84745876,
+        549.7306984092187,
+        549.9352302799999,
+        344.6791631492187
+      ],
+      "provenance": "docling",
+      "section_context": "Cell-type dependence of TF reporter activities",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p7_64",
+      "source_block_id": "paper_3_p7_64",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 64,
+      "display_text": "For most TFs, only a subset of reporters significantly correlated with TF transcript abundance (e.g., GATA4, GATA1, TFCP2L1, and GBX2; Figure 3A, highlighted in red). For example, for GATA4, which is an important regulator of the endoderm 42 and is highest expressed in HEPG2 cells among our set of investigated cell lines, one reporter with spacer sequence #4 was not active in any cell type, but the same reporter design (i.e., the same core promoter, promoter distance, and spacer length) with spacer sequence #6 was highly activated specifically in HEPG2 (Figure 3B). Indeed, all GATA4 reporters with spacer sequence #6 displayed activities that significantly correlated with GATA4 transcript abundance (Figure S4B), suggesting that this spacer sequence renders GATA4 reporters GATA4 specific. In line with these findings, spacer sequence #6 was also identified as the most important feature in the log-linear model for GATA4 (note that this model was fit in HEPG2, Figure 2D). We observed a similar spacer sequence-dependent TF specificity for GBX2, which is a TF involved in maintaining pluripotency 38,39 and is mainly expressed in mESCs. GBX2 reporters with a spacer sequence #3, but not any other spacer sequence, displayed activity specifically in mESCs (Figures 3C and S4C).",
+      "retrieval_text": "[Section: Cell-type dependence of TF reporter activities] For most TFs, only a subset of reporters significantly correlated with TF transcript abundance (e.g., GATA4, GATA1, TFCP2L1, and GBX2; Figure 3A, highlighted in red). For example, for GATA4, which is an important regulator of the endoderm 42 and is highest expressed in HEPG2 cells among our set of investigated cell lines, one reporter with spacer sequence #4 was not active in any cell type, but the same reporter design (i.e., the same core promoter, promoter distance, and spacer length) with spacer sequence #6 was highly activated specifically in HEPG2 (Figure 3B). Indeed, all GATA4 reporters with spacer sequence #6 displayed activities that significantly correlated with GATA4 transcript abundance (Figure S4B), suggesting that this spacer sequence renders GATA4 reporters GATA4 specific. In line with these findings, spacer sequence #6 was also identified as the most important feature in the log-linear model for GATA4 (note that this model was fit in HEPG2, Figure 2D). We observed a similar spacer sequence-dependent TF specificity for GBX2, which is a TF involved in maintaining pluripotency 38,39 and is mainly expressed in mESCs. GBX2 reporters with a spacer sequence #3, but not any other spacer sequence, displayed activity specifically in mESCs (Figures 3C and S4C).",
+      "bbox": [
+        310.8469014,
+        341.49681358921873,
+        549.9408992600002,
+        114.50720976921878
+      ],
+      "provenance": "docling",
+      "section_context": "Cell-type dependence of TF reporter activities",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p7_65",
+      "source_block_id": "paper_3_p7_65",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 65,
+      "display_text": "For GATA1, which is an important regulator in erythroid cell gene expression 43 and is only highly expressed in erythroleukemic cell line K562, reporters were more K562-specific with a 10 bp rather than a 21 bp promoter distance (Figures 2D, 3D, and S4D). The latter displayed activity in GATA1-lacking cell types, possibly because these reporters respond to other GATAs (e.g., GATA3 in MCF7 or GATA4 in HEPG2). TFCP2L1,",
+      "retrieval_text": "[Section: Cell-type dependence of TF reporter activities] For GATA1, which is an important regulator in erythroid cell gene expression 43 and is only highly expressed in erythroleukemic cell line K562, reporters were more K562-specific with a 10 bp rather than a 21 bp promoter distance (Figures 2D, 3D, and S4D). The latter displayed activity in GATA1-lacking cell types, possibly because these reporters respond to other GATAs (e.g., GATA3 in MCF7 or GATA4 in HEPG2). TFCP2L1,",
+      "bbox": [
+        310.8466619599999,
+        111.3815971492188,
+        549.9158034400001,
+        37.8015891692188
+      ],
+      "provenance": "docling",
+      "section_context": "Cell-type dependence of TF reporter activities",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p14_115",
+      "source_block_id": "paper_3_p14_115",
+      "chunk_type": "section",
+      "page_number": 14,
+      "reading_order": 115,
+      "display_text": "Applicability of the identified prime reporters",
+      "retrieval_text": "Applicability of the identified prime reporters",
+      "bbox": [
+        53.1212,
+        177.14515410921877,
+        243.3085037999998,
+        171.09885930921882
+      ],
+      "provenance": "docling",
+      "section_context": "Applicability of the identified prime reporters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p14_116",
+      "source_block_id": "paper_3_p14_116",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 116,
+      "display_text": "We here present the systematic design and identification of a large collection of optimized ''prime'' TF reporters. This collection encompasses reporters that outperform currently available reporters (e.g., VDR, SOX2, and PAX6), and reporters for TFs for which no reliable reporters were available yet (e.g., GATA4, TFCP2L1, and KLF4). The sequences of the prime reporter for each TF are documented in Table S4, which can be used for various purposes. For instance, the prime reporters can be used individually in a conventional fluorescence/luminescence reporter assay to better characterize the role of single TFs in certain biological processes. Alternatively, the identified 62 prime reporters can be employed in a multiplexed fashion, where each TF drives a unique barcode. A dedicated small library consisting of only the prime reporters (with each prime reporter coupled to at least five unique barcodes) can be delivered as a plasmid pool or as a lentiviral library into any cell line of interest. Given the low complexity of this library (<500 barcodes for all 62 TFs including negative controls), highquality data may be retrieved even from hard-to-transfect cell models such as organoids. This low complexity also enables the detection of TF activities from a small number of cells, making it suitable for applications such as 96-well screens. Signaling pathways could be challenged by an array of inhibitors or activators, similar to what has been done in this study, to unveil novel roles of TFs in signaling pathways. Likewise, TF responses can be tracked upon TF depletion to dissect TF-TF communications. Potentially, this can also be done in single cells and in time course experiments to detect cascades of TF activities. Although the prime reporters are top-rated based on our performance criteria, there may be instances where other reporters with specific attributes are preferred for certain TFs (e.g., high cell-type specificity or responsiveness to perturbation of related TFs). The heatmaps in Data S1 can aid in",
+      "retrieval_text": "[Section: Applicability of the identified prime reporters] We here present the systematic design and identification of a large collection of optimized ''prime'' TF reporters. This collection encompasses reporters that outperform currently available reporters (e.g., VDR, SOX2, and PAX6), and reporters for TFs for which no reliable reporters were available yet (e.g., GATA4, TFCP2L1, and KLF4). The sequences of the prime reporter for each TF are documented in Table S4, which can be used for various purposes. For instance, the prime reporters can be used individually in a conventional fluorescence/luminescence reporter assay to better characterize the role of single TFs in certain biological processes. Alternatively, the identified 62 prime reporters can be employed in a multiplexed fashion, where each TF drives a unique barcode. A dedicated small library consisting of only the prime reporters (with each prime reporter coupled to at least five unique barcodes) can be delivered as a plasmid pool or as a lentiviral library into any cell line of interest. Given the low complexity of this library (<500 barcodes for all 62 TFs including negative controls), highquality data may be retrieved even from hard-to-transfect cell models such as organoids. This low complexity also enables the detection of TF activities from a small number of cells, making it suitable for applications such as 96-well screens. Signaling pathways could be challenged by an array of inhibitors or activators, similar to what has been done in this study, to unveil novel roles of TFs in signaling pathways. Likewise, TF responses can be tracked upon TF depletion to dissect TF-TF communications. Potentially, this can also be done in single cells and in time course experiments to detect cascades of TF activities. Although the prime reporters are top-rated based on our performance criteria, there may be instances where other reporters with specific attributes are preferred for certain TFs (e.g., high cell-type specificity or responsiveness to perturbation of related TFs). The heatmaps in Data S1 can aid in",
+      "bbox": [
+        53.1212,
+        166.14665594921883,
+        292.21574608000003,
+        37.80092310921884
+      ],
+      "provenance": "docling",
+      "section_context": "Applicability of the identified prime reporters",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_117",
+      "source_block_id": "paper_3_p15_117",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 117,
+      "display_text": "identifying such cases (e.g., for identifying generic STAT reporters instead of STAT3-specific reporters).",
+      "retrieval_text": "[Section: Applicability of the identified prime reporters] identifying such cases (e.g., for identifying generic STAT reporters instead of STAT3-specific reporters).",
+      "bbox": [
+        59.7543,
+        681.3155177492188,
+        298.82344148000004,
+        662.5576079292188
+      ],
+      "provenance": "docling",
+      "section_context": "Applicability of the identified prime reporters",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical_with_hints",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [
+      "variant_or_sequence"
+    ],
+    "hint_terms": [
+      "sequences",
+      "pairs",
+      "combinations",
+      "plasmids",
+      "barcodes"
+    ]
+  },
+  "stats": {
+    "chunk_build_ms": 1.741,
+    "idf_build_ms": 8.082,
+    "scoring_ms": 6.588,
+    "total_ms": 21.256,
+    "chunk_count_total": 269,
+    "chunk_count_by_type": {
+      "section": 59,
+      "list_item": 95,
+      "paragraph": 102,
+      "caption": 8,
+      "table_region": 5
+    },
+    "candidate_chunk_count": 269,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 12,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T07:29:48.686841+00:00"
+}

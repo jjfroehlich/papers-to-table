@@ -1,0 +1,308 @@
+{
+  "run_id": "run_20260408_063946_jb0k8g",
+  "pdf_id": "paper_1",
+  "column_name": "Approach",
+  "query": "Approach: General approach",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_1_p2_22",
+      "source_block_id": "paper_1_p2_22",
+      "chunk_type": "section",
+      "page_number": 2,
+      "reading_order": 22,
+      "display_text": "cCRE characterization with lentiMPRA",
+      "retrieval_text": "cCRE characterization with lentiMPRA",
+      "bbox": [
+        306.141693115,
+        475.6399306640312,
+        485.9706931150002,
+        466.61696498780174
+      ],
+      "provenance": "docling",
+      "section_context": "cCRE characterization with lentiMPRA",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p2_23",
+      "source_block_id": "paper_1_p2_23",
+      "chunk_type": "paragraph",
+      "page_number": 2,
+      "reading_order": 23,
+      "display_text": "With our pilot libraries showing reproducible and robust results, we next set out to test whether our revised lentiMPRA approach could measure more than 200,000 sequences in a single experiment, comprising a major portion of cCREs of any given human cell type. Using a similar scheme as in our pilot library 16 , we sought to test a combination of all known 19,104 protein-coding gene promoters as well as potential enhancers (DNase peaks that are not near the promoter) in both orientations (Fig. 1a). In HepG2 cells, we tested all promoters and 66,017 potential enhancers; in K562 cells, we tested all promoters and 87,618 potential enhancers; in WTC11 cells, owing to their reduced transduction efficiency, we tested 7,500 promoters and 30,121 of 83,201 potential enhancers (Fig. 1b and Methods). To further interrogate whether open chromatin is required for transcriptional activation, we additionally tested 14,918 heterochromatic regions in our K562 library, nominated by the ENCODE consortium from regions 1 Mb either side of the GATA1 , MYC , HBE1 , LMO2 , RBM38 , HBA2 and BCL11A loci, which are known human disease-associated and erythroid lineage genes. Collectively, incorporating dinucleotide shuffled negative controls and other positive and negative controls identified in previous studies 18,19,24 , we designed and tested a total of 164,307 elements in HepG2 cells, 243,780 elements in K562 cells and 75,542 elements in WTC11 cells (Fig. 1b and Supplementary Table 3).",
+      "retrieval_text": "[Section: cCRE characterization with lentiMPRA] With our pilot libraries showing reproducible and robust results, we next set out to test whether our revised lentiMPRA approach could measure more than 200,000 sequences in a single experiment, comprising a major portion of cCREs of any given human cell type. Using a similar scheme as in our pilot library 16 , we sought to test a combination of all known 19,104 protein-coding gene promoters as well as potential enhancers (DNase peaks that are not near the promoter) in both orientations (Fig. 1a). In HepG2 cells, we tested all promoters and 66,017 potential enhancers; in K562 cells, we tested all promoters and 87,618 potential enhancers; in WTC11 cells, owing to their reduced transduction efficiency, we tested 7,500 promoters and 30,121 of 83,201 potential enhancers (Fig. 1b and Methods). To further interrogate whether open chromatin is required for transcriptional activation, we additionally tested 14,918 heterochromatic regions in our K562 library, nominated by the ENCODE consortium from regions 1 Mb either side of the GATA1 , MYC , HBE1 , LMO2 , RBM38 , HBA2 and BCL11A loci, which are known human disease-associated and erythroid lineage genes. Collectively, incorporating dinucleotide shuffled negative controls and other positive and negative controls identified in previous studies 18,19,24 , we designed and tested a total of 164,307 elements in HepG2 cells, 243,780 elements in K562 cells and 75,542 elements in WTC11 cells (Fig. 1b and Supplementary Table 3).",
+      "bbox": [
+        306.141693115,
+        461.80693066403126,
+        562.840149036105,
+        228.40059628903123
+      ],
+      "provenance": "docling",
+      "section_context": "cCRE characterization with lentiMPRA",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p2_24",
+      "source_block_id": "paper_1_p2_24",
+      "chunk_type": "paragraph",
+      "page_number": 2,
+      "reading_order": 24,
+      "display_text": "We observed 20-50 median barcodes per element in each replicate among all cell types (Supplementary Fig. 2a); elements supported with at least 10 barcodes (our minimum threshold) exhibited a substantially reduced standard deviation across replicates (Supplementary Fig. 2b). Element activity scores were also strongly concordant across replicate pairs, with Pearson correlations of 0.94 (HepG2), 0.76 (K562) and 0.76 (WTC11) (Supplementary Table 4 and Supplementary Fig. 2c-e). Averaging across the three replicates, we also observed strong correlations among element activity scores between cCREs common to our pilot and large-scale libraries (Pearson r = 0.94 in HepG2 cells and r = 0.81 in K562 cells; Supplementary Fig. 2f). Similarly, visualizing the large-scale K562 library in the HBE1 locus (Extended Data Fig. 1d) and the other six disease-associated loci (Extended Data Fig. 2 and Supplementary Fig. 3) confirmed strong agreement with the K562 pilot library, with the large-scale library having greater density and highlighting additional functional regulatory elements. The inter-replicate correlations for both large-scale libraries were lower than for the pilot libraries owing",
+      "retrieval_text": "[Section: cCRE characterization with lentiMPRA] We observed 20-50 median barcodes per element in each replicate among all cell types (Supplementary Fig. 2a); elements supported with at least 10 barcodes (our minimum threshold) exhibited a substantially reduced standard deviation across replicates (Supplementary Fig. 2b). Element activity scores were also strongly concordant across replicate pairs, with Pearson correlations of 0.94 (HepG2), 0.76 (K562) and 0.76 (WTC11) (Supplementary Table 4 and Supplementary Fig. 2c-e). Averaging across the three replicates, we also observed strong correlations among element activity scores between cCREs common to our pilot and large-scale libraries (Pearson r = 0.94 in HepG2 cells and r = 0.81 in K562 cells; Supplementary Fig. 2f). Similarly, visualizing the large-scale K562 library in the HBE1 locus (Extended Data Fig. 1d) and the other six disease-associated loci (Extended Data Fig. 2 and Supplementary Fig. 3) confirmed strong agreement with the K562 pilot library, with the large-scale library having greater density and highlighting additional functional regulatory elements. The inter-replicate correlations for both large-scale libraries were lower than for the pilot libraries owing",
+      "bbox": [
+        306.141693115,
+        225.30693066403126,
+        562.860091122095,
+        45.65034247403128
+      ],
+      "provenance": "docling",
+      "section_context": "cCRE characterization with lentiMPRA",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p5_42",
+      "source_block_id": "paper_1_p5_42",
+      "chunk_type": "section",
+      "page_number": 5,
+      "reading_order": 42,
+      "display_text": "Sequence-based models predict activity",
+      "retrieval_text": "Sequence-based models predict activity",
+      "bbox": [
+        39.685001373,
+        314.3899306640312,
+        226.269776373,
+        305.36696498780174
+      ],
+      "provenance": "docling",
+      "section_context": "Sequence-based models predict activity",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p5_43",
+      "source_block_id": "paper_1_p5_43",
+      "chunk_type": "paragraph",
+      "page_number": 5,
+      "reading_order": 43,
+      "display_text": "We next set out to train regression models to predict regulatory activity. We began with a biochemical model (Supplementary Results) that used a compilation of thousands of biochemical features extracted from the three cell types (Supplementary Table 6). This model was able to predict enhancer activities with high accuracy (Pearson r ≈ 0.72) in all three cell types (Supplementary Fig. 5a) using a tenfold cross-validation approach on our data. Many biochemical features were strongly associated with element activity (Supplementary Fig. 5b-e). The variable feature count associated with each cell type led to the possibility of biasing performance. However, training models that considered a 'universal' feature set, merging features from all cell types, only weakly improved performance (Supplementary Fig. 5f).",
+      "retrieval_text": "[Section: Sequence-based models predict activity] We next set out to train regression models to predict regulatory activity. We began with a biochemical model (Supplementary Results) that used a compilation of thousands of biochemical features extracted from the three cell types (Supplementary Table 6). This model was able to predict enhancer activities with high accuracy (Pearson r ≈ 0.72) in all three cell types (Supplementary Fig. 5a) using a tenfold cross-validation approach on our data. Many biochemical features were strongly associated with element activity (Supplementary Fig. 5b-e). The variable feature count associated with each cell type led to the possibility of biasing performance. However, training models that considered a 'universal' feature set, merging features from all cell types, only weakly improved performance (Supplementary Fig. 5f).",
+      "bbox": [
+        39.685001373,
+        300.55693066403126,
+        296.3626449607092,
+        174.6503462890313
+      ],
+      "provenance": "docling",
+      "section_context": "Sequence-based models predict activity",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p5_44",
+      "source_block_id": "paper_1_p5_44",
+      "chunk_type": "paragraph",
+      "page_number": 5,
+      "reading_order": 44,
+      "display_text": "Sequence-based deep learning models 31 have demonstrated strong performance relative to biochemical models 32 and have been used to predict MPRA data 33,34 . We benchmarked the performance of four sequence-based models, trained on our MPRA data for each of the three cell types: (1) MPRAnn, a standard convolutional neural network (CNN) (Supplementary Fig. 6); (2) MPRALegNet, a CNN based on the LegNet architecture 35 , which uses EfficientNetV2-like convolutional blocks (Fig. 3a); (3) EnformerMPRA, which uses the CNN-transformer architecture Enformer 36 to generate a set of 5,313 predicted biochemical features and then fits a lasso regression to the MPRA data using these features; and (4) SeiMPRA, which fits a similar lasso model considering 21,907 biochemical features predicted by Sei 37 . Both MPRAnn and MPRALegNet underwent optimization procedures to detect hyperparameter and data augmentation settings that improve model performance (Extended Data Fig. 5a,b, Supplementary Methods and Supplementary Table 1). Comparing the performance to our biochemical lasso regression model on the identical ten folds of held-out data, we observed that all sequence-based models outperformed the biochemical model, with MPRALegNet achieving the best performance in two of the three cell types (Fig. 3b and Supplementary Table 8). Although we include EnformerMPRA and SeiMPRA for comparison purposes, we caution that they may have inflated performance because: (1) they have a more than eightfold larger feature set than the biochemical models and were trained on additional cell types and biochemical marks; and (2) having been trained on nearly the entire genome, they had the opportunity to observe biochemical marks associated with elements in the test set. Moreover, sequence-based models probably performed better than biochemical models because they have access to the precise 200-bp sequence being tested, whereas biochemical signals lack this degree of spatial resolution. Combining the folds of data, our best model, MPRALegNet, achieved a performance (Pearson r ≈ 0.83; Fig. 3c) that was comparable to the technical noise of the assay itself (that is, the replication of replicates; Supplementary Fig. 2c-e). Nevertheless, downsampling analysis indicated that the model lies in a regime that could still benefit from additional training data, given the log-linear improvement in performance as a function of training set size for each cell type (Extended Data Fig. 5c).",
+      "retrieval_text": "[Section: Sequence-based models predict activity] Sequence-based deep learning models 31 have demonstrated strong performance relative to biochemical models 32 and have been used to predict MPRA data 33,34 . We benchmarked the performance of four sequence-based models, trained on our MPRA data for each of the three cell types: (1) MPRAnn, a standard convolutional neural network (CNN) (Supplementary Fig. 6); (2) MPRALegNet, a CNN based on the LegNet architecture 35 , which uses EfficientNetV2-like convolutional blocks (Fig. 3a); (3) EnformerMPRA, which uses the CNN-transformer architecture Enformer 36 to generate a set of 5,313 predicted biochemical features and then fits a lasso regression to the MPRA data using these features; and (4) SeiMPRA, which fits a similar lasso model considering 21,907 biochemical features predicted by Sei 37 . Both MPRAnn and MPRALegNet underwent optimization procedures to detect hyperparameter and data augmentation settings that improve model performance (Extended Data Fig. 5a,b, Supplementary Methods and Supplementary Table 1). Comparing the performance to our biochemical lasso regression model on the identical ten folds of held-out data, we observed that all sequence-based models outperformed the biochemical model, with MPRALegNet achieving the best performance in two of the three cell types (Fig. 3b and Supplementary Table 8). Although we include EnformerMPRA and SeiMPRA for comparison purposes, we caution that they may have inflated performance because: (1) they have a more than eightfold larger feature set than the biochemical models and were trained on additional cell types and biochemical marks; and (2) having been trained on nearly the entire genome, they had the opportunity to observe biochemical marks associated with elements in the test set. Moreover, sequence-based models probably performed better than biochemical models because they have access to the precise 200-bp sequence being tested, whereas biochemical signals lack this degree of spatial resolution. Combining the folds of data, our best model, MPRALegNet, achieved a performance (Pearson r ≈ 0.83; Fig. 3c) that was comparable to the technical noise of the assay itself (that is, the replication of replicates; Supplementary Fig. 2c-e). Nevertheless, downsampling analysis indicated that the model lies in a regime that could still benefit from additional training data, given the log-linear improvement in performance as a function of training set size for each cell type (Extended Data Fig. 5c).",
+      "bbox": [
+        39.685001373,
+        172.68063240512924,
+        296.43536301298417,
+        45.65034247403128
+      ],
+      "provenance": "docling",
+      "section_context": "Sequence-based models predict activity",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p5_45",
+      "source_block_id": "paper_1_p5_45",
+      "chunk_type": "paragraph",
+      "page_number": 5,
+      "reading_order": 45,
+      "display_text": "Given the favourable performance of MPRALegNet, we sought to examine the principles it had learned. We performed in silico mutagenesis (ISM) on the full set of MPRA data and then used TF-MoDISco-lite 38 to identify motifs at variants with a large predicted effect size. This strategy identified many housekeeping factors that are predicted to activate transcription in all cell types, including NRF1, USF1/2, TFEB and TFE3, JUN and FOS-related, KLF-related (KLF/SP), C/EBP-related and ETS-related transcription factor families; additionally, we discovered a motif for REST, a known transcriptional repressor 39 (Extended Data Fig. 6). Of note, CTCF was associated with both transcriptional activation and repression, suggesting that it may impart differential responses depending on sequence context. The top three TFBSs most frequently associated with transcriptional activation among all cell types were KLF-related, ETS-related and CTCF motifs; by contrast, the top cell-type-specific TFBS were HNF4A/G in HepG2 cells, GATA-TAL1 dimer in K562 cells and POU5F1-SOX2 composite element in WTC11 cells (Fig. 3d). Overall, many motifs, including several unknown TFBSs, were discovered that were overlooked by a classic motif-enrichment analysis (Extended Data Fig. 4), supporting the complementarity of the TF-MoDISco approach. To validate the implicated transcription factors, we examined an MPRA dataset in which elements were tested in the context of transcription factor knockdown via CRISPR inhibition in K562 cells 40 . We were able to validate GATA1, NRF1, SP1 and FOSL1 as regulatory factors, with insufficient evidence for STAT1 and ATF4, potentially owing to limited knockdown efficiency or compensatory effects conferred by other transcription factor family members (Extended Data Fig. 7a).",
+      "retrieval_text": "[Section: Sequence-based models predict activity] Given the favourable performance of MPRALegNet, we sought to examine the principles it had learned. We performed in silico mutagenesis (ISM) on the full set of MPRA data and then used TF-MoDISco-lite 38 to identify motifs at variants with a large predicted effect size. This strategy identified many housekeeping factors that are predicted to activate transcription in all cell types, including NRF1, USF1/2, TFEB and TFE3, JUN and FOS-related, KLF-related (KLF/SP), C/EBP-related and ETS-related transcription factor families; additionally, we discovered a motif for REST, a known transcriptional repressor 39 (Extended Data Fig. 6). Of note, CTCF was associated with both transcriptional activation and repression, suggesting that it may impart differential responses depending on sequence context. The top three TFBSs most frequently associated with transcriptional activation among all cell types were KLF-related, ETS-related and CTCF motifs; by contrast, the top cell-type-specific TFBS were HNF4A/G in HepG2 cells, GATA-TAL1 dimer in K562 cells and POU5F1-SOX2 composite element in WTC11 cells (Fig. 3d). Overall, many motifs, including several unknown TFBSs, were discovered that were overlooked by a classic motif-enrichment analysis (Extended Data Fig. 4), supporting the complementarity of the TF-MoDISco approach. To validate the implicated transcription factors, we examined an MPRA dataset in which elements were tested in the context of transcription factor knockdown via CRISPR inhibition in K562 cells 40 . We were able to validate GATA1, NRF1, SP1 and FOSL1 as regulatory factors, with insufficient evidence for STAT1 and ATF4, potentially owing to limited knockdown efficiency or compensatory effects conferred by other transcription factor family members (Extended Data Fig. 7a).",
+      "bbox": [
+        306.141693115,
+        472.55693066403126,
+        562.8716449277836,
+        185.4003462890313
+      ],
+      "provenance": "docling",
+      "section_context": "Sequence-based models predict activity",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p5_46",
+      "source_block_id": "paper_1_p5_46",
+      "chunk_type": "section",
+      "page_number": 5,
+      "reading_order": 46,
+      "display_text": "MPRALegNet predicts TFBS combinations",
+      "retrieval_text": "MPRALegNet predicts TFBS combinations",
+      "bbox": [
+        306.141693115,
+        163.88993066403123,
+        502.1352181150001,
+        154.8669649878018
+      ],
+      "provenance": "docling",
+      "section_context": "MPRALegNet predicts TFBS combinations",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p8_71",
+      "source_block_id": "paper_1_p8_71",
+      "chunk_type": "caption",
+      "page_number": 8,
+      "reading_order": 71,
+      "display_text": "test using the 2 × 2 contingency tables provided in Supplementary Table 9). b , Saturation mutagenesis data from the PKLR enhancer 45 . Top, the reference sequence scaled to the mean effect size among all alternative mutations, annotated by 6 out of 8 significant TFBSs that match known motifs 54 . Middle, measured effect sizes of individual variants. Bottom, MPRALegNet predictions with corresponding Pearson ( r ) and Spearman ( ρ ) correlation values.",
+      "retrieval_text": "[Section: Discussion] test using the 2 × 2 contingency tables provided in Supplementary Table 9). b , Saturation mutagenesis data from the PKLR enhancer 45 . Top, the reference sequence scaled to the mean effect size among all alternative mutations, annotated by 6 out of 8 significant TFBSs that match known motifs 54 . Middle, measured effect sizes of individual variants. Bottom, MPRALegNet predictions with corresponding Pearson ( r ) and Spearman ( ρ ) correlation values.",
+      "bbox": [
+        306.13883018800004,
+        473.0241166990313,
+        561.8859301145001,
+        416.5426208656979
+      ],
+      "provenance": "docling",
+      "section_context": "Discussion",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p8_72",
+      "source_block_id": "paper_1_p8_72",
+      "chunk_type": "paragraph",
+      "page_number": 8,
+      "reading_order": 72,
+      "display_text": "previous studies 27,28 , we extensively characterized the sequence-based information needed to generate these on/off switches. We found that 200-bp blocks centred at the TSS have sufficient sequence data to provide this switch and are sufficient to drive expression in a similar manner to their associated gene. Sequencing of these active core promoters shows that they are enriched for CpG-rich motifs that are known to have ubiquitous function 29 (Extended Data Fig. 4a). They also include the KLF-related transcription factor family that are known to interact with the transcription initiation complex and additional transcription factors that provide ubiquitous promoter activity 48 and the ETS-related family which is enriched in ubiquitously expressed promoters 49 . We also observed an enrichment for the NF-Y family that is known to interact with the CCAAT box and TATA-less eukaryotic promoters 50 . Of note, our lentiMPRA design tested promoters together with a minimal promoter that is 32 bp long, which could affect promoter activity. However, this approach enabled us to test hundreds of thousands of enhancers and thousands of promoters and compare them in the same assay. Our results were similar to previous reports 27,28 , showing orientation biases for promoters and motif enrichment that is known to provide ubiquitous promoter expression, supporting the idea that the addition of this 32-bp sequence to our assayed promoters probably did not affect our findings.",
+      "retrieval_text": "[Section: Discussion] previous studies 27,28 , we extensively characterized the sequence-based information needed to generate these on/off switches. We found that 200-bp blocks centred at the TSS have sufficient sequence data to provide this switch and are sufficient to drive expression in a similar manner to their associated gene. Sequencing of these active core promoters shows that they are enriched for CpG-rich motifs that are known to have ubiquitous function 29 (Extended Data Fig. 4a). They also include the KLF-related transcription factor family that are known to interact with the transcription initiation complex and additional transcription factors that provide ubiquitous promoter activity 48 and the ETS-related family which is enriched in ubiquitously expressed promoters 49 . We also observed an enrichment for the NF-Y family that is known to interact with the CCAAT box and TATA-less eukaryotic promoters 50 . Of note, our lentiMPRA design tested promoters together with a minimal promoter that is 32 bp long, which could affect promoter activity. However, this approach enabled us to test hundreds of thousands of enhancers and thousands of promoters and compare them in the same assay. Our results were similar to previous reports 27,28 , showing orientation biases for promoters and motif enrichment that is known to provide ubiquitous promoter expression, supporting the idea that the addition of this 32-bp sequence to our assayed promoters probably did not affect our findings.",
+      "bbox": [
+        306.139092773,
+        387.6805255941293,
+        562.843053230842,
+        153.1503462890313
+      ],
+      "provenance": "docling",
+      "section_context": "Discussion",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p8_73",
+      "source_block_id": "paper_1_p8_73",
+      "chunk_type": "paragraph",
+      "page_number": 8,
+      "reading_order": 73,
+      "display_text": "In line with previous work 10,14,51 , we show that sequence-based models provide superior ability to predict functional sequences from MPRA. MPRALegNet enabled us to tease out many motifs that are important for these predictions, both universal and cell-type specific, and model their combinatorial effects. Of note, one of the main enriched transcription factor motifs among the promoters and enhancers in all three cell types are the stripe KLF-related transcription factors. Stripe transcription factors are thought to provide co-accessibility and increase residence time for other transcription-associated factors in promoters and enhancers 52 and were also found to be enriched in active regulatory elements in a",
+      "retrieval_text": "[Section: Discussion] In line with previous work 10,14,51 , we show that sequence-based models provide superior ability to predict functional sequences from MPRA. MPRALegNet enabled us to tease out many motifs that are important for these predictions, both universal and cell-type specific, and model their combinatorial effects. Of note, one of the main enriched transcription factor motifs among the promoters and enhancers in all three cell types are the stripe KLF-related transcription factors. Stripe transcription factors are thought to provide co-accessibility and increase residence time for other transcription-associated factors in promoters and enhancers 52 and were also found to be enriched in active regulatory elements in a",
+      "bbox": [
+        306.141693115,
+        151.18063240512924,
+        562.8579970641889,
+        45.65034247403128
+      ],
+      "provenance": "docling",
+      "section_context": "Discussion",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p11_144",
+      "source_block_id": "paper_1_p11_144",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 144,
+      "display_text": "HepG2 large-scale library. Following the procedures outlined in 'HepG2 pilot library', we tested all 66,017 previously identified cCREs in both orientations. For human protein-coding gene promoters, we extracted the average signal across cell types in TPM for each CAGE peak listed in hg19.cage_peak_phase1and2combined_tpm_ann. osc.txt.gz from the FANTOM5 consortium 57,58 . The first exons of all protein-coding gene transcripts were collected from Ensembl v.83 (hg38 genome build) 59 , transformed into hg19 coordinates using liftOver 60 , and then intersected with the CAGE peaks to identify a single promoter per gene corresponding to the promoter with the maximal average TPM. To select the final 200-bp oligonucleotide for testing, we identified the centre of the promoter DNase peak on the basis of the HepG2 DNase peaks merged across replicates (described in 'HepG2 pilot library'). In the scenario in which no DNase peak overlapped the promoter, we centred on the midpoint of the CAGE peak. In the scenario in which neither a DNase nor CAGE peak existed, we centred on the TSS defined by the Ensembl annotation. This resulted in a total of 19,104 protein-coding gene promoters, of which 6,181 were centred on a DNase peak, 9,735 were centred on a CAGE peak and 3,188 were centred on a Ensembl TSS definition. The oligonucleotide tested included the ±100-bp window around this central position in the sense orientation with respect to the gene. A random subset of 12,411 promoters were also tested in the antisense orientation. We tested 102 positive and 102 negative controls from a previous study 19 as well as 175 dinucleotide shuffled negative controls in both orientations. These shuffled controls were derived from shuffling a random subset of 175 DNase peaks. This resulted in a library consisting of 164,307 elements, for which we ordered one 230-bp oligonucleotide per element.",
+      "retrieval_text": "[Section: Design of Agilent oligonucleotide library] HepG2 large-scale library. Following the procedures outlined in 'HepG2 pilot library', we tested all 66,017 previously identified cCREs in both orientations. For human protein-coding gene promoters, we extracted the average signal across cell types in TPM for each CAGE peak listed in hg19.cage_peak_phase1and2combined_tpm_ann. osc.txt.gz from the FANTOM5 consortium 57,58 . The first exons of all protein-coding gene transcripts were collected from Ensembl v.83 (hg38 genome build) 59 , transformed into hg19 coordinates using liftOver 60 , and then intersected with the CAGE peaks to identify a single promoter per gene corresponding to the promoter with the maximal average TPM. To select the final 200-bp oligonucleotide for testing, we identified the centre of the promoter DNase peak on the basis of the HepG2 DNase peaks merged across replicates (described in 'HepG2 pilot library'). In the scenario in which no DNase peak overlapped the promoter, we centred on the midpoint of the CAGE peak. In the scenario in which neither a DNase nor CAGE peak existed, we centred on the TSS defined by the Ensembl annotation. This resulted in a total of 19,104 protein-coding gene promoters, of which 6,181 were centred on a DNase peak, 9,735 were centred on a CAGE peak and 3,188 were centred on a Ensembl TSS definition. The oligonucleotide tested included the ±100-bp window around this central position in the sense orientation with respect to the gene. A random subset of 12,411 promoters were also tested in the antisense orientation. We tested 102 positive and 102 negative controls from a previous study 19 as well as 175 dinucleotide shuffled negative controls in both orientations. These shuffled controls were derived from shuffling a random subset of 175 DNase peaks. This resulted in a library consisting of 164,307 elements, for which we ordered one 230-bp oligonucleotide per element.",
+      "bbox": [
+        39.685001373,
+        236.05693066403126,
+        296.3885281440908,
+        45.65034247403128
+      ],
+      "provenance": "docling",
+      "section_context": "Design of Agilent oligonucleotide library",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p11_145",
+      "source_block_id": "paper_1_p11_145",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 145,
+      "display_text": "K562 large-scale library. To acquire a set of DNase peaks for testing, we used the 'optimal peak' calls derived from processing ENCODE experiment ID: ENCSR000EOY through the ENCODE DCC Irreproducible Discovery Rate (IDR) pipeline, available at https://github.com/ ENCODE-DCC/atac-seq-pipeline (generously provided by A. Kundaje). Removing DNase peaks overlapping human promoters resulted in 87,618 potential enhancers tested in both orientations. The promoters tested were identical to those described in 'HepG2 large-scale library', except that it included all 19,104 promoters tested in both orientations. We tested 50 positive and 200 negative controls from a previous MPRA study 18 as well as the same 250 dinucleotide shuffled negative controls as tested in 'K562 pilot library'. Finally, 14,918 tiles not overlapping DNase peaks, and subsampled from the ±1 Mb region around the following 7 genetic loci: GATA1 , MYC , HBE1 , LMO2 , RBM38 , HBA2 , and BCL11A , were chosen using our representative subset selection approach (described in the 'Representative subset selection' section below) and tested in both orientations. This resulted in a library consisting of 243,780 elements, for which we ordered one 230-bp oligonucleotide per element.",
+      "retrieval_text": "[Section: Design of Agilent oligonucleotide library] K562 large-scale library. To acquire a set of DNase peaks for testing, we used the 'optimal peak' calls derived from processing ENCODE experiment ID: ENCSR000EOY through the ENCODE DCC Irreproducible Discovery Rate (IDR) pipeline, available at https://github.com/ ENCODE-DCC/atac-seq-pipeline (generously provided by A. Kundaje). Removing DNase peaks overlapping human promoters resulted in 87,618 potential enhancers tested in both orientations. The promoters tested were identical to those described in 'HepG2 large-scale library', except that it included all 19,104 promoters tested in both orientations. We tested 50 positive and 200 negative controls from a previous MPRA study 18 as well as the same 250 dinucleotide shuffled negative controls as tested in 'K562 pilot library'. Finally, 14,918 tiles not overlapping DNase peaks, and subsampled from the ±1 Mb region around the following 7 genetic loci: GATA1 , MYC , HBE1 , LMO2 , RBM38 , HBA2 , and BCL11A , were chosen using our representative subset selection approach (described in the 'Representative subset selection' section below) and tested in both orientations. This resulted in a library consisting of 243,780 elements, for which we ordered one 230-bp oligonucleotide per element.",
+      "bbox": [
+        306.141693115,
+        612.3074306640312,
+        562.8554168942159,
+        411.15034628903123
+      ],
+      "provenance": "docling",
+      "section_context": "Design of Agilent oligonucleotide library",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p11_146",
+      "source_block_id": "paper_1_p11_146",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 146,
+      "display_text": "WTC11 large-scale library. To acquire a set of DNase peaks for testing, we used the peak calls derived from applying the hotspot2 pipeline (https://github.com/Altius/hotspot2) at FDR = 0.05 to ENCODE experiment ID: ENCSR785ZUI (generously provided by R.Sandstrom) 61 . This resulted in two independent replicates, which were merged into a unified set using the procedures described in 'HepG2 pilot library'. Removing DNase peaks overlapping human promoters resulted in 83,201 potential enhancers. Together with the 19,104 promoters described in 'HepG2 large-scale library', these elements were subsampled to select 30,121 potential enhancers and 7,500 promoters using our representative subset selection approach described below, and tested in both orientations. We also tested 100 positive and 100 negative controls from a previous study 24 as well as 100 dinucleotide shuffled negative controls, which were derived from shuffling 100 random sequences from our set of 30,121 potential enhancers. This resulted in a library consisting of 75,542 cCREs, for which we ordered one 230-bp oligonucleotide per element.",
+      "retrieval_text": "[Section: Design of Agilent oligonucleotide library] WTC11 large-scale library. To acquire a set of DNase peaks for testing, we used the peak calls derived from applying the hotspot2 pipeline (https://github.com/Altius/hotspot2) at FDR = 0.05 to ENCODE experiment ID: ENCSR785ZUI (generously provided by R.Sandstrom) 61 . This resulted in two independent replicates, which were merged into a unified set using the procedures described in 'HepG2 pilot library'. Removing DNase peaks overlapping human promoters resulted in 83,201 potential enhancers. Together with the 19,104 promoters described in 'HepG2 large-scale library', these elements were subsampled to select 30,121 potential enhancers and 7,500 promoters using our representative subset selection approach described below, and tested in both orientations. We also tested 100 positive and 100 negative controls from a previous study 24 as well as 100 dinucleotide shuffled negative controls, which were derived from shuffling 100 random sequences from our set of 30,121 potential enhancers. This resulted in a library consisting of 75,542 cCREs, for which we ordered one 230-bp oligonucleotide per element.",
+      "bbox": [
+        306.141693115,
+        397.30693066403126,
+        562.7778222245794,
+        217.6503462890313
+      ],
+      "provenance": "docling",
+      "section_context": "Design of Agilent oligonucleotide library",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p11_147",
+      "source_block_id": "paper_1_p11_147",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 147,
+      "display_text": "Joint library tested in HepG2, K562, and WTC11 cells. Given the measured potential enhancers from the forward orientations in each of the HepG2, K562 and WTC11 large-scale libraries, we binned each set of cCREs into ten equally sized bins spanning the range of measured log 2 (RNA/DNA) values in the selected cell type. We randomly sampled an approximately equal number from each bin, resulting in 19,000 HepG2, 18,958 K562 and 18,946 WTC11 potential enhancers. A similar procedure was followed with sense-oriented promoters, except that the ten bins were established on the basis of the mean log2(RNA/DNA) across all three cell types (that is, instead of performing the procedure independently in each cell type as before), and the top 1,000 promoters exhibiting the greatest variance across three cell lines were also selected for testing. This resulted in the selection of 2,396 out of 19,104 promoters. We also tested 181 positive and 169 negative HepG2 controls from a previous study 19 , 50 positive K562 controls from a previous study 18 ,",
+      "retrieval_text": "[Section: Design of Agilent oligonucleotide library] Joint library tested in HepG2, K562, and WTC11 cells. Given the measured potential enhancers from the forward orientations in each of the HepG2, K562 and WTC11 large-scale libraries, we binned each set of cCREs into ten equally sized bins spanning the range of measured log 2 (RNA/DNA) values in the selected cell type. We randomly sampled an approximately equal number from each bin, resulting in 19,000 HepG2, 18,958 K562 and 18,946 WTC11 potential enhancers. A similar procedure was followed with sense-oriented promoters, except that the ten bins were established on the basis of the mean log2(RNA/DNA) across all three cell types (that is, instead of performing the procedure independently in each cell type as before), and the top 1,000 promoters exhibiting the greatest variance across three cell lines were also selected for testing. This resulted in the selection of 2,396 out of 19,104 promoters. We also tested 181 positive and 169 negative HepG2 controls from a previous study 19 , 50 positive K562 controls from a previous study 18 ,",
+      "bbox": [
+        306.141693115,
+        203.80693066403126,
+        562.8374755339913,
+        45.65034247403128
+      ],
+      "provenance": "docling",
+      "section_context": "Design of Agilent oligonucleotide library",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [],
+    "hint_terms": []
+  },
+  "stats": {
+    "chunk_build_ms": 2.091,
+    "idf_build_ms": 10.503,
+    "scoring_ms": 6.681,
+    "total_ms": 24.85,
+    "chunk_count_total": 318,
+    "chunk_count_by_type": {
+      "section": 52,
+      "paragraph": 179,
+      "caption": 14,
+      "list_item": 72,
+      "table_region": 1
+    },
+    "candidate_chunk_count": 318,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 9,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T07:11:24.045418+00:00"
+}

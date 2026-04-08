@@ -97,6 +97,8 @@ Main launch success requires machine-readable automation JSON with required run 
 
 Eval adapter writes `eval_result.json` and consumes eval-produced per-run summary outputs.
 
+When the main-app run bundle exposes an eval-ready gold snapshot in `run.json`, the eval adapter must prefer that bundled snapshot over the benchmark manifest `gold_path`. Eval launch failures must preserve the eval CLI exit code and the most relevant stderr/stdout detail in candidate-visible failure records.
+
 Metric projection supports:
 
 - grouped metrics already emitted by eval, or

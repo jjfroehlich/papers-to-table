@@ -1,0 +1,18 @@
+{
+  "run_id": "run_20260408_110228_t2v26r",
+  "provider_token": "lm_studio",
+  "counts": {
+    "http_total": 9,
+    "models_list": 1,
+    "model_management_list": 2,
+    "model_management_load": 0,
+    "model_management_unload": 0,
+    "completions_total": 6,
+    "completions_text_raw": 3,
+    "completions_text_structured": 2,
+    "completions_vision_structured": 0,
+    "completions_probe_structured": 1,
+    "completion_retry_attempts": 0
+  },
+  "recorded_at": "2026-04-08T11:05:41.451293+00:00"
+}

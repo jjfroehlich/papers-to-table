@@ -1,0 +1,378 @@
+{
+  "run_id": "run_20260408_063946_jb0k8g",
+  "pdf_id": "paper_3",
+  "column_name": "If episomal: Ori in backbone?",
+  "query": "If episomal: Ori in backbone?: In case the assay is episomal (and not genomically integrated): if the backbone plasmid contained an Ori and if the authors prevented activity of the Ori (which might interfere with the assay)\nRetrieval hints: sequences pairs combinations plasmids barcodes episomal plasmid vector backbone origin replication polya",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_3_p2_23",
+      "source_block_id": "paper_3_p2_23",
+      "chunk_type": "section",
+      "page_number": 2,
+      "reading_order": 23,
+      "display_text": "INTRODUCTION",
+      "retrieval_text": "INTRODUCTION",
+      "bbox": [
+        53.1212,
+        345.80691774921877,
+        120.2824942,
+        339.76062294921877
+      ],
+      "provenance": "docling",
+      "section_context": "INTRODUCTION",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p2_24",
+      "source_block_id": "paper_3_p2_24",
+      "chunk_type": "paragraph",
+      "page_number": 2,
+      "reading_order": 24,
+      "display_text": "Intra- and extracellular signals intricately control the activity of dozens of interwoven signaling pathways, often converging on transcription factors (TFs). TFs respond to these upstream signaling cascades and translate them to orchestrate the regulation of the genome. If we knew the activity of all TFs in any given cell type, we might be able to understand how TFs interpret incoming signals, how they drive the downstream changes in gene expression, and how cascades of TF activities progress over time. However, we currently have no reliable method to directly detect many TF activities in parallel.",
+      "retrieval_text": "[Section: INTRODUCTION] Intra- and extracellular signals intricately control the activity of dozens of interwoven signaling pathways, often converging on transcription factors (TFs). TFs respond to these upstream signaling cascades and translate them to orchestrate the regulation of the genome. If we knew the activity of all TFs in any given cell type, we might be able to understand how TFs interpret incoming signals, how they drive the downstream changes in gene expression, and how cascades of TF activities progress over time. However, we currently have no reliable method to directly detect many TF activities in parallel.",
+      "bbox": [
+        53.1212,
+        323.8666583692188,
+        292.19034148000003,
+        217.40444796921884
+      ],
+      "provenance": "docling",
+      "section_context": "INTRODUCTION",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p2_25",
+      "source_block_id": "paper_3_p2_25",
+      "chunk_type": "paragraph",
+      "page_number": 2,
+      "reading_order": 25,
+      "display_text": "A variety of computational approaches have been developed to infer TF activities from genome-wide data such as TF-binding data (chromatin immunoprecipitation [ChIP] sequencing 1 ), chromatin accessibility maps (assay for transposase-accessible chromatin [ATAC] sequencing 2 ), 3,4 TF or target gene transcript abundance data (RNA sequencing [RNA-seq] 5 ), 6-8 or a combination of these methods. 9-11 While these methods provide convenient tools to compute TF activities from well-established genomics assays, they do not directly measure the transcriptional activity of TFs and might therefore lack precision. For example, it is known that maps of TF binding poorly reflect TF activity 12,13 ; ATAC-seq detects open chromatin regions, which are not necessarily predictive of transcription activity 14 ; and inferring TF activity from mRNA-seq data requires assumptions regarding the distance over which each TF may be able to control gene activity.",
+      "retrieval_text": "[Section: INTRODUCTION] A variety of computational approaches have been developed to infer TF activities from genome-wide data such as TF-binding data (chromatin immunoprecipitation [ChIP] sequencing 1 ), chromatin accessibility maps (assay for transposase-accessible chromatin [ATAC] sequencing 2 ), 3,4 TF or target gene transcript abundance data (RNA sequencing [RNA-seq] 5 ), 6-8 or a combination of these methods. 9-11 While these methods provide convenient tools to compute TF activities from well-established genomics assays, they do not directly measure the transcriptional activity of TFs and might therefore lack precision. For example, it is known that maps of TF binding poorly reflect TF activity 12,13 ; ATAC-seq detects open chromatin regions, which are not necessarily predictive of transcription activity 14 ; and inferring TF activity from mRNA-seq data requires assumptions regarding the distance over which each TF may be able to control gene activity.",
+      "bbox": [
+        53.121012820000004,
+        214.27883534921887,
+        292.2070907000001,
+        42.11038548921874
+      ],
+      "provenance": "docling",
+      "section_context": "INTRODUCTION",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p4_39",
+      "source_block_id": "paper_3_p4_39",
+      "chunk_type": "paragraph",
+      "page_number": 4,
+      "reading_order": 39,
+      "display_text": "Among the 86 included TFs are many tissue-specific TFs. We therefore probed the reporter library in nine different cell lines from distinct tissues (Figure 1C). Since TF-binding specificities are highly conserved between human and mouse, 36,37 wetested the library in cell lines derived from both human ( n =7) and mouse ( n = 2). Furthermore, we extensively perturbed TF activities by (1) activating or inhibiting upstream signaling pathways ( n = 25) or (2) changing the TF abundance by overexpressing, knocking down or degrading individual TFs ( n = 73). We thus queried all 5,530 reporters across 98 TF perturbation conditions (Figure 1C; Table S2).",
+      "retrieval_text": "[Section: Systematic probing of a TF reporter library] Among the 86 included TFs are many tissue-specific TFs. We therefore probed the reporter library in nine different cell lines from distinct tissues (Figure 1C). Since TF-binding specificities are highly conserved between human and mouse, 36,37 wetested the library in cell lines derived from both human ( n =7) and mouse ( n = 2). Furthermore, we extensively perturbed TF activities by (1) activating or inhibiting upstream signaling pathways ( n = 25) or (2) changing the TF abundance by overexpressing, knocking down or degrading individual TFs ( n = 73). We thus queried all 5,530 reporters across 98 TF perturbation conditions (Figure 1C; Table S2).",
+      "bbox": [
+        304.15716528,
+        242.96561532921874,
+        543.24359978,
+        125.5621667292188
+      ],
+      "provenance": "docling",
+      "section_context": "Systematic probing of a TF reporter library",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p4_40",
+      "source_block_id": "paper_3_p4_40",
+      "chunk_type": "paragraph",
+      "page_number": 4,
+      "reading_order": 40,
+      "display_text": "(C) Experimental layout. The TF reporter plasmid library was probed in nine distinct cell lines and in 98 TF perturbation conditions. Barcodes are then counted per condition from RNA (reverse transcribed to cDNA) using high-throughput sequencing. To calculate reporter activities, RNA barcode counts were normalized to the input plasmid DNA barcode counts and then to the normalized median count of the TF-neg reporters.",
+      "retrieval_text": "[Section: Systematic probing of a TF reporter library] (C) Experimental layout. The TF reporter plasmid library was probed in nine distinct cell lines and in 98 TF perturbation conditions. Barcodes are then counted per condition from RNA (reverse transcribed to cDNA) using high-throughput sequencing. To calculate reporter activities, RNA barcode counts were normalized to the input plasmid DNA barcode counts and then to the normalized median count of the TF-neg reporters.",
+      "bbox": [
+        53.12119999999993,
+        101.35731614921872,
+        543.25799588,
+        75.98523698921872
+      ],
+      "provenance": "docling",
+      "section_context": "Systematic probing of a TF reporter library",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p4_41",
+      "source_block_id": "paper_3_p4_41",
+      "chunk_type": "paragraph",
+      "page_number": 4,
+      "reading_order": 41,
+      "display_text": "(D) Correlation of all reporter activities (i.e., activation compared with TF-neg reporters) measured in biological replicate 1 compared with replicate 2 of reporters with mutated TFBSs (gray) and consensus TFBSs (red). Reporter activities in all nine cell lines are displayed together.",
+      "retrieval_text": "[Section: Systematic probing of a TF reporter library] (D) Correlation of all reporter activities (i.e., activation compared with TF-neg reporters) measured in biological replicate 1 compared with replicate 2 of reporters with mutated TFBSs (gray) and consensus TFBSs (red). Reporter activities in all nine cell lines are displayed together.",
+      "bbox": [
+        53.12119999999993,
+        72.95442350921871,
+        543.18546836,
+        57.04997522921872
+      ],
+      "provenance": "docling",
+      "section_context": "Systematic probing of a TF reporter library",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p7_62",
+      "source_block_id": "paper_3_p7_62",
+      "chunk_type": "section",
+      "page_number": 7,
+      "reading_order": 62,
+      "display_text": "Cell-type dependence of TF reporter activities",
+      "retrieval_text": "Cell-type dependence of TF reporter activities",
+      "bbox": [
+        310.84745876,
+        560.6724596292187,
+        505.8963561800002,
+        554.6261648292186
+      ],
+      "provenance": "docling",
+      "section_context": "Cell-type dependence of TF reporter activities",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p7_63",
+      "source_block_id": "paper_3_p7_63",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 63,
+      "display_text": "After identifying the features facilitating high reporter activity, we aimed to characterize the TF specificity of each reporter. One line of evidence for such specificity would be if the activity of a reporter correlates positively with the abundance of the corresponding TF across the nine tested cell lines. Therefore, we generated mRNA-seq data for mNPCs, mESCs, and HEPG2 cells and collected publicly available mRNA-seq data for the other six probed cell lines (see STAR Methods and Figure S4A). We then conducted a transcript abundance correlation analysis for 37 TFs that showed sufficient variation in expression level across the cell lines (Figure 3A). For some TFs (e.g., POU5F1:: SOX2, HNF1A), the activities of all reporters significantly correlated with TF transcript abundance. For other TFs (e.g., IRX3), none of the reporters had a significant correlation. While this could indicate that the reporters for these TFs lack specificity, it is also possible that the activity of those TFs is controlled primarily by intracellular signaling or by certain co-factors; alternatively, their protein abundance is not reliably predicted by their mRNA level.",
+      "retrieval_text": "[Section: Cell-type dependence of TF reporter activities] After identifying the features facilitating high reporter activity, we aimed to characterize the TF specificity of each reporter. One line of evidence for such specificity would be if the activity of a reporter correlates positively with the abundance of the corresponding TF across the nine tested cell lines. Therefore, we generated mRNA-seq data for mNPCs, mESCs, and HEPG2 cells and collected publicly available mRNA-seq data for the other six probed cell lines (see STAR Methods and Figure S4A). We then conducted a transcript abundance correlation analysis for 37 TFs that showed sufficient variation in expression level across the cell lines (Figure 3A). For some TFs (e.g., POU5F1:: SOX2, HNF1A), the activities of all reporters significantly correlated with TF transcript abundance. For other TFs (e.g., IRX3), none of the reporters had a significant correlation. While this could indicate that the reporters for these TFs lack specificity, it is also possible that the activity of those TFs is controlled primarily by intracellular signaling or by certain co-factors; alternatively, their protein abundance is not reliably predicted by their mRNA level.",
+      "bbox": [
+        310.84745876,
+        549.7306984092187,
+        549.9352302799999,
+        344.6791631492187
+      ],
+      "provenance": "docling",
+      "section_context": "Cell-type dependence of TF reporter activities",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p7_64",
+      "source_block_id": "paper_3_p7_64",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 64,
+      "display_text": "For most TFs, only a subset of reporters significantly correlated with TF transcript abundance (e.g., GATA4, GATA1, TFCP2L1, and GBX2; Figure 3A, highlighted in red). For example, for GATA4, which is an important regulator of the endoderm 42 and is highest expressed in HEPG2 cells among our set of investigated cell lines, one reporter with spacer sequence #4 was not active in any cell type, but the same reporter design (i.e., the same core promoter, promoter distance, and spacer length) with spacer sequence #6 was highly activated specifically in HEPG2 (Figure 3B). Indeed, all GATA4 reporters with spacer sequence #6 displayed activities that significantly correlated with GATA4 transcript abundance (Figure S4B), suggesting that this spacer sequence renders GATA4 reporters GATA4 specific. In line with these findings, spacer sequence #6 was also identified as the most important feature in the log-linear model for GATA4 (note that this model was fit in HEPG2, Figure 2D). We observed a similar spacer sequence-dependent TF specificity for GBX2, which is a TF involved in maintaining pluripotency 38,39 and is mainly expressed in mESCs. GBX2 reporters with a spacer sequence #3, but not any other spacer sequence, displayed activity specifically in mESCs (Figures 3C and S4C).",
+      "retrieval_text": "[Section: Cell-type dependence of TF reporter activities] For most TFs, only a subset of reporters significantly correlated with TF transcript abundance (e.g., GATA4, GATA1, TFCP2L1, and GBX2; Figure 3A, highlighted in red). For example, for GATA4, which is an important regulator of the endoderm 42 and is highest expressed in HEPG2 cells among our set of investigated cell lines, one reporter with spacer sequence #4 was not active in any cell type, but the same reporter design (i.e., the same core promoter, promoter distance, and spacer length) with spacer sequence #6 was highly activated specifically in HEPG2 (Figure 3B). Indeed, all GATA4 reporters with spacer sequence #6 displayed activities that significantly correlated with GATA4 transcript abundance (Figure S4B), suggesting that this spacer sequence renders GATA4 reporters GATA4 specific. In line with these findings, spacer sequence #6 was also identified as the most important feature in the log-linear model for GATA4 (note that this model was fit in HEPG2, Figure 2D). We observed a similar spacer sequence-dependent TF specificity for GBX2, which is a TF involved in maintaining pluripotency 38,39 and is mainly expressed in mESCs. GBX2 reporters with a spacer sequence #3, but not any other spacer sequence, displayed activity specifically in mESCs (Figures 3C and S4C).",
+      "bbox": [
+        310.8469014,
+        341.49681358921873,
+        549.9408992600002,
+        114.50720976921878
+      ],
+      "provenance": "docling",
+      "section_context": "Cell-type dependence of TF reporter activities",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p14_113",
+      "source_block_id": "paper_3_p14_113",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 113,
+      "display_text": "(B) Reporter activities (max-normalized) of the synthetic HNF4A prime reporter (red) and the highest-ranking published HNF4A reporter per cell line. (C) Changes in prime reporter TF activities upon various TF perturbations in mESCs. TF targets of perturbations are indicated by black rectangles and asterisks. Only TFs expressed in mESCs (nTPM > 4) and with a substantial perturbation response (fold-change > 2) in at least one condition are displayed. DEG, degradation.",
+      "retrieval_text": "[Section: Multiple ways to define TF activity] (B) Reporter activities (max-normalized) of the synthetic HNF4A prime reporter (red) and the highest-ranking published HNF4A reporter per cell line. (C) Changes in prime reporter TF activities upon various TF perturbations in mESCs. TF targets of perturbations are indicated by black rectangles and asterisks. Only TFs expressed in mESCs (nTPM > 4) and with a substantial perturbation response (fold-change > 2) in at least one condition are displayed. DEG, degradation.",
+      "bbox": [
+        53.12119999999999,
+        320.70225438921875,
+        543.2231268800007,
+        285.86254434921875
+      ],
+      "provenance": "docling",
+      "section_context": "Multiple ways to define TF activity",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p14_114",
+      "source_block_id": "paper_3_p14_114",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 114,
+      "display_text": "reporters are driven by four copies of a single TFBS, and thus the activity measured is reflecting the ability of the TF to bind to and activate from that particular TFBS. We emphasize that this activity is not necessarily predictive of the activity of the probed TF at individual natural promoters and enhancers in the genome, which often involves combinatorial interactions with other TFBSs.",
+      "retrieval_text": "[Section: Multiple ways to define TF activity] reporters are driven by four copies of a single TFBS, and thus the activity measured is reflecting the ability of the TF to bind to and activate from that particular TFBS. We emphasize that this activity is not necessarily predictive of the activity of the probed TF at individual natural promoters and enhancers in the genome, which often involves combinatorial interactions with other TFBSs.",
+      "bbox": [
+        53.1212,
+        264.7927177492188,
+        292.19372876000006,
+        191.21252794921884
+      ],
+      "provenance": "docling",
+      "section_context": "Multiple ways to define TF activity",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p14_115",
+      "source_block_id": "paper_3_p14_115",
+      "chunk_type": "section",
+      "page_number": 14,
+      "reading_order": 115,
+      "display_text": "Applicability of the identified prime reporters",
+      "retrieval_text": "Applicability of the identified prime reporters",
+      "bbox": [
+        53.1212,
+        177.14515410921877,
+        243.3085037999998,
+        171.09885930921882
+      ],
+      "provenance": "docling",
+      "section_context": "Applicability of the identified prime reporters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p22_241",
+      "source_block_id": "paper_3_p22_241",
+      "chunk_type": "section",
+      "page_number": 22,
+      "reading_order": 241,
+      "display_text": "Cloning of the TF reporter library",
+      "retrieval_text": "Cloning of the TF reporter library",
+      "bbox": [
+        53.12212701999999,
+        582.6696971492188,
+        192.2563466599999,
+        576.6234023492187
+      ],
+      "provenance": "docling",
+      "section_context": "Cloning of the TF reporter library",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p22_242",
+      "source_block_id": "paper_3_p22_242",
+      "chunk_type": "paragraph",
+      "page_number": 22,
+      "reading_order": 242,
+      "display_text": "The vector backbone was constructed as mentioned previously. 32 The oligonucleotide library was resuspended in TE buffer (Invitrogen) to a final concentration of 20 ng/ m l. 10 ng of the oligonucleotide library was then PCR amplified (1' 95 \u000e C, 6x(15'' 95 \u000e C, 15'' 57 \u000e C, 15'' 72 \u000e C), 1' 72 \u000e C) by MyTaq Red mix (Bioline) using primers that add overhangs with EcoRI (MT024) or NheI (MT025) restriction enzyme sites. The PCR product was then purified using CleanPCR beads (#CPCR, CleanNA) at 1.8:1 beads:sample ratio, digested with EcoRI-HF (#R3101, NEB) and NheI-HF (#3131, NEB) by incubating the PCR product at 37 \u000e Cfor 1 h, and then again bead purified as before. 1 m g of the entry vector was also digested with EcoRI-HF and NheI-HF and the linearized product was purified from a 2% agarose gel using PCR Isolate II PCR and Gel Kit (Bioline). The digested and purified reporter pool was then ligated into 80 ng of the linearized entry vector using Takara ligation kit v1.0 (#6021; Takara) at a 1:3 (vector:insert) ratio. The ligation mix was then bead purified as before and transformed into MegaX DH10B T1R Electrocomp Ô Cells (Invitrogen) using 1 m l of the ligation mix. The library complexity was estimated from plated serial dilutions of the transformed cells to be \u0018 300,000 colony forming units. Transformed cells were transferred to 200 ml standard Luria Broth (LB) plus kanamycin (50 m g/ml), grown overnight and purified using a Maxi plasmid purification kit (#12162; Qiagen).",
+      "retrieval_text": "[Section: Cloning of the TF reporter library] The vector backbone was constructed as mentioned previously. 32 The oligonucleotide library was resuspended in TE buffer (Invitrogen) to a final concentration of 20 ng/ m l. 10 ng of the oligonucleotide library was then PCR amplified (1' 95 \u000e C, 6x(15'' 95 \u000e C, 15'' 57 \u000e C, 15'' 72 \u000e C), 1' 72 \u000e C) by MyTaq Red mix (Bioline) using primers that add overhangs with EcoRI (MT024) or NheI (MT025) restriction enzyme sites. The PCR product was then purified using CleanPCR beads (#CPCR, CleanNA) at 1.8:1 beads:sample ratio, digested with EcoRI-HF (#R3101, NEB) and NheI-HF (#3131, NEB) by incubating the PCR product at 37 \u000e Cfor 1 h, and then again bead purified as before. 1 m g of the entry vector was also digested with EcoRI-HF and NheI-HF and the linearized product was purified from a 2% agarose gel using PCR Isolate II PCR and Gel Kit (Bioline). The digested and purified reporter pool was then ligated into 80 ng of the linearized entry vector using Takara ligation kit v1.0 (#6021; Takara) at a 1:3 (vector:insert) ratio. The ligation mix was then bead purified as before and transformed into MegaX DH10B T1R Electrocomp Ô Cells (Invitrogen) using 1 m l of the ligation mix. The library complexity was estimated from plated serial dilutions of the transformed cells to be \u0018 300,000 colony forming units. Transformed cells were transferred to 200 ml standard Luria Broth (LB) plus kanamycin (50 m g/ml), grown overnight and purified using a Maxi plasmid purification kit (#12162; Qiagen).",
+      "bbox": [
+        53.12157596,
+        573.4539815492187,
+        543.2640757600004,
+        443.3825667292188
+      ],
+      "provenance": "docling",
+      "section_context": "Cloning of the TF reporter library",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p22_243",
+      "source_block_id": "paper_3_p22_243",
+      "chunk_type": "section",
+      "page_number": 22,
+      "reading_order": 243,
+      "display_text": "Reporter library transfection and pathway perturbations",
+      "retrieval_text": "Reporter library transfection and pathway perturbations",
+      "bbox": [
+        53.122966119999944,
+        429.25845594921884,
+        289.69060131999987,
+        423.21216114921884
+      ],
+      "provenance": "docling",
+      "section_context": "Reporter library transfection and pathway perturbations",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p24_264",
+      "source_block_id": "paper_3_p24_264",
+      "chunk_type": "paragraph",
+      "page_number": 24,
+      "reading_order": 264,
+      "display_text": "log 2 ð reporter activity Þ \u0018 core promoter + promoter distance + spacer length : spacer sequence",
+      "retrieval_text": "[Section: Log-linear model of reporter activities] log 2 ð reporter activity Þ \u0018 core promoter + promoter distance + spacer length : spacer sequence",
+      "bbox": [
+        118.71503038,
+        644.7000193492188,
+        477.60327318000014,
+        629.7959873492188
+      ],
+      "provenance": "docling",
+      "section_context": "Log-linear model of reporter activities",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p24_265",
+      "source_block_id": "paper_3_p24_265",
+      "chunk_type": "paragraph",
+      "page_number": 24,
+      "reading_order": 265,
+      "display_text": "The reporter activities were fit for each TF in three different conditions where the TF is a) expressed highest, or b) stimulated or overexpressed (if data available). We reasoned that these conditions would represent the most TF-specific conditions. The condition with the best model performance was chosen as representative model for the TF and is displayed in Figure 2D. See Table S2 for chosen reference conditions. All input features in the model were used as categorical variables. Models were fit using the lm function in R from the stats package (version 3.6.2).",
+      "retrieval_text": "[Section: Log-linear model of reporter activities] The reporter activities were fit for each TF in three different conditions where the TF is a) expressed highest, or b) stimulated or overexpressed (if data available). We reasoned that these conditions would represent the most TF-specific conditions. The condition with the best model performance was chosen as representative model for the TF and is displayed in Figure 2D. See Table S2 for chosen reference conditions. All input features in the model were used as categorical variables. Models were fit using the lm function in R from the stats package (version 3.6.2).",
+      "bbox": [
+        53.122892700000065,
+        627.2868596892188,
+        543.2513000400004,
+        575.5901923292187
+      ],
+      "provenance": "docling",
+      "section_context": "Log-linear model of reporter activities",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p24_266",
+      "source_block_id": "paper_3_p24_266",
+      "chunk_type": "section",
+      "page_number": 24,
+      "reading_order": 266,
+      "display_text": "Reporter confidence level and reporter score computation",
+      "retrieval_text": "Reporter confidence level and reporter score computation",
+      "bbox": [
+        53.122892700000136,
+        561.5228184892187,
+        299.30870946000005,
+        555.4765236892187
+      ],
+      "provenance": "docling",
+      "section_context": "Reporter confidence level and reporter score computation",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical_with_hints",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [
+      "variant_or_sequence",
+      "vector_or_backbone"
+    ],
+    "hint_terms": [
+      "sequences",
+      "pairs",
+      "combinations",
+      "plasmids",
+      "barcodes",
+      "episomal",
+      "plasmid",
+      "vector",
+      "backbone",
+      "origin",
+      "replication",
+      "polya"
+    ]
+  },
+  "stats": {
+    "chunk_build_ms": 1.958,
+    "idf_build_ms": 8.123,
+    "scoring_ms": 7.215,
+    "total_ms": 22.182,
+    "chunk_count_total": 269,
+    "chunk_count_by_type": {
+      "section": 59,
+      "list_item": 95,
+      "paragraph": 102,
+      "caption": 8,
+      "table_region": 5
+    },
+    "candidate_chunk_count": 269,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 12,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T07:42:20.117401+00:00"
+}

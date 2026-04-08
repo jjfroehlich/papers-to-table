@@ -1,0 +1,370 @@
+{
+  "run_id": "run_20260408_075540_ngzkq5",
+  "pdf_id": "paper_1",
+  "column_name": "Synthetic designs",
+  "query": "Synthetic designs: If the study tests only native sequences or if sequences are changed.\nRetrieval hints: sequences pairs combinations plasmids barcodes",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_1_p2_15",
+      "source_block_id": "paper_1_p2_15",
+      "chunk_type": "section",
+      "page_number": 2,
+      "reading_order": 15,
+      "display_text": "Article",
+      "retrieval_text": "Article",
+      "bbox": [
+        39.685001373,
+        762.3165463860313,
+        86.78100137300002,
+        750.0879711881421
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p2_16",
+      "source_block_id": "paper_1_p2_16",
+      "chunk_type": "paragraph",
+      "page_number": 2,
+      "reading_order": 16,
+      "display_text": "specificity predictions than episomal MPRA 13 . Furthermore, systematic comparison of lentiMPRA to eight other MPRA designs found strong correlations with episomal MPRA and STARR-seq, but also differences 14 . However, a limitation of lentiMPRA has been the number of sequences or variants that could be tested in a single experiment 10 .",
+      "retrieval_text": "[Section: Article] specificity predictions than episomal MPRA 13 . Furthermore, systematic comparison of lentiMPRA to eight other MPRA designs found strong correlations with episomal MPRA and STARR-seq, but also differences 14 . However, a limitation of lentiMPRA has been the number of sequences or variants that could be tested in a single experiment 10 .",
+      "bbox": [
+        39.685001373,
+        742.4305561111292,
+        296.21766820000005,
+        690.6503462890313
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p2_17",
+      "source_block_id": "paper_1_p2_17",
+      "chunk_type": "paragraph",
+      "page_number": 2,
+      "reading_order": 17,
+      "display_text": "Here we applied an optimized lentiMPRA method and confirmed the reproducibility and reliability of this technology to test more than 200,000 sequences in a single experiment, which covers a major fraction of cCREs for any given human cell type 15 . We applied this method to substantially expand MPRA data for three ENCODE cell types, human hepatocytes (HepG2), lymphoblasts (K562) and induced pluripotent stem cells (iPS cells; WTC11), to examine the relative orientation dependence of promoters and enhancers. In addition, we tested 60,000 sequences in all three cell lines. With these data, we characterize the activity effect of a core promoter region and train models that can predict regulatory and nucleotide variant activity. We identify both biochemical and sequence-based features that are associated with cell-type-specific activity and provide a catalogue of thousands of functional cCREs that advances our understanding of genotype-to-phenotype associations in gene regulatory sequences.",
+      "retrieval_text": "[Section: Article] Here we applied an optimized lentiMPRA method and confirmed the reproducibility and reliability of this technology to test more than 200,000 sequences in a single experiment, which covers a major fraction of cCREs for any given human cell type 15 . We applied this method to substantially expand MPRA data for three ENCODE cell types, human hepatocytes (HepG2), lymphoblasts (K562) and induced pluripotent stem cells (iPS cells; WTC11), to examine the relative orientation dependence of promoters and enhancers. In addition, we tested 60,000 sequences in all three cell lines. With these data, we characterize the activity effect of a core promoter region and train models that can predict regulatory and nucleotide variant activity. We identify both biochemical and sequence-based features that are associated with cell-type-specific activity and provide a catalogue of thousands of functional cCREs that advances our understanding of genotype-to-phenotype associations in gene regulatory sequences.",
+      "bbox": [
+        39.685001373,
+        687.5569306640313,
+        296.42591714247675,
+        529.4002242180313
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_137",
+      "source_block_id": "paper_1_p10_137",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 137,
+      "display_text": "Publisher's note Springer Nature remains neutral with regard to jurisdictional claims in published maps and institutional affiliations.",
+      "retrieval_text": "[Section: Online content] Publisher's note Springer Nature remains neutral with regard to jurisdictional claims in published maps and institutional affiliations.",
+      "bbox": [
+        306.0610190790006,
+        236.3453850070315,
+        540.6298190767101,
+        223.06806425231457
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_138",
+      "source_block_id": "paper_1_p10_138",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 138,
+      "display_text": "Open Access This article is licensed under a Creative Commons Attribution 4.0 International License, which permits use, sharing, adaptation, distribution and reproduction in any medium or format, as long as you give appropriate credit to the original author(s) and the source, provide a link to the Creative Commons licence, and indicate if changes were made. The images or other third party material in this article are included in the article's Creative Commons licence, unless indicated otherwise in a credit line to the material. If material is not included in the article's Creative Commons licence and your intended use is not permitted by statutory regulation or exceeds the permitted use, you will need to obtain permission directly from the copyright holder. To view a copy of this licence, visit http://creativecommons.org/licenses/by/4.0/.",
+      "retrieval_text": "[Section: Online content] Open Access This article is licensed under a Creative Commons Attribution 4.0 International License, which permits use, sharing, adaptation, distribution and reproduction in any medium or format, as long as you give appropriate credit to the original author(s) and the source, provide a link to the Creative Commons licence, and indicate if changes were made. The images or other third party material in this article are included in the article's Creative Commons licence, unless indicated otherwise in a credit line to the material. If material is not included in the article's Creative Commons licence and your intended use is not permitted by statutory regulation or exceeds the permitted use, you will need to obtain permission directly from the copyright holder. To view a copy of this licence, visit http://creativecommons.org/licenses/by/4.0/.",
+      "bbox": [
+        350.645996093,
+        212.2002298580312,
+        560.6933960930006,
+        190.90690910331432
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_139",
+      "source_block_id": "paper_1_p10_139",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 139,
+      "display_text": "© The Author(s) 2025",
+      "retrieval_text": "[Section: Online content] © The Author(s) 2025",
+      "bbox": [
+        306.143996093,
+        124.03622985803133,
+        363.9359960930006,
+        118.77490910331437
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p33_244",
+      "source_block_id": "paper_1_p33_244",
+      "chunk_type": "paragraph",
+      "page_number": 33,
+      "reading_order": 244,
+      "display_text": "A statement on whether measurements were taken from distinct samples or whether the same sample was measured repeatedly",
+      "retrieval_text": "[Section: Statistics] A statement on whether measurements were taken from distinct samples or whether the same sample was measured repeatedly",
+      "bbox": [
+        58.069999694,
+        498.890014648,
+        527.029698777281,
+        493.3531975458622
+      ],
+      "provenance": "docling",
+      "section_context": "Statistics",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p33_245",
+      "source_block_id": "paper_1_p33_245",
+      "chunk_type": "paragraph",
+      "page_number": 33,
+      "reading_order": 245,
+      "display_text": "The statistical test(s) used AND whether they are one- or two-sided Only common tests should be described solely by name; describe more complex techniques in the Methods section.",
+      "retrieval_text": "[Section: Statistics] The statistical test(s) used AND whether they are one- or two-sided Only common tests should be described solely by name; describe more complex techniques in the Methods section.",
+      "bbox": [
+        58.069999694,
+        482.570007324,
+        424.3905574757766,
+        467.07382880617837
+      ],
+      "provenance": "docling",
+      "section_context": "Statistics",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p33_246",
+      "source_block_id": "paper_1_p33_246",
+      "chunk_type": "paragraph",
+      "page_number": 33,
+      "reading_order": 246,
+      "display_text": "A description of all covariates tested",
+      "retrieval_text": "[Section: Statistics] A description of all covariates tested",
+      "bbox": [
+        58.069999694,
+        456.420013427,
+        189.60980305100003,
+        450.88319632486224
+      ],
+      "provenance": "docling",
+      "section_context": "Statistics",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p33_250",
+      "source_block_id": "paper_1_p33_250",
+      "chunk_type": "paragraph",
+      "page_number": 33,
+      "reading_order": 250,
+      "display_text": "For Bayesian analysis, information on the choice of priors and Markov chain Monte Carlo settings",
+      "retrieval_text": "[Section: Statistics] For Bayesian analysis, information on the choice of priors and Markov chain Monte Carlo settings",
+      "bbox": [
+        58.069999694,
+        365.100006103,
+        409.3115951170001,
+        359.5631890008622
+      ],
+      "provenance": "docling",
+      "section_context": "Statistics",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p33_251",
+      "source_block_id": "paper_1_p33_251",
+      "chunk_type": "paragraph",
+      "page_number": 33,
+      "reading_order": 251,
+      "display_text": "For hierarchical and complex designs, identification of the appropriate level for tests and full reporting of outcomes",
+      "retrieval_text": "[Section: Statistics] For hierarchical and complex designs, identification of the appropriate level for tests and full reporting of outcomes",
+      "bbox": [
+        58.069999694,
+        348.049987792,
+        475.4301024427191,
+        342.51317068986225
+      ],
+      "provenance": "docling",
+      "section_context": "Statistics",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p33_252",
+      "source_block_id": "paper_1_p33_252",
+      "chunk_type": "paragraph",
+      "page_number": 33,
+      "reading_order": 252,
+      "display_text": "Estimates of effect sizes (e.g. Cohen's d , Pearson's r ), indicating how they were calculated",
+      "retrieval_text": "[Section: Statistics] Estimates of effect sizes (e.g. Cohen's d , Pearson's r ), indicating how they were calculated",
+      "bbox": [
+        58.069999694,
+        331.010009765,
+        381.479309763281,
+        325.47195982445305
+      ],
+      "provenance": "docling",
+      "section_context": "Statistics",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p34_279",
+      "source_block_id": "paper_1_p34_279",
+      "chunk_type": "section",
+      "page_number": 34,
+      "reading_order": 279,
+      "display_text": "Field-specific reporting",
+      "retrieval_text": "Field-specific reporting",
+      "bbox": [
+        23.51,
+        571.725021972,
+        207.90617988156262,
+        559.4025279102424
+      ],
+      "provenance": "docling",
+      "section_context": "Field-specific reporting",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p34_280",
+      "source_block_id": "paper_1_p34_280",
+      "chunk_type": "paragraph",
+      "page_number": 34,
+      "reading_order": 280,
+      "display_text": "Please select the one below that is the best fit for your research. If you are not sure, read the appropriate sections before making your selection.",
+      "retrieval_text": "[Section: Field-specific reporting] Please select the one below that is the best fit for your research. If you are not sure, read the appropriate sections before making your selection.",
+      "bbox": [
+        24.959999084,
+        549.049987792,
+        547.5170988538795,
+        543.5131706898622
+      ],
+      "provenance": "docling",
+      "section_context": "Field-specific reporting",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p34_281",
+      "source_block_id": "paper_1_p34_281",
+      "chunk_type": "paragraph",
+      "page_number": 34,
+      "reading_order": 281,
+      "display_text": "Life sciences",
+      "retrieval_text": "[Section: Field-specific reporting] Life sciences",
+      "bbox": [
+        38.029998779,
+        529.619995117,
+        83.15869871890702,
+        524.0831780148623
+      ],
+      "provenance": "docling",
+      "section_context": "Field-specific reporting",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p34_292",
+      "source_block_id": "paper_1_p34_292",
+      "chunk_type": "section",
+      "page_number": 34,
+      "reading_order": 292,
+      "display_text": "Reporting for specific materials, systems and methods",
+      "retrieval_text": "Reporting for specific materials, systems and methods",
+      "bbox": [
+        23.51,
+        306.04499877899997,
+        458.8580437019736,
+        293.72250471724226
+      ],
+      "provenance": "docling",
+      "section_context": "Reporting for specific materials, systems and methods",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p34_293",
+      "source_block_id": "paper_1_p34_293",
+      "chunk_type": "paragraph",
+      "page_number": 34,
+      "reading_order": 293,
+      "display_text": "Werequire information from authors about some types of materials, experimental systems and methods used in many studies. Here, indicate whether each material, system or method listed is relevant to your study. If you are not sure if a list item applies to your research, read the appropriate section before selecting a response.",
+      "retrieval_text": "[Section: Reporting for specific materials, systems and methods] Werequire information from authors about some types of materials, experimental systems and methods used in many studies. Here, indicate whether each material, system or method listed is relevant to your study. If you are not sure if a list item applies to your research, read the appropriate section before selecting a response.",
+      "bbox": [
+        24.959999084,
+        285.525009631,
+        557.7585110369095,
+        270.9949421989668
+      ],
+      "provenance": "docling",
+      "section_context": "Reporting for specific materials, systems and methods",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p34_294",
+      "source_block_id": "paper_1_p34_294",
+      "chunk_type": "section",
+      "page_number": 34,
+      "reading_order": 294,
+      "display_text": "Materials & experimental systems Methods",
+      "retrieval_text": "Materials & experimental systems Methods",
+      "bbox": [
+        27.83,
+        249.95500230699997,
+        260.71095408337544,
+        243.1693255122541
+      ],
+      "provenance": "docling",
+      "section_context": "Materials & experimental systems Methods",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical_with_hints",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [
+      "variant_or_sequence"
+    ],
+    "hint_terms": [
+      "sequences",
+      "pairs",
+      "combinations",
+      "plasmids",
+      "barcodes"
+    ]
+  },
+  "stats": {
+    "chunk_build_ms": 2.33,
+    "idf_build_ms": 11.944,
+    "scoring_ms": 7.433,
+    "total_ms": 27.569,
+    "chunk_count_total": 318,
+    "chunk_count_by_type": {
+      "section": 52,
+      "paragraph": 179,
+      "caption": 14,
+      "list_item": 72,
+      "table_region": 1
+    },
+    "candidate_chunk_count": 318,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 12,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T09:22:29.227590+00:00"
+}

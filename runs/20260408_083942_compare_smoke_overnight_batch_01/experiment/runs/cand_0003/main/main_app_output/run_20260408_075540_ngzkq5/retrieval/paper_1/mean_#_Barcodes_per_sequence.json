@@ -1,0 +1,379 @@
+{
+  "run_id": "run_20260408_075540_ngzkq5",
+  "pdf_id": "paper_1",
+  "column_name": "mean # Barcodes per sequence",
+  "query": "mean # Barcodes per sequence: How many different barcodes there are for each tested sequence.\nRetrieval hints: count total number pairs pair combinations constructed tested included coverage sequences plasmids barcodes",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_1_p2_19",
+      "source_block_id": "paper_1_p2_19",
+      "chunk_type": "paragraph",
+      "page_number": 2,
+      "reading_order": 19,
+      "display_text": "To scale up lentiMPRA 10,14 , we revised our established protocol to add random barcodes to the assayed sequences during the library amplification step along with the minimal promoter 16 (Extended Data Fig. 1a). Subsequently, element-barcode associations were reconstructed through sequencing (Extended Data Fig. 1b) and analysed with MPRAflow 16 . To evaluate the robustness of this revised lentiMPRA approach, we designed two pilot libraries (Supplementary Fig. 1a). As DNase accessibility, centred on the midpoint of a peak, has been shown to be a good predictor of regulatory elements 17  and MPRA activity 13,18 , we used it as our main selection criteria for cCREs. The first pilot library encompassed 9,372 elements in HepG2 cells and consisted of: (1) 9,172 cCREs, centred at DNase hypersensitivity peaks that did not overlap promoters; (2) 50 positive and 50 negative controls of synthetically engineered sequences (that is, engineered to have multiple binding sites for known transcription factors or no known binding sites, respectively) 19 ; and (3) 50 positive and 50 negative controls of naturally occurring enhancers (sequences observed to exhibit high and low enhancer activity, respectively) 10 . The second pilot library encompassed 7,500 elements in K562 cells and consisted of: (1) 6,394 cCREs, centred at DNase hypersensitivity peaks that did not overlap promoters; (2) 290 positive and 276 negative controls, identified by coupling CRISPR interference (CRISPRi) to single cell RNA-sequencing measurements to identify functional enhancer-gene pairs 20 ; (3) 250 negative controls derived from dinucleotide shuffling cCREs randomly selected from our library; (4) 50 positive and 200 negative controls of naturally occurring enhancers (sequences observed to exhibit high and low enhancer activity, respectively) 18 ; and (5) 24 positive and 16 negative manually selected controls in loci of interest such as α-globin, β-globin, GATA1 and MYC 21 (Supplementary Table 1).",
+      "retrieval_text": "[Section: Optimization of lentiMPRA] To scale up lentiMPRA 10,14 , we revised our established protocol to add random barcodes to the assayed sequences during the library amplification step along with the minimal promoter 16 (Extended Data Fig. 1a). Subsequently, element-barcode associations were reconstructed through sequencing (Extended Data Fig. 1b) and analysed with MPRAflow 16 . To evaluate the robustness of this revised lentiMPRA approach, we designed two pilot libraries (Supplementary Fig. 1a). As DNase accessibility, centred on the midpoint of a peak, has been shown to be a good predictor of regulatory elements 17  and MPRA activity 13,18 , we used it as our main selection criteria for cCREs. The first pilot library encompassed 9,372 elements in HepG2 cells and consisted of: (1) 9,172 cCREs, centred at DNase hypersensitivity peaks that did not overlap promoters; (2) 50 positive and 50 negative controls of synthetically engineered sequences (that is, engineered to have multiple binding sites for known transcription factors or no known binding sites, respectively) 19 ; and (3) 50 positive and 50 negative controls of naturally occurring enhancers (sequences observed to exhibit high and low enhancer activity, respectively) 10 . The second pilot library encompassed 7,500 elements in K562 cells and consisted of: (1) 6,394 cCREs, centred at DNase hypersensitivity peaks that did not overlap promoters; (2) 290 positive and 276 negative controls, identified by coupling CRISPR interference (CRISPRi) to single cell RNA-sequencing measurements to identify functional enhancer-gene pairs 20 ; (3) 250 negative controls derived from dinucleotide shuffling cCREs randomly selected from our library; (4) 50 positive and 200 negative controls of naturally occurring enhancers (sequences observed to exhibit high and low enhancer activity, respectively) 18 ; and (5) 24 positive and 16 negative manually selected controls in loci of interest such as α-globin, β-globin, GATA1 and MYC 21 (Supplementary Table 1).",
+      "bbox": [
+        39.684912820929995,
+        495.1805255941293,
+        296.3890185826124,
+        185.4003462890313
+      ],
+      "provenance": "docling",
+      "section_context": "Optimization of lentiMPRA",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p2_20",
+      "source_block_id": "paper_1_p2_20",
+      "chunk_type": "paragraph",
+      "page_number": 2,
+      "reading_order": 20,
+      "display_text": "These pilot lentiMPRA libraries were used to transduce cells in triplicate and barcodes were sequenced at the DNA and RNA levels as described 16 . Activity scores for each element were calculated as the log2 -transformed normalized count of RNA molecules from all barcodes corresponding to the element divided by the normalized number of DNA molecules from all barcodes corresponding to the element (Extended Data Fig. 1c and Supplementary Table 2). We observed a range of 50-250 median barcodes per element in each replicate (Supplementary Fig. 1b), providing a large number of independent measurements for each element, and activity scores (that is, log2-transformed RNA/ DNA ratios) that were highly concordant across replicates (0.88-0.96 Pearson correlation; Supplementary Fig. 1c,d). Averaging across the three replicates, the distribution of element activity scores was strongly divergent between most positive and negative controls (Supplementary Fig. 1e). An exception to this trend was observed for controls derived from CRISPRi-based screening efforts 20,21 , which exhibited a slightly weaker signal than positive controls, indicating that in our reporter assays and outside their epigenetic context, they were still capable of activating transcription (Supplementary Fig. 1e).",
+      "retrieval_text": "[Section: Optimization of lentiMPRA] These pilot lentiMPRA libraries were used to transduce cells in triplicate and barcodes were sequenced at the DNA and RNA levels as described 16 . Activity scores for each element were calculated as the log2 -transformed normalized count of RNA molecules from all barcodes corresponding to the element divided by the normalized number of DNA molecules from all barcodes corresponding to the element (Extended Data Fig. 1c and Supplementary Table 2). We observed a range of 50-250 median barcodes per element in each replicate (Supplementary Fig. 1b), providing a large number of independent measurements for each element, and activity scores (that is, log2-transformed RNA/ DNA ratios) that were highly concordant across replicates (0.88-0.96 Pearson correlation; Supplementary Fig. 1c,d). Averaging across the three replicates, the distribution of element activity scores was strongly divergent between most positive and negative controls (Supplementary Fig. 1e). An exception to this trend was observed for controls derived from CRISPRi-based screening efforts 20,21 , which exhibited a slightly weaker signal than positive controls, indicating that in our reporter assays and outside their epigenetic context, they were still capable of activating transcription (Supplementary Fig. 1e).",
+      "bbox": [
+        39.685001373,
+        182.30693066403126,
+        296.4094588793003,
+        45.65034247403128
+      ],
+      "provenance": "docling",
+      "section_context": "Optimization of lentiMPRA",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p2_21",
+      "source_block_id": "paper_1_p2_21",
+      "chunk_type": "paragraph",
+      "page_number": 2,
+      "reading_order": 21,
+      "display_text": "We next analysed both lentiMPRA libraries for functional enhancers. We found that 2,740 out of the 8,960 (30.6%) cCREs were more active than negative synthetic controls 19 (in HepG2) and 3,703 out of 6,315 (58.6%) cCREs were more active than shuffled negative controls (in K562) (5% false discovery rate (FDR)). However, the differences in the proportion of active cCREs between cell types should not be directly compared because the negative controls were different in each case-one represents shuffled controls and the other does not. Given the extensive previous work characterizing regulatory elements in the β-globin locus and the inclusion of these sequences in our K562 library, we evaluated whether our MPRA results reproduced the findings of previous studies for five previously characterized cCREs, termed HS1-5 (Extended Data Fig. 1d). Consistent with previous work 22,23 , we observed that HS2 strongly activated transcription relative to HS1 and HS3-5 (Extended Data Fig. 1d). In summary, these pilot experiments confirmed the ability of our revised lentiMPRA protocol to measure regulatory activity with high precision and reproducibility.",
+      "retrieval_text": "[Section: Optimization of lentiMPRA] We next analysed both lentiMPRA libraries for functional enhancers. We found that 2,740 out of the 8,960 (30.6%) cCREs were more active than negative synthetic controls 19 (in HepG2) and 3,703 out of 6,315 (58.6%) cCREs were more active than shuffled negative controls (in K562) (5% false discovery rate (FDR)). However, the differences in the proportion of active cCREs between cell types should not be directly compared because the negative controls were different in each case-one represents shuffled controls and the other does not. Given the extensive previous work characterizing regulatory elements in the β-globin locus and the inclusion of these sequences in our K562 library, we evaluated whether our MPRA results reproduced the findings of previous studies for five previously characterized cCREs, termed HS1-5 (Extended Data Fig. 1d). Consistent with previous work 22,23 , we observed that HS2 strongly activated transcription relative to HS1 and HS3-5 (Extended Data Fig. 1d). In summary, these pilot experiments confirmed the ability of our revised lentiMPRA protocol to measure regulatory activity with high precision and reproducibility.",
+      "bbox": [
+        306.141693115,
+        676.8069306640313,
+        562.8554168747398,
+        497.15034628903123
+      ],
+      "provenance": "docling",
+      "section_context": "Optimization of lentiMPRA",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p3_25",
+      "source_block_id": "paper_1_p3_25",
+      "chunk_type": "caption",
+      "page_number": 3,
+      "reading_order": 25,
+      "display_text": "Fig. 1 | lentiMPRA in three cell types. a , lentiMPRA strategy for large-scale libraries. Thousands of cCREs including potential enhancers (marked by DNase peaks) and promoters (centred at the transcription start site (TSS)) are inserted into a reporter plasmid in both orientations together with barcodes. The libraries are infected into cells using lentivirus and the integrated DNA and transcribed RNA barcodes are sequenced to quantify cCRE activity. b , Composition of the HepG2, K562 and WTC11 libraries. Thousands of potential",
+      "retrieval_text": "[Section: cCRE characterization with lentiMPRA] Fig. 1 | lentiMPRA in three cell types. a , lentiMPRA strategy for large-scale libraries. Thousands of cCREs including potential enhancers (marked by DNase peaks) and promoters (centred at the transcription start site (TSS)) are inserted into a reporter plasmid in both orientations together with barcodes. The libraries are infected into cells using lentivirus and the integrated DNA and transcribed RNA barcodes are sequenced to quantify cCRE activity. b , Composition of the HepG2, K562 and WTC11 libraries. Thousands of potential",
+      "bbox": [
+        39.6851,
+        418.4003413080312,
+        295.910301332891,
+        351.885845474698
+      ],
+      "provenance": "docling",
+      "section_context": "cCRE characterization with lentiMPRA",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p3_26",
+      "source_block_id": "paper_1_p3_26",
+      "chunk_type": "paragraph",
+      "page_number": 3,
+      "reading_order": 26,
+      "display_text": "to the trade-off between library size and per element sequencing depth. To further investigate this trade-off, we downsampled barcodes. Downsampling to 90% of the barcodes led to a near-perfect Spearman correlation with respect to element activity scores relative to those derived from the full dataset, whereas smaller proportions of the barcodes degraded this correlation (Supplementary Fig. 2g). The distributions of standard deviations for element activity scores across barcodes became tighter when considering larger barcode downsampling proportions (Supplementary Fig. 2h) and more replicates (Supplementary Fig. 2i).",
+      "retrieval_text": "[Section: cCRE characterization with lentiMPRA] to the trade-off between library size and per element sequencing depth. To further investigate this trade-off, we downsampled barcodes. Downsampling to 90% of the barcodes led to a near-perfect Spearman correlation with respect to element activity scores relative to those derived from the full dataset, whereas smaller proportions of the barcodes degraded this correlation (Supplementary Fig. 2g). The distributions of standard deviations for element activity scores across barcodes became tighter when considering larger barcode downsampling proportions (Supplementary Fig. 2h) and more replicates (Supplementary Fig. 2i).",
+      "bbox": [
+        39.685001373,
+        332.80693066403126,
+        296.38648555138707,
+        239.1503462890313
+      ],
+      "provenance": "docling",
+      "section_context": "cCRE characterization with lentiMPRA",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p3_27",
+      "source_block_id": "paper_1_p3_27",
+      "chunk_type": "paragraph",
+      "page_number": 3,
+      "reading_order": 27,
+      "display_text": "The distribution of our fully processed element activity scores was strongly divergent between positive and negative controls in each cell type, with the majority of promoters and potential enhancers spanning the range in between the maximum positive control and minimum negative control scores (Fig. 1c). Promoters exhibited, on average, higher activity scores and a bimodal distribution compared with potential enhancers, which exhibited a right-skewed distribution in all cell types (Fig. 1c). This bimodal distribution was likely to be caused by inactive promoters exhibiting little to no activity in the MPRA. We next analysed all libraries to empirically measure the proportion of functional cCREs among each element type and cell type. Using shuffled controls as a background set in each cell type and both orientations of measured cCREs as a foreground set, we found that more than 50% of all promoter sequences had regulatory activity (HepG2: 11,367 out of 20,816 (54.6%); K562: 15,362 out of 29,376 (52.3%); WTC11: 5,038 out of 9,964 (50.6%); 5% FDR). For potential enhancers, we found as many as 42% to be active (HepG2: 50,714 out of 118,433 (42.8%); K562: 69,820 out of 169,260 (41.3%); WTC11: 11,861 out of 45,942 (25.8%); 5% FDR). An additional",
+      "retrieval_text": "[Section: cCRE characterization with lentiMPRA] The distribution of our fully processed element activity scores was strongly divergent between positive and negative controls in each cell type, with the majority of promoters and potential enhancers spanning the range in between the maximum positive control and minimum negative control scores (Fig. 1c). Promoters exhibited, on average, higher activity scores and a bimodal distribution compared with potential enhancers, which exhibited a right-skewed distribution in all cell types (Fig. 1c). This bimodal distribution was likely to be caused by inactive promoters exhibiting little to no activity in the MPRA. We next analysed all libraries to empirically measure the proportion of functional cCREs among each element type and cell type. Using shuffled controls as a background set in each cell type and both orientations of measured cCREs as a foreground set, we found that more than 50% of all promoter sequences had regulatory activity (HepG2: 11,367 out of 20,816 (54.6%); K562: 15,362 out of 29,376 (52.3%); WTC11: 5,038 out of 9,964 (50.6%); 5% FDR). For potential enhancers, we found as many as 42% to be active (HepG2: 50,714 out of 118,433 (42.8%); K562: 69,820 out of 169,260 (41.3%); WTC11: 11,861 out of 45,942 (25.8%); 5% FDR). An additional",
+      "bbox": [
+        39.685001373,
+        236.05693066403126,
+        296.3451120683247,
+        45.65034247403128
+      ],
+      "provenance": "docling",
+      "section_context": "cCRE characterization with lentiMPRA",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p8_68",
+      "source_block_id": "paper_1_p8_68",
+      "chunk_type": "section",
+      "page_number": 8,
+      "reading_order": 68,
+      "display_text": "Discussion",
+      "retrieval_text": "Discussion",
+      "bbox": [
+        39.685001373,
+        239.13993066403123,
+        90.68725137299998,
+        230.1169649878018
+      ],
+      "provenance": "docling",
+      "section_context": "Discussion",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p8_69",
+      "source_block_id": "paper_1_p8_69",
+      "chunk_type": "paragraph",
+      "page_number": 8,
+      "reading_order": 69,
+      "display_text": "Large-scale MPRA datasets are available for other cell lines 6-9 . However, they are primarily tested via episomal STARR-seq, require a very large number of cells, provide an episomal readout and tend to use a strong promoter to increase the ability to detect activity 7 . By contrast, our modified lentiMPRA provides large functional datasets with an 'in genome' readout. The ability to systematically test thousands of cCREs in an unbiased manner for a given cell type allowed us to identify predictive biochemical and sequence-based features for each cell type with high confidence. However, although the number of tested sequences was high, many additional cCREs may have been omitted in our annotations and subsequently in our assays, owing to our selection criteria, additional cCRE annotation assays, marks or tools that were not used, technical issues of the biochemical assays used to select sequences and other factors.",
+      "retrieval_text": "[Section: Discussion] Large-scale MPRA datasets are available for other cell lines 6-9 . However, they are primarily tested via episomal STARR-seq, require a very large number of cells, provide an episomal readout and tend to use a strong promoter to increase the ability to detect activity 7 . By contrast, our modified lentiMPRA provides large functional datasets with an 'in genome' readout. The ability to systematically test thousands of cCREs in an unbiased manner for a given cell type allowed us to identify predictive biochemical and sequence-based features for each cell type with high confidence. However, although the number of tested sequences was high, many additional cCREs may have been omitted in our annotations and subsequently in our assays, owing to our selection criteria, additional cCRE annotation assays, marks or tools that were not used, technical issues of the biochemical assays used to select sequences and other factors.",
+      "bbox": [
+        39.685001373,
+        226.43063240512924,
+        296.3176079199995,
+        77.90034628903129
+      ],
+      "provenance": "docling",
+      "section_context": "Discussion",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p8_70",
+      "source_block_id": "paper_1_p8_70",
+      "chunk_type": "paragraph",
+      "page_number": 8,
+      "reading_order": 70,
+      "display_text": "We tested all 19,104 known promoters of protein-coding genes in both orientations in HepG2 and K562 cells and 7,500 in WTC11 cells. In addition to observing promoter activity strand-orientation bias in line with",
+      "retrieval_text": "[Section: Discussion] We tested all 19,104 known promoters of protein-coding genes in both orientations in HepG2 and K562 cells and 7,500 in WTC11 cells. In addition to observing promoter activity strand-orientation bias in line with",
+      "bbox": [
+        39.6851,
+        74.80693066403126,
+        296.31290066887226,
+        45.65034247403128
+      ],
+      "provenance": "docling",
+      "section_context": "Discussion",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p13_159",
+      "source_block_id": "paper_1_p13_159",
+      "chunk_type": "section",
+      "page_number": 13,
+      "reading_order": 159,
+      "display_text": "MPRA processing pipeline",
+      "retrieval_text": "MPRA processing pipeline",
+      "bbox": [
+        39.685001373,
+        710.2374306640312,
+        144.40670137624696,
+        702.3579042391608
+      ],
+      "provenance": "docling",
+      "section_context": "MPRA processing pipeline",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p13_160",
+      "source_block_id": "paper_1_p13_160",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 160,
+      "display_text": "Associating barcodes to designed elements. For each of the barcode association libraries, we generated FASTQ files with bcl2fastq v.2.20 (parameters '--no-lane-splitting --create-fastq-for-index-reads --use-bases-mask Y*,I*,I*,Y*'), splitting the sequencing data into paired-end index files delineating the barcodes (I1 and I2) and paired-end read files delineating the corresponding element linked to the barcode (R1 and R2). These files were used to associated barcodes to elements using the association utility of MPRAflow 1.0 16 (run as: nextflow run association.nf --fastq-insert 'R1.fastq.gz' --fastq-insertPE 'R2.fastq.gz' --fastq-bc 'I1.fastq.gz' --fastq-bcPE 'I2.fastq.gz' --aligner 'bt2_strand' --design 'designed_sequences.fa'). Here, designed_se-quences.fa was a FASTA file incorporating all of the element sequences that had been ordered from the corresponding Agilent library, and bt2_strand was used to map elements in a strand-aware fashion to accommodate the existence of elements tested in both orientations. The final output of this utility was a filtered_coords_to_barcodes.pickle file mapping barcodes to elements.",
+      "retrieval_text": "[Section: MPRA processing pipeline] Associating barcodes to designed elements. For each of the barcode association libraries, we generated FASTQ files with bcl2fastq v.2.20 (parameters '--no-lane-splitting --create-fastq-for-index-reads --use-bases-mask Y*,I*,I*,Y*'), splitting the sequencing data into paired-end index files delineating the barcodes (I1 and I2) and paired-end read files delineating the corresponding element linked to the barcode (R1 and R2). These files were used to associated barcodes to elements using the association utility of MPRAflow 1.0 16 (run as: nextflow run association.nf --fastq-insert 'R1.fastq.gz' --fastq-insertPE 'R2.fastq.gz' --fastq-bc 'I1.fastq.gz' --fastq-bcPE 'I2.fastq.gz' --aligner 'bt2_strand' --design 'designed_sequences.fa'). Here, designed_se-quences.fa was a FASTA file incorporating all of the element sequences that had been ordered from the corresponding Agilent library, and bt2_strand was used to map elements in a strand-aware fashion to accommodate the existence of elements tested in both orientations. The final output of this utility was a filtered_coords_to_barcodes.pickle file mapping barcodes to elements.",
+      "bbox": [
+        39.685001373,
+        698.3069306640313,
+        296.4051933277865,
+        518.6502242180313
+      ],
+      "provenance": "docling",
+      "section_context": "MPRA processing pipeline",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p13_161",
+      "source_block_id": "paper_1_p13_161",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 161,
+      "display_text": "Replicates, normalization and RNA/DNA activity scores. For each of the indexed DNA and RNA libraries, we demultiplexed the  sequencing  run  and  generated  Fastq  files  with  bcl2fastq v.2.20  (parameters  '--barcode-mismatches  2  --sample-sheet SampleSheet.csv --use-bases-mask Y*,Y*,I*,Y* --no-lane-splitting --minimum-trimmed-read-length 0 --mask-short-adapter-reads 0'), where SampleSheet.csv catalogued the correspondence between the index sequence and DNA or RNA replicate sample of origin. In several instances, the '--barcode-mismatches 2' resulted in an index assignment clash, requiring us to instead use '--barcode-mismatches 1'. These commands split the sequencing data into paired-end read files delineating the barcodes (R1 and R3) and a file indicating the UMI (R2) for each DNA or RNA replicate sample. We compiled a table of these files to indicate the 3 RNA and 3 DNA files for each of the three replicates in the file experiment.csv. Finally, we used the count utility of MPRAflow 1.0 16 (run as: nextflow run count.nf --e 'experiment.csv' --design 'designed_sequences.fa' --association 'filtered_coords_to_barcodes. pickle') to compute activity scores for each element and replicate as log 2 (RNA/DNA). Elements with which were measured with fewer than 10 independent barcodes were removed to reduce the impact of measurement noise in downstream analysis. This filter led to the following number of retained elements: (1) HepG2 pilot library, 9,153/9,372 (97.7%); (2) K562 pilot library, 7,323/7,500 (97.6%); (3) HepG2 large-scale library, 139,886/164,307 (85.1%); (4) K562 large-scale library, 226,255/243,780 (92.8%); (5) WTC11 large-scale library, 56,093/75,542 (74.2%); (6) HepG2 joint library, 56,018/60,000 (93.4%); (7) K562 joint library, 56,008/60,000 (93.3%); and (8) WTC11 joint library, 55,983/60,000 (93.3%). To combine the data from all three replicates, the distribution of activity values was normalized to the median activity value within each replicate, and then the activity values were averaged across the three replicates.",
+      "retrieval_text": "[Section: MPRA processing pipeline] Replicates, normalization and RNA/DNA activity scores. For each of the indexed DNA and RNA libraries, we demultiplexed the  sequencing  run  and  generated  Fastq  files  with  bcl2fastq v.2.20  (parameters  '--barcode-mismatches  2  --sample-sheet SampleSheet.csv --use-bases-mask Y*,Y*,I*,Y* --no-lane-splitting --minimum-trimmed-read-length 0 --mask-short-adapter-reads 0'), where SampleSheet.csv catalogued the correspondence between the index sequence and DNA or RNA replicate sample of origin. In several instances, the '--barcode-mismatches 2' resulted in an index assignment clash, requiring us to instead use '--barcode-mismatches 1'. These commands split the sequencing data into paired-end read files delineating the barcodes (R1 and R3) and a file indicating the UMI (R2) for each DNA or RNA replicate sample. We compiled a table of these files to indicate the 3 RNA and 3 DNA files for each of the three replicates in the file experiment.csv. Finally, we used the count utility of MPRAflow 1.0 16 (run as: nextflow run count.nf --e 'experiment.csv' --design 'designed_sequences.fa' --association 'filtered_coords_to_barcodes. pickle') to compute activity scores for each element and replicate as log 2 (RNA/DNA). Elements with which were measured with fewer than 10 independent barcodes were removed to reduce the impact of measurement noise in downstream analysis. This filter led to the following number of retained elements: (1) HepG2 pilot library, 9,153/9,372 (97.7%); (2) K562 pilot library, 7,323/7,500 (97.6%); (3) HepG2 large-scale library, 139,886/164,307 (85.1%); (4) K562 large-scale library, 226,255/243,780 (92.8%); (5) WTC11 large-scale library, 56,093/75,542 (74.2%); (6) HepG2 joint library, 56,018/60,000 (93.4%); (7) K562 joint library, 56,008/60,000 (93.3%); and (8) WTC11 joint library, 55,983/60,000 (93.3%). To combine the data from all three replicates, the distribution of activity values was normalized to the median activity value within each replicate, and then the activity values were averaged across the three replicates.",
+      "bbox": [
+        39.6851,
+        504.80693066403126,
+        296.446409762984,
+        174.6503462890313
+      ],
+      "provenance": "docling",
+      "section_context": "MPRA processing pipeline",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p17_206",
+      "source_block_id": "paper_1_p17_206",
+      "chunk_type": "paragraph",
+      "page_number": 17,
+      "reading_order": 206,
+      "display_text": "a , Designed 230nt oligos corresponding to thousands of cCREs are synthesized on an Agilent array. The 1st round of PCR adds on a minimal promoter, while the 2nd round of PCR adds random barcodes to these sequences. The library is then cloned into a pLS-SceI vector harboring an EGFP reporter to generate the final element library. b , The element-barcode fragments within the library are amplified by PCR and sequenced using an Illumina NextSeq instrument. This enables reconstruction of element-barcode pairings. c , The element library is packaged into lentiviruses and transduced into HepG2, K562, or WTC11 cells in a series of three replicates. Cells are grown in cultured medium for three days prior to the harvesting of RNA and DNA. Each RNA and DNA",
+      "retrieval_text": "[Section: Article] a , Designed 230nt oligos corresponding to thousands of cCREs are synthesized on an Agilent array. The 1st round of PCR adds on a minimal promoter, while the 2nd round of PCR adds random barcodes to these sequences. The library is then cloned into a pLS-SceI vector harboring an EGFP reporter to generate the final element library. b , The element-barcode fragments within the library are amplified by PCR and sequenced using an Illumina NextSeq instrument. This enables reconstruction of element-barcode pairings. c , The element library is packaged into lentiviruses and transduced into HepG2, K562, or WTC11 cells in a series of three replicates. Cells are grown in cultured medium for three days prior to the harvesting of RNA and DNA. Each RNA and DNA",
+      "bbox": [
+        39.68500062399997,
+        711.4072104490311,
+        296.05230133824494,
+        614.8837146156975
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p17_207",
+      "source_block_id": "paper_1_p17_207",
+      "chunk_type": "paragraph",
+      "page_number": 17,
+      "reading_order": 207,
+      "display_text": "sample from each replicate is extracted, and barcodes are sequenced on an Illumina NextSeq instrument. Finally, DNA and RNA-derived barcodes are counted to compute a normalized activity score for each element in each replicate. d , UCSC genome browser tracks annotating, from top to bottom: i) Lead single nucleotide polymorphisms (SNPs) from published Genome-wide Association Studies (GWAS); ii) Common SNPs from the 1000 Genomes Phase 3 dataset; iii) GENCODE gene track; iv) MPRA activity scores from the pilot K562 MPRA library for each of the five enhancers tested, with stronger red indicative of higher activity; v) MPRA scores corresponding to the large-scale K562 MPRA library, tested in both orientations; vi) H3K27Ac; vii) DNase I hypersensitivity signal in K562 cells; viii) base conservation among 100 vertebrate species; and ix) the five enhancers (HS1-HS5) of the globin locus tested in the pilot and largescale K562 MPRA libraries. Image of DNA sequencer created with BioRender.com.",
+      "retrieval_text": "[Section: Article] sample from each replicate is extracted, and barcodes are sequenced on an Illumina NextSeq instrument. Finally, DNA and RNA-derived barcodes are counted to compute a normalized activity score for each element in each replicate. d , UCSC genome browser tracks annotating, from top to bottom: i) Lead single nucleotide polymorphisms (SNPs) from published Genome-wide Association Studies (GWAS); ii) Common SNPs from the 1000 Genomes Phase 3 dataset; iii) GENCODE gene track; iv) MPRA activity scores from the pilot K562 MPRA library for each of the five enhancers tested, with stronger red indicative of higher activity; v) MPRA scores corresponding to the large-scale K562 MPRA library, tested in both orientations; vi) H3K27Ac; vii) DNase I hypersensitivity signal in K562 cells; viii) base conservation among 100 vertebrate species; and ix) the five enhancers (HS1-HS5) of the globin locus tested in the pilot and largescale K562 MPRA libraries. Image of DNA sequencer created with BioRender.com.",
+      "bbox": [
+        306.13999100599995,
+        741.3812079920308,
+        561.0092923215662,
+        614.848712158697
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p18_208",
+      "source_block_id": "paper_1_p18_208",
+      "chunk_type": "section",
+      "page_number": 18,
+      "reading_order": 208,
+      "display_text": "Article",
+      "retrieval_text": "Article",
+      "bbox": [
+        39.685001373,
+        762.4145463860312,
+        85.85700137300003,
+        749.4584931073427
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p24_219",
+      "source_block_id": "paper_1_p24_219",
+      "chunk_type": "section",
+      "page_number": 24,
+      "reading_order": 219,
+      "display_text": "Extended Data Fig. 5 | Architecture and performance of MPRALegNet.",
+      "retrieval_text": "Extended Data Fig. 5 | Architecture and performance of MPRALegNet.",
+      "bbox": [
+        39.685001373,
+        741.4162104490313,
+        276.5300013529449,
+        734.9381838096871
+      ],
+      "provenance": "docling",
+      "section_context": "Extended Data Fig. 5 | Architecture and performance of MPRALegNet.",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p24_220",
+      "source_block_id": "paper_1_p24_220",
+      "chunk_type": "paragraph",
+      "page_number": 24,
+      "reading_order": 220,
+      "display_text": "a , Violin plots showing the performances of different variations of MPRALegNet on each of the ten cross-validation folds of held-out data, for different types of augmentations. '-' and '+' indicate removal or usage, respectively, of the following augmentations: i) 'test-time', whereby the mean prediction is computed for various augmentations of the test sequence; ii) 'shift', whereby a sequence was randomly shifted by 0 to +21 bp; iii) 'RevComp', whereby a sequence was randomly reverse complemented; iv) 'Orientation', whereby measured element activity scores were considered for each orientation tested, instead of the mean across both orientations; and v) '5th channel', whereby a",
+      "retrieval_text": "[Section: Extended Data Fig. 5 | Architecture and performance of MPRALegNet.] a , Violin plots showing the performances of different variations of MPRALegNet on each of the ten cross-validation folds of held-out data, for different types of augmentations. '-' and '+' indicate removal or usage, respectively, of the following augmentations: i) 'test-time', whereby the mean prediction is computed for various augmentations of the test sequence; ii) 'shift', whereby a sequence was randomly shifted by 0 to +21 bp; iii) 'RevComp', whereby a sequence was randomly reverse complemented; iv) 'Orientation', whereby measured element activity scores were considered for each orientation tested, instead of the mean across both orientations; and v) '5th channel', whereby a",
+      "bbox": [
+        39.68500137299998,
+        731.4132104490312,
+        295.03030134224224,
+        644.8927146156976
+      ],
+      "provenance": "docling",
+      "section_context": "Extended Data Fig. 5 | Architecture and performance of MPRALegNet.",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p24_221",
+      "source_block_id": "paper_1_p24_221",
+      "chunk_type": "paragraph",
+      "page_number": 24,
+      "reading_order": 221,
+      "display_text": "5th channel was considered alongside the one-hot encoded sequence ( i.e ., the first 4 channels) to indicate the sequence's orientation. b , Complete architecture of the MPRALegNet model. Indicated for each layer is the layer name and dimensionality of the input and output matrices. 'None' refers to the batch size used during model training. c , Impact of the size of the training set on model performance. Data from each cell type were downsampled to every 10th percentile ( i.e ., from 10 to 100%). Error bars represent the standard deviation of the Pearson correlations across 90 models (10 held-out folds of data x 9 trained models varying by the choice of validation set).",
+      "retrieval_text": "[Section: Extended Data Fig. 5 | Architecture and performance of MPRALegNet.] 5th channel was considered alongside the one-hot encoded sequence ( i.e ., the first 4 channels) to indicate the sequence's orientation. b , Complete architecture of the MPRALegNet model. Indicated for each layer is the layer name and dimensionality of the input and output matrices. 'None' refers to the batch size used during model training. c , Impact of the size of the training set on model performance. Data from each cell type were downsampled to every 10th percentile ( i.e ., from 10 to 100%). Error bars represent the standard deviation of the Pearson correlations across 90 models (10 held-out folds of data x 9 trained models varying by the choice of validation set).",
+      "bbox": [
+        306.1399917549999,
+        741.3882104490309,
+        562.4869851246627,
+        654.8677146156973
+      ],
+      "provenance": "docling",
+      "section_context": "Extended Data Fig. 5 | Architecture and performance of MPRALegNet.",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical_with_hints",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [
+      "count_like",
+      "variant_or_sequence"
+    ],
+    "hint_terms": [
+      "count",
+      "total",
+      "number",
+      "pairs",
+      "pair",
+      "combinations",
+      "constructed",
+      "tested",
+      "included",
+      "coverage",
+      "sequences",
+      "plasmids",
+      "barcodes"
+    ]
+  },
+  "stats": {
+    "chunk_build_ms": 5.174,
+    "idf_build_ms": 11.641,
+    "scoring_ms": 8.888,
+    "total_ms": 30.332,
+    "chunk_count_total": 318,
+    "chunk_count_by_type": {
+      "section": 52,
+      "paragraph": 179,
+      "caption": 14,
+      "list_item": 72,
+      "table_region": 1
+    },
+    "candidate_chunk_count": 318,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 12,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T09:04:50.095289+00:00"
+}

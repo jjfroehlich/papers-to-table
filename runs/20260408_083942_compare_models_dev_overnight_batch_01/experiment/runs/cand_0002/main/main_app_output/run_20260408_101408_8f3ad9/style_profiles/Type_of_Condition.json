@@ -1,0 +1,14 @@
+{
+  "column_name": "Type of Condition",
+  "field_type_guess": "unknown",
+  "expected_length": "single_value",
+  "tone": "technical",
+  "detail_level": "medium",
+  "value_shape": "free text",
+  "unit_style": null,
+  "format_notes": null,
+  "example_risk": "none",
+  "generated_at": "2026-04-08T10:17:36.178065+00:00",
+  "source_column_count": 0,
+  "provider_mode": "heuristic"
+}

@@ -1,0 +1,361 @@
+{
+  "run_id": "run_20260408_161951_wyevd4",
+  "pdf_id": "paper_2",
+  "column_name": "Abstract",
+  "query": "Abstract: Abstract text of the publication.",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_2_p10_146",
+      "source_block_id": "paper_2_p10_146",
+      "chunk_type": "section",
+      "page_number": 10,
+      "reading_order": 146,
+      "display_text": "Design of ExP STARR-seq",
+      "retrieval_text": "Design of ExP STARR-seq",
+      "bbox": [
+        39.68500137,
+        677.9874306620312,
+        138.18640136982998,
+        670.1079042371608
+      ],
+      "provenance": "docling",
+      "section_context": "Design of ExP STARR-seq",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_147",
+      "source_block_id": "paper_2_p10_147",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 147,
+      "display_text": "We designed ExP STARR-seq to systematically measure the intrinsic, sequence-encoded compatibility or specificity of many pairs of human enhancer and promoter sequences. The key design features we considered when developing this assay were the ability to measure the activity of individual enhancer-promoter sequence combinations, to precisely quantify the expression of each enhancer-promoter pair and to test hundreds of thousands of combinations to identify patterns of compatibility or specificity across a large number of human sequences.",
+      "retrieval_text": "[Section: Design of ExP STARR-seq] We designed ExP STARR-seq to systematically measure the intrinsic, sequence-encoded compatibility or specificity of many pairs of human enhancer and promoter sequences. The key design features we considered when developing this assay were the ability to measure the activity of individual enhancer-promoter sequence combinations, to precisely quantify the expression of each enhancer-promoter pair and to test hundreds of thousands of combinations to identify patterns of compatibility or specificity across a large number of human sequences.",
+      "bbox": [
+        39.68500137,
+        666.0569306620313,
+        296.3959299489973,
+        583.1502242170313
+      ],
+      "provenance": "docling",
+      "section_context": "Design of ExP STARR-seq",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_148",
+      "source_block_id": "paper_2_p10_148",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 148,
+      "display_text": "Accordingly,  we  designed  a  new  variant  of  the  STARR-seq high-throughput plasmid reporter assay called ExP STARR-seq. In both STARR-seq and ExP STARR-seq, enhancer sequences are cloned downstream of a promoter, transfected into cells and transcribed to produce a reporter mRNA transcript, which is then sequenced to quantify the relative expression levels of plasmids containing different enhancer sequences 13 . In ExP STARR-seq, we modified the cloning and RNA-seq strategy to enable testing of different enhancer sequences in combination with different promoter sequences.",
+      "retrieval_text": "[Section: Design of ExP STARR-seq] Accordingly,  we  designed  a  new  variant  of  the  STARR-seq high-throughput plasmid reporter assay called ExP STARR-seq. In both STARR-seq and ExP STARR-seq, enhancer sequences are cloned downstream of a promoter, transfected into cells and transcribed to produce a reporter mRNA transcript, which is then sequenced to quantify the relative expression levels of plasmids containing different enhancer sequences 13 . In ExP STARR-seq, we modified the cloning and RNA-seq strategy to enable testing of different enhancer sequences in combination with different promoter sequences.",
+      "bbox": [
+        39.68500137,
+        580.0568085920313,
+        296.3805921073868,
+        486.40034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Design of ExP STARR-seq",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_160",
+      "source_block_id": "paper_2_p10_160",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 160,
+      "display_text": "100 dinucleotide shuffles of these random genomic sequences.",
+      "retrieval_text": "[Section: Selection of enhancer and promoter sequences for ExP STARR-seq] 100 dinucleotide shuffles of these random genomic sequences.",
+      "bbox": [
+        306.1433464475,
+        494.05718090953127,
+        546.6720962,
+        486.40059653453125
+      ],
+      "provenance": "docling",
+      "section_context": "Selection of enhancer and promoter sequences for ExP STARR-seq",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_161",
+      "source_block_id": "paper_2_p10_161",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 161,
+      "display_text": "For the selected genes, we synthesized a 264 bp sequence, including approximately 244 bp upstream and 20 bp downstream of the TSS. Here we defined the TSS as the centre of the 10-bp window with the most CAGE 5′ read counts within 1 kbp of a RefSeq TSS. For lowly expressed genes (which lack a clear CAGE signal), we used the hg19 RefSeq-annotated TSS. For genes studied in a previous study 22 , we adjusted the assigned 10 bp TSS window by manual examination of the CAGE if necessary.",
+      "retrieval_text": "[Section: Selection of enhancer and promoter sequences for ExP STARR-seq] For the selected genes, we synthesized a 264 bp sequence, including approximately 244 bp upstream and 20 bp downstream of the TSS. Here we defined the TSS as the centre of the 10-bp window with the most CAGE 5′ read counts within 1 kbp of a RefSeq TSS. For lowly expressed genes (which lack a clear CAGE signal), we used the hg19 RefSeq-annotated TSS. For genes studied in a previous study 22 , we adjusted the assigned 10 bp TSS window by manual examination of the CAGE if necessary.",
+      "bbox": [
+        306.14181518,
+        483.3069306620313,
+        562.8649470953065,
+        400.40034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Selection of enhancer and promoter sequences for ExP STARR-seq",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_162",
+      "source_block_id": "paper_2_p10_162",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 162,
+      "display_text": "For the enhancers, we selected the 1,000 enhancer sequences to include the following:",
+      "retrieval_text": "[Section: Selection of enhancer and promoter sequences for ExP STARR-seq] For the enhancers, we selected the 1,000 enhancer sequences to include the following:",
+      "bbox": [
+        306.14181518,
+        397.3069306620313,
+        562.7998706620107,
+        378.90034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "Selection of enhancer and promoter sequences for ExP STARR-seq",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p13_213",
+      "source_block_id": "paper_2_p13_213",
+      "chunk_type": "section",
+      "page_number": 13,
+      "reading_order": 213,
+      "display_text": "Assessing reproducibility of the clusters",
+      "retrieval_text": "Assessing reproducibility of the clusters",
+      "bbox": [
+        39.68510055,
+        312.4874306620313,
+        199.71290055067993,
+        304.6079042371608
+      ],
+      "provenance": "docling",
+      "section_context": "Assessing reproducibility of the clusters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p13_214",
+      "source_block_id": "paper_2_p13_214",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 214,
+      "display_text": "We evaluated whether the clustering we observed in the residuals was a general trend of the data or an artefact of a few promoters or enhancers. To test this possibility, we randomly downsampled the residual matrix to 25% of promoters and 25% of enhancers (6.25% of the total data) 100 times and clustered the subsets. The original (full data) cluster identity of a promoter or enhancer predicted the downsampled cluster with greater than 80% accuracy (Extended Data Fig. 4f).",
+      "retrieval_text": "[Section: Assessing reproducibility of the clusters] We evaluated whether the clustering we observed in the residuals was a general trend of the data or an artefact of a few promoters or enhancers. To test this possibility, we randomly downsampled the residual matrix to 25% of promoters and 25% of enhancers (6.25% of the total data) 100 times and clustered the subsets. The original (full data) cluster identity of a promoter or enhancer predicted the downsampled cluster with greater than 80% accuracy (Extended Data Fig. 4f).",
+      "bbox": [
+        39.68510055,
+        300.5569306620313,
+        296.27654703045476,
+        228.4003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Assessing reproducibility of the clusters",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p13_215",
+      "source_block_id": "paper_2_p13_215",
+      "chunk_type": "section",
+      "page_number": 13,
+      "reading_order": 215,
+      "display_text": "Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes",
+      "retrieval_text": "Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes",
+      "bbox": [
+        39.68510055,
+        215.73743066203133,
+        294.63665055170003,
+        197.1054044071608
+      ],
+      "provenance": "docling",
+      "section_context": "Estimating enhancer activity with specific promoter classes and promoter responsiveness to specific enhancer classes",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_248",
+      "source_block_id": "paper_2_p14_248",
+      "chunk_type": "section",
+      "page_number": 14,
+      "reading_order": 248,
+      "display_text": "Analysis of variance",
+      "retrieval_text": "Analysis of variance",
+      "bbox": [
+        306.14169311,
+        183.48743066203133,
+        385.19934310983007,
+        175.60790423716082
+      ],
+      "provenance": "docling",
+      "section_context": "Analysis of variance",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_249",
+      "source_block_id": "paper_2_p14_249",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 249,
+      "display_text": "Analysis of variance (ANOVA) results were computed on the basis of intrinsic activities, and represent the sequential sum of squares (type I ANOVA) analyses. For example, in Extended Data Fig. 2j,k, we calculated the proportion of variance explained by promoters, the proportion of variance explained by enhancers after controlling for promoter activity, the proportion of variance explained by class interactions after controlling for promoter and enhancer activity, and, finally, any remaining variance.",
+      "retrieval_text": "[Section: Analysis of variance] Analysis of variance (ANOVA) results were computed on the basis of intrinsic activities, and represent the sequential sum of squares (type I ANOVA) analyses. For example, in Extended Data Fig. 2j,k, we calculated the proportion of variance explained by promoters, the proportion of variance explained by enhancers after controlling for promoter activity, the proportion of variance explained by class interactions after controlling for promoter and enhancer activity, and, finally, any remaining variance.",
+      "bbox": [
+        306.14169311,
+        171.55693066203128,
+        562.8454270364433,
+        88.65059653453125
+      ],
+      "provenance": "docling",
+      "section_context": "Analysis of variance",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_250",
+      "source_block_id": "paper_2_p14_250",
+      "chunk_type": "section",
+      "page_number": 14,
+      "reading_order": 250,
+      "display_text": "Motif ExP STARR-seq library design",
+      "retrieval_text": "Motif ExP STARR-seq library design",
+      "bbox": [
+        306.14169311,
+        75.98743066203122,
+        446.36449310966003,
+        68.10790423716082
+      ],
+      "provenance": "docling",
+      "section_context": "Motif ExP STARR-seq library design",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_261",
+      "source_block_id": "paper_2_p15_261",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 261,
+      "display_text": "We sequenced the pool consisting of two replicates of the input DNA library as well as four replicates of the RNA library to a total of 345.5 million reads. When quantifying STARR-seq expression, unlike with the original STARR-seq experiment, we sequenced two replicates of the input DNA library. Therefore, to quantify the DNA read count for the log 2 (RNA/DNA) calculation, we used the average count of the two replicates, weighted to the same total read count. STARR-seq expression was highly correlated across replicates (minimum R 2 = 0.92; Extended Data Fig. 9a). As with the original STARR-seq experiment, we only included in the final analysis plasmids that had greater than 25 DNA reads and greater than 1 RNA transcript, for a total of 362,905 plasmids across 19,019 promoter-enhancer pairs, with an average of 19 barcodes per pair (Extended Data Fig. 9b). For unedited promoter and enhancer pairs, the STARR-seq expression was highly correlated with the expression in the original ExP STARR-seq experiment (Extended Data Fig. 9c).",
+      "retrieval_text": "[Section: Motif ExP STARR-seq analysis] We sequenced the pool consisting of two replicates of the input DNA library as well as four replicates of the RNA library to a total of 345.5 million reads. When quantifying STARR-seq expression, unlike with the original STARR-seq experiment, we sequenced two replicates of the input DNA library. Therefore, to quantify the DNA read count for the log 2 (RNA/DNA) calculation, we used the average count of the two replicates, weighted to the same total read count. STARR-seq expression was highly correlated across replicates (minimum R 2 = 0.92; Extended Data Fig. 9a). As with the original STARR-seq experiment, we only included in the final analysis plasmids that had greater than 25 DNA reads and greater than 1 RNA transcript, for a total of 362,905 plasmids across 19,019 promoter-enhancer pairs, with an average of 19 barcodes per pair (Extended Data Fig. 9b). For unedited promoter and enhancer pairs, the STARR-seq expression was highly correlated with the expression in the original ExP STARR-seq experiment (Extended Data Fig. 9c).",
+      "bbox": [
+        39.68500137,
+        139.30693066203128,
+        296.4188308915224,
+        45.65034246703124
+      ],
+      "provenance": "docling",
+      "section_context": "Motif ExP STARR-seq analysis",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_262",
+      "source_block_id": "paper_2_p15_262",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 262,
+      "display_text": "For edited promoters, to determine the change in responsiveness to E1 enhancers (Fig. 5e), we estimated unedited and edited responsiveness to E1 enhancers as described for the original experiment. We transformed the values out of log 2 (space) and computed the per cent change in the responsiveness as the per cent difference between the responsiveness of the edited sequence and the responsiveness of the unedited sequence.",
+      "retrieval_text": "[Section: Motif ExP STARR-seq analysis] For edited promoters, to determine the change in responsiveness to E1 enhancers (Fig. 5e), we estimated unedited and edited responsiveness to E1 enhancers as described for the original experiment. We transformed the values out of log 2 (space) and computed the per cent change in the responsiveness as the per cent difference between the responsiveness of the edited sequence and the responsiveness of the unedited sequence.",
+      "bbox": [
+        306.14169311,
+        676.8069306620313,
+        562.8182526361912,
+        615.4003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Motif ExP STARR-seq analysis",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_263",
+      "source_block_id": "paper_2_p15_263",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 263,
+      "display_text": "For edited enhancers, to determine changes in enhancer activity with P1 and P2 promoters (Extended Data Fig. 9d), we calculated an inferred enhancer strength for each enhancer within a given enhancerpromoter pair as the ExP score for the pair minus the intrinsic promoter strength as calculated with the multiplicative model described above. We transformed these strength estimates out of log 2 (space) and then determined the per cent change in enhancer strength for each pair as the inferred strength of the edited enhancer with a given promoter minus the inferred strength of the unedited enhancer with the same promoter divided by the strength of the unedited enhancer. We then compared the change in enhancer strength for each edit type with all P1 promoters compared with P2 promoters using a two-tailed t -test.",
+      "retrieval_text": "[Section: Motif ExP STARR-seq analysis] For edited enhancers, to determine changes in enhancer activity with P1 and P2 promoters (Extended Data Fig. 9d), we calculated an inferred enhancer strength for each enhancer within a given enhancerpromoter pair as the ExP score for the pair minus the intrinsic promoter strength as calculated with the multiplicative model described above. We transformed these strength estimates out of log 2 (space) and then determined the per cent change in enhancer strength for each pair as the inferred strength of the edited enhancer with a given promoter minus the inferred strength of the unedited enhancer with the same promoter divided by the strength of the unedited enhancer. We then compared the change in enhancer strength for each edit type with all P1 promoters compared with P2 promoters using a two-tailed t -test.",
+      "bbox": [
+        306.14169311,
+        612.3068085920313,
+        562.8601364360868,
+        486.40084678203124
+      ],
+      "provenance": "docling",
+      "section_context": "Motif ExP STARR-seq analysis",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p29_323",
+      "source_block_id": "paper_2_p29_323",
+      "chunk_type": "paragraph",
+      "page_number": 29,
+      "reading_order": 323,
+      "display_text": "* P < 0.0001, two-tailed t -test. Boxes are median and interquartile range, whiskers are +/- 1.5*IQR. e . Fraction of variance explained by intrinsic promoter activity and enhancer activity with respect to log2 reporter expression (reporter assay score) from Martinez-Ara et al . 2021 39 . Left bars: experiment including promoters and enhancers from the Nanog and Klf2 loci. Right bars: experiment including promoters and enhancers from the Tfcp2l1 locus. For each experiment, values are shown for pairs with 2 or more, or 5 or more plasmid barcodes. Enhancer and promoter activities explain more of the variance when considering enhancer-promoter pairs with at least 5 vs. at least 2 barcodes. Bar plots show sequential sum of squares (Type-I ANOVA) for promoters, then enhancers. f . Correlation of reporter assay expression with the product of intrinsic promoter and enhancer activities from two experiments from Martinez-Ara et al ., 2021 39 . Density color scale: number enhancer-promoter pairs.",
+      "retrieval_text": "[Section: Article] * P < 0.0001, two-tailed t -test. Boxes are median and interquartile range, whiskers are +/- 1.5*IQR. e . Fraction of variance explained by intrinsic promoter activity and enhancer activity with respect to log2 reporter expression (reporter assay score) from Martinez-Ara et al . 2021 39 . Left bars: experiment including promoters and enhancers from the Nanog and Klf2 loci. Right bars: experiment including promoters and enhancers from the Tfcp2l1 locus. For each experiment, values are shown for pairs with 2 or more, or 5 or more plasmid barcodes. Enhancer and promoter activities explain more of the variance when considering enhancer-promoter pairs with at least 5 vs. at least 2 barcodes. Bar plots show sequential sum of squares (Type-I ANOVA) for promoters, then enhancers. f . Correlation of reporter assay expression with the product of intrinsic promoter and enhancer activities from two experiments from Martinez-Ara et al ., 2021 39 . Density color scale: number enhancer-promoter pairs.",
+      "bbox": [
+        306.13298813999995,
+        741.3742084820307,
+        562.4862874981699,
+        604.9167144686979
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p30_324",
+      "source_block_id": "paper_2_p30_324",
+      "chunk_type": "paragraph",
+      "page_number": 30,
+      "reading_order": 324,
+      "display_text": "Extended Data Fig. 10 | Model of the effect of an enhancer on RNA expression. a . Simple rules of enhancer and promoter compatibility. The effects of enhancers on nearby genes in the human genome are controlled by",
+      "retrieval_text": "[Section: Article] Extended Data Fig. 10 | Model of the effect of an enhancer on RNA expression. a . Simple rules of enhancer and promoter compatibility. The effects of enhancers on nearby genes in the human genome are controlled by",
+      "bbox": [
+        39.68510055,
+        584.1122553620312,
+        287.3360014260502,
+        557.6097592486979
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p30_325",
+      "source_block_id": "paper_2_p30_325",
+      "chunk_type": "paragraph",
+      "page_number": 30,
+      "reading_order": 325,
+      "display_text": "the quantitative tuning of intrinsic promoter activity, intrinsic enhancer activity, enhancer-promoter 3D contact, and enhancer-promoter class compatibility.",
+      "retrieval_text": "[Section: Article] the quantitative tuning of intrinsic promoter activity, intrinsic enhancer activity, enhancer-promoter 3D contact, and enhancer-promoter class compatibility.",
+      "bbox": [
+        306.1400918,
+        584.1052558520311,
+        539.7076917902696,
+        557.6027597386977
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [],
+    "hint_terms": []
+  },
+  "stats": {
+    "chunk_build_ms": 3.523,
+    "idf_build_ms": 7.029,
+    "scoring_ms": 7.319,
+    "total_ms": 21.791,
+    "chunk_count_total": 326,
+    "chunk_count_by_type": {
+      "section": 59,
+      "paragraph": 174,
+      "caption": 17,
+      "list_item": 76
+    },
+    "candidate_chunk_count": 326,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 12,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T16:27:16.018670+00:00"
+}

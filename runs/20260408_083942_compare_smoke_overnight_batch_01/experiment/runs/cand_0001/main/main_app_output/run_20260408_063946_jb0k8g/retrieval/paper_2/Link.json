@@ -1,0 +1,361 @@
+{
+  "run_id": "run_20260408_063946_jb0k8g",
+  "pdf_id": "paper_2",
+  "column_name": "Link",
+  "query": "Link: DOI link.",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_2_p1_0",
+      "source_block_id": "paper_2_p1_0",
+      "chunk_type": "section",
+      "page_number": 1,
+      "reading_order": 0,
+      "display_text": "Compatibility rules of human enhancer and promoter sequences",
+      "retrieval_text": "Compatibility rules of human enhancer and promoter sequences",
+      "bbox": [
+        39.68500137,
+        740.0854433520313,
+        551.52100137,
+        688.0197473587803
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules of human enhancer and promoter sequences",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p1_1",
+      "source_block_id": "paper_2_p1_1",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 1,
+      "display_text": "https://doi.org/10.1038/s41586-022-04877-w",
+      "retrieval_text": "[Section: Compatibility rules of human enhancer and promoter sequences] https://doi.org/10.1038/s41586-022-04877-w",
+      "bbox": [
+        39.68500137,
+        644.3205527320313,
+        204.33300136999983,
+        637.3169908442308
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules of human enhancer and promoter sequences",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p1_2",
+      "source_block_id": "paper_2_p1_2",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 2,
+      "display_text": "Received: 28 September 2021",
+      "retrieval_text": "[Section: Compatibility rules of human enhancer and promoter sequences] Received: 28 September 2021",
+      "bbox": [
+        39.68500137,
+        628.2165526520313,
+        151.07700136999992,
+        621.2129907642308
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules of human enhancer and promoter sequences",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p8_90",
+      "source_block_id": "paper_2_p8_90",
+      "chunk_type": "section",
+      "page_number": 8,
+      "reading_order": 90,
+      "display_text": "Online content",
+      "retrieval_text": "Online content",
+      "bbox": [
+        306.14181518,
+        228.38993066203125,
+        376.38081518000007,
+        219.36696498580181
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p8_91",
+      "source_block_id": "paper_2_p8_91",
+      "chunk_type": "paragraph",
+      "page_number": 8,
+      "reading_order": 91,
+      "display_text": "Any methods, additional references, Nature Research reporting summaries, source data, extended data, supplementary information, acknowledgements, peer review information; details of author contributions and competing interests; and statements of data and code availability are available at https://doi.org/10.1038/s41586-022-04877-w.",
+      "retrieval_text": "[Section: Online content] Any methods, additional references, Nature Research reporting summaries, source data, extended data, supplementary information, acknowledgements, peer review information; details of author contributions and competing interests; and statements of data and code availability are available at https://doi.org/10.1038/s41586-022-04877-w.",
+      "bbox": [
+        306.14181518,
+        214.55693066203128,
+        562.7510320678896,
+        163.9003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p8_92",
+      "source_block_id": "paper_2_p8_92",
+      "chunk_type": "list_item",
+      "page_number": 8,
+      "reading_order": 92,
+      "display_text": "ENCODE Project Consortium. An integrated encyclopedia of DNA elements in the human genome. Nature 489 , 57-74 (2012).",
+      "retrieval_text": "[Section: Online content] ENCODE Project Consortium. An integrated encyclopedia of DNA elements in the human genome. Nature 489 , 57-74 (2012).",
+      "bbox": [
+        306.14181518,
+        147.8734323720313,
+        561.3206150612009,
+        134.59611185731433
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p9_130",
+      "source_block_id": "paper_2_p9_130",
+      "chunk_type": "list_item",
+      "page_number": 9,
+      "reading_order": 130,
+      "display_text": "Curina, A. et al. High constitutive activity of a broad panel of housekeeping and tissue-specific cis -regulatory elements depends on a subset of ETS proteins. Genes Dev. 31 , 399-412 (2017).",
+      "retrieval_text": "[Section: Article] Curina, A. et al. High constitutive activity of a broad panel of housekeeping and tissue-specific cis -regulatory elements depends on a subset of ETS proteins. Genes Dev. 31 , 399-412 (2017).",
+      "bbox": [
+        306.0789783299999,
+        597.0542828920313,
+        556.7829768300006,
+        575.7609626173144
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p9_131",
+      "source_block_id": "paper_2_p9_131",
+      "chunk_type": "list_item",
+      "page_number": 9,
+      "reading_order": 131,
+      "display_text": "Martinez-Ara, M., Comoglio, F., van Arensbergen, J. & van Steensel, B. Systematic analysis of intrinsic enhancer-promoter compatibility in the mouse genome. Mol. Cell https://doi. org/10.1101/2021.10.21.465269 (2022).",
+      "retrieval_text": "[Section: Article] Martinez-Ara, M., Comoglio, F., van Arensbergen, J. & van Steensel, B. Systematic analysis of intrinsic enhancer-promoter compatibility in the mouse genome. Mol. Cell https://doi. org/10.1101/2021.10.21.465269 (2022).",
+      "bbox": [
+        306.07897250999986,
+        573.0062836120313,
+        562.0023723876612,
+        551.7129633373144
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p9_132",
+      "source_block_id": "paper_2_p9_132",
+      "chunk_type": "list_item",
+      "page_number": 9,
+      "reading_order": 132,
+      "display_text": "Maricque, B. B., Chaudhari, H. G. & Cohen, B. A. A massively parallel reporter assay dissects the influence of chromatin structure on cis-regulatory activity. Nat. Biotechnol. 37 , 90-95 (2019).",
+      "retrieval_text": "[Section: Article] Maricque, B. B., Chaudhari, H. G. & Cohen, B. A. A massively parallel reporter assay dissects the influence of chromatin structure on cis-regulatory activity. Nat. Biotechnol. 37 , 90-95 (2019).",
+      "bbox": [
+        306.07897250999986,
+        548.9582843320313,
+        554.5989723900012,
+        527.6649640573144
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_272",
+      "source_block_id": "paper_2_p15_272",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 272,
+      "display_text": "Code availability",
+      "retrieval_text": "Code availability",
+      "bbox": [
+        306.14181518,
+        142.38993066203125,
+        385.03784018097497,
+        133.36696498580181
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_273",
+      "source_block_id": "paper_2_p15_273",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 273,
+      "display_text": "Code for fitting the multiplicative ExP model is available at https://doi. org/10.5281/zenodo.6514733 or https://github.com/broadinstitute/ ExP-model-fit.",
+      "retrieval_text": "[Section: Code availability] Code for fitting the multiplicative ExP model is available at https://doi. org/10.5281/zenodo.6514733 or https://github.com/broadinstitute/ ExP-model-fit.",
+      "bbox": [
+        306.14181518,
+        128.55693066203128,
+        561.3709789646083,
+        99.4003462870312
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_274",
+      "source_block_id": "paper_2_p15_274",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 274,
+      "display_text": "49. Wang, T., Lander, E. S. & Sabatini, D. M. Large-scale single guide RNA library construction and use for CRISPR-Cas9-based genetic screens. Cold Spring Harb. Protoc. 2016 , db.top086892 (2016).",
+      "retrieval_text": "[Section: Code availability] 49. Wang, T., Lander, E. S. & Sabatini, D. M. Large-scale single guide RNA library construction and use for CRISPR-Cas9-based genetic screens. Cold Spring Harb. Protoc. 2016 , db.top086892 (2016).",
+      "bbox": [
+        306.14181518,
+        83.78873083203132,
+        559.9418150600006,
+        62.495410557314244
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_275",
+      "source_block_id": "paper_2_p15_275",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 275,
+      "display_text": "50. Engreitz, J. M. et al. Local regulation of gene expression by lncRNA promoters, transcription and splicing. Nature 539 , 452-455 (2016).",
+      "retrieval_text": "[Section: Code availability] 50. Engreitz, J. M. et al. Local regulation of gene expression by lncRNA promoters, transcription and splicing. Nature 539 , 452-455 (2016).",
+      "bbox": [
+        306.14182946,
+        59.74073155203132,
+        531.7256293354415,
+        46.463411037314245
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p16_276",
+      "source_block_id": "paper_2_p16_276",
+      "chunk_type": "list_item",
+      "page_number": 16,
+      "reading_order": 276,
+      "display_text": "Nasser, J. et al. Genome-wide enhancer maps link risk variants to disease genes. Nature 593 , 238-243 (2021).",
+      "retrieval_text": "[Section: Code availability] Nasser, J. et al. Genome-wide enhancer maps link risk variants to disease genes. Nature 593 , 238-243 (2021).",
+      "bbox": [
+        39.68500137,
+        741.2882578120312,
+        287.60680124543984,
+        728.0109372973143
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p16_277",
+      "source_block_id": "paper_2_p16_277",
+      "chunk_type": "list_item",
+      "page_number": 16,
+      "reading_order": 277,
+      "display_text": "Anscombe, F. J. The transformation of Poisson, binomial and negative-binomial data. Biometrika 35 , 246-254 (1948).",
+      "retrieval_text": "[Section: Code availability] Anscombe, F. J. The transformation of Poisson, binomial and negative-binomial data. Biometrika 35 , 246-254 (1948).",
+      "bbox": [
+        39.685000590000016,
+        725.2562582920312,
+        282.44440046771973,
+        711.9789377773143
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p16_297",
+      "source_block_id": "paper_2_p16_297",
+      "chunk_type": "section",
+      "page_number": 16,
+      "reading_order": 297,
+      "display_text": "Additional information",
+      "retrieval_text": "Additional information",
+      "bbox": [
+        306.10899416999996,
+        542.0582777920309,
+        369.5049941700005,
+        536.8098735367118
+      ],
+      "provenance": "docling",
+      "section_context": "Additional information",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p16_298",
+      "source_block_id": "paper_2_p16_298",
+      "chunk_type": "paragraph",
+      "page_number": 16,
+      "reading_order": 298,
+      "display_text": "Supplementary information The online version contains supplementary material available at https://doi.org/10.1038/s41586-022-04877-w.",
+      "retrieval_text": "[Section: Additional information] Supplementary information The online version contains supplementary material available at https://doi.org/10.1038/s41586-022-04877-w.",
+      "bbox": [
+        306.10899416999996,
+        533.7962779720309,
+        558.4209941700011,
+        520.2729573973139
+      ],
+      "provenance": "docling",
+      "section_context": "Additional information",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p16_299",
+      "source_block_id": "paper_2_p16_299",
+      "chunk_type": "paragraph",
+      "page_number": 16,
+      "reading_order": 299,
+      "display_text": "Correspondence and requests for materials should be addressed to Jesse M. Engreitz. Peer review information Nature thanks Alex Nord and the other, anonymous, reviewer(s) for their contribution to the peer review of this work.",
+      "retrieval_text": "[Section: Additional information] Correspondence and requests for materials should be addressed to Jesse M. Engreitz. Peer review information Nature thanks Alex Nord and the other, anonymous, reviewer(s) for their contribution to the peer review of this work.",
+      "bbox": [
+        306.10899416999996,
+        517.2722783320309,
+        554.1423933877209,
+        495.48695793731383
+      ],
+      "provenance": "docling",
+      "section_context": "Additional information",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [],
+    "hint_terms": []
+  },
+  "stats": {
+    "chunk_build_ms": 4.449,
+    "idf_build_ms": 10.947,
+    "scoring_ms": 6.342,
+    "total_ms": 25.714,
+    "chunk_count_total": 326,
+    "chunk_count_by_type": {
+      "section": 59,
+      "paragraph": 174,
+      "caption": 17,
+      "list_item": 76
+    },
+    "candidate_chunk_count": 326,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 12,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T06:55:59.610158+00:00"
+}

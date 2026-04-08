@@ -1,0 +1,352 @@
+{
+  "run_id": "run_20260408_075540_ngzkq5",
+  "pdf_id": "paper_1",
+  "column_name": "Cloning",
+  "query": "Cloning: How the library was cloned.\nRetrieval hints: methods design library cloning construct",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_1_p11_140",
+      "source_block_id": "paper_1_p11_140",
+      "chunk_type": "section",
+      "page_number": 11,
+      "reading_order": 140,
+      "display_text": "Methods",
+      "retrieval_text": "Methods",
+      "bbox": [
+        39.685001373,
+        743.0662495110313,
+        91.021001373,
+        731.9610609864411
+      ],
+      "provenance": "docling",
+      "section_context": "Methods",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p11_141",
+      "source_block_id": "paper_1_p11_141",
+      "chunk_type": "section",
+      "page_number": 11,
+      "reading_order": 141,
+      "display_text": "Design of Agilent oligonucleotide library",
+      "retrieval_text": "Design of Agilent oligonucleotide library",
+      "bbox": [
+        39.685001373,
+        720.9874306640312,
+        202.61895137299996,
+        713.1079042391608
+      ],
+      "provenance": "docling",
+      "section_context": "Design of Agilent oligonucleotide library",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p11_142",
+      "source_block_id": "paper_1_p11_142",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 142,
+      "display_text": "HepG2 pilot library. For the HepG2 pilot library, we collected two replicates of DNase I hypersensitivity data derived from HepG2 cells (ENCODE narrowPeak BED files: ENCFF505SRS and ENCFF268DTI, hg19 human genome build) 55 . For each replicate, we collapsed overlapping peaks using bedtools merge (parameters '-o collapse -c 2,3,7'). Then, we identified peaks that intersected between the two replicates, merged these peaks, and removed the subset of merged peaks that overlap promoters (defined as regions ±2,500 nt around any annotated TSS). The resulting distribution of peak sizes was such that 97% of peaks were ≤200 bp in length. We therefore centred the designed oligonucleotides at each merged DNase peak, consistent with the known region of maximal regulatory activity 18 , and added ±100 bp to either side. This procedure resulted in a set of 66,017 cCREs. For this pilot library, we sought to evaluate cCREs which overlapped a wide range of putative transcription factor binding sites. We therefore intersected these potential enhancers with wgEncodeRegTfbsClusteredWithCellsV3. bed.gz 56 in order to count the number of putative HepG2 transcription factor binding sites intersecting these cCREs. We uniformly and randomly sampled ~1,834 cCREs with 0-1, 1-5, 5-10, 10-20, and >20 TFBSs for a total of 9,172 elements. Including 50 positive and 50 negative controls from each of two previous studies 10,19 resulted in a total of 9,372 elements. These 171-bp controls from previous work were linked downstream of a 29-nt random sequence GGTGCTCGATTTAATTTCG CCGACGTGAT to match the 200-bp sequence length of cCREs. For the final oligonucleotide library, each element was linked to the 5′ adaptor AGGACCGGATCAACT and 3′ adaptor CATTGCGTGAACCGA, designing two 230-bp oligonucleotides per element to minimize the impact of oligonucleotide synthesis errors.",
+      "retrieval_text": "[Section: Design of Agilent oligonucleotide library] HepG2 pilot library. For the HepG2 pilot library, we collected two replicates of DNase I hypersensitivity data derived from HepG2 cells (ENCODE narrowPeak BED files: ENCFF505SRS and ENCFF268DTI, hg19 human genome build) 55 . For each replicate, we collapsed overlapping peaks using bedtools merge (parameters '-o collapse -c 2,3,7'). Then, we identified peaks that intersected between the two replicates, merged these peaks, and removed the subset of merged peaks that overlap promoters (defined as regions ±2,500 nt around any annotated TSS). The resulting distribution of peak sizes was such that 97% of peaks were ≤200 bp in length. We therefore centred the designed oligonucleotides at each merged DNase peak, consistent with the known region of maximal regulatory activity 18 , and added ±100 bp to either side. This procedure resulted in a set of 66,017 cCREs. For this pilot library, we sought to evaluate cCREs which overlapped a wide range of putative transcription factor binding sites. We therefore intersected these potential enhancers with wgEncodeRegTfbsClusteredWithCellsV3. bed.gz 56 in order to count the number of putative HepG2 transcription factor binding sites intersecting these cCREs. We uniformly and randomly sampled ~1,834 cCREs with 0-1, 1-5, 5-10, 10-20, and >20 TFBSs for a total of 9,172 elements. Including 50 positive and 50 negative controls from each of two previous studies 10,19 resulted in a total of 9,372 elements. These 171-bp controls from previous work were linked downstream of a 29-nt random sequence GGTGCTCGATTTAATTTCG CCGACGTGAT to match the 200-bp sequence length of cCREs. For the final oligonucleotide library, each element was linked to the 5′ adaptor AGGACCGGATCAACT and 3′ adaptor CATTGCGTGAACCGA, designing two 230-bp oligonucleotides per element to minimize the impact of oligonucleotide synthesis errors.",
+      "bbox": [
+        39.68405,
+        709.0569306640313,
+        296.38944294884254,
+        411.15034628903123
+      ],
+      "provenance": "docling",
+      "section_context": "Design of Agilent oligonucleotide library",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p11_143",
+      "source_block_id": "paper_1_p11_143",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 143,
+      "display_text": "K562 pilot library. An analogous procedure was followed for the K562 pilot library as in 'HepG2 pilot library', with the following modifications: (1) ENCODE narrowPeak BED files ENCFF027HKR and ENCFF154JCN (hg38 human genome build) 55 were used; (2) merging these peaks resulted in 34,367 potential enhancers; (3) after intersecting the peaks with K562 transcription factor binding sites, we sampled ~1,278 enhancers from each transcription factor binding site bin to test a total of 6,394 cCREs; (4) 250 additional negative controls were chosen by dinucleotide shuffling 250 random potential enhancers possessing 1-5 TFBSs; (5) positive and negative controls were chosen from CRISPRi screens 20,21 , a previous MPRA 18 , and select loci of interest such as α-globin and β-globin; (6) a total of 7,500 elements were tested; and (7) controls were already 200 bp in length, requiring no addition of a random sequence.",
+      "retrieval_text": "[Section: Design of Agilent oligonucleotide library] K562 pilot library. An analogous procedure was followed for the K562 pilot library as in 'HepG2 pilot library', with the following modifications: (1) ENCODE narrowPeak BED files ENCFF027HKR and ENCFF154JCN (hg38 human genome build) 55 were used; (2) merging these peaks resulted in 34,367 potential enhancers; (3) after intersecting the peaks with K562 transcription factor binding sites, we sampled ~1,278 enhancers from each transcription factor binding site bin to test a total of 6,394 cCREs; (4) 250 additional negative controls were chosen by dinucleotide shuffling 250 random potential enhancers possessing 1-5 TFBSs; (5) positive and negative controls were chosen from CRISPRi screens 20,21 , a previous MPRA 18 , and select loci of interest such as α-globin and β-globin; (6) a total of 7,500 elements were tested; and (7) controls were already 200 bp in length, requiring no addition of a random sequence.",
+      "bbox": [
+        39.685001373,
+        397.30693066403126,
+        296.42336786490176,
+        249.90059628903123
+      ],
+      "provenance": "docling",
+      "section_context": "Design of Agilent oligonucleotide library",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p11_144",
+      "source_block_id": "paper_1_p11_144",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 144,
+      "display_text": "HepG2 large-scale library. Following the procedures outlined in 'HepG2 pilot library', we tested all 66,017 previously identified cCREs in both orientations. For human protein-coding gene promoters, we extracted the average signal across cell types in TPM for each CAGE peak listed in hg19.cage_peak_phase1and2combined_tpm_ann. osc.txt.gz from the FANTOM5 consortium 57,58 . The first exons of all protein-coding gene transcripts were collected from Ensembl v.83 (hg38 genome build) 59 , transformed into hg19 coordinates using liftOver 60 , and then intersected with the CAGE peaks to identify a single promoter per gene corresponding to the promoter with the maximal average TPM. To select the final 200-bp oligonucleotide for testing, we identified the centre of the promoter DNase peak on the basis of the HepG2 DNase peaks merged across replicates (described in 'HepG2 pilot library'). In the scenario in which no DNase peak overlapped the promoter, we centred on the midpoint of the CAGE peak. In the scenario in which neither a DNase nor CAGE peak existed, we centred on the TSS defined by the Ensembl annotation. This resulted in a total of 19,104 protein-coding gene promoters, of which 6,181 were centred on a DNase peak, 9,735 were centred on a CAGE peak and 3,188 were centred on a Ensembl TSS definition. The oligonucleotide tested included the ±100-bp window around this central position in the sense orientation with respect to the gene. A random subset of 12,411 promoters were also tested in the antisense orientation. We tested 102 positive and 102 negative controls from a previous study 19 as well as 175 dinucleotide shuffled negative controls in both orientations. These shuffled controls were derived from shuffling a random subset of 175 DNase peaks. This resulted in a library consisting of 164,307 elements, for which we ordered one 230-bp oligonucleotide per element.",
+      "retrieval_text": "[Section: Design of Agilent oligonucleotide library] HepG2 large-scale library. Following the procedures outlined in 'HepG2 pilot library', we tested all 66,017 previously identified cCREs in both orientations. For human protein-coding gene promoters, we extracted the average signal across cell types in TPM for each CAGE peak listed in hg19.cage_peak_phase1and2combined_tpm_ann. osc.txt.gz from the FANTOM5 consortium 57,58 . The first exons of all protein-coding gene transcripts were collected from Ensembl v.83 (hg38 genome build) 59 , transformed into hg19 coordinates using liftOver 60 , and then intersected with the CAGE peaks to identify a single promoter per gene corresponding to the promoter with the maximal average TPM. To select the final 200-bp oligonucleotide for testing, we identified the centre of the promoter DNase peak on the basis of the HepG2 DNase peaks merged across replicates (described in 'HepG2 pilot library'). In the scenario in which no DNase peak overlapped the promoter, we centred on the midpoint of the CAGE peak. In the scenario in which neither a DNase nor CAGE peak existed, we centred on the TSS defined by the Ensembl annotation. This resulted in a total of 19,104 protein-coding gene promoters, of which 6,181 were centred on a DNase peak, 9,735 were centred on a CAGE peak and 3,188 were centred on a Ensembl TSS definition. The oligonucleotide tested included the ±100-bp window around this central position in the sense orientation with respect to the gene. A random subset of 12,411 promoters were also tested in the antisense orientation. We tested 102 positive and 102 negative controls from a previous study 19 as well as 175 dinucleotide shuffled negative controls in both orientations. These shuffled controls were derived from shuffling a random subset of 175 DNase peaks. This resulted in a library consisting of 164,307 elements, for which we ordered one 230-bp oligonucleotide per element.",
+      "bbox": [
+        39.685001373,
+        236.05693066403126,
+        296.3885281440908,
+        45.65034247403128
+      ],
+      "provenance": "docling",
+      "section_context": "Design of Agilent oligonucleotide library",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p11_145",
+      "source_block_id": "paper_1_p11_145",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 145,
+      "display_text": "K562 large-scale library. To acquire a set of DNase peaks for testing, we used the 'optimal peak' calls derived from processing ENCODE experiment ID: ENCSR000EOY through the ENCODE DCC Irreproducible Discovery Rate (IDR) pipeline, available at https://github.com/ ENCODE-DCC/atac-seq-pipeline (generously provided by A. Kundaje). Removing DNase peaks overlapping human promoters resulted in 87,618 potential enhancers tested in both orientations. The promoters tested were identical to those described in 'HepG2 large-scale library', except that it included all 19,104 promoters tested in both orientations. We tested 50 positive and 200 negative controls from a previous MPRA study 18 as well as the same 250 dinucleotide shuffled negative controls as tested in 'K562 pilot library'. Finally, 14,918 tiles not overlapping DNase peaks, and subsampled from the ±1 Mb region around the following 7 genetic loci: GATA1 , MYC , HBE1 , LMO2 , RBM38 , HBA2 , and BCL11A , were chosen using our representative subset selection approach (described in the 'Representative subset selection' section below) and tested in both orientations. This resulted in a library consisting of 243,780 elements, for which we ordered one 230-bp oligonucleotide per element.",
+      "retrieval_text": "[Section: Design of Agilent oligonucleotide library] K562 large-scale library. To acquire a set of DNase peaks for testing, we used the 'optimal peak' calls derived from processing ENCODE experiment ID: ENCSR000EOY through the ENCODE DCC Irreproducible Discovery Rate (IDR) pipeline, available at https://github.com/ ENCODE-DCC/atac-seq-pipeline (generously provided by A. Kundaje). Removing DNase peaks overlapping human promoters resulted in 87,618 potential enhancers tested in both orientations. The promoters tested were identical to those described in 'HepG2 large-scale library', except that it included all 19,104 promoters tested in both orientations. We tested 50 positive and 200 negative controls from a previous MPRA study 18 as well as the same 250 dinucleotide shuffled negative controls as tested in 'K562 pilot library'. Finally, 14,918 tiles not overlapping DNase peaks, and subsampled from the ±1 Mb region around the following 7 genetic loci: GATA1 , MYC , HBE1 , LMO2 , RBM38 , HBA2 , and BCL11A , were chosen using our representative subset selection approach (described in the 'Representative subset selection' section below) and tested in both orientations. This resulted in a library consisting of 243,780 elements, for which we ordered one 230-bp oligonucleotide per element.",
+      "bbox": [
+        306.141693115,
+        612.3074306640312,
+        562.8554168942159,
+        411.15034628903123
+      ],
+      "provenance": "docling",
+      "section_context": "Design of Agilent oligonucleotide library",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p11_146",
+      "source_block_id": "paper_1_p11_146",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 146,
+      "display_text": "WTC11 large-scale library. To acquire a set of DNase peaks for testing, we used the peak calls derived from applying the hotspot2 pipeline (https://github.com/Altius/hotspot2) at FDR = 0.05 to ENCODE experiment ID: ENCSR785ZUI (generously provided by R.Sandstrom) 61 . This resulted in two independent replicates, which were merged into a unified set using the procedures described in 'HepG2 pilot library'. Removing DNase peaks overlapping human promoters resulted in 83,201 potential enhancers. Together with the 19,104 promoters described in 'HepG2 large-scale library', these elements were subsampled to select 30,121 potential enhancers and 7,500 promoters using our representative subset selection approach described below, and tested in both orientations. We also tested 100 positive and 100 negative controls from a previous study 24 as well as 100 dinucleotide shuffled negative controls, which were derived from shuffling 100 random sequences from our set of 30,121 potential enhancers. This resulted in a library consisting of 75,542 cCREs, for which we ordered one 230-bp oligonucleotide per element.",
+      "retrieval_text": "[Section: Design of Agilent oligonucleotide library] WTC11 large-scale library. To acquire a set of DNase peaks for testing, we used the peak calls derived from applying the hotspot2 pipeline (https://github.com/Altius/hotspot2) at FDR = 0.05 to ENCODE experiment ID: ENCSR785ZUI (generously provided by R.Sandstrom) 61 . This resulted in two independent replicates, which were merged into a unified set using the procedures described in 'HepG2 pilot library'. Removing DNase peaks overlapping human promoters resulted in 83,201 potential enhancers. Together with the 19,104 promoters described in 'HepG2 large-scale library', these elements were subsampled to select 30,121 potential enhancers and 7,500 promoters using our representative subset selection approach described below, and tested in both orientations. We also tested 100 positive and 100 negative controls from a previous study 24 as well as 100 dinucleotide shuffled negative controls, which were derived from shuffling 100 random sequences from our set of 30,121 potential enhancers. This resulted in a library consisting of 75,542 cCREs, for which we ordered one 230-bp oligonucleotide per element.",
+      "bbox": [
+        306.141693115,
+        397.30693066403126,
+        562.7778222245794,
+        217.6503462890313
+      ],
+      "provenance": "docling",
+      "section_context": "Design of Agilent oligonucleotide library",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p11_147",
+      "source_block_id": "paper_1_p11_147",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 147,
+      "display_text": "Joint library tested in HepG2, K562, and WTC11 cells. Given the measured potential enhancers from the forward orientations in each of the HepG2, K562 and WTC11 large-scale libraries, we binned each set of cCREs into ten equally sized bins spanning the range of measured log 2 (RNA/DNA) values in the selected cell type. We randomly sampled an approximately equal number from each bin, resulting in 19,000 HepG2, 18,958 K562 and 18,946 WTC11 potential enhancers. A similar procedure was followed with sense-oriented promoters, except that the ten bins were established on the basis of the mean log2(RNA/DNA) across all three cell types (that is, instead of performing the procedure independently in each cell type as before), and the top 1,000 promoters exhibiting the greatest variance across three cell lines were also selected for testing. This resulted in the selection of 2,396 out of 19,104 promoters. We also tested 181 positive and 169 negative HepG2 controls from a previous study 19 , 50 positive K562 controls from a previous study 18 ,",
+      "retrieval_text": "[Section: Design of Agilent oligonucleotide library] Joint library tested in HepG2, K562, and WTC11 cells. Given the measured potential enhancers from the forward orientations in each of the HepG2, K562 and WTC11 large-scale libraries, we binned each set of cCREs into ten equally sized bins spanning the range of measured log 2 (RNA/DNA) values in the selected cell type. We randomly sampled an approximately equal number from each bin, resulting in 19,000 HepG2, 18,958 K562 and 18,946 WTC11 potential enhancers. A similar procedure was followed with sense-oriented promoters, except that the ten bins were established on the basis of the mean log2(RNA/DNA) across all three cell types (that is, instead of performing the procedure independently in each cell type as before), and the top 1,000 promoters exhibiting the greatest variance across three cell lines were also selected for testing. This resulted in the selection of 2,396 out of 19,104 promoters. We also tested 181 positive and 169 negative HepG2 controls from a previous study 19 , 50 positive K562 controls from a previous study 18 ,",
+      "bbox": [
+        306.141693115,
+        203.80693066403126,
+        562.8374755339913,
+        45.65034247403128
+      ],
+      "provenance": "docling",
+      "section_context": "Design of Agilent oligonucleotide library",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p13_160",
+      "source_block_id": "paper_1_p13_160",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 160,
+      "display_text": "Associating barcodes to designed elements. For each of the barcode association libraries, we generated FASTQ files with bcl2fastq v.2.20 (parameters '--no-lane-splitting --create-fastq-for-index-reads --use-bases-mask Y*,I*,I*,Y*'), splitting the sequencing data into paired-end index files delineating the barcodes (I1 and I2) and paired-end read files delineating the corresponding element linked to the barcode (R1 and R2). These files were used to associated barcodes to elements using the association utility of MPRAflow 1.0 16 (run as: nextflow run association.nf --fastq-insert 'R1.fastq.gz' --fastq-insertPE 'R2.fastq.gz' --fastq-bc 'I1.fastq.gz' --fastq-bcPE 'I2.fastq.gz' --aligner 'bt2_strand' --design 'designed_sequences.fa'). Here, designed_se-quences.fa was a FASTA file incorporating all of the element sequences that had been ordered from the corresponding Agilent library, and bt2_strand was used to map elements in a strand-aware fashion to accommodate the existence of elements tested in both orientations. The final output of this utility was a filtered_coords_to_barcodes.pickle file mapping barcodes to elements.",
+      "retrieval_text": "[Section: MPRA processing pipeline] Associating barcodes to designed elements. For each of the barcode association libraries, we generated FASTQ files with bcl2fastq v.2.20 (parameters '--no-lane-splitting --create-fastq-for-index-reads --use-bases-mask Y*,I*,I*,Y*'), splitting the sequencing data into paired-end index files delineating the barcodes (I1 and I2) and paired-end read files delineating the corresponding element linked to the barcode (R1 and R2). These files were used to associated barcodes to elements using the association utility of MPRAflow 1.0 16 (run as: nextflow run association.nf --fastq-insert 'R1.fastq.gz' --fastq-insertPE 'R2.fastq.gz' --fastq-bc 'I1.fastq.gz' --fastq-bcPE 'I2.fastq.gz' --aligner 'bt2_strand' --design 'designed_sequences.fa'). Here, designed_se-quences.fa was a FASTA file incorporating all of the element sequences that had been ordered from the corresponding Agilent library, and bt2_strand was used to map elements in a strand-aware fashion to accommodate the existence of elements tested in both orientations. The final output of this utility was a filtered_coords_to_barcodes.pickle file mapping barcodes to elements.",
+      "bbox": [
+        39.685001373,
+        698.3069306640313,
+        296.4051933277865,
+        518.6502242180313
+      ],
+      "provenance": "docling",
+      "section_context": "MPRA processing pipeline",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p13_161",
+      "source_block_id": "paper_1_p13_161",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 161,
+      "display_text": "Replicates, normalization and RNA/DNA activity scores. For each of the indexed DNA and RNA libraries, we demultiplexed the  sequencing  run  and  generated  Fastq  files  with  bcl2fastq v.2.20  (parameters  '--barcode-mismatches  2  --sample-sheet SampleSheet.csv --use-bases-mask Y*,Y*,I*,Y* --no-lane-splitting --minimum-trimmed-read-length 0 --mask-short-adapter-reads 0'), where SampleSheet.csv catalogued the correspondence between the index sequence and DNA or RNA replicate sample of origin. In several instances, the '--barcode-mismatches 2' resulted in an index assignment clash, requiring us to instead use '--barcode-mismatches 1'. These commands split the sequencing data into paired-end read files delineating the barcodes (R1 and R3) and a file indicating the UMI (R2) for each DNA or RNA replicate sample. We compiled a table of these files to indicate the 3 RNA and 3 DNA files for each of the three replicates in the file experiment.csv. Finally, we used the count utility of MPRAflow 1.0 16 (run as: nextflow run count.nf --e 'experiment.csv' --design 'designed_sequences.fa' --association 'filtered_coords_to_barcodes. pickle') to compute activity scores for each element and replicate as log 2 (RNA/DNA). Elements with which were measured with fewer than 10 independent barcodes were removed to reduce the impact of measurement noise in downstream analysis. This filter led to the following number of retained elements: (1) HepG2 pilot library, 9,153/9,372 (97.7%); (2) K562 pilot library, 7,323/7,500 (97.6%); (3) HepG2 large-scale library, 139,886/164,307 (85.1%); (4) K562 large-scale library, 226,255/243,780 (92.8%); (5) WTC11 large-scale library, 56,093/75,542 (74.2%); (6) HepG2 joint library, 56,018/60,000 (93.4%); (7) K562 joint library, 56,008/60,000 (93.3%); and (8) WTC11 joint library, 55,983/60,000 (93.3%). To combine the data from all three replicates, the distribution of activity values was normalized to the median activity value within each replicate, and then the activity values were averaged across the three replicates.",
+      "retrieval_text": "[Section: MPRA processing pipeline] Replicates, normalization and RNA/DNA activity scores. For each of the indexed DNA and RNA libraries, we demultiplexed the  sequencing  run  and  generated  Fastq  files  with  bcl2fastq v.2.20  (parameters  '--barcode-mismatches  2  --sample-sheet SampleSheet.csv --use-bases-mask Y*,Y*,I*,Y* --no-lane-splitting --minimum-trimmed-read-length 0 --mask-short-adapter-reads 0'), where SampleSheet.csv catalogued the correspondence between the index sequence and DNA or RNA replicate sample of origin. In several instances, the '--barcode-mismatches 2' resulted in an index assignment clash, requiring us to instead use '--barcode-mismatches 1'. These commands split the sequencing data into paired-end read files delineating the barcodes (R1 and R3) and a file indicating the UMI (R2) for each DNA or RNA replicate sample. We compiled a table of these files to indicate the 3 RNA and 3 DNA files for each of the three replicates in the file experiment.csv. Finally, we used the count utility of MPRAflow 1.0 16 (run as: nextflow run count.nf --e 'experiment.csv' --design 'designed_sequences.fa' --association 'filtered_coords_to_barcodes. pickle') to compute activity scores for each element and replicate as log 2 (RNA/DNA). Elements with which were measured with fewer than 10 independent barcodes were removed to reduce the impact of measurement noise in downstream analysis. This filter led to the following number of retained elements: (1) HepG2 pilot library, 9,153/9,372 (97.7%); (2) K562 pilot library, 7,323/7,500 (97.6%); (3) HepG2 large-scale library, 139,886/164,307 (85.1%); (4) K562 large-scale library, 226,255/243,780 (92.8%); (5) WTC11 large-scale library, 56,093/75,542 (74.2%); (6) HepG2 joint library, 56,018/60,000 (93.4%); (7) K562 joint library, 56,008/60,000 (93.3%); and (8) WTC11 joint library, 55,983/60,000 (93.3%). To combine the data from all three replicates, the distribution of activity values was normalized to the median activity value within each replicate, and then the activity values were averaged across the three replicates.",
+      "bbox": [
+        39.6851,
+        504.80693066403126,
+        296.446409762984,
+        174.6503462890313
+      ],
+      "provenance": "docling",
+      "section_context": "MPRA processing pipeline",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p13_162",
+      "source_block_id": "paper_1_p13_162",
+      "chunk_type": "section",
+      "page_number": 13,
+      "reading_order": 162,
+      "display_text": "Regression modelling",
+      "retrieval_text": "Regression modelling",
+      "bbox": [
+        39.6851,
+        161.9874306640313,
+        127.11099999999998,
+        154.1079042391608
+      ],
+      "provenance": "docling",
+      "section_context": "Regression modelling",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p17_205",
+      "source_block_id": "paper_1_p17_205",
+      "chunk_type": "paragraph",
+      "page_number": 17,
+      "reading_order": 205,
+      "display_text": "Extended Data Fig. 1 | A next-generation lentiviral massively parallel reporter assay (lentiMPRA) strategy to measure the transcriptional regulatory activity of > 6,000-240,000 enhancers simultaneously.",
+      "retrieval_text": "[Section: Article] Extended Data Fig. 1 | A next-generation lentiviral massively parallel reporter assay (lentiMPRA) strategy to measure the transcriptional regulatory activity of > 6,000-240,000 enhancers simultaneously.",
+      "bbox": [
+        39.685001373,
+        741.4162104490313,
+        272.50080132357294,
+        714.932183809687
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p17_206",
+      "source_block_id": "paper_1_p17_206",
+      "chunk_type": "paragraph",
+      "page_number": 17,
+      "reading_order": 206,
+      "display_text": "a , Designed 230nt oligos corresponding to thousands of cCREs are synthesized on an Agilent array. The 1st round of PCR adds on a minimal promoter, while the 2nd round of PCR adds random barcodes to these sequences. The library is then cloned into a pLS-SceI vector harboring an EGFP reporter to generate the final element library. b , The element-barcode fragments within the library are amplified by PCR and sequenced using an Illumina NextSeq instrument. This enables reconstruction of element-barcode pairings. c , The element library is packaged into lentiviruses and transduced into HepG2, K562, or WTC11 cells in a series of three replicates. Cells are grown in cultured medium for three days prior to the harvesting of RNA and DNA. Each RNA and DNA",
+      "retrieval_text": "[Section: Article] a , Designed 230nt oligos corresponding to thousands of cCREs are synthesized on an Agilent array. The 1st round of PCR adds on a minimal promoter, while the 2nd round of PCR adds random barcodes to these sequences. The library is then cloned into a pLS-SceI vector harboring an EGFP reporter to generate the final element library. b , The element-barcode fragments within the library are amplified by PCR and sequenced using an Illumina NextSeq instrument. This enables reconstruction of element-barcode pairings. c , The element library is packaged into lentiviruses and transduced into HepG2, K562, or WTC11 cells in a series of three replicates. Cells are grown in cultured medium for three days prior to the harvesting of RNA and DNA. Each RNA and DNA",
+      "bbox": [
+        39.68500062399997,
+        711.4072104490311,
+        296.05230133824494,
+        614.8837146156975
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p17_207",
+      "source_block_id": "paper_1_p17_207",
+      "chunk_type": "paragraph",
+      "page_number": 17,
+      "reading_order": 207,
+      "display_text": "sample from each replicate is extracted, and barcodes are sequenced on an Illumina NextSeq instrument. Finally, DNA and RNA-derived barcodes are counted to compute a normalized activity score for each element in each replicate. d , UCSC genome browser tracks annotating, from top to bottom: i) Lead single nucleotide polymorphisms (SNPs) from published Genome-wide Association Studies (GWAS); ii) Common SNPs from the 1000 Genomes Phase 3 dataset; iii) GENCODE gene track; iv) MPRA activity scores from the pilot K562 MPRA library for each of the five enhancers tested, with stronger red indicative of higher activity; v) MPRA scores corresponding to the large-scale K562 MPRA library, tested in both orientations; vi) H3K27Ac; vii) DNase I hypersensitivity signal in K562 cells; viii) base conservation among 100 vertebrate species; and ix) the five enhancers (HS1-HS5) of the globin locus tested in the pilot and largescale K562 MPRA libraries. Image of DNA sequencer created with BioRender.com.",
+      "retrieval_text": "[Section: Article] sample from each replicate is extracted, and barcodes are sequenced on an Illumina NextSeq instrument. Finally, DNA and RNA-derived barcodes are counted to compute a normalized activity score for each element in each replicate. d , UCSC genome browser tracks annotating, from top to bottom: i) Lead single nucleotide polymorphisms (SNPs) from published Genome-wide Association Studies (GWAS); ii) Common SNPs from the 1000 Genomes Phase 3 dataset; iii) GENCODE gene track; iv) MPRA activity scores from the pilot K562 MPRA library for each of the five enhancers tested, with stronger red indicative of higher activity; v) MPRA scores corresponding to the large-scale K562 MPRA library, tested in both orientations; vi) H3K27Ac; vii) DNase I hypersensitivity signal in K562 cells; viii) base conservation among 100 vertebrate species; and ix) the five enhancers (HS1-HS5) of the globin locus tested in the pilot and largescale K562 MPRA libraries. Image of DNA sequencer created with BioRender.com.",
+      "bbox": [
+        306.13999100599995,
+        741.3812079920308,
+        561.0092923215662,
+        614.848712158697
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p34_314",
+      "source_block_id": "paper_1_p34_314",
+      "chunk_type": "paragraph",
+      "page_number": 34,
+      "reading_order": 314,
+      "display_text": "N/A",
+      "retrieval_text": "[Section: Materials & experimental systems Methods] N/A",
+      "bbox": [
+        98.389999389,
+        370.615005969,
+        110.9601609694728,
+        365.67493487496677
+      ],
+      "provenance": "docling",
+      "section_context": "Materials & experimental systems Methods",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p34_315",
+      "source_block_id": "paper_1_p34_315",
+      "chunk_type": "paragraph",
+      "page_number": 34,
+      "reading_order": 315,
+      "display_text": "Blinding was not possible, as we needed to know the identity of each library for the subsequent analyses.",
+      "retrieval_text": "[Section: Materials & experimental systems Methods] Blinding was not possible, as we needed to know the identity of each library for the subsequent analyses.",
+      "bbox": [
+        98.389999389,
+        350.935013293,
+        436.3550223131102,
+        345.9949421989668
+      ],
+      "provenance": "docling",
+      "section_context": "Materials & experimental systems Methods",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p35_316",
+      "source_block_id": "paper_1_p35_316",
+      "chunk_type": "section",
+      "page_number": 35,
+      "reading_order": 316,
+      "display_text": "Eukaryotic cell lines",
+      "retrieval_text": "Eukaryotic cell lines",
+      "bbox": [
+        24.959999084,
+        759.525009631,
+        135.149229200612,
+        750.8937271355416
+      ],
+      "provenance": "docling",
+      "section_context": "Eukaryotic cell lines",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical_with_hints",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [
+      "methods_or_library"
+    ],
+    "hint_terms": [
+      "methods",
+      "design",
+      "library",
+      "cloning",
+      "construct"
+    ]
+  },
+  "stats": {
+    "chunk_build_ms": 4.034,
+    "idf_build_ms": 12.281,
+    "scoring_ms": 10.785,
+    "total_ms": 32.079,
+    "chunk_count_total": 318,
+    "chunk_count_by_type": {
+      "section": 52,
+      "paragraph": 179,
+      "caption": 14,
+      "list_item": 72,
+      "table_region": 1
+    },
+    "candidate_chunk_count": 318,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 11,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T09:05:50.675264+00:00"
+}

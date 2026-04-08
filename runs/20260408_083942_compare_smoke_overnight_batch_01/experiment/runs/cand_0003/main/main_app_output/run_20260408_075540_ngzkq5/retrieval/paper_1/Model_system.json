@@ -1,0 +1,326 @@
+{
+  "run_id": "run_20260408_075540_ngzkq5",
+  "pdf_id": "paper_1",
+  "column_name": "Model system",
+  "query": "Model system: The model system (e.g. which cell line).",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_1_p5_42",
+      "source_block_id": "paper_1_p5_42",
+      "chunk_type": "section",
+      "page_number": 5,
+      "reading_order": 42,
+      "display_text": "Sequence-based models predict activity",
+      "retrieval_text": "Sequence-based models predict activity",
+      "bbox": [
+        39.685001373,
+        314.3899306640312,
+        226.269776373,
+        305.36696498780174
+      ],
+      "provenance": "docling",
+      "section_context": "Sequence-based models predict activity",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p5_43",
+      "source_block_id": "paper_1_p5_43",
+      "chunk_type": "paragraph",
+      "page_number": 5,
+      "reading_order": 43,
+      "display_text": "We next set out to train regression models to predict regulatory activity. We began with a biochemical model (Supplementary Results) that used a compilation of thousands of biochemical features extracted from the three cell types (Supplementary Table 6). This model was able to predict enhancer activities with high accuracy (Pearson r ≈ 0.72) in all three cell types (Supplementary Fig. 5a) using a tenfold cross-validation approach on our data. Many biochemical features were strongly associated with element activity (Supplementary Fig. 5b-e). The variable feature count associated with each cell type led to the possibility of biasing performance. However, training models that considered a 'universal' feature set, merging features from all cell types, only weakly improved performance (Supplementary Fig. 5f).",
+      "retrieval_text": "[Section: Sequence-based models predict activity] We next set out to train regression models to predict regulatory activity. We began with a biochemical model (Supplementary Results) that used a compilation of thousands of biochemical features extracted from the three cell types (Supplementary Table 6). This model was able to predict enhancer activities with high accuracy (Pearson r ≈ 0.72) in all three cell types (Supplementary Fig. 5a) using a tenfold cross-validation approach on our data. Many biochemical features were strongly associated with element activity (Supplementary Fig. 5b-e). The variable feature count associated with each cell type led to the possibility of biasing performance. However, training models that considered a 'universal' feature set, merging features from all cell types, only weakly improved performance (Supplementary Fig. 5f).",
+      "bbox": [
+        39.685001373,
+        300.55693066403126,
+        296.3626449607092,
+        174.6503462890313
+      ],
+      "provenance": "docling",
+      "section_context": "Sequence-based models predict activity",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p5_44",
+      "source_block_id": "paper_1_p5_44",
+      "chunk_type": "paragraph",
+      "page_number": 5,
+      "reading_order": 44,
+      "display_text": "Sequence-based deep learning models 31 have demonstrated strong performance relative to biochemical models 32 and have been used to predict MPRA data 33,34 . We benchmarked the performance of four sequence-based models, trained on our MPRA data for each of the three cell types: (1) MPRAnn, a standard convolutional neural network (CNN) (Supplementary Fig. 6); (2) MPRALegNet, a CNN based on the LegNet architecture 35 , which uses EfficientNetV2-like convolutional blocks (Fig. 3a); (3) EnformerMPRA, which uses the CNN-transformer architecture Enformer 36 to generate a set of 5,313 predicted biochemical features and then fits a lasso regression to the MPRA data using these features; and (4) SeiMPRA, which fits a similar lasso model considering 21,907 biochemical features predicted by Sei 37 . Both MPRAnn and MPRALegNet underwent optimization procedures to detect hyperparameter and data augmentation settings that improve model performance (Extended Data Fig. 5a,b, Supplementary Methods and Supplementary Table 1). Comparing the performance to our biochemical lasso regression model on the identical ten folds of held-out data, we observed that all sequence-based models outperformed the biochemical model, with MPRALegNet achieving the best performance in two of the three cell types (Fig. 3b and Supplementary Table 8). Although we include EnformerMPRA and SeiMPRA for comparison purposes, we caution that they may have inflated performance because: (1) they have a more than eightfold larger feature set than the biochemical models and were trained on additional cell types and biochemical marks; and (2) having been trained on nearly the entire genome, they had the opportunity to observe biochemical marks associated with elements in the test set. Moreover, sequence-based models probably performed better than biochemical models because they have access to the precise 200-bp sequence being tested, whereas biochemical signals lack this degree of spatial resolution. Combining the folds of data, our best model, MPRALegNet, achieved a performance (Pearson r ≈ 0.83; Fig. 3c) that was comparable to the technical noise of the assay itself (that is, the replication of replicates; Supplementary Fig. 2c-e). Nevertheless, downsampling analysis indicated that the model lies in a regime that could still benefit from additional training data, given the log-linear improvement in performance as a function of training set size for each cell type (Extended Data Fig. 5c).",
+      "retrieval_text": "[Section: Sequence-based models predict activity] Sequence-based deep learning models 31 have demonstrated strong performance relative to biochemical models 32 and have been used to predict MPRA data 33,34 . We benchmarked the performance of four sequence-based models, trained on our MPRA data for each of the three cell types: (1) MPRAnn, a standard convolutional neural network (CNN) (Supplementary Fig. 6); (2) MPRALegNet, a CNN based on the LegNet architecture 35 , which uses EfficientNetV2-like convolutional blocks (Fig. 3a); (3) EnformerMPRA, which uses the CNN-transformer architecture Enformer 36 to generate a set of 5,313 predicted biochemical features and then fits a lasso regression to the MPRA data using these features; and (4) SeiMPRA, which fits a similar lasso model considering 21,907 biochemical features predicted by Sei 37 . Both MPRAnn and MPRALegNet underwent optimization procedures to detect hyperparameter and data augmentation settings that improve model performance (Extended Data Fig. 5a,b, Supplementary Methods and Supplementary Table 1). Comparing the performance to our biochemical lasso regression model on the identical ten folds of held-out data, we observed that all sequence-based models outperformed the biochemical model, with MPRALegNet achieving the best performance in two of the three cell types (Fig. 3b and Supplementary Table 8). Although we include EnformerMPRA and SeiMPRA for comparison purposes, we caution that they may have inflated performance because: (1) they have a more than eightfold larger feature set than the biochemical models and were trained on additional cell types and biochemical marks; and (2) having been trained on nearly the entire genome, they had the opportunity to observe biochemical marks associated with elements in the test set. Moreover, sequence-based models probably performed better than biochemical models because they have access to the precise 200-bp sequence being tested, whereas biochemical signals lack this degree of spatial resolution. Combining the folds of data, our best model, MPRALegNet, achieved a performance (Pearson r ≈ 0.83; Fig. 3c) that was comparable to the technical noise of the assay itself (that is, the replication of replicates; Supplementary Fig. 2c-e). Nevertheless, downsampling analysis indicated that the model lies in a regime that could still benefit from additional training data, given the log-linear improvement in performance as a function of training set size for each cell type (Extended Data Fig. 5c).",
+      "bbox": [
+        39.685001373,
+        172.68063240512924,
+        296.43536301298417,
+        45.65034247403128
+      ],
+      "provenance": "docling",
+      "section_context": "Sequence-based models predict activity",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p5_45",
+      "source_block_id": "paper_1_p5_45",
+      "chunk_type": "paragraph",
+      "page_number": 5,
+      "reading_order": 45,
+      "display_text": "Given the favourable performance of MPRALegNet, we sought to examine the principles it had learned. We performed in silico mutagenesis (ISM) on the full set of MPRA data and then used TF-MoDISco-lite 38 to identify motifs at variants with a large predicted effect size. This strategy identified many housekeeping factors that are predicted to activate transcription in all cell types, including NRF1, USF1/2, TFEB and TFE3, JUN and FOS-related, KLF-related (KLF/SP), C/EBP-related and ETS-related transcription factor families; additionally, we discovered a motif for REST, a known transcriptional repressor 39 (Extended Data Fig. 6). Of note, CTCF was associated with both transcriptional activation and repression, suggesting that it may impart differential responses depending on sequence context. The top three TFBSs most frequently associated with transcriptional activation among all cell types were KLF-related, ETS-related and CTCF motifs; by contrast, the top cell-type-specific TFBS were HNF4A/G in HepG2 cells, GATA-TAL1 dimer in K562 cells and POU5F1-SOX2 composite element in WTC11 cells (Fig. 3d). Overall, many motifs, including several unknown TFBSs, were discovered that were overlooked by a classic motif-enrichment analysis (Extended Data Fig. 4), supporting the complementarity of the TF-MoDISco approach. To validate the implicated transcription factors, we examined an MPRA dataset in which elements were tested in the context of transcription factor knockdown via CRISPR inhibition in K562 cells 40 . We were able to validate GATA1, NRF1, SP1 and FOSL1 as regulatory factors, with insufficient evidence for STAT1 and ATF4, potentially owing to limited knockdown efficiency or compensatory effects conferred by other transcription factor family members (Extended Data Fig. 7a).",
+      "retrieval_text": "[Section: Sequence-based models predict activity] Given the favourable performance of MPRALegNet, we sought to examine the principles it had learned. We performed in silico mutagenesis (ISM) on the full set of MPRA data and then used TF-MoDISco-lite 38 to identify motifs at variants with a large predicted effect size. This strategy identified many housekeeping factors that are predicted to activate transcription in all cell types, including NRF1, USF1/2, TFEB and TFE3, JUN and FOS-related, KLF-related (KLF/SP), C/EBP-related and ETS-related transcription factor families; additionally, we discovered a motif for REST, a known transcriptional repressor 39 (Extended Data Fig. 6). Of note, CTCF was associated with both transcriptional activation and repression, suggesting that it may impart differential responses depending on sequence context. The top three TFBSs most frequently associated with transcriptional activation among all cell types were KLF-related, ETS-related and CTCF motifs; by contrast, the top cell-type-specific TFBS were HNF4A/G in HepG2 cells, GATA-TAL1 dimer in K562 cells and POU5F1-SOX2 composite element in WTC11 cells (Fig. 3d). Overall, many motifs, including several unknown TFBSs, were discovered that were overlooked by a classic motif-enrichment analysis (Extended Data Fig. 4), supporting the complementarity of the TF-MoDISco approach. To validate the implicated transcription factors, we examined an MPRA dataset in which elements were tested in the context of transcription factor knockdown via CRISPR inhibition in K562 cells 40 . We were able to validate GATA1, NRF1, SP1 and FOSL1 as regulatory factors, with insufficient evidence for STAT1 and ATF4, potentially owing to limited knockdown efficiency or compensatory effects conferred by other transcription factor family members (Extended Data Fig. 7a).",
+      "bbox": [
+        306.141693115,
+        472.55693066403126,
+        562.8716449277836,
+        185.4003462890313
+      ],
+      "provenance": "docling",
+      "section_context": "Sequence-based models predict activity",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p7_63",
+      "source_block_id": "paper_1_p7_63",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 63,
+      "display_text": "We next sought to interrogate the cell-type-specific activity of each element. We performed a principal components analysis using our matrix of element activity scores in three cell types and removed the dominant principal component, which represented the 'universal' signal of element activity among cell types. An analysis of principal components 2 and 3 (PC2 and PC3) revealed that promoters have a slight bias towards expression in WTC11 cells, and both controls and potential enhancers have a stronger bias towards greater expression in the cell type from which they were derived (Fig. 5c). We computed an element specificity score, which measures the deviation of each element from its mean activity across cell types. These scores recapitulated the expected patterns of enrichment or depletion of element activity for different element categories, with HepG2 and K562 controls showing strong relative activity in their respective cell types; potential enhancers showing strong relative activity in their respective cell types; and promoters and negative controls showing weakly stronger activity in WTC11 cells relative to others (Fig. 5d and Supplementary Fig. 10). A possible explanation for the stronger activity of negative controls in WTC11 could be that stem cells tend to exhibit a more globally open chromatin state 47 , making them susceptible to greater levels of background transcription relative to other cell types.",
+      "retrieval_text": "[Section: Characterization of cell-specific factors] We next sought to interrogate the cell-type-specific activity of each element. We performed a principal components analysis using our matrix of element activity scores in three cell types and removed the dominant principal component, which represented the 'universal' signal of element activity among cell types. An analysis of principal components 2 and 3 (PC2 and PC3) revealed that promoters have a slight bias towards expression in WTC11 cells, and both controls and potential enhancers have a stronger bias towards greater expression in the cell type from which they were derived (Fig. 5c). We computed an element specificity score, which measures the deviation of each element from its mean activity across cell types. These scores recapitulated the expected patterns of enrichment or depletion of element activity for different element categories, with HepG2 and K562 controls showing strong relative activity in their respective cell types; potential enhancers showing strong relative activity in their respective cell types; and promoters and negative controls showing weakly stronger activity in WTC11 cells relative to others (Fig. 5d and Supplementary Fig. 10). A possible explanation for the stronger activity of negative controls in WTC11 could be that stem cells tend to exhibit a more globally open chromatin state 47 , making them susceptible to greater levels of background transcription relative to other cell types.",
+      "bbox": [
+        306.141693115,
+        332.80693066403126,
+        562.8884745046627,
+        110.15059628903123
+      ],
+      "provenance": "docling",
+      "section_context": "Characterization of cell-specific factors",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p7_64",
+      "source_block_id": "paper_1_p7_64",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 64,
+      "display_text": "We next benchmarked the performance of biochemical and sequence-based models in predicting our lentiMPRA element specificity scores. Consistent with previous results, a multi-task version of MPRALegNet outperformed the biochemical model and EnformerMPRA outperformed both MPRALegNet and the biochemical model for each of the three cell types (Pearson r ≈ 0.81 for EnformerMPRA; Fig. 5e",
+      "retrieval_text": "[Section: Characterization of cell-specific factors] We next benchmarked the performance of biochemical and sequence-based models in predicting our lentiMPRA element specificity scores. Consistent with previous results, a multi-task version of MPRALegNet outperformed the biochemical model and EnformerMPRA outperformed both MPRALegNet and the biochemical model for each of the three cell types (Pearson r ≈ 0.81 for EnformerMPRA; Fig. 5e",
+      "bbox": [
+        306.141693115,
+        107.05693066403126,
+        562.8551166637802,
+        45.65034247403128
+      ],
+      "provenance": "docling",
+      "section_context": "Characterization of cell-specific factors",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p8_65",
+      "source_block_id": "paper_1_p8_65",
+      "chunk_type": "section",
+      "page_number": 8,
+      "reading_order": 65,
+      "display_text": "Article",
+      "retrieval_text": "Article",
+      "bbox": [
+        39.685001373,
+        762.3165463860313,
+        86.78100137300002,
+        750.0879711881421
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p24_220",
+      "source_block_id": "paper_1_p24_220",
+      "chunk_type": "paragraph",
+      "page_number": 24,
+      "reading_order": 220,
+      "display_text": "a , Violin plots showing the performances of different variations of MPRALegNet on each of the ten cross-validation folds of held-out data, for different types of augmentations. '-' and '+' indicate removal or usage, respectively, of the following augmentations: i) 'test-time', whereby the mean prediction is computed for various augmentations of the test sequence; ii) 'shift', whereby a sequence was randomly shifted by 0 to +21 bp; iii) 'RevComp', whereby a sequence was randomly reverse complemented; iv) 'Orientation', whereby measured element activity scores were considered for each orientation tested, instead of the mean across both orientations; and v) '5th channel', whereby a",
+      "retrieval_text": "[Section: Extended Data Fig. 5 | Architecture and performance of MPRALegNet.] a , Violin plots showing the performances of different variations of MPRALegNet on each of the ten cross-validation folds of held-out data, for different types of augmentations. '-' and '+' indicate removal or usage, respectively, of the following augmentations: i) 'test-time', whereby the mean prediction is computed for various augmentations of the test sequence; ii) 'shift', whereby a sequence was randomly shifted by 0 to +21 bp; iii) 'RevComp', whereby a sequence was randomly reverse complemented; iv) 'Orientation', whereby measured element activity scores were considered for each orientation tested, instead of the mean across both orientations; and v) '5th channel', whereby a",
+      "bbox": [
+        39.68500137299998,
+        731.4132104490312,
+        295.03030134224224,
+        644.8927146156976
+      ],
+      "provenance": "docling",
+      "section_context": "Extended Data Fig. 5 | Architecture and performance of MPRALegNet.",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p24_221",
+      "source_block_id": "paper_1_p24_221",
+      "chunk_type": "paragraph",
+      "page_number": 24,
+      "reading_order": 221,
+      "display_text": "5th channel was considered alongside the one-hot encoded sequence ( i.e ., the first 4 channels) to indicate the sequence's orientation. b , Complete architecture of the MPRALegNet model. Indicated for each layer is the layer name and dimensionality of the input and output matrices. 'None' refers to the batch size used during model training. c , Impact of the size of the training set on model performance. Data from each cell type were downsampled to every 10th percentile ( i.e ., from 10 to 100%). Error bars represent the standard deviation of the Pearson correlations across 90 models (10 held-out folds of data x 9 trained models varying by the choice of validation set).",
+      "retrieval_text": "[Section: Extended Data Fig. 5 | Architecture and performance of MPRALegNet.] 5th channel was considered alongside the one-hot encoded sequence ( i.e ., the first 4 channels) to indicate the sequence's orientation. b , Complete architecture of the MPRALegNet model. Indicated for each layer is the layer name and dimensionality of the input and output matrices. 'None' refers to the batch size used during model training. c , Impact of the size of the training set on model performance. Data from each cell type were downsampled to every 10th percentile ( i.e ., from 10 to 100%). Error bars represent the standard deviation of the Pearson correlations across 90 models (10 held-out folds of data x 9 trained models varying by the choice of validation set).",
+      "bbox": [
+        306.1399917549999,
+        741.3882104490309,
+        562.4869851246627,
+        654.8677146156973
+      ],
+      "provenance": "docling",
+      "section_context": "Extended Data Fig. 5 | Architecture and performance of MPRALegNet.",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p25_222",
+      "source_block_id": "paper_1_p25_222",
+      "chunk_type": "paragraph",
+      "page_number": 25,
+      "reading_order": 222,
+      "display_text": "Extended Data Fig. 6 | Motifs detected by MPRALegNet. Set of enriched motifs discovered by TF-MoDISco-lite 38 for each of the three cell types evaluated. Motifs shown are rank-ordered according to their 'seqlet' 38 count.",
+      "retrieval_text": "[Section: Extended Data Fig. 5 | Architecture and performance of MPRALegNet.] Extended Data Fig. 6 | Motifs detected by MPRALegNet. Set of enriched motifs discovered by TF-MoDISco-lite 38 for each of the three cell types evaluated. Motifs shown are rank-ordered according to their 'seqlet' 38 count.",
+      "bbox": [
+        39.6851,
+        93.79312542703133,
+        289.36570532200005,
+        67.29362959369791
+      ],
+      "provenance": "docling",
+      "section_context": "Extended Data Fig. 5 | Architecture and performance of MPRALegNet.",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p33_247",
+      "source_block_id": "paper_1_p33_247",
+      "chunk_type": "paragraph",
+      "page_number": 33,
+      "reading_order": 247,
+      "display_text": "A description of any assumptions or corrections, such as tests of normality and adjustment for multiple comparisons",
+      "retrieval_text": "[Section: Statistics] A description of any assumptions or corrections, such as tests of normality and adjustment for multiple comparisons",
+      "bbox": [
+        58.069999694,
+        439.369995117,
+        478.44031098428115,
+        433.8331780148622
+      ],
+      "provenance": "docling",
+      "section_context": "Statistics",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p33_248",
+      "source_block_id": "paper_1_p33_248",
+      "chunk_type": "paragraph",
+      "page_number": 33,
+      "reading_order": 248,
+      "display_text": "A full description of the statistical parameters including central tendency (e.g. means) or other basic estimates (e.g. regression coefficient) AND variation (e.g. standard deviation) or associated estimates of uncertainty (e.g. confidence intervals)",
+      "retrieval_text": "[Section: Statistics] A full description of the statistical parameters including central tendency (e.g. means) or other basic estimates (e.g. regression coefficient) AND variation (e.g. standard deviation) or associated estimates of uncertainty (e.g. confidence intervals)",
+      "bbox": [
+        58.069999694,
+        421.980010986,
+        557.2024804680003,
+        405.63319632486224
+      ],
+      "provenance": "docling",
+      "section_context": "Statistics",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p33_249",
+      "source_block_id": "paper_1_p33_249",
+      "chunk_type": "paragraph",
+      "page_number": 33,
+      "reading_order": 249,
+      "display_text": "For null hypothesis testing, the test statistic (e.g. F , t , r ) with confidence intervals, effect sizes, degrees of freedom and P value noted Give P values as exact values whenever suitable.",
+      "retrieval_text": "[Section: Statistics] For null hypothesis testing, the test statistic (e.g. F , t , r ) with confidence intervals, effect sizes, degrees of freedom and P value noted Give P values as exact values whenever suitable.",
+      "bbox": [
+        58.069999694,
+        392.940002441,
+        537.116714648,
+        377.42383490917837
+      ],
+      "provenance": "docling",
+      "section_context": "Statistics",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p34_292",
+      "source_block_id": "paper_1_p34_292",
+      "chunk_type": "section",
+      "page_number": 34,
+      "reading_order": 292,
+      "display_text": "Reporting for specific materials, systems and methods",
+      "retrieval_text": "Reporting for specific materials, systems and methods",
+      "bbox": [
+        23.51,
+        306.04499877899997,
+        458.8580437019736,
+        293.72250471724226
+      ],
+      "provenance": "docling",
+      "section_context": "Reporting for specific materials, systems and methods",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p34_293",
+      "source_block_id": "paper_1_p34_293",
+      "chunk_type": "paragraph",
+      "page_number": 34,
+      "reading_order": 293,
+      "display_text": "Werequire information from authors about some types of materials, experimental systems and methods used in many studies. Here, indicate whether each material, system or method listed is relevant to your study. If you are not sure if a list item applies to your research, read the appropriate section before selecting a response.",
+      "retrieval_text": "[Section: Reporting for specific materials, systems and methods] Werequire information from authors about some types of materials, experimental systems and methods used in many studies. Here, indicate whether each material, system or method listed is relevant to your study. If you are not sure if a list item applies to your research, read the appropriate section before selecting a response.",
+      "bbox": [
+        24.959999084,
+        285.525009631,
+        557.7585110369095,
+        270.9949421989668
+      ],
+      "provenance": "docling",
+      "section_context": "Reporting for specific materials, systems and methods",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p34_294",
+      "source_block_id": "paper_1_p34_294",
+      "chunk_type": "section",
+      "page_number": 34,
+      "reading_order": 294,
+      "display_text": "Materials & experimental systems Methods",
+      "retrieval_text": "Materials & experimental systems Methods",
+      "bbox": [
+        27.83,
+        249.95500230699997,
+        260.71095408337544,
+        243.1693255122541
+      ],
+      "provenance": "docling",
+      "section_context": "Materials & experimental systems Methods",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [],
+    "hint_terms": []
+  },
+  "stats": {
+    "chunk_build_ms": 3.913,
+    "idf_build_ms": 9.663,
+    "scoring_ms": 7.558,
+    "total_ms": 26.082,
+    "chunk_count_total": 318,
+    "chunk_count_by_type": {
+      "section": 52,
+      "paragraph": 179,
+      "caption": 14,
+      "list_item": 72,
+      "table_region": 1
+    },
+    "candidate_chunk_count": 318,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 10,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T08:59:40.224740+00:00"
+}

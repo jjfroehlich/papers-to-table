@@ -33,6 +33,40 @@ def _parse_json_stdout(stdout: str) -> dict[str, Any]:
     raise ValueError("eval CLI did not emit a machine-readable JSON payload")
 
 
+def _format_subprocess_failure(*, return_code: int, stdout: str, stderr: str) -> str:
+    stderr_lines = [line.strip() for line in stderr.splitlines() if line.strip()]
+    stdout_lines = [line.strip() for line in stdout.splitlines() if line.strip()]
+    detail = stderr_lines[-1] if stderr_lines else (stdout_lines[-1] if stdout_lines else "no output captured")
+    return f"eval CLI failed with exit code {return_code}: {detail}"
+
+
+def _resolve_run_bundled_gold_path(main_run_dir: Path | None) -> Path | None:
+    if main_run_dir is None:
+        return None
+    run_json_path = main_run_dir / "run.json"
+    if not run_json_path.exists():
+        return None
+    try:
+        run_payload = read_json(run_json_path)
+    except Exception:
+        return None
+    eval_artifacts = run_payload.get("eval_artifacts") if isinstance(run_payload, dict) else None
+    if not isinstance(eval_artifacts, dict):
+        return None
+    gold_table = eval_artifacts.get("gold_table")
+    if not isinstance(gold_table, dict):
+        return None
+    snapshot_path = gold_table.get("snapshot_path")
+    if not isinstance(snapshot_path, str) or not snapshot_path.strip():
+        return None
+    candidate = Path(snapshot_path)
+    resolved = candidate if candidate.is_absolute() else (main_run_dir / candidate)
+    resolved = resolved.resolve()
+    if not resolved.exists():
+        return None
+    return resolved
+
+
 def _metric_group_from_mapping(
     mapping: dict[str, str] | list[str] | None,
     *,
@@ -144,7 +178,9 @@ def launch_eval_app(
 
     if main_run_dir is None:
         raise ValueError("main_run_dir is required for real eval-app integration")
-    if not benchmark.gold_path:
+    bundled_gold_path = _resolve_run_bundled_gold_path(main_run_dir)
+    gold_path = str(bundled_gold_path) if bundled_gold_path is not None else benchmark.gold_path
+    if not gold_path:
         raise ValueError(f"Benchmark '{benchmark_id}' is missing gold_path required for eval")
 
     command_prefix = list(
@@ -158,7 +194,7 @@ def launch_eval_app(
         "--run",
         str(main_run_dir),
         "--gold",
-        benchmark.gold_path,
+        gold_path,
         "--out",
         str(out_dir),
         "--json-output",
@@ -176,7 +212,10 @@ def launch_eval_app(
     ended_at = utc_now_iso()
     duration_seconds = time.monotonic() - started_monotonic
 
-    payload = _parse_json_stdout(proc.stdout)
+    try:
+        payload = _parse_json_stdout(proc.stdout)
+    except ValueError as exc:
+        raise ValueError(_format_subprocess_failure(return_code=proc.returncode, stdout=proc.stdout, stderr=proc.stderr)) from exc
     payload_path = out_dir / "eval_result.json"
     write_json(payload_path, payload)
 
@@ -203,6 +242,7 @@ def launch_eval_app(
         payload=payload,
         artifact_paths={
             "eval_result_path": str(payload_path.resolve()),
+            "gold_path": gold_path,
             "compare_dir": payload.get("compare_dir"),
             "per_run_dir": payload.get("per_run_dir"),
             "runs_comparison_csv": (payload.get("comparison_artifacts") or {}).get("runs_comparison_csv"),

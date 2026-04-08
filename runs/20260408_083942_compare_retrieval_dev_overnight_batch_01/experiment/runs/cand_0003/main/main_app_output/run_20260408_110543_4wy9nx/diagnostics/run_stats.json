@@ -1,0 +1,485 @@
+{
+  "run_id": "run_20260408_110543_4wy9nx",
+  "retrieval_mode": "lexical",
+  "provider_token": "lm_studio",
+  "prompt_hash": "bdaa44abfb1a94d5ebc42c5d5ca347715c76faf4dc9f9192e51c545f2f7c6f62",
+  "prompt_bundle_id": "default",
+  "prompt_bundle_version": "1.0.0",
+  "prompt_bundle_path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default",
+  "prompt_manifest_hash": "60f9792ee6b40316b7b121bd33a6774af7a64238a431428b9973ee54114376b9",
+  "prompt_bundle_hash": "d594aa8cd6d563fcc2988485a268d0a9559c0a618ec816573090437b1ee6be43",
+  "prompt_keys_used": [
+    "evidence_recovery_system",
+    "evidence_recovery_user",
+    "figure_extraction_system",
+    "figure_extraction_user",
+    "style_profile_system",
+    "text_extraction_system",
+    "text_extraction_user"
+  ],
+  "prompt_files": {
+    "text_extraction_system": {
+      "logical_key": "text_extraction_system",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\text_extraction\\system.md",
+      "relative_path": "text_extraction/system.md",
+      "sha256": "b4bb59273298d9bab714527b571fc308434c58bc4d1eab86b00c09002931a501"
+    },
+    "text_extraction_user": {
+      "logical_key": "text_extraction_user",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\text_extraction\\user.md",
+      "relative_path": "text_extraction/user.md",
+      "sha256": "2b8373f8e25f0fe5c6b3cd7167de14d0d7361dc83fa86bb4d8d7a863ec1a9327"
+    },
+    "figure_extraction_system": {
+      "logical_key": "figure_extraction_system",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\figure_extraction\\system.md",
+      "relative_path": "figure_extraction/system.md",
+      "sha256": "82f9f9a9b145389345d766e1043d95e9e56f5f2842f07c0631cd33da3214101c"
+    },
+    "figure_extraction_user": {
+      "logical_key": "figure_extraction_user",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\figure_extraction\\user.md",
+      "relative_path": "figure_extraction/user.md",
+      "sha256": "a7e1d77fb57e8e6238446e0d84e9c0aedda2762b1a9c471bdc4d75504475c7d1"
+    },
+    "evidence_recovery_system": {
+      "logical_key": "evidence_recovery_system",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\evidence_recovery\\system.md",
+      "relative_path": "evidence_recovery/system.md",
+      "sha256": "19c2e7a0cc80ee1a5f3696fde8c123007a5a8a59cec96f7c4218d1a9fdd0bb7a"
+    },
+    "evidence_recovery_user": {
+      "logical_key": "evidence_recovery_user",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\evidence_recovery\\user.md",
+      "relative_path": "evidence_recovery/user.md",
+      "sha256": "f0db7f5f1621aaaac8c644e645dfcd98090be8eceea5e0c4a036fd49ea333c55"
+    },
+    "style_profile_system": {
+      "logical_key": "style_profile_system",
+      "path": "D:\\code\\local\\extract-structured-info-from-papers\\backend\\app\\prompt_bundles\\default\\style_profile\\system.md",
+      "relative_path": "style_profile/system.md",
+      "sha256": "db428a31aa4062754ce828da9afc853422c8aacbfafb1a007cfe4f17baadf5de"
+    }
+  },
+  "per_run": {
+    "started_at": "2026-04-08T11:05:43.607378+00:00",
+    "completed_at": "2026-04-08T11:09:07.294529+00:00",
+    "run_total_ms": 203675.974,
+    "stage_ms": {
+      "validating": 540.661,
+      "load_inputs": 254.701,
+      "provider_init": 2558.072,
+      "parse": 169073.834,
+      "match": 86.172,
+      "style_profiles": 15427.426,
+      "extraction": 15729.355
+    },
+    "stage_timing_ms": {
+      "stage_validating_ms": 540.661,
+      "stage_load_inputs_ms": 254.701,
+      "stage_provider_init_ms": 2558.072,
+      "stage_parsing_ms": 169073.834,
+      "stage_matching_ms": 86.172,
+      "stage_style_profiles_ms": 15427.426,
+      "stage_extraction_ms": 15729.355
+    },
+    "stage_total_ms_recorded": 203670.221
+  },
+  "per_pdf": {
+    "paper_1": {
+      "parse_pdf_ms": 63753.763,
+      "retrieval_prep_ms": 0.0,
+      "retrieval_query_ms": 0.0,
+      "retrieval_calls": 0,
+      "chunk_build_count": 0,
+      "idf_build_count": 0,
+      "chunk_count_total": 0,
+      "chunk_count_by_type": {
+        "paragraph": 0,
+        "section": 0,
+        "caption": 0,
+        "table_region": 0,
+        "abstract": 0,
+        "list_item": 0
+      },
+      "neighbor_chunks_added_count": 0,
+      "selected_chunk_count_total": 0,
+      "candidate_chunk_count_total": 0,
+      "cells_processed": 0,
+      "pdf_cell_count": 0,
+      "text_model_call_count": 0,
+      "vision_model_call_count": 0,
+      "evidence_item_count": 0
+    },
+    "paper_2": {
+      "parse_pdf_ms": 52043.229,
+      "retrieval_prep_ms": 40.241,
+      "retrieval_query_ms": 81.289,
+      "retrieval_calls": 3,
+      "chunk_build_count": 3,
+      "idf_build_count": 3,
+      "chunk_count_total": 326,
+      "chunk_count_by_type": {
+        "paragraph": 174,
+        "section": 59,
+        "caption": 17,
+        "table_region": 0,
+        "abstract": 0,
+        "list_item": 76
+      },
+      "neighbor_chunks_added_count": 40,
+      "selected_chunk_count_total": 30,
+      "candidate_chunk_count_total": 978,
+      "cells_processed": 2,
+      "pdf_cell_count": 2,
+      "text_model_call_count": 4,
+      "vision_model_call_count": 0,
+      "evidence_item_count": 0
+    },
+    "paper_3": {
+      "parse_pdf_ms": 53274.198,
+      "retrieval_prep_ms": 0.0,
+      "retrieval_query_ms": 0.0,
+      "retrieval_calls": 0,
+      "chunk_build_count": 0,
+      "idf_build_count": 0,
+      "chunk_count_total": 0,
+      "chunk_count_by_type": {
+        "paragraph": 0,
+        "section": 0,
+        "caption": 0,
+        "table_region": 0,
+        "abstract": 0,
+        "list_item": 0
+      },
+      "neighbor_chunks_added_count": 0,
+      "selected_chunk_count_total": 0,
+      "candidate_chunk_count_total": 0,
+      "cells_processed": 0,
+      "pdf_cell_count": 0,
+      "text_model_call_count": 0,
+      "vision_model_call_count": 0,
+      "evidence_item_count": 0
+    }
+  },
+  "per_cell": [
+    {
+      "cell_id": "cell_ccdf26728131",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "RNA library",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical_with_hints",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [
+          "methods_or_library"
+        ],
+        "hint_terms": [
+          "methods",
+          "design",
+          "library",
+          "cloning",
+          "construct"
+        ]
+      },
+      "retrieval_query_ms": 31.89,
+      "retrieval_prep_ms": 12.658,
+      "candidate_chunk_count": 326,
+      "selected_chunk_count": 10,
+      "neighbor_chunks_added_count": 16,
+      "chunk_count_total": 326,
+      "chunk_count_by_type": {
+        "paragraph": 174,
+        "section": 59,
+        "caption": 17,
+        "table_region": 0,
+        "abstract": 0,
+        "list_item": 76
+      },
+      "cell_total_ms": 5336.956,
+      "text_model_ms": 5288.206,
+      "text_model_calls": 2,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 31.472,
+      "recall_rescue_retrieval_prep_ms": 13.263,
+      "recall_rescue_used": true,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 2,
+        "failure_count": 0,
+        "total_duration_ms": 5286.844,
+        "request_kinds": {
+          "text_structured": 2
+        },
+        "outcomes": {
+          "success": 2
+        },
+        "last_error": null
+      },
+      "retrieval_diagnostics": {
+        "classification": "retrieval_policy_limit",
+        "signals": [
+          "recall_rescue_used"
+        ],
+        "query": "RNA library: How the RNA library is prepared when the assay is being conducted\nRetrieval hints: methods design library cloning construct",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 26,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 0,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": false,
+        "trigger_reasons": [
+          "text_unclear"
+        ],
+        "suppressed_reason": null,
+        "shortlist_size": 0,
+        "review_calls": 0,
+        "review_ms": 0.0,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "unclear",
+      "proposal_support": "blocked",
+      "warning_flags": [
+        "recall_rescue_used"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260408_110543_4wy9nx_cell_ccdf26728131_1775646531599",
+      "evidence_item_count": 0,
+      "direct_quote_count": 0,
+      "approximate_highlight_count": 0,
+      "quote_plus_page_count": 0,
+      "figure_derived_evidence_count": 0
+    },
+    {
+      "cell_id": "cell_fbe4d5c81159",
+      "pdf_id": "paper_2",
+      "row_index": 157,
+      "column_name": "Integration site",
+      "retrieval_mode": "lexical",
+      "retrieval_request_mode": "baseline",
+      "retrieval_policy": {
+        "query_mode": "lexical",
+        "scoring_profile": "bm25_lite",
+        "heuristic_tags": [],
+        "hint_terms": []
+      },
+      "retrieval_query_ms": 25.072,
+      "retrieval_prep_ms": 13.73,
+      "candidate_chunk_count": 326,
+      "selected_chunk_count": 10,
+      "neighbor_chunks_added_count": 17,
+      "chunk_count_total": 326,
+      "chunk_count_by_type": {
+        "paragraph": 174,
+        "section": 59,
+        "caption": 17,
+        "table_region": 0,
+        "abstract": 0,
+        "list_item": 76
+      },
+      "cell_total_ms": 6838.866,
+      "text_model_ms": 6792.215,
+      "text_model_calls": 2,
+      "evidence_anchoring_ms": 0.0,
+      "evidence_anchor_attempts": 0,
+      "figure_review_ms": 0.0,
+      "figure_review_calls": 0,
+      "evidence_recovery_ms": 0.0,
+      "recall_rescue_retrieval_ms": 26.308,
+      "recall_rescue_retrieval_prep_ms": 14.324,
+      "recall_rescue_used": true,
+      "whole_document_used": false,
+      "needs_more_evidence": false,
+      "figure_hits_count": 0,
+      "provider_diagnostics": {
+        "attempt_count": 2,
+        "failure_count": 0,
+        "total_duration_ms": 6790.816,
+        "request_kinds": {
+          "text_structured": 2
+        },
+        "outcomes": {
+          "success": 2
+        },
+        "last_error": null
+      },
+      "retrieval_diagnostics": {
+        "classification": "retrieval_policy_limit",
+        "signals": [
+          "recall_rescue_used"
+        ],
+        "query": "Integration site: In case the assay is genomic integrated, then where it is integrated. Lenti or PiggyBac would be random, recombinases/landing pad based systems would have a specific locus usually.",
+        "request_mode": "baseline",
+        "retrieval_mode": "lexical",
+        "top_k": 10,
+        "retrieved_chunk_count": 27,
+        "top_chunk_types": [
+          "paragraph",
+          "paragraph",
+          "section",
+          "paragraph",
+          "paragraph"
+        ],
+        "parser_gap_signals": [],
+        "quote_count": 0,
+        "exact_evidence_count": 0,
+        "approximate_evidence_count": 0,
+        "fallback_evidence_count": 0,
+        "figure_evidence_count": 0,
+        "proposed_value_seen_in_retrieval": false,
+        "quoted_text_seen_in_retrieval": false
+      },
+      "figure_review_diagnostics": {
+        "triggered": false,
+        "trigger_reasons": [
+          "text_unclear",
+          "figure_graph_promising",
+          "figure_rescue_candidate"
+        ],
+        "suppressed_reason": null,
+        "shortlist_size": 0,
+        "review_calls": 0,
+        "review_ms": 0.0,
+        "hit_count": 0,
+        "useful": false,
+        "figure_evidence_persisted": 0,
+        "rescued_value": false
+      },
+      "proposal_state": "unclear",
+      "proposal_support": "blocked",
+      "warning_flags": [
+        "recall_rescue_used"
+      ],
+      "figure_review_triggered": false,
+      "figure_review_useful": false,
+      "figure_review_rescued": false,
+      "proposal_id": "prop_run_20260408_110543_4wy9nx_cell_fbe4d5c81159_1775646536963",
+      "evidence_item_count": 0,
+      "direct_quote_count": 0,
+      "approximate_highlight_count": 0,
+      "quote_plus_page_count": 0,
+      "figure_derived_evidence_count": 0
+    }
+  ],
+  "counters": {
+    "provider_request_counts": {
+      "http_total": 12,
+      "models_list": 1,
+      "model_management_list": 2,
+      "model_management_load": 0,
+      "model_management_unload": 0,
+      "completions_total": 9,
+      "completions_text_raw": 3,
+      "completions_text_structured": 5,
+      "completions_vision_structured": 0,
+      "completions_probe_structured": 1,
+      "completion_retry_attempts": 0
+    },
+    "parse_errors": 0,
+    "parse_warnings": 3,
+    "matched_pdfs": 3,
+    "unmatched_pdfs": 0,
+    "ambiguous_pdfs": 0,
+    "duplicate_conflict_pdfs": 0,
+    "eligible_cells": 9399,
+    "processed_cells": 2,
+    "recall_rescue_cells": 2,
+    "whole_document_cells": 0,
+    "needs_more_evidence_cells": 0,
+    "figure_review_cells": 0,
+    "figure_review_triggered_cells": 0,
+    "figure_review_hit_cells": 0,
+    "figure_review_useful_cells": 0,
+    "figure_review_rescue_cells": 0,
+    "figure_review_hits_total": 0,
+    "pdf_count": 3,
+    "eligible_cell_count": 9399,
+    "processed_cell_count": 2,
+    "matched_pdf_count": 3,
+    "unmatched_pdf_count": 0,
+    "ambiguous_pdf_count": 0,
+    "duplicate_conflict_pdf_count": 0,
+    "cells_per_pdf": {
+      "paper_1": 0,
+      "paper_2": 2,
+      "paper_3": 0
+    },
+    "retrieval_calls": 3,
+    "retrieval_calls_per_pdf": {
+      "paper_1": 0,
+      "paper_2": 3,
+      "paper_3": 0
+    },
+    "chunk_count_total": 326,
+    "chunk_count_by_type": {
+      "paragraph": 174,
+      "section": 59,
+      "caption": 17,
+      "table_region": 0,
+      "abstract": 0,
+      "list_item": 76
+    },
+    "chunk_build_count_per_pdf": {
+      "paper_1": 0,
+      "paper_2": 3,
+      "paper_3": 0
+    },
+    "idf_build_count_per_pdf": {
+      "paper_1": 0,
+      "paper_2": 3,
+      "paper_3": 0
+    },
+    "neighbor_chunks_added_count": 40,
+    "chunk_build_repeated_work_count": 2,
+    "idf_build_repeated_work_count": 2,
+    "retrieval_repeated_work_count": 4,
+    "text_model_call_count": 4,
+    "vision_model_call_count": 0,
+    "evidence_item_count": 0,
+    "direct_quote_count": 0,
+    "approximate_highlight_count": 0,
+    "quote_plus_page_count": 0,
+    "figure_derived_evidence_count": 0,
+    "needs_more_evidence_count": 0,
+    "recall_rescue_used_count": 2,
+    "whole_document_used_count": 0,
+    "figure_review_triggered_count": 0
+  },
+  "consistency": {
+    "processed_cells_match_per_cell_records": true,
+    "retrieval_calls_match_per_pdf_sum": true,
+    "evidence_items_match_persisted_records": true,
+    "text_model_calls_match_per_cell_sum": true,
+    "vision_model_calls_match_per_cell_sum": true
+  },
+  "recorded_at": "2026-04-08T11:09:07.304557+00:00"
+}

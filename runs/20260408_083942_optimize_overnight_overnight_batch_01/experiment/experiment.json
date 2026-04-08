@@ -1,0 +1,8 @@
+{
+  "batch_size": 4,
+  "benchmark_id": "bench_dev",
+  "experiment_id": "optimize_overnight",
+  "rounds": 6,
+  "schema_version": "1.0",
+  "study_type": "optimize"
+}

@@ -1,0 +1,362 @@
+{
+  "run_id": "run_20260408_063946_jb0k8g",
+  "pdf_id": "paper_1",
+  "column_name": "Journal",
+  "query": "Journal: Journal the paper was published in.",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_1_p1_4",
+      "source_block_id": "paper_1_p1_4",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 4,
+      "display_text": "Accepted: 20 November 2024",
+      "retrieval_text": "[Section: Massively parallel characterization of transcriptional regulatory elements] Accepted: 20 November 2024",
+      "bbox": [
+        39.685001373,
+        612.1124306640312,
+        152.42900137299995,
+        605.1088687762307
+      ],
+      "provenance": "docling",
+      "section_context": "Massively parallel characterization of transcriptional regulatory elements",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p1_5",
+      "source_block_id": "paper_1_p1_5",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 5,
+      "display_text": "Published online: 15 January 2025",
+      "retrieval_text": "[Section: Massively parallel characterization of transcriptional regulatory elements] Published online: 15 January 2025",
+      "bbox": [
+        39.685001373,
+        596.0084306640312,
+        166.31700137299995,
+        589.0048687762306
+      ],
+      "provenance": "docling",
+      "section_context": "Massively parallel characterization of transcriptional regulatory elements",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p1_6",
+      "source_block_id": "paper_1_p1_6",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 6,
+      "display_text": "Open access",
+      "retrieval_text": "[Section: Massively parallel characterization of transcriptional regulatory elements] Open access",
+      "bbox": [
+        39.685001373,
+        579.9044306640311,
+        88.10900137299997,
+        572.9008687762306
+      ],
+      "provenance": "docling",
+      "section_context": "Massively parallel characterization of transcriptional regulatory elements",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_136",
+      "source_block_id": "paper_1_p10_136",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 136,
+      "display_text": "Thurman, R. E. et al. The accessible chromatin landscape of the human genome. Nature 489 , 75-82 (2012).",
+      "retrieval_text": "[Section: Online content] Thurman, R. E. et al. The accessible chromatin landscape of the human genome. Nature 489 , 75-82 (2012).",
+      "bbox": [
+        306.0610190790005,
+        260.38138500703144,
+        555.614819079002,
+        247.10406425231452
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_137",
+      "source_block_id": "paper_1_p10_137",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 137,
+      "display_text": "Publisher's note Springer Nature remains neutral with regard to jurisdictional claims in published maps and institutional affiliations.",
+      "retrieval_text": "[Section: Online content] Publisher's note Springer Nature remains neutral with regard to jurisdictional claims in published maps and institutional affiliations.",
+      "bbox": [
+        306.0610190790006,
+        236.3453850070315,
+        540.6298190767101,
+        223.06806425231457
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_138",
+      "source_block_id": "paper_1_p10_138",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 138,
+      "display_text": "Open Access This article is licensed under a Creative Commons Attribution 4.0 International License, which permits use, sharing, adaptation, distribution and reproduction in any medium or format, as long as you give appropriate credit to the original author(s) and the source, provide a link to the Creative Commons licence, and indicate if changes were made. The images or other third party material in this article are included in the article's Creative Commons licence, unless indicated otherwise in a credit line to the material. If material is not included in the article's Creative Commons licence and your intended use is not permitted by statutory regulation or exceeds the permitted use, you will need to obtain permission directly from the copyright holder. To view a copy of this licence, visit http://creativecommons.org/licenses/by/4.0/.",
+      "retrieval_text": "[Section: Online content] Open Access This article is licensed under a Creative Commons Attribution 4.0 International License, which permits use, sharing, adaptation, distribution and reproduction in any medium or format, as long as you give appropriate credit to the original author(s) and the source, provide a link to the Creative Commons licence, and indicate if changes were made. The images or other third party material in this article are included in the article's Creative Commons licence, unless indicated otherwise in a credit line to the material. If material is not included in the article's Creative Commons licence and your intended use is not permitted by statutory regulation or exceeds the permitted use, you will need to obtain permission directly from the copyright holder. To view a copy of this licence, visit http://creativecommons.org/licenses/by/4.0/.",
+      "bbox": [
+        350.645996093,
+        212.2002298580312,
+        560.6933960930006,
+        190.90690910331432
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p12_155",
+      "source_block_id": "paper_1_p12_155",
+      "chunk_type": "section",
+      "page_number": 12,
+      "reading_order": 155,
+      "display_text": "Cell culture, lentivirus packaging and titration",
+      "retrieval_text": "Cell culture, lentivirus packaging and titration",
+      "bbox": [
+        306.141693115,
+        699.4874306640312,
+        490.99374311500003,
+        691.6079042391608
+      ],
+      "provenance": "docling",
+      "section_context": "Cell culture, lentivirus packaging and titration",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p12_156",
+      "source_block_id": "paper_1_p12_156",
+      "chunk_type": "paragraph",
+      "page_number": 12,
+      "reading_order": 156,
+      "display_text": "HepG2 (ATCC, HB-8065) and K562 (ATCC, CCL-243) cell culture were performed as previously described 10 . WTC11 human iPS cells (RRID:CVCL_Y803) were cultured in mTeSR plus medium (Stemcell technologies, 100-0276) and passaged using ReLeSR (Stemcell technologies, 100-0484), according to the manufacturer's instructions. WTC11 cells were used for the MPRA experiments at passage 43-49. Cells were not authenticated or checked for mycoplasma contamination. Lentivirus packaging was performed using HEK293T (ATCC, CRL3216), as previously described with modifications 16 . In brief, 50,000 cells per cm 2 HEK293T cells were seeded in T175 flasks and cultured for 48 h. The cells were co-transfected with 7.5 μg per flask of plasmid libraries, 2.5 μg per flask of pMD2.G (Addgene 12259), and 5 μg per flask of psPAX2 (Addgene 12260) using EndoFectin Lenti transfection reagent (GeneCopoeia) according to the manufacturer's instructions. After 8 h, cell culture media was refreshed and ViralBoost reagent (Alstem) was added. The transfected cells were cultured for 2 days to complete lentivirus packaging. The lentivirus libraries in the culture media were separated from the HEK293T cells and concentrated using the Lenti-X concentrator (Takara) according to the manufacturer's protocol. To measure DNA titre for the lentiviral libraries in HepG2, K562, or WTC11, cells were seeded at 1 × 10 5 cells per well in 24-well plates and incubated for 24 h. Serial volume (0, 2, 4, 8, 16 and 32 μl) of the lentivirus was added along with Polybrene at a final concentration of 8 μg ml -1 . The infected cells were cultured for three days and then washed with PBS three times. Genomic DNA was extracted using the Wizard SV genomic DNA purification kit (Promega). Multiplicity of infection (MOI) was measured as relative amount of viral DNA (WPRE region, forward; 5′-TACGCTGCTTTAATGCCTTTG-3′, reverse; 5′-GGGCCACAACTCCTCATAAAG-3′) over that of genomic DNA (intronic region of LIPC gene, forward; 5′-TCCTCCGGAGTTATTCTTGGCA-3′, reverse; 5′-CCCCCCATCTGATCTGTTTCAC-3′) by quantitative PCR using SsoFast EvaGreen Supermix (Bio-Rad), according to the manufacturer's protocol.",
+      "retrieval_text": "[Section: Cell culture, lentivirus packaging and titration] HepG2 (ATCC, HB-8065) and K562 (ATCC, CCL-243) cell culture were performed as previously described 10 . WTC11 human iPS cells (RRID:CVCL_Y803) were cultured in mTeSR plus medium (Stemcell technologies, 100-0276) and passaged using ReLeSR (Stemcell technologies, 100-0484), according to the manufacturer's instructions. WTC11 cells were used for the MPRA experiments at passage 43-49. Cells were not authenticated or checked for mycoplasma contamination. Lentivirus packaging was performed using HEK293T (ATCC, CRL3216), as previously described with modifications 16 . In brief, 50,000 cells per cm 2 HEK293T cells were seeded in T175 flasks and cultured for 48 h. The cells were co-transfected with 7.5 μg per flask of plasmid libraries, 2.5 μg per flask of pMD2.G (Addgene 12259), and 5 μg per flask of psPAX2 (Addgene 12260) using EndoFectin Lenti transfection reagent (GeneCopoeia) according to the manufacturer's instructions. After 8 h, cell culture media was refreshed and ViralBoost reagent (Alstem) was added. The transfected cells were cultured for 2 days to complete lentivirus packaging. The lentivirus libraries in the culture media were separated from the HEK293T cells and concentrated using the Lenti-X concentrator (Takara) according to the manufacturer's protocol. To measure DNA titre for the lentiviral libraries in HepG2, K562, or WTC11, cells were seeded at 1 × 10 5 cells per well in 24-well plates and incubated for 24 h. Serial volume (0, 2, 4, 8, 16 and 32 μl) of the lentivirus was added along with Polybrene at a final concentration of 8 μg ml -1 . The infected cells were cultured for three days and then washed with PBS three times. Genomic DNA was extracted using the Wizard SV genomic DNA purification kit (Promega). Multiplicity of infection (MOI) was measured as relative amount of viral DNA (WPRE region, forward; 5′-TACGCTGCTTTAATGCCTTTG-3′, reverse; 5′-GGGCCACAACTCCTCATAAAG-3′) over that of genomic DNA (intronic region of LIPC gene, forward; 5′-TCCTCCGGAGTTATTCTTGGCA-3′, reverse; 5′-CCCCCCATCTGATCTGTTTCAC-3′) by quantitative PCR using SsoFast EvaGreen Supermix (Bio-Rad), according to the manufacturer's protocol.",
+      "bbox": [
+        306.141693115,
+        687.5569306640313,
+        562.821778023005,
+        335.90034628903123
+      ],
+      "provenance": "docling",
+      "section_context": "Cell culture, lentivirus packaging and titration",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p12_157",
+      "source_block_id": "paper_1_p12_157",
+      "chunk_type": "section",
+      "page_number": 12,
+      "reading_order": 157,
+      "display_text": "Lentiviral infections and DNA and RNA barcode sequencing",
+      "retrieval_text": "Lentiviral infections and DNA and RNA barcode sequencing",
+      "bbox": [
+        306.141693115,
+        323.23743066403125,
+        541.4063931149999,
+        315.3579042391608
+      ],
+      "provenance": "docling",
+      "section_context": "Lentiviral infections and DNA and RNA barcode sequencing",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p13_163",
+      "source_block_id": "paper_1_p13_163",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 163,
+      "display_text": "Biochemical model features. We extracted all transcription factor ChIP-seq, histone ChIP-seq, DNase-seq, and ATAC-seq bigWig files available for HepG2, K562, and WTC11 cells for the hg38 human genome assembly under 'released' ENCODE status 56 . To account for the lack of WTC11 data available, we also collected all such datasets for H1-ESCs for inclusion in the predictive model. This resulted in 1,506 bigWig files for HepG2 cells; 1,206 files for K562 cells; and 277 files for WTC11/H1-ESCs (Supplementary Table 6). For each candidate element aside from controls, we computed the mean bigWig signal extracted from the corresponding region of the human genome using bigWigAverageOverBed 60 .",
+      "retrieval_text": "[Section: Regression modelling] Biochemical model features. We extracted all transcription factor ChIP-seq, histone ChIP-seq, DNase-seq, and ATAC-seq bigWig files available for HepG2, K562, and WTC11 cells for the hg38 human genome assembly under 'released' ENCODE status 56 . To account for the lack of WTC11 data available, we also collected all such datasets for H1-ESCs for inclusion in the predictive model. This resulted in 1,506 bigWig files for HepG2 cells; 1,206 files for K562 cells; and 277 files for WTC11/H1-ESCs (Supplementary Table 6). For each candidate element aside from controls, we computed the mean bigWig signal extracted from the corresponding region of the human genome using bigWigAverageOverBed 60 .",
+      "bbox": [
+        39.6851,
+        150.05693066403126,
+        296.3100171169043,
+        45.65034247403128
+      ],
+      "provenance": "docling",
+      "section_context": "Regression modelling",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p13_164",
+      "source_block_id": "paper_1_p13_164",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 164,
+      "display_text": "All data was right-skewed, and was therefore log-transformed (that is, after adding a pseudocount of 0.1) to approximate a normal distribution. Finally, for each cell type, multiple replicates corresponding to the same 'experiment target' (Supplementary Table 6) were averaged to compute the consensus signal for each target in each cell type. This led to a total of 655 HepG2 features, 447 K562 features and 122 WTC11/ H1-ESC features considered by the models.",
+      "retrieval_text": "[Section: Regression modelling] All data was right-skewed, and was therefore log-transformed (that is, after adding a pseudocount of 0.1) to approximate a normal distribution. Finally, for each cell type, multiple replicates corresponding to the same 'experiment target' (Supplementary Table 6) were averaged to compute the consensus signal for each target in each cell type. This led to a total of 655 HepG2 features, 447 K562 features and 122 WTC11/ H1-ESC features considered by the models.",
+      "bbox": [
+        306.141693115,
+        741.3069306640313,
+        562.8700294183969,
+        669.1503462890313
+      ],
+      "provenance": "docling",
+      "section_context": "Regression modelling",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p13_165",
+      "source_block_id": "paper_1_p13_165",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 165,
+      "display_text": "Sei and EnformerMPRA model features. For the large-scale libraries, Sei 37 and Enformer 36 were used to predict element activity in both orientations (that is, including adaptors in a fixed orientation to simulate the MPRA experiment). The resulting 21,907 Sei and 5,313 Enformer predictions for each of the two orientations were averaged. For the joint library, Sei and Enformer were used to predict element activity in only the forward/sense orientation, and the resulting human predictions were carried forward as features. As Sei requires an input sequence length of 4,000 bp and Enformer requires one of 196,608 bp, all elements were extended with 'N' padding in both directions while centring on the element sequence.",
+      "retrieval_text": "[Section: Regression modelling] Sei and EnformerMPRA model features. For the large-scale libraries, Sei 37 and Enformer 36 were used to predict element activity in both orientations (that is, including adaptors in a fixed orientation to simulate the MPRA experiment). The resulting 21,907 Sei and 5,313 Enformer predictions for each of the two orientations were averaged. For the joint library, Sei and Enformer were used to predict element activity in only the forward/sense orientation, and the resulting human predictions were carried forward as features. As Sei requires an input sequence length of 4,000 bp and Enformer requires one of 196,608 bp, all elements were extended with 'N' padding in both directions while centring on the element sequence.",
+      "bbox": [
+        306.141693115,
+        655.3069306640313,
+        562.74740703047,
+        540.1504742180314
+      ],
+      "provenance": "docling",
+      "section_context": "Regression modelling",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p18_209",
+      "source_block_id": "paper_1_p18_209",
+      "chunk_type": "paragraph",
+      "page_number": 18,
+      "reading_order": 209,
+      "display_text": "D",
+      "retrieval_text": "[Section: Article] D",
+      "bbox": [
+        78.104301452,
+        743.8182384329513,
+        83.949195670188,
+        729.4688128793063
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p19_210",
+      "source_block_id": "paper_1_p19_210",
+      "chunk_type": "paragraph",
+      "page_number": 19,
+      "reading_order": 210,
+      "display_text": "Extended Data Fig. 2 | MPRA activity in selected disease loci. a-f , UCSC genome browser tracks annotating, from top to bottom: i) Lead single nucleotide polymorphisms (SNPs) from published Genome-wide Association Studies (GWAS); ii) Common SNPs from the 1000 Genomes Phase 3 dataset; iii) GENCODE gene track; iv) MPRA activity scores from the pilot K562 MPRA library for each of the five enhancers tested, with stronger red indicative of higher activity; v) MPRA scores corresponding to the large-scale K562 MPRA library, tested in both orientations; vi) H3K27Ac and vii) DNase I hypersensitivity signal in K562 cells; viii) base conservation among 100 vertebrate species. Snapshots provided for BCL11A ( a ), GATA1 ( b ), and HBA2 ( c ). Additional loci are shown in Supplementary Fig. 3.",
+      "retrieval_text": "[Section: Article] Extended Data Fig. 2 | MPRA activity in selected disease loci. a-f , UCSC genome browser tracks annotating, from top to bottom: i) Lead single nucleotide polymorphisms (SNPs) from published Genome-wide Association Studies (GWAS); ii) Common SNPs from the 1000 Genomes Phase 3 dataset; iii) GENCODE gene track; iv) MPRA activity scores from the pilot K562 MPRA library for each of the five enhancers tested, with stronger red indicative of higher activity; v) MPRA scores corresponding to the large-scale K562 MPRA library, tested in both orientations; vi) H3K27Ac and vii) DNase I hypersensitivity signal in K562 cells; viii) base conservation among 100 vertebrate species. Snapshots provided for BCL11A ( a ), GATA1 ( b ), and HBA2 ( c ). Additional loci are shown in Supplementary Fig. 3.",
+      "bbox": [
+        39.678001373,
+        741.4162104490313,
+        289.67460137032566,
+        684.9047146156978
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p20_211",
+      "source_block_id": "paper_1_p20_211",
+      "chunk_type": "section",
+      "page_number": 20,
+      "reading_order": 211,
+      "display_text": "Article",
+      "retrieval_text": "Article",
+      "bbox": [
+        39.685001373,
+        762.4145463860312,
+        85.85700137300003,
+        749.4584931073427
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p33_257",
+      "source_block_id": "paper_1_p33_257",
+      "chunk_type": "paragraph",
+      "page_number": 33,
+      "reading_order": 257,
+      "display_text": "Data analysis",
+      "retrieval_text": "[Section: Software and code] Data analysis",
+      "bbox": [
+        32.029998779,
+        231.404999255,
+        73.90760225444505,
+        226.4649281609668
+      ],
+      "provenance": "docling",
+      "section_context": "Software and code",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p33_258",
+      "source_block_id": "paper_1_p33_258",
+      "chunk_type": "paragraph",
+      "page_number": 33,
+      "reading_order": 258,
+      "display_text": "For manuscripts utilizing custom algorithms or software that are central to the research but not yet described in published literature, software must be made available to editors and reviewers. We strongly encourage code deposition in a community repository (e.g. GitHub). See the Nature Portfolio guidelines for submitting code & software for further information.",
+      "retrieval_text": "[Section: Software and code] For manuscripts utilizing custom algorithms or software that are central to the research but not yet described in published literature, software must be made available to editors and reviewers. We strongly encourage code deposition in a community repository (e.g. GitHub). See the Nature Portfolio guidelines for submitting code & software for further information.",
+      "bbox": [
+        24.959999084,
+        207.29499450599997,
+        547.6161672905982,
+        194.4155182923207
+      ],
+      "provenance": "docling",
+      "section_context": "Software and code",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p33_259",
+      "source_block_id": "paper_1_p33_259",
+      "chunk_type": "paragraph",
+      "page_number": 33,
+      "reading_order": 259,
+      "display_text": "https://github.com/Altius/hotspot2, https://github.com/ENCODE-DCC/atac-seq-pipeline",
+      "retrieval_text": "[Section: Software and code] https://github.com/Altius/hotspot2, https://github.com/ENCODE-DCC/atac-seq-pipeline",
+      "bbox": [
+        98.389999389,
+        251.08500718999994,
+        381.8415235937382,
+        246.14493609596673
+      ],
+      "provenance": "docling",
+      "section_context": "Software and code",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [],
+    "hint_terms": []
+  },
+  "stats": {
+    "chunk_build_ms": 1.887,
+    "idf_build_ms": 10.052,
+    "scoring_ms": 6.018,
+    "total_ms": 23.323,
+    "chunk_count_total": 318,
+    "chunk_count_by_type": {
+      "section": 52,
+      "paragraph": 179,
+      "caption": 14,
+      "list_item": 72,
+      "table_region": 1
+    },
+    "candidate_chunk_count": 318,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 12,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T07:20:53.982317+00:00"
+}

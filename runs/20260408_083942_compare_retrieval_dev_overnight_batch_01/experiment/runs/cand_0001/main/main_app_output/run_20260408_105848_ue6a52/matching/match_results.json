@@ -1,0 +1,50 @@
+[
+  {
+    "pdf_id": "paper_1",
+    "pdf_path": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table\\paper_1.pdf",
+    "outcome": "matched",
+    "matched_row_index": 173,
+    "matched_row_title": "Massively parallel characterization of transcriptional regulatory elements",
+    "score": 0.66,
+    "runner_up_score": 0.25,
+    "runner_up_row_index": 188,
+    "conflict_pdf_ids": [],
+    "conflict_row_indices": [],
+    "reasoning": "Clear match: score 0.660 vs runner-up 0.250 (gap 0.410 >= 0.15). Matched to row 173: 'Massively parallel characterization of transcriptional regul'",
+    "blocked": false,
+    "blocked_reason": null,
+    "matched_at": "2026-04-08T11:02:05.600800+00:00"
+  },
+  {
+    "pdf_id": "paper_2",
+    "pdf_path": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table\\paper_2.pdf",
+    "outcome": "matched",
+    "matched_row_index": 157,
+    "matched_row_title": "Compatibility rules of human enhancer and promoter sequences",
+    "score": 0.66,
+    "runner_up_score": 0.145,
+    "runner_up_row_index": 50,
+    "conflict_pdf_ids": [],
+    "conflict_row_indices": [],
+    "reasoning": "Clear match: score 0.660 vs runner-up 0.145 (gap 0.515 >= 0.15). Matched to row 157: 'Compatibility rules of human enhancer and promoter sequences'",
+    "blocked": false,
+    "blocked_reason": null,
+    "matched_at": "2026-04-08T11:02:05.621129+00:00"
+  },
+  {
+    "pdf_id": "paper_3",
+    "pdf_path": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table\\paper_3.pdf",
+    "outcome": "matched",
+    "matched_row_index": 190,
+    "matched_row_title": "Optimized Reporters for Multiplexed Detection of Transcription Factor Activity",
+    "score": 0.8,
+    "runner_up_score": 0.301961,
+    "runner_up_row_index": 178,
+    "conflict_pdf_ids": [],
+    "conflict_row_indices": [],
+    "reasoning": "Clear match: score 0.800 vs runner-up 0.302 (gap 0.498 >= 0.15). Matched to row 190: 'Optimized Reporters for Multiplexed Detection of Transcripti'",
+    "blocked": false,
+    "blocked_reason": null,
+    "matched_at": "2026-04-08T11:02:05.651704+00:00"
+  }
+]

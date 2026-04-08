@@ -1,0 +1,362 @@
+{
+  "run_id": "run_20260408_075540_ngzkq5",
+  "pdf_id": "paper_1",
+  "column_name": "Link",
+  "query": "Link: DOI link.",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_1_p1_1",
+      "source_block_id": "paper_1_p1_1",
+      "chunk_type": "section",
+      "page_number": 1,
+      "reading_order": 1,
+      "display_text": "Massively parallel characterization of transcriptional regulatory elements",
+      "retrieval_text": "Massively parallel characterization of transcriptional regulatory elements",
+      "bbox": [
+        39.685001373,
+        740.0854433590313,
+        481.4510013730003,
+        688.0197478857802
+      ],
+      "provenance": "docling",
+      "section_context": "Massively parallel characterization of transcriptional regulatory elements",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p1_2",
+      "source_block_id": "paper_1_p1_2",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 2,
+      "display_text": "https://doi.org/10.1038/s41586-024-08430-9",
+      "retrieval_text": "[Section: Massively parallel characterization of transcriptional regulatory elements] https://doi.org/10.1038/s41586-024-08430-9",
+      "bbox": [
+        39.685001373,
+        644.3204306640313,
+        205.81300137299988,
+        637.3168687762308
+      ],
+      "provenance": "docling",
+      "section_context": "Massively parallel characterization of transcriptional regulatory elements",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p1_3",
+      "source_block_id": "paper_1_p1_3",
+      "chunk_type": "paragraph",
+      "page_number": 1,
+      "reading_order": 3,
+      "display_text": "Received: 5 March 2023",
+      "retrieval_text": "[Section: Massively parallel characterization of transcriptional regulatory elements] Received: 5 March 2023",
+      "bbox": [
+        39.685001373,
+        628.2164306640312,
+        129.62100137299987,
+        621.2128687762307
+      ],
+      "provenance": "docling",
+      "section_context": "Massively parallel characterization of transcriptional regulatory elements",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_99",
+      "source_block_id": "paper_1_p10_99",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 99,
+      "display_text": "Chen, A., Chen, D. & Chen, Y. Advances of DNase-seq for mapping active gene regulatory elements across the genome in animals. Gene 667 , 83-94 (2018).",
+      "retrieval_text": "[Section: Online content] Chen, A., Chen, D. & Chen, Y. Advances of DNase-seq for mapping active gene regulatory elements across the genome in animals. Gene 667 , 83-94 (2018).",
+      "bbox": [
+        39.655012760999966,
+        300.32940185503105,
+        294.62441275870793,
+        287.052081100314
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_100",
+      "source_block_id": "paper_1_p10_100",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 100,
+      "display_text": "Ernst, J. et al. Genome-scale high-resolution mapping of activating and repressive nucleotides in regulatory regions. Nat. Biotechnol. https://doi.org/10.1038/nbt.3678 (2016).",
+      "retrieval_text": "[Section: Online content] Ernst, J. et al. Genome-scale high-resolution mapping of activating and repressive nucleotides in regulatory regions. Nat. Biotechnol. https://doi.org/10.1038/nbt.3678 (2016).",
+      "bbox": [
+        39.64900854899997,
+        284.297401855031,
+        284.38420854214223,
+        263.0040811003139
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_101",
+      "source_block_id": "paper_1_p10_101",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 101,
+      "display_text": "Smith, R. P. et al. Massively parallel decoding of mammalian regulatory sequences supports a flexible organizational model. Nat. Genet. 45 , 1021-1028 (2013).",
+      "retrieval_text": "[Section: Online content] Smith, R. P. et al. Massively parallel decoding of mammalian regulatory sequences supports a flexible organizational model. Nat. Genet. 45 , 1021-1028 (2013).",
+      "bbox": [
+        39.64900854899997,
+        260.249401855031,
+        296.1862085398496,
+        246.97208110031397
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_108",
+      "source_block_id": "paper_1_p10_108",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 108,
+      "display_text": "Schraivogel, D. et al. Targeted Perturb-seq enables genome-scale genetic screens in single cells. Nat. Methods 17 , 629-635 (2020).",
+      "retrieval_text": "[Section: Online content] Schraivogel, D. et al. Targeted Perturb-seq enables genome-scale genetic screens in single cells. Nat. Methods 17 , 629-635 (2020).",
+      "bbox": [
+        39.630994166999955,
+        131.99340185503115,
+        282.2301941669997,
+        118.71608110031411
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_109",
+      "source_block_id": "paper_1_p10_109",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 109,
+      "display_text": "van Arensbergen, J. et al. Genome-wide mapping of autonomous promoter activity in human cells. Nat. Biotechnol. https://doi.org/10.1038/nbt.3754 (2016).",
+      "retrieval_text": "[Section: Online content] van Arensbergen, J. et al. Genome-wide mapping of autonomous promoter activity in human cells. Nat. Biotechnol. https://doi.org/10.1038/nbt.3754 (2016).",
+      "bbox": [
+        306.084994167,
+        741.341385007031,
+        551.0781941670011,
+        728.0640642523141
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_110",
+      "source_block_id": "paper_1_p10_110",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 110,
+      "display_text": "Weingarten-Gabbay, S. et al. Systematic interrogation of human promoters. Genome Res. 29 , 171-183 (2019).",
+      "retrieval_text": "[Section: Online content] Weingarten-Gabbay, S. et al. Systematic interrogation of human promoters. Genome Res. 29 , 171-183 (2019).",
+      "bbox": [
+        306.084994167,
+        725.3093850070311,
+        560.078194173871,
+        712.0320642523142
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_137",
+      "source_block_id": "paper_1_p10_137",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 137,
+      "display_text": "Publisher's note Springer Nature remains neutral with regard to jurisdictional claims in published maps and institutional affiliations.",
+      "retrieval_text": "[Section: Online content] Publisher's note Springer Nature remains neutral with regard to jurisdictional claims in published maps and institutional affiliations.",
+      "bbox": [
+        306.0610190790006,
+        236.3453850070315,
+        540.6298190767101,
+        223.06806425231457
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_138",
+      "source_block_id": "paper_1_p10_138",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 138,
+      "display_text": "Open Access This article is licensed under a Creative Commons Attribution 4.0 International License, which permits use, sharing, adaptation, distribution and reproduction in any medium or format, as long as you give appropriate credit to the original author(s) and the source, provide a link to the Creative Commons licence, and indicate if changes were made. The images or other third party material in this article are included in the article's Creative Commons licence, unless indicated otherwise in a credit line to the material. If material is not included in the article's Creative Commons licence and your intended use is not permitted by statutory regulation or exceeds the permitted use, you will need to obtain permission directly from the copyright holder. To view a copy of this licence, visit http://creativecommons.org/licenses/by/4.0/.",
+      "retrieval_text": "[Section: Online content] Open Access This article is licensed under a Creative Commons Attribution 4.0 International License, which permits use, sharing, adaptation, distribution and reproduction in any medium or format, as long as you give appropriate credit to the original author(s) and the source, provide a link to the Creative Commons licence, and indicate if changes were made. The images or other third party material in this article are included in the article's Creative Commons licence, unless indicated otherwise in a credit line to the material. If material is not included in the article's Creative Commons licence and your intended use is not permitted by statutory regulation or exceeds the permitted use, you will need to obtain permission directly from the copyright holder. To view a copy of this licence, visit http://creativecommons.org/licenses/by/4.0/.",
+      "bbox": [
+        350.645996093,
+        212.2002298580312,
+        560.6933960930006,
+        190.90690910331432
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_139",
+      "source_block_id": "paper_1_p10_139",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 139,
+      "display_text": "© The Author(s) 2025",
+      "retrieval_text": "[Section: Online content] © The Author(s) 2025",
+      "bbox": [
+        306.143996093,
+        124.03622985803133,
+        363.9359960930006,
+        118.77490910331437
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p14_194",
+      "source_block_id": "paper_1_p14_194",
+      "chunk_type": "list_item",
+      "page_number": 14,
+      "reading_order": 194,
+      "display_text": "Agarwal, V., Schubach, M., Penzar, D. & Dash, M. P. Massively parallel characterization of transcriptional regulatory elements in three diverse human cell types. Zenodo https:// zenodo.org/records/10558183 (2024).",
+      "retrieval_text": "[Section: Code availability] Agarwal, V., Schubach, M., Penzar, D. & Dash, M. P. Massively parallel characterization of transcriptional regulatory elements in three diverse human cell types. Zenodo https:// zenodo.org/records/10558183 (2024).",
+      "bbox": [
+        306.1238407330004,
+        185.5054323730311,
+        557.6858506150002,
+        164.2121116183141
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p14_195",
+      "source_block_id": "paper_1_p14_195",
+      "chunk_type": "list_item",
+      "page_number": 14,
+      "reading_order": 195,
+      "display_text": "Penzar, D. D., Kulakovskiy, I. V., & Agarwal, V. Massively parallel characterization of transcriptional regulatory elements (v0.0.1). Zenodo https://doi.org/10.5281/zenodo. 13908857 (2024).",
+      "retrieval_text": "[Section: Code availability] Penzar, D. D., Kulakovskiy, I. V., & Agarwal, V. Massively parallel characterization of transcriptional regulatory elements (v0.0.1). Zenodo https://doi.org/10.5281/zenodo. 13908857 (2024).",
+      "bbox": [
+        306.12384073300046,
+        161.4574323730311,
+        547.3898375230006,
+        140.1641116183141
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p14_196",
+      "source_block_id": "paper_1_p14_196",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 196,
+      "display_text": "Acknowledgements We thank members of the ENCODE4 Consortium who have provided critical feedback throughout this project; the groups of R. Tewhey, J. Stamatoyannopoulos and A. Kundaje for sharing MPRA data, DNase data and peak calls, respectively; I. Vorontsov for assistance with HOCOMOCO motif clustering; D. Nogina, E. Aristova and N. Gryzunov for assistance with MPRALegNet finalization; and J. Engreitz for assistance and input on scoring of the ABC model. Research was supported in part on work supported under an NRSA NIH fellowship 5T32HL007093 (to V.A.); ASHBi, sponsored by the World Premier International Research Center Initiative (WPI), MEXT, Japan (to F.I.); DFG grant 464313370 (to M.S. and P.M.D.); MPRALegNet tuning (I.V.K. and D.P.) was supported by RSF grant 20-74-10075 (to I. V .K.); ASV analysis (I. V .K.) was supported by MSHERF grant 075-15-2021-1344; grants from the National Human Genome Research Institute (NHGRI) U24 HG009446 (to W.S.N.), and UM1HG009408 (to J.S. and N.A.) and UM1HG011966 (to M.K., J.S. and N.A.). J.S. is an Investigator of the Howard Hughes Medical Institute.",
+      "retrieval_text": "[Section: Code availability] Acknowledgements We thank members of the ENCODE4 Consortium who have provided critical feedback throughout this project; the groups of R. Tewhey, J. Stamatoyannopoulos and A. Kundaje for sharing MPRA data, DNase data and peak calls, respectively; I. Vorontsov for assistance with HOCOMOCO motif clustering; D. Nogina, E. Aristova and N. Gryzunov for assistance with MPRALegNet finalization; and J. Engreitz for assistance and input on scoring of the ABC model. Research was supported in part on work supported under an NRSA NIH fellowship 5T32HL007093 (to V.A.); ASHBi, sponsored by the World Premier International Research Center Initiative (WPI), MEXT, Japan (to F.I.); DFG grant 464313370 (to M.S. and P.M.D.); MPRALegNet tuning (I.V.K. and D.P.) was supported by RSF grant 20-74-10075 (to I. V .K.); ASV analysis (I. V .K.) was supported by MSHERF grant 075-15-2021-1344; grants from the National Human Genome Research Institute (NHGRI) U24 HG009446 (to W.S.N.), and UM1HG009408 (to J.S. and N.A.) and UM1HG011966 (to M.K., J.S. and N.A.). J.S. is an Investigator of the Howard Hughes Medical Institute.",
+      "bbox": [
+        306.1238397250005,
+        123.41143237303118,
+        557.5646397227099,
+        46.006111618314094
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p15_199",
+      "source_block_id": "paper_1_p15_199",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 199,
+      "display_text": "Additional information",
+      "retrieval_text": "Additional information",
+      "bbox": [
+        306.139001373,
+        676.6922578320319,
+        369.5350013730005,
+        671.4438535767129
+      ],
+      "provenance": "docling",
+      "section_context": "Additional information",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p15_200",
+      "source_block_id": "paper_1_p15_200",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 200,
+      "display_text": "Supplementary information The online version contains supplementary material available at https://doi.org/10.1038/s41586-024-08430-9.",
+      "retrieval_text": "[Section: Additional information] Supplementary information The online version contains supplementary material available at https://doi.org/10.1038/s41586-024-08430-9.",
+      "bbox": [
+        306.139001373,
+        668.676257832032,
+        558.4510013730012,
+        655.398937077315
+      ],
+      "provenance": "docling",
+      "section_context": "Additional information",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p15_201",
+      "source_block_id": "paper_1_p15_201",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 201,
+      "display_text": "Correspondence and requests for materials should be addressed to Vikram Agarwal, Jay Shendure or Nadav Ahituv.",
+      "retrieval_text": "[Section: Additional information] Correspondence and requests for materials should be addressed to Vikram Agarwal, Jay Shendure or Nadav Ahituv.",
+      "bbox": [
+        306.139001373,
+        652.644257832032,
+        540.360997527,
+        639.3669370773151
+      ],
+      "provenance": "docling",
+      "section_context": "Additional information",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [],
+    "hint_terms": []
+  },
+  "stats": {
+    "chunk_build_ms": 3.98,
+    "idf_build_ms": 12.212,
+    "scoring_ms": 6.85,
+    "total_ms": 29.188,
+    "chunk_count_total": 318,
+    "chunk_count_by_type": {
+      "section": 52,
+      "paragraph": 179,
+      "caption": 14,
+      "list_item": 72,
+      "table_region": 1
+    },
+    "candidate_chunk_count": 318,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 12,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T09:14:31.823715+00:00"
+}

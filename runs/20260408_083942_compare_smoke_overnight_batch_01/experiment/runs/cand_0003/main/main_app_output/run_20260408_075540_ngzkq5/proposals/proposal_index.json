@@ -1,0 +1,1406 @@
+{
+  "prop_run_20260408_075540_ngzkq5_cell_e41dea4d0b6e_1775635276114": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_e41dea4d0b6e_1775635276114",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "what predicts activity? (e.g. accessible -> active in MPRA?)",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 1
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_ab9e3091884b_1775635336821": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_ab9e3091884b_1775635336821",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "If episomal: Ori in backbone?",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 2
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_15870f236367_1775635397418": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_15870f236367_1775635397418",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Integration method",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 3
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_14efc2925524_1775635458007": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_14efc2925524_1775635458007",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Type of variants",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 4
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_97ea8879a5f6_1775635518595": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_97ea8879a5f6_1775635518595",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Readout",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 5
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_800bc1a56a0e_1775635579183": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_800bc1a56a0e_1775635579183",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Species",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 6
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_84c725e14e26_1775635639775": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_84c725e14e26_1775635639775",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Scale",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 7
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_d714824bc8bb_1775635700410": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_d714824bc8bb_1775635700410",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Delivery",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 8
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_aa99e2a3a3c0_1775635761013": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_aa99e2a3a3c0_1775635761013",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Episomal vs genomic",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 9
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_fbe4d5c81159_1775635821643": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_fbe4d5c81159_1775635821643",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Integration site",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 10
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_e11ce6617d58_1775635882244": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_e11ce6617d58_1775635882244",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Bottlenecking",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 11
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_74f24947a12f_1775635942844": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_74f24947a12f_1775635942844",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "# Variants tested",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 12
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_a9b440d9bb3f_1775636003444": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_a9b440d9bb3f_1775636003444",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Type of Condition",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 13
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_4a4e118c2b65_1775636064025": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_4a4e118c2b65_1775636064025",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "library composition",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 14
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_7258606c253a_1775636147586": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_7258606c253a_1775636147586",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "BC length (bp)",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 15
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_48adfab85eb5_1775636208171": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_48adfab85eb5_1775636208171",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Other notes",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 16
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_3380a1ae4865_1775636268798": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_3380a1ae4865_1775636268798",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Promoter",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 17
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_28df0f22dc3a_1775636329360": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_28df0f22dc3a_1775636329360",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Model system",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 18
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_61c8c7cbd920_1775636389943": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_61c8c7cbd920_1775636389943",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "mean reads per sequence/variant",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 19
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_88af7b440025_1775636450536": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_88af7b440025_1775636450536",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Approach",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 20
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_0d59e8a7e5eb_1775636511136": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_0d59e8a7e5eb_1775636511136",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Focus",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 21
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_77d5c4c71548_1775636571741": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_77d5c4c71548_1775636571741",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "mean # Barcodes per sequence",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 22
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_31ca7bae7535_1775636632320": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_31ca7bae7535_1775636632320",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Cloning",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 23
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_0bd5d9c4d3ee_1775636692913": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_0bd5d9c4d3ee_1775636692913",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "library seq",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 24
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_ccdf26728131_1775636753515": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_ccdf26728131_1775636753515",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "RNA library",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 25
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_765ef86661b5_1775636846020": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_765ef86661b5_1775636846020",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Number of Conditions",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 26
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_6831809f3011_1775636906598": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_6831809f3011_1775636906598",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "MPRABase_Total_Variants_Tested",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 27
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_0a563b86fb9e_1775636967224": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_0a563b86fb9e_1775636967224",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "DNA library",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 28
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_b90a48892caf_1775637027814": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_b90a48892caf_1775637027814",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "General library design category",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 29
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_b966a213c7f5_1775637088411": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_b966a213c7f5_1775637088411",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Abstract",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 30
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_f1cf8829a45a_1775637148992": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_f1cf8829a45a_1775637148992",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Link",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 31
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_482e9d1c5b38_1775637230910": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_482e9d1c5b38_1775637230910",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "length of sequences (bp)",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 32
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_9ef12768e33d_1775637291500": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_9ef12768e33d_1775637291500",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "library construction",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 33
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_4b91e28c2b28_1775637352097": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_4b91e28c2b28_1775637352097",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "UMI?",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 34
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_46b00be3c065_1775637412682": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_46b00be3c065_1775637412682",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Date Added",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 35
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_3290a4290e26_1775637507684": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_3290a4290e26_1775637507684",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Journal",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 36
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_01e0eed636de_1775637568268": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_01e0eed636de_1775637568268",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "MPRABase_datasets_id",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 37
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_0c3a3e294837_1775637628875": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_0c3a3e294837_1775637628875",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Synthetic designs",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 38
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_c97ce86605d2_1775637689479": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_c97ce86605d2_1775637689479",
+    "row_id": "row_d02cb42d72a4",
+    "column_name": "Where is the BC?",
+    "pdf_id": "paper_2",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 39
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_054809b02308_1775637750075": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_054809b02308_1775637750075",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "what predicts activity? (e.g. accessible -> active in MPRA?)",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 40
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_a83b1f1ac1dc_1775637810656": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_a83b1f1ac1dc_1775637810656",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "If episomal: Ori in backbone?",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 41
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_3b0080f22764_1775637871244": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_3b0080f22764_1775637871244",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Integration method",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 42
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_b3d5a3ed772e_1775637931821": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_b3d5a3ed772e_1775637931821",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Type of variants",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 43
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_544cbd44995c_1775637992447": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_544cbd44995c_1775637992447",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Readout",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 44
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_bbc7c1556d93_1775638053028": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_bbc7c1556d93_1775638053028",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Species",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 45
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_46850494b18d_1775638113642": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_46850494b18d_1775638113642",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Scale",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 46
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_ebbef6b49126_1775638174221": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_ebbef6b49126_1775638174221",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Delivery",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 47
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_be17392a4758_1775638234831": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_be17392a4758_1775638234831",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Episomal vs genomic",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 48
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_89483b25fad8_1775638295428": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_89483b25fad8_1775638295428",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Integration site",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 49
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_fa70bda621eb_1775638356026": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_fa70bda621eb_1775638356026",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Bottlenecking",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 50
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_f9502e3b49d0_1775638416646": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_f9502e3b49d0_1775638416646",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "# Variants tested",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 51
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_6eb7e9854428_1775638477241": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_6eb7e9854428_1775638477241",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Type of Condition",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 52
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_9d9b97bf141c_1775638537873": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_9d9b97bf141c_1775638537873",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "library composition",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 53
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_94c8a80670aa_1775638598478": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_94c8a80670aa_1775638598478",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "BC length (bp)",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 54
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_f0b73dd0b61d_1775638659063": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_f0b73dd0b61d_1775638659063",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Other notes",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 55
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_49a0062ac318_1775638719640": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_49a0062ac318_1775638719640",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Promoter",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 56
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_6fe36d6591cc_1775638780227": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_6fe36d6591cc_1775638780227",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Model system",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 57
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_8675e4faff60_1775638875851": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_8675e4faff60_1775638875851",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "mean reads per sequence/variant",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 58
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_0633a4fe2552_1775638936426": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_0633a4fe2552_1775638936426",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Approach",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 59
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_019758212da5_1775638997011": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_019758212da5_1775638997011",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Focus",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 60
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_1ce49162c1cf_1775639090095": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_1ce49162c1cf_1775639090095",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "mean # Barcodes per sequence",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 61
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_e9b67773f99a_1775639150678": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_e9b67773f99a_1775639150678",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Cloning",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 62
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_76cbe0e491ca_1775639247636": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_76cbe0e491ca_1775639247636",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "library seq",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 63
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_e2281aa8d5c5_1775639308238": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_e2281aa8d5c5_1775639308238",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "RNA library",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 64
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_865a3cd5f940_1775639368827": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_865a3cd5f940_1775639368827",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Number of Conditions",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 65
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_5e5928299d7b_1775639429411": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_5e5928299d7b_1775639429411",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "MPRABase_Total_Variants_Tested",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 66
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_1fdb907895a3_1775639490021": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_1fdb907895a3_1775639490021",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "DNA library",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 67
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_93ed456ba04e_1775639550649": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_93ed456ba04e_1775639550649",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "General library design category",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 68
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_394ed4463f44_1775639611236": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_394ed4463f44_1775639611236",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Abstract",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 69
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_f072330b696b_1775639671823": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_f072330b696b_1775639671823",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Link",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 70
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_1f672345d260_1775639732438": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_1f672345d260_1775639732438",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "length of sequences (bp)",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 71
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_f3703c9dbb90_1775639793033": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_f3703c9dbb90_1775639793033",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "library construction",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 72
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_7b605ec4f6b0_1775639853660": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_7b605ec4f6b0_1775639853660",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "UMI?",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 73
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_3bd5d1ea3b90_1775639914239": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_3bd5d1ea3b90_1775639914239",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Date Added",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 74
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_843706829d68_1775639999814": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_843706829d68_1775639999814",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Journal",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 75
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_911fb47bc540_1775640060395": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_911fb47bc540_1775640060395",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "MPRABase_datasets_id",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 76
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_dd0143f5f626_1775640149237": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_dd0143f5f626_1775640149237",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Synthetic designs",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 77
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_00f81c4a7e01_1775640209812": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_00f81c4a7e01_1775640209812",
+    "row_id": "row_8ad8bba28914",
+    "column_name": "Where is the BC?",
+    "pdf_id": "paper_1",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 78
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_c2550de31adc_1775640270410": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_c2550de31adc_1775640270410",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "what predicts activity? (e.g. accessible -> active in MPRA?)",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 79
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_55be6507e8ae_1775640330998": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_55be6507e8ae_1775640330998",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "If episomal: Ori in backbone?",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 80
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_0d68d51a4503_1775640425387": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_0d68d51a4503_1775640425387",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Integration method",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 81
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_d9b66e1bcc07_1775640486001": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_d9b66e1bcc07_1775640486001",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Type of variants",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 82
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_28a72a6fdfa0_1775640546596": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_28a72a6fdfa0_1775640546596",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Readout",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 83
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_a2948646ac5d_1775640607177": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_a2948646ac5d_1775640607177",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Species",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 84
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_f4d3b4a06a78_1775640667756": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_f4d3b4a06a78_1775640667756",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Scale",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 85
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_05e2cc355057_1775640728372": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_05e2cc355057_1775640728372",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Delivery",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 86
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_3505c186125d_1775640788954": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_3505c186125d_1775640788954",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Episomal vs genomic",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 87
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_aecfe0c0a746_1775640849588": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_aecfe0c0a746_1775640849588",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Integration site",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 88
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_ff550b49dc16_1775640910177": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_ff550b49dc16_1775640910177",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Bottlenecking",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 89
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_757aeb38251d_1775640970768": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_757aeb38251d_1775640970768",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "# Variants tested",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 90
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_e8bf2589e357_1775641031365": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_e8bf2589e357_1775641031365",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Type of Condition",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 91
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_85c9192d7641_1775641091935": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_85c9192d7641_1775641091935",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "library composition",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 92
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_3ce38550cc3a_1775641152518": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_3ce38550cc3a_1775641152518",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "BC length (bp)",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 93
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_e9f1f3e6a820_1775641213111": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_e9f1f3e6a820_1775641213111",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Other notes",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 94
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_e8490d654fcb_1775641273697": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_e8490d654fcb_1775641273697",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Promoter",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 95
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_189e4216ca0e_1775641334326": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_189e4216ca0e_1775641334326",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Model system",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 96
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_21df66d92366_1775641394924": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_21df66d92366_1775641394924",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "mean reads per sequence/variant",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 97
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_3e7ca7d443dc_1775641455515": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_3e7ca7d443dc_1775641455515",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Approach",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 98
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_981415a559b8_1775641516146": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_981415a559b8_1775641516146",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Focus",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 99
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_bbfe5b1e7208_1775641576721": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_bbfe5b1e7208_1775641576721",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "mean # Barcodes per sequence",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 100
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_1159c53c4ca2_1775641637361": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_1159c53c4ca2_1775641637361",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Cloning",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 101
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_7362ed8b48c6_1775641697954": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_7362ed8b48c6_1775641697954",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "library seq",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 102
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_d1ac80c31e99_1775641758577": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_d1ac80c31e99_1775641758577",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "RNA library",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 103
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_ea6a37d38e8d_1775641819174": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_ea6a37d38e8d_1775641819174",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Number of Conditions",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 104
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_da9863002b67_1775641879784": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_da9863002b67_1775641879784",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "MPRABase_Total_Variants_Tested",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 105
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_70cec6b2d607_1775641940368": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_70cec6b2d607_1775641940368",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "DNA library",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 106
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_a8d194de99b6_1775642000983": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_a8d194de99b6_1775642000983",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "General library design category",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 107
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_387163b505f4_1775642061597": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_387163b505f4_1775642061597",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Abstract",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 108
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_ffb372d77526_1775642122177": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_ffb372d77526_1775642122177",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Link",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 109
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_f21f5d90793c_1775642182746": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_f21f5d90793c_1775642182746",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "length of sequences (bp)",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 110
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_b09cb6a42a32_1775642243348": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_b09cb6a42a32_1775642243348",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "library construction",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 111
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_e2ed7691f704_1775642303941": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_e2ed7691f704_1775642303941",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "UMI?",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 112
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_f4c086e9574b_1775642364557": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_f4c086e9574b_1775642364557",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Date Added",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 113
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_f5a280d8ea01_1775642457174": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_f5a280d8ea01_1775642457174",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Journal",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 114
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_e48bbbea61a4_1775642546659": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_e48bbbea61a4_1775642546659",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "MPRABase_datasets_id",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 115
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_035177ca2e2f_1775642637976": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_035177ca2e2f_1775642637976",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Synthetic designs",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 116
+  },
+  "prop_run_20260408_075540_ngzkq5_cell_e05071679f64_1775642699355": {
+    "proposal_id": "prop_run_20260408_075540_ngzkq5_cell_e05071679f64_1775642699355",
+    "row_id": "row_5dfe284e6878",
+    "column_name": "Where is the BC?",
+    "pdf_id": "paper_3",
+    "state": "error",
+    "support": "error",
+    "warning_flags": [
+      "provider_error"
+    ],
+    "line_number": 117
+  }
+}

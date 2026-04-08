@@ -57,6 +57,7 @@ run_id = f"run_{candidate_id}"
 run_dir = output_dir / run_id
 (run_dir / "proposals").mkdir(parents=True, exist_ok=True)
 (run_dir / "summaries").mkdir(parents=True, exist_ok=True)
+(run_dir / "inputs").mkdir(parents=True, exist_ok=True)
 
 text_model_id = config["provider"]["text_model"]["model_id"]
 run_payload = {
@@ -74,8 +75,21 @@ run_payload = {
     "provider_readiness_error": None,
     "provider_readiness_reason": None,
     "text_model_id": text_model_id,
+    "eval_artifacts": {
+        "gold_table": {
+            "source_reference": config.get("table_path"),
+            "content_hash": "gold-hash",
+            "snapshot_path": "inputs/gold_table.csv",
+        },
+        "masked_working_table": {
+            "path": "inputs/masked_working_table.csv",
+            "content_hash": "masked-hash",
+        },
+    },
 }
 
+(run_dir / "inputs" / "gold_table.csv").write_text("row_id,value\\nrow-1,yes\\n", encoding="utf-8")
+(run_dir / "inputs" / "masked_working_table.csv").write_text("row_id,value\\nrow-1,\\n", encoding="utf-8")
 (run_dir / "run.json").write_text(json.dumps(run_payload), encoding="utf-8")
 (run_dir / "config.snapshot.json").write_text(json.dumps(config), encoding="utf-8")
 (run_dir / "proposals" / "proposals.jsonl").write_text("{}\\n", encoding="utf-8")

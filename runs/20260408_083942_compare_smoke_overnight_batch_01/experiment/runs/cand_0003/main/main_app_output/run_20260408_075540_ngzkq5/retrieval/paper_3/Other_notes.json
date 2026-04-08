@@ -1,0 +1,362 @@
+{
+  "run_id": "run_20260408_075540_ngzkq5",
+  "pdf_id": "paper_3",
+  "column_name": "Other notes",
+  "query": "Other notes: noteworthy things",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_3_p7_64",
+      "source_block_id": "paper_3_p7_64",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 64,
+      "display_text": "For most TFs, only a subset of reporters significantly correlated with TF transcript abundance (e.g., GATA4, GATA1, TFCP2L1, and GBX2; Figure 3A, highlighted in red). For example, for GATA4, which is an important regulator of the endoderm 42 and is highest expressed in HEPG2 cells among our set of investigated cell lines, one reporter with spacer sequence #4 was not active in any cell type, but the same reporter design (i.e., the same core promoter, promoter distance, and spacer length) with spacer sequence #6 was highly activated specifically in HEPG2 (Figure 3B). Indeed, all GATA4 reporters with spacer sequence #6 displayed activities that significantly correlated with GATA4 transcript abundance (Figure S4B), suggesting that this spacer sequence renders GATA4 reporters GATA4 specific. In line with these findings, spacer sequence #6 was also identified as the most important feature in the log-linear model for GATA4 (note that this model was fit in HEPG2, Figure 2D). We observed a similar spacer sequence-dependent TF specificity for GBX2, which is a TF involved in maintaining pluripotency 38,39 and is mainly expressed in mESCs. GBX2 reporters with a spacer sequence #3, but not any other spacer sequence, displayed activity specifically in mESCs (Figures 3C and S4C).",
+      "retrieval_text": "[Section: Cell-type dependence of TF reporter activities] For most TFs, only a subset of reporters significantly correlated with TF transcript abundance (e.g., GATA4, GATA1, TFCP2L1, and GBX2; Figure 3A, highlighted in red). For example, for GATA4, which is an important regulator of the endoderm 42 and is highest expressed in HEPG2 cells among our set of investigated cell lines, one reporter with spacer sequence #4 was not active in any cell type, but the same reporter design (i.e., the same core promoter, promoter distance, and spacer length) with spacer sequence #6 was highly activated specifically in HEPG2 (Figure 3B). Indeed, all GATA4 reporters with spacer sequence #6 displayed activities that significantly correlated with GATA4 transcript abundance (Figure S4B), suggesting that this spacer sequence renders GATA4 reporters GATA4 specific. In line with these findings, spacer sequence #6 was also identified as the most important feature in the log-linear model for GATA4 (note that this model was fit in HEPG2, Figure 2D). We observed a similar spacer sequence-dependent TF specificity for GBX2, which is a TF involved in maintaining pluripotency 38,39 and is mainly expressed in mESCs. GBX2 reporters with a spacer sequence #3, but not any other spacer sequence, displayed activity specifically in mESCs (Figures 3C and S4C).",
+      "bbox": [
+        310.8469014,
+        341.49681358921873,
+        549.9408992600002,
+        114.50720976921878
+      ],
+      "provenance": "docling",
+      "section_context": "Cell-type dependence of TF reporter activities",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p7_65",
+      "source_block_id": "paper_3_p7_65",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 65,
+      "display_text": "For GATA1, which is an important regulator in erythroid cell gene expression 43 and is only highly expressed in erythroleukemic cell line K562, reporters were more K562-specific with a 10 bp rather than a 21 bp promoter distance (Figures 2D, 3D, and S4D). The latter displayed activity in GATA1-lacking cell types, possibly because these reporters respond to other GATAs (e.g., GATA3 in MCF7 or GATA4 in HEPG2). TFCP2L1,",
+      "retrieval_text": "[Section: Cell-type dependence of TF reporter activities] For GATA1, which is an important regulator in erythroid cell gene expression 43 and is only highly expressed in erythroleukemic cell line K562, reporters were more K562-specific with a 10 bp rather than a 21 bp promoter distance (Figures 2D, 3D, and S4D). The latter displayed activity in GATA1-lacking cell types, possibly because these reporters respond to other GATAs (e.g., GATA3 in MCF7 or GATA4 in HEPG2). TFCP2L1,",
+      "bbox": [
+        310.8466619599999,
+        111.3815971492188,
+        549.9158034400001,
+        37.8015891692188
+      ],
+      "provenance": "docling",
+      "section_context": "Cell-type dependence of TF reporter activities",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p8_66",
+      "source_block_id": "paper_3_p8_66",
+      "chunk_type": "caption",
+      "page_number": 8,
+      "reading_order": 66,
+      "display_text": "Figure 3. Investigating cell-type specificity of reporters",
+      "retrieval_text": "[Section: Cell-type dependence of TF reporter activities] Figure 3. Investigating cell-type specificity of reporters",
+      "bbox": [
+        53.1212,
+        240.44038814921873,
+        249.7236846800001,
+        233.64852194921878
+      ],
+      "provenance": "docling",
+      "section_context": "Cell-type dependence of TF reporter activities",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p9_82",
+      "source_block_id": "paper_3_p9_82",
+      "chunk_type": "paragraph",
+      "page_number": 9,
+      "reading_order": 82,
+      "display_text": "Again, we found that the reporter responses were often dependent on the precise design. While all POU5F1::SOX2 reporters strongly reduced their activity upon POU5F1 degradation (Figure 5B), there was a marked difference in response to SOX2 degradation, with POU5F1::SOX2 reporters with a 10-bp spacer length showing stronger responses (Figure 5C). Similarly, we found that PAX6 reporters with reduced activity upon PAX6 KD mostly had 10-bp spacers, while the published PAX6 reporters did not show any response (Figure 5D). Other examples of design-dependent responses are highlighted in Figures 5E5G. Overall, of the 44 TFs that were targeted by KD, 34 had at least one reporter with a more than 2-fold reduction in activity (Figure 5A).",
+      "retrieval_text": "[Section: Article] Again, we found that the reporter responses were often dependent on the precise design. While all POU5F1::SOX2 reporters strongly reduced their activity upon POU5F1 degradation (Figure 5B), there was a marked difference in response to SOX2 degradation, with POU5F1::SOX2 reporters with a 10-bp spacer length showing stronger responses (Figure 5C). Similarly, we found that PAX6 reporters with reduced activity upon PAX6 KD mostly had 10-bp spacers, while the published PAX6 reporters did not show any response (Figure 5D). Other examples of design-dependent responses are highlighted in Figures 5E5G. Overall, of the 44 TFs that were targeted by KD, 34 had at least one reporter with a more than 2-fold reduction in activity (Figure 5A).",
+      "bbox": [
+        310.8449850400001,
+        505.9614284292186,
+        549.9412247600001,
+        366.61719742921866
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p9_83",
+      "source_block_id": "paper_3_p9_83",
+      "chunk_type": "paragraph",
+      "page_number": 9,
+      "reading_order": 83,
+      "display_text": "Many TFs belong to families that share highly similar binding motifs. Therefore, to test for off-target responses, we also evaluated responses upon perturbations of other members within the same TF family. In total, we investigated 50 pathway perturbations and 87 TF perturbations that could potentially result in cross-reactivity due to TFBS similarity of the target TF and another TF. Of these, reporters for around 20 TFs showed substantial off-target responses (Figures S5B and S5C). A striking example of high selectivity is NR1H4 reporters, which have a TFBS that is highly similar to other nuclear receptor TFBSs (Figure S1A); nevertheless, they strongly responded only to bile acid stimulation (CDCA) and not to any other nuclear receptor stimulation (Figure S5D). Off-target responses often varied in magnitude depending on the reporter design. For example, all GRHL1 reporters had a reduced activity upon KD of GRHL1, while only GRHL1 reporters with spacer sequences #1-4 additionally responded to TFCP2L1 KD (Figure 5H). We found that CLOCK reporters, for which we only probed published reporter designs, reduced their activity by approximately 2-fold upon removal of LIF (Figure S5E); these reporters carry a repeat sequence that significantly matches the STAT3 motif (Figure S5F), possibly explaining the erroneous response to LIF.",
+      "retrieval_text": "[Section: Article] Many TFs belong to families that share highly similar binding motifs. Therefore, to test for off-target responses, we also evaluated responses upon perturbations of other members within the same TF family. In total, we investigated 50 pathway perturbations and 87 TF perturbations that could potentially result in cross-reactivity due to TFBS similarity of the target TF and another TF. Of these, reporters for around 20 TFs showed substantial off-target responses (Figures S5B and S5C). A striking example of high selectivity is NR1H4 reporters, which have a TFBS that is highly similar to other nuclear receptor TFBSs (Figure S1A); nevertheless, they strongly responded only to bile acid stimulation (CDCA) and not to any other nuclear receptor stimulation (Figure S5D). Off-target responses often varied in magnitude depending on the reporter design. For example, all GRHL1 reporters had a reduced activity upon KD of GRHL1, while only GRHL1 reporters with spacer sequences #1-4 additionally responded to TFCP2L1 KD (Figure 5H). We found that CLOCK reporters, for which we only probed published reporter designs, reduced their activity by approximately 2-fold upon removal of LIF (Figure S5E); these reporters carry a repeat sequence that significantly matches the STAT3 motif (Figure S5F), possibly explaining the erroneous response to LIF.",
+      "bbox": [
+        310.8441382200001,
+        363.4915848092187,
+        549.9310629200003,
+        125.55802894921885
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p9_84",
+      "source_block_id": "paper_3_p9_84",
+      "chunk_type": "section",
+      "page_number": 9,
+      "reading_order": 84,
+      "display_text": "A collection of prime TF reporters",
+      "retrieval_text": "A collection of prime TF reporters",
+      "bbox": [
+        310.8441382200001,
+        111.37718122921888,
+        453.4681030800003,
+        105.33088642921882
+      ],
+      "provenance": "docling",
+      "section_context": "A collection of prime TF reporters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p13_102",
+      "source_block_id": "paper_3_p13_102",
+      "chunk_type": "section",
+      "page_number": 13,
+      "reading_order": 102,
+      "display_text": "Utilizing prime reporters for accurate multiplexed TF activity detection",
+      "retrieval_text": "Utilizing prime reporters for accurate multiplexed TF activity detection",
+      "bbox": [
+        59.7543,
+        111.38171774921875,
+        282.21137353999995,
+        94.39366172921882
+      ],
+      "provenance": "docling",
+      "section_context": "Utilizing prime reporters for accurate multiplexed TF activity detection",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p13_103",
+      "source_block_id": "paper_3_p13_103",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 103,
+      "display_text": "Having identified the prime reporters for 62 TFs, we reassessed the activities of those TFs across all tested conditions. We first focused on the steady-state activities across the nine probed cell lines (Figure S7A). To be able to compare reporters of different strengths with each other, we rescaled the reporter",
+      "retrieval_text": "[Section: Utilizing prime reporters for accurate multiplexed TF activity detection] Having identified the prime reporters for 62 TFs, we reassessed the activities of those TFs across all tested conditions. We first focused on the steady-state activities across the nine probed cell lines (Figure S7A). To be able to compare reporters of different strengths with each other, we rescaled the reporter",
+      "bbox": [
+        59.754299999999986,
+        89.44145836921871,
+        298.8750975,
+        37.80152794921878
+      ],
+      "provenance": "docling",
+      "section_context": "Utilizing prime reporters for accurate multiplexed TF activity detection",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p13_104",
+      "source_block_id": "paper_3_p13_104",
+      "chunk_type": "section",
+      "page_number": 13,
+      "reading_order": 104,
+      "display_text": "Article",
+      "retrieval_text": "Article",
+      "bbox": [
+        503.7731,
+        713.7442093492187,
+        549.9257084000001,
+        703.7856229492188
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p13_106",
+      "source_block_id": "paper_3_p13_106",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 106,
+      "display_text": "Besides steady-state activities, the prime reporters reveal the dynamics of 62 TF activities across all tested 98 TF perturbation conditions. As an example, we quantified prime reporter responses upon all KDs in HEPG2 cells with a strong effect on their direct target ( n = 21). We found a large number of TFs that change their activity upon downregulation of another TF (e.g., PAX6 activation upon HNF1A KD, Figure S7C). These data offer a large resource to explore cascades of TF activities.",
+      "retrieval_text": "[Section: Article] Besides steady-state activities, the prime reporters reveal the dynamics of 62 TF activities across all tested 98 TF perturbation conditions. As an example, we quantified prime reporter responses upon all KDs in HEPG2 cells with a strong effect on their direct target ( n = 21). We found a large number of TFs that change their activity upon downregulation of another TF (e.g., PAX6 activation upon HNF1A KD, Figure S7C). These data offer a large resource to explore cascades of TF activities.",
+      "bbox": [
+        310.8465918400001,
+        527.9019902292187,
+        549.9233547,
+        432.38154104921864
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p13_107",
+      "source_block_id": "paper_3_p13_107",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 107,
+      "display_text": "We then focused our analysis on perturbations in mESCs that affect the pluripotency network (Figure 7C). Interestingly, besides altering the activity of its cognate TF, most perturbations led to strong secondary TF activity changes. For instance, we found that degradation of key pluripotency factors POU5F1 andSOX2substantially reduced the activity of other pluripotency TFs such as STAT3, TFCP2L1, or KLF4, highlighting their core function in the pluripotency network. 38 Furthermore, removal of JAK-STAT activator LIF not only led to strong inactivation of its target STAT3 but also decreased the activity of WNT target TCF7 as well as many other pluripotency TFs like SOX2 or KLF4 (Figure 7C). This suggests that LIF is needed to maintain pluripotency, potentially through crosstalk with the WNT signaling pathway. Similarly, we found that MEK-ERK inhibitor PD (PD0325901) crosstalks with WNT signaling and WNT activator CH (CHIR-99021) with MEK-ERK signaling, suggesting that these signaling pathways reinforce each other and have redundant targets, as has been discussed before. 38,39 Besides this, we found that addition of serum increased the activity of pluripotency TFs such as POU5F1::SOX2, reinforcing the pluripotency network. Together, this analysis shows that multiplexed TF activity detection using prime reporters has the potential to link targeted signaling pathway perturbations to functional changes in TF activity to discover signaling pathway interdependencies.",
+      "retrieval_text": "[Section: Article] We then focused our analysis on perturbations in mESCs that affect the pluripotency network (Figure 7C). Interestingly, besides altering the activity of its cognate TF, most perturbations led to strong secondary TF activity changes. For instance, we found that degradation of key pluripotency factors POU5F1 andSOX2substantially reduced the activity of other pluripotency TFs such as STAT3, TFCP2L1, or KLF4, highlighting their core function in the pluripotency network. 38 Furthermore, removal of JAK-STAT activator LIF not only led to strong inactivation of its target STAT3 but also decreased the activity of WNT target TCF7 as well as many other pluripotency TFs like SOX2 or KLF4 (Figure 7C). This suggests that LIF is needed to maintain pluripotency, potentially through crosstalk with the WNT signaling pathway. Similarly, we found that MEK-ERK inhibitor PD (PD0325901) crosstalks with WNT signaling and WNT activator CH (CHIR-99021) with MEK-ERK signaling, suggesting that these signaling pathways reinforce each other and have redundant targets, as has been discussed before. 38,39 Besides this, we found that addition of serum increased the activity of pluripotency TFs such as POU5F1::SOX2, reinforcing the pluripotency network. Together, this analysis shows that multiplexed TF activity detection using prime reporters has the potential to link targeted signaling pathway perturbations to functional changes in TF activity to discover signaling pathway interdependencies.",
+      "bbox": [
+        310.8465918400001,
+        429.25592842921867,
+        549.9394442800003,
+        158.4439667292188
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p13_108",
+      "source_block_id": "paper_3_p13_108",
+      "chunk_type": "section",
+      "page_number": 13,
+      "reading_order": 108,
+      "display_text": "DISCUSSION",
+      "retrieval_text": "DISCUSSION",
+      "bbox": [
+        310.84757636000006,
+        144.26311900921883,
+        365.0525245600001,
+        138.21682420921888
+      ],
+      "provenance": "docling",
+      "section_context": "DISCUSSION",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p14_113",
+      "source_block_id": "paper_3_p14_113",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 113,
+      "display_text": "(B) Reporter activities (max-normalized) of the synthetic HNF4A prime reporter (red) and the highest-ranking published HNF4A reporter per cell line. (C) Changes in prime reporter TF activities upon various TF perturbations in mESCs. TF targets of perturbations are indicated by black rectangles and asterisks. Only TFs expressed in mESCs (nTPM > 4) and with a substantial perturbation response (fold-change > 2) in at least one condition are displayed. DEG, degradation.",
+      "retrieval_text": "[Section: Multiple ways to define TF activity] (B) Reporter activities (max-normalized) of the synthetic HNF4A prime reporter (red) and the highest-ranking published HNF4A reporter per cell line. (C) Changes in prime reporter TF activities upon various TF perturbations in mESCs. TF targets of perturbations are indicated by black rectangles and asterisks. Only TFs expressed in mESCs (nTPM > 4) and with a substantial perturbation response (fold-change > 2) in at least one condition are displayed. DEG, degradation.",
+      "bbox": [
+        53.12119999999999,
+        320.70225438921875,
+        543.2231268800007,
+        285.86254434921875
+      ],
+      "provenance": "docling",
+      "section_context": "Multiple ways to define TF activity",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p14_114",
+      "source_block_id": "paper_3_p14_114",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 114,
+      "display_text": "reporters are driven by four copies of a single TFBS, and thus the activity measured is reflecting the ability of the TF to bind to and activate from that particular TFBS. We emphasize that this activity is not necessarily predictive of the activity of the probed TF at individual natural promoters and enhancers in the genome, which often involves combinatorial interactions with other TFBSs.",
+      "retrieval_text": "[Section: Multiple ways to define TF activity] reporters are driven by four copies of a single TFBS, and thus the activity measured is reflecting the ability of the TF to bind to and activate from that particular TFBS. We emphasize that this activity is not necessarily predictive of the activity of the probed TF at individual natural promoters and enhancers in the genome, which often involves combinatorial interactions with other TFBSs.",
+      "bbox": [
+        53.1212,
+        264.7927177492188,
+        292.19372876000006,
+        191.21252794921884
+      ],
+      "provenance": "docling",
+      "section_context": "Multiple ways to define TF activity",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p14_115",
+      "source_block_id": "paper_3_p14_115",
+      "chunk_type": "section",
+      "page_number": 14,
+      "reading_order": 115,
+      "display_text": "Applicability of the identified prime reporters",
+      "retrieval_text": "Applicability of the identified prime reporters",
+      "bbox": [
+        53.1212,
+        177.14515410921877,
+        243.3085037999998,
+        171.09885930921882
+      ],
+      "provenance": "docling",
+      "section_context": "Applicability of the identified prime reporters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_129",
+      "source_block_id": "paper_3_p15_129",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 129,
+      "display_text": "Data and code availability",
+      "retrieval_text": "Data and code availability",
+      "bbox": [
+        310.84719999999993,
+        575.0267722692189,
+        400.22760508000016,
+        570.0474790692189
+      ],
+      "provenance": "docling",
+      "section_context": "Data and code availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_130",
+      "source_block_id": "paper_3_p15_130",
+      "chunk_type": "list_item",
+      "page_number": 15,
+      "reading_order": 130,
+      "display_text": "d Laboratory notes and supplementary raw data are available at Zenodo (DOI is listed in the key resources table).",
+      "retrieval_text": "[Section: Data and code availability] d Laboratory notes and supplementary raw data are available at Zenodo (DOI is listed in the key resources table).",
+      "bbox": [
+        322.8094,
+        565.5587161492188,
+        549.9067672200006,
+        549.6542678692188
+      ],
+      "provenance": "docling",
+      "section_context": "Data and code availability",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_131",
+      "source_block_id": "paper_3_p15_131",
+      "chunk_type": "list_item",
+      "page_number": 15,
+      "reading_order": 131,
+      "display_text": "d Original code and analysis pipelines are available at GitHub (https:// github.com/mtrauernicht/TF_MPRA). A released version of the GitHub repository is available at Zenodo (DOI is listed in the key resources table).",
+      "retrieval_text": "[Section: Data and code availability] d Original code and analysis pipelines are available at GitHub (https:// github.com/mtrauernicht/TF_MPRA). A released version of the GitHub repository is available at Zenodo (DOI is listed in the key resources table).",
+      "bbox": [
+        322.8094,
+        546.6800161492188,
+        549.9144384,
+        511.8403061092187
+      ],
+      "provenance": "docling",
+      "section_context": "Data and code availability",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [],
+    "hint_terms": []
+  },
+  "stats": {
+    "chunk_build_ms": 2.067,
+    "idf_build_ms": 10.695,
+    "scoring_ms": 6.246,
+    "total_ms": 22.653,
+    "chunk_count_total": 269,
+    "chunk_count_by_type": {
+      "section": 59,
+      "list_item": 95,
+      "paragraph": 102,
+      "caption": 8,
+      "table_region": 5
+    },
+    "candidate_chunk_count": 269,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 12,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T09:40:13.111162+00:00"
+}

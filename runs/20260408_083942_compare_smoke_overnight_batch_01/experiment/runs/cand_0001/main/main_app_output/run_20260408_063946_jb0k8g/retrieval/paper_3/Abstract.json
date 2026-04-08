@@ -1,0 +1,326 @@
+{
+  "run_id": "run_20260408_063946_jb0k8g",
+  "pdf_id": "paper_3",
+  "column_name": "Abstract",
+  "query": "Abstract: Abstract text of the publication.",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_3_p1_0",
+      "source_block_id": "paper_3_p1_0",
+      "chunk_type": "section",
+      "page_number": 1,
+      "reading_order": 0,
+      "display_text": "Optimized reporters for multiplexed detection of transcription factor activity",
+      "retrieval_text": "Optimized reporters for multiplexed detection of transcription factor activity",
+      "bbox": [
+        53.1212,
+        682.7748575492187,
+        510.19924118999984,
+        648.3394026692188
+      ],
+      "provenance": "docling",
+      "section_context": "Optimized reporters for multiplexed detection of transcription factor activity",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p1_1",
+      "source_block_id": "paper_3_p1_1",
+      "chunk_type": "section",
+      "page_number": 1,
+      "reading_order": 1,
+      "display_text": "Graphical abstract",
+      "retrieval_text": "Graphical abstract",
+      "bbox": [
+        53.1212,
+        629.2097643492187,
+        155.08027035,
+        618.2349825492188
+      ],
+      "provenance": "docling",
+      "section_context": "Graphical abstract",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p1_2",
+      "source_block_id": "paper_3_p1_2",
+      "chunk_type": "section",
+      "page_number": 1,
+      "reading_order": 2,
+      "display_text": "Highlights",
+      "retrieval_text": "Highlights",
+      "bbox": [
+        53.1212,
+        308.89557453921884,
+        108.3298518,
+        297.9207927392188
+      ],
+      "provenance": "docling",
+      "section_context": "Highlights",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p6_52",
+      "source_block_id": "paper_3_p6_52",
+      "chunk_type": "list_item",
+      "page_number": 6,
+      "reading_order": 52,
+      "display_text": "(B) Correlation between measured STAT3 reporter activities and predicted reporter activities by the log-linear model in mESCs. Color coded are the two spacer lengths.",
+      "retrieval_text": "[Section: Understanding TF-specific reporter design rules] (B) Correlation between measured STAT3 reporter activities and predicted reporter activities by the log-linear model in mESCs. Color coded are the two spacer lengths.",
+      "bbox": [
+        53.12119999999999,
+        200.28638526921873,
+        543.2349823399999,
+        184.38193698921873
+      ],
+      "provenance": "docling",
+      "section_context": "Understanding TF-specific reporter design rules",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p6_53",
+      "source_block_id": "paper_3_p6_53",
+      "chunk_type": "list_item",
+      "page_number": 6,
+      "reading_order": 53,
+      "display_text": "(C) Weights of the individual coefficients of the STAT3 log-linear model. The color indicates the strength of the weight.",
+      "retrieval_text": "[Section: Understanding TF-specific reporter design rules] (C) Weights of the individual coefficients of the STAT3 log-linear model. The color indicates the strength of the weight.",
+      "bbox": [
+        53.12119999999999,
+        181.35112350921872,
+        419.82103850000044,
+        174.91430610921873
+      ],
+      "provenance": "docling",
+      "section_context": "Understanding TF-specific reporter design rules",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p6_54",
+      "source_block_id": "paper_3_p6_54",
+      "chunk_type": "list_item",
+      "page_number": 6,
+      "reading_order": 54,
+      "display_text": "(D) Coefficient weight heatmap for all TFs with a significant log-linear model fit and a total explained variance of >50%. As in (C), all weights are computed in contrast to the reference variables minP (core promoter), 10 bp (promoter distance), and #1 (spacer sequence). Weights of features that did not significantly contribute to the model ( p R 0.1) are set to 0 in this visualization. TFs highlighted in red display spacer sequence preferences, TFs in blue spacer length preferences. TFs indicated in bold are mentioned in the text.",
+      "retrieval_text": "[Section: Understanding TF-specific reporter design rules] (D) Coefficient weight heatmap for all TFs with a significant log-linear model fit and a total explained variance of >50%. As in (C), all weights are computed in contrast to the reference variables minP (core promoter), 10 bp (promoter distance), and #1 (spacer sequence). Weights of features that did not significantly contribute to the model ( p R 0.1) are set to 0 in this visualization. TFs highlighted in red display spacer sequence preferences, TFs in blue spacer length preferences. TFs indicated in bold are mentioned in the text.",
+      "bbox": [
+        53.12119999999993,
+        171.88349262921872,
+        543.2726408599999,
+        137.04378258921872
+      ],
+      "provenance": "docling",
+      "section_context": "Understanding TF-specific reporter design rules",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p6_55",
+      "source_block_id": "paper_3_p6_55",
+      "chunk_type": "list_item",
+      "page_number": 6,
+      "reading_order": 55,
+      "display_text": "(E) Total variance explained by the individual design features for all TFs displayed in (D). Red line indicates the median. The color of the dots indicates the total explained variance of the log-linear model. Statistical significance of the difference in variance explained was tested using unpaired Student's t tests, *** p <0.001. (F) Average difference between the weights of 10-bp spacer sequences in the log-linear model and the 5-bp spacer sequences, separately per monomeric and dimeric/multimeric TFBSs. The color of the dots indicates TFs with consistent preference for 5-bp (light blue) or 10-bp spacer lengths (dark blue). Statistical significance of the difference in variance is estimated by Levene's test.",
+      "retrieval_text": "[Section: Understanding TF-specific reporter design rules] (E) Total variance explained by the individual design features for all TFs displayed in (D). Red line indicates the median. The color of the dots indicates the total explained variance of the log-linear model. Statistical significance of the difference in variance explained was tested using unpaired Student's t tests, *** p <0.001. (F) Average difference between the weights of 10-bp spacer sequences in the log-linear model and the 5-bp spacer sequences, separately per monomeric and dimeric/multimeric TFBSs. The color of the dots indicates TFs with consistent preference for 5-bp (light blue) or 10-bp spacer lengths (dark blue). Statistical significance of the difference in variance is estimated by Levene's test.",
+      "bbox": [
+        53.121199999999874,
+        134.01296910921872,
+        543.2789172800001,
+        89.70562818921871
+      ],
+      "provenance": "docling",
+      "section_context": "Understanding TF-specific reporter design rules",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p8_66",
+      "source_block_id": "paper_3_p8_66",
+      "chunk_type": "caption",
+      "page_number": 8,
+      "reading_order": 66,
+      "display_text": "Figure 3. Investigating cell-type specificity of reporters",
+      "retrieval_text": "[Section: Cell-type dependence of TF reporter activities] Figure 3. Investigating cell-type specificity of reporters",
+      "bbox": [
+        53.1212,
+        240.44038814921873,
+        249.7236846800001,
+        233.64852194921878
+      ],
+      "provenance": "docling",
+      "section_context": "Cell-type dependence of TF reporter activities",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p8_67",
+      "source_block_id": "paper_3_p8_67",
+      "chunk_type": "paragraph",
+      "page_number": 8,
+      "reading_order": 67,
+      "display_text": "(A) Correlations between TF reporter activities and TF transcript abundances across the nine probed cell lines per TF. Only TFs with variable expression across the nine cell lines are included (see STAR Methods). The black solid line indicates the mean PCC per TF. TFs highlighted in red are mentioned in the text. Dots highlighted with a red stroke are depicted in (B)-(E).",
+      "retrieval_text": "[Section: Cell-type dependence of TF reporter activities] (A) Correlations between TF reporter activities and TF transcript abundances across the nine probed cell lines per TF. Only TFs with variable expression across the nine cell lines are included (see STAR Methods). The black solid line indicates the mean PCC per TF. TFs highlighted in red are mentioned in the text. Dots highlighted with a red stroke are depicted in (B)-(E).",
+      "bbox": [
+        53.12119999999999,
+        230.61711614921876,
+        543.2579958800011,
+        205.24503698921876
+      ],
+      "provenance": "docling",
+      "section_context": "Cell-type dependence of TF reporter activities",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p8_68",
+      "source_block_id": "paper_3_p8_68",
+      "chunk_type": "paragraph",
+      "page_number": 8,
+      "reading_order": 68,
+      "display_text": "(B) Correlation between GATA4 transcript abundance and reporter activity for a highly (spacer sequence #6) and a poorly correlating reporter (spacer sequence #4). The two displayed reporters are identical except for the spacer sequence mentioned above the panels. Cell lines are color coded. Solid line indicates linear regression, gray shade indicates standard deviation. nTPM, normalized transcripts per million (see STAR Methods).",
+      "retrieval_text": "[Section: Cell-type dependence of TF reporter activities] (B) Correlation between GATA4 transcript abundance and reporter activity for a highly (spacer sequence #6) and a poorly correlating reporter (spacer sequence #4). The two displayed reporters are identical except for the spacer sequence mentioned above the panels. Cell lines are color coded. Solid line indicates linear regression, gray shade indicates standard deviation. nTPM, normalized transcripts per million (see STAR Methods).",
+      "bbox": [
+        53.12189737999998,
+        202.21422350921875,
+        543.28798322,
+        176.84214434921876
+      ],
+      "provenance": "docling",
+      "section_context": "Cell-type dependence of TF reporter activities",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p10_86",
+      "source_block_id": "paper_3_p10_86",
+      "chunk_type": "caption",
+      "page_number": 10,
+      "reading_order": 86,
+      "display_text": "Figure 4. Response to signaling pathway perturbations",
+      "retrieval_text": "[Section: A collection of prime TF reporters] Figure 4. Response to signaling pathway perturbations",
+      "bbox": [
+        53.1212,
+        164.69858814921872,
+        249.86639606000014,
+        157.90672194921876
+      ],
+      "provenance": "docling",
+      "section_context": "A collection of prime TF reporters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p10_87",
+      "source_block_id": "paper_3_p10_87",
+      "chunk_type": "caption",
+      "page_number": 10,
+      "reading_order": 87,
+      "display_text": "(A) Change in TF reporter activities upon signaling pathway perturbations. Shown are only the responses of the direct targets of the perturbations. Activating perturbations are shown in blue, repressing conditions in orange. Conditions that were selected as best perturbation condition for the TF (i.e., strongest average response of the tested perturbations for that TF, see STAR Methods) are denoted by an asterisk. TFs highlighted in the text are indicated in bold. TFs depicted in (B)-(G) are indicated by letter. LIF, leukemia inhibitory factor; PMA, phorbol 12-myristate 13-acetate; HQ, hydroquinone; CDCA, chenodeoxycholic acid. (B-G) Response of reporters of six different TFs to TF-targeted pathway perturbation conditions. TFs for which reporters are displayed is denoted on top of each figure. Reporter activities (log2) in the basal condition are displayed on the x axis and in the perturbation condition on the y axis. Reporter design features are indicated by color, published reporters by shape.",
+      "retrieval_text": "[Section: A collection of prime TF reporters] (A) Change in TF reporter activities upon signaling pathway perturbations. Shown are only the responses of the direct targets of the perturbations. Activating perturbations are shown in blue, repressing conditions in orange. Conditions that were selected as best perturbation condition for the TF (i.e., strongest average response of the tested perturbations for that TF, see STAR Methods) are denoted by an asterisk. TFs highlighted in the text are indicated in bold. TFs depicted in (B)-(G) are indicated by letter. LIF, leukemia inhibitory factor; PMA, phorbol 12-myristate 13-acetate; HQ, hydroquinone; CDCA, chenodeoxycholic acid. (B-G) Response of reporters of six different TFs to TF-targeted pathway perturbation conditions. TFs for which reporters are displayed is denoted on top of each figure. Reporter activities (log2) in the basal condition are displayed on the x axis and in the perturbation condition on the y axis. Reporter design features are indicated by color, published reporters by shape.",
+      "bbox": [
+        53.12119999999993,
+        154.87531614921875,
+        543.2837989399999,
+        91.6323678692188
+      ],
+      "provenance": "docling",
+      "section_context": "A collection of prime TF reporters",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p10_88",
+      "source_block_id": "paper_3_p10_88",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 88,
+      "display_text": "required reporters to display high and explainable activities (according to the log-linear model), have activities that correlate with the abundance of the TF across the tested cell lines, and show a substantial response to a relevant signaling pathway or TF perturbation, without responding to off-target perturbations. Figure 6B illustrates how each of the confidence level criteria",
+      "retrieval_text": "[Section: A collection of prime TF reporters] required reporters to display high and explainable activities (according to the log-linear model), have activities that correlate with the abundance of the TF across the tested cell lines, and show a substantial response to a relevant signaling pathway or TF perturbation, without responding to off-target perturbations. Figure 6B illustrates how each of the confidence level criteria",
+      "bbox": [
+        53.1212,
+        67.55811774921881,
+        292.18526056,
+        37.801709769218746
+      ],
+      "provenance": "docling",
+      "section_context": "A collection of prime TF reporters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p11_89",
+      "source_block_id": "paper_3_p11_89",
+      "chunk_type": "caption",
+      "page_number": 11,
+      "reading_order": 89,
+      "display_text": "Figure 5. Response of reporters to direct TF perturbation",
+      "retrieval_text": "[Section: A collection of prime TF reporters] Figure 5. Response of reporters to direct TF perturbation",
+      "bbox": [
+        59.7543,
+        157.4985881492188,
+        263.9593411800002,
+        150.70672194921872
+      ],
+      "provenance": "docling",
+      "section_context": "A collection of prime TF reporters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p11_90",
+      "source_block_id": "paper_3_p11_90",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 90,
+      "display_text": "(A) Change in TF reporter activities upon direct TF perturbation. In some cases the target TF consists of two TFs (e.g., POU5F1::SOX2); the perturbed TF is then indicated in the x axis labels. TF overexpression is shown in black, TF knockdown in orange, and TF degradation in green. Conditions that were selected as best perturbation condition for the TF are denoted by asterisk. TFs highlighted in the text are indicated in bold. TFs depicted in (B)-(H) are indicated by letter. (B-G) Response of TF reporters to six different direct TF perturbation conditions. TFs for which reporters are displayed is denoted on top of each figure. Reporter activities (log2) in the basal condition are displayed on the x axis and in the TF perturbation condition on the y axis. (H) Response of GRHL1 reporters to GRHL1 (y axis) and TFCP2L1 knockdown (x axis).",
+      "retrieval_text": "[Section: A collection of prime TF reporters] (A) Change in TF reporter activities upon direct TF perturbation. In some cases the target TF consists of two TFs (e.g., POU5F1::SOX2); the perturbed TF is then indicated in the x axis labels. TF overexpression is shown in black, TF knockdown in orange, and TF degradation in green. Conditions that were selected as best perturbation condition for the TF are denoted by asterisk. TFs highlighted in the text are indicated in bold. TFs depicted in (B)-(H) are indicated by letter. (B-G) Response of TF reporters to six different direct TF perturbation conditions. TFs for which reporters are displayed is denoted on top of each figure. Reporter activities (log2) in the basal condition are displayed on the x axis and in the TF perturbation condition on the y axis. (H) Response of GRHL1 reporters to GRHL1 (y axis) and TFCP2L1 knockdown (x axis).",
+      "bbox": [
+        59.75406486,
+        147.67531614921882,
+        549.9064382399999,
+        93.90006786921879
+      ],
+      "provenance": "docling",
+      "section_context": "A collection of prime TF reporters",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p11_91",
+      "source_block_id": "paper_3_p11_91",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 91,
+      "display_text": "contributes to the confidence scores of all FOXA1 reporters. Out of 29 reporters, seven had a confidence level of 0 or 1 because they did not display any significant activity and also did not respond to FOXA1 overexpression. These were exclusively published FOXA1 reporters or reporters with a 5-bp spacer length. Twelve reporters were assigned as level 4 because they",
+      "retrieval_text": "[Section: A collection of prime TF reporters] contributes to the confidence scores of all FOXA1 reporters. Out of 29 reporters, seven had a confidence level of 0 or 1 because they did not display any significant activity and also did not respond to FOXA1 overexpression. These were exclusively published FOXA1 reporters or reporters with a 5-bp spacer length. Twelve reporters were assigned as level 4 because they",
+      "bbox": [
+        59.7543,
+        67.55811774921881,
+        298.85223336,
+        37.801709769218746
+      ],
+      "provenance": "docling",
+      "section_context": "A collection of prime TF reporters",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [],
+    "hint_terms": []
+  },
+  "stats": {
+    "chunk_build_ms": 1.611,
+    "idf_build_ms": 8.066,
+    "scoring_ms": 4.847,
+    "total_ms": 19.389,
+    "chunk_count_total": 269,
+    "chunk_count_by_type": {
+      "section": 59,
+      "list_item": 95,
+      "paragraph": 102,
+      "caption": 8,
+      "table_region": 5
+    },
+    "candidate_chunk_count": 269,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 10,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T07:46:44.250154+00:00"
+}

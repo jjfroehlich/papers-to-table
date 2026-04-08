@@ -1,0 +1,253 @@
+{
+  "run_id": "run_20260408_075540_ngzkq5",
+  "pdf_id": "paper_2",
+  "column_name": "MPRABase_datasets_id",
+  "query": "MPRABase_datasets_id: Dataset ID for the publication in the \"MPRAbase\" database.",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_2_p7_71",
+      "source_block_id": "paper_2_p7_71",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 71,
+      "display_text": "We first compared intrinsic promoter activity with responsiveness to E1 enhancers. These two factors were correlated both when considering all promoters in ExP STARR-seq (Pearson R = -0.62, log 2 (space); Fig. 5b) and when considering only P1 promoters ( R = -0.51). As promoter activity increased, responsiveness to E1 enhancers rapidly decreased (for example, from about ninefold average activation by E1 enhancers for the SNAI3 P1 promoter) and appeared to saturate at about threefold for most P2 promoter sequences (Extended Data Fig. 8c).",
+      "retrieval_text": "[Section: P2 promoters contain built-in enhancers] We first compared intrinsic promoter activity with responsiveness to E1 enhancers. These two factors were correlated both when considering all promoters in ExP STARR-seq (Pearson R = -0.62, log 2 (space); Fig. 5b) and when considering only P1 promoters ( R = -0.51). As promoter activity increased, responsiveness to E1 enhancers rapidly decreased (for example, from about ninefold average activation by E1 enhancers for the SNAI3 P1 promoter) and appeared to saturate at about threefold for most P2 promoter sequences (Extended Data Fig. 8c).",
+      "bbox": [
+        39.68500137,
+        429.5569306620313,
+        296.3903898973952,
+        346.65034628703125
+      ],
+      "provenance": "docling",
+      "section_context": "P2 promoters contain built-in enhancers",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p7_72",
+      "source_block_id": "paper_2_p7_72",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 72,
+      "display_text": "We next tested whether P2 promoters had stronger intrinsic enhancer activity. To do so, we generated a second STARR-seq dataset in which we measured the enhancer activity of >8.9 million sequences derived from DNase-accessible elements and promoters (by hybrid selection (HS) STARR-seq; Methods and Extended Data Fig. 8d-f). In this dataset, many promoter elements tested in ExP STARR-seq (along with thousands of other accessible elements) were densely tiled (an average of about 11 fragments each covering at least 90% of the promoters tested in the ExP assay), which enabled us to test the enhancer activity of entire P1 and P2 promoter sequences. P2 promoters indeed showed about twofold higher intrinsic enhancer activity than P1 promoters in HS-STARR-seq ( P = 1.14 × 10 -16 , t -test; Fig. 5c), which provides support for a model in which these promoters contain built-in enhancers.",
+      "retrieval_text": "[Section: P2 promoters contain built-in enhancers] We next tested whether P2 promoters had stronger intrinsic enhancer activity. To do so, we generated a second STARR-seq dataset in which we measured the enhancer activity of >8.9 million sequences derived from DNase-accessible elements and promoters (by hybrid selection (HS) STARR-seq; Methods and Extended Data Fig. 8d-f). In this dataset, many promoter elements tested in ExP STARR-seq (along with thousands of other accessible elements) were densely tiled (an average of about 11 fragments each covering at least 90% of the promoters tested in the ExP assay), which enabled us to test the enhancer activity of entire P1 and P2 promoter sequences. P2 promoters indeed showed about twofold higher intrinsic enhancer activity than P1 promoters in HS-STARR-seq ( P = 1.14 × 10 -16 , t -test; Fig. 5c), which provides support for a model in which these promoters contain built-in enhancers.",
+      "bbox": [
+        39.68500137,
+        343.5569306620313,
+        296.38176276800425,
+        206.9003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "P2 promoters contain built-in enhancers",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p7_73",
+      "source_block_id": "paper_2_p7_73",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 73,
+      "display_text": "We examined whether the sequence motifs enriched in P2 promoters contribute to both enhancer activity and promoter activity. To do so, we examined data on enhancer activity from HS-STARR-seq along with another previous experiment that measured promoter activity for millions of random genomic fragments in K562 cells (survey of regulatory elements (SuRE) 23 ). A total of 16 out of the 17 motifs enriched in P2 promoters, including motifs for GABPA and YY1, were positively correlated with both enhancer activity and promoter activity (Fig. 5d, Supplementary Table 9 and Methods).",
+      "retrieval_text": "[Section: P2 promoters contain built-in enhancers] We examined whether the sequence motifs enriched in P2 promoters contribute to both enhancer activity and promoter activity. To do so, we examined data on enhancer activity from HS-STARR-seq along with another previous experiment that measured promoter activity for millions of random genomic fragments in K562 cells (survey of regulatory elements (SuRE) 23 ). A total of 16 out of the 17 motifs enriched in P2 promoters, including motifs for GABPA and YY1, were positively correlated with both enhancer activity and promoter activity (Fig. 5d, Supplementary Table 9 and Methods).",
+      "bbox": [
+        39.68510055,
+        203.80718090953133,
+        296.32065967998426,
+        110.1503462870312
+      ],
+      "provenance": "docling",
+      "section_context": "P2 promoters contain built-in enhancers",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p7_77",
+      "source_block_id": "paper_2_p7_77",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 77,
+      "display_text": "Together, these observations suggest a model for promoter sequence organization (Fig. 5f). Promoters encode binding motifs for activating factors, including GABPA and YY1, that act as built-in enhancers for the promoter. This not only increases the autonomous activity of the promoter but also reduces its responsiveness to distal enhancers. Although P2 promoters have strong built-in enhancers, P1 promoters appear to have weaker or fewer built-in activating motifs, which renders them more sensitive to distal enhancers.",
+      "retrieval_text": "[Section: P2 promoters contain built-in enhancers] Together, these observations suggest a model for promoter sequence organization (Fig. 5f). Promoters encode binding motifs for activating factors, including GABPA and YY1, that act as built-in enhancers for the promoter. This not only increases the autonomous activity of the promoter but also reduces its responsiveness to distal enhancers. Although P2 promoters have strong built-in enhancers, P1 promoters appear to have weaker or fewer built-in activating motifs, which renders them more sensitive to distal enhancers.",
+      "bbox": [
+        306.14169311,
+        354.3069306620313,
+        562.825631345336,
+        271.4003462870312
+      ],
+      "provenance": "docling",
+      "section_context": "P2 promoters contain built-in enhancers",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p7_78",
+      "source_block_id": "paper_2_p7_78",
+      "chunk_type": "section",
+      "page_number": 7,
+      "reading_order": 78,
+      "display_text": "Compatibility rules in a second dataset",
+      "retrieval_text": "Compatibility rules in a second dataset",
+      "bbox": [
+        306.14169311,
+        249.88993066203125,
+        487.02174311195,
+        240.86696498580181
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules in a second dataset",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p7_79",
+      "source_block_id": "paper_2_p7_79",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 79,
+      "display_text": "A parallel study 39 conducted a similar experiment to examine the compatibilities among hundreds of enhancer and promoter sequences in mouse embryonic stem cells (a total of 22,406 enhancer-promoter pairs, measured in 2 separate experiments). This dataset provided an opportunity to assess the extent to which the compatibility rules we identified generalize to a second cell type, organism and assay format. Regarding the assay format, that study 39 used a different plasmid design (massively parallel reporter assay (MPRA) format with the enhancer located immediately upstream of the promoter), different method of element selection (densely sampled from 3 genomic loci) and different enhancer and promoter sequence lengths (about 400 bp).",
+      "retrieval_text": "[Section: Compatibility rules in a second dataset] A parallel study 39 conducted a similar experiment to examine the compatibilities among hundreds of enhancer and promoter sequences in mouse embryonic stem cells (a total of 22,406 enhancer-promoter pairs, measured in 2 separate experiments). This dataset provided an opportunity to assess the extent to which the compatibility rules we identified generalize to a second cell type, organism and assay format. Regarding the assay format, that study 39 used a different plasmid design (massively parallel reporter assay (MPRA) format with the enhancer located immediately upstream of the promoter), different method of element selection (densely sampled from 3 genomic loci) and different enhancer and promoter sequence lengths (about 400 bp).",
+      "bbox": [
+        306.14169311,
+        237.18052558763122,
+        562.8250161592747,
+        120.9003462870312
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules in a second dataset",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p7_80",
+      "source_block_id": "paper_2_p7_80",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 80,
+      "display_text": "The patterns of enhancer-promoter compatibility in this second dataset were highly similar to ExP STARR-seq. The multiplicative enhancer × promoter model explained 91% and 78% of the variance in RNA expression in the two experiments and 81% and 34% of the variance in enhancer activation (Extended Data Fig. 9e,f). The fraction of variance unexplained could result in part from additional specificity factors (see also ref. 39 ). Promoters with stronger intrinsic activity were less",
+      "retrieval_text": "[Section: Compatibility rules in a second dataset] The patterns of enhancer-promoter compatibility in this second dataset were highly similar to ExP STARR-seq. The multiplicative enhancer × promoter model explained 91% and 78% of the variance in RNA expression in the two experiments and 81% and 34% of the variance in enhancer activation (Extended Data Fig. 9e,f). The fraction of variance unexplained could result in part from additional specificity factors (see also ref. 39 ). Promoters with stronger intrinsic activity were less",
+      "bbox": [
+        306.14169311,
+        117.80693066203128,
+        562.8041757480705,
+        45.65034246703124
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules in a second dataset",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p8_81",
+      "source_block_id": "paper_2_p8_81",
+      "chunk_type": "paragraph",
+      "page_number": 8,
+      "reading_order": 81,
+      "display_text": "sensitive to activation by enhancer sequences, and ETS-family motifs, including GABPA, were the strongest motifs that were positively correlated with enhancer activity and negatively correlated with enhancer responsiveness (see also ref. 39 ), which is consistent with features of P1 and P2 promoters identified in ExP STARR-seq. We note that the previous analysis 39 showed that most enhancers in both their MPRA and our ExP STARR-seq experiments showed significant deviations from the multiplicative model, but the magnitude of such deviations is small and explain only a small fraction of the variance in reporter expression (Extended Data Fig. 9e,f). Together, both datasets indicate that across multiple cell types and mammalian genomes, enhancers and promoters are broadly compatible and there is an additional layer of selectivity in which specific motifs, such as for GABPA and YY1, can tune enhancer-promoter activation.",
+      "retrieval_text": "[Section: Compatibility rules in a second dataset] sensitive to activation by enhancer sequences, and ETS-family motifs, including GABPA, were the strongest motifs that were positively correlated with enhancer activity and negatively correlated with enhancer responsiveness (see also ref. 39 ), which is consistent with features of P1 and P2 promoters identified in ExP STARR-seq. We note that the previous analysis 39 showed that most enhancers in both their MPRA and our ExP STARR-seq experiments showed significant deviations from the multiplicative model, but the magnitude of such deviations is small and explain only a small fraction of the variance in reporter expression (Extended Data Fig. 9e,f). Together, both datasets indicate that across multiple cell types and mammalian genomes, enhancers and promoters are broadly compatible and there is an additional layer of selectivity in which specific motifs, such as for GABPA and YY1, can tune enhancer-promoter activation.",
+      "bbox": [
+        39.68500137,
+        741.3069306620313,
+        296.3326253783239,
+        593.9004744645314
+      ],
+      "provenance": "docling",
+      "section_context": "Compatibility rules in a second dataset",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p8_82",
+      "source_block_id": "paper_2_p8_82",
+      "chunk_type": "section",
+      "page_number": 8,
+      "reading_order": 82,
+      "display_text": "Discussion",
+      "retrieval_text": "Discussion",
+      "bbox": [
+        39.68500137,
+        572.3898085920313,
+        90.68725136999998,
+        563.3668429158018
+      ],
+      "provenance": "docling",
+      "section_context": "Discussion",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_270",
+      "source_block_id": "paper_2_p15_270",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 270,
+      "display_text": "Data availability",
+      "retrieval_text": "Data availability",
+      "bbox": [
+        306.14181518,
+        260.63993066203125,
+        383.3325651799999,
+        251.61696498580181
+      ],
+      "provenance": "docling",
+      "section_context": "Data availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_271",
+      "source_block_id": "paper_2_p15_271",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 271,
+      "display_text": "Raw and processed data for ExP STARR-seq, motif ExP STARR-seq, HS-STARR-seq and K562 PRO-seq can be found at the NCBI's Gene Expression Omnibus under accession number GSE184426. Luciferase data can be found in Supplementary Table 3. Datasets used from the ENCODE Project are listed in Supplementary Table 10 and are available at https://www.encodeproject.org. Additional resources and protocols related to this study are available at https://www.engreitzlab.org/ resources/.",
+      "retrieval_text": "[Section: Data availability] Raw and processed data for ExP STARR-seq, motif ExP STARR-seq, HS-STARR-seq and K562 PRO-seq can be found at the NCBI's Gene Expression Omnibus under accession number GSE184426. Luciferase data can be found in Supplementary Table 3. Datasets used from the ENCODE Project are listed in Supplementary Table 10 and are available at https://www.encodeproject.org. Additional resources and protocols related to this study are available at https://www.engreitzlab.org/ resources/.",
+      "bbox": [
+        306.14181518,
+        246.80693066203128,
+        562.8682975672606,
+        163.9003462870313
+      ],
+      "provenance": "docling",
+      "section_context": "Data availability",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_272",
+      "source_block_id": "paper_2_p15_272",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 272,
+      "display_text": "Code availability",
+      "retrieval_text": "Code availability",
+      "bbox": [
+        306.14181518,
+        142.38993066203125,
+        385.03784018097497,
+        133.36696498580181
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [],
+    "hint_terms": []
+  },
+  "stats": {
+    "chunk_build_ms": 2.626,
+    "idf_build_ms": 8.75,
+    "scoring_ms": 12.061,
+    "total_ms": 28.75,
+    "chunk_count_total": 326,
+    "chunk_count_by_type": {
+      "section": 59,
+      "paragraph": 174,
+      "caption": 17,
+      "list_item": 76
+    },
+    "candidate_chunk_count": 326,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 6,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T08:39:28.266491+00:00"
+}

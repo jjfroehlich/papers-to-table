@@ -1,0 +1,370 @@
+{
+  "run_id": "run_20260408_075540_ngzkq5",
+  "pdf_id": "paper_1",
+  "column_name": "Scale",
+  "query": "Scale: If the tested sequences where randomly taken from the whole genome or if the experiment covered the whole genome\nRetrieval hints: sequences pairs combinations plasmids barcodes",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_1_p10_88",
+      "source_block_id": "paper_1_p10_88",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 88,
+      "display_text": "Kwasnieski, J. C., Fiore, C., Chaudhari, H. G. & Cohen, B. A. High-throughput functional testing of ENCODE segmentation predictions. Genome Res. 24 , 1595-1602 (2014).",
+      "retrieval_text": "[Section: Online content] Kwasnieski, J. C., Fiore, C., Chaudhari, H. G. & Cohen, B. A. High-throughput functional testing of ENCODE segmentation predictions. Genome Res. 24 , 1595-1602 (2014).",
+      "bbox": [
+        39.68499995099993,
+        492.7134018550315,
+        286.21899995099983,
+        479.4360811003145
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_89",
+      "source_block_id": "paper_1_p10_89",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 89,
+      "display_text": "Liu, Y . et al. Functional assessment of human enhancer activities using whole-genome STARR-sequencing. Genome Biol. 18 , 219 (2017).",
+      "retrieval_text": "[Section: Online content] Liu, Y . et al. Functional assessment of human enhancer activities using whole-genome STARR-sequencing. Genome Biol. 18 , 219 (2017).",
+      "bbox": [
+        39.67900553699988,
+        476.6814018550315,
+        286.3762055369997,
+        463.40408110031444
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_90",
+      "source_block_id": "paper_1_p10_90",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 90,
+      "display_text": "Johnson, G. D. et al. Human genome-wide measurement of drug-responsive regulatory activity. Nat. Commun. 9 , 5317 (2018).",
+      "retrieval_text": "[Section: Online content] Johnson, G. D. et al. Human genome-wide measurement of drug-responsive regulatory activity. Nat. Commun. 9 , 5317 (2018).",
+      "bbox": [
+        39.673006040999894,
+        460.64940185503144,
+        288.6904060432858,
+        447.3720811003144
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_130",
+      "source_block_id": "paper_1_p10_130",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 130,
+      "display_text": "O'Connor, L., Gilmour, J. & Bonifer, C. The Role of the Ubiquitously Expressed Transcription Factor Sp1 in Tissue-specific Transcriptional Regulation and in Disease. Yale J. Biol. Med. 89 , 513-525 (2016).",
+      "retrieval_text": "[Section: Online content] O'Connor, L., Gilmour, J. & Bonifer, C. The Role of the Ubiquitously Expressed Transcription Factor Sp1 in Tissue-specific Transcriptional Regulation and in Disease. Yale J. Biol. Med. 89 , 513-525 (2016).",
+      "bbox": [
+        306.06701245500017,
+        364.58938500703175,
+        561.0316124572936,
+        343.2960642523147
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_131",
+      "source_block_id": "paper_1_p10_131",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 131,
+      "display_text": "He, P. et al. The changing mouse embryo transcriptome at whole tissue and single-cell resolution. Nature 583 , 760-767 (2020).",
+      "retrieval_text": "[Section: Online content] He, P. et al. The changing mouse embryo transcriptome at whole tissue and single-cell resolution. Nature 583 , 760-767 (2020).",
+      "bbox": [
+        306.0670113330002,
+        340.5413850070317,
+        553.8388113284294,
+        327.26406425231465
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_132",
+      "source_block_id": "paper_1_p10_132",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 132,
+      "display_text": "Ly, L. L., Yoshida, H. & Yamaguchi, M. Nuclear transcription factor Y and its roles in cellular processes related to human disease. Am. J. Cancer Res. 3 , 339-346 (2013).",
+      "retrieval_text": "[Section: Online content] Ly, L. L., Yoshida, H. & Yamaguchi, M. Nuclear transcription factor Y and its roles in cellular processes related to human disease. Am. J. Cancer Res. 3 , 339-346 (2013).",
+      "bbox": [
+        306.06101303100024,
+        324.50938500703165,
+        562.7410130310016,
+        311.2320642523146
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_137",
+      "source_block_id": "paper_1_p10_137",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 137,
+      "display_text": "Publisher's note Springer Nature remains neutral with regard to jurisdictional claims in published maps and institutional affiliations.",
+      "retrieval_text": "[Section: Online content] Publisher's note Springer Nature remains neutral with regard to jurisdictional claims in published maps and institutional affiliations.",
+      "bbox": [
+        306.0610190790006,
+        236.3453850070315,
+        540.6298190767101,
+        223.06806425231457
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_138",
+      "source_block_id": "paper_1_p10_138",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 138,
+      "display_text": "Open Access This article is licensed under a Creative Commons Attribution 4.0 International License, which permits use, sharing, adaptation, distribution and reproduction in any medium or format, as long as you give appropriate credit to the original author(s) and the source, provide a link to the Creative Commons licence, and indicate if changes were made. The images or other third party material in this article are included in the article's Creative Commons licence, unless indicated otherwise in a credit line to the material. If material is not included in the article's Creative Commons licence and your intended use is not permitted by statutory regulation or exceeds the permitted use, you will need to obtain permission directly from the copyright holder. To view a copy of this licence, visit http://creativecommons.org/licenses/by/4.0/.",
+      "retrieval_text": "[Section: Online content] Open Access This article is licensed under a Creative Commons Attribution 4.0 International License, which permits use, sharing, adaptation, distribution and reproduction in any medium or format, as long as you give appropriate credit to the original author(s) and the source, provide a link to the Creative Commons licence, and indicate if changes were made. The images or other third party material in this article are included in the article's Creative Commons licence, unless indicated otherwise in a credit line to the material. If material is not included in the article's Creative Commons licence and your intended use is not permitted by statutory regulation or exceeds the permitted use, you will need to obtain permission directly from the copyright holder. To view a copy of this licence, visit http://creativecommons.org/licenses/by/4.0/.",
+      "bbox": [
+        350.645996093,
+        212.2002298580312,
+        560.6933960930006,
+        190.90690910331432
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p10_139",
+      "source_block_id": "paper_1_p10_139",
+      "chunk_type": "list_item",
+      "page_number": 10,
+      "reading_order": 139,
+      "display_text": "© The Author(s) 2025",
+      "retrieval_text": "[Section: Online content] © The Author(s) 2025",
+      "bbox": [
+        306.143996093,
+        124.03622985803133,
+        363.9359960930006,
+        118.77490910331437
+      ],
+      "provenance": "docling",
+      "section_context": "Online content",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p17_206",
+      "source_block_id": "paper_1_p17_206",
+      "chunk_type": "paragraph",
+      "page_number": 17,
+      "reading_order": 206,
+      "display_text": "a , Designed 230nt oligos corresponding to thousands of cCREs are synthesized on an Agilent array. The 1st round of PCR adds on a minimal promoter, while the 2nd round of PCR adds random barcodes to these sequences. The library is then cloned into a pLS-SceI vector harboring an EGFP reporter to generate the final element library. b , The element-barcode fragments within the library are amplified by PCR and sequenced using an Illumina NextSeq instrument. This enables reconstruction of element-barcode pairings. c , The element library is packaged into lentiviruses and transduced into HepG2, K562, or WTC11 cells in a series of three replicates. Cells are grown in cultured medium for three days prior to the harvesting of RNA and DNA. Each RNA and DNA",
+      "retrieval_text": "[Section: Article] a , Designed 230nt oligos corresponding to thousands of cCREs are synthesized on an Agilent array. The 1st round of PCR adds on a minimal promoter, while the 2nd round of PCR adds random barcodes to these sequences. The library is then cloned into a pLS-SceI vector harboring an EGFP reporter to generate the final element library. b , The element-barcode fragments within the library are amplified by PCR and sequenced using an Illumina NextSeq instrument. This enables reconstruction of element-barcode pairings. c , The element library is packaged into lentiviruses and transduced into HepG2, K562, or WTC11 cells in a series of three replicates. Cells are grown in cultured medium for three days prior to the harvesting of RNA and DNA. Each RNA and DNA",
+      "bbox": [
+        39.68500062399997,
+        711.4072104490311,
+        296.05230133824494,
+        614.8837146156975
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p17_207",
+      "source_block_id": "paper_1_p17_207",
+      "chunk_type": "paragraph",
+      "page_number": 17,
+      "reading_order": 207,
+      "display_text": "sample from each replicate is extracted, and barcodes are sequenced on an Illumina NextSeq instrument. Finally, DNA and RNA-derived barcodes are counted to compute a normalized activity score for each element in each replicate. d , UCSC genome browser tracks annotating, from top to bottom: i) Lead single nucleotide polymorphisms (SNPs) from published Genome-wide Association Studies (GWAS); ii) Common SNPs from the 1000 Genomes Phase 3 dataset; iii) GENCODE gene track; iv) MPRA activity scores from the pilot K562 MPRA library for each of the five enhancers tested, with stronger red indicative of higher activity; v) MPRA scores corresponding to the large-scale K562 MPRA library, tested in both orientations; vi) H3K27Ac; vii) DNase I hypersensitivity signal in K562 cells; viii) base conservation among 100 vertebrate species; and ix) the five enhancers (HS1-HS5) of the globin locus tested in the pilot and largescale K562 MPRA libraries. Image of DNA sequencer created with BioRender.com.",
+      "retrieval_text": "[Section: Article] sample from each replicate is extracted, and barcodes are sequenced on an Illumina NextSeq instrument. Finally, DNA and RNA-derived barcodes are counted to compute a normalized activity score for each element in each replicate. d , UCSC genome browser tracks annotating, from top to bottom: i) Lead single nucleotide polymorphisms (SNPs) from published Genome-wide Association Studies (GWAS); ii) Common SNPs from the 1000 Genomes Phase 3 dataset; iii) GENCODE gene track; iv) MPRA activity scores from the pilot K562 MPRA library for each of the five enhancers tested, with stronger red indicative of higher activity; v) MPRA scores corresponding to the large-scale K562 MPRA library, tested in both orientations; vi) H3K27Ac; vii) DNase I hypersensitivity signal in K562 cells; viii) base conservation among 100 vertebrate species; and ix) the five enhancers (HS1-HS5) of the globin locus tested in the pilot and largescale K562 MPRA libraries. Image of DNA sequencer created with BioRender.com.",
+      "bbox": [
+        306.13999100599995,
+        741.3812079920308,
+        561.0092923215662,
+        614.848712158697
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p18_208",
+      "source_block_id": "paper_1_p18_208",
+      "chunk_type": "section",
+      "page_number": 18,
+      "reading_order": 208,
+      "display_text": "Article",
+      "retrieval_text": "Article",
+      "bbox": [
+        39.685001373,
+        762.4145463860312,
+        85.85700137300003,
+        749.4584931073427
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p33_243",
+      "source_block_id": "paper_1_p33_243",
+      "chunk_type": "paragraph",
+      "page_number": 33,
+      "reading_order": 243,
+      "display_text": "The exact sample size ( n ) for each experimental group/condition, given as a discrete number and unit of measurement",
+      "retrieval_text": "[Section: Statistics] The exact sample size ( n ) for each experimental group/condition, given as a discrete number and unit of measurement",
+      "bbox": [
+        58.069999694,
+        515.570007324,
+        486.7958073222812,
+        510.03195738345306
+      ],
+      "provenance": "docling",
+      "section_context": "Statistics",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p33_244",
+      "source_block_id": "paper_1_p33_244",
+      "chunk_type": "paragraph",
+      "page_number": 33,
+      "reading_order": 244,
+      "display_text": "A statement on whether measurements were taken from distinct samples or whether the same sample was measured repeatedly",
+      "retrieval_text": "[Section: Statistics] A statement on whether measurements were taken from distinct samples or whether the same sample was measured repeatedly",
+      "bbox": [
+        58.069999694,
+        498.890014648,
+        527.029698777281,
+        493.3531975458622
+      ],
+      "provenance": "docling",
+      "section_context": "Statistics",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p33_245",
+      "source_block_id": "paper_1_p33_245",
+      "chunk_type": "paragraph",
+      "page_number": 33,
+      "reading_order": 245,
+      "display_text": "The statistical test(s) used AND whether they are one- or two-sided Only common tests should be described solely by name; describe more complex techniques in the Methods section.",
+      "retrieval_text": "[Section: Statistics] The statistical test(s) used AND whether they are one- or two-sided Only common tests should be described solely by name; describe more complex techniques in the Methods section.",
+      "bbox": [
+        58.069999694,
+        482.570007324,
+        424.3905574757766,
+        467.07382880617837
+      ],
+      "provenance": "docling",
+      "section_context": "Statistics",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p34_292",
+      "source_block_id": "paper_1_p34_292",
+      "chunk_type": "section",
+      "page_number": 34,
+      "reading_order": 292,
+      "display_text": "Reporting for specific materials, systems and methods",
+      "retrieval_text": "Reporting for specific materials, systems and methods",
+      "bbox": [
+        23.51,
+        306.04499877899997,
+        458.8580437019736,
+        293.72250471724226
+      ],
+      "provenance": "docling",
+      "section_context": "Reporting for specific materials, systems and methods",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p34_293",
+      "source_block_id": "paper_1_p34_293",
+      "chunk_type": "paragraph",
+      "page_number": 34,
+      "reading_order": 293,
+      "display_text": "Werequire information from authors about some types of materials, experimental systems and methods used in many studies. Here, indicate whether each material, system or method listed is relevant to your study. If you are not sure if a list item applies to your research, read the appropriate section before selecting a response.",
+      "retrieval_text": "[Section: Reporting for specific materials, systems and methods] Werequire information from authors about some types of materials, experimental systems and methods used in many studies. Here, indicate whether each material, system or method listed is relevant to your study. If you are not sure if a list item applies to your research, read the appropriate section before selecting a response.",
+      "bbox": [
+        24.959999084,
+        285.525009631,
+        557.7585110369095,
+        270.9949421989668
+      ],
+      "provenance": "docling",
+      "section_context": "Reporting for specific materials, systems and methods",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p34_294",
+      "source_block_id": "paper_1_p34_294",
+      "chunk_type": "section",
+      "page_number": 34,
+      "reading_order": 294,
+      "display_text": "Materials & experimental systems Methods",
+      "retrieval_text": "Materials & experimental systems Methods",
+      "bbox": [
+        27.83,
+        249.95500230699997,
+        260.71095408337544,
+        243.1693255122541
+      ],
+      "provenance": "docling",
+      "section_context": "Materials & experimental systems Methods",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical_with_hints",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [
+      "variant_or_sequence"
+    ],
+    "hint_terms": [
+      "sequences",
+      "pairs",
+      "combinations",
+      "plasmids",
+      "barcodes"
+    ]
+  },
+  "stats": {
+    "chunk_build_ms": 4.077,
+    "idf_build_ms": 11.771,
+    "scoring_ms": 8.714,
+    "total_ms": 28.887,
+    "chunk_count_total": 318,
+    "chunk_count_by_type": {
+      "section": 52,
+      "paragraph": 179,
+      "caption": 14,
+      "list_item": 72,
+      "table_region": 1
+    },
+    "candidate_chunk_count": 318,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 12,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T08:48:33.642865+00:00"
+}

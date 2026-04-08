@@ -1,0 +1,297 @@
+{
+  "run_id": "run_20260408_101744_o12gtl",
+  "pdf_id": "paper_2",
+  "column_name": "library construction",
+  "query": "library construction: How the MPRA library is cloned and prepare (before delivering it to the cells)\nRetrieval hints: methods design library cloning construct",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_2_p10_167",
+      "source_block_id": "paper_2_p10_167",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 167,
+      "display_text": "All enhancer sequences were taken from the hg19 reference in the positive strand direction.",
+      "retrieval_text": "[Section: Selection of enhancer and promoter sequences for ExP STARR-seq] All enhancer sequences were taken from the hg19 reference in the positive strand direction.",
+      "bbox": [
+        306.14181518,
+        107.05693066203128,
+        562.7425529249545,
+        88.6503462870312
+      ],
+      "provenance": "docling",
+      "section_context": "Selection of enhancer and promoter sequences for ExP STARR-seq",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_168",
+      "source_block_id": "paper_2_p10_168",
+      "chunk_type": "section",
+      "page_number": 10,
+      "reading_order": 168,
+      "display_text": "Library cloning",
+      "retrieval_text": "Library cloning",
+      "bbox": [
+        306.14181518,
+        75.98743066203122,
+        367.77871517983004,
+        68.10790423716082
+      ],
+      "provenance": "docling",
+      "section_context": "Library cloning",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p10_169",
+      "source_block_id": "paper_2_p10_169",
+      "chunk_type": "paragraph",
+      "page_number": 10,
+      "reading_order": 169,
+      "display_text": "We ordered 264 bp sequences in an oligonucleotide array format from Twist Bioscience with separate pairs of 18 bp adaptors (total length of",
+      "retrieval_text": "[Section: Library cloning] We ordered 264 bp sequences in an oligonucleotide array format from Twist Bioscience with separate pairs of 18 bp adaptors (total length of",
+      "bbox": [
+        306.14181518,
+        64.05692684203132,
+        562.7560070066884,
+        45.65034246703124
+      ],
+      "provenance": "docling",
+      "section_context": "Library cloning",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p11_170",
+      "source_block_id": "paper_2_p11_170",
+      "chunk_type": "section",
+      "page_number": 11,
+      "reading_order": 170,
+      "display_text": "Article",
+      "retrieval_text": "Article",
+      "bbox": [
+        39.68500137,
+        762.4145463820312,
+        82.46900137000003,
+        749.4215547153646
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p11_180",
+      "source_block_id": "paper_2_p11_180",
+      "chunk_type": "section",
+      "page_number": 11,
+      "reading_order": 180,
+      "display_text": "Library transfection",
+      "retrieval_text": "Library transfection",
+      "bbox": [
+        306.14169311,
+        591.9873085920312,
+        387.17559310983006,
+        584.1077821671608
+      ],
+      "provenance": "docling",
+      "section_context": "Library transfection",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p11_181",
+      "source_block_id": "paper_2_p11_181",
+      "chunk_type": "paragraph",
+      "page_number": 11,
+      "reading_order": 181,
+      "display_text": "We nucleofected 10 million K562 cells with 15 μg of the ExP plasmid library in 100 μl cuvettes with a Lonza 4D-Nucleofector using settings and protocols specified by the manufacturer for K562 cells (T-016). We pooled 5 nucleofections together during recovery to form 50 million cell biological transfection replicates and generated 4 replicates for a total of 200 million cells. After 24 h, we collected the cells in Qiagen buffer RLT (79216) and proceeded with STARR-seq library preparation. For the motif ExP STARR-seq experiment, we collected 6.5-10 million nucleofected cells per replicate.",
+      "retrieval_text": "[Section: Library transfection] We nucleofected 10 million K562 cells with 15 μg of the ExP plasmid library in 100 μl cuvettes with a Lonza 4D-Nucleofector using settings and protocols specified by the manufacturer for K562 cells (T-016). We pooled 5 nucleofections together during recovery to form 50 million cell biological transfection replicates and generated 4 replicates for a total of 200 million cells. After 24 h, we collected the cells in Qiagen buffer RLT (79216) and proceeded with STARR-seq library preparation. For the motif ExP STARR-seq experiment, we collected 6.5-10 million nucleofected cells per replicate.",
+      "bbox": [
+        306.14169311,
+        580.0568085920313,
+        562.8226111446842,
+        486.40059653453125
+      ],
+      "provenance": "docling",
+      "section_context": "Library transfection",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p11_182",
+      "source_block_id": "paper_2_p11_182",
+      "chunk_type": "section",
+      "page_number": 11,
+      "reading_order": 182,
+      "display_text": "STARR-seq library preparation",
+      "retrieval_text": "STARR-seq library preparation",
+      "bbox": [
+        306.14169311,
+        473.7374306620313,
+        428.4218431066849,
+        465.8579042371608
+      ],
+      "provenance": "docling",
+      "section_context": "STARR-seq library preparation",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_249",
+      "source_block_id": "paper_2_p14_249",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 249,
+      "display_text": "Analysis of variance (ANOVA) results were computed on the basis of intrinsic activities, and represent the sequential sum of squares (type I ANOVA) analyses. For example, in Extended Data Fig. 2j,k, we calculated the proportion of variance explained by promoters, the proportion of variance explained by enhancers after controlling for promoter activity, the proportion of variance explained by class interactions after controlling for promoter and enhancer activity, and, finally, any remaining variance.",
+      "retrieval_text": "[Section: Analysis of variance] Analysis of variance (ANOVA) results were computed on the basis of intrinsic activities, and represent the sequential sum of squares (type I ANOVA) analyses. For example, in Extended Data Fig. 2j,k, we calculated the proportion of variance explained by promoters, the proportion of variance explained by enhancers after controlling for promoter activity, the proportion of variance explained by class interactions after controlling for promoter and enhancer activity, and, finally, any remaining variance.",
+      "bbox": [
+        306.14169311,
+        171.55693066203128,
+        562.8454270364433,
+        88.65059653453125
+      ],
+      "provenance": "docling",
+      "section_context": "Analysis of variance",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_250",
+      "source_block_id": "paper_2_p14_250",
+      "chunk_type": "section",
+      "page_number": 14,
+      "reading_order": 250,
+      "display_text": "Motif ExP STARR-seq library design",
+      "retrieval_text": "Motif ExP STARR-seq library design",
+      "bbox": [
+        306.14169311,
+        75.98743066203122,
+        446.36449310966003,
+        68.10790423716082
+      ],
+      "provenance": "docling",
+      "section_context": "Motif ExP STARR-seq library design",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p14_251",
+      "source_block_id": "paper_2_p14_251",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 251,
+      "display_text": "For the motif-insertion experiment, we selected 15 promoters from the P1 and P2 promoter clusters that had also been previously studied 22 ,",
+      "retrieval_text": "[Section: Motif ExP STARR-seq library design] For the motif-insertion experiment, we selected 15 promoters from the P1 and P2 promoter clusters that had also been previously studied 22 ,",
+      "bbox": [
+        306.14169311,
+        64.05692684203132,
+        562.72215436942,
+        45.65034246703124
+      ],
+      "provenance": "docling",
+      "section_context": "Motif ExP STARR-seq library design",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_252",
+      "source_block_id": "paper_2_p15_252",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 252,
+      "display_text": "Article",
+      "retrieval_text": "Article",
+      "bbox": [
+        39.68500137,
+        762.4145463820312,
+        82.46900137000003,
+        749.4215547153646
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_273",
+      "source_block_id": "paper_2_p15_273",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 273,
+      "display_text": "Code for fitting the multiplicative ExP model is available at https://doi. org/10.5281/zenodo.6514733 or https://github.com/broadinstitute/ ExP-model-fit.",
+      "retrieval_text": "[Section: Code availability] Code for fitting the multiplicative ExP model is available at https://doi. org/10.5281/zenodo.6514733 or https://github.com/broadinstitute/ ExP-model-fit.",
+      "bbox": [
+        306.14181518,
+        128.55693066203128,
+        561.3709789646083,
+        99.4003462870312
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_274",
+      "source_block_id": "paper_2_p15_274",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 274,
+      "display_text": "49. Wang, T., Lander, E. S. & Sabatini, D. M. Large-scale single guide RNA library construction and use for CRISPR-Cas9-based genetic screens. Cold Spring Harb. Protoc. 2016 , db.top086892 (2016).",
+      "retrieval_text": "[Section: Code availability] 49. Wang, T., Lander, E. S. & Sabatini, D. M. Large-scale single guide RNA library construction and use for CRISPR-Cas9-based genetic screens. Cold Spring Harb. Protoc. 2016 , db.top086892 (2016).",
+      "bbox": [
+        306.14181518,
+        83.78873083203132,
+        559.9418150600006,
+        62.495410557314244
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_2_p15_275",
+      "source_block_id": "paper_2_p15_275",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 275,
+      "display_text": "50. Engreitz, J. M. et al. Local regulation of gene expression by lncRNA promoters, transcription and splicing. Nature 539 , 452-455 (2016).",
+      "retrieval_text": "[Section: Code availability] 50. Engreitz, J. M. et al. Local regulation of gene expression by lncRNA promoters, transcription and splicing. Nature 539 , 452-455 (2016).",
+      "bbox": [
+        306.14182946,
+        59.74073155203132,
+        531.7256293354415,
+        46.463411037314245
+      ],
+      "provenance": "docling",
+      "section_context": "Code availability",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical_with_hints",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [
+      "methods_or_library"
+    ],
+    "hint_terms": [
+      "methods",
+      "design",
+      "library",
+      "cloning",
+      "construct"
+    ]
+  },
+  "stats": {
+    "chunk_build_ms": 3.905,
+    "idf_build_ms": 12.908,
+    "scoring_ms": 9.369,
+    "total_ms": 32.223,
+    "chunk_count_total": 326,
+    "chunk_count_by_type": {
+      "section": 59,
+      "paragraph": 174,
+      "caption": 17,
+      "list_item": 76
+    },
+    "candidate_chunk_count": 326,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 8,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T10:36:03.385116+00:00"
+}

@@ -1,0 +1,362 @@
+{
+  "run_id": "run_20260408_063946_jb0k8g",
+  "pdf_id": "paper_1",
+  "column_name": "Species",
+  "query": "Species: Which species the model system is from.",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_1_p14_172",
+      "source_block_id": "paper_1_p14_172",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 172,
+      "display_text": "For homotypic analysis, we plotted the median element activity (that is, both predicted and observed) for elements possessing 0, 1, 2, 3, 4, or 5 motifs, filtering away elements with ≥1 site to any of the other top 10 transcription factors to reduce the chances of a confounding effect. Groups with a sample size of <10 were also filtered out to minimize the impact of noise. The expected dose-dependent responses (for example, dashed lines in Fig. 3f) were computed using linear regression models examining the relationship between either the observed or MPRALegNet-predicted MPRA activity and the number of TFBSs, given log-transformed and untransformed space to model either multiplicative or additive effects, respectively. The expected trend for multiple sites was extrapolated on the basis of the slope and intercept terms of these linear models.",
+      "retrieval_text": "[Section: Article] For homotypic analysis, we plotted the median element activity (that is, both predicted and observed) for elements possessing 0, 1, 2, 3, 4, or 5 motifs, filtering away elements with ≥1 site to any of the other top 10 transcription factors to reduce the chances of a confounding effect. Groups with a sample size of <10 were also filtered out to minimize the impact of noise. The expected dose-dependent responses (for example, dashed lines in Fig. 3f) were computed using linear regression models examining the relationship between either the observed or MPRALegNet-predicted MPRA activity and the number of TFBSs, given log-transformed and untransformed space to model either multiplicative or additive effects, respectively. The expected trend for multiple sites was extrapolated on the basis of the slope and intercept terms of these linear models.",
+      "bbox": [
+        39.685001373,
+        451.05693066403126,
+        296.37685642590134,
+        314.4008462890312
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p14_173",
+      "source_block_id": "paper_1_p14_173",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 173,
+      "display_text": "For heterotypic analysis, we evaluated every pair of the 10 activating motifs, isolating cases in which the element possessed 0 counts of both transcription factors, 1 count of one transcription factor or the other, or 1 count each of the first and second transcription factor. Again, all elements were filtered to those with ≥1 site to any of the other top 10 transcription factors other than the transcription factor pair considered. To further account for confounding effects that could be attributable to all other transcription factors (that is, including those beyond the top 10), we computed the residuals from a linear model which considered the log-likelihood values for all other transcription factors besides the pair of transcription factors under consideration. We call these 'adjusted log 2 (RNA/DNA)' (for example, y axis in Fig. 3h) because they removed variability explained by the binding affinities and occurrences of other transcription factors. Finally, a regression model was fit independently to the predicted and observed activity scores. This model sought to predict activity as a function of the presence of TF1, TF2 or an interaction term (TF1 × TF2). The coefficient for the interaction term represented the strength of the super-multiplicative effect (that is, if the coefficient was positive) or the sub-multiplicative effect (that is, if the coefficient was negative) 41,42 .",
+      "retrieval_text": "[Section: Article] For heterotypic analysis, we evaluated every pair of the 10 activating motifs, isolating cases in which the element possessed 0 counts of both transcription factors, 1 count of one transcription factor or the other, or 1 count each of the first and second transcription factor. Again, all elements were filtered to those with ≥1 site to any of the other top 10 transcription factors other than the transcription factor pair considered. To further account for confounding effects that could be attributable to all other transcription factors (that is, including those beyond the top 10), we computed the residuals from a linear model which considered the log-likelihood values for all other transcription factors besides the pair of transcription factors under consideration. We call these 'adjusted log 2 (RNA/DNA)' (for example, y axis in Fig. 3h) because they removed variability explained by the binding affinities and occurrences of other transcription factors. Finally, a regression model was fit independently to the predicted and observed activity scores. This model sought to predict activity as a function of the presence of TF1, TF2 or an interaction term (TF1 × TF2). The coefficient for the interaction term represented the strength of the super-multiplicative effect (that is, if the coefficient was positive) or the sub-multiplicative effect (that is, if the coefficient was negative) 41,42 .",
+      "bbox": [
+        39.685001373,
+        311.30693066403126,
+        296.41552743809854,
+        99.40034628903129
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p14_174",
+      "source_block_id": "paper_1_p14_174",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 174,
+      "display_text": "Prediction using MPRALegNet. To generate predictions on an arbitrary sequence, we recommend generating predictions using all 90 pretrained models (considering test-time sequence augmentations such as orientation and shifting for extra precision), and then averaging the predictions to achieve the final prediction. We recommend replacing the fixed 15-bp adaptors with the surrounding natural genomic sequence context whenever available, to reduce the chances that artefactual motifs occurring at the adaptor-sequence boundaries could bias the results.",
+      "retrieval_text": "[Section: Article] Prediction using MPRALegNet. To generate predictions on an arbitrary sequence, we recommend generating predictions using all 90 pretrained models (considering test-time sequence augmentations such as orientation and shifting for extra precision), and then averaging the predictions to achieve the final prediction. We recommend replacing the fixed 15-bp adaptors with the surrounding natural genomic sequence context whenever available, to reduce the chances that artefactual motifs occurring at the adaptor-sequence boundaries could bias the results.",
+      "bbox": [
+        39.685001373,
+        85.55693066403126,
+        296.40127437948354,
+        45.65034247403128
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p17_206",
+      "source_block_id": "paper_1_p17_206",
+      "chunk_type": "paragraph",
+      "page_number": 17,
+      "reading_order": 206,
+      "display_text": "a , Designed 230nt oligos corresponding to thousands of cCREs are synthesized on an Agilent array. The 1st round of PCR adds on a minimal promoter, while the 2nd round of PCR adds random barcodes to these sequences. The library is then cloned into a pLS-SceI vector harboring an EGFP reporter to generate the final element library. b , The element-barcode fragments within the library are amplified by PCR and sequenced using an Illumina NextSeq instrument. This enables reconstruction of element-barcode pairings. c , The element library is packaged into lentiviruses and transduced into HepG2, K562, or WTC11 cells in a series of three replicates. Cells are grown in cultured medium for three days prior to the harvesting of RNA and DNA. Each RNA and DNA",
+      "retrieval_text": "[Section: Article] a , Designed 230nt oligos corresponding to thousands of cCREs are synthesized on an Agilent array. The 1st round of PCR adds on a minimal promoter, while the 2nd round of PCR adds random barcodes to these sequences. The library is then cloned into a pLS-SceI vector harboring an EGFP reporter to generate the final element library. b , The element-barcode fragments within the library are amplified by PCR and sequenced using an Illumina NextSeq instrument. This enables reconstruction of element-barcode pairings. c , The element library is packaged into lentiviruses and transduced into HepG2, K562, or WTC11 cells in a series of three replicates. Cells are grown in cultured medium for three days prior to the harvesting of RNA and DNA. Each RNA and DNA",
+      "bbox": [
+        39.68500062399997,
+        711.4072104490311,
+        296.05230133824494,
+        614.8837146156975
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p17_207",
+      "source_block_id": "paper_1_p17_207",
+      "chunk_type": "paragraph",
+      "page_number": 17,
+      "reading_order": 207,
+      "display_text": "sample from each replicate is extracted, and barcodes are sequenced on an Illumina NextSeq instrument. Finally, DNA and RNA-derived barcodes are counted to compute a normalized activity score for each element in each replicate. d , UCSC genome browser tracks annotating, from top to bottom: i) Lead single nucleotide polymorphisms (SNPs) from published Genome-wide Association Studies (GWAS); ii) Common SNPs from the 1000 Genomes Phase 3 dataset; iii) GENCODE gene track; iv) MPRA activity scores from the pilot K562 MPRA library for each of the five enhancers tested, with stronger red indicative of higher activity; v) MPRA scores corresponding to the large-scale K562 MPRA library, tested in both orientations; vi) H3K27Ac; vii) DNase I hypersensitivity signal in K562 cells; viii) base conservation among 100 vertebrate species; and ix) the five enhancers (HS1-HS5) of the globin locus tested in the pilot and largescale K562 MPRA libraries. Image of DNA sequencer created with BioRender.com.",
+      "retrieval_text": "[Section: Article] sample from each replicate is extracted, and barcodes are sequenced on an Illumina NextSeq instrument. Finally, DNA and RNA-derived barcodes are counted to compute a normalized activity score for each element in each replicate. d , UCSC genome browser tracks annotating, from top to bottom: i) Lead single nucleotide polymorphisms (SNPs) from published Genome-wide Association Studies (GWAS); ii) Common SNPs from the 1000 Genomes Phase 3 dataset; iii) GENCODE gene track; iv) MPRA activity scores from the pilot K562 MPRA library for each of the five enhancers tested, with stronger red indicative of higher activity; v) MPRA scores corresponding to the large-scale K562 MPRA library, tested in both orientations; vi) H3K27Ac; vii) DNase I hypersensitivity signal in K562 cells; viii) base conservation among 100 vertebrate species; and ix) the five enhancers (HS1-HS5) of the globin locus tested in the pilot and largescale K562 MPRA libraries. Image of DNA sequencer created with BioRender.com.",
+      "bbox": [
+        306.13999100599995,
+        741.3812079920308,
+        561.0092923215662,
+        614.848712158697
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p18_208",
+      "source_block_id": "paper_1_p18_208",
+      "chunk_type": "section",
+      "page_number": 18,
+      "reading_order": 208,
+      "display_text": "Article",
+      "retrieval_text": "Article",
+      "bbox": [
+        39.685001373,
+        762.4145463860312,
+        85.85700137300003,
+        749.4584931073427
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p18_209",
+      "source_block_id": "paper_1_p18_209",
+      "chunk_type": "paragraph",
+      "page_number": 18,
+      "reading_order": 209,
+      "display_text": "D",
+      "retrieval_text": "[Section: Article] D",
+      "bbox": [
+        78.104301452,
+        743.8182384329513,
+        83.949195670188,
+        729.4688128793063
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p19_210",
+      "source_block_id": "paper_1_p19_210",
+      "chunk_type": "paragraph",
+      "page_number": 19,
+      "reading_order": 210,
+      "display_text": "Extended Data Fig. 2 | MPRA activity in selected disease loci. a-f , UCSC genome browser tracks annotating, from top to bottom: i) Lead single nucleotide polymorphisms (SNPs) from published Genome-wide Association Studies (GWAS); ii) Common SNPs from the 1000 Genomes Phase 3 dataset; iii) GENCODE gene track; iv) MPRA activity scores from the pilot K562 MPRA library for each of the five enhancers tested, with stronger red indicative of higher activity; v) MPRA scores corresponding to the large-scale K562 MPRA library, tested in both orientations; vi) H3K27Ac and vii) DNase I hypersensitivity signal in K562 cells; viii) base conservation among 100 vertebrate species. Snapshots provided for BCL11A ( a ), GATA1 ( b ), and HBA2 ( c ). Additional loci are shown in Supplementary Fig. 3.",
+      "retrieval_text": "[Section: Article] Extended Data Fig. 2 | MPRA activity in selected disease loci. a-f , UCSC genome browser tracks annotating, from top to bottom: i) Lead single nucleotide polymorphisms (SNPs) from published Genome-wide Association Studies (GWAS); ii) Common SNPs from the 1000 Genomes Phase 3 dataset; iii) GENCODE gene track; iv) MPRA activity scores from the pilot K562 MPRA library for each of the five enhancers tested, with stronger red indicative of higher activity; v) MPRA scores corresponding to the large-scale K562 MPRA library, tested in both orientations; vi) H3K27Ac and vii) DNase I hypersensitivity signal in K562 cells; viii) base conservation among 100 vertebrate species. Snapshots provided for BCL11A ( a ), GATA1 ( b ), and HBA2 ( c ). Additional loci are shown in Supplementary Fig. 3.",
+      "bbox": [
+        39.678001373,
+        741.4162104490313,
+        289.67460137032566,
+        684.9047146156978
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p20_211",
+      "source_block_id": "paper_1_p20_211",
+      "chunk_type": "section",
+      "page_number": 20,
+      "reading_order": 211,
+      "display_text": "Article",
+      "retrieval_text": "Article",
+      "bbox": [
+        39.685001373,
+        762.4145463860312,
+        85.85700137300003,
+        749.4584931073427
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p24_220",
+      "source_block_id": "paper_1_p24_220",
+      "chunk_type": "paragraph",
+      "page_number": 24,
+      "reading_order": 220,
+      "display_text": "a , Violin plots showing the performances of different variations of MPRALegNet on each of the ten cross-validation folds of held-out data, for different types of augmentations. '-' and '+' indicate removal or usage, respectively, of the following augmentations: i) 'test-time', whereby the mean prediction is computed for various augmentations of the test sequence; ii) 'shift', whereby a sequence was randomly shifted by 0 to +21 bp; iii) 'RevComp', whereby a sequence was randomly reverse complemented; iv) 'Orientation', whereby measured element activity scores were considered for each orientation tested, instead of the mean across both orientations; and v) '5th channel', whereby a",
+      "retrieval_text": "[Section: Extended Data Fig. 5 | Architecture and performance of MPRALegNet.] a , Violin plots showing the performances of different variations of MPRALegNet on each of the ten cross-validation folds of held-out data, for different types of augmentations. '-' and '+' indicate removal or usage, respectively, of the following augmentations: i) 'test-time', whereby the mean prediction is computed for various augmentations of the test sequence; ii) 'shift', whereby a sequence was randomly shifted by 0 to +21 bp; iii) 'RevComp', whereby a sequence was randomly reverse complemented; iv) 'Orientation', whereby measured element activity scores were considered for each orientation tested, instead of the mean across both orientations; and v) '5th channel', whereby a",
+      "bbox": [
+        39.68500137299998,
+        731.4132104490312,
+        295.03030134224224,
+        644.8927146156976
+      ],
+      "provenance": "docling",
+      "section_context": "Extended Data Fig. 5 | Architecture and performance of MPRALegNet.",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p24_221",
+      "source_block_id": "paper_1_p24_221",
+      "chunk_type": "paragraph",
+      "page_number": 24,
+      "reading_order": 221,
+      "display_text": "5th channel was considered alongside the one-hot encoded sequence ( i.e ., the first 4 channels) to indicate the sequence's orientation. b , Complete architecture of the MPRALegNet model. Indicated for each layer is the layer name and dimensionality of the input and output matrices. 'None' refers to the batch size used during model training. c , Impact of the size of the training set on model performance. Data from each cell type were downsampled to every 10th percentile ( i.e ., from 10 to 100%). Error bars represent the standard deviation of the Pearson correlations across 90 models (10 held-out folds of data x 9 trained models varying by the choice of validation set).",
+      "retrieval_text": "[Section: Extended Data Fig. 5 | Architecture and performance of MPRALegNet.] 5th channel was considered alongside the one-hot encoded sequence ( i.e ., the first 4 channels) to indicate the sequence's orientation. b , Complete architecture of the MPRALegNet model. Indicated for each layer is the layer name and dimensionality of the input and output matrices. 'None' refers to the batch size used during model training. c , Impact of the size of the training set on model performance. Data from each cell type were downsampled to every 10th percentile ( i.e ., from 10 to 100%). Error bars represent the standard deviation of the Pearson correlations across 90 models (10 held-out folds of data x 9 trained models varying by the choice of validation set).",
+      "bbox": [
+        306.1399917549999,
+        741.3882104490309,
+        562.4869851246627,
+        654.8677146156973
+      ],
+      "provenance": "docling",
+      "section_context": "Extended Data Fig. 5 | Architecture and performance of MPRALegNet.",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p25_222",
+      "source_block_id": "paper_1_p25_222",
+      "chunk_type": "paragraph",
+      "page_number": 25,
+      "reading_order": 222,
+      "display_text": "Extended Data Fig. 6 | Motifs detected by MPRALegNet. Set of enriched motifs discovered by TF-MoDISco-lite 38 for each of the three cell types evaluated. Motifs shown are rank-ordered according to their 'seqlet' 38 count.",
+      "retrieval_text": "[Section: Extended Data Fig. 5 | Architecture and performance of MPRALegNet.] Extended Data Fig. 6 | Motifs detected by MPRALegNet. Set of enriched motifs discovered by TF-MoDISco-lite 38 for each of the three cell types evaluated. Motifs shown are rank-ordered according to their 'seqlet' 38 count.",
+      "bbox": [
+        39.6851,
+        93.79312542703133,
+        289.36570532200005,
+        67.29362959369791
+      ],
+      "provenance": "docling",
+      "section_context": "Extended Data Fig. 5 | Architecture and performance of MPRALegNet.",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p29_229",
+      "source_block_id": "paper_1_p29_229",
+      "chunk_type": "section",
+      "page_number": 29,
+      "reading_order": 229,
+      "display_text": "Extended Data Fig. 8 | Variant effect predictions in the RBM38 and LMO2",
+      "retrieval_text": "Extended Data Fig. 8 | Variant effect predictions in the RBM38 and LMO2",
+      "bbox": [
+        39.685001373,
+        741.4162104490313,
+        282.36240137166305,
+        734.9381838096871
+      ],
+      "provenance": "docling",
+      "section_context": "Extended Data Fig. 8 | Variant effect predictions in the RBM38 and LMO2",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p29_230",
+      "source_block_id": "paper_1_p29_230",
+      "chunk_type": "paragraph",
+      "page_number": 29,
+      "reading_order": 230,
+      "display_text": "loci. a , UCSC genome browser snapshot of the RBM38 locus, showing from top to bottom: i) Lead SNPs from published GWAS; ii) variant effect predictions derived from MPRALegNet for LD variants with GWAS lead SNPs (R 2 ≥ 0.8); iii) MPRA activity scores from the pilot K562 MPRA library for each of the five enhancers tested, with stronger red indicative of higher activity; iv) MPRA scores corresponding to the large-scale K562 MPRA library, tested in both orientations; v) H3K27Ac and vi) DNase I hypersensitivity signal in K562 cells; vii) base conservation among 100 vertebrate species; viii) ENCODE cCRE track. The bottom panel shows two zoomed-in regions of the implicated causal SNPs ( i.e ., expanded from the vertical dashed lines), several of which are located within a DNase I site. b , This panel follows the same scheme, except displays the LMO2 locus and one zoomed in region showing the implicated causal SNP located within a DNase I site having the strongest predicted effect size.",
+      "retrieval_text": "[Section: Extended Data Fig. 8 | Variant effect predictions in the RBM38 and LMO2] loci. a , UCSC genome browser snapshot of the RBM38 locus, showing from top to bottom: i) Lead SNPs from published GWAS; ii) variant effect predictions derived from MPRALegNet for LD variants with GWAS lead SNPs (R 2 ≥ 0.8); iii) MPRA activity scores from the pilot K562 MPRA library for each of the five enhancers tested, with stronger red indicative of higher activity; iv) MPRA scores corresponding to the large-scale K562 MPRA library, tested in both orientations; v) H3K27Ac and vi) DNase I hypersensitivity signal in K562 cells; vii) base conservation among 100 vertebrate species; viii) ENCODE cCRE track. The bottom panel shows two zoomed-in regions of the implicated causal SNPs ( i.e ., expanded from the vertical dashed lines), several of which are located within a DNase I site. b , This panel follows the same scheme, except displays the LMO2 locus and one zoomed in region showing the implicated causal SNP located within a DNase I site having the strongest predicted effect size.",
+      "bbox": [
+        39.68699999999998,
+        731.4132104490312,
+        292.6349004006371,
+        674.9107146156979
+      ],
+      "provenance": "docling",
+      "section_context": "Extended Data Fig. 8 | Variant effect predictions in the RBM38 and LMO2",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p30_231",
+      "source_block_id": "paper_1_p30_231",
+      "chunk_type": "section",
+      "page_number": 30,
+      "reading_order": 231,
+      "display_text": "Article",
+      "retrieval_text": "Article",
+      "bbox": [
+        39.685001373,
+        762.4145463860312,
+        85.85700137300003,
+        749.4584931073427
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p34_292",
+      "source_block_id": "paper_1_p34_292",
+      "chunk_type": "section",
+      "page_number": 34,
+      "reading_order": 292,
+      "display_text": "Reporting for specific materials, systems and methods",
+      "retrieval_text": "Reporting for specific materials, systems and methods",
+      "bbox": [
+        23.51,
+        306.04499877899997,
+        458.8580437019736,
+        293.72250471724226
+      ],
+      "provenance": "docling",
+      "section_context": "Reporting for specific materials, systems and methods",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p34_293",
+      "source_block_id": "paper_1_p34_293",
+      "chunk_type": "paragraph",
+      "page_number": 34,
+      "reading_order": 293,
+      "display_text": "Werequire information from authors about some types of materials, experimental systems and methods used in many studies. Here, indicate whether each material, system or method listed is relevant to your study. If you are not sure if a list item applies to your research, read the appropriate section before selecting a response.",
+      "retrieval_text": "[Section: Reporting for specific materials, systems and methods] Werequire information from authors about some types of materials, experimental systems and methods used in many studies. Here, indicate whether each material, system or method listed is relevant to your study. If you are not sure if a list item applies to your research, read the appropriate section before selecting a response.",
+      "bbox": [
+        24.959999084,
+        285.525009631,
+        557.7585110369095,
+        270.9949421989668
+      ],
+      "provenance": "docling",
+      "section_context": "Reporting for specific materials, systems and methods",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p34_294",
+      "source_block_id": "paper_1_p34_294",
+      "chunk_type": "section",
+      "page_number": 34,
+      "reading_order": 294,
+      "display_text": "Materials & experimental systems Methods",
+      "retrieval_text": "Materials & experimental systems Methods",
+      "bbox": [
+        27.83,
+        249.95500230699997,
+        260.71095408337544,
+        243.1693255122541
+      ],
+      "provenance": "docling",
+      "section_context": "Materials & experimental systems Methods",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [],
+    "hint_terms": []
+  },
+  "stats": {
+    "chunk_build_ms": 2.148,
+    "idf_build_ms": 10.178,
+    "scoring_ms": 6.237,
+    "total_ms": 23.762,
+    "chunk_count_total": 318,
+    "chunk_count_by_type": {
+      "section": 52,
+      "paragraph": 179,
+      "caption": 14,
+      "list_item": 72,
+      "table_region": 1
+    },
+    "candidate_chunk_count": 318,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 12,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T07:25:23.686821+00:00"
+}

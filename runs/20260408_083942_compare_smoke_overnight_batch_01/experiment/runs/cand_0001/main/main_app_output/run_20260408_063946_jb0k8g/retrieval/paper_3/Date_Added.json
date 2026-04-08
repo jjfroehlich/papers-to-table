@@ -1,0 +1,316 @@
+{
+  "run_id": "run_20260408_063946_jb0k8g",
+  "pdf_id": "paper_3",
+  "column_name": "Date Added",
+  "query": "Date Added: Date the paper was added to the bibliography or library.\nRetrieval hints: methods design library cloning construct",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_3_p15_141",
+      "source_block_id": "paper_3_p15_141",
+      "chunk_type": "section",
+      "page_number": 15,
+      "reading_order": 141,
+      "display_text": "STAR + METHODS",
+      "retrieval_text": "STAR + METHODS",
+      "bbox": [
+        310.84699536,
+        109.49230032921878,
+        372.46888692,
+        102.52547412921876
+      ],
+      "provenance": "docling",
+      "section_context": "STAR + METHODS",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_142",
+      "source_block_id": "paper_3_p15_142",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 142,
+      "display_text": "Detailed methods are provided in the online version of this paper and include the following:",
+      "retrieval_text": "[Section: STAR + METHODS] Detailed methods are provided in the online version of this paper and include the following:",
+      "bbox": [
+        310.84699536,
+        89.90638302921877,
+        549.8949117600007,
+        74.00193474921878
+      ],
+      "provenance": "docling",
+      "section_context": "STAR + METHODS",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_143",
+      "source_block_id": "paper_3_p15_143",
+      "chunk_type": "list_item",
+      "page_number": 15,
+      "reading_order": 143,
+      "display_text": "d KEY RESOURCES TABLE",
+      "retrieval_text": "[Section: STAR + METHODS] d KEY RESOURCES TABLE",
+      "bbox": [
+        322.8094,
+        63.48631614921874,
+        411.7983294000003,
+        57.04949874921874
+      ],
+      "provenance": "docling",
+      "section_context": "STAR + METHODS",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p16_148",
+      "source_block_id": "paper_3_p16_148",
+      "chunk_type": "list_item",
+      "page_number": 16,
+      "reading_order": 148,
+      "display_text": "B TF reporter library design",
+      "retrieval_text": "[Section: Article] B TF reporter library design",
+      "bbox": [
+        76.989,
+        673.2752161492187,
+        164.5850609399999,
+        666.8383987492188
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p16_149",
+      "source_block_id": "paper_3_p16_149",
+      "chunk_type": "list_item",
+      "page_number": 16,
+      "reading_order": 149,
+      "display_text": "B Cloning of the TF reporter library",
+      "retrieval_text": "[Section: Article] B Cloning of the TF reporter library",
+      "bbox": [
+        76.989,
+        663.8074161492187,
+        187.34614937999987,
+        657.3705987492187
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p16_150",
+      "source_block_id": "paper_3_p16_150",
+      "chunk_type": "list_item",
+      "page_number": 16,
+      "reading_order": 150,
+      "display_text": "B Reporter library transfection and pathway perturbations",
+      "retrieval_text": "[Section: Article] B Reporter library transfection and pathway perturbations",
+      "bbox": [
+        76.989,
+        654.3398161492188,
+        258.87153431999974,
+        647.9029987492188
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p22_240",
+      "source_block_id": "paper_3_p22_240",
+      "chunk_type": "paragraph",
+      "page_number": 22,
+      "reading_order": 240,
+      "display_text": "inactive. 32 For each TF, this TFBS-devoid core promoter was attached to one reporter design only (background #4, promoter distance 21 bp). Second, two different positive controls were included to benchmark the expression levels of the synthetic TF reporters: 1) a 183-bp region of the hPGK promoter, and 2) 120 (40 for each of the three core promoters minP, minCMV, and minHBG) 100-bp regions of Klf2 gene enhancers with known activity in reporter assays. 35 Each of these control reporters were also linked to five to eight different barcodes. All reporter sequences were completed with 18 bp primer adapter sequences (that were also scanned using FIMO) in both flanks for cloning purposes. The final pool of sequences was again scanned for quality checks with FIMO, and individual reporters were checked for specific motif matches sequences with MoLoTool. 54 The resulting sequence pool had a total length of on average 202 bp (at least 148 bp up to 297 bp) and was ordered as oligonucleotide library from Twist Biosciences.",
+      "retrieval_text": "[Section: Article] inactive. 32 For each TF, this TFBS-devoid core promoter was attached to one reporter design only (background #4, promoter distance 21 bp). Second, two different positive controls were included to benchmark the expression levels of the synthetic TF reporters: 1) a 183-bp region of the hPGK promoter, and 2) 120 (40 for each of the three core promoters minP, minCMV, and minHBG) 100-bp regions of Klf2 gene enhancers with known activity in reporter assays. 35 Each of these control reporters were also linked to five to eight different barcodes. All reporter sequences were completed with 18 bp primer adapter sequences (that were also scanned using FIMO) in both flanks for cloning purposes. The final pool of sequences was again scanned for quality checks with FIMO, and individual reporters were checked for specific motif matches sequences with MoLoTool. 54 The resulting sequence pool had a total length of on average 202 bp (at least 148 bp up to 297 bp) and was ordered as oligonucleotide library from Twist Biosciences.",
+      "bbox": [
+        53.1212,
+        683.0413815492187,
+        543.2460886200004,
+        596.7938079292188
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p22_241",
+      "source_block_id": "paper_3_p22_241",
+      "chunk_type": "section",
+      "page_number": 22,
+      "reading_order": 241,
+      "display_text": "Cloning of the TF reporter library",
+      "retrieval_text": "Cloning of the TF reporter library",
+      "bbox": [
+        53.12212701999999,
+        582.6696971492188,
+        192.2563466599999,
+        576.6234023492187
+      ],
+      "provenance": "docling",
+      "section_context": "Cloning of the TF reporter library",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p22_242",
+      "source_block_id": "paper_3_p22_242",
+      "chunk_type": "paragraph",
+      "page_number": 22,
+      "reading_order": 242,
+      "display_text": "The vector backbone was constructed as mentioned previously. 32 The oligonucleotide library was resuspended in TE buffer (Invitrogen) to a final concentration of 20 ng/ m l. 10 ng of the oligonucleotide library was then PCR amplified (1' 95 \u000e C, 6x(15'' 95 \u000e C, 15'' 57 \u000e C, 15'' 72 \u000e C), 1' 72 \u000e C) by MyTaq Red mix (Bioline) using primers that add overhangs with EcoRI (MT024) or NheI (MT025) restriction enzyme sites. The PCR product was then purified using CleanPCR beads (#CPCR, CleanNA) at 1.8:1 beads:sample ratio, digested with EcoRI-HF (#R3101, NEB) and NheI-HF (#3131, NEB) by incubating the PCR product at 37 \u000e Cfor 1 h, and then again bead purified as before. 1 m g of the entry vector was also digested with EcoRI-HF and NheI-HF and the linearized product was purified from a 2% agarose gel using PCR Isolate II PCR and Gel Kit (Bioline). The digested and purified reporter pool was then ligated into 80 ng of the linearized entry vector using Takara ligation kit v1.0 (#6021; Takara) at a 1:3 (vector:insert) ratio. The ligation mix was then bead purified as before and transformed into MegaX DH10B T1R Electrocomp Ô Cells (Invitrogen) using 1 m l of the ligation mix. The library complexity was estimated from plated serial dilutions of the transformed cells to be \u0018 300,000 colony forming units. Transformed cells were transferred to 200 ml standard Luria Broth (LB) plus kanamycin (50 m g/ml), grown overnight and purified using a Maxi plasmid purification kit (#12162; Qiagen).",
+      "retrieval_text": "[Section: Cloning of the TF reporter library] The vector backbone was constructed as mentioned previously. 32 The oligonucleotide library was resuspended in TE buffer (Invitrogen) to a final concentration of 20 ng/ m l. 10 ng of the oligonucleotide library was then PCR amplified (1' 95 \u000e C, 6x(15'' 95 \u000e C, 15'' 57 \u000e C, 15'' 72 \u000e C), 1' 72 \u000e C) by MyTaq Red mix (Bioline) using primers that add overhangs with EcoRI (MT024) or NheI (MT025) restriction enzyme sites. The PCR product was then purified using CleanPCR beads (#CPCR, CleanNA) at 1.8:1 beads:sample ratio, digested with EcoRI-HF (#R3101, NEB) and NheI-HF (#3131, NEB) by incubating the PCR product at 37 \u000e Cfor 1 h, and then again bead purified as before. 1 m g of the entry vector was also digested with EcoRI-HF and NheI-HF and the linearized product was purified from a 2% agarose gel using PCR Isolate II PCR and Gel Kit (Bioline). The digested and purified reporter pool was then ligated into 80 ng of the linearized entry vector using Takara ligation kit v1.0 (#6021; Takara) at a 1:3 (vector:insert) ratio. The ligation mix was then bead purified as before and transformed into MegaX DH10B T1R Electrocomp Ô Cells (Invitrogen) using 1 m l of the ligation mix. The library complexity was estimated from plated serial dilutions of the transformed cells to be \u0018 300,000 colony forming units. Transformed cells were transferred to 200 ml standard Luria Broth (LB) plus kanamycin (50 m g/ml), grown overnight and purified using a Maxi plasmid purification kit (#12162; Qiagen).",
+      "bbox": [
+        53.12157596,
+        573.4539815492187,
+        543.2640757600004,
+        443.3825667292188
+      ],
+      "provenance": "docling",
+      "section_context": "Cloning of the TF reporter library",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p22_243",
+      "source_block_id": "paper_3_p22_243",
+      "chunk_type": "section",
+      "page_number": 22,
+      "reading_order": 243,
+      "display_text": "Reporter library transfection and pathway perturbations",
+      "retrieval_text": "Reporter library transfection and pathway perturbations",
+      "bbox": [
+        53.122966119999944,
+        429.25845594921884,
+        289.69060131999987,
+        423.21216114921884
+      ],
+      "provenance": "docling",
+      "section_context": "Reporter library transfection and pathway perturbations",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p22_245",
+      "source_block_id": "paper_3_p22_245",
+      "chunk_type": "section",
+      "page_number": 22,
+      "reading_order": 245,
+      "display_text": "siRNA TF knockdown experiments",
+      "retrieval_text": "siRNA TF knockdown experiments",
+      "bbox": [
+        53.12129044000001,
+        297.73115836921875,
+        197.42026525999992,
+        291.68486356921875
+      ],
+      "provenance": "docling",
+      "section_context": "siRNA TF knockdown experiments",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p22_246",
+      "source_block_id": "paper_3_p22_246",
+      "chunk_type": "paragraph",
+      "page_number": 22,
+      "reading_order": 246,
+      "display_text": "The TF knockdown experiments were performed in HEPG2 and mESCs. For HEPG2 cells, reverse siRNA transfections were done by mixing 20 nM siRNA with 1.5 m l Lipofectamine RNAiMAX transfection reagent (#13778075, ThermoFisher) in 100 m l Opti-MEM in 24-wells. Then, 7.5x10 4 HEPG2 cells were added to the wells. The list of siGENOME SMARTpool siRNAs (Dharmacon) used in the screen can be found in Table S3. 24h after siRNA transfection, 0.5 m g of the TF reporter plasmid library was transfected by mixing the library with 1.5 m l Lipofectamine 3000 in 50 m l Opti-MEM and adding the mix directly to the cells. For mESCs, 1.5x10 5 cells were reverse lipofected in 12-wells using 40 nM siRNA and 3 m l Lipofectamine RNAiMAX transfection reagent (#13778075, ThermoFisher) in 200 m l Opti-MEM. All used ON-TARGETplus siRNAs (Dharmacon) are listed Table S3. 24h after siRNA transfection, 1 m g of the TF reporter plasmid library was mixed with 3 m l Lipofectamine 2000 in 100 m l Opti-MEM and plated in new 12-wells. The siRNA-transfected mESCs were then collected and added to new 12-wells with the TF reporter plasmid library lipofection mix. Knockdown efficiency was evaluated by killing controls using siRNAs targeting PLK1 (#L-003290 (human), #L-040566 (mouse), Dharmacon). Non-targeting siRNAs were used as negative controls (#D-001210-01, Dharmacon). 24 hours after TF reporter library plasmid transfection and 48 hours after siRNA transfection the cells were harvested as mentioned in the ''reporter library transfection and pathway perturbations'' section.",
+      "retrieval_text": "[Section: siRNA TF knockdown experiments] The TF knockdown experiments were performed in HEPG2 and mESCs. For HEPG2 cells, reverse siRNA transfections were done by mixing 20 nM siRNA with 1.5 m l Lipofectamine RNAiMAX transfection reagent (#13778075, ThermoFisher) in 100 m l Opti-MEM in 24-wells. Then, 7.5x10 4 HEPG2 cells were added to the wells. The list of siGENOME SMARTpool siRNAs (Dharmacon) used in the screen can be found in Table S3. 24h after siRNA transfection, 0.5 m g of the TF reporter plasmid library was transfected by mixing the library with 1.5 m l Lipofectamine 3000 in 50 m l Opti-MEM and adding the mix directly to the cells. For mESCs, 1.5x10 5 cells were reverse lipofected in 12-wells using 40 nM siRNA and 3 m l Lipofectamine RNAiMAX transfection reagent (#13778075, ThermoFisher) in 200 m l Opti-MEM. All used ON-TARGETplus siRNAs (Dharmacon) are listed Table S3. 24h after siRNA transfection, 1 m g of the TF reporter plasmid library was mixed with 3 m l Lipofectamine 2000 in 100 m l Opti-MEM and plated in new 12-wells. The siRNA-transfected mESCs were then collected and added to new 12-wells with the TF reporter plasmid library lipofection mix. Knockdown efficiency was evaluated by killing controls using siRNAs targeting PLK1 (#L-003290 (human), #L-040566 (mouse), Dharmacon). Non-targeting siRNAs were used as negative controls (#D-001210-01, Dharmacon). 24 hours after TF reporter library plasmid transfection and 48 hours after siRNA transfection the cells were harvested as mentioned in the ''reporter library transfection and pathway perturbations'' section.",
+      "bbox": [
+        53.12129044000001,
+        286.78939714921876,
+        543.25466348,
+        147.44546856921886
+      ],
+      "provenance": "docling",
+      "section_context": "siRNA TF knockdown experiments",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p22_247",
+      "source_block_id": "paper_3_p22_247",
+      "chunk_type": "section",
+      "page_number": 22,
+      "reading_order": 247,
+      "display_text": "TF overexpression experiments",
+      "retrieval_text": "TF overexpression experiments",
+      "bbox": [
+        53.12456249999992,
+        133.3780947292188,
+        185.97199045999983,
+        127.33179992921885
+      ],
+      "provenance": "docling",
+      "section_context": "TF overexpression experiments",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p22_248",
+      "source_block_id": "paper_3_p22_248",
+      "chunk_type": "paragraph",
+      "page_number": 22,
+      "reading_order": 248,
+      "display_text": "Lentiviral plasmids carrying doxycycline-inducible open reading frames for GATA1, FOSL1, FOXA1, NR4A2 or RFX1 and a puromycin selection cassette were a kind gift from Bart Deplancke (EPFL, Lausanne, Switzerland). 48 Togenerate lentivirus, 5x10 5 HEK293Tcells were plated in 6-well plates per condition. At \u0018 75% confluency, 1.5 m g TF ORF lentiviral plasmid was mixed with 1.125 m g psPAX2 (#12260, Addgene), 0.375 m g pMD2.G (#12259, Addgene) and 5 m l Lipofectamine 2000 in 250 m l Opti-MEM and added to the 6-wells. Themediumwasrefreshed after 12 hours and lentivirus was collected after 48 hours from the supernatant. To transduce cells with the lentivirus, 1x10 5 mESCs were plated in 12-wells in 500 m l 2i/LIF medium supplemented with 8.5 m g polybrene (#TR-1003, Sigma). Then, 500 m l of lentiviral supernatant was added to the cells. Medium was changed to fresh 2i/LIF medium 24 hours later and to puromycin-containing (2 m g/ml) 2i/LIF medium after 48 hours. Puromycin-resistant cells were grown and used for the subsequent TF",
+      "retrieval_text": "[Section: TF overexpression experiments] Lentiviral plasmids carrying doxycycline-inducible open reading frames for GATA1, FOSL1, FOXA1, NR4A2 or RFX1 and a puromycin selection cassette were a kind gift from Bart Deplancke (EPFL, Lausanne, Switzerland). 48 Togenerate lentivirus, 5x10 5 HEK293Tcells were plated in 6-well plates per condition. At \u0018 75% confluency, 1.5 m g TF ORF lentiviral plasmid was mixed with 1.125 m g psPAX2 (#12260, Addgene), 0.375 m g pMD2.G (#12259, Addgene) and 5 m l Lipofectamine 2000 in 250 m l Opti-MEM and added to the 6-wells. Themediumwasrefreshed after 12 hours and lentivirus was collected after 48 hours from the supernatant. To transduce cells with the lentivirus, 1x10 5 mESCs were plated in 12-wells in 500 m l 2i/LIF medium supplemented with 8.5 m g polybrene (#TR-1003, Sigma). Then, 500 m l of lentiviral supernatant was added to the cells. Medium was changed to fresh 2i/LIF medium 24 hours later and to puromycin-containing (2 m g/ml) 2i/LIF medium after 48 hours. Puromycin-resistant cells were grown and used for the subsequent TF",
+      "bbox": [
+        53.122427860000016,
+        122.37959656921885,
+        543.26607796,
+        37.164017369218755
+      ],
+      "provenance": "docling",
+      "section_context": "TF overexpression experiments",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p23_249",
+      "source_block_id": "paper_3_p23_249",
+      "chunk_type": "paragraph",
+      "page_number": 23,
+      "reading_order": 249,
+      "display_text": "reporter plasmid library transfection experiments. To transfect the TF reporter plasmid library, the TF ORF-carrying mESCs were pretreated for 24 hours with 2 m g/ml doxycycline (#D9891, Sigma) and then lipofected as mentioned in the ''reporter library transfection and pathway perturbations'' section.",
+      "retrieval_text": "[Section: TF overexpression experiments] reporter plasmid library transfection experiments. To transfect the TF reporter plasmid library, the TF ORF-carrying mESCs were pretreated for 24 hours with 2 m g/ml doxycycline (#D9891, Sigma) and then lipofected as mentioned in the ''reporter library transfection and pathway perturbations'' section.",
+      "bbox": [
+        59.754299999999944,
+        681.3155177492188,
+        549.8860946200001,
+        651.5591097692187
+      ],
+      "provenance": "docling",
+      "section_context": "TF overexpression experiments",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical_with_hints",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [
+      "methods_or_library"
+    ],
+    "hint_terms": [
+      "methods",
+      "design",
+      "library",
+      "cloning",
+      "construct"
+    ]
+  },
+  "stats": {
+    "chunk_build_ms": 1.609,
+    "idf_build_ms": 8.207,
+    "scoring_ms": 6.085,
+    "total_ms": 20.893,
+    "chunk_count_total": 269,
+    "chunk_count_by_type": {
+      "section": 59,
+      "list_item": 95,
+      "paragraph": 102,
+      "caption": 8,
+      "table_region": 5
+    },
+    "candidate_chunk_count": 269,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 9,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T07:38:31.203850+00:00"
+}

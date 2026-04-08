@@ -1,0 +1,4 @@
+candidate_id,null_metric_name,null_metric_value,failure_metric_name,failure_metric_value,candidate_status
+cand_0001,,,,,failed
+cand_0002,,,,,failed
+cand_0003,,,,,failed

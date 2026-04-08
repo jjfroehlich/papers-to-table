@@ -1,0 +1,376 @@
+{
+  "run_id": "run_20260408_063946_jb0k8g",
+  "pdf_id": "paper_3",
+  "column_name": "Where is the BC?",
+  "query": "Where is the BC?: Where the barcode is located in the reporter design (often that can be 5'UTR or 3'UTR, but might be different in special cases)\nRetrieval hints: sequences pairs combinations plasmids barcodes methods design library cloning construct",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_3_p4_37",
+      "source_block_id": "paper_3_p4_37",
+      "chunk_type": "paragraph",
+      "page_number": 4,
+      "reading_order": 37,
+      "display_text": "Amainchallenge in the design of specific TF reporters is the similarity between binding motifs of TFs. Therefore, to select TFs for which the generation of TF-specific reporters would be feasible, we manually examined all human TFs and reviewed their (1) TF motif quality (i.e., motif length and information content), (2) the number of TFs with a similar motif, (3) expression pattern across cell types, and (4) stimulation and perturbation opportunities. Based on these criteria, we selected a list of 86 TFs (Table S1). For each TF, we selected the best motif according to a previous motif curation. 28 We also included several heterodimeric motifs (e.g., POU5F1::SOX2), for which we carefully reviewed available motifs. Most of the selected TFs have unique motifs (i.e., no other TF has a similar motif, Figure S1A) and cover a large diversity of the human TF motif landscape (Figure 1A). The selected 86 TFs include most well-known TFs downstream of generic signaling pathways such as mitogen-activated protein kinase (MAPK), phosphatidylinositol 3-kinase (PI3K)/AKT, transforming growth factor b (TGFb ), WNT, and Janus kinase-signal transducer and activator of transcription (JAK-STAT), as well as a diversity of nuclear receptors and tissue-specific and pluripotency-specific TFs (Tables 1 and S1).",
+      "retrieval_text": "[Section: Systematic probing of a TF reporter library] Amainchallenge in the design of specific TF reporters is the similarity between binding motifs of TFs. Therefore, to select TFs for which the generation of TF-specific reporters would be feasible, we manually examined all human TFs and reviewed their (1) TF motif quality (i.e., motif length and information content), (2) the number of TFs with a similar motif, (3) expression pattern across cell types, and (4) stimulation and perturbation opportunities. Based on these criteria, we selected a list of 86 TFs (Table S1). For each TF, we selected the best motif according to a previous motif curation. 28 We also included several heterodimeric motifs (e.g., POU5F1::SOX2), for which we carefully reviewed available motifs. Most of the selected TFs have unique motifs (i.e., no other TF has a similar motif, Figure S1A) and cover a large diversity of the human TF motif landscape (Figure 1A). The selected 86 TFs include most well-known TFs downstream of generic signaling pathways such as mitogen-activated protein kinase (MAPK), phosphatidylinositol 3-kinase (PI3K)/AKT, transforming growth factor b (TGFb ), WNT, and Janus kinase-signal transducer and activator of transcription (JAK-STAT), as well as a diversity of nuclear receptors and tissue-specific and pluripotency-specific TFs (Tables 1 and S1).",
+      "bbox": [
+        53.12057336000004,
+        352.55204868921874,
+        292.2038906000001,
+        125.56198490921884
+      ],
+      "provenance": "docling",
+      "section_context": "Systematic probing of a TF reporter library",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p4_38",
+      "source_block_id": "paper_3_p4_38",
+      "chunk_type": "paragraph",
+      "page_number": 4,
+      "reading_order": 38,
+      "display_text": "We then generated a library consisting of synthetic reporters for the selected 86 TFs. For each TF, we generated a consensus TFBS by choosing the most conserved base at each position of its motif. We also included two sets of negative control TFBSs. First, for each TF, we generated a matched mutated TFBS in which two to four conserved bases of the TFBS were modified (Table S1). Second, we designed three distinct 11 bp random sequences that are devoid of any known activator TFBS (TF-neg) that served as generic negative controls and were used for normalization. To generate synthetic TF reporter sequences, we placed four copies of the TFBSs in front of a core promoter that drives the transcription of a unique 13-bp barcode sequence and a GFP open reading frame (Figure 1B). We chose to use four copiesofTFBSsbecausethisnumberwasshowntoyieldoptimal activation for many TFs. 29-32 We then systematically varied several design parameters for each TFBS (Figure 1B). First, we designed three spacer sequences around the four TFBSs of either 5 or 10 bp (i.e., TFBS1-spacer1-TFBS2-spacer2-TFBS3spacer3-TFBS4).Thesespacersequenceswerecomputationally designed to minimize occurrences of other TFBSs, even in the junctions between the spacer sequences and the TFBSs (Figure S1B). For each spacer length (5 and 10 bp), we then selected three distinct sets of spacer sequences. Second, we coupled the TFBSs to three different core promoters (minP, derived from pGL4 [Promega, Madison, WI, USA], minCMV, 33 and for some TFs also minHBG 34 ). Third, we placed the core promoter at either 10 or 21 bp from the nearest TFBS. Together, the combination of these design parameters yielded 36 reporter designs for TFs with minHBG,and24forTFswithout.Additionally, forcomparison, we also included previously established and published reporter sequences for 65 TFs from three different public sources (see STAR Methods and Table S1). 26,27 A set of 120 enhancer fragments from the mouse Klf2 locus (previously shown to be active in MPRAsinmESCs), 35 and86reporterswithaTFBS-devoidcore promoter (one for each TF) were included as positive and negative controls, respectively (see STAR Methods). Together, this yielded a collection of in total 5,530 unique reporter sequences. Finally, each of these sequences was coupled to 5-8 distinct barcodes to minimize biases caused by individual barcodes, yielding a library of 35,500 barcoded reporters.",
+      "retrieval_text": "[Section: Systematic probing of a TF reporter library] We then generated a library consisting of synthetic reporters for the selected 86 TFs. For each TF, we generated a consensus TFBS by choosing the most conserved base at each position of its motif. We also included two sets of negative control TFBSs. First, for each TF, we generated a matched mutated TFBS in which two to four conserved bases of the TFBS were modified (Table S1). Second, we designed three distinct 11 bp random sequences that are devoid of any known activator TFBS (TF-neg) that served as generic negative controls and were used for normalization. To generate synthetic TF reporter sequences, we placed four copies of the TFBSs in front of a core promoter that drives the transcription of a unique 13-bp barcode sequence and a GFP open reading frame (Figure 1B). We chose to use four copiesofTFBSsbecausethisnumberwasshowntoyieldoptimal activation for many TFs. 29-32 We then systematically varied several design parameters for each TFBS (Figure 1B). First, we designed three spacer sequences around the four TFBSs of either 5 or 10 bp (i.e., TFBS1-spacer1-TFBS2-spacer2-TFBS3spacer3-TFBS4).Thesespacersequenceswerecomputationally designed to minimize occurrences of other TFBSs, even in the junctions between the spacer sequences and the TFBSs (Figure S1B). For each spacer length (5 and 10 bp), we then selected three distinct sets of spacer sequences. Second, we coupled the TFBSs to three different core promoters (minP, derived from pGL4 [Promega, Madison, WI, USA], minCMV, 33 and for some TFs also minHBG 34 ). Third, we placed the core promoter at either 10 or 21 bp from the nearest TFBS. Together, the combination of these design parameters yielded 36 reporter designs for TFs with minHBG,and24forTFswithout.Additionally, forcomparison, we also included previously established and published reporter sequences for 65 TFs from three different public sources (see STAR Methods and Table S1). 26,27 A set of 120 enhancer fragments from the mouse Klf2 locus (previously shown to be active in MPRAsinmESCs), 35 and86reporterswithaTFBS-devoidcore promoter (one for each TF) were included as positive and negative controls, respectively (see STAR Methods). Together, this yielded a collection of in total 5,530 unique reporter sequences. Finally, each of these sequences was coupled to 5-8 distinct barcodes to minimize biases caused by individual barcodes, yielding a library of 35,500 barcoded reporters.",
+      "bbox": [
+        304.15612826000006,
+        681.3138613292189,
+        543.25922746,
+        246.09122794921882
+      ],
+      "provenance": "docling",
+      "section_context": "Systematic probing of a TF reporter library",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p4_39",
+      "source_block_id": "paper_3_p4_39",
+      "chunk_type": "paragraph",
+      "page_number": 4,
+      "reading_order": 39,
+      "display_text": "Among the 86 included TFs are many tissue-specific TFs. We therefore probed the reporter library in nine different cell lines from distinct tissues (Figure 1C). Since TF-binding specificities are highly conserved between human and mouse, 36,37 wetested the library in cell lines derived from both human ( n =7) and mouse ( n = 2). Furthermore, we extensively perturbed TF activities by (1) activating or inhibiting upstream signaling pathways ( n = 25) or (2) changing the TF abundance by overexpressing, knocking down or degrading individual TFs ( n = 73). We thus queried all 5,530 reporters across 98 TF perturbation conditions (Figure 1C; Table S2).",
+      "retrieval_text": "[Section: Systematic probing of a TF reporter library] Among the 86 included TFs are many tissue-specific TFs. We therefore probed the reporter library in nine different cell lines from distinct tissues (Figure 1C). Since TF-binding specificities are highly conserved between human and mouse, 36,37 wetested the library in cell lines derived from both human ( n =7) and mouse ( n = 2). Furthermore, we extensively perturbed TF activities by (1) activating or inhibiting upstream signaling pathways ( n = 25) or (2) changing the TF abundance by overexpressing, knocking down or degrading individual TFs ( n = 73). We thus queried all 5,530 reporters across 98 TF perturbation conditions (Figure 1C; Table S2).",
+      "bbox": [
+        304.15716528,
+        242.96561532921874,
+        543.24359978,
+        125.5621667292188
+      ],
+      "provenance": "docling",
+      "section_context": "Systematic probing of a TF reporter library",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p7_59",
+      "source_block_id": "paper_3_p7_59",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 59,
+      "display_text": "Besides the generic role of the core promoter and the core promoter distance, we found a striking TF-specific role for the spacer length between the TFBSs. For 13 TFs, all three 10-bp spacer sequences consistently increased activity compared with the 5-bp spacer sequences (Figure 2D, TFs highlighted in dark blue). A readily interpretable example is HNF4A, for which >90% of all variance in the reporter activity was caused by changing the spacer length from 5 to 10 bp (Figures 2D and 2E); this increased reporter activity by roughly 8-fold on average (Figure S3B). Conversely, eight TFs had significant negative weights for all three 10-bp spacer sequences and hence favored the shorter 5-bp spacer length (Figure 2D, highlighted in light blue). We then examined in greater detail which TFs exhibited these spacer length preferences. Interestingly, we observed that TFs that bind DNA as monomers tended to be unaffected by changes in spacer length, while dimeric or multimeric TFs had significantly stronger spacer length preferences (Figure 2F). In fact, 20 out of 21 TFs with consistent spacer length preferences were TFs that bind to its TFBS as dimer or multimer. Possibly, dimeric or multimeric TF assemblies have more complex DNA interactions and might therefore need precise relative positioning to be able to activate efficiently from adjacent TFBSs. For some TFs (e.g., CREB1 29 and TP53 32 ), it was previously described that optimal helical positioning of adjacent TFBSs (i.e., on the same face of the DNA helix) facilitates robust activation. We found similar TFBS spacer length preferences for these described TFs and identified many more candidate TFs that might have similar helical positioning dependencies.",
+      "retrieval_text": "[Section: Understanding TF-specific reporter design rules] Besides the generic role of the core promoter and the core promoter distance, we found a striking TF-specific role for the spacer length between the TFBSs. For 13 TFs, all three 10-bp spacer sequences consistently increased activity compared with the 5-bp spacer sequences (Figure 2D, TFs highlighted in dark blue). A readily interpretable example is HNF4A, for which >90% of all variance in the reporter activity was caused by changing the spacer length from 5 to 10 bp (Figures 2D and 2E); this increased reporter activity by roughly 8-fold on average (Figure S3B). Conversely, eight TFs had significant negative weights for all three 10-bp spacer sequences and hence favored the shorter 5-bp spacer length (Figure 2D, highlighted in light blue). We then examined in greater detail which TFs exhibited these spacer length preferences. Interestingly, we observed that TFs that bind DNA as monomers tended to be unaffected by changes in spacer length, while dimeric or multimeric TFs had significantly stronger spacer length preferences (Figure 2F). In fact, 20 out of 21 TFs with consistent spacer length preferences were TFs that bind to its TFBS as dimer or multimer. Possibly, dimeric or multimeric TF assemblies have more complex DNA interactions and might therefore need precise relative positioning to be able to activate efficiently from adjacent TFBSs. For some TFs (e.g., CREB1 29 and TP53 32 ), it was previously described that optimal helical positioning of adjacent TFBSs (i.e., on the same face of the DNA helix) facilitates robust activation. We found similar TFBS spacer length preferences for these described TFs and identified many more candidate TFs that might have similar helical positioning dependencies.",
+      "bbox": [
+        59.75260636000009,
+        451.19811048921866,
+        298.86818608,
+        136.50388916921884
+      ],
+      "provenance": "docling",
+      "section_context": "Understanding TF-specific reporter design rules",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p7_60",
+      "source_block_id": "paper_3_p7_60",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 60,
+      "display_text": "Besides TFs that clearly require certain spacer lengths to effectively activate, several TFs showed strong preferences for individual spacer sequences (Figure 2D, highlighted in red). For GATA4, for instance, only spacer sequence #6 (spacer length of 10 bp) significantly contributed to reporter activity, while for TEAD1 spacer sequence #1 (spacer length of 5 bp) was the only spacer sequence with strong activation. These specific preferences might be caused by an increased or decreased affinity for TF binding due to the sequences surrounding the",
+      "retrieval_text": "[Section: Understanding TF-specific reporter design rules] Besides TFs that clearly require certain spacer lengths to effectively activate, several TFs showed strong preferences for individual spacer sequences (Figure 2D, highlighted in red). For GATA4, for instance, only spacer sequence #6 (spacer length of 10 bp) significantly contributed to reporter activity, while for TEAD1 spacer sequence #1 (spacer length of 5 bp) was the only spacer sequence with strong activation. These specific preferences might be caused by an increased or decreased affinity for TF binding due to the sequences surrounding the",
+      "bbox": [
+        59.75416314000001,
+        133.37827654921875,
+        298.87157336000007,
+        37.85782736921874
+      ],
+      "provenance": "docling",
+      "section_context": "Understanding TF-specific reporter design rules",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p7_61",
+      "source_block_id": "paper_3_p7_61",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 61,
+      "display_text": "TFBS, as has been reported before. 40,41 Although we ensured that all spacer sequences are devoid of any known TFBS, we cannot rule out that an unknown TF binds the spacer and synergizes with the TF for which the reporter was designed. Together, our log-linear model analysis revealed that TF reporter design can be optimized regardless of the TF through the choice and positioning of the core promoter. Nevertheless, many TFs require TF-specific spacer lengths or spacer sequences for efficient activation, underscoring the importance of systematic reporter design optimization.",
+      "retrieval_text": "[Section: Understanding TF-specific reporter design rules] TFBS, as has been reported before. 40,41 Although we ensured that all spacer sequences are devoid of any known TFBS, we cannot rule out that an unknown TF binds the spacer and synergizes with the TF for which the reporter was designed. Together, our log-linear model analysis revealed that TF reporter design can be optimized regardless of the TF through the choice and positioning of the core promoter. Nevertheless, many TFs require TF-specific spacer lengths or spacer sequences for efficient activation, underscoring the importance of systematic reporter design optimization.",
+      "bbox": [
+        310.84730179999997,
+        683.0413815492187,
+        549.9157534200002,
+        574.8533073492187
+      ],
+      "provenance": "docling",
+      "section_context": "Understanding TF-specific reporter design rules",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p8_71",
+      "source_block_id": "paper_3_p8_71",
+      "chunk_type": "list_item",
+      "page_number": 8,
+      "reading_order": 71,
+      "display_text": "(E) Same as (B), but for TFCP2L1 and two spacer lengths.",
+      "retrieval_text": "[Section: Cell-type dependence of TF reporter activities] (E) Same as (B), but for TFCP2L1 and two spacer lengths.",
+      "bbox": [
+        53.121897380000064,
+        154.87606910921875,
+        233.20215049999985,
+        148.43925170921875
+      ],
+      "provenance": "docling",
+      "section_context": "Cell-type dependence of TF reporter activities",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p8_72",
+      "source_block_id": "paper_3_p8_72",
+      "chunk_type": "paragraph",
+      "page_number": 8,
+      "reading_order": 72,
+      "display_text": "a TF involved in maintaining pluripotency, 38,39 gives another example of reporter design-dependent TF specificity. We found that a TFCP2L1 reporter with a 10-bp spacer length (spacer sequence #4) was predominantly active in the cell line where TFCP2L1 is highly expressed (mESC), while the same reporter with a 5 bp spacer length (spacer sequence #1) was also highly active in other cell types (Figure 3E). Indeed, all TFCP2L1 reporters with spacer sequence #4 and #5 (both 10 bp) displayed activities that significantly correlated with TFCP2L1 transcript abundance (Figure S4E). Activities of TFCP2L1 reporters in TFCP2L1-lacking cell types might be explained by response to GRHL1, which is a TF with a highly similar binding motif (Figure S1A), but a distinct expression pattern (GRHL1 is lowly expressed in all nine cell lines). Together, these findings highlight that fine-tuning the reporter design can substantially improve the specificity, even for TFs with highly similar TFBSs.",
+      "retrieval_text": "[Section: Cell-type dependence of TF reporter activities] a TF involved in maintaining pluripotency, 38,39 gives another example of reporter design-dependent TF specificity. We found that a TFCP2L1 reporter with a 10-bp spacer length (spacer sequence #4) was predominantly active in the cell line where TFCP2L1 is highly expressed (mESC), while the same reporter with a 5 bp spacer length (spacer sequence #1) was also highly active in other cell types (Figure 3E). Indeed, all TFCP2L1 reporters with spacer sequence #4 and #5 (both 10 bp) displayed activities that significantly correlated with TFCP2L1 transcript abundance (Figure S4E). Activities of TFCP2L1 reporters in TFCP2L1-lacking cell types might be explained by response to GRHL1, which is a TF with a highly similar binding motif (Figure S1A), but a distinct expression pattern (GRHL1 is lowly expressed in all nine cell lines). Together, these findings highlight that fine-tuning the reporter design can substantially improve the specificity, even for TFs with highly similar TFBSs.",
+      "bbox": [
+        53.1212,
+        128.92498154921873,
+        292.19731130000014,
+        42.620366729218745
+      ],
+      "provenance": "docling",
+      "section_context": "Cell-type dependence of TF reporter activities",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p9_73",
+      "source_block_id": "paper_3_p9_73",
+      "chunk_type": "section",
+      "page_number": 9,
+      "reading_order": 73,
+      "display_text": "Response of TF reporters to pathway stimulation and inactivation",
+      "retrieval_text": "Response of TF reporters to pathway stimulation and inactivation",
+      "bbox": [
+        59.7543,
+        681.3155177492188,
+        283.6992362799998,
+        664.3274617292187
+      ],
+      "provenance": "docling",
+      "section_context": "Response of TF reporters to pathway stimulation and inactivation",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p14_115",
+      "source_block_id": "paper_3_p14_115",
+      "chunk_type": "section",
+      "page_number": 14,
+      "reading_order": 115,
+      "display_text": "Applicability of the identified prime reporters",
+      "retrieval_text": "Applicability of the identified prime reporters",
+      "bbox": [
+        53.1212,
+        177.14515410921877,
+        243.3085037999998,
+        171.09885930921882
+      ],
+      "provenance": "docling",
+      "section_context": "Applicability of the identified prime reporters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p14_116",
+      "source_block_id": "paper_3_p14_116",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 116,
+      "display_text": "We here present the systematic design and identification of a large collection of optimized ''prime'' TF reporters. This collection encompasses reporters that outperform currently available reporters (e.g., VDR, SOX2, and PAX6), and reporters for TFs for which no reliable reporters were available yet (e.g., GATA4, TFCP2L1, and KLF4). The sequences of the prime reporter for each TF are documented in Table S4, which can be used for various purposes. For instance, the prime reporters can be used individually in a conventional fluorescence/luminescence reporter assay to better characterize the role of single TFs in certain biological processes. Alternatively, the identified 62 prime reporters can be employed in a multiplexed fashion, where each TF drives a unique barcode. A dedicated small library consisting of only the prime reporters (with each prime reporter coupled to at least five unique barcodes) can be delivered as a plasmid pool or as a lentiviral library into any cell line of interest. Given the low complexity of this library (<500 barcodes for all 62 TFs including negative controls), highquality data may be retrieved even from hard-to-transfect cell models such as organoids. This low complexity also enables the detection of TF activities from a small number of cells, making it suitable for applications such as 96-well screens. Signaling pathways could be challenged by an array of inhibitors or activators, similar to what has been done in this study, to unveil novel roles of TFs in signaling pathways. Likewise, TF responses can be tracked upon TF depletion to dissect TF-TF communications. Potentially, this can also be done in single cells and in time course experiments to detect cascades of TF activities. Although the prime reporters are top-rated based on our performance criteria, there may be instances where other reporters with specific attributes are preferred for certain TFs (e.g., high cell-type specificity or responsiveness to perturbation of related TFs). The heatmaps in Data S1 can aid in",
+      "retrieval_text": "[Section: Applicability of the identified prime reporters] We here present the systematic design and identification of a large collection of optimized ''prime'' TF reporters. This collection encompasses reporters that outperform currently available reporters (e.g., VDR, SOX2, and PAX6), and reporters for TFs for which no reliable reporters were available yet (e.g., GATA4, TFCP2L1, and KLF4). The sequences of the prime reporter for each TF are documented in Table S4, which can be used for various purposes. For instance, the prime reporters can be used individually in a conventional fluorescence/luminescence reporter assay to better characterize the role of single TFs in certain biological processes. Alternatively, the identified 62 prime reporters can be employed in a multiplexed fashion, where each TF drives a unique barcode. A dedicated small library consisting of only the prime reporters (with each prime reporter coupled to at least five unique barcodes) can be delivered as a plasmid pool or as a lentiviral library into any cell line of interest. Given the low complexity of this library (<500 barcodes for all 62 TFs including negative controls), highquality data may be retrieved even from hard-to-transfect cell models such as organoids. This low complexity also enables the detection of TF activities from a small number of cells, making it suitable for applications such as 96-well screens. Signaling pathways could be challenged by an array of inhibitors or activators, similar to what has been done in this study, to unveil novel roles of TFs in signaling pathways. Likewise, TF responses can be tracked upon TF depletion to dissect TF-TF communications. Potentially, this can also be done in single cells and in time course experiments to detect cascades of TF activities. Although the prime reporters are top-rated based on our performance criteria, there may be instances where other reporters with specific attributes are preferred for certain TFs (e.g., high cell-type specificity or responsiveness to perturbation of related TFs). The heatmaps in Data S1 can aid in",
+      "bbox": [
+        53.1212,
+        166.14665594921883,
+        292.21574608000003,
+        37.80092310921884
+      ],
+      "provenance": "docling",
+      "section_context": "Applicability of the identified prime reporters",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p15_117",
+      "source_block_id": "paper_3_p15_117",
+      "chunk_type": "paragraph",
+      "page_number": 15,
+      "reading_order": 117,
+      "display_text": "identifying such cases (e.g., for identifying generic STAT reporters instead of STAT3-specific reporters).",
+      "retrieval_text": "[Section: Applicability of the identified prime reporters] identifying such cases (e.g., for identifying generic STAT reporters instead of STAT3-specific reporters).",
+      "bbox": [
+        59.7543,
+        681.3155177492188,
+        298.82344148000004,
+        662.5576079292188
+      ],
+      "provenance": "docling",
+      "section_context": "Applicability of the identified prime reporters",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p21_237",
+      "source_block_id": "paper_3_p21_237",
+      "chunk_type": "section",
+      "page_number": 21,
+      "reading_order": 237,
+      "display_text": "TF reporter library design",
+      "retrieval_text": "TF reporter library design",
+      "bbox": [
+        59.754673600000004,
+        358.7893377692188,
+        167.81229288,
+        352.7430429692188
+      ],
+      "provenance": "docling",
+      "section_context": "TF reporter library design",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p21_238",
+      "source_block_id": "paper_3_p21_238",
+      "chunk_type": "paragraph",
+      "page_number": 21,
+      "reading_order": 238,
+      "display_text": "The 86 TFs were manually chosen by reviewing all human TFs. Selection criteria included motif quality, motif uniqueness, expression patterns, and perturbation opportunities. Motif quality and uniqueness was assessed using a previous review and curation of available motifs for all human TFs. 28 Mainly TFs with a unique motif were selected, which ensured to capture a wide diversity of motifs within the human TF motif landscape. TFs with unique motifs, but no known activator function were not included. Some TFs with non-unique motifs but distinct expression pattern or ligands were also selected; we reasoned that reviewing specificity for these TFs would be feasible by testing the reporter in different cell types or upon perturbation. For each TF, consensus TFBSs were generated by taking the most conserved base at each position, and mutated TFBSs were created by mutating at least two and up to four conserved bases (Table S1). In addition to the mutated TFBSs, three random TFBS-devoid (TF-neg) 11 bp sequences were included as negative controls. The absence of TFBSs of known activator TFs was confirmed in the mutated and random sequences using FIMO ( p -value threshold 1e-4). 49 Synthetic TF reporters were then created by placing four adjacent copies of the consensus, mutated, or negative TFBS. The four TFBSs were separated by in silico -designed TFBS-devoid spacer sequences with lengths of 5 or 10 bp. In total, three different spacer sequences were generated per spacer length. To do so, random sequences with a GC content of 40-60% were generated (sim.DNAseq function in R from package SimRAD (version 0.96)). 51 These sequences were combined with 3 bp of the left and right side of all TFBSs and then scanned using FIMO (Figure S1B). For the two spacer lengths (5 and 10 bp), nine sequences with the fewest predicted significant TFBSs were selected and placed in between the TFBSs (three different spacer sequences per reporter, times the three spacer sequences). A similar approach was taken to generate three 10 or 21 bp spacer sequences in front of the core promoter. These spacer sequences were generated separately for a first set of 29 TFs and for a second set of 57 TFs. One of three core promoter sequences, minCMV, 33 minHBG, 34 or minP (derived from pGL4 (Promega, Madison, WI, USA)), was placed downstream of the TFBSs and spacer sequences, followed by a S1 Illumina adapter sequence and a unique 12-13 bp random barcode sequence (each unique construct was linked to five to eight different barcodes). All generated random barcodes had a Levenshtein distance of at least three with respect to one another and barcodes with an unbalanced GC ratio were removed (create.dnabarcodes function from the R package DNABarcodes (version 1.2.2) 50 ). For 65 TFs we also included published reporter sequences. The response element sequences were retrieved from three different sources (Table S1). 26,27 Promega pGL4.XX sequences were retrieved from https://www.snapgene.com/plasmids/luciferase_vectors. For some TFs, multiple TF response elements were included (see Table S1 for all included published TF response elements). Again, each published response element was placed 10 or 21 bp upstream of a minP or minCMV core promoter. The same spacer sequence as for the synthetic TF reporters was used upstream of the core promoter. Several other controls were included in the design. First, to estimate the effect of the TFBSs alone, TF reporters with a TFBS-devoid core promoter were designed. This promoter was previously shown to be",
+      "retrieval_text": "[Section: TF reporter library design] The 86 TFs were manually chosen by reviewing all human TFs. Selection criteria included motif quality, motif uniqueness, expression patterns, and perturbation opportunities. Motif quality and uniqueness was assessed using a previous review and curation of available motifs for all human TFs. 28 Mainly TFs with a unique motif were selected, which ensured to capture a wide diversity of motifs within the human TF motif landscape. TFs with unique motifs, but no known activator function were not included. Some TFs with non-unique motifs but distinct expression pattern or ligands were also selected; we reasoned that reviewing specificity for these TFs would be feasible by testing the reporter in different cell types or upon perturbation. For each TF, consensus TFBSs were generated by taking the most conserved base at each position, and mutated TFBSs were created by mutating at least two and up to four conserved bases (Table S1). In addition to the mutated TFBSs, three random TFBS-devoid (TF-neg) 11 bp sequences were included as negative controls. The absence of TFBSs of known activator TFs was confirmed in the mutated and random sequences using FIMO ( p -value threshold 1e-4). 49 Synthetic TF reporters were then created by placing four adjacent copies of the consensus, mutated, or negative TFBS. The four TFBSs were separated by in silico -designed TFBS-devoid spacer sequences with lengths of 5 or 10 bp. In total, three different spacer sequences were generated per spacer length. To do so, random sequences with a GC content of 40-60% were generated (sim.DNAseq function in R from package SimRAD (version 0.96)). 51 These sequences were combined with 3 bp of the left and right side of all TFBSs and then scanned using FIMO (Figure S1B). For the two spacer lengths (5 and 10 bp), nine sequences with the fewest predicted significant TFBSs were selected and placed in between the TFBSs (three different spacer sequences per reporter, times the three spacer sequences). A similar approach was taken to generate three 10 or 21 bp spacer sequences in front of the core promoter. These spacer sequences were generated separately for a first set of 29 TFs and for a second set of 57 TFs. One of three core promoter sequences, minCMV, 33 minHBG, 34 or minP (derived from pGL4 (Promega, Madison, WI, USA)), was placed downstream of the TFBSs and spacer sequences, followed by a S1 Illumina adapter sequence and a unique 12-13 bp random barcode sequence (each unique construct was linked to five to eight different barcodes). All generated random barcodes had a Levenshtein distance of at least three with respect to one another and barcodes with an unbalanced GC ratio were removed (create.dnabarcodes function from the R package DNABarcodes (version 1.2.2) 50 ). For 65 TFs we also included published reporter sequences. The response element sequences were retrieved from three different sources (Table S1). 26,27 Promega pGL4.XX sequences were retrieved from https://www.snapgene.com/plasmids/luciferase_vectors. For some TFs, multiple TF response elements were included (see Table S1 for all included published TF response elements). Again, each published response element was placed 10 or 21 bp upstream of a minP or minCMV core promoter. The same spacer sequence as for the synthetic TF reporters was used upstream of the core promoter. Several other controls were included in the design. First, to estimate the effect of the TFBSs alone, TF reporters with a TFBS-devoid core promoter were designed. This promoter was previously shown to be",
+      "bbox": [
+        59.754426739999985,
+        347.8475765492188,
+        549.9297666200001,
+        44.15122610921878
+      ],
+      "provenance": "docling",
+      "section_context": "TF reporter library design",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p22_239",
+      "source_block_id": "paper_3_p22_239",
+      "chunk_type": "section",
+      "page_number": 22,
+      "reading_order": 239,
+      "display_text": "Article",
+      "retrieval_text": "Article",
+      "bbox": [
+        53.1212,
+        713.7442093492187,
+        99.2738084,
+        703.7856229492188
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p24_264",
+      "source_block_id": "paper_3_p24_264",
+      "chunk_type": "paragraph",
+      "page_number": 24,
+      "reading_order": 264,
+      "display_text": "log 2 ð reporter activity Þ \u0018 core promoter + promoter distance + spacer length : spacer sequence",
+      "retrieval_text": "[Section: Log-linear model of reporter activities] log 2 ð reporter activity Þ \u0018 core promoter + promoter distance + spacer length : spacer sequence",
+      "bbox": [
+        118.71503038,
+        644.7000193492188,
+        477.60327318000014,
+        629.7959873492188
+      ],
+      "provenance": "docling",
+      "section_context": "Log-linear model of reporter activities",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_3_p24_265",
+      "source_block_id": "paper_3_p24_265",
+      "chunk_type": "paragraph",
+      "page_number": 24,
+      "reading_order": 265,
+      "display_text": "The reporter activities were fit for each TF in three different conditions where the TF is a) expressed highest, or b) stimulated or overexpressed (if data available). We reasoned that these conditions would represent the most TF-specific conditions. The condition with the best model performance was chosen as representative model for the TF and is displayed in Figure 2D. See Table S2 for chosen reference conditions. All input features in the model were used as categorical variables. Models were fit using the lm function in R from the stats package (version 3.6.2).",
+      "retrieval_text": "[Section: Log-linear model of reporter activities] The reporter activities were fit for each TF in three different conditions where the TF is a) expressed highest, or b) stimulated or overexpressed (if data available). We reasoned that these conditions would represent the most TF-specific conditions. The condition with the best model performance was chosen as representative model for the TF and is displayed in Figure 2D. See Table S2 for chosen reference conditions. All input features in the model were used as categorical variables. Models were fit using the lm function in R from the stats package (version 3.6.2).",
+      "bbox": [
+        53.122892700000065,
+        627.2868596892188,
+        543.2513000400004,
+        575.5901923292187
+      ],
+      "provenance": "docling",
+      "section_context": "Log-linear model of reporter activities",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_3_p24_266",
+      "source_block_id": "paper_3_p24_266",
+      "chunk_type": "section",
+      "page_number": 24,
+      "reading_order": 266,
+      "display_text": "Reporter confidence level and reporter score computation",
+      "retrieval_text": "Reporter confidence level and reporter score computation",
+      "bbox": [
+        53.122892700000136,
+        561.5228184892187,
+        299.30870946000005,
+        555.4765236892187
+      ],
+      "provenance": "docling",
+      "section_context": "Reporter confidence level and reporter score computation",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical_with_hints",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [
+      "variant_or_sequence",
+      "methods_or_library"
+    ],
+    "hint_terms": [
+      "sequences",
+      "pairs",
+      "combinations",
+      "plasmids",
+      "barcodes",
+      "methods",
+      "design",
+      "library",
+      "cloning",
+      "construct"
+    ]
+  },
+  "stats": {
+    "chunk_build_ms": 1.598,
+    "idf_build_ms": 8.108,
+    "scoring_ms": 8.053,
+    "total_ms": 22.669,
+    "chunk_count_total": 269,
+    "chunk_count_by_type": {
+      "section": 59,
+      "list_item": 95,
+      "paragraph": 102,
+      "caption": 8,
+      "table_region": 5
+    },
+    "candidate_chunk_count": 269,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 12,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T07:46:11.035125+00:00"
+}

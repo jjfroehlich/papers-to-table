@@ -209,6 +209,8 @@ If a run failed, inspect candidate-specific reasons in:
 - `experiment/runs/<candidate_id>/main/automation_result.json`
 - `experiment/runs/<candidate_id>/eval/eval_result.json`
 
+For real eval-app launches, the optimizer records the resolved gold input in the eval launch artifact. When the main-app run bundle exposes an eval-ready gold snapshot in `run.json`, that bundled snapshot is preferred over the benchmark manifest `gold_path`.
+
 The optimizer now fails candidates explicitly when:
 
 - main-app automation payloads are missing required provenance metadata
@@ -228,8 +230,8 @@ Each experiment directory contains:
 - `rounds/round_<n>.json` for optimize mode
 - `plots/*.csv`
 - `plots/*.png`
-- `candidates/<candidate_id>/main/` launch artifacts including `main_config_overlay.json`, `resolved_main_config.json`, and `automation_result.json`
-- `candidates/<candidate_id>/eval/` launch artifacts including `eval_result.json`
+- `runs/<candidate_id>/main/` launch artifacts including `main_config_overlay.json`, `resolved_main_config.json`, and `automation_result.json`
+- `runs/<candidate_id>/eval/` launch artifacts including `eval_result.json`
 
 `summary.json` now also rolls up:
 

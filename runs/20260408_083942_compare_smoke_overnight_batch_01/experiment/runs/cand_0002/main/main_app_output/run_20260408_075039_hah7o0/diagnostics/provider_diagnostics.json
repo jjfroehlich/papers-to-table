@@ -1,0 +1,190 @@
+{
+  "run_id": "run_20260408_075039_hah7o0",
+  "provider_token": "lm_studio",
+  "provider_mode": "live_local",
+  "structured_output_mode": "json_schema",
+  "structured_output_reason": null,
+  "provider_readiness_reason": null,
+  "provider_readiness_error": null,
+  "attempt_count": 4,
+  "total_duration_ms": 22872.215,
+  "by_outcome": {
+    "success": 4
+  },
+  "by_request_kind": {
+    "model_unload": 1,
+    "text_model_load": 1,
+    "text_structured": 2
+  },
+  "last_error": null,
+  "attempts": [
+    {
+      "sequence": 1,
+      "phase": "model_management",
+      "request_kind": "model_unload",
+      "structured_mode": null,
+      "model_id": "qwen/qwen3.5-9b",
+      "outcome": "success",
+      "duration_ms": 490.196,
+      "http_status": 200,
+      "error_reason": null,
+      "error_message": null,
+      "error_details": null,
+      "raw_preview": "{ \"instance_id\": \"qwen/qwen3.5-9b\" }",
+      "payload_summary": {
+        "model": null,
+        "max_tokens": null,
+        "temperature": null,
+        "response_format_type": null,
+        "message_count": 0,
+        "message_roles": []
+      },
+      "recorded_at": "2026-04-08T07:50:41.559618+00:00"
+    },
+    {
+      "sequence": 2,
+      "phase": "model_management",
+      "request_kind": "text_model_load",
+      "structured_mode": null,
+      "model_id": "google/gemma-4-26b-a4b",
+      "outcome": "success",
+      "duration_ms": 17682.967,
+      "http_status": 200,
+      "error_reason": null,
+      "error_message": null,
+      "error_details": null,
+      "raw_preview": "{ \"type\": \"llm\", \"instance_id\": \"google/gemma-4-26b-a4b\", \"load_time_seconds\": 17.184, \"status\": \"loaded\", \"load_config\": { \"context_length\": 32000, \"eval_batch_size\": 512, \"parallel\": 4, \"flash_attention\": true, \"num_experts\": 8, \"offlo...",
+      "payload_summary": {
+        "model": "google/gemma-4-26b-a4b",
+        "max_tokens": null,
+        "temperature": null,
+        "response_format_type": null,
+        "message_count": 0,
+        "message_roles": []
+      },
+      "recorded_at": "2026-04-08T07:50:59.742127+00:00"
+    },
+    {
+      "sequence": 3,
+      "phase": "initial",
+      "request_kind": "text_structured",
+      "structured_mode": "json_schema",
+      "model_id": "google/gemma-4-26b-a4b",
+      "outcome": "success",
+      "duration_ms": 2642.005,
+      "http_status": 200,
+      "error_reason": null,
+      "error_message": null,
+      "error_details": {
+        "wrapper_tags_removed": false,
+        "code_fences_removed": false,
+        "balanced_object_extracted": false,
+        "parsed_from": "cleaned",
+        "trailing_comma_repaired": false,
+        "failure_stage": "ok",
+        "validation_error": null
+      },
+      "raw_preview": "{\"proposed_value\": \"randomly generated enhancer and promoter sequences\", \"state\": \"inferred\", \"rationale\": \"- The paper mentions that randomly generated enhancer and promoter sequences combine multiplicatively in STARR-seq experiments.\\n...",
+      "payload_summary": {
+        "model": "google/gemma-4-26b-a4b",
+        "max_tokens": 2048,
+        "temperature": 0.0,
+        "response_format_type": "json_schema",
+        "message_count": 2,
+        "message_roles": [
+          "system",
+          "user"
+        ],
+        "messages": [
+          {
+            "role": "system",
+            "content_type": "text",
+            "char_count": 512,
+            "preview": "You are an expert scientific data extractor. Your job is to extract a specific piece of information from a scientific paper. Extract only information that is actually stated or can be directly calculated from the paper. Do not guess base..."
+          },
+          {
+            "role": "user",
+            "content_type": "text",
+            "char_count": 7957,
+            "preview": "Extract: Synthetic designs Field description: If the study tests only native sequences or if sequences are changed. Paper row context: Title: Compatibility rules of human enhancer and promoter sequences Authors: Bergman, Drew T.; Jones, ..."
+          }
+        ],
+        "response_format": {
+          "type": "json_schema",
+          "schema_name": "extraction_response",
+          "strict": true,
+          "schema_required": [
+            "proposed_value",
+            "state",
+            "rationale",
+            "calculation",
+            "numeric_value_form",
+            "quotes"
+          ],
+          "schema_property_count": 6
+        }
+      },
+      "recorded_at": "2026-04-08T07:55:36.021785+00:00"
+    },
+    {
+      "sequence": 4,
+      "phase": "initial",
+      "request_kind": "text_structured",
+      "structured_mode": "json_schema",
+      "model_id": "google/gemma-4-26b-a4b",
+      "outcome": "success",
+      "duration_ms": 2057.047,
+      "http_status": 200,
+      "error_reason": null,
+      "error_message": null,
+      "error_details": {
+        "wrapper_tags_removed": false,
+        "code_fences_removed": false,
+        "balanced_object_extracted": false,
+        "parsed_from": "cleaned",
+        "trailing_comma_repaired": false,
+        "failure_stage": "ok",
+        "validation_error": null
+      },
+      "raw_preview": "{\"quote\": \"randomly generated enhancer and promoter sequences combine multiplicatively in STARR-seq experiments in three other cell lines 36 .\", \"page\": 1}",
+      "payload_summary": {
+        "model": "google/gemma-4-26b-a4b",
+        "max_tokens": 256,
+        "temperature": 0.0,
+        "response_format_type": "json_schema",
+        "message_count": 2,
+        "message_roles": [
+          "system",
+          "user"
+        ],
+        "messages": [
+          {
+            "role": "system",
+            "content_type": "text",
+            "char_count": 207,
+            "preview": "You are a scientific evidence extractor. Find the single best verbatim quote from the passages that most directly supports the value for the given field. Return ONLY a JSON object with fields quote and page."
+          },
+          {
+            "role": "user",
+            "content_type": "text",
+            "char_count": 3062,
+            "preview": "Field: Synthetic designs - If the study tests only native sequences or if sequences are changed. Passages: [page 1] Yet, other observations have suggested that enhancers and promoters have some degree of intrinsic specificity. Early stud..."
+          }
+        ],
+        "response_format": {
+          "type": "json_schema",
+          "schema_name": "extraction_response",
+          "strict": true,
+          "schema_required": [
+            "quote",
+            "page"
+          ],
+          "schema_property_count": 2
+        }
+      },
+      "recorded_at": "2026-04-08T07:55:38.078049+00:00"
+    }
+  ],
+  "recorded_at": "2026-04-08T07:55:38.088201+00:00",
+  "logging_mode": "verbose"
+}

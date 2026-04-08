@@ -1,0 +1,343 @@
+{
+  "run_id": "run_20260408_063946_jb0k8g",
+  "pdf_id": "paper_1",
+  "column_name": "mean reads per sequence/variant",
+  "query": "mean reads per sequence/variant: How many sequencing reads for each tested sequence/variant where required or achieved?\nRetrieval hints: count total number pairs pair combinations constructed tested included coverage sequences plasmids barcodes",
+  "top_k": 6,
+  "chunks": [
+    {
+      "chunk_id": "chunk_paper_1_p7_56",
+      "source_block_id": "paper_1_p7_56",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 56,
+      "display_text": "We next examined MPRALegNet utility for genetic fine-mapping and variant effect prediction. We examined all single nucleotide polymorphisms (SNPs) in linkage disequilibrium (LD) with lead SNPs derived from the GWAS catalogue, initially intersecting the seven tiled disease loci in our study (Extended Data Figs. 1d,2 and Supplementary Fig. 3). For every SNP in LD, we predicted the difference between the reference and alternative allele using our K562 MPRALegNet model. We found several instances in which the predicted effect size was exceptionally large. For example, the model predicted both gain-of-function and loss-of-function (LOF) SNPs around RBM38 (rs2426715, rs376911010 and rs737092; Extended Data Fig. 8a) and a LOF of a potential enhancer within an active lentiMPRA sequence in the intron of LMO2 (rs75395676; Extended Data Fig. 8b).",
+      "retrieval_text": "[Section: Predicting fine-mapping and variant effects] We next examined MPRALegNet utility for genetic fine-mapping and variant effect prediction. We examined all single nucleotide polymorphisms (SNPs) in linkage disequilibrium (LD) with lead SNPs derived from the GWAS catalogue, initially intersecting the seven tiled disease loci in our study (Extended Data Figs. 1d,2 and Supplementary Fig. 3). For every SNP in LD, we predicted the difference between the reference and alternative allele using our K562 MPRALegNet model. We found several instances in which the predicted effect size was exceptionally large. For example, the model predicted both gain-of-function and loss-of-function (LOF) SNPs around RBM38 (rs2426715, rs376911010 and rs737092; Extended Data Fig. 8a) and a LOF of a potential enhancer within an active lentiMPRA sequence in the intron of LMO2 (rs75395676; Extended Data Fig. 8b).",
+      "bbox": [
+        39.685001373,
+        719.8069306640313,
+        296.3795740609323,
+        583.1502242180313
+      ],
+      "provenance": "docling",
+      "section_context": "Predicting fine-mapping and variant effects",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p7_57",
+      "source_block_id": "paper_1_p7_57",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 57,
+      "display_text": "To further evaluate this fine-mapping prediction strategy, we benchmarked model predictions against two complementary tasks. First, we verified performance on variant effect data using six sets of allele-specific variants (ASVs) found in chromatin accessibility (assay for transposase-accessible chromatin with sequencing (ATAC-seq) and DNase-seq) and transcription factor binding data (chromatin immunoprecipitation with sequencing (ChIP-seq)) for HepG2 and K562 cells available in the UDACHA 43 and ADASTRA databases 44 . The significant ASVs provide information on variant effects, including the preferential transcription factor binding or chromatin accessibility as allelic imbalance towards the reference or alternative allele. For all six tested combinations of ASV sources and cell types, we observed significant associations between the observed and predicted scores both before and after excluding cases in which the ASV was non-significant or model predictions were too uncertain (Fisher's exact test odds ratios > 1.5 and P < 0.05; Fig. 4a and Supplementary Table 9). We conclude MPRALegNet successfully recognizes allele-specific regulatory SNP effects in matched cell types.",
+      "retrieval_text": "[Section: Predicting fine-mapping and variant effects] To further evaluate this fine-mapping prediction strategy, we benchmarked model predictions against two complementary tasks. First, we verified performance on variant effect data using six sets of allele-specific variants (ASVs) found in chromatin accessibility (assay for transposase-accessible chromatin with sequencing (ATAC-seq) and DNase-seq) and transcription factor binding data (chromatin immunoprecipitation with sequencing (ChIP-seq)) for HepG2 and K562 cells available in the UDACHA 43 and ADASTRA databases 44 . The significant ASVs provide information on variant effects, including the preferential transcription factor binding or chromatin accessibility as allelic imbalance towards the reference or alternative allele. For all six tested combinations of ASV sources and cell types, we observed significant associations between the observed and predicted scores both before and after excluding cases in which the ASV was non-significant or model predictions were too uncertain (Fisher's exact test odds ratios > 1.5 and P < 0.05; Fig. 4a and Supplementary Table 9). We conclude MPRALegNet successfully recognizes allele-specific regulatory SNP effects in matched cell types.",
+      "bbox": [
+        39.6851,
+        580.0568085930313,
+        296.35953722000846,
+        389.65034628903123
+      ],
+      "provenance": "docling",
+      "section_context": "Predicting fine-mapping and variant effects",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p7_58",
+      "source_block_id": "paper_1_p7_58",
+      "chunk_type": "paragraph",
+      "page_number": 7,
+      "reading_order": 58,
+      "display_text": "Next, we sought to further validate the accuracy of our variant effect predictions by generating ISM scores for promoters ( F9 , LDLR and PKLR ) and an enhancer ( SORT1 ) for which we previously performed MPRA saturation mutagenesis in HepG2 ( F9 , LDLR and SORT1 ) or K562 ( PKLR ) cells 45 . Comparing MPRALegNet predictions for the PKLR promoter to MPRA data revealed that most of the relevant TFBSs (GATA3, KLF9, SP5 and NFIB) could be detected, although the predicted effect sizes were relatively smaller for KLF4 and GATA2 (Fig. 4b). Collectively, we observed a correlation of 0.49 for SORT1 , 0.65 for PKLR , 0.66 for LDLR and 0.51 for F9 between model predictions and observed data (Extended Data Fig. 9), confirming that MPRALegNet, despite being trained on cCRE activity, could partially model the regulatory effects of individual genetic variants. These results were comparable to those from Enformer 36 (0.63 for SORT1 , 0.83 for PKLR , 0.62 for LDLR and 0.28 for F9 ). Combined, our results show how our models can be used for the prediction of regulatory variant effects.",
+      "retrieval_text": "[Section: Predicting fine-mapping and variant effects] Next, we sought to further validate the accuracy of our variant effect predictions by generating ISM scores for promoters ( F9 , LDLR and PKLR ) and an enhancer ( SORT1 ) for which we previously performed MPRA saturation mutagenesis in HepG2 ( F9 , LDLR and SORT1 ) or K562 ( PKLR ) cells 45 . Comparing MPRALegNet predictions for the PKLR promoter to MPRA data revealed that most of the relevant TFBSs (GATA3, KLF9, SP5 and NFIB) could be detected, although the predicted effect sizes were relatively smaller for KLF4 and GATA2 (Fig. 4b). Collectively, we observed a correlation of 0.49 for SORT1 , 0.65 for PKLR , 0.66 for LDLR and 0.51 for F9 between model predictions and observed data (Extended Data Fig. 9), confirming that MPRALegNet, despite being trained on cCRE activity, could partially model the regulatory effects of individual genetic variants. These results were comparable to those from Enformer 36 (0.63 for SORT1 , 0.83 for PKLR , 0.62 for LDLR and 0.28 for F9 ). Combined, our results show how our models can be used for the prediction of regulatory variant effects.",
+      "bbox": [
+        39.6851,
+        386.55693066403126,
+        296.40790445950427,
+        217.6503462890313
+      ],
+      "provenance": "docling",
+      "section_context": "Predicting fine-mapping and variant effects",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p8_68",
+      "source_block_id": "paper_1_p8_68",
+      "chunk_type": "section",
+      "page_number": 8,
+      "reading_order": 68,
+      "display_text": "Discussion",
+      "retrieval_text": "Discussion",
+      "bbox": [
+        39.685001373,
+        239.13993066403123,
+        90.68725137299998,
+        230.1169649878018
+      ],
+      "provenance": "docling",
+      "section_context": "Discussion",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p8_69",
+      "source_block_id": "paper_1_p8_69",
+      "chunk_type": "paragraph",
+      "page_number": 8,
+      "reading_order": 69,
+      "display_text": "Large-scale MPRA datasets are available for other cell lines 6-9 . However, they are primarily tested via episomal STARR-seq, require a very large number of cells, provide an episomal readout and tend to use a strong promoter to increase the ability to detect activity 7 . By contrast, our modified lentiMPRA provides large functional datasets with an 'in genome' readout. The ability to systematically test thousands of cCREs in an unbiased manner for a given cell type allowed us to identify predictive biochemical and sequence-based features for each cell type with high confidence. However, although the number of tested sequences was high, many additional cCREs may have been omitted in our annotations and subsequently in our assays, owing to our selection criteria, additional cCRE annotation assays, marks or tools that were not used, technical issues of the biochemical assays used to select sequences and other factors.",
+      "retrieval_text": "[Section: Discussion] Large-scale MPRA datasets are available for other cell lines 6-9 . However, they are primarily tested via episomal STARR-seq, require a very large number of cells, provide an episomal readout and tend to use a strong promoter to increase the ability to detect activity 7 . By contrast, our modified lentiMPRA provides large functional datasets with an 'in genome' readout. The ability to systematically test thousands of cCREs in an unbiased manner for a given cell type allowed us to identify predictive biochemical and sequence-based features for each cell type with high confidence. However, although the number of tested sequences was high, many additional cCREs may have been omitted in our annotations and subsequently in our assays, owing to our selection criteria, additional cCRE annotation assays, marks or tools that were not used, technical issues of the biochemical assays used to select sequences and other factors.",
+      "bbox": [
+        39.685001373,
+        226.43063240512924,
+        296.3176079199995,
+        77.90034628903129
+      ],
+      "provenance": "docling",
+      "section_context": "Discussion",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p8_70",
+      "source_block_id": "paper_1_p8_70",
+      "chunk_type": "paragraph",
+      "page_number": 8,
+      "reading_order": 70,
+      "display_text": "We tested all 19,104 known promoters of protein-coding genes in both orientations in HepG2 and K562 cells and 7,500 in WTC11 cells. In addition to observing promoter activity strand-orientation bias in line with",
+      "retrieval_text": "[Section: Discussion] We tested all 19,104 known promoters of protein-coding genes in both orientations in HepG2 and K562 cells and 7,500 in WTC11 cells. In addition to observing promoter activity strand-orientation bias in line with",
+      "bbox": [
+        39.6851,
+        74.80693066403126,
+        296.31290066887226,
+        45.65034247403128
+      ],
+      "provenance": "docling",
+      "section_context": "Discussion",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p13_159",
+      "source_block_id": "paper_1_p13_159",
+      "chunk_type": "section",
+      "page_number": 13,
+      "reading_order": 159,
+      "display_text": "MPRA processing pipeline",
+      "retrieval_text": "MPRA processing pipeline",
+      "bbox": [
+        39.685001373,
+        710.2374306640312,
+        144.40670137624696,
+        702.3579042391608
+      ],
+      "provenance": "docling",
+      "section_context": "MPRA processing pipeline",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p13_160",
+      "source_block_id": "paper_1_p13_160",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 160,
+      "display_text": "Associating barcodes to designed elements. For each of the barcode association libraries, we generated FASTQ files with bcl2fastq v.2.20 (parameters '--no-lane-splitting --create-fastq-for-index-reads --use-bases-mask Y*,I*,I*,Y*'), splitting the sequencing data into paired-end index files delineating the barcodes (I1 and I2) and paired-end read files delineating the corresponding element linked to the barcode (R1 and R2). These files were used to associated barcodes to elements using the association utility of MPRAflow 1.0 16 (run as: nextflow run association.nf --fastq-insert 'R1.fastq.gz' --fastq-insertPE 'R2.fastq.gz' --fastq-bc 'I1.fastq.gz' --fastq-bcPE 'I2.fastq.gz' --aligner 'bt2_strand' --design 'designed_sequences.fa'). Here, designed_se-quences.fa was a FASTA file incorporating all of the element sequences that had been ordered from the corresponding Agilent library, and bt2_strand was used to map elements in a strand-aware fashion to accommodate the existence of elements tested in both orientations. The final output of this utility was a filtered_coords_to_barcodes.pickle file mapping barcodes to elements.",
+      "retrieval_text": "[Section: MPRA processing pipeline] Associating barcodes to designed elements. For each of the barcode association libraries, we generated FASTQ files with bcl2fastq v.2.20 (parameters '--no-lane-splitting --create-fastq-for-index-reads --use-bases-mask Y*,I*,I*,Y*'), splitting the sequencing data into paired-end index files delineating the barcodes (I1 and I2) and paired-end read files delineating the corresponding element linked to the barcode (R1 and R2). These files were used to associated barcodes to elements using the association utility of MPRAflow 1.0 16 (run as: nextflow run association.nf --fastq-insert 'R1.fastq.gz' --fastq-insertPE 'R2.fastq.gz' --fastq-bc 'I1.fastq.gz' --fastq-bcPE 'I2.fastq.gz' --aligner 'bt2_strand' --design 'designed_sequences.fa'). Here, designed_se-quences.fa was a FASTA file incorporating all of the element sequences that had been ordered from the corresponding Agilent library, and bt2_strand was used to map elements in a strand-aware fashion to accommodate the existence of elements tested in both orientations. The final output of this utility was a filtered_coords_to_barcodes.pickle file mapping barcodes to elements.",
+      "bbox": [
+        39.685001373,
+        698.3069306640313,
+        296.4051933277865,
+        518.6502242180313
+      ],
+      "provenance": "docling",
+      "section_context": "MPRA processing pipeline",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p13_161",
+      "source_block_id": "paper_1_p13_161",
+      "chunk_type": "paragraph",
+      "page_number": 13,
+      "reading_order": 161,
+      "display_text": "Replicates, normalization and RNA/DNA activity scores. For each of the indexed DNA and RNA libraries, we demultiplexed the  sequencing  run  and  generated  Fastq  files  with  bcl2fastq v.2.20  (parameters  '--barcode-mismatches  2  --sample-sheet SampleSheet.csv --use-bases-mask Y*,Y*,I*,Y* --no-lane-splitting --minimum-trimmed-read-length 0 --mask-short-adapter-reads 0'), where SampleSheet.csv catalogued the correspondence between the index sequence and DNA or RNA replicate sample of origin. In several instances, the '--barcode-mismatches 2' resulted in an index assignment clash, requiring us to instead use '--barcode-mismatches 1'. These commands split the sequencing data into paired-end read files delineating the barcodes (R1 and R3) and a file indicating the UMI (R2) for each DNA or RNA replicate sample. We compiled a table of these files to indicate the 3 RNA and 3 DNA files for each of the three replicates in the file experiment.csv. Finally, we used the count utility of MPRAflow 1.0 16 (run as: nextflow run count.nf --e 'experiment.csv' --design 'designed_sequences.fa' --association 'filtered_coords_to_barcodes. pickle') to compute activity scores for each element and replicate as log 2 (RNA/DNA). Elements with which were measured with fewer than 10 independent barcodes were removed to reduce the impact of measurement noise in downstream analysis. This filter led to the following number of retained elements: (1) HepG2 pilot library, 9,153/9,372 (97.7%); (2) K562 pilot library, 7,323/7,500 (97.6%); (3) HepG2 large-scale library, 139,886/164,307 (85.1%); (4) K562 large-scale library, 226,255/243,780 (92.8%); (5) WTC11 large-scale library, 56,093/75,542 (74.2%); (6) HepG2 joint library, 56,018/60,000 (93.4%); (7) K562 joint library, 56,008/60,000 (93.3%); and (8) WTC11 joint library, 55,983/60,000 (93.3%). To combine the data from all three replicates, the distribution of activity values was normalized to the median activity value within each replicate, and then the activity values were averaged across the three replicates.",
+      "retrieval_text": "[Section: MPRA processing pipeline] Replicates, normalization and RNA/DNA activity scores. For each of the indexed DNA and RNA libraries, we demultiplexed the  sequencing  run  and  generated  Fastq  files  with  bcl2fastq v.2.20  (parameters  '--barcode-mismatches  2  --sample-sheet SampleSheet.csv --use-bases-mask Y*,Y*,I*,Y* --no-lane-splitting --minimum-trimmed-read-length 0 --mask-short-adapter-reads 0'), where SampleSheet.csv catalogued the correspondence between the index sequence and DNA or RNA replicate sample of origin. In several instances, the '--barcode-mismatches 2' resulted in an index assignment clash, requiring us to instead use '--barcode-mismatches 1'. These commands split the sequencing data into paired-end read files delineating the barcodes (R1 and R3) and a file indicating the UMI (R2) for each DNA or RNA replicate sample. We compiled a table of these files to indicate the 3 RNA and 3 DNA files for each of the three replicates in the file experiment.csv. Finally, we used the count utility of MPRAflow 1.0 16 (run as: nextflow run count.nf --e 'experiment.csv' --design 'designed_sequences.fa' --association 'filtered_coords_to_barcodes. pickle') to compute activity scores for each element and replicate as log 2 (RNA/DNA). Elements with which were measured with fewer than 10 independent barcodes were removed to reduce the impact of measurement noise in downstream analysis. This filter led to the following number of retained elements: (1) HepG2 pilot library, 9,153/9,372 (97.7%); (2) K562 pilot library, 7,323/7,500 (97.6%); (3) HepG2 large-scale library, 139,886/164,307 (85.1%); (4) K562 large-scale library, 226,255/243,780 (92.8%); (5) WTC11 large-scale library, 56,093/75,542 (74.2%); (6) HepG2 joint library, 56,018/60,000 (93.4%); (7) K562 joint library, 56,008/60,000 (93.3%); and (8) WTC11 joint library, 55,983/60,000 (93.3%). To combine the data from all three replicates, the distribution of activity values was normalized to the median activity value within each replicate, and then the activity values were averaged across the three replicates.",
+      "bbox": [
+        39.6851,
+        504.80693066403126,
+        296.446409762984,
+        174.6503462890313
+      ],
+      "provenance": "docling",
+      "section_context": "MPRA processing pipeline",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p13_162",
+      "source_block_id": "paper_1_p13_162",
+      "chunk_type": "section",
+      "page_number": 13,
+      "reading_order": 162,
+      "display_text": "Regression modelling",
+      "retrieval_text": "Regression modelling",
+      "bbox": [
+        39.6851,
+        161.9874306640313,
+        127.11099999999998,
+        154.1079042391608
+      ],
+      "provenance": "docling",
+      "section_context": "Regression modelling",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p14_169",
+      "source_block_id": "paper_1_p14_169",
+      "chunk_type": "section",
+      "page_number": 14,
+      "reading_order": 169,
+      "display_text": "Article",
+      "retrieval_text": "Article",
+      "bbox": [
+        39.685001373,
+        762.4145463860312,
+        82.46900137300003,
+        749.4215547193646
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p14_170",
+      "source_block_id": "paper_1_p14_170",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 170,
+      "display_text": "nucleotide variants on each 200-bp sequence. Owing to the nature of our cross-validation strategy, for each sequence there were nine models for which the sequence was held out during training. ISM scores were generated for every sequence by averaging the predictions from these nine models. The average reference sequence prediction was then compared with that of the alternative sequence 32 . We then interrogated our ISM scores to identify the most pertinent motifs associated with changes in variant activity using TF-MoDISco-lite v.2.0.4 (https://github.com/jmschrei/tfmodisco-lite), a more efficient version of TF-MoDISco 38 . The TF-MoDISco-lite algorithm was used with default settings and similar seqlet patterns were matched against JASPAR 2022 CORE vertebrate non-redundant database 64 using Tomtom 65 .",
+      "retrieval_text": "[Section: Article] nucleotide variants on each 200-bp sequence. Owing to the nature of our cross-validation strategy, for each sequence there were nine models for which the sequence was held out during training. ISM scores were generated for every sequence by averaging the predictions from these nine models. The average reference sequence prediction was then compared with that of the alternative sequence 32 . We then interrogated our ISM scores to identify the most pertinent motifs associated with changes in variant activity using TF-MoDISco-lite v.2.0.4 (https://github.com/jmschrei/tfmodisco-lite), a more efficient version of TF-MoDISco 38 . The TF-MoDISco-lite algorithm was used with default settings and similar seqlet patterns were matched against JASPAR 2022 CORE vertebrate non-redundant database 64 using Tomtom 65 .",
+      "bbox": [
+        39.685001373,
+        741.3069306640313,
+        296.41224828731094,
+        615.4003462890313
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p14_171",
+      "source_block_id": "paper_1_p14_171",
+      "chunk_type": "paragraph",
+      "page_number": 14,
+      "reading_order": 171,
+      "display_text": "Modelling dose-dependent and combinatorial motif effects learned by MPRALegNet. A non-redundant set of positional weight matrices (PWMs) from each cell type, as ranked by TF-MoDISco-lite (Extended Data Fig. 6), were extracted and scanned (using FIMO 5.5.4 66 , parameters '--text --thresh 0.001') along each promoter and potential enhancer that was tested bidirectionally. The motif scans were summarized into a matrix of counts for each transcription factor and element tested, as well as log-likelihood (sum of the log(probabilities)), reflecting the likelihood of a given transcription factor binding the element while considering all TFBS instances in both orientations and their respective binding affinities. We then performed an analysis of homotypic (that is, dose-dependent effects for a single transcription factor) as well as heterotypic (that is, combinatorial effects among pairs of transcription factors) for the top 10 activating transcription factors of each cell type.",
+      "retrieval_text": "[Section: Article] Modelling dose-dependent and combinatorial motif effects learned by MPRALegNet. A non-redundant set of positional weight matrices (PWMs) from each cell type, as ranked by TF-MoDISco-lite (Extended Data Fig. 6), were extracted and scanned (using FIMO 5.5.4 66 , parameters '--text --thresh 0.001') along each promoter and potential enhancer that was tested bidirectionally. The motif scans were summarized into a matrix of counts for each transcription factor and element tested, as well as log-likelihood (sum of the log(probabilities)), reflecting the likelihood of a given transcription factor binding the element while considering all TFBS instances in both orientations and their respective binding affinities. We then performed an analysis of homotypic (that is, dose-dependent effects for a single transcription factor) as well as heterotypic (that is, combinatorial effects among pairs of transcription factors) for the top 10 activating transcription factors of each cell type.",
+      "bbox": [
+        39.685001373,
+        601.4990585930312,
+        296.393984399988,
+        454.15034628903123
+      ],
+      "provenance": "docling",
+      "section_context": "Article",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p24_219",
+      "source_block_id": "paper_1_p24_219",
+      "chunk_type": "section",
+      "page_number": 24,
+      "reading_order": 219,
+      "display_text": "Extended Data Fig. 5 | Architecture and performance of MPRALegNet.",
+      "retrieval_text": "Extended Data Fig. 5 | Architecture and performance of MPRALegNet.",
+      "bbox": [
+        39.685001373,
+        741.4162104490313,
+        276.5300013529449,
+        734.9381838096871
+      ],
+      "provenance": "docling",
+      "section_context": "Extended Data Fig. 5 | Architecture and performance of MPRALegNet.",
+      "is_neighbor": true
+    },
+    {
+      "chunk_id": "chunk_paper_1_p24_220",
+      "source_block_id": "paper_1_p24_220",
+      "chunk_type": "paragraph",
+      "page_number": 24,
+      "reading_order": 220,
+      "display_text": "a , Violin plots showing the performances of different variations of MPRALegNet on each of the ten cross-validation folds of held-out data, for different types of augmentations. '-' and '+' indicate removal or usage, respectively, of the following augmentations: i) 'test-time', whereby the mean prediction is computed for various augmentations of the test sequence; ii) 'shift', whereby a sequence was randomly shifted by 0 to +21 bp; iii) 'RevComp', whereby a sequence was randomly reverse complemented; iv) 'Orientation', whereby measured element activity scores were considered for each orientation tested, instead of the mean across both orientations; and v) '5th channel', whereby a",
+      "retrieval_text": "[Section: Extended Data Fig. 5 | Architecture and performance of MPRALegNet.] a , Violin plots showing the performances of different variations of MPRALegNet on each of the ten cross-validation folds of held-out data, for different types of augmentations. '-' and '+' indicate removal or usage, respectively, of the following augmentations: i) 'test-time', whereby the mean prediction is computed for various augmentations of the test sequence; ii) 'shift', whereby a sequence was randomly shifted by 0 to +21 bp; iii) 'RevComp', whereby a sequence was randomly reverse complemented; iv) 'Orientation', whereby measured element activity scores were considered for each orientation tested, instead of the mean across both orientations; and v) '5th channel', whereby a",
+      "bbox": [
+        39.68500137299998,
+        731.4132104490312,
+        295.03030134224224,
+        644.8927146156976
+      ],
+      "provenance": "docling",
+      "section_context": "Extended Data Fig. 5 | Architecture and performance of MPRALegNet.",
+      "is_neighbor": false
+    },
+    {
+      "chunk_id": "chunk_paper_1_p24_221",
+      "source_block_id": "paper_1_p24_221",
+      "chunk_type": "paragraph",
+      "page_number": 24,
+      "reading_order": 221,
+      "display_text": "5th channel was considered alongside the one-hot encoded sequence ( i.e ., the first 4 channels) to indicate the sequence's orientation. b , Complete architecture of the MPRALegNet model. Indicated for each layer is the layer name and dimensionality of the input and output matrices. 'None' refers to the batch size used during model training. c , Impact of the size of the training set on model performance. Data from each cell type were downsampled to every 10th percentile ( i.e ., from 10 to 100%). Error bars represent the standard deviation of the Pearson correlations across 90 models (10 held-out folds of data x 9 trained models varying by the choice of validation set).",
+      "retrieval_text": "[Section: Extended Data Fig. 5 | Architecture and performance of MPRALegNet.] 5th channel was considered alongside the one-hot encoded sequence ( i.e ., the first 4 channels) to indicate the sequence's orientation. b , Complete architecture of the MPRALegNet model. Indicated for each layer is the layer name and dimensionality of the input and output matrices. 'None' refers to the batch size used during model training. c , Impact of the size of the training set on model performance. Data from each cell type were downsampled to every 10th percentile ( i.e ., from 10 to 100%). Error bars represent the standard deviation of the Pearson correlations across 90 models (10 held-out folds of data x 9 trained models varying by the choice of validation set).",
+      "bbox": [
+        306.1399917549999,
+        741.3882104490309,
+        562.4869851246627,
+        654.8677146156973
+      ],
+      "provenance": "docling",
+      "section_context": "Extended Data Fig. 5 | Architecture and performance of MPRALegNet.",
+      "is_neighbor": true
+    }
+  ],
+  "mode": "lexical",
+  "request_mode": "baseline",
+  "policy": {
+    "query_mode": "lexical_with_hints",
+    "scoring_profile": "bm25_lite",
+    "heuristic_tags": [
+      "count_like",
+      "variant_or_sequence"
+    ],
+    "hint_terms": [
+      "count",
+      "total",
+      "number",
+      "pairs",
+      "pair",
+      "combinations",
+      "constructed",
+      "tested",
+      "included",
+      "coverage",
+      "sequences",
+      "plasmids",
+      "barcodes"
+    ]
+  },
+  "stats": {
+    "chunk_build_ms": 1.943,
+    "idf_build_ms": 10.047,
+    "scoring_ms": 8.003,
+    "total_ms": 25.467,
+    "chunk_count_total": 318,
+    "chunk_count_by_type": {
+      "section": 52,
+      "paragraph": 179,
+      "caption": 14,
+      "list_item": 72,
+      "table_region": 1
+    },
+    "candidate_chunk_count": 318,
+    "selected_chunk_count": 6,
+    "neighbor_chunk_count": 10,
+    "chunk_build_count": 1,
+    "idf_build_count": 1
+  },
+  "rescue_reason": null,
+  "retrieved_at": "2026-04-08T07:23:06.229069+00:00"
+}
