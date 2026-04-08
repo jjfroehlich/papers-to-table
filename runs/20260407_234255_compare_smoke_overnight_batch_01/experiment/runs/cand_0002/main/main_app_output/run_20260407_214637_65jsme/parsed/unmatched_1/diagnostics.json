@@ -1,0 +1,18 @@
+{
+  "pdf_id": "unmatched_1",
+  "pdf_path": "D:\\code\\local\\extract-structured-info-from-papers\\tests\\fixtures\\papers\\unmatched_1.pdf",
+  "configured_parser": "docling",
+  "actual_parser_used": "docling",
+  "fallback_used": false,
+  "fallback_reason": null,
+  "ocr_used": false,
+  "ocr_reason": null,
+  "page_count": 18,
+  "text_char_count": 99259,
+  "total_blocks": 200,
+  "major_extraction_gaps": [
+    "authors_not_extracted"
+  ],
+  "parse_warnings": [],
+  "parsed_at": "2026-04-07T21:50:26.479595+00:00"
+}

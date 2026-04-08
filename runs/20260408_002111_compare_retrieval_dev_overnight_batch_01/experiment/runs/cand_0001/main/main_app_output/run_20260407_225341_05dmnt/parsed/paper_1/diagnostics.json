@@ -1,0 +1,18 @@
+{
+  "pdf_id": "paper_1",
+  "pdf_path": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table\\paper_1.pdf",
+  "configured_parser": "docling",
+  "actual_parser_used": "docling",
+  "fallback_used": false,
+  "fallback_reason": null,
+  "ocr_used": false,
+  "ocr_reason": null,
+  "page_count": 35,
+  "text_char_count": 116643,
+  "total_blocks": 318,
+  "major_extraction_gaps": [
+    "authors_not_extracted"
+  ],
+  "parse_warnings": [],
+  "parsed_at": "2026-04-07T22:55:01.505382+00:00"
+}

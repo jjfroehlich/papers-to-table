@@ -1,0 +1,45 @@
+{
+  "run_id": "run_20260407_214637_65jsme",
+  "provider_token": "lm_studio",
+  "provider_mode": "live_local",
+  "structured_output_mode": "json_schema",
+  "structured_output_reason": null,
+  "provider_readiness_reason": null,
+  "provider_readiness_error": null,
+  "attempt_count": 1,
+  "total_duration_ms": 18796.411,
+  "by_outcome": {
+    "success": 1
+  },
+  "by_request_kind": {
+    "text_model_load": 1
+  },
+  "last_error": null,
+  "attempts": [
+    {
+      "sequence": 1,
+      "phase": "model_management",
+      "request_kind": "text_model_load",
+      "structured_mode": null,
+      "model_id": "google/gemma-4-26b-a4b",
+      "outcome": "success",
+      "duration_ms": 18796.411,
+      "http_status": 200,
+      "error_reason": null,
+      "error_message": null,
+      "error_details": null,
+      "raw_preview": "{ \"type\": \"llm\", \"instance_id\": \"google/gemma-4-26b-a4b\", \"load_time_seconds\": 18.332, \"status\": \"loaded\", \"load_config\": { \"context_length\": 32000, \"eval_batch_size\": 512, \"parallel\": 4, \"flash_attention\": true, \"num_experts\": 8, \"offlo...",
+      "payload_summary": {
+        "model": "google/gemma-4-26b-a4b",
+        "max_tokens": null,
+        "temperature": null,
+        "response_format_type": null,
+        "message_count": 0,
+        "message_roles": []
+      },
+      "recorded_at": "2026-04-07T21:46:57.976118+00:00"
+    }
+  ],
+  "recorded_at": "2026-04-07T21:51:33.523054+00:00",
+  "logging_mode": "verbose"
+}

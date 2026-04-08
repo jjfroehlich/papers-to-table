@@ -1,0 +1,51 @@
+{
+  "diagnostics": {
+    "provider_preview_chars": 240,
+    "verbose_provider_logging": true
+  },
+  "eval_mode": true,
+  "figure_review": {
+    "enabled": false,
+    "max_figures_per_paper": 20,
+    "skip_when_prompt_only_degraded": true
+  },
+  "matching": {
+    "ambiguity_threshold": 0.15
+  },
+  "output_dir": "D:\\code\\local\\extract-structured-info-from-papers-optimizer\\runs\\20260408_002111_compare_retrieval_dev_overnight_batch_01\\experiment\\runs\\cand_0001\\main\\main_app_output",
+  "parser": {
+    "allow_basic_fallback": false,
+    "backend": "docling",
+    "ocr_enabled": false,
+    "ocr_language": "en"
+  },
+  "pdf_dir": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table",
+  "prompt": {
+    "bundle": "default"
+  },
+  "provider": {
+    "base_url": "http://localhost:1234",
+    "locality": "local",
+    "text_model": {
+      "load_context_length": 32000,
+      "model_id": "google/gemma-4-26b-a4b",
+      "working_context_budget": 25000
+    },
+    "token": "lm_studio",
+    "vision_model": null
+  },
+  "retrieval": {
+    "mode": "lexical",
+    "recall_rescue_enabled": true,
+    "top_k": 6,
+    "whole_document_max_chars": 12000,
+    "whole_document_mode": false
+  },
+  "schema_path": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table\\literature_fixture_schema.csv",
+  "style_profiles": {
+    "enabled": true,
+    "max_examples": 3
+  },
+  "table_path": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table\\literature_fixture.xlsx",
+  "verify_mode": false
+}

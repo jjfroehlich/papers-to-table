@@ -1,0 +1,62 @@
+{
+  "table_path": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table\\literature_fixture.xlsx",
+  "schema_path": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table\\literature_fixture_schema.csv",
+  "pdf_dir": "C:\\Users\\jonat\\Desktop\\202601_MPRA_table",
+  "output_dir": "D:\\code\\local\\extract-structured-info-from-papers-optimizer\\runs\\20260408_002111_compare_retrieval_dev_overnight_batch_01\\experiment\\runs\\cand_0002\\main\\main_app_output",
+  "verify_mode": false,
+  "eval_mode": true,
+  "provider": {
+    "token": "lm_studio",
+    "base_url": "http://localhost:1234",
+    "text_model": {
+      "model_id": "google/gemma-4-26b-a4b",
+      "temperature": 0.0,
+      "max_tokens": 2048,
+      "working_context_budget": 25000,
+      "load_context_length": 32000
+    },
+    "vision_model": null,
+    "locality": "local"
+  },
+  "parser": {
+    "backend": "docling",
+    "ocr_enabled": false,
+    "ocr_language": "en",
+    "allow_basic_fallback": false
+  },
+  "matching": {
+    "strategy": "title_authors",
+    "ambiguity_threshold": 0.15
+  },
+  "style_profiles": {
+    "enabled": true,
+    "max_examples": 3
+  },
+  "retrieval": {
+    "mode": "lexical",
+    "top_k": 8,
+    "recall_rescue_enabled": true,
+    "whole_document_mode": false,
+    "whole_document_max_chars": 12000
+  },
+  "figure_review": {
+    "enabled": false,
+    "max_figures_per_paper": 20,
+    "skip_when_prompt_only_degraded": true
+  },
+  "review": {
+    "max_proposals_per_cell": 1
+  },
+  "export": {
+    "highlight_changes": true,
+    "include_audit_log": true
+  },
+  "prompt": {
+    "bundle": "default",
+    "bundle_path": null
+  },
+  "diagnostics": {
+    "verbose_provider_logging": true,
+    "provider_preview_chars": 240
+  }
+}

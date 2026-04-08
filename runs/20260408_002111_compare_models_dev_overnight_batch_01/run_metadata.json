@@ -1,0 +1,8 @@
+{
+  "run_name": "20260408_002111_compare_models_dev_overnight_batch_01",
+  "study_type": "compare",
+  "config_path": "/d/code/local/extract-structured-info-from-papers-optimizer/configs/compare_models_dev.json",
+  "experiment_dir": "/d/code/local/extract-structured-info-from-papers-optimizer/runs/20260408_002111_compare_models_dev_overnight_batch_01/experiment",
+  "holdout_dir": "/d/code/local/extract-structured-info-from-papers-optimizer/runs/20260408_002111_compare_models_dev_overnight_batch_01/holdout",
+  "log_file": "/d/code/local/extract-structured-info-from-papers-optimizer/logs/20260408_002111_compare_models_dev_overnight_batch_01.log"
+}

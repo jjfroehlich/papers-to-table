@@ -21,7 +21,7 @@ echo "[$(date -Iseconds)] Step 1: smoke compare preflight"
 PAPER_OPTIMIZER_RUN_NAME="$smoke_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$smoke_config" "${safe_label}_smoke"
 
 echo "[$(date -Iseconds)] Step 2: main compare study"
-PAPER_OPTIMIZER_RUN_NAME="$compare_run_name" bash "$script_dir/run_study.sh" compare "$compare_config" "${safe_label}_compare"
+PAPER_OPTIMIZER_RUN_NAME="$compare_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$compare_config" "${safe_label}_compare"
 
 echo "[$(date -Iseconds)] Step 3: retrieval sweep on Gemma"
 PAPER_OPTIMIZER_RUN_NAME="$retrieval_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$retrieval_config" "${safe_label}_retrieval"

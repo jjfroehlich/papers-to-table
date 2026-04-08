@@ -1,0 +1,24 @@
+{
+  "figure_review": {
+    "enabled": false
+  },
+  "prompt": {
+    "bundle": "default"
+  },
+  "provider": {
+    "text_model": {
+      "model_id": "google/gemma-4-26b-a4b"
+    },
+    "vision_model": null
+  },
+  "retrieval": {
+    "recall_rescue_enabled": true,
+    "top_k": 6,
+    "whole_document_max_chars": 12000,
+    "whole_document_mode": false
+  },
+  "style_profiles": {
+    "enabled": true,
+    "max_examples": 3
+  }
+}

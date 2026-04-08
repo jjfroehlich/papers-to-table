@@ -1,0 +1,6 @@
+{
+  "benchmark_id": "bench_dev",
+  "experiment_id": "compare_models_dev",
+  "schema_version": "1.0",
+  "study_type": "compare"
+}

@@ -1,0 +1,17 @@
+{
+  "run_id": "run_20260407_222546_00u6dc",
+  "provider_token": "lm_studio",
+  "provider_mode": "live_local",
+  "structured_output_mode": "none",
+  "structured_output_reason": "structured_modes_unavailable",
+  "provider_readiness_reason": null,
+  "provider_readiness_error": null,
+  "attempt_count": 0,
+  "total_duration_ms": 0.0,
+  "by_outcome": {},
+  "by_request_kind": {},
+  "last_error": null,
+  "attempts": [],
+  "recorded_at": "2026-04-07T22:31:07.082431+00:00",
+  "logging_mode": "verbose"
+}

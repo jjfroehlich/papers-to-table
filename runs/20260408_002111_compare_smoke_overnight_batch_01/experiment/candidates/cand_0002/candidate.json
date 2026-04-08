@@ -1,0 +1,45 @@
+{
+  "benchmark_id": "bench_smoke",
+  "candidate": {
+    "candidate_id": "cand_0002",
+    "optimizer_knobs": {
+      "figure_review_enabled": false,
+      "recall_rescue_enabled": true,
+      "retrieval_top_k": 6,
+      "style_profiles_enabled": true,
+      "style_profiles_max_examples": 3,
+      "whole_document_max_chars": 12000,
+      "whole_document_mode": false
+    },
+    "parent_candidate_id": null,
+    "prompt_bundle_id": "default",
+    "round_index": null,
+    "text_model_id": "google/gemma-4-26b-a4b",
+    "vision_model_id": null
+  },
+  "candidate_hash": "94ae1749542e436413614ec5e8bb65e55e09fc1da13990ee01f0043fbfd3d22d",
+  "candidate_id": "cand_0002",
+  "optimizer_knobs": {
+    "figure_review_enabled": false,
+    "recall_rescue_enabled": true,
+    "retrieval_top_k": 6,
+    "style_profiles_enabled": true,
+    "style_profiles_max_examples": 3,
+    "whole_document_max_chars": 12000,
+    "whole_document_mode": false
+  },
+  "optimizer_knobs_flat": {
+    "figure_review_enabled": false,
+    "recall_rescue_enabled": true,
+    "retrieval_top_k": 6,
+    "style_profiles_enabled": true,
+    "style_profiles_max_examples": 3,
+    "whole_document_max_chars": 12000,
+    "whole_document_mode": false
+  },
+  "parent_candidate_id": null,
+  "prompt_bundle_id": "default",
+  "round_index": null,
+  "text_model_id": "google/gemma-4-26b-a4b",
+  "vision_model_id": null
+}
