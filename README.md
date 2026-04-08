@@ -221,7 +221,7 @@ LM Studio model management is app-owned:
 - otherwise it loads the model through LM Studio before extraction begins
 - it records load/reuse behavior and echoed LM Studio load config in run artifacts
 
-Structured output does not require a separate LM Studio toggle in the config. The app enables it per request by sending `response_format` to `/v1/chat/completions`, probes whether the configured model/runtime supports `json_schema`, and falls back honestly when LM Studio only supports weaker modes.
+Structured output does not require a separate LM Studio toggle in the config. The app enables it per request by sending `response_format` to `/v1/chat/completions`, probes whether the configured model/runtime supports `json_schema`, and falls back honestly when LM Studio only supports weaker modes. For weaker modes, the provider also ensures the request messages contain an explicit JSON instruction so `json_object` backends that require the word `JSON` do not fail on prompt wording alone.
 
 ### Schema-first extraction guidance
 
@@ -486,7 +486,7 @@ If the provider is unavailable at startup, the configured model IDs do not exist
 Structured output behavior is negotiated per provider-model path:
 - Preferred: `json_schema`
 - Fallback: `json_object` (explicit degraded mode warning is recorded)
-- If both structured modes are unavailable for the configured provider-model path, readiness fails before extraction begins
+- If both structured modes are unavailable for the configured text provider-model path, extraction continues in degraded prompt-only JSON mode with app-side parse/repair/validation and a degraded-mode warning
 
 When both text and vision models are configured, structured-output capability is tracked separately for the text path and the vision path.
 

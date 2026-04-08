@@ -553,7 +553,7 @@ class TestRunPipeline:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_prompt_only_provider_mode_fails_readiness_with_capability_mismatch(self, tmp_path, monkeypatch):
+    async def test_prompt_only_provider_mode_surfaces_provider_degraded_warning(self, tmp_path, monkeypatch):
         respx.get("http://localhost:1234/v1/models").mock(
             return_value=httpx.Response(200, json={"data": [{"id": "qwen/qwen3-30b-a3b-2507"}]})
         )
@@ -562,7 +562,7 @@ class TestRunPipeline:
         output_dir = str(tmp_path / "runs")
         (tmp_path / "runs").mkdir(exist_ok=True)
 
-        monkeypatch.setattr("backend.app.runner.initialize_provider", _raise_no_compatible_structured_mode_error)
+        monkeypatch.setattr("backend.app.runner.initialize_provider", _fake_initialize_provider_prompt_only)
         monkeypatch.setattr("backend.app.runner.parse_pdf", _fake_parse_pdf)
         monkeypatch.setattr("backend.app.runner.run_matching", lambda **kwargs: [])
         monkeypatch.setattr("backend.app.runner.persist_match_artifacts", lambda *args, **kwargs: None)
@@ -572,23 +572,26 @@ class TestRunPipeline:
 
         run_data = read_json(get_run_json_path(output_dir, run_id))
         warnings = run_data.get("warnings", [])
-        mismatch = [w for w in warnings if w.get("category") == "structured_mode_capability_mismatch"]
-        assert run_data["status"] == RunStatus.failed.value
-        assert len(mismatch) >= 1
-        assert "No compatible structured-output mode" in mismatch[0].get("message", "")
-        assert run_data.get("provider_readiness_reason") == "no_compatible_structured_mode"
+        degraded = [w for w in warnings if w.get("category") == "provider_degraded"]
+        assert run_data["status"] in {
+            RunStatus.completed.value,
+            RunStatus.completed_with_warnings.value,
+        }
+        assert len(degraded) >= 1
+        assert "prompt-only JSON mode" in degraded[0].get("message", "")
+        assert run_data.get("provider_readiness_reason") is None
         assert run_data.get("structured_output_mode") == "none"
         assert run_data.get("structured_output_reason") == "structured_backend_incompatible"
-        assert run_data.get("structured_output_fallback_used") is False
+        assert run_data.get("structured_output_fallback_used") is True
 
         provider_mode = read_json(get_provider_mode_path(output_dir, run_id))
         assert provider_mode.get("structured_output_mode") == "none"
         assert provider_mode.get("structured_output_reason") == "structured_backend_incompatible"
-        assert provider_mode.get("readiness_reason") == "no_compatible_structured_mode"
-        assert provider_mode.get("structured_output_fallback_used") is False
+        assert provider_mode.get("readiness_reason") is None
+        assert provider_mode.get("structured_output_fallback_used") is True
 
         reviewer_summary = read_json(get_reviewer_summary_path(output_dir, run_id))
-        assert reviewer_summary.get("provider_readiness_reason") == "no_compatible_structured_mode"
+        assert reviewer_summary.get("provider_readiness_reason") is None
 
     @pytest.mark.asyncio
     async def test_provider_init_model_unavailable_is_not_classified_as_unreachable(self, tmp_path, monkeypatch):

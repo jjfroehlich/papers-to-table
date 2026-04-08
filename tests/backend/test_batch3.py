@@ -60,6 +60,7 @@ from backend.app.provider import (
     ProviderError,
     ProviderMode,
     StructuredOutputError,
+    _ensure_json_keyword_in_messages,
     _coerce_message_content,
     _try_repair_json,
     initialize_provider,
@@ -840,7 +841,7 @@ class TestProviderCapabilities:
         assert mode.structured_output_reason == "json_schema_unsupported"
 
     @pytest.mark.asyncio
-    async def test_initialize_provider_rejects_prompt_only_fallback_when_no_structured_mode(self):
+    async def test_initialize_provider_accepts_prompt_only_fallback_when_no_structured_mode(self):
         config = SimpleNamespace(token="lm_studio", base_url="http://localhost:1234")
         caps = ProviderCapabilities(
             supports_structured_output=False,
@@ -853,14 +854,33 @@ class TestProviderCapabilities:
             "probe_capabilities",
             new=AsyncMock(return_value=caps),
         ):
-            with pytest.raises(ProviderError) as exc:
-                await initialize_provider(
-                    config,
-                    text_model_id="test-model",
-                    vision_model_id=None,
-                )
-        assert getattr(exc.value, "reason", None) == "no_compatible_structured_mode"
-        assert "structured-output mode" in str(exc.value)
+            provider, mode = await initialize_provider(
+                config,
+                text_model_id="test-model",
+                vision_model_id=None,
+            )
+        assert isinstance(provider, LMStudioProvider)
+        assert mode.mode == "live_local"
+        assert mode.capabilities is not None
+        assert mode.capabilities.structured_output_mode == "none"
+        assert mode.structured_output_reason == "structured_modes_unavailable"
+        assert mode.structured_output_fallback_used is True
+
+    def test_ensure_json_keyword_in_messages_adds_guardrail_when_missing(self):
+        messages = [{"role": "user", "content": "Return exactly one object."}]
+
+        normalized = _ensure_json_keyword_in_messages(messages)
+
+        assert len(normalized) == 2
+        assert normalized[0]["role"] == "system"
+        assert "JSON" in normalized[0]["content"]
+
+    def test_ensure_json_keyword_in_messages_preserves_existing_json_instruction(self):
+        messages = [{"role": "user", "content": "Return valid JSON only."}]
+
+        normalized = _ensure_json_keyword_in_messages(messages)
+
+        assert normalized == messages
 
     @pytest.mark.asyncio
     async def test_chat_complete_structured_supports_json_object_mode(self):

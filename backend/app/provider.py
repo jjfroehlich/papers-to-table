@@ -34,6 +34,33 @@ def _has_explicit_model_id(model_id: Optional[str]) -> bool:
     return bool(normalized) and normalized != "default"
 
 
+def _messages_contain_json_keyword(messages: list[dict[str, Any]]) -> bool:
+    for message in messages:
+        content = message.get("content")
+        if isinstance(content, str) and re.search(r"json", content, flags=re.IGNORECASE):
+            return True
+        if isinstance(content, list):
+            for part in content:
+                if not isinstance(part, dict):
+                    continue
+                text = part.get("text")
+                if isinstance(text, str) and re.search(r"json", text, flags=re.IGNORECASE):
+                    return True
+    return False
+
+
+def _ensure_json_keyword_in_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if _messages_contain_json_keyword(messages):
+        return messages
+    return [
+        {
+            "role": "system",
+            "content": "Return JSON only. Output exactly one JSON object and no prose.",
+        },
+        *messages,
+    ]
+
+
 # ---------------------------------------------------------------------------
 # Provider capability contract (T050)
 # ---------------------------------------------------------------------------
@@ -1952,9 +1979,12 @@ class LMStudioProvider(ProviderAdapter):
         structured_mode: str,
     ) -> dict:
         """Build the request payload based on negotiated structured output mode."""
+        normalized_messages = list(messages)
+        if structured_mode in ("json_object", "none"):
+            normalized_messages = _ensure_json_keyword_in_messages(normalized_messages)
         base: dict[str, Any] = {
             "model": model_id,
-            "messages": messages,
+            "messages": normalized_messages,
             "max_tokens": max_tokens,
             "temperature": temperature,
         }
@@ -2235,23 +2265,6 @@ async def initialize_provider(
         caps = await provider.probe_capabilities(text_model_id, vision_model_id)
         if isinstance(provider, LMStudioProvider):
             provider.set_capabilities(caps)
-        if caps.structured_output_mode == "none":
-            detail = (
-                caps.structured_output_error
-                or caps.structured_output_reason
-                or "No compatible structured-output mode was detected."
-            )
-            raise ProviderError(
-                (
-                    f"Provider '{config.token}' cannot run extraction for text model '{text_model_id}' "
-                    f"without a compatible structured-output mode. {detail}"
-                ),
-                reason="no_compatible_structured_mode",
-                details={
-                    "capabilities": caps.model_dump(mode="json"),
-                    "model_management": model_management,
-                },
-            )
         mode = provider.get_provider_mode(
             text_model_id=text_model_id,
             vision_model_id=vision_model_id,
