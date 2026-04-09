@@ -74,6 +74,7 @@ def build_run_summary(
             1 for cell in scored_cells if cell.join_status == "unmatched_proposal"
         ),
         "join_failure_count": len(join_problem_records),
+        "contract_warning_count": len(loaded_run.contract_warnings),
     }
 
     join_diagnostics = [

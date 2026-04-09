@@ -189,6 +189,8 @@ out/
 
 Headline scoring uses only gold-present cells by default.
 
+When the evaluated run bundle includes main-app matching artifacts, the evaluator first restricts the gold table to rows whose PDFs were actually matched in that run. This keeps optimizer and batch scoring focused on the subset of workbook rows represented by PDFs in the run's input folder.
+
 Gold-empty cells are excluded from headline accuracy and counted only through diagnostics such as `filled_on_gold_empty_count`.
 
 ### Field Types

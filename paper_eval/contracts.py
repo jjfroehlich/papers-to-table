@@ -131,6 +131,7 @@ class LoadedRun:
     run_dir: Path
     metadata: RunMetadata
     proposals: list[ProposalRecord]
+    matched_row_indices: set[int] | None = None
     page_text_by_page: dict[int, str] = field(default_factory=dict)
     contract_warnings: list[str] = field(default_factory=list)
 

@@ -164,9 +164,44 @@ def load_run(run_dir: Path) -> LoadedRun:
         run_dir=run_dir,
         metadata=metadata,
         proposals=proposals,
+        matched_row_indices=_load_matched_row_indices(run_dir),
         page_text_by_page=page_text_by_page,
         contract_warnings=warnings,
     )
+
+
+def _load_matched_row_indices(run_dir: Path) -> set[int] | None:
+    match_results_path = run_dir / "matching" / "match_results.json"
+    if not match_results_path.exists():
+        return None
+
+    payload = _load_json(match_results_path)
+    if not isinstance(payload, list):
+        raise ContractError(
+            f"Matching artifact must be a JSON array when present: {match_results_path}"
+        )
+
+    matched_row_indices: set[int] = set()
+    for index, item in enumerate(payload, start=1):
+        if not isinstance(item, dict):
+            raise ContractError(
+                f"Matching artifact contains a non-object entry at {match_results_path} item {index}."
+            )
+        if item.get("outcome") != "matched":
+            continue
+        if bool(item.get("blocked", False)):
+            continue
+        matched_row_index = item.get("matched_row_index")
+        if matched_row_index is None:
+            continue
+        try:
+            matched_row_indices.add(int(matched_row_index))
+        except (TypeError, ValueError) as exc:
+            raise ContractError(
+                "Matching artifact published a non-integer matched_row_index at "
+                f"{match_results_path} item {index}."
+            ) from exc
+    return matched_row_indices
 
 
 def _load_proposals(

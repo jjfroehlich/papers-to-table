@@ -92,10 +92,11 @@ def main(argv: list[str] | None = None) -> int:
 def _handle_evaluate(args: argparse.Namespace) -> int:
     output_layout = create_output_layout(args.out.resolve())
     schema = load_schema(args.schema.resolve() if args.schema else None)
-    gold_dataset = load_gold(args.gold.resolve(), sheet_name=args.gold_sheet)
     run_dirs = discover_run_directories([Path(path).resolve() for path in args.runs], args.runs_root.resolve() if args.runs_root else None)
     judge_config = build_judge_config(args)
     text_judge = build_text_judge(judge_config)
+    gold_path = args.gold.resolve()
+    gold_cache: dict[tuple[int, ...] | None, object] = {}
 
     summaries = []
     run_summary_paths: list[str] = []
@@ -103,6 +104,17 @@ def _handle_evaluate(args: argparse.Namespace) -> int:
     judge_records_paths: list[str] = []
     for run_dir in run_dirs:
         loaded_run = load_run(run_dir)
+        cache_key = None
+        if loaded_run.matched_row_indices is not None:
+            cache_key = tuple(sorted(loaded_run.matched_row_indices))
+        gold_dataset = gold_cache.get(cache_key)
+        if gold_dataset is None:
+            gold_dataset = load_gold(
+                gold_path,
+                sheet_name=args.gold_sheet,
+                allowed_row_indices=loaded_run.matched_row_indices,
+            )
+            gold_cache[cache_key] = gold_dataset
         score_result = score_run(
             loaded_run,
             gold_dataset,

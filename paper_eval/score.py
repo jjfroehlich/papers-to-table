@@ -35,6 +35,8 @@ def score_run(
         proposals_by_key[proposal.join_key].append(proposal)
 
     gold_keys = {cell.join_key for cell in gold_dataset.cells}
+    allowed_row_ids = {cell.row_id for cell in gold_dataset.cells if cell.row_id is not None}
+    scoped_row_ids = allowed_row_ids if loaded_run.matched_row_indices is not None else None
     scored_cells: list[ScoredCell] = []
     judge_records = []
 
@@ -270,6 +272,8 @@ def score_run(
         if join_key in gold_keys:
             continue
         for proposal in proposals:
+            if scoped_row_ids and proposal.row_id not in scoped_row_ids:
+                continue
             scored_cells.append(
                 ScoredCell(
                     record_kind="proposal_diagnostic",

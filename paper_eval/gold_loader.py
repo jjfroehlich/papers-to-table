@@ -10,20 +10,25 @@ from paper_eval.errors import ContractError
 from paper_eval.normalize import is_empty_value
 
 
-def load_gold(path: Path, *, sheet_name: str | None = None) -> GoldDataset:
+def load_gold(
+    path: Path,
+    *,
+    sheet_name: str | None = None,
+    allowed_row_indices: set[int] | None = None,
+) -> GoldDataset:
     if not path.exists():
         raise ContractError(f"Gold input does not exist: {path}")
     if not path.is_file():
         raise ContractError(f"Gold input is not a file: {path}")
     suffix = path.suffix.casefold()
     if suffix == ".csv":
-        return _load_csv_gold(path)
+        return _load_csv_gold(path, allowed_row_indices=allowed_row_indices)
     if suffix in {".xlsx", ".xlsm"}:
-        return _load_xlsx_gold(path, sheet_name=sheet_name)
+        return _load_xlsx_gold(path, sheet_name=sheet_name, allowed_row_indices=allowed_row_indices)
     raise ContractError(f"Unsupported gold file type: {path.suffix}")
 
 
-def _load_csv_gold(path: Path) -> GoldDataset:
+def _load_csv_gold(path: Path, *, allowed_row_indices: set[int] | None) -> GoldDataset:
     try:
         with path.open("r", encoding="utf-8", newline="") as handle:
             reader = csv.DictReader(handle)
@@ -34,10 +39,16 @@ def _load_csv_gold(path: Path) -> GoldDataset:
     if not fieldnames:
         raise ContractError(f"Gold CSV '{path}' is empty or missing a header row.")
     cells = _rows_to_gold_cells(rows, fieldnames, sheet_name=None)
+    cells = _filter_gold_cells_by_row_index(cells, allowed_row_indices=allowed_row_indices)
     return GoldDataset(source_path=path, sheet_name=None, cells=cells)
 
 
-def _load_xlsx_gold(path: Path, *, sheet_name: str | None) -> GoldDataset:
+def _load_xlsx_gold(
+    path: Path,
+    *,
+    sheet_name: str | None,
+    allowed_row_indices: set[int] | None,
+) -> GoldDataset:
     try:
         from openpyxl import load_workbook
     except ModuleNotFoundError as exc:
@@ -61,6 +72,7 @@ def _load_xlsx_gold(path: Path, *, sheet_name: str | None) -> GoldDataset:
         fieldnames = [str(value).strip() if value is not None else "" for value in rows[0]]
         data_rows = [dict(zip(fieldnames, values)) for values in rows[1:]]
         cells = _rows_to_gold_cells(data_rows, fieldnames, sheet_name=selected_sheet_name)
+        cells = _filter_gold_cells_by_row_index(cells, allowed_row_indices=allowed_row_indices)
         return GoldDataset(source_path=path, sheet_name=selected_sheet_name, cells=cells)
     finally:
         workbook.close()
@@ -167,3 +179,23 @@ def _validate_unique_gold_join_keys(cells: list[GoldCell]) -> None:
                 f"row_id + column_name pair. Duplicate: row_id='{cell.row_id}', column_name='{cell.column_name}'."
             )
         seen[join_key] = cell
+
+
+def _filter_gold_cells_by_row_index(
+    cells: list[GoldCell],
+    *,
+    allowed_row_indices: set[int] | None,
+) -> list[GoldCell]:
+    if allowed_row_indices is None:
+        return cells
+    if not allowed_row_indices:
+        return []
+
+    missing_row_index = [cell for cell in cells if cell.row_index is None]
+    if missing_row_index:
+        raise ContractError(
+            "Gold input cannot be restricted to matched run rows because one or more gold cells are missing "
+            "the required row_index field."
+        )
+
+    return [cell for cell in cells if cell.row_index in allowed_row_indices]

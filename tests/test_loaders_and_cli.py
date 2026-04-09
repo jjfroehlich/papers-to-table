@@ -113,6 +113,14 @@ class LoaderAndCliTests(unittest.TestCase):
             self.assertEqual(loaded.metadata.masked_table_hash, "masked-hash")
             self.assertEqual(loaded.metadata.masked_table_snapshot_path, "inputs/masked_working_table.xlsx")
 
+    def test_run_loader_loads_matched_row_indices_from_matching_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_dir = self._create_run_bundle(Path(temp_dir) / "run-a", matched_row_indices={1, 3})
+
+            loaded = load_run(run_dir)
+
+            self.assertEqual(loaded.matched_row_indices, {1, 3})
+
     def test_run_loader_normalizes_nullable_collection_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             run_dir = self._create_run_bundle(Path(temp_dir) / "run-a")
@@ -190,6 +198,20 @@ class LoaderAndCliTests(unittest.TestCase):
             self.assertFalse(indexed[("row-1", "notes")].is_present)
             self.assertFalse(indexed[("row-2", "status")].is_present)
             self.assertTrue(indexed[("row-2", "notes")].is_present)
+
+    def test_gold_loader_can_restrict_to_matched_row_indices(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            gold_path = Path(temp_dir) / "gold.csv"
+            gold_path.write_text(
+                "row_id,row_index,status,notes\n"
+                "row-1,1,yes,alpha\n"
+                "row-2,2,no,beta\n",
+                encoding="utf-8",
+            )
+
+            gold = load_gold(gold_path, allowed_row_indices={2})
+
+            self.assertEqual({cell.row_id for cell in gold.cells}, {"row-2"})
 
     def test_gold_loader_rejects_duplicate_join_keys(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -392,6 +414,42 @@ class LoaderAndCliTests(unittest.TestCase):
             self.assertEqual(judge_records[0]["judge_verdict"], "correct")
             self.assertIsNotNone(judge_records[0]["judge_input_hash"])
 
+    def test_cli_restricts_gold_scoring_to_rows_with_matched_pdfs(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            run_dir = self._create_run_bundle(base / "run-a", matched_row_indices={1})
+            gold_path = base / "gold.csv"
+            gold_path.write_text(
+                "row_id,row_index,status,score,notes\n"
+                "row-1,1,yes,10,\n"
+                "row-2,2,no,20,Text gold\n"
+                "row-3,3,yes,30,Other text\n",
+                encoding="utf-8",
+            )
+            output_dir = base / "out"
+
+            self.assertEqual(
+                main(
+                    [
+                        "evaluate",
+                        "--run",
+                        str(run_dir),
+                        "--gold",
+                        str(gold_path),
+                        "--out",
+                        str(output_dir),
+                    ]
+                ),
+                0,
+            )
+
+            summary = json.loads((output_dir / "per-run" / "run-a" / "run_summary.json").read_text(encoding="utf-8"))
+            self.assertEqual(summary["metrics"]["gold_present_cell_count"], 2)
+            self.assertEqual(summary["metrics"]["missing_proposal_count"], 0)
+            self.assertEqual(summary["metrics"]["unmatched_proposal_count"], 0)
+            rows = self._read_csv(output_dir / "per-run" / "run-a" / "scored_cells.csv")
+            self.assertEqual({row["row_id"] for row in rows}, {"row-1"})
+
     def test_cli_evaluates_fixture_run_with_expected_outputs(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             copied_fixture = Path(temp_dir) / "fixture"
@@ -576,7 +634,7 @@ class LoaderAndCliTests(unittest.TestCase):
             self.assertEqual(gold.cells[0].cell_id, "cell-1")
             self.assertEqual(gold.cells[0].column_name, "status")
 
-    def _create_run_bundle(self, run_dir: Path) -> Path:
+    def _create_run_bundle(self, run_dir: Path, matched_row_indices: set[int] | None = None) -> Path:
         (run_dir / "proposals").mkdir(parents=True)
         (run_dir / "inputs").mkdir(parents=True)
         (run_dir / "summaries").mkdir(parents=True)
@@ -671,6 +729,31 @@ class LoaderAndCliTests(unittest.TestCase):
             for row in proposal_rows:
                 handle.write(json.dumps(row))
                 handle.write("\n")
+        if matched_row_indices is not None:
+            (run_dir / "matching").mkdir(parents=True)
+            match_results = [
+                {
+                    "pdf_id": f"pdf-{row_index}",
+                    "pdf_path": f"papers/pdf-{row_index}.pdf",
+                    "outcome": "matched",
+                    "matched_row_index": row_index,
+                    "matched_row_title": f"Title {row_index}",
+                    "score": 1.0,
+                    "runner_up_score": 0.0,
+                    "runner_up_row_index": None,
+                    "conflict_pdf_ids": [],
+                    "conflict_row_indices": [],
+                    "reasoning": "fixture match",
+                    "blocked": False,
+                    "blocked_reason": None,
+                    "matched_at": "2026-01-01T00:00:00+00:00",
+                }
+                for row_index in sorted(matched_row_indices)
+            ]
+            (run_dir / "matching" / "match_results.json").write_text(
+                json.dumps(match_results),
+                encoding="utf-8",
+            )
         return run_dir
 
     def _read_csv(self, path: Path) -> list[dict[str, str]]:
