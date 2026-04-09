@@ -37,6 +37,25 @@ def build_run_summary(
     correct_and_anchored_records = [
         cell for cell in scored_records if cell.is_correct and cell.anchor_valid
     ]
+    structured_support_supported_records = [
+        cell
+        for cell in structured_records
+        if cell.diagnostics.get("structured_support_proxy", {}).get("status") == "supported"
+    ]
+    structured_support_unsupported_records = [
+        cell
+        for cell in structured_records
+        if cell.diagnostics.get("structured_support_proxy", {}).get("status") == "unsupported"
+    ]
+    structured_support_unvalidated_records = [
+        cell
+        for cell in structured_records
+        if cell.diagnostics.get("structured_support_proxy", {}).get("status") == "unvalidated"
+    ]
+    structured_support_evaluated_records = [
+        *structured_support_supported_records,
+        *structured_support_unsupported_records,
+    ]
     covered_gold_present = [
         cell
         for cell in gold_present_records
@@ -57,10 +76,17 @@ def build_run_summary(
         "proposal_coverage_on_gold_present": _ratio(len(covered_gold_present), len(gold_present_records)),
         "anchor_valid_rate": _ratio(len(anchor_valid_records), len(scored_records)),
         "correct_and_anchored_rate": _ratio(len(correct_and_anchored_records), len(scored_records)),
+        "structured_support_proxy_supported_rate": _ratio(
+            len(structured_support_supported_records), len(structured_support_evaluated_records)
+        ),
         "gold_present_cell_count": len(gold_present_records),
         "gold_empty_cell_count": len(gold_empty_records),
         "filled_on_gold_empty_count": sum(1 for cell in gold_empty_records if cell.proposal_count > 0),
         "structured_scored_cell_count": len(structured_records),
+        "structured_support_proxy_evaluated_count": len(structured_support_evaluated_records),
+        "structured_support_proxy_supported_count": len(structured_support_supported_records),
+        "structured_support_proxy_unsupported_count": len(structured_support_unsupported_records),
+        "structured_support_proxy_unvalidated_count": len(structured_support_unvalidated_records),
         "scored_cell_count": len(scored_records),
         "boolean_scored_cell_count": len(boolean_records),
         "categorical_scored_cell_count": len(categorical_records),

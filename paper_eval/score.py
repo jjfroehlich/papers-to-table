@@ -20,6 +20,7 @@ from paper_eval.evidence import validate_evidence_anchors
 from paper_eval.errors import ContractError, EvaluationError
 from paper_eval.judge import TextJudge, build_judge_request, judge_record_from_result
 from paper_eval.normalize import normalize_boolean, normalize_numeric, normalize_text_for_match, text_overlap_diagnostics
+from paper_eval.structured_support import evaluate_structured_support_proxy
 
 
 def score_run(
@@ -226,6 +227,13 @@ def score_run(
             allowed_values=field_config.allowed_values,
             numeric_tolerance=field_config.numeric_tolerance,
         )
+        support_proxy = evaluate_structured_support_proxy(
+            field_type=field_config.field_type,
+            proposed_value=proposal.proposed_value,
+            normalized_proposed=comparison.normalized_proposed,
+            evidence_items=proposal.evidence_items,
+            page_text_by_page=loaded_run.page_text_by_page,
+        )
 
         scored_cells.append(
             ScoredCell(
@@ -263,6 +271,11 @@ def score_run(
                 diagnostics={
                     **comparison.diagnostics,
                     "evidence": evidence_result.diagnostics,
+                    "structured_support_proxy": {
+                        "status": support_proxy.status,
+                        "matched_evidence_ids": support_proxy.matched_evidence_ids,
+                        **support_proxy.diagnostics,
+                    },
                 },
                 selected_proposal_state=proposal.state,
             )

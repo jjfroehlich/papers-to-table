@@ -7,7 +7,9 @@ from unittest import mock
 from urllib import error
 
 from paper_eval.cli import build_judge_config
+from paper_eval.aggregate import build_run_summary
 from paper_eval.contracts import (
+    EvidenceItem,
     GoldCell,
     GoldDataset,
     JudgeConfig,
@@ -554,6 +556,104 @@ class TextJudgeScoringTests(unittest.TestCase):
         self.assertEqual(notes_cell.judge_resolved_model_id, "runtime-qwen-model")
         self.assertEqual(len(result.judge_records), 1)
 
+    def test_structured_support_proxy_marks_supported_numeric_and_categorical_values(self) -> None:
+        loaded_run = self._loaded_run(
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="status",
+                cell_id="cell-status-1",
+                proposed_value="present",
+                field_type="categorical",
+                evidence_items=[
+                    EvidenceItem(
+                        evidence_id="ev-status",
+                        page=1,
+                        quote_text="Status remained present throughout follow-up.",
+                    )
+                ],
+            ),
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="score",
+                cell_id="cell-score-1",
+                proposed_value="45.3",
+                field_type="numeric",
+                evidence_items=[
+                    EvidenceItem(
+                        evidence_id="ev-score",
+                        page=1,
+                        quote_text="Bone volume fraction was 45.3% after 12 weeks.",
+                    )
+                ],
+            ),
+        )
+        gold = self._gold_dataset(
+            GoldCell(
+                row_id="row-1",
+                column_name="status",
+                cell_id="cell-status-1",
+                raw_value="present",
+                is_present=True,
+            ),
+            GoldCell(
+                row_id="row-1",
+                column_name="score",
+                cell_id="cell-score-1",
+                raw_value="45.3",
+                is_present=True,
+            ),
+        )
+
+        result = score_run(loaded_run, gold, load_schema(None))
+        summary = build_run_summary(loaded_run, gold, result.scored_cells)
+
+        for cell in result.scored_cells:
+            if cell.record_kind != "gold_cell":
+                continue
+            self.assertEqual(cell.diagnostics["structured_support_proxy"]["status"], "supported")
+
+        self.assertEqual(summary.metrics["structured_support_proxy_evaluated_count"], 2)
+        self.assertEqual(summary.metrics["structured_support_proxy_supported_count"], 2)
+        self.assertEqual(summary.metrics["structured_support_proxy_unsupported_count"], 0)
+        self.assertEqual(summary.metrics["structured_support_proxy_unvalidated_count"], 0)
+        self.assertEqual(summary.metrics["structured_support_proxy_supported_rate"], 1.0)
+
+    def test_structured_support_proxy_marks_missing_searchable_evidence_as_unvalidated(self) -> None:
+        loaded_run = self._loaded_run(
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="score",
+                cell_id="cell-score-1",
+                proposed_value="45.3",
+                field_type="numeric",
+                evidence_items=[EvidenceItem(evidence_id="ev-score", page=1, quote_text=None)],
+            )
+        )
+        loaded_run.page_text_by_page = {}
+        gold = self._gold_dataset(
+            GoldCell(
+                row_id="row-1",
+                column_name="score",
+                cell_id="cell-score-1",
+                raw_value="45.3",
+                is_present=True,
+            )
+        )
+
+        result = score_run(loaded_run, gold, load_schema(None))
+        summary = build_run_summary(loaded_run, gold, result.scored_cells)
+
+        proxy = result.scored_cells[0].diagnostics["structured_support_proxy"]
+        self.assertEqual(proxy["status"], "unvalidated")
+        self.assertEqual(proxy["reason"], "no_searchable_evidence_text")
+        self.assertEqual(summary.metrics["structured_support_proxy_evaluated_count"], 0)
+        self.assertEqual(summary.metrics["structured_support_proxy_supported_count"], 0)
+        self.assertEqual(summary.metrics["structured_support_proxy_unvalidated_count"], 1)
+        self.assertIsNone(summary.metrics["structured_support_proxy_supported_rate"])
+
     def test_judge_runtime_failure_becomes_unclear_record_instead_of_aborting(self) -> None:
         loaded_run = self._loaded_run(
             ProposalRecord(
@@ -604,6 +704,7 @@ class TextJudgeScoringTests(unittest.TestCase):
             run_dir=Path("/tmp/run-a"),
             metadata=RunMetadata(run_id="run-a", run_dir=Path("/tmp/run-a")),
             proposals=list(proposals),
+            page_text_by_page={1: "Status remained present throughout follow-up. Bone volume fraction was 45.3% after 12 weeks."},
         )
 
     def _gold_dataset(self, *cells: GoldCell) -> GoldDataset:

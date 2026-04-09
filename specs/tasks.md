@@ -61,7 +61,7 @@ Working rules:
 - [x] E028a Add bounded normalized-text fallback so parsed-document text can validate anchors without overstating confidence.
 - [x] E029 Implement `anchor_valid_rate`, counting only fully validated anchors and distinguishing evidence-present-but-unvalidated as a separate diagnostic state.
 - [x] E030 Implement `correct_and_anchored_rate`.
-- [ ] E031 Implement optional structured-field support proxy evaluation behind a narrow internal interface.
+- [x] E031 Implement optional structured-field support proxy evaluation behind a narrow internal interface.
 - [x] E032 Implement diagnostic counting for gold-empty proposals, including `filled_on_gold_empty_count`.
 
 ## Batch Comparison Outputs
