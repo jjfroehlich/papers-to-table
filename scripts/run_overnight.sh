@@ -9,12 +9,10 @@ session_id="$(date +%Y%m%d_%H%M%S)"
 safe_label="$(printf '%s' "$label" | tr ' /:' '___')"
 optimizer_python="${PAPER_OPTIMIZER_PYTHON:-python}"
 
-smoke_config="$repo_root/configs/compare_models_smoke.json"
 compare_config="$repo_root/configs/compare_models_dev.json"
 prompt_config="$repo_root/configs/compare_prompts_dev.json"
 retrieval_config="$repo_root/configs/compare_retrieval_dev.json"
 optimize_config="$repo_root/configs/optimize_overnight.json"
-smoke_run_name="${session_id}_compare_smoke_${safe_label}"
 compare_run_name="${session_id}_compare_models_dev_${safe_label}"
 prompt_run_name="${session_id}_compare_prompts_dev_${safe_label}"
 retrieval_run_name="${session_id}_compare_retrieval_dev_${safe_label}"
@@ -23,6 +21,41 @@ optimize_run_name="${session_id}_optimize_overnight_${safe_label}"
 resolve_best_candidate_json() {
 	local run_name="$1"
 	printf '%s\n' "$repo_root/runs/$run_name/experiment/best_candidate.json"
+}
+
+require_best_candidate_json() {
+	local run_name="$1"
+	local best_path
+	best_path="$(resolve_best_candidate_json "$run_name")"
+	if [[ -f "$best_path" ]]; then
+		printf '%s\n' "$best_path"
+		return 0
+	fi
+
+	local summary_path="$repo_root/runs/$run_name/experiment/summary.json"
+	if [[ -f "$summary_path" ]]; then
+		"$optimizer_python" - "$summary_path" "$run_name" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+summary_path = Path(sys.argv[1])
+run_name = sys.argv[2]
+summary = json.loads(summary_path.read_text(encoding="utf-8"))
+winner = summary.get("winner_candidate_id")
+completed = summary.get("completed_candidate_count")
+failed = summary.get("failed_candidate_count")
+reasons = summary.get("rejection_reason_counts")
+raise SystemExit(
+    f"Run '{run_name}' did not produce best_candidate.json because no completed winner was recorded. "
+    f"winner_candidate_id={winner!r}, completed_candidate_count={completed}, failed_candidate_count={failed}, "
+    f"rejection_reason_counts={reasons}."
+)
+PY
+	fi
+
+	echo "Run '$run_name' did not produce best_candidate.json and no summary.json was found." >&2
+	return 1
 }
 
 materialize_config_with_winner() {
@@ -90,26 +123,27 @@ prompt_config_materialized="$tmp_dir/compare_prompts_dev.json"
 retrieval_config_materialized="$tmp_dir/compare_retrieval_dev.json"
 optimize_config_materialized="$tmp_dir/optimize_overnight.json"
 
-echo "[$(date -Iseconds)] Step 1: smoke compare preflight"
-PAPER_OPTIMIZER_RUN_NAME="$smoke_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$smoke_config" "${safe_label}_smoke"
+echo "[$(date -Iseconds)] Step 1: fast config preflight"
+pushd "$repo_root" >/dev/null
+"$optimizer_python" -m paper_optimizer.cli preflight --config "$compare_config"
+popd >/dev/null
 
 echo "[$(date -Iseconds)] Step 2: main compare study"
 PAPER_OPTIMIZER_RUN_NAME="$compare_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$compare_config" "${safe_label}_compare"
 
 echo "[$(date -Iseconds)] Step 3: prompt compare on the model-compare winner"
-materialize_config_with_winner "$prompt_config" "$(resolve_best_candidate_json "$compare_run_name")" "$prompt_config_materialized" prompt_compare
+materialize_config_with_winner "$prompt_config" "$(require_best_candidate_json "$compare_run_name")" "$prompt_config_materialized" prompt_compare
 PAPER_OPTIMIZER_RUN_NAME="$prompt_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$prompt_config_materialized" "${safe_label}_prompts"
 
 echo "[$(date -Iseconds)] Step 4: retrieval sweep on the prompt-compare winner"
-materialize_config_with_winner "$retrieval_config" "$(resolve_best_candidate_json "$prompt_run_name")" "$retrieval_config_materialized" retrieval_compare
+materialize_config_with_winner "$retrieval_config" "$(require_best_candidate_json "$prompt_run_name")" "$retrieval_config_materialized" retrieval_compare
 PAPER_OPTIMIZER_RUN_NAME="$retrieval_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$retrieval_config_materialized" "${safe_label}_retrieval"
 
 echo "[$(date -Iseconds)] Step 5: optimize study from the retrieval-compare winner"
-materialize_config_with_winner "$optimize_config" "$(resolve_best_candidate_json "$retrieval_run_name")" "$optimize_config_materialized" optimize
+materialize_config_with_winner "$optimize_config" "$(require_best_candidate_json "$retrieval_run_name")" "$optimize_config_materialized" optimize
 PAPER_OPTIMIZER_RUN_NAME="$optimize_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" optimize "$optimize_config_materialized" "${safe_label}_optimize"
 
 echo "[$(date -Iseconds)] Overnight workflow finished"
-echo "Smoke run: $repo_root/runs/$smoke_run_name"
 echo "Compare run: $repo_root/runs/$compare_run_name"
 echo "Prompt run: $repo_root/runs/$prompt_run_name"
 echo "Retrieval run: $repo_root/runs/$retrieval_run_name"

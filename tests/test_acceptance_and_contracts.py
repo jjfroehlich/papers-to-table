@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import io
 import json
 from pathlib import Path
+from contextlib import redirect_stdout
 
 import pytest
 
 from paper_optimizer.acceptance import evaluate_promotion
 from paper_optimizer.benchmarks import load_benchmarks
 from paper_optimizer.bundle import build_candidate_from_dict
+from paper_optimizer.cli import main as cli_main
 from paper_optimizer.contracts import CandidateResult
 from paper_optimizer.pipeline import evaluate_candidate_once
 from paper_optimizer.search_space import load_search_space
@@ -99,6 +102,27 @@ def test_validate_preflight_fails_on_missing_prompt_bundle(base_config: dict) ->
 
     with pytest.raises(PreflightError):
         validate_preflight(base_config, benches, require_holdout=True)
+
+
+def test_cli_preflight_command_accepts_valid_config(
+    base_config: dict,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    prompt_bundle_id = str(base_config["baseline_candidate"]["prompt_bundle_id"])
+    prompt_bundle_dir = Path(base_config["main_app"]["repo_root"]) / "backend" / "app" / "prompt_bundles" / prompt_bundle_id
+    prompt_bundle_dir.mkdir(parents=True, exist_ok=True)
+
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps(base_config), encoding="utf-8")
+
+    stdout = io.StringIO()
+    monkeypatch.setattr("sys.argv", ["paper-optimizer", "preflight", "--config", str(config_path)])
+
+    with redirect_stdout(stdout):
+        cli_main()
+
+    assert stdout.getvalue().strip() == "Preflight OK"
 
 
 def test_evaluate_candidate_records_main_contract_failure(base_config: dict, tmp_path: Path) -> None:

@@ -72,18 +72,17 @@ trap on_exit EXIT
   echo "Log file: $log_file"
   echo "Optimizer command: $optimizer_python -m paper_optimizer.cli"
 
-  (
-    cd "$repo_root"
-    "$optimizer_python" -m paper_optimizer.cli optimize --study-type "$study_type" --config "$config_path" --out "$experiment_dir"
-    "$optimizer_python" -m paper_optimizer.cli summarize --config "$config_path" --experiment "$experiment_dir"
-    if [[ "${PAPER_OPTIMIZER_SKIP_HOLDOUT:-0}" == "1" ]]; then
-      holdout_status="skipped"
-      echo "[$(date -Iseconds)] Skipping holdout validation because PAPER_OPTIMIZER_SKIP_HOLDOUT=1"
-    else
-      "$optimizer_python" -m paper_optimizer.cli validate-best --config "$config_path" --experiment "$experiment_dir" --out "$holdout_dir"
-      holdout_status="completed"
-    fi
-  )
+  pushd "$repo_root" >/dev/null
+  "$optimizer_python" -m paper_optimizer.cli optimize --study-type "$study_type" --config "$config_path" --out "$experiment_dir"
+  "$optimizer_python" -m paper_optimizer.cli summarize --config "$config_path" --experiment "$experiment_dir"
+  if [[ "${PAPER_OPTIMIZER_SKIP_HOLDOUT:-0}" == "1" ]]; then
+    holdout_status="skipped"
+    echo "[$(date -Iseconds)] Skipping holdout validation because PAPER_OPTIMIZER_SKIP_HOLDOUT=1"
+  else
+    "$optimizer_python" -m paper_optimizer.cli validate-best --config "$config_path" --experiment "$experiment_dir" --out "$holdout_dir"
+    holdout_status="completed"
+  fi
+  popd >/dev/null
 
   status="completed"
   echo "[$(date -Iseconds)] Finished $study_type study"

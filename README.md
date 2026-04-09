@@ -75,7 +75,7 @@ If you need a non-standard wrapper, both `main_app` and `eval_app` also support 
 
 Prepared configs in `configs/`:
 
-- `compare_models_smoke.json`: small preflight compare that points the optimizer's `dev` split at the smoke fixture benchmark.
+- `compare_models_smoke.json`: optional small benchmark compare on the smoke fixture. This is no longer used by the unattended overnight wrapper.
 - `compare_models_dev.json`: overnight compare of three explicit text models in this order: `qwen/qwen3.5-9b`, `google/gemma-4-26b-a4b`, `qwen/qwen3.5-35b-a3b`.
 - `compare_prompts_dev.json`: prompt-bundle compare between `default` and `evidence_strict`, materialized by `run_overnight.sh` onto the winner of the model-compare stage.
 - `compare_retrieval_dev.json`: retrieval sweep for `retrieval_top_k = 6 / 8 / 10`, materialized by `run_overnight.sh` onto the winner of the prompt-compare stage.
@@ -125,7 +125,7 @@ For tonight's unattended runs, holdout is intentionally skipped and `diagnostics
 
 [scripts/run_overnight.sh](scripts/run_overnight.sh) is the higher-level wrapper for the recommended unattended path:
 
-1. smoke compare preflight
+1. fast config preflight
 2. overnight compare-model study
 3. prompt compare on the model-compare winner
 4. retrieval sweep on the prompt-compare winner
@@ -135,18 +135,17 @@ For tonight's unattended runs, holdout is intentionally skipped and `diagnostics
 
 Run studies in this order:
 
-1. `compare_models_smoke.json`
-2. `compare_models_dev.json`
-3. `compare_prompts_dev.json`
-4. `compare_retrieval_dev.json`
-5. `optimize_overnight.json`
+1. `compare_models_dev.json`
+2. `compare_prompts_dev.json`
+3. `compare_retrieval_dev.json`
+4. `optimize_overnight.json`
 
 ### Exact Git Bash commands
 
-Smoke preflight compare:
+Fast preflight:
 
 ```bash
-PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash scripts/run_study.sh compare configs/compare_models_smoke.json smoke_models
+python -m paper_optimizer.cli preflight --config configs/compare_models_dev.json
 ```
 
 Overnight compare of explicit models:
@@ -179,6 +178,8 @@ Recommended unattended wrapper that derives prompt, retrieval, and optimize stag
 bash scripts/run_overnight.sh overnight_batch_01
 ```
 
+If any compare stage finishes without a completed winner, `run_overnight.sh` now stops at that stage with an explicit error explaining that `best_candidate.json` was not produced, instead of crashing later with a raw file-not-found traceback.
+
 ### Output layout for operator scripts
 
 By default `run_study.sh` writes to:
@@ -190,7 +191,7 @@ By default `run_study.sh` writes to:
 
 Practical operator guidance for overnight runs:
 
-- Run the smoke compare first. If it fails, do not start the longer studies.
+- Run the fast preflight first. It checks config, benchmark paths, prompt bundles, metric mappings, and command wiring without launching extraction or eval.
 - Set explicit `command_prefix` values if the optimizer, main app, and eval app do not share one Python environment.
 - Ensure LM Studio can serve both the extraction models and the eval judge model named in `eval_args`.
 - Keep `optimize.rounds` and `optimize.batch_size` bounded to match expected runtime.

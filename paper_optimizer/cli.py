@@ -18,6 +18,9 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="paper-optimizer")
     sub = parser.add_subparsers(dest="command", required=True)
 
+    preflight = sub.add_parser("preflight", help="Validate config and benchmark wiring without launching candidates")
+    preflight.add_argument("--config", type=Path, required=True)
+
     optimize = sub.add_parser("optimize", help="Run compare or optimize study")
     optimize.add_argument("--study-type", choices=["compare", "optimize"], required=True)
     optimize.add_argument("--config", type=Path, required=True)
@@ -51,6 +54,13 @@ def _cmd_optimize(args: argparse.Namespace) -> None:
         run_compare_mode(config, benchmarks, args.out)
     else:
         run_optimize_mode(config, benchmarks, search_space, args.out)
+
+
+def _cmd_preflight(args: argparse.Namespace) -> None:
+    config = load_config(args.config)
+    benchmarks = load_benchmarks(config)
+    validate_preflight(config, benchmarks, require_holdout=False)
+    print("Preflight OK")
 
 
 def _cmd_evaluate_candidate(args: argparse.Namespace) -> None:
@@ -108,6 +118,8 @@ def main() -> None:
 
     if args.command == "optimize":
         _cmd_optimize(args)
+    elif args.command == "preflight":
+        _cmd_preflight(args)
     elif args.command == "evaluate-candidate":
         _cmd_evaluate_candidate(args)
     elif args.command == "validate-best":
