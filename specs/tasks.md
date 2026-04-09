@@ -24,7 +24,7 @@ Reality-checked on 2026-04-06 against current backend/frontend source, targeted 
 - Implemented: stable non-UI automation entrypoint with machine-readable start/status/wait outputs.
 - Implemented: provider/runtime diagnostics, artifact completeness summary, retrieval-failure diagnostics, and figure-review ROI diagnostics.
 - Implemented in the latest pass: readiness-versus-capability truth split for provider status across backend artifacts, automation payloads, and UI summaries.
-- Still incomplete: `T111` run-level heuristic visibility remains partial/incomplete.
+- Implemented in the latest pass: retrieval heuristic policy is now explicit in retrieval artifacts and summarized at the run level.
 - Implemented in the latest pass: compact structured `run_stats.json` diagnostics with explicit stage/PDF/cell timings, repeated-work counters, provider/evidence rollups, and consistency coverage.
 - Historical run bundles under `runs/` are useful examples but are not the canonical artifact-shape source of truth.
 
@@ -140,12 +140,12 @@ Reality-checked on 2026-04-06 against current backend/frontend source, targeted 
 - [x] **T049** Add tests covering style profiles, no raw-example leakage, typed chunks, retrieval-text/display-text separation, and retrieval defaults.
 - [x] **T049a** Add tests for schema-first extraction and optional field typing.
 - [x] **T049b** Add tests for bounded recall rescue and optional whole-document mode.
-- [ ] **T049c** Add tests covering retrieval-index reuse and repeated-work counter truth.
-- [ ] **T111** Make schema-aware retrieval heuristics transparent and inspectable at the run level.
-- [ ] **T111a** Define a small explicit retrieval-heuristic policy contract.
-- [ ] **T111b** Persist heuristic policy details in retrieval artifacts.
-- [ ] **T111c** Surface heuristic-policy usage summaries in run outputs.
-- [ ] **T111d** Add heuristic-policy tests.
+- [x] **T049c** Add tests covering retrieval-index reuse and repeated-work counter truth.
+- [x] **T111** Make schema-aware retrieval heuristics transparent and inspectable at the run level.
+- [x] **T111a** Define a small explicit retrieval-heuristic policy contract.
+- [x] **T111b** Persist heuristic policy details in retrieval artifacts.
+- [x] **T111c** Surface heuristic-policy usage summaries in run outputs.
+- [x] **T111d** Add heuristic-policy tests.
 - [x] **T112** Add an opt-in experimental hybrid retrieval benchmark path while keeping lexical retrieval as default.
 - [x] **T112a** Add a retrieval-mode toggle in config with lexical default baseline.
 - [x] **T112b** Implement the hybrid retrieval path behind explicit opt-in mode.
@@ -259,10 +259,10 @@ Reality-checked on 2026-04-06 against current backend/frontend source, targeted 
 - [x] **T094** Add frontend tests for MVP-core reviewer workflow behavior.
 - [x] **T094a** Add frontend tests for the reviewer-throughput contract.
 - [x] **T094b** Add frontend tests for Eval-mode run-summary and setup truth.
-- [ ] **T094c** Add extended frontend regression coverage beyond MVP-core.
+- [x] **T094c** Add extended frontend regression coverage beyond MVP-core.
 - [x] **T095** Add bounded Playwright e2e coverage for the hermetic core review loop.
 - [x] **T095a** Add Playwright coverage for fast sequential review and explicit export flow.
-- [ ] **T095b** Add expanded Playwright coverage beyond MVP-core.
+- [x] **T095b** Add expanded Playwright coverage beyond MVP-core.
 
 ### Export and artifacts
 

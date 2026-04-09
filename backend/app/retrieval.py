@@ -89,6 +89,11 @@ class RetrievalPolicy(BaseModel):
     scoring_profile: str = "bm25_lite"
     heuristic_tags: list[str] = Field(default_factory=list)
     hint_terms: list[str] = Field(default_factory=list)
+    allowed_chunk_types: list[str] = Field(default_factory=list)
+    include_captions: bool = True
+    include_tables: bool = True
+    include_neighbor_window: bool = True
+    top_k: int = 6
 
 
 class RetrievalStats(BaseModel):
@@ -103,6 +108,7 @@ class RetrievalStats(BaseModel):
     neighbor_chunk_count: int = 0
     chunk_build_count: int = 1
     idf_build_count: int = 1
+    cached_index_used: bool = False
 
 
 class RetrievalPreparedIndex(BaseModel):
@@ -458,6 +464,7 @@ def _retrieve_with_metadata(
     include_neighbor_window: bool = True,
     retrieval_mode: str = "lexical",
     prepared_index: RetrievalPreparedIndex | None = None,
+    used_cached_index: bool = False,
 ) -> tuple[list[RetrievalChunk], RetrievalStats]:
     """Retrieve top-k relevant chunks from a ParsedDocument dict with stats.
 
@@ -468,7 +475,6 @@ def _retrieve_with_metadata(
     - NO reranking, HyDE, or query expansion in MVP baseline
     """
     total_started = perf_counter()
-    used_cached_index = prepared_index is not None
     if prepared_index is None:
         chunk_started = perf_counter()
         all_chunks = build_chunks_from_parsed_doc(doc_dict)
@@ -530,6 +536,7 @@ def _retrieve_with_metadata(
         neighbor_chunk_count=neighbor_chunk_count,
         chunk_build_count=0 if used_cached_index else 1,
         idf_build_count=0 if used_cached_index else 1,
+        cached_index_used=used_cached_index,
     )
     return result, stats
 
@@ -641,27 +648,52 @@ def run_retrieval_for_cell(
     mode: str = "baseline",
     rescue_reason: Optional[str] = None,
     retrieval_mode: str = "lexical",
-    retrieval_cache: dict[tuple[str, bool, bool], RetrievalPreparedIndex] | None = None,
+    retrieval_cache: dict[tuple[str, str, bool, bool], RetrievalPreparedIndex] | None = None,
     cache_key: str | None = None,
 ) -> RetrievalResult:
     """Build and persist retrieval result for one (pdf, column) pair."""
     query, policy = _build_retrieval_query_with_policy(column_name, column_description)
     prepared_index: RetrievalPreparedIndex | None = None
+    include_captions = True
+    include_tables = True
+    include_neighbor_window = True
+    allowed_chunk_types = ["abstract", "caption", "list_item", "paragraph", "section", "table_region"]
     if retrieval_cache is not None and cache_key is not None:
-        cache_tuple = (cache_key, True, True)
+        cache_tuple = (cache_key, retrieval_mode, include_captions, include_tables)
         prepared_index = retrieval_cache.get(cache_tuple)
+        used_cached_index = prepared_index is not None
         if prepared_index is None:
-            prepared_index = prepare_retrieval_index(doc_dict, include_captions=True, include_tables=True)
+            prepared_index = prepare_retrieval_index(
+                doc_dict,
+                include_captions=include_captions,
+                include_tables=include_tables,
+            )
             retrieval_cache[cache_tuple] = prepared_index
+    else:
+        used_cached_index = False
 
     chunks, stats = _retrieve_with_metadata(
         query,
         doc_dict,
         top_k=top_k,
+        include_captions=include_captions,
+        include_tables=include_tables,
+        include_neighbor_window=include_neighbor_window,
         retrieval_mode=retrieval_mode,
         prepared_index=prepared_index,
+        used_cached_index=used_cached_index,
     )
     scoring_profile = "bm25_plus_token_coverage" if retrieval_mode == "hybrid_experimental" else "bm25_lite"
+    policy = policy.model_copy(
+        update={
+            "scoring_profile": scoring_profile,
+            "allowed_chunk_types": allowed_chunk_types,
+            "include_captions": include_captions,
+            "include_tables": include_tables,
+            "include_neighbor_window": include_neighbor_window,
+            "top_k": top_k,
+        }
+    )
     result = RetrievalResult(
         run_id=run_id,
         pdf_id=pdf_id,
@@ -671,7 +703,7 @@ def run_retrieval_for_cell(
         chunks=chunks,
         mode=retrieval_mode,
         request_mode=mode,
-        policy=policy.model_copy(update={"scoring_profile": scoring_profile}).model_dump(),
+        policy=policy.model_dump(),
         stats=stats.model_dump(),
         rescue_reason=rescue_reason,
         retrieved_at=datetime.now(timezone.utc).isoformat(),

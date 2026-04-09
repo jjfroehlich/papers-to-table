@@ -64,6 +64,10 @@ def _stop_process(process: subprocess.Popen[str] | None) -> None:
         process.wait(timeout=5)
 
 
+def _npm_command() -> str:
+    return "npm.cmd" if os.name == "nt" else "npm"
+
+
 @pytest.fixture(scope="session")
 def live_stack(tmp_path_factory) -> dict[str, object]:
     runtime_root = tmp_path_factory.mktemp("playwright-runtime")
@@ -99,7 +103,7 @@ def live_stack(tmp_path_factory) -> dict[str, object]:
     frontend_env = os.environ.copy()
     frontend_env["VITE_API_BASE_URL"] = backend_url
     frontend_process = subprocess.Popen(
-        ["npm", "run", "dev", "--", "--host", "127.0.0.1", "--port", str(frontend_port)],
+        [_npm_command(), "run", "dev", "--", "--host", "127.0.0.1", "--port", str(frontend_port)],
         cwd=str(REPO_ROOT / "frontend"),
         env=frontend_env,
         stdout=frontend_log,

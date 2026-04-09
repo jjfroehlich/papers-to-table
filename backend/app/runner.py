@@ -249,6 +249,17 @@ async def run_pipeline(
         },
         "per_pdf": {},
         "per_cell": [],
+        "retrieval_policy_summary": {
+            "query_modes": [],
+            "scoring_profiles": [],
+            "heuristic_tags": [],
+            "hint_terms": [],
+            "allowed_chunk_types": [],
+            "include_captions_values": [],
+            "include_tables_values": [],
+            "include_neighbor_window_values": [],
+            "top_k_values": [],
+        },
         "counters": {
             "provider_request_counts": {},
             "parse_errors": 0,
@@ -347,6 +358,7 @@ async def run_pipeline(
         counters = run_stats.setdefault("counters", {})
         per_pdf = run_stats.setdefault("per_pdf", {})
         per_cell = run_stats.setdefault("per_cell", [])
+        retrieval_policy_summary = run_stats.setdefault("retrieval_policy_summary", {})
 
         stage_ms = per_run.get("stage_ms", {})
         per_run["stage_timing_ms"] = {
@@ -453,6 +465,59 @@ async def run_pipeline(
         whole_document_used_count = sum(1 for cell in per_cell if bool(cell.get("whole_document_used")))
         figure_review_triggered_count = sum(1 for cell in per_cell if bool(cell.get("figure_review_triggered")))
         processed_cell_count = len(per_cell)
+
+        query_modes: set[str] = set()
+        scoring_profiles: set[str] = set()
+        heuristic_tags: set[str] = set()
+        hint_terms: set[str] = set()
+        allowed_chunk_types: set[str] = set()
+        include_captions_values: set[bool] = set()
+        include_tables_values: set[bool] = set()
+        include_neighbor_window_values: set[bool] = set()
+        top_k_values: set[int] = set()
+
+        for cell in per_cell:
+            policy = cell.get("retrieval_policy")
+            if not isinstance(policy, dict):
+                continue
+            query_mode = policy.get("query_mode")
+            if isinstance(query_mode, str) and query_mode:
+                query_modes.add(query_mode)
+            scoring_profile = policy.get("scoring_profile")
+            if isinstance(scoring_profile, str) and scoring_profile:
+                scoring_profiles.add(scoring_profile)
+            for tag in policy.get("heuristic_tags", []):
+                if isinstance(tag, str) and tag:
+                    heuristic_tags.add(tag)
+            for term in policy.get("hint_terms", []):
+                if isinstance(term, str) and term:
+                    hint_terms.add(term)
+            for chunk_type in policy.get("allowed_chunk_types", []):
+                if isinstance(chunk_type, str) and chunk_type:
+                    allowed_chunk_types.add(chunk_type)
+            if isinstance(policy.get("include_captions"), bool):
+                include_captions_values.add(bool(policy.get("include_captions")))
+            if isinstance(policy.get("include_tables"), bool):
+                include_tables_values.add(bool(policy.get("include_tables")))
+            if isinstance(policy.get("include_neighbor_window"), bool):
+                include_neighbor_window_values.add(bool(policy.get("include_neighbor_window")))
+            top_k = policy.get("top_k")
+            if isinstance(top_k, int):
+                top_k_values.add(top_k)
+
+        retrieval_policy_summary.update(
+            {
+                "query_modes": sorted(query_modes),
+                "scoring_profiles": sorted(scoring_profiles),
+                "heuristic_tags": sorted(heuristic_tags),
+                "hint_terms": sorted(hint_terms),
+                "allowed_chunk_types": sorted(allowed_chunk_types),
+                "include_captions_values": sorted(include_captions_values),
+                "include_tables_values": sorted(include_tables_values),
+                "include_neighbor_window_values": sorted(include_neighbor_window_values),
+                "top_k_values": sorted(top_k_values),
+            }
+        )
 
         counters["pdf_count"] = max(int(counters.get("pdf_count", 0) or 0), len(per_pdf))
         counters["eligible_cell_count"] = int(counters.get("eligible_cells", 0) or 0)

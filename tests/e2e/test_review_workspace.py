@@ -55,3 +55,18 @@ def test_review_workspace_keeps_export_manual(
     expect(page.get_by_role("link", name="Audit log")).to_be_visible()
     expect(page.get_by_role("link", name="Run summary")).to_be_visible()
     expect(page.get_by_role("link", name="Reviewer summary")).to_be_visible()
+
+
+def test_review_workspace_exposes_warning_truth_and_unresolved_panel(
+    page: Page,
+    frontend_url: str,
+    demo_run_ids: DemoRunIds,
+):
+    _open_review_workspace(page, frontend_url, demo_run_ids.review)
+
+    expect(page.get_by_text("parsing fallback")).to_be_visible()
+    expect(page.get_by_text("evidence fallback")).to_be_visible()
+
+    page.get_by_role("button", name="Unresolved").click()
+
+    expect(page.get_by_text("No unresolved matching issues.")).to_be_visible()

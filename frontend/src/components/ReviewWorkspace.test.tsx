@@ -260,4 +260,40 @@ describe('ReviewWorkspace', () => {
     expect(screen.getByText(/gold: inputs\/gold_table.xlsx/i)).toBeInTheDocument()
     expect(screen.getByText(/masked: inputs\/masked_working_table.xlsx/i)).toBeInTheDocument()
   })
+
+  it('surfaces duplicate-conflict warning truth in the toolbar', async () => {
+    const warningRun: RunData = {
+      ...baseRun,
+      warnings: [
+        ...baseRun.warnings,
+        { category: 'duplicate_row_conflict', message: 'Two rows matched the same PDF.' },
+      ],
+    }
+
+    render(<ReviewWorkspace run={warningRun} outputDir="./runs" />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/duplicate conflicts/i).length).toBeGreaterThan(0)
+    })
+  })
+
+  it('shows export failure status without implying a completed export', async () => {
+    mockTriggerExport.mockRejectedValueOnce(new Error('disk full'))
+
+    render(<ReviewWorkspace run={baseRun} outputDir="./runs" />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Export reviewed workbook/i }))
+
+    expect(await screen.findByText(/Export failed:/i)).toBeInTheDocument()
+    expect(screen.getByText(/disk full/i)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Workbook' })).not.toBeInTheDocument()
+  })
+
+  it('shows the unresolved inspection empty state when toggled', async () => {
+    render(<ReviewWorkspace run={baseRun} outputDir="./runs" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Unresolved' }))
+
+    expect(await screen.findByText(/No unresolved matching issues/i)).toBeInTheDocument()
+  })
 })

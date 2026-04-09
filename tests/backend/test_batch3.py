@@ -545,7 +545,20 @@ class TestRetrievalChunks:
         assert data["mode"] == "lexical"
         assert data["request_mode"] == "baseline"
         assert data["policy"]["query_mode"].startswith("lexical")
+        assert data["policy"]["allowed_chunk_types"] == [
+            "abstract",
+            "caption",
+            "list_item",
+            "paragraph",
+            "section",
+            "table_region",
+        ]
+        assert data["policy"]["include_captions"] is True
+        assert data["policy"]["include_tables"] is True
+        assert data["policy"]["include_neighbor_window"] is True
+        assert data["policy"]["top_k"] == 6
         assert data["stats"]["total_ms"] >= 0
+        assert data["stats"]["cached_index_used"] is False
 
     def test_run_retrieval_for_cell_sanitizes_windows_unsafe_filename(
         self,
@@ -645,6 +658,99 @@ class TestRetrievalChunks:
         assert result.mode == "hybrid_experimental"
         assert result.policy["scoring_profile"] == "bm25_plus_token_coverage"
         assert result.stats["candidate_chunk_count"] >= result.stats["selected_chunk_count"]
+
+    def test_retrieval_policy_contract_is_explicit(self, run_dir: pathlib.Path, minimal_doc_dict: dict):
+        result = run_retrieval_for_cell(
+            run_id="run_test001",
+            pdf_id="paper_test",
+            column_name="# Variants tested",
+            column_description="How many different sequences or variants were evaluated in the study",
+            doc_dict=minimal_doc_dict,
+            run_dir=run_dir,
+            top_k=4,
+        )
+
+        assert result.policy["query_mode"] == "lexical_with_hints"
+        assert result.policy["scoring_profile"] == "bm25_lite"
+        assert "count_like" in result.policy["heuristic_tags"]
+        assert result.policy["include_captions"] is True
+        assert result.policy["include_tables"] is True
+        assert result.policy["include_neighbor_window"] is True
+        assert result.policy["top_k"] == 4
+        assert "paragraph" in result.policy["allowed_chunk_types"]
+
+    def test_retrieval_cache_reuses_prepared_index_and_reports_zero_rebuilds(
+        self,
+        run_dir: pathlib.Path,
+        minimal_doc_dict: dict,
+    ):
+        retrieval_cache: dict[tuple[str, str, bool, bool], object] = {}
+
+        first = run_retrieval_for_cell(
+            run_id="run_test001",
+            pdf_id="paper_test",
+            column_name="Bone volume fraction",
+            column_description="Measured BVF value and supporting context",
+            doc_dict=minimal_doc_dict,
+            run_dir=run_dir,
+            top_k=4,
+            retrieval_cache=retrieval_cache,
+            cache_key="paper_test",
+        )
+        second = run_retrieval_for_cell(
+            run_id="run_test001",
+            pdf_id="paper_test",
+            column_name="Bone volume fraction",
+            column_description="Measured BVF value and supporting context",
+            doc_dict=minimal_doc_dict,
+            run_dir=run_dir,
+            top_k=4,
+            retrieval_cache=retrieval_cache,
+            cache_key="paper_test",
+        )
+
+        assert first.stats["chunk_build_count"] == 1
+        assert first.stats["idf_build_count"] == 1
+        assert first.stats["cached_index_used"] is False
+        assert second.stats["chunk_build_count"] == 0
+        assert second.stats["idf_build_count"] == 0
+        assert second.stats["cached_index_used"] is True
+
+    def test_retrieval_cache_is_scoped_by_retrieval_mode(
+        self,
+        run_dir: pathlib.Path,
+        minimal_doc_dict: dict,
+    ):
+        retrieval_cache: dict[tuple[str, str, bool, bool], object] = {}
+
+        lexical = run_retrieval_for_cell(
+            run_id="run_test001",
+            pdf_id="paper_test",
+            column_name="Bone volume fraction",
+            column_description="Measured BVF value and supporting context",
+            doc_dict=minimal_doc_dict,
+            run_dir=run_dir,
+            top_k=4,
+            retrieval_mode="lexical",
+            retrieval_cache=retrieval_cache,
+            cache_key="paper_test",
+        )
+        hybrid = run_retrieval_for_cell(
+            run_id="run_test001",
+            pdf_id="paper_test",
+            column_name="Bone volume fraction",
+            column_description="Measured BVF value and supporting context",
+            doc_dict=minimal_doc_dict,
+            run_dir=run_dir,
+            top_k=4,
+            retrieval_mode="hybrid_experimental",
+            retrieval_cache=retrieval_cache,
+            cache_key="paper_test",
+        )
+
+        assert lexical.stats["cached_index_used"] is False
+        assert hybrid.stats["cached_index_used"] is False
+        assert hybrid.policy["scoring_profile"] == "bm25_plus_token_coverage"
 
     def test_prompt_identity_tracks_external_prompt_files(self, tmp_path: pathlib.Path, monkeypatch):
         from backend.app.prompts import clear_prompt_bundle_cache

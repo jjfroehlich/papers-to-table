@@ -252,6 +252,24 @@ class TestRunPipeline:
         assert counters["chunk_count_by_type"]["paragraph"] == 2
         assert counters["chunk_count_by_type"]["caption"] == 1
 
+        policy_summary = stats["retrieval_policy_summary"]
+        assert policy_summary["query_modes"] == ["lexical_with_hints"]
+        assert policy_summary["scoring_profiles"] == ["bm25_lite"]
+        assert policy_summary["heuristic_tags"] == ["count_like"]
+        assert policy_summary["hint_terms"] == ["count"]
+        assert policy_summary["allowed_chunk_types"] == [
+            "abstract",
+            "caption",
+            "list_item",
+            "paragraph",
+            "section",
+            "table_region",
+        ]
+        assert policy_summary["include_captions_values"] == [True]
+        assert policy_summary["include_tables_values"] == [True]
+        assert policy_summary["include_neighbor_window_values"] == [True]
+        assert policy_summary["top_k_values"] == [6]
+
         assert pdf_stats["pdf_cell_count"] == 1
         assert pdf_stats["retrieval_calls"] == 1
         assert pdf_stats["neighbor_chunks_added_count"] == 2
@@ -1059,13 +1077,31 @@ def _fake_retrieval_result(**kwargs):
     return SimpleNamespace(
         mode="lexical",
         request_mode="baseline",
-        policy={"query_mode": "lexical_with_hints", "heuristic_tags": ["count_like"], "hint_terms": ["count"]},
+        policy={
+            "query_mode": "lexical_with_hints",
+            "scoring_profile": "bm25_lite",
+            "heuristic_tags": ["count_like"],
+            "hint_terms": ["count"],
+            "allowed_chunk_types": [
+                "abstract",
+                "caption",
+                "list_item",
+                "paragraph",
+                "section",
+                "table_region",
+            ],
+            "include_captions": True,
+            "include_tables": True,
+            "include_neighbor_window": True,
+            "top_k": 6,
+        },
         stats={
             "total_ms": 4.0,
             "chunk_build_ms": 1.25,
             "idf_build_ms": 0.75,
             "chunk_build_count": 3,
             "idf_build_count": 2,
+            "cached_index_used": True,
             "candidate_chunk_count": 4,
             "selected_chunk_count": 2,
             "neighbor_chunk_count": 2,
