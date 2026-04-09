@@ -363,7 +363,43 @@ class TestStyleProfileSchema:
         path = persist_style_profile(run_dir, profile)
         assert path.exists()
         assert len(path.stem) < len(long_name)
+        assert len(path.stem) <= 32
         loaded = load_style_profile(run_dir, long_name)
+        assert loaded is not None
+        assert loaded.column_name == long_name
+
+    def test_style_profile_persists_under_deep_windows_like_run_path(self, tmp_path: pathlib.Path):
+        import datetime
+
+        deep_run_dir = tmp_path
+        for part in [
+            "very_long_optimizer_run_root_name",
+            "experiment",
+            "runs",
+            "cand_0001",
+            "main",
+            "main_app_output",
+            "run_20260409_012231_lm0hmv",
+        ]:
+            deep_run_dir = deep_run_dir / part
+
+        long_name = "what_predicts_activity_(e.g._accessible_-_active_in_MPRA_)"
+        profile = StyleProfile(
+            column_name=long_name,
+            field_type_guess="text",
+            expected_length="short",
+            tone="technical",
+            detail_level="medium",
+            value_shape="free text",
+            generated_at=datetime.datetime.now().isoformat(),
+            source_column_count=2,
+        )
+
+        path = persist_style_profile(deep_run_dir, profile)
+
+        assert path.exists()
+        assert len(str(path)) <= 240
+        loaded = load_style_profile(deep_run_dir, long_name)
         assert loaded is not None
         assert loaded.column_name == long_name
 

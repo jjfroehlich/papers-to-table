@@ -13,6 +13,7 @@ Proposal content must remain grounded in the current PDF evidence.
 from __future__ import annotations
 
 import hashlib
+import os
 import pathlib
 import re
 from datetime import datetime, timezone
@@ -21,6 +22,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 _INVALID_FILENAME_CHARS = re.compile(r'[\\/:*?"<>|]')
+_WINDOWS_PATH_BUDGET = 240
 
 
 def _safe_filename(name: str, max_len: int = 32) -> str:
@@ -30,11 +32,23 @@ def _safe_filename(name: str, max_len: int = 32) -> str:
     safe = re.sub(r"_+", "_", safe).strip("._")
     if not safe:
         safe = "column"
+    digest = hashlib.sha1(name.encode("utf-8")).hexdigest()[:10]
+    if max_len <= len(digest) + 2:
+        short_digest = digest[: max(4, max_len - 2)]
+        return f"c_{short_digest}"[:max_len]
     if len(safe) <= max_len:
         return safe
-    digest = hashlib.sha1(name.encode("utf-8")).hexdigest()[:10]
-    truncated = safe[:max_len].rstrip("._") or "column"
+    prefix_budget = max_len - len(digest) - 1
+    truncated = safe[:prefix_budget].rstrip("._") or "column"
     return f"{truncated}_{digest}"
+
+
+def _style_profile_filename_budget(profiles_dir: pathlib.Path) -> int:
+    if os.name != "nt":
+        return 32
+    base_length = len(str(profiles_dir.resolve())) + len("\\") + len(".json")
+    available = _WINDOWS_PATH_BUDGET - base_length
+    return max(12, min(32, available))
 
 from .artifacts import write_json
 from .prompts import load_prompt_text
@@ -249,7 +263,7 @@ def persist_style_profile(run_dir: pathlib.Path, profile: StyleProfile) -> pathl
     """
     profiles_dir = get_style_profiles_dir(run_dir)
     profiles_dir.mkdir(parents=True, exist_ok=True)
-    safe_name = _safe_filename(profile.column_name)
+    safe_name = _safe_filename(profile.column_name, max_len=_style_profile_filename_budget(profiles_dir))
     path = profiles_dir / f"{safe_name}.json"
     write_json(path, profile.model_dump())
     return path
@@ -257,7 +271,7 @@ def persist_style_profile(run_dir: pathlib.Path, profile: StyleProfile) -> pathl
 
 def load_style_profile(run_dir: pathlib.Path, column_name: str) -> Optional[StyleProfile]:
     """Load a persisted style profile for a column."""
-    safe_name = _safe_filename(column_name)
+    safe_name = _safe_filename(column_name, max_len=_style_profile_filename_budget(get_style_profiles_dir(run_dir)))
     path = get_style_profiles_dir(run_dir) / f"{safe_name}.json"
     if path.exists():
         from .artifacts import read_json
