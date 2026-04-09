@@ -122,7 +122,9 @@ def test_cli_preflight_command_accepts_valid_config(
     with redirect_stdout(stdout):
         cli_main()
 
-    assert stdout.getvalue().strip() == "Preflight OK"
+    payload = json.loads(stdout.getvalue().strip())
+    assert payload["ok"] is True
+    assert payload["experiment_id"] == base_config["experiment_id"]
 
 
 def test_evaluate_candidate_records_main_contract_failure(base_config: dict, tmp_path: Path) -> None:

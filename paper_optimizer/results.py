@@ -29,6 +29,9 @@ class ResultsWriter:
     def write_best_candidate(self, payload: dict[str, Any]) -> None:
         write_json(self.experiment_dir / "best_candidate.json", payload)
 
+    def write_no_winner(self, payload: dict[str, Any]) -> None:
+        write_json(self.experiment_dir / "no_winner.json", payload)
+
     def write_round_summary(self, summary: RoundSummary) -> None:
         write_json(self.rounds_dir / f"round_{summary.round_index:04d}.json", summary.to_dict())
 

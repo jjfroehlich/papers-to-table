@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 from .benchmarks import benchmark_id_for_split, load_benchmarks
@@ -60,7 +61,18 @@ def _cmd_preflight(args: argparse.Namespace) -> None:
     config = load_config(args.config)
     benchmarks = load_benchmarks(config)
     validate_preflight(config, benchmarks, require_holdout=False)
-    print("Preflight OK")
+    print(
+        json.dumps(
+            {
+                "ok": True,
+                "schema_version": config["schema_version"],
+                "experiment_id": config["experiment_id"],
+                "benchmarks": sorted(benchmarks.manifests.keys()),
+                "splits": dict(sorted(benchmarks.split_to_id.items())),
+            },
+            sort_keys=True,
+        )
+    )
 
 
 def _cmd_evaluate_candidate(args: argparse.Namespace) -> None:

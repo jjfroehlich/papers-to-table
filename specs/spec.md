@@ -15,12 +15,13 @@ It is intentionally orchestration-only:
 The optimizer must:
 
 1. Support explicit `compare` and `optimize` study modes.
-2. Launch the main app through a stable automation entrypoint.
-3. Launch the eval app through a stable automation entrypoint.
-4. Record candidate-level machine-readable artifacts and summaries.
-5. Preserve immutable candidate bundles with reproducible metadata.
-6. Keep dev and holdout behavior separate.
-7. Apply deterministic-first behavior by default.
+2. Support a fast explicit preflight that validates config, paths, prompt bundles, metric mappings, and launch wiring without running a study.
+3. Launch the main app through a stable automation entrypoint.
+4. Launch the eval app through a stable automation entrypoint.
+5. Record candidate-level machine-readable artifacts and summaries.
+6. Preserve immutable candidate bundles with reproducible metadata.
+7. Keep dev and holdout behavior separate.
+8. Apply deterministic-first behavior by default.
 
 ## Study modes
 
@@ -44,6 +45,8 @@ Loop shape:
 4. apply gated acceptance policy
 5. promote a challenger only if gates pass
 6. persist results, round summaries, best-candidate state, and plots
+
+Deterministic bounded challengers must cover the configured search surface more truthfully than a single-axis-only numeric mutation policy. The optimizer may stay bounded and reproducible, but it should not systematically ignore multi-knob combinations within the approved search space.
 
 ## Benchmark policy
 
@@ -83,6 +86,8 @@ Promotion decisions are gated, not single-scalar.
 - Diagnostic metrics: explanatory only.
 
 Decisions must be persisted with explicit reason text.
+
+Compare and optimize flows must also fail gracefully when no candidate completes successfully or no winner can be materialized. Those cases should produce explicit experiment-level failure or no-winner summaries rather than file-not-found crashes.
 
 ## Artifact contract
 
@@ -131,9 +136,10 @@ The optimizer does not:
 
 A normal operator can:
 
-1. run `compare` on explicit candidates and inspect ranked outputs
-2. run bounded `optimize` rounds from a baseline candidate
-3. inspect candidate-level JSONL/CSV artifacts and decision reasons
-4. inspect current best-candidate state
-5. run holdout validation according to mode policy
-6. regenerate summaries and plots from saved artifacts
+1. run a fast `preflight` and catch wiring or contract problems before launching a study
+2. run `compare` on explicit candidates and inspect ranked outputs
+3. run bounded `optimize` rounds from a baseline candidate
+4. inspect candidate-level JSONL/CSV artifacts and decision reasons
+5. inspect current best-candidate state when a winner exists, or explicit no-winner artifacts when one does not
+6. run holdout validation according to mode policy
+7. regenerate summaries and plots from saved artifacts

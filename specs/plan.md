@@ -21,6 +21,7 @@ The optimizer remains a small CLI-first orchestration service with strict role s
 
 Top-level commands:
 
+- `paper-optimizer preflight --config <path>`
 - `paper-optimizer optimize --study-type {compare|optimize} --config <path> --out <dir>`
 - `paper-optimizer evaluate-candidate --config <path> --candidate-file <path> --benchmark {smoke|dev|holdout} --out <dir>`
 - `paper-optimizer validate-best --config <path> --experiment <dir> --out <dir>`
@@ -35,6 +36,7 @@ Command dispatch lives in `paper_optimizer/cli.py`.
 - `search_space.py`: bounded search-space parsing and numeric-axis expansion.
 - `bundle.py`: candidate objects, hashing, and immutable candidate manifest writes.
 - `propose.py`: deterministic candidate proposal from bounded search space.
+- `validation.py`: preflight validation for config, prompt bundles, benchmark paths, metric-group mapping, and launch wiring.
 - `launch_main.py`: main-app launch and resolved-config snapshot management.
 - `launch_eval.py`: eval-app launch and metric-group projection.
 - `pipeline.py`: single-candidate orchestrated run (main then eval) with failure capture.
@@ -60,13 +62,20 @@ Command dispatch lives in `paper_optimizer/cli.py`.
 1. Load config, benchmarks, and search space.
 2. Evaluate baseline candidate as initial incumbent.
 3. For each configured round:
-   - propose deterministic bounded challengers
+   - propose deterministic bounded challengers with broader search-surface coverage than single-axis-only numeric mutation
    - suppress duplicate signatures
    - evaluate challengers via shared pipeline
    - apply acceptance gates
    - optionally promote accepted best challenger
    - persist round summary and experiment summary
 4. Emit optimize plots.
+
+### preflight flow
+
+1. Load config and validate schema.
+2. Resolve benchmark manifests, prompt bundles, and metric mappings.
+3. Validate main-app and eval-app launch wiring without running a study.
+4. Emit a small machine-readable summary plus actionable failure reasons.
 
 ### holdout validation flow
 
@@ -104,6 +113,8 @@ Metric projection supports:
 - grouped metrics already emitted by eval, or
 - `metric_groups` mapping from flat eval metrics into optimizer `primary`, `guardrail`, and `diagnostic` groups
 
+The optimizer should treat unsupported or missing grouped metrics as preflight- or launch-time contract errors rather than deferring discovery until late promotion logic when possible.
+
 ## Persistence contract
 
 Experiment directory is canonical optimizer state.
@@ -118,12 +129,19 @@ Required persisted entities:
 - best-candidate state
 - round summaries (optimize)
 - static plot CSV/PNG artifacts
+- explicit no-winner or empty-results summaries when no candidate completes successfully
 
 ## Current architecture limits
 
 - Confirmation reruns are not yet implemented.
 - Deterministic pre-promotion artifact checks are partially implemented through pipeline success/failure status but not a separate explicit gate stage.
 - Holdout selection in optimize currently ranks stored results by primary metric rather than reading promoted-incumbent lineage as the only source.
+
+The following approved improvements are in scope for this repo:
+
+- explicit fast preflight
+- broader deterministic search coverage for numeric knobs
+- graceful handling of zero-complete-candidate and no-winner study outcomes
 
 ## Quality expectations
 

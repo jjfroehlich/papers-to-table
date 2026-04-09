@@ -6,6 +6,7 @@ from pathlib import Path
 
 from paper_optimizer.plotting import generate_compare_plots
 from paper_optimizer.benchmarks import load_benchmarks
+from paper_optimizer.contracts import CandidateResult
 from paper_optimizer.study import run_compare_mode
 
 
@@ -99,3 +100,53 @@ def test_compare_plots_keep_unscored_candidates(tmp_path: Path) -> None:
     )
     assert [row["text_model_id"] for row in model_rows] == ["google/gemma-4-26b-a4b", "qwen/qwen3.5-9b"]
     assert model_rows[1]["best_primary_score"] == ""
+
+
+def test_compare_mode_writes_no_winner_artifact_when_all_candidates_fail(
+    base_config: dict,
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    benches = load_benchmarks(base_config)
+    out = tmp_path / "compare_exp"
+
+    def _failed_result(*args, **kwargs) -> CandidateResult:
+        candidate = kwargs["candidate"]
+        return CandidateResult(
+            schema_version="1.0",
+            experiment_id=base_config["experiment_id"],
+            study_type="compare",
+            benchmark_id="bench_dev",
+            candidate_id=candidate.candidate_id,
+            parent_candidate_id=candidate.parent_candidate_id,
+            round_index=candidate.round_index,
+            candidate_hash=f"hash-{candidate.candidate_id}",
+            candidate_manifest_path=str(out / f"{candidate.candidate_id}.json"),
+            candidate_bundle_dir=str(out / candidate.candidate_id),
+            prompt_bundle_id=candidate.prompt_bundle_id,
+            text_model_id=candidate.text_model_id,
+            vision_model_id=candidate.vision_model_id,
+            optimizer_knobs_flat=dict(candidate.optimizer_knobs),
+            primary_metrics={},
+            guardrail_metrics={},
+            diagnostic_metrics={},
+            runtime_seconds=None,
+            runtime_metadata={},
+            started_at="",
+            ended_at="",
+            candidate_status="failed",
+            promotion_decision="rejected",
+            decision_reason="simulated_failure",
+            main_app_run_ref={},
+            eval_output_ref={},
+            metadata={},
+        )
+
+    monkeypatch.setattr("paper_optimizer.study.evaluate_candidate_once", _failed_result)
+    monkeypatch.setattr("paper_optimizer.study.generate_compare_plots", lambda *args, **kwargs: None)
+
+    run_compare_mode(base_config, benches, out)
+
+    assert (out / "no_winner.json").exists()
+    payload = json.loads((out / "no_winner.json").read_text(encoding="utf-8"))
+    assert payload["reason"] == "no_completed_candidates"

@@ -293,6 +293,15 @@ def run_compare_mode(config: dict[str, Any], benchmarks: Benchmarks, experiment_
                 "optimizer_knobs_flat": winner.optimizer_knobs_flat,
             }
         )
+    else:
+        writer.write_no_winner(
+            {
+                "study_type": "compare",
+                "benchmark_id": benchmark_id,
+                "reason": "no_completed_candidates",
+                "candidate_count": len(results),
+            }
+        )
     writer.write_experiment_summary(
         {
             "experiment_id": config["experiment_id"],
@@ -354,19 +363,28 @@ def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_spa
     )
     writer.append_result(incumbent_result)
     if incumbent_result.candidate_status != "completed":
+        writer.write_no_winner(
+            {
+                "study_type": "optimize",
+                "benchmark_id": benchmark_id,
+                "reason": "baseline_candidate_failed",
+                "candidate_id": incumbent_candidate.candidate_id,
+            }
+        )
         writer.write_experiment_summary(
             {
                 "experiment_id": config["experiment_id"],
                 "study_type": "optimize",
                 "benchmark_id": benchmark_id,
                 "primary_metric": config["acceptance"]["primary_metric"],
-                "current_best_candidate_id": incumbent_candidate.candidate_id,
+                "current_best_candidate_id": None,
                 "candidate_count": 1,
                 "completed_candidate_count": 0,
                 "failed_candidate_count": 1,
                 "rejection_reason_counts": {incumbent_result.decision_reason: 1},
                 "holdout_validation": {"ran": False},
                 "fatal_error": "baseline candidate failed before optimization rounds could start",
+                "no_winner_reason": "baseline_candidate_failed",
             }
         )
         raise RuntimeError("Baseline candidate failed before optimization rounds could start")

@@ -148,6 +148,8 @@ Fast preflight:
 python -m paper_optimizer.cli preflight --config configs/compare_models_dev.json
 ```
 
+The preflight command now emits a small JSON success payload on stdout so wrappers can treat it as a machine-readable health check.
+
 Overnight compare of explicit models:
 
 ```bash
@@ -229,6 +231,7 @@ Each experiment directory contains:
 - `compare_summary.json` for compare studies
 - `summary.json`
 - `best_candidate.json` when a winner or incumbent is recorded
+- `no_winner.json` when a compare study or failed optimize baseline produces no winner to materialize
 - `candidates/<candidate_id>/candidate.json`
 - `results/results.csv`
 - `results/results.jsonl`
