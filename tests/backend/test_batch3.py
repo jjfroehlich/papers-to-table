@@ -2246,12 +2246,16 @@ class TestProposalPersistence:
 
         loaded_proposals = load_proposals(run_dir)
         loaded_evidence = load_evidence(run_dir)
+        evidence_jsonl_path = run_dir / "evidence" / "evidence.jsonl"
 
         assert len(loaded_proposals) == 1
         assert loaded_proposals[0].proposal_id == "prop_roundtrip"
+        assert loaded_proposals[0].proposal_schema_version == "main_proposal.v2"
         assert loaded_proposals[0].state == ProposalState.found
         assert len(loaded_evidence) == 1
+        assert loaded_evidence[0].evidence_schema_version == "main_evidence.v2"
         assert loaded_evidence[0].source_type == EvidenceSourceType.direct_quote
+        assert evidence_jsonl_path.exists()
 
     def test_long_evidence_filename_is_shortened_deterministically(self, run_dir: pathlib.Path):
         import datetime

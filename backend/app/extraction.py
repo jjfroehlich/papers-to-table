@@ -35,6 +35,8 @@ from typing import Any, Optional
 from pydantic import BaseModel
 
 from .artifacts import (
+    EVIDENCE_RECORD_SCHEMA_VERSION,
+    PROPOSAL_RECORD_SCHEMA_VERSION,
     append_jsonl,
     hash_json_data,
     read_json,
@@ -62,6 +64,7 @@ from .style_profiles import StyleProfile
 # ---------------------------------------------------------------------------
 
 class EvidenceRecord(BaseModel):
+    evidence_schema_version: str = EVIDENCE_RECORD_SCHEMA_VERSION
     evidence_id: str
     run_id: str
     proposal_id: str
@@ -102,6 +105,7 @@ class EvidenceRecord(BaseModel):
 # ---------------------------------------------------------------------------
 
 class ProposalRecord(BaseModel):
+    proposal_schema_version: str = PROPOSAL_RECORD_SCHEMA_VERSION
     proposal_id: str
     run_id: str
     pdf_id: str
@@ -499,6 +503,12 @@ def build_figure_extraction_prompt(
         bundle=prompt_bundle_name,
         bundle_path=prompt_bundle_path,
     )
+    if retrieval_block and "Retrieved field passages:" not in user_content:
+        user_content = f"{user_content.rstrip()}\n\n{retrieval_block}"
+    if reference_block and "Figure-reference snippets from the paper:" not in user_content:
+        user_content = f"{user_content.rstrip()}\n\n{reference_block}"
+    if section_block and section_block not in user_content:
+        user_content = f"{user_content.rstrip()}\n\n{section_block}"
 
     return [
         {
@@ -1444,7 +1454,11 @@ def persist_proposal(
             index = read_json(index_path)
         except Exception:
             index = {}
-    line_count = len(read_jsonl(jsonl_path))
+    if index:
+        line_count = len(index) + 1
+    else:
+        with jsonl_path.open("r", encoding="utf-8") as handle:
+            line_count = sum(1 for line in handle if line.strip())
     index[proposal.proposal_id] = {
         "proposal_id": proposal.proposal_id,
         "row_id": proposal.row_id,
@@ -1467,7 +1481,9 @@ def persist_evidence(
     e_dir = _safe_run_subpath(run_dir, "evidence")
     e_dir.mkdir(parents=True, exist_ok=True)
     path = _safe_run_subpath(run_dir, "evidence", f"{_safe_evidence_filename(evidence.evidence_id)}.json")
-    write_json(path, evidence.model_dump(mode="json"))
+    record = evidence.model_dump(mode="json")
+    write_json(path, record)
+    append_jsonl(_safe_run_subpath(run_dir, "evidence", "evidence.jsonl"), record)
     return path
 
 
@@ -1536,6 +1552,7 @@ async def extract_cell(
     max_figures_for_review: int = 5,
     skip_figure_review_when_prompt_only_degraded: bool = False,
     stats_sink: Optional[dict[str, object]] = None,
+    retrieval_cache: Optional[dict[tuple[str, bool, bool], Any]] = None,
 ) -> ProposalRecord:
     """Extract one cell value and produce a proposal with evidence.
 
@@ -1713,6 +1730,8 @@ async def extract_cell(
                 top_k=max((retrieval.top_k if retrieval else 6) + 3, 9),
                 mode="recall_rescue",
                 rescue_reason="first_pass_unclear",
+                retrieval_cache=retrieval_cache,
+                cache_key=pdf_id,
             )
             rescue_stats = rescue_retrieval.stats if isinstance(rescue_retrieval.stats, dict) else {}
             recall_rescue_retrieval_ms += float(rescue_stats.get("total_ms", 0.0) or 0.0)
@@ -2158,19 +2177,43 @@ async def extract_cell(
 
 def _normalize_rationale(rationale: Optional[str]) -> Optional[str]:
     """Ensure rationale is compact markdown bullets (T053a)."""
-    rationale = _coerce_text_value(rationale, joiner="\n")
-    if not rationale:
+    if isinstance(rationale, list):
+        bullet_lines = []
+        for item in rationale[:3]:
+            text = _coerce_text_value(item, joiner=" ")
+            if not text:
+                continue
+            bullet_lines.append(f"- {_ensure_terminal_punctuation(text)}")
+        return "\n".join(bullet_lines) or None
+
+    rationale_text = _coerce_text_value(rationale, joiner="\n")
+    if not rationale_text:
         return None
-    stripped = rationale.strip()
+    stripped = rationale_text.strip()
     # If it's already bullet-formatted, return as-is
     if stripped.startswith("- ") or stripped.startswith("* "):
         return stripped
-    # Convert single sentence to a bullet
-    sentences = [s.strip() for s in stripped.split(".") if s.strip()]
-    if len(sentences) <= 3:
-        return "\n".join(f"- {s}." for s in sentences[:3])
-    # Truncate to 3 bullets
-    return "\n".join(f"- {s}." for s in sentences[:3]) + "\n- ..."
+
+    line_items = [line.strip() for line in stripped.splitlines() if line.strip()]
+    if len(line_items) > 1:
+        return "\n".join(f"- {_ensure_terminal_punctuation(line)}" for line in line_items[:3])
+
+    sentences = [item.strip() for item in re.split(r"(?<=[.!?])\s+(?=[A-Z(])", stripped) if item.strip()]
+    if not sentences:
+        return None
+    bullet_lines = [f"- {_ensure_terminal_punctuation(sentence)}" for sentence in sentences[:3]]
+    if len(sentences) > 3:
+        bullet_lines.append("- ...")
+    return "\n".join(bullet_lines)
+
+
+def _ensure_terminal_punctuation(text: str) -> str:
+    value = text.strip()
+    if not value:
+        return value
+    if value[-1] in ".!?":
+        return value
+    return f"{value}."
 
 
 def _coerce_text_value(value: Any, joiner: str = "\n") -> Optional[str]:

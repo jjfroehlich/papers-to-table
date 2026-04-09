@@ -8,6 +8,11 @@ import tempfile
 from typing import Any
 
 
+RUN_BUNDLE_ARTIFACT_SCHEMA_VERSION = "main_run_bundle.v2"
+PROPOSAL_RECORD_SCHEMA_VERSION = "main_proposal.v2"
+EVIDENCE_RECORD_SCHEMA_VERSION = "main_evidence.v2"
+
+
 def get_run_dir(output_dir: str, run_id: str) -> pathlib.Path:
     return pathlib.Path(output_dir) / run_id
 
@@ -46,6 +51,10 @@ def get_proposal_index_path(output_dir: str, run_id: str) -> pathlib.Path:
 
 def get_evidence_dir(output_dir: str, run_id: str) -> pathlib.Path:
     return get_run_dir(output_dir, run_id) / "evidence"
+
+
+def get_evidence_jsonl_path(output_dir: str, run_id: str) -> pathlib.Path:
+    return get_evidence_dir(output_dir, run_id) / "evidence.jsonl"
 
 
 def get_review_dir(output_dir: str, run_id: str) -> pathlib.Path:

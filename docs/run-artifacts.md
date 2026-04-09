@@ -38,7 +38,7 @@ A directory can still be empty when its stage has no records (for example, no ac
 
 ### Root files
 
-- `run.json`: live run status, stage, counters, provider mode truth, warnings, and artifact pointers.
+- `run.json`: live run status, stage, counters, provider mode truth, warnings, artifact pointers, and versioned artifact-contract fields such as `artifact_schema_version`, `proposal_schema_version`, and `evidence_schema_version`.
 - `config.snapshot.json`: frozen resolved run config.
 
 ## Detailed contents by section
@@ -67,6 +67,7 @@ Condition notes:
 Per PDF directory layout:
 
 - `parsed/{pdf_id}/parsed_document.json`
+- `parsed/{pdf_id}/page_text.json`
 - `parsed/{pdf_id}/diagnostics.json`
 - `parsed/{pdf_id}/pages/page_####.png`
 - `parsed/{pdf_id}/figures/*.png` (when figure crops are available)
@@ -109,6 +110,7 @@ Condition notes:
 ### `evidence/`
 
 - Per-proposal evidence JSON records.
+- `evidence.jsonl`: append-only evidence sidecar for downstream tools.
 
 Condition notes:
 

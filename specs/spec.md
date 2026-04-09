@@ -8,6 +8,8 @@ The system matches PDFs to spreadsheet rows, proposes values for schema-defined 
 
 The system supports three operator-visible run modes: normal extraction for empty targets, Verify mode for reviewer comparison on already-filled cells, and Eval mode for leakage-aware benchmark runs. In Eval mode the app loads the completed human-filled table as the gold input, creates an app-owned masked working copy of the target cells before extraction, and preserves eval-ready artifacts for a separate scoring tool.
 
+Eval-ready artifacts must remain directly consumable by the separate evaluator and optimizer from files alone. The main app therefore owns a versioned run-bundle contract and must persist enough proposal, evidence, and source-text-compatible artifact truth for downstream anchor validation to remain meaningful.
+
 The system extracts primarily from text and tables. Extraction is schema-first: column name, description, and optional field typing define what should be extracted, while existing filled cells are optional format helpers only. The schema stays lightweight and must not require explicit per-column vision policy fields. When vision capability is available, the system uses text-guided figure shortlisting and panel targeting as a normal supplemental evidence stage, allowing figure evidence to strengthen any proposal, corroborate text evidence, or rescue weak text-only results without broad untargeted vision calls.
 
 The product is designed for high-trust extraction workflows where proposed values must remain inspectable, auditable, reversible, and clearly distinguishable by support level, parsing quality, and provider-mode truth.
@@ -91,6 +93,8 @@ Config naming must describe actual implemented behavior rather than aspirational
 
 Every run must persist a resolved effective config artifact in run outputs. Compatibility aliases may be accepted pragmatically, but persisted artifacts and docs must use canonical names.
 
+The run bundle is also a cross-repo contract. Persisted run metadata, proposal records, and evidence records must include explicit schema-version fields so downstream tooling can reject unsupported shapes or apply bounded compatibility fallbacks deliberately rather than guessing.
+
 ### Provider contract, readiness, and mode truth
 
 The product must preserve one canonical provider contract for proposal generation.
@@ -166,6 +170,8 @@ Extract Structured Info from Papers addresses this by turning PDF-to-table curat
 - Persist figure crop and full-page artifacts when figures are extracted so that review and vision analysis operate on the same concrete evidence.
 - Support verification against already-filled cells when enabled, so the user can compare proposals against existing entries and assess app performance through reviewer outcomes.
 - Produce leakage-aware eval-ready runs whose artifacts can be consumed later by a separate evaluation tool without turning the main app into a benchmark framework.
+- Preserve a stable, versioned run-bundle contract so the eval and optimizer repos can consume main-app outputs without silent drift.
+- Keep eval-ready evidence artifacts compatible with downstream anchor validation, including persisted evidence records and page-text-compatible source artifacts.
 
 ## Non-goals
 
@@ -176,6 +182,7 @@ Extract Structured Info from Papers addresses this by turning PDF-to-table curat
 - Full multimodal reasoning on every page by default; figure review remains text-guided and targeted, not blanket per-page vision.
 - In-UI advanced parameter tuning; advanced run behavior is controlled through the run configuration.
 - Computing full benchmark metrics inside the main app, bundling a large evaluation framework into the main product, or requiring a dedicated eval UI for Eval mode.
+- Requiring downstream scoring tools to import main-app runtime code just to interpret run artifacts.
 
 ---
 
@@ -211,6 +218,7 @@ A developer or advanced user who inspects diagnostics to understand matching, ex
 - Locked cells are protected by default, except when a human explicitly accepts an update in verify mode.
 - The product supports three distinct run modes: normal extraction, Verify mode for in-app comparison on already-filled cells, and Eval mode for leakage-aware benchmark runs scored later by a separate tool.
 - Eval mode must never expose target-cell gold values to the extraction path; it uses an app-owned masked working copy and preserves auditable gold-table and masked-table provenance in artifacts.
+- Eval mode artifacts must preserve enough versioned proposal, evidence, and source-text provenance for a separate evaluator to validate anchors and score runs from files alone.
 - All runs are auditable.
 - The product is optimized for trustworthy extraction workflows, not maximal automation at any cost.
 - The product should preserve a clear distinction between directly supported values and inferred or derived values.
@@ -1389,7 +1397,7 @@ then the system emits a warning or explicit limited-review status rather than a 
 
 Given Eval mode completes or reaches an inspectable terminal state after extraction work began,
 when the operator or a downstream tool inspects the run artifacts,
-then the bundle contains the stable proposal, evidence, mode, model, parser, schema, config, prompt-identity, gold-table, and masked-working-table metadata needed for later scoring, including table hashes and snapshot references, labels the run as Eval mode in summaries and diagnostics, and does not claim that the main app already computed the final benchmark metrics.
+then the bundle contains the stable proposal, evidence, mode, model, parser, schema, config, prompt-identity, gold-table, and masked-working-table metadata needed for later scoring, including explicit artifact schema versions, table hashes and snapshot references, eval-consumable evidence records, and page-text-compatible source artifacts or deterministic fallbacks, labels the run as Eval mode in summaries and diagnostics, and does not claim that the main app already computed the final benchmark metrics.
 
 ### AC-15 Partial-review export behavior
 

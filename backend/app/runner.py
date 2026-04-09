@@ -9,6 +9,9 @@ from time import perf_counter
 from typing import Optional
 
 from .artifacts import (
+    EVIDENCE_RECORD_SCHEMA_VERSION,
+    PROPOSAL_RECORD_SCHEMA_VERSION,
+    RUN_BUNDLE_ARTIFACT_SCHEMA_VERSION,
     get_artifact_summary_path,
     hash_file,
     hash_json_data,
@@ -180,6 +183,9 @@ def get_initial_run_data(
         "prompt_bundle_hash": prompt_identity["prompt_bundle_hash"],
         "prompt_keys_used": prompt_identity.get("prompt_keys_used", []),
         "prompt_files": prompt_identity.get("prompt_files", {}),
+        "artifact_schema_version": RUN_BUNDLE_ARTIFACT_SCHEMA_VERSION,
+        "proposal_schema_version": PROPOSAL_RECORD_SCHEMA_VERSION,
+        "evidence_schema_version": EVIDENCE_RECORD_SCHEMA_VERSION,
         "config_hash": None,
         "config_snapshot_path": None,
         "run_stats_path": None,
@@ -1312,6 +1318,7 @@ async def run_pipeline(
                 matched[mr.matched_row_index] = mr
 
         proposals_generated = 0
+        retrieval_cache: dict[tuple[str, bool, bool], object] = {}
 
         # Build doc dict lookup: pdf_id → parsed_doc dict
         doc_by_pdf_id: dict[str, dict] = {}
@@ -1420,6 +1427,8 @@ async def run_pipeline(
                 run_dir=run_dir,
                 top_k=config.retrieval.top_k,
                 retrieval_mode=config.retrieval.mode,
+                retrieval_cache=retrieval_cache,
+                cache_key=pdf_id,
             )
 
             retrieval_stats = {}
@@ -1516,6 +1525,7 @@ async def run_pipeline(
                     config.figure_review.skip_when_prompt_only_degraded
                 ),
                 stats_sink=cell_stats,
+                retrieval_cache=retrieval_cache,
             )
 
             proposals_generated += 1

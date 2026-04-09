@@ -105,6 +105,14 @@ class RetrievalStats(BaseModel):
     idf_build_count: int = 1
 
 
+class RetrievalPreparedIndex(BaseModel):
+    all_chunks: list[RetrievalChunk]
+    candidate_chunks: list[RetrievalChunk]
+    chunk_count_by_type: dict[str, int]
+    avgdl: float
+    idf: dict[str, float]
+
+
 # ---------------------------------------------------------------------------
 # Chunk building (T045)
 # ---------------------------------------------------------------------------
@@ -333,6 +341,9 @@ def _score_chunks_with_metadata(
     query: str,
     chunks: list[RetrievalChunk],
     retrieval_mode: str = "lexical",
+    *,
+    precomputed_idf: dict[str, float] | None = None,
+    precomputed_avgdl: float | None = None,
 ) -> tuple[list[tuple[float, RetrievalChunk]], dict[str, float]]:
     if not chunks:
         return [], {"idf_build_ms": 0.0, "scoring_ms": 0.0}
@@ -344,11 +355,19 @@ def _score_chunks_with_metadata(
     if not query_terms:
         return [(0.0, c) for c in chunks], {"idf_build_ms": 0.0, "scoring_ms": 0.0}
 
-    idf_started = perf_counter()
-    idf = _build_idf(chunks)
-    idf_build_ms = (perf_counter() - idf_started) * 1000.0
-    total_len = sum(len(_tokenize(c.retrieval_text)) for c in chunks)
-    avgdl = total_len / len(chunks) if chunks else 100.0
+    if precomputed_idf is None:
+        idf_started = perf_counter()
+        idf = _build_idf(chunks)
+        idf_build_ms = (perf_counter() - idf_started) * 1000.0
+    else:
+        idf = precomputed_idf
+        idf_build_ms = 0.0
+
+    if precomputed_avgdl is None:
+        total_len = sum(len(_tokenize(c.retrieval_text)) for c in chunks)
+        avgdl = total_len / len(chunks) if chunks else 100.0
+    else:
+        avgdl = precomputed_avgdl
 
     scoring_started = perf_counter()
     base_scores = [
@@ -438,6 +457,7 @@ def _retrieve_with_metadata(
     include_tables: bool = True,
     include_neighbor_window: bool = True,
     retrieval_mode: str = "lexical",
+    prepared_index: RetrievalPreparedIndex | None = None,
 ) -> tuple[list[RetrievalChunk], RetrievalStats]:
     """Retrieve top-k relevant chunks from a ParsedDocument dict with stats.
 
@@ -448,31 +468,46 @@ def _retrieve_with_metadata(
     - NO reranking, HyDE, or query expansion in MVP baseline
     """
     total_started = perf_counter()
-    chunk_started = perf_counter()
-    all_chunks = build_chunks_from_parsed_doc(doc_dict)
-    chunk_build_ms = (perf_counter() - chunk_started) * 1000.0
+    used_cached_index = prepared_index is not None
+    if prepared_index is None:
+        chunk_started = perf_counter()
+        all_chunks = build_chunks_from_parsed_doc(doc_dict)
+        chunk_build_ms = (perf_counter() - chunk_started) * 1000.0
+    else:
+        all_chunks = prepared_index.all_chunks
+        chunk_build_ms = 0.0
     if not all_chunks:
         return [], RetrievalStats(chunk_build_ms=round(chunk_build_ms, 3), total_ms=round((perf_counter() - total_started) * 1000.0, 3))
 
-    chunk_count_by_type: dict[str, int] = {}
-    for chunk in all_chunks:
-        chunk_count_by_type[chunk.chunk_type] = chunk_count_by_type.get(chunk.chunk_type, 0) + 1
+    if prepared_index is None:
+        chunk_count_by_type: dict[str, int] = {}
+        for chunk in all_chunks:
+            chunk_count_by_type[chunk.chunk_type] = chunk_count_by_type.get(chunk.chunk_type, 0) + 1
 
-    # Filter to relevant chunk types
-    allowed_types = {"paragraph", "section", "abstract", "list_item"}
-    if include_captions:
-        allowed_types.add("caption")
-    if include_tables:
-        allowed_types.add("table_region")
+        allowed_types = {"paragraph", "section", "abstract", "list_item"}
+        if include_captions:
+            allowed_types.add("caption")
+        if include_tables:
+            allowed_types.add("table_region")
 
-    candidate_chunks = [c for c in all_chunks if c.chunk_type in allowed_types]
-    if not candidate_chunks:
-        candidate_chunks = all_chunks
+        candidate_chunks = [c for c in all_chunks if c.chunk_type in allowed_types]
+        if not candidate_chunks:
+            candidate_chunks = all_chunks
+        idf = _build_idf(candidate_chunks)
+        total_len = sum(len(_tokenize(c.retrieval_text)) for c in candidate_chunks)
+        avgdl = total_len / len(candidate_chunks) if candidate_chunks else 100.0
+    else:
+        chunk_count_by_type = dict(prepared_index.chunk_count_by_type)
+        candidate_chunks = prepared_index.candidate_chunks or prepared_index.all_chunks
+        idf = prepared_index.idf
+        avgdl = prepared_index.avgdl
 
     scored, scoring_meta = _score_chunks_with_metadata(
         query,
         candidate_chunks,
         retrieval_mode=retrieval_mode,
+        precomputed_idf=idf,
+        precomputed_avgdl=avgdl,
     )
     top_chunks = [chunk for _, chunk in scored[:top_k]]
     selected_ids = {c.chunk_id for c in top_chunks}
@@ -493,10 +528,43 @@ def _retrieve_with_metadata(
         candidate_chunk_count=len(candidate_chunks),
         selected_chunk_count=len(top_chunks),
         neighbor_chunk_count=neighbor_chunk_count,
-        chunk_build_count=1,
-        idf_build_count=1,
+        chunk_build_count=0 if used_cached_index else 1,
+        idf_build_count=0 if used_cached_index else 1,
     )
     return result, stats
+
+
+def prepare_retrieval_index(
+    doc_dict: dict,
+    *,
+    include_captions: bool = True,
+    include_tables: bool = True,
+) -> RetrievalPreparedIndex:
+    all_chunks = build_chunks_from_parsed_doc(doc_dict)
+    chunk_count_by_type: dict[str, int] = {}
+    for chunk in all_chunks:
+        chunk_count_by_type[chunk.chunk_type] = chunk_count_by_type.get(chunk.chunk_type, 0) + 1
+
+    allowed_types = {"paragraph", "section", "abstract", "list_item"}
+    if include_captions:
+        allowed_types.add("caption")
+    if include_tables:
+        allowed_types.add("table_region")
+
+    candidate_chunks = [chunk for chunk in all_chunks if chunk.chunk_type in allowed_types]
+    if not candidate_chunks:
+        candidate_chunks = all_chunks
+
+    idf = _build_idf(candidate_chunks)
+    total_len = sum(len(_tokenize(chunk.retrieval_text)) for chunk in candidate_chunks)
+    avgdl = total_len / len(candidate_chunks) if candidate_chunks else 100.0
+    return RetrievalPreparedIndex(
+        all_chunks=all_chunks,
+        candidate_chunks=candidate_chunks,
+        chunk_count_by_type=chunk_count_by_type,
+        avgdl=avgdl,
+        idf=idf,
+    )
 
 
 def retrieve(
@@ -573,14 +641,25 @@ def run_retrieval_for_cell(
     mode: str = "baseline",
     rescue_reason: Optional[str] = None,
     retrieval_mode: str = "lexical",
+    retrieval_cache: dict[tuple[str, bool, bool], RetrievalPreparedIndex] | None = None,
+    cache_key: str | None = None,
 ) -> RetrievalResult:
     """Build and persist retrieval result for one (pdf, column) pair."""
     query, policy = _build_retrieval_query_with_policy(column_name, column_description)
+    prepared_index: RetrievalPreparedIndex | None = None
+    if retrieval_cache is not None and cache_key is not None:
+        cache_tuple = (cache_key, True, True)
+        prepared_index = retrieval_cache.get(cache_tuple)
+        if prepared_index is None:
+            prepared_index = prepare_retrieval_index(doc_dict, include_captions=True, include_tables=True)
+            retrieval_cache[cache_tuple] = prepared_index
+
     chunks, stats = _retrieve_with_metadata(
         query,
         doc_dict,
         top_k=top_k,
         retrieval_mode=retrieval_mode,
+        prepared_index=prepared_index,
     )
     scoring_profile = "bm25_plus_token_coverage" if retrieval_mode == "hybrid_experimental" else "bm25_lite"
     result = RetrievalResult(

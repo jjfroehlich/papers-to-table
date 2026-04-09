@@ -52,6 +52,7 @@ Reality-checked on 2026-04-06 against current backend/frontend source, targeted 
 - [x] **T013** Snapshot the resolved config into run artifacts.
 - [x] **T013a** Persist a resolved input-summary artifact early enough for readiness-failed and early-failed runs.
 - [x] **T013b** Persist stable run-identity metadata needed by downstream eval tooling.
+- [x] **T013c** Add explicit run-bundle schema-version fields for run, proposal, and evidence artifacts.
 - [x] **T014** Audit, normalize, and document the canonical deterministic fixture corpus under `tests/fixtures/`.
 - [x] **T015** Set up backend unit/integration/contract test tooling with provider stubs/fakes and fixture helpers.
 - [x] **T015a** Add contract-parity tests for provider naming and config semantics.
@@ -135,9 +136,11 @@ Reality-checked on 2026-04-06 against current backend/frontend source, targeted 
 - [x] **T047b** Implement deterministic recall rescue for `unclear` first-pass results.
 - [x] **T047c** Add optional config-controlled whole-document mode.
 - [x] **T048** Persist retrieval artifacts and diagnostics so selected chunks and review text remain inspectable.
+- [x] **T048a** Cache retrieval chunks and term statistics per parsed PDF so repeated cell extraction does not rebuild the same retrieval index.
 - [x] **T049** Add tests covering style profiles, no raw-example leakage, typed chunks, retrieval-text/display-text separation, and retrieval defaults.
 - [x] **T049a** Add tests for schema-first extraction and optional field typing.
 - [x] **T049b** Add tests for bounded recall rescue and optional whole-document mode.
+- [ ] **T049c** Add tests covering retrieval-index reuse and repeated-work counter truth.
 - [ ] **T111** Make schema-aware retrieval heuristics transparent and inspectable at the run level.
 - [ ] **T111a** Define a small explicit retrieval-heuristic policy contract.
 - [ ] **T111b** Persist heuristic policy details in retrieval artifacts.
@@ -168,6 +171,8 @@ Reality-checked on 2026-04-06 against current backend/frontend source, targeted 
 - [x] **T056** Implement proposal/evidence serialization using the shared artifact layer.
 - [x] **T056a** Migrate canonical proposal persistence to `proposals.jsonl` plus proposal index.
 - [x] **T056b** Extend proposal and evidence metadata for downstream eval compatibility.
+- [x] **T056c** Preserve eval-consumable evidence and page-text-compatible artifacts from the main run bundle without requiring downstream imports from main-app code.
+- [x] **T056d** Remove repeated full-log rereads from proposal persistence while keeping proposal lookup artifacts truthful.
 - [x] **T057** Implement the per-target-cell extraction orchestrator.
 - [x] **T057a** Add field-aware extraction handling for long-text targets.
 - [x] **T057b** Add schema-aware field-type handling to extraction and proposal contracts.
@@ -199,6 +204,11 @@ Reality-checked on 2026-04-06 against current backend/frontend source, targeted 
 - [x] **T067c** Add backend tests for text-guided figure shortlisting.
 - [x] **T067d** Add backend tests for figure-derived approximate numeric proposals.
 - [x] **T067e** Add tests for structured-output negotiation and capability-truth classification.
+- [x] **T067f** Add contract tests proving eval-mode run bundles remain directly loadable by the separate eval tool.
+
+### Verification and CI
+
+- [x] **T118** Add minimal CI coverage for backend, frontend, and artifact-contract regression checks.
 
 ### Review UI
 

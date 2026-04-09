@@ -1137,6 +1137,16 @@ def persist_parse_artifacts(
     artifact_dir.mkdir(parents=True, exist_ok=True)
 
     write_json(artifact_dir / "parsed_document.json", doc.model_dump())
+    blocks_by_page: dict[int, list[str]] = {}
+    for block in sorted(doc.blocks, key=lambda item: (item.page_number, item.reading_order)):
+        text = block.text.strip()
+        if not text:
+            continue
+        blocks_by_page.setdefault(block.page_number, []).append(text)
+    write_json(
+        artifact_dir / "page_text.json",
+        {str(page_number): "\n".join(texts) for page_number, texts in sorted(blocks_by_page.items())},
+    )
     write_json(artifact_dir / "diagnostics.json", diagnostics.model_dump())
 
 

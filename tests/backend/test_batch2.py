@@ -523,6 +523,9 @@ class TestParseArtifactPersistence:
         assert "blocks" in data
         assert "metadata" in data
         assert "parser_used" in data
+        page_text_path = run_dir / "parsed" / "paper_3" / "page_text.json"
+        assert page_text_path.exists(), "page_text.json must be written"
+        assert json.loads(page_text_path.read_text())
 
     def test_parse_pdf_writes_diagnostics_json(self, tmp_path):
         run_dir = tmp_path / "run"

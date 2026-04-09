@@ -68,6 +68,8 @@ Implementation for this phase is complete when the system satisfies the function
 
 4. Run artifacts, proposal state, review decisions, and exports are persisted in a reproducible local-first manner.
 
+4a. Eval-ready artifacts remain versioned and directly consumable by the separate eval and optimizer repos from files alone, including enough evidence and source-text-compatible persistence for downstream anchor validation.
+
 5. The implementation supports structured-output-first extraction with bounded compatibility negotiation and recovery: prefer `json_schema`, allow explicit degraded fallback to `json_object` when `json_schema` is unsupported, downgrade explicitly when the provider rejects regex or grammar constraints for the active request shape, allow explicit degraded prompt-only JSON fallback when both structured modes are unavailable, then one stronger retry, bounded repair with wrapper stripping and balanced-object extraction, and hard failure for that target only when no schema-valid result is recoverable.
 
 6. Diagnostics explain failures and low-quality results without requiring developers to inspect raw prompts manually.
@@ -107,6 +109,12 @@ Implementation for this phase is complete when the system satisfies the function
 18. Provider readiness and structured-output capability outcomes remain distinct in UI and artifacts: provider unreachable, model unavailable, `json_schema` unsupported with `json_object` fallback, provider regex or grammar incompatibility for the active request shape, and prompt-only JSON fallback when both structured modes are unavailable are separate truth states.
 
 18. Parsing fallback, OCR use, or degraded parsing conditions are persisted and surfaced in summaries and reviewer-facing status.
+
+19. Proposal persistence uses `proposals.jsonl` plus a proposal index or equivalent lookup structure rather than many per-proposal files.
+
+20. The proposal-write path remains linear in proposal count rather than rereading the full proposal log on each append.
+
+21. Retrieval preparation work is reused per parsed PDF whenever the parsed document and retrieval mode are unchanged.
 
 19. Proposal persistence uses `proposals.jsonl` plus a proposal index or equivalent lookup structure rather than many per-proposal files.
 
@@ -222,13 +230,34 @@ The system will use:
 
 The canonical proposal persistence shape is `proposals.jsonl` plus a lookup index or equivalent secondary structure that supports efficient filtering and id-based loading without reverting to many per-proposal JSON files.
 
+Run-bundle persistence must also publish explicit schema-version fields for the run bundle, proposal records, and evidence records so downstream tools can validate compatibility deterministically.
+
+Proposal writes should stay append-oriented. Any proposal index, lookup table, or summary structure should be incremental or derived without rereading the full `proposals.jsonl` file on every persisted proposal.
+
 Eval mode should reuse the same artifact-first approach rather than introducing a second persistence subsystem. The same run bundle should preserve the original gold-table reference, the masked working-table reference, and the minimal downstream-eval metadata needed later without adding a heavyweight benchmark database or a parallel result store.
+
+For cross-repo compatibility, the run bundle should also preserve eval-consumable evidence and source-text truth using the canonical evidence directory plus stable page-text-compatible artifacts or deterministic fallbacks derivable from persisted parsed-document artifacts.
 
 **Artifact policy refinement:**
 Reviewable proposals and diagnostics-only outcomes should not be conflated merely because both are persisted as JSON. A large run may produce many blocked or skipped outcomes, but those should live in diagnostic artifacts or aggregate summaries unless they are intentionally reviewable. Runtime-derived artifact paths must use sanitized or opaque filenames so persistence is portable across supported operating systems.
 
 **Rationale:**
 For a local-first, single-user MVP, artifact bundles are simpler, easier to inspect, and easier to debug than introducing a database. This keeps state reproducible without adding operational complexity that the product does not yet need.
+
+**Cross-repo contract requirement:**
+Because the eval app and optimizer consume run bundles directly, the artifact contract must be explicit and versioned. Main-app persistence should not assume downstream tools will import its Python models. Evidence and page-text-compatible artifacts must therefore stay loader-friendly from plain files.
+
+**Performance requirement:**
+Artifact convenience structures such as proposal indexes must not turn append-oriented persistence into an $O(n^2)$ write path for large runs.
+
+---
+
+### TD-5a: Cache retrieval preparation per parsed document
+
+Retrieval chunk building and IDF preparation should be reused per parsed PDF whenever the parsed-document input and retrieval mode are unchanged.
+
+**Rationale:**
+The run loop operates per eligible cell, but the parsed-document content is per PDF. Rebuilding retrieval chunks and term statistics per cell wastes runtime and inflates diagnostics. A per-PDF cached retrieval index preserves the current lexical retrieval direction while materially reducing repeated work.
 
 ---
 

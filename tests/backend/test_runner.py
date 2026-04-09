@@ -79,6 +79,9 @@ class TestGetInitialRunData:
         assert data["prompt_bundle_path"] is not None
         assert data["prompt_keys_used"]
         assert data["prompt_files"]
+        assert data["artifact_schema_version"] == "main_run_bundle.v2"
+        assert data["proposal_schema_version"] == "main_proposal.v2"
+        assert data["evidence_schema_version"] == "main_evidence.v2"
         assert data["structured_output_reason"] is None
 
     def test_timestamps(self, tmp_path):
@@ -97,7 +100,7 @@ class TestRunPipeline:
         respx.get("http://localhost:1234/v1/models").mock(
             return_value=httpx.Response(200, json={"data": [{"id": "qwen/qwen3-30b-a3b-2507"}]})
         )
-        monkeypatch.setattr("backend.app.runner.initialize_provider", _fake_initialize_provider)
+        _patch_fast_no_match_pipeline(monkeypatch)
         config = make_config(tmp_path)
         run_id = "run_test_happy"
         output_dir = str(tmp_path / "runs")
@@ -118,7 +121,7 @@ class TestRunPipeline:
         respx.get("http://localhost:1234/v1/models").mock(
             return_value=httpx.Response(200, json={"data": [{"id": "qwen/qwen3-30b-a3b-2507"}]})
         )
-        monkeypatch.setattr("backend.app.runner.initialize_provider", _fake_initialize_provider)
+        _patch_fast_no_match_pipeline(monkeypatch)
         config = make_config(tmp_path)
         run_id = "run_snap"
         output_dir = str(tmp_path / "runs")
@@ -316,7 +319,7 @@ class TestRunPipeline:
         respx.get("http://localhost:1234/v1/models").mock(
             return_value=httpx.Response(200, json={"data": [{"id": "qwen/qwen3-30b-a3b-2507"}]})
         )
-        monkeypatch.setattr("backend.app.runner.initialize_provider", _fake_initialize_provider)
+        _patch_fast_no_match_pipeline(monkeypatch)
         config = make_config(tmp_path)
         run_id = "run_inputs"
         output_dir = str(tmp_path / "runs")
@@ -481,7 +484,7 @@ class TestRunPipeline:
         respx.get("http://localhost:1234/v1/models").mock(
             return_value=httpx.Response(200, json={"data": [{"id": "qwen/qwen3-30b-a3b-2507"}]})
         )
-        monkeypatch.setattr("backend.app.runner.initialize_provider", _fake_initialize_provider)
+        _patch_fast_no_match_pipeline(monkeypatch)
         config = make_config(tmp_path)
         run_id = "run_counts"
         output_dir = str(tmp_path / "runs")
@@ -922,6 +925,14 @@ def _fake_model_management_report(*, load_requested: bool = False, reused: bool 
 
 async def _fake_style_profiles(**kwargs):
     return {}
+
+
+def _patch_fast_no_match_pipeline(monkeypatch) -> None:
+    monkeypatch.setattr("backend.app.runner.initialize_provider", _fake_initialize_provider)
+    monkeypatch.setattr("backend.app.runner.parse_pdf", _fake_parse_pdf)
+    monkeypatch.setattr("backend.app.runner.run_matching", lambda **kwargs: [])
+    monkeypatch.setattr("backend.app.runner.persist_match_artifacts", lambda *args, **kwargs: None)
+    monkeypatch.setattr("backend.app.runner.run_style_profiles_stage", _fake_style_profiles)
 
 
 def _fake_parse_pdf(**kwargs):
