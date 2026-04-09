@@ -51,7 +51,7 @@ Command dispatch lives in `paper_optimizer/cli.py`.
 1. Load config, benchmarks, and compare candidates.
 2. Materialize immutable candidate bundles.
 3. Evaluate each candidate through shared pipeline.
-4. Persist per-candidate rows and compare summary.
+4. Persist per-candidate rows, `candidate_diagnostics.*`, and top-level compare summary artifacts.
 5. Rank by configured primary metric with deterministic tie handling.
 6. Emit compare plots and winner record when available.
 
@@ -113,6 +113,7 @@ Required persisted entities:
 - experiment manifest
 - candidate bundle manifests
 - candidate-level CSV and JSONL records
+- compare-summary and candidate-diagnostics artifacts for compare studies
 - mode summary
 - best-candidate state
 - round summaries (optimize)

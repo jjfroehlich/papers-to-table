@@ -74,6 +74,16 @@ best_path = Path(sys.argv[2])
 target_path = Path(sys.argv[3])
 mode = sys.argv[4]
 
+PATH_FIELD_NAMES = {
+	"repo_root",
+	"base_config_path",
+	"table_path",
+	"schema_path",
+	"pdf_dir",
+	"gold_path",
+	"eval_schema_path",
+}
+
 config = json.loads(source_path.read_text(encoding="utf-8"))
 best = json.loads(best_path.read_text(encoding="utf-8"))
 
@@ -81,16 +91,32 @@ winner_prompt = best.get("prompt_bundle_id") or config["baseline_candidate"]["pr
 winner_model = best.get("text_model_id") or config["baseline_candidate"]["text_model_id"]
 winner_knobs = dict(best.get("optimizer_knobs_flat") or {})
 
-def apply_candidate(candidate: dict, *, include_knobs: bool) -> None:
-	candidate["prompt_bundle_id"] = winner_prompt
+
+def resolve_path_fields(payload, *, base_dir: Path):
+	if isinstance(payload, dict):
+		resolved = {}
+		for key, value in payload.items():
+			if key in PATH_FIELD_NAMES and isinstance(value, str) and value.strip():
+				candidate = Path(value)
+				resolved[key] = str(candidate.resolve()) if candidate.is_absolute() else str((base_dir / candidate).resolve())
+			else:
+				resolved[key] = resolve_path_fields(value, base_dir=base_dir)
+		return resolved
+	if isinstance(payload, list):
+		return [resolve_path_fields(item, base_dir=base_dir) for item in payload]
+	return payload
+
+def apply_candidate(candidate: dict, *, include_knobs: bool, preserve_prompt_bundle: bool = False) -> None:
+	if not preserve_prompt_bundle:
+		candidate["prompt_bundle_id"] = winner_prompt
 	candidate["text_model_id"] = winner_model
 	if include_knobs and winner_knobs:
 		candidate["optimizer_knobs"] = winner_knobs
 
 if mode == "prompt_compare":
-	apply_candidate(config["baseline_candidate"], include_knobs=False)
+	apply_candidate(config["baseline_candidate"], include_knobs=False, preserve_prompt_bundle=True)
 	for row in config.get("compare_candidates", []):
-		apply_candidate(row, include_knobs=False)
+		apply_candidate(row, include_knobs=False, preserve_prompt_bundle=True)
 elif mode == "retrieval_compare":
 	apply_candidate(config["baseline_candidate"], include_knobs=False)
 	for row in config.get("compare_candidates", []):
@@ -113,6 +139,7 @@ elif mode == "optimize":
 else:
 	raise SystemExit(f"Unsupported materialization mode: {mode}")
 
+config = resolve_path_fields(config, base_dir=source_path.resolve().parent)
 target_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
 PY
 }

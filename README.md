@@ -226,16 +226,24 @@ The optimizer now fails candidates explicitly when:
 Each experiment directory contains:
 
 - `experiment.json`
+- `compare_summary.json` for compare studies
 - `summary.json`
 - `best_candidate.json` when a winner or incumbent is recorded
 - `candidates/<candidate_id>/candidate.json`
 - `results/results.csv`
 - `results/results.jsonl`
+- `results/candidate_diagnostics.csv`
 - `rounds/round_<n>.json` for optimize mode
 - `plots/*.csv`
 - `plots/*.png`
 - `runs/<candidate_id>/main/` launch artifacts including `main_config_overlay.json`, `resolved_main_config.json`, and `automation_result.json`
 - `runs/<candidate_id>/eval/` launch artifacts including `eval_result.json`
+
+For compare studies, the candidate-level plot artifacts now keep candidates with null primary metrics visible instead of dropping them silently. `plots/compare_primary_by_candidate.csv` and the corresponding PNG use model and prompt-aware labels, and unscored candidates are shown as `NA` rather than disappearing from the report.
+
+Compare studies also write `candidate_diagnostics.json` and `results/candidate_diagnostics.csv`, which summarize why a candidate was scored, unscored, or failed using eval counts such as `scored_cell_count`, `judge_text_scored_cell_count`, `unscored_text_cell_count`, and judge failure diagnostics.
+
+Compare studies also write `compare_summary.json`, a top-level operator report that collects the winner, scored/unscored/failed candidate counts, and the same per-candidate score explanations in one place.
 
 `summary.json` now also rolls up:
 

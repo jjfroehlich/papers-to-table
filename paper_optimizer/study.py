@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import csv
+import json
 from pathlib import Path
 from typing import Any
 
@@ -41,6 +43,116 @@ def _result_summary_row(result: CandidateResult, primary_metric: str) -> dict[st
         "promotion_decision": result.promotion_decision,
         "decision_reason": result.decision_reason,
     }
+
+
+def _load_json_if_exists(path: Path | None) -> dict[str, Any]:
+    if path is None or not path.exists():
+        return {}
+    try:
+        return read_json(path)
+    except Exception:
+        return {}
+
+
+def _candidate_score_explanation(result: CandidateResult, primary_metric: str, eval_metrics: dict[str, Any], reviewer_summary: dict[str, Any]) -> str:
+    score = result.primary_metrics.get(primary_metric)
+    if result.candidate_status != "completed":
+        return f"candidate failed before scoring: {result.decision_reason}"
+    reasons: list[str] = []
+    if score is None:
+        reasons.append("primary metric unavailable")
+    if eval_metrics.get("scored_cell_count") == 0:
+        reasons.append("no scored cells")
+    if eval_metrics.get("judge_text_scored_cell_count") == 0 and (eval_metrics.get("unscored_text_cell_count") or 0) > 0:
+        reasons.append("no text cells were successfully judge-scored")
+    if (eval_metrics.get("judge_request_failed_count") or 0) > 0:
+        reasons.append(f"{int(eval_metrics['judge_request_failed_count'])} judge request failures")
+    structured_output_mode = reviewer_summary.get("structured_output_mode")
+    if structured_output_mode == "none":
+        reasons.append("main extraction ran in prompt-only mode")
+    if score is not None and not reasons:
+        return "primary metric computed"
+    if score is not None:
+        return "primary metric computed with partial diagnostics: " + "; ".join(reasons)
+    if reasons:
+        return "; ".join(reasons)
+    return "primary metric unavailable"
+
+
+def _candidate_diagnostic_row(result: CandidateResult, primary_metric: str) -> dict[str, Any]:
+    eval_summary = result.metadata.get("eval_summary", {}) if isinstance(result.metadata.get("eval_summary"), dict) else {}
+    eval_metrics = eval_summary.get("metrics", {}) if isinstance(eval_summary.get("metrics"), dict) else {}
+    run_path_value = result.main_app_run_ref.get("run_path")
+    reviewer_summary_path = Path(run_path_value) / "summaries" / "reviewer_summary.json" if isinstance(run_path_value, str) else None
+    reviewer_summary = _load_json_if_exists(reviewer_summary_path)
+    score = result.primary_metrics.get(primary_metric)
+    return {
+        "candidate_id": result.candidate_id,
+        "candidate_status": result.candidate_status,
+        "text_model_id": result.text_model_id,
+        "prompt_bundle_id": result.prompt_bundle_id,
+        "runtime_seconds": result.runtime_seconds,
+        "primary_metric_value": score,
+        "score_available": score is not None,
+        "score_status": "scored" if score is not None else ("failed" if result.candidate_status != "completed" else "unscored"),
+        "score_explanation": _candidate_score_explanation(result, primary_metric, eval_metrics, reviewer_summary),
+        "scored_cell_count": eval_metrics.get("scored_cell_count"),
+        "text_scored_cell_count": eval_metrics.get("text_scored_cell_count"),
+        "judge_text_scored_cell_count": eval_metrics.get("judge_text_scored_cell_count"),
+        "unscored_text_cell_count": eval_metrics.get("unscored_text_cell_count"),
+        "judge_request_failed_count": eval_metrics.get("judge_request_failed_count"),
+        "judge_unclear_text_cell_count": eval_metrics.get("judge_unclear_text_cell_count"),
+        "filled_on_gold_empty_count": eval_metrics.get("filled_on_gold_empty_count"),
+        "missing_proposal_count": eval_metrics.get("missing_proposal_count"),
+        "main_structured_output_mode": reviewer_summary.get("structured_output_mode"),
+        "main_structured_output_reason": reviewer_summary.get("structured_output_reason"),
+        "main_total_proposals": reviewer_summary.get("total_proposals"),
+        "main_pending_proposals": reviewer_summary.get("pending"),
+    }
+
+
+def _write_candidate_diagnostics(experiment_dir: Path, results: list[CandidateResult], primary_metric: str) -> None:
+    rows = [_candidate_diagnostic_row(result, primary_metric) for result in results]
+    write_json(experiment_dir / "candidate_diagnostics.json", {"primary_metric": primary_metric, "rows": rows})
+    results_dir = experiment_dir / "results"
+    results_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = results_dir / "candidate_diagnostics.csv"
+    if not rows:
+        csv_path.write_text("", encoding="utf-8")
+        return
+    fieldnames = list(rows[0].keys())
+    with csv_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def _write_compare_summary(
+    experiment_dir: Path,
+    *,
+    benchmark_id: str,
+    primary_metric: str,
+    ranked_results: list[CandidateResult],
+    winner: CandidateResult | None,
+) -> None:
+    candidate_rows = [_candidate_diagnostic_row(result, primary_metric) for result in ranked_results]
+    payload = {
+        "study_type": "compare",
+        "benchmark_id": benchmark_id,
+        "primary_metric": primary_metric,
+        "candidate_count": len(candidate_rows),
+        "scored_candidate_count": sum(1 for row in candidate_rows if row.get("score_status") == "scored"),
+        "unscored_candidate_count": sum(1 for row in candidate_rows if row.get("score_status") == "unscored"),
+        "failed_candidate_count": sum(1 for row in candidate_rows if row.get("score_status") == "failed"),
+        "winner": None,
+        "candidates": candidate_rows,
+    }
+    if winner is not None:
+        payload["winner"] = next(
+            (row for row in candidate_rows if row.get("candidate_id") == winner.candidate_id),
+            None,
+        )
+    write_json(experiment_dir / "compare_summary.json", payload)
 
 
 def _aggregate_reason_counts(results: list[CandidateResult]) -> dict[str, int]:
@@ -202,6 +314,14 @@ def run_compare_mode(config: dict[str, Any], benchmarks: Benchmarks, experiment_
             },
             "ranked_candidates": [_result_summary_row(result, primary_metric) for result in ranked_results],
         }
+    )
+    _write_candidate_diagnostics(experiment_dir, ranked_results, primary_metric)
+    _write_compare_summary(
+        experiment_dir,
+        benchmark_id=benchmark_id,
+        primary_metric=primary_metric,
+        ranked_results=ranked_results,
+        winner=winner,
     )
 
     generate_compare_plots(experiment_dir, primary_metric)

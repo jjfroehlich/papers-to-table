@@ -45,7 +45,7 @@ Rules:
 ## Result records and artifacts
 
 - [x] O013 Implement candidate-level result records with lineage, metric groups, runtime, and decision fields for both study modes.
-- [x] O014 Implement experiment-level artifact writes (`experiment.json`, candidate manifests, `results.csv`, `results.jsonl`, summary files).
+- [x] O014 Implement experiment-level artifact writes (`experiment.json`, candidate manifests, `results.csv`, `results.jsonl`, summary files, and current compare-study diagnostics artifacts).
 - [x] O024 Implement best-candidate tracking and `best_candidate.json` updates.
 - [x] O032 Add richer experiment summaries for lineage and promotion-history rollups.
 - [x] O033 Add explicit contract checks for required metric names and required eval-summary fields.
@@ -54,7 +54,7 @@ Rules:
 ## Compare-mode orchestration
 
 - [x] O019 Implement mode-aware study control flow with compare single-pass and optimize multi-round behavior.
-- [x] O025 Implement compare summaries with ranked fixed-candidate outcomes.
+- [x] O025 Implement compare summaries with ranked fixed-candidate outcomes, winner materialization, and candidate-level explanation artifacts for scored and unscored candidates.
 
 ## Optimize-mode orchestration
 

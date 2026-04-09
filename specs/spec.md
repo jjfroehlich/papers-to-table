@@ -91,10 +91,12 @@ The optimizer writes experiment-owned artifacts to disk.
 Minimum required outputs:
 
 - `experiment.json`
+- `compare_summary.json` for compare studies
 - `summary.json`
 - `candidates/<candidate_id>/candidate.json`
 - `results/results.csv`
 - `results/results.jsonl`
+- `results/candidate_diagnostics.csv` for compare studies
 - `plots/*.csv`
 - `plots/*.png`
 - `best_candidate.json` when a winner/incumbent is tracked
@@ -110,6 +112,8 @@ Candidate result records must include:
 - decision and reason
 - main-app run reference
 - eval-output reference
+
+Compare-study operator artifacts must also make unscored candidates explicit rather than silently dropping them from summaries or plots.
 
 ## Non-goals
 

@@ -46,23 +46,57 @@ def _slugify(name: str) -> str:
     return re.sub(r"[^a-zA-Z0-9]+", "_", name).strip("_").lower()
 
 
+def _candidate_labels(rows: list[dict[str, str]]) -> dict[str, str]:
+    prompt_count = len({row.get("prompt_bundle_id") for row in rows if row.get("prompt_bundle_id") not in (None, "")})
+    base_counts: dict[str, int] = {}
+    for row in rows:
+        base = row.get("text_model_id") or row.get("candidate_id") or "unknown"
+        if prompt_count > 1 and row.get("prompt_bundle_id"):
+            base = f"{base} [{row['prompt_bundle_id']}]"
+        base_counts[base] = base_counts.get(base, 0) + 1
+
+    labels: dict[str, str] = {}
+    seen_counts: dict[str, int] = {}
+    for row in rows:
+        candidate_id = row.get("candidate_id", "")
+        base = row.get("text_model_id") or candidate_id or "unknown"
+        if prompt_count > 1 and row.get("prompt_bundle_id"):
+            base = f"{base} [{row['prompt_bundle_id']}]"
+        if base_counts.get(base, 0) > 1 and candidate_id:
+            ordinal = seen_counts.get(base, 0) + 1
+            seen_counts[base] = ordinal
+            base = f"{base} ({candidate_id})"
+        labels[candidate_id] = base
+    return labels
+
+
 def _category_score_rows(rows: list[dict[str, str]], *, category_key: str, primary_key: str) -> list[dict[str, Any]]:
-    grouped: dict[str, list[float]] = {}
+    grouped: dict[str, dict[str, Any]] = {}
     for row in rows:
         category = row.get(category_key)
-        score = _safe_float(row.get(primary_key))
-        if category in (None, "") or score is None:
+        if category in (None, ""):
             continue
-        grouped.setdefault(str(category), []).append(score)
+        bucket = grouped.setdefault(
+            str(category),
+            {
+                "scores": [],
+                "candidate_count": 0,
+            },
+        )
+        bucket["candidate_count"] += 1
+        score = _safe_float(row.get(primary_key))
+        if score is not None:
+            bucket["scores"].append(score)
 
     return [
         {
             category_key: category,
-            "candidate_count": len(scores),
-            "best_primary_score": max(scores),
-            "avg_primary_score": sum(scores) / len(scores),
+            "candidate_count": bucket["candidate_count"],
+            "scored_candidate_count": len(bucket["scores"]),
+            "best_primary_score": max(bucket["scores"]) if bucket["scores"] else None,
+            "avg_primary_score": (sum(bucket["scores"]) / len(bucket["scores"])) if bucket["scores"] else None,
         }
-        for category, scores in sorted(grouped.items())
+        for category, bucket in sorted(grouped.items())
     ]
 
 
@@ -78,12 +112,23 @@ def _write_category_plot(
         return
     _write_plot_csv(plots_dir / f"{filename_prefix}.csv", rows)
     labels = [str(row[category_key]) for row in rows]
-    values = [float(row["best_primary_score"]) for row in rows]
+    values = [float(row["best_primary_score"]) if row["best_primary_score"] is not None else 0.0 for row in rows]
+    colors = ["tab:blue" if row["best_primary_score"] is not None else "lightgray" for row in rows]
     plt.figure(figsize=(8, 4))
-    plt.bar(labels, values)
+    bars = plt.bar(labels, values, color=colors)
+    for bar, row in zip(bars, rows):
+        if row["best_primary_score"] is None:
+            plt.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() + 0.01,
+                "NA",
+                ha="center",
+                va="bottom",
+                fontsize=8,
+            )
     plt.xticks(rotation=45, ha="right")
     plt.ylabel("primary_score")
-    plt.title(title)
+    plt.title(f"{title} (NA = unscored)")
     plt.tight_layout()
     plt.savefig(plots_dir / f"{filename_prefix}.png")
     plt.close()
@@ -107,35 +152,50 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
 
     primary_key = f"primary.{primary_metric}"
     runtime_key = "runtime_seconds"
+    candidate_labels = _candidate_labels(rows)
 
     grouped: list[dict[str, Any]] = []
     x_labels: list[str] = []
     y_values: list[float] = []
+    bar_colors: list[str] = []
 
     for row in rows:
+        candidate_id = row.get("candidate_id", "")
         score = _safe_float(row.get(primary_key))
-        if score is None:
-            continue
-        label = row.get("candidate_id", "unknown")
+        label = candidate_labels.get(candidate_id, candidate_id or "unknown")
         x_labels.append(label)
-        y_values.append(score)
+        y_values.append(score if score is not None else 0.0)
+        bar_colors.append("tab:blue" if score is not None else "lightgray")
         grouped.append(
             {
-                "candidate_id": row.get("candidate_id", ""),
+                "candidate_id": candidate_id,
+                "candidate_label": label,
                 "text_model_id": row.get("text_model_id", ""),
                 "prompt_bundle_id": row.get("prompt_bundle_id", ""),
                 "candidate_status": row.get("candidate_status", ""),
                 "primary_score": score,
+                "primary_score_display": "NA" if score is None else score,
+                "score_available": score is not None,
             }
         )
 
     _write_plot_csv(plots_dir / "compare_primary_by_candidate.csv", grouped)
     if x_labels and y_values:
         plt.figure(figsize=(10, 4))
-        plt.bar(x_labels, y_values)
+        bars = plt.bar(x_labels, y_values, color=bar_colors)
+        for bar, row in zip(bars, grouped):
+            if not row["score_available"]:
+                plt.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    bar.get_height() + 0.01,
+                    "NA",
+                    ha="center",
+                    va="bottom",
+                    fontsize=8,
+                )
         plt.xticks(rotation=45, ha="right")
         plt.tight_layout()
-        plt.title("Primary metric by candidate")
+        plt.title("Primary metric by candidate (NA = unscored)")
         plt.ylabel(primary_metric)
         plt.savefig(plots_dir / "compare_primary_by_candidate.png")
         plt.close()
@@ -213,8 +273,17 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
             xs_runtime.append(runtime)
             ys_runtime.append(score)
             scatter_rows_runtime.append({
+                "candidate_label": candidate_labels.get(row.get("candidate_id", ""), row.get("candidate_id", "")),
                 "runtime_seconds": runtime,
                 "primary_score": score,
+                "candidate_id": row.get("candidate_id", ""),
+                "text_model_id": row.get("text_model_id", ""),
+            })
+        elif runtime is not None:
+            scatter_rows_runtime.append({
+                "candidate_label": candidate_labels.get(row.get("candidate_id", ""), row.get("candidate_id", "")),
+                "runtime_seconds": runtime,
+                "primary_score": None,
                 "candidate_id": row.get("candidate_id", ""),
                 "text_model_id": row.get("text_model_id", ""),
             })
@@ -223,9 +292,19 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
             xs_evidence.append(evidence)
             ys_evidence.append(score)
             scatter_rows_evidence.append({
+                "candidate_label": candidate_labels.get(row.get("candidate_id", ""), row.get("candidate_id", "")),
                 "evidence_metric_value": evidence,
                 "evidence_metric_name": evidence_key,
                 "primary_score": score,
+                "candidate_id": row.get("candidate_id", ""),
+                "text_model_id": row.get("text_model_id", ""),
+            })
+        elif evidence is not None:
+            scatter_rows_evidence.append({
+                "candidate_label": candidate_labels.get(row.get("candidate_id", ""), row.get("candidate_id", "")),
+                "evidence_metric_value": evidence,
+                "evidence_metric_name": evidence_key,
+                "primary_score": None,
                 "candidate_id": row.get("candidate_id", ""),
                 "text_model_id": row.get("text_model_id", ""),
             })
@@ -233,6 +312,7 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
         trend_rows.append(
             {
                 "candidate_id": row.get("candidate_id", ""),
+                "candidate_label": candidate_labels.get(row.get("candidate_id", ""), row.get("candidate_id", "")),
                 "null_metric_name": null_key,
                 "null_metric_value": null_rate,
                 "failure_metric_name": failure_key,
@@ -267,7 +347,7 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
         plt.close()
 
     if trend_rows:
-        labels = [r["candidate_id"] for r in trend_rows]
+        labels = [str(r["candidate_label"]) for r in trend_rows]
         null_vals = [r["null_metric_value"] if r["null_metric_value"] is not None else 0.0 for r in trend_rows]
         fail_vals = [r["failure_metric_value"] if r["failure_metric_value"] is not None else 0.0 for r in trend_rows]
         plt.figure(figsize=(10, 4))
