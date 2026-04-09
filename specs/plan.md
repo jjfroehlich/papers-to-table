@@ -75,6 +75,7 @@ Required checks belong in the loader layer:
 - stable join fields are present on every proposal
 - eval-mode provenance fields are present when run mode is eval
 - referenced provenance snapshot paths exist when required
+- supported main-app artifact schema versions are recognized explicitly
 
 Gold loading should continue to:
 
@@ -115,6 +116,9 @@ The current direction is:
 
 - validate page and quote anchors
 - use persisted page text when available to check quote locatability
+- load main-app evidence from either sidecar evidence files or canonical per-evidence JSON files
+- reconstruct page-text-compatible source text from parsed-document artifacts when dedicated page-text sidecars are absent
+- allow normalized block-text validation as a bounded fallback before classifying evidence as present-but-unvalidated
 - distinguish `anchor_valid` from `evidence_present_but_unvalidated`
 - keep evidence metrics separate from correctness metrics
 

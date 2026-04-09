@@ -110,6 +110,12 @@ def _validate_single_anchor(
         diagnostic["reason"] = "quote_located"
         return diagnostic
 
+    normalized_source_text = _resolve_normalized_source_text(item)
+    if normalized_source_text is not None and _quote_is_locatable(quote_text, normalized_source_text):
+        diagnostic["outcome"] = "anchor_valid"
+        diagnostic["reason"] = "normalized_quote_located"
+        return diagnostic
+
     diagnostic["outcome"] = "evidence_present_but_unvalidated"
     diagnostic["reason"] = "quote_not_locatable"
     return diagnostic
@@ -124,6 +130,13 @@ def _resolve_source_text(item: EvidenceItem, page_text_by_page: dict[int, str]) 
     if item.page is None:
         return None
     value = page_text_by_page.get(item.page)
+    if isinstance(value, str) and value.strip():
+        return value
+    return None
+
+
+def _resolve_normalized_source_text(item: EvidenceItem) -> str | None:
+    value = item.raw.get("normalized_source_text")
     if isinstance(value, str) and value.strip():
         return value
     return None

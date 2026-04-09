@@ -13,6 +13,8 @@ def build_run_summary(
 ) -> RunSummary:
     scored_cells = list(scored_cells)
     gold_cell_records = [cell for cell in scored_cells if cell.record_kind == "gold_cell"]
+    gold_present_records = [cell for cell in gold_cell_records if cell.is_gold_present]
+    gold_empty_records = [cell for cell in gold_cell_records if cell.is_gold_empty]
     scored_records = [cell for cell in gold_cell_records if cell.was_scored]
     structured_records = [cell for cell in scored_records if cell.field_type in {"boolean", "categorical", "numeric"}]
     boolean_records = [cell for cell in structured_records if cell.field_type == "boolean"]
@@ -35,9 +37,6 @@ def build_run_summary(
     correct_and_anchored_records = [
         cell for cell in scored_records if cell.is_correct and cell.anchor_valid
     ]
-
-    gold_present_records = [cell for cell in gold_cell_records if cell.is_gold_present]
-    gold_empty_records = [cell for cell in gold_cell_records if cell.is_gold_empty]
     covered_gold_present = [
         cell
         for cell in gold_present_records

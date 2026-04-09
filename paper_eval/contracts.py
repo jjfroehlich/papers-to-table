@@ -52,6 +52,7 @@ class EvidenceItem:
 class RunMetadata:
     run_id: str
     run_dir: Path
+    artifact_schema_version: str | None = None
     run_mode: str | None = None
     provider_token: str | None = None
     text_model_id: str | None = None
@@ -75,6 +76,7 @@ class RunMetadata:
         row = {
             "run_id": self.run_id,
             "run_dir": str(self.run_dir),
+            "artifact_schema_version": self.artifact_schema_version,
             "mode": self.run_mode,
             "run_mode": self.run_mode,
             "provider_token": self.provider_token,

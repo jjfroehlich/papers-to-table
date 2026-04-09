@@ -37,6 +37,8 @@ The evaluator may also load these files when present:
 - `summaries/run_summary.json`
 - sidecar evidence files
 - persisted page-text artifacts
+- per-evidence JSON records under the main app's canonical evidence directory
+- parsed-document artifacts when page-text-compatible evaluator inputs must be reconstructed from the run bundle
 
 Each proposal record must publish these stable join fields:
 
@@ -105,6 +107,8 @@ Evidence quality is reported separately from correctness.
 
 The evaluator validates lightweight evidence anchors based on page and quote text.
 
+The evaluator must remain compatible with the main app's canonical run bundle even when evidence is persisted as one JSON file per evidence record and page text must be reconstructed from parsed-document artifacts rather than a dedicated sidecar file.
+
 Evidence outcomes distinguish at least these cases:
 
 - `anchor_valid`
@@ -113,6 +117,8 @@ Evidence outcomes distinguish at least these cases:
 - `missing_evidence`
 
 Evidence metrics do not replace correctness metrics.
+
+When exact page-text sidecars are absent, the evaluator may use stable fallbacks derived from persisted run artifacts, such as parsed-document blocks or normalized source-text artifacts, but it must keep the distinction between fully validated anchors and evidence-present-but-unvalidated outcomes explicit.
 
 ## Outputs
 
@@ -186,10 +192,11 @@ The product is acceptable when:
 
 1. One run or many runs can be scored from the CLI against CSV or XLSX gold inputs.
 2. The evaluator fails explicitly when required artifact files or stable join fields are missing.
-3. Headline scoring uses only gold-present cells by default.
-4. Boolean, categorical, and numeric scoring remain deterministic.
-5. Text fields use a constrained judge by default, with explicit deterministic override support.
-6. Correctness metrics and evidence metrics are reported separately.
-7. Per-run and batch artifacts are written with stable filenames.
-8. The comparison artifact contains one row per run with run metadata, metrics, and diagnostics.
-9. Optional JSON stdout mode supplements, but does not replace, file outputs.
+3. The evaluator can load the main app's canonical evidence artifacts without requiring main-app runtime imports.
+4. Headline scoring uses only gold-present cells by default.
+5. Boolean, categorical, and numeric scoring remain deterministic.
+6. Text fields use a constrained judge by default, with explicit deterministic override support.
+7. Correctness metrics and evidence metrics are reported separately.
+8. Per-run and batch artifacts are written with stable filenames.
+9. The comparison artifact contains one row per run with run metadata, metrics, and diagnostics.
+10. Optional JSON stdout mode supplements, but does not replace, file outputs.

@@ -80,6 +80,9 @@ _REQUIRED_EVAL_PROVENANCE_FIELDS = (
     "masked_table_hash",
     "masked_table_snapshot_path",
 )
+_SUPPORTED_RUN_ARTIFACT_SCHEMA_VERSIONS = {None, "main_run_bundle.v2"}
+_SUPPORTED_PROPOSAL_SCHEMA_VERSIONS = {None, "main_proposal.v2"}
+_SUPPORTED_EVIDENCE_SCHEMA_VERSIONS = {None, "main_evidence.v2"}
 
 
 def _normalize_optional_list(value: Any) -> list[Any]:
@@ -142,10 +145,16 @@ def load_run(run_dir: Path) -> LoadedRun:
     ]
 
     run_payload = _load_json(run_dir / "run.json")
+    _validate_supported_schema_version(
+        kind="run artifact",
+        version=_required_text(run_payload.get("artifact_schema_version")),
+        supported_versions=_SUPPORTED_RUN_ARTIFACT_SCHEMA_VERSIONS,
+    )
     config_payload = _load_optional_json(run_dir / "config.snapshot.json")
     input_summary_payload = _load_optional_json(run_dir / "inputs" / "input_summary.json")
     run_summary_payload = _load_optional_json(run_dir / "summaries" / "run_summary.json")
-    sidecar_evidence = _load_sidecar_evidence(run_dir)
+    parsed_page_text_by_pdf = _load_parsed_page_text_by_pdf(run_dir)
+    sidecar_evidence = _load_sidecar_evidence(run_dir, parsed_page_text_by_pdf)
     page_text_by_page = _load_page_text_by_page(run_dir, sidecar_evidence)
 
     metadata = _build_run_metadata(
@@ -159,7 +168,7 @@ def load_run(run_dir: Path) -> LoadedRun:
         metadata=metadata,
         run_dir=run_dir,
     )
-    proposals = _load_proposals(run_dir, metadata.run_id, sidecar_evidence)
+    proposals = _load_proposals(run_dir, metadata.run_id, sidecar_evidence, parsed_page_text_by_pdf)
     return LoadedRun(
         run_dir=run_dir,
         metadata=metadata,
@@ -208,6 +217,7 @@ def _load_proposals(
     run_dir: Path,
     default_run_id: str,
     sidecar_evidence: dict[str, dict[str, Any]],
+    parsed_page_text_by_pdf: dict[str, dict[int, dict[str, str]]],
 ) -> list[ProposalRecord]:
     proposal_path = run_dir / "proposals" / "proposals.jsonl"
     proposals: list[ProposalRecord] = []
@@ -233,6 +243,11 @@ def _load_proposals(
                     f"{', '.join(missing_fields)} in {proposal_path} line {line_number}."
                 )
             run_id = _required_text(payload.get("run_id")) or default_run_id
+            _validate_supported_schema_version(
+                kind="proposal artifact",
+                version=_required_text(payload.get("proposal_schema_version")),
+                supported_versions=_SUPPORTED_PROPOSAL_SCHEMA_VERSIONS,
+            )
             proposals.append(
                 ProposalRecord(
                     run_id=run_id,
@@ -248,7 +263,7 @@ def _load_proposals(
                     numeric_value_form=_required_text(payload.get("numeric_value_form")),
                     scoring_policy=_required_text(payload.get("scoring_policy")),
                     aliases=_normalize_optional_dict(payload.get("aliases")),
-                    evidence_items=_extract_evidence_items(payload, sidecar_evidence),
+                    evidence_items=_extract_evidence_items(payload, sidecar_evidence, parsed_page_text_by_pdf),
                     row_index=_optional_int(payload.get("row_index")),
                     raw=payload,
                 )
@@ -282,6 +297,7 @@ def _build_run_metadata(
     return RunMetadata(
         run_id=run_id,
         run_dir=run_dir,
+        artifact_schema_version=_required_text(run_payload.get("artifact_schema_version")),
         run_mode=_first_present(
             run_payload,
             config_payload,
@@ -431,31 +447,19 @@ def _load_optional_json(path: Path) -> dict[str, Any]:
     return _load_json(path)
 
 
-def _load_sidecar_evidence(run_dir: Path) -> dict[str, dict[str, Any]]:
-    for relative_path in _SIDE_CAR_EVIDENCE_FILES:
-        path = run_dir / relative_path
-        if not path.exists():
-            continue
-        if path.suffix == ".json":
-            payload = _load_json(path)
-            if isinstance(payload, list):
-                return {_required_text(item.get("evidence_id") or item.get("id")): item for item in payload}
-        if path.suffix == ".jsonl":
-            evidence_by_id: dict[str, dict[str, Any]] = {}
-            with path.open("r", encoding="utf-8") as handle:
-                for line in handle:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        payload = json.loads(line)
-                    except JSONDecodeError as exc:
-                        raise ContractError(f"Invalid JSON in {path}: {exc.msg}") from exc
-                    evidence_id = _required_text(payload.get("evidence_id") or payload.get("id"))
-                    if evidence_id:
-                        evidence_by_id[evidence_id] = payload
-            return evidence_by_id
-    return {}
+def _load_sidecar_evidence(
+    run_dir: Path,
+    parsed_page_text_by_pdf: dict[str, dict[int, dict[str, str]]],
+) -> dict[str, dict[str, Any]]:
+    evidence_by_id = _load_evidence_records(run_dir)
+    for payload in evidence_by_id.values():
+        _validate_supported_schema_version(
+            kind="evidence artifact",
+            version=_required_text(payload.get("evidence_schema_version")),
+            supported_versions=_SUPPORTED_EVIDENCE_SCHEMA_VERSIONS,
+        )
+        _enrich_evidence_payload_with_source_text(payload, parsed_page_text_by_pdf)
+    return evidence_by_id
 
 
 def _load_page_text_by_page(
@@ -491,11 +495,21 @@ def _load_page_text_by_page(
 def _extract_evidence_items(
     payload: dict[str, Any],
     sidecar_evidence: dict[str, dict[str, Any]],
+    parsed_page_text_by_pdf: dict[str, dict[int, dict[str, str]]],
 ) -> list[EvidenceItem]:
     records: list[dict[str, Any]] = []
     embedded = payload.get("evidence") or payload.get("evidence_items")
     if isinstance(embedded, list):
-        records.extend(item for item in embedded if isinstance(item, dict))
+        for item in embedded:
+            if not isinstance(item, dict):
+                continue
+            copied = dict(item)
+            _enrich_evidence_payload_with_source_text(
+                copied,
+                parsed_page_text_by_pdf,
+                proposal_pdf_id=_required_text(payload.get("pdf_id")),
+            )
+            records.append(copied)
 
     support = payload.get("support")
     if isinstance(support, list):
@@ -511,13 +525,131 @@ def _extract_evidence_items(
     for record in records:
         evidence_items.append(
             EvidenceItem(
-                page=_optional_int(record.get("page")),
+                page=_optional_int(record.get("page") or record.get("page_number")),
                 quote_text=_required_text(record.get("quote_text") or record.get("quote")),
                 evidence_id=_required_text(record.get("evidence_id") or record.get("id")),
                 raw=record,
             )
         )
     return evidence_items
+
+
+def _load_evidence_records(run_dir: Path) -> dict[str, dict[str, Any]]:
+    evidence_by_id: dict[str, dict[str, Any]] = {}
+    for relative_path in _SIDE_CAR_EVIDENCE_FILES:
+        path = run_dir / relative_path
+        if not path.exists():
+            continue
+        if path.suffix == ".json":
+            payload = _load_json(path)
+            if isinstance(payload, list):
+                for item in payload:
+                    evidence_id = _required_text(item.get("evidence_id") or item.get("id"))
+                    if evidence_id:
+                        evidence_by_id[evidence_id] = item
+        elif path.suffix == ".jsonl":
+            with path.open("r", encoding="utf-8") as handle:
+                for line in handle:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        payload = json.loads(line)
+                    except JSONDecodeError as exc:
+                        raise ContractError(f"Invalid JSON in {path}: {exc.msg}") from exc
+                    evidence_id = _required_text(payload.get("evidence_id") or payload.get("id"))
+                    if evidence_id:
+                        evidence_by_id[evidence_id] = payload
+
+    evidence_dir = run_dir / "evidence"
+    if evidence_dir.exists():
+        for path in sorted(evidence_dir.glob("*.json")):
+            if path.name in {"evidence.json", "page_text.json", "page_texts.json", "pages.json"}:
+                continue
+            payload = _load_json(path)
+            if not isinstance(payload, dict):
+                continue
+            evidence_id = _required_text(payload.get("evidence_id") or payload.get("id"))
+            if evidence_id:
+                evidence_by_id[evidence_id] = payload
+    return evidence_by_id
+
+
+def _load_parsed_page_text_by_pdf(run_dir: Path) -> dict[str, dict[int, dict[str, str]]]:
+    parsed_root = run_dir / "parsed"
+    page_text_by_pdf: dict[str, dict[int, dict[str, str]]] = {}
+    if not parsed_root.exists():
+        return page_text_by_pdf
+    for pdf_dir in sorted(path for path in parsed_root.iterdir() if path.is_dir()):
+        page_text: dict[int, dict[str, str]] = {}
+        page_text_path = pdf_dir / "page_text.json"
+        if page_text_path.exists():
+            payload = _load_json(page_text_path)
+            for key, value in payload.items():
+                page_number = _optional_int(key)
+                text = _required_text(value)
+                if page_number is not None and text:
+                    page_text[page_number] = {
+                        "source_text": text,
+                        "normalized_source_text": text,
+                    }
+        parsed_document_path = pdf_dir / "parsed_document.json"
+        if parsed_document_path.exists():
+            payload = _load_json(parsed_document_path)
+            blocks = payload.get("blocks") if isinstance(payload, dict) else None
+            if isinstance(blocks, list):
+                for block in blocks:
+                    if not isinstance(block, dict):
+                        continue
+                    page_number = _optional_int(block.get("page_number"))
+                    raw_text = _required_text(block.get("text"))
+                    normalized_text = _required_text(block.get("normalized_text"))
+                    if page_number is None:
+                        continue
+                    page_entry = page_text.setdefault(page_number, {"source_text": "", "normalized_source_text": ""})
+                    if raw_text:
+                        page_entry["source_text"] = "\n".join(filter(None, [page_entry.get("source_text", ""), raw_text])).strip()
+                    if normalized_text:
+                        page_entry["normalized_source_text"] = " ".join(filter(None, [page_entry.get("normalized_source_text", ""), normalized_text])).strip()
+        if page_text:
+            page_text_by_pdf[pdf_dir.name] = page_text
+    return page_text_by_pdf
+
+
+def _enrich_evidence_payload_with_source_text(
+    payload: dict[str, Any],
+    parsed_page_text_by_pdf: dict[str, dict[int, dict[str, str]]],
+    proposal_pdf_id: str | None = None,
+) -> None:
+    page_number = _optional_int(payload.get("page") or payload.get("page_number"))
+    if page_number is None:
+        return
+    pdf_id = _required_text(payload.get("pdf_id")) or proposal_pdf_id
+    if pdf_id is None:
+        return
+    page_entry = parsed_page_text_by_pdf.get(pdf_id, {}).get(page_number)
+    if not page_entry:
+        return
+    if not _required_text(payload.get("page_text")):
+        payload["page_text"] = page_entry.get("source_text")
+    if not _required_text(payload.get("source_text")):
+        payload["source_text"] = page_entry.get("source_text")
+    if not _required_text(payload.get("normalized_source_text")):
+        payload["normalized_source_text"] = page_entry.get("normalized_source_text")
+
+
+def _validate_supported_schema_version(
+    *,
+    kind: str,
+    version: str | None,
+    supported_versions: set[str | None],
+) -> None:
+    if version in supported_versions:
+        return
+    supported_text = ", ".join(sorted(item for item in supported_versions if item is not None)) or "legacy-unversioned"
+    raise ContractError(
+        f"Unsupported {kind} version: {version}. Supported versions: {supported_text} plus legacy unversioned bundles."
+    )
 
 
 def _page_text_mapping_from_payload(payload: Any) -> dict[int, str]:

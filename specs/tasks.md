@@ -21,6 +21,7 @@ Working rules:
 - [x] E006 Implement contract validation for required main-app artifact files and the published stable eval join fields.
 - [x] E010 Implement explicit contract errors for missing required scoring fields, especially missing stable join identifiers such as `row_id`, `column_name`, and `cell_id`.
 - [x] E048 Fail fast when the published stable join contract is missing or inconsistent, and document the contract gap clearly.
+- [x] E048a Fail fast on unsupported main-app artifact schema versions while preserving bounded backward compatibility for known versions.
 
 ## Run Bundle Loading and Gold Loading
 
@@ -28,6 +29,8 @@ Working rules:
 - [x] E007 Implement proposal loading from `proposals/proposals.jsonl`.
 - [x] E008 Implement loading of run metadata from `run.json`, `config.snapshot.json`, `inputs/input_summary.json`, and `summaries/run_summary.json` when present.
 - [x] E009 Implement a loader or adapter path for evidence data when proposals do not already carry enough evidence detail.
+- [x] E009a Load canonical main-app per-evidence JSON artifacts when sidecar evidence files are absent.
+- [x] E009b Reconstruct page-text-compatible source text from persisted parsed-document artifacts when page-text sidecars are absent.
 - [x] E011 Implement gold CSV loading.
 - [x] E012 Implement gold XLSX loading with single-sheet selection per invocation and a documented default first-sheet behavior when no sheet is specified.
 - [x] E013 Implement consistent gold-present versus gold-empty detection.
@@ -55,6 +58,7 @@ Working rules:
 ## Evidence Validation
 
 - [x] E028 Implement the minimal evidence anchor contract check using page plus quote text, and quote locatability when persisted page text or equivalent text evidence is available.
+- [x] E028a Add bounded normalized-text fallback so parsed-document text can validate anchors without overstating confidence.
 - [x] E029 Implement `anchor_valid_rate`, counting only fully validated anchors and distinguishing evidence-present-but-unvalidated as a separate diagnostic state.
 - [x] E030 Implement `correct_and_anchored_rate`.
 - [ ] E031 Implement optional structured-field support proxy evaluation behind a narrow internal interface.
@@ -94,10 +98,16 @@ Working rules:
 - [x] E050 Implement unit tests for deterministic comparators.
 - [x] E051 Implement unit tests for gold-present and gold-empty detection.
 - [x] E052 Implement unit tests for evidence anchor validation, including locatable versus present-but-unvalidated quote cases.
+- [x] E052a Add tests for canonical main-app evidence-directory loading and parsed-document page-text fallback.
 - [x] E054 Implement end-to-end tests for scoring one run.
 - [x] E055 Implement end-to-end tests for scoring multiple runs and writing batch comparison outputs.
+- [x] E055a Add contract tests proving a main-app-style eval-mode run bundle remains loadable and anchor-validatable.
 - [x] E056 Implement mocked judge tests for text scoring under judge-by-default behavior and deterministic text override behavior.
 - [x] E059 Review the spec set together for consistency after material changes.
+
+## Verification / CI
+
+- [x] E068 Add minimal CI coverage for loader, scorer, and contract-regression tests.
 
 ## Docs / Operator Guidance / Stdout JSON Mode
 

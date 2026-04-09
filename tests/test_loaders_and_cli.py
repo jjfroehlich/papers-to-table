@@ -10,6 +10,7 @@ from unittest import mock
 
 from paper_eval.cli import main
 from paper_eval.contracts import JudgeResponse
+from paper_eval.evidence import validate_evidence_anchors
 from paper_eval.errors import CliUsageError, ContractError
 from paper_eval.gold_loader import load_gold
 from paper_eval.run_loader import discover_run_directories, load_run
@@ -58,6 +59,16 @@ class LoaderAndCliTests(unittest.TestCase):
             (run_dir / "run.json").write_text(json.dumps(run_payload), encoding="utf-8")
 
             with self.assertRaisesRegex(ContractError, "references missing provenance artifact 'masked_table_snapshot_path'"):
+                load_run(run_dir)
+
+    def test_run_loader_rejects_unsupported_artifact_schema_version(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_dir = self._create_run_bundle(Path(temp_dir) / "run-a")
+            run_payload = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+            run_payload["artifact_schema_version"] = "main_run_bundle.v999"
+            (run_dir / "run.json").write_text(json.dumps(run_payload), encoding="utf-8")
+
+            with self.assertRaisesRegex(ContractError, "Unsupported run artifact version"):
                 load_run(run_dir)
 
     def test_run_loader_accepts_main_app_eval_artifacts_shape(self) -> None:
@@ -120,6 +131,61 @@ class LoaderAndCliTests(unittest.TestCase):
             loaded = load_run(run_dir)
 
             self.assertEqual(loaded.matched_row_indices, {1, 3})
+
+    def test_run_loader_loads_canonical_evidence_dir_and_parsed_page_text_fallback(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_dir = self._create_run_bundle(Path(temp_dir) / "run-a")
+            (run_dir / "evidence").mkdir(parents=True)
+            (run_dir / "parsed" / "pdf-1").mkdir(parents=True)
+            (run_dir / "parsed" / "pdf-1" / "parsed_document.json").write_text(
+                json.dumps(
+                    {
+                        "blocks": [
+                            {
+                                "page_number": 1,
+                                "text": "Direct quote from page one.",
+                                "normalized_text": "direct quote from page one.",
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (run_dir / "proposals" / "proposals.jsonl").write_text(
+                json.dumps(
+                    {
+                        "run_id": "run-a",
+                        "row_id": "row-1",
+                        "column_name": "notes",
+                        "cell_id": "cell-1",
+                        "pdf_id": "pdf-1",
+                        "proposed_value": "Some value",
+                        "field_type": "text",
+                        "support": {"evidence_ids": ["ev-1"]},
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            (run_dir / "evidence" / "ev-1.json").write_text(
+                json.dumps(
+                    {
+                        "evidence_schema_version": "main_evidence.v2",
+                        "evidence_id": "ev-1",
+                        "pdf_id": "pdf-1",
+                        "page_number": 1,
+                        "quote_text": "Direct quote from page one.",
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            loaded = load_run(run_dir)
+
+            evidence_item = loaded.proposals[0].evidence_items[0]
+            self.assertIn("Direct quote from page one.", evidence_item.raw["source_text"])
+            validation = validate_evidence_anchors([evidence_item], page_text_by_page=loaded.page_text_by_page)
+            self.assertTrue(validation.anchor_valid)
 
     def test_run_loader_normalizes_nullable_collection_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -643,6 +709,7 @@ class LoaderAndCliTests(unittest.TestCase):
         (run_dir / "run.json").write_text(
             json.dumps(
                 {
+                    "artifact_schema_version": "main_run_bundle.v2",
                     "run_id": run_dir.name,
                     "run_mode": "eval",
                     "provider_text_model_id": "model-1",

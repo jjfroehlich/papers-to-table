@@ -69,7 +69,9 @@ The evaluator also loads these files when present:
 - `evidence/evidence.jsonl`
 - `evidence/evidence.json`
 - `support/evidence.jsonl`
+- canonical per-evidence JSON files under `evidence/*.json`
 - page-text artifacts under `evidence/` or `support/`
+- parsed-document artifacts under `parsed/<pdf_id>/` when page text must be reconstructed from the run bundle
 
 ### Required Proposal Join Fields
 
@@ -93,6 +95,8 @@ When `run_mode` or `mode` resolves to `eval`, the run bundle must also publish:
 Referenced snapshot paths must exist inside the run bundle or evaluation fails.
 
 The evaluator also accepts the main app's current eval-export shape, including nested `eval_artifacts.gold_table.*` and `eval_artifacts.masked_working_table.*` metadata plus `masked_working_table_path`.
+
+When a main-app bundle publishes `artifact_schema_version`, `proposal_schema_version`, or `evidence_schema_version`, the evaluator validates those version tags explicitly and fails fast on unsupported versions.
 
 ### Gold Formats
 
