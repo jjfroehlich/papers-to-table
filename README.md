@@ -112,6 +112,8 @@ Important current behavior:
 - `benchmarks.holdout` is only used for post-study validation.
 - CLI commands now run an explicit preflight before launching work. Missing benchmark files, missing prompt bundles, invalid command prefixes, and missing metric mappings fail early.
 - Prepared overnight configs pass explicit eval-judge arguments so text scoring stays reproducible instead of depending on ambient eval defaults.
+- `proposer` is optional and disabled by default. When enabled, it asks an LM Studio-served model for bounded candidate deltas, validates those deltas against the same search surface as deterministic candidates, and writes round-level proposer audit artifacts under `proposer/`.
+- `optimize.confirmation_reruns` is optional and disabled by default. When enabled, the optimizer re-evaluates the best promoted challenger on the same benchmark and only keeps the promotion if all configured confirmation reruns still satisfy the acceptance gate. Confirmation audits are written under `confirmation/`.
 
 For tonight's unattended runs, holdout is intentionally skipped and `diagnostics.verbose_provider_logging` is enabled in the main app's checked-in base config.
 
@@ -237,6 +239,8 @@ Each experiment directory contains:
 - `results/results.jsonl`
 - `results/candidate_diagnostics.csv`
 - `rounds/round_<n>.json` for optimize mode
+- `proposer/round_<n>.json` when the optional proposer is enabled
+- `confirmation/round_<n>_<candidate_id>.json` when confirmation reruns are enabled
 - `plots/*.csv`
 - `plots/*.png`
 - `runs/<candidate_id>/main/` launch artifacts including `main_config_overlay.json`, `resolved_main_config.json`, and `automation_result.json`
@@ -247,6 +251,36 @@ For compare studies, the candidate-level plot artifacts now keep candidates with
 Compare studies also write `candidate_diagnostics.json` and `results/candidate_diagnostics.csv`, which summarize why a candidate was scored, unscored, or failed using eval counts such as `scored_cell_count`, `judge_text_scored_cell_count`, `unscored_text_cell_count`, and judge failure diagnostics.
 
 Compare studies also write `compare_summary.json`, a top-level operator report that collects the winner, scored/unscored/failed candidate counts, and the same per-candidate score explanations in one place.
+
+## Optional proposer and confirmation config
+
+Optional proposer config:
+
+```json
+"proposer": {
+	"enabled": false,
+	"provider": "lm_studio",
+	"model_id": "qwen/qwen3.5-35b-a3b",
+	"api_base": "http://127.0.0.1:1234/v1",
+	"temperature": 0.0,
+	"max_candidates": 2
+}
+```
+
+Optional confirmation-rerun config:
+
+```json
+"optimize": {
+	"rounds": 6,
+	"batch_size": 4,
+	"confirmation_reruns": {
+		"enabled": false,
+		"count": 1
+	}
+}
+```
+
+Both features remain bounded by the existing candidate/search-space contract. Invalid proposer outputs are rejected into audit artifacts rather than silently widened into new knobs or model ids.
 
 `summary.json` now also rolls up:
 

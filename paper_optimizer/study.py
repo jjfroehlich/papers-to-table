@@ -12,6 +12,7 @@ from .contracts import Candidate, CandidateResult, RoundSummary
 from .pipeline import evaluate_candidate_once
 from .plotting import generate_compare_plots, generate_optimize_plots
 from .propose import propose_candidates
+from .proposer import collect_proposer_candidates
 from .results import ResultsWriter, load_results_jsonl
 from .utils import read_json, write_json
 
@@ -239,6 +240,77 @@ def _candidate_from_dict_with_id(index: int, payload: dict[str, Any], round_inde
     )
 
 
+def _candidate_score(result: CandidateResult, primary_metric: str) -> float:
+    return float(result.primary_metrics.get(primary_metric, float("-inf")))
+
+
+def _write_confirmation_audit(
+    experiment_dir: Path,
+    *,
+    round_index: int,
+    candidate_id: str,
+    payload: dict[str, Any],
+) -> None:
+    confirmation_dir = experiment_dir / "confirmation"
+    confirmation_dir.mkdir(parents=True, exist_ok=True)
+    write_json(confirmation_dir / f"round_{round_index:04d}_{candidate_id}.json", payload)
+
+
+def _run_confirmation_reruns(
+    config: dict[str, Any],
+    *,
+    experiment_dir: Path,
+    candidate: Candidate,
+    benchmark_id: str,
+    incumbent_result: CandidateResult,
+    study_type: str,
+) -> tuple[bool, dict[str, Any]]:
+    confirmation_config = config.get("optimize", {}).get("confirmation_reruns", {}) or {}
+    enabled = bool(confirmation_config.get("enabled", False))
+    count = int(confirmation_config.get("count", 0) or 0)
+    payload: dict[str, Any] = {
+        "enabled": enabled,
+        "count": count,
+        "candidate_id": candidate.candidate_id,
+        "benchmark_id": benchmark_id,
+        "runs": [],
+        "confirmed": True,
+    }
+    if not enabled or count <= 0:
+        return True, payload
+
+    for attempt_index in range(1, count + 1):
+        rerun_result = evaluate_candidate_once(
+            config,
+            experiment_dir=experiment_dir / "confirmation_runs",
+            candidate=candidate,
+            benchmark_id=benchmark_id,
+            study_type=study_type,
+            decision="confirmation_rerun",
+            reason="confirmation_rerun",
+        )
+        ok, reason = evaluate_promotion(incumbent_result, rerun_result, config["acceptance"])
+        payload["runs"].append(
+            {
+                "attempt_index": attempt_index,
+                "candidate_status": rerun_result.candidate_status,
+                "primary_metric_value": rerun_result.primary_metrics.get(config["acceptance"]["primary_metric"]),
+                "ok": ok,
+                "reason": reason,
+            }
+        )
+        if not ok:
+            payload["confirmed"] = False
+
+    _write_confirmation_audit(
+        experiment_dir,
+        round_index=int(candidate.round_index or 0),
+        candidate_id=candidate.candidate_id,
+        payload=payload,
+    )
+    return bool(payload["confirmed"]), payload
+
+
 def run_compare_mode(config: dict[str, Any], benchmarks: Benchmarks, experiment_dir: Path) -> None:
     writer = ResultsWriter(experiment_dir)
     benchmark_id = benchmark_id_for_split(benchmarks, "dev")
@@ -402,6 +474,8 @@ def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_spa
     rounds = int(config.get("optimize", {}).get("rounds", 0))
     batch_size = int(config.get("optimize", {}).get("batch_size", 1))
     next_candidate_number = 1
+    proposer_suggestion_count = 0
+    proposer_enabled = bool(config.get("proposer", {}).get("enabled", False))
     seen_signatures: set[tuple[str, str, str | None, str]] = {
         (
             incumbent_candidate.prompt_bundle_id,
@@ -421,6 +495,17 @@ def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_spa
             batch_size=batch_size,
             next_candidate_number_start=next_candidate_number,
         )
+        proposer_candidates = collect_proposer_candidates(
+            config,
+            incumbent=incumbent_candidate,
+            search_space=search_space,
+            round_index=round_index,
+            batch_size=batch_size,
+            next_candidate_number_start=next_candidate_number + len(proposals),
+            experiment_dir=experiment_dir,
+        )
+        proposer_suggestion_count += len(proposer_candidates)
+        proposals.extend(proposer_candidates)
 
         filtered: list[Candidate] = []
         for candidate in proposals:
@@ -452,7 +537,9 @@ def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_spa
 
         promoted_id: str | None = None
         best_accepted_result = incumbent_result
+        best_accepted_candidate: Candidate | None = None
         decision_notes: list[str] = []
+        challenger_results: list[tuple[Candidate, CandidateResult, bool, str]] = []
 
         for candidate in filtered:
             challenger_result = evaluate_candidate_once(
@@ -470,18 +557,38 @@ def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_spa
                 challenger_result.promotion_decision = "promoted"
                 challenger_result.decision_reason = reason
                 if (
-                    challenger_result.primary_metrics.get(config["acceptance"]["primary_metric"], float("-inf"))
-                    > best_accepted_result.primary_metrics.get(config["acceptance"]["primary_metric"], float("-inf"))
+                    _candidate_score(challenger_result, config["acceptance"]["primary_metric"])
+                    > _candidate_score(best_accepted_result, config["acceptance"]["primary_metric"])
                 ):
                     best_accepted_result = challenger_result
+                    best_accepted_candidate = candidate
                     promoted_id = candidate.candidate_id
             else:
                 challenger_result.promotion_decision = "rejected"
                 challenger_result.decision_reason = reason
                 decision_notes.append(f"{candidate.candidate_id}:{reason}")
 
-            writer.append_result(challenger_result)
+            challenger_results.append((candidate, challenger_result, ok, reason))
             all_results.append(challenger_result)
+
+        if best_accepted_candidate is not None:
+            confirmed, confirmation_payload = _run_confirmation_reruns(
+                config,
+                experiment_dir=experiment_dir,
+                candidate=best_accepted_candidate,
+                benchmark_id=benchmark_id,
+                incumbent_result=incumbent_result,
+                study_type="optimize",
+            )
+            best_accepted_result.metadata["confirmation_reruns"] = confirmation_payload
+            if not confirmed:
+                promoted_id = None
+                best_accepted_result.promotion_decision = "rejected"
+                best_accepted_result.decision_reason = "confirmation_rerun_failed"
+                decision_notes.append(f"{best_accepted_candidate.candidate_id}:confirmation_rerun_failed")
+
+        for _, challenger_result, _, _ in challenger_results:
+            writer.append_result(challenger_result)
 
         incumbent_before = incumbent_candidate.candidate_id
         if promoted_id is not None:
@@ -537,6 +644,14 @@ def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_spa
             "rejection_reason_counts": _aggregate_reason_counts(all_results),
             "promotion_history": [summary.to_dict() for summary in round_summaries],
             "incumbent_lineage": _incumbent_lineage(all_results, incumbent_result.candidate_id),
+            "proposer": {
+                "enabled": proposer_enabled,
+                "suggested_candidate_count": proposer_suggestion_count,
+            },
+            "confirmation_reruns": {
+                "enabled": bool(config.get("optimize", {}).get("confirmation_reruns", {}).get("enabled", False)),
+                "count": int(config.get("optimize", {}).get("confirmation_reruns", {}).get("count", 0) or 0),
+            },
             "top_candidates": [
                 _result_summary_row(result, config["acceptance"]["primary_metric"])
                 for result in _rank_compare_results(all_results, config["acceptance"]["primary_metric"])[:5]

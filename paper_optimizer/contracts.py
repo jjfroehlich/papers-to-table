@@ -82,3 +82,38 @@ class RoundSummary:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class ProposerRequest:
+    round_index: int
+    max_candidates: int
+    incumbent: dict[str, Any]
+    allowed_prompt_bundle_ids: list[str]
+    allowed_text_model_ids: list[str]
+    allowed_vision_model_ids: list[str]
+    allowed_numeric_knobs: dict[str, list[float | int]]
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class ProposedCandidateDelta:
+    prompt_bundle_id: str | None = None
+    text_model_id: str | None = None
+    vision_model_id: str | None = None
+    optimizer_knobs: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class ProposerResponse:
+    candidates: list[ProposedCandidateDelta] = field(default_factory=list)
+    response_mode: str | None = None
+    raw_response: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)

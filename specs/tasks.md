@@ -34,7 +34,7 @@ Rules:
 - [x] O017a Strengthen deterministic candidate generation so bounded batches cover multi-knob search combinations more truthfully than one-axis-only mutation.
 - [x] O018 Implement duplicate suppression across round proposals and prior seen candidates.
 - [x] O044 Implement fixed-candidate-set loading/validation for compare mode with shared candidate contract.
-- [ ] O045 Implement optional bounded confirmation-rerun policy hook for top candidates, disabled by default.
+- [x] O045 Implement optional bounded confirmation-rerun policy hook for top candidates, disabled by default.
 
 ## Main-app launch integration
 
@@ -95,9 +95,9 @@ Rules:
 
 ## Optional bounded LM proposer
 
-- [ ] O038 Define optional proposer request/response schema constrained to existing search surface.
-- [ ] O039 Implement LM Studio-backed proposer adapter for bounded deltas.
-- [ ] O040 Persist proposer prompts/responses and applied candidate deltas for audit.
-- [ ] O041 Route proposer outputs through the same candidate validation, hashing, and acceptance flow.
-- [ ] O042 Add tests for invalid proposer outputs, duplicate handling, and proposer audit persistence.
-- [ ] O043 Document proposer feature as optional and disabled by default.
+- [x] O038 Define optional proposer request/response schema constrained to existing search surface.
+- [x] O039 Implement LM Studio-backed proposer adapter for bounded deltas.
+- [x] O040 Persist proposer prompts/responses and applied candidate deltas for audit.
+- [x] O041 Route proposer outputs through the same candidate validation, hashing, and acceptance flow.
+- [x] O042 Add tests for invalid proposer outputs, duplicate handling, and proposer audit persistence.
+- [x] O043 Document proposer feature as optional and disabled by default.

@@ -139,3 +139,28 @@ def validate_config(config: dict[str, Any]) -> None:
     batch_size = optimize.get("batch_size", 1)
     if not isinstance(batch_size, int) or batch_size <= 0:
         raise ConfigError("optimize.batch_size must be a positive integer")
+
+    confirmation_reruns = optimize.get("confirmation_reruns", {})
+    if confirmation_reruns is not None:
+        if not isinstance(confirmation_reruns, dict):
+            raise ConfigError("optimize.confirmation_reruns must be an object when provided")
+        if "enabled" in confirmation_reruns and not isinstance(confirmation_reruns["enabled"], bool):
+            raise ConfigError("optimize.confirmation_reruns.enabled must be a boolean")
+        if "count" in confirmation_reruns and (
+            not isinstance(confirmation_reruns["count"], int) or confirmation_reruns["count"] < 0
+        ):
+            raise ConfigError("optimize.confirmation_reruns.count must be a non-negative integer")
+
+    proposer = config.get("proposer", {})
+    if proposer is not None:
+        if not isinstance(proposer, dict):
+            raise ConfigError("proposer must be an object when provided")
+        if "enabled" in proposer and not isinstance(proposer["enabled"], bool):
+            raise ConfigError("proposer.enabled must be a boolean")
+        for key in ["provider", "model_id", "api_base"]:
+            if key in proposer and proposer[key] is not None and not isinstance(proposer[key], str):
+                raise ConfigError(f"proposer.{key} must be a string when provided")
+        if "max_candidates" in proposer and (
+            not isinstance(proposer["max_candidates"], int) or proposer["max_candidates"] <= 0
+        ):
+            raise ConfigError("proposer.max_candidates must be a positive integer")
