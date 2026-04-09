@@ -80,6 +80,12 @@ The evaluator resolves a field type per cell and applies one of these scoring pa
 - numeric: deterministic normalization with global tolerance defaults and optional per-column overrides
 - text: judge-backed scoring by default, with deterministic override when explicitly configured
 
+Judge-backed text scoring uses a bounded response-mode ladder:
+
+- `json_schema`
+- `json_object`
+- prompt-only JSON mode with app-side parsing
+
 When a text field uses judge-backed scoring and an individual judge request fails at runtime, the evaluator must preserve a per-cell output instead of aborting the whole run. That cell is recorded as unscored with `judge_verdict = "unclear"` and explicit judge-failure diagnostics.
 
 ### Join Handling
@@ -157,6 +163,11 @@ Diagnostics include counts such as:
 - `unmatched_proposal_count`
 - `join_failure_count`
 - `evidence_present_but_unvalidated_count`
+- `judge_request_failed_count`
+- `judge_unclear_text_cell_count`
+- `judge_json_schema_text_cell_count`
+- `judge_json_object_text_cell_count`
+- `judge_prompt_only_text_cell_count`
 
 ## Non-Goals
 

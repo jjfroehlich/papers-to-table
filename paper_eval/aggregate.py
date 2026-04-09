@@ -21,6 +21,13 @@ def build_run_summary(
     text_records = [cell for cell in scored_records if cell.field_type == "text"]
     judge_text_records = [cell for cell in text_records if cell.scoring_policy == "judge"]
     deterministic_text_records = [cell for cell in text_records if cell.scoring_policy == "deterministic"]
+    judge_unclear_records = [cell for cell in gold_present_records if cell.field_type == "text" and cell.judge_verdict == "unclear"]
+    judge_request_failed_records = [
+        cell for cell in gold_present_records if "judge_request_failed" in cell.diagnostic_flags
+    ]
+    judge_json_schema_records = [cell for cell in gold_present_records if cell.judge_response_mode == "json_schema"]
+    judge_json_object_records = [cell for cell in gold_present_records if cell.judge_response_mode == "json_object"]
+    judge_prompt_only_records = [cell for cell in gold_present_records if cell.judge_response_mode == "none"]
     anchor_valid_records = [cell for cell in scored_records if cell.anchor_valid]
     evidence_unvalidated_records = [
         cell for cell in scored_records if cell.evidence_present_but_unvalidated
@@ -62,6 +69,11 @@ def build_run_summary(
         "text_scored_cell_count": len(text_records),
         "judge_text_scored_cell_count": len(judge_text_records),
         "deterministic_text_scored_cell_count": len(deterministic_text_records),
+        "judge_unclear_text_cell_count": len(judge_unclear_records),
+        "judge_request_failed_count": len(judge_request_failed_records),
+        "judge_json_schema_text_cell_count": len(judge_json_schema_records),
+        "judge_json_object_text_cell_count": len(judge_json_object_records),
+        "judge_prompt_only_text_cell_count": len(judge_prompt_only_records),
         "anchor_valid_count": len(anchor_valid_records),
         "evidence_present_but_unvalidated_count": len(evidence_unvalidated_records),
         "unscored_text_cell_count": sum(1 for cell in gold_present_records if cell.field_type == "text" and not cell.was_scored),

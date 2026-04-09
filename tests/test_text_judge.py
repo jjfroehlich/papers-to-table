@@ -43,6 +43,7 @@ class FakeJudge:
                 "provider": DEFAULT_JUDGE_PROVIDER,
                 "configured_model_id": "judge-model-1",
                 "resolved_model_id": self.resolved_model_id,
+                "judge_response_mode": "json_schema",
             },
         )
 
@@ -125,9 +126,103 @@ class LMStudioJudgeAdapterTests(unittest.TestCase):
         self.assertEqual(captured_request["payload"]["temperature"], 0.0)
         self.assertEqual(captured_request["payload"]["response_format"]["type"], "json_schema")
         self.assertEqual(response.verdict, "correct")
+        self.assertEqual(response.metadata["judge_response_mode"], "json_schema")
         self.assertEqual(response.metadata["provider"], DEFAULT_JUDGE_PROVIDER)
         self.assertEqual(response.metadata["configured_model_id"], "configured-model")
         self.assertEqual(response.metadata["resolved_model_id"], "resolved-runtime-model")
+
+    def test_lm_studio_adapter_falls_back_to_json_object_when_json_schema_fails(self) -> None:
+        judge_config = JudgeConfig(model_id="configured-model")
+        judge = LMStudioTextJudge(judge_config)
+        judge_request = build_judge_request(
+            judge_config=judge_config,
+            run_id="run-a",
+            row_id="row-1",
+            column_name="notes",
+            cell_id="cell-1",
+            gold_value="Gold answer",
+            proposed_value="Proposal answer",
+            field_description=None,
+            evidence_excerpt=None,
+        )
+        seen_modes: list[str] = []
+
+        def fake_urlopen(request_obj):
+            import json
+
+            if request_obj.full_url.endswith("/models"):
+                return _FakeHTTPResponse({"data": [{"id": "configured-model"}]})
+            payload = json.loads(request_obj.data.decode("utf-8"))
+            seen_modes.append((payload.get("response_format") or {}).get("type", "none"))
+            if len(seen_modes) == 1:
+                return _FakeHTTPResponse(
+                    {
+                        "model": "resolved-runtime-model",
+                        "choices": [{"message": {"content": "not valid json"}}],
+                        "usage": {"prompt_tokens": 10, "completion_tokens": 4, "total_tokens": 14},
+                    }
+                )
+            return _FakeHTTPResponse(
+                {
+                    "model": "resolved-runtime-model",
+                    "choices": [{"message": {"content": '{"verdict":"correct","rationale_label":"semantic_match"}'}}],
+                    "usage": {"prompt_tokens": 10, "completion_tokens": 4, "total_tokens": 14},
+                }
+            )
+
+        with mock.patch("paper_eval.judge.request.urlopen", side_effect=fake_urlopen):
+            response = judge.judge(judge_request)
+
+        self.assertEqual(seen_modes, ["json_schema", "json_object"])
+        self.assertEqual(response.verdict, "correct")
+        self.assertEqual(response.metadata["judge_response_mode"], "json_object")
+        self.assertTrue(response.metadata["structured_output_fallback_used"])
+
+    def test_lm_studio_adapter_falls_back_to_prompt_only_mode(self) -> None:
+        judge_config = JudgeConfig(model_id="configured-model")
+        judge = LMStudioTextJudge(judge_config)
+        judge_request = build_judge_request(
+            judge_config=judge_config,
+            run_id="run-a",
+            row_id="row-1",
+            column_name="notes",
+            cell_id="cell-1",
+            gold_value="Gold answer",
+            proposed_value="Proposal answer",
+            field_description=None,
+            evidence_excerpt=None,
+        )
+        seen_modes: list[str] = []
+
+        def fake_urlopen(request_obj):
+            import json
+
+            if request_obj.full_url.endswith("/models"):
+                return _FakeHTTPResponse({"data": [{"id": "configured-model"}]})
+            payload = json.loads(request_obj.data.decode("utf-8"))
+            seen_modes.append((payload.get("response_format") or {}).get("type", "none"))
+            if len(seen_modes) < 3:
+                return _FakeHTTPResponse(
+                    {
+                        "model": "resolved-runtime-model",
+                        "choices": [{"message": {"content": "not valid json"}}],
+                        "usage": {"prompt_tokens": 10, "completion_tokens": 4, "total_tokens": 14},
+                    }
+                )
+            return _FakeHTTPResponse(
+                {
+                    "model": "resolved-runtime-model",
+                    "choices": [{"message": {"content": "```json\n{\"verdict\":\"correct\",\"rationale_label\":\"semantic_match\"}\n```"}}],
+                    "usage": {"prompt_tokens": 10, "completion_tokens": 4, "total_tokens": 14},
+                }
+            )
+
+        with mock.patch("paper_eval.judge.request.urlopen", side_effect=fake_urlopen):
+            response = judge.judge(judge_request)
+
+        self.assertEqual(seen_modes, ["json_schema", "json_object", "none"])
+        self.assertEqual(response.verdict, "correct")
+        self.assertEqual(response.metadata["judge_response_mode"], "none")
 
     def test_lm_studio_adapter_loads_model_when_not_already_loaded(self) -> None:
         judge_config = JudgeConfig(model_id="configured-model")
@@ -281,6 +376,7 @@ class TextJudgeScoringTests(unittest.TestCase):
         self.assertEqual(scored_cell.judge_configured_model_id, "judge-model-1")
         self.assertEqual(scored_cell.judge_resolved_model_id, "runtime-qwen-model")
         self.assertEqual(scored_cell.judge_verdict, "correct")
+        self.assertEqual(scored_cell.judge_response_mode, "json_schema")
         self.assertEqual(scored_cell.judge_model_id, "judge-model-1")
         self.assertEqual(scored_cell.judge_prompt_version, "batch3-text-judge-v1")
         self.assertEqual(scored_cell.judge_input_hash, judge_record.judge_input_hash)
@@ -288,6 +384,7 @@ class TextJudgeScoringTests(unittest.TestCase):
         self.assertEqual(judge_record.judge_configured_model_id, "judge-model-1")
         self.assertEqual(judge_record.judge_resolved_model_id, "runtime-qwen-model")
         self.assertEqual(judge_record.judge_verdict, "correct")
+        self.assertEqual(judge_record.judge_response_mode, "json_schema")
         self.assertEqual(judge_record.judge_model_id, "judge-model-1")
 
     def test_text_fields_can_opt_into_deterministic_override(self) -> None:

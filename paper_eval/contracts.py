@@ -231,6 +231,7 @@ class ScoredCell:
     judge_configured_model_id: str | None = None
     judge_resolved_model_id: str | None = None
     judge_verdict: str | None = None
+    judge_response_mode: str | None = None
     judge_model_id: str | None = None
     judge_prompt_version: str | None = None
     judge_prompt_hash: str | None = None
@@ -274,6 +275,7 @@ class JudgeConfig:
     max_value_chars: int = 600
     max_evidence_chars: int = 240
     max_output_tokens: int = 120
+    structured_output_mode: str = "json_schema"
 
 
 @dataclass(frozen=True)
@@ -311,6 +313,7 @@ class JudgeRecord:
     judge_configured_model_id: str
     judge_resolved_model_id: str | None
     judge_model_id: str
+    judge_response_mode: str | None
     judge_prompt_version: str
     judge_prompt_hash: str
     judge_temperature: float

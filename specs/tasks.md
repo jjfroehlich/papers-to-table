@@ -74,7 +74,7 @@ Working rules:
 
 - [x] E038 Define the judge request and response schema for text-field scoring under a judge-by-default policy for text fields.
 - [x] E039 Implement judge prompt construction with bounded field context only.
-- [x] E040 Implement a judge adapter with fixed model configuration, temperature 0, and strict structured output parsing.
+- [x] E040 Implement a judge adapter with fixed model configuration, temperature 0, and bounded fallback from `json_schema` to `json_object` to prompt-only JSON mode.
 - [x] E041 Implement text-field normalization helpers needed before judge invocation and deterministic override support for highly standardized text columns.
 - [x] E042 Implement `text_accuracy` under the configured text scoring policy, with judge-backed scoring by default and deterministic override where configured.
 - [x] E043 Persist judge metadata per scored text cell, including judge model id, prompt version or hash, and temperature.
@@ -105,6 +105,7 @@ Working rules:
 - [x] E058 Document the published input artifact contract expected from the main app in operator-facing docs, including stable join identifiers and single-sheet XLSX behavior.
 - [x] E063 Tighten `README.md` and operator docs so they clearly explain what the eval repo does, expected main-app inputs, one-run and many-run evaluation workflows, headline metrics, diagnostic metrics, and current limitations.
 - [x] E064 Add explicit operator guidance and examples for the LM Studio judge path, including configuration, the default judge model `qwen/qwen3.5-35b-a3b`, and how persisted judge metadata should be interpreted.
+- [x] E067 Document judge fallback behavior and the additional judge-failure and judge-response-mode diagnostic metrics exposed in run summaries.
 - [x] E065 Add optional machine-readable JSON stdout completion mode for `evaluate` and `compare`, while keeping file artifacts canonical.
 - [x] E066 Add tests and docs for JSON stdout mode, including payload schema tagging and key produced artifact paths.
 

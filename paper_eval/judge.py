@@ -40,6 +40,98 @@ def prompt_hash_for_version(prompt_version: str) -> str:
     return hashlib.sha256(f"{prompt_version}\n{_PROMPT_TEMPLATE}".encode("utf-8")).hexdigest()
 
 
+def _fallback_modes_for(structured_mode: str) -> list[str]:
+    if structured_mode == "json_schema":
+        return ["json_schema", "json_object", "none"]
+    if structured_mode == "json_object":
+        return ["json_object", "none"]
+    return ["none"]
+
+
+def _strip_json_fence(text: str) -> str:
+    stripped = text.strip()
+    if stripped.startswith("```"):
+        lines = stripped.splitlines()
+        if lines:
+            lines = lines[1:]
+        while lines and lines[-1].strip().startswith("```"):
+            lines = lines[:-1]
+        stripped = "\n".join(lines).strip()
+    return stripped
+
+
+def _extract_balanced_json_object(text: str) -> str | None:
+    start = text.find("{")
+    if start < 0:
+        return None
+    depth = 0
+    in_string = False
+    escape = False
+    for index in range(start, len(text)):
+        char = text[index]
+        if in_string:
+            if escape:
+                escape = False
+            elif char == "\\":
+                escape = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+            continue
+        if char == "{":
+            depth += 1
+            continue
+        if char == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : index + 1]
+    return None
+
+
+def _parse_judge_json(content: str) -> dict[str, Any]:
+    cleaned = _strip_json_fence(content)
+    candidates = [cleaned]
+    balanced = _extract_balanced_json_object(cleaned)
+    if balanced and balanced not in candidates:
+        candidates.append(balanced)
+    for candidate in candidates:
+        try:
+            parsed = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, dict):
+            return parsed
+    raise EvaluationError("Judge returned non-JSON output after fallback parsing attempts.")
+
+
+def _response_format_for(mode: str) -> dict[str, Any] | None:
+    if mode == "json_schema":
+        return {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "paper_eval_text_judge",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "verdict": {
+                            "type": "string",
+                            "enum": ["correct", "incorrect", "unclear"],
+                        },
+                        "rationale_label": {"type": ["string", "null"]},
+                    },
+                    "required": ["verdict", "rationale_label"],
+                    "additionalProperties": False,
+                },
+            },
+        }
+    if mode == "json_object":
+        return {"type": "json_object"}
+    return None
+
+
 def build_judge_request(
     *,
     judge_config: JudgeConfig,
@@ -117,6 +209,7 @@ def judge_record_from_result(
         judge_configured_model_id=judge_config.model_id,
         judge_resolved_model_id=resolved_model_id,
         judge_model_id=judge_config.model_id,
+        judge_response_mode=(judge_response.metadata.get("judge_response_mode") if isinstance(judge_response.metadata, dict) else None),
         judge_prompt_version=judge_request.prompt_version,
         judge_prompt_hash=judge_request.prompt_hash,
         judge_temperature=judge_config.temperature,
@@ -141,70 +234,79 @@ class LMStudioTextJudge:
     def judge(self, judge_request: JudgeRequest) -> JudgeResponse:
         self._ensure_model_loaded(self._judge_config.model_id)
         endpoint = (self._judge_config.api_base or DEFAULT_LM_STUDIO_API_BASE).rstrip("/") + "/chat/completions"
-        payload = {
-            "model": self._judge_config.model_id,
-            "temperature": self._judge_config.temperature,
-            "max_tokens": self._judge_config.max_output_tokens,
-            "response_format": {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "paper_eval_text_judge",
-                    "strict": True,
-                    "schema": {
-                        "type": "object",
-                        "properties": {
-                            "verdict": {
-                                "type": "string",
-                                "enum": ["correct", "incorrect", "unclear"],
-                            },
-                            "rationale_label": {"type": ["string", "null"]},
-                        },
-                        "required": ["verdict", "rationale_label"],
-                        "additionalProperties": False,
-                    },
-                },
-            },
-            "messages": [
-                {"role": "system", "content": _PROMPT_TEMPLATE},
-                {"role": "user", "content": _user_prompt(judge_request)},
-            ],
-        }
-        data = json.dumps(payload).encode("utf-8")
-        headers = {"Content-Type": "application/json"}
-        if self._judge_config.api_key:
-            headers["Authorization"] = f"Bearer {self._judge_config.api_key}"
-        http_request = request.Request(endpoint, data=data, headers=headers, method="POST")
-        try:
-            with request.urlopen(http_request) as response:
-                response_payload = json.loads(response.read().decode("utf-8"))
-        except error.HTTPError as exc:  # pragma: no cover - exercised by integration environments
-            detail = exc.read().decode("utf-8", errors="replace")
-            raise EvaluationError(f"LM Studio judge request failed with HTTP {exc.code}: {detail}") from exc
-        except error.URLError as exc:  # pragma: no cover - exercised by integration environments
-            raise EvaluationError(f"LM Studio judge request failed at {endpoint}: {exc.reason}") from exc
+        modes = _fallback_modes_for(self._judge_config.structured_output_mode)
+        failures: list[str] = []
+        for index, mode in enumerate(modes):
+            payload = {
+                "model": self._judge_config.model_id,
+                "temperature": self._judge_config.temperature,
+                "max_tokens": self._judge_config.max_output_tokens,
+                "messages": [
+                    {"role": "system", "content": _PROMPT_TEMPLATE},
+                    {"role": "user", "content": _user_prompt(judge_request)},
+                ],
+            }
+            response_format = _response_format_for(mode)
+            if response_format is not None:
+                payload["response_format"] = response_format
+            data = json.dumps(payload).encode("utf-8")
+            headers = {"Content-Type": "application/json"}
+            if self._judge_config.api_key:
+                headers["Authorization"] = f"Bearer {self._judge_config.api_key}"
+            http_request = request.Request(endpoint, data=data, headers=headers, method="POST")
+            try:
+                with request.urlopen(http_request) as response:
+                    response_payload = json.loads(response.read().decode("utf-8"))
+            except error.HTTPError as exc:  # pragma: no cover - exercised by integration environments
+                detail = exc.read().decode("utf-8", errors="replace")
+                if exc.code == 400 and index < len(modes) - 1:
+                    failures.append(f"{mode}: HTTP {exc.code}: {detail[:200]}")
+                    continue
+                raise EvaluationError(f"LM Studio judge request failed with HTTP {exc.code}: {detail}") from exc
+            except error.URLError as exc:  # pragma: no cover - exercised by integration environments
+                raise EvaluationError(f"LM Studio judge request failed at {endpoint}: {exc.reason}") from exc
 
-        choice = ((response_payload.get("choices") or [{}])[0]).get("message") or {}
-        content = choice.get("content")
-        if isinstance(content, list):
-            content = "".join(part.get("text", "") for part in content if isinstance(part, dict))
-        try:
-            parsed = json.loads(content or "")
-        except json.JSONDecodeError as exc:
-            raise EvaluationError("Judge returned non-JSON output despite strict structured-output request.") from exc
-        verdict = parsed.get("verdict")
-        if verdict not in {"correct", "incorrect", "unclear"}:
-            raise EvaluationError("Judge returned an invalid verdict label.")
-        rationale_label = parsed.get("rationale_label")
-        return JudgeResponse(
-            verdict=verdict,
-            rationale_label=rationale_label,
-            metadata={
-                "provider": self._judge_config.provider,
-                "configured_model_id": self._judge_config.model_id,
-                "resolved_model_id": response_payload.get("model"),
-                "usage": response_payload.get("usage", {}),
-            },
-        )
+            choice = ((response_payload.get("choices") or [{}])[0]).get("message") or {}
+            content = choice.get("content")
+            if isinstance(content, list):
+                content = "".join(part.get("text", "") for part in content if isinstance(part, dict))
+            try:
+                parsed = _parse_judge_json(content or "")
+            except EvaluationError as exc:
+                if index < len(modes) - 1:
+                    failures.append(f"{mode}: {exc}")
+                    continue
+                if failures:
+                    failure_summary = "; ".join(failures)
+                    raise EvaluationError(
+                        f"{exc} Fallback attempts: {failure_summary}."
+                    ) from exc
+                raise
+            verdict = parsed.get("verdict")
+            if verdict not in {"correct", "incorrect", "unclear"}:
+                invalid_verdict = EvaluationError("Judge returned an invalid verdict label.")
+                if index < len(modes) - 1:
+                    failures.append(f"{mode}: {invalid_verdict}")
+                    continue
+                if failures:
+                    failure_summary = "; ".join(failures)
+                    raise EvaluationError(f"Judge returned an invalid verdict label. Fallback attempts: {failure_summary}.")
+                raise invalid_verdict
+            rationale_label = parsed.get("rationale_label")
+            return JudgeResponse(
+                verdict=verdict,
+                rationale_label=rationale_label,
+                metadata={
+                    "provider": self._judge_config.provider,
+                    "configured_model_id": self._judge_config.model_id,
+                    "resolved_model_id": response_payload.get("model"),
+                    "usage": response_payload.get("usage", {}),
+                    "judge_response_mode": mode,
+                    "structured_output_fallback_used": mode != modes[0],
+                },
+            )
+
+        raise EvaluationError("Judge fallback ladder exhausted without a valid response.")
 
     def _ensure_model_loaded(self, model_id: str) -> None:
         if self._verified_loaded_model_id == model_id:

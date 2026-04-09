@@ -527,6 +527,7 @@ def _score_text_cell(
         judge_response=judge_response,
     )
     resolved_model_id = judge_record.judge_resolved_model_id
+    judge_response_mode = judge_record.judge_response_mode
     was_scored = judge_response.verdict in {"correct", "incorrect"}
     is_correct = _is_correct_for_judge_verdict(judge_response.verdict)
     diagnostic_flags = []
@@ -564,6 +565,7 @@ def _score_text_cell(
             judge_configured_model_id=judge_config.model_id,
             judge_resolved_model_id=resolved_model_id,
             judge_verdict=judge_response.verdict,
+            judge_response_mode=judge_response_mode,
             judge_model_id=judge_config.model_id,
             judge_prompt_version=judge_request.prompt_version,
             judge_prompt_hash=judge_request.prompt_hash,
@@ -577,6 +579,7 @@ def _score_text_cell(
                     "configured_model_id": judge_config.model_id,
                     "resolved_model_id": resolved_model_id,
                     "verdict": judge_response.verdict,
+                    "response_mode": judge_response_mode,
                     "rationale_label": judge_response.rationale_label,
                     "input_was_truncated": judge_request.was_truncated,
                     "error_message": judge_failure_message,

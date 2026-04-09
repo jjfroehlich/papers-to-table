@@ -36,6 +36,14 @@ Override settings with:
 
 If judge-backed text scoring is needed and an individual judge request fails at runtime, the affected text cell is recorded as `unclear` with judge-failure diagnostics instead of aborting the full evaluation.
 
+Judge requests now use the same bounded fallback ladder as the main app's extraction path:
+
+- `json_schema`
+- `json_object`
+- prompt-only JSON mode with app-side parsing
+
+This means eval can benchmark judge models that only work reliably in `structured_output_mode = none`, while still preserving explicit diagnostics about fallback use and judge failures.
+
 When the configured judge model is not already active in LM Studio, the evaluator attempts to load it through LM Studio's model-management API before sending judge requests. The evaluator verifies judge-model readiness once per evaluation process and reuses that result instead of probing LM Studio before every scored cell.
 
 ## Inputs
@@ -237,6 +245,11 @@ Diagnostic metrics include:
 - `gold_empty_cell_count`
 - `filled_on_gold_empty_count`
 - `missing_proposal_count`
+- `judge_request_failed_count`
+- `judge_unclear_text_cell_count`
+- `judge_json_schema_text_cell_count`
+- `judge_json_object_text_cell_count`
+- `judge_prompt_only_text_cell_count`
 - `duplicate_proposal_join_count`
 - `cell_id_mismatch_count`
 - `unmatched_proposal_count`

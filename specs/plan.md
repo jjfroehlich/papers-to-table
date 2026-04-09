@@ -141,7 +141,7 @@ The current technical direction is:
 - default provider: LM Studio through its OpenAI-compatible local API
 - default configured model: `qwen/qwen3.5-35b-a3b`
 - fixed temperature of `0`
-- strict structured JSON output parsing
+- bounded response-mode fallback from `json_schema` to `json_object` to prompt-only JSON mode with app-side parsing
 - persisted provider, configured model id, resolved runtime model id, prompt metadata, and input hash
 
 Judge integration should stay limited to text scoring by default.
