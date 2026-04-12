@@ -123,6 +123,7 @@ def _candidate_diagnostic_row(result: CandidateResult, primary_metric: str) -> d
         "score_available": score is not None,
         "score_explanation": _candidate_score_explanation(result, primary_metric, eval_metrics, reviewer_summary),
         "scored_cell_count": eval_metrics.get("scored_cell_count"),
+        "correctness": eval_metrics.get("correctness"),
         "correctness_mean": eval_metrics.get("correctness_mean"),
         "correctness_judge_a": eval_metrics.get("correctness_judge_a"),
         "correctness_judge_b": eval_metrics.get("correctness_judge_b"),

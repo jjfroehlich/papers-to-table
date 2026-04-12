@@ -14,10 +14,12 @@ paper_optimizer/cli.py
 paper_optimizer/contracts.py
 paper_optimizer/launch_eval.py
 paper_optimizer/launch_main.py
+paper_optimizer/overnight.py
 paper_optimizer/pipeline.py
 paper_optimizer/plotting.py
 paper_optimizer/propose.py
 paper_optimizer/proposer.py
+paper_optimizer/report.py
 paper_optimizer/results.py
 paper_optimizer/search_space.py
 paper_optimizer/settings.py

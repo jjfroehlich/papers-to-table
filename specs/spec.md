@@ -23,7 +23,7 @@ The optimizer must:
 7. Keep dev and holdout behavior separate.
 8. Apply deterministic-first behavior by default.
 9. Treat scored-versus-unscored candidate state as a first-class truth surface rather than inferring it from missing numeric fields.
-10. Generate a self-contained experiment report that embeds plots and summarizes provenance, scoring truth, and holdout status.
+10. Generate self-contained decision reports that summarize what happened, which candidate won and why, whether the result is trustworthy, how to read the most important plots, and what should be checked next.
 
 ## Study modes
 
@@ -126,6 +126,18 @@ Candidate result records must include:
 Compare-study operator artifacts must also make unscored candidates explicit rather than silently dropping them from summaries or plots.
 
 Holdout outputs must remain semantically separate from dev outputs in both machine-readable summaries and operator-facing reports.
+
+## Reporting contract
+
+Operator-facing reports must:
+
+- render missing values explicitly rather than leaving blank whitespace
+- surface scored, scored_degraded, unscored, and failed states directly in summary cards and candidate tables
+- use compare semantics for compare studies and incumbent semantics for optimize studies
+- surface retrieval settings prominently when retrieval is part of the study
+- include deterministic interpretation and next-check sections derived from recorded metrics rather than speculative prose
+- curate the plot set to the most decision-useful views and attach reusable guidance blocks for each plot
+- keep raw filesystem paths and low-level artifact locations in provenance or details sections, not in the main summary band
 
 ## Non-goals
 

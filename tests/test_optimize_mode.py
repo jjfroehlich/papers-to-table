@@ -19,3 +19,11 @@ def test_optimize_mode_outputs(base_config: dict, tmp_path: Path) -> None:
     assert (out / "plots" / "optimize_history_best_so_far.png").exists()
     assert (out / "plots" / "optimize_decision_counts_by_round.png").exists()
     assert (out / "plots" / "optimize_primary_by_knob_retrieval_top_k.png").exists()
+
+    report_html = (out / "report.html").read_text(encoding="utf-8")
+    assert "Incumbent" in report_html
+    assert "Optimize Summary" in report_html
+    assert "Promotion History" in report_html
+    assert "Search Ceiling" in report_html
+    assert "What This Shows" in report_html
+    assert "How To Read It" in report_html

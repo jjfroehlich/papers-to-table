@@ -158,7 +158,7 @@
     ],
     "metric_groups": {
       "primary": {
-        "correctness": "correctness_mean",
+        "correctness": "correctness",
         "correctness_judge_a": "correctness_judge_a",
         "correctness_judge_b": "correctness_judge_b"
       },

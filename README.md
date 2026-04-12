@@ -69,7 +69,7 @@ The recommended `eval_app` config is:
 - `command_prefix`: optional explicit launcher, usually needed when the eval app runs in a different Python environment
 - `metric_groups`: mapping from eval summary metrics into optimizer `primary`, `guardrail`, and `diagnostic` groups
 
-For new studies, prefer mapping the optimizer primary metric to eval `correctness_mean` instead of `structured_accuracy` so judge-backed text scoring and dual-judge runs remain visible in the main selection metric.
+For new studies, prefer mapping the optimizer primary metric to eval `correctness` so missing-proposal cells are counted in the headline score denominator. Keep eval `correctness_mean` available as the scored-only correctness view so judge-backed text scoring and dual-judge behavior remain visible.
 
 If you need a non-standard wrapper, both `main_app` and `eval_app` also support explicit `command` arrays. The recommended repo-root plus config-overlay path is the cleaner default.
 
@@ -254,7 +254,20 @@ Compare studies also write `candidate_diagnostics.json` and `results/candidate_d
 
 Compare studies also write `compare_summary.json`, a top-level operator report that collects the winner, scored/unscored/failed candidate counts, and the same per-candidate score explanations in one place.
 
-Every compare, optimize, validate-best, and summarize flow now also regenerates `report.html` at the experiment root. The report embeds plot PNGs inline, links the underlying CSVs, summarizes winner or incumbent state, scored-vs-unscored truth, provenance, promotion history, and holdout status.
+Every compare, optimize, validate-best, and summarize flow now also regenerates `report.html` at the experiment root. These reports are decision reports, not raw artifact dumps:
+
+- top layer: executive summary with a one-sentence main conclusion, winner or incumbent card, trust or caveat summary, and next checks
+- middle layer: ranked candidate table plus deterministic explanations for why the winner won and why others did not
+- evidence layer: selected plots only, each with reusable guidance blocks for what the plot shows, how to read it, and what to watch for
+
+Study semantics are now explicit in the report UI:
+
+- compare reports use winner semantics and avoid optimize-only labels such as baseline or promoted unless the study actually carries that meaning
+- optimize reports use incumbent semantics, promotion history, round summaries, and plateau or tie-zone interpretation
+- retrieval compares surface retrieval mode, top_k, recall rescue, whole-document settings, and rescue usage as first-class fields
+- overnight pipeline reports summarize stage-to-stage winner evolution, largest gains, and whether later stages improved score or merely validated an earlier winner
+
+Missing values are rendered truthfully rather than silently left blank. The report uses explicit phrases such as `not recorded`, `not configured`, `not run`, `unknown`, or `not scored` depending on the field.
 
 Typical plot and report artifacts now include files such as:
 
@@ -269,6 +282,9 @@ Typical plot and report artifacts now include files such as:
 - `plots/optimize_unscored_reasons.png`
 - `plots/optimize_primary_by_retrieval_top_k.png`
 - `plots/optimize_judge_disagreement.png`
+- `pipeline_plots/pipeline_stage_trajectory.png` in overnight aggregate reports
+- `pipeline_plots/pipeline_stage_durations.png` in overnight aggregate reports
+- `pipeline_plots/pipeline_candidate_frontier.png` in overnight aggregate reports
 
 ## Optional proposer and confirmation config
 

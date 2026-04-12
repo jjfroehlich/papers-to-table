@@ -36,6 +36,34 @@ def test_compare_mode_outputs(base_config: dict, tmp_path: Path) -> None:
     assert compare_summary["winner"]["candidate_id"] == best_candidate["candidate_id"]
     assert compare_summary["candidate_count"] == 3
 
+    report_html = (out / "report.html").read_text(encoding="utf-8")
+    assert "Winner" in report_html
+    assert "Why This Candidate Won" in report_html
+    assert "Compare Semantics" in report_html
+    assert "What This Shows" in report_html
+    assert "How To Read It" in report_html
+    assert "What To Watch For" in report_html
+    assert "top_k=6" in report_html
+    assert "Baseline" not in report_html
+    assert "Promoted" not in report_html
+
+
+def test_compare_report_surfaces_retrieval_settings(base_config: dict, tmp_path: Path) -> None:
+    for candidate, top_k in zip(base_config["compare_candidates"], [6, 8, 10], strict=True):
+        candidate["text_model_id"] = "text-model-b"
+        candidate["optimizer_knobs"]["retrieval_top_k"] = top_k
+
+    benches = load_benchmarks(base_config)
+    out = tmp_path / "compare_retrieval_exp"
+    run_compare_mode(base_config, benches, out)
+
+    report_html = (out / "report.html").read_text(encoding="utf-8")
+    assert "retrieval compare" in report_html.lower()
+    assert "Retrieval Signals" in report_html
+    assert "Winner retrieval mode" in report_html
+    assert "top_k=10" in report_html or "top_k=8" in report_html or "top_k=6" in report_html
+    assert "not configured" not in report_html.split("Retrieval Signals", 1)[1].split("</article>", 1)[0]
+
 
 def test_compare_plots_keep_unscored_candidates(tmp_path: Path) -> None:
     experiment_dir = tmp_path / "compare_exp"
@@ -150,6 +178,9 @@ def test_compare_mode_writes_no_winner_artifact_when_all_candidates_fail(
     assert (out / "no_winner.json").exists()
     payload = json.loads((out / "no_winner.json").read_text(encoding="utf-8"))
     assert payload["reason"] == "no_completed_candidates"
+    report_html = (out / "report.html").read_text(encoding="utf-8")
+    assert "No winner was materialized" in report_html
+    assert "not configured" in report_html or "not recorded" in report_html
 
 
 def test_compare_mode_writes_no_eligible_winner_when_degraded_scores_are_disallowed(

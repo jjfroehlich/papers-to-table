@@ -44,7 +44,10 @@ Command dispatch lives in `paper_optimizer/cli.py`.
 - `study.py`: compare/optimize orchestration, holdout validation, and summarize behavior.
 - `results.py`: experiment manifests, result rows, summary files, and round summaries.
 - `plotting.py`: static CSV + PNG outputs for compare and optimize views.
-- `report.py`: self-contained HTML experiment report generation with embedded plots and summary tables.
+- `report.py`: experiment report view-model preparation and self-contained HTML decision report generation.
+- `overnight.py`: overnight pipeline report view-model preparation, aggregate candidate exports, and top-level pipeline plots.
+- `reporting.py`: shared report formatting, fallback rendering, row normalization, status classification, and plot-guidance helpers.
+- `report_templates.py`: reusable report components or partials plus experiment and overnight HTML templates.
 - `contracts.py`: typed records for candidate, launch result, candidate result, and round summary.
 
 ## Data flow
@@ -57,7 +60,7 @@ Command dispatch lives in `paper_optimizer/cli.py`.
 4. Persist per-candidate rows, `candidate_diagnostics.*`, and top-level compare summary artifacts.
 4a. Persist explicit scored or unscored truth and compact provenance fields with each candidate result and diagnostic row.
 5. Rank by configured primary metric with deterministic tie handling.
-6. Emit compare plots, winner record when available, and `report.html`.
+6. Emit compare plots, winner record when available, and a compare-semantics decision report.
 
 ### optimize flow
 
@@ -70,7 +73,7 @@ Command dispatch lives in `paper_optimizer/cli.py`.
    - apply acceptance gates
    - optionally promote accepted best challenger
    - persist round summary and experiment summary
-4. Emit optimize plots and `report.html`.
+4. Emit optimize plots and an optimize-semantics decision report.
 
 ### preflight flow
 
@@ -91,6 +94,7 @@ Command dispatch lives in `paper_optimizer/cli.py`.
 
 1. Read experiment manifest.
 2. Rebuild mode-appropriate static plots from saved `results.csv`.
+3. Rebuild the corresponding decision report from saved artifacts using the report view-model layer.
 
 ## Integration contracts
 
@@ -133,7 +137,7 @@ Required persisted entities:
 - best-candidate state
 - round summaries (optimize)
 - static plot CSV/PNG artifacts
-- self-contained HTML experiment report
+- self-contained HTML decision report with study-specific semantics, deterministic interpretations, and plot guidance
 - explicit no-winner or empty-results summaries when no candidate completes successfully
 
 ## Current architecture limits

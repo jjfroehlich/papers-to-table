@@ -25,6 +25,8 @@ def test_holdout_validation_and_summarize(base_config: dict, tmp_path: Path) -> 
 
     summarize(base_config, exp)
     assert (exp / "plots" / "optimize_best_by_round.png").exists()
+    report_html = (exp / "report.html").read_text(encoding="utf-8")
+    assert "Main Conclusion" in report_html
 
 
 def test_generate_overnight_report_writes_aggregate_outputs(base_config: dict, tmp_path: Path) -> None:
@@ -62,6 +64,14 @@ def test_generate_overnight_report_writes_aggregate_outputs(base_config: dict, t
     assert (overnight_dir / "all_candidates.json").exists()
     report_html = report_path.read_text(encoding="utf-8")
     assert "../runs/session_compare/experiment/report.html" in report_html
+    assert "Stage Evolution" in report_html
+    assert "Stage Decision Table" in report_html
+    assert "Pipeline Evidence" in report_html
+    assert "Stage-To-Stage Score Trajectory" in report_html
+    assert "What This Shows" in report_html
+    assert "How To Read It" in report_html
+    assert "None" not in report_html
     payload = json.loads((overnight_dir / "all_candidates.json").read_text(encoding="utf-8"))
     assert payload
     assert payload[0]["stage_name"] == "optimize"
+    assert (overnight_dir / "pipeline_plots" / "pipeline_stage_trajectory.png").exists()

@@ -1,310 +1,784 @@
 from __future__ import annotations
 
-import base64
-import csv
-import json
 from pathlib import Path
 from typing import Any
 
-from jinja2 import Template
-
-from .utils import read_json
-
-
-_REPORT_TEMPLATE = Template(
-    """
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ title }}</title>
-  <style>
-    :root {
-      color-scheme: light;
-      --bg: #f4efe4;
-      --card: #fffaf2;
-      --ink: #1c2b2d;
-      --muted: #657476;
-      --line: #d8cdb8;
-      --accent: #0f766e;
-      --warn: #b45309;
-      --bad: #b91c1c;
-      --good: #166534;
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: Georgia, "Iowan Old Style", serif; background: linear-gradient(180deg, #f8f3e9 0%, var(--bg) 100%); color: var(--ink); }
-    main { max-width: 1400px; margin: 0 auto; padding: 24px; }
-    h1, h2, h3 { margin: 0 0 12px; font-weight: 700; }
-    p, li, td, th { line-height: 1.4; }
-    section { margin: 20px 0; }
-    .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: 0 10px 30px rgba(28, 43, 45, 0.05); }
-    .label { color: var(--muted); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; }
-    .value { font-size: 1.4rem; margin-top: 8px; }
-    table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 16px; overflow: hidden; }
-    th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
-    th { background: #efe4cf; font-size: 0.85rem; }
-    .muted { color: var(--muted); }
-    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.78rem; background: #e9ddc6; }
-    .pill.good { color: var(--good); }
-    .pill.bad { color: var(--bad); }
-    .pill.warn { color: var(--warn); }
-    .plot { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px; }
-    .plot img { width: 100%; height: auto; display: block; border-radius: 12px; }
-    a { color: var(--accent); }
-    ul { margin: 8px 0 0; padding-left: 20px; }
-    @media (max-width: 700px) {
-      main { padding: 16px; }
-      th, td { font-size: 0.85rem; }
-    }
-  </style>
-</head>
-<body>
-  <main>
-    <section class="card">
-      <h1>{{ title }}</h1>
-      <div class="grid">
-        {% for item in header_items %}
-        <div>
-          <div class="label">{{ item.label }}</div>
-          <div>{{ item.value }}</div>
-        </div>
-        {% endfor %}
-      </div>
-    </section>
-
-    <section>
-      <h2>Summary Cards</h2>
-      <div class="grid">
-        {% for item in summary_cards %}
-        <div class="card">
-          <div class="label">{{ item.label }}</div>
-          <div class="value">{{ item.value }}</div>
-          {% if item.note %}<div class="muted">{{ item.note }}</div>{% endif %}
-        </div>
-        {% endfor %}
-      </div>
-    </section>
-
-    <section>
-      <h2>Candidate Overview</h2>
-      <table>
-        <thead>
-          <tr>
-            {% for heading in candidate_headings %}<th>{{ heading }}</th>{% endfor %}
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in candidate_rows %}
-          <tr>
-            {% for key in candidate_keys %}
-            <td>{{ row.get(key, "") }}</td>
-            {% endfor %}
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </section>
-
-    <section class="grid">
-      <div class="card">
-        <h2>Provenance</h2>
-        <ul>
-          {% for item in provenance_items %}<li>{{ item }}</li>{% endfor %}
-        </ul>
-      </div>
-      <div class="card">
-        <h2>Decision</h2>
-        <ul>
-          {% for item in decision_items %}<li>{{ item }}</li>{% endfor %}
-        </ul>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>Diagnostics Highlights</h2>
-      <ul>
-        {% for item in diagnostics_items %}<li>{{ item }}</li>{% endfor %}
-      </ul>
-    </section>
-
-    <section>
-      <h2>Plots</h2>
-      <div class="grid">
-        {% for plot in plots %}
-        <div class="plot">
-          <h3>{{ plot.title }}</h3>
-          {% if plot.csv_href %}<div class="muted"><a href="{{ plot.csv_href }}">CSV</a></div>{% endif %}
-          {% if plot.image_data_uri %}<img src="{{ plot.image_data_uri }}" alt="{{ plot.title }}">{% else %}<div class="muted">No image generated.</div>{% endif %}
-        </div>
-        {% endfor %}
-      </div>
-    </section>
-  </main>
-</body>
-</html>
-"""
+from .report_templates import render_template
+from .reporting import (
+    build_plot_guidance,
+    build_table_cell,
+    candidate_label,
+    display_text,
+    format_delta,
+    format_runtime,
+    format_score,
+    format_timestamp,
+    image_data_uri,
+    is_missing,
+    load_csv_rows,
+    load_json_if_exists,
+    merge_candidate_rows,
+    parse_bool,
+    primary_value_from_row,
+    reason_text,
+    relative_href,
+    safe_float,
+    sort_candidates,
+    status_counts,
+    status_label,
+    status_tone,
+    study_variant,
 )
 
 
-def _load_json_if_exists(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {}
-    try:
-        return read_json(path)
-    except Exception:
-        return {}
+def _winner_id(summary: dict[str, Any], best_candidate: dict[str, Any], compare_summary: dict[str, Any]) -> str | None:
+    winner = compare_summary.get("winner") if isinstance(compare_summary.get("winner"), dict) else {}
+    return (
+        summary.get("winner_candidate_id")
+        or summary.get("current_best_candidate_id")
+        or best_candidate.get("candidate_id")
+        or winner.get("candidate_id")
+    )
 
 
-def _load_csv_rows(path: Path) -> list[dict[str, str]]:
-    if not path.exists():
-        return []
-    with path.open("r", encoding="utf-8", newline="") as handle:
-        return list(csv.DictReader(handle))
-
-
-def _image_data_uri(path: Path) -> str | None:
-    if not path.exists():
+def _winner_row(rows: list[dict[str, Any]], winner_id: str | None) -> dict[str, Any] | None:
+    if not winner_id:
         return None
-    encoded = base64.b64encode(path.read_bytes()).decode("ascii")
-    return f"data:image/png;base64,{encoded}"
+    return next((row for row in rows if row.get("candidate_id") == winner_id), None)
 
 
-def _title_from_stem(stem: str) -> str:
-    return stem.replace("_", " ").strip().title()
+def _holdout_payload(summary: dict[str, Any]) -> dict[str, Any]:
+    holdout = summary.get("holdout_validation") if isinstance(summary.get("holdout_validation"), dict) else {}
+    if not holdout:
+        return {"status": "not run", "score": None, "configured": False}
+    status = holdout.get("status")
+    if not status:
+        status = "completed" if holdout.get("ran") else "not run"
+    return {
+        "status": str(status).replace("_", " "),
+        "score": holdout.get("score"),
+        "configured": bool(holdout.get("configured", holdout.get("ran", False))),
+        "skip_reason": holdout.get("skip_reason"),
+    }
 
 
-def _sortable_score(value: Any) -> float:
-  try:
-    if value in (None, ""):
-      return float("-inf")
-    return float(value)
-  except (TypeError, ValueError):
-    return float("-inf")
+def _status_mix_text(counts: dict[str, int]) -> str:
+    return (
+        f"{counts.get('scored', 0)} scored, "
+        f"{counts.get('scored_degraded', 0)} degraded, "
+        f"{counts.get('unscored', 0)} unscored, "
+        f"{counts.get('failed', 0)} failed"
+    )
+
+
+def _gap_to_runner_up(rows: list[dict[str, Any]]) -> float | None:
+    scored_rows = [row for row in rows if row.get("primary_metric_value") is not None]
+    if len(scored_rows) < 2:
+        return None
+    return (scored_rows[0]["primary_metric_value"] or 0.0) - (scored_rows[1]["primary_metric_value"] or 0.0)
+
+
+def _time_window(rows: list[dict[str, Any]], run_metadata: dict[str, Any]) -> tuple[str, str]:
+    starts = [str(row.get("started_at")) for row in rows if not is_missing(row.get("started_at"))]
+    ends = [str(row.get("ended_at")) for row in rows if not is_missing(row.get("ended_at"))]
+    started = min(starts) if starts else run_metadata.get("started_at") or run_metadata.get("timestamp")
+    ended = max(ends) if ends else run_metadata.get("ended_at")
+    return format_timestamp(started), format_timestamp(ended)
+
+
+def _compare_summary_sentence(
+    *,
+    winner_label: str,
+    winner_row: dict[str, Any] | None,
+    rows: list[dict[str, Any]],
+    primary_metric: str,
+    holdout: dict[str, Any],
+    variant: str,
+) -> str:
+    counts = status_counts(rows)
+    gap = _gap_to_runner_up(rows)
+    if winner_row is None:
+        return (
+            f"No winner was materialized in this {variant.replace('_', ' ')} study. "
+            f"Status mix: {_status_mix_text(counts)}. Holdout was {holdout['status']}."
+        )
+    summary = (
+        f"{winner_label} {display_text(winner_row.get('candidate_id'), missing='not recorded')} led the {variant.replace('_', ' ')} study "
+        f"with {primary_metric} {format_score(winner_row.get('primary_metric_value'))}."
+    )
+    if gap is not None:
+        summary += f" The margin to the runner-up was {format_delta(gap)}."
+    summary += f" Status mix: {_status_mix_text(counts)}. Holdout was {holdout['status']}."
+    return summary
+
+
+def _optimize_summary_sentence(
+    *,
+    winner_label: str,
+    winner_row: dict[str, Any] | None,
+    rows: list[dict[str, Any]],
+    primary_metric: str,
+    summary: dict[str, Any],
+    holdout: dict[str, Any],
+) -> str:
+    counts = status_counts(rows)
+    promoted_count = sum(1 for entry in summary.get("promotion_history", []) if entry.get("promoted_candidate_id"))
+    rounds_completed = summary.get("rounds_completed") or 0
+    if winner_row is None:
+        return (
+            f"No incumbent was materialized after {rounds_completed} optimize rounds. "
+            f"Status mix: {_status_mix_text(counts)}. Holdout was {holdout['status']}."
+        )
+    incumbent_changed = winner_row.get("candidate_id") != "cand_0000"
+    changed_text = "changed from baseline" if incumbent_changed else "remained the baseline incumbent"
+    return (
+        f"{winner_label} {display_text(winner_row.get('candidate_id'), missing='not recorded')} {changed_text} after {rounds_completed} rounds, "
+        f"finishing with {primary_metric} {format_score(winner_row.get('primary_metric_value'))}. "
+        f"Promoted challengers: {promoted_count}. Status mix: {_status_mix_text(counts)}. Holdout was {holdout['status']}."
+    )
+
+
+def _build_caveats(
+    rows: list[dict[str, Any]],
+    *,
+    holdout: dict[str, Any],
+    study_type: str,
+) -> list[str]:
+    counts = status_counts(rows)
+    caveats: list[str] = []
+    if holdout["status"] != "completed":
+        suffix = f": {holdout['skip_reason']}" if holdout.get("skip_reason") else ""
+        caveats.append(f"Holdout was {holdout['status']}{suffix}.")
+    if counts.get("scored_degraded", 0):
+        caveats.append(f"{counts['scored_degraded']} candidate(s) scored only in degraded mode.")
+    if counts.get("unscored", 0):
+        caveats.append(f"{counts['unscored']} candidate(s) were unscored.")
+    if counts.get("failed", 0):
+        caveats.append(f"{counts['failed']} candidate(s) failed before scoring.")
+    if not any(row.get("correctness_judge_a") is not None and row.get("correctness_judge_b") is not None for row in rows):
+        caveats.append("Dual-judge comparison was not recorded in this report.")
+    if any(parse_bool(row.get("prompt_only_degraded_mode_used")) for row in rows):
+        caveats.append("Prompt-only fallback was used for at least one candidate.")
+    if any(parse_bool(row.get("extraction_contract_valid")) is False for row in rows):
+        caveats.append("At least one candidate failed extraction contract validation.")
+    if study_type == "optimize" and not caveats:
+        caveats.append("No major trust caveats were recorded beyond the optimize acceptance policy.")
+    if not caveats:
+        caveats.append("No major report caveats were recorded.")
+    return caveats
+
+
+def _build_next_checks(rows: list[dict[str, Any]], *, holdout: dict[str, Any], variant: str, study_type: str) -> list[str]:
+    next_checks: list[str] = []
+    counts = status_counts(rows)
+    if holdout["status"] != "completed":
+        next_checks.append("Run holdout validation before treating this recommendation as final.")
+    if counts.get("unscored", 0):
+        next_checks.append("Inspect unscored candidates to determine whether the failure mode is fixable or expected.")
+    if counts.get("scored_degraded", 0):
+        next_checks.append("Review degraded candidates to see whether structured-output or fallback behavior is masking a stronger configuration.")
+    if variant == "retrieval_compare":
+        next_checks.append("Inspect whether the winning retrieval depth is stable enough to narrow the retrieval search bounds.")
+    if variant == "model_compare":
+        next_checks.append("Review winner-versus-runner-up traces before standardizing on the top model.")
+    if variant == "prompt_compare":
+        next_checks.append("Check whether the winning prompt also preserves better structure and lower ambiguity, not just higher score.")
+    if study_type == "optimize":
+        next_checks.append("Review the promotion history for signs of a score ceiling or a too-tight tie zone.")
+    if not next_checks:
+        next_checks.append("No immediate follow-up stands out from the recorded metrics.")
+    return next_checks[:4]
+
+
+def _build_why_winner(
+    winner_row: dict[str, Any] | None,
+    rows: list[dict[str, Any]],
+    *,
+    primary_metric: str,
+    holdout: dict[str, Any],
+    study_type: str,
+) -> list[str]:
+    if winner_row is None:
+        return ["No winner was materialized, so there is no positive selection rationale to report."]
+    bullets = [
+        f"It had the best recorded {primary_metric}: {format_score(winner_row.get('primary_metric_value'))}.",
+        f"Its score state was {status_label(str(winner_row.get('score_status') or 'unknown'))}.",
+        f"Runtime was {format_runtime(winner_row.get('runtime_seconds'))}.",
+    ]
+    gap = _gap_to_runner_up(rows)
+    if gap is not None:
+        bullets.append(f"It outscored the runner-up by {format_delta(gap)} on the primary metric.")
+    if parse_bool(winner_row.get("prompt_only_degraded_mode_used")):
+        bullets.append("Selection is weaker because the winner required prompt-only fallback.")
+    if holdout["status"] != "completed":
+        bullets.append("Selection remains provisional because holdout validation was not completed.")
+    if study_type == "optimize":
+        bullets.append(
+            f"Optimize kept or promoted it under the acceptance policy with decision '{display_text(winner_row.get('promotion_decision'), missing='not recorded')}'."
+        )
+    return bullets
+
+
+def _build_why_others(rows: list[dict[str, Any]], winner_id: str | None) -> list[str]:
+    losers = [row for row in rows if row.get("candidate_id") != winner_id]
+    if not losers:
+        return ["No runner-up candidates were recorded."]
+    lower_score = sum(1 for row in losers if row.get("primary_metric_value") is not None)
+    unscored = sum(1 for row in losers if row.get("score_status") == "unscored")
+    failed = sum(1 for row in losers if row.get("score_status") == "failed")
+    reasons: list[str] = []
+    if lower_score:
+        reasons.append(f"{lower_score} candidate(s) lost on the primary metric.")
+    if unscored:
+        reasons.append(f"{unscored} candidate(s) never produced a valid score.")
+    if failed:
+        reasons.append(f"{failed} candidate(s) failed before scoring completed.")
+    common_decisions: dict[str, int] = {}
+    for row in losers:
+        reason = display_text(row.get("decision_reason"), missing="reason not recorded")
+        common_decisions[reason] = common_decisions.get(reason, 0) + 1
+    dominant = sorted(common_decisions.items(), key=lambda item: (-item[1], item[0]))[:2]
+    for reason, count in dominant:
+        reasons.append(f"{count} candidate(s) carried decision reason '{reason}'.")
+    return reasons
+
+
+def _build_interpretation(rows: list[dict[str, Any]], *, study_type: str, variant: str, summary: dict[str, Any]) -> list[str]:
+    bullets: list[str] = []
+    counts = status_counts(rows)
+    gap = _gap_to_runner_up(rows)
+    if gap is not None:
+        bullets.append(f"Top candidate outperformed the runner-up by {format_delta(gap)}.")
+    if counts.get("unscored", 0):
+        bullets.append(f"{counts['unscored']} of {len(rows)} candidates were unscored.")
+    if variant == "retrieval_compare":
+        best = rows[0] if rows else None
+        if best is not None:
+            bullets.append(
+                f"Retrieval sweep peaked at top_k={display_text(best.get('retrieval_top_k'), missing='not recorded')} with mode {display_text(best.get('retrieval_mode'), missing='not configured')}."
+            )
+    if variant == "prompt_compare":
+        bullets.append("Prompt comparison should be read as rank order plus trust signals, not just a single best score.")
+    if variant == "model_compare":
+        bullets.append("Model comparison reflects benchmark-specific ranking, so inspect runtime and judge signals before standardizing on the winner.")
+    if study_type == "optimize":
+        promoted = sum(1 for entry in summary.get("promotion_history", []) if entry.get("promoted_candidate_id"))
+        rounds_configured = summary.get("rounds_configured") or 0
+        bullets.append(f"Optimization promoted {promoted} challengers across {rounds_configured} configured rounds.")
+        if promoted == 0:
+            bullets.append("Optimization did not improve beyond the baseline incumbent.")
+    if not bullets:
+        bullets.append("No additional rule-based interpretation was triggered for this run.")
+    return bullets
+
+
+def _build_study_cards(
+    rows: list[dict[str, Any]],
+    *,
+    study_type: str,
+    variant: str,
+    summary: dict[str, Any],
+) -> list[dict[str, Any]]:
+    if study_type == "optimize":
+        unique_challengers = len({row.get("candidate_id") for row in rows if row.get("candidate_id") != "cand_0000"})
+        promoted = [entry for entry in summary.get("promotion_history", []) if entry.get("promoted_candidate_id")]
+        rounds_configured = int(summary.get("rounds_configured") or 0)
+        rounds_with_unique = len({row.get("round_index") for row in rows if row.get("round_index") not in (None, 0)})
+        changed = display_text(summary.get("current_best_candidate_id"), missing="not recorded") != "cand_0000"
+        return [
+            {
+                "title": "Optimize Summary",
+                "lead": "Optimize reports use incumbent semantics and explicitly separate search activity from accepted progress.",
+                "items": [
+                    f"Incumbent changed from baseline: {'yes' if changed else 'no'}.",
+                    f"Rounds configured: {rounds_configured}.",
+                    f"Rounds with unique challengers: {rounds_with_unique}.",
+                    f"Promoted challengers: {len(promoted)}.",
+                ],
+                "badges": [{"text": "incumbent semantics", "tone": "good"}],
+            },
+            {
+                "title": "Promotion History",
+                "lead": "Condensed view of the optimize timeline.",
+                "items": [
+                    f"Round {entry.get('round_index')}: promoted {display_text(entry.get('promoted_candidate_id'), missing='none')}"
+                    for entry in summary.get("promotion_history", [])[:6]
+                ]
+                or ["No round history was recorded."],
+                "badges": [{"text": f"{unique_challengers} challengers", "tone": "neutral"}],
+            },
+            {
+                "title": "Search Ceiling",
+                "lead": "Tie-zone and plateau interpretation derived from the recorded metrics.",
+                "items": [
+                    "No promoted challenger suggests the run may have hit a score ceiling or an acceptance tie zone."
+                    if len(promoted) == 0
+                    else f"Promotion history shows {len(promoted)} accepted score improvements."
+                ],
+                "badges": [{"text": "search health", "tone": "warn" if len(promoted) == 0 else "good"}],
+            },
+        ]
+
+    retrieval_rows = [row for row in rows if not is_missing(row.get("retrieval_top_k")) or not is_missing(row.get("retrieval_mode"))]
+    retrieval_card = {
+        "title": "Retrieval Signals",
+        "lead": "Retrieval settings are surfaced explicitly whenever retrieval is part of the comparison.",
+        "items": [
+            f"Winner retrieval mode: {display_text(rows[0].get('retrieval_mode'), missing='not configured')}." if rows else "Winner retrieval mode not recorded.",
+            f"Winner top_k: {display_text(rows[0].get('retrieval_top_k'), missing='not configured')}." if rows else "Winner top_k not recorded.",
+            f"Recall rescue enabled: {display_text(rows[0].get('recall_rescue_enabled'), missing='not recorded')}." if rows else "Recall rescue state not recorded.",
+            f"Whole-document mode: {display_text(rows[0].get('whole_document_mode'), missing='not recorded')}." if rows else "Whole-document state not recorded.",
+        ],
+        "badges": [{"text": "retrieval surfaced", "tone": "good" if retrieval_rows else "warn"}],
+    }
+    comparison_card = {
+        "title": "Compare Semantics",
+        "lead": "Compare reports focus on rank order and winner selection, not optimize promotion language.",
+        "items": [
+            f"Candidate count: {len(rows)}.",
+            f"Scored mix: {_status_mix_text(status_counts(rows))}.",
+            f"Top runtime: {format_runtime(rows[0].get('runtime_seconds'))}." if rows else "No candidate runtime recorded.",
+        ],
+        "badges": [{"text": "winner semantics", "tone": "good"}],
+    }
+    cards = [comparison_card]
+    if variant == "retrieval_compare":
+        cards.append(retrieval_card)
+    elif variant == "prompt_compare":
+        cards.append(
+            {
+                "title": "Prompt Comparison",
+                "lead": "Prompt reports compare prompt bundle behavior without optimize-language spillover.",
+                "items": [
+                    f"Prompt bundles compared: {len({row.get('prompt_bundle_id') for row in rows if row.get('prompt_bundle_id')})}.",
+                    "Use the candidate table to compare prompt score, structure, and fallback behavior together.",
+                ],
+                "badges": [{"text": "prompt semantics", "tone": "good"}],
+            }
+        )
+    elif variant == "model_compare":
+        cards.append(
+            {
+                "title": "Model Comparison",
+                "lead": "Model reports emphasize rank order, runtime, and trustworthiness rather than promotion state.",
+                "items": [
+                    f"Models compared: {len({row.get('text_model_id') for row in rows if row.get('text_model_id')})}.",
+                    "Check the score-vs-runtime frontier before standardizing on the top-ranked model.",
+                ],
+                "badges": [{"text": "model semantics", "tone": "good"}],
+            }
+        )
+    return cards
+
+
+def _build_plot_cards(experiment_dir: Path, *, study_type: str, variant: str) -> list[dict[str, Any]]:
+    plots_dir = experiment_dir / "plots"
+    if not plots_dir.exists():
+        return []
+    preferred: list[str]
+    if study_type == "optimize":
+        preferred = [
+            "optimize_history_best_so_far",
+            "optimize_best_by_round",
+            "optimize_score_delta_by_round",
+            "optimize_decision_counts_by_round",
+            "optimize_runtime_by_round",
+            "optimize_score_status_counts",
+            "optimize_unscored_reasons",
+            "optimize_all_scores_by_round",
+            "optimize_primary_by_knob_retrieval_top_k",
+        ]
+    elif variant == "retrieval_compare":
+        preferred = [
+            "compare_primary_by_knob_retrieval_top_k",
+            "compare_correctness_vs_runtime",
+            "compare_score_status_counts",
+            "compare_unscored_reasons",
+            "compare_primary_by_candidate",
+            "compare_primary_by_text_model",
+        ]
+    else:
+        preferred = [
+            "compare_primary_by_candidate",
+            "compare_correctness_vs_runtime",
+            "compare_score_status_counts",
+            "compare_unscored_reasons",
+            "compare_primary_by_text_model",
+            "compare_primary_by_prompt_bundle",
+            "compare_judge_a_vs_judge_b",
+            "compare_dev_vs_holdout",
+        ]
+    plot_cards: list[dict[str, Any]] = []
+    for index, stem in enumerate(preferred):
+        png_path = plots_dir / f"{stem}.png"
+        csv_path = plots_dir / f"{stem}.csv"
+        if not png_path.exists() and not csv_path.exists():
+            continue
+        plot_cards.append(
+            {
+                "title": stem.replace("_", " ").title(),
+                "subtitle": None,
+                "hero": index == 0,
+                "csv_href": relative_href(csv_path, base_dir=experiment_dir) if csv_path.exists() else None,
+                "png_href": relative_href(png_path, base_dir=experiment_dir) if png_path.exists() else None,
+                "image_data_uri": image_data_uri(png_path) if png_path.exists() else None,
+                "guidance": build_plot_guidance(stem),
+            }
+        )
+    return plot_cards
+
+
+def _build_artifact_links(experiment_dir: Path) -> list[dict[str, str]]:
+    candidates = [
+        ("Summary JSON", experiment_dir / "summary.json"),
+        ("Best Candidate", experiment_dir / "best_candidate.json"),
+        ("Compare Summary", experiment_dir / "compare_summary.json"),
+        ("No Winner", experiment_dir / "no_winner.json"),
+        ("Results CSV", experiment_dir / "results" / "results.csv"),
+        ("Results JSONL", experiment_dir / "results" / "results.jsonl"),
+        ("Candidate Diagnostics CSV", experiment_dir / "results" / "candidate_diagnostics.csv"),
+        ("Candidate Diagnostics JSON", experiment_dir / "candidate_diagnostics.json"),
+    ]
+    links: list[dict[str, str]] = []
+    for label, path in candidates:
+        if path.exists():
+            links.append({"label": label, "href": relative_href(path, base_dir=experiment_dir), "text": path.name})
+    return links
+
+
+def _build_provenance_items(
+    winner_row: dict[str, Any] | None,
+    *,
+    summary: dict[str, Any],
+    run_metadata: dict[str, Any],
+    holdout: dict[str, Any],
+) -> list[dict[str, str | None]]:
+    items = [
+        {
+            "label": "Benchmark",
+            "value": display_text(summary.get("benchmark_id"), missing="not recorded"),
+            "note": None,
+        },
+        {
+            "label": "Config",
+            "value": display_text(run_metadata.get("config_path"), missing="not recorded"),
+            "note": "Raw filesystem paths are kept here instead of the summary band.",
+        },
+        {
+            "label": "Holdout",
+            "value": holdout["status"],
+            "note": f"score={format_score(holdout.get('score'), missing='not run')}" if holdout.get("score") is not None else None,
+        },
+    ]
+    if winner_row is not None:
+        items.extend(
+            [
+                {
+                    "label": "Winner Model",
+                    "value": display_text(winner_row.get("text_model_id"), missing="not recorded"),
+                    "note": None,
+                },
+                {
+                    "label": "Winner Prompt",
+                    "value": display_text(winner_row.get("prompt_bundle_id"), missing="not recorded"),
+                    "note": None,
+                },
+                {
+                    "label": "Winner Retrieval",
+                    "value": (
+                        f"mode={display_text(winner_row.get('retrieval_mode'), missing='not configured')}; "
+                        f"top_k={display_text(winner_row.get('retrieval_top_k'), missing='not configured')}"
+                    ),
+                    "note": (
+                        f"rescue_enabled={display_text(winner_row.get('recall_rescue_enabled'), missing='not recorded')}; "
+                        f"whole_document_mode={display_text(winner_row.get('whole_document_mode'), missing='not recorded')}"
+                    ),
+                },
+                {
+                    "label": "Winner Structure",
+                    "value": display_text(winner_row.get("structured_output_mode"), missing="not recorded"),
+                    "note": (
+                        f"contract_valid={display_text(winner_row.get('extraction_contract_valid'), missing='unknown')}; "
+                        f"prompt_only_fallback={display_text(winner_row.get('prompt_only_degraded_mode_used'), missing='not recorded')}"
+                    ),
+                },
+            ]
+        )
+    return items
+
+
+def _build_candidate_table(
+    rows: list[dict[str, Any]],
+    *,
+    study_type: str,
+    primary_metric: str,
+    winner_id: str | None,
+) -> dict[str, Any]:
+    columns: list[dict[str, str]]
+    table_rows: list[dict[str, Any]] = []
+    if study_type == "optimize":
+        columns = [
+            {"label": "Rank", "align": "right", "sort": "number"},
+            {"label": "Candidate", "align": "left", "sort": "string"},
+            {"label": "Role", "align": "left", "sort": "string"},
+            {"label": primary_metric.title(), "align": "right", "sort": "number"},
+            {"label": "Status", "align": "left", "sort": "string"},
+            {"label": "Round", "align": "right", "sort": "number"},
+            {"label": "Runtime", "align": "right", "sort": "number"},
+            {"label": "Retrieval", "align": "left", "sort": "string"},
+            {"label": "Structure", "align": "left", "sort": "string"},
+            {"label": "Decision", "align": "left", "sort": "string"},
+        ]
+        winner_score = rows[0].get("primary_metric_value") if rows else None
+        for index, row in enumerate(rows, start=1):
+            delta = None
+            if winner_score is not None and row.get("primary_metric_value") is not None:
+                delta = row.get("primary_metric_value") - winner_score
+            role = "incumbent" if row.get("candidate_id") == winner_id else "challenger"
+            table_rows.append(
+                {
+                    "cells": [
+                        build_table_cell(str(index), sort_value=index),
+                        build_table_cell(
+                            display_text(row.get("candidate_id"), missing="not recorded"),
+                            subtext=f"parent={display_text(row.get('parent_candidate_id'), missing='—')}",
+                            monospace=True,
+                        ),
+                        build_table_cell(role, badge=role, tone=status_tone(role)),
+                        build_table_cell(
+                            format_score(row.get("primary_metric_value"), missing="not scored"),
+                            subtext=f"delta={format_delta(delta, missing='—')}",
+                            sort_value=row.get("primary_metric_value") if row.get("primary_metric_value") is not None else -1,
+                        ),
+                        build_table_cell(status_label(row.get("score_status") or "unknown"), badge=status_label(row.get("score_status") or "unknown"), tone=status_tone(str(row.get("score_status") or "unknown"))),
+                        build_table_cell(display_text(row.get("round_index"), missing="baseline"), sort_value=row.get("round_index") if row.get("round_index") is not None else -1),
+                        build_table_cell(format_runtime(row.get("runtime_seconds")), sort_value=row.get("runtime_seconds") if row.get("runtime_seconds") is not None else -1),
+                        build_table_cell(
+                            display_text(row.get("retrieval_mode"), missing="not configured"),
+                            subtext=f"top_k={display_text(row.get('retrieval_top_k'), missing='not configured')}",
+                        ),
+                        build_table_cell(
+                            display_text(row.get("structured_output_mode"), missing="not recorded"),
+                            subtext=(
+                                f"contract={display_text(row.get('extraction_contract_valid'), missing='unknown')}; "
+                                f"fallback={display_text(row.get('prompt_only_degraded_mode_used'), missing='not recorded')}"
+                            ),
+                            details=display_text(row.get("structured_output_reason"), missing="no extra structure note recorded"),
+                        ),
+                        build_table_cell(
+                            display_text(row.get("promotion_decision"), missing="not recorded"),
+                            subtext=display_text(row.get("decision_reason"), missing="not recorded"),
+                            details=reason_text(row, missing="no extra decision detail recorded"),
+                        ),
+                    ]
+                }
+            )
+    else:
+        columns = [
+            {"label": "Rank", "align": "right", "sort": "number"},
+            {"label": "Candidate", "align": "left", "sort": "string"},
+            {"label": primary_metric.title(), "align": "right", "sort": "number"},
+            {"label": "Gap To Winner", "align": "right", "sort": "number"},
+            {"label": "Status", "align": "left", "sort": "string"},
+            {"label": "Runtime", "align": "right", "sort": "number"},
+            {"label": "Retrieval", "align": "left", "sort": "string"},
+            {"label": "Structure", "align": "left", "sort": "string"},
+            {"label": "Reason / Trust", "align": "left", "sort": "string"},
+        ]
+        winner_score = rows[0].get("primary_metric_value") if rows else None
+        for index, row in enumerate(rows, start=1):
+            gap = None
+            if winner_score is not None and row.get("primary_metric_value") is not None:
+                gap = row.get("primary_metric_value") - winner_score
+            table_rows.append(
+                {
+                    "cells": [
+                        build_table_cell(str(index), sort_value=index),
+                        build_table_cell(
+                            display_text(row.get("candidate_id"), missing="not recorded"),
+                            subtext=candidate_label(row),
+                            monospace=True,
+                        ),
+                        build_table_cell(
+                            format_score(row.get("primary_metric_value"), missing="not scored"),
+                            sort_value=row.get("primary_metric_value") if row.get("primary_metric_value") is not None else -1,
+                        ),
+                        build_table_cell(format_delta(gap, missing="—"), sort_value=gap if gap is not None else -9999),
+                        build_table_cell(status_label(row.get("score_status") or "unknown"), badge=status_label(row.get("score_status") or "unknown"), tone=status_tone(str(row.get("score_status") or "unknown"))),
+                        build_table_cell(format_runtime(row.get("runtime_seconds")), sort_value=row.get("runtime_seconds") if row.get("runtime_seconds") is not None else -1),
+                        build_table_cell(
+                            display_text(row.get("retrieval_mode"), missing="not configured"),
+                            subtext=(
+                                f"top_k={display_text(row.get('retrieval_top_k'), missing='not configured')}; "
+                                f"rescue={display_text(row.get('recall_rescue_enabled'), missing='not recorded')}; "
+                                f"whole_doc={display_text(row.get('whole_document_mode'), missing='not recorded')}"
+                            ),
+                        ),
+                        build_table_cell(
+                            display_text(row.get("structured_output_mode"), missing="not recorded"),
+                            subtext=(
+                                f"contract={display_text(row.get('extraction_contract_valid'), missing='unknown')}; "
+                                f"fallback={display_text(row.get('prompt_only_degraded_mode_used'), missing='not recorded')}"
+                            ),
+                            details=display_text(row.get("structured_output_reason"), missing="no extra structure note recorded"),
+                        ),
+                        build_table_cell(
+                            display_text(row.get("unscored_reason"), missing=display_text(row.get("decision_reason"), missing="no issue recorded")),
+                            subtext=display_text(row.get("score_explanation"), missing="no extra trust note recorded"),
+                            details=reason_text(row, missing="no additional reason detail recorded"),
+                        ),
+                    ]
+                }
+            )
+    return {
+        "title": "Ranked Candidate Table",
+        "subtitle": "All missing values are rendered explicitly rather than left blank.",
+        "columns": columns,
+        "rows": table_rows,
+        "links": [{"label": "Results CSV", "href": "results/results.csv"}] if (Path("results") / "results.csv") else [],
+    }
+
+
+def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
+    experiment_json = load_json_if_exists(experiment_dir / "experiment.json")
+    if not experiment_json:
+        return None
+
+    summary = load_json_if_exists(experiment_dir / "summary.json")
+    compare_summary = load_json_if_exists(experiment_dir / "compare_summary.json")
+    best_candidate = load_json_if_exists(experiment_dir / "best_candidate.json")
+    candidate_diagnostics = load_json_if_exists(experiment_dir / "candidate_diagnostics.json")
+    run_metadata = load_json_if_exists(experiment_dir.parent / "run_metadata.json")
+
+    primary_metric = str(summary.get("primary_metric") or compare_summary.get("primary_metric") or "correctness")
+    diagnostics_rows = candidate_diagnostics.get("rows", []) if isinstance(candidate_diagnostics.get("rows"), list) else []
+    results_rows = load_csv_rows(experiment_dir / "results" / "results.csv")
+    candidate_rows = merge_candidate_rows(results_rows, diagnostics_rows, primary_metric=primary_metric)
+    candidate_rows = sort_candidates(candidate_rows)
+    study_type = str(experiment_json.get("study_type") or summary.get("study_type") or "compare")
+    variant = study_variant(candidate_rows, study_type, experiment_id=str(experiment_json.get("experiment_id") or ""))
+    winner_id = _winner_id(summary, best_candidate, compare_summary)
+    winner_row = _winner_row(candidate_rows, winner_id)
+    holdout = _holdout_payload(summary)
+    started_at, ended_at = _time_window(candidate_rows, run_metadata)
+    counts = status_counts(candidate_rows)
+    winner_label = "Incumbent" if study_type == "optimize" else "Winner"
+    main_sentence = (
+        _optimize_summary_sentence(
+            winner_label=winner_label,
+            winner_row=winner_row,
+            rows=candidate_rows,
+            primary_metric=primary_metric,
+            summary=summary,
+            holdout=holdout,
+        )
+        if study_type == "optimize"
+        else _compare_summary_sentence(
+            winner_label=winner_label,
+            winner_row=winner_row,
+            rows=candidate_rows,
+            primary_metric=primary_metric,
+            holdout=holdout,
+            variant=variant,
+        )
+    )
+    caveats = _build_caveats(candidate_rows, holdout=holdout, study_type=study_type)
+    next_checks = _build_next_checks(candidate_rows, holdout=holdout, variant=variant, study_type=study_type)
+    gap = _gap_to_runner_up(candidate_rows)
+
+    page = {
+        "title": f"{display_text(experiment_json.get('experiment_id'), missing='experiment')} decision report",
+        "summary_sentence": main_sentence,
+        "top_badges": [
+            {"text": study_type, "tone": "good"},
+            {"text": variant.replace("_", " "), "tone": "neutral"},
+            {"text": holdout["status"], "tone": "warn" if holdout["status"] != "completed" else "good"},
+            {"text": _status_mix_text(counts), "tone": "neutral"},
+        ],
+        "hero_meta": [
+            {"label": "Winner Label", "value": winner_label, "note": "Study-type-specific semantics."},
+            {"label": "Benchmark", "value": display_text(summary.get("benchmark_id"), missing="not recorded"), "note": None},
+            {"label": "Started", "value": started_at, "note": None},
+            {"label": "Ended", "value": ended_at, "note": None},
+            {"label": "Candidates", "value": str(len(candidate_rows)), "note": _status_mix_text(counts)},
+            {"label": "Holdout", "value": holdout["status"], "note": display_text(holdout.get("skip_reason"), missing=None)},
+        ],
+        "executive_cards": [
+            {
+                "label": winner_label,
+                "value": display_text(winner_row.get("candidate_id") if winner_row else None, missing="no winner recorded"),
+                "note": candidate_label(winner_row) if winner_row else "No winner candidate record was available.",
+                "badges": [{"text": winner_label.lower(), "tone": "good"}] if winner_row else [{"text": "no winner", "tone": "warn"}],
+                "class_name": "",
+            },
+            {
+                "label": f"Best {primary_metric}",
+                "value": format_score(winner_row.get("primary_metric_value") if winner_row else None),
+                "note": f"runner-up gap={format_delta(gap, missing='not available')}",
+                "badges": [],
+                "class_name": "",
+            },
+            {
+                "label": "Trust / Caveats",
+                "value": "healthy" if caveats == ["No major report caveats were recorded."] else "review needed",
+                "note": caveats[0],
+                "badges": [{"text": item.split(".")[0], "tone": "warn"} for item in caveats[:2]],
+                "class_name": "",
+            },
+            {
+                "label": "Next Check",
+                "value": next_checks[0],
+                "note": "; ".join(next_checks[1:]) if len(next_checks) > 1 else None,
+                "badges": [{"text": "deterministic", "tone": "neutral"}],
+                "class_name": "",
+            },
+        ],
+        "decision_cards": [
+            {
+                "title": "Why This Candidate Won",
+                "lead": "Deterministic explanation derived from score, status, runtime, and holdout state.",
+                "items": _build_why_winner(winner_row, candidate_rows, primary_metric=primary_metric, holdout=holdout, study_type=study_type),
+                "badges": [{"text": winner_label.lower(), "tone": "good"}] if winner_row else [{"text": "no winner", "tone": "warn"}],
+            },
+            {
+                "title": "Why Others Did Not Win",
+                "lead": "Grouped loss reasons rather than a raw artifact dump.",
+                "items": _build_why_others(candidate_rows, winner_id),
+                "badges": [{"text": "runner-ups", "tone": "neutral"}],
+            },
+            {
+                "title": "Interpretation",
+                "lead": "Study-aware takeaways generated from metrics and statuses.",
+                "items": _build_interpretation(candidate_rows, study_type=study_type, variant=variant, summary=summary),
+                "badges": [{"text": variant.replace("_", " "), "tone": "neutral"}],
+            },
+            {
+                "title": "Trust And Caveats",
+                "lead": "Human-facing trust summary; missing data is surfaced explicitly, not silently hidden.",
+                "items": caveats,
+                "badges": [{"text": "trust", "tone": "warn" if caveats and caveats[0] != "No major report caveats were recorded." else "good"}],
+            },
+            {
+                "title": "Next Checks",
+                "lead": "Deterministic follow-ups suggested by the recorded evidence.",
+                "items": next_checks,
+                "badges": [{"text": "follow-up", "tone": "neutral"}],
+            },
+        ],
+        "candidate_table": _build_candidate_table(candidate_rows, study_type=study_type, primary_metric=primary_metric, winner_id=winner_id),
+        "study_cards": _build_study_cards(candidate_rows, study_type=study_type, variant=variant, summary=summary),
+        "plots": _build_plot_cards(experiment_dir, study_type=study_type, variant=variant),
+        "artifact_links": _build_artifact_links(experiment_dir),
+        "provenance_items": _build_provenance_items(winner_row, summary=summary, run_metadata=run_metadata, holdout=holdout),
+    }
+    return page
 
 
 def generate_experiment_report(experiment_dir: Path) -> Path | None:
-    experiment_json = _load_json_if_exists(experiment_dir / "experiment.json")
-    if not experiment_json:
+    page = build_experiment_report_view(experiment_dir)
+    if page is None:
         return None
-    summary = _load_json_if_exists(experiment_dir / "summary.json")
-    compare_summary = _load_json_if_exists(experiment_dir / "compare_summary.json")
-    best_candidate = _load_json_if_exists(experiment_dir / "best_candidate.json")
-    candidate_diagnostics = _load_json_if_exists(experiment_dir / "candidate_diagnostics.json")
-    run_metadata = _load_json_if_exists(experiment_dir.parent / "run_metadata.json")
-    results_rows = _load_csv_rows(experiment_dir / "results" / "results.csv")
-    candidate_rows = candidate_diagnostics.get("rows", []) if isinstance(candidate_diagnostics.get("rows"), list) else []
-    candidate_rows = sorted(
-        candidate_rows,
-        key=lambda row: (
-            row.get("score_status") != "scored",
-        -_sortable_score(row.get("primary_metric_value")),
-        ),
-    ) if candidate_rows else results_rows
-
-    primary_metric = summary.get("primary_metric") or compare_summary.get("primary_metric") or "correctness"
-    holdout = summary.get("holdout_validation", {}) if isinstance(summary.get("holdout_validation"), dict) else {}
-    header_items = [
-        {"label": "Experiment Id", "value": experiment_json.get("experiment_id")},
-        {"label": "Study Type", "value": experiment_json.get("study_type")},
-        {"label": "Timestamp", "value": run_metadata.get("started_at") or run_metadata.get("timestamp") or ""},
-        {"label": "Config Path", "value": run_metadata.get("config_path") or ""},
-        {"label": "Benchmark Split", "value": summary.get("benchmark_id") or experiment_json.get("benchmark_id")},
-        {"label": "Holdout", "value": holdout.get("status") or ("completed" if holdout.get("ran") else "not_run")},
-    ]
-
-    summary_cards = [
-        {"label": "Winner / Incumbent", "value": summary.get("winner_candidate_id") or summary.get("current_best_candidate_id") or best_candidate.get("candidate_id") or "n/a", "note": None},
-        {"label": "Baseline", "value": "cand_0000", "note": None},
-        {"label": "Promoted", "value": "yes" if summary.get("winner_candidate_id") or summary.get("current_best_candidate_id") else "no", "note": None},
-        {"label": "Best Dev Score", "value": summary.get("current_best_score") or best_candidate.get("primary_metric_value") or "n/a", "note": primary_metric},
-        {"label": "Holdout Score", "value": holdout.get("score") or "n/a", "note": holdout.get("status")},
-        {"label": "Judge Disagreement", "value": summary.get("judge_disagreement") or "n/a", "note": "dual-judge"},
-    ]
-
-    candidate_keys = [
-        "candidate_id",
-        "score_status",
-        "primary_metric_value",
-        "unscored_reason",
-        "text_model_id",
-        "prompt_bundle_id",
-        "retrieval_mode",
-        "retrieval_top_k",
-        "main_structured_output_mode",
-    ]
-    candidate_headings = [
-        "Candidate",
-        "Status",
-        f"{primary_metric}",
-        "Unscored Reason",
-        "Text Model",
-        "Prompt Bundle",
-        "Retrieval Mode",
-        "Retrieval Top K",
-        "Structured Output",
-    ]
-
-    provenance_items = []
-    if best_candidate:
-        provenance_items.append(f"text model: {best_candidate.get('text_model_id')}")
-        provenance_items.append(f"prompt bundle: {best_candidate.get('prompt_bundle_id')}")
-    if candidate_rows:
-        top = candidate_rows[0]
-        provenance_items.append(f"retrieval.mode: {top.get('retrieval_mode', '')}")
-        provenance_items.append(f"retrieval.top_k: {top.get('retrieval_top_k', '')}")
-        provenance_items.append(f"structured_output_mode: {top.get('main_structured_output_mode', '')}")
-        provenance_items.append(f"degraded prompt-only: {top.get('prompt_only_degraded_mode_used', '')}")
-
-    decision_items = []
-    if compare_summary.get("winner"):
-        decision_items.append(f"winner: {compare_summary['winner'].get('candidate_id')}")
-    if isinstance(summary.get("promotion_history"), list):
-        for entry in summary.get("promotion_history", [])[:8]:
-            decision_items.append(
-                f"round {entry.get('round_index')}: promoted={entry.get('promoted_candidate_id') or 'none'} notes={', '.join(entry.get('decision_notes', []))}"
-            )
-    if not decision_items:
-        decision_items.append("No promotion history recorded.")
-
-    diagnostics_items = []
-    if holdout.get("status") in {"not_run", "skipped", "failed"}:
-        diagnostics_items.append(f"holdout status: {holdout.get('status')} ({holdout.get('skip_reason') or 'no extra reason'})")
-    if any(str(row.get("unscored_reason", "")).strip() for row in candidate_rows):
-        diagnostics_items.append("One or more candidates were unscored; see the candidate overview table for explicit reasons.")
-    if any(row.get("missing_proposal_count") not in (None, "", 0, "0") for row in candidate_rows):
-        diagnostics_items.append("Missing-proposal diagnostics are present in at least one candidate.")
-    if any(row.get("judge_disagreement") not in (None, "", 0, "0", 0.0, "0.0") for row in candidate_rows):
-        diagnostics_items.append("Judge disagreement outliers detected.")
-    if not diagnostics_items:
-        diagnostics_items.append("No major diagnostics highlights recorded.")
-
-    plots: list[dict[str, str | None]] = []
-    plots_dir = experiment_dir / "plots"
-    for png_path in sorted(plots_dir.glob("*.png")):
-        stem = png_path.stem
-        csv_path = plots_dir / f"{stem}.csv"
-        plots.append(
-            {
-                "title": _title_from_stem(stem),
-                "csv_href": f"plots/{csv_path.name}" if csv_path.exists() else None,
-                "image_data_uri": _image_data_uri(png_path),
-            }
-        )
-
-    report_html = _REPORT_TEMPLATE.render(
-        title=f"{experiment_json.get('experiment_id')} report",
-        header_items=header_items,
-        summary_cards=summary_cards,
-        candidate_headings=candidate_headings,
-        candidate_keys=candidate_keys,
-        candidate_rows=candidate_rows,
-        provenance_items=provenance_items,
-        decision_items=decision_items,
-        diagnostics_items=diagnostics_items,
-        plots=plots,
-    )
+    report_html = render_template("experiment.html", page=page)
     report_path = experiment_dir / "report.html"
     report_path.write_text(report_html, encoding="utf-8")
     return report_path

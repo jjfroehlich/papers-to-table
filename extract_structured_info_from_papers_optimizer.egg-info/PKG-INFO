@@ -4,6 +4,7 @@ Version: 0.1.0
 Summary: CLI-first orchestration optimizer for extract-structured-info-from-papers
 Requires-Python: >=3.10
 Description-Content-Type: text/markdown
+Requires-Dist: jinja2>=3.1
 Requires-Dist: matplotlib>=3.8
 Provides-Extra: dev
 Requires-Dist: pytest>=8.0; extra == "dev"
@@ -23,7 +24,7 @@ This repo owns study orchestration, candidate materialization, result tracking, 
 - Materializes immutable candidate bundles with stable candidate ids and hashes.
 - Launches the main app and eval app for each candidate.
 - Applies acceptance gates in optimize mode.
-- Persists experiment summaries, candidate records, round summaries, and plots.
+- Persists experiment summaries, candidate records, round summaries, plots, and a self-contained `report.html` for each experiment.
 
 ## Study modes
 
@@ -78,6 +79,8 @@ The recommended `eval_app` config is:
 - `repo_root`: path to the eval repo
 - `command_prefix`: optional explicit launcher, usually needed when the eval app runs in a different Python environment
 - `metric_groups`: mapping from eval summary metrics into optimizer `primary`, `guardrail`, and `diagnostic` groups
+
+For new studies, prefer mapping the optimizer primary metric to eval `correctness_mean` instead of `structured_accuracy` so judge-backed text scoring and dual-judge runs remain visible in the main selection metric.
 
 If you need a non-standard wrapper, both `main_app` and `eval_app` also support explicit `command` arrays. The recommended repo-root plus config-overlay path is the cleaner default.
 
@@ -262,6 +265,22 @@ Compare studies also write `candidate_diagnostics.json` and `results/candidate_d
 
 Compare studies also write `compare_summary.json`, a top-level operator report that collects the winner, scored/unscored/failed candidate counts, and the same per-candidate score explanations in one place.
 
+Every compare, optimize, validate-best, and summarize flow now also regenerates `report.html` at the experiment root. The report embeds plot PNGs inline, links the underlying CSVs, summarizes winner or incumbent state, scored-vs-unscored truth, provenance, promotion history, and holdout status.
+
+Typical plot and report artifacts now include files such as:
+
+- `plots/compare_primary_by_candidate.png`
+- `plots/compare_score_status_counts.png`
+- `plots/compare_unscored_reasons.png`
+- `plots/compare_primary_by_retrieval_top_k.png`
+- `plots/compare_judge_a_vs_judge_b.png`
+- `plots/compare_dev_vs_holdout.png` when holdout results exist
+- `plots/optimize_best_by_round.png`
+- `plots/optimize_score_status_counts.png`
+- `plots/optimize_unscored_reasons.png`
+- `plots/optimize_primary_by_retrieval_top_k.png`
+- `plots/optimize_judge_disagreement.png`
+
 ## Optional proposer and confirmation config
 
 Optional proposer config:
@@ -286,6 +305,22 @@ Optional confirmation-rerun config:
 	"confirmation_reruns": {
 		"enabled": false,
 		"count": 1
+	}
+}
+```
+
+Optional tie-break acceptance config:
+
+```json
+"acceptance": {
+	"primary_metric": "correctness",
+	"min_improvement": 0.01,
+	"tie_break": {
+		"epsilon": 0.002,
+		"secondary_objectives": [
+			{"metric": "evidence_quality", "direction": "max", "min_improvement": 0.0},
+			{"metric": "runtime_seconds", "direction": "min", "min_improvement": 5.0}
+		]
 	}
 }
 ```
