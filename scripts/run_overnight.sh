@@ -11,11 +11,13 @@ optimizer_python="${PAPER_OPTIMIZER_PYTHON:-python}"
 
 compare_config="$repo_root/configs/compare_models_dev.json"
 prompt_config="$repo_root/configs/compare_prompts_dev.json"
-retrieval_config="$repo_root/configs/compare_retrieval_modes_dev.json"
+retrieval_core_config="$repo_root/configs/compare_retrieval_dev.json"
+retrieval_feature_config="$repo_root/configs/compare_retrieval_modes_dev.json"
 optimize_config="$repo_root/configs/optimize_overnight.json"
 compare_run_name="${session_id}_compare_models_dev_${safe_label}"
 prompt_run_name="${session_id}_compare_prompts_dev_${safe_label}"
-retrieval_run_name="${session_id}_compare_retrieval_modes_dev_${safe_label}"
+retrieval_core_run_name="${session_id}_compare_retrieval_dev_${safe_label}"
+retrieval_feature_run_name="${session_id}_compare_retrieval_modes_dev_${safe_label}"
 optimize_run_name="${session_id}_optimize_overnight_${safe_label}"
 overnight_dir="$repo_root/runs/${session_id}_overnight_${safe_label}"
 
@@ -59,6 +61,11 @@ PY
 	return 1
 }
 
+resolve_results_jsonl() {
+	local run_name="$1"
+	printf '%s\n' "$repo_root/runs/$run_name/experiment/results/results.jsonl"
+}
+
 materialize_config_with_winner() {
 	local source_config="$1"
 	local best_candidate_json="$2"
@@ -90,6 +97,7 @@ best = json.loads(best_path.read_text(encoding="utf-8"))
 
 winner_prompt = best.get("prompt_bundle_id") or config["baseline_candidate"]["prompt_bundle_id"]
 winner_model = best.get("text_model_id") or config["baseline_candidate"]["text_model_id"]
+winner_vision = best.get("vision_model_id")
 winner_knobs = dict(best.get("optimizer_knobs_flat") or {})
 
 
@@ -111,6 +119,7 @@ def apply_candidate(candidate: dict, *, include_knobs: bool, preserve_prompt_bun
 	if not preserve_prompt_bundle:
 		candidate["prompt_bundle_id"] = winner_prompt
 	candidate["text_model_id"] = winner_model
+	candidate["vision_model_id"] = winner_vision
 	if include_knobs and winner_knobs:
 		candidate["optimizer_knobs"] = winner_knobs
 
@@ -128,6 +137,8 @@ elif mode == "optimize":
 		config.setdefault("search_space", {}).setdefault("prompt_bundle_ids", []).insert(0, winner_prompt)
 	if winner_model not in config.get("search_space", {}).get("text_model_ids", []):
 		config.setdefault("search_space", {}).setdefault("text_model_ids", []).insert(0, winner_model)
+	if winner_vision is not None and winner_vision not in config.get("search_space", {}).get("vision_model_ids", []):
+		config.setdefault("search_space", {}).setdefault("vision_model_ids", []).insert(0, winner_vision)
 	if winner_knobs:
 		for knob_name, knob_value in winner_knobs.items():
 			knob_spec = config.get("search_space", {}).get("numeric_knobs", {}).get(knob_name)
@@ -145,10 +156,99 @@ target_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
 PY
 }
 
+materialize_retrieval_feature_config() {
+	local source_config="$1"
+	local results_jsonl="$2"
+	local target_config="$3"
+	local max_seed_candidates="$4"
+
+	"$optimizer_python" - "$source_config" "$results_jsonl" "$target_config" "$max_seed_candidates" <<'PY'
+import json
+import sys
+from copy import deepcopy
+from pathlib import Path
+
+source_path = Path(sys.argv[1])
+results_path = Path(sys.argv[2])
+target_path = Path(sys.argv[3])
+max_seed_candidates = int(sys.argv[4])
+
+PATH_FIELD_NAMES = {
+	"repo_root",
+	"base_config_path",
+	"table_path",
+	"schema_path",
+	"pdf_dir",
+	"gold_path",
+	"eval_schema_path",
+}
+
+def resolve_path_fields(payload, *, base_dir: Path):
+	if isinstance(payload, dict):
+		resolved = {}
+		for key, value in payload.items():
+			if key in PATH_FIELD_NAMES and isinstance(value, str) and value.strip():
+				candidate = Path(value)
+				resolved[key] = str(candidate.resolve()) if candidate.is_absolute() else str((base_dir / candidate).resolve())
+			else:
+				resolved[key] = resolve_path_fields(value, base_dir=base_dir)
+		return resolved
+	if isinstance(payload, list):
+		return [resolve_path_fields(item, base_dir=base_dir) for item in payload]
+	return payload
+
+def sort_key(record: dict) -> tuple[int, float, float, str]:
+	status = str(record.get("score_status") or "")
+	status_priority = {"scored": 0, "scored_degraded": 1, "unscored": 2, "failed": 3}.get(status, 9)
+	primary = record.get("primary_metrics", {}).get("correctness")
+	primary_value = float(primary) if isinstance(primary, (int, float)) else float("-inf")
+	runtime = record.get("runtime_seconds")
+	runtime_value = float(runtime) if isinstance(runtime, (int, float)) else float("inf")
+	return (status_priority, -primary_value, runtime_value, str(record.get("candidate_id") or "zzz"))
+
+config = json.loads(source_path.read_text(encoding="utf-8"))
+records = [json.loads(line) for line in results_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+records.sort(key=sort_key)
+seed_records = [record for record in records if record.get("candidate_status") == "completed"][:max_seed_candidates]
+if not seed_records:
+	raise SystemExit("No completed retrieval-core candidates were available for retrieval-feature materialization.")
+
+template_candidates = list(config.get("compare_candidates", []))
+if not template_candidates:
+	raise SystemExit("Retrieval-feature template has no compare_candidates to expand.")
+
+materialized_candidates = []
+for seed in seed_records:
+	seed_prompt = seed.get("prompt_bundle_id") or config["baseline_candidate"]["prompt_bundle_id"]
+	seed_model = seed.get("text_model_id") or config["baseline_candidate"]["text_model_id"]
+	seed_vision = seed.get("vision_model_id")
+	seed_knobs = dict(seed.get("optimizer_knobs_flat") or {})
+	seed_retrieval_mode = seed_knobs.get("retrieval_mode")
+	seed_retrieval_top_k = seed_knobs.get("retrieval_top_k")
+	for template in template_candidates:
+		candidate = deepcopy(template)
+		candidate["prompt_bundle_id"] = seed_prompt
+		candidate["text_model_id"] = seed_model
+		candidate["vision_model_id"] = seed_vision
+		candidate.setdefault("optimizer_knobs", {})
+		if seed_retrieval_mode is not None:
+			candidate["optimizer_knobs"]["retrieval_mode"] = seed_retrieval_mode
+		if seed_retrieval_top_k is not None:
+			candidate["optimizer_knobs"]["retrieval_top_k"] = seed_retrieval_top_k
+		materialized_candidates.append(candidate)
+
+config["baseline_candidate"] = deepcopy(materialized_candidates[0])
+config["compare_candidates"] = materialized_candidates
+config = resolve_path_fields(config, base_dir=source_path.resolve().parent)
+target_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
+PY
+}
+
 tmp_dir="$overnight_dir/materialized_configs"
 mkdir -p "$tmp_dir" "$overnight_dir"
 prompt_config_materialized="$tmp_dir/compare_prompts_dev.json"
-retrieval_config_materialized="$tmp_dir/compare_retrieval_dev.json"
+retrieval_core_config_materialized="$tmp_dir/compare_retrieval_dev.json"
+retrieval_feature_config_materialized="$tmp_dir/compare_retrieval_modes_dev.json"
 optimize_config_materialized="$tmp_dir/optimize_overnight.json"
 manifest_path="$overnight_dir/overnight_manifest.json"
 
@@ -165,14 +265,18 @@ materialize_config_with_winner "$prompt_config" "$(require_best_candidate_json "
 PAPER_OPTIMIZER_RUN_NAME="$prompt_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$prompt_config_materialized" "${safe_label}_prompts"
 
 echo "[$(date -Iseconds)] Step 4: retrieval sweep on the prompt-compare winner"
-materialize_config_with_winner "$retrieval_config" "$(require_best_candidate_json "$prompt_run_name")" "$retrieval_config_materialized" retrieval_compare
-PAPER_OPTIMIZER_RUN_NAME="$retrieval_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$retrieval_config_materialized" "${safe_label}_retrieval"
+materialize_config_with_winner "$retrieval_core_config" "$(require_best_candidate_json "$prompt_run_name")" "$retrieval_core_config_materialized" retrieval_compare
+PAPER_OPTIMIZER_RUN_NAME="$retrieval_core_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$retrieval_core_config_materialized" "${safe_label}_retrieval_core"
 
-echo "[$(date -Iseconds)] Step 5: optimize study from the retrieval-compare winner"
-materialize_config_with_winner "$optimize_config" "$(require_best_candidate_json "$retrieval_run_name")" "$optimize_config_materialized" optimize
+echo "[$(date -Iseconds)] Step 5: retrieval feature sweep on the top retrieval-core candidates"
+materialize_retrieval_feature_config "$retrieval_feature_config" "$(resolve_results_jsonl "$retrieval_core_run_name")" "$retrieval_feature_config_materialized" 2
+PAPER_OPTIMIZER_RUN_NAME="$retrieval_feature_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$retrieval_feature_config_materialized" "${safe_label}_retrieval_features"
+
+echo "[$(date -Iseconds)] Step 6: optimize study from the retrieval-feature winner"
+materialize_config_with_winner "$optimize_config" "$(require_best_candidate_json "$retrieval_feature_run_name")" "$optimize_config_materialized" optimize
 PAPER_OPTIMIZER_RUN_NAME="$optimize_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" optimize "$optimize_config_materialized" "${safe_label}_optimize"
 
-"$optimizer_python" - "$manifest_path" "$session_id" "$safe_label" "$repo_root" "$compare_run_name" "$prompt_run_name" "$retrieval_run_name" "$optimize_run_name" <<'PY'
+"$optimizer_python" - "$manifest_path" "$session_id" "$safe_label" "$repo_root" "$compare_run_name" "$prompt_run_name" "$retrieval_core_run_name" "$retrieval_feature_run_name" "$optimize_run_name" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -182,7 +286,7 @@ session_id = sys.argv[2]
 label = sys.argv[3]
 repo_root = Path(sys.argv[4])
 run_names = sys.argv[5:]
-stage_names = ["model_compare", "prompt_compare", "retrieval_compare", "optimize"]
+stage_names = ["model_compare", "prompt_compare", "retrieval_core_compare", "retrieval_feature_compare", "optimize"]
 payload = {
 	"session_id": session_id,
 	"label": label,
@@ -207,5 +311,6 @@ echo "Overnight report: $overnight_dir/report.html"
 echo "All candidates CSV: $overnight_dir/all_candidates.csv"
 echo "Compare run: $repo_root/runs/$compare_run_name"
 echo "Prompt run: $repo_root/runs/$prompt_run_name"
-echo "Retrieval run: $repo_root/runs/$retrieval_run_name"
+echo "Retrieval core run: $repo_root/runs/$retrieval_core_run_name"
+echo "Retrieval feature run: $repo_root/runs/$retrieval_feature_run_name"
 echo "Optimize run: $repo_root/runs/$optimize_run_name"

@@ -3,20 +3,20 @@
   "experiment_id": "compare_retrieval_modes_dev",
   "operator_todo": {
     "notes": [
-      "Prepared compare config for lexical vs hybrid_experimental retrieval on the same model and prompt bundle.",
-      "Materialize the text model and prompt bundle onto the latest winning setup before unattended use if needed."
+      "This file is now the retrieval-feature sweep template used after the retrieval-core stage.",
+      "run_overnight.sh materializes the top 1-2 retrieval-core candidates into this feature sweep before optimize."
     ]
   },
   "baseline_candidate": {
     "prompt_bundle_id": "default",
     "text_model_id": "google/gemma-4-26b-a4b",
-    "vision_model_id": null,
+    "vision_model_id": "google/gemma-4-26b-a4b",
     "optimizer_knobs": {
       "retrieval_mode": "lexical",
-      "retrieval_top_k": 8,
+      "retrieval_top_k": 10,
       "recall_rescue_enabled": true,
       "whole_document_mode": false,
-      "whole_document_max_chars": 12000,
+      "whole_document_max_chars": 20000,
       "style_profiles_enabled": true,
       "style_profiles_max_examples": 3,
       "figure_review_enabled": false
@@ -26,13 +26,13 @@
     {
       "prompt_bundle_id": "default",
       "text_model_id": "google/gemma-4-26b-a4b",
-      "vision_model_id": null,
+      "vision_model_id": "google/gemma-4-26b-a4b",
       "optimizer_knobs": {
         "retrieval_mode": "lexical",
-        "retrieval_top_k": 8,
+        "retrieval_top_k": 10,
         "recall_rescue_enabled": true,
         "whole_document_mode": false,
-        "whole_document_max_chars": 12000,
+        "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
         "figure_review_enabled": false
@@ -41,26 +41,124 @@
     {
       "prompt_bundle_id": "default",
       "text_model_id": "google/gemma-4-26b-a4b",
-      "vision_model_id": null,
+      "vision_model_id": "google/gemma-4-26b-a4b",
       "optimizer_knobs": {
-        "retrieval_mode": "hybrid_experimental",
-        "retrieval_top_k": 8,
-        "recall_rescue_enabled": true,
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 10,
+        "recall_rescue_enabled": false,
         "whole_document_mode": false,
-        "whole_document_max_chars": 12000,
+        "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
         "figure_review_enabled": false
       }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "google/gemma-4-26b-a4b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 10,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": true,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "google/gemma-4-26b-a4b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 10,
+        "recall_rescue_enabled": false,
+        "whole_document_mode": true,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "google/gemma-4-26b-a4b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 10,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": true
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "google/gemma-4-26b-a4b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 10,
+        "recall_rescue_enabled": false,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": true
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "google/gemma-4-26b-a4b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 10,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": true,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": true
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "google/gemma-4-26b-a4b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 10,
+        "recall_rescue_enabled": false,
+        "whole_document_mode": true,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": true
+      }
     }
   ],
   "search_space": {
-    "prompt_bundle_ids": ["default"],
-    "text_model_ids": ["google/gemma-4-26b-a4b"],
-    "vision_model_ids": [],
+    "prompt_bundle_ids": [
+      "default"
+    ],
+    "text_model_ids": [
+      "google/gemma-4-26b-a4b"
+    ],
+    "vision_model_ids": [
+      "google/gemma-4-26b-a4b"
+    ],
     "numeric_knobs": {
       "retrieval_top_k": {
-        "values": [8]
+        "values": [
+          10
+        ]
       }
     }
   },

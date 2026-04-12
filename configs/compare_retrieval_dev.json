@@ -4,18 +4,20 @@
   "operator_todo": {
     "notes": [
       "run_overnight.sh materializes this config onto the winner of the preceding prompt-compare stage.",
+      "This is the retrieval-core sweep: lexical vs hybrid_experimental across top_k = 8/10/12/14/16.",
       "Skip holdout for tonight; add a real holdout split before re-enabling validate-best."
     ]
   },
   "baseline_candidate": {
     "prompt_bundle_id": "default",
     "text_model_id": "google/gemma-4-26b-a4b",
-    "vision_model_id": null,
+    "vision_model_id": "google/gemma-4-26b-a4b",
     "optimizer_knobs": {
-      "retrieval_top_k": 6,
+      "retrieval_mode": "lexical",
+      "retrieval_top_k": 10,
       "recall_rescue_enabled": true,
       "whole_document_mode": false,
-      "whole_document_max_chars": 12000,
+      "whole_document_max_chars": 20000,
       "style_profiles_enabled": true,
       "style_profiles_max_examples": 3,
       "figure_review_enabled": false
@@ -25,26 +27,13 @@
     {
       "prompt_bundle_id": "default",
       "text_model_id": "google/gemma-4-26b-a4b",
-      "vision_model_id": null,
+      "vision_model_id": "google/gemma-4-26b-a4b",
       "optimizer_knobs": {
-        "retrieval_top_k": 6,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 12000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-26b-a4b",
-      "vision_model_id": null,
-      "optimizer_knobs": {
+        "retrieval_mode": "lexical",
         "retrieval_top_k": 8,
         "recall_rescue_enabled": true,
         "whole_document_mode": false,
-        "whole_document_max_chars": 12000,
+        "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
         "figure_review_enabled": false
@@ -53,12 +42,133 @@
     {
       "prompt_bundle_id": "default",
       "text_model_id": "google/gemma-4-26b-a4b",
-      "vision_model_id": null,
+      "vision_model_id": "google/gemma-4-26b-a4b",
       "optimizer_knobs": {
+        "retrieval_mode": "hybrid_experimental",
+        "retrieval_top_k": 8,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "google/gemma-4-26b-a4b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "lexical",
         "retrieval_top_k": 10,
         "recall_rescue_enabled": true,
         "whole_document_mode": false,
-        "whole_document_max_chars": 12000,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "google/gemma-4-26b-a4b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "hybrid_experimental",
+        "retrieval_top_k": 10,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "google/gemma-4-26b-a4b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 12,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "google/gemma-4-26b-a4b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "hybrid_experimental",
+        "retrieval_top_k": 12,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "google/gemma-4-26b-a4b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 14,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "google/gemma-4-26b-a4b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "hybrid_experimental",
+        "retrieval_top_k": 14,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "google/gemma-4-26b-a4b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 16,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "google/gemma-4-26b-a4b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "hybrid_experimental",
+        "retrieval_top_k": 16,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
         "figure_review_enabled": false
@@ -72,13 +182,17 @@
     "text_model_ids": [
       "google/gemma-4-26b-a4b"
     ],
-    "vision_model_ids": [],
+    "vision_model_ids": [
+      "google/gemma-4-26b-a4b"
+    ],
     "numeric_knobs": {
       "retrieval_top_k": {
         "values": [
-          6,
           8,
-          10
+          10,
+          12,
+          14,
+          16
         ]
       }
     }

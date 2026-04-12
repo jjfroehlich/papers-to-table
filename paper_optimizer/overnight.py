@@ -47,6 +47,10 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         writer.writerows(rows)
 
 
+def _seconds_to_minutes(seconds: float) -> float:
+    return seconds / 60.0
+
+
 def _holdout_status(summary: dict[str, Any]) -> str:
     holdout = summary.get("holdout_validation") if isinstance(summary.get("holdout_validation"), dict) else {}
     status = holdout.get("status")
@@ -420,7 +424,10 @@ def _build_plot_assets(output_dir: Path, stage_rows: list[dict[str, Any]], all_c
         })
 
     duration_rows = [
-        {"stage_name": row["stage_name"], "duration_seconds": row.get("duration_seconds")}
+        {
+            "stage_name": row["stage_name"],
+            "duration_minutes": _seconds_to_minutes(float(row.get("duration_seconds"))),
+        }
         for row in stage_rows
         if row.get("duration_seconds") is not None
     ]
@@ -429,8 +436,8 @@ def _build_plot_assets(output_dir: Path, stage_rows: list[dict[str, Any]], all_c
         png_path = plots_dir / "pipeline_stage_durations.png"
         _write_csv(csv_path, duration_rows)
         plt.figure(figsize=(8, 4))
-        plt.bar([row["stage_name"] for row in duration_rows], [row["duration_seconds"] for row in duration_rows], color="tab:orange")
-        plt.ylabel("duration_seconds")
+        plt.bar([row["stage_name"] for row in duration_rows], [row["duration_minutes"] for row in duration_rows], color="tab:orange")
+        plt.ylabel("duration_minutes")
         plt.title("Stage durations")
         plt.tight_layout()
         plt.savefig(png_path)
@@ -457,7 +464,7 @@ def _build_plot_assets(output_dir: Path, stage_rows: list[dict[str, Any]], all_c
                     "stage_name": row.get("stage_name"),
                     "candidate_id": row.get("candidate_id"),
                     "primary_metric_value": row.get("primary_metric_value"),
-                    "runtime_seconds": row.get("runtime_seconds"),
+                    "runtime_minutes": _seconds_to_minutes(float(row.get("runtime_seconds"))),
                 }
                 for row in frontier_rows
             ],
@@ -469,12 +476,12 @@ def _build_plot_assets(output_dir: Path, stage_rows: list[dict[str, Any]], all_c
         for stage_name in stage_names:
             subset = [row for row in frontier_rows if display_text(row.get("stage_name"), missing="stage") == stage_name]
             plt.scatter(
-                [row["runtime_seconds"] for row in subset],
+                [_seconds_to_minutes(float(row["runtime_seconds"])) for row in subset],
                 [row["primary_metric_value"] for row in subset],
                 label=stage_name,
                 color=colors[stage_name],
             )
-        plt.xlabel("runtime_seconds")
+        plt.xlabel("runtime_minutes")
         plt.ylabel("primary_score")
         plt.title("Pipeline candidate frontier")
         plt.legend()

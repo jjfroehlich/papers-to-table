@@ -23,6 +23,10 @@ def _safe_float(value: Any) -> float | None:
         return None
 
 
+def _seconds_to_minutes(seconds: float) -> float:
+    return seconds / 60.0
+
+
 def _load_rows(results_csv: Path) -> list[dict[str, str]]:
     if not results_csv.exists():
         return []
@@ -568,19 +572,21 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
         failure_rate = _safe_float(row.get(failure_key)) if failure_key is not None else None
 
         if score is not None and runtime is not None:
-            xs_runtime.append(runtime)
+            runtime_minutes = _seconds_to_minutes(runtime)
+            xs_runtime.append(runtime_minutes)
             ys_runtime.append(score)
             scatter_rows_runtime.append({
                 "candidate_label": candidate_labels.get(row.get("candidate_id", ""), row.get("candidate_id", "")),
-                "runtime_seconds": runtime,
+                "runtime_minutes": runtime_minutes,
                 "primary_score": score,
                 "candidate_id": row.get("candidate_id", ""),
                 "text_model_id": row.get("text_model_id", ""),
             })
         elif runtime is not None:
+            runtime_minutes = _seconds_to_minutes(runtime)
             scatter_rows_runtime.append({
                 "candidate_label": candidate_labels.get(row.get("candidate_id", ""), row.get("candidate_id", "")),
-                "runtime_seconds": runtime,
+                "runtime_minutes": runtime_minutes,
                 "primary_score": None,
                 "candidate_id": row.get("candidate_id", ""),
                 "text_model_id": row.get("text_model_id", ""),
@@ -626,7 +632,7 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
     if xs_runtime and ys_runtime:
         plt.figure(figsize=(6, 4))
         plt.scatter(xs_runtime, ys_runtime)
-        plt.xlabel("runtime_seconds")
+        plt.xlabel("runtime_minutes")
         plt.ylabel(primary_metric)
         plt.title("Correctness vs runtime")
         plt.tight_layout()
@@ -704,7 +710,7 @@ def generate_optimize_plots(experiment_dir: Path, primary_metric: str) -> None:
 
     rounds = sorted(by_round)
     best_by_round: list[float] = []
-    runtime_by_round: list[float] = []
+    runtime_by_round_minutes: list[float] = []
     delta_by_round: list[float] = []
     champion_trace: list[float] = []
 
@@ -726,11 +732,12 @@ def generate_optimize_plots(experiment_dir: Path, primary_metric: str) -> None:
             champion_trace.append(0.0)
             delta_by_round.append(0.0)
 
-        runtime_by_round.append(sum(runtimes) / len(runtimes) if runtimes else 0.0)
+        avg_runtime_seconds = sum(runtimes) / len(runtimes) if runtimes else 0.0
+        runtime_by_round_minutes.append(_seconds_to_minutes(avg_runtime_seconds))
 
     best_rows = [{"round_index": r, "best_score": s} for r, s in zip(rounds, best_by_round)]
     delta_rows = [{"round_index": r, "score_delta": d} for r, d in zip(rounds, delta_by_round)]
-    runtime_rows = [{"round_index": r, "avg_runtime": t} for r, t in zip(rounds, runtime_by_round)]
+    runtime_rows = [{"round_index": r, "avg_runtime_minutes": t} for r, t in zip(rounds, runtime_by_round_minutes)]
 
     _write_plot_csv(plots_dir / "optimize_best_by_round.csv", best_rows)
     _write_plot_csv(plots_dir / "optimize_delta_by_round.csv", delta_rows)
@@ -770,9 +777,9 @@ def generate_optimize_plots(experiment_dir: Path, primary_metric: str) -> None:
     plt.close()
 
     plt.figure(figsize=(7, 4))
-    plt.plot(rounds, runtime_by_round, marker="o")
+    plt.plot(rounds, runtime_by_round_minutes, marker="o")
     plt.xlabel("round")
-    plt.ylabel("avg_runtime_seconds")
+    plt.ylabel("avg_runtime_minutes")
     plt.title("Runtime by round")
     plt.tight_layout()
     plt.savefig(plots_dir / "optimize_runtime_by_round.png")

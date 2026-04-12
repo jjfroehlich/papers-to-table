@@ -4,18 +4,20 @@
   "operator_todo": {
     "notes": [
       "Replace bench_holdout paths with a true holdout split before trusting holdout validation.",
-      "Set explicit command_prefix values if the main app and eval app need different Python environments."
+      "Set explicit command_prefix values if the main app and eval app need different Python environments.",
+      "This model compare freezes prompt and retrieval settings so the text-model comparison is easier to interpret."
     ]
   },
   "baseline_candidate": {
     "prompt_bundle_id": "default",
-    "text_model_id": "qwen/qwen3.5-9b",
-    "vision_model_id": null,
+    "text_model_id": "openai/gpt-oss-20b",
+    "vision_model_id": "google/gemma-4-26b-a4b",
     "optimizer_knobs": {
-      "retrieval_top_k": 6,
+      "retrieval_mode": "lexical",
+      "retrieval_top_k": 10,
       "recall_rescue_enabled": true,
       "whole_document_mode": false,
-      "whole_document_max_chars": 12000,
+      "whole_document_max_chars": 20000,
       "style_profiles_enabled": true,
       "style_profiles_max_examples": 3,
       "figure_review_enabled": false
@@ -24,13 +26,14 @@
   "compare_candidates": [
     {
       "prompt_bundle_id": "default",
-      "text_model_id": "qwen/qwen3.5-9b",
-      "vision_model_id": null,
+      "text_model_id": "openai/gpt-oss-20b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
       "optimizer_knobs": {
-        "retrieval_top_k": 6,
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 10,
         "recall_rescue_enabled": true,
         "whole_document_mode": false,
-        "whole_document_max_chars": 12000,
+        "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
         "figure_review_enabled": false
@@ -39,12 +42,43 @@
     {
       "prompt_bundle_id": "default",
       "text_model_id": "google/gemma-4-26b-a4b",
-      "vision_model_id": null,
+      "vision_model_id": "google/gemma-4-26b-a4b",
       "optimizer_knobs": {
-        "retrieval_top_k": 6,
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 10,
         "recall_rescue_enabled": true,
         "whole_document_mode": false,
-        "whole_document_max_chars": 12000,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "qwen/qwen3.5-9b",
+      "vision_model_id": "qwen/qwen3.5-9b",
+      "optimizer_knobs": {
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 10,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "nvidia/nemotron-3-nano-4b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 10,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
         "figure_review_enabled": false
@@ -53,12 +87,43 @@
     {
       "prompt_bundle_id": "default",
       "text_model_id": "qwen/qwen3.5-35b-a3b",
-      "vision_model_id": null,
+      "vision_model_id": "qwen/qwen3.5-35b-a3b",
       "optimizer_knobs": {
-        "retrieval_top_k": 6,
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 10,
         "recall_rescue_enabled": true,
         "whole_document_mode": false,
-        "whole_document_max_chars": 12000,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "google/gemma-4-e4b",
+      "vision_model_id": "google/gemma-4-e4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 10,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "mistralai/ministral-3-14b-reasoning",
+      "vision_model_id": "mistralai/ministral-3-14b-reasoning",
+      "optimizer_knobs": {
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 10,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
         "figure_review_enabled": false
@@ -70,15 +135,25 @@
       "default"
     ],
     "text_model_ids": [
-      "qwen/qwen3.5-9b",
+      "openai/gpt-oss-20b",
       "google/gemma-4-26b-a4b",
-      "qwen/qwen3.5-35b-a3b"
+      "qwen/qwen3.5-9b",
+      "nvidia/nemotron-3-nano-4b",
+      "qwen/qwen3.5-35b-a3b",
+      "google/gemma-4-e4b",
+      "mistralai/ministral-3-14b-reasoning"
     ],
-    "vision_model_ids": [],
+    "vision_model_ids": [
+      "google/gemma-4-26b-a4b",
+      "qwen/qwen3.5-9b",
+      "qwen/qwen3.5-35b-a3b",
+      "google/gemma-4-e4b",
+      "mistralai/ministral-3-14b-reasoning"
+    ],
     "numeric_knobs": {
       "retrieval_top_k": {
         "values": [
-          6
+          10
         ]
       }
     }

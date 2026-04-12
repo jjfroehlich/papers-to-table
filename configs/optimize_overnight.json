@@ -3,7 +3,7 @@
   "experiment_id": "optimize_overnight",
   "operator_todo": {
     "notes": [
-      "run_overnight.sh materializes this config onto the winner of the preceding retrieval-compare stage.",
+      "run_overnight.sh materializes this config onto the winner of the preceding retrieval-feature stage.",
       "The search space keeps both prompt bundles live so optimize can still challenge the incumbent on prompt choice.",
       "Skip holdout for tonight; add a real holdout split before re-enabling validate-best."
     ]
@@ -11,12 +11,13 @@
   "baseline_candidate": {
     "prompt_bundle_id": "default",
     "text_model_id": "google/gemma-4-26b-a4b",
-    "vision_model_id": null,
+    "vision_model_id": "google/gemma-4-26b-a4b",
     "optimizer_knobs": {
-      "retrieval_top_k": 6,
+      "retrieval_mode": "lexical",
+      "retrieval_top_k": 10,
       "recall_rescue_enabled": true,
       "whole_document_mode": false,
-      "whole_document_max_chars": 12000,
+      "whole_document_max_chars": 20000,
       "style_profiles_enabled": true,
       "style_profiles_max_examples": 3,
       "figure_review_enabled": false
@@ -31,13 +32,17 @@
     "text_model_ids": [
       "google/gemma-4-26b-a4b"
     ],
-    "vision_model_ids": [],
+    "vision_model_ids": [
+      "google/gemma-4-26b-a4b"
+    ],
     "numeric_knobs": {
       "retrieval_top_k": {
         "values": [
-          6,
           8,
-          10
+          10,
+          12,
+          14,
+          16
         ]
       },
       "style_profiles_max_examples": {
@@ -63,6 +68,8 @@
         "eval_args": [
           "--judge-model",
           "google/gemma-4-26b-a4b",
+          "--judge-model-b",
+          "qwen/qwen3.5-35b-a3b",
           "--judge-api-base",
           "http://127.0.0.1:1234/v1"
         ],
@@ -77,6 +84,8 @@
         "eval_args": [
           "--judge-model",
           "google/gemma-4-26b-a4b",
+          "--judge-model-b",
+          "qwen/qwen3.5-35b-a3b",
           "--judge-api-base",
           "http://127.0.0.1:1234/v1"
         ],
@@ -111,7 +120,7 @@
     ],
     "metric_groups": {
       "primary": {
-        "correctness": "correctness"
+        "correctness_mean": "correctness_mean"
       },
       "guardrail": {
         "evidence_quality": "anchor_valid_rate",
@@ -119,6 +128,8 @@
         "failure_count": "join_failure_count"
       },
       "diagnostic": {
+        "correctness": "correctness",
+        "judge_disagreement": "judge_disagreement",
         "contract_warning_count": "contract_warning_count",
         "scored_cell_count": "scored_cell_count",
         "text_scored_cell_count": "text_scored_cell_count",
@@ -131,9 +142,39 @@
     }
   },
   "acceptance": {
-    "primary_metric": "correctness",
+    "primary_metric": "correctness_mean",
     "min_improvement": 0.01,
     "degraded_score_policy": "warn",
+    "tie_break": {
+      "epsilon": 0.002,
+      "secondary_objectives": [
+        {
+          "metric": "evidence_quality",
+          "direction": "max",
+          "min_improvement": 0.0
+        },
+        {
+          "metric": "judge_disagreement",
+          "direction": "min",
+          "min_improvement": 0.0
+        },
+        {
+          "metric": "failure_count",
+          "direction": "min",
+          "min_improvement": 0.0
+        },
+        {
+          "metric": "null_count",
+          "direction": "min",
+          "min_improvement": 0.0
+        },
+        {
+          "metric": "runtime_seconds",
+          "direction": "min",
+          "min_improvement": 5.0
+        }
+      ]
+    },
     "guardrails": {
       "evidence_quality": {
         "min": 0.85
