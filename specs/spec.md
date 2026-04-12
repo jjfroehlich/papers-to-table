@@ -603,14 +603,15 @@ The bounded structured-output fallback ladder is:
 1. `json_schema`
 2. if `json_schema` is unsupported for the configured provider-model path, fall back to `json_object` and mark provider mode as explicit degraded structured-output mode
 3. if the active request shape triggers provider regex or grammar incompatibility, downgrade within the same bounded ladder and record explicit backend-incompatibility truth in run artifacts
-4. if both structured modes are unavailable for the configured provider-model path, fail provider readiness for that run and record explicit capability-mismatch truth in run artifacts
-5. one retry with stronger instruction when the returned structure is invalid
-6. minimal JSON repair when the failure is purely syntactic, including wrapper stripping and balanced-object extraction from mixed output
-7. otherwise mark extraction failed for that target
+4. if both structured modes are unavailable for the configured provider-model path, continue only in explicit degraded prompt-only JSON mode with app-side validation and record explicit capability-mismatch truth in run artifacts
+5. degraded text extraction modes must keep value and evidence coupled with a smaller compact response contract rather than reopening broad unstructured extraction
+6. one retry with stronger instruction when the returned structure is invalid
+7. bounded degraded-mode structural normalization for list-shaped scalars and missing nullable fields, then minimal JSON repair when the failure is purely syntactic, including wrapper stripping and balanced-object extraction from mixed output
+8. otherwise mark extraction failed for that target
 
 The system must not add a longer implicit fallback ladder by default.
 
-Prompt-only compatibility fallback is not an acceptable live extraction mode. When no compatible structured-output mode is available for the configured provider-model path, the run must fail readiness explicitly rather than continue into extraction with prompt-only JSON instructions.
+Prompt-only compatibility fallback is acceptable only as an explicit degraded live mode with app-side validation, degraded-mode warnings, and the same bounded proposal contract checks used for other structured-output fallbacks. The system must not silently accept broad unvalidated prompt output as a valid proposal path.
 
 Long-text target fields must remain first-class extraction targets; the system must not systematically collapse them into empty, truncated, or schema-invalid outcomes merely because they exceed short-answer assumptions.
 

@@ -435,6 +435,72 @@ def _parse_json_candidate(candidate: Optional[str]) -> tuple[Optional[object], b
     return None, False
 
 
+def _schema_allows_type(schema: dict[str, Any], expected_type: str) -> bool:
+    allowed_types = schema.get("type")
+    if allowed_types is None:
+        return False
+    if isinstance(allowed_types, list):
+        return expected_type in [str(item) for item in allowed_types]
+    return str(allowed_types) == expected_type
+
+
+def _coerce_schema_text_value(value: object) -> Optional[str]:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        text = value
+    elif isinstance(value, list):
+        parts = [part for item in value if (part := _coerce_schema_text_value(item))]
+        text = "\n".join(parts)
+    elif isinstance(value, dict):
+        if "text" in value:
+            return _coerce_schema_text_value(value.get("text"))
+        text = json.dumps(value, ensure_ascii=False, sort_keys=True)
+    else:
+        text = str(value)
+    stripped = text.strip()
+    return stripped or None
+
+
+def _normalize_value_for_schema(value: object, schema: dict[str, Any]) -> object:
+    if value is None:
+        return None
+
+    if _schema_allows_type(schema, "integer") and isinstance(value, str):
+        stripped = value.strip()
+        if stripped.isdigit():
+            return int(stripped)
+
+    if _schema_allows_type(schema, "string") and not isinstance(value, str):
+        coerced = _coerce_schema_text_value(value)
+        if coerced is not None:
+            return coerced
+
+    if isinstance(value, dict):
+        properties = schema.get("properties") if isinstance(schema.get("properties"), dict) else {}
+        normalized = dict(value)
+        for field_name, field_schema in properties.items():
+            if field_name in normalized:
+                normalized[field_name] = _normalize_value_for_schema(normalized[field_name], field_schema)
+        for field_name in schema.get("required", []):
+            if field_name in normalized:
+                continue
+            field_schema = properties.get(field_name)
+            if not isinstance(field_schema, dict):
+                continue
+            if _schema_allows_type(field_schema, "null"):
+                normalized[field_name] = None
+            elif _schema_allows_type(field_schema, "array"):
+                normalized[field_name] = []
+        return normalized
+
+    if isinstance(value, list) and _schema_allows_type(schema, "array"):
+        item_schema = schema.get("items") if isinstance(schema.get("items"), dict) else {}
+        return [_normalize_value_for_schema(item, item_schema) for item in value]
+
+    return value
+
+
 def _value_matches_json_type(value: object, expected_type: str) -> bool:
     if expected_type == "null":
         return value is None
@@ -483,8 +549,19 @@ def _validate_against_schema(value: object, schema: dict, path: str = "$") -> No
             _validate_against_schema(item, schema["items"], f"{path}[{index}]")
 
 
-def _parse_and_validate_response_with_details(raw: str, response_schema: dict) -> tuple[dict, dict[str, Any]]:
+def _parse_and_validate_response_with_details(
+    raw: str,
+    response_schema: dict,
+    *,
+    allow_degraded_normalization: bool = False,
+) -> tuple[dict, dict[str, Any]]:
     parsed, details = _try_repair_json_with_metadata(raw)
+    if allow_degraded_normalization and isinstance(parsed, dict):
+        original_parsed = parsed
+        normalized = _normalize_value_for_schema(parsed, response_schema)
+        if isinstance(normalized, dict):
+            parsed = normalized
+            details["degraded_normalization_used"] = normalized != original_parsed
     if not isinstance(parsed, dict):
         error = StructuredOutputError(f"LM Studio returned malformed JSON after bounded recovery: {raw[:200]}")
         error.details = details
@@ -545,15 +622,26 @@ _PROBE_RESPONSE_SCHEMA: dict[str, Any] = {
     "properties": {
         "proposed_value": {"type": ["string", "null"]},
         "state": {"type": "string", "enum": ["found", "unclear"]},
-        "rationale": {"type": ["string", "null"]},
-        "calculation": {"type": ["string", "null"]},
+        "numeric_value_form": {"type": ["string", "null"], "enum": ["exact", "range", "approximate", None]},
+        "primary_quote": {"type": ["string", "null"]},
+        "primary_quote_page": {"type": ["integer", "null"]},
+        "evidence_kind": {"type": "string", "enum": ["direct_quote", "inferred_reasoning", "calculation", "none"]},
     },
-    "required": ["proposed_value", "state", "rationale", "calculation"],
+    "required": [
+        "proposed_value",
+        "state",
+        "numeric_value_form",
+        "primary_quote",
+        "primary_quote_page",
+        "evidence_kind",
+    ],
 }
 
 _PROBE_TEXT = (
-    "Return ONLY one JSON object with keys proposed_value, state, rationale, and calculation. "
-    "Use state='found', proposed_value='ok', rationale=null, calculation=null."
+    "Return ONLY one JSON object with keys proposed_value, state, numeric_value_form, "
+    "primary_quote, primary_quote_page, and evidence_kind. "
+    "Use state='found', proposed_value='ok', numeric_value_form=null, primary_quote='ok', "
+    "primary_quote_page=1, evidence_kind='direct_quote'."
 )
 
 _MINIMAL_PNG_DATA_URL = (
@@ -1718,6 +1806,7 @@ class LMStudioProvider(ProviderAdapter):
         payload = self._build_payload(
             messages, model_id, max_tokens, temperature, response_schema, structured_mode
         )
+        allow_degraded_normalization = structured_mode in ("json_object", "none")
         payload_summary = self._summarize_payload(payload)
         call_started = perf_counter()
         try:
@@ -1730,7 +1819,11 @@ class LMStudioProvider(ProviderAdapter):
                 raw_preview=first_raw,
                 payload_summary=payload_summary,
             )
-            parsed, parse_details = _parse_and_validate_response_with_details(first_raw, response_schema)
+            parsed, parse_details = _parse_and_validate_response_with_details(
+                first_raw,
+                response_schema,
+                allow_degraded_normalization=allow_degraded_normalization,
+            )
             self._record_attempt(
                 request_kind=request_kind,
                 structured_mode=structured_mode,
@@ -1810,15 +1903,16 @@ class LMStudioProvider(ProviderAdapter):
             if getattr(first_error, "reason", None) == "structured_backend_incompatible":
                 raise
             self._bump("completion_retry_attempts")
+            retry_instruction = self._build_retry_instruction(
+                response_schema=response_schema,
+                validation_issue=str(first_error),
+                structured_mode=structured_mode,
+            )
             retry_payload = self._build_payload(
                 list(messages) + [
                     {
                         "role": "user",
-                        "content": (
-                            "Your previous response did not satisfy the required JSON contract. "
-                            "Return ONLY one JSON object with no prose, no code fences, and no wrapper text. "
-                            f"Schema: {json.dumps(response_schema)}. Validation issue: {str(first_error)}"
-                        ),
+                        "content": retry_instruction,
                     }
                 ],
                 model_id,
@@ -1838,7 +1932,11 @@ class LMStudioProvider(ProviderAdapter):
                 raw_preview=retry_raw,
                 payload_summary=retry_payload_summary,
             )
-            parsed, parse_details = _parse_and_validate_response_with_details(retry_raw, response_schema)
+            parsed, parse_details = _parse_and_validate_response_with_details(
+                retry_raw,
+                response_schema,
+                allow_degraded_normalization=allow_degraded_normalization,
+            )
             self._record_attempt(
                 request_kind=request_kind,
                 structured_mode=structured_mode,
@@ -1878,6 +1976,61 @@ class LMStudioProvider(ProviderAdapter):
             else:
                 self._pending_transport_metadata = None
             raise
+
+    def _build_retry_instruction(
+        self,
+        *,
+        response_schema: dict[str, Any],
+        validation_issue: str,
+        structured_mode: str,
+    ) -> str:
+        if structured_mode == "json_schema":
+            return (
+                "Your previous response did not satisfy the required JSON contract. "
+                "Return ONLY one JSON object with no prose, no code fences, and no wrapper text. "
+                f"Schema: {json.dumps(response_schema)}. Validation issue: {validation_issue}"
+            )
+        example = json.dumps(self._build_schema_example(response_schema), ensure_ascii=False)
+        return (
+            "Your previous response did not satisfy the required JSON contract. "
+            "Return ONLY one JSON object with exactly the required keys. "
+            "Use null for unknown scalar fields and [] for unknown arrays. "
+            "Do not add prose, code fences, comments, or wrapper text. "
+            f"Use this response shape: {example}. Validation issue: {validation_issue}"
+        )
+
+    def _build_schema_example(self, schema: dict[str, Any]) -> object:
+        enum_values = schema.get("enum")
+        if isinstance(enum_values, list) and enum_values:
+            for value in enum_values:
+                if value is not None:
+                    return value
+            return None
+
+        allowed_types = schema.get("type")
+        type_options = allowed_types if isinstance(allowed_types, list) else [allowed_types]
+        normalized_types = [str(option) for option in type_options if option is not None]
+
+        if "object" in normalized_types:
+            properties = schema.get("properties") if isinstance(schema.get("properties"), dict) else {}
+            required = schema.get("required", [])
+            return {
+                field_name: self._build_schema_example(properties.get(field_name, {}))
+                for field_name in required
+            }
+        if "array" in normalized_types:
+            return []
+        if "integer" in normalized_types:
+            return 1
+        if "number" in normalized_types:
+            return 1
+        if "boolean" in normalized_types:
+            return False
+        if "string" in normalized_types:
+            return "value"
+        if "null" in normalized_types:
+            return None
+        return None
 
     def _record_structured_backend_incompatibility(self, error: StructuredOutputError, attempted_mode: str) -> None:
         caps = self._capabilities

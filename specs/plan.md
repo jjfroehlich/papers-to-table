@@ -71,7 +71,7 @@ Implementation for this phase is complete when the system satisfies the function
 4a. Eval-ready artifacts remain versioned and directly consumable by the separate eval and optimizer repos from files alone, including enough evidence and source-text-compatible persistence for downstream anchor validation.
    - the app also writes compact extraction and retrieval provenance summaries into stable reviewer/run summary artifacts so downstream tools can score or report degraded runs truthfully without reparsing verbose provider diagnostics
 
-5. The implementation supports structured-output-first extraction with bounded compatibility negotiation and recovery: prefer `json_schema`, allow explicit degraded fallback to `json_object` when `json_schema` is unsupported, downgrade explicitly when the provider rejects regex or grammar constraints for the active request shape, allow explicit degraded prompt-only JSON fallback when both structured modes are unavailable, then one stronger retry, bounded repair with wrapper stripping and balanced-object extraction, and hard failure for that target only when no schema-valid result is recoverable.
+5. The implementation supports structured-output-first extraction with bounded compatibility negotiation and recovery: prefer `json_schema`, allow explicit degraded fallback to `json_object` when `json_schema` is unsupported, downgrade explicitly when the provider rejects regex or grammar constraints for the active request shape, allow explicit degraded prompt-only JSON fallback when both structured modes are unavailable, use a smaller evidence-coupled compact extraction contract in degraded text modes, then one stronger retry, bounded repair with wrapper stripping and balanced-object extraction plus limited structural normalization, and hard failure for that target only when no schema-valid result is recoverable.
 
 6. Diagnostics explain failures and low-quality results without requiring developers to inspect raw prompts manually.
 
@@ -1577,9 +1577,9 @@ If a provider rejects the preferred guided-output mode, the adapter should follo
 
 1. `json_schema`
 2. `json_object` fallback when `json_schema` is unsupported for that provider-model path, with explicit degraded-mode signaling
-3. prompt-only JSON fallback when both structured modes are unavailable for that provider-model path, with explicit degraded-mode signaling
+3. prompt-only JSON fallback when both structured modes are unavailable for that provider-model path, with explicit degraded-mode signaling and the same compact degraded extraction contract used for other weak modes
 4. one stronger-instruction retry
-5. minimal syntactic JSON repair
+5. bounded degraded-mode structural normalization for list-shaped scalars and missing nullable fields, plus minimal syntactic JSON repair
 6. otherwise hard failure for the affected target
 
 This ladder is intentionally bounded. Prompt-only JSON is allowed only as an explicit degraded mode with app-side validation; it must not silently degrade into open-ended unvalidated behavior.

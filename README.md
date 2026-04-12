@@ -238,7 +238,7 @@ LM Studio model management is app-owned:
 - otherwise it loads the model through LM Studio before extraction begins
 - it records load/reuse behavior and echoed LM Studio load config in run artifacts
 
-Structured output does not require a separate LM Studio toggle in the config. The app enables it per request by sending `response_format` to `/v1/chat/completions`, probes whether the configured model/runtime supports `json_schema`, and falls back honestly when LM Studio only supports weaker modes. For weaker modes, the provider also ensures the request messages contain an explicit JSON instruction so `json_object` backends that require the word `JSON` do not fail on prompt wording alone.
+Structured output does not require a separate LM Studio toggle in the config. The app enables it per request by sending `response_format` to `/v1/chat/completions`, probes whether the configured model/runtime supports the current guided-output contract, and falls back honestly when LM Studio only supports weaker modes. For weaker modes, the provider also ensures the request messages contain an explicit JSON instruction so `json_object` backends that require the word `JSON` do not fail on prompt wording alone.
 
 ### Schema-first extraction guidance
 
@@ -505,11 +505,23 @@ Structured output behavior is negotiated per provider-model path:
 - Fallback: `json_object` (explicit degraded mode warning is recorded)
 - If both structured modes are unavailable for the configured text provider-model path, extraction continues in degraded prompt-only JSON mode with app-side parse/repair/validation and a degraded-mode warning
 
+Degraded text extraction keeps value and evidence coupled, but with a smaller contract than the full `json_schema` path. Instead of asking weak models for the full nested response in one shot, degraded modes use a compact response shape built around:
+
+- `state`
+- `proposed_value`
+- `numeric_value_form`
+- one primary supporting quote plus page
+- one evidence-kind label
+
+The extraction layer then normalizes that compact response back into the standard proposal and evidence records. This keeps degraded runs compatible with the eval and optimizer repos while reducing the schema burden on weaker models.
+
 When both text and vision models are configured, structured-output capability is tracked separately for the text path and the vision path.
 
 Response handling remains app-validated even in degraded mode:
 - parsed JSON is validated against the expected response schema
+- degraded modes allow bounded structural normalization such as list-to-string coercion and filling missing nullable fields before final validation
 - mixed outputs are cleaned with wrapper stripping and balanced-object extraction before final failure
+- retry instructions are compact and response-shape-oriented in degraded modes instead of echoing the full schema back to the model
 - LM Studio regex/grammar-style 400s are classified explicitly as structured-output backend incompatibility
 
 Readiness and capability failures are classified separately in run artifacts and UI surfaces:

@@ -33,6 +33,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from backend.app.extraction import (
+    COMPACT_DEGRADED_TEXT_EXTRACTION_SCHEMA,
     EvidenceRecord,
     ProposalRecord,
     adjudicate_state,
@@ -1111,6 +1112,38 @@ class TestProviderCapabilities:
         assert result["value"] == "ok"
 
     @pytest.mark.asyncio
+    async def test_chat_complete_structured_normalizes_degraded_list_and_nullable_fields(self):
+        provider = LMStudioProvider(base_url="http://localhost:1234")
+        provider.set_capabilities(
+            ProviderCapabilities(
+                supports_structured_output=False,
+                structured_output_mode="none",
+                model_id="test-model",
+                vision_capable=False,
+            )
+        )
+
+        with patch.object(
+            provider,
+            "_post_structured_payload",
+            new=AsyncMock(
+                return_value=(
+                    '{"proposed_value":["45.3%"],"state":"found","numeric_value_form":null,'
+                    '"primary_quote":["BVF was measured as 45.3%"],"evidence_kind":"direct_quote"}'
+                )
+            ),
+        ):
+            result = await provider.chat_complete_structured(
+                messages=[{"role": "user", "content": "test"}],
+                response_schema=COMPACT_DEGRADED_TEXT_EXTRACTION_SCHEMA,
+                model_id="test-model",
+            )
+
+        assert result["proposed_value"] == "45.3%"
+        assert result["primary_quote"] == "BVF was measured as 45.3%"
+        assert result["primary_quote_page"] is None
+
+    @pytest.mark.asyncio
     async def test_chat_complete_structured_records_attempt_diagnostics(self):
         provider = LMStudioProvider(base_url="http://localhost:1234")
         provider.set_capabilities(
@@ -1632,6 +1665,43 @@ class TestExtractionOrchestrator:
             # If it's quote_plus_page, warning flag should be set
             if ev.source_type == EvidenceSourceType.quote_plus_page:
                 assert "fallback_evidence_used" in proposal.warning_flags
+
+    async def test_compact_degraded_response_is_normalized_into_evidence(
+        self,
+        run_dir: pathlib.Path,
+        minimal_doc_dict: dict,
+    ):
+        provider = self._make_mock_provider(response={
+            "proposed_value": "45.3%",
+            "state": "found",
+            "numeric_value_form": "exact",
+            "primary_quote": "Bone volume fraction (BVF) was measured as 45.3% at 12 weeks post-implantation.",
+            "primary_quote_page": 2,
+            "evidence_kind": "direct_quote",
+        })
+        caps = SimpleNamespace(structured_output_mode="none", vision_structured_output_mode=None)
+
+        proposal = await extract_cell(
+            run_id="run_test",
+            pdf_id="paper_test",
+            row_id="row_test",
+            cell_id="cell_compact",
+            column_name="Bone volume fraction",
+            column_description="BVF measurement",
+            row_context={},
+            doc_dict=minimal_doc_dict,
+            run_dir=run_dir,
+            provider=provider,
+            text_model_id="test-model",
+            field_type="number",
+            caps=caps,
+        )
+
+        call_args = provider.chat_complete_structured.call_args
+        assert call_args.kwargs["response_schema"] == COMPACT_DEGRADED_TEXT_EXTRACTION_SCHEMA
+        assert proposal.proposed_value == "45.3%"
+        assert proposal.primary_evidence_id is not None
+        assert proposal.numeric_value_form is not None
 
     async def test_provider_mode_persisted(self, run_dir: pathlib.Path, minimal_doc_dict: dict):
         """T052a: provider mode persisted in proposal record."""

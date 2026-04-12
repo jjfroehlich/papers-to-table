@@ -269,6 +269,55 @@ TEXT_EXTRACTION_SCHEMA = {
     "required": ["proposed_value", "state", "rationale", "calculation", "numeric_value_form", "quotes"],
 }
 
+COMPACT_DEGRADED_TEXT_EXTRACTION_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "proposed_value": {
+            "type": ["string", "null"],
+            "description": "The extracted value. null if not found.",
+        },
+        "state": {
+            "type": "string",
+            "enum": ["found", "inferred", "unclear"],
+            "description": "Extraction outcome state.",
+        },
+        "numeric_value_form": {
+            "type": ["string", "null"],
+            "enum": ["exact", "range", "approximate", None],
+            "description": "Required when the target field is numeric.",
+        },
+        "primary_quote": {
+            "type": ["string", "null"],
+            "description": "One best supporting quote. null if unclear.",
+        },
+        "primary_quote_page": {
+            "type": ["integer", "null"],
+            "description": "Page number for the supporting quote when known.",
+        },
+        "evidence_kind": {
+            "type": "string",
+            "enum": ["direct_quote", "inferred_reasoning", "calculation", "none"],
+            "description": "Evidence type for the primary supporting quote.",
+        },
+        "rationale": {
+            "type": ["string", "null"],
+            "description": "Optional concise markdown-bullet rationale.",
+        },
+        "calculation": {
+            "type": ["string", "null"],
+            "description": "Optional calculation or derivation if value was computed.",
+        },
+    },
+    "required": [
+        "proposed_value",
+        "state",
+        "numeric_value_form",
+        "primary_quote",
+        "primary_quote_page",
+        "evidence_kind",
+    ],
+}
+
 # Vision-model extraction response schema (T055) — same structure, different context
 VISION_EXTRACTION_SCHEMA = {
     "type": "object",
@@ -305,6 +354,38 @@ VISION_EXTRACTION_SCHEMA = {
         "caption_relevant",
     ],
 }
+
+
+def _select_text_extraction_schema(caps: Any) -> tuple[dict[str, Any], str]:
+    structured_mode = getattr(caps, "structured_output_mode", None)
+    if structured_mode == "json_schema":
+        return TEXT_EXTRACTION_SCHEMA, "full"
+    return COMPACT_DEGRADED_TEXT_EXTRACTION_SCHEMA, "compact_degraded"
+
+
+def _normalize_text_extraction_result(raw_result: dict[str, Any], schema_profile: str) -> dict[str, Any]:
+    normalized = dict(raw_result)
+    if schema_profile == "full":
+        return normalized
+
+    if "quotes" not in normalized:
+        primary_quote = _coerce_text_value(normalized.get("primary_quote"), joiner=" ")
+        evidence_kind = _coerce_text_value(normalized.get("evidence_kind"), joiner="_") or "none"
+        if primary_quote and evidence_kind != "none":
+            normalized["quotes"] = [
+                {
+                    "text": primary_quote,
+                    "page": normalized.get("primary_quote_page"),
+                    "source_type": evidence_kind,
+                }
+            ]
+        else:
+            normalized["quotes"] = []
+
+    normalized.setdefault("rationale", None)
+    normalized.setdefault("calculation", None)
+    normalized.setdefault("numeric_value_form", None)
+    return normalized
 
 
 # ---------------------------------------------------------------------------
@@ -1592,6 +1673,7 @@ async def extract_cell(
             return
         stats_sink.update(
             {
+                "response_schema_profile": response_schema_profile,
                 "cell_total_ms": round((perf_counter() - cell_started) * 1000.0, 3),
                 "text_model_ms": round(text_model_ms, 3),
                 "text_model_calls": text_model_calls,
@@ -1639,6 +1721,7 @@ async def extract_cell(
     masked_working_table_hash = artifact_context.get("masked_working_table_hash")
 
     long_text = is_long_text_field(column_name, column_description)
+    response_schema, response_schema_profile = _select_text_extraction_schema(caps)
 
     # Build extraction prompt (T053, T057a)
     messages = build_text_extraction_prompt(
@@ -1663,7 +1746,7 @@ async def extract_cell(
         request_started = perf_counter()
         raw_result = await provider.chat_complete_structured(
             messages=messages,
-            response_schema=TEXT_EXTRACTION_SCHEMA,
+            response_schema=response_schema,
             model_id=text_model_id,
             max_tokens=max_tokens,
         )
@@ -1760,7 +1843,7 @@ async def extract_cell(
             rescue_request_started = perf_counter()
             raw_result = await provider.chat_complete_structured(
                 messages=rescue_messages,
-                response_schema=TEXT_EXTRACTION_SCHEMA,
+                response_schema=response_schema,
                 model_id=text_model_id,
                 max_tokens=max_tokens,
             )
@@ -1814,15 +1897,16 @@ async def extract_cell(
             return proposal
 
     # Parse and adjudicate result (T058)
-    raw_state = str(raw_result.get("state", "unclear") or "unclear")
-    proposed_value = _coerce_text_value(raw_result.get("proposed_value"), joiner="; ")
-    rationale = _coerce_text_value(raw_result.get("rationale"), joiner="\n")
-    calculation = _coerce_text_value(raw_result.get("calculation"), joiner="\n")
+    normalized_result = _normalize_text_extraction_result(raw_result, response_schema_profile)
+    raw_state = str(normalized_result.get("state", "unclear") or "unclear")
+    proposed_value = _coerce_text_value(normalized_result.get("proposed_value"), joiner="; ")
+    rationale = _coerce_text_value(normalized_result.get("rationale"), joiner="\n")
+    calculation = _coerce_text_value(normalized_result.get("calculation"), joiner="\n")
     numeric_value_form = _normalize_numeric_value_form(
-        raw_result.get("numeric_value_form"),
+        normalized_result.get("numeric_value_form"),
         field_type,
     )
-    quotes = _normalize_quotes_payload(raw_result.get("quotes"))
+    quotes = _normalize_quotes_payload(normalized_result.get("quotes"))
 
     # T053a: ensure rationale is compact bullets
     rationale = _normalize_rationale(rationale)
