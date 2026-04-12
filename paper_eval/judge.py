@@ -205,6 +205,7 @@ def judge_record_from_result(
         row_id=judge_request.row_id,
         column_name=judge_request.column_name,
         cell_id=judge_request.cell_id,
+        judge_label=judge_config.label,
         judge_provider=judge_config.provider,
         judge_configured_model_id=judge_config.model_id,
         judge_resolved_model_id=resolved_model_id,

@@ -35,9 +35,16 @@ class ColumnSchema:
 class EvaluatorSchema:
     columns: dict[str, ColumnSchema] = field(default_factory=dict)
     global_numeric_tolerance: NumericTolerance = field(default_factory=NumericTolerance)
+    scored_columns: list[str] = field(default_factory=list)
+    excluded_columns: list[str] = field(default_factory=list)
 
     def column(self, column_name: str) -> ColumnSchema | None:
         return self.columns.get(column_name)
+
+    def should_score_column(self, column_name: str) -> bool:
+        if self.scored_columns:
+            return column_name in self.scored_columns
+        return column_name not in set(self.excluded_columns)
 
 
 @dataclass
@@ -70,6 +77,19 @@ class RunMetadata:
     gold_table_snapshot_path: str | None = None
     masked_table_hash: str | None = None
     masked_table_snapshot_path: str | None = None
+    structured_output_mode: str | None = None
+    structured_output_reason: str | None = None
+    structured_output_fallback_used: bool | None = None
+    prompt_only_degraded_mode_used: bool | None = None
+    parse_repair_used: bool | None = None
+    extraction_contract_valid: bool | None = None
+    extraction_contract_warnings: list[str] = field(default_factory=list)
+    retrieval_mode: str | None = None
+    retrieval_top_k: int | None = None
+    recall_rescue_enabled: bool | None = None
+    whole_document_mode: bool | None = None
+    recall_rescue_used: bool | None = None
+    whole_document_used: bool | None = None
     extras: dict[str, Any] = field(default_factory=dict)
 
     def flat_metadata(self) -> dict[str, Any]:
@@ -99,6 +119,19 @@ class RunMetadata:
             "gold_table_snapshot_path": self.gold_table_snapshot_path,
             "masked_table_hash": self.masked_table_hash,
             "masked_table_snapshot_path": self.masked_table_snapshot_path,
+            "structured_output_mode": self.structured_output_mode,
+            "structured_output_reason": self.structured_output_reason,
+            "structured_output_fallback_used": self.structured_output_fallback_used,
+            "prompt_only_degraded_mode_used": self.prompt_only_degraded_mode_used,
+            "parse_repair_used": self.parse_repair_used,
+            "extraction_contract_valid": self.extraction_contract_valid,
+            "extraction_contract_warnings": "|".join(self.extraction_contract_warnings),
+            "retrieval_mode": self.retrieval_mode,
+            "retrieval_top_k": self.retrieval_top_k,
+            "recall_rescue_enabled": self.recall_rescue_enabled,
+            "whole_document_mode": self.whole_document_mode,
+            "recall_rescue_used": self.recall_rescue_used,
+            "whole_document_used": self.whole_document_used,
         }
         row.update(_flatten_scalar_mapping(self.extras))
         return row
@@ -239,6 +272,9 @@ class ScoredCell:
     judge_prompt_hash: str | None = None
     judge_temperature: float | None = None
     judge_input_hash: str | None = None
+    judge_results: dict[str, dict[str, Any]] = field(default_factory=dict)
+    judge_score_mean: float | None = None
+    judge_disagreement: bool | None = None
     diagnostic_flags: list[str] = field(default_factory=list)
     diagnostics: dict[str, Any] = field(default_factory=dict)
     selected_proposal_state: str | None = None
@@ -252,6 +288,9 @@ class RunSummary:
     gold_sheet: str | None
     metrics: dict[str, Any]
     metadata: dict[str, Any]
+    scored: bool = False
+    unscored_reason: str | None = None
+    unscored_reason_detail: str | None = None
     contract_warnings: list[str] = field(default_factory=list)
     join_diagnostics: list[str] = field(default_factory=list)
 
@@ -267,6 +306,7 @@ class EvidenceValidationResult:
 @dataclass(frozen=True)
 class JudgeConfig:
     model_id: str
+    label: str = "judge_a"
     provider: str = DEFAULT_JUDGE_PROVIDER
     api_base: str | None = None
     api_key: str | None = None
@@ -311,6 +351,7 @@ class JudgeRecord:
     row_id: str | None
     column_name: str
     cell_id: str | None
+    judge_label: str
     judge_provider: str
     judge_configured_model_id: str
     judge_resolved_model_id: str | None

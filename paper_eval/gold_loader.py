@@ -15,6 +15,8 @@ def load_gold(
     *,
     sheet_name: str | None = None,
     allowed_row_indices: set[int] | None = None,
+    scored_columns: set[str] | None = None,
+    excluded_columns: set[str] | None = None,
 ) -> GoldDataset:
     if not path.exists():
         raise ContractError(f"Gold input does not exist: {path}")
@@ -22,13 +24,30 @@ def load_gold(
         raise ContractError(f"Gold input is not a file: {path}")
     suffix = path.suffix.casefold()
     if suffix == ".csv":
-        return _load_csv_gold(path, allowed_row_indices=allowed_row_indices)
+        return _load_csv_gold(
+            path,
+            allowed_row_indices=allowed_row_indices,
+            scored_columns=scored_columns,
+            excluded_columns=excluded_columns,
+        )
     if suffix in {".xlsx", ".xlsm"}:
-        return _load_xlsx_gold(path, sheet_name=sheet_name, allowed_row_indices=allowed_row_indices)
+        return _load_xlsx_gold(
+            path,
+            sheet_name=sheet_name,
+            allowed_row_indices=allowed_row_indices,
+            scored_columns=scored_columns,
+            excluded_columns=excluded_columns,
+        )
     raise ContractError(f"Unsupported gold file type: {path.suffix}")
 
 
-def _load_csv_gold(path: Path, *, allowed_row_indices: set[int] | None) -> GoldDataset:
+def _load_csv_gold(
+    path: Path,
+    *,
+    allowed_row_indices: set[int] | None,
+    scored_columns: set[str] | None,
+    excluded_columns: set[str] | None,
+) -> GoldDataset:
     try:
         with path.open("r", encoding="utf-8", newline="") as handle:
             reader = csv.DictReader(handle)
@@ -38,7 +57,13 @@ def _load_csv_gold(path: Path, *, allowed_row_indices: set[int] | None) -> GoldD
         raise ContractError(f"Gold CSV could not be parsed at {path}: {exc}") from exc
     if not fieldnames:
         raise ContractError(f"Gold CSV '{path}' is empty or missing a header row.")
-    cells = _rows_to_gold_cells(rows, fieldnames, sheet_name=None)
+    cells = _rows_to_gold_cells(
+        rows,
+        fieldnames,
+        sheet_name=None,
+        scored_columns=scored_columns,
+        excluded_columns=excluded_columns,
+    )
     cells = _filter_gold_cells_by_row_index(cells, allowed_row_indices=allowed_row_indices)
     return GoldDataset(source_path=path, sheet_name=None, cells=cells)
 
@@ -48,6 +73,8 @@ def _load_xlsx_gold(
     *,
     sheet_name: str | None,
     allowed_row_indices: set[int] | None,
+    scored_columns: set[str] | None,
+    excluded_columns: set[str] | None,
 ) -> GoldDataset:
     try:
         from openpyxl import load_workbook
@@ -71,7 +98,13 @@ def _load_xlsx_gold(
             raise ContractError(f"Gold worksheet '{selected_sheet_name}' is empty.")
         fieldnames = [str(value).strip() if value is not None else "" for value in rows[0]]
         data_rows = [dict(zip(fieldnames, values)) for values in rows[1:]]
-        cells = _rows_to_gold_cells(data_rows, fieldnames, sheet_name=selected_sheet_name)
+        cells = _rows_to_gold_cells(
+            data_rows,
+            fieldnames,
+            sheet_name=selected_sheet_name,
+            scored_columns=scored_columns,
+            excluded_columns=excluded_columns,
+        )
         cells = _filter_gold_cells_by_row_index(cells, allowed_row_indices=allowed_row_indices)
         return GoldDataset(source_path=path, sheet_name=selected_sheet_name, cells=cells)
     finally:
@@ -83,21 +116,42 @@ def _rows_to_gold_cells(
     fieldnames: list[str],
     *,
     sheet_name: str | None,
+    scored_columns: set[str] | None,
+    excluded_columns: set[str] | None,
 ) -> list[GoldCell]:
     fieldname_set = set(fieldnames)
     if {"row_id", "column_name", "gold_value"}.issubset(fieldname_set):
-        cells = _load_long_form_rows(rows, sheet_name=sheet_name)
+        cells = _load_long_form_rows(
+            rows,
+            sheet_name=sheet_name,
+            scored_columns=scored_columns,
+            excluded_columns=excluded_columns,
+        )
     else:
-        cells = _load_wide_form_rows(rows, fieldnames, sheet_name=sheet_name)
+        cells = _load_wide_form_rows(
+            rows,
+            fieldnames,
+            sheet_name=sheet_name,
+            scored_columns=scored_columns,
+            excluded_columns=excluded_columns,
+        )
     _validate_unique_gold_join_keys(cells)
     return cells
 
 
-def _load_long_form_rows(rows: list[dict[str, Any]], *, sheet_name: str | None) -> list[GoldCell]:
+def _load_long_form_rows(
+    rows: list[dict[str, Any]],
+    *,
+    sheet_name: str | None,
+    scored_columns: set[str] | None,
+    excluded_columns: set[str] | None,
+) -> list[GoldCell]:
     cells: list[GoldCell] = []
     for row in rows:
         row_id = _required_join_value(row.get("row_id"), "row_id")
         column_name = _required_join_value(row.get("column_name"), "column_name")
+        if not _column_is_scored(column_name, scored_columns=scored_columns, excluded_columns=excluded_columns):
+            continue
         raw_value = row.get("gold_value")
         cells.append(
             GoldCell(
@@ -118,6 +172,8 @@ def _load_wide_form_rows(
     fieldnames: list[str],
     *,
     sheet_name: str | None,
+    scored_columns: set[str] | None,
+    excluded_columns: set[str] | None,
 ) -> list[GoldCell]:
     if "row_id" not in fieldnames:
         raise ContractError(
@@ -127,7 +183,10 @@ def _load_wide_form_rows(
     data_columns = [
         name
         for name in fieldnames
-        if name and name not in reserved_columns and not name.endswith("__cell_id")
+        if name
+        and name not in reserved_columns
+        and not name.endswith("__cell_id")
+        and _column_is_scored(name, scored_columns=scored_columns, excluded_columns=excluded_columns)
     ]
     cells: list[GoldCell] = []
     for row in rows:
@@ -179,6 +238,19 @@ def _validate_unique_gold_join_keys(cells: list[GoldCell]) -> None:
                 f"row_id + column_name pair. Duplicate: row_id='{cell.row_id}', column_name='{cell.column_name}'."
             )
         seen[join_key] = cell
+
+
+def _column_is_scored(
+    column_name: str,
+    *,
+    scored_columns: set[str] | None,
+    excluded_columns: set[str] | None,
+) -> bool:
+    if scored_columns:
+        return column_name in scored_columns
+    if excluded_columns:
+        return column_name not in excluded_columns
+    return True
 
 
 def _filter_gold_cells_by_row_index(

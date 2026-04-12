@@ -11,6 +11,7 @@ from paper_eval.contracts import (
     DEFAULT_JUDGE_PROVIDER,
     DEFAULT_LM_STUDIO_API_BASE,
     JudgeConfig,
+    RunSummary,
 )
 from paper_eval.errors import CliUsageError, ContractError, EvaluationError
 from paper_eval.gold_loader import load_gold
@@ -53,6 +54,14 @@ def build_parser() -> argparse.ArgumentParser:
         help=f"Optional LM Studio OpenAI-compatible API base URL. Defaults to {DEFAULT_LM_STUDIO_API_BASE}.",
     )
     evaluate.add_argument(
+        "--judge-model-b",
+        help="Optional second judge model id for dual-judge scoring.",
+    )
+    evaluate.add_argument(
+        "--judge-api-base-b",
+        help="Optional LM Studio OpenAI-compatible API base URL for the second judge.",
+    )
+    evaluate.add_argument(
         "--json-output",
         action="store_true",
         help="Emit a machine-readable completion JSON payload to stdout.",
@@ -93,8 +102,8 @@ def _handle_evaluate(args: argparse.Namespace) -> int:
     output_layout = create_output_layout(args.out.resolve())
     schema = load_schema(args.schema.resolve() if args.schema else None)
     run_dirs = discover_run_directories([Path(path).resolve() for path in args.runs], args.runs_root.resolve() if args.runs_root else None)
-    judge_config = build_judge_config(args)
-    text_judge = build_text_judge(judge_config)
+    judge_configs = build_judge_configs(args)
+    text_judges = build_text_judges(judge_configs)
     gold_path = args.gold.resolve()
     gold_cache: dict[tuple[int, ...] | None, object] = {}
 
@@ -103,35 +112,57 @@ def _handle_evaluate(args: argparse.Namespace) -> int:
     scored_cells_paths: list[str] = []
     judge_records_paths: list[str] = []
     for run_dir in run_dirs:
-        loaded_run = load_run(run_dir)
-        cache_key = None
-        if loaded_run.matched_row_indices is not None:
-            cache_key = tuple(sorted(loaded_run.matched_row_indices))
-        gold_dataset = gold_cache.get(cache_key)
-        if gold_dataset is None:
-            gold_dataset = load_gold(
-                gold_path,
-                sheet_name=args.gold_sheet,
-                allowed_row_indices=loaded_run.matched_row_indices,
+        score_result = None
+        try:
+            loaded_run = load_run(run_dir)
+            cache_key = None
+            if loaded_run.matched_row_indices is not None:
+                cache_key = tuple(sorted(loaded_run.matched_row_indices))
+            gold_dataset = gold_cache.get(cache_key)
+            if gold_dataset is None:
+                gold_dataset = load_gold(
+                    gold_path,
+                    sheet_name=args.gold_sheet,
+                    allowed_row_indices=loaded_run.matched_row_indices,
+                    scored_columns=set(schema.scored_columns) if schema.scored_columns else None,
+                    excluded_columns=set(schema.excluded_columns) if schema.excluded_columns else None,
+                )
+                gold_cache[cache_key] = gold_dataset
+            score_result = score_run(
+                loaded_run,
+                gold_dataset,
+                schema,
+                text_judges=text_judges,
+                judge_configs=judge_configs,
             )
-            gold_cache[cache_key] = gold_dataset
-        score_result = score_run(
-            loaded_run,
-            gold_dataset,
-            schema,
-            text_judge=text_judge,
-            judge_config=judge_config,
-        )
-        summary = build_run_summary(loaded_run, gold_dataset, score_result.scored_cells)
+            summary = build_run_summary(loaded_run, gold_dataset, score_result.scored_cells)
+        except ContractError as exc:
+            summary = _build_unscored_summary(
+                run_dir=run_dir,
+                gold_path=gold_path,
+                gold_sheet=args.gold_sheet,
+                reason="invalid_run_bundle_contract",
+                message=str(exc),
+            )
+            score_result = None
+        except EvaluationError as exc:
+            summary = _build_unscored_summary(
+                run_dir=run_dir,
+                gold_path=gold_path,
+                gold_sheet=args.gold_sheet,
+                reason="judge_failure" if "judge" in str(exc).lower() else "missing_required_eval_inputs",
+                message=str(exc),
+            )
+            score_result = None
         summaries.append(summary)
         run_output_dir = output_layout.run_dir(summary.run_id)
         run_output_dir.mkdir(parents=True, exist_ok=True)
-        write_scored_cells(run_output_dir, score_result.scored_cells)
-        write_judge_records(run_output_dir, score_result.judge_records)
+        write_scored_cells(run_output_dir, score_result.scored_cells if score_result is not None else [])
+        write_judge_records(run_output_dir, score_result.judge_records if score_result is not None else [])
         write_run_summary(run_output_dir, summary)
         run_summary_paths.append(str((run_output_dir / "run_summary.json").resolve()))
         scored_cells_paths.append(str((run_output_dir / "scored_cells.jsonl").resolve()))
-        if score_result.judge_records:
+        if score_result is not None and score_result.judge_records:
             judge_records_paths.append(str((run_output_dir / "judge_records.jsonl").resolve()))
         if not args.json_output:
             print(f"Scored run {summary.run_id} -> {run_output_dir}")
@@ -191,16 +222,86 @@ def _handle_compare(args: argparse.Namespace) -> int:
 
 
 def build_judge_config(args: argparse.Namespace) -> JudgeConfig | None:
-    model_id = args.judge_model or os.environ.get("PAPER_EVAL_JUDGE_MODEL") or DEFAULT_JUDGE_MODEL_ID
-    return JudgeConfig(
-        model_id=model_id,
-        provider=DEFAULT_JUDGE_PROVIDER,
-        api_base=args.judge_api_base or os.environ.get("PAPER_EVAL_JUDGE_API_BASE") or DEFAULT_LM_STUDIO_API_BASE,
-        api_key=os.environ.get("PAPER_EVAL_JUDGE_API_KEY"),
-    )
+    configs = build_judge_configs(args)
+    return configs.get("judge_a")
+
+
+def build_judge_configs(args: argparse.Namespace) -> dict[str, JudgeConfig]:
+    judge_model = getattr(args, "judge_model", None)
+    judge_api_base = getattr(args, "judge_api_base", None)
+    judge_model_b = getattr(args, "judge_model_b", None)
+    judge_api_base_b = getattr(args, "judge_api_base_b", None)
+    model_id = judge_model or os.environ.get("PAPER_EVAL_JUDGE_MODEL") or DEFAULT_JUDGE_MODEL_ID
+    configs = {
+        "judge_a": JudgeConfig(
+            model_id=model_id,
+            label="judge_a",
+            provider=DEFAULT_JUDGE_PROVIDER,
+            api_base=judge_api_base or os.environ.get("PAPER_EVAL_JUDGE_API_BASE") or DEFAULT_LM_STUDIO_API_BASE,
+            api_key=os.environ.get("PAPER_EVAL_JUDGE_API_KEY"),
+        )
+    }
+    model_id_b = judge_model_b or os.environ.get("PAPER_EVAL_JUDGE_MODEL_B")
+    if model_id_b:
+        configs["judge_b"] = JudgeConfig(
+            model_id=model_id_b,
+            label="judge_b",
+            provider=DEFAULT_JUDGE_PROVIDER,
+            api_base=judge_api_base_b or os.environ.get("PAPER_EVAL_JUDGE_API_BASE_B") or configs["judge_a"].api_base,
+            api_key=os.environ.get("PAPER_EVAL_JUDGE_API_KEY_B") or os.environ.get("PAPER_EVAL_JUDGE_API_KEY"),
+        )
+    return configs
 
 
 def build_text_judge(judge_config: JudgeConfig | None) -> LMStudioTextJudge | None:
     if judge_config is None:
         return None
     return LMStudioTextJudge(judge_config)
+
+
+def build_text_judges(judge_configs: dict[str, JudgeConfig]) -> dict[str, LMStudioTextJudge]:
+    return {
+        label: judge
+        for label, config in judge_configs.items()
+        for judge in [build_text_judge(config)]
+        if judge is not None
+    }
+
+
+def _build_unscored_summary(
+    *,
+    run_dir: Path,
+    gold_path: Path,
+    gold_sheet: str | None,
+    reason: str,
+    message: str,
+) -> RunSummary:
+    metrics = {
+        "correctness": None,
+        "correctness_mean": None,
+        "correctness_judge_a": None,
+        "correctness_judge_b": None,
+        "correctness_abs_delta": None,
+        "judge_disagreement": None,
+        "contract_warning_count": 1,
+        "scored": False,
+        "unscored_reason": reason,
+    }
+    return RunSummary(
+        run_id=run_dir.name,
+        run_dir=run_dir,
+        gold_source=gold_path,
+        gold_sheet=gold_sheet,
+        metrics=metrics,
+        metadata={
+            "run_id": run_dir.name,
+            "run_dir": str(run_dir),
+            "unscored_reason_detail": message,
+            "extraction_contract_valid": False,
+        },
+        scored=False,
+        unscored_reason=reason,
+        unscored_reason_detail=message,
+        contract_warnings=[message],
+        join_diagnostics=[],
+    )

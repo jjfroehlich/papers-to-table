@@ -9,6 +9,9 @@ from paper_eval.contracts import ColumnSchema, EvaluatorSchema, NumericTolerance
 from paper_eval.errors import ContractError
 
 
+DEFAULT_EXCLUDED_SCORE_COLUMNS = ["Title", "Authors", "Publication Year"]
+
+
 def _normalize_optional_list(value: Any) -> list[Any]:
     if value is None:
         return []
@@ -79,4 +82,12 @@ def load_schema(path: Path | None) -> EvaluatorSchema:
         payload.get("global_numeric_tolerance") or payload.get("numeric_tolerance")
     ) or NumericTolerance()
 
-    return EvaluatorSchema(columns=columns, global_numeric_tolerance=global_tolerance)
+    scored_columns = _normalize_optional_list(payload.get("scored_columns") or payload.get("target_columns"))
+    excluded_columns = _normalize_optional_list(payload.get("excluded_columns")) or list(DEFAULT_EXCLUDED_SCORE_COLUMNS)
+
+    return EvaluatorSchema(
+        columns=columns,
+        global_numeric_tolerance=global_tolerance,
+        scored_columns=[str(value) for value in scored_columns if str(value).strip()],
+        excluded_columns=[str(value) for value in excluded_columns if str(value).strip()],
+    )

@@ -118,6 +118,7 @@ Working rules:
 - [x] E067 Document judge fallback behavior and the additional judge-failure and judge-response-mode diagnostic metrics exposed in run summaries.
 - [x] E065 Add optional machine-readable JSON stdout completion mode for `evaluate` and `compare`, while keeping file artifacts canonical.
 - [x] E066 Add tests and docs for JSON stdout mode, including payload schema tagging and key produced artifact paths.
+- [x] E069 Add optional dual-judge support, explicit `scored`/`unscored_reason` summary truth, and scored-column filtering for metadata-safe optimizer consumption.
 
 ## Appendix: Retired Batch Framing
 

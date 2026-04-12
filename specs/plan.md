@@ -83,6 +83,7 @@ Gold loading should continue to:
 - support wide and long gold layouts
 - enforce unique `row_id + column_name` pairs
 - treat XLSX as single-sheet per invocation
+- support explicit scored-column allow-lists and excluded-column deny-lists so metadata columns do not pollute benchmark metrics by default
 
 ## Scoring Pipeline Direction
 
@@ -97,6 +98,8 @@ The scoring pipeline should remain:
 7. evaluate evidence separately from correctness
 8. write scored-cell records for both scored cells and diagnostics
 9. aggregate run-level metrics from scored-cell outputs
+
+Run-level aggregation must now also compute explicit scored-versus-unscored state, dual-judge correctness rollups when configured, and compact provenance passthrough from main-app reviewer/run summaries.
 
 ## Field Resolution Direction
 
@@ -147,6 +150,7 @@ The current technical direction is:
 - fixed temperature of `0`
 - bounded response-mode fallback from `json_schema` to `json_object` to prompt-only JSON mode with app-side parsing
 - persisted provider, configured model id, resolved runtime model id, prompt metadata, and input hash
+- optional secondary judge with separately labeled records and summary metrics suitable for downstream optimizer consumption
 
 Judge integration should stay limited to text scoring by default.
 

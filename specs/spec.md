@@ -90,6 +90,10 @@ Judge-backed text scoring uses a bounded response-mode ladder:
 
 When a text field uses judge-backed scoring and an individual judge request fails at runtime, the evaluator must preserve a per-cell output instead of aborting the whole run. That cell is recorded as unscored with `judge_verdict = "unclear"` and explicit judge-failure diagnostics.
 
+The evaluator may also run two judges on the same text cells when a secondary judge is configured. In that mode it must preserve per-judge verdicts and emit explicit aggregate outputs including `correctness_mean`, `correctness_judge_a`, `correctness_judge_b`, `correctness_abs_delta`, and `judge_disagreement`.
+
+The evaluator must treat degraded but contract-valid main-app runs as scoreable whenever possible. If a run cannot receive a headline score, artifacts must still record `scored = false` plus an explicit `unscored_reason` instead of leaving primary metrics silently blank.
+
 ### Join Handling
 
 For gold-present cells, the evaluator distinguishes at least these join outcomes:
@@ -170,10 +174,16 @@ Diagnostics include counts such as:
 - `join_failure_count`
 - `evidence_present_but_unvalidated_count`
 - `judge_request_failed_count`
+- `judge_a_request_failed_count`
+- `judge_b_request_failed_count`
 - `judge_unclear_text_cell_count`
+- `judge_a_unclear_text_cell_count`
+- `judge_b_unclear_text_cell_count`
 - `judge_json_schema_text_cell_count`
 - `judge_json_object_text_cell_count`
 - `judge_prompt_only_text_cell_count`
+
+The evaluator must also propagate compact main-app provenance fields into flat per-run comparison rows so downstream optimizer reporting can attribute degraded structured-output modes, parse repair, extraction contract validity, and retrieval-policy choices without reloading verbose run diagnostics.
 
 ## Non-Goals
 

@@ -9,7 +9,12 @@ from paper_eval.contracts import EvidenceItem, LoadedRun, ProposalRecord, RunMet
 from paper_eval.errors import CliUsageError, ContractError
 
 _REQUIRED_RUN_FILES = ("run.json", "proposals/proposals.jsonl")
-_OPTIONAL_RUN_FILES = ("config.snapshot.json", "inputs/input_summary.json", "summaries/run_summary.json")
+_OPTIONAL_RUN_FILES = (
+    "config.snapshot.json",
+    "inputs/input_summary.json",
+    "summaries/run_summary.json",
+    "summaries/reviewer_summary.json",
+)
 _SIDE_CAR_EVIDENCE_FILES = ("evidence/evidence.jsonl", "evidence/evidence.json", "support/evidence.jsonl")
 _PAGE_TEXT_FILES = (
     "evidence/page_text.json",
@@ -153,6 +158,7 @@ def load_run(run_dir: Path) -> LoadedRun:
     config_payload = _load_optional_json(run_dir / "config.snapshot.json")
     input_summary_payload = _load_optional_json(run_dir / "inputs" / "input_summary.json")
     run_summary_payload = _load_optional_json(run_dir / "summaries" / "run_summary.json")
+    reviewer_summary_payload = _load_optional_json(run_dir / "summaries" / "reviewer_summary.json")
     parsed_page_text_by_pdf = _load_parsed_page_text_by_pdf(run_dir)
     sidecar_evidence = _load_sidecar_evidence(run_dir, parsed_page_text_by_pdf)
     page_text_by_page = _load_page_text_by_page(run_dir, sidecar_evidence)
@@ -163,6 +169,7 @@ def load_run(run_dir: Path) -> LoadedRun:
         config_payload=config_payload,
         input_summary_payload=input_summary_payload,
         run_summary_payload=run_summary_payload,
+        reviewer_summary_payload=reviewer_summary_payload,
     )
     _validate_eval_mode_provenance(
         metadata=metadata,
@@ -278,6 +285,7 @@ def _build_run_metadata(
     config_payload: dict[str, Any],
     input_summary_payload: dict[str, Any],
     run_summary_payload: dict[str, Any],
+    reviewer_summary_payload: dict[str, Any],
 ) -> RunMetadata:
     run_id = (
         _required_text(run_payload.get("run_id"))
@@ -290,6 +298,7 @@ def _build_run_metadata(
             config_payload,
             input_summary_payload,
             run_summary_payload,
+            reviewer_summary_payload,
             keys=key_paths,
         )
         for field_name, key_paths in _EVAL_PROVENANCE_TEXT_FIELDS.items()
@@ -370,6 +379,7 @@ def _build_run_metadata(
             config_payload,
             input_summary_payload,
             run_summary_payload,
+            reviewer_summary_payload,
             keys=(("page_count",), ("total_pages",), ("num_pages",), ("document", "page_count")),
         ),
         gold_source_ref=eval_provenance["gold_source_ref"],
@@ -377,11 +387,94 @@ def _build_run_metadata(
         gold_table_snapshot_path=eval_provenance["gold_table_snapshot_path"],
         masked_table_hash=eval_provenance["masked_table_hash"],
         masked_table_snapshot_path=eval_provenance["masked_table_snapshot_path"],
+        structured_output_mode=_first_present(
+            reviewer_summary_payload,
+            run_payload,
+            run_summary_payload,
+            keys=(("structured_output_mode",),),
+        ),
+        structured_output_reason=_first_present(
+            reviewer_summary_payload,
+            run_payload,
+            run_summary_payload,
+            keys=(("structured_output_reason",),),
+        ),
+        structured_output_fallback_used=_first_present_bool(
+            reviewer_summary_payload,
+            run_payload,
+            run_summary_payload,
+            keys=(("structured_output_fallback_used",),),
+        ),
+        prompt_only_degraded_mode_used=_first_present_bool(
+            reviewer_summary_payload,
+            run_payload,
+            run_summary_payload,
+            keys=(("prompt_only_degraded_mode_used",),),
+        ),
+        parse_repair_used=_first_present_bool(
+            reviewer_summary_payload,
+            run_payload,
+            run_summary_payload,
+            keys=(("parse_repair_used",),),
+        ),
+        extraction_contract_valid=_first_present_bool(
+            reviewer_summary_payload,
+            run_payload,
+            run_summary_payload,
+            keys=(("extraction_contract_valid",),),
+        ),
+        extraction_contract_warnings=_first_present_list(
+            reviewer_summary_payload,
+            run_payload,
+            run_summary_payload,
+            keys=(("extraction_contract_warnings",),),
+        ),
+        retrieval_mode=_first_present(
+            reviewer_summary_payload,
+            run_payload,
+            input_summary_payload,
+            run_summary_payload,
+            keys=(("retrieval_mode",),),
+        ),
+        retrieval_top_k=_first_present_int(
+            reviewer_summary_payload,
+            run_payload,
+            input_summary_payload,
+            run_summary_payload,
+            keys=(("retrieval_top_k",), ("retrieval_provenance", "top_k")),
+        ),
+        recall_rescue_enabled=_first_present_bool(
+            reviewer_summary_payload,
+            run_payload,
+            input_summary_payload,
+            run_summary_payload,
+            keys=(("recall_rescue_enabled",), ("retrieval_provenance", "recall_rescue_enabled")),
+        ),
+        whole_document_mode=_first_present_bool(
+            reviewer_summary_payload,
+            run_payload,
+            input_summary_payload,
+            run_summary_payload,
+            keys=(("whole_document_mode",), ("retrieval_provenance", "whole_document_mode")),
+        ),
+        recall_rescue_used=_first_present_bool(
+            reviewer_summary_payload,
+            run_payload,
+            run_summary_payload,
+            keys=(("recall_rescue_used",), ("retrieval_provenance", "recall_rescue_used")),
+        ),
+        whole_document_used=_first_present_bool(
+            reviewer_summary_payload,
+            run_payload,
+            run_summary_payload,
+            keys=(("retrieval_provenance", "whole_document_used"),),
+        ),
         extras={
             "run": run_payload,
             "config_snapshot": config_payload,
             "input_summary": input_summary_payload,
             "run_summary": run_summary_payload,
+            "reviewer_summary": reviewer_summary_payload,
         },
     )
 
@@ -432,6 +525,26 @@ def _first_present_int(*payloads: dict[str, Any], keys: tuple[tuple[str, ...], .
                 continue
             return int(value)
     return None
+
+
+def _first_present_bool(*payloads: dict[str, Any], keys: tuple[tuple[str, ...], ...]) -> bool | None:
+    for payload in payloads:
+        for key_path in keys:
+            value = _lookup(payload, key_path)
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, str) and value.strip().lower() in {"true", "false"}:
+                return value.strip().lower() == "true"
+    return None
+
+
+def _first_present_list(*payloads: dict[str, Any], keys: tuple[tuple[str, ...], ...]) -> list[str]:
+    for payload in payloads:
+        for key_path in keys:
+            value = _lookup(payload, key_path)
+            if isinstance(value, list):
+                return [str(item) for item in value if str(item).strip()]
+    return []
 
 
 def _load_json(path: Path) -> dict[str, Any]:

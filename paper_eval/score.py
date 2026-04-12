@@ -30,7 +30,15 @@ def score_run(
     *,
     text_judge: TextJudge | None = None,
     judge_config: JudgeConfig | None = None,
+    text_judges: dict[str, TextJudge] | None = None,
+    judge_configs: dict[str, JudgeConfig] | None = None,
 ) -> ScoreRunResult:
+    normalized_judges, normalized_configs = _normalize_judge_runtime(
+        text_judge=text_judge,
+        judge_config=judge_config,
+        text_judges=text_judges,
+        judge_configs=judge_configs,
+    )
     proposals_by_key: dict[tuple[str, str], list[Any]] = defaultdict(list)
     for proposal in loaded_run.proposals:
         proposals_by_key[proposal.join_key].append(proposal)
@@ -205,18 +213,17 @@ def score_run(
             schema=schema,
         )
         if field_config.field_type not in STRUCTURED_FIELD_TYPES:
-            scored_cell, judge_record = _score_text_cell(
+            scored_cell, cell_judge_records = _score_text_cell(
                 loaded_run=loaded_run,
                 gold_cell=gold_cell,
                 proposal=proposal,
                 field_config=field_config,
                 evidence_result=evidence_result,
-                text_judge=text_judge,
-                judge_config=judge_config,
+                text_judges=normalized_judges,
+                judge_configs=normalized_configs,
             )
             scored_cells.append(scored_cell)
-            if judge_record is not None:
-                judge_records.append(judge_record)
+            judge_records.extend(cell_judge_records)
             continue
 
         comparison = _compare_structured(
@@ -402,8 +409,8 @@ def _score_text_cell(
     proposal: Any,
     field_config: ResolvedFieldConfig,
     evidence_result: Any,
-    text_judge: TextJudge | None,
-    judge_config: JudgeConfig | None,
+    text_judges: dict[str, TextJudge],
+    judge_configs: dict[str, JudgeConfig],
 ):
     normalized_gold = normalize_text_for_match(gold_cell.raw_value)
     normalized_proposed = normalize_text_for_match(proposal.proposed_value)
@@ -453,7 +460,7 @@ def _score_text_cell(
                 },
                 selected_proposal_state=proposal.state,
             ),
-            None,
+            [],
         )
     if field_config.scoring_policy == "deterministic":
         is_correct = normalized_gold is not None and normalized_gold == normalized_proposed
@@ -496,60 +503,101 @@ def _score_text_cell(
                 },
                 selected_proposal_state=proposal.state,
             ),
-            None,
+            [],
         )
     if field_config.scoring_policy != "judge":
         raise ContractError(
             f"Unsupported text scoring policy '{field_config.scoring_policy}' for column '{gold_cell.column_name}'."
         )
-    if judge_config is None or text_judge is None:
+    if not judge_configs or not text_judges:
         raise ContractError(
             "Judge-scored text fields require --judge-model or a deterministic text scoring override in schema/proposals."
         )
-    judge_request = build_judge_request(
-        judge_config=judge_config,
-        run_id=loaded_run.metadata.run_id,
-        row_id=gold_cell.row_id,
-        column_name=gold_cell.column_name,
-        cell_id=proposal.cell_id,
-        gold_value=gold_cell.raw_value,
-        proposed_value=proposal.proposed_value,
-        field_description=field_config.description,
-        evidence_excerpt=_first_evidence_excerpt(proposal),
-    )
-    judge_failure_message = None
-    try:
-        judge_response = text_judge.judge(judge_request)
-    except EvaluationError as exc:
-        judge_failure_message = str(exc)
-        judge_response = JudgeResponse(
-            verdict="unclear",
-            rationale_label="judge_error",
-            metadata={
-                "provider": judge_config.provider,
-                "configured_model_id": judge_config.model_id,
-                "resolved_model_id": None,
-                "error_message": judge_failure_message,
-            },
+    ordered_labels = [label for label in ["judge_a", "judge_b"] if label in judge_configs] + [
+        label for label in judge_configs if label not in {"judge_a", "judge_b"}
+    ]
+    judge_results: dict[str, dict[str, Any]] = {}
+    judge_records = []
+    judge_scores: list[float] = []
+    for label in ordered_labels:
+        judge_config = judge_configs[label]
+        text_judge = text_judges.get(label)
+        if text_judge is None:
+            continue
+        judge_request = build_judge_request(
+            judge_config=judge_config,
+            run_id=loaded_run.metadata.run_id,
+            row_id=gold_cell.row_id,
+            column_name=gold_cell.column_name,
+            cell_id=proposal.cell_id,
+            gold_value=gold_cell.raw_value,
+            proposed_value=proposal.proposed_value,
+            field_description=field_config.description,
+            evidence_excerpt=_first_evidence_excerpt(proposal),
         )
-    if judge_response.verdict not in {"correct", "incorrect", "unclear"}:
-        raise EvaluationError(f"Unsupported judge verdict '{judge_response.verdict}'.")
-    judge_record = judge_record_from_result(
-        judge_config=judge_config,
-        judge_request=judge_request,
-        judge_response=judge_response,
-    )
-    resolved_model_id = judge_record.judge_resolved_model_id
-    judge_response_mode = judge_record.judge_response_mode
-    was_scored = judge_response.verdict in {"correct", "incorrect"}
-    is_correct = _is_correct_for_judge_verdict(judge_response.verdict)
+        judge_failure_message = None
+        try:
+            judge_response = text_judge.judge(judge_request)
+        except EvaluationError as exc:
+            judge_failure_message = str(exc)
+            judge_response = JudgeResponse(
+                verdict="unclear",
+                rationale_label="judge_error",
+                metadata={
+                    "provider": judge_config.provider,
+                    "configured_model_id": judge_config.model_id,
+                    "resolved_model_id": None,
+                    "error_message": judge_failure_message,
+                },
+            )
+        if judge_response.verdict not in {"correct", "incorrect", "unclear"}:
+            raise EvaluationError(f"Unsupported judge verdict '{judge_response.verdict}'.")
+        judge_record = judge_record_from_result(
+            judge_config=judge_config,
+            judge_request=judge_request,
+            judge_response=judge_response,
+        )
+        judge_records.append(judge_record)
+        judge_result = {
+            "verdict": judge_response.verdict,
+            "configured_model_id": judge_config.model_id,
+            "resolved_model_id": judge_record.judge_resolved_model_id,
+            "response_mode": judge_record.judge_response_mode,
+            "prompt_version": judge_request.prompt_version,
+            "prompt_hash": judge_request.prompt_hash,
+            "input_hash": judge_request.input_hash,
+            "provider": judge_config.provider,
+            "temperature": judge_config.temperature,
+            "rationale_label": judge_response.rationale_label,
+            "error_message": judge_failure_message,
+        }
+        judge_results[label] = judge_result
+        if judge_response.verdict == "correct":
+            judge_scores.append(1.0)
+        elif judge_response.verdict == "incorrect":
+            judge_scores.append(0.0)
+
+    primary_label = ordered_labels[0]
+    primary_result = judge_results.get(primary_label, {})
+    primary_verdict = primary_result.get("verdict")
+    was_scored = any(result.get("verdict") in {"correct", "incorrect"} for result in judge_results.values())
+    is_correct = _is_correct_for_judge_verdict(str(primary_verdict)) if primary_verdict is not None else None
+    judge_score_mean = (sum(judge_scores) / len(judge_scores)) if judge_scores else None
+    deterministic_verdicts = [
+        str(result.get("verdict"))
+        for result in judge_results.values()
+        if result.get("verdict") in {"correct", "incorrect"}
+    ]
+    judge_disagreement = len(set(deterministic_verdicts)) > 1 if len(deterministic_verdicts) >= 2 else False
     diagnostic_flags = []
-    if judge_request.was_truncated:
+    if any(record.input_was_truncated for record in judge_records):
         diagnostic_flags.append("judge_input_truncated")
-    if judge_response.verdict == "unclear":
+    if any(result.get("verdict") == "unclear" for result in judge_results.values()):
         diagnostic_flags.append("judge_verdict_unclear")
-    if judge_failure_message is not None:
+    if any(result.get("error_message") for result in judge_results.values()):
         diagnostic_flags.append("judge_request_failed")
+    if judge_disagreement:
+        diagnostic_flags.append("judge_disagreement")
     return (
         ScoredCell(
             record_kind="gold_cell",
@@ -574,34 +622,44 @@ def _score_text_cell(
             row_index=gold_cell.row_index,
             normalized_gold=normalized_gold,
             normalized_proposed=normalized_proposed,
-            judge_provider=judge_config.provider,
-            judge_configured_model_id=judge_config.model_id,
-            judge_resolved_model_id=resolved_model_id,
-            judge_verdict=judge_response.verdict,
-            judge_response_mode=judge_response_mode,
-            judge_model_id=judge_config.model_id,
-            judge_prompt_version=judge_request.prompt_version,
-            judge_prompt_hash=judge_request.prompt_hash,
-            judge_temperature=judge_config.temperature,
-            judge_input_hash=judge_request.input_hash,
+            judge_provider=primary_result.get("provider"),
+            judge_configured_model_id=primary_result.get("configured_model_id"),
+            judge_resolved_model_id=primary_result.get("resolved_model_id"),
+            judge_verdict=primary_verdict,
+            judge_response_mode=primary_result.get("response_mode"),
+            judge_model_id=primary_result.get("configured_model_id"),
+            judge_prompt_version=primary_result.get("prompt_version"),
+            judge_prompt_hash=primary_result.get("prompt_hash"),
+            judge_temperature=primary_result.get("temperature"),
+            judge_input_hash=primary_result.get("input_hash"),
+            judge_results=judge_results,
+            judge_score_mean=judge_score_mean,
+            judge_disagreement=judge_disagreement,
             diagnostic_flags=diagnostic_flags,
             diagnostics={
                 "text": text_diagnostics,
                 "judge": {
-                    "provider": judge_config.provider,
-                    "configured_model_id": judge_config.model_id,
-                    "resolved_model_id": resolved_model_id,
-                    "verdict": judge_response.verdict,
-                    "response_mode": judge_response_mode,
-                    "rationale_label": judge_response.rationale_label,
-                    "input_was_truncated": judge_request.was_truncated,
-                    "error_message": judge_failure_message,
+                    "provider": primary_result.get("provider"),
+                    "configured_model_id": primary_result.get("configured_model_id"),
+                    "resolved_model_id": primary_result.get("resolved_model_id"),
+                    "verdict": primary_verdict,
+                    "response_mode": primary_result.get("response_mode"),
+                    "rationale_label": primary_result.get("rationale_label"),
+                    "input_was_truncated": any(record.input_was_truncated for record in judge_records),
+                    "error_message": primary_result.get("error_message"),
+                },
+                "judges": {
+                    label: {
+                        **result,
+                        "score": _score_for_verdict(str(result.get("verdict"))) if result.get("verdict") is not None else None,
+                    }
+                    for label, result in judge_results.items()
                 },
                 "evidence": evidence_result.diagnostics,
             },
             selected_proposal_state=proposal.state,
         ),
-        judge_record,
+        judge_records,
     )
 
 
@@ -618,3 +676,26 @@ def _is_correct_for_judge_verdict(verdict: str) -> bool | None:
     if verdict == "incorrect":
         return False
     return None
+
+
+def _score_for_verdict(verdict: str) -> float | None:
+    if verdict == "correct":
+        return 1.0
+    if verdict == "incorrect":
+        return 0.0
+    return None
+
+
+def _normalize_judge_runtime(
+    *,
+    text_judge: TextJudge | None,
+    judge_config: JudgeConfig | None,
+    text_judges: dict[str, TextJudge] | None,
+    judge_configs: dict[str, JudgeConfig] | None,
+) -> tuple[dict[str, TextJudge], dict[str, JudgeConfig]]:
+    normalized_judges = dict(text_judges or {})
+    normalized_configs = dict(judge_configs or {})
+    if text_judge is not None and judge_config is not None and "judge_a" not in normalized_judges:
+        normalized_judges["judge_a"] = text_judge
+        normalized_configs["judge_a"] = JudgeConfig(**{**judge_config.__dict__, "label": "judge_a"})
+    return normalized_judges, normalized_configs

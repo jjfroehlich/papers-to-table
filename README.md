@@ -29,7 +29,9 @@ Defaults:
 Override settings with:
 
 - `--judge-model`
+- `--judge-model-b`
 - `--judge-api-base`
+- `--judge-api-base-b`
 - `PAPER_EVAL_JUDGE_MODEL`
 - `PAPER_EVAL_JUDGE_API_BASE`
 - `PAPER_EVAL_JUDGE_API_KEY`
@@ -44,6 +46,8 @@ Judge requests now use the same bounded fallback ladder as the main app's extrac
 
 This means eval can benchmark judge models that only work reliably in `structured_output_mode = none`, while still preserving explicit diagnostics about fallback use and judge failures.
 
+When `--judge-model-b` is provided, eval runs both judges on the same judge-backed text cells and writes dual-judge metrics into run summaries. `correctness_mean` becomes the mean of available per-judge correctness values, while `correctness_judge_a`, `correctness_judge_b`, `correctness_abs_delta`, and `judge_disagreement` remain explicit downstream-facing outputs for optimizer consumption.
+
 When the configured judge model is not already active in LM Studio, the evaluator attempts to load it through LM Studio's model-management API before sending judge requests. The evaluator verifies judge-model readiness once per evaluation process and reuses that result instead of probing LM Studio before every scored cell.
 
 ## Inputs
@@ -53,6 +57,13 @@ You need:
 1. one `--run` directory, repeated `--run` directories, or one `--runs-root`
 2. one gold CSV or XLSX file
 3. an optional schema JSON file for explicit field types, aliases, numeric tolerances, or text-scoring overrides
+
+The optional schema JSON can also scope which columns count toward scoring:
+
+- `scored_columns` or `target_columns`: explicit allow-list of scored columns
+- `excluded_columns`: explicit deny-list of columns to skip
+
+When neither is provided, eval excludes common metadata columns by default: `Title`, `Authors`, and `Publication Year`.
 
 ### Required Run Artifacts
 
@@ -231,6 +242,12 @@ The evaluator distinguishes these evidence outcomes:
 
 Headline metrics:
 
+- `correctness`
+- `correctness_mean`
+- `correctness_judge_a`
+- `correctness_judge_b`
+- `correctness_abs_delta`
+- `judge_disagreement`
 - `structured_accuracy`
 - `boolean_accuracy`
 - `categorical_accuracy`
@@ -250,7 +267,11 @@ Diagnostic metrics include:
 - `filled_on_gold_empty_count`
 - `missing_proposal_count`
 - `judge_request_failed_count`
+- `judge_a_request_failed_count`
+- `judge_b_request_failed_count`
 - `judge_unclear_text_cell_count`
+- `judge_a_unclear_text_cell_count`
+- `judge_b_unclear_text_cell_count`
 - `judge_json_schema_text_cell_count`
 - `judge_json_object_text_cell_count`
 - `judge_prompt_only_text_cell_count`
@@ -258,6 +279,12 @@ Diagnostic metrics include:
 - `cell_id_mismatch_count`
 - `unmatched_proposal_count`
 - `join_failure_count`
+
+Per-run summaries and rebuilt comparison rows also keep scoring truth explicit with:
+
+- `scored`
+- `unscored_reason`
+- compact main-app provenance fields such as `structured_output_mode`, `prompt_only_degraded_mode_used`, `parse_repair_used`, `extraction_contract_valid`, and retrieval-policy fields
 - `evidence_present_but_unvalidated_count`
 
 ## Limitations
