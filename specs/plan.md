@@ -69,6 +69,7 @@ Implementation for this phase is complete when the system satisfies the function
 4. Run artifacts, proposal state, review decisions, and exports are persisted in a reproducible local-first manner.
 
 4a. Eval-ready artifacts remain versioned and directly consumable by the separate eval and optimizer repos from files alone, including enough evidence and source-text-compatible persistence for downstream anchor validation.
+   - the app also writes compact extraction and retrieval provenance summaries into stable reviewer/run summary artifacts so downstream tools can score or report degraded runs truthfully without reparsing verbose provider diagnostics
 
 5. The implementation supports structured-output-first extraction with bounded compatibility negotiation and recovery: prefer `json_schema`, allow explicit degraded fallback to `json_object` when `json_schema` is unsupported, downgrade explicitly when the provider rejects regex or grammar constraints for the active request shape, allow explicit degraded prompt-only JSON fallback when both structured modes are unavailable, then one stronger retry, bounded repair with wrapper stripping and balanced-object extraction, and hard failure for that target only when no schema-valid result is recoverable.
 

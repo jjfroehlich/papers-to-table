@@ -167,11 +167,56 @@ def get_initial_run_data(
         "structured_output_mode": None,
         "structured_output_reason": None,
         "structured_output_fallback_used": False,
+        "prompt_only_degraded_mode_used": False,
+        "parse_repair_used": False,
+        "parse_repair_summary": {
+            "used": False,
+            "retry_used": False,
+            "repair_signal_count": 0,
+            "retry_count": 0,
+        },
         "vision_structured_output_mode": None,
         "vision_structured_output_reason": None,
         "provider_readiness_reason": None,
         "provider_request_counts": {},
         "retrieval_mode": config.retrieval.mode,
+        "retrieval_top_k": config.retrieval.top_k,
+        "recall_rescue_enabled": config.retrieval.recall_rescue_enabled,
+        "whole_document_mode": config.retrieval.whole_document_mode,
+        "whole_document_max_chars": config.retrieval.whole_document_max_chars,
+        "recall_rescue_used": False,
+        "recall_rescue_used_any": False,
+        "recall_rescue_invocation_count": 0,
+        "retrieval_provenance": {
+            "mode": config.retrieval.mode,
+            "top_k": config.retrieval.top_k,
+            "recall_rescue_enabled": config.retrieval.recall_rescue_enabled,
+            "whole_document_mode": config.retrieval.whole_document_mode,
+            "whole_document_max_chars": config.retrieval.whole_document_max_chars,
+            "recall_rescue_used": False,
+            "rescue_used_any": False,
+            "whole_document_used": False,
+            "recall_rescue_invocation_count": 0,
+            "recall_rescue_used_count": 0,
+            "whole_document_used_count": 0,
+        },
+        "extraction_contract_valid": False,
+        "extraction_contract_warnings": [],
+        "extraction_provenance": {
+            "structured_output_mode": None,
+            "structured_output_reason": None,
+            "prompt_only_degraded_mode_used": False,
+            "structured_output_fallback_used": False,
+            "parse_repair_used": False,
+            "parse_repair_summary": {
+                "used": False,
+                "retry_used": False,
+                "repair_signal_count": 0,
+                "retry_count": 0,
+            },
+            "extraction_contract_valid": False,
+            "extraction_contract_warnings": [],
+        },
         "prompt_bundle_name": config.prompt.bundle,
         "prompt_bundle_config_path": config.prompt.bundle_path,
         "prompt_version": prompt_identity["prompt_version"],
@@ -565,6 +610,120 @@ async def run_pipeline(
             ),
         }
 
+    def _load_provider_diagnostics_snapshot(data: dict) -> dict[str, object]:
+        relative_path = data.get("provider_diagnostics_path")
+        if not isinstance(relative_path, str) or not relative_path:
+            return {}
+        diagnostics_path = run_dir / relative_path
+        if not diagnostics_path.exists():
+            return {}
+        try:
+            return read_json(diagnostics_path)
+        except Exception:
+            return {}
+
+    def _build_parse_repair_summary(provider_diagnostics: dict[str, object]) -> dict[str, object]:
+        attempts = provider_diagnostics.get("attempts") if isinstance(provider_diagnostics, dict) else None
+        if not isinstance(attempts, list):
+            attempts = []
+        repair_signal_count = 0
+        retry_count = 0
+        retry_used = False
+        for attempt in attempts:
+            if not isinstance(attempt, dict):
+                continue
+            if attempt.get("phase") == "retry":
+                retry_used = True
+                retry_count += 1
+            error_details = attempt.get("error_details")
+            if not isinstance(error_details, dict):
+                continue
+            if any(
+                bool(error_details.get(key))
+                for key in (
+                    "wrapper_tags_removed",
+                    "code_fences_removed",
+                    "balanced_object_extracted",
+                    "trailing_comma_repaired",
+                )
+            ) or error_details.get("parsed_from") == "balanced_object":
+                repair_signal_count += 1
+        return {
+            "used": bool(retry_used or repair_signal_count),
+            "retry_used": retry_used,
+            "repair_signal_count": repair_signal_count,
+            "retry_count": retry_count,
+        }
+
+    def _build_retrieval_provenance(data: dict) -> dict[str, object]:
+        counters = run_stats.setdefault("counters", {})
+        recall_rescue_used_count = int(counters.get("recall_rescue_used_count", 0) or 0)
+        whole_document_used_count = int(counters.get("whole_document_used_count", 0) or 0)
+        return {
+            "mode": data.get("retrieval_mode"),
+            "top_k": data.get("retrieval_top_k"),
+            "recall_rescue_enabled": bool(data.get("recall_rescue_enabled", False)),
+            "whole_document_mode": bool(data.get("whole_document_mode", False)),
+            "whole_document_max_chars": data.get("whole_document_max_chars"),
+            "recall_rescue_used": recall_rescue_used_count > 0,
+            "rescue_used_any": recall_rescue_used_count > 0,
+            "whole_document_used": whole_document_used_count > 0,
+            "recall_rescue_invocation_count": recall_rescue_used_count,
+            "recall_rescue_used_count": recall_rescue_used_count,
+            "whole_document_used_count": whole_document_used_count,
+        }
+
+    def _build_extraction_contract_summary(data: dict) -> tuple[bool, list[str]]:
+        warnings: list[str] = []
+        proposals_path = run_dir / "proposals" / "proposals.jsonl"
+        if not proposals_path.exists():
+            warnings.append("missing_proposals_jsonl")
+        if data.get("eval_mode"):
+            eval_artifacts = data.get("eval_artifacts") if isinstance(data.get("eval_artifacts"), dict) else {}
+            gold_snapshot = ((eval_artifacts.get("gold_table") or {}).get("snapshot_path") if isinstance(eval_artifacts.get("gold_table"), dict) else None)
+            masked_snapshot = ((eval_artifacts.get("masked_working_table") or {}).get("path") if isinstance(eval_artifacts.get("masked_working_table"), dict) else None)
+            if not isinstance(gold_snapshot, str) or not gold_snapshot:
+                warnings.append("missing_gold_table_snapshot")
+            elif not (run_dir / gold_snapshot).exists():
+                warnings.append("gold_table_snapshot_missing_on_disk")
+            if not isinstance(masked_snapshot, str) or not masked_snapshot:
+                warnings.append("missing_masked_working_table_snapshot")
+            elif not (run_dir / masked_snapshot).exists():
+                warnings.append("masked_working_table_snapshot_missing_on_disk")
+        if data.get("status") == RunStatus.failed.value:
+            warnings.append("run_failed")
+        return (len(warnings) == 0, warnings)
+
+    def refresh_compact_contracts(data: dict) -> dict:
+        data = dict(data)
+        provider_diagnostics = _load_provider_diagnostics_snapshot(data)
+        parse_repair_summary = _build_parse_repair_summary(provider_diagnostics)
+        retrieval_provenance = _build_retrieval_provenance(data)
+        extraction_contract_valid, extraction_contract_warnings = _build_extraction_contract_summary(data)
+        extraction_provenance = {
+            "structured_output_mode": data.get("structured_output_mode"),
+            "structured_output_reason": data.get("structured_output_reason"),
+            "prompt_only_degraded_mode_used": data.get("structured_output_mode") == "none",
+            "structured_output_fallback_used": bool(data.get("structured_output_fallback_used", False)),
+            "parse_repair_used": bool(parse_repair_summary.get("used", False)),
+            "parse_repair_summary": parse_repair_summary,
+            "extraction_contract_valid": extraction_contract_valid,
+            "extraction_contract_warnings": extraction_contract_warnings,
+        }
+        data["prompt_only_degraded_mode_used"] = extraction_provenance["prompt_only_degraded_mode_used"]
+        data["parse_repair_used"] = extraction_provenance["parse_repair_used"]
+        data["parse_repair_summary"] = parse_repair_summary
+        data["retrieval_provenance"] = retrieval_provenance
+        data["retrieval_top_k"] = retrieval_provenance["top_k"]
+        data["recall_rescue_used"] = retrieval_provenance["recall_rescue_used"]
+        data["recall_rescue_used_any"] = retrieval_provenance["rescue_used_any"]
+        data["recall_rescue_invocation_count"] = retrieval_provenance["recall_rescue_invocation_count"]
+        data["whole_document_max_chars"] = retrieval_provenance["whole_document_max_chars"]
+        data["extraction_contract_valid"] = extraction_contract_valid
+        data["extraction_contract_warnings"] = extraction_contract_warnings
+        data["extraction_provenance"] = extraction_provenance
+        return data
+
     def save_run_stats() -> None:
         refresh_run_stats_rollups()
         run_stats["recorded_at"] = datetime.now(timezone.utc).isoformat()
@@ -591,6 +750,7 @@ async def run_pipeline(
         if run_stats["per_run"].get("run_total_ms") is None:
             run_stats["per_run"]["run_total_ms"] = round((perf_counter() - run_started_perf) * 1000.0, 3)
         save_run_stats()
+        data = refresh_compact_contracts(data)
         write_json(get_run_summary_path(output_dir, run_id), data)
         write_json(
             get_reviewer_summary_path(output_dir, run_id),
@@ -612,12 +772,22 @@ async def run_pipeline(
                 "structured_output_fallback_used": bool(
                     data.get("structured_output_fallback_used", False)
                 ),
+                "prompt_only_degraded_mode_used": bool(
+                    data.get("prompt_only_degraded_mode_used", False)
+                ),
+                "parse_repair_used": bool(data.get("parse_repair_used", False)),
+                "parse_repair_summary": data.get("parse_repair_summary"),
                 "vision_structured_output_mode": data.get("vision_structured_output_mode"),
                 "vision_structured_output_reason": data.get("vision_structured_output_reason"),
                 "provider_readiness_error": data.get("provider_readiness_error"),
                 "provider_readiness_reason": data.get("provider_readiness_reason"),
                 "provider_model_management_path": data.get("provider_model_management_path"),
                 "retrieval_mode": data.get("retrieval_mode"),
+                "retrieval_top_k": data.get("retrieval_top_k"),
+                "recall_rescue_enabled": bool(data.get("recall_rescue_enabled", False)),
+                "whole_document_mode": bool(data.get("whole_document_mode", False)),
+                "recall_rescue_used": bool(data.get("recall_rescue_used", False)),
+                "retrieval_provenance": data.get("retrieval_provenance"),
                 "prompt_version": data.get("prompt_version"),
                 "prompt_hash": data.get("prompt_hash"),
                 "prompt_bundle_id": data.get("prompt_bundle_id"),
@@ -635,6 +805,9 @@ async def run_pipeline(
                 "parser_identity": data.get("parser_identity"),
                 "parser_version": data.get("parser_version"),
                 "eval_artifacts": data.get("eval_artifacts"),
+                "extraction_contract_valid": bool(data.get("extraction_contract_valid", False)),
+                "extraction_contract_warnings": data.get("extraction_contract_warnings", []),
+                "extraction_provenance": data.get("extraction_provenance"),
                 "total_proposals": proposals_generated,
                 "reviewed": 0,
                 "accepted": 0,
@@ -744,6 +917,8 @@ async def run_pipeline(
             "proposal_metadata_coverage": proposal_coverage,
             "eval_artifact_parity": eval_parity,
             "missing_expected_artifacts": sorted(set(missing_expected)),
+            "extraction_contract_valid": not missing_expected,
+            "extraction_contract_warnings": sorted(set(missing_expected)),
         }
         write_json(artifact_path, summary)
         data = dict(data)
@@ -898,6 +1073,9 @@ async def run_pipeline(
             "eval_mode": config.eval_mode,
             "run_mode": run_data["run_mode"],
             "retrieval_mode": run_data["retrieval_mode"],
+            "retrieval_top_k": run_data["retrieval_top_k"],
+            "recall_rescue_enabled": run_data["recall_rescue_enabled"],
+            "whole_document_mode": run_data["whole_document_mode"],
             "prompt_version": run_data["prompt_version"],
             "prompt_hash": run_data["prompt_hash"],
             "prompt_bundle_id": run_data.get("prompt_bundle_id"),
@@ -1673,6 +1851,7 @@ async def run_pipeline(
                 "context": {"count": weak_count},
             })
         run_data = sync_provider_artifacts(run_data, provider, run_dir)
+        run_data = refresh_compact_contracts(run_data)
         save_run(run_data)
 
         warnings = run_data.get("warnings", [])
@@ -1685,6 +1864,7 @@ async def run_pipeline(
         run_stats["per_run"]["completed_at"] = run_data.get("completed_at")
         run_stats["per_run"]["run_total_ms"] = round((perf_counter() - run_started_perf) * 1000.0, 3)
         run_data = sync_provider_artifacts(run_data, provider, run_dir)
+        run_data = refresh_compact_contracts(run_data)
         save_run(run_data)
         save_run_stats()
 
@@ -1709,11 +1889,21 @@ async def run_pipeline(
                 "structured_output_fallback_used": bool(
                     run_data.get("structured_output_fallback_used", False)
                 ),
+                "prompt_only_degraded_mode_used": bool(
+                    run_data.get("prompt_only_degraded_mode_used", False)
+                ),
+                "parse_repair_used": bool(run_data.get("parse_repair_used", False)),
+                "parse_repair_summary": run_data.get("parse_repair_summary"),
                 "vision_structured_output_mode": run_data.get("vision_structured_output_mode"),
                 "vision_structured_output_reason": run_data.get("vision_structured_output_reason"),
                 "provider_readiness_error": run_data.get("provider_readiness_error"),
                 "provider_readiness_reason": run_data.get("provider_readiness_reason"),
                 "retrieval_mode": run_data.get("retrieval_mode"),
+                "retrieval_top_k": run_data.get("retrieval_top_k"),
+                "recall_rescue_enabled": bool(run_data.get("recall_rescue_enabled", False)),
+                "whole_document_mode": bool(run_data.get("whole_document_mode", False)),
+                "recall_rescue_used": bool(run_data.get("recall_rescue_used", False)),
+                "retrieval_provenance": run_data.get("retrieval_provenance"),
                 "prompt_version": run_data.get("prompt_version"),
                 "prompt_hash": run_data.get("prompt_hash"),
                 "prompt_bundle_id": run_data.get("prompt_bundle_id"),
@@ -1731,6 +1921,9 @@ async def run_pipeline(
                 "parser_identity": run_data.get("parser_identity"),
                 "parser_version": run_data.get("parser_version"),
                 "eval_artifacts": run_data.get("eval_artifacts"),
+                "extraction_contract_valid": bool(run_data.get("extraction_contract_valid", False)),
+                "extraction_contract_warnings": run_data.get("extraction_contract_warnings", []),
+                "extraction_provenance": run_data.get("extraction_provenance"),
                 "total_proposals": proposals_generated,
                 "reviewed": 0,
                 "accepted": 0,

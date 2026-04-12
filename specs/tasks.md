@@ -26,6 +26,7 @@ Reality-checked on 2026-04-06 against current backend/frontend source, targeted 
 - Implemented in the latest pass: readiness-versus-capability truth split for provider status across backend artifacts, automation payloads, and UI summaries.
 - Implemented in the latest pass: retrieval heuristic policy is now explicit in retrieval artifacts and summarized at the run level.
 - Implemented in the latest pass: compact structured `run_stats.json` diagnostics with explicit stage/PDF/cell timings, repeated-work counters, provider/evidence rollups, and consistency coverage.
+- Implemented in the latest pass: compact eval-facing extraction and retrieval provenance is now emitted in stable summary artifacts and automation payloads.
 - Historical run bundles under `runs/` are useful examples but are not the canonical artifact-shape source of truth.
 
 ## Canonical Checklist

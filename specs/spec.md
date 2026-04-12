@@ -10,6 +10,8 @@ The system supports three operator-visible run modes: normal extraction for empt
 
 Eval-ready artifacts must remain directly consumable by the separate evaluator and optimizer from files alone. The main app therefore owns a versioned run-bundle contract and must persist enough proposal, evidence, and source-text-compatible artifact truth for downstream anchor validation to remain meaningful.
 
+In addition to full-fidelity diagnostics, the main app must also publish a compact downstream contract in stable summary artifacts so the separate evaluator and optimizer can consume structured-output degradation, parse-repair, retrieval-policy, and extraction-contract truth without importing main-app runtime code or reparsing verbose traces.
+
 The system extracts primarily from text and tables. Extraction is schema-first: column name, description, and optional field typing define what should be extracted, while existing filled cells are optional format helpers only. The schema stays lightweight and must not require explicit per-column vision policy fields. When vision capability is available, the system uses text-guided figure shortlisting and panel targeting as a normal supplemental evidence stage, allowing figure evidence to strengthen any proposal, corroborate text evidence, or rescue weak text-only results without broad untargeted vision calls.
 
 The product is designed for high-trust extraction workflows where proposed values must remain inspectable, auditable, reversible, and clearly distinguishable by support level, parsing quality, and provider-mode truth.
@@ -218,6 +220,7 @@ A developer or advanced user who inspects diagnostics to understand matching, ex
 - Locked cells are protected by default, except when a human explicitly accepts an update in verify mode.
 - The product supports three distinct run modes: normal extraction, Verify mode for in-app comparison on already-filled cells, and Eval mode for leakage-aware benchmark runs scored later by a separate tool.
 - Eval mode must never expose target-cell gold values to the extraction path; it uses an app-owned masked working copy and preserves auditable gold-table and masked-table provenance in artifacts.
+- Eval-ready summary artifacts must also publish compact extraction and retrieval provenance fields such as structured-output mode, prompt-only degraded fallback truth, parse-repair usage, extraction-contract validity and warnings, retrieval mode, retrieval top-k, recall-rescue configuration and usage, and whole-document retrieval usage.
 - Eval mode artifacts must preserve enough versioned proposal, evidence, and source-text provenance for a separate evaluator to validate anchors and score runs from files alone.
 - All runs are auditable.
 - The product is optimized for trustworthy extraction workflows, not maximal automation at any cost.

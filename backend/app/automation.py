@@ -166,7 +166,16 @@ def _build_output_payload(
         payload["error_message"] = run_data.get("error_message")
         payload["provider_readiness_error"] = run_data.get("provider_readiness_error")
         payload["provider_readiness_reason"] = run_data.get("provider_readiness_reason")
+        payload["structured_output_mode"] = run_data.get("structured_output_mode")
         payload["structured_output_reason"] = run_data.get("structured_output_reason")
+        payload["prompt_only_degraded_mode_used"] = bool(
+            run_data.get("prompt_only_degraded_mode_used", False)
+        )
+        payload["parse_repair_used"] = bool(run_data.get("parse_repair_used", False))
+        payload["extraction_contract_valid"] = bool(
+            run_data.get("extraction_contract_valid", False)
+        )
+        payload["extraction_contract_warnings"] = run_data.get("extraction_contract_warnings") or []
         payload["vision_structured_output_mode"] = run_data.get("vision_structured_output_mode")
         payload["vision_structured_output_reason"] = run_data.get("vision_structured_output_reason")
         payload["warnings"] = run_data.get("warnings") or []
@@ -174,9 +183,25 @@ def _build_output_payload(
             "prompt_hash": run_data.get("prompt_hash"),
             "prompt_bundle_id": run_data.get("prompt_bundle_id"),
             "retrieval_mode": run_data.get("retrieval_mode"),
+            "retrieval_top_k": run_data.get("retrieval_top_k"),
+            "recall_rescue_enabled": bool(run_data.get("recall_rescue_enabled", False)),
+            "whole_document_mode": bool(run_data.get("whole_document_mode", False)),
+            "whole_document_max_chars": run_data.get("whole_document_max_chars"),
+            "recall_rescue_used": bool(run_data.get("recall_rescue_used", False)),
+            "recall_rescue_used_any": bool(run_data.get("recall_rescue_used_any", False)),
+            "recall_rescue_invocation_count": int(run_data.get("recall_rescue_invocation_count", 0) or 0),
             "provider_mode": run_data.get("provider_mode"),
             "structured_output_mode": run_data.get("structured_output_mode"),
             "structured_output_reason": run_data.get("structured_output_reason"),
+            "prompt_only_degraded_mode_used": bool(
+                run_data.get("prompt_only_degraded_mode_used", False)
+            ),
+            "parse_repair_used": bool(run_data.get("parse_repair_used", False)),
+            "extraction_contract_valid": bool(
+                run_data.get("extraction_contract_valid", False)
+            ),
+            "extraction_contract_warnings": run_data.get("extraction_contract_warnings") or [],
+            "retrieval_provenance": run_data.get("retrieval_provenance") or {},
         }
     return payload
 

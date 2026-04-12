@@ -136,6 +136,23 @@ Outputs are machine-readable JSON and include run id, status, resolved mode, art
 
 For degraded-but-live provider cases, automation payloads also expose structured-output capability truth, including `structured_output_mode`, `structured_output_reason`, `vision_structured_output_mode`, and `vision_structured_output_reason` when available.
 
+The main app now also persists compact downstream-facing extraction and retrieval provenance in both `summaries/run_summary.json` and `summaries/reviewer_summary.json`. These fields keep degraded runs eval-consumable when possible and let the separate eval and optimizer repos consume stable summary truth without reconstructing it from verbose diagnostics.
+
+Key compact provenance fields now include:
+
+- `prompt_only_degraded_mode_used`
+- `parse_repair_used`
+- `parse_repair_summary`
+- `extraction_contract_valid`
+- `extraction_contract_warnings`
+- `retrieval_mode`
+- `retrieval_top_k`
+- `recall_rescue_enabled`
+- `whole_document_mode`
+- `recall_rescue_used`
+- `retrieval_provenance`
+- `extraction_provenance`
+
 Automation payloads include explicit contract helpers for orchestration:
 
 - `schema_version` (automation payload schema tag)
