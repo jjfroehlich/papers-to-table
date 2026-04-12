@@ -835,6 +835,8 @@ class DoclingParserAdapter(ParserAdapter):
             if isinstance(item, TableItem):
                 # Export table as text
                 try:
+                    table_text = item.export_to_markdown(doc=doc)
+                except TypeError:
                     table_text = item.export_to_markdown()
                 except Exception:
                     table_text = getattr(item, "text", "") or ""
