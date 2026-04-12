@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
-  "experiment_id": "compare_prompts_dev",
+  "experiment_id": "compare_retrieval_modes_dev",
   "operator_todo": {
     "notes": [
-      "run_overnight.sh materializes this config onto the winner of the preceding model-compare stage.",
-      "This prompt compare is intentionally bounded to one alternative prompt bundle so the overnight run remains tractable."
+      "Prepared compare config for lexical vs hybrid_experimental retrieval on the same model and prompt bundle.",
+      "Materialize the text model and prompt bundle onto the latest winning setup before unattended use if needed."
     ]
   },
   "baseline_candidate": {
@@ -12,7 +12,8 @@
     "text_model_id": "google/gemma-4-26b-a4b",
     "vision_model_id": null,
     "optimizer_knobs": {
-      "retrieval_top_k": 6,
+      "retrieval_mode": "lexical",
+      "retrieval_top_k": 8,
       "recall_rescue_enabled": true,
       "whole_document_mode": false,
       "whole_document_max_chars": 12000,
@@ -27,7 +28,8 @@
       "text_model_id": "google/gemma-4-26b-a4b",
       "vision_model_id": null,
       "optimizer_knobs": {
-        "retrieval_top_k": 6,
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 8,
         "recall_rescue_enabled": true,
         "whole_document_mode": false,
         "whole_document_max_chars": 12000,
@@ -37,11 +39,12 @@
       }
     },
     {
-      "prompt_bundle_id": "evidence_strict",
+      "prompt_bundle_id": "default",
       "text_model_id": "google/gemma-4-26b-a4b",
       "vision_model_id": null,
       "optimizer_knobs": {
-        "retrieval_top_k": 6,
+        "retrieval_mode": "hybrid_experimental",
+        "retrieval_top_k": 8,
         "recall_rescue_enabled": true,
         "whole_document_mode": false,
         "whole_document_max_chars": 12000,
@@ -52,19 +55,12 @@
     }
   ],
   "search_space": {
-    "prompt_bundle_ids": [
-      "default",
-      "evidence_strict"
-    ],
-    "text_model_ids": [
-      "google/gemma-4-26b-a4b"
-    ],
+    "prompt_bundle_ids": ["default"],
+    "text_model_ids": ["google/gemma-4-26b-a4b"],
     "vision_model_ids": [],
     "numeric_knobs": {
       "retrieval_top_k": {
-        "values": [
-          6
-        ]
+        "values": [8]
       }
     }
   },
@@ -112,6 +108,7 @@
       "backend.app.automation"
     ],
     "optimizer_knob_map": {
+      "retrieval_mode": "retrieval.mode",
       "retrieval_top_k": "retrieval.top_k",
       "recall_rescue_enabled": "retrieval.recall_rescue_enabled",
       "whole_document_mode": "retrieval.whole_document_mode",
@@ -138,14 +135,10 @@
         "failure_count": "join_failure_count"
       },
       "diagnostic": {
-        "contract_warning_count": "contract_warning_count",
-        "scored_cell_count": "scored_cell_count",
-        "text_scored_cell_count": "text_scored_cell_count",
-        "judge_text_scored_cell_count": "judge_text_scored_cell_count",
-        "unscored_text_cell_count": "unscored_text_cell_count",
-        "judge_request_failed_count": "judge_request_failed_count",
-        "judge_unclear_text_cell_count": "judge_unclear_text_cell_count",
-        "filled_on_gold_empty_count": "filled_on_gold_empty_count"
+        "correctness_judge_a": "correctness_judge_a",
+        "correctness_judge_b": "correctness_judge_b",
+        "judge_disagreement": "judge_disagreement",
+        "contract_warning_count": "contract_warning_count"
       }
     }
   },

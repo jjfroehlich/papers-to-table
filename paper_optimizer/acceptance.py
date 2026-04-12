@@ -17,6 +17,43 @@ def _metric_value(result: CandidateResult, metric_name: str) -> float | None:
     return None
 
 
+def degraded_score_policy(config: dict[str, Any]) -> str:
+    return str(config.get("degraded_score_policy", "warn") or "warn")
+
+
+def is_degraded_score(result: CandidateResult) -> bool:
+    return result.score_status == "scored_degraded"
+
+
+def _secondary_objective_winner(
+    incumbent: CandidateResult,
+    challenger: CandidateResult,
+    objectives: list[dict[str, Any]],
+) -> str | None:
+    for objective in objectives:
+        metric_name = str(objective.get("metric") or "").strip()
+        if not metric_name:
+            continue
+        direction = str(objective.get("direction") or "max").strip().lower()
+        min_improvement = float(objective.get("min_improvement", 0.0) or 0.0)
+        incumbent_value = _metric_value(incumbent, metric_name)
+        challenger_value = _metric_value(challenger, metric_name)
+        if incumbent_value is None or challenger_value is None:
+            continue
+        delta = challenger_value - incumbent_value
+        if direction == "min":
+            if (-delta) > min_improvement:
+                return metric_name
+            if delta > 0:
+                return None
+            continue
+        if delta > min_improvement:
+            return metric_name
+        if delta < 0:
+            return None
+    return None
+
+
 def _guardrail_ok(metric_name: str, value: float | None, incumbent_value: float | None, cfg: dict[str, Any]) -> tuple[bool, str]:
     if value is None:
         return False, f"missing guardrail metric: {metric_name}"
@@ -63,16 +100,17 @@ def evaluate_promotion(
     if not challenger_ok:
         return False, challenger_reason
 
+    if degraded_score_policy(acceptance_cfg) == "disallow" and is_degraded_score(challenger):
+        return False, "degraded_score_disallowed"
+
     primary_metric = acceptance_cfg["primary_metric"]
     min_improvement = float(acceptance_cfg.get("min_improvement", 0.0))
 
     incumbent_primary = _metric_value(incumbent, primary_metric)
     challenger_primary = _metric_value(challenger, primary_metric)
     if incumbent_primary is None or challenger_primary is None:
-        return False, "primary metric missing"
-
-    if (challenger_primary - incumbent_primary) < min_improvement:
-        return False, "primary improvement below threshold"
+        missing_reason = challenger.unscored_reason or incumbent.unscored_reason
+        return False, f"primary metric missing{': ' + missing_reason if missing_reason else ''}"
 
     guardrails = acceptance_cfg.get("guardrails", {})
     for metric_name, cfg in guardrails.items():
@@ -81,5 +119,16 @@ def evaluate_promotion(
         ok, reason = _guardrail_ok(metric_name, challenger_value, incumbent_value, cfg)
         if not ok:
             return False, reason
+
+    primary_delta = challenger_primary - incumbent_primary
+    if primary_delta < min_improvement:
+        tie_break_cfg = acceptance_cfg.get("tie_break", {}) if isinstance(acceptance_cfg.get("tie_break"), dict) else {}
+        epsilon = float(tie_break_cfg.get("epsilon", 0.0) or 0.0)
+        secondary_objectives = tie_break_cfg.get("secondary_objectives", []) if isinstance(tie_break_cfg.get("secondary_objectives"), list) else []
+        if abs(primary_delta) <= epsilon and secondary_objectives:
+            winner_metric = _secondary_objective_winner(incumbent, challenger, secondary_objectives)
+            if winner_metric is not None:
+                return True, f"promoted_on_tie_break:{winner_metric}"
+        return False, "primary improvement below threshold"
 
     return True, "promoted"

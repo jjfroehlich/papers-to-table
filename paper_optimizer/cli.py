@@ -7,6 +7,7 @@ from pathlib import Path
 from .benchmarks import benchmark_id_for_split, load_benchmarks
 from .bundle import build_candidate_from_dict
 from .pipeline import evaluate_candidate_once
+from .overnight import generate_overnight_report
 from .results import ResultsWriter
 from .search_space import load_search_space
 from .settings import load_config
@@ -41,6 +42,9 @@ def _build_parser() -> argparse.ArgumentParser:
     summarize_cmd = sub.add_parser("summarize", help="Rebuild summaries and plots from saved artifacts")
     summarize_cmd.add_argument("--config", type=Path, required=True)
     summarize_cmd.add_argument("--experiment", type=Path, required=True)
+
+    overnight_cmd = sub.add_parser("overnight-report", help="Build a combined overnight aggregate table and report")
+    overnight_cmd.add_argument("--manifest", type=Path, required=True)
 
     return parser
 
@@ -124,6 +128,10 @@ def _cmd_summarize(args: argparse.Namespace) -> None:
     summarize(config, args.experiment)
 
 
+def _cmd_overnight_report(args: argparse.Namespace) -> None:
+    generate_overnight_report(args.manifest)
+
+
 def main() -> None:
     parser = _build_parser()
     args = parser.parse_args()
@@ -138,6 +146,8 @@ def main() -> None:
         _cmd_validate_best(args)
     elif args.command == "summarize":
         _cmd_summarize(args)
+    elif args.command == "overnight-report":
+        _cmd_overnight_report(args)
     else:
         parser.error("Unknown command")
 

@@ -36,6 +36,8 @@ def _result_for_candidate(
         primary_metrics={"correctness": score},
         guardrail_metrics={"evidence_quality": 0.9, "null_count": 0.0, "failure_count": 0.0, "runtime_seconds": 10.0},
         diagnostic_metrics={},
+        scored=True,
+        score_status="scored",
         runtime_seconds=10.0,
         runtime_metadata={"main_app_duration_seconds": 5.0, "eval_duration_seconds": 5.0, "total_duration_seconds": 10.0},
         started_at="",

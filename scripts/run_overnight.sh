@@ -11,12 +11,13 @@ optimizer_python="${PAPER_OPTIMIZER_PYTHON:-python}"
 
 compare_config="$repo_root/configs/compare_models_dev.json"
 prompt_config="$repo_root/configs/compare_prompts_dev.json"
-retrieval_config="$repo_root/configs/compare_retrieval_dev.json"
+retrieval_config="$repo_root/configs/compare_retrieval_modes_dev.json"
 optimize_config="$repo_root/configs/optimize_overnight.json"
 compare_run_name="${session_id}_compare_models_dev_${safe_label}"
 prompt_run_name="${session_id}_compare_prompts_dev_${safe_label}"
-retrieval_run_name="${session_id}_compare_retrieval_dev_${safe_label}"
+retrieval_run_name="${session_id}_compare_retrieval_modes_dev_${safe_label}"
 optimize_run_name="${session_id}_optimize_overnight_${safe_label}"
+overnight_dir="$repo_root/runs/${session_id}_overnight_${safe_label}"
 
 resolve_best_candidate_json() {
 	local run_name="$1"
@@ -144,11 +145,12 @@ target_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
 PY
 }
 
-tmp_dir="$repo_root/runs/${session_id}_overnight_materialized_${safe_label}"
-mkdir -p "$tmp_dir"
+tmp_dir="$overnight_dir/materialized_configs"
+mkdir -p "$tmp_dir" "$overnight_dir"
 prompt_config_materialized="$tmp_dir/compare_prompts_dev.json"
 retrieval_config_materialized="$tmp_dir/compare_retrieval_dev.json"
 optimize_config_materialized="$tmp_dir/optimize_overnight.json"
+manifest_path="$overnight_dir/overnight_manifest.json"
 
 echo "[$(date -Iseconds)] Step 1: fast config preflight"
 pushd "$repo_root" >/dev/null
@@ -170,7 +172,39 @@ echo "[$(date -Iseconds)] Step 5: optimize study from the retrieval-compare winn
 materialize_config_with_winner "$optimize_config" "$(require_best_candidate_json "$retrieval_run_name")" "$optimize_config_materialized" optimize
 PAPER_OPTIMIZER_RUN_NAME="$optimize_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" optimize "$optimize_config_materialized" "${safe_label}_optimize"
 
+"$optimizer_python" - "$manifest_path" "$session_id" "$safe_label" "$repo_root" "$compare_run_name" "$prompt_run_name" "$retrieval_run_name" "$optimize_run_name" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+manifest_path = Path(sys.argv[1])
+session_id = sys.argv[2]
+label = sys.argv[3]
+repo_root = Path(sys.argv[4])
+run_names = sys.argv[5:]
+stage_names = ["model_compare", "prompt_compare", "retrieval_compare", "optimize"]
+payload = {
+	"session_id": session_id,
+	"label": label,
+	"stages": [
+		{
+			"stage_name": stage_name,
+			"run_name": run_name,
+			"run_root": str((repo_root / "runs" / run_name).resolve()),
+		}
+		for stage_name, run_name in zip(stage_names, run_names)
+	],
+}
+manifest_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+
+pushd "$repo_root" >/dev/null
+"$optimizer_python" -m paper_optimizer.cli overnight-report --manifest "$manifest_path"
+popd >/dev/null
+
 echo "[$(date -Iseconds)] Overnight workflow finished"
+echo "Overnight report: $overnight_dir/report.html"
+echo "All candidates CSV: $overnight_dir/all_candidates.csv"
 echo "Compare run: $repo_root/runs/$compare_run_name"
 echo "Prompt run: $repo_root/runs/$prompt_run_name"
 echo "Retrieval run: $repo_root/runs/$retrieval_run_name"

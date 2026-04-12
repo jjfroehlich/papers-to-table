@@ -56,15 +56,33 @@ class CandidateResult:
     primary_metrics: dict[str, float]
     guardrail_metrics: dict[str, float]
     diagnostic_metrics: dict[str, float]
-    runtime_seconds: float | None
-    runtime_metadata: dict[str, Any]
-    started_at: str
-    ended_at: str
-    candidate_status: str
-    promotion_decision: str
-    decision_reason: str
-    main_app_run_ref: dict[str, Any]
-    eval_output_ref: dict[str, Any]
+    scored: bool = False
+    score_status: str = "failed"
+    unscored_reason: str | None = None
+    unscored_reason_detail: str | None = None
+    runtime_seconds: float | None = None
+    runtime_metadata: dict[str, Any] = field(default_factory=dict)
+    started_at: str = ""
+    ended_at: str = ""
+    candidate_status: str = ""
+    promotion_decision: str = ""
+    decision_reason: str = ""
+    structured_output_mode: str | None = None
+    structured_output_reason: str | None = None
+    prompt_only_degraded_mode_used: bool = False
+    parse_repair_used: bool = False
+    extraction_contract_valid: bool | None = None
+    extraction_contract_warnings: list[str] = field(default_factory=list)
+    retrieval_mode: str | None = None
+    retrieval_top_k: int | None = None
+    recall_rescue_enabled: bool | None = None
+    whole_document_mode: bool | None = None
+    whole_document_max_chars: int | None = None
+    recall_rescue_used: bool | None = None
+    recall_rescue_invocation_count: int | None = None
+    whole_document_used_count: int | None = None
+    main_app_run_ref: dict[str, Any] = field(default_factory=dict)
+    eval_output_ref: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

@@ -10,34 +10,35 @@ Requires-Dist: pytest>=8.0; extra == "dev"
 
 # extract-structured-info-from-papers-optimizer
 
-CLI-first optimizer for orchestrating candidate evaluation runs across:
+CLI-first orchestration for running bounded compare and optimize studies across:
 
-- `extract-structured-info-from-papers` (execution)
-- `extract-structured-info-from-papers-eval` (scoring)
+- `extract-structured-info-from-papers` for extraction
+- `extract-structured-info-from-papers-eval` for scoring
 
-This repo owns orchestration, candidate tracking, and result artifacts. It does not own extraction or scoring logic.
+This repo owns study orchestration, candidate materialization, result tracking, and plots. It does not own extraction logic or scoring logic.
 
-## Responsibilities
+## What this app does
 
-- Load optimizer config, benchmark manifests, and bounded search space.
-- Materialize immutable candidate bundles.
-- Launch main app and eval app for each candidate.
-- Apply acceptance gates (optimize mode).
-- Persist candidate-level records, summaries, and plots.
+- Loads an optimizer config, benchmark manifests, and a bounded search space.
+- Materializes immutable candidate bundles with stable candidate ids and hashes.
+- Launches the main app and eval app for each candidate.
+- Applies acceptance gates in optimize mode.
+- Persists experiment summaries, candidate records, round summaries, and plots.
 
 ## Study modes
 
 ### compare
 
 - Evaluates an explicit fixed candidate set on the `dev` benchmark.
-- Writes ranked compare summaries and compare plots.
-- Optionally supports holdout validation of top-k candidates via `compare.holdout_top_k`.
+- Produces ranked summaries and compare plots.
+- Can optionally run holdout validation for the top `k` candidates via `compare.holdout_top_k`.
 
 ### optimize
 
-- Evaluates a baseline candidate, then bounded deterministic challenger rounds.
-- Applies primary metric + guardrail acceptance gates before promotion.
-- Writes round summaries, incumbent updates, and optimize plots.
+- Evaluates a baseline candidate first.
+- Proposes bounded deterministic challengers round by round.
+- Promotes challengers only when the primary metric and guardrails pass.
+- Produces incumbent tracking, round summaries, and optimize plots.
 
 ## Install
 
@@ -48,16 +49,57 @@ pip install -e .[dev]
 ## CLI
 
 ```bash
-paper-optimizer optimize --study-type compare --config optimizer.json --out runs/compare
-paper-optimizer optimize --study-type optimize --config optimizer.json --out runs/optimize
-paper-optimizer evaluate-candidate --config optimizer.json --candidate-file candidate.json --benchmark dev --out runs/eval_one
-paper-optimizer validate-best --config optimizer.json --experiment runs/optimize --out runs/holdout
-paper-optimizer summarize --config optimizer.json --experiment runs/optimize
+paper-optimizer optimize --study-type compare --config config.example.json --out runs/compare
+paper-optimizer optimize --study-type optimize --config config.example.json --out runs/optimize
+paper-optimizer evaluate-candidate --config config.example.json --candidate-file candidate.json --benchmark dev --out runs/eval_one
+paper-optimizer validate-best --config config.example.json --experiment runs/optimize --out runs/holdout
+paper-optimizer summarize --config config.example.json --experiment runs/optimize
 ```
 
-## Config shape (high level)
+## Recommended setup
 
-Top-level fields used by current code:
+Use [config.example.json](config.example.json) as the generic template and the files under `configs/` as the ready-to-edit study configs for unattended runs.
+
+Recommended layout for the current multi-repo workspace:
+
+- optimizer repo: this repository
+- main app repo: sibling checkout at `../extract-structured-info-from-papers`
+- eval app repo: sibling checkout at `../extract-structured-info-from-papers-eval`
+
+The recommended `main_app` config is:
+
+- `repo_root`: path to the main app repo
+- `base_config_path`: path to the main app config that the optimizer will overlay per candidate
+- `command_prefix`: optional explicit launcher, usually needed when the main app runs in a different Python environment
+- `optimizer_knob_map`: optional mapping from optimizer knob names to nested main-app config paths
+
+The recommended `eval_app` config is:
+
+- `repo_root`: path to the eval repo
+- `command_prefix`: optional explicit launcher, usually needed when the eval app runs in a different Python environment
+- `metric_groups`: mapping from eval summary metrics into optimizer `primary`, `guardrail`, and `diagnostic` groups
+
+If you need a non-standard wrapper, both `main_app` and `eval_app` also support explicit `command` arrays. The recommended repo-root plus config-overlay path is the cleaner default.
+
+## Study configs
+
+Prepared configs in `configs/`:
+
+- `compare_models_smoke.json`: optional small benchmark compare on the smoke fixture. This is no longer used by the unattended overnight wrapper.
+- `compare_models_dev.json`: overnight compare of three explicit text models in this order: `qwen/qwen3.5-9b`, `google/gemma-4-26b-a4b`, `qwen/qwen3.5-35b-a3b`.
+- `compare_prompts_dev.json`: prompt-bundle compare between `default` and `evidence_strict`, materialized by `run_overnight.sh` onto the winner of the model-compare stage.
+- `compare_retrieval_dev.json`: retrieval sweep for `retrieval_top_k = 6 / 8 / 10`, materialized by `run_overnight.sh` onto the winner of the prompt-compare stage.
+- `optimize_overnight.json`: bounded optimize template whose baseline is materialized by `run_overnight.sh` from the retrieval-compare winner while keeping both prompt bundles live in the search space.
+
+Two repo-grounded TODOs remain before every config is trustworthy in production:
+
+- A distinct real holdout benchmark is still not configured, so tonight's configs intentionally skip holdout instead of pretending `dev == holdout`.
+
+The main repo now also includes a built-in `evidence_strict` prompt bundle. It tightens row-specific relevance, direct-evidence preference, and earlier `unclear` outcomes when support is weak or conflicting.
+
+## Config model
+
+Top-level fields used by the current code:
 
 - `schema_version`
 - `experiment_id`
@@ -69,59 +111,204 @@ Top-level fields used by current code:
 - `eval_app`
 - `acceptance`
 - `optimize`
-- `compare` (for holdout top-k behavior in compare mode)
+- `compare`
 
-### main_app section
+Important current behavior:
 
-Current adapter supports two integration styles:
+- `compare_candidates` drives compare mode. If omitted, compare mode falls back to the baseline candidate.
+- Optimize mode varies `prompt_bundle_id`, `text_model_id`, `vision_model_id`, and `search_space.numeric_knobs`.
+- Manual compare candidates can still vary any candidate fields that the candidate bundle contract supports.
+- `benchmarks.dev` drives compare and optimize decisions.
+- `benchmarks.holdout` is only used for post-study validation.
+- CLI commands now run an explicit preflight before launching work. Missing benchmark files, missing prompt bundles, invalid command prefixes, and missing metric mappings fail early.
+- Prepared overnight configs pass explicit eval-judge arguments so text scoring stays reproducible instead of depending on ambient eval defaults.
+- `proposer` is optional and disabled by default. When enabled, it asks an LM Studio-served model for bounded candidate deltas, validates those deltas against the same search surface as deterministic candidates, and writes round-level proposer audit artifacts under `proposer/`.
+- `optimize.confirmation_reruns` is optional and disabled by default. When enabled, the optimizer re-evaluates the best promoted challenger on the same benchmark and only keeps the promotion if all configured confirmation reruns still satisfy the acceptance gate. Confirmation audits are written under `confirmation/`.
 
-1. legacy command template (`main_app.command`)
-2. real integration (`main_app.repo_root` + `main_app.base_config_path` + optional `main_app.command_prefix`)
+For tonight's unattended runs, holdout is intentionally skipped and `diagnostics.verbose_provider_logging` is enabled in the main app's checked-in base config.
 
-Real integration writes candidate-owned launch files under:
+## Overnight workflow
 
-- `runs/<candidate_id>/main/main_config_overlay.json`
-- `runs/<candidate_id>/main/resolved_main_config.json`
-- `runs/<candidate_id>/main/automation_result.json`
+[scripts/run_study.sh](scripts/run_study.sh) creates timestamped output and log directories and then runs:
 
-### eval_app section
+1. the study itself
+2. summary regeneration
+3. holdout validation, unless `PAPER_OPTIMIZER_SKIP_HOLDOUT=1`
 
-Current adapter supports two integration styles:
+[scripts/run_overnight.sh](scripts/run_overnight.sh) is the higher-level wrapper for the recommended unattended path:
 
-1. legacy command template (`eval_app.command`)
-2. real integration (`eval_app.repo_root` + optional `eval_app.command_prefix`)
+1. fast config preflight
+2. overnight compare-model study
+3. prompt compare on the model-compare winner
+4. retrieval sweep on the prompt-compare winner
+5. overnight optimize study on the retrieval-compare winner
 
-Metric projection uses `eval_app.metric_groups` to map eval summary metrics into optimizer-owned groups:
+### Recommended order
 
-- `primary`
-- `guardrail`
-- `diagnostic`
+Run studies in this order:
+
+1. `compare_models_dev.json`
+2. `compare_prompts_dev.json`
+3. `compare_retrieval_dev.json`
+4. `optimize_overnight.json`
+
+### Exact Git Bash commands
+
+Fast preflight:
+
+```bash
+python -m paper_optimizer.cli preflight --config configs/compare_models_dev.json
+```
+
+The preflight command now emits a small JSON success payload on stdout so wrappers can treat it as a machine-readable health check.
+
+Overnight compare of explicit models:
+
+```bash
+PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash scripts/run_study.sh compare configs/compare_models_dev.json compare_models_dev
+```
+
+Prompt-bundle compare:
+
+```bash
+PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash scripts/run_study.sh compare configs/compare_prompts_dev.json compare_prompts_dev
+```
+
+Retrieval sweep compare:
+
+```bash
+PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash scripts/run_study.sh compare configs/compare_retrieval_dev.json compare_retrieval_dev
+```
+
+Direct optimize run from the prepared optimize template:
+
+```bash
+PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash scripts/run_study.sh optimize configs/optimize_overnight.json optimize_overnight
+```
+
+Recommended unattended wrapper that derives prompt, retrieval, and optimize stages from earlier winners:
+
+```bash
+bash scripts/run_overnight.sh overnight_batch_01
+```
+
+If any compare stage finishes without a completed winner, `run_overnight.sh` now stops at that stage with an explicit error explaining that `best_candidate.json` was not produced, instead of crashing later with a raw file-not-found traceback.
+
+### Output layout for operator scripts
+
+By default `run_study.sh` writes to:
+
+- `runs/<timestamp>_<study-type>_<label>/experiment`
+- `runs/<timestamp>_<study-type>_<label>/holdout`
+- `logs/<timestamp>_<study-type>_<label>.log`
+- `runs/<timestamp>_<study-type>_<label>/run_metadata.json`
+
+Practical operator guidance for overnight runs:
+
+- Run the fast preflight first. It checks config, benchmark paths, prompt bundles, metric mappings, and command wiring without launching extraction or eval.
+- Set explicit `command_prefix` values if the optimizer, main app, and eval app do not share one Python environment.
+- Ensure LM Studio can serve both the extraction models and the eval judge model named in `eval_args`.
+- Keep `optimize.rounds` and `optimize.batch_size` bounded to match expected runtime.
+- Holdout is skipped for tonight. Do not call `validate-best` until you configure a real holdout split.
+
+### What to inspect next morning
+
+Start with:
+
+- the run log under `logs/`
+- `experiment/summary.json`
+- `experiment/best_candidate.json`
+- `experiment/results/results.csv`
+
+If a run failed, inspect candidate-specific reasons in:
+
+- `experiment/results/results.jsonl`
+- `experiment/candidates/<candidate_id>/candidate.json`
+- `experiment/runs/<candidate_id>/main/automation_result.json`
+- `experiment/runs/<candidate_id>/eval/eval_result.json`
+
+For real eval-app launches, the optimizer records the resolved gold input in the eval launch artifact. When the main-app run bundle exposes an eval-ready gold snapshot in `run.json`, that bundled snapshot is preferred over the benchmark manifest `gold_path`.
+
+The optimizer now fails candidates explicitly when:
+
+- main-app automation payloads are missing required provenance metadata
+- eval summaries are missing required fields or configured metrics
+- deterministic contract checks fail before promotion
 
 ## Artifact layout
 
-Experiment output directory contains:
+Each experiment directory contains:
 
 - `experiment.json`
+- `compare_summary.json` for compare studies
 - `summary.json`
-- `best_candidate.json` (when winner/incumbent is recorded)
+- `best_candidate.json` when a winner or incumbent is recorded
+- `no_winner.json` when a compare study or failed optimize baseline produces no winner to materialize
 - `candidates/<candidate_id>/candidate.json`
 - `results/results.csv`
 - `results/results.jsonl`
-- `rounds/round_<n>.json` (optimize mode)
+- `results/candidate_diagnostics.csv`
+- `rounds/round_<n>.json` for optimize mode
+- `proposer/round_<n>.json` when the optional proposer is enabled
+- `confirmation/round_<n>_<candidate_id>.json` when confirmation reruns are enabled
 - `plots/*.csv`
 - `plots/*.png`
-- candidate launch folders under `runs/<candidate_id>/{main,eval}`
+- `runs/<candidate_id>/main/` launch artifacts including `main_config_overlay.json`, `resolved_main_config.json`, and `automation_result.json`
+- `runs/<candidate_id>/eval/` launch artifacts including `eval_result.json`
+
+For compare studies, the candidate-level plot artifacts now keep candidates with null primary metrics visible instead of dropping them silently. `plots/compare_primary_by_candidate.csv` and the corresponding PNG use model and prompt-aware labels, and unscored candidates are shown as `NA` rather than disappearing from the report.
+
+Compare studies also write `candidate_diagnostics.json` and `results/candidate_diagnostics.csv`, which summarize why a candidate was scored, unscored, or failed using eval counts such as `scored_cell_count`, `judge_text_scored_cell_count`, `unscored_text_cell_count`, and judge failure diagnostics.
+
+Compare studies also write `compare_summary.json`, a top-level operator report that collects the winner, scored/unscored/failed candidate counts, and the same per-candidate score explanations in one place.
+
+## Optional proposer and confirmation config
+
+Optional proposer config:
+
+```json
+"proposer": {
+	"enabled": false,
+	"provider": "lm_studio",
+	"model_id": "qwen/qwen3.5-35b-a3b",
+	"api_base": "http://127.0.0.1:1234/v1",
+	"temperature": 0.0,
+	"max_candidates": 2
+}
+```
+
+Optional confirmation-rerun config:
+
+```json
+"optimize": {
+	"rounds": 6,
+	"batch_size": 4,
+	"confirmation_reruns": {
+		"enabled": false,
+		"count": 1
+	}
+}
+```
+
+Both features remain bounded by the existing candidate/search-space contract. Invalid proposer outputs are rejected into audit artifacts rather than silently widened into new knobs or model ids.
+
+`summary.json` now also rolls up:
+
+- winner or incumbent identity
+- model and prompt rollups
+- rejection reason counts
+- promotion history and incumbent lineage for optimize studies
+- holdout-validation status when holdout has run
 
 ## Known limitations
 
-- Confirmation reruns are not implemented.
-- Deterministic pre-promotion checks are partially represented through launch/eval success but are not yet a dedicated explicit gate stage.
-- In optimize studies, `validate-best` currently selects the top-scoring recorded candidate on the configured primary metric rather than strictly following promoted-incumbent lineage.
+- Confirmation reruns are still not implemented.
+- A trustworthy real holdout split still needs to be configured before re-enabling overnight holdout validation.
 
 ## Verification snapshot
 
-Current local test suite (`tests/`) passes with a non-interactive plotting backend:
+Targeted local optimizer tests pass with a non-interactive plotting backend:
 
 ```bash
-MPLBACKEND=Agg python -m pytest -q
+python -m pytest -q tests/test_acceptance_and_contracts.py tests/test_compare_mode.py tests/test_optimize_mode.py tests/test_holdout_and_summarize.py tests/test_real_integration_adapters.py tests/test_pipeline_subprocess.py tests/test_settings_and_search_space.py
 ```

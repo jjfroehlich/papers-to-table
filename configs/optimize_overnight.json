@@ -111,7 +111,7 @@
     ],
     "metric_groups": {
       "primary": {
-        "correctness": "structured_accuracy"
+        "correctness": "correctness_mean"
       },
       "guardrail": {
         "evidence_quality": "anchor_valid_rate",
@@ -133,6 +133,7 @@
   "acceptance": {
     "primary_metric": "correctness",
     "min_improvement": 0.01,
+    "degraded_score_policy": "warn",
     "guardrails": {
       "evidence_quality": {
         "min": 0.85

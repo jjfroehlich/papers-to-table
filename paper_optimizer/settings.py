@@ -127,6 +127,39 @@ def validate_config(config: dict[str, Any]) -> None:
         raise ConfigError("acceptance must be an object")
     if not isinstance(_require(acceptance, "primary_metric"), str):
         raise ConfigError("acceptance.primary_metric must be a string")
+    if "min_improvement" in acceptance and not isinstance(acceptance["min_improvement"], (int, float)):
+        raise ConfigError("acceptance.min_improvement must be numeric when provided")
+    degraded_score_policy = acceptance.get("degraded_score_policy", "warn")
+    if degraded_score_policy not in {"allow", "warn", "disallow"}:
+        raise ConfigError("acceptance.degraded_score_policy must be one of: allow, warn, disallow")
+    tie_break = acceptance.get("tie_break")
+    if tie_break is not None:
+        if not isinstance(tie_break, dict):
+            raise ConfigError("acceptance.tie_break must be an object when provided")
+        if "epsilon" in tie_break and not isinstance(tie_break["epsilon"], (int, float)):
+            raise ConfigError("acceptance.tie_break.epsilon must be numeric when provided")
+        secondary_objectives = tie_break.get("secondary_objectives", [])
+        if not isinstance(secondary_objectives, list):
+            raise ConfigError("acceptance.tie_break.secondary_objectives must be an array when provided")
+        for index, objective in enumerate(secondary_objectives):
+            if not isinstance(objective, dict):
+                raise ConfigError(
+                    f"acceptance.tie_break.secondary_objectives[{index}] must be an object"
+                )
+            metric_name = objective.get("metric")
+            if not isinstance(metric_name, str) or not metric_name.strip():
+                raise ConfigError(
+                    f"acceptance.tie_break.secondary_objectives[{index}].metric must be a non-empty string"
+                )
+            direction = objective.get("direction", "max")
+            if direction not in {"max", "min"}:
+                raise ConfigError(
+                    f"acceptance.tie_break.secondary_objectives[{index}].direction must be 'max' or 'min'"
+                )
+            if "min_improvement" in objective and not isinstance(objective["min_improvement"], (int, float)):
+                raise ConfigError(
+                    f"acceptance.tie_break.secondary_objectives[{index}].min_improvement must be numeric when provided"
+                )
 
     optimize = config.get("optimize", {})
     if not isinstance(optimize, dict):

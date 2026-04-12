@@ -12,6 +12,46 @@ from .utils import flatten_dict
 from .validation import validate_eval_summary_contract, validate_main_launch_contract
 
 
+def _score_status(*, candidate_status: str, scored: bool, prompt_only_degraded_mode_used: bool) -> str:
+    if candidate_status != "completed":
+        return "failed"
+    if not scored:
+        return "unscored"
+    if prompt_only_degraded_mode_used:
+        return "scored_degraded"
+    return "scored"
+
+
+def _read_json_if_exists(path: Path | None) -> dict[str, Any]:
+    if path is None or not path.exists():
+        return {}
+    try:
+        return read_json(path)
+    except Exception:
+        return {}
+
+
+def _load_main_reviewer_summary(main_launch: Any | None) -> dict[str, Any]:
+    if main_launch is None:
+        return {}
+    artifact_paths = main_launch.artifact_paths if isinstance(main_launch.artifact_paths, dict) else {}
+    reviewer_summary_path = artifact_paths.get("reviewer_summary_path")
+    if isinstance(reviewer_summary_path, str):
+        return _read_json_if_exists(Path(reviewer_summary_path))
+    run_path = main_launch.run_path if isinstance(main_launch.run_path, str) else None
+    if run_path:
+        return _read_json_if_exists(Path(run_path) / "summaries" / "reviewer_summary.json")
+    return {}
+
+
+def _coalesce_bool(value: Any) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str) and value.strip().lower() in {"true", "false"}:
+        return value.strip().lower() == "true"
+    return None
+
+
 def _failure_result(
     config: dict[str, Any],
     *,
@@ -41,6 +81,7 @@ def _failure_result(
                 "eval_stderr": eval_launch.stderr,
             }
         )
+    reviewer_summary = _load_main_reviewer_summary(main_launch)
 
     return CandidateResult(
         schema_version=str(config["schema_version"]),
@@ -60,6 +101,10 @@ def _failure_result(
         primary_metrics={},
         guardrail_metrics={},
         diagnostic_metrics={},
+        scored=False,
+        score_status="failed",
+        unscored_reason=reason,
+        unscored_reason_detail=str(metadata.get("launch_error") or reason),
         runtime_seconds=main_launch.duration_seconds if main_launch is not None else None,
         runtime_metadata={
             "main_app_duration_seconds": main_launch.duration_seconds if main_launch is not None else None,
@@ -78,6 +123,20 @@ def _failure_result(
         candidate_status="failed",
         promotion_decision=decision,
         decision_reason=reason,
+        structured_output_mode=reviewer_summary.get("structured_output_mode"),
+        structured_output_reason=reviewer_summary.get("structured_output_reason"),
+        prompt_only_degraded_mode_used=bool(reviewer_summary.get("prompt_only_degraded_mode_used", False)),
+        parse_repair_used=bool(reviewer_summary.get("parse_repair_used", False)),
+        extraction_contract_valid=_coalesce_bool(reviewer_summary.get("extraction_contract_valid")),
+        extraction_contract_warnings=list(reviewer_summary.get("extraction_contract_warnings", []) or []),
+        retrieval_mode=reviewer_summary.get("retrieval_mode"),
+        retrieval_top_k=reviewer_summary.get("retrieval_top_k"),
+        recall_rescue_enabled=_coalesce_bool(reviewer_summary.get("recall_rescue_enabled")),
+        whole_document_mode=_coalesce_bool(reviewer_summary.get("whole_document_mode")),
+        whole_document_max_chars=reviewer_summary.get("whole_document_max_chars"),
+        recall_rescue_used=_coalesce_bool(reviewer_summary.get("recall_rescue_used")),
+        recall_rescue_invocation_count=reviewer_summary.get("recall_rescue_invocation_count"),
+        whole_document_used_count=((reviewer_summary.get("retrieval_provenance") or {}).get("whole_document_used_count") if isinstance(reviewer_summary.get("retrieval_provenance"), dict) else None),
         main_app_run_ref={
             "run_id": main_launch.run_id if main_launch is not None else None,
             "run_path": main_launch.run_path if main_launch is not None else None,
@@ -232,8 +291,23 @@ def evaluate_candidate_once(
         "total_duration_seconds": main_launch.duration_seconds + eval_launch.duration_seconds,
     }
     eval_metadata = eval_summary.get("metadata", {}) if isinstance(eval_summary.get("metadata"), dict) else {}
+    reviewer_summary = _load_main_reviewer_summary(main_launch)
+    scored = bool(eval_summary.get("scored", primary_metrics.get(config["acceptance"]["primary_metric"]) is not None))
+    unscored_reason = eval_summary.get("unscored_reason")
+    unscored_reason_detail = eval_summary.get("unscored_reason_detail")
     if "page_count" in eval_metadata:
         runtime_metadata["page_count"] = eval_metadata.get("page_count")
+    score_status = _score_status(
+        candidate_status="completed",
+        scored=scored,
+        prompt_only_degraded_mode_used=bool(reviewer_summary.get("prompt_only_degraded_mode_used", False)),
+    )
+    primary_metric_name = str(config["acceptance"]["primary_metric"])
+    if scored and primary_metrics.get(primary_metric_name) is None:
+        scored = False
+        score_status = "unscored"
+        unscored_reason = "metric_projection_failure"
+        unscored_reason_detail = f"configured primary metric '{primary_metric_name}' was not projected from the eval summary"
 
     return CandidateResult(
         schema_version=str(config["schema_version"]),
@@ -253,6 +327,10 @@ def evaluate_candidate_once(
         primary_metrics=primary_metrics,
         guardrail_metrics=guardrail_metrics,
         diagnostic_metrics=diagnostic_metrics,
+        scored=scored,
+        score_status=score_status,
+        unscored_reason=unscored_reason,
+        unscored_reason_detail=unscored_reason_detail,
         runtime_seconds=runtime_seconds,
         runtime_metadata=runtime_metadata,
         started_at=main_launch.started_at,
@@ -260,6 +338,20 @@ def evaluate_candidate_once(
         candidate_status="completed",
         promotion_decision=decision,
         decision_reason=reason,
+        structured_output_mode=reviewer_summary.get("structured_output_mode"),
+        structured_output_reason=reviewer_summary.get("structured_output_reason"),
+        prompt_only_degraded_mode_used=bool(reviewer_summary.get("prompt_only_degraded_mode_used", False)),
+        parse_repair_used=bool(reviewer_summary.get("parse_repair_used", False)),
+        extraction_contract_valid=_coalesce_bool(reviewer_summary.get("extraction_contract_valid")),
+        extraction_contract_warnings=list(reviewer_summary.get("extraction_contract_warnings", []) or []),
+        retrieval_mode=reviewer_summary.get("retrieval_mode"),
+        retrieval_top_k=reviewer_summary.get("retrieval_top_k"),
+        recall_rescue_enabled=_coalesce_bool(reviewer_summary.get("recall_rescue_enabled")),
+        whole_document_mode=_coalesce_bool(reviewer_summary.get("whole_document_mode")),
+        whole_document_max_chars=reviewer_summary.get("whole_document_max_chars"),
+        recall_rescue_used=_coalesce_bool(reviewer_summary.get("recall_rescue_used")),
+        recall_rescue_invocation_count=reviewer_summary.get("recall_rescue_invocation_count"),
+        whole_document_used_count=((reviewer_summary.get("retrieval_provenance") or {}).get("whole_document_used_count") if isinstance(reviewer_summary.get("retrieval_provenance"), dict) else None),
         main_app_run_ref={
             "run_id": main_launch.run_id,
             "run_path": main_launch.run_path,
@@ -280,6 +372,7 @@ def evaluate_candidate_once(
             "contract_errors": [],
             "eval_summary": eval_summary,
             "eval_metadata": eval_metadata,
+            "reviewer_summary": reviewer_summary,
             "main_stdout": main_launch.stdout,
             "main_stderr": main_launch.stderr,
             "eval_stdout": eval_launch.stdout,

@@ -22,6 +22,37 @@ optimizer_python="${PAPER_OPTIMIZER_PYTHON:-python}"
 status="running"
 holdout_status="not_run"
 
+sync_holdout_summary() {
+  local holdout_state="$1"
+  local skip_reason="${2:-}"
+  "$optimizer_python" - "$experiment_dir" "$holdout_dir" "$holdout_state" "$skip_reason" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+experiment_dir = Path(sys.argv[1])
+holdout_dir = Path(sys.argv[2])
+holdout_state = sys.argv[3]
+skip_reason = sys.argv[4] or None
+summary_path = experiment_dir / "summary.json"
+if not summary_path.exists():
+  raise SystemExit(0)
+summary = json.loads(summary_path.read_text(encoding="utf-8"))
+holdout = summary.get("holdout_validation", {}) if isinstance(summary.get("holdout_validation"), dict) else {}
+holdout.update(
+  {
+    "configured": holdout.get("configured", True),
+    "status": holdout_state,
+    "ran": holdout_state == "completed",
+    "skip_reason": skip_reason,
+    "output_dir": str(holdout_dir.resolve()),
+  }
+)
+summary["holdout_validation"] = holdout
+summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+}
+
 write_metadata() {
   "$optimizer_python" - "$metadata_file" <<'PY'
 import json
@@ -74,14 +105,20 @@ trap on_exit EXIT
 
   pushd "$repo_root" >/dev/null
   "$optimizer_python" -m paper_optimizer.cli optimize --study-type "$study_type" --config "$config_path" --out "$experiment_dir"
-  "$optimizer_python" -m paper_optimizer.cli summarize --config "$config_path" --experiment "$experiment_dir"
   if [[ "${PAPER_OPTIMIZER_SKIP_HOLDOUT:-0}" == "1" ]]; then
     holdout_status="skipped"
     echo "[$(date -Iseconds)] Skipping holdout validation because PAPER_OPTIMIZER_SKIP_HOLDOUT=1"
+    sync_holdout_summary skipped PAPER_OPTIMIZER_SKIP_HOLDOUT
   else
-    "$optimizer_python" -m paper_optimizer.cli validate-best --config "$config_path" --experiment "$experiment_dir" --out "$holdout_dir"
-    holdout_status="completed"
+    if "$optimizer_python" -m paper_optimizer.cli validate-best --config "$config_path" --experiment "$experiment_dir" --out "$holdout_dir"; then
+      holdout_status="completed"
+    else
+      holdout_status="failed"
+      sync_holdout_summary failed validate_best_failed
+      exit 1
+    fi
   fi
+  "$optimizer_python" -m paper_optimizer.cli summarize --config "$config_path" --experiment "$experiment_dir"
   popd >/dev/null
 
   status="completed"

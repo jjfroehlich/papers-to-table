@@ -44,6 +44,7 @@ Command dispatch lives in `paper_optimizer/cli.py`.
 - `study.py`: compare/optimize orchestration, holdout validation, and summarize behavior.
 - `results.py`: experiment manifests, result rows, summary files, and round summaries.
 - `plotting.py`: static CSV + PNG outputs for compare and optimize views.
+- `report.py`: self-contained HTML experiment report generation with embedded plots and summary tables.
 - `contracts.py`: typed records for candidate, launch result, candidate result, and round summary.
 
 ## Data flow
@@ -54,8 +55,9 @@ Command dispatch lives in `paper_optimizer/cli.py`.
 2. Materialize immutable candidate bundles.
 3. Evaluate each candidate through shared pipeline.
 4. Persist per-candidate rows, `candidate_diagnostics.*`, and top-level compare summary artifacts.
+4a. Persist explicit scored or unscored truth and compact provenance fields with each candidate result and diagnostic row.
 5. Rank by configured primary metric with deterministic tie handling.
-6. Emit compare plots and winner record when available.
+6. Emit compare plots, winner record when available, and `report.html`.
 
 ### optimize flow
 
@@ -68,7 +70,7 @@ Command dispatch lives in `paper_optimizer/cli.py`.
    - apply acceptance gates
    - optionally promote accepted best challenger
    - persist round summary and experiment summary
-4. Emit optimize plots.
+4. Emit optimize plots and `report.html`.
 
 ### preflight flow
 
@@ -115,6 +117,8 @@ Metric projection supports:
 
 The optimizer should treat unsupported or missing grouped metrics as preflight- or launch-time contract errors rather than deferring discovery until late promotion logic when possible.
 
+The optimizer should prefer explicit scored or unscored truth from eval summaries over inferring scoreability from missing primary values.
+
 ## Persistence contract
 
 Experiment directory is canonical optimizer state.
@@ -129,6 +133,7 @@ Required persisted entities:
 - best-candidate state
 - round summaries (optimize)
 - static plot CSV/PNG artifacts
+- self-contained HTML experiment report
 - explicit no-winner or empty-results summaries when no candidate completes successfully
 
 ## Current architecture limits

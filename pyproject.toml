@@ -9,6 +9,7 @@ description = "CLI-first orchestration optimizer for extract-structured-info-fro
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+  "jinja2>=3.1",
   "matplotlib>=3.8",
 ]
 

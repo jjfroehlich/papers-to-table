@@ -22,6 +22,8 @@ The optimizer must:
 6. Preserve immutable candidate bundles with reproducible metadata.
 7. Keep dev and holdout behavior separate.
 8. Apply deterministic-first behavior by default.
+9. Treat scored-versus-unscored candidate state as a first-class truth surface rather than inferring it from missing numeric fields.
+10. Generate a self-contained experiment report that embeds plots and summarizes provenance, scoring truth, and holdout status.
 
 ## Study modes
 
@@ -85,6 +87,8 @@ Promotion decisions are gated, not single-scalar.
 - Deterministic checks: required artifacts and successful stage completion.
 - Diagnostic metrics: explanatory only.
 
+When two candidates are effectively tied on the primary metric within a configured epsilon, the optimizer may promote a challenger using explicit ordered secondary objectives, but only after deterministic and guardrail gates pass.
+
 Decisions must be persisted with explicit reason text.
 
 Compare and optimize flows must also fail gracefully when no candidate completes successfully or no winner can be materialized. Those cases should produce explicit experiment-level failure or no-winner summaries rather than file-not-found crashes.
@@ -102,6 +106,7 @@ Minimum required outputs:
 - `results/results.csv`
 - `results/results.jsonl`
 - `results/candidate_diagnostics.csv` for compare studies
+- `report.html`
 - `plots/*.csv`
 - `plots/*.png`
 - `best_candidate.json` when a winner/incumbent is tracked
@@ -119,6 +124,8 @@ Candidate result records must include:
 - eval-output reference
 
 Compare-study operator artifacts must also make unscored candidates explicit rather than silently dropping them from summaries or plots.
+
+Holdout outputs must remain semantically separate from dev outputs in both machine-readable summaries and operator-facing reports.
 
 ## Non-goals
 

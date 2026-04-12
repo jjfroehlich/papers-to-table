@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -21,6 +22,15 @@ def test_load_config_missing_required(tmp_path: Path) -> None:
     bad.write_text("{}", encoding="utf-8")
     with pytest.raises(ConfigError):
         load_config(bad)
+
+
+def test_load_config_rejects_invalid_degraded_score_policy(config_path: Path) -> None:
+    payload = json.loads(config_path.read_text(encoding="utf-8"))
+    payload["acceptance"]["degraded_score_policy"] = "maybe"
+    config_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ConfigError):
+        load_config(config_path)
 
 
 def test_load_search_space_success(base_config: dict) -> None:

@@ -92,6 +92,7 @@ Rules:
 ## Verification / CI
 
 - [x] O046 Add minimal CI coverage for preflight, launch-contract, and study-regression tests.
+- [x] O047 Add explicit scored/unscored result truth, report generation, richer plots, and tie-break config validation for optimizer-facing experiment reporting.
 
 ## Optional bounded LM proposer
 

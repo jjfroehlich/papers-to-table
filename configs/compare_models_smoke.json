@@ -131,7 +131,7 @@
     ],
     "metric_groups": {
       "primary": {
-        "correctness": "structured_accuracy"
+        "correctness": "correctness_mean"
       },
       "guardrail": {
         "evidence_quality": "anchor_valid_rate",

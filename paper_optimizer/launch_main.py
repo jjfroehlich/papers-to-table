@@ -48,6 +48,7 @@ def _parse_json_stdout(stdout: str) -> dict[str, Any]:
 
 def _default_knob_path(knob_name: str) -> str:
     alias_map = {
+        "retrieval_mode": "retrieval.mode",
         "retrieval_top_k": "retrieval.top_k",
         "recall_rescue_enabled": "retrieval.recall_rescue_enabled",
         "whole_document_mode": "retrieval.whole_document_mode",

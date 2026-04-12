@@ -158,7 +158,9 @@
     ],
     "metric_groups": {
       "primary": {
-        "correctness": "structured_accuracy"
+        "correctness": "correctness_mean",
+        "correctness_judge_a": "correctness_judge_a",
+        "correctness_judge_b": "correctness_judge_b"
       },
       "guardrail": {
         "evidence_quality": "anchor_valid_rate",
@@ -166,7 +168,8 @@
         "failure_count": "join_failure_count"
       },
       "diagnostic": {
-        "contract_warning_count": "contract_warning_count"
+        "contract_warning_count": "contract_warning_count",
+        "judge_disagreement": "judge_disagreement"
       }
     }
   },
@@ -184,6 +187,21 @@
       "failure_count": {
         "max": 0
       }
+    },
+    "tie_break": {
+      "epsilon": 0.002,
+      "secondary_objectives": [
+        {
+          "metric": "evidence_quality",
+          "direction": "max",
+          "min_improvement": 0.0
+        },
+        {
+          "metric": "runtime_seconds",
+          "direction": "min",
+          "min_improvement": 5.0
+        }
+      ]
     }
   },
   "optimize": {
