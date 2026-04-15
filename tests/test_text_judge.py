@@ -731,10 +731,90 @@ class TextJudgeScoringTests(unittest.TestCase):
         summary = build_run_summary(loaded_run, gold, result.scored_cells)
 
         self.assertEqual(summary.metrics["missing_proposal_count"], 1)
+        self.assertEqual(summary.metrics["content_correctness"], 0.5)
         self.assertEqual(summary.metrics["correctness"], 0.5)
         self.assertEqual(summary.metrics["correctness_on_gold_present"], 0.5)
+        self.assertEqual(summary.metrics["content_correctness_mean"], 1.0)
+        self.assertEqual(summary.metrics["content_correctness_scored_only"], 1.0)
         self.assertEqual(summary.metrics["correctness_mean"], 1.0)
         self.assertEqual(summary.metrics["correctness_scored_only"], 1.0)
+        self.assertEqual(summary.metrics["proposal_coverage_on_content_gold_present"], 0.5)
+        self.assertEqual(summary.metrics["proposal_coverage_on_all_gold_present"], 0.5)
+        self.assertEqual(summary.metrics["proposal_coverage_on_gold_present"], 0.5)
+
+    def test_summary_splits_content_metadata_and_evidence_grounded_metrics(self) -> None:
+        loaded_run = LoadedRun(
+            run_dir=Path("/tmp/run-a"),
+            metadata=RunMetadata(
+                run_id="run-a",
+                run_dir=Path("/tmp/run-a"),
+                style_profile_mode="masked_rows",
+            ),
+            proposals=[
+                ProposalRecord(
+                    run_id="run-a",
+                    row_id="row-1",
+                    column_name="status",
+                    cell_id="cell-status-1",
+                    proposed_value="present",
+                    field_type="categorical",
+                    evidence_items=[
+                        EvidenceItem(
+                            evidence_id="ev-status",
+                            page=1,
+                            quote_text="Status remained present throughout follow-up.",
+                        )
+                    ],
+                    extraction_lane="content",
+                ),
+                ProposalRecord(
+                    run_id="run-a",
+                    row_id="row-1",
+                    column_name="year",
+                    cell_id="cell-year-1",
+                    proposed_value="2024",
+                    field_type="numeric",
+                    extraction_lane="metadata_front_matter",
+                    failure_attribution="parser_gap",
+                ),
+            ],
+            page_text_by_page={1: "Status remained present throughout follow-up."},
+        )
+        gold = self._gold_dataset(
+            GoldCell(
+                row_id="row-1",
+                column_name="status",
+                cell_id="cell-status-1",
+                raw_value="present",
+                is_present=True,
+            ),
+            GoldCell(
+                row_id="row-2",
+                column_name="status",
+                cell_id="cell-status-2",
+                raw_value="absent",
+                is_present=True,
+            ),
+            GoldCell(
+                row_id="row-1",
+                column_name="year",
+                cell_id="cell-year-1",
+                raw_value="2024",
+                is_present=True,
+            ),
+        )
+
+        result = score_run(loaded_run, gold, load_schema(None))
+        summary = build_run_summary(loaded_run, gold, result.scored_cells)
+
+        self.assertEqual(summary.metrics["content_correctness"], 0.5)
+        self.assertEqual(summary.metrics["content_correctness_scored_only"], 1.0)
+        self.assertEqual(summary.metrics["overall_correctness"], 2 / 3)
+        self.assertEqual(summary.metrics["overall_correctness_scored_only"], 1.0)
+        self.assertEqual(summary.metrics["metadata_correctness"], 1.0)
+        self.assertEqual(summary.metrics["evidence_grounded_correctness"], 0.5)
+        self.assertEqual(summary.metrics["parser_gap_count"], 1)
+        self.assertEqual(summary.metrics["benchmark_style_profile_mode"], "masked_rows")
 
     def _loaded_run(self, *proposals: ProposalRecord) -> LoadedRun:
         return LoadedRun(

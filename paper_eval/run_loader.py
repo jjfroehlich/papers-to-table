@@ -272,6 +272,15 @@ def _load_proposals(
                     aliases=_normalize_optional_dict(payload.get("aliases")),
                     evidence_items=_extract_evidence_items(payload, sidecar_evidence, parsed_page_text_by_pdf),
                     row_index=_optional_int(payload.get("row_index")),
+                    extraction_lane=_required_text(payload.get("extraction_lane")),
+                    failure_attribution=_required_text(payload.get("failure_attribution")),
+                    fallback_reasons=[
+                        str(item)
+                        for item in _normalize_optional_list(payload.get("fallback_reasons"))
+                        if str(item).strip()
+                    ],
+                    metadata_diagnostics=_normalize_optional_dict(payload.get("metadata_diagnostics")),
+                    style_profile_mode=_required_text(payload.get("style_profile_mode")),
                     raw=payload,
                 )
             )
@@ -468,6 +477,42 @@ def _build_run_metadata(
             run_payload,
             run_summary_payload,
             keys=(("retrieval_provenance", "whole_document_used"),),
+        ),
+        style_profile_mode=_first_present(
+            reviewer_summary_payload,
+            run_payload,
+            run_summary_payload,
+            keys=(("style_profile_mode",),),
+        ),
+        style_profile_source=_first_present(
+            reviewer_summary_payload,
+            run_payload,
+            run_summary_payload,
+            keys=(("style_profile_source",),),
+        ),
+        style_profile_benchmark_safe=_first_present_bool(
+            reviewer_summary_payload,
+            run_payload,
+            run_summary_payload,
+            keys=(("style_profile_benchmark_safe",),),
+        ),
+        parser_cache_enabled=_first_present_bool(
+            reviewer_summary_payload,
+            run_payload,
+            run_summary_payload,
+            keys=(("parser_cache_enabled",),),
+        ),
+        parse_cache_hit_count=_first_present_int(
+            reviewer_summary_payload,
+            run_payload,
+            run_summary_payload,
+            keys=(("parse_cache_hit_count",),),
+        ),
+        parse_cache_miss_count=_first_present_int(
+            reviewer_summary_payload,
+            run_payload,
+            run_summary_payload,
+            keys=(("parse_cache_miss_count",),),
         ),
         extras={
             "run": run_payload,

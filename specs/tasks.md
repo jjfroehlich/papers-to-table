@@ -119,6 +119,9 @@ Working rules:
 - [x] E065 Add optional machine-readable JSON stdout completion mode for `evaluate` and `compare`, while keeping file artifacts canonical.
 - [x] E066 Add tests and docs for JSON stdout mode, including payload schema tagging and key produced artifact paths.
 - [x] E069 Add optional dual-judge support, explicit `scored`/`unscored_reason` summary truth, and scored-column filtering for metadata-safe optimizer consumption.
+- [x] E070 Make headline correctness content-focused while keeping metadata correctness as an explicit secondary metric.
+- [x] E071 Propagate extraction-lane and failure-attribution provenance from main-app proposals into scored cells and run summaries.
+- [x] E072 Add evidence-grounded and failure-attribution aggregate metrics for downstream optimizer diagnostics.
 
 ## Appendix: Retired Batch Framing
 

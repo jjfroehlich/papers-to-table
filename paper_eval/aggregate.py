@@ -15,7 +15,11 @@ def build_run_summary(
     gold_cell_records = [cell for cell in scored_cells if cell.record_kind == "gold_cell"]
     gold_present_records = [cell for cell in gold_cell_records if cell.is_gold_present]
     gold_empty_records = [cell for cell in gold_cell_records if cell.is_gold_empty]
+    metadata_gold_present_records = [cell for cell in gold_present_records if _is_metadata_record(cell)]
+    content_gold_present_records = [cell for cell in gold_present_records if not _is_metadata_record(cell)]
     scored_records = [cell for cell in gold_cell_records if cell.was_scored]
+    metadata_scored_records = [cell for cell in scored_records if _is_metadata_record(cell)]
+    content_scored_records = [cell for cell in scored_records if not _is_metadata_record(cell)]
     structured_records = [cell for cell in scored_records if cell.field_type in {"boolean", "categorical", "numeric"}]
     boolean_records = [cell for cell in structured_records if cell.field_type == "boolean"]
     categorical_records = [cell for cell in structured_records if cell.field_type == "categorical"]
@@ -36,6 +40,9 @@ def build_run_summary(
     ]
     correct_and_anchored_records = [
         cell for cell in scored_records if cell.is_correct and cell.anchor_valid
+    ]
+    content_correct_and_anchored_records = [
+        cell for cell in content_scored_records if cell.is_correct and cell.anchor_valid
     ]
     structured_support_supported_records = [
         cell
@@ -74,24 +81,32 @@ def build_run_summary(
         }
     )
     correctness_by_judge = {
-        label: _correctness_for_judge(gold_present_records, label)
+        label: _correctness_for_judge(content_gold_present_records, label)
         for label in judge_labels
     }
     available_correctness = [value for value in correctness_by_judge.values() if value is not None]
-    correctness_mean = (
+    content_correctness_scored_only = (
         sum(available_correctness) / len(available_correctness)
         if available_correctness
-        else _accuracy(scored_records)
+        else _accuracy(content_scored_records)
     )
-    correctness_on_gold_present = _accuracy_with_unscored_as_incorrect(gold_present_records)
+    content_correctness_on_gold_present = _accuracy_with_unscored_as_incorrect(content_gold_present_records)
+    overall_correctness_on_gold_present = _accuracy_with_unscored_as_incorrect(gold_present_records)
+    overall_correctness_mean = _accuracy(scored_records)
+    content_proposal_coverage_on_gold_present = _ratio(
+        len(covered_gold_present), len(content_gold_present_records)
+    )
+    overall_proposal_coverage_on_gold_present = _ratio(
+        len(covered_gold_present), len(gold_present_records)
+    )
     judge_disagreement_records = [
         cell
-        for cell in gold_present_records
+        for cell in content_gold_present_records
         if bool(cell.judge_disagreement)
     ]
     judge_disagreement_evaluable = [
         cell
-        for cell in gold_present_records
+        for cell in content_gold_present_records
         if len(
             [
                 result
@@ -103,10 +118,20 @@ def build_run_summary(
     correctness_abs_delta = _judge_abs_delta(correctness_by_judge.get("judge_a"), correctness_by_judge.get("judge_b"))
 
     metrics = {
-        "correctness": correctness_on_gold_present,
-        "correctness_on_gold_present": correctness_on_gold_present,
-        "correctness_mean": correctness_mean,
-        "correctness_scored_only": correctness_mean,
+        "content_correctness": content_correctness_on_gold_present,
+        "content_correctness_on_gold_present": content_correctness_on_gold_present,
+        "content_correctness_mean": content_correctness_scored_only,
+        "content_correctness_scored_only": content_correctness_scored_only,
+        "correctness": content_correctness_on_gold_present,
+        "correctness_on_gold_present": content_correctness_on_gold_present,
+        "correctness_mean": content_correctness_scored_only,
+        "correctness_scored_only": content_correctness_scored_only,
+        "overall_correctness": overall_correctness_on_gold_present,
+        "overall_correctness_on_gold_present": overall_correctness_on_gold_present,
+        "overall_correctness_mean": overall_correctness_mean,
+        "overall_correctness_scored_only": overall_correctness_mean,
+        "metadata_correctness": _accuracy_with_unscored_as_incorrect(metadata_gold_present_records),
+        "metadata_correctness_mean": _accuracy(metadata_scored_records),
         "correctness_judge_a": correctness_by_judge.get("judge_a"),
         "correctness_judge_b": correctness_by_judge.get("judge_b"),
         "correctness_abs_delta": correctness_abs_delta,
@@ -118,13 +143,27 @@ def build_run_summary(
         "categorical_accuracy": _accuracy(categorical_records),
         "numeric_accuracy": _accuracy(numeric_records),
         "text_accuracy": _accuracy(text_records),
-        "proposal_coverage_on_gold_present": _ratio(len(covered_gold_present), len(gold_present_records)),
+        "proposal_coverage_on_content_gold_present": content_proposal_coverage_on_gold_present,
+        "proposal_coverage_on_all_gold_present": overall_proposal_coverage_on_gold_present,
+        "proposal_coverage_on_gold_present": content_proposal_coverage_on_gold_present,
         "anchor_valid_rate": _ratio(len(anchor_valid_records), len(scored_records)),
+        "content_anchor_valid_rate": _ratio(
+            sum(1 for cell in content_scored_records if cell.anchor_valid),
+            len(content_scored_records),
+        ),
         "correct_and_anchored_rate": _ratio(len(correct_and_anchored_records), len(scored_records)),
+        "evidence_grounded_correctness": _ratio(
+            len(content_correct_and_anchored_records), len(content_gold_present_records)
+        ),
+        "content_correct_and_anchored_rate": _ratio(
+            len(content_correct_and_anchored_records), len(content_scored_records)
+        ),
         "structured_support_proxy_supported_rate": _ratio(
             len(structured_support_supported_records), len(structured_support_evaluated_records)
         ),
         "gold_present_cell_count": len(gold_present_records),
+        "content_gold_present_cell_count": len(content_gold_present_records),
+        "metadata_gold_present_cell_count": len(metadata_gold_present_records),
         "gold_empty_cell_count": len(gold_empty_records),
         "filled_on_gold_empty_count": sum(1 for cell in gold_empty_records if cell.proposal_count > 0),
         "structured_scored_cell_count": len(structured_records),
@@ -162,9 +201,18 @@ def build_run_summary(
         "join_failure_count": len(join_problem_records),
         "contract_warning_count": len(loaded_run.contract_warnings),
         "extraction_contract_valid": loaded_run.metadata.extraction_contract_valid,
+        "parser_gap_count": _failure_attribution_count(scored_cells, "parser_gap"),
+        "retrieval_miss_count": _failure_attribution_count(scored_cells, "retrieval_miss"),
+        "extraction_miss_count": _failure_attribution_count(scored_cells, "extraction_miss"),
+        "evidence_ambiguity_count": _failure_attribution_count(scored_cells, "evidence_ambiguity"),
+        "judge_failure_count": _failure_attribution_count(scored_cells, "judge_failure"),
+        "judge_unclear_count": _failure_attribution_count(scored_cells, "judge_unclear"),
+        "degraded_run_count": 1 if loaded_run.metadata.prompt_only_degraded_mode_used else 0,
+        "contract_invalid_count": 0 if loaded_run.metadata.extraction_contract_valid is not False else 1,
+        "benchmark_style_profile_mode": loaded_run.metadata.style_profile_mode,
     }
 
-    scored = correctness_mean is not None
+    scored = content_correctness_scored_only is not None
     unscored_reason = _determine_unscored_reason(
         loaded_run=loaded_run,
         metrics=metrics,
@@ -279,6 +327,31 @@ def _judge_abs_delta(first: float | None, second: float | None) -> float | None:
     return abs(first - second)
 
 
+def _is_metadata_record(record: ScoredCell) -> bool:
+    if record.extraction_lane == "metadata_front_matter":
+        return True
+    metadata_columns = {
+        "title",
+        "authors",
+        "author",
+        "journal",
+        "publication",
+        "venue",
+        "year",
+        "publication_year",
+        "doi",
+        "pmid",
+        "url",
+        "link",
+        "abstract",
+    }
+    return record.column_name.strip().lower() in metadata_columns
+
+
+def _failure_attribution_count(records: Iterable[ScoredCell], reason: str) -> int:
+    return sum(1 for record in records if record.failure_attribution == reason)
+
+
 def _determine_unscored_reason(
     *,
     loaded_run: LoadedRun,
@@ -286,7 +359,7 @@ def _determine_unscored_reason(
     gold_present_records: list[ScoredCell],
     join_problem_records: list[ScoredCell],
 ) -> str | None:
-    if metrics.get("correctness_mean") is not None:
+    if metrics.get("content_correctness_scored_only") is not None:
         return None
     extraction_contract_valid = loaded_run.metadata.extraction_contract_valid
     if extraction_contract_valid is False:
@@ -307,7 +380,7 @@ def _determine_unscored_reason_detail(
     gold_present_records: list[ScoredCell],
     join_problem_records: list[ScoredCell],
 ) -> str | None:
-    if metrics.get("correctness_mean") is not None:
+    if metrics.get("content_correctness_scored_only") is not None:
         return None
     extraction_contract_valid = loaded_run.metadata.extraction_contract_valid
     if extraction_contract_valid is False:

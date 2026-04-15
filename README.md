@@ -46,7 +46,7 @@ Judge requests now use the same bounded fallback ladder as the main app's extrac
 
 This means eval can benchmark judge models that only work reliably in `structured_output_mode = none`, while still preserving explicit diagnostics about fallback use and judge failures.
 
-When `--judge-model-b` is provided, eval runs both judges on the same judge-backed text cells and writes dual-judge metrics into run summaries. `correctness_mean` becomes the mean of available per-judge correctness values, while `correctness_judge_a`, `correctness_judge_b`, `correctness_abs_delta`, and `judge_disagreement` remain explicit downstream-facing outputs for optimizer consumption.
+When `--judge-model-b` is provided, eval runs both judges on the same judge-backed text cells and writes dual-judge metrics into run summaries. The explicit headline metrics are `content_correctness` and `content_correctness_scored_only`; the older `correctness` and `correctness_mean` fields remain as compatibility aliases to the same content-only values. `overall_correctness`, `metadata_correctness`, `correctness_judge_a`, `correctness_judge_b`, `correctness_abs_delta`, and `judge_disagreement` remain explicit downstream-facing outputs for diagnostics and optimizer consumption.
 
 When the configured judge model is not already active in LM Studio, the evaluator attempts to load it through LM Studio's model-management API before sending judge requests. The evaluator verifies judge-model readiness once per evaluation process and reuses that result instead of probing LM Studio before every scored cell.
 
@@ -210,11 +210,13 @@ out/
 
 ### Headline Scoring Scope
 
-Headline scoring uses only gold-present cells by default.
+Headline scoring uses only gold-present content cells by default.
 
 When the evaluated run bundle includes main-app matching artifacts, the evaluator first restricts the gold table to rows whose PDFs were actually matched in that run. This keeps optimizer and batch scoring focused on the subset of workbook rows represented by PDFs in the run's input folder.
 
-Gold-empty cells are excluded from headline accuracy and counted only through diagnostics such as `filled_on_gold_empty_count`.
+Gold-empty cells are excluded from headline accuracy and counted only through diagnostics such as `filled_on_gold_empty_count`. Metadata or front-matter fields remain visible as explicit secondary metrics instead of silently inflating the headline score.
+
+Run summaries and comparison rows also propagate main-app extraction-lane and failure-attribution provenance. This keeps parser-gap, retrieval-miss, extraction-miss, evidence-ambiguity, judge-failure, and judge-unclear outcomes visible without reloading verbose main-app diagnostics.
 
 ### Field Types
 
@@ -242,10 +244,14 @@ The evaluator distinguishes these evidence outcomes:
 
 Headline metrics:
 
-- `correctness`
-- `correctness_on_gold_present`
-- `correctness_mean`
-- `correctness_scored_only`
+- `content_correctness`
+- `content_correctness_on_gold_present`
+- `content_correctness_mean`
+- `content_correctness_scored_only`
+- `correctness` (compatibility alias for `content_correctness`)
+- `correctness_mean` (compatibility alias for `content_correctness_scored_only`)
+- `overall_correctness`
+- `overall_correctness_scored_only`
 - `correctness_judge_a`
 - `correctness_judge_b`
 - `correctness_abs_delta`
@@ -255,7 +261,9 @@ Headline metrics:
 - `categorical_accuracy`
 - `numeric_accuracy`
 - `text_accuracy`
-- `proposal_coverage_on_gold_present`
+- `proposal_coverage_on_content_gold_present`
+- `proposal_coverage_on_all_gold_present`
+- `proposal_coverage_on_gold_present` (compatibility alias for `proposal_coverage_on_content_gold_present`)
 
 Evidence metrics:
 

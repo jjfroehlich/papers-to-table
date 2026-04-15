@@ -99,7 +99,7 @@ The scoring pipeline should remain:
 8. write scored-cell records for both scored cells and diagnostics
 9. aggregate run-level metrics from scored-cell outputs
 
-Run-level aggregation must now also compute explicit scored-versus-unscored state, dual-judge correctness rollups when configured, and compact provenance passthrough from main-app reviewer/run summaries.
+Run-level aggregation must now also compute explicit scored-versus-unscored state, dual-judge correctness rollups when configured, compact provenance passthrough from main-app reviewer/run summaries, content-versus-metadata score buckets, evidence-grounded secondary metrics, and failure-attribution counts.
 
 ## Field Resolution Direction
 

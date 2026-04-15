@@ -285,6 +285,8 @@ def score_run(
                     },
                 },
                 selected_proposal_state=proposal.state,
+                extraction_lane=proposal.extraction_lane,
+                failure_attribution=proposal.failure_attribution,
             )
         )
 
@@ -459,6 +461,8 @@ def _score_text_cell(
                     "evidence": evidence_result.diagnostics,
                 },
                 selected_proposal_state=proposal.state,
+                extraction_lane=proposal.extraction_lane,
+                failure_attribution=proposal.failure_attribution,
             ),
             [],
         )
@@ -502,6 +506,8 @@ def _score_text_cell(
                     "evidence": evidence_result.diagnostics,
                 },
                 selected_proposal_state=proposal.state,
+                extraction_lane=proposal.extraction_lane,
+                failure_attribution=proposal.failure_attribution,
             ),
             [],
         )
@@ -658,6 +664,12 @@ def _score_text_cell(
                 "evidence": evidence_result.diagnostics,
             },
             selected_proposal_state=proposal.state,
+            extraction_lane=proposal.extraction_lane,
+            failure_attribution=(
+                "judge_failure"
+                if any(result.get("error_message") for result in judge_results.values())
+                else ("judge_unclear" if primary_verdict == "unclear" else proposal.failure_attribution)
+            ),
         ),
         judge_records,
     )

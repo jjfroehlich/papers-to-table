@@ -96,6 +96,9 @@ class BatchEvaluationTests(unittest.TestCase):
                     "parser": {"identity": "parser-a", "version": "1.2.3"},
                     "prompt": {"id": "prompt-17", "hash": "prompt-hash-a"},
                     "schema": {"version": "schema-v2"},
+                    "style_profile_mode": "masked_rows",
+                    "parser_cache_enabled": True,
+                    "parse_cache_hit_count": 4,
                 },
                 config_payload={"config": {"hash": "cfg-a"}},
                 include_page_text=True,
@@ -110,6 +113,9 @@ class BatchEvaluationTests(unittest.TestCase):
             self.assertEqual(metadata["parser_identity"], "parser-a")
             self.assertEqual(metadata["parser_version"], "1.2.3")
             self.assertEqual(metadata["parser_identity_version"], "parser-a@1.2.3")
+            self.assertEqual(metadata["style_profile_mode"], "masked_rows")
+            self.assertTrue(metadata["parser_cache_enabled"])
+            self.assertEqual(metadata["parse_cache_hit_count"], 4)
             self.assertEqual(metadata["prompt_identity"], "prompt-17")
             self.assertEqual(metadata["schema_identity"], "schema-v2")
             self.assertEqual(metadata["config_hash"], "cfg-a")

@@ -90,6 +90,12 @@ class RunMetadata:
     whole_document_mode: bool | None = None
     recall_rescue_used: bool | None = None
     whole_document_used: bool | None = None
+    style_profile_mode: str | None = None
+    style_profile_source: str | None = None
+    style_profile_benchmark_safe: bool | None = None
+    parser_cache_enabled: bool | None = None
+    parse_cache_hit_count: int | None = None
+    parse_cache_miss_count: int | None = None
     extras: dict[str, Any] = field(default_factory=dict)
 
     def flat_metadata(self) -> dict[str, Any]:
@@ -132,6 +138,12 @@ class RunMetadata:
             "whole_document_mode": self.whole_document_mode,
             "recall_rescue_used": self.recall_rescue_used,
             "whole_document_used": self.whole_document_used,
+            "style_profile_mode": self.style_profile_mode,
+            "style_profile_source": self.style_profile_source,
+            "style_profile_benchmark_safe": self.style_profile_benchmark_safe,
+            "parser_cache_enabled": self.parser_cache_enabled,
+            "parse_cache_hit_count": self.parse_cache_hit_count,
+            "parse_cache_miss_count": self.parse_cache_miss_count,
         }
         row.update(_flatten_scalar_mapping(self.extras))
         return row
@@ -154,6 +166,11 @@ class ProposalRecord:
     aliases: dict[str, str] = field(default_factory=dict)
     evidence_items: list[EvidenceItem] = field(default_factory=list)
     row_index: int | None = None
+    extraction_lane: str | None = None
+    failure_attribution: str | None = None
+    fallback_reasons: list[str] = field(default_factory=list)
+    metadata_diagnostics: dict[str, Any] = field(default_factory=dict)
+    style_profile_mode: str | None = None
     raw: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -278,6 +295,8 @@ class ScoredCell:
     diagnostic_flags: list[str] = field(default_factory=list)
     diagnostics: dict[str, Any] = field(default_factory=dict)
     selected_proposal_state: str | None = None
+    extraction_lane: str | None = None
+    failure_attribution: str | None = None
 
 
 @dataclass
