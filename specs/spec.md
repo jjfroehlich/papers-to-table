@@ -90,7 +90,7 @@ Judge-backed text scoring uses a bounded response-mode ladder:
 
 When a text field uses judge-backed scoring and an individual judge request fails at runtime, the evaluator must preserve a per-cell output instead of aborting the whole run. That cell is recorded as unscored with `judge_verdict = "unclear"` and explicit judge-failure diagnostics.
 
-The evaluator may also run two judges on the same text cells when a secondary judge is configured. In that mode it must preserve per-judge verdicts and emit explicit aggregate outputs including `correctness_mean`, `correctness_judge_a`, `correctness_judge_b`, `correctness_abs_delta`, and `judge_disagreement`.
+The evaluator may also run two judges on the same text cells when a secondary judge is configured. In that mode it must preserve per-judge verdicts and emit explicit aggregate outputs including headline `correctness` (over all gold-present cells), scored-only `correctness_mean`, `correctness_judge_a`, `correctness_judge_b`, `correctness_abs_delta`, and `judge_disagreement`.
 
 The evaluator must treat degraded but contract-valid main-app runs as scoreable whenever possible. If a run cannot receive a headline score, artifacts must still record `scored = false` plus an explicit `unscored_reason` instead of leaving primary metrics silently blank.
 

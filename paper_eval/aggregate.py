@@ -83,6 +83,7 @@ def build_run_summary(
         if available_correctness
         else _accuracy(scored_records)
     )
+    correctness_on_gold_present = _accuracy_with_unscored_as_incorrect(gold_present_records)
     judge_disagreement_records = [
         cell
         for cell in gold_present_records
@@ -102,8 +103,10 @@ def build_run_summary(
     correctness_abs_delta = _judge_abs_delta(correctness_by_judge.get("judge_a"), correctness_by_judge.get("judge_b"))
 
     metrics = {
-        "correctness": correctness_mean,
+        "correctness": correctness_on_gold_present,
+        "correctness_on_gold_present": correctness_on_gold_present,
         "correctness_mean": correctness_mean,
+        "correctness_scored_only": correctness_mean,
         "correctness_judge_a": correctness_by_judge.get("judge_a"),
         "correctness_judge_b": correctness_by_judge.get("judge_b"),
         "correctness_abs_delta": correctness_abs_delta,
@@ -220,6 +223,13 @@ def _accuracy(records: list[ScoredCell]) -> float | None:
     if not records:
         return None
     correct = sum(1 for record in records if record.is_correct)
+    return correct / len(records)
+
+
+def _accuracy_with_unscored_as_incorrect(records: list[ScoredCell]) -> float | None:
+    if not records:
+        return None
+    correct = sum(1 for record in records if record.is_correct is True)
     return correct / len(records)
 
 

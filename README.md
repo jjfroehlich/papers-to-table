@@ -243,7 +243,9 @@ The evaluator distinguishes these evidence outcomes:
 Headline metrics:
 
 - `correctness`
+- `correctness_on_gold_present`
 - `correctness_mean`
+- `correctness_scored_only`
 - `correctness_judge_a`
 - `correctness_judge_b`
 - `correctness_abs_delta`

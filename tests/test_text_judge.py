@@ -699,6 +699,43 @@ class TextJudgeScoringTests(unittest.TestCase):
         self.assertEqual(result.judge_records[0].judge_verdict, "unclear")
         self.assertEqual(result.judge_records[0].rationale_label, "judge_error")
 
+    def test_headline_correctness_counts_missing_proposals(self) -> None:
+        loaded_run = self._loaded_run(
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="status",
+                cell_id="cell-status-1",
+                proposed_value="present",
+                field_type="categorical",
+            )
+        )
+        gold = self._gold_dataset(
+            GoldCell(
+                row_id="row-1",
+                column_name="status",
+                cell_id="cell-status-1",
+                raw_value="present",
+                is_present=True,
+            ),
+            GoldCell(
+                row_id="row-2",
+                column_name="status",
+                cell_id="cell-status-2",
+                raw_value="absent",
+                is_present=True,
+            ),
+        )
+
+        result = score_run(loaded_run, gold, load_schema(None))
+        summary = build_run_summary(loaded_run, gold, result.scored_cells)
+
+        self.assertEqual(summary.metrics["missing_proposal_count"], 1)
+        self.assertEqual(summary.metrics["correctness"], 0.5)
+        self.assertEqual(summary.metrics["correctness_on_gold_present"], 0.5)
+        self.assertEqual(summary.metrics["correctness_mean"], 1.0)
+        self.assertEqual(summary.metrics["correctness_scored_only"], 1.0)
+
     def _loaded_run(self, *proposals: ProposalRecord) -> LoadedRun:
         return LoadedRun(
             run_dir=Path("/tmp/run-a"),

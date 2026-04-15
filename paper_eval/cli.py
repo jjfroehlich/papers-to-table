@@ -278,7 +278,9 @@ def _build_unscored_summary(
 ) -> RunSummary:
     metrics = {
         "correctness": None,
+        "correctness_on_gold_present": None,
         "correctness_mean": None,
+        "correctness_scored_only": None,
         "correctness_judge_a": None,
         "correctness_judge_b": None,
         "correctness_abs_delta": None,
