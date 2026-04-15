@@ -94,7 +94,7 @@
       },
       "bench_dev": {
         "table_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
-        "schema_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture_schema_improved.csv",
+        "schema_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture_schema.csv",
         "pdf_dir": "C:/Users/jonat/Desktop/202601_MPRA_table",
         "gold_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
         "main_args": [],
