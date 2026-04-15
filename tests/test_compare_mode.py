@@ -29,12 +29,18 @@ def test_compare_mode_outputs(base_config: dict, tmp_path: Path) -> None:
 
     best_candidate = json.loads((out / "best_candidate.json").read_text(encoding="utf-8"))
     compare_summary = json.loads((out / "compare_summary.json").read_text(encoding="utf-8"))
+    summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
     assert best_candidate["candidate_id"]
     assert best_candidate["text_model_id"]
     assert best_candidate["prompt_bundle_id"]
     assert isinstance(best_candidate["optimizer_knobs_flat"], dict)
     assert compare_summary["winner"]["candidate_id"] == best_candidate["candidate_id"]
     assert compare_summary["candidate_count"] == 3
+    assert best_candidate["progress_state"] == "completed"
+    assert summary["progress_state"] == "completed"
+    assert summary["eligible_winner_candidate_id"] == best_candidate["candidate_id"]
+    assert summary["best_raw_candidate_id"] == best_candidate["candidate_id"]
+    assert summary["provisional_winner_candidate_id"] is None
 
     report_html = (out / "report.html").read_text(encoding="utf-8")
     assert "Winner" in report_html
@@ -183,6 +189,32 @@ def test_compare_mode_writes_no_winner_artifact_when_all_candidates_fail(
     assert "not configured" in report_html or "not recorded" in report_html
 
 
+def test_compare_mode_writes_progressive_summary_states(
+    base_config: dict,
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    benches = load_benchmarks(base_config)
+    out = tmp_path / "compare_exp"
+    progress_states: list[str] = []
+
+    from paper_optimizer.study import ResultsWriter
+
+    original_write = ResultsWriter.write_experiment_summary
+
+    def _record_progress(self, payload):
+        progress_states.append(str(payload.get("progress_state")))
+        return original_write(self, payload)
+
+    monkeypatch.setattr(ResultsWriter, "write_experiment_summary", _record_progress)
+
+    run_compare_mode(base_config, benches, out)
+
+    assert progress_states
+    assert progress_states[0] == "running"
+    assert progress_states[-1] == "completed"
+
+
 def test_compare_mode_writes_no_eligible_winner_when_degraded_scores_are_disallowed(
     base_config: dict,
     tmp_path: Path,
@@ -237,5 +269,10 @@ def test_compare_mode_writes_no_eligible_winner_when_degraded_scores_are_disallo
     summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
     assert payload["reason"] == "no_eligible_winner"
     assert payload["degraded_score_policy"] == "disallow"
+    assert payload["progress_state"] == "completed"
+    assert payload["best_raw_candidate_id"] == summary["best_raw_candidate_id"]
     assert summary["winner_candidate_id"] is None
+    assert summary["eligible_winner_candidate_id"] is None
+    assert summary["provisional_winner_candidate_id"] == summary["best_raw_candidate_id"]
+    assert summary["progress_state"] == "completed"
     assert summary["scored_degraded_candidate_count"] == len(base_config["compare_candidates"])

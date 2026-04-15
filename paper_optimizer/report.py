@@ -34,9 +34,11 @@ from .reporting import (
 def _winner_id(summary: dict[str, Any], best_candidate: dict[str, Any], compare_summary: dict[str, Any]) -> str | None:
     winner = compare_summary.get("winner") if isinstance(compare_summary.get("winner"), dict) else {}
     return (
-        summary.get("winner_candidate_id")
-        or summary.get("current_best_candidate_id")
+        summary.get("eligible_winner_candidate_id")
+        or summary.get("winner_candidate_id")
         or best_candidate.get("candidate_id")
+        or summary.get("current_best_candidate_id")
+        or summary.get("best_raw_candidate_id")
         or winner.get("candidate_id")
     )
 
@@ -650,7 +652,7 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
     candidate_diagnostics = load_json_if_exists(experiment_dir / "candidate_diagnostics.json")
     run_metadata = load_json_if_exists(experiment_dir.parent / "run_metadata.json")
 
-    primary_metric = str(summary.get("primary_metric") or compare_summary.get("primary_metric") or "correctness")
+    primary_metric = str(summary.get("primary_metric") or compare_summary.get("primary_metric") or "content_correctness")
     diagnostics_rows = candidate_diagnostics.get("rows", []) if isinstance(candidate_diagnostics.get("rows"), list) else []
     results_rows = load_csv_rows(experiment_dir / "results" / "results.csv")
     candidate_rows = merge_candidate_rows(results_rows, diagnostics_rows, primary_metric=primary_metric)

@@ -120,7 +120,7 @@
     ],
     "metric_groups": {
       "primary": {
-        "correctness_mean": "correctness_mean"
+        "content_correctness": "content_correctness"
       },
       "guardrail": {
         "evidence_quality": "anchor_valid_rate",
@@ -128,7 +128,8 @@
         "failure_count": "join_failure_count"
       },
       "diagnostic": {
-        "correctness": "correctness",
+        "content_correctness_scored_only": "content_correctness_scored_only",
+        "overall_correctness": "overall_correctness",
         "judge_disagreement": "judge_disagreement",
         "contract_warning_count": "contract_warning_count",
         "scored_cell_count": "scored_cell_count",
@@ -142,7 +143,7 @@
     }
   },
   "acceptance": {
-    "primary_metric": "correctness_mean",
+    "primary_metric": "content_correctness",
     "min_improvement": 0.01,
     "degraded_score_policy": "warn",
     "tie_break": {

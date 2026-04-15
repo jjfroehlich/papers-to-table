@@ -32,6 +32,16 @@ class ResultsWriter:
     def write_no_winner(self, payload: dict[str, Any]) -> None:
         write_json(self.experiment_dir / "no_winner.json", payload)
 
+    def clear_best_candidate(self) -> None:
+        path = self.experiment_dir / "best_candidate.json"
+        if path.exists():
+            path.unlink()
+
+    def clear_no_winner(self) -> None:
+        path = self.experiment_dir / "no_winner.json"
+        if path.exists():
+            path.unlink()
+
     def write_round_summary(self, summary: RoundSummary) -> None:
         write_json(self.rounds_dir / f"round_{summary.round_index:04d}.json", summary.to_dict())
 

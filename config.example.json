@@ -158,23 +158,27 @@
     ],
     "metric_groups": {
       "primary": {
-        "correctness": "correctness",
+        "content_correctness": "content_correctness",
         "correctness_judge_a": "correctness_judge_a",
         "correctness_judge_b": "correctness_judge_b"
       },
       "guardrail": {
-        "evidence_quality": "anchor_valid_rate",
+        "evidence_quality": "evidence_grounded_correctness",
         "null_count": "missing_proposal_count",
         "failure_count": "join_failure_count"
       },
       "diagnostic": {
         "contract_warning_count": "contract_warning_count",
-        "judge_disagreement": "judge_disagreement"
+        "judge_disagreement": "judge_disagreement",
+        "metadata_correctness": "metadata_correctness",
+        "parser_gap_count": "parser_gap_count",
+        "retrieval_miss_count": "retrieval_miss_count",
+        "extraction_miss_count": "extraction_miss_count"
       }
     }
   },
   "acceptance": {
-    "primary_metric": "correctness",
+    "primary_metric": "content_correctness",
     "min_improvement": 0.01,
     "guardrails": {
       "evidence_quality": {

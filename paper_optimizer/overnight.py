@@ -62,9 +62,11 @@ def _holdout_status(summary: dict[str, Any]) -> str:
 def _winner_id(summary: dict[str, Any], best_candidate: dict[str, Any], compare_summary: dict[str, Any]) -> str | None:
     winner = compare_summary.get("winner") if isinstance(compare_summary.get("winner"), dict) else {}
     return (
-        summary.get("winner_candidate_id")
-        or summary.get("current_best_candidate_id")
+        summary.get("eligible_winner_candidate_id")
+        or summary.get("winner_candidate_id")
         or best_candidate.get("candidate_id")
+        or summary.get("current_best_candidate_id")
+        or summary.get("best_raw_candidate_id")
         or winner.get("candidate_id")
     )
 
@@ -198,7 +200,7 @@ def _build_stage_rows(manifest_path: Path) -> tuple[list[dict[str, Any]], list[d
         compare_summary = load_json_if_exists(experiment_dir / "compare_summary.json")
         best_candidate = load_json_if_exists(experiment_dir / "best_candidate.json")
         candidate_diagnostics = load_json_if_exists(experiment_dir / "candidate_diagnostics.json")
-        primary_metric = str(summary.get("primary_metric") or compare_summary.get("primary_metric") or "correctness")
+        primary_metric = str(summary.get("primary_metric") or compare_summary.get("primary_metric") or "content_correctness")
         results_rows = load_csv_rows(experiment_dir / "results" / "results.csv")
         diagnostics_rows = candidate_diagnostics.get("rows", []) if isinstance(candidate_diagnostics.get("rows"), list) else []
         candidate_rows = merge_candidate_rows(results_rows, diagnostics_rows, primary_metric=primary_metric)
@@ -519,6 +521,7 @@ def _provenance_items(manifest: dict[str, Any], stage_rows: list[dict[str, Any]]
     return [
         {"label": "Session Id", "value": display_text(manifest.get("session_id"), missing="not recorded"), "note": None},
         {"label": "Label", "value": display_text(manifest.get("label"), missing="not recorded"), "note": None},
+        {"label": "Session Status", "value": display_text(manifest.get("status"), missing="not recorded"), "note": display_text(manifest.get("completed_at"), missing=None)},
         {"label": "Stage Count", "value": str(len(stage_rows)), "note": None},
         {
             "label": "Final Winner",
@@ -567,12 +570,14 @@ def build_overnight_report_view(manifest_path: Path) -> dict[str, Any]:
         "top_badges": [
             {"text": "pipeline", "tone": "good"},
             {"text": f"{len(stage_rows)} stages", "tone": "neutral"},
+            {"text": display_text(manifest.get("status"), missing="status unknown"), "tone": "warn" if manifest.get("status") != "completed" else "good"},
             {"text": _status_mix_text(status_counts(all_candidate_rows)), "tone": "neutral"},
             {"text": display_text(final_stage.get("holdout_status"), missing="not recorded"), "tone": "warn" if final_stage.get("holdout_status") != "completed" else "good"},
         ],
         "hero_meta": [
             {"label": "Session Id", "value": display_text(manifest.get("session_id"), missing="not recorded"), "note": None},
             {"label": "Label", "value": display_text(manifest.get("label"), missing="not recorded"), "note": None},
+            {"label": "Session Status", "value": display_text(manifest.get("status"), missing="not recorded"), "note": display_text(manifest.get("completed_at"), missing=None)},
             {"label": "Final Winner", "value": display_text(final_stage.get("winner_candidate_id"), missing="not recorded"), "note": display_text(final_stage.get("study_type"), missing="not recorded")},
             {"label": "Final Score", "value": format_score(final_stage.get("best_score")), "note": display_text(final_stage.get("winner_score_status"), missing="unknown")},
             {"label": "Candidate Count", "value": str(len(all_candidate_rows)), "note": _status_mix_text(status_counts(all_candidate_rows))},

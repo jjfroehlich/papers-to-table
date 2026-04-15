@@ -24,6 +24,7 @@ The optimizer must:
 8. Apply deterministic-first behavior by default.
 9. Treat scored-versus-unscored candidate state as a first-class truth surface rather than inferring it from missing numeric fields.
 10. Generate self-contained decision reports that summarize what happened, which candidate won and why, whether the result is trustworthy, how to read the most important plots, and what should be checked next.
+11. Preserve truthful partial-study state so interrupted compare, optimize, and overnight workflows still leave usable summaries and reports on disk.
 
 ## Study modes
 
@@ -91,6 +92,8 @@ When two candidates are effectively tied on the primary metric within a configur
 
 Decisions must be persisted with explicit reason text.
 
+The optimizer must distinguish three winner notions in persisted summaries and reports when needed: the best raw completed candidate, the eligible winner under the configured degraded-score policy and gates, and a provisional winner when a raw leader exists but is not eligible for promotion or materialization.
+
 Compare and optimize flows must also fail gracefully when no candidate completes successfully or no winner can be materialized. Those cases should produce explicit experiment-level failure or no-winner summaries rather than file-not-found crashes.
 
 ## Artifact contract
@@ -126,6 +129,8 @@ Candidate result records must include:
 Compare-study operator artifacts must also make unscored candidates explicit rather than silently dropping them from summaries or plots.
 
 Holdout outputs must remain semantically separate from dev outputs in both machine-readable summaries and operator-facing reports.
+
+Overnight aggregate outputs must be incremental. The combined manifest and report should remain meaningful after each completed stage rather than appearing only after the final stage succeeds, and failed overnight runs must materialize an explicit failed manifest state instead of being left implicitly in-progress.
 
 ## Reporting contract
 

@@ -93,6 +93,9 @@ Rules:
 
 - [x] O046 Add minimal CI coverage for preflight, launch-contract, and study-regression tests.
 - [x] O047 Add explicit scored/unscored result truth, report generation, richer plots, and tie-break config validation for optimizer-facing experiment reporting.
+- [x] O048 Persist progressive compare and optimize summaries so interrupted studies still expose truthful current state.
+- [x] O049 Separate raw best, eligible winner, and provisional winner semantics in optimizer summaries and reports.
+- [x] O050 Refresh overnight manifest and report artifacts incrementally after each completed stage.
 
 ## Optional bounded LM proposer
 

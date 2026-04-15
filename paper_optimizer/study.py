@@ -123,6 +123,9 @@ def _candidate_diagnostic_row(result: CandidateResult, primary_metric: str) -> d
         "score_available": score is not None,
         "score_explanation": _candidate_score_explanation(result, primary_metric, eval_metrics, reviewer_summary),
         "scored_cell_count": eval_metrics.get("scored_cell_count"),
+        "content_correctness": eval_metrics.get("content_correctness"),
+        "content_correctness_scored_only": eval_metrics.get("content_correctness_scored_only"),
+        "overall_correctness": eval_metrics.get("overall_correctness"),
         "correctness": eval_metrics.get("correctness"),
         "correctness_mean": eval_metrics.get("correctness_mean"),
         "correctness_judge_a": eval_metrics.get("correctness_judge_a"),
@@ -133,6 +136,8 @@ def _candidate_diagnostic_row(result: CandidateResult, primary_metric: str) -> d
         "unscored_text_cell_count": eval_metrics.get("unscored_text_cell_count"),
         "judge_request_failed_count": eval_metrics.get("judge_request_failed_count"),
         "judge_unclear_text_cell_count": eval_metrics.get("judge_unclear_text_cell_count"),
+        "proposal_coverage_on_content_gold_present": eval_metrics.get("proposal_coverage_on_content_gold_present"),
+        "proposal_coverage_on_all_gold_present": eval_metrics.get("proposal_coverage_on_all_gold_present"),
         "filled_on_gold_empty_count": eval_metrics.get("filled_on_gold_empty_count"),
         "missing_proposal_count": eval_metrics.get("missing_proposal_count"),
         "main_structured_output_mode": result.structured_output_mode or reviewer_summary.get("structured_output_mode"),
@@ -243,6 +248,206 @@ def _incumbent_lineage(results: list[CandidateResult], incumbent_id: str | None)
         current_id = current.parent_candidate_id
     lineage.reverse()
     return lineage
+
+
+def _best_completed_result(results: list[CandidateResult], primary_metric: str) -> CandidateResult | None:
+    completed = [result for result in results if result.candidate_status == "completed"]
+    if not completed:
+        return None
+    ranked = _rank_compare_results(completed, primary_metric)
+    return ranked[0] if ranked else None
+
+
+def _write_compare_progress(
+    writer: ResultsWriter,
+    *,
+    config: dict[str, Any],
+    benchmark_id: str,
+    primary_metric: str,
+    results: list[CandidateResult],
+    progress_state: str,
+) -> None:
+    ranked_results = _rank_compare_results(results, primary_metric)
+    best_raw = _best_completed_result(results, primary_metric)
+    eligible_winner = next(
+        (result for result in ranked_results if _winner_eligible(result, config["acceptance"])),
+        None,
+    )
+    provisional_winner = best_raw if best_raw is not None and eligible_winner is None else None
+
+    if eligible_winner is not None:
+        writer.write_best_candidate(
+            {
+                "candidate_id": eligible_winner.candidate_id,
+                "benchmark_id": benchmark_id,
+                "study_type": "compare",
+                "primary_metric": primary_metric,
+                "primary_metric_value": eligible_winner.primary_metrics.get(primary_metric),
+                "candidate_hash": eligible_winner.candidate_hash,
+                "text_model_id": eligible_winner.text_model_id,
+                "prompt_bundle_id": eligible_winner.prompt_bundle_id,
+                "vision_model_id": eligible_winner.vision_model_id,
+                "optimizer_knobs_flat": eligible_winner.optimizer_knobs_flat,
+                "score_status": eligible_winner.score_status,
+                "progress_state": progress_state,
+            }
+        )
+        writer.clear_no_winner()
+    else:
+        writer.clear_best_candidate()
+        writer.write_no_winner(
+            {
+                "study_type": "compare",
+                "benchmark_id": benchmark_id,
+                "reason": "no_eligible_winner" if any(result.candidate_status == "completed" for result in results) else "no_completed_candidates",
+                "candidate_count": len(results),
+                "degraded_score_policy": degraded_score_policy(config["acceptance"]),
+                "best_raw_candidate_id": best_raw.candidate_id if best_raw is not None else None,
+                "best_raw_score_status": best_raw.score_status if best_raw is not None else None,
+                "progress_state": progress_state,
+            }
+        )
+
+    writer.write_experiment_summary(
+        {
+            "experiment_id": config["experiment_id"],
+            "study_type": "compare",
+            "benchmark_id": benchmark_id,
+            "primary_metric": primary_metric,
+            "progress_state": progress_state,
+            "winner_candidate_id": eligible_winner.candidate_id if eligible_winner is not None else None,
+            "winner_text_model_id": eligible_winner.text_model_id if eligible_winner is not None else None,
+            "winner_prompt_bundle_id": eligible_winner.prompt_bundle_id if eligible_winner is not None else None,
+            "best_raw_candidate_id": best_raw.candidate_id if best_raw is not None else None,
+            "best_raw_score": best_raw.primary_metrics.get(primary_metric) if best_raw is not None else None,
+            "best_raw_score_status": best_raw.score_status if best_raw is not None else None,
+            "eligible_winner_candidate_id": eligible_winner.candidate_id if eligible_winner is not None else None,
+            "eligible_winner_score": eligible_winner.primary_metrics.get(primary_metric) if eligible_winner is not None else None,
+            "eligible_winner_score_status": eligible_winner.score_status if eligible_winner is not None else None,
+            "provisional_winner_candidate_id": provisional_winner.candidate_id if provisional_winner is not None else None,
+            "provisional_winner_score_status": provisional_winner.score_status if provisional_winner is not None else None,
+            "candidate_count": len(results),
+            "completed_candidate_count": sum(1 for result in results if result.candidate_status == "completed"),
+            "failed_candidate_count": sum(1 for result in results if result.candidate_status != "completed"),
+            "scored_candidate_count": sum(1 for result in results if result.score_status == "scored"),
+            "scored_degraded_candidate_count": sum(1 for result in results if result.score_status == "scored_degraded"),
+            "unscored_candidate_count": sum(1 for result in results if result.score_status == "unscored"),
+            "degraded_score_policy": degraded_score_policy(config["acceptance"]),
+            "rejection_reason_counts": _aggregate_reason_counts(results),
+            "model_rollup": _aggregate_best_by_field(results, primary_metric, "text_model_id"),
+            "prompt_rollup": _aggregate_best_by_field(results, primary_metric, "prompt_bundle_id"),
+            "holdout_validation": {
+                **_initial_holdout_validation_summary(config, study_type="compare"),
+            },
+            "ranked_candidates": [_result_summary_row(result, primary_metric) for result in ranked_results],
+        }
+    )
+
+
+def _write_optimize_progress(
+    writer: ResultsWriter,
+    *,
+    config: dict[str, Any],
+    benchmark_id: str,
+    all_results: list[CandidateResult],
+    incumbent_result: CandidateResult,
+    round_summaries: list[RoundSummary],
+    proposer_enabled: bool,
+    proposer_suggestion_count: int,
+    progress_state: str,
+    fatal_error: str | None = None,
+) -> None:
+    primary_metric = config["acceptance"]["primary_metric"]
+    ranked_results = _rank_compare_results(all_results, primary_metric)
+    best_raw = _best_completed_result(all_results, primary_metric)
+    eligible_winner = next(
+        (result for result in ranked_results if _winner_eligible(result, config["acceptance"])),
+        None,
+    )
+    provisional_winner = best_raw if best_raw is not None and eligible_winner is None else None
+
+    if eligible_winner is not None:
+        writer.write_best_candidate(
+            {
+                "candidate_id": eligible_winner.candidate_id,
+                "round_index": eligible_winner.round_index,
+                "reason": "promoted" if eligible_winner.candidate_id != "cand_0000" else "baseline",
+                "benchmark_id": benchmark_id,
+                "primary_metric": primary_metric,
+                "primary_metric_value": eligible_winner.primary_metrics.get(primary_metric),
+                "text_model_id": eligible_winner.text_model_id,
+                "prompt_bundle_id": eligible_winner.prompt_bundle_id,
+                "score_status": eligible_winner.score_status,
+                "progress_state": progress_state,
+            }
+        )
+        writer.clear_no_winner()
+    else:
+        writer.clear_best_candidate()
+        writer.write_no_winner(
+            {
+                "study_type": "optimize",
+                "benchmark_id": benchmark_id,
+                "reason": "no_eligible_winner" if any(result.candidate_status == "completed" for result in all_results) else "no_completed_candidates",
+                "candidate_id": incumbent_result.candidate_id,
+                "degraded_score_policy": degraded_score_policy(config["acceptance"]),
+                "score_status": incumbent_result.score_status,
+                "best_raw_candidate_id": best_raw.candidate_id if best_raw is not None else None,
+                "best_raw_score_status": best_raw.score_status if best_raw is not None else None,
+                "progress_state": progress_state,
+            }
+        )
+
+    writer.write_experiment_summary(
+        {
+            "experiment_id": config["experiment_id"],
+            "study_type": "optimize",
+            "benchmark_id": benchmark_id,
+            "primary_metric": primary_metric,
+            "progress_state": progress_state,
+            "current_best_candidate_id": incumbent_result.candidate_id,
+            "current_best_score": incumbent_result.primary_metrics.get(primary_metric),
+            "current_best_score_status": incumbent_result.score_status,
+            "current_best_text_model_id": incumbent_result.text_model_id,
+            "current_best_prompt_bundle_id": incumbent_result.prompt_bundle_id,
+            "best_raw_candidate_id": best_raw.candidate_id if best_raw is not None else None,
+            "best_raw_score": best_raw.primary_metrics.get(primary_metric) if best_raw is not None else None,
+            "best_raw_score_status": best_raw.score_status if best_raw is not None else None,
+            "eligible_winner_candidate_id": eligible_winner.candidate_id if eligible_winner is not None else None,
+            "eligible_winner_score": eligible_winner.primary_metrics.get(primary_metric) if eligible_winner is not None else None,
+            "eligible_winner_score_status": eligible_winner.score_status if eligible_winner is not None else None,
+            "provisional_winner_candidate_id": provisional_winner.candidate_id if provisional_winner is not None else None,
+            "provisional_winner_score_status": provisional_winner.score_status if provisional_winner is not None else None,
+            "rounds_configured": int(config.get("optimize", {}).get("rounds", 0)),
+            "rounds_completed": len(round_summaries),
+            "candidate_count": len(all_results),
+            "completed_candidate_count": sum(1 for result in all_results if result.candidate_status == "completed"),
+            "failed_candidate_count": sum(1 for result in all_results if result.candidate_status != "completed"),
+            "scored_candidate_count": sum(1 for result in all_results if result.score_status == "scored"),
+            "scored_degraded_candidate_count": sum(1 for result in all_results if result.score_status == "scored_degraded"),
+            "unscored_candidate_count": sum(1 for result in all_results if result.score_status == "unscored"),
+            "degraded_score_policy": degraded_score_policy(config["acceptance"]),
+            "rejection_reason_counts": _aggregate_reason_counts(all_results),
+            "promotion_history": [summary.to_dict() for summary in round_summaries],
+            "incumbent_lineage": _incumbent_lineage(all_results, incumbent_result.candidate_id),
+            "proposer": {
+                "enabled": proposer_enabled,
+                "suggested_candidate_count": proposer_suggestion_count,
+            },
+            "confirmation_reruns": {
+                "enabled": bool(config.get("optimize", {}).get("confirmation_reruns", {}).get("enabled", False)),
+                "count": int(config.get("optimize", {}).get("confirmation_reruns", {}).get("count", 0) or 0),
+            },
+            "top_candidates": [
+                _result_summary_row(result, primary_metric)
+                for result in ranked_results[:5]
+            ],
+            "holdout_validation": _initial_holdout_validation_summary(config, study_type="optimize"),
+            "winner_eligible": _winner_eligible(incumbent_result, config["acceptance"]),
+            "fatal_error": fatal_error,
+            "no_winner_reason": None if eligible_winner is not None else ("baseline_candidate_failed" if fatal_error else "no_eligible_winner"),
+        }
+    )
 
 
 def _write_holdout_status(
@@ -413,59 +618,24 @@ def run_compare_mode(config: dict[str, Any], benchmarks: Benchmarks, experiment_
         )
         writer.append_result(result)
         results.append(result)
+        _write_compare_progress(
+            writer,
+            config=config,
+            benchmark_id=benchmark_id,
+            primary_metric=primary_metric,
+            results=results,
+            progress_state="running",
+        )
 
     ranked_results = _rank_compare_results(results, primary_metric)
     winner = next((result for result in ranked_results if _winner_eligible(result, config["acceptance"])), None)
-    if winner is not None:
-        writer.write_best_candidate(
-            {
-                "candidate_id": winner.candidate_id,
-                "benchmark_id": benchmark_id,
-                "study_type": "compare",
-                "primary_metric": primary_metric,
-                "primary_metric_value": winner.primary_metrics.get(primary_metric),
-                "candidate_hash": winner.candidate_hash,
-                "text_model_id": winner.text_model_id,
-                "prompt_bundle_id": winner.prompt_bundle_id,
-                "vision_model_id": winner.vision_model_id,
-                "optimizer_knobs_flat": winner.optimizer_knobs_flat,
-            }
-        )
-    else:
-        no_winner_reason = "no_eligible_winner" if any(result.candidate_status == "completed" for result in results) else "no_completed_candidates"
-        writer.write_no_winner(
-            {
-                "study_type": "compare",
-                "benchmark_id": benchmark_id,
-                "reason": no_winner_reason,
-                "candidate_count": len(results),
-                "degraded_score_policy": degraded_score_policy(config["acceptance"]),
-            }
-        )
-    writer.write_experiment_summary(
-        {
-            "experiment_id": config["experiment_id"],
-            "study_type": "compare",
-            "benchmark_id": benchmark_id,
-            "primary_metric": primary_metric,
-            "winner_candidate_id": winner.candidate_id if winner is not None else None,
-            "winner_text_model_id": winner.text_model_id if winner is not None else None,
-            "winner_prompt_bundle_id": winner.prompt_bundle_id if winner is not None else None,
-            "candidate_count": len(results),
-            "completed_candidate_count": sum(1 for result in results if result.candidate_status == "completed"),
-            "failed_candidate_count": sum(1 for result in results if result.candidate_status != "completed"),
-            "scored_candidate_count": sum(1 for result in results if result.score_status == "scored"),
-            "scored_degraded_candidate_count": sum(1 for result in results if result.score_status == "scored_degraded"),
-            "unscored_candidate_count": sum(1 for result in results if result.score_status == "unscored"),
-            "degraded_score_policy": degraded_score_policy(config["acceptance"]),
-            "rejection_reason_counts": _aggregate_reason_counts(results),
-            "model_rollup": _aggregate_best_by_field(results, primary_metric, "text_model_id"),
-            "prompt_rollup": _aggregate_best_by_field(results, primary_metric, "prompt_bundle_id"),
-            "holdout_validation": {
-                **_initial_holdout_validation_summary(config, study_type="compare"),
-            },
-            "ranked_candidates": [_result_summary_row(result, primary_metric) for result in ranked_results],
-        }
+    _write_compare_progress(
+        writer,
+        config=config,
+        benchmark_id=benchmark_id,
+        primary_metric=primary_metric,
+        results=results,
+        progress_state="completed",
     )
     _write_candidate_diagnostics(experiment_dir, ranked_results, primary_metric)
     _write_compare_summary(
@@ -516,34 +686,19 @@ def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_spa
                 "candidate_id": incumbent_candidate.candidate_id,
             }
         )
-        writer.write_experiment_summary(
-            {
-                "experiment_id": config["experiment_id"],
-                "study_type": "optimize",
-                "benchmark_id": benchmark_id,
-                "primary_metric": config["acceptance"]["primary_metric"],
-                "current_best_candidate_id": None,
-                "candidate_count": 1,
-                "completed_candidate_count": 0,
-                "failed_candidate_count": 1,
-                "rejection_reason_counts": {incumbent_result.decision_reason: 1},
-                "holdout_validation": _initial_holdout_validation_summary(config, study_type="optimize"),
-                "fatal_error": "baseline candidate failed before optimization rounds could start",
-                "no_winner_reason": "baseline_candidate_failed",
-            }
+        _write_optimize_progress(
+            writer,
+            config=config,
+            benchmark_id=benchmark_id,
+            all_results=[incumbent_result],
+            incumbent_result=incumbent_result,
+            round_summaries=[],
+            proposer_enabled=bool(config.get("proposer", {}).get("enabled", False)),
+            proposer_suggestion_count=0,
+            progress_state="failed",
+            fatal_error="baseline candidate failed before optimization rounds could start",
         )
         raise RuntimeError("Baseline candidate failed before optimization rounds could start")
-
-    if _winner_eligible(incumbent_result, config["acceptance"]):
-        writer.write_best_candidate({
-            "candidate_id": incumbent_candidate.candidate_id,
-            "reason": "baseline",
-            "benchmark_id": benchmark_id,
-            "primary_metric": config["acceptance"]["primary_metric"],
-            "primary_metric_value": incumbent_result.primary_metrics.get(config["acceptance"]["primary_metric"]),
-            "text_model_id": incumbent_result.text_model_id,
-            "prompt_bundle_id": incumbent_result.prompt_bundle_id,
-        })
 
     rounds = int(config.get("optimize", {}).get("rounds", 0))
     batch_size = int(config.get("optimize", {}).get("batch_size", 1))
@@ -560,6 +715,17 @@ def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_spa
     }
     all_results: list[CandidateResult] = [incumbent_result]
     round_summaries: list[RoundSummary] = []
+    _write_optimize_progress(
+        writer,
+        config=config,
+        benchmark_id=benchmark_id,
+        all_results=all_results,
+        incumbent_result=incumbent_result,
+        round_summaries=round_summaries,
+        proposer_enabled=proposer_enabled,
+        proposer_suggestion_count=proposer_suggestion_count,
+        progress_state="running",
+    )
 
     for round_index in range(1, rounds + 1):
         proposals = propose_candidates(
@@ -605,6 +771,17 @@ def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_spa
             )
             writer.write_round_summary(summary)
             round_summaries.append(summary)
+            _write_optimize_progress(
+                writer,
+                config=config,
+                benchmark_id=benchmark_id,
+                all_results=all_results,
+                incumbent_result=incumbent_result,
+                round_summaries=round_summaries,
+                proposer_enabled=proposer_enabled,
+                proposer_suggestion_count=proposer_suggestion_count,
+                progress_state="running",
+            )
             continue
 
         next_candidate_number += len(filtered)
@@ -676,20 +853,6 @@ def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_spa
                 parent_candidate_id=incumbent_result.parent_candidate_id,
                 round_index=round_index,
             )
-            if _winner_eligible(incumbent_result, config["acceptance"]):
-                writer.write_best_candidate(
-                    {
-                        "candidate_id": incumbent_result.candidate_id,
-                        "round_index": round_index,
-                        "reason": "promoted",
-                        "benchmark_id": benchmark_id,
-                        "primary_metric": config["acceptance"]["primary_metric"],
-                        "primary_metric_value": incumbent_result.primary_metrics.get(config["acceptance"]["primary_metric"]),
-                        "text_model_id": incumbent_result.text_model_id,
-                        "prompt_bundle_id": incumbent_result.prompt_bundle_id,
-                    }
-                )
-
         summary = RoundSummary(
             round_index=round_index,
             incumbent_id_before=incumbent_before,
@@ -700,56 +863,29 @@ def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_spa
         )
         writer.write_round_summary(summary)
         round_summaries.append(summary)
-
-    writer.write_experiment_summary(
-        {
-            "experiment_id": config["experiment_id"],
-            "study_type": "optimize",
-            "benchmark_id": benchmark_id,
-            "primary_metric": config["acceptance"]["primary_metric"],
-            "current_best_candidate_id": incumbent_result.candidate_id,
-            "current_best_score": incumbent_result.primary_metrics.get(config["acceptance"]["primary_metric"]),
-            "current_best_text_model_id": incumbent_result.text_model_id,
-            "current_best_prompt_bundle_id": incumbent_result.prompt_bundle_id,
-            "rounds_configured": rounds,
-            "rounds_completed": len(round_summaries),
-            "candidate_count": len(all_results),
-            "completed_candidate_count": sum(1 for result in all_results if result.candidate_status == "completed"),
-            "failed_candidate_count": sum(1 for result in all_results if result.candidate_status != "completed"),
-            "scored_candidate_count": sum(1 for result in all_results if result.score_status == "scored"),
-            "scored_degraded_candidate_count": sum(1 for result in all_results if result.score_status == "scored_degraded"),
-            "unscored_candidate_count": sum(1 for result in all_results if result.score_status == "unscored"),
-            "degraded_score_policy": degraded_score_policy(config["acceptance"]),
-            "rejection_reason_counts": _aggregate_reason_counts(all_results),
-            "promotion_history": [summary.to_dict() for summary in round_summaries],
-            "incumbent_lineage": _incumbent_lineage(all_results, incumbent_result.candidate_id),
-            "proposer": {
-                "enabled": proposer_enabled,
-                "suggested_candidate_count": proposer_suggestion_count,
-            },
-            "confirmation_reruns": {
-                "enabled": bool(config.get("optimize", {}).get("confirmation_reruns", {}).get("enabled", False)),
-                "count": int(config.get("optimize", {}).get("confirmation_reruns", {}).get("count", 0) or 0),
-            },
-            "top_candidates": [
-                _result_summary_row(result, config["acceptance"]["primary_metric"])
-                for result in _rank_compare_results(all_results, config["acceptance"]["primary_metric"])[:5]
-            ],
-            "holdout_validation": _initial_holdout_validation_summary(config, study_type="optimize"),
-            "winner_eligible": _winner_eligible(incumbent_result, config["acceptance"]),
-        }
-    )
-    if not _winner_eligible(incumbent_result, config["acceptance"]):
-        writer.write_no_winner(
-            {
-                "study_type": "optimize",
-                "benchmark_id": benchmark_id,
-                "reason": "no_eligible_winner",
-                "candidate_id": incumbent_result.candidate_id,
-                "degraded_score_policy": degraded_score_policy(config["acceptance"]),
-                "score_status": incumbent_result.score_status,
-            }
+        _write_optimize_progress(
+            writer,
+            config=config,
+            benchmark_id=benchmark_id,
+            all_results=all_results,
+            incumbent_result=incumbent_result,
+            round_summaries=round_summaries,
+            proposer_enabled=proposer_enabled,
+            proposer_suggestion_count=proposer_suggestion_count,
+            progress_state="running",
         )
+
+    _write_optimize_progress(
+        writer,
+        config=config,
+        benchmark_id=benchmark_id,
+        all_results=all_results,
+        incumbent_result=incumbent_result,
+        round_summaries=round_summaries,
+        proposer_enabled=proposer_enabled,
+        proposer_suggestion_count=proposer_suggestion_count,
+        progress_state="completed",
+    )
 
     generate_optimize_plots(experiment_dir, config["acceptance"]["primary_metric"])
     generate_experiment_report(experiment_dir)

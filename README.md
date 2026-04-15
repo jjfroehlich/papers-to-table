@@ -22,6 +22,7 @@ This repo owns study orchestration, candidate materialization, result tracking, 
 - Evaluates an explicit fixed candidate set on the `dev` benchmark.
 - Produces ranked summaries and compare plots.
 - Can optionally run holdout validation for the top `k` candidates via `compare.holdout_top_k`.
+- Writes progressive `summary.json`, `best_candidate.json`, or `no_winner.json` snapshots as candidates finish so interrupted runs still preserve truthful experiment state.
 
 ### optimize
 
@@ -29,6 +30,7 @@ This repo owns study orchestration, candidate materialization, result tracking, 
 - Proposes bounded deterministic challengers round by round.
 - Promotes challengers only when the primary metric and guardrails pass.
 - Produces incumbent tracking, round summaries, and optimize plots.
+- Persists progressive experiment summaries after the baseline and after every round, with explicit raw-vs-eligible winner fields so degraded or otherwise ineligible leaders do not masquerade as final winners.
 
 ## Install
 
@@ -69,7 +71,7 @@ The recommended `eval_app` config is:
 - `command_prefix`: optional explicit launcher, usually needed when the eval app runs in a different Python environment
 - `metric_groups`: mapping from eval summary metrics into optimizer `primary`, `guardrail`, and `diagnostic` groups
 
-For new studies, prefer mapping the optimizer primary metric to eval `correctness` so missing-proposal cells are counted in the headline score denominator. Keep eval `correctness_mean` available as the scored-only correctness view so judge-backed text scoring and dual-judge behavior remain visible.
+For new studies, prefer mapping the optimizer primary metric to eval `content_correctness` so the headline score reflects non-metadata extraction quality while still counting missing proposals in the denominator. Keep `overall_correctness`, `metadata_correctness`, and `content_correctness_scored_only` available as secondary views for diagnostics and report interpretation. Legacy eval aliases such as `correctness` and `correctness_mean` are still readable, but new configs should avoid them.
 
 If you need a non-standard wrapper, both `main_app` and `eval_app` also support explicit `command` arrays. The recommended repo-root plus config-overlay path is the cleaner default.
 
@@ -134,6 +136,8 @@ For tonight's unattended runs, holdout is intentionally skipped and `diagnostics
 3. prompt compare on the model-compare winner
 4. retrieval sweep on the prompt-compare winner
 5. overnight optimize study on the retrieval-compare winner
+
+The overnight wrapper now initializes and refreshes `overnight_manifest.json` after each completed stage, then regenerates the combined overnight report immediately. If the pipeline stops mid-run, the manifest is marked `failed` and the aggregate report is regenerated against the completed prefix instead of remaining in an ambiguous `running` state.
 
 ### Recommended order
 
@@ -318,7 +322,7 @@ Optional tie-break acceptance config:
 
 ```json
 "acceptance": {
-	"primary_metric": "correctness",
+	"primary_metric": "content_correctness",
 	"min_improvement": 0.01,
 	"tie_break": {
 		"epsilon": 0.002,

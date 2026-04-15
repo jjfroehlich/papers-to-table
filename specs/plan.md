@@ -59,6 +59,7 @@ Command dispatch lives in `paper_optimizer/cli.py`.
 3. Evaluate each candidate through shared pipeline.
 4. Persist per-candidate rows, `candidate_diagnostics.*`, and top-level compare summary artifacts.
 4a. Persist explicit scored or unscored truth and compact provenance fields with each candidate result and diagnostic row.
+4b. Persist progressive compare summaries and winner artifacts after each candidate so interruption leaves truthful experiment state.
 5. Rank by configured primary metric with deterministic tie handling.
 6. Emit compare plots, winner record when available, and a compare-semantics decision report.
 
@@ -73,6 +74,7 @@ Command dispatch lives in `paper_optimizer/cli.py`.
    - apply acceptance gates
    - optionally promote accepted best challenger
    - persist round summary and experiment summary
+   - refresh explicit raw-versus-eligible winner state after each round
 4. Emit optimize plots and an optimize-semantics decision report.
 
 ### preflight flow
@@ -139,6 +141,7 @@ Required persisted entities:
 - static plot CSV/PNG artifacts
 - self-contained HTML decision report with study-specific semantics, deterministic interpretations, and plot guidance
 - explicit no-winner or empty-results summaries when no candidate completes successfully
+- progressive `summary.json`, `best_candidate.json`, and `no_winner.json` snapshots so partial experiments remain interpretable
 
 ## Current architecture limits
 
@@ -151,6 +154,7 @@ The following approved improvements are in scope for this repo:
 - explicit fast preflight
 - broader deterministic search coverage for numeric knobs
 - graceful handling of zero-complete-candidate and no-winner study outcomes
+- progressive experiment summaries and interruption-safe overnight manifest or report regeneration
 
 ## Quality expectations
 
