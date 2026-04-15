@@ -1,43 +1,43 @@
-﻿column_name,description
-Authors,"List of authors, used to identify the publication."
-Publication Year,"Year when the paper was published, to identify the publication."
-Title,"Title of the publication, to identify the publication."
-Abstract,Abstract text of the publication.
-Journal,Journal the paper was published in.
-Link,DOI link.
-Date Added,Date the paper was added to the bibliography or library.
-MPRABase_datasets_id,"Dataset ID for the publication in the ""MPRAbase"" database."
-Focus,"What the general focus of the publication is (e.g. transcriptional regulation, UTRs, coding, or other)"
-Synthetic designs,If the study tests only native sequences or if sequences are changed.
-Cloning,How the library was cloned. 
-Bottlenecking,"If there was bottle-necking used in the cloning to achieve a specific number of barcodes per sequence. And if so, how the bottle-necking was done (liquid culture, scraping colonies). "
-mean # Barcodes per sequence,How many different barcodes there are for each tested sequence. 
-Type of variants,"What kind of sequence the study tests, e.g. mainly comparing different sequences (fragments), or comparing different variations of a sequence (point, del), or completely synthetic sequences"
-Species,Which species the model system is from.
-Model system,The model system (e.g. which cell line).
-Episomal vs genomic,If the reporter construct is integrated in the genome (genomic) or not and transiently transfected (episomal)
-If episomal: Ori in backbone?,In case the assay is episomal (and not genomically integrated): if the backbone plasmid contained an Ori and if the authors prevented activity of the Ori (which might interfere with the assay)
-Integration method,"Which method is used to integrate the reporter in the genome, only applies if the assay is genomically integrated (and not episomal)"
-Integration site,"In case the assay is genomic integrated, then where it is integrated. Lenti or PiggyBac would be random, recombinases/landing pad based systems would have a specific locus usually. "
-Readout,"How the expression is read out. By RNA levels (RNAseq, scRNAseq), or by FACS sorting followed by DNAseq (FACS)"
-Promoter,"With which promoter the assay is performed, for studies of transcription this is often some kind of minimal promoter. Also add which specific minimal promoter is used (and the source of that minimal promoter if stated). "
-MPRABase_Total_Variants_Tested,Only for publications that are catalogued in MPRAbase database. 
-# Variants tested,How many different sequences (or variants) where being evaluated in the study
-Scale,If the tested sequences where randomly taken from the whole genome or if the experiment covered the whole genome
-length of sequences (bp),How long the sequences are that are tested
-Where is the BC?,"Where the barcode is located in the reporter design (often that can be 5'UTR or 3'UTR, but might be different in special cases)"
-BC length (bp),How long the barcode sequences are. 
-General library design category,"Transcriptional reporter assays often are based on a few general designs. There is STARRseq (where the tested sequence is expressed in the 3'UTR of the reporter) and LentiMPRA (where the barcode is part of the 5'UTR of the reporter mRNA), and there are possibly a few more. "
-mean reads per sequence/variant,How many sequencing reads for each tested sequence/variant where required or achieved?
-library construction,How the MPRA library is cloned and prepare (before delivering it to the cells)
-library composition,"In which proportions of sequences the library is composed, e.g. how many percent are control sequences, how many are test sequences. "
-library seq,"How the MPRA library is sequenced (e.g. to associate barcodes with sequences), before it is delivered to the cells"
-Delivery,How the library was delivered to cells. 
-RNA library,How the RNA library is prepared when the assay is being conducted
-DNA library,How the DNA library is prepared when the assay is being conducted
-UMI?,If the RNA/DNA library prep includes a UMI (and how it is added)
-Approach,General approach
-what predicts activity? (e.g. accessible -> active in MPRA?),What chromatin features or sequence features correlated well with activitiy in the MPRA. 
-Other notes,noteworthy things
-Number of Conditions,"In case the study performed the MPRA with the same sequences in different conditions (e.g. different media, different time points, different concentrations of agonist), then the number of different conditions"
-Type of Condition,"In case the study performed the MPRA with the same sequences in different conditions (e.g. different media, different time points, different concentrations of agonist), then the type of conditions that were tested"
+column_name,description
+Authors,"Full author list of the paper, in publication order, primarily for identifying the publication. Preserve the author string as shown in the paper/metadata rather than abbreviating. Type: free text string with authors separated consistently (the table currently uses semicolon-separated names)."
+Publication Year,"4-digit year of publication of the specific paper entry. Type: integer year as plain text/number, e.g. 2020."
+Title,"Exact title of the publication. Preserve the paper title, to uniquely identify the study. Type: free text string."
+Abstract,"Publication abstract. Prefer the official abstract text; if none is available, leave blank rather than inventing a summary. Type: long free text."
+Journal,"Journal, preprint server, or venue where the work appeared, e.g. Nature Communications, Cell, bioRxiv. Type: short free text label."
+Link,Best primary link to the paper. Prefer DOI URL when available; otherwise use the stable publisher/preprint URL. Type: URL string.
+Date Added,"Date and optionally time when this entry was added to the bibliography/table, not when the paper was published. Preserve the existing table style if extending the sheet. Type: date-time string in the current table format, e.g. 12/17/2025 18:14."
+MPRABase_datasets_id,"Dataset identifier for this study in MPRABase. Use the database ID when present (e.g. DS0032). If the paper is not catalogued there, use ""not in MPRABase"" rather than leaving blank."
+Focus,"Main biological/technical topic of the study, at a coarse level. Use a short controlled label matching the existing style, such as transcription, UTRs, coding, splicing, Software, protocol, or a concise combined label if the study truly spans multiple areas."
+Synthetic designs,"Whether the tested library contains deliberately designed/engineered sequences rather than only native sequences. Follow the table's compact convention: ""+"" = clearly synthetic/engineered design present, ""-"" = only native or naturally derived sequences, ""+/-"" = if both kinds were tested."
+Cloning,"Main molecular cloning strategy used to build the library backbone or insert library before cell delivery. Use short method labels in lower case, e.g. gibson, restriction, in-fusion, golden gate, or a concise combination if multiple methods were used."
+Bottlenecking,"Whether and how library complexity was intentionally bottlenecked during cloning/library propagation to control barcode-per-sequence representation. Record both presence and method when reported, using concise phrases such as ""-"", ""colony scraping"", ""liquid, max complexity"", or ""colony counting to estimate coverage"". ""Max complexity"" indicates that the authors did not bottle-neck to restrict the barcodes per sequence, but instead tried to get the highest number or complexity."
+mean # Barcodes per sequence,"Approximate average number of distinct barcodes linked to each tested sequence/variant. Use a plain numeric value when reported. If the assay has no barcode design, use the explicit table convention ""no BC""."
+Type of variants,"Short category describing what is being perturbed/tested at the sequence level. Use concise labels matching the table style, e.g. fragments, point, synthetic, random seq, synthetic, binding sites, or a short comma-separated combination where needed."
+Species,"Species of origin of the biological system or sequence context being assayed. Use short organism labels, e.g. human, mouse, yeast, fly, or a concise combined label if multiple species are central to the assay."
+Model system,"Experimental system in which the assay was performed, typically a cell line, organism, tissue, extract, or other assay context. Use the specific model when possible, e.g. HEK293T, K562, mESC, yeast, explant retina."
+Episomal vs genomic,"Whether the reporter assay readout comes from non-integrated DNA or from genomically integrated constructs. Prefer the controlled values seen in the table: episomal, genomic, both/genomic, episomal if both formats were used, or a very short clarification if the paper is unusual."
+If episomal: Ori in backbone?,"Only for episomal/plasmid-based assays: state whether the plasmid backbone contains an origin/promoter-like sequence (Ori) that could influence reporter activity, and note any mitigation used by the authors. Use concise values such as yes, yes but 4x polyA to prevent Ori activity, etc. Leave blank if not applicable or not reported."
+Integration method,"For genomically integrated assays, state the mechanism used to insert the reporter library. Use short labels such as Lenti, PB, Bxb1, Cre, homologous recombination, AAV. For non-integrating/episomal assays, use the table's explicit value ""none"" rather than blank if that is clearly applicable."
+Integration site,"Where integrated reporters land in the genome. Use a specific safe-harbor/locus when known (e.g. AAVS1, H11, Hprt, TRP1), ""many"" for random multi-site integration, or ""none"" for non-integrating assays when clearly applicable."
+Readout,"Primary assay readout used to quantify activity/effect. Record the measurement modality, not the biological conclusion. Use concise labels matching the table style, e.g. RNA/DNAseq, RNAseq, scRNAseq, FACS+DNAseq, Flow cytometry, RNA."
+Promoter,"Promoter used in the reporter construct, especially for transcription-focused assays. Capture the specific promoter identity when stated, not just ""minimal promoter"" if more detail is available, e.g. minP, minP (pGL4), minRho, SCP1. If the assay tests promoters rather than using one fixed promoter, describe that briefly."
+MPRABase_Total_Variants_Tested,"Total number of variants/sequences tested according to the MPRABase entry for this study, only when the paper is in MPRABase. Preserve the database-derived number exactly as a numeric string. Leave blank if unavailable; do not infer from the paper unless it is clearly this database field."
+# Variants tested,"Approximate number of unique tested sequences/construct variants evaluated in the study itself. Use the paper's own scale where possible, as a plain number or simple formatted number string (e.g. 7,800; 120,000). This field is study-centric, not database-centric."
+Scale,"Very short description of the genomic breadth or scope of the tested sequence set. Use labels in the existing style such as genome-wide, one or few loci."
+length of sequences (bp),"Length in base pairs of the tested variable sequence insert(s). Use the main designed/tested insert length as a plain number when a single dominant length is used. If multiple important lengths are central, use a short explanatory text."
+Where is the BC?,"Location of the barcode relative to the reporter construct/transcript. Use concise positional labels such as 5'UTR, 3'UTR, upstream of promoter, in plasmid, DNA, no BC, or a short combination if multiple barcodes are used."
+BC length (bp),"Barcode length in base pairs. Use a plain numeric value when barcodes exist, or the explicit value ""no BC"" for non-barcoded assays."
+General library design category,"Short high-level MPRA/reporter design class. Use one of the established design labels where possible, e.g. plasmidMPRA, lentiMPRA, STARR-seq, CRE-seq, CapStarr-seq, AAV-MPRA, SLOT, FACS-sort + DNAseq."
+mean reads per sequence/variant,"Typical sequencing depth, filtering threshold, or achieved read coverage per tested sequence/variant or per barcode, if the paper reports it. This can be numeric or short descriptive text, e.g. 100, >=3 RNA counts and >=10 DNA counts per BC, or an estimated RNA/DNA read summary. Leave blank if not reported."
+library construction,"Concise description of how the starting reporter library was physically built before delivery into cells. Include the essential design logic: source of inserts (e.g. microarray-synthesized, genomic fragments), where they were placed relative to promoter/reporter, and how barcodes were coupled if relevant. Type: short prose, usually 1 sentence."
+library composition,"Composition of the input library in terms of sequence classes or controls, if reported. Record approximate fractions or counts of test vs positive/negative control sequences, e.g. ~10% ctrls, ~10% pos, ~10% neg ctrls. Leave blank if not reported."
+library seq,"How the input library itself was sequenced or verified prior to the functional assay, especially for barcode-sequence mapping. Record the essential sequencing/verification approach in short prose, e.g. input plasmid pool sequenced, long read sequencing, PCR with Illumina P5/P7 primers."
+Delivery,"How the MPRA/reporter library was introduced into the experimental system. Capture the delivery method and optionally key scale details if they are central, e.g. lipofection, nucleofection, electroporation, lentiviral delivery, or a short prose summary of transfection conditions."
+RNA library,"How the RNA-derived sequencing library was prepared during assay readout. Record the major steps in concise protocol language, e.g. RNA extraction, RT, barcode PCR; poly(A) selection, targeted RT, PCR; reporter-specific RT. Use ""none"" if no RNA library was generated."
+DNA library,"How the DNA/input/genomic DNA sequencing library was prepared during assay readout or normalization. Record the major steps in concise protocol language, e.g. plasmid DNA isolation, PCR of BCs; DNA extraction, barcode PCR. Use ""none"" when appropriate."
+UMI?,"Whether unique molecular identifiers were used in RNA/DNA library prep, and if so how/where they were introduced. Use concise values such as no, yes, yes, scRNAseq, yes, reporter-specific RT, yes, added in first PCR."
+Approach,"Very short free-text summary of the assay strategy or special platform aspect that is not already captured by the design-category field. Use this for a compact conceptual label, e.g. STARRseq, dose-response, landing pad + transcriptional reporter, UMI-STARR."
+what predicts activity? (e.g. accessible -> active in MPRA?),"Specific statement about features reported to correlate with measured MPRA activity, such as accessibility, histone marks, sequence grammar, or lack of correlation. Capture the result as a short factual note, not a broad interpretation. Leave blank if the paper does not address this."
+Other notes,"Short miscellaneous notes that are important for downstream interpretation but do not fit the dedicated columns. Keep this concise and only use it for genuinely relevant information, e.g. unusual caveats, landmark-status notes, integration efficiency, special barcode caveats."
+Number of Conditions,"Number of distinct assay conditions in which the same library/sequences were tested, such as different cell types, time points, media, perturbations, or agonist doses. Type: integer count as plain text/number."
+Type of Condition,"Short description of what varied across the conditions counted in the previous column. Use compact labels such as cell types, Agonist concentrations, TF levels, time points neuron diff, species, etc. Leave blank if the study effectively has only one condition or the condition type is not relevant."
