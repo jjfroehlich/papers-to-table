@@ -73,6 +73,8 @@ class ParserConfig(BaseModel):
     ocr_enabled: bool = False
     ocr_language: str = "en"
     allow_basic_fallback: bool = False  # T026a: allow pypdfium2 fallback if configured parser fails
+    cache_enabled: bool = True
+    cache_dir: Optional[str] = None
 
 
 class MatchingConfig(BaseModel):
@@ -83,6 +85,35 @@ class MatchingConfig(BaseModel):
 class StyleProfileConfig(BaseModel):
     enabled: bool = True
     max_examples: int = 3
+    normal_mode_behavior: str = "sample_rows"
+    eval_mode_behavior: str = "masked_rows"
+
+    @model_validator(mode="after")
+    def validate_behavior(self) -> StyleProfileConfig:
+        valid_normal = {"sample_rows", "disabled"}
+        valid_eval = {"masked_rows", "disabled"}
+        if self.normal_mode_behavior not in valid_normal:
+            raise ValueError(
+                "style_profiles.normal_mode_behavior must be one of: "
+                f"{sorted(valid_normal)}."
+            )
+        if self.eval_mode_behavior not in valid_eval:
+            raise ValueError(
+                "style_profiles.eval_mode_behavior must be one of: "
+                f"{sorted(valid_eval)}."
+            )
+        return self
+
+    def resolve_behavior(self, run_mode: str) -> tuple[str, str, bool]:
+        if not self.enabled:
+            return "disabled", "disabled", run_mode == "eval"
+        if run_mode == "eval":
+            if self.eval_mode_behavior == "disabled":
+                return "disabled", "disabled", True
+            return "masked_rows", "masked_working_copy", True
+        if self.normal_mode_behavior == "disabled":
+            return "disabled", "disabled", False
+        return "sample_rows", "filled_cells", False
 
 
 class RetrievalConfig(BaseModel):

@@ -4,7 +4,10 @@ import asyncio
 import json
 import os
 import pathlib
+import platform
+import shutil
 from datetime import datetime, timezone
+from importlib.metadata import PackageNotFoundError, version as package_version
 from time import perf_counter
 from typing import Optional
 
@@ -29,6 +32,7 @@ from .artifacts import (
     get_run_stats_path,
     get_run_summary_path,
     init_run_bundle,
+    read_json,
     write_json,
 )
 from .config import RunConfig, check_readiness, get_run_mode
@@ -53,7 +57,13 @@ from .ingest import (
 )
 from .lifecycle import apply_transition
 from .matching import MatchResult, persist_match_artifacts, run_matching
-from .parsing import parse_pdf
+from .parsing import (
+    PARSED_DOCUMENT_CONTRACT_VERSION,
+    PARSER_DIAGNOSTICS_CONTRACT_VERSION,
+    ParsedDocument,
+    ParserDiagnostics,
+    parse_pdf,
+)
 from .provider import ProviderError, _canonical_structured_output_reason, initialize_provider
 from .retrieval import run_retrieval_for_cell
 from .schemas import EvidenceSourceType, MatchOutcome, RunStatus, SupportLabel, WarningCategory
@@ -71,6 +81,7 @@ _STAGE_TIMING_KEYS = {
     "style_profiles": "stage_style_profiles_ms",
     "extraction": "stage_extraction_ms",
 }
+_PARSE_CACHE_FORMAT_VERSION = "parse_cache.v2"
 _RETRIEVAL_CHUNK_TYPES = (
     "paragraph",
     "section",
@@ -105,6 +116,102 @@ def _relative_run_path(run_dir: pathlib.Path, artifact_path: pathlib.Path) -> st
     return str(artifact_path.resolve().relative_to(run_dir.resolve())).replace("\\", "/")
 
 
+def _default_parse_cache_dir(config: RunConfig) -> pathlib.Path:
+    explicit = config.parser.cache_dir
+    if isinstance(explicit, str) and explicit.strip():
+        return pathlib.Path(explicit).resolve()
+    return pathlib.Path(config.pdf_dir).resolve() / ".extract_structured_parse_cache"
+
+
+def _installed_package_version(package_name: str) -> str | None:
+    try:
+        return package_version(package_name)
+    except PackageNotFoundError:
+        return None
+
+
+def _parse_runtime_fingerprint(config: RunConfig) -> dict[str, object]:
+    package_names = {"pypdfium2"}
+    if config.parser.backend == "docling" or bool(config.parser.allow_basic_fallback):
+        package_names.add("docling")
+    if bool(config.parser.ocr_enabled):
+        package_names.add("ocrmypdf")
+    return {
+        "python_version": platform.python_version(),
+        "package_versions": {
+            package_name: _installed_package_version(package_name)
+            for package_name in sorted(package_names)
+        },
+    }
+
+
+def _parse_cache_key(config: RunConfig, pdf_path: str) -> str:
+    payload = {
+        "pdf_hash": hash_file(pdf_path),
+        "parse_cache_format_version": _PARSE_CACHE_FORMAT_VERSION,
+        "parsed_document_contract_version": PARSED_DOCUMENT_CONTRACT_VERSION,
+        "parser_diagnostics_contract_version": PARSER_DIAGNOSTICS_CONTRACT_VERSION,
+        "parse_runtime_fingerprint": _parse_runtime_fingerprint(config),
+        "parser_backend": config.parser.backend,
+        "allow_basic_fallback": bool(config.parser.allow_basic_fallback),
+        "ocr_enabled": bool(config.parser.ocr_enabled),
+        "ocr_language": config.parser.ocr_language,
+        "page_render_scale": 1.0,
+    }
+    return hash_json_data(payload)
+
+
+def _parse_cache_paths(cache_root: pathlib.Path, cache_key: str) -> tuple[pathlib.Path, pathlib.Path]:
+    entry_dir = cache_root / cache_key
+    parsed_dir = entry_dir / "parsed"
+    return entry_dir, parsed_dir
+
+
+def _load_cached_parse_bundle(
+    *,
+    cache_root: pathlib.Path,
+    cache_key: str,
+    run_dir: pathlib.Path,
+    pdf_id: str,
+) -> tuple[dict, dict, list[str]] | None:
+    entry_dir, parsed_dir = _parse_cache_paths(cache_root, cache_key)
+    source_dir = parsed_dir / pdf_id
+    parsed_document_path = source_dir / "parsed_document.json"
+    diagnostics_path = source_dir / "diagnostics.json"
+    if not parsed_document_path.exists() or not diagnostics_path.exists():
+        return None
+    target_dir = run_dir / "parsed" / pdf_id
+    if target_dir.exists():
+        shutil.rmtree(target_dir)
+    shutil.copytree(source_dir, target_dir)
+    doc = read_json(target_dir / "parsed_document.json")
+    diagnostics = read_json(target_dir / "diagnostics.json")
+    pages_dir = target_dir / "pages"
+    page_paths = [
+        _relative_run_path(run_dir, path)
+        for path in sorted(pages_dir.glob("page_*.png"))
+    ]
+    return doc, diagnostics, page_paths
+
+
+def _store_parse_bundle_in_cache(
+    *,
+    cache_root: pathlib.Path,
+    cache_key: str,
+    run_dir: pathlib.Path,
+    pdf_id: str,
+) -> None:
+    entry_dir, parsed_dir = _parse_cache_paths(cache_root, cache_key)
+    source_dir = run_dir / "parsed" / pdf_id
+    if not source_dir.exists():
+        return
+    parsed_dir.mkdir(parents=True, exist_ok=True)
+    target_dir = parsed_dir / pdf_id
+    if target_dir.exists():
+        shutil.rmtree(target_dir)
+    shutil.copytree(source_dir, target_dir)
+
+
 def _get_lock() -> asyncio.Lock:
     global _active_runs_lock
     if _active_runs_lock is None:
@@ -124,6 +231,7 @@ def get_initial_run_data(
         prompt_bundle_name=config.prompt.bundle,
         prompt_bundle_path=config.prompt.bundle_path,
     )
+    style_profile_mode, style_profile_source, style_profile_benchmark_safe = config.style_profiles.resolve_behavior(run_mode)
     return {
         "run_id": run_id,
         "status": RunStatus.created.value,
@@ -242,6 +350,15 @@ def get_initial_run_data(
         "schema_version": None,
         "parser_identity": config.parser.backend,
         "parser_version": None,
+        "style_profile_mode": style_profile_mode,
+        "style_profile_source": style_profile_source,
+        "style_profile_benchmark_safe": style_profile_benchmark_safe,
+        "parser_cache_enabled": bool(config.parser.cache_enabled),
+        "parser_cache_dir": (
+            str(_default_parse_cache_dir(config)) if config.parser.cache_enabled else None
+        ),
+        "parse_cache_hit_count": 0,
+        "parse_cache_miss_count": 0,
         "eval_artifacts": None,
         "provider_readiness_error": None,
         "started_at": None,
@@ -309,6 +426,8 @@ async def run_pipeline(
             "provider_request_counts": {},
             "parse_errors": 0,
             "parse_warnings": 0,
+            "parse_cache_hit_count": 0,
+            "parse_cache_miss_count": 0,
             "matched_pdfs": 0,
             "unmatched_pdfs": 0,
             "ambiguous_pdfs": 0,
@@ -804,6 +923,13 @@ async def run_pipeline(
                 "schema_version": data.get("schema_version"),
                 "parser_identity": data.get("parser_identity"),
                 "parser_version": data.get("parser_version"),
+                "style_profile_mode": data.get("style_profile_mode"),
+                "style_profile_source": data.get("style_profile_source"),
+                "style_profile_benchmark_safe": data.get("style_profile_benchmark_safe"),
+                "parser_cache_enabled": data.get("parser_cache_enabled"),
+                "parser_cache_dir": data.get("parser_cache_dir"),
+                "parse_cache_hit_count": int(data.get("parse_cache_hit_count", 0) or 0),
+                "parse_cache_miss_count": int(data.get("parse_cache_miss_count", 0) or 0),
                 "eval_artifacts": data.get("eval_artifacts"),
                 "extraction_contract_valid": bool(data.get("extraction_contract_valid", False)),
                 "extraction_contract_warnings": data.get("extraction_contract_warnings", []),
@@ -1405,6 +1531,9 @@ async def run_pipeline(
         parsed_docs: list[dict] = []
         parse_errors: list[str] = []
         parse_warning_messages: set[tuple[str, str]] = set()
+        parse_cache_root = _default_parse_cache_dir(config) if config.parser.cache_enabled else None
+        if parse_cache_root is not None:
+            parse_cache_root.mkdir(parents=True, exist_ok=True)
 
         for pdf_file in pdf_files:
             pdf_path = os.path.join(config.pdf_dir, pdf_file)
@@ -1413,16 +1542,44 @@ async def run_pipeline(
             await asyncio.sleep(0)  # yield to event loop between PDFs
             try:
                 parse_started = perf_counter()
-                doc, diagnostics, _page_paths = parse_pdf(
-                    pdf_path=pdf_path,
-                    pdf_id=pdf_id,
-                    configured_parser=config.parser.backend,
-                    allow_basic_fallback=config.parser.allow_basic_fallback,
-                    ocr_enabled=config.parser.ocr_enabled,
-                    ocr_language=config.parser.ocr_language,
-                    run_dir=run_dir,
-                    generate_pages=True,
-                )
+                cached_bundle = None
+                cache_key = None
+                if parse_cache_root is not None:
+                    cache_key = _parse_cache_key(config, pdf_path)
+                    cached_bundle = _load_cached_parse_bundle(
+                        cache_root=parse_cache_root,
+                        cache_key=cache_key,
+                        run_dir=run_dir,
+                        pdf_id=pdf_id,
+                    )
+                if cached_bundle is not None:
+                    doc_payload, diagnostics_payload, _page_paths = cached_bundle
+                    doc = ParsedDocument.model_validate(doc_payload)
+                    diagnostics = ParserDiagnostics.model_validate(diagnostics_payload)
+                    run_data["parse_cache_hit_count"] = int(run_data.get("parse_cache_hit_count", 0) or 0) + 1
+                    run_stats["counters"]["parse_cache_hit_count"] = int(run_stats["counters"].get("parse_cache_hit_count", 0) or 0) + 1
+                    pdf_stats["parse_cache_hit"] = True
+                else:
+                    doc, diagnostics, _page_paths = parse_pdf(
+                        pdf_path=pdf_path,
+                        pdf_id=pdf_id,
+                        configured_parser=config.parser.backend,
+                        allow_basic_fallback=config.parser.allow_basic_fallback,
+                        ocr_enabled=config.parser.ocr_enabled,
+                        ocr_language=config.parser.ocr_language,
+                        run_dir=run_dir,
+                        generate_pages=True,
+                    )
+                    run_data["parse_cache_miss_count"] = int(run_data.get("parse_cache_miss_count", 0) or 0) + 1
+                    run_stats["counters"]["parse_cache_miss_count"] = int(run_stats["counters"].get("parse_cache_miss_count", 0) or 0) + 1
+                    pdf_stats["parse_cache_hit"] = False
+                    if parse_cache_root is not None and cache_key is not None:
+                        _store_parse_bundle_in_cache(
+                            cache_root=parse_cache_root,
+                            cache_key=cache_key,
+                            run_dir=run_dir,
+                            pdf_id=pdf_id,
+                        )
                 pdf_stats["parse_pdf_ms"] = round((perf_counter() - parse_started) * 1000.0, 3)
                 parsed_docs.append(doc.model_dump())
 
@@ -1535,20 +1692,29 @@ async def run_pipeline(
                 run_stats["counters"]["matched_pdfs"] += 1
         save_run(run_data)
 
+        style_profile_mode, style_profile_source, style_profile_benchmark_safe = config.style_profiles.resolve_behavior(
+            run_data["run_mode"]
+        )
+        run_data["style_profile_mode"] = style_profile_mode
+        run_data["style_profile_source"] = style_profile_source
+        run_data["style_profile_benchmark_safe"] = style_profile_benchmark_safe
+
         # Stage: style profiles (T041-T044)
         run_data = update_stage(run_data, "style_profiles")
         save_run(run_data)
 
-        # Pass provider for LLM-assisted profiling when available
-        style_profiles = await run_style_profiles_stage(
-            run_dir=run_dir,
-            df=style_profile_df,
-            schema=schema,
-            provider=provider,  # None → heuristic fallback
-            model_id=text_model_id if provider is not None else None,
-            prompt_bundle_name=config.prompt.bundle,
-            prompt_bundle_path=run_data.get("prompt_bundle_path") or config.prompt.bundle_path,
-        )
+        if style_profile_mode == "disabled":
+            style_profiles = {}
+        else:
+            style_profiles = await run_style_profiles_stage(
+                run_dir=run_dir,
+                df=style_profile_df,
+                schema=schema,
+                provider=provider,  # None → heuristic fallback
+                model_id=text_model_id if provider is not None else None,
+                prompt_bundle_name=config.prompt.bundle,
+                prompt_bundle_path=run_data.get("prompt_bundle_path") or config.prompt.bundle_path,
+            )
 
         # Stage: extraction (T057)
         run_data = update_stage(run_data, "extraction")
@@ -1624,6 +1790,7 @@ async def run_pipeline(
                 "config_snapshot_path": run_data["config_snapshot_path"],
                 "parser_identity": doc_dict.get("parser_used") or run_data.get("parser_identity"),
                 "parser_version": None,
+                "style_profile_mode": run_data.get("style_profile_mode"),
                 "gold_table_source_reference": (
                     run_data.get("eval_artifacts", {})
                     .get("gold_table", {})
@@ -1920,6 +2087,13 @@ async def run_pipeline(
                 "schema_version": run_data.get("schema_version"),
                 "parser_identity": run_data.get("parser_identity"),
                 "parser_version": run_data.get("parser_version"),
+                "style_profile_mode": run_data.get("style_profile_mode"),
+                "style_profile_source": run_data.get("style_profile_source"),
+                "style_profile_benchmark_safe": run_data.get("style_profile_benchmark_safe"),
+                "parser_cache_enabled": run_data.get("parser_cache_enabled"),
+                "parser_cache_dir": run_data.get("parser_cache_dir"),
+                "parse_cache_hit_count": int(run_data.get("parse_cache_hit_count", 0) or 0),
+                "parse_cache_miss_count": int(run_data.get("parse_cache_miss_count", 0) or 0),
                 "eval_artifacts": run_data.get("eval_artifacts"),
                 "extraction_contract_valid": bool(run_data.get("extraction_contract_valid", False)),
                 "extraction_contract_warnings": run_data.get("extraction_contract_warnings", []),

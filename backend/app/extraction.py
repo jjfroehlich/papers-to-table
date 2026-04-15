@@ -56,6 +56,7 @@ from .schemas import (
     SchemaFieldType,
     SupportLabel,
 )
+from .metadata import resolve_metadata_field
 from .style_profiles import StyleProfile
 
 
@@ -151,6 +152,11 @@ class ProposalRecord(BaseModel):
     provider_diagnostics: Optional[dict] = None
     retrieval_diagnostics: Optional[dict] = None
     figure_review_diagnostics: Optional[dict] = None
+    extraction_lane: str = "content"
+    failure_attribution: Optional[str] = None
+    fallback_reasons: list[str] = []
+    metadata_diagnostics: Optional[dict] = None
+    style_profile_mode: Optional[str] = None
     created_at: str
 
 
@@ -1714,6 +1720,7 @@ async def extract_cell(
     config_snapshot_path = artifact_context.get("config_snapshot_path")
     parser_identity = artifact_context.get("parser_identity")
     parser_version = artifact_context.get("parser_version")
+    style_profile_mode = artifact_context.get("style_profile_mode")
     gold_table_source_reference = artifact_context.get("gold_table_source_reference")
     gold_table_hash = artifact_context.get("gold_table_hash")
     gold_table_snapshot_path = artifact_context.get("gold_table_snapshot_path")
@@ -1722,6 +1729,147 @@ async def extract_cell(
 
     long_text = is_long_text_field(column_name, column_description)
     response_schema, response_schema_profile = _select_text_extraction_schema(caps)
+    metadata_resolution = resolve_metadata_field(column_name, column_description, doc_dict)
+
+    if metadata_resolution is not None and metadata_resolution.state == "found":
+        metadata_evidence_ids: list[str] = []
+        evidence_rank = 1
+        if metadata_resolution.quote_text:
+            evidence_id = generate_evidence_id(proposal_id)
+            evidence = EvidenceRecord(
+                evidence_id=evidence_id,
+                run_id=run_id,
+                proposal_id=proposal_id,
+                pdf_id=pdf_id,
+                source_type=(
+                    EvidenceSourceType.direct_quote
+                    if metadata_resolution.source_type == "direct_quote"
+                    else EvidenceSourceType.quote_plus_page
+                ),
+                quote_text=metadata_resolution.quote_text,
+                page_number=metadata_resolution.page_number,
+                anchor_confidence=1.0 if metadata_resolution.source_type == "direct_quote" else 0.6,
+                evidence_rank=evidence_rank,
+                is_primary=True,
+                run_mode=run_mode,
+                prompt_version=prompt_version,
+                prompt_hash=prompt_hash,
+                schema_hash=schema_hash,
+                schema_version=schema_version,
+                config_hash=config_hash,
+                config_snapshot_path=config_snapshot_path,
+                parser_identity=parser_identity,
+                parser_version=parser_version,
+                text_model_id=text_model_id,
+                vision_model_id=vision_model_id,
+                created_at=datetime.now(timezone.utc).isoformat(),
+            )
+            persist_evidence(run_dir, evidence)
+            metadata_evidence_ids.append(evidence_id)
+
+        proposal = ProposalRecord(
+            proposal_id=proposal_id,
+            run_id=run_id,
+            pdf_id=pdf_id,
+            row_id=row_id,
+            column_name=column_name,
+            cell_id=cell_id,
+            state=ProposalState.found,
+            support=SupportLabel.direct_evidence,
+            proposed_value=metadata_resolution.proposed_value,
+            rationale=_normalize_rationale(
+                f"Resolved from parser-first {metadata_resolution.field_kind} metadata before retrieval/model extraction."
+            ),
+            primary_evidence_id=metadata_evidence_ids[0] if metadata_evidence_ids else None,
+            ordered_supporting_evidence_ids=[],
+            evidence_ids=metadata_evidence_ids,
+            warning_flags=[],
+            needs_more_evidence=False,
+            is_verify_mode=is_verify_mode,
+            existing_value=existing_value,
+            field_type=field_type,
+            allowed_values=allowed_values,
+            provider_mode=provider_mode_str,
+            run_mode=run_mode,
+            prompt_version=prompt_version,
+            prompt_hash=prompt_hash,
+            schema_hash=schema_hash,
+            schema_version=schema_version,
+            config_hash=config_hash,
+            config_snapshot_path=config_snapshot_path,
+            parser_identity=parser_identity,
+            parser_version=parser_version,
+            text_model_id=text_model_id,
+            vision_model_id=vision_model_id,
+            gold_table_source_reference=gold_table_source_reference,
+            gold_table_hash=gold_table_hash,
+            gold_table_snapshot_path=gold_table_snapshot_path,
+            masked_working_table_path=masked_working_table_path,
+            masked_working_table_hash=masked_working_table_hash,
+            provider_diagnostics=None,
+            retrieval_diagnostics={
+                "metadata_front_matter": True,
+                "metadata_source": metadata_resolution.source,
+            },
+            extraction_lane=metadata_resolution.extraction_lane,
+            failure_attribution=None,
+            fallback_reasons=[],
+            metadata_diagnostics=metadata_resolution.diagnostics,
+            style_profile_mode=style_profile_mode,
+            created_at=now,
+        )
+        persist_proposal(run_dir, proposal)
+        finalize_stats(proposal)
+        return proposal
+
+    if metadata_resolution is not None and metadata_resolution.failure_attribution == "evidence_ambiguity":
+        proposal = ProposalRecord(
+            proposal_id=proposal_id,
+            run_id=run_id,
+            pdf_id=pdf_id,
+            row_id=row_id,
+            column_name=column_name,
+            cell_id=cell_id,
+            state=ProposalState.unclear,
+            support=SupportLabel.blocked,
+            proposed_value=None,
+            rationale=_normalize_rationale(
+                "Parser-first metadata/front-matter inspection found conflicting candidates, so the cell stayed unclear."
+            ),
+            evidence_ids=[],
+            warning_flags=["metadata_ambiguity"],
+            needs_more_evidence=False,
+            is_verify_mode=is_verify_mode,
+            existing_value=existing_value,
+            field_type=field_type,
+            allowed_values=allowed_values,
+            provider_mode=provider_mode_str,
+            run_mode=run_mode,
+            prompt_version=prompt_version,
+            prompt_hash=prompt_hash,
+            schema_hash=schema_hash,
+            schema_version=schema_version,
+            config_hash=config_hash,
+            config_snapshot_path=config_snapshot_path,
+            parser_identity=parser_identity,
+            parser_version=parser_version,
+            text_model_id=text_model_id,
+            vision_model_id=vision_model_id,
+            gold_table_source_reference=gold_table_source_reference,
+            gold_table_hash=gold_table_hash,
+            gold_table_snapshot_path=gold_table_snapshot_path,
+            masked_working_table_path=masked_working_table_path,
+            masked_working_table_hash=masked_working_table_hash,
+            extraction_lane=metadata_resolution.extraction_lane,
+            failure_attribution=metadata_resolution.failure_attribution,
+            fallback_reasons=list(metadata_resolution.fallback_reasons),
+            metadata_diagnostics=metadata_resolution.diagnostics,
+            style_profile_mode=style_profile_mode,
+            created_at=now,
+        )
+        persist_proposal(run_dir, proposal)
+        finalize_stats(proposal)
+        return proposal
 
     # Build extraction prompt (T053, T057a)
     messages = build_text_extraction_prompt(
@@ -1790,6 +1938,11 @@ async def extract_cell(
             masked_working_table_path=masked_working_table_path,
             masked_working_table_hash=masked_working_table_hash,
             provider_diagnostics=provider_diag_summary,
+            extraction_lane=(metadata_resolution.extraction_lane if metadata_resolution is not None else "content"),
+            failure_attribution="extraction_miss",
+            fallback_reasons=(list(metadata_resolution.fallback_reasons) if metadata_resolution is not None else []),
+            metadata_diagnostics=(metadata_resolution.diagnostics if metadata_resolution is not None else None),
+            style_profile_mode=style_profile_mode,
             created_at=now,
         )
         persist_proposal(run_dir, proposal)
@@ -1890,6 +2043,11 @@ async def extract_cell(
                 masked_working_table_path=masked_working_table_path,
                 masked_working_table_hash=masked_working_table_hash,
                 provider_diagnostics=provider_diag_summary,
+                extraction_lane=(metadata_resolution.extraction_lane if metadata_resolution is not None else "content"),
+                failure_attribution="extraction_miss",
+                fallback_reasons=(list(metadata_resolution.fallback_reasons) if metadata_resolution is not None else []),
+                metadata_diagnostics=(metadata_resolution.diagnostics if metadata_resolution is not None else None),
+                style_profile_mode=style_profile_mode,
                 created_at=now,
             )
             persist_proposal(run_dir, proposal)
@@ -2146,6 +2304,10 @@ async def extract_cell(
         field_type=field_type,
     )
 
+    if support == SupportLabel.weak_evidence and proposed_value:
+        state = ProposalState.unclear
+        support = SupportLabel.blocked
+
     warning_flags = []
     if needs_more:
         warning_flags.append("needs_more_evidence")
@@ -2163,6 +2325,18 @@ async def extract_cell(
         warning_flags.append("approximate_value")
     if numeric_value_form == NumericValueForm.range:
         warning_flags.append("range_value")
+
+    fallback_reasons = list(metadata_resolution.fallback_reasons) if metadata_resolution is not None else []
+    failure_attribution = _classify_failure_attribution(
+        state=state,
+        proposed_value=proposed_value,
+        retrieval=retrieval,
+        doc_dict=doc_dict,
+        evidence_records=ranked_evidence,
+        provider_mode_str=provider_mode_str,
+        metadata_resolution=metadata_resolution,
+        warning_flags=warning_flags,
+    )
 
     provider_diag_summary = _summarize_provider_attempts(
         _get_provider_diagnostics_since(provider, provider_diag_cursor)
@@ -2247,6 +2421,11 @@ async def extract_cell(
         provider_diagnostics=provider_diag_summary,
         retrieval_diagnostics=retrieval_diag_summary,
         figure_review_diagnostics=figure_review_diag_summary,
+        extraction_lane=(metadata_resolution.extraction_lane if metadata_resolution is not None else "content"),
+        failure_attribution=failure_attribution,
+        fallback_reasons=fallback_reasons,
+        metadata_diagnostics=(metadata_resolution.diagnostics if metadata_resolution is not None else None),
+        style_profile_mode=style_profile_mode,
         created_at=now,
     )
 
@@ -2316,6 +2495,39 @@ def _coerce_text_value(value: Any, joiner: str = "\n") -> Optional[str]:
         text = str(value)
     stripped = text.strip()
     return stripped or None
+
+
+def _classify_failure_attribution(
+    *,
+    state: ProposalState,
+    proposed_value: Optional[str],
+    retrieval: Optional[RetrievalResult],
+    doc_dict: dict,
+    evidence_records: list[EvidenceRecord],
+    provider_mode_str: str,
+    metadata_resolution: Optional[object],
+    warning_flags: list[str],
+) -> Optional[str]:
+    if state not in {ProposalState.unclear, ProposalState.error, ProposalState.blocked}:
+        return None
+    if metadata_resolution is not None:
+        failure_attribution = getattr(metadata_resolution, "failure_attribution", None)
+        if isinstance(failure_attribution, str) and failure_attribution:
+            return failure_attribution
+    if provider_mode_str in {"unavailable", "disabled"}:
+        return "contract_invalid"
+    if evidence_records:
+        return "evidence_ambiguity"
+    retrieval_chunks = retrieval.chunks if retrieval is not None else []
+    if retrieval is not None and not retrieval_chunks:
+        return "retrieval_miss"
+    if not str(doc_dict.get("full_text") or "").strip():
+        return "parser_gap"
+    if "needs_more_evidence" in warning_flags:
+        return "evidence_ambiguity"
+    if proposed_value:
+        return "evidence_ambiguity"
+    return "extraction_miss"
 
 
 def _get_provider_diagnostics_cursor(provider: ProviderAdapter) -> Optional[int]:

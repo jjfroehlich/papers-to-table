@@ -11,6 +11,7 @@ The system supports three operator-visible run modes: normal extraction for empt
 Eval-ready artifacts must remain directly consumable by the separate evaluator and optimizer from files alone. The main app therefore owns a versioned run-bundle contract and must persist enough proposal, evidence, and source-text-compatible artifact truth for downstream anchor validation to remain meaningful.
 
 In addition to full-fidelity diagnostics, the main app must also publish a compact downstream contract in stable summary artifacts so the separate evaluator and optimizer can consume structured-output degradation, parse-repair, retrieval-policy, and extraction-contract truth without importing main-app runtime code or reparsing verbose traces.
+Metadata and front-matter extraction must now be treated as a distinct lane from normal content extraction. Parser-first metadata resolution, metadata ambiguity, metadata-specific failure attribution, and the actual metadata source (`parser_metadata` versus `front_matter_block`) must remain explicit in proposal artifacts and downstream summaries rather than being hidden inside the generic retrieval path.
 
 The system extracts primarily from text and tables. Extraction is schema-first: column name, description, and optional field typing define what should be extracted, while existing filled cells are optional format helpers only. The schema stays lightweight and must not require explicit per-column vision policy fields. When vision capability is available, the system uses text-guided figure shortlisting and panel targeting as a normal supplemental evidence stage, allowing figure evidence to strengthen any proposal, corroborate text evidence, or rescue weak text-only results without broad untargeted vision calls.
 
@@ -37,8 +38,10 @@ The intended MVP workflow is:
 1. Start a run from the UI by typing the path to a run configuration file or using a `Browse...` affordance for local selection, then let the app validate and snapshot the resolved config, run explicit readiness checks, and surface the active proposal-generation mode before work begins.
 2. Normalize table columns, determine whether the run is in normal, Verify, or Eval mode, classify which cells are eligible, and create a masked working copy of target cells before extraction when Eval mode is enabled.
 3. Parse PDFs and extract paper-level metadata needed for row matching.
+  3a. Reuse a shared parser cache only when PDF content, parser settings, parser runtime fingerprint, and the persisted parse-artifact contract are unchanged so repeated benchmark or optimizer runs do not pay the full parse cost again.
 4. Match each PDF to at most one row, while surfacing unmatched, ambiguous, and duplicate-row conflicts.
 5. Generate one best proposal per eligible target cell using schema-first extraction, with evidence and support labeling that do not depend on prefilled cell values and that operate on the masked working copy rather than the original completed table in Eval mode.
+  5a. When a target cell is a metadata or front-matter field, prefer parser-first resolution and preserve explicit ambiguity or parser-gap truth instead of forcing the cell through the normal retrieval path.
 6. Let a human reviewer inspect, filter, accept, edit, confirm no data, reject, or bulk-accept the currently visible filtered subset, while navigating evidence and proposals quickly.
 7. Manually trigger export from the review UI to generate a new XLSX workbook containing only explicitly accepted changes plus an audit log and run summaries.
 8. Preserve diagnostics and artifacts so the run can be inspected later or scored later by a separate eval tool when Eval mode was used.

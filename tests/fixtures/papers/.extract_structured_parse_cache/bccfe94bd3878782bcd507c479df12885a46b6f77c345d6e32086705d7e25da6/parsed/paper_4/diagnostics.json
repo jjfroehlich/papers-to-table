@@ -1,0 +1,18 @@
+{
+  "pdf_id": "paper_4",
+  "pdf_path": "D:\\code\\local\\extract-structured-info-from-papers\\tests\\fixtures\\papers\\paper_4.pdf",
+  "configured_parser": "docling",
+  "actual_parser_used": "docling",
+  "fallback_used": false,
+  "fallback_reason": null,
+  "ocr_used": false,
+  "ocr_reason": null,
+  "page_count": 21,
+  "text_char_count": 88869,
+  "total_blocks": 267,
+  "major_extraction_gaps": [
+    "authors_not_extracted"
+  ],
+  "parse_warnings": [],
+  "parsed_at": "2026-04-15T21:19:25.042714+00:00"
+}

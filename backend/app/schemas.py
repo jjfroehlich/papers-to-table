@@ -199,6 +199,13 @@ class RunSummary(BaseModel):
     schema_version: Optional[str] = None
     parser_identity: Optional[str] = None
     parser_version: Optional[str] = None
+    style_profile_mode: Optional[str] = None
+    style_profile_source: Optional[str] = None
+    style_profile_benchmark_safe: Optional[bool] = None
+    parser_cache_enabled: Optional[bool] = None
+    parser_cache_dir: Optional[str] = None
+    parse_cache_hit_count: int = 0
+    parse_cache_miss_count: int = 0
     eval_artifacts: Optional[dict] = None
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
@@ -244,6 +251,13 @@ class ReviewerSummary(BaseModel):
     schema_version: Optional[str] = None
     parser_identity: Optional[str] = None
     parser_version: Optional[str] = None
+    style_profile_mode: Optional[str] = None
+    style_profile_source: Optional[str] = None
+    style_profile_benchmark_safe: Optional[bool] = None
+    parser_cache_enabled: Optional[bool] = None
+    parser_cache_dir: Optional[str] = None
+    parse_cache_hit_count: int = 0
+    parse_cache_miss_count: int = 0
     eval_artifacts: Optional[dict] = None
     total_proposals: int
     reviewed: int = 0

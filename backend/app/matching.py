@@ -22,6 +22,7 @@ import pandas as pd
 from pydantic import BaseModel
 
 from .artifacts import write_json
+from .metadata import extract_matching_metadata
 from .parsing import _DOI_PATTERN, _YEAR_PATTERN
 from .schemas import MatchOutcome
 
@@ -177,47 +178,13 @@ def extract_paper_metadata(doc_dict: dict) -> PaperMetadata:
     Grounded means: derived from the actual parsed document content, not
     from table expectations.
     """
-    meta = doc_dict.get("metadata", {})
-
-    title: Optional[str] = meta.get("title") or None
-    year: Optional[int] = meta.get("year") or None
-    doi: Optional[str] = meta.get("doi") or None
-    abstract_snippet: Optional[str] = None
-
-    # Authors: may be list or None
-    raw_authors = meta.get("authors")
-    authors: Optional[list[str]] = raw_authors if raw_authors else None
-
-    full_text: str = doc_dict.get("full_text", "")
-
-    # --- Title fallback: extract from blocks ---
-    if not title and full_text:
-        title = _extract_title_from_text(full_text, doc_dict.get("blocks", []))
-
-    # --- Year fallback ---
-    if not year and full_text:
-        year = _extract_year_from_text(full_text)
-
-    # --- DOI fallback ---
-    if not doi and full_text:
-        doi_match = _DOI_PATTERN.search(full_text)
-        if doi_match:
-            doi = doi_match.group(1).rstrip(".")
-
-    # --- Abstract snippet ---
-    for block in doc_dict.get("blocks", []):
-        if block.get("block_type") in ("abstract", "paragraph"):
-            text = block.get("text", "")
-            if len(text) > 100:
-                abstract_snippet = text[:500]
-                break
-
+    resolved = extract_matching_metadata(doc_dict)
     return PaperMetadata(
-        title=title,
-        authors=authors,
-        year=year,
-        doi=doi,
-        abstract_snippet=abstract_snippet,
+        title=resolved.title,
+        authors=resolved.authors,
+        year=resolved.year,
+        doi=resolved.doi,
+        abstract_snippet=resolved.abstract_snippet,
     )
 
 

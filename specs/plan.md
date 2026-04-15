@@ -116,6 +116,8 @@ Implementation for this phase is complete when the system satisfies the function
 20. The proposal-write path remains linear in proposal count rather than rereading the full proposal log on each append.
 
 21. Retrieval preparation work is reused per parsed PDF whenever the parsed document and retrieval mode are unchanged.
+22. Parser work is reused across repeated runs when parser settings and PDF content are unchanged, with cache-use truth persisted in run and reviewer summaries.
+23. Style-profile behavior is explicit and mode-aware: normal runs may sample configured rows, eval runs may only use masked rows or stay disabled, and the chosen behavior must be persisted as benchmark-safety provenance rather than inferred later.
 
 19. Proposal persistence uses `proposals.jsonl` plus a proposal index or equivalent lookup structure rather than many per-proposal files.
 
@@ -188,6 +190,7 @@ The workflow is structured and auditable. The prior implementation showed that g
 Runs are launched from the UI and executed under app-owned backend control using a lightweight in-process background mechanism for MVP; no external job framework is required.
 
 The same mechanism should expose cancellation so the UI can abort an in-flight run without introducing a second execution model.
+The staged runner should also reuse a bounded parser cache keyed by PDF content, parser settings, parser runtime fingerprint, and persisted parse-artifact contract version so optimizer and eval-heavy workflows do not repeat unchanged parsing work unnecessarily while still invalidating safely after parser/runtime drift.
 
 ---
 

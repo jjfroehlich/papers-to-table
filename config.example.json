@@ -22,7 +22,9 @@
     "backend": "docling",
     "ocr_enabled": false,
     "ocr_language": "en",
-    "allow_basic_fallback": false
+    "allow_basic_fallback": false,
+    "cache_enabled": true,
+    "cache_dir": "tests/fixtures/papers/.extract_structured_parse_cache"
   },
   "matching": {
     "ambiguity_threshold": 0.15
@@ -40,6 +42,12 @@
     "recall_rescue_enabled": true,
     "whole_document_mode": false,
     "whole_document_max_chars": 12000
+  },
+  "style_profiles": {
+    "enabled": true,
+    "max_examples": 3,
+    "normal_mode_behavior": "sample_rows",
+    "eval_mode_behavior": "masked_rows"
   },
   "figure_review": {
     "enabled": true,

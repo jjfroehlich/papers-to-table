@@ -29,8 +29,9 @@ from backend.app.artifacts import (
     write_json,
 )
 from backend.app.extraction import EvidenceRecord, ProposalRecord, load_proposals, persist_evidence, persist_proposal
+from backend.app import runner as runner_module
 from backend.app.config import RunConfig
-from backend.app.runner import get_initial_run_data, run_pipeline
+from backend.app.runner import _parse_cache_key, get_initial_run_data, run_pipeline
 from backend.app.ids import generate_proposal_id
 from backend.app.matching import MatchResult
 from backend.app.schemas import EvidenceSourceType, MatchOutcome, ProposalState, RunStatus, SupportLabel
@@ -90,6 +91,72 @@ class TestGetInitialRunData:
         assert data["started_at"] is None
         assert data["completed_at"] is None
         assert data["created_at"] is not None
+
+    def test_defaults_parser_cache_dir_to_pdf_directory(self, tmp_path):
+        pdf_dir = tmp_path / "pdfs"
+        pdf_dir.mkdir()
+
+        config = make_config(tmp_path, pdf_dir=str(pdf_dir))
+        data = get_initial_run_data("run_test_123", config, None)
+
+        assert data["parser_cache_enabled"] is True
+        assert data["parser_cache_dir"] == str((pdf_dir / ".extract_structured_parse_cache").resolve())
+
+    def test_records_style_profile_mode_by_run_mode(self, tmp_path):
+        normal_config = make_config(tmp_path)
+        normal_data = get_initial_run_data("run_normal", normal_config, None)
+
+        eval_config = make_config(tmp_path, eval_mode=True)
+        eval_data = get_initial_run_data("run_eval", eval_config, None)
+
+        assert normal_data["style_profile_mode"] == "sample_rows"
+        assert normal_data["style_profile_source"] == "filled_cells"
+        assert normal_data["style_profile_benchmark_safe"] is False
+        assert eval_data["style_profile_mode"] == "masked_rows"
+        assert eval_data["style_profile_source"] == "masked_working_copy"
+        assert eval_data["style_profile_benchmark_safe"] is True
+
+
+class TestParseCacheKey:
+    def test_changes_when_runtime_fingerprint_changes(self, tmp_path, monkeypatch):
+        config = make_config(tmp_path)
+        pdf_path = tmp_path / "paper.pdf"
+        pdf_path.write_bytes(b"%PDF-1.4\n%stub")
+
+        monkeypatch.setattr(runner_module, "hash_file", lambda path: "same-pdf-hash")
+        monkeypatch.setattr(
+            runner_module,
+            "_parse_runtime_fingerprint",
+            lambda config: {"python_version": "3.11.9", "package_versions": {"pypdfium2": "4.30.0"}},
+        )
+        baseline = _parse_cache_key(config, str(pdf_path))
+
+        monkeypatch.setattr(
+            runner_module,
+            "_parse_runtime_fingerprint",
+            lambda config: {"python_version": "3.12.1", "package_versions": {"pypdfium2": "4.30.0"}},
+        )
+        updated = _parse_cache_key(config, str(pdf_path))
+
+        assert baseline != updated
+
+    def test_changes_when_parse_contract_version_changes(self, tmp_path, monkeypatch):
+        config = make_config(tmp_path)
+        pdf_path = tmp_path / "paper.pdf"
+        pdf_path.write_bytes(b"%PDF-1.4\n%stub")
+
+        monkeypatch.setattr(runner_module, "hash_file", lambda path: "same-pdf-hash")
+        monkeypatch.setattr(
+            runner_module,
+            "_parse_runtime_fingerprint",
+            lambda config: {"python_version": "3.11.9", "package_versions": {"pypdfium2": "4.30.0"}},
+        )
+        baseline = _parse_cache_key(config, str(pdf_path))
+
+        monkeypatch.setattr(runner_module, "PARSED_DOCUMENT_CONTRACT_VERSION", "parsed_document.v99")
+        updated = _parse_cache_key(config, str(pdf_path))
+
+        assert baseline != updated
 
 
 class TestRunPipeline:

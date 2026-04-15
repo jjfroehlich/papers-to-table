@@ -171,6 +171,13 @@ def _build_output_payload(
         payload["prompt_only_degraded_mode_used"] = bool(
             run_data.get("prompt_only_degraded_mode_used", False)
         )
+        payload["style_profile_mode"] = run_data.get("style_profile_mode")
+        payload["style_profile_source"] = run_data.get("style_profile_source")
+        payload["style_profile_benchmark_safe"] = run_data.get("style_profile_benchmark_safe")
+        payload["parser_cache_enabled"] = run_data.get("parser_cache_enabled")
+        payload["parser_cache_dir"] = run_data.get("parser_cache_dir")
+        payload["parse_cache_hit_count"] = int(run_data.get("parse_cache_hit_count", 0) or 0)
+        payload["parse_cache_miss_count"] = int(run_data.get("parse_cache_miss_count", 0) or 0)
         payload["parse_repair_used"] = bool(run_data.get("parse_repair_used", False))
         payload["extraction_contract_valid"] = bool(
             run_data.get("extraction_contract_valid", False)
@@ -196,6 +203,13 @@ def _build_output_payload(
             "prompt_only_degraded_mode_used": bool(
                 run_data.get("prompt_only_degraded_mode_used", False)
             ),
+            "style_profile_mode": run_data.get("style_profile_mode"),
+            "style_profile_source": run_data.get("style_profile_source"),
+            "style_profile_benchmark_safe": run_data.get("style_profile_benchmark_safe"),
+            "parser_cache_enabled": run_data.get("parser_cache_enabled"),
+            "parser_cache_dir": run_data.get("parser_cache_dir"),
+            "parse_cache_hit_count": int(run_data.get("parse_cache_hit_count", 0) or 0),
+            "parse_cache_miss_count": int(run_data.get("parse_cache_miss_count", 0) or 0),
             "parse_repair_used": bool(run_data.get("parse_repair_used", False)),
             "extraction_contract_valid": bool(
                 run_data.get("extraction_contract_valid", False)

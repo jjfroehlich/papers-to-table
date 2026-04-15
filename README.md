@@ -152,6 +152,14 @@ Key compact provenance fields now include:
 - `recall_rescue_used`
 - `retrieval_provenance`
 - `extraction_provenance`
+- `style_profile_mode`
+- `style_profile_source`
+- `style_profile_benchmark_safe`
+- `parser_cache_enabled`
+- `parse_cache_hit_count`
+- `parse_cache_miss_count`
+
+Proposal records now also separate parser-first metadata or front-matter extraction from general content extraction. Metadata-facing cells can resolve directly from parser/front-matter signals with explicit ambiguity and failure-attribution diagnostics instead of always going through the normal retrieval lane, and the recorded metadata source is intended to reflect the actual origin (`parser_metadata` versus `front_matter_block`) rather than a generic parser-first label.
 
 Automation payloads include explicit contract helpers for orchestration:
 
@@ -207,6 +215,12 @@ The canonical provider token is `lm_studio`. Tokens such as `lmstudio`, `LMStudi
 | `retrieval.recall_rescue_enabled` | Retry `unclear` results with deterministic expanded retrieval (default: `true`) |
 | `retrieval.whole_document_mode` | Opt-in whole-document rescue context for short parsed papers (default: `false`) |
 | `retrieval.whole_document_max_chars` | Character cap for whole-document rescue context |
+| `style_profiles.enabled` | Enables output-format style-profile generation |
+| `style_profiles.max_examples` | Max sampled rows used when style profiles are enabled |
+| `style_profiles.normal_mode_behavior` | Style-profile source in normal runs: `sample_rows` or `disabled` |
+| `style_profiles.eval_mode_behavior` | Style-profile source in eval runs: `masked_rows` or `disabled` |
+| `parser.cache_enabled` | Reuses parsed-document bundles across repeated runs when PDF content plus parser config, parser runtime fingerprint, and parsed-document cache contract all match |
+| `parser.cache_dir` | Optional shared parser-cache directory (default: `<pdf_dir>/.extract_structured_parse_cache`) |
 
 The checked-in `config.example.json` intentionally includes only parameters currently wired into runtime behavior.
 
@@ -219,8 +233,6 @@ The following older knobs are omitted because they are not currently consumed by
 - `provider.vision_model.temperature`
 - `provider.vision_model.max_tokens`
 - `matching.strategy`
-- `style_profiles.enabled`
-- `style_profiles.max_examples`
 - `review.max_proposals_per_cell`
 - `export.highlight_changes`
 - `export.include_audit_log`

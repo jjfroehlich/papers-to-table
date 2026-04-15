@@ -24,6 +24,10 @@ from pydantic import BaseModel
 
 from .artifacts import write_json
 
+
+PARSED_DOCUMENT_CONTRACT_VERSION = "parsed_document.v1"
+PARSER_DIAGNOSTICS_CONTRACT_VERSION = "parser_diagnostics.v1"
+
 # ---------------------------------------------------------------------------
 # Shared regex constants (avoids duplication across metadata extraction points)
 # ---------------------------------------------------------------------------

@@ -27,6 +27,9 @@ Reality-checked on 2026-04-06 against current backend/frontend source, targeted 
 - Implemented in the latest pass: retrieval heuristic policy is now explicit in retrieval artifacts and summarized at the run level.
 - Implemented in the latest pass: compact structured `run_stats.json` diagnostics with explicit stage/PDF/cell timings, repeated-work counters, provider/evidence rollups, and consistency coverage.
 - Implemented in the latest pass: compact eval-facing extraction and retrieval provenance is now emitted in stable summary artifacts and automation payloads.
+- Implemented in the latest pass: parser-first metadata and front-matter extraction is separated from the general extraction lane with explicit proposal provenance and failure attribution.
+- Implemented in the latest pass: style-profile behavior is explicit per run mode and persisted as benchmark-safety provenance.
+- Implemented in the latest pass: parser-cache reuse is wired into the staged runner and summarized in stable run artifacts.
 - Historical run bundles under `runs/` are useful examples but are not the canonical artifact-shape source of truth.
 
 ## Canonical Checklist
@@ -110,6 +113,7 @@ Reality-checked on 2026-04-06 against current backend/frontend source, targeted 
 ### Matching
 
 - [x] **T033** Implement grounded paper-metadata extraction from parsed documents.
+- [x] **T033a** Split parser-first metadata and front-matter extraction from the general content-extraction lane and persist metadata-specific ambiguity diagnostics.
 - [x] **T034** Implement deterministic matching scoring using publication metadata signals.
 - [x] **T034a** Rebalance deterministic matching so exact and near-exact signals dominate title similarity.
 - [x] **T035** Implement limited fallback adjudication only for plausible ambiguous cases.
@@ -129,6 +133,8 @@ Reality-checked on 2026-04-06 against current backend/frontend source, targeted 
 - [x] **T042a** Make style-profile preprocessing helper-only and empty-table-safe.
 - [x] **T043** Persist style profiles under `style_profiles/` and restrict them to output-form guidance.
 - [x] **T044** Enforce the no-leakage baseline for style profiles.
+- [x] **T044b** Make style-profile behavior explicit per run mode and persist benchmark-safety provenance in stable summaries.
+- [x] **T029a** Reuse persisted parsed-document bundles through a bounded parser cache keyed by PDF content, parser settings, parser runtime fingerprint, and parse-artifact contract version.
 - [x] **T044a** Tighten extraction request construction against schema leakage.
 - [x] **T045** Create MVP retrieval chunks for the supported parsed-document content types.
 - [x] **T046** Implement contextualized retrieval text while preserving separate source-preserving display text.
