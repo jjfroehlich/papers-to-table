@@ -1,62 +1,92 @@
 {
   "schema_version": "1.0",
-  "experiment_id": "optimize_overnight",
+  "experiment_id": "compare_models_fixture_dev",
   "operator_todo": {
     "notes": [
-      "run_overnight.sh materializes this config onto the winner of the preceding retrieval-feature stage.",
-      "The search space keeps both prompt bundles live so optimize can still challenge the incumbent on prompt choice.",
-      "Skip holdout for tonight; add a real holdout split before re-enabling validate-best."
+      "This config keeps the old fixture-backed model compare for deeper manual checks against the checked-in literature fixture.",
+      "It is larger than smoke and is not used by the unattended overnight wrapper.",
+      "Set explicit command_prefix values if the optimizer, main app, and eval app do not share one Python environment."
     ]
   },
   "baseline_candidate": {
     "prompt_bundle_id": "default",
-    "text_model_id": "google/gemma-4-26b-a4b",
-    "vision_model_id": "google/gemma-4-26b-a4b",
+    "text_model_id": "qwen/qwen3.5-9b",
+    "vision_model_id": null,
     "optimizer_knobs": {
-      "retrieval_mode": "lexical",
-      "retrieval_top_k": 10,
+      "retrieval_top_k": 6,
       "recall_rescue_enabled": true,
       "whole_document_mode": false,
-      "whole_document_max_chars": 20000,
+      "whole_document_max_chars": 12000,
       "style_profiles_enabled": true,
       "style_profiles_max_examples": 3,
       "figure_review_enabled": false
     }
   },
-  "compare_candidates": [],
+  "compare_candidates": [
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "qwen/qwen3.5-9b",
+      "vision_model_id": null,
+      "optimizer_knobs": {
+        "retrieval_top_k": 6,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 12000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "google/gemma-4-26b-a4b",
+      "vision_model_id": null,
+      "optimizer_knobs": {
+        "retrieval_top_k": 6,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 12000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "qwen/qwen3.5-35b-a3b",
+      "vision_model_id": null,
+      "optimizer_knobs": {
+        "retrieval_top_k": 6,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 12000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false
+      }
+    }
+  ],
   "search_space": {
     "prompt_bundle_ids": [
-      "default",
-      "evidence_strict"
+      "default"
     ],
     "text_model_ids": [
-      "google/gemma-4-26b-a4b"
+      "qwen/qwen3.5-9b",
+      "google/gemma-4-26b-a4b",
+      "qwen/qwen3.5-35b-a3b"
     ],
-    "vision_model_ids": [
-      "google/gemma-4-26b-a4b"
-    ],
+    "vision_model_ids": [],
     "numeric_knobs": {
       "retrieval_top_k": {
         "values": [
-          8,
-          10,
-          12,
-          14,
-          16
-        ]
-      },
-      "style_profiles_max_examples": {
-        "values": [
-          2,
-          3,
-          4
+          6
         ]
       }
     }
   },
   "benchmarks": {
     "smoke": "bench_smoke",
-    "dev": "bench_dev",
+    "dev": "bench_smoke",
     "manifests": {
       "bench_smoke": {
         "table_path": "../../extract-structured-info-from-papers/tests/fixtures/tables/literature_fixture.xlsx",
@@ -68,28 +98,10 @@
         "eval_args": [
           "--judge-model",
           "google/gemma-4-26b-a4b",
-          "--judge-model-b",
-          "qwen/qwen3.5-35b-a3b",
           "--judge-api-base",
           "http://127.0.0.1:1234/v1"
         ],
         "expected_items": 5
-      },
-      "bench_dev": {
-        "table_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
-        "schema_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture_schema.csv",
-        "pdf_dir": "C:/Users/jonat/Desktop/202601_MPRA_table",
-        "gold_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
-        "main_args": [],
-        "eval_args": [
-          "--judge-model",
-          "google/gemma-4-26b-a4b",
-          "--judge-model-b",
-          "qwen/qwen3.5-35b-a3b",
-          "--judge-api-base",
-          "http://127.0.0.1:1234/v1"
-        ],
-        "expected_items": 100
       }
     }
   },
@@ -128,9 +140,6 @@
         "failure_count": "join_failure_count"
       },
       "diagnostic": {
-        "content_correctness_scored_only": "content_correctness_scored_only",
-        "overall_correctness": "overall_correctness",
-        "judge_disagreement": "judge_disagreement",
         "contract_warning_count": "contract_warning_count",
         "scored_cell_count": "scored_cell_count",
         "text_scored_cell_count": "text_scored_cell_count",
@@ -146,36 +155,6 @@
     "primary_metric": "content_correctness",
     "min_improvement": 0.01,
     "degraded_score_policy": "disallow",
-    "tie_break": {
-      "epsilon": 0.002,
-      "secondary_objectives": [
-        {
-          "metric": "evidence_quality",
-          "direction": "max",
-          "min_improvement": 0.0
-        },
-        {
-          "metric": "judge_disagreement",
-          "direction": "min",
-          "min_improvement": 0.0
-        },
-        {
-          "metric": "failure_count",
-          "direction": "min",
-          "min_improvement": 0.0
-        },
-        {
-          "metric": "null_count",
-          "direction": "min",
-          "min_improvement": 0.0
-        },
-        {
-          "metric": "runtime_seconds",
-          "direction": "min",
-          "min_improvement": 5.0
-        }
-      ]
-    },
     "guardrails": {
       "evidence_quality": {
         "min": 0.85
@@ -190,8 +169,8 @@
     }
   },
   "optimize": {
-    "rounds": 6,
-    "batch_size": 4
+    "rounds": 2,
+    "batch_size": 2
   },
   "compare": {
     "holdout_top_k": 0

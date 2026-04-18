@@ -381,6 +381,7 @@ def base_config(tmp_path: Path, stub_scripts: dict[str, str]) -> dict:
         },
         "acceptance": {
             "primary_metric": "correctness",
+            "degraded_score_policy": "disallow",
             "min_improvement": 0.001,
             "guardrails": {
                 "evidence_quality": {"min": 0.5},

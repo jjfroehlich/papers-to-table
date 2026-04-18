@@ -39,6 +39,34 @@ def test_load_search_space_success(base_config: dict) -> None:
     assert ss.numeric_knobs["retrieval_top_k"] == [6]
 
 
+def test_checked_in_planned_configs_disallow_degraded_scores() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    config_names = [
+        "compare_models_smoke.json",
+        "compare_models_dev.json",
+        "compare_prompts_dev.json",
+        "compare_retrieval_dev.json",
+        "compare_retrieval_modes_dev.json",
+        "optimize_overnight.json",
+    ]
+
+    for config_name in config_names:
+        payload = json.loads((repo_root / "configs" / config_name).read_text(encoding="utf-8"))
+        assert payload["acceptance"]["degraded_score_policy"] == "disallow"
+
+
+def test_compare_models_smoke_is_tiny_and_fast_by_contract() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    payload = json.loads((repo_root / "configs" / "compare_models_smoke.json").read_text(encoding="utf-8"))
+    bench = payload["benchmarks"]["manifests"][payload["benchmarks"]["smoke"]]
+
+    assert len(payload["compare_candidates"]) == 2
+    assert bench["expected_items"] == 3
+    assert bench["table_path"] == "benchmarks/smoke_fixture_table.csv"
+    assert bench["gold_path"] == "benchmarks/smoke_fixture_table.csv"
+    assert bench["schema_path"] == "benchmarks/smoke_fixture_schema.csv"
+
+
 def test_propose_candidates_covers_multi_knob_combinations() -> None:
     incumbent = Candidate(
         candidate_id="cand_0000",

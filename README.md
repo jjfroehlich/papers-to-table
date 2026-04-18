@@ -79,11 +79,14 @@ If you need a non-standard wrapper, both `main_app` and `eval_app` also support 
 
 Prepared configs in `configs/`:
 
-- `compare_models_smoke.json`: optional small benchmark compare on the smoke fixture. This is no longer used by the unattended overnight wrapper.
+- `compare_models_smoke.json`: true tiny smoke compare. It uses three known-matched fixture rows, three content columns (`Focus`, `Species`, `Promoter`), and two explicit text-model candidates so live validation stays fast.
+- `compare_models_fixture_dev.json`: optional fixture-backed compare on the larger checked-in literature fixture. This preserves the old manual check path but is no longer labeled `smoke`.
 - `compare_models_dev.json`: overnight compare of three explicit text models in this order: `qwen/qwen3.5-9b`, `google/gemma-4-26b-a4b`, `qwen/qwen3.5-35b-a3b`.
 - `compare_prompts_dev.json`: prompt-bundle compare between `default` and `evidence_strict`, materialized by `run_overnight.sh` onto the winner of the model-compare stage.
 - `compare_retrieval_dev.json`: retrieval sweep for `retrieval_top_k = 6 / 8 / 10`, materialized by `run_overnight.sh` onto the winner of the prompt-compare stage.
 - `optimize_overnight.json`: bounded optimize template whose baseline is materialized by `run_overnight.sh` from the retrieval-compare winner while keeping both prompt bundles live in the search space.
+
+All planned unattended configs now set `acceptance.degraded_score_policy` to `disallow`. That keeps degraded prompt-only fallback candidates visible in raw summaries while preventing them from becoming the official winner for compare or optimize stages.
 
 Two repo-grounded TODOs remain before every config is trustworthy in production:
 
@@ -147,6 +150,8 @@ Run studies in this order:
 2. `compare_prompts_dev.json`
 3. `compare_retrieval_dev.json`
 4. `optimize_overnight.json`
+
+If you want a quick pre-overnight live check, run `compare_models_smoke.json` first. If you want the older larger fixture-backed manual compare, use `compare_models_fixture_dev.json` explicitly.
 
 ### Exact Git Bash commands
 

@@ -281,7 +281,7 @@
   "acceptance": {
     "primary_metric": "content_correctness",
     "min_improvement": 0.01,
-    "degraded_score_policy": "warn",
+    "degraded_score_policy": "disallow",
     "guardrails": {
       "evidence_quality": {
         "min": 0.85
