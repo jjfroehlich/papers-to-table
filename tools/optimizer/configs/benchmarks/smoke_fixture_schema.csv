@@ -1,0 +1,7 @@
+column_name,description
+Authors,"Full author list of the paper, in publication order, primarily for identifying the publication. Preserve the author string as shown in the paper/metadata."
+Publication Year,"4-digit year of publication of the specific paper entry. Type: integer year as plain text/number, e.g. 2020."
+Title,"Exact title of the publication. Preserve the paper title, to uniquely identify the study."
+Focus,"Main biological or technical topic of the study, at a coarse level. Use a short controlled label matching the existing table style."
+Species,"Species of origin of the biological system or sequence context being assayed. Use short organism labels or a concise combined label if multiple species are central."
+Promoter,"Promoter used in the reporter construct. Capture the specific promoter identity when stated rather than a generic minimal-promoter label."

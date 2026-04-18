@@ -1,0 +1,2 @@
+[console_scripts]
+paper-optimizer = paper_optimizer.cli:main

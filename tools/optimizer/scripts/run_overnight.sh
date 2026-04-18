@@ -1,0 +1,374 @@
+#!/usr/bin/env bash
+
+set -eEuo pipefail
+
+label="${1:-overnight}"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "$script_dir/.." && pwd)"
+session_id="$(date +%Y%m%d_%H%M%S)"
+safe_label="$(printf '%s' "$label" | tr ' /:' '___')"
+optimizer_python="${PAPER_OPTIMIZER_PYTHON:-python}"
+
+compare_config="$repo_root/configs/compare_models_dev.json"
+prompt_config="$repo_root/configs/compare_prompts_dev.json"
+retrieval_core_config="$repo_root/configs/compare_retrieval_dev.json"
+retrieval_feature_config="$repo_root/configs/compare_retrieval_modes_dev.json"
+optimize_config="$repo_root/configs/optimize_overnight.json"
+compare_run_name="${session_id}_compare_models_dev_${safe_label}"
+prompt_run_name="${session_id}_compare_prompts_dev_${safe_label}"
+retrieval_core_run_name="${session_id}_compare_retrieval_dev_${safe_label}"
+retrieval_feature_run_name="${session_id}_compare_retrieval_modes_dev_${safe_label}"
+optimize_run_name="${session_id}_optimize_overnight_${safe_label}"
+overnight_dir="$repo_root/runs/${session_id}_overnight_${safe_label}"
+
+resolve_best_candidate_json() {
+	local run_name="$1"
+	printf '%s\n' "$repo_root/runs/$run_name/experiment/best_candidate.json"
+}
+
+require_best_candidate_json() {
+	local run_name="$1"
+	local best_path
+	best_path="$(resolve_best_candidate_json "$run_name")"
+	if [[ -f "$best_path" ]]; then
+		printf '%s\n' "$best_path"
+		return 0
+	fi
+
+	local summary_path="$repo_root/runs/$run_name/experiment/summary.json"
+	if [[ -f "$summary_path" ]]; then
+		"$optimizer_python" - "$summary_path" "$run_name" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+summary_path = Path(sys.argv[1])
+run_name = sys.argv[2]
+summary = json.loads(summary_path.read_text(encoding="utf-8"))
+winner = summary.get("winner_candidate_id")
+completed = summary.get("completed_candidate_count")
+failed = summary.get("failed_candidate_count")
+reasons = summary.get("rejection_reason_counts")
+raise SystemExit(
+    f"Run '{run_name}' did not produce best_candidate.json because no completed winner was recorded. "
+    f"winner_candidate_id={winner!r}, completed_candidate_count={completed}, failed_candidate_count={failed}, "
+    f"rejection_reason_counts={reasons}."
+)
+PY
+	fi
+
+	echo "Run '$run_name' did not produce best_candidate.json and no summary.json was found." >&2
+	return 1
+}
+
+resolve_results_jsonl() {
+	local run_name="$1"
+	printf '%s\n' "$repo_root/runs/$run_name/experiment/results/results.jsonl"
+}
+
+materialize_config_with_winner() {
+	local source_config="$1"
+	local best_candidate_json="$2"
+	local target_config="$3"
+	local mode="$4"
+
+	"$optimizer_python" - "$source_config" "$best_candidate_json" "$target_config" "$mode" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+source_path = Path(sys.argv[1])
+best_path = Path(sys.argv[2])
+target_path = Path(sys.argv[3])
+mode = sys.argv[4]
+
+PATH_FIELD_NAMES = {
+	"repo_root",
+	"base_config_path",
+	"table_path",
+	"schema_path",
+	"pdf_dir",
+	"gold_path",
+	"eval_schema_path",
+}
+
+config = json.loads(source_path.read_text(encoding="utf-8"))
+best = json.loads(best_path.read_text(encoding="utf-8"))
+
+winner_prompt = best.get("prompt_bundle_id") or config["baseline_candidate"]["prompt_bundle_id"]
+winner_model = best.get("text_model_id") or config["baseline_candidate"]["text_model_id"]
+winner_vision = best.get("vision_model_id")
+winner_knobs = dict(best.get("optimizer_knobs_flat") or {})
+
+
+def resolve_path_fields(payload, *, base_dir: Path):
+	if isinstance(payload, dict):
+		resolved = {}
+		for key, value in payload.items():
+			if key in PATH_FIELD_NAMES and isinstance(value, str) and value.strip():
+				candidate = Path(value)
+				resolved[key] = str(candidate.resolve()) if candidate.is_absolute() else str((base_dir / candidate).resolve())
+			else:
+				resolved[key] = resolve_path_fields(value, base_dir=base_dir)
+		return resolved
+	if isinstance(payload, list):
+		return [resolve_path_fields(item, base_dir=base_dir) for item in payload]
+	return payload
+
+def apply_candidate(candidate: dict, *, include_knobs: bool, preserve_prompt_bundle: bool = False) -> None:
+	if not preserve_prompt_bundle:
+		candidate["prompt_bundle_id"] = winner_prompt
+	candidate["text_model_id"] = winner_model
+	candidate["vision_model_id"] = winner_vision
+	if include_knobs and winner_knobs:
+		candidate["optimizer_knobs"] = winner_knobs
+
+if mode == "prompt_compare":
+	apply_candidate(config["baseline_candidate"], include_knobs=False, preserve_prompt_bundle=True)
+	for row in config.get("compare_candidates", []):
+		apply_candidate(row, include_knobs=False, preserve_prompt_bundle=True)
+elif mode == "retrieval_compare":
+	apply_candidate(config["baseline_candidate"], include_knobs=False)
+	for row in config.get("compare_candidates", []):
+		apply_candidate(row, include_knobs=False)
+elif mode == "optimize":
+	apply_candidate(config["baseline_candidate"], include_knobs=True)
+	if winner_prompt not in config.get("search_space", {}).get("prompt_bundle_ids", []):
+		config.setdefault("search_space", {}).setdefault("prompt_bundle_ids", []).insert(0, winner_prompt)
+	if winner_model not in config.get("search_space", {}).get("text_model_ids", []):
+		config.setdefault("search_space", {}).setdefault("text_model_ids", []).insert(0, winner_model)
+	if winner_vision is not None and winner_vision not in config.get("search_space", {}).get("vision_model_ids", []):
+		config.setdefault("search_space", {}).setdefault("vision_model_ids", []).insert(0, winner_vision)
+	if winner_knobs:
+		for knob_name, knob_value in winner_knobs.items():
+			knob_spec = config.get("search_space", {}).get("numeric_knobs", {}).get(knob_name)
+			if not isinstance(knob_spec, dict):
+				continue
+			values = list(knob_spec.get("values", []))
+			if knob_value not in values:
+				values.insert(0, knob_value)
+			knob_spec["values"] = values
+else:
+	raise SystemExit(f"Unsupported materialization mode: {mode}")
+
+config = resolve_path_fields(config, base_dir=source_path.resolve().parent)
+target_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
+PY
+}
+
+materialize_retrieval_feature_config() {
+	local source_config="$1"
+	local results_jsonl="$2"
+	local target_config="$3"
+	local max_seed_candidates="$4"
+
+	"$optimizer_python" - "$source_config" "$results_jsonl" "$target_config" "$max_seed_candidates" <<'PY'
+import json
+import sys
+from copy import deepcopy
+from pathlib import Path
+
+source_path = Path(sys.argv[1])
+results_path = Path(sys.argv[2])
+target_path = Path(sys.argv[3])
+max_seed_candidates = int(sys.argv[4])
+
+PATH_FIELD_NAMES = {
+	"repo_root",
+	"base_config_path",
+	"table_path",
+	"schema_path",
+	"pdf_dir",
+	"gold_path",
+	"eval_schema_path",
+}
+
+def resolve_path_fields(payload, *, base_dir: Path):
+	if isinstance(payload, dict):
+		resolved = {}
+		for key, value in payload.items():
+			if key in PATH_FIELD_NAMES and isinstance(value, str) and value.strip():
+				candidate = Path(value)
+				resolved[key] = str(candidate.resolve()) if candidate.is_absolute() else str((base_dir / candidate).resolve())
+			else:
+				resolved[key] = resolve_path_fields(value, base_dir=base_dir)
+		return resolved
+	if isinstance(payload, list):
+		return [resolve_path_fields(item, base_dir=base_dir) for item in payload]
+	return payload
+
+def sort_key(record: dict) -> tuple[int, float, float, str]:
+	status = str(record.get("score_status") or "")
+	status_priority = {"scored": 0, "scored_degraded": 1, "unscored": 2, "failed": 3}.get(status, 9)
+	primary_metric = str(config.get("acceptance", {}).get("primary_metric") or "content_correctness")
+	primary = record.get("primary_metrics", {}).get(primary_metric)
+	primary_value = float(primary) if isinstance(primary, (int, float)) else float("-inf")
+	runtime = record.get("runtime_seconds")
+	runtime_value = float(runtime) if isinstance(runtime, (int, float)) else float("inf")
+	return (status_priority, -primary_value, runtime_value, str(record.get("candidate_id") or "zzz"))
+
+config = json.loads(source_path.read_text(encoding="utf-8"))
+records = [json.loads(line) for line in results_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+records.sort(key=sort_key)
+seed_records = [record for record in records if record.get("candidate_status") == "completed"][:max_seed_candidates]
+if not seed_records:
+	raise SystemExit("No completed retrieval-core candidates were available for retrieval-feature materialization.")
+
+template_candidates = list(config.get("compare_candidates", []))
+if not template_candidates:
+	raise SystemExit("Retrieval-feature template has no compare_candidates to expand.")
+
+materialized_candidates = []
+for seed in seed_records:
+	seed_prompt = seed.get("prompt_bundle_id") or config["baseline_candidate"]["prompt_bundle_id"]
+	seed_model = seed.get("text_model_id") or config["baseline_candidate"]["text_model_id"]
+	seed_vision = seed.get("vision_model_id")
+	seed_knobs = dict(seed.get("optimizer_knobs_flat") or {})
+	seed_retrieval_mode = seed_knobs.get("retrieval_mode")
+	seed_retrieval_top_k = seed_knobs.get("retrieval_top_k")
+	for template in template_candidates:
+		candidate = deepcopy(template)
+		candidate["prompt_bundle_id"] = seed_prompt
+		candidate["text_model_id"] = seed_model
+		candidate["vision_model_id"] = seed_vision
+		candidate.setdefault("optimizer_knobs", {})
+		if seed_retrieval_mode is not None:
+			candidate["optimizer_knobs"]["retrieval_mode"] = seed_retrieval_mode
+		if seed_retrieval_top_k is not None:
+			candidate["optimizer_knobs"]["retrieval_top_k"] = seed_retrieval_top_k
+		materialized_candidates.append(candidate)
+
+config["baseline_candidate"] = deepcopy(materialized_candidates[0])
+config["compare_candidates"] = materialized_candidates
+config = resolve_path_fields(config, base_dir=source_path.resolve().parent)
+target_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
+PY
+}
+
+tmp_dir="$overnight_dir/materialized_configs"
+mkdir -p "$tmp_dir" "$overnight_dir"
+prompt_config_materialized="$tmp_dir/compare_prompts_dev.json"
+retrieval_core_config_materialized="$tmp_dir/compare_retrieval_dev.json"
+retrieval_feature_config_materialized="$tmp_dir/compare_retrieval_modes_dev.json"
+optimize_config_materialized="$tmp_dir/optimize_overnight.json"
+manifest_path="$overnight_dir/overnight_manifest.json"
+
+write_manifest() {
+	local status="$1"
+	local completed_at="${2:-}"
+	"$optimizer_python" - "$manifest_path" "$session_id" "$safe_label" "$status" "$completed_at" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+manifest_path = Path(sys.argv[1])
+session_id = sys.argv[2]
+label = sys.argv[3]
+status = sys.argv[4]
+completed_at = sys.argv[5] or None
+
+if manifest_path.exists():
+	payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+else:
+	payload = {"session_id": session_id, "label": label, "stages": []}
+
+payload["session_id"] = session_id
+payload["label"] = label
+payload["status"] = status
+if completed_at is not None:
+	payload["completed_at"] = completed_at
+manifest_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+}
+
+append_stage() {
+	local stage_name="$1"
+	local run_name="$2"
+	"$optimizer_python" - "$manifest_path" "$stage_name" "$repo_root" "$run_name" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+manifest_path = Path(sys.argv[1])
+stage_name = sys.argv[2]
+repo_root = Path(sys.argv[3])
+run_name = sys.argv[4]
+
+payload = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {"stages": []}
+stages = payload.get("stages", []) if isinstance(payload.get("stages"), list) else []
+stage_payload = {
+	"stage_name": stage_name,
+	"run_name": run_name,
+	"run_root": str((repo_root / "runs" / run_name).resolve()),
+}
+stages = [stage for stage in stages if stage.get("stage_name") != stage_name]
+stages.append(stage_payload)
+payload["stages"] = stages
+manifest_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+}
+
+refresh_overnight_report() {
+	pushd "$repo_root" >/dev/null
+	"$optimizer_python" -m paper_optimizer.cli overnight-report --manifest "$manifest_path"
+	popd >/dev/null
+}
+
+mark_failed() {
+	local exit_code="$1"
+	if [[ "$exit_code" -eq 0 ]]; then
+		return 0
+	fi
+	write_manifest failed "$(date -Iseconds)"
+	refresh_overnight_report || true
+	return 0
+}
+
+trap 'mark_failed "$?"' EXIT
+
+write_manifest running
+
+echo "[$(date -Iseconds)] Step 1: fast config preflight"
+pushd "$repo_root" >/dev/null
+"$optimizer_python" -m paper_optimizer.cli preflight --config "$compare_config"
+popd >/dev/null
+
+echo "[$(date -Iseconds)] Step 2: main compare study"
+PAPER_OPTIMIZER_RUN_NAME="$compare_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$compare_config" "${safe_label}_compare"
+append_stage model_compare "$compare_run_name"
+refresh_overnight_report
+
+echo "[$(date -Iseconds)] Step 3: prompt compare on the model-compare winner"
+materialize_config_with_winner "$prompt_config" "$(require_best_candidate_json "$compare_run_name")" "$prompt_config_materialized" prompt_compare
+PAPER_OPTIMIZER_RUN_NAME="$prompt_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$prompt_config_materialized" "${safe_label}_prompts"
+append_stage prompt_compare "$prompt_run_name"
+refresh_overnight_report
+
+echo "[$(date -Iseconds)] Step 4: retrieval sweep on the prompt-compare winner"
+materialize_config_with_winner "$retrieval_core_config" "$(require_best_candidate_json "$prompt_run_name")" "$retrieval_core_config_materialized" retrieval_compare
+PAPER_OPTIMIZER_RUN_NAME="$retrieval_core_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$retrieval_core_config_materialized" "${safe_label}_retrieval_core"
+append_stage retrieval_core_compare "$retrieval_core_run_name"
+refresh_overnight_report
+
+echo "[$(date -Iseconds)] Step 5: retrieval feature sweep on the top retrieval-core candidates"
+materialize_retrieval_feature_config "$retrieval_feature_config" "$(resolve_results_jsonl "$retrieval_core_run_name")" "$retrieval_feature_config_materialized" 2
+PAPER_OPTIMIZER_RUN_NAME="$retrieval_feature_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$retrieval_feature_config_materialized" "${safe_label}_retrieval_features"
+append_stage retrieval_feature_compare "$retrieval_feature_run_name"
+refresh_overnight_report
+
+echo "[$(date -Iseconds)] Step 6: optimize study from the retrieval-feature winner"
+materialize_config_with_winner "$optimize_config" "$(require_best_candidate_json "$retrieval_feature_run_name")" "$optimize_config_materialized" optimize
+PAPER_OPTIMIZER_RUN_NAME="$optimize_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" optimize "$optimize_config_materialized" "${safe_label}_optimize"
+append_stage optimize "$optimize_run_name"
+write_manifest completed "$(date -Iseconds)"
+refresh_overnight_report
+trap - EXIT
+
+echo "[$(date -Iseconds)] Overnight workflow finished"
+echo "Overnight report: $overnight_dir/report.html"
+echo "All candidates CSV: $overnight_dir/all_candidates.csv"
+echo "Compare run: $repo_root/runs/$compare_run_name"
+echo "Prompt run: $repo_root/runs/$prompt_run_name"
+echo "Retrieval core run: $repo_root/runs/$retrieval_core_run_name"
+echo "Retrieval feature run: $repo_root/runs/$retrieval_feature_run_name"
+echo "Optimize run: $repo_root/runs/$optimize_run_name"
