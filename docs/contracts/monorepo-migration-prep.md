@@ -4,9 +4,8 @@
 
 This note records the baseline state for migrating the separate main app, eval, and optimizer repositories into the current main app repository as the long-term monorepo home.
 
-This is a preparation batch only.
+This note began as the preparation batch note and now also records the structural migration batch.
 
-- No code movement is performed in this batch.
 - The destination repository remains the current main app repo.
 - The main app stays primary in structure, naming, and operator-facing documentation.
 - Public CLI semantics should be preserved unless a later batch requires a narrow compatibility adjustment.
@@ -50,6 +49,60 @@ Interpretation for later batches:
 - `tools/optimizer/` becomes the in-repo home for the optimizer.
 - `docs/` is split so the main app remains clearly primary while eval and optimizer docs remain available.
 - No shared runtime package is introduced during this migration.
+
+## Structural Migration Batch
+
+Structural migration completed on branch `migration/monorepo-prep` after the prep checkpoint.
+
+### Imports performed
+
+History-preserving imports were performed with `git subtree add` without `--squash`:
+
+- Eval source `1623c6b0b91b03166bb766e0fea3f73202427ea4` imported to `tools/eval/`
+- Optimizer source `e9f1cb0d9d4ca745ef28d59c71b33e9a3c5396a5` imported to `tools/optimizer/`
+
+Resulting import commits in the destination repo:
+
+- `36936208f10d6a53397471eb66990193577af4ce` for `tools/eval/`
+- `34dd28c837e7e60dcd45d7d7407c9a749522d746` for `tools/optimizer/`
+
+### Main app moves performed
+
+The main app runtime and immediate config/test surface were moved into `app/` using `git mv` where the files were tracked:
+
+- `backend/` -> `app/backend/`
+- `frontend/` -> `app/frontend/`
+- `tests/` -> `app/tests/`
+- `config.example.json` -> `app/config.example.json`
+- `config.json` -> `app/config.json`
+- `pyproject.toml` -> `app/pyproject.toml`
+- `uv.lock` -> `app/uv.lock`
+
+The generated `extract_structured_info_from_papers_backend.egg-info/` directory was present locally but not tracked, so it was not moved with `git mv`.
+
+### History preservation status
+
+- Eval history preserved through subtree import.
+- Optimizer history preserved through subtree import.
+- Main app move history preserved through `git mv` rename tracking for the tracked files listed above.
+
+### Minimal path adjustments made in this batch
+
+Only the smallest root-level path references were updated so the destination repo is structurally coherent:
+
+- root `AGENTS.md` now points at `app/backend`, `app/frontend`, and `app/tests/fixtures`
+- root CI workflow now installs/tests from `app/backend` and `app/frontend`
+
+### Temporary broken or stale paths intentionally left for the next batch
+
+The following are intentionally deferred to the path/runtime-fix batch rather than redesigned here:
+
+- root `README.md` still documents pre-move main-app paths
+- imported `tools/optimizer/README.md` still documents sibling repos
+- imported optimizer configs still point at sibling repo paths such as `../extract-structured-info-from-papers` and `../extract-structured-info-from-papers-eval`
+- imported optimizer launchers and shell scripts still assume separate repo roots
+- imported eval and optimizer CI files still reflect their original standalone-repo layouts
+- any runtime command that shells into the old top-level `frontend/` path is now stale
 
 ## Current Entrypoints And Baseline Commands
 

@@ -11,16 +11,16 @@ This repo is building a local-first paper-to-table review app that ingests PDFs 
 - Current repo state: active local-first implementation with a FastAPI backend, React frontend, backend/frontend tests, and Playwright-backed e2e coverage.
 - Current source of truth: `specs/spec.md` for product requirements, `specs/plan.md` for architecture, `specs/tasks.md` for verified implementation status, and this file for repo-level operating rules.
 - Preferred shell: Git Bash on Windows.
-- Canonical fixture root: `tests/fixtures/`.
-- Current fixture folders: `tests/fixtures/tables/` and `tests/fixtures/papers/`.
-- Implementation shape: `backend/` for FastAPI services and pipeline logic, `frontend/` for the React review UI.
+- Canonical fixture root: `app/tests/fixtures/`.
+- Current fixture folders: `app/tests/fixtures/tables/` and `app/tests/fixtures/papers/`.
+- Implementation shape: `app/backend/` for FastAPI services and pipeline logic, `app/frontend/` for the React review UI.
 - Canonical local startup path:
-	- install backend: `pip install -e ./backend`
-	- install frontend: `cd frontend && npm install`
+	- install backend: `pip install -e ./app/backend`
+	- install frontend: `cd app/frontend && npm install`
 	- start backend: `python -m uvicorn backend.app.main:app --reload --port 8000`
-	- start frontend: `cd frontend && npm run dev`
-	- backend tests: `pytest`
-	- frontend tests: `cd frontend && npm test`
+	- start frontend: `cd app/frontend && npm run dev`
+	- backend tests: `pytest app/tests/backend`
+	- frontend tests: `cd app/frontend && npm test`
 - When working inside `specs/`, follow `specs/AGENTS.md` for the spec-specific workflow.
 
 ## Work Modes
@@ -103,9 +103,11 @@ Done means the operator can understand what to do next without reading source co
 - `AGENTS.md`: root repo instructions
 - `README.md`: user and developer entrypoint
 - `specs/`: product, technical, research, and execution docs
-- `tests/fixtures/`: canonical workbook and PDF fixtures
-- `backend/`: FastAPI app and pipeline code
-- `frontend/`: React review UI
+- `app/tests/fixtures/`: canonical workbook and PDF fixtures
+- `app/backend/`: FastAPI app and pipeline code
+- `app/frontend/`: React review UI
+- `tools/eval/`: imported evaluator tool
+- `tools/optimizer/`: imported optimizer tool
 
 If the real structure changes, update this map.
 
