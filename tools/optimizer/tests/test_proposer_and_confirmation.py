@@ -83,7 +83,7 @@ def test_collect_proposer_candidates_rejects_invalid_and_duplicate_outputs(
     base_config["proposer"] = {
         "enabled": True,
         "provider": "lm_studio",
-        "model_id": "qwen/qwen3.5-35b-a3b",
+        "model_id": "qwen/qwen3.6-35b-a3b",
         "api_base": "http://127.0.0.1:1234/v1",
         "max_candidates": 3,
     }

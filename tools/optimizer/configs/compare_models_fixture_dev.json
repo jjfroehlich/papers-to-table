@@ -53,7 +53,7 @@
     },
     {
       "prompt_bundle_id": "default",
-      "text_model_id": "qwen/qwen3.5-35b-a3b",
+      "text_model_id": "qwen/qwen3.6-35b-a3b",
       "vision_model_id": null,
       "optimizer_knobs": {
         "retrieval_top_k": 6,
@@ -73,7 +73,7 @@
     "text_model_ids": [
       "qwen/qwen3.5-9b",
       "google/gemma-4-26b-a4b",
-      "qwen/qwen3.5-35b-a3b"
+      "qwen/qwen3.6-35b-a3b"
     ],
     "vision_model_ids": [],
     "numeric_knobs": {

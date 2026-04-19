@@ -85,7 +85,7 @@ Working rules:
 - [x] E044 Write judge records to a separate inspectable artifact such as `judge_records.jsonl`.
 - [x] E045 Ensure judge use is limited to text fields by default, while allowing explicit field or column deterministic override for standardized text fields.
 - [x] E046 Add CLI flags or config inputs for fixed judge model selection without widening the tool into a broad config framework.
-- [x] E061 Make LM Studio the default local-first judge provider through its OpenAI-compatible API, with `qwen/qwen3.5-35b-a3b` as the default configured judge model for MVP.
+- [x] E061 Make LM Studio the default local-first judge provider through its OpenAI-compatible API, with `qwen/qwen3.6-35b-a3b` as the default configured judge model for MVP.
 - [x] E062 Persist full judge provenance for judge-backed cells and judge records, including provider, configured judge model, resolved runtime judge model, prompt version or hash, verdict, and input hash.
 
 ## Reproducibility Metadata
@@ -114,7 +114,7 @@ Working rules:
 - [x] E057 Write the initial `README.md` or operator documentation once actual commands, output paths, and examples exist.
 - [x] E058 Document the published input artifact contract expected from the main app in operator-facing docs, including stable join identifiers and single-sheet XLSX behavior.
 - [x] E063 Tighten `README.md` and operator docs so they clearly explain what the eval repo does, expected main-app inputs, one-run and many-run evaluation workflows, headline metrics, diagnostic metrics, and current limitations.
-- [x] E064 Add explicit operator guidance and examples for the LM Studio judge path, including configuration, the default judge model `qwen/qwen3.5-35b-a3b`, and how persisted judge metadata should be interpreted.
+- [x] E064 Add explicit operator guidance and examples for the LM Studio judge path, including configuration, the default judge model `qwen/qwen3.6-35b-a3b`, and how persisted judge metadata should be interpreted.
 - [x] E067 Document judge fallback behavior and the additional judge-failure and judge-response-mode diagnostic metrics exposed in run summaries.
 - [x] E065 Add optional machine-readable JSON stdout completion mode for `evaluate` and `compare`, while keeping file artifacts canonical.
 - [x] E066 Add tests and docs for JSON stdout mode, including payload schema tagging and key produced artifact paths.

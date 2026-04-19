@@ -55,7 +55,7 @@ Visible elements:
 
 | Response | Model | Access | Cost |
 |---|---|---|---|
-| #1 | `qwen/qwen3.5-35b-a3b Q4_K_M` | local | free |
+| #1 | `qwen/qwen3.6-35b-a3b Q4_K_M` | local | free |
 | #2 | `google/gemma-4-26b-a4b Q4_K_M` | local | free |
 | #3 | `ChatGPT 5.4 Thinking Extended` | web | not free |
 | #4 | `Gemini 3.1 Pro Preview` | web | not free |
@@ -67,7 +67,7 @@ Visible elements:
 
 | Response | Model | Processing Time |
 |---|---|---:|
-| #1 | `qwen/qwen3.5-35b-a3b Q4_K_M` | 52 s |
+| #1 | `qwen/qwen3.6-35b-a3b Q4_K_M` | 52 s |
 | #2 | `google/gemma-4-26b-a4b Q4_K_M` | 6.5 s |
 | #3 | `ChatGPT 5.4 Thinking Extended` | 58 s |
 | #4 | `Gemini 3.1 Pro Preview` | 25 s |
@@ -82,7 +82,7 @@ Visible elements:
 | **1** | **#3** | **ChatGPT 5.4 Thinking Extended** | web, not free | **58 s** | **8.8/10** | Best overall; strongest balance of accuracy, restraint, and correct interpretation |
 | **2** | **#4** | **Gemini 3.1 Pro Preview** | web, not free | **25 s** | **8.1/10** | Very good and detailed; slightly more overreach than #3 |
 | **3** | **#2** | **google/gemma-4-26b-a4b Q4_K_M** | local, free | **6.5 s** | **6.9/10** | Best speed/quality tradeoff among the fast local models |
-| **4** | **#1** | **qwen/qwen3.5-35b-a3b Q4_K_M** | local, free | **52 s** | **6.3/10** | Acceptable, but slower than expected for its quality here |
+| **4** | **#1** | **qwen/qwen3.6-35b-a3b Q4_K_M** | local, free | **52 s** | **6.3/10** | Acceptable, but slower than expected for its quality here |
 | **5** | **#5** | **zai-org/glm-4.6v-flash Q4_K_M** | local, free | **6.3 s** | **2.0/10** | Fast, but clearly the least reliable on this figure |
 
 ---
@@ -111,7 +111,7 @@ Visible elements:
 **google/gemma-4-26b-a4b Q4_K_M** (#2)
 
 ### Most disappointing speed/quality balance
-**qwen/qwen3.5-35b-a3b Q4_K_M** (#1)  
+**qwen/qwen3.6-35b-a3b Q4_K_M** (#1)  
 It was much slower than Gemma but not better enough to justify the time in this test.
 
 ### Fastest but least reliable
