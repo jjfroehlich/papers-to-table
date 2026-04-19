@@ -192,7 +192,9 @@ def generate_xlsx_export(
     assert out_ws is not None
 
     if source_wb is not None:
-        src_ws = source_wb.active
+        # Keep export aligned with ingest/table loading, which treats the first
+        # worksheet as the source table even when a schema sheet is marked active.
+        src_ws = source_wb.worksheets[0]
         assert src_ws is not None
         # Copy all cell values (not formulas/formatting) from source
         for row in src_ws.iter_rows():

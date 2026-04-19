@@ -9,17 +9,18 @@ This repo is building a local-first paper-to-table review app that ingests PDFs 
 ## Quick Reference
 
 - Current repo state: active local-first implementation with a FastAPI backend, React frontend, backend/frontend tests, and Playwright-backed e2e coverage.
-- Current source of truth: `specs/spec.md` for product requirements, `specs/plan.md` for architecture, `specs/tasks.md` for verified implementation status, and this file for repo-level operating rules.
+- Current source of truth: `specs/README.md` for the spec-system guide, `specs/product/` for main-app product requirements, `specs/tools/` for companion-tool behavior, `specs/contracts/` for shared cross-tool rules, `specs/architecture/` for monorepo boundaries, `specs/process/` for maintenance policy, `specs/plan.md` for supportive planning, `specs/tasks.md` for verified implementation status, and this file for repo-level operating rules.
 - Preferred shell: Git Bash on Windows.
 - Canonical fixture root: `app/tests/fixtures/`.
 - Current fixture folders: `app/tests/fixtures/tables/` and `app/tests/fixtures/papers/`.
 - Implementation shape: `app/backend/` for FastAPI services and pipeline logic, `app/frontend/` for the React review UI.
 - Canonical local startup path:
-	- install backend: `pip install -e ./app/backend`
+	- run main app commands from `app/`
+	- install backend: `cd app && pip install -e ./backend`
 	- install frontend: `cd app/frontend && npm install`
 	- start backend: `python -m uvicorn backend.app.main:app --reload --port 8000`
 	- start frontend: `cd app/frontend && npm run dev`
-	- backend tests: `pytest app/tests/backend`
+	- backend tests: `cd app && pytest tests/backend`
 	- frontend tests: `cd app/frontend && npm test`
 - When working inside `specs/`, follow `specs/AGENTS.md` for the spec-specific workflow.
 
@@ -33,9 +34,10 @@ If the user asks for non-spec work, do the work directly. Update specs only if r
 
 If the task is explicitly spec-driven or scoped to `specs/`, follow:
 
-1. `spec.md`
-2. `plan.md`
-3. `tasks.md`
+1. `README.md`
+2. relevant owning files under `product/`, `tools/`, `contracts/`, `architecture/`, and `process/`
+3. `plan.md`
+4. `tasks.md`
 
 If those artifacts conflict, fix the smallest coherent set of docs first.
 
@@ -69,7 +71,7 @@ Done means the operator can understand what to do next without reading source co
 
 - Update only the docs whose truth changed, but do it in the same pass as the code or behavior change.
 - Remove stale text rather than letting old and new descriptions coexist.
-- Preserve the existing canonical section structure when editing `spec.md`, `plan.md`, `research.md`, `tasks.md`, `README.md`, and both `AGENTS.md` files.
+- Preserve the existing canonical section structure when editing files under `specs/`, `README.md`, and both `AGENTS.md` files.
 - Prefer editing the correct existing section over appending an ad hoc new section near the bottom.
 - Do not insert temporary pass-specific instructions, execution notes, or status banners into stable product or architecture docs.
 - Keep implementation status in its canonical tracking location instead of restating it across multiple docs.

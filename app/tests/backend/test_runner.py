@@ -785,7 +785,7 @@ class TestRunPipeline:
 
     @pytest.mark.asyncio
     async def test_parse_and_evidence_fallback_truth_surfaces_in_run_warnings(self, tmp_path, monkeypatch):
-        config = make_config(tmp_path)
+        config = make_config(tmp_path, parser={"cache_enabled": False})
         run_id = "run_warning_truth"
         output_dir = str(tmp_path / "runs")
         (tmp_path / "runs").mkdir(exist_ok=True)

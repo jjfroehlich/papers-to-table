@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This is the canonical implementation checklist and status tracker for the MVP.
+This is the canonical implementation checklist and status tracker for the monorepo.
 
-Use this file for checked/unchecked task state. Keep product behavior in `spec.md`, architecture in `plan.md`, rationale in `research.md`, operator workflow in `README.md`, and editing rules in `AGENTS.md`.
+Use this file for checked/unchecked task state only. Keep behavior and contracts in the owning files under `product/`, `tools/`, `contracts/`, `architecture/`, and `process/`. Keep supportive planning in `plan.md`, operator workflow in `README.md`, and editing rules in `AGENTS.md`.
 
 ## Canonical Editing Rules
 
@@ -13,6 +13,16 @@ Use this file for checked/unchecked task state. Keep product behavior in `spec.m
 - Preserve the section structure below when editing.
 - Put temporary or historical notes in the appendix, not in the main checklist.
 - Do not add new batch or phase frameworks unless explicitly asked.
+
+## Spec-System Alignment
+
+- Main-app product behavior is owned by `product/overview.md`, `product/main-app.md`, and `product/review-workflow.md`.
+- Eval behavior is owned by `tools/eval.md`.
+- Optimizer behavior is owned by `tools/optimizer.md`.
+- Shared cross-tool contracts are owned by `contracts/`.
+- Monorepo structure and integration are owned by `architecture/`.
+- Change and verification policy are owned by `process/`.
+- Implementation status lives here only.
 
 ## Current Repo-Truth Notes
 
@@ -309,6 +319,143 @@ Reality-checked on 2026-04-06 against current backend/frontend source, targeted 
 - [x] **T107c** Update `README.md` and related operator docs for the tightened workflow contract.
 - [x] **T107d** Add a reproducible screenshot-capture workflow for docs.
 - [x] **T107e** Update `README.md` and related operator docs for Eval mode.
+
+### Companion tool - eval
+
+- [x] **E001** Create the base package layout for the evaluator CLI and supporting modules.
+- [x] **E002** Implement CLI argument parsing for `evaluate` with `--run`, `--runs-root`, repeated `--run`, `--gold`, optional `--gold-sheet`, optional `--schema`, and `--out`.
+- [x] **E003** Implement output-directory creation and run-level output path helpers.
+- [x] **E004** Define evaluator-owned typed contracts for loaded run metadata, proposal records, evidence records, gold cells, scored cells, and run summaries.
+- [x] **E005** Implement main-app run bundle discovery for one run, a runs root, and an explicit run list.
+- [x] **E006** Implement contract validation for required main-app artifact files and the published stable eval join fields.
+- [x] **E007** Implement proposal loading from `proposals/proposals.jsonl`.
+- [x] **E008** Implement loading of run metadata from `run.json`, `config.snapshot.json`, `inputs/input_summary.json`, and `summaries/run_summary.json` when present.
+- [x] **E009** Implement a loader or adapter path for evidence data when proposals do not already carry enough evidence detail.
+- [x] **E009a** Load canonical main-app per-evidence JSON artifacts when sidecar evidence files are absent.
+- [x] **E009b** Reconstruct page-text-compatible source text from persisted parsed-document artifacts when page-text sidecars are absent.
+- [x] **E010** Implement explicit contract errors for missing required scoring fields, especially missing stable join identifiers such as `row_id`, `column_name`, and `cell_id`.
+- [x] **E011** Implement gold CSV loading.
+- [x] **E012** Implement gold XLSX loading with single-sheet selection per invocation and a documented default first-sheet behavior when no sheet is specified.
+- [x] **E013** Implement consistent gold-present versus gold-empty detection.
+- [x] **E014** Implement field-type resolution precedence across proposal metadata, schema metadata, and evaluator fallbacks, including field or column scoring-policy overrides for text fields.
+- [x] **E015** Implement boolean normalization.
+- [x] **E016** Implement categorical normalization with alias mapping and `allowed_values` support.
+- [x] **E017** Implement numeric normalization for exact, range, and approximate forms, plus numeric tolerance resolution with per-column override and global defaults.
+- [x] **E018** Implement deterministic boolean comparison.
+- [x] **E019** Implement deterministic categorical comparison.
+- [x] **E020** Implement deterministic numeric comparison with binary headline correctness under the resolved tolerance policy plus diagnostic error fields.
+- [x] **E021** Implement per-cell scoring orchestration for structured fields on gold-present cells only, consuming stable main-app identifiers rather than derived row-index joins.
+- [x] **E022** Write per-cell outputs for one run in JSONL and CSV.
+- [x] **E023** Implement per-run aggregation for structured metrics and diagnostic counts.
+- [x] **E024** Write per-run `run_summary.json` and `run_summary.csv`.
+- [x] **E025** Implement batch evaluation over a runs root and repeated explicit run paths.
+- [x] **E026** Normalize run metadata into one flat comparison row schema.
+- [x] **E027** Include core run metadata columns such as run id, mode, text model id, vision model id, parser identity or version, prompt version or hash, schema hash or version, and config hash.
+- [x] **E028** Implement the minimal evidence anchor contract check using page plus quote text, and quote locatability when persisted page text or equivalent text evidence is available.
+- [x] **E028a** Add bounded normalized-text fallback so parsed-document text can validate anchors without overstating confidence.
+- [x] **E029** Implement `anchor_valid_rate`, counting only fully validated anchors and distinguishing evidence-present-but-unvalidated as a separate diagnostic state.
+- [x] **E030** Implement `correct_and_anchored_rate`.
+- [x] **E031** Implement optional structured-field support proxy evaluation behind a narrow internal interface.
+- [x] **E032** Implement diagnostic counting for gold-empty proposals, including `filled_on_gold_empty_count`.
+- [x] **E033** Implement batch comparison row generation with one row per run.
+- [x] **E034** Write the canonical batch comparison CSV.
+- [x] **E035** Write batch comparison XLSX from the same normalized rows.
+- [x] **E036** Write batch comparison Parquet from the same normalized rows.
+- [x] **E037** Implement `compare` command support for rebuilding comparison artifacts from per-run summaries.
+- [x] **E038** Define the judge request and response schema for text-field scoring under a judge-by-default policy for text fields.
+- [x] **E039** Implement judge prompt construction with bounded field context only.
+- [x] **E040** Implement a judge adapter with fixed model configuration, temperature 0, and bounded fallback from `json_schema` to `json_object` to prompt-only JSON mode.
+- [x] **E041** Implement text-field normalization helpers needed before judge invocation and deterministic override support for highly standardized text columns.
+- [x] **E042** Implement `text_accuracy` under the configured text scoring policy, with judge-backed scoring by default and deterministic override where configured.
+- [x] **E043** Persist judge metadata per scored text cell, including judge model id, prompt version or hash, and temperature.
+- [x] **E044** Write judge records to a separate inspectable artifact such as `judge_records.jsonl`.
+- [x] **E045** Ensure judge use is limited to text fields by default, while allowing explicit field or column deterministic override for standardized text fields.
+- [x] **E046** Add CLI flags or config inputs for fixed judge model selection without widening the tool into a broad config framework.
+- [x] **E047** Add contract validation for eval-mode provenance fields such as gold and masked table hashes and snapshot paths when runs are marked as eval runs.
+- [x] **E048** Fail fast when the published stable join contract is missing or inconsistent, and document the contract gap clearly.
+- [x] **E048a** Fail fast on unsupported main-app artifact schema versions while preserving bounded backward compatibility for known versions.
+- [x] **E049** Implement unit tests for boolean, categorical, and numeric normalization.
+- [x] **E050** Implement unit tests for deterministic comparators.
+- [x] **E051** Implement unit tests for gold-present and gold-empty detection.
+- [x] **E052** Implement unit tests for evidence anchor validation, including locatable versus present-but-unvalidated quote cases.
+- [x] **E052a** Add tests for canonical main-app evidence-directory loading and parsed-document page-text fallback.
+- [x] **E053** Implement contract tests for required main-app artifact fields, worksheet selection behavior, and failure messages.
+- [x] **E054** Implement end-to-end tests for scoring one run.
+- [x] **E055** Implement end-to-end tests for scoring multiple runs and writing batch comparison outputs.
+- [x] **E055a** Add contract tests proving a main-app-style eval-mode run bundle remains loadable and anchor-validatable.
+- [x] **E056** Implement mocked judge tests for text scoring under judge-by-default behavior and deterministic text override behavior.
+- [x] **E057** Write the initial `README.md` or operator documentation once actual commands, output paths, and examples exist.
+- [x] **E058** Document the published input artifact contract expected from the main app in operator-facing docs, including stable join identifiers and single-sheet XLSX behavior.
+- [x] **E059** Review the spec set together for consistency after material changes.
+- [x] **E060** Keep an explicit visible note in docs about the required stable join-key contract between the main app and the eval repo, with `row_index` treated only as fallback or debug context.
+- [x] **E061** Make LM Studio the default local-first judge provider through its OpenAI-compatible API, with `qwen/qwen3.5-35b-a3b` as the default configured judge model for MVP.
+- [x] **E062** Persist full judge provenance for judge-backed cells and judge records, including provider, configured judge model, resolved runtime judge model, prompt version or hash, verdict, and input hash.
+- [x] **E063** Tighten `README.md` and operator docs so they clearly explain what the eval repo does, expected main-app inputs, one-run and many-run evaluation workflows, headline metrics, diagnostic metrics, and current limitations.
+- [x] **E064** Add explicit operator guidance and examples for the LM Studio judge path, including configuration, the default judge model `qwen/qwen3.5-35b-a3b`, and how persisted judge metadata should be interpreted.
+- [x] **E065** Add optional machine-readable JSON stdout completion mode for `evaluate` and `compare`, while keeping file artifacts canonical.
+- [x] **E066** Add tests and docs for JSON stdout mode, including payload schema tagging and key produced artifact paths.
+- [x] **E067** Document judge fallback behavior and the additional judge-failure and judge-response-mode diagnostic metrics exposed in run summaries.
+- [x] **E068** Add minimal CI coverage for loader, scorer, and contract-regression tests.
+- [x] **E069** Add optional dual-judge support, explicit `scored` or `unscored_reason` summary truth, and scored-column filtering for metadata-safe optimizer consumption.
+- [x] **E070** Make headline correctness content-focused while keeping metadata correctness as an explicit secondary metric.
+- [x] **E071** Propagate extraction-lane and failure-attribution provenance from main-app proposals into scored cells and run summaries.
+- [x] **E072** Add evidence-grounded and failure-attribution aggregate metrics for downstream optimizer diagnostics.
+
+### Companion tool - optimizer
+
+- [x] **O001** Create base package layout for optimizer CLI and modules.
+- [x] **O002** Implement CLI parsing for `optimize`, `evaluate-candidate`, `validate-best`, and `summarize`.
+- [x] **O002a** Implement fast `preflight` CLI coverage for config, path, and contract validation without running a study.
+- [x] **O003** Implement optimizer config loading and validation.
+- [x] **O004** Define typed contracts for settings, benchmarks, search space, candidate bundles, candidate results, round summaries, and best-candidate records.
+- [x] **O005** Implement benchmark manifest loading for `smoke`, `dev`, and `holdout` style splits.
+- [x] **O006** Implement split validation so `dev` and `holdout` cannot be the same benchmark id.
+- [x] **O007** Implement explicit search-space validation for bounded optimizer-owned fields.
+- [x] **O008** Define baseline candidate contract and validation rules.
+- [x] **O009** Implement candidate hashing, lineage fields, and immutable bundle materialization.
+- [x] **O010** Implement candidate-owned resolved overlay generation for optimizer-controlled fields.
+- [x] **O011** Implement main-app launcher integration via stable automation command and run-artifact discovery.
+- [x] **O012** Implement eval-app launcher integration via stable CLI command and eval-summary discovery.
+- [x] **O013** Implement candidate-level result records with lineage, metric groups, runtime, and decision fields for both study modes.
+- [x] **O014** Implement experiment-level artifact writes (`experiment.json`, candidate manifests, `results.csv`, `results.jsonl`, summary files, and current compare-study diagnostics artifacts).
+- [x] **O015** Add tests for config loading, search-space handling, benchmark split checks, and candidate hashing.
+- [x] **O016** Add mocked subprocess contract tests for main-app and eval-app launch flows.
+- [x] **O017** Implement deterministic-first candidate generation for bounded per-round batches.
+- [x] **O017a** Strengthen deterministic candidate generation so bounded batches cover multi-knob search combinations more truthfully than one-axis-only mutation.
+- [x] **O018** Implement duplicate suppression across round proposals and prior seen candidates.
+- [x] **O019** Implement mode-aware study control flow with compare single-pass and optimize multi-round behavior.
+- [x] **O020** Implement primary-metric comparison rule for promotion decisions.
+- [x] **O021** Implement guardrail evaluation for evidence, runtime, and null-failure constraints.
+- [x] **O022** Implement explicit deterministic pre-promotion checks as a dedicated acceptance gate stage.
+- [x] **O023** Implement structured promotion or rejection decision reasons in candidate records.
+- [x] **O024** Implement best-candidate tracking and `best_candidate.json` updates.
+- [x] **O025** Implement compare summaries with ranked fixed-candidate outcomes, winner materialization, and candidate-level explanation artifacts for scored and unscored candidates.
+- [x] **O025a** Harden compare-mode empty-results and missing-winner handling so no-winner outcomes produce explicit summaries rather than file errors.
+- [x] **O026** Complete mode-specific plotting contract coverage, including bounded parameter sweep views where relevant.
+- [x] **O027** Add focused unit tests for acceptance logic, guardrail failures, and tie-breaking paths.
+- [x] **O028** Add smoke-level end-to-end tests for compare and optimize flows on tiny mocked benchmarks.
+- [x] **O029** Ensure optimize holdout validation uses final promoted incumbent semantics only and not generic best-score ranking.
+- [x] **O030** Implement separate holdout validation artifacts and summary records.
+- [x] **O031** Implement `summarize` to regenerate mode-appropriate plots from persisted artifacts.
+- [x] **O032** Add richer experiment summaries for lineage and promotion-history rollups.
+- [x] **O033** Add explicit contract checks for required metric names and required eval-summary fields.
+- [x] **O034** Add explicit contract checks for required main-app run metadata relevant to provenance.
+- [x] **O035** Add end-to-end tests for holdout validation and summarize regeneration.
+- [x] **O036** Maintain README operator documentation aligned with current behavior.
+- [x] **O037** Keep spec stack consistency across the unified root spec system.
+- [x] **O038** Define optional proposer request or response schema constrained to existing search surface.
+- [x] **O039** Implement LM Studio-backed proposer adapter for bounded deltas.
+- [x] **O040** Persist proposer prompts or responses and applied candidate deltas for audit.
+- [x] **O041** Route proposer outputs through the same candidate validation, hashing, and acceptance flow.
+- [x] **O042** Add tests for invalid proposer outputs, duplicate handling, and proposer audit persistence.
+- [x] **O043** Document proposer feature as optional and disabled by default.
+- [x] **O044** Implement fixed-candidate-set loading or validation for compare mode with shared candidate contract.
+- [x] **O045** Implement optional bounded confirmation-rerun policy hook for top candidates, disabled by default.
+- [x] **O046** Add minimal CI coverage for preflight, launch-contract, and study-regression tests.
+- [x] **O047** Add explicit scored or unscored result truth, report generation, richer plots, and tie-break config validation for optimizer-facing experiment reporting.
+- [x] **O048** Persist progressive compare and optimize summaries so interrupted studies still expose truthful current state.
+- [x] **O049** Separate raw best, eligible winner, and provisional winner semantics in optimizer summaries and reports.
+- [x] **O050** Refresh overnight manifest and report artifacts incrementally after each completed stage.
 
 ## Appendix: Historical Notes (Non-Canonical)
 

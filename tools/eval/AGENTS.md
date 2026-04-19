@@ -2,16 +2,17 @@
 
 ## Purpose
 
-This file defines durable rules for coding agents editing `extract-structured-info-from-papers-eval`.
+This file defines durable rules for coding agents editing the in-repo eval tool.
 
 ## Canonical Document Roles
 
 Keep these roles strict:
 
-- `specs/spec.md` records stable product behavior and acceptance criteria only.
-- `specs/plan.md` records stable technical architecture and implementation direction only.
-- `specs/research.md` records rationale, tradeoffs, open questions, and deferred items only.
-- `specs/tasks.md` is the canonical implementation checklist and status tracker.
+- `../../specs/tools/eval.md` records stable eval-tool behavior and scope.
+- `../../specs/contracts/` records shared cross-tool artifact, proposal, evidence, and summary contracts.
+- `../../specs/architecture/` records monorepo structure and integration boundaries.
+- `../../specs/process/` records change and testing policy.
+- `../../specs/tasks.md` is the canonical implementation checklist and status tracker.
 - `README.md` is the operator-facing workflow document.
 - `AGENTS.md` records durable editing and verification rules.
 
@@ -22,13 +23,13 @@ When editing spec files:
 - preserve the existing canonical section structure unless the task explicitly requires a structural rewrite
 - prefer editing the correct existing section over appending a new ad hoc section
 - remove stale statements instead of leaving old and new truth side by side
-- do not add temporary pass-specific notes, status banners, or sequencing language to `spec.md`, `plan.md`, or `research.md`
-- if a note is temporary or historical, place it in `specs/tasks.md` or a clearly labeled appendix instead of the main body of stable docs
+- do not add temporary pass-specific notes, status banners, or sequencing language to the unified root spec files
+- if a note is temporary or historical, place it in `../../specs/tasks.md` or a clearly labeled appendix instead of the main body of stable docs
 - if a document has accumulated scattered edits, reorganize it in the same pass rather than appending more drift
 
 ## Task Tracking Rules
 
-Status belongs in `specs/tasks.md` only.
+Status belongs in `../../specs/tasks.md` only.
 
 When editing `specs/tasks.md`:
 

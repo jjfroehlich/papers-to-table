@@ -1,0 +1,120 @@
+# Eval Tool Documentation
+
+The eval tool is an internal benchmarking and scoring utility for run bundles produced by the main app.
+
+It is not the primary product surface. It exists to score runs, compare experiments, and support development-time benchmarking.
+
+## Purpose
+
+- Load one or more run bundles.
+- Compare proposals against a human-filled gold table.
+- Write per-cell, per-run, and cross-run comparison artifacts.
+
+Run eval commands from `tools/eval/`.
+
+## Install
+
+```bash
+cd tools/eval
+python -m pip install -r requirements.txt
+```
+
+## Inputs
+
+You need:
+
+1. one `--run`, repeated `--run`, or one `--runs-root`
+2. one gold CSV or XLSX file
+3. an optional schema JSON file for explicit field types, aliases, numeric tolerances, or text-scoring overrides
+
+Required run artifacts:
+
+- `run.json`
+- `proposals/proposals.jsonl`
+
+Required published join fields:
+
+- `row_id`
+- `column_name`
+- `cell_id`
+
+## Commands
+
+### Evaluate one run
+
+```bash
+python -m paper_eval evaluate \
+  --run tests/fixtures/example_eval/runs/run-a \
+  --gold tests/fixtures/example_eval/gold.csv \
+  --schema tests/fixtures/example_eval/schema.json \
+  --out out/example-single
+```
+
+### Evaluate many runs
+
+```bash
+python -m paper_eval evaluate \
+  --runs-root tests/fixtures/example_eval/runs \
+  --gold tests/fixtures/example_eval/gold.csv \
+  --schema tests/fixtures/example_eval/schema.json \
+  --out out/example-batch
+```
+
+### Rebuild comparison outputs
+
+```bash
+python -m paper_eval compare \
+  --summaries out/example-batch/per-run \
+  --out out/example-batch/compare-rebuilt
+```
+
+## Output layout
+
+`evaluate` writes:
+
+```text
+out/
+  per-run/
+    {run_id}/
+      scored_cells.jsonl
+      scored_cells.csv
+      run_summary.json
+      run_summary.csv
+      judge_records.jsonl
+  compare/
+    runs_comparison.csv
+    runs_comparison.xlsx
+    runs_comparison.parquet
+```
+
+## Scoring behavior
+
+- structured fields stay deterministic where possible
+- text fields can use judge-backed scoring when deterministic exact matching is insufficient
+- correctness and evidence are tracked separately
+- headline metrics default to content cells rather than inflating scores with metadata-only fields
+
+## Judge behavior
+
+LM Studio is only required when a text field cannot be resolved by deterministic exact-match scoring and needs judge-backed text scoring.
+
+Eval uses the same bounded structured-output fallback ladder as the main app:
+
+- `json_schema`
+- `json_object`
+- prompt-only JSON mode with app-side parsing
+
+## Why this tool stays separate from the product surface
+
+Keeping benchmarking separate from the main app:
+
+- avoids benchmarking dependencies in the operator-facing app runtime
+- keeps the run bundle an explicit published contract
+- makes scoring outputs independently inspectable
+- keeps benchmarking optional for operators who only need the main app
+
+## Related docs
+
+- Main app docs: [../main-app/README.md](../main-app/README.md)
+- Optimizer docs: [../optimizer/README.md](../optimizer/README.md)
+- Contract surfaces: [../contracts/tool-contract-surfaces.md](../contracts/tool-contract-surfaces.md)

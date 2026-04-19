@@ -76,9 +76,9 @@
       "bench_smoke": {
         "table_path": "benchmarks/smoke_fixture_table.csv",
         "schema_path": "benchmarks/smoke_fixture_schema.csv",
-        "pdf_dir": "../../extract-structured-info-from-papers/tests/fixtures/papers",
+        "pdf_dir": "../../../app/tests/fixtures/papers",
         "gold_path": "benchmarks/smoke_fixture_table.csv",
-        "eval_schema_path": "../../extract-structured-info-from-papers-eval/tests/fixtures/example_eval/schema.json",
+        "eval_schema_path": "../../eval/tests/fixtures/example_eval/schema.json",
         "main_args": [],
         "eval_args": [
           "--judge-model",
@@ -91,8 +91,8 @@
     }
   },
   "main_app": {
-    "repo_root": "../../extract-structured-info-from-papers",
-    "base_config_path": "../../extract-structured-info-from-papers/config.json",
+    "repo_root": "../../../app",
+    "base_config_path": "../../../app/config.json",
     "command_prefix": [
       "python",
       "-m",
@@ -109,7 +109,7 @@
     }
   },
   "eval_app": {
-    "repo_root": "../../extract-structured-info-from-papers-eval",
+    "repo_root": "../../eval",
     "command_prefix": [
       "python",
       "-m",

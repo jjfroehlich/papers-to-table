@@ -78,11 +78,11 @@
     "dev": "bench_dev",
     "manifests": {
       "bench_smoke": {
-        "table_path": "../../extract-structured-info-from-papers/tests/fixtures/tables/literature_fixture.xlsx",
-        "schema_path": "../../extract-structured-info-from-papers/tests/fixtures/tables/literature_fixture_schema.csv",
-        "pdf_dir": "../../extract-structured-info-from-papers/tests/fixtures/papers",
-        "gold_path": "../../extract-structured-info-from-papers/tests/fixtures/tables/literature_fixture.xlsx",
-        "eval_schema_path": "../../extract-structured-info-from-papers-eval/tests/fixtures/example_eval/schema.json",
+        "table_path": "../../../app/tests/fixtures/tables/literature_fixture.xlsx",
+        "schema_path": "../../../app/tests/fixtures/tables/literature_fixture_schema.csv",
+        "pdf_dir": "../../../app/tests/fixtures/papers",
+        "gold_path": "../../../app/tests/fixtures/tables/literature_fixture.xlsx",
+        "eval_schema_path": "../../eval/tests/fixtures/example_eval/schema.json",
         "main_args": [],
         "eval_args": [
           "--judge-model",
@@ -109,8 +109,8 @@
     }
   },
   "main_app": {
-    "repo_root": "../../extract-structured-info-from-papers",
-    "base_config_path": "../../extract-structured-info-from-papers/config.json",
+    "repo_root": "../../../app",
+    "base_config_path": "../../../app/config.json",
     "command_prefix": [
       "python",
       "-m",
@@ -127,7 +127,7 @@
     }
   },
   "eval_app": {
-    "repo_root": "../../extract-structured-info-from-papers-eval",
+    "repo_root": "../../eval",
     "command_prefix": [
       "python",
       "-m",

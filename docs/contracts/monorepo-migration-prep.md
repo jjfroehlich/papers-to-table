@@ -1,10 +1,12 @@
 # Monorepo Migration Prep
 
+Historical note: this file intentionally preserves pre-migration repository names, old path assumptions, and migration-era risk statements. It is not the canonical operator-facing description of the current repo layout.
+
 ## Scope
 
 This note records the baseline state for migrating the separate main app, eval, and optimizer repositories into the current main app repository as the long-term monorepo home.
 
-This note began as the preparation batch note and now also records the structural migration batch.
+This note began as the preparation batch note and now also records the structural migration batch and the path/runtime repair batch.
 
 - The destination repository remains the current main app repo.
 - The main app stays primary in structure, naming, and operator-facing documentation.
@@ -104,25 +106,176 @@ The following are intentionally deferred to the path/runtime-fix batch rather th
 - imported eval and optimizer CI files still reflect their original standalone-repo layouts
 - any runtime command that shells into the old top-level `frontend/` path is now stale
 
+## Path And Runtime Repair Batch
+
+Path/runtime repair was completed on branch `migration/monorepo-prep` after the structural import batch.
+
+### Old-to-new path map used in active docs and configs
+
+| Old path assumption | New monorepo path |
+| --- | --- |
+| `backend/` | `app/backend/` |
+| `frontend/` | `app/frontend/` |
+| `tests/` | `app/tests/` |
+| `config.example.json` | `app/config.example.json` |
+| `config.json` | `app/config.json` |
+| `../extract-structured-info-from-papers` from optimizer | `../../app` or `../../../app` depending on config depth |
+| `../extract-structured-info-from-papers-eval` from optimizer | `../eval` or `../../eval` depending on config depth |
+| `../../extract-structured-info-from-papers/tests/fixtures/...` | `../../../app/tests/fixtures/...` |
+| `../../extract-structured-info-from-papers-eval/tests/fixtures/...` | `../../eval/tests/fixtures/...` |
+
+### Active fixes applied
+
+- Root operator guidance and CI were updated to run main-app commands from `app/` and frontend commands from `app/frontend/`.
+- Root `README.md` was updated so install/start/test examples use the moved main-app paths.
+- Imported eval and optimizer READMEs were updated to describe the in-repo monorepo layout rather than sibling repositories.
+- Imported eval and optimizer CI files were updated to use `tools/eval/` and `tools/optimizer/` as their working directories.
+- Active optimizer configs and `tools/optimizer/config.example.json` were rewritten to point at `app/`, `tools/eval/`, and moved fixture/schema paths.
+- Root wrapper scripts were added under `scripts/` for common main app, eval, and optimizer actions.
+- `app/frontend/vite.config.ts` was corrected by removing unsupported Vitest option `minWorkers`, which had blocked the frontend build during verification.
+
+### Root wrapper scripts added
+
+- `scripts/run-main-backend.sh`
+- `scripts/run-main-frontend.sh`
+- `scripts/test-main-app.sh`
+- `scripts/test-eval-tool.sh`
+- `scripts/test-optimizer-tool.sh`
+- `scripts/run-optimizer-smoke.sh`
+
+### Verification after path/runtime repair
+
+Python commands used the currently configured interpreter:
+
+`d:/code/web/guess-the-citations/.venv/Scripts/python.exe`
+
+Command:
+
+```bash
+cd /d/code/local/extract-structured-info-from-papers/app/frontend
+npm run build
+```
+
+Result:
+
+- Passed, exit code `0`
+- Frontend build completed successfully after the `vite.config.ts` fix
+- One existing bundle-size warning remained for `dist/assets/index-BOjLml0-.js` at about `674 kB`
+
+Command:
+
+```bash
+cd /d/code/local/extract-structured-info-from-papers/app
+d:/code/web/guess-the-citations/.venv/Scripts/python.exe -m pytest tests/backend -m "not e2e and not smoke"
+```
+
+Result:
+
+- Failed, exit code `1`
+- `1 failed, 642 passed, 1 deselected in 66.32s`
+- Same pre-existing failing test as baseline: `tests/backend/test_e2e_hermetic.py::TestHermeticMatchedExtractionExport::test_export_xlsx_written_with_correct_value`
+
+Command:
+
+```bash
+cd /d/code/local/extract-structured-info-from-papers/tools/eval
+d:/code/web/guess-the-citations/.venv/Scripts/python.exe -m pytest
+```
+
+Result:
+
+- Passed, exit code `0`
+- `67 passed in 2.58s`
+
+Command:
+
+```bash
+cd /d/code/local/extract-structured-info-from-papers/tools/eval
+d:/code/web/guess-the-citations/.venv/Scripts/python.exe -m paper_eval evaluate --run tests/fixtures/example_eval/runs/run-a --gold tests/fixtures/example_eval/gold.csv --schema tests/fixtures/example_eval/schema.json --out out/example-single-monorepo
+```
+
+Result:
+
+- Passed, exit code `0`
+- Wrote per-run outputs under `out/example-single-monorepo/per-run/run-a`
+- Wrote compare outputs under `out/example-single-monorepo/compare`
+
+Command:
+
+```bash
+cd /d/code/local/extract-structured-info-from-papers/tools/optimizer
+MPLBACKEND=Agg d:/code/web/guess-the-citations/.venv/Scripts/python.exe -m pytest
+```
+
+Result:
+
+- Failed, exit code `1`
+- `1 failed, 38 passed in 16.15s`
+- Same pre-existing failing test as baseline: `tests/test_proposer_and_confirmation.py::test_confirmation_rerun_can_block_promotion`
+
+Command:
+
+```bash
+cd /d/code/local/extract-structured-info-from-papers/tools/optimizer
+PAPER_OPTIMIZER_PYTHON=d:/code/web/guess-the-citations/.venv/Scripts/python.exe PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash scripts/run_study.sh compare configs/compare_models_smoke.json monorepo_path_repair_smoke
+```
+
+Result:
+
+- Did not finish within the initial `180s` observation window
+- No decisive path error was emitted
+- Run directory `runs/20260418_194446_compare_monorepo_path_repair_smoke/` was created
+- Main candidate artifacts were materialized under `experiment/runs/cand_0001/main/main_app_output/...`
+- No eval artifacts or final `experiment/results/results.jsonl` were present during inspection
+- Current interpretation: monorepo path wiring is working well enough for optimizer startup and main-app launch, while the long-running portion appears to be waiting on external provider work or still in progress rather than failing immediately on broken paths
+
+Command:
+
+```bash
+cd /d/code/local/extract-structured-info-from-papers/app
+d:/code/web/guess-the-citations/.venv/Scripts/python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8010
+```
+
+Follow-up probe:
+
+```bash
+d:/code/web/guess-the-citations/.venv/Scripts/python.exe -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8010/api/health').read().decode())"
+```
+
+Result:
+
+- Passed
+- Health endpoint returned `{"status":"ok"}`
+
+### Interpretation after the repair batch
+
+- Main app backend startup from `app/` works.
+- Main app frontend build from `app/frontend/` works.
+- Eval tests and CLI work from `tools/eval/`.
+- Optimizer tests match the pre-migration failure profile.
+- Optimizer smoke execution no longer shows an immediate monorepo path failure and does launch the main app using the repaired config paths.
+- Remaining uncertainty is limited to the long-running live optimizer smoke flow, which appears environment- or provider-timed rather than structurally broken.
+
 ## Current Entrypoints And Baseline Commands
 
 ### Main app
 
 Primary operator and automation entrypoints:
 
+- Run these from `app/` unless noted otherwise.
 - Backend API server: `python -m uvicorn backend.app.main:app --reload --port 8000`
 - Backend automation CLI: `python -m backend.app.automation start --config-path config.json`
-- Frontend dev server: `npm --prefix frontend run dev`
-- Backend tests: `pytest tests/backend -m "not e2e and not smoke"`
-- Frontend tests: `npm --prefix frontend test -- --run`
+- Frontend dev server from `app/`: `npm --prefix frontend run dev`
+- Backend tests from `app/`: `pytest tests/backend -m "not e2e and not smoke"`
+- Frontend tests from `app/`: `npm --prefix frontend test -- --run`
 
 Evidence:
 
 - `README.md`
-- `backend/app/automation.py`
-- `backend/app/main.py`
-- `backend/pyproject.toml`
-- `frontend/package.json`
+- `app/backend/app/automation.py`
+- `app/backend/app/main.py`
+- `app/backend/pyproject.toml`
+- `app/frontend/package.json`
 - `.github/workflows/ci.yml`
 
 ### Eval repo

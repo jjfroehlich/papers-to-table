@@ -45,7 +45,7 @@ Every schema entry must have both `column_name` and `description` populated.
 
 ## Canonical config
 
-The root `config.example.json` points to these fixtures and is used by backend tests and the documented happy-path workflow.
+`app/config.example.json` points to these fixtures and is used by backend tests and the documented happy-path workflow.
 
 ## Notes
 

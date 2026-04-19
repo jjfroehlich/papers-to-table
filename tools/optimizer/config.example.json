@@ -132,8 +132,8 @@
     }
   },
   "main_app": {
-    "repo_root": "../extract-structured-info-from-papers",
-    "base_config_path": "../extract-structured-info-from-papers/config.json",
+    "repo_root": "../../app",
+    "base_config_path": "../../app/config.json",
     "command_prefix": [
       "python",
       "-m",
@@ -150,7 +150,7 @@
     }
   },
   "eval_app": {
-    "repo_root": "../extract-structured-info-from-papers-eval",
+    "repo_root": "../eval",
     "command_prefix": [
       "python",
       "-m",
