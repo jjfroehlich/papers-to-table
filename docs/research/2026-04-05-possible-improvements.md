@@ -1,4 +1,4 @@
-# Deep Research on RAG Usage and Architecture Improvements for extract-structured-info-from-papers
+# Deep Research on RAG Usage and Architecture Improvements for papers-to-table
 
 ## Executive summary
 

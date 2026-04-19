@@ -1,6 +1,6 @@
 # Final Monorepo Migration Summary
 
-This note records the end-state of the monorepo migration for the repository root at `extract-structured-info-from-papers/`.
+This note records the end-state of the monorepo migration for the repository root at `papers-to-table/`.
 
 ## Final structure
 
@@ -117,7 +117,7 @@ bash scripts/test-optimizer-tool.sh
 - `docs/contracts/monorepo-migration-prep.md` is intentionally historical and still mentions the old multi-repo layout.
 - Some generated run artifacts and logs under `tools/eval/runs/`, `tools/eval/out/`, `tools/optimizer/runs/`, and `tools/optimizer/logs/` still embed old paths from earlier runs.
 - `tools/optimizer/configs/compare_models_dev.json` still points at a developer-local desktop dataset for the `bench_dev` benchmark.
-- Tool packaging metadata still uses tool-specific package names such as `extract-structured-info-from-papers-optimizer`; this is package identity, not a sibling-repo runtime assumption.
+- Python import and CLI names remain tool-specific by design: `backend.app.*`, `paper_optimizer`, `paper_eval`, and `paper-optimizer` stay unchanged even though distribution metadata now uses the `papers-to-table-*` scheme.
 - Live proposal generation and judge-backed scoring still depend on the local LM Studio setup and model availability.
 - Main app `e2e` and `smoke` pytest markers remain opt-in and are intentionally excluded from the root full-verification wrapper.
 

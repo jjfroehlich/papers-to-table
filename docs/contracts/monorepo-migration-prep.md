@@ -1,6 +1,6 @@
 # Monorepo Migration Prep
 
-Historical note: this file intentionally preserves pre-migration repository names, old path assumptions, and migration-era risk statements. It is not the canonical operator-facing description of the current repo layout.
+Historical note: this file intentionally preserves pre-migration repository names, old path assumptions, and migration-era risk statements. The current repository is now named `papers-to-table`; old names and paths below are preserved where they are part of the migration record. It is not the canonical operator-facing description of the current repo layout.
 
 ## Scope
 

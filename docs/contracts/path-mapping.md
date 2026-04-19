@@ -2,6 +2,8 @@
 
 This note records the main path changes introduced by the monorepo migration.
 
+Historical note: the old repository names below refer to the pre-monorepo sibling repositories that were imported into the current `papers-to-table` repo.
+
 ## Main app moves
 
 | Old path | New path |

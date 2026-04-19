@@ -1,4 +1,4 @@
-# extract-structured-info-from-papers
+# papers-to-table
 
 The main product in this repository is a local-first paper-to-table review app.
 
@@ -24,8 +24,8 @@ Run the main-app commands below from `app/`.
 ### Backend install
 
 ```bash
-git clone https://github.com/jjfroehlich/extract-structured-info-from-papers.git
-cd extract-structured-info-from-papers/app
+git clone https://github.com/jjfroehlich/papers-to-table.git
+cd papers-to-table/app
 pip install -e ./backend
 ```
 
