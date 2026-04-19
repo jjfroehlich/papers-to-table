@@ -24,8 +24,8 @@ If these artifacts conflict, fix the smallest coherent set of docs first before 
 - `contracts/`: shared cross-tool contracts
 - `architecture/`: monorepo layout and integration boundaries
 - `process/`: change policy and testing strategy
-- `archive/`: preserved historical, superseded, exploratory, and implementation-detail-heavy spec material
-- `plan.md`: supportive planning index
+- `archive/verbatim/`: preserved historical legacy spec material only
+- `plan.md`: supportive technical-direction summary
 - `tasks.md`: canonical implementation checklist and verified progress state
 
 ## Documentation Sync Rules
@@ -37,8 +37,7 @@ If these artifacts conflict, fix the smallest coherent set of docs first before 
 - Prefer editing the correct existing section over appending an ad hoc note or temporary section.
 - Do not insert pass-specific instructions, temporary status banners, or execution-order notes into normative spec files or `plan.md`.
 - If historical or temporary context is worth keeping, place it in a clearly labeled appendix or supporting audit doc rather than in the main body.
-- If older detail is being removed from a current spec because it is superseded, exploratory, or too implementation-specific, preserve it under `archive/` instead of deleting it silently.
-- No major old section should disappear without an explicit disposition in `archive/migration-notes/legacy-section-mapping.md`.
+- If older detail is being removed from a current spec because it is superseded or too implementation-specific, preserve it in `archive/verbatim/` instead of creating a second semi-current archive layer.
 
 ## Task Discipline
 
@@ -67,16 +66,16 @@ Keep the following explicit when relevant:
 
 - Prefer moving text to the document that owns it over restating the same rule in multiple places.
 - Keep product requirements in `product/`, tool behavior in `tools/`, shared rules in `contracts/`, integration in `architecture/`, process policy in `process/`, and progress in `tasks.md`.
-- Keep older rationale, alternatives, detailed technical notes, and superseded requirement language in `archive/` when it remains future-useful.
+- Keep older rationale and superseded requirement language in `archive/verbatim/` when it remains future-useful.
 - When a file has accumulated scattered edits that weaken structure, reorganize it in the same pass instead of appending another patchwork section.
 - Do not turn spec docs into vague governance prose.
 - Do not widen product scope just to make an architecture section sound more flexible.
 - Keep optional future extensions clearly secondary to the current MVP.
 
-## Lossless migration guardrail
+## Historical-material guardrail
 
 When reorganizing specs:
 
-- prefer preservation plus labeling over deletion
-- prefer archival relocation over summary-only compression
-- update cross-links and mapping notes so future contributors can find the old material quickly
+- prefer keeping the current source of truth clear over carrying several archive layers
+- preserve historically useful material in `archive/verbatim/`
+- update current-file links when a historical reference is still worth surfacing

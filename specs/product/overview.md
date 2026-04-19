@@ -17,6 +17,14 @@ The repo exists because normal paper-chat or paper-search tools do not solve the
 
 Researchers need reviewed spreadsheet updates with explicit row alignment, field-specific extraction, evidence inspection, and export discipline. A generic PDF chat surface can help explore papers, but it does not provide the queueing, auditability, stable identifiers, or export controls required for trustworthy table curation.
 
+## Product principles
+
+- The main app is the product. Eval and optimizer exist to support it.
+- Human review is required before spreadsheet updates.
+- Evidence, provenance, and auditability matter more than conversational flexibility.
+- The reviewer is reviewing what the paper supports, not grading the model.
+- The product should stay a focused paper-to-table workflow rather than widening into a general document assistant.
+
 ## Actors
 
 - Primary actor: a researcher or curator reviewing extracted spreadsheet updates.
@@ -49,6 +57,17 @@ Optimizer owns orchestration of bounded candidate studies.
 - Preserve evidence, provenance, and auditability for every proposal.
 - Keep run artifacts directly consumable by internal evaluation and optimization tooling.
 - Maintain one coherent monorepo contract for shared artifacts, schemas, and metrics.
+
+## Scope boundary
+
+The product is successful when the main app behaves as one coherent operator workflow:
+
+- setup and next actions are obvious
+- run readiness and failure states are truthful
+- review stays queue-first and evidence-centered
+- export remains explicit and auditable
+
+The companion tools should improve evaluation and optimization of that workflow, not redefine the product around benchmarking.
 
 ## MVP boundary
 

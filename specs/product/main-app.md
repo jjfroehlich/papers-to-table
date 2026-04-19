@@ -63,6 +63,8 @@ The browser UI is the normal operator surface for:
 
 The UI may expose narrow picker-driven input overrides, but it must not become the primary advanced-settings surface.
 
+The backend may expose a stable non-UI automation entrypoint for tooling, but that path is additive. It must not replace the browser UI as the normal human workflow.
+
 ## Input requirements
 
 - The app consumes a spreadsheet plus a schema and a PDF directory.
@@ -70,6 +72,7 @@ The UI may expose narrow picker-driven input overrides, but it must not become t
 - Schema descriptions are the primary semantic extraction contract.
 - Existing filled cells may support bounded style-profile inference, but they must not become hidden row-level answer leakage for normal extraction.
 - Path overrides staged through the UI must become backend-readable handles before the run starts.
+- The UI should keep setup picker-driven and action-oriented rather than assuming raw filesystem path entry is the normal operator workflow.
 
 ## Output requirements
 
@@ -77,6 +80,7 @@ The UI may expose narrow picker-driven input overrides, but it must not become t
 - Proposal persistence remains append-friendly and inspectable through `proposals/proposals.jsonl`, with lookup or index artifacts allowed as secondary helpers.
 - Export writes a new workbook plus audit artifacts rather than mutating the source workbook in place.
 - Eval-mode runs must preserve masked-table and gold-table provenance needed for reproducible downstream scoring.
+- Reviewable proposals and diagnostics-only outcomes must remain distinct in artifacts and summaries.
 
 ## Main-app behavior requirements
 
@@ -109,6 +113,7 @@ The UI may expose narrow picker-driven input overrides, but it must not become t
 - Proposal generation occurs only for eligible target cells in the active mode.
 - A target cell is eligible only when the run has passed readiness, the source paper has a usable row match or allowed metadata path, and the cell is in scope for the selected run mode.
 - The app persists one best proposal per eligible target cell, but weaker fallback evidence and failure attribution must remain explicit so reviewers and downstream tooling can tell why a proposal looks the way it does.
+- The app should prefer `unclear` over weak guessing when current-paper evidence is not strong enough.
 
 ### Style-profile behavior
 
@@ -128,6 +133,7 @@ The UI may expose narrow picker-driven input overrides, but it must not become t
 - One best proposal is persisted per eligible target cell.
 - Evidence must remain inspectable, auditable, and clearly labeled by support quality.
 - Weak but reviewable proposals may still be shown, but they must be labeled honestly.
+- Evidence ranking must prefer source authority and field relevance rather than model-return order.
 
 Shared proposal and evidence rules are defined in `../contracts/proposals-and-evidence.md`.
 
@@ -172,6 +178,7 @@ The bounded structured-output recovery ladder is:
 - Missing live-provider readiness must fail early rather than surfacing as a cosmetically successful run.
 - Optional OCR-dependent or parser-dependent paths must report truthful readiness when they are unavailable.
 - The app must record the negotiated provider mode and degraded-mode truth in persisted artifacts so reviewers and downstream tools can tell what actually happened.
+- The app should preserve resolved setup context early enough that readiness-failed runs remain diagnosable.
 
 ## Main-app quality bar
 
@@ -185,6 +192,9 @@ That means:
 - reviewer-facing counts default to actionable review work rather than diagnostic-only totals
 - evidence handling supports real review, not just artifact browsing
 - summaries and artifacts remain truthful enough for downstream tooling without importing runtime code
+- the setup surface remains understandable without reading source code
+- the documented LM Studio path is either genuinely usable or fails early with an actionable readiness error
+- the app does not load every blocked, skipped, or diagnostic-only outcome into the main review queue by default
 
 ## Acceptance criteria
 
@@ -196,6 +206,10 @@ The main app is acceptable when:
 4. Weak, inferred, and fallback evidence remain visibly distinguished from direct support.
 5. Review stays queue-first and export writes a new workbook plus audit artifacts only after explicit reviewer action.
 6. Run artifacts remain sufficient for eval and optimizer tooling without runtime imports from the main app.
+7. Reviewer-facing counts distinguish actionable review items from broader attempted or diagnostic totals.
+8. Provider-unavailable state at run start fails readiness rather than surfacing as a cosmetically successful run.
+9. Eval mode preserves masked-table and gold-table provenance without leaking target gold values into extraction.
+10. The browser workflow remains the clear primary operator path, with automation treated as tooling support rather than the main product surface.
 
 ## Ownership boundaries
 

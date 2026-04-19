@@ -28,6 +28,8 @@ Use this file for checked/unchecked task state only. Keep behavior and contracts
 
 Reality-checked on 2026-04-06 against current backend/frontend source, targeted tests, historical run artifacts, and live browser behavior.
 
+Treat this section as a point-in-time implementation note. If it becomes stale after a behavior change, refresh it in the same pass or remove outdated lines rather than letting it become a second drifting spec surface.
+
 - Implemented: resolved `config.snapshot.json` persistence and resolved input context.
 - Implemented: lexical retrieval baseline with persisted per-cell retrieval artifacts.
 - Implemented: prompt bundle loading plus persisted prompt identity/provenance.
