@@ -127,11 +127,13 @@ trap on_exit EXIT
   "$optimizer_python" - "$config_path" <<'PY'
 import importlib.util
 import json
+import subprocess
 import sys
 from pathlib import Path
 
 config_path = Path(sys.argv[1])
 config = json.loads(config_path.read_text(encoding="utf-8"))
+config_base_dir = config_path.resolve().parent
 
 
 def _module_from_command_prefix(prefix, default):
@@ -144,28 +146,59 @@ def _module_from_command_prefix(prefix, default):
     return default
 
 
+def _resolve_repo_root(value):
+    if not isinstance(value, str) or not value.strip():
+        return None
+    candidate = Path(value)
+    if not candidate.is_absolute():
+        candidate = (config_base_dir / candidate).resolve()
+    return str(candidate)
+
+
 required_modules = []
 
 main_cfg = config.get("main_app", {}) if isinstance(config, dict) else {}
 if isinstance(main_cfg, dict) and "command" not in main_cfg:
     main_module = _module_from_command_prefix(main_cfg.get("command_prefix"), main_cfg.get("module", "backend.app.automation"))
-    required_modules.append(("main_app", main_module))
+    required_modules.append(("main_app", main_module, _resolve_repo_root(main_cfg.get("repo_root"))))
 
 eval_cfg = config.get("eval_app", {}) if isinstance(config, dict) else {}
 if isinstance(eval_cfg, dict) and "command" not in eval_cfg:
     eval_module = _module_from_command_prefix(eval_cfg.get("command_prefix"), eval_cfg.get("module", "paper_eval"))
-    required_modules.append(("eval_app", eval_module))
+    required_modules.append(("eval_app", eval_module, _resolve_repo_root(eval_cfg.get("repo_root"))))
+
+
+def _importable_in_cwd(module_name: str, cwd: str) -> bool:
+    try:
+        probe = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import importlib.util,sys;sys.exit(0 if importlib.util.find_spec(sys.argv[1]) else 1)",
+                module_name,
+            ],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except Exception:
+        return False
+    return probe.returncode == 0
 
 missing = []
-for section, module_name in required_modules:
+for section, module_name, repo_root in required_modules:
     if not isinstance(module_name, str) or not module_name.strip():
         continue
     try:
         spec = importlib.util.find_spec(module_name)
     except ModuleNotFoundError:
         spec = None
-    if spec is None:
-        missing.append((section, module_name))
+    if spec is not None:
+        continue
+    if isinstance(repo_root, str) and repo_root.strip() and _importable_in_cwd(module_name, repo_root):
+        continue
+    missing.append((section, module_name))
 
 if missing:
     for section, module_name in missing:
