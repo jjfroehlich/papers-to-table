@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import shutil
 from pathlib import Path
 from contextlib import redirect_stdout
 
@@ -102,6 +103,19 @@ def test_validate_preflight_fails_on_missing_prompt_bundle(base_config: dict) ->
 
     with pytest.raises(PreflightError):
         validate_preflight(base_config, benches, require_holdout=True)
+
+
+def test_validate_preflight_accepts_src_layout_prompt_bundles(base_config: dict) -> None:
+    main_repo = Path(base_config["main_app"]["repo_root"])
+    old_root = main_repo / "backend" / "app" / "prompt_bundles"
+    shutil.rmtree(old_root)
+    src_root = main_repo / "backend" / "src" / "backend" / "app" / "prompt_bundles"
+    for prompt_id in ["prompt_base", "default"]:
+        (src_root / prompt_id).mkdir(parents=True, exist_ok=True)
+
+    benches = load_benchmarks(base_config)
+
+    validate_preflight(base_config, benches, require_holdout=True)
 
 
 def test_cli_preflight_command_accepts_valid_config(

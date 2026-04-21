@@ -44,6 +44,7 @@ def test_checked_in_planned_configs_disallow_degraded_scores() -> None:
     config_names = [
         "compare_models_smoke.json",
         "compare_models_dev.json",
+        "compare_models_overnight.json",
         "compare_prompts_dev.json",
         "compare_retrieval_dev.json",
         "compare_retrieval_modes_dev.json",

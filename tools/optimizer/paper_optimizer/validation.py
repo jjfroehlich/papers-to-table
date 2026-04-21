@@ -90,6 +90,14 @@ def _candidate_prompt_ids(config: dict[str, Any]) -> list[str]:
     return ordered
 
 
+def _candidate_prompt_bundle_roots(main_working_dir: Path) -> list[Path]:
+    return [
+        main_working_dir / "backend" / "app" / "prompt_bundles",
+        main_working_dir / "backend" / "src" / "backend" / "app" / "prompt_bundles",
+        main_working_dir / "src" / "backend" / "app" / "prompt_bundles",
+    ]
+
+
 def _mapping_has_target(mapping: dict[str, str] | list[str] | None, target_name: str) -> bool:
     if mapping is None:
         return False
@@ -153,9 +161,11 @@ def validate_preflight(
 
     prompt_bundle_root = None
     if main_working_dir is not None:
-        prompt_bundle_root = main_working_dir / "backend" / "app" / "prompt_bundles"
-        if not prompt_bundle_root.exists():
-            errors.append(f"Prompt bundle directory does not exist under main_app.repo_root: {prompt_bundle_root}")
+        prompt_bundle_roots = _candidate_prompt_bundle_roots(main_working_dir)
+        prompt_bundle_root = next((root for root in prompt_bundle_roots if root.exists()), None)
+        if prompt_bundle_root is None:
+            checked_paths = ", ".join(str(root) for root in prompt_bundle_roots)
+            errors.append(f"Prompt bundle directory does not exist under main_app.repo_root; checked: {checked_paths}")
 
     if prompt_bundle_root is not None and prompt_bundle_root.exists():
         for prompt_id in _candidate_prompt_ids(config):
