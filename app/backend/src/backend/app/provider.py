@@ -1349,11 +1349,7 @@ class LMStudioProvider(ProviderAdapter):
             preflight_models = await self._list_rest_models()
             keep_instance_ids = self._loaded_instances_for_model_ids(preflight_models, requested_model_ids)
             unload_plan = self._plan_model_unloads(preflight_models, requested_model_ids)
-            if unload_plan and len(keep_instance_ids) < sum(
-                1
-                for model_id in requested_model_ids
-                if _has_explicit_model_id(model_id)
-            ):
+            if unload_plan:
                 report["unloads"]["attempted"] = unload_plan
                 for unload_item in unload_plan:
                     try:

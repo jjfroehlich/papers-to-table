@@ -7,7 +7,29 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
 session_id="$(date +%Y%m%d_%H%M%S)"
 safe_label="$(printf '%s' "$label" | tr ' /:' '___')"
-optimizer_python="${PAPER_OPTIMIZER_PYTHON:-python}"
+
+resolve_optimizer_python() {
+	if [[ -n "${PAPER_OPTIMIZER_PYTHON:-}" ]]; then
+		echo "$PAPER_OPTIMIZER_PYTHON"
+		return
+	fi
+
+	local candidate
+	for candidate in \
+		"$repo_root/.venv/Scripts/python.exe" \
+		"$repo_root/.venv/bin/python" \
+		"$repo_root/venv/Scripts/python.exe" \
+		"$repo_root/venv/bin/python"; do
+		if [[ -f "$candidate" ]]; then
+			echo "$candidate"
+			return
+		fi
+	done
+
+	echo python
+}
+
+optimizer_python="$(resolve_optimizer_python)"
 
 compare_config="$repo_root/configs/compare_models_overnight.json"
 compare_run_name="${session_id}_compare_models_overnight_${safe_label}"
@@ -93,6 +115,7 @@ trap 'mark_failed "$?"' EXIT
 write_manifest running
 
 echo "[$(date -Iseconds)] Step 1: model-only config preflight"
+echo "[$(date -Iseconds)] Optimizer python: $optimizer_python"
 pushd "$repo_root" >/dev/null
 "$optimizer_python" -m paper_optimizer.cli preflight --config "$compare_config"
 popd >/dev/null
