@@ -39,14 +39,15 @@ When a task bundle is large but coherent:
 
 Use these as the default happy path unless the task specifically needs lower-level commands:
 
+- repository-root wrapper scripts:
+  - start backend: `bash scripts/run-main-backend.sh`
+  - start frontend: `bash scripts/run-main-frontend.sh`
+  - backend tests: `bash scripts/test-main-backend.sh`
+  - frontend tests: `bash scripts/test-main-frontend.sh`
+  - combined verification: `bash scripts/verify-main-app-full.sh`
+  - minimum smoke pass: `bash scripts/verify-minimum-smoke.sh`
 - install backend deps: `cd app && python -m pip install -e ./backend[test]`
 - install frontend deps: `cd app/frontend && npm install`
-- start backend: `bash scripts/run-main-backend.sh`
-- start frontend: `bash scripts/run-main-frontend.sh`
-- backend tests: `bash scripts/test-main-backend.sh`
-- frontend tests: `bash scripts/test-main-frontend.sh`
-- combined verification: `bash scripts/verify-main-app-full.sh`
-- minimum smoke pass: `bash scripts/verify-minimum-smoke.sh`
 
 ## Definition of done
 

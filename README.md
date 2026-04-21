@@ -23,6 +23,8 @@ It ingests scientific PDFs and a structured spreadsheet, proposes evidence-backe
 
 ### Install
 
+Run these commands from the repository root:
+
 ```bash
 git clone https://github.com/jjfroehlich/papers-to-table.git
 cd papers-to-table/app
@@ -33,6 +35,8 @@ cd ../..
 ```
 
 ### Start the app
+
+Run these commands from the repository root:
 
 ```bash
 bash scripts/run-main-backend.sh
@@ -61,6 +65,8 @@ bash scripts/test-main-backend.sh
 bash scripts/test-main-frontend.sh
 bash scripts/verify-main-app-full.sh
 ```
+
+These wrapper scripts assume the current working directory is the repository root.
 
 ## Main docs by audience
 

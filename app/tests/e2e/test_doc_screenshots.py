@@ -9,7 +9,7 @@ from playwright.sync_api import Page, expect
 from .demo_stack import DemoRunIds
 
 pytestmark = pytest.mark.e2e
-APP_ROOT = pathlib.Path(__file__).resolve().parents[2]
+APP_DIR = pathlib.Path(__file__).resolve().parents[2]
 
 
 def _open_review_workspace(page: Page, frontend_url: str, run_id: str) -> None:
@@ -41,7 +41,7 @@ def test_capture_readme_screenshots(
     page.set_viewport_size({"width": 1680, "height": 1180})
 
     page.goto(frontend_url)
-    page.get_by_placeholder("e.g. config.example.json").fill(str(APP_ROOT / "config.example.json"))
+    page.get_by_placeholder("e.g. config.example.json").fill(str(APP_DIR / "config.example.json"))
     page.get_by_role("button", name="▼ Show optional path overrides").click()
     page.get_by_role("button", name="Run preflight").click()
     expect(page.get_by_text("Resolved launch context")).to_be_visible()

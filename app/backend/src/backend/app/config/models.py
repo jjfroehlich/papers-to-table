@@ -4,11 +4,11 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, model_validator
 
-from .constants import CANONICAL_PROVIDERS, CANONICAL_RETRIEVAL_MODES, LEGACY_RETRIEVAL_MODE_ALIASES
+from .constants import CANONICAL_PROVIDERS, CANONICAL_RETRIEVAL_MODES, DEFAULT_MODEL_ID, LEGACY_RETRIEVAL_MODE_ALIASES
 
 
 class TextModelConfig(BaseModel):
-    model_id: str = 'default'
+    model_id: str = DEFAULT_MODEL_ID
     temperature: float = 0.0
     max_tokens: int = 2048
     working_context_budget: int = Field(default=12000, ge=1)
@@ -33,7 +33,7 @@ class TextModelConfig(BaseModel):
 
 
 class VisionModelConfig(BaseModel):
-    model_id: str = 'default'
+    model_id: str = DEFAULT_MODEL_ID
     temperature: float = 0.0
     max_tokens: int = 2048
     load_context_length: Optional[int] = Field(default=None, ge=1)

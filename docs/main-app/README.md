@@ -34,6 +34,8 @@ bash scripts/run-main-frontend.sh
 
 ## Wrapper-script verification
 
+Run these commands from the repository root:
+
 ```bash
 bash scripts/test-main-backend.sh
 bash scripts/test-main-frontend.sh
@@ -62,6 +64,7 @@ python -m backend.app.automation start --config-path config.json
 Useful variants:
 
 ```bash
+cd app
 python -m backend.app.automation start --config-path config.json --wait
 python -m backend.app.automation status --run-id <run_id> --output-dir ./runs
 python -m backend.app.automation wait --run-id <run_id> --output-dir ./runs
@@ -72,6 +75,7 @@ python -m backend.app.automation wait --run-id <run_id> --output-dir ./runs
 Copy the checked-in example and edit it for your table, schema, PDF directory, and model settings.
 
 ```bash
+cd app
 cp config.example.json config.json
 ```
 

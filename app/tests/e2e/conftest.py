@@ -13,8 +13,8 @@ import pytest
 
 from .demo_stack import DemoRunIds, prepare_demo_runtime
 
-APP_ROOT = pathlib.Path(__file__).resolve().parents[2]
-REPO_ROOT = APP_ROOT.parent
+APP_DIR = pathlib.Path(__file__).resolve().parents[2]
+REPO_ROOT = APP_DIR.parent
 
 
 def pytest_addoption(parser):
@@ -72,7 +72,7 @@ def _npm_command() -> str:
 @pytest.fixture(scope="session")
 def live_stack(tmp_path_factory) -> dict[str, object]:
     runtime_root = tmp_path_factory.mktemp("playwright-runtime")
-    demo_runtime = prepare_demo_runtime(runtime_root, APP_ROOT)
+    demo_runtime = prepare_demo_runtime(runtime_root, APP_DIR)
     backend_port = _find_free_port()
     frontend_port = _find_free_port()
     backend_url = f"http://127.0.0.1:{backend_port}"
@@ -82,7 +82,7 @@ def live_stack(tmp_path_factory) -> dict[str, object]:
     frontend_log = (runtime_root / "frontend.log").open("w", encoding="utf-8")
 
     backend_env = os.environ.copy()
-    backend_env["PYTHONPATH"] = str(APP_ROOT) + os.pathsep + backend_env.get("PYTHONPATH", "")
+    backend_env["PYTHONPATH"] = str(APP_DIR) + os.pathsep + backend_env.get("PYTHONPATH", "")
     backend_env["PAPER_APP_CORS_ORIGINS"] = ",".join(
         [frontend_url, "http://localhost:5173", "http://127.0.0.1:5173"]
     )
@@ -108,7 +108,7 @@ def live_stack(tmp_path_factory) -> dict[str, object]:
     frontend_env["VITE_API_BASE_URL"] = backend_url
     frontend_process = subprocess.Popen(
         [_npm_command(), "run", "dev", "--", "--host", "127.0.0.1", "--port", str(frontend_port)],
-        cwd=str(APP_ROOT / "frontend"),
+        cwd=str(APP_DIR / "frontend"),
         env=frontend_env,
         stdout=frontend_log,
         stderr=subprocess.STDOUT,

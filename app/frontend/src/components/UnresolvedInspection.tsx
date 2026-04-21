@@ -91,8 +91,7 @@ export function UnresolvedInspection({ run, runId, outputDir }: Props) {
     const grouped = new Map<string, string[]>()
     for (const warning of run.warnings) {
       const current = grouped.get(warning.category) ?? []
-      current.push(warning.message)
-      grouped.set(warning.category, current)
+      grouped.set(warning.category, [...current, warning.message])
     }
     return Array.from(grouped.entries())
   }, [run.warnings])

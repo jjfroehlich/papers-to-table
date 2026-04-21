@@ -34,6 +34,8 @@ bash scripts/test-main-frontend.sh
 bash scripts/verify-main-app-full.sh
 ```
 
+These wrapper commands assume you start in the repository root.
+
 ## Main app workflow
 
 1. Start the backend and frontend.
@@ -60,6 +62,8 @@ bash scripts/verify-main-app-full.sh
 - Normative specs: `specs/`
 
 ## Screenshot refresh
+
+Run this from the repository root:
 
 ```bash
 python -m playwright install chromium
