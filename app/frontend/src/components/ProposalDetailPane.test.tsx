@@ -118,7 +118,7 @@ describe('ProposalDetailPane', () => {
         
       />
     )
-    await screen.findByText('Rationale')
+    await screen.findByText('Reviewer-visible rationale')
     expect(screen.queryByText('The sample size of 120 participants was stated in the Methods section.')).not.toBeInTheDocument()
   })
 
@@ -133,8 +133,8 @@ describe('ProposalDetailPane', () => {
         
       />
     )
-    await screen.findByText('Rationale')
-    fireEvent.click(screen.getByText('Rationale'))
+    await screen.findByText('Reviewer-visible rationale')
+    fireEvent.click(screen.getByText('Reviewer-visible rationale'))
     expect(screen.getByText('The sample size of 120 participants was stated in the Methods section.')).toBeInTheDocument()
   })
 
@@ -166,7 +166,7 @@ describe('ProposalDetailPane', () => {
       />
     )
     await screen.findByText('A Study on Cognitive Load')
-    expect(screen.getByText('2022')).toBeInTheDocument()
+    expect(screen.getByText(/Smith, J\.\s*·\s*2022/)).toBeInTheDocument()
   })
 
   it('does not show verify comparison when verify mode is off', async () => {
@@ -219,7 +219,7 @@ describe('ProposalDetailPane', () => {
     )
     await screen.findByText('direct quote')
     const quoteCard = screen.getByText('direct quote').closest('button')!
-    expect(quoteCard.className).toContain('border-blue-400')
+    expect(quoteCard.className).toContain('border-sky-300')
   })
 
   it('shows placeholder when no proposal is selected', () => {
@@ -233,6 +233,6 @@ describe('ProposalDetailPane', () => {
         
       />
     )
-    expect(screen.getByText('Select a proposal from the queue')).toBeInTheDocument()
+    expect(screen.getByText('Select a proposal from the queue.')).toBeInTheDocument()
   })
 })

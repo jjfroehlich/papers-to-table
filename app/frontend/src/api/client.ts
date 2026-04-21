@@ -48,6 +48,12 @@ export const api = {
     return request<import('../types').InputSummary>(`/api/runs/${runId}/inputs${params}`)
   },
 
+  preflightRun: (req: import('../types').CreateRunRequest) =>
+    request<import('../types').RunPreflight>('/api/runs/preflight', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
   createRun: (req: import('../types').CreateRunRequest) =>
     request<import('../types').CreateRunResponse>('/api/runs', {
       method: 'POST',
@@ -227,5 +233,13 @@ export const api = {
   getReviewerSummaryDownloadUrl: (runId: string, outputDir?: string): string => {
     const q = outputDir ? `?output_dir=${encodeURIComponent(outputDir)}` : ''
     return `${API_BASE}/api/runs/${runId}/downloads/reviewer-summary${q}`
+  },
+
+  createRunEventsSource: (outputDir?: string, runId?: string): EventSource => {
+    const search = new URLSearchParams()
+    if (outputDir) search.set('output_dir', outputDir)
+    if (runId) search.set('run_id', runId)
+    const suffix = search.size > 0 ? `?${search.toString()}` : ''
+    return new EventSource(`${API_BASE}/api/runs/events${suffix}`)
   },
 }
