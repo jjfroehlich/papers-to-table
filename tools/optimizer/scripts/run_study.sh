@@ -119,6 +119,22 @@ trap on_exit EXIT
     fi
   fi
   "$optimizer_python" -m paper_optimizer.cli summarize --config "$config_path" --experiment "$experiment_dir"
+  "$optimizer_python" - "$experiment_dir/summary.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+summary_path = Path(sys.argv[1])
+if not summary_path.exists():
+    raise SystemExit("summary.json was not produced")
+
+summary = json.loads(summary_path.read_text(encoding="utf-8"))
+candidate_count = summary.get("candidate_count")
+completed_count = summary.get("completed_candidate_count")
+
+if isinstance(candidate_count, int) and candidate_count > 0 and isinstance(completed_count, int) and completed_count == 0:
+    raise SystemExit("No candidates completed successfully; failing run")
+PY
   popd >/dev/null
 
   status="completed"

@@ -46,6 +46,13 @@ def _parse_json_stdout(stdout: str) -> dict[str, Any]:
     raise LaunchError("main-app automation did not emit a machine-readable JSON payload")
 
 
+def _format_subprocess_failure(*, return_code: int, stdout: str, stderr: str) -> str:
+    stderr_lines = [line.strip() for line in stderr.splitlines() if line.strip()]
+    stdout_lines = [line.strip() for line in stdout.splitlines() if line.strip()]
+    detail = stderr_lines[-1] if stderr_lines else (stdout_lines[-1] if stdout_lines else "no output captured")
+    return f"main-app automation failed with exit code {return_code}: {detail}"
+
+
 def _default_knob_path(knob_name: str) -> str:
     alias_map = {
         "retrieval_mode": "retrieval.mode",
@@ -236,7 +243,12 @@ def launch_main_app(
     ended_at = utc_now_iso()
     duration_seconds = time.monotonic() - started_monotonic
 
-    payload = _parse_json_stdout(proc.stdout)
+    try:
+        payload = _parse_json_stdout(proc.stdout)
+    except LaunchError as exc:
+        raise LaunchError(
+            _format_subprocess_failure(return_code=proc.returncode, stdout=proc.stdout, stderr=proc.stderr)
+        ) from exc
     artifact_paths = _write_launch_metadata_files(out_dir, overlay=overlay, resolved_config=resolved_config, payload=payload)
     artifact_paths.update(initial_artifacts)
 
