@@ -42,6 +42,9 @@ Treat this section as a point-in-time implementation note. If it becomes stale a
 - Implemented in the latest pass: parser-first metadata and front-matter extraction is separated from the general extraction lane with explicit proposal provenance and failure attribution.
 - Implemented in the latest pass: style-profile behavior is explicit per run mode and persisted as benchmark-safety provenance.
 - Implemented in the latest pass: parser-cache reuse is wired into the staged runner and summarized in stable run artifacts.
+- Implemented in the latest pass: backend packaging now uses a conventional `src/` layout with modular API routers, split config loading/readiness concerns, explicit app settings, and a `RunExecutor` abstraction.
+- Implemented in the latest pass: browser run launch is now preflight-first and persists compact review lookup artifacts for row/column/paper context.
+- Implemented in the latest pass: live run updates now stream over SSE and unresolved diagnostics moved into a dedicated review-inspection surface instead of competing with evidence.
 - Historical run bundles under `runs/` are useful examples but are not the canonical artifact-shape source of truth.
 
 ## Canonical Checklist

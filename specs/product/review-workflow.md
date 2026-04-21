@@ -1,5 +1,10 @@
 # Review Workflow
 
+- Status: Normative
+- Owner: Product
+- Depends on: product/main-app.md, contracts/proposals-and-evidence.md
+- Consumed by: docs/main-app/operator-workflow.md, app/frontend/src/
+
 ## Purpose
 
 This file defines the normative reviewer workflow for the main app.
@@ -23,6 +28,7 @@ It must provide:
 - synchronized evidence and PDF inspection
 - explicit review actions
 - actionable progress and warning context
+- a dedicated diagnostics surface for unresolved matching issues and run warnings
 
 The workspace must default to actionable review items rather than loading every diagnostic-only pipeline outcome into the main queue.
 
@@ -31,6 +37,7 @@ The workspace must default to actionable review items rather than loading every 
 - The queue must support grouped triage.
 - Reviewer-facing counts must distinguish actionable items from broader attempted or diagnostic totals.
 - Diagnostic-only outcomes such as unmatched rows, ambiguous matches, blocked extraction, and skipped cells must remain visible through diagnostics and summaries, but they must not dominate the main proposal queue.
+- Unresolved diagnostics should not compete with the primary evidence panel for attention during normal review.
 - Bulk review actions apply only to the currently visible filtered subset, never to hidden queue items.
 - Grouping and ordering should support fast scanning rather than flattening every proposal into one undifferentiated list.
 

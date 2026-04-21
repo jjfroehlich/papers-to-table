@@ -1195,7 +1195,7 @@ class TestAbortAPI:
         async def fake_abort_run(requested_run_id: str) -> bool:
             return requested_run_id == run_id
 
-        monkeypatch.setattr("backend.app.main.abort_run", fake_abort_run)
+        monkeypatch.setattr("backend.app.api.routers.runs.get_run_executor", lambda: type("Executor", (), {"abort": staticmethod(fake_abort_run)})())
 
         resp = client.post(f"/api/runs/{run_id}/abort?output_dir={tmp_path}")
 

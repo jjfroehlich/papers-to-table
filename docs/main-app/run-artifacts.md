@@ -86,6 +86,7 @@ Per PDF directory layout:
 
 - `decisions.jsonl`: append-only review decisions.
 - `history/*.json`: per-proposal decision history files, created when decisions are recorded.
+- `review_lookup.json`: compact row, column, and matched-paper lookup data used by review surfaces.
 
 ### `summaries/`
 

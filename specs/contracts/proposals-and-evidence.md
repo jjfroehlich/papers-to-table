@@ -1,5 +1,10 @@
 # Proposals And Evidence Contract
 
+- Status: Normative
+- Owner: Shared Contracts
+- Depends on: product/main-app.md, product/review-workflow.md
+- Consumed by: app/backend/src/backend/app/, tools/eval/
+
 ## Purpose
 
 This file defines the shared proposal, evidence, and support-quality contract used across the monorepo.

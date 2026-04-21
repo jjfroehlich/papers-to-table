@@ -97,6 +97,8 @@ def _build_demo_run(
         "pdf_dir": str(pdf_dir),
         "output_dir": str(runs_dir),
         "verify_mode": False,
+        "eval_mode": False,
+        "run_mode": "normal",
         "provider_token": "lm_studio",
         "provider_locality": "local",
         "provider_mode": "live_local",

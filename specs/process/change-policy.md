@@ -1,22 +1,53 @@
 # Change Policy
 
+- Status: Normative
+- Owner: Process
+- Depends on: specs/README.md
+- Consumed by: contributors, coding agents
+
 ## Purpose
 
-This file defines how behavior changes must update the monorepo spec system.
+This file defines how behavior changes must update the monorepo spec system and adjacent docs.
 
-## Policy
+## Core rule
 
-Any behavior change must update the relevant spec file or files in the same work pass.
+Any behavior change must update the owning current file in the same work pass.
 
-## Required update rules
+## Operational update checklists
 
-- Main-app behavior change: update the owning file in `product/` and any affected shared contract in `contracts/`.
-- Eval change: update `tools/eval.md` for tool-owned behavior and update `contracts/` when the change affects shared artifact, metric, or provenance contracts.
-- Optimizer change: update `tools/optimizer.md` for tool-owned behavior and update `contracts/` when the change affects shared scorer or candidate contracts.
-- Integration change: update `architecture/integration.md` and any affected `contracts/` file together.
-- Testing or verification policy change: update `process/testing-strategy.md`.
-- Implementation status change: update `tasks.md`.
-- If operator-facing workflow or terminology changes, update the relevant docs in the same pass so operator documentation does not drift behind the spec and app.
+### If you changed shared contracts
+
+- update the owning file under `specs/contracts/`
+- update any product/tool doc that points at renamed fields, directories, or semantics
+- update tests for every impacted tool
+- verify the affected runtime still emits or consumes the contract truthfully
+
+### If you changed reviewer workflow
+
+- update `specs/product/review-workflow.md`
+- update `docs/main-app/operator-workflow.md`
+- update screenshots if the workflow UI changed materially
+- update frontend tests and any relevant e2e coverage
+
+### If you changed provider behavior or readiness
+
+- update `specs/product/main-app.md`
+- update config docs/examples, UI labels, and tests
+- verify runtime validation, persisted artifacts, summaries, and browser status surfaces agree
+- confirm the live path either works or fails early with a clear readiness error
+
+### If you changed run setup, launch, or automation behavior
+
+- update `specs/product/main-app.md`
+- update `README.md`, `docs/main-app/README.md`, and `docs/main-app/operator-workflow.md`
+- update wrapper-script guidance if the happy path changed
+- update backend/frontend tests and any relevant automation tests
+
+### If you changed repo structure or integration boundaries
+
+- update `specs/architecture/*.md`
+- update repo maps in `README.md`, `AGENTS.md`, and any affected docs
+- verify packaging, imports, scripts, and local startup commands together
 
 ## Anti-duplication rule
 

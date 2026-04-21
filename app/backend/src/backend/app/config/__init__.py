@@ -1,3 +1,5 @@
+import httpx
+
 from .constants import (
     CANONICAL_PROVIDERS,
     CANONICAL_RETRIEVAL_MODES,
@@ -42,6 +44,7 @@ __all__ = [
     'TextModelConfig',
     'VisionModelConfig',
     'ReadinessResult',
+    'httpx',
     'apply_overrides',
     'check_readiness',
     'get_run_mode',

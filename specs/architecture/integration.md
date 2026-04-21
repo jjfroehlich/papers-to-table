@@ -1,5 +1,10 @@
 # Integration
 
+- Status: Normative
+- Owner: Architecture
+- Depends on: contracts/run-bundle.md, contracts/eval-summary.md, contracts/optimizer-candidate.md
+- Consumed by: tools/eval/, tools/optimizer/, docs/contracts/
+
 ## Purpose
 
 This file defines the normative integration model across the main app, eval, and optimizer.

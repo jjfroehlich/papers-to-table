@@ -1,5 +1,10 @@
 # Eval Summary Contract
 
+- Status: Normative
+- Owner: Shared Contracts
+- Depends on: tools/eval.md
+- Consumed by: tools/optimizer/, docs/optimizer/README.md
+
 ## Purpose
 
 This file defines the shared per-run evaluation summary and comparison-row contract produced by eval and consumed by optimizer.

@@ -1,5 +1,10 @@
 # Optimizer Candidate Contract
 
+- Status: Normative
+- Owner: Shared Contracts
+- Depends on: tools/optimizer.md
+- Consumed by: tools/optimizer/
+
 ## Purpose
 
 This file defines the shared optimizer-owned contract for candidate bundles, candidate results, and decision records.

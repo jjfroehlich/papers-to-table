@@ -1,5 +1,10 @@
 # Testing Strategy
 
+- Status: Normative
+- Owner: Process
+- Depends on: process/change-policy.md
+- Consumed by: contributors, coding agents
+
 ## Purpose
 
 This file defines the cross-monorepo testing strategy that keeps the unified spec system truthful.
@@ -12,24 +17,40 @@ Main-app changes should preserve:
 - frontend test coverage
 - Playwright coverage for key reviewer workflows where the repo already supports it
 - readiness and live-path truth for provider-sensitive changes
+- screenshot capture coverage when operator screenshots are part of the docs
 
-## Eval testing expectations
+## Operational verification checklists
 
-Eval changes should preserve:
+### If you changed shared contracts
 
-- loader and contract tests for run-bundle compatibility
-- scorer tests for deterministic structured fields
-- judge-path tests for text scoring
-- end-to-end CLI coverage for one-run and many-run workflows
+- run the impacted main-app tests
+- run eval tests if run-bundle, proposal/evidence, or summary contracts changed
+- run optimizer tests if eval-summary or candidate contracts changed
+- verify changed docs and examples still match emitted artifacts
 
-## Optimizer testing expectations
+### If you changed backend runtime or API behavior
 
-Optimizer changes should preserve:
+- run `bash scripts/test-main-backend.sh`
+- run targeted tests for changed endpoints/modules
+- verify startup commands and automation entrypoints if those changed
 
-- config and contract validation tests
-- launch-contract tests for main-app and eval integration
-- compare and optimize orchestration tests
-- summary and regeneration coverage for persisted artifacts
+### If you changed frontend workflow or styling
+
+- run `bash scripts/test-main-frontend.sh`
+- run or update e2e coverage for materially changed flows when available
+- refresh screenshots when docs images became stale
+
+### If you changed provider behavior
+
+- verify config validation and readiness tests
+- verify UI/provider summary parity
+- verify persisted artifacts and summaries reflect the same provider truth
+
+### If you changed packaging or startup layout
+
+- verify install commands
+- verify backend startup, frontend startup, and wrapper scripts together
+- verify imports and editable installs on the new layout
 
 ## Cross-tool regression rule
 
@@ -43,4 +64,4 @@ At minimum, that means validating:
 
 ## Documentation-verification rule
 
-Operator docs, spec docs, commands, artifact names, and persisted fields should be verified together when a change touches operator-facing or cross-tool behavior.
+Operator docs, spec docs, commands, artifact names, screenshots, and persisted fields should be verified together when a change touches operator-facing or cross-tool behavior.

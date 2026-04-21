@@ -386,7 +386,7 @@ class TestRunPipeline:
         assert artifact_summary["files"]["provider_probe"]["present"] is True
         assert artifact_summary["files"]["provider_model_management"]["present"] is True
         assert artifact_summary["directories"]["exports"]["file_count"] == 0
-        assert artifact_summary["directories"]["review"]["file_count"] == 0
+        assert artifact_summary["directories"]["review"]["file_count"] == 1
         assert artifact_summary["directories"]["diagnostics"]["file_count"] >= 4
         assert "diagnostics/provider_diagnostics.json" in artifact_summary["sections"]["diagnostics"]
         assert provider_diagnostics["attempt_count"] == 0

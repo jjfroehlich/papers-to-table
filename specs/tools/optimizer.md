@@ -1,12 +1,17 @@
 # Optimizer Tool
 
+- Status: Normative
+- Owner: Optimizer
+- Depends on: contracts/eval-summary.md, contracts/optimizer-candidate.md, architecture/integration.md
+- Consumed by: tools/optimizer/, docs/optimizer/README.md
+
 ## Purpose
 
 The optimizer is an internal CLI-first orchestration tool for bounded candidate studies.
 
 It coordinates the main app and eval tool to answer a bounded question: which explicit prompt, model, or config candidate performs best on a fixed benchmark under explicit guardrails.
 
-For the fuller pre-unification optimizer spec stack, including detailed orchestration, rationale, and task-history material, see `../archive/verbatim/optimizer/spec.md`, `../archive/verbatim/optimizer/plan.md`, `../archive/verbatim/optimizer/research.md`, and `../archive/verbatim/optimizer/tasks.md`.
+Archive material may remain useful for historical background, but this current file is the complete active source of truth for optimizer behavior.
 
 Optimizer is a companion tool. It is not an extraction runtime and it is not a scoring runtime.
 

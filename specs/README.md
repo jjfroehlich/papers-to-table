@@ -6,25 +6,9 @@ This directory is the canonical current spec source of truth for the monorepo.
 
 The main app is the primary product. Eval and optimizer are internal companion tools that consume or extend main-app artifacts through shared contracts defined once in this tree.
 
-## Target structure
-
-The target structure is intentionally simple:
-
-- `product/`: current main-app product behavior
-- `tools/`: current eval and optimizer behavior
-- `contracts/`: current shared cross-tool contracts
-- `architecture/`: current repo and integration boundaries
-- `process/`: current maintenance and verification policy
-- `plan.md`: current technical direction and durable rationale summary
-- `tasks.md`: current implementation status only
-- `archive/verbatim/`: historical legacy spec material only
-
-Anything under `product/`, `tools/`, `contracts/`, `architecture/`, or `process/` is current.
-Anything under `archive/verbatim/` is historical and non-normative.
-
 ## Reading order
 
-Use this reading order for spec-driven work:
+Use this order for spec-driven work:
 
 1. `product/overview.md`
 2. `product/main-app.md`
@@ -37,20 +21,46 @@ Use this reading order for spec-driven work:
 9. `plan.md`
 10. `tasks.md`
 
-If you need historical wording, old acceptance language, or superseded rationale, read the relevant file under `archive/verbatim/`.
+Anything under `product/`, `tools/`, `contracts/`, `architecture/`, or `process/` is current.
+Anything under `archive/verbatim/` is historical and non-normative background only.
+
+Current files must be sufficient on their own for active work. Historical archive files may help with background or provenance, but they must not be required to understand the current product or justify current behavior.
 
 ## Ownership rules
 
 Each important truth should have one owning file:
 
-- Main-app product behavior belongs in `product/overview.md`, `product/main-app.md`, or `product/review-workflow.md`.
-- Shared artifact, proposal, evidence, and summary contracts belong in `contracts/`.
-- Repo and tool boundaries belong in `architecture/`.
-- Maintenance and verification policy belong in `process/`.
-- Implementation status belongs in `tasks.md` only.
-- Historical material belongs in `archive/verbatim/` only.
+- Main-app product behavior -> `product/overview.md`, `product/main-app.md`, `product/review-workflow.md`
+- Shared artifact, proposal, evidence, and summary contracts -> `contracts/`
+- Repo and tool boundaries -> `architecture/`
+- Maintenance and verification policy -> `process/`
+- Implementation status -> `tasks.md` only
+- Historical wording -> `archive/verbatim/` only
 
-Do not restate shared contracts in product or tool docs beyond a short pointer.
+## Docs map by audience
+
+- Product/repo entrypoint -> `../README.md`
+- Operator docs -> `../docs/main-app/README.md`
+- Contributor quickstart -> `../CONTRIBUTING.md`
+- Coding-agent and maintainer rules -> `../AGENTS.md` and `AGENTS.md`
+- Normative product/tool/contracts/process specs -> this directory
+
+## Glossary and examples
+
+### Key terms
+
+- **Run preflight**: resolves inputs, checks readiness, and shows scope before launch.
+- **Run bundle**: the filesystem artifact bundle under `{output_dir}/{run_id}/`.
+- **Reviewable proposal**: belongs in the main queue and can receive an explicit review decision.
+- **Diagnostics-only outcome**: important persisted context that stays out of the main queue unless specifically inspected.
+- **Staged handle**: backend-readable reference created from browser-selected files.
+
+### Concrete examples
+
+- **Workflow example**: preflight -> start run -> live SSE updates -> queue-first review -> diagnostics drawer -> explicit export.
+- **Payload example owner**: setup payloads and run-start behavior belong in `product/main-app.md`; shared artifact fields belong in `contracts/`.
+- **State example**: `completed_with_warnings` means the run is reviewable, but warnings still matter.
+- **File ownership example**: provider-token truth belongs in current product/docs/tests/UI, not in `archive/verbatim/`.
 
 ## Historical archive
 
@@ -63,5 +73,3 @@ The historical archive is intentionally narrow.
 ## Update rule
 
 Any behavior change must update the owning current spec file in the same work pass.
-
-If older historical detail is still worth keeping after a rewrite, preserve it in `archive/verbatim/` or leave the existing preserved file in place. Do not create a second semi-current archive layer.
