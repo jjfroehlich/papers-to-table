@@ -124,56 +124,60 @@ trap on_exit EXIT
   echo "Log file: $log_file"
   echo "Optimizer command: $optimizer_python -m paper_optimizer.cli"
 
-    "$optimizer_python" - "$config_path" <<'PY'
-  import importlib.util
-  import json
-  import sys
-  from pathlib import Path
+  "$optimizer_python" - "$config_path" <<'PY'
+import importlib.util
+import json
+import sys
+from pathlib import Path
 
-  config_path = Path(sys.argv[1])
-  config = json.loads(config_path.read_text(encoding="utf-8"))
-
-
-  def _module_from_command_prefix(prefix, default):
-      if isinstance(prefix, list):
-          for idx, token in enumerate(prefix):
-              if token == "-m" and idx + 1 < len(prefix):
-                  candidate = prefix[idx + 1]
-                  if isinstance(candidate, str) and candidate.strip():
-                      return candidate.strip()
-      return default
+config_path = Path(sys.argv[1])
+config = json.loads(config_path.read_text(encoding="utf-8"))
 
 
-  required_modules = []
+def _module_from_command_prefix(prefix, default):
+    if isinstance(prefix, list):
+        for idx, token in enumerate(prefix):
+            if token == "-m" and idx + 1 < len(prefix):
+                candidate = prefix[idx + 1]
+                if isinstance(candidate, str) and candidate.strip():
+                    return candidate.strip()
+    return default
 
-  main_cfg = config.get("main_app", {}) if isinstance(config, dict) else {}
-  if isinstance(main_cfg, dict) and "command" not in main_cfg:
-      main_module = _module_from_command_prefix(main_cfg.get("command_prefix"), main_cfg.get("module", "backend.app.automation"))
-      required_modules.append(("main_app", main_module))
 
-  eval_cfg = config.get("eval_app", {}) if isinstance(config, dict) else {}
-  if isinstance(eval_cfg, dict) and "command" not in eval_cfg:
-      eval_module = _module_from_command_prefix(eval_cfg.get("command_prefix"), eval_cfg.get("module", "paper_eval"))
-      required_modules.append(("eval_app", eval_module))
+required_modules = []
 
-  missing = []
-  for section, module_name in required_modules:
-      if not isinstance(module_name, str) or not module_name.strip():
-          continue
-      if importlib.util.find_spec(module_name) is None:
-          missing.append((section, module_name))
+main_cfg = config.get("main_app", {}) if isinstance(config, dict) else {}
+if isinstance(main_cfg, dict) and "command" not in main_cfg:
+    main_module = _module_from_command_prefix(main_cfg.get("command_prefix"), main_cfg.get("module", "backend.app.automation"))
+    required_modules.append(("main_app", main_module))
 
-  if missing:
-      for section, module_name in missing:
-          print(
-              f"Missing module '{module_name}' required by {section} using optimizer python '{sys.executable}'.",
-              file=sys.stderr,
-          )
-      print(
-          "Set PAPER_OPTIMIZER_PYTHON to an interpreter with all required packages installed.",
-          file=sys.stderr,
-      )
-      sys.exit(2)
+eval_cfg = config.get("eval_app", {}) if isinstance(config, dict) else {}
+if isinstance(eval_cfg, dict) and "command" not in eval_cfg:
+    eval_module = _module_from_command_prefix(eval_cfg.get("command_prefix"), eval_cfg.get("module", "paper_eval"))
+    required_modules.append(("eval_app", eval_module))
+
+missing = []
+for section, module_name in required_modules:
+    if not isinstance(module_name, str) or not module_name.strip():
+        continue
+    try:
+        spec = importlib.util.find_spec(module_name)
+    except ModuleNotFoundError:
+        spec = None
+    if spec is None:
+        missing.append((section, module_name))
+
+if missing:
+    for section, module_name in missing:
+        print(
+            f"Missing module '{module_name}' required by {section} using optimizer python '{sys.executable}'.",
+            file=sys.stderr,
+        )
+    print(
+        "Set PAPER_OPTIMIZER_PYTHON to an interpreter with all required packages installed.",
+        file=sys.stderr,
+    )
+    sys.exit(2)
 PY
 
   pushd "$repo_root" >/dev/null
