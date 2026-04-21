@@ -42,7 +42,7 @@ from .extraction import (
     load_evidence,
     load_proposals,
 )
-from .ids import generate_cell_id, generate_row_id, generate_run_id
+from .ids import generate_cell_id, generate_row_id
 from .ingest import (
     build_eval_snapshot_dataframe,
     create_masked_working_dataframe,
@@ -50,8 +50,6 @@ from .ingest import (
     load_schema,
     load_table,
     persist_eval_table_snapshot,
-    persist_masked_working_copy,
-    persist_table_snapshot,
     validate_metadata_columns,
     validate_schema_columns,
 )
@@ -65,12 +63,12 @@ from .parsing import (
     parse_pdf,
 )
 from .provider import ProviderError, _canonical_structured_output_reason, initialize_provider
+from .review_lookup import persist_review_lookup
 from .retrieval import run_retrieval_for_cell
+from .run_events import publish_run_update
+from .run_executor import get_run_executor
 from .schemas import EvidenceSourceType, MatchOutcome, RunStatus, SupportLabel, WarningCategory
 from .style_profiles import run_style_profiles_stage
-
-_active_runs: dict[str, asyncio.Task] = {}
-_active_runs_lock: asyncio.Lock | None = None
 
 _STAGE_TIMING_KEYS = {
     "validating": "stage_validating_ms",
@@ -210,13 +208,6 @@ def _store_parse_bundle_in_cache(
     if target_dir.exists():
         shutil.rmtree(target_dir)
     shutil.copytree(source_dir, target_dir)
-
-
-def _get_lock() -> asyncio.Lock:
-    global _active_runs_lock
-    if _active_runs_lock is None:
-        _active_runs_lock = asyncio.Lock()
-    return _active_runs_lock
 
 
 def get_initial_run_data(
@@ -480,6 +471,7 @@ async def run_pipeline(
 
     def save_run(data: dict) -> None:
         write_json(run_json_path, data)
+        asyncio.create_task(publish_run_update(dict(data)))
 
     def _finalize_active_stage() -> None:
         current_stage = stage_state.get("current")
@@ -1661,6 +1653,12 @@ async def run_pipeline(
             ambiguity_threshold=config.matching.ambiguity_threshold,
         )
         persist_match_artifacts(run_dir, run_id, match_results)
+        persist_review_lookup(
+            run_id=run_id,
+            output_dir=output_dir,
+            table_path=config.table_path,
+            schema_path=config.schema_path,
+        )
 
         for mr in match_results:
             if mr.outcome == MatchOutcome.unmatched:
@@ -2158,34 +2156,14 @@ def launch_run(
     output_dir: str,
     resolved_inputs: Optional[dict[str, object]] = None,
 ) -> None:
-    """Launch a run as an asyncio background task."""
-
-    async def _register_and_run() -> None:
-        lock = _get_lock()
-        async with lock:
-            task = asyncio.current_task()
-            _active_runs[run_id] = task  # type: ignore[assignment]
-        try:
-            await run_pipeline(
-                run_id,
-                config,
-                config_path,
-                output_dir,
-                resolved_inputs=resolved_inputs,
-            )
-        finally:
-            async with lock:
-                _active_runs.pop(run_id, None)
-
-    asyncio.create_task(_register_and_run())
+    get_run_executor().launch(
+        run_id,
+        config,
+        config_path,
+        output_dir,
+        resolved_inputs=resolved_inputs,
+    )
 
 
 async def abort_run(run_id: str) -> bool:
-    """Cancel an active run task if it exists."""
-    lock = _get_lock()
-    async with lock:
-        task = _active_runs.get(run_id)
-        if task is None:
-            return False
-        task.cancel()
-        return True
+    return await get_run_executor().abort(run_id)

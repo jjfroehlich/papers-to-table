@@ -1,12 +1,17 @@
 # Eval Tool
 
+- Status: Normative
+- Owner: Eval
+- Depends on: contracts/run-bundle.md, contracts/eval-summary.md, contracts/proposals-and-evidence.md
+- Consumed by: tools/eval/, docs/eval/README.md
+
 ## Purpose
 
 The eval tool is an internal CLI-first evaluator for main-app run bundles.
 
 It reads run artifacts from files, scores proposals against a human-filled gold table, and writes inspectable per-cell, per-run, and cross-run comparison artifacts.
 
-For the fuller pre-unification eval spec stack, including detailed module-layout, CLI, rationale, and task-history material, see `../archive/verbatim/eval/spec.md`, `../archive/verbatim/eval/plan.md`, `../archive/verbatim/eval/research.md`, and `../archive/verbatim/eval/tasks.md`.
+Archive material may remain useful for historical background, but this current file is the complete active source of truth for eval behavior.
 
 Eval is a companion tool. It is not a second extraction product and it does not run extraction itself.
 

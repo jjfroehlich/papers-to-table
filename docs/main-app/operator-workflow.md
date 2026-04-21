@@ -1,38 +1,42 @@
 # Operator workflow and trust notes
 
-This guide stays intentionally close to the implemented MVP. It documents the current browser workflow, what the screenshots show, and where the app is intentionally strict about trust.
+This guide stays intentionally close to the implemented app. It documents the current browser workflow, what the screenshots show, and where the app is intentionally strict about trust.
 
 ## Screenshot-backed workflow
 
-### 1. Run setup
+### 1. Preflight-first run setup
 
 ![Run setup screenshot](../screenshots/run-setup.png)
 
 - Start from the **Run** tab.
-- Enter the backend-readable config path in the text field.
-- Use config **Browse...** as a filename prefill helper; confirm the real path before launch.
+- Enter the backend-readable config path.
 - Expand **optional path overrides** only when you need a one-run override for the table, schema, or PDF directory.
-- For override pickers, use **Stage...** / **Stage PDFs...** to materialize browser-selected files into backend-readable staged handles.
+- Use **Stage...** or **Stage PDFs...** when browser-selected files need backend-readable staged handles.
+- Click **Run preflight** before launching so the operator can see:
+  - resolved inputs and runtime locators
+  - table, schema, and PDF scope
+  - provider and model readiness
+  - what the backend will do next
+- Only click **Start run** after the preflight context is acceptable.
 
-### 2. Highlighted-evidence review workspace
+### 2. Queue-first review workspace with a dedicated diagnostics surface
 
 ![Review workspace screenshot](../screenshots/review-workspace.png)
 
 - The queue defaults to actionable pending proposals and supports grouped triage by paper or column.
-- The detail pane keeps the proposed value, schema description, and ordered evidence list together.
-- The evidence viewer uses:
-  - blue overlays for exact quote highlights
-  - dashed orange overlays for approximate regions
-  - a text fallback panel when only quote-plus-page evidence is available
+- The detail pane keeps the selected paper, field, proposed value, and ordered evidence list together.
+- The evidence panel stays focused on the selected evidence item.
+- Unmatched, ambiguous, duplicate-conflict, and warning context lives in **Diagnostics & run inspection** instead of competing with evidence in the same panel.
+- The workspace preserves keyboard shortcuts and explicit review actions.
 
-### 3. Export and diagnostics artifacts
+### 3. Explicit export and run artifacts
 
 ![Export and diagnostics screenshot](../screenshots/export-diagnostics.png)
 
 - Export stays manual: the reviewer must click **Export reviewed workbook**.
 - Download links appear only after that explicit export.
 - Diagnostics are written alongside the workbook and audit log in `{output_dir}/{run_id}/exports/`.
-- For full run-bundle folder and file semantics, see [run-artifacts.md](run-artifacts.md).
+- For the full run-bundle contract, see [run-artifacts.md](run-artifacts.md).
 
 ## Writing better schema descriptions
 
@@ -54,19 +58,6 @@ Number of Conditions,How many distinct experimental conditions were tested in th
 Readout,Primary assay readout used to measure expression or activity.,categorical,"[""RNAseq"",""scRNAseq"",""FACS""]"
 ```
 
-Notes:
-
-- `field_type` is optional. Supported values are `text`, `number`, `categorical`, and `boolean`.
-- `allowed_values` are only valid for `categorical` fields.
-- Empty target columns are normal. Extraction does not require prefilled example values.
-
-For numeric fields, reviewers may see answers that preserve the paper's level of precision:
-
-- `5` -> exact
-- `5-7` -> range
-- `~5` -> approximate
-- graph-estimated values should remain approximate rather than being rewritten as exact
-
 ## Evidence semantics
 
 - **Direct quote**: exact highlight anchored to page text.
@@ -80,7 +71,7 @@ For numeric fields, reviewers may see answers that preserve the paper's level of
 - The canonical live provider token is `lm_studio`.
 - The UI surfaces provider mode directly (`live local`, `live cloud`, `unavailable`, `disabled`, or `stub/demo` when applicable).
 - If the configured live provider is unavailable at startup, the run fails during readiness instead of pretending to complete.
-- Parsing fallback, OCR fallback, duplicate conflicts, and evidence fallback stay visible through warnings and review summaries.
+- Parsing fallback, OCR fallback, duplicate conflicts, and evidence fallback stay visible through warnings, summaries, and the diagnostics surface.
 - The app does not silently relabel fallback evidence as exact evidence.
 
 ## Manual export flow
@@ -97,6 +88,7 @@ Only explicitly accepted values are exported. Rejected, unreviewed, and confirme
 - [ ] Confirm the provider mode shown in the UI matches your intended local or cloud path.
 - [ ] Review fallback labels instead of treating every proposal as equally grounded.
 - [ ] Inspect evidence before export; proposal presence is not proof.
+- [ ] Open diagnostics when the run summary shows warnings or matching issues.
 - [ ] Use the explicit export step rather than assuming run completion wrote a workbook.
 - [ ] Keep the audit log and diagnostics JSON with the exported workbook.
 
@@ -105,10 +97,15 @@ Only explicitly accepted values are exported. Rejected, unreviewed, and confirme
 From the repo root:
 
 ```bash
-pip install -e ./app/backend[test]
+cd app
+python -m pip install -e ./backend[test]
+cd frontend
+npm install
+cd ../..
 python -m playwright install chromium
-cd app/frontend && npm install && cd ../..
 python -m pytest app/tests/e2e/test_doc_screenshots.py -m e2e --capture-doc-screenshots
 ```
+
+These commands assume you start in the repository root. If you are already inside `app/` or `app/frontend/`, adjust the `cd` steps before running them.
 
 The screenshot test spins up a deterministic local backend and frontend stack, captures the documentation images, and writes them into `docs/screenshots/`.

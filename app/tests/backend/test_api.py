@@ -151,7 +151,7 @@ class TestOpenPdfInLocalViewer:
         def fake_open(path: pathlib.Path) -> None:
             opened.append(str(path))
 
-        monkeypatch.setattr("backend.app.main.open_in_local_viewer", fake_open)
+        monkeypatch.setattr("backend.app.api.routers.assets.open_in_local_viewer", fake_open)
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(f"/api/runs/{rid}/assets/pdf/paper-1/open?output_dir={tmp_path}")
@@ -213,6 +213,25 @@ class TestCreateRun:
             })
         assert resp.status_code == 200
         await asyncio.sleep(0.2)
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_preflight_reports_scope_and_readiness(self, minimal_config_file, monkeypatch):
+        monkeypatch.setattr("backend.app.parsing.check_parser_readiness", lambda *_args: [])
+        monkeypatch.setattr("backend.app.parsing.check_ocr_readiness", lambda *_args: [])
+        respx.get("http://localhost:1234/v1/models").mock(
+            return_value=httpx.Response(200, json={"data": [{"id": "qwen/qwen3-30b-a3b-2507"}]})
+        )
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post("/api/runs/preflight", json={"config_path": str(minimal_config_file)})
+
+        assert resp.status_code == 200
+        payload = resp.json()
+        assert "ok" in payload["readiness"]
+        assert "errors" in payload["readiness"]
+        assert "table_rows" in payload["scope"]
+        assert "pdf_count" in payload["scope"]
+        assert payload["provider"]["token"] == "lm_studio"
 
     @pytest.mark.asyncio
     async def test_stage_single_input_file_materializes_handle(self, tmp_path):

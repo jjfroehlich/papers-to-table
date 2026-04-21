@@ -61,6 +61,10 @@ def get_review_dir(output_dir: str, run_id: str) -> pathlib.Path:
     return get_run_dir(output_dir, run_id) / "review"
 
 
+def get_review_lookup_path(output_dir: str, run_id: str) -> pathlib.Path:
+    return get_review_dir(output_dir, run_id) / "review_lookup.json"
+
+
 def get_run_summary_path(output_dir: str, run_id: str) -> pathlib.Path:
     return get_summaries_dir(output_dir, run_id) / "run_summary.json"
 

@@ -1,5 +1,10 @@
 # Run Bundle Contract
 
+- Status: Normative
+- Owner: Shared Contracts
+- Depends on: product/main-app.md
+- Consumed by: tools/eval/, tools/optimizer/, app/backend/src/backend/app/
+
 ## Purpose
 
 This file defines the shared run-bundle contract emitted by the main app and consumed by eval and optimizer.

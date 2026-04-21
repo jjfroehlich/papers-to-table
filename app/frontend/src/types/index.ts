@@ -136,10 +136,45 @@ export interface CreateRunRequest {
   pdf_dir_staged_handle?: string
 }
 
+export interface RunPreflight {
+  config_path: string
+  run_mode: 'normal' | 'verify' | 'eval'
+  output_dir: string
+  resolved_inputs: Required<NonNullable<RunData['resolved_inputs']>>
+  provider: {
+    token: string
+    locality: string
+    base_url: string
+    text_model_id: string
+    vision_model_id?: string | null
+  }
+  scope: {
+    table_rows: number | null
+    schema_columns: number | null
+    pdf_count: number | null
+  }
+  readiness: {
+    ok: boolean
+    errors: string[]
+    warnings: string[]
+    provider_mode: string | null
+    provider_readiness_reason: string | null
+    provider_readiness_error: string | null
+  }
+  what_happens_next: string[]
+}
+
 export interface CreateRunResponse {
   run_id: string
   status: string
   resolved_inputs: Required<NonNullable<RunData['resolved_inputs']>>
+}
+
+export interface RunStreamEvent {
+  event: 'run.updated' | 'run.deleted'
+  run_id: string
+  recorded_at: string
+  run?: RunData
 }
 
 export interface StagedInputResponse {

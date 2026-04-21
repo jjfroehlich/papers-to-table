@@ -1,12 +1,17 @@
 # Main App
 
+- Status: Normative
+- Owner: Product
+- Depends on: product/overview.md, contracts/run-bundle.md, contracts/proposals-and-evidence.md
+- Consumed by: docs/main-app/, app/backend/src/backend/app/, app/frontend/src/
+
 ## Purpose
 
 The main app is the primary product in this monorepo.
 
 It ingests PDFs plus a structured spreadsheet, proposes schema-defined values with evidence, supports human review in a browser UI, and exports audited XLSX updates.
 
-For the fuller pre-unification requirement set, detailed technical rationale, and earlier acceptance language, see `../archive/verbatim/main-app/spec.md`, `../archive/verbatim/main-app/plan.md`, and `../archive/verbatim/main-app/research.md`.
+Archive material may remain useful for historical background, but this current file is the complete active source of truth for the main app.
 
 ## End-to-end workflow
 
@@ -55,9 +60,9 @@ The JSON config file is the authoritative control surface for advanced behavior,
 The browser UI is the normal operator surface for:
 
 - selecting or entering the config path
-- understanding resolved run context
+- understanding resolved preflight context
 - starting or aborting a run
-- following lifecycle state and warnings
+- following lifecycle state and warnings through live updates
 - reviewing proposals and matching issues
 - exporting and downloading artifacts
 
@@ -73,6 +78,7 @@ The backend may expose a stable non-UI automation entrypoint for tooling, but th
 - Existing filled cells may support bounded style-profile inference, but they must not become hidden row-level answer leakage for normal extraction.
 - Path overrides staged through the UI must become backend-readable handles before the run starts.
 - The UI should keep setup picker-driven and action-oriented rather than assuming raw filesystem path entry is the normal operator workflow.
+- The launch surface should stay preflight-first so the operator can see resolved inputs, scope, readiness, and next steps before starting work.
 
 ## Output requirements
 
@@ -81,6 +87,7 @@ The backend may expose a stable non-UI automation entrypoint for tooling, but th
 - Export writes a new workbook plus audit artifacts rather than mutating the source workbook in place.
 - Eval-mode runs must preserve masked-table and gold-table provenance needed for reproducible downstream scoring.
 - Reviewable proposals and diagnostics-only outcomes must remain distinct in artifacts and summaries.
+- Review surfaces may persist compact lookup artifacts that accelerate row, column, and matched-paper context, but those helpers do not replace canonical proposal or evidence streams.
 
 ## Main-app behavior requirements
 
@@ -179,6 +186,7 @@ The bounded structured-output recovery ladder is:
 - Optional OCR-dependent or parser-dependent paths must report truthful readiness when they are unavailable.
 - The app must record the negotiated provider mode and degraded-mode truth in persisted artifacts so reviewers and downstream tools can tell what actually happened.
 - The app should preserve resolved setup context early enough that readiness-failed runs remain diagnosable.
+- Live run-state transport should favor push-based updates that reduce stale-state windows in the browser UI.
 
 ## Main-app quality bar
 

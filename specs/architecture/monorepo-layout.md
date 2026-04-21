@@ -1,5 +1,10 @@
 # Monorepo Layout
 
+- Status: Normative
+- Owner: Architecture
+- Depends on: README.md, AGENTS.md
+- Consumed by: contributors, coding agents, docs/README.md
+
 ## Purpose
 
 This file defines the normative layout and role boundaries for the monorepo.
@@ -7,6 +12,8 @@ This file defines the normative layout and role boundaries for the monorepo.
 ## Product and tool roles
 
 - `app/` contains the primary product: the main extraction, review, and export application.
+- `app/backend/src/backend/app/` is the canonical Python package root for the backend runtime.
+- `app/frontend/src/` is the canonical source root for the browser UI.
 - `tools/eval/` contains the internal scoring tool.
 - `tools/optimizer/` contains the internal orchestration tool.
 - `specs/` contains the canonical spec system for all three surfaces.

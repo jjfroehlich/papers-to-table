@@ -1,12 +1,19 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { RunLaunchSurface } from './components/RunLaunchSurface'
 import { RunList } from './components/RunList'
 import { RunDetail } from './components/RunDetail'
 import { ReviewWorkspace } from './components/ReviewWorkspace'
 import { api } from './api/client'
-import type { RunData } from './types'
+import type { RunData, RunStreamEvent } from './types'
 
 type View = 'run' | 'review'
+type StreamState = 'idle' | 'connected' | 'error'
+
+function upsertRun(runs: RunData[], nextRun: RunData): RunData[] {
+  return [nextRun, ...runs.filter((run) => run.run_id !== nextRun.run_id)].sort((a, b) =>
+    (b.created_at ?? '').localeCompare(a.created_at ?? '')
+  )
+}
 
 export function App() {
   const [view, setView] = useState<View>('run')
@@ -14,196 +21,214 @@ export function App() {
   const [selectedRun, setSelectedRun] = useState<RunData | null>(null)
   const [loadingRuns, setLoadingRuns] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [streamState, setStreamState] = useState<StreamState>('idle')
   const [abortingRunId, setAbortingRunId] = useState<string | null>(null)
-  const [lastSuccessfulRefreshAt, setLastSuccessfulRefreshAt] = useState<string | null>(null)
+  const [lastLiveUpdateAt, setLastLiveUpdateAt] = useState<string | null>(null)
+
+  const syncSelectedRun = useCallback((nextRuns: RunData[]) => {
+    setSelectedRun((current) => {
+      if (!current) return current
+      return nextRuns.find((run) => run.run_id === current.run_id) ?? current
+    })
+  }, [])
 
   const loadRuns = useCallback(async () => {
     try {
       const resp = await api.listRuns()
       setRuns(resp.runs)
+      syncSelectedRun(resp.runs)
       setLoadError(null)
-      setLastSuccessfulRefreshAt(new Date().toISOString())
-      if (selectedRun) {
-        const updated = resp.runs.find((r) => r.run_id === selectedRun.run_id)
-        if (updated) setSelectedRun(updated)
-      }
+      setLastLiveUpdateAt(new Date().toISOString())
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoadingRuns(false)
     }
-  }, [selectedRun])
+  }, [syncSelectedRun])
 
   useEffect(() => {
-    loadRuns()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    const hasActiveRun = runs.some((r) =>
-      r.status === 'created' || r.status === 'validating' || r.status === 'running'
-    )
-    if (!hasActiveRun) return
-    const timeoutId = window.setTimeout(() => {
-      void loadRuns()
-    }, 2000)
-    return () => window.clearTimeout(timeoutId)
-  }, [runs, loadRuns])
-
-  const hasActiveRun = runs.some((run) =>
-    run.status === 'created' || run.status === 'validating' || run.status === 'running'
-  )
-  const activeRunRefreshStale = hasActiveRun && !!loadError
-
-  function handleRunCreated(run: RunData) {
-    setRuns((prev) => [run, ...prev.filter((r) => r.run_id !== run.run_id)])
-    setSelectedRun(run)
-  }
-
-  const handleAbortRun = useCallback(async (run: RunData) => {
-    setAbortingRunId(run.run_id)
-    try {
-      await api.abortRun(run.run_id, run.output_dir)
-      await loadRuns()
-    } catch (err) {
-      setLoadError(err instanceof Error ? err.message : String(err))
-    } finally {
-      setAbortingRunId(null)
-    }
+    void loadRuns()
   }, [loadRuns])
 
+  useEffect(() => {
+    if (typeof EventSource === 'undefined') return
+    const source = api.createRunEventsSource()
+
+    const handleBootstrap = (event: MessageEvent<string>) => {
+      const payload = JSON.parse(event.data) as { runs: RunData[] }
+      setRuns(payload.runs)
+      syncSelectedRun(payload.runs)
+      setLoadingRuns(false)
+      setLoadError(null)
+      setStreamState('connected')
+      setLastLiveUpdateAt(new Date().toISOString())
+    }
+
+    const handleRunUpdated = (event: MessageEvent<string>) => {
+      const payload = JSON.parse(event.data) as RunStreamEvent
+      if (!payload.run) return
+      setRuns((current) => {
+        const nextRuns = upsertRun(current, payload.run as RunData)
+        syncSelectedRun(nextRuns)
+        return nextRuns
+      })
+      setLoadError(null)
+      setStreamState('connected')
+      setLastLiveUpdateAt(payload.recorded_at)
+    }
+
+    const handleError = () => {
+      setStreamState('error')
+    }
+
+    source.addEventListener('bootstrap', handleBootstrap as EventListener)
+    source.addEventListener('run.updated', handleRunUpdated as EventListener)
+    source.onerror = handleError
+
+    return () => {
+      source.removeEventListener('bootstrap', handleBootstrap as EventListener)
+      source.removeEventListener('run.updated', handleRunUpdated as EventListener)
+      source.close()
+    }
+  }, [syncSelectedRun])
+
+  const handleRunCreated = useCallback((run: RunData) => {
+    setRuns((current) => upsertRun(current, run))
+    setSelectedRun(run)
+    setView('run')
+  }, [])
+
+  const handleAbortRun = useCallback(
+    async (run: RunData) => {
+      setAbortingRunId(run.run_id)
+      try {
+        await api.abortRun(run.run_id, run.output_dir)
+      } catch (err) {
+        setLoadError(err instanceof Error ? err.message : String(err))
+      } finally {
+        setAbortingRunId(null)
+      }
+    },
+    []
+  )
+
   const isReviewable = selectedRun?.status === 'completed' || selectedRun?.status === 'completed_with_warnings'
+  const activeRuns = useMemo(
+    () => runs.filter((run) => run.status === 'created' || run.status === 'validating' || run.status === 'running'),
+    [runs]
+  )
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
-      {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-950 text-slate-50 shadow-lg">
-        <div className="max-w-screen-xl mx-auto px-4 py-4 flex items-center justify-between gap-6">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#e0f2fe_0%,#f8fafc_32%,#e2e8f0_100%)] text-slate-900">
+      <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-xl shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
+        <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-4 px-5 py-4">
           <div>
-            <h1 className="text-lg font-semibold tracking-tight">Extract Structured Info from Papers</h1>
-            <p className="mt-1 text-xs text-slate-300">
-              Evidence-first scientific review workstation for paper-backed table curation.
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-700">papers-to-table</p>
+            <h1 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">Evidence-first paper review workstation</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Launch preflighted runs, follow live extraction state, then review only explicit evidence-backed proposals.
             </p>
           </div>
-          <nav className="flex gap-2">
-            <button
-              onClick={() => setView('run')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                view === 'run'
-                  ? 'bg-blue-500 text-white shadow-sm'
-                  : 'text-slate-300 hover:bg-slate-800'
-              }`}
-            >
-              Run
-            </button>
-            <button
-              onClick={() => setView('review')}
-              disabled={!isReviewable}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                view === 'review' && isReviewable
-                  ? 'bg-blue-500 text-white shadow-sm'
-                  : !isReviewable
-                  ? 'text-slate-600 cursor-not-allowed'
-                  : 'text-slate-300 hover:bg-slate-800'
-              }`}
-              title={!isReviewable ? 'Select a completed run to enable review' : undefined}
-            >
-              Review
-            </button>
-          </nav>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 shadow-sm">
+              Stream: <span className={`font-semibold ${streamState === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{streamState}</span>
+            </div>
+            {activeRuns.length > 0 && (
+              <div className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-medium text-sky-800 shadow-sm">
+                {activeRuns.length} active run{activeRuns.length !== 1 ? 's' : ''}
+              </div>
+            )}
+            <nav className="flex rounded-full border border-slate-200 bg-white p-1 shadow-sm">
+              <button
+                onClick={() => setView('run')}
+                className={`rounded-full px-4 py-2 text-sm font-medium transition ${view === 'run' ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+              >
+                Run
+              </button>
+              <button
+                onClick={() => setView('review')}
+                disabled={!isReviewable}
+                title={!isReviewable ? 'Select a completed run to enable review' : undefined}
+                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                  view === 'review' && isReviewable
+                    ? 'bg-slate-950 text-white shadow-sm'
+                    : !isReviewable
+                    ? 'cursor-not-allowed text-slate-300'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                Review
+              </button>
+            </nav>
+          </div>
         </div>
       </header>
 
-      {/* Main content */}
-      <main className={view === 'review' && isReviewable ? '' : 'max-w-screen-xl mx-auto px-4 py-6'}>
-        {activeRunRefreshStale && (
-          <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm">
-            Live status refresh failed. Active run status may be stale until the backend connection recovers.
-            {lastSuccessfulRefreshAt && (
-              <span className="ml-1 text-amber-800">
-                Last successful refresh: {new Date(lastSuccessfulRefreshAt).toLocaleTimeString()}.
-              </span>
+      <main className={view === 'review' && isReviewable ? '' : 'mx-auto max-w-screen-2xl px-5 py-6'}>
+        {streamState === 'error' && (
+          <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm">
+            Live run updates are disconnected. The current list may be stale until the browser reconnects.
+            {lastLiveUpdateAt && (
+              <span className="ml-1 text-amber-800">Last live update: {new Date(lastLiveUpdateAt).toLocaleTimeString()}.</span>
             )}
-            <button
-              onClick={() => void loadRuns()}
-              className="ml-3 text-xs font-semibold text-amber-900 underline"
-            >
+            <button onClick={() => void loadRuns()} className="ml-3 text-xs font-semibold text-amber-900 underline">
               Refresh now
             </button>
           </div>
         )}
 
         {view === 'run' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left: Launch + run list */}
-              <div className="lg:col-span-1 space-y-6">
-                {/* Launch surface */}
-                <div className="rounded-2xl border border-slate-200 bg-white/95 shadow-sm p-5">
-                  <h2 className="text-base font-semibold text-slate-900 mb-1">Create Run</h2>
-                  <p className="mb-4 text-xs text-slate-500">
-                    Launch one evidence-backed curation run from a config file, then review only explicit proposals.
-                  </p>
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
+            <section className="space-y-6">
+              <div className="rounded-[32px] border border-white/70 bg-white/85 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+                <h2 className="text-base font-semibold text-slate-900">Create run</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Stage any one-off overrides, inspect the resolved launch context, then start when readiness is green.
+                </p>
+                <div className="mt-5">
                   <RunLaunchSurface onRunCreated={handleRunCreated} />
                 </div>
+              </div>
 
-                {/* Run list */}
-                <div className="rounded-2xl border border-slate-200 bg-white/95 shadow-sm">
-                  <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
-                    <h2 className="text-base font-semibold text-slate-900">
-                      Runs {runs.length > 0 && <span className="text-slate-400 text-sm">({runs.length})</span>}
-                    </h2>
-                    <button
-                      onClick={loadRuns}
-                      className="text-xs font-medium text-blue-700 hover:underline"
-                    >
-                      Refresh
-                    </button>
+              <div className="rounded-[32px] border border-white/70 bg-white/85 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+                <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                  <div>
+                    <h2 className="text-base font-semibold text-slate-900">Runs</h2>
+                    <p className="mt-1 text-xs text-slate-500">Newest runs stay at the top and update live while they execute.</p>
+                  </div>
+                  <button onClick={() => void loadRuns()} className="text-xs font-semibold text-sky-700 hover:underline">
+                    Refresh
+                  </button>
                 </div>
                 {loadingRuns ? (
-                  <div className="px-5 py-8 text-sm text-gray-400 text-center">Loading runs…</div>
+                  <div className="px-5 py-10 text-center text-sm text-slate-400">Loading runs…</div>
                 ) : loadError ? (
-                  <div className="px-5 py-4">
-                    <div className="text-sm text-red-600">
+                  <div className="px-5 py-5">
+                    <div className="text-sm text-rose-600">
                       <strong>Cannot load runs:</strong> {loadError}
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">
-                      Make sure the backend is running: <code className="bg-gray-100 px-1 rounded">uvicorn backend.app.main:app --reload</code>
-                    </p>
+                    <p className="mt-2 text-xs text-slate-500">Start the backend with <code className="rounded bg-slate-100 px-1 py-0.5">bash scripts/run-main-backend.sh</code>.</p>
                   </div>
                 ) : (
-                  <RunList
-                    runs={runs}
-                    selectedRunId={selectedRun?.run_id ?? null}
-                    onSelect={setSelectedRun}
-                  />
+                  <RunList runs={runs} selectedRunId={selectedRun?.run_id ?? null} onSelect={setSelectedRun} />
                 )}
               </div>
-            </div>
+            </section>
 
-            {/* Right: Run detail / next-action guidance */}
-            <div className="lg:col-span-2">
-              <div className="rounded-2xl border border-slate-200 bg-white/95 shadow-sm p-5 min-h-64">
-                {selectedRun ? (
-                  <RunDetail
-                    run={selectedRun}
-                    onAbort={handleAbortRun}
-                    aborting={abortingRunId === selectedRun.run_id}
-                  />
-                ) : (
-                    <div className="flex flex-col items-center justify-center h-48 text-center">
-                      <div className="text-slate-400 text-4xl mb-3">📋</div>
-                      <h3 className="text-base font-medium text-slate-700">No run selected</h3>
-                      <p className="mt-1 text-sm text-slate-500 max-w-sm">
-                        Create a run using the form on the left, or select an existing run from the list to see its details.
-                      </p>
-                    {runs.length === 0 && (
-                      <p className="mt-3 text-sm text-blue-600">
-                        To start: enter the path to your <code className="bg-blue-50 px-1 rounded">config.json</code> file and click Create Run.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
+            <section className="rounded-[36px] border border-white/70 bg-white/88 p-6 shadow-[0_26px_70px_rgba(15,23,42,0.09)] backdrop-blur">
+              {selectedRun ? (
+                <RunDetail run={selectedRun} onAbort={handleAbortRun} aborting={abortingRunId === selectedRun.run_id} />
+              ) : (
+                <div className="flex min-h-[420px] flex-col items-center justify-center text-center">
+                  <div className="rounded-full bg-sky-100 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Start here</div>
+                  <h2 className="mt-4 text-2xl font-semibold tracking-tight text-slate-900">No run selected yet</h2>
+                  <p className="mt-3 max-w-md text-sm leading-6 text-slate-500">
+                    Launch a new run or select an existing one to see its resolved inputs, provider state, warnings, and next action.
+                  </p>
+                </div>
+              )}
+            </section>
           </div>
         )}
 
@@ -212,16 +237,11 @@ export function App() {
             {isReviewable && selectedRun ? (
               <ReviewWorkspace run={selectedRun} outputDir={selectedRun.output_dir} />
             ) : (
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8 text-center">
-                <div className="text-gray-300 text-4xl mb-3">🔒</div>
-                <h2 className="text-lg font-semibold text-gray-700">Review unavailable</h2>
-                <p className="mt-2 text-sm text-gray-500">
-                  Select a completed run from the Run tab to enable review.
-                </p>
-                <button
-                  onClick={() => setView('run')}
-                  className="mt-4 px-4 py-2 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700"
-                >
+              <div className="rounded-[28px] border border-slate-200 bg-white p-10 text-center shadow-sm">
+                <div className="mx-auto inline-flex rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Review locked</div>
+                <h2 className="mt-4 text-xl font-semibold text-slate-800">Select a completed run to enter review</h2>
+                <p className="mt-2 text-sm text-slate-500">The review workspace stays gated until a run has completed and persisted reviewable proposals.</p>
+                <button onClick={() => setView('run')} className="mt-5 rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700">
                   Go to Run tab
                 </button>
               </div>

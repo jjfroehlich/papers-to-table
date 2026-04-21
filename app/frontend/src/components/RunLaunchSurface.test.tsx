@@ -4,12 +4,14 @@ import { RunLaunchSurface } from './RunLaunchSurface'
 
 const mockCreateRun = vi.fn()
 const mockGetRun = vi.fn()
+const mockPreflightRun = vi.fn()
 const mockStageInputFiles = vi.fn()
 
 vi.mock('../api/client', () => ({
   api: {
     createRun: (...args: Parameters<typeof mockCreateRun>) => mockCreateRun(...args),
     getRun: (...args: Parameters<typeof mockGetRun>) => mockGetRun(...args),
+    preflightRun: (...args: Parameters<typeof mockPreflightRun>) => mockPreflightRun(...args),
     stageInputFiles: (...args: Parameters<typeof mockStageInputFiles>) => mockStageInputFiles(...args),
   },
 }))
@@ -18,6 +20,7 @@ describe('RunLaunchSurface', () => {
   beforeEach(() => {
     mockCreateRun.mockReset()
     mockGetRun.mockReset()
+    mockPreflightRun.mockReset()
     mockStageInputFiles.mockReset()
   })
 
@@ -30,6 +33,20 @@ describe('RunLaunchSurface', () => {
     })
     mockCreateRun.mockResolvedValueOnce({ run_id: 'run_1', status: 'created', resolved_inputs: {} })
     mockGetRun.mockResolvedValueOnce({ run_id: 'run_1' })
+    mockPreflightRun.mockResolvedValueOnce({
+      config_path: '/tmp/config.json',
+      run_mode: 'normal',
+      output_dir: './runs',
+      resolved_inputs: {
+        table_path: { logical_source: 'picked-table.xlsx', runtime_locator: '/tmp/staged/picked-table.xlsx', source_kind: 'staged_handle' },
+        schema_path: { logical_source: null, runtime_locator: null, source_kind: 'config' },
+        pdf_dir: { logical_source: null, runtime_locator: null, source_kind: 'config' },
+      },
+      provider: { token: 'lm_studio', locality: 'local', base_url: 'http://localhost:1234', text_model_id: 'text-model', vision_model_id: null },
+      scope: { table_rows: 10, schema_columns: 2, pdf_count: 1 },
+      readiness: { ok: true, errors: [], warnings: [], provider_mode: 'live_local', provider_readiness_reason: null, provider_readiness_error: null },
+      what_happens_next: [],
+    })
 
     render(<RunLaunchSurface onRunCreated={vi.fn()} />)
 
@@ -48,7 +65,18 @@ describe('RunLaunchSurface', () => {
       expect(mockStageInputFiles).toHaveBeenCalledWith('table_path', expect.any(Array))
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /Create Run/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Run preflight/i }))
+
+    await waitFor(() => {
+      expect(mockPreflightRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          config_path: '/tmp/config.json',
+          table_staged_handle: 'staged_table_path_abc123',
+        })
+      )
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Start run/i }))
 
     await waitFor(() => {
       expect(mockCreateRun).toHaveBeenCalledWith(

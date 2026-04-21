@@ -6,56 +6,65 @@ It is a local-first review workflow for extracting structured information from s
 
 ## Start here
 
-- Operator workflow: [operator-workflow.md](operator-workflow.md)
+- Operator workflow and screenshots: [operator-workflow.md](operator-workflow.md)
 - Run artifact reference: [run-artifacts.md](run-artifacts.md)
+- Contributor quickstart: [../../CONTRIBUTING.md](../../CONTRIBUTING.md)
+- Normative spec owner: [../../specs/product/main-app.md](../../specs/product/main-app.md)
 
 ## Install and run
 
-Run these commands from `app/` unless noted otherwise.
+Run these commands from the repo root unless noted otherwise.
 
-### Prerequisites
-
-- Python 3.11 or later
-- Node.js 18 or later and npm
-- LM Studio for live proposal generation
-
-### Backend install
+### Install
 
 ```bash
-pip install -e ./backend
-```
-
-### Frontend install
-
-```bash
+cd app
+python -m pip install -e ./backend[test]
 cd frontend
 npm install
+cd ../..
 ```
 
-### Start the backend
+### Start backend and frontend
 
 ```bash
-python -m uvicorn backend.app.main:app --reload --port 8000
+bash scripts/run-main-backend.sh
+bash scripts/run-main-frontend.sh
 ```
 
-### Start the frontend
+## Wrapper-script verification
+
+Run these commands from the repository root:
 
 ```bash
-cd frontend
-npm run dev
+bash scripts/test-main-backend.sh
+bash scripts/test-main-frontend.sh
+bash scripts/verify-main-app-full.sh
 ```
+
+## Current operator workflow summary
+
+1. Use the **Run** tab to point at a config and any one-run staged overrides.
+2. Run preflight to inspect resolved inputs, provider readiness, and scope.
+3. Start the run when the preflight context is acceptable.
+4. Follow live status updates in the browser while the backend runs.
+5. Review proposals in the queue-first workspace.
+6. Open the diagnostics surface for unresolved matching issues and warnings when needed.
+7. Export explicitly after review.
 
 ## Non-UI automation entrypoint
 
 The browser UI remains the normal human workflow. For tooling, the backend also exposes a stable automation entrypoint:
 
 ```bash
+cd app
 python -m backend.app.automation start --config-path config.json
 ```
 
 Useful variants:
 
 ```bash
+cd app
 python -m backend.app.automation start --config-path config.json --wait
 python -m backend.app.automation status --run-id <run_id> --output-dir ./runs
 python -m backend.app.automation wait --run-id <run_id> --output-dir ./runs
@@ -66,6 +75,7 @@ python -m backend.app.automation wait --run-id <run_id> --output-dir ./runs
 Copy the checked-in example and edit it for your table, schema, PDF directory, and model settings.
 
 ```bash
+cd app
 cp config.example.json config.json
 ```
 
@@ -80,33 +90,9 @@ Key config areas:
 
 The canonical provider token is `lm_studio`.
 
-## Review workflow summary
-
-1. Create a run from a JSON config.
-2. Review the queue of proposals in the browser.
-3. Accept, edit, reject, or confirm no data.
-4. Export only when the reviewed workbook is ready.
-
-## Export workflow summary
-
-Exports are manual and explicit.
-
-- `workbook_{timestamp}.xlsx`
-- `audit_log_{timestamp}.json`
-- `diagnostics_{timestamp}.json`
-
-These are written under `{output_dir}/{run_id}/exports/` only after explicit export.
-
-## Trust and evidence overview
-
-- Evidence types remain labeled rather than collapsed into one generic confidence signal.
-- Provider mode and degraded fallback state remain visible in artifacts.
-- The app preserves run-bundle provenance for downstream eval and optimizer tooling.
-- Review is mandatory for trusted spreadsheet updates.
-
 ## Related docs
 
 - Repository landing page: [../../README.md](../../README.md)
+- Docs map: [../README.md](../README.md)
 - Eval tool docs: [../eval/README.md](../eval/README.md)
 - Optimizer docs: [../optimizer/README.md](../optimizer/README.md)
-- Contracts: [../contracts/monorepo-layout.md](../contracts/monorepo-layout.md)

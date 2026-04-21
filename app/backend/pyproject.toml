@@ -28,6 +28,9 @@ test = [
     "respx>=0.21.0",
 ]
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+
 [tool.setuptools.packages.find]
-where = [".."]
+where = ["src"]
 include = ["backend*"]

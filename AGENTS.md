@@ -4,44 +4,52 @@
 
 Repository operating manual for papers-to-table.
 
-This repo is building a local-first paper-to-table review app that ingests PDFs plus a structured spreadsheet, generates evidence-backed cell proposals, supports human review in a browser UI, and exports audited XLSX updates.
+The main product is a local-first paper-to-table review app that ingests PDFs plus a structured spreadsheet, generates evidence-backed cell proposals, supports human review in a browser UI, and exports audited XLSX updates.
 
-## Quick Reference
+## Must-follow rules
 
-- Current repo state: active local-first implementation with a FastAPI backend, React frontend, backend/frontend tests, and Playwright-backed e2e coverage.
-- Current source of truth: `specs/README.md` for the spec-system guide, `specs/product/` for main-app product requirements, `specs/tools/` for companion-tool behavior, `specs/contracts/` for shared cross-tool rules, `specs/architecture/` for monorepo boundaries, `specs/process/` for maintenance policy, `specs/plan.md` for supportive planning, `specs/tasks.md` for verified implementation status, and this file for repo-level operating rules.
-- Preferred shell: Git Bash on Windows.
-- Canonical fixture root: `app/tests/fixtures/`.
-- Current fixture folders: `app/tests/fixtures/tables/` and `app/tests/fixtures/papers/`.
-- Implementation shape: `app/backend/` for FastAPI services and pipeline logic, `app/frontend/` for the React review UI.
-- Canonical local startup path:
-	- run main app commands from `app/`
-	- install backend: `cd app && pip install -e ./backend`
-	- install frontend: `cd app/frontend && npm install`
-	- start backend: `python -m uvicorn backend.app.main:app --reload --port 8000`
-	- start frontend: `cd app/frontend && npm run dev`
-	- backend tests: `cd app && pytest tests/backend`
-	- frontend tests: `cd app/frontend && npm test`
-- When working inside `specs/`, follow `specs/AGENTS.md` for the spec-specific workflow.
+- Keep the browser UI as the primary operator surface for launch, status, review, and export.
+- Keep the JSON config file as the authoritative advanced-control surface.
+- Preserve the repo’s local-first identity even when optional cloud providers exist.
+- Keep provider naming, readiness behavior, and degraded-mode truth aligned across runtime, tests, docs, specs, and UI labels.
+- Unknown or obsolete provider identifiers must fail early and clearly.
+- Silent fallback to demo, stub, disabled, or misleadingly “successful” behavior is not acceptable.
+- Update docs, specs, tests, and screenshots in the same pass when repo truth changes.
+- Keep archive material historical only; current behavior must be justified by current owning files.
 
-## Work Modes
+## Default workflow
 
-### Normal work
+1. Read `README.md`, then the relevant docs/specs for the area you are changing.
+2. Prefer the existing wrapper scripts in `scripts/` for install, run, test, and verification flows.
+3. Implement the smallest coherent slice a normal operator can actually use.
+4. Verify behavior, not only structure.
+5. Leave the repository more truthful than you found it.
 
-If the user asks for non-spec work, do the work directly. Update specs only if repository truth actually changed.
+### Continue independently on large task bundles
 
-### Spec-driven work
+When a task bundle is large but coherent:
 
-If the task is explicitly spec-driven or scoped to `specs/`, follow:
+- keep going independently through the full bundle
+- solve adjacent issues revealed by the work when they are required for a coherent result
+- do not stop after the first batch if the repo is still obviously mid-migration
+- only stop for a true blocker, contradiction, missing secret, or safety issue
+- prefer documenting the decision you made and continuing over asking for clarification on normal ambiguity
 
-1. `README.md`
-2. relevant owning files under `product/`, `tools/`, `contracts/`, `architecture/`, and `process/`
-3. `plan.md`
-4. `tasks.md`
+## Wrapper-script workflow
 
-If those artifacts conflict, fix the smallest coherent set of docs first.
+Use these as the default happy path unless the task specifically needs lower-level commands:
 
-## Quality Bar
+- repository-root wrapper scripts:
+  - start backend: `bash scripts/run-main-backend.sh`
+  - start frontend: `bash scripts/run-main-frontend.sh`
+  - backend tests: `bash scripts/test-main-backend.sh`
+  - frontend tests: `bash scripts/test-main-frontend.sh`
+  - combined verification: `bash scripts/verify-main-app-full.sh`
+  - minimum smoke pass: `bash scripts/verify-minimum-smoke.sh`
+- install backend deps: `cd app && python -m pip install -e ./backend[test]`
+- install frontend deps: `cd app/frontend && npm install`
+
+## Definition of done
 
 For this repo, “smallest coherent implementation” means the smallest slice a normal local operator can actually use from install and startup through run launch, run-state visibility, review, and export.
 
@@ -51,38 +59,11 @@ Do not treat any of the following as done:
 - a browser shell with vague or misleading empty/loading/failure states
 - provider scaffolding that never proves the documented LM Studio path works
 - a nominally completed run that cannot produce reviewer-usable proposals on the canonical fixture path
+- a UI change that leaves screenshots and operator docs stale
 
-Done means the operator can understand what to do next without reading source code, and the docs, UI, runtime behavior, and tests agree on the same workflow.
+Done means the operator can understand what to do next without reading source code, and the docs, UI, runtime behavior, tests, and screenshots agree on the same workflow.
 
-## Core Rules
-
-- Prefer clear stage boundaries and narrow contracts over sprawling adaptive logic.
-- Keep the browser UI as the primary operator surface for launch, status, review, and export.
-- Keep the JSON config file as the authoritative advanced-control surface.
-- Avoid broad settings UIs, speculative architecture, and unnecessary parameter bloat.
-- Preserve the repo’s local-first identity even when optional cloud providers are supported.
-- Keep the provider layer typed and explicit: LM Studio is the default live local path; optional cloud providers must stay behind the same contract.
-- Keep provider naming and config semantics in parity across runtime validation, config examples, docs, tests, and UI labels.
-- Unknown or obsolete provider identifiers must fail early and clearly.
-- Silent fallback to demo, stub, disabled, or degraded proposal generation is not acceptable.
-- Treat onboarding, run-state clarity, review readiness, and export truthfulness as first-class requirements.
-
-## Documentation Rules
-
-- Update only the docs whose truth changed, but do it in the same pass as the code or behavior change.
-- Remove stale text rather than letting old and new descriptions coexist.
-- Preserve the existing canonical section structure when editing files under `specs/`, `README.md`, and both `AGENTS.md` files.
-- Prefer editing the correct existing section over appending an ad hoc new section near the bottom.
-- Do not insert temporary pass-specific instructions, execution notes, or status banners into stable product or architecture docs.
-- Keep implementation status in its canonical tracking location instead of restating it across multiple docs.
-- If a change is temporary, historical, or one-pass-specific, place it in an appendix, audit note, or status-tracking document rather than in the main body of stable docs.
-- When a file starts to accumulate scattered edits, reorganize it in the same pass instead of only appending more text.
-- Keep `README.md` aligned with the real happy path, not developer shortcuts or speculative workflows.
-- If the user-facing workflow changes, update `README.md` and the relevant spec docs together.
-- If the interface design changes, update screenshots that are part of the docs and `README.md`.
-
-
-## Verification Rules
+## Verification expectations
 
 - Verify behavior; do not stop at structural correctness.
 - Prefer integration and end-to-end validation when the repo supports it.
@@ -90,43 +71,48 @@ Done means the operator can understand what to do next without reading source co
 - Preflight and readiness checks are part of done, not polish.
 - Provider-affecting work must verify parity across runtime validation, config examples, docs, tests, and UI summaries.
 - A documented live path is not done unless it either:
-	- produces at least one non-empty proposal with reviewer-usable evidence on the canonical checked-in fixture path, or
-	- fails early with a clear readiness error explaining why proposal generation cannot proceed.
+  - produces at least one non-empty proposal with reviewer-usable evidence on the canonical checked-in fixture path, or
+  - fails early with a clear readiness error explaining why proposal generation cannot proceed.
 
-## Execution Discipline
+## Documentation and spec rules
 
-- Implement one coherent slice deeply rather than many slices shallowly.
-- Do not create new batch, phase, or pass frameworks in stable docs unless explicitly asked.
-- Do not claim a slice is complete if onboarding, startup, run-state visibility, review safety, or docs truth for that slice are still rough.
-- Do not let later work excuse a hollow provider path in an earlier polished-looking shell.
+- Current source of truth: `specs/README.md` for the spec-system guide, `specs/product/` for main-app product requirements, `specs/tools/` for companion-tool behavior, `specs/contracts/` for shared cross-tool rules, `specs/architecture/` for monorepo boundaries, `specs/process/` for maintenance policy, `specs/plan.md` for supportive planning, `specs/tasks.md` for verified implementation status, and this file for repo-level operating rules.
+- When working inside `specs/`, follow `specs/AGENTS.md` for the spec-specific workflow.
+- Update only the docs whose truth changed, but do it in the same pass as the behavior change.
+- Remove stale text rather than letting old and new descriptions coexist.
+- Preserve the existing canonical section structure when editing `README.md`, `AGENTS.md`, and files under `specs/`.
+- Prefer editing the correct existing section over appending ad hoc notes.
 
-## Repo Map
+## Repo map
 
-- `AGENTS.md`: root repo instructions
-- `README.md`: user and developer entrypoint
-- `specs/`: product, technical, research, and execution docs
+- `README.md`: repo landing page and happy-path operator/developer entrypoint
+- `CONTRIBUTING.md`: human-friendly contributor quickstart
+- `docs/README.md`: docs map by audience
+- `docs/main-app/`: main app operator and artifact docs
+- `docs/screenshots/`: browser screenshots referenced by docs
+- `docs/architecture-decisions/`: lightweight ADRs for durable repo decisions
+- `specs/`: canonical normative/supportive spec system
 - `app/tests/fixtures/`: canonical workbook and PDF fixtures
-- `app/backend/`: FastAPI app and pipeline code
+- `app/backend/src/backend/app/`: FastAPI app, pipeline logic, and runtime services
 - `app/frontend/`: React review UI
-- `tools/eval/`: imported evaluator tool
-- `tools/optimizer/`: imported optimizer tool
+- `tools/eval/`: evaluator tool
+- `tools/optimizer/`: optimizer tool
 
-If the real structure changes, update this map.
-
-## Platform Rules
+## Platform and conventions
 
 - Primary environment is Windows.
-- Use bash commands suitable for Git Bash or WSL bash in docs and scripts.
-- Do not use PowerShell in repo docs unless there is a specific separate audience.
-- Prefer relative paths.
-- If absolute paths are required, document both `/d/...` and `D:\...` forms.
+- Preferred shell is Git Bash on Windows; use bash-friendly commands in docs and scripts.
+- Do not use PowerShell in repo docs unless there is a separate audience that truly needs it.
+- Prefer relative paths in docs. If absolute paths are required, document both `/d/...` and `D:\...` forms.
+- Canonical fixture root: `app/tests/fixtures/`.
 
-## Compounding Lessons
+## Compounding lessons
 
-- Write a compounding lesson only when a bug, edge case, or workflow mistake reveals a reusable repo-level lesson and the repo is actively using those notes. Keep them under a consistent location, `/docs/engineering-lessons`.
-- If you run into issues that could be edge cases or bugs observed previously, there could be useful info in these engineering lessons.
+- Write a compounding lesson only when a bug, edge case, or workflow mistake reveals a reusable repo-level lesson.
+- Keep them under `/docs/engineering-lessons`.
+- Check existing lessons when you hit a suspicious repeat issue.
 
-## Final Rule
+## Final rule
 
 Leave the repository more truthful than you found it:
 

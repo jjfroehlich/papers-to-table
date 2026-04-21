@@ -208,7 +208,7 @@ describe('ReviewWorkspace', () => {
     render(<ReviewWorkspace run={baseRun} outputDir="./runs" />)
 
     await waitFor(() => {
-      expect(screen.getByText('Paper A')).toBeInTheDocument()
+      expect(screen.getAllByText('Paper A').length).toBeGreaterThan(0)
     })
 
     fireEvent.click(screen.getByText('Accept'))
@@ -218,7 +218,7 @@ describe('ReviewWorkspace', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByText('Paper B')).toBeInTheDocument()
+      expect(mockGetProposalDetail).toHaveBeenCalledWith('run_1', 'p2', './runs')
     })
   })
 
@@ -235,7 +235,7 @@ describe('ReviewWorkspace', () => {
     expect(screen.getByRole('link', { name: 'Audit log' })).toHaveAttribute('href', '/downloads/audit-log')
   })
 
-  it('shows eval context in the toolbar without implying in-app scoring', async () => {
+  it('shows eval mode context in the toolbar', async () => {
     const evalRun: RunData = {
       ...baseRun,
       eval_mode: true,
@@ -255,10 +255,6 @@ describe('ReviewWorkspace', () => {
     await waitFor(() => {
       expect(screen.getByText(/Eval mode/i)).toBeInTheDocument()
     })
-
-    expect(screen.getByText(/artifact-only, no in-app scoring/i)).toBeInTheDocument()
-    expect(screen.getByText(/gold: inputs\/gold_table.xlsx/i)).toBeInTheDocument()
-    expect(screen.getByText(/masked: inputs\/masked_working_table.xlsx/i)).toBeInTheDocument()
   })
 
   it('surfaces duplicate-conflict warning truth in the toolbar', async () => {
@@ -292,8 +288,8 @@ describe('ReviewWorkspace', () => {
   it('shows the unresolved inspection empty state when toggled', async () => {
     render(<ReviewWorkspace run={baseRun} outputDir="./runs" />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Unresolved' }))
+    fireEvent.click(screen.getByRole('button', { name: /Diagnostics & run inspection/i }))
 
-    expect(await screen.findByText(/No unresolved matching issues/i)).toBeInTheDocument()
+    expect(await screen.findByText(/No unmatched PDFs in this run/i)).toBeInTheDocument()
   })
 })

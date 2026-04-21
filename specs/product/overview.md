@@ -1,5 +1,10 @@
 # Product Overview
 
+- Status: Normative
+- Owner: Product
+- Depends on: README.md
+- Consumed by: README.md, docs/main-app/README.md, app/backend/src/backend/app/
+
 ## Purpose
 
 Extract Structured Info from Papers is a local-first paper-to-table review workflow.
