@@ -17,6 +17,11 @@ def build_review_lookup(
     schema_path: Optional[str],
     run_dir: Path,
 ) -> dict[str, Any]:
+    def _read_match_field(match_result: Any, field_name: str) -> Any:
+        if isinstance(match_result, dict):
+            return match_result.get(field_name)
+        return getattr(match_result, field_name, None)
+
     dataframe = load_table(table_path)
     schema = load_schema(schema_path, table_path)
     rows_by_id: dict[str, Any] = {}
@@ -51,17 +56,26 @@ def build_review_lookup(
 
     papers_by_pdf_id: dict[str, Any] = {}
     for match_result in load_match_results(run_dir):
-        row_id = rows_by_index.get(str(match_result.matched_row_index)) if match_result.matched_row_index is not None else None
+        matched_row_index = _read_match_field(match_result, 'matched_row_index')
+        pdf_id = _read_match_field(match_result, 'pdf_id')
+        if pdf_id in (None, ''):
+            continue
+        match_outcome = _read_match_field(match_result, 'outcome')
+        if hasattr(match_outcome, 'value'):
+            match_outcome = match_outcome.value
+        match_outcome = str(match_outcome) if match_outcome is not None else 'unknown'
+
+        row_id = rows_by_index.get(str(matched_row_index)) if matched_row_index is not None else None
         row_context = rows_by_id.get(row_id) if row_id else None
-        papers_by_pdf_id[match_result.pdf_id] = {
-            'pdf_id': match_result.pdf_id,
-            'match_outcome': match_result.outcome.value,
-            'matched_row_index': match_result.matched_row_index,
+        papers_by_pdf_id[str(pdf_id)] = {
+            'pdf_id': str(pdf_id),
+            'match_outcome': match_outcome,
+            'matched_row_index': matched_row_index,
             'row_id': row_id,
             'paper_title': row_context.get('title') if row_context else None,
             'paper_authors': row_context.get('authors') if row_context else None,
             'paper_year': row_context.get('year') if row_context else None,
-            'paper_label': row_context.get('paper_label') if row_context else match_result.pdf_id,
+            'paper_label': row_context.get('paper_label') if row_context else str(pdf_id),
         }
 
     return {
