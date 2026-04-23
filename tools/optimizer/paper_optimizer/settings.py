@@ -60,6 +60,13 @@ def validate_config(config: dict[str, Any]) -> None:
     compare_candidates = config.get("compare_candidates", [])
     if compare_candidates is not None and not isinstance(compare_candidates, list):
         raise ConfigError("compare_candidates must be an array when provided")
+    compare = config.get("compare", {})
+    if compare is not None:
+        if not isinstance(compare, dict):
+            raise ConfigError("compare must be an object when provided")
+        for bool_key in ["require_structured_output_for_extraction", "allow_degraded_candidates"]:
+            if bool_key in compare and not isinstance(compare[bool_key], bool):
+                raise ConfigError(f"compare.{bool_key} must be a boolean when provided")
 
     benchmarks = _require(config, "benchmarks")
     if not isinstance(benchmarks, dict):

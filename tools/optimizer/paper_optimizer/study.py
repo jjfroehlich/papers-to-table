@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import csv
 import json
+import asyncio
+import sys
 from pathlib import Path
 from typing import Any
 
 from .acceptance import degraded_score_policy, evaluate_promotion, is_degraded_score
 from .benchmarks import Benchmarks, benchmark_id_for_split
-from .bundle import build_candidate_from_dict
+from .bundle import build_candidate_from_dict, candidate_hash
 from .contracts import Candidate, CandidateResult, RoundSummary
 from .pipeline import evaluate_candidate_once
 from .plotting import generate_compare_plots, generate_optimize_plots
@@ -43,6 +45,10 @@ def _winner_eligible(result: CandidateResult, acceptance_cfg: dict[str, Any]) ->
 
 
 def _result_summary_row(result: CandidateResult, primary_metric: str) -> dict[str, Any]:
+    reviewer_summary = _load_candidate_reviewer_summary(result)
+    provider_diag = _load_candidate_provider_diagnostics(result)
+    provider_counts = _provider_failure_counters(provider_diag)
+    reliability_label = _reliability_label(result, reviewer_summary, provider_counts)
     return {
         "candidate_id": result.candidate_id,
         "candidate_status": result.candidate_status,
@@ -55,9 +61,18 @@ def _result_summary_row(result: CandidateResult, primary_metric: str) -> dict[st
         "primary_metric_value": result.primary_metrics.get(primary_metric),
         "structured_output_mode": result.structured_output_mode,
         "structured_output_reason": result.structured_output_reason,
+        "main_structured_output_mode": result.structured_output_mode or reviewer_summary.get("structured_output_mode"),
+        "main_structured_output_reason": result.structured_output_reason or reviewer_summary.get("structured_output_reason"),
+        "prompt_only_degraded_mode_used": bool(result.prompt_only_degraded_mode_used),
+        "parse_repair_used": bool(result.parse_repair_used),
         "extraction_contract_valid": result.extraction_contract_valid,
         "retrieval_mode": result.retrieval_mode,
         "retrieval_top_k": result.retrieval_top_k,
+        "provider_retry_count": provider_counts["retry_count"],
+        "provider_malformed_json_count": provider_counts["malformed_json_count"],
+        "provider_structured_error_count": provider_counts["structured_output_error_count"],
+        "provider_failed_structured_elapsed_ms": provider_counts["failed_structured_elapsed_ms"],
+        "reliability_label": reliability_label,
         "whole_document_max_chars": result.whole_document_max_chars,
         "runtime_seconds": result.runtime_seconds,
         "promotion_decision": result.promotion_decision,
@@ -110,9 +125,10 @@ def _candidate_score_explanation(result: CandidateResult, primary_metric: str, e
 def _candidate_diagnostic_row(result: CandidateResult, primary_metric: str) -> dict[str, Any]:
     eval_summary = result.metadata.get("eval_summary", {}) if isinstance(result.metadata.get("eval_summary"), dict) else {}
     eval_metrics = eval_summary.get("metrics", {}) if isinstance(eval_summary.get("metrics"), dict) else {}
-    run_path_value = result.main_app_run_ref.get("run_path")
-    reviewer_summary_path = Path(run_path_value) / "summaries" / "reviewer_summary.json" if isinstance(run_path_value, str) else None
-    reviewer_summary = _load_json_if_exists(reviewer_summary_path)
+    reviewer_summary = _load_candidate_reviewer_summary(result)
+    provider_diag = _load_candidate_provider_diagnostics(result)
+    provider_counts = _provider_failure_counters(provider_diag)
+    reliability_label = _reliability_label(result, reviewer_summary, provider_counts)
     score = result.primary_metrics.get(primary_metric)
     return {
         "candidate_id": result.candidate_id,
@@ -171,6 +187,11 @@ def _candidate_diagnostic_row(result: CandidateResult, primary_metric: str) -> d
         "main_structured_output_reason": result.structured_output_reason or reviewer_summary.get("structured_output_reason"),
         "prompt_only_degraded_mode_used": result.prompt_only_degraded_mode_used,
         "parse_repair_used": result.parse_repair_used,
+        "provider_retry_count": provider_counts["retry_count"],
+        "provider_malformed_json_count": provider_counts["malformed_json_count"],
+        "provider_structured_error_count": provider_counts["structured_output_error_count"],
+        "provider_failed_structured_elapsed_ms": provider_counts["failed_structured_elapsed_ms"],
+        "reliability_label": reliability_label,
         "extraction_contract_valid": result.extraction_contract_valid,
         "extraction_contract_warnings": "|".join(result.extraction_contract_warnings),
         "extraction_contract_warning_count": len(result.extraction_contract_warnings),
@@ -189,7 +210,183 @@ def _candidate_diagnostic_row(result: CandidateResult, primary_metric: str) -> d
         "run_stats_counters": result.runtime_metadata.get("run_stats_counters"),
         "main_total_proposals": reviewer_summary.get("total_proposals"),
         "main_pending_proposals": reviewer_summary.get("pending"),
+}
+
+
+def _load_candidate_reviewer_summary(result: CandidateResult) -> dict[str, Any]:
+    run_path_value = result.main_app_run_ref.get("run_path")
+    reviewer_summary_path = Path(run_path_value) / "summaries" / "reviewer_summary.json" if isinstance(run_path_value, str) else None
+    return _load_json_if_exists(reviewer_summary_path)
+
+
+def _load_candidate_provider_diagnostics(result: CandidateResult) -> dict[str, Any]:
+    run_path_value = result.main_app_run_ref.get("run_path")
+    if not isinstance(run_path_value, str):
+        return {}
+    return _load_json_if_exists(Path(run_path_value) / "diagnostics" / "provider_diagnostics.json")
+
+
+def _provider_failure_counters(provider_diag: dict[str, Any]) -> dict[str, Any]:
+    attempts = provider_diag.get("attempts") if isinstance(provider_diag.get("attempts"), list) else []
+    retry_count = 0
+    malformed_json_count = 0
+    structured_output_error_count = 0
+    failed_structured_elapsed_ms = 0.0
+    for attempt in attempts:
+        if not isinstance(attempt, dict):
+            continue
+        if attempt.get("phase") == "retry":
+            retry_count += 1
+        outcome = str(attempt.get("outcome") or "")
+        if outcome == "structured_output_error":
+            structured_output_error_count += 1
+        if str(attempt.get("error_reason") or "") == "malformed_json":
+            malformed_json_count += 1
+        if attempt.get("structured_mode") in {"json_schema", "json_object", "none"} and outcome != "success":
+            failed_structured_elapsed_ms += float(attempt.get("duration_ms", 0.0) or 0.0)
+    return {
+        "retry_count": retry_count,
+        "malformed_json_count": malformed_json_count,
+        "structured_output_error_count": structured_output_error_count,
+        "failed_structured_elapsed_ms": round(failed_structured_elapsed_ms, 3),
     }
+
+
+def _reliability_label(
+    result: CandidateResult,
+    reviewer_summary: dict[str, Any],
+    provider_counts: dict[str, Any],
+) -> str:
+    if result.candidate_status == "ineligible":
+        return "ineligible"
+    structured_mode = result.structured_output_mode or reviewer_summary.get("structured_output_mode")
+    degraded = bool(result.prompt_only_degraded_mode_used) or structured_mode == "none"
+    contract_invalid = reviewer_summary.get("extraction_contract_valid") is False or result.extraction_contract_valid is False
+    unstable = (
+        provider_counts["structured_output_error_count"] > 0
+        or provider_counts["malformed_json_count"] > 0
+        or provider_counts["retry_count"] > 0
+    )
+    if contract_invalid or degraded:
+        return "degraded"
+    if unstable:
+        return "unstable"
+    return "healthy"
+
+
+def _compare_policy(config: dict[str, Any]) -> dict[str, bool]:
+    compare_cfg = config.get("compare", {})
+    require_structured = bool(compare_cfg.get("require_structured_output_for_extraction", True))
+    allow_degraded = bool(compare_cfg.get("allow_degraded_candidates", False))
+    return {
+        "require_structured_output_for_extraction": require_structured,
+        "allow_degraded_candidates": allow_degraded,
+    }
+
+
+def _probe_candidate_structured_output_mode(
+    config: dict[str, Any],
+    *,
+    candidate: Candidate,
+    benchmark_id: str,
+) -> dict[str, Any]:
+    try:
+        from .launch_main import build_resolved_main_config
+        from .benchmarks import load_benchmarks
+    except Exception as exc:
+        return {"probe_status": "error", "error": str(exc)}
+    try:
+        bench = load_benchmarks(config).manifests[benchmark_id]
+        _, resolved = build_resolved_main_config(
+            config,
+            candidate=candidate,
+            benchmark=bench,
+            run_output_dir=Path("/tmp/papers_to_table_probe"),
+        )
+        provider_cfg = resolved.get("provider") if isinstance(resolved.get("provider"), dict) else {}
+        text_cfg = provider_cfg.get("text_model") if isinstance(provider_cfg.get("text_model"), dict) else {}
+        vision_cfg = provider_cfg.get("vision_model") if isinstance(provider_cfg.get("vision_model"), dict) else None
+        token = str(provider_cfg.get("token", "lm_studio"))
+        base_url = str(provider_cfg.get("base_url", "http://localhost:1234"))
+        backend_src = Path(config["main_app"]["repo_root"]).resolve() / "backend" / "src"
+        if str(backend_src) not in sys.path:
+            sys.path.insert(0, str(backend_src))
+        from backend.app.provider import initialize_provider  # type: ignore
+
+        class _ModelCfg:
+            def __init__(self, payload: dict[str, Any]):
+                self.working_context_budget = payload.get("working_context_budget")
+                self.required_load_context_length = payload.get("required_load_context_length")
+                self.load_context_is_derived = payload.get("load_context_is_derived", False)
+                self.load_context_length = payload.get("load_context_length")
+
+        class _ProviderCfg:
+            def __init__(self) -> None:
+                self.token = token
+                self.base_url = base_url
+                self.text_model = _ModelCfg(text_cfg)
+                self.vision_model = _ModelCfg(vision_cfg) if isinstance(vision_cfg, dict) else None
+
+        _, provider_mode = asyncio.run(
+            initialize_provider(
+                _ProviderCfg(),
+                text_model_id=candidate.text_model_id,
+                vision_model_id=candidate.vision_model_id,
+                diagnostics_config=None,
+            )
+        )
+        return {
+            "probe_status": "ok",
+            "structured_output_mode": provider_mode.structured_output_mode,
+            "structured_output_reason": provider_mode.structured_output_reason,
+        }
+    except Exception as exc:
+        return {"probe_status": "error", "error": str(exc)}
+
+
+def _ineligible_result(
+    config: dict[str, Any],
+    *,
+    candidate: Candidate,
+    benchmark_id: str,
+    reason: str,
+    detail: str,
+    gate_details: dict[str, Any],
+) -> CandidateResult:
+    return CandidateResult(
+        schema_version=str(config["schema_version"]),
+        experiment_id=str(config["experiment_id"]),
+        study_type="compare",
+        benchmark_id=benchmark_id,
+        candidate_id=candidate.candidate_id,
+        parent_candidate_id=candidate.parent_candidate_id,
+        round_index=candidate.round_index,
+        candidate_hash=candidate_hash(candidate),
+        candidate_manifest_path="",
+        candidate_bundle_dir="",
+        prompt_bundle_id=candidate.prompt_bundle_id,
+        text_model_id=candidate.text_model_id,
+        vision_model_id=candidate.vision_model_id,
+        optimizer_knobs_flat={f"knob.{key}": value for key, value in candidate.optimizer_knobs.items()},
+        primary_metrics={},
+        guardrail_metrics={},
+        diagnostic_metrics={},
+        scored=False,
+        score_status="unscored",
+        unscored_reason=reason,
+        unscored_reason_detail=detail,
+        runtime_seconds=0.0,
+        runtime_metadata={},
+        started_at="",
+        ended_at="",
+        candidate_status="ineligible",
+        promotion_decision="not_promoted",
+        decision_reason=reason,
+        structured_output_mode=gate_details.get("structured_output_mode"),
+        structured_output_reason=gate_details.get("structured_output_reason"),
+        prompt_only_degraded_mode_used=True,
+        metadata={"eligibility_gate": gate_details},
+    )
 
 
 def _write_candidate_diagnostics(experiment_dir: Path, results: list[CandidateResult], primary_metric: str) -> None:
@@ -639,8 +836,49 @@ def run_compare_mode(config: dict[str, Any], benchmarks: Benchmarks, experiment_
     ]
 
     results: list[CandidateResult] = []
+    compare_policy = _compare_policy(config)
 
     for candidate in candidates:
+        gate_probe = _probe_candidate_structured_output_mode(
+            config,
+            candidate=candidate,
+            benchmark_id=benchmark_id,
+        )
+        gate_mode = gate_probe.get("structured_output_mode")
+        gate_ineligible = (
+            compare_policy["require_structured_output_for_extraction"]
+            and gate_probe.get("probe_status") == "ok"
+            and gate_mode == "none"
+            and not compare_policy["allow_degraded_candidates"]
+        )
+        if gate_ineligible:
+            result = _ineligible_result(
+                config,
+                candidate=candidate,
+                benchmark_id=benchmark_id,
+                reason="ineligible_structured_output_none",
+                detail=(
+                    "compare policy requires structured output for extraction and provider probing "
+                    "returned structured_output_mode='none'"
+                ),
+                gate_details={
+                    **gate_probe,
+                    "policy": compare_policy,
+                    "degraded_experimental": False,
+                },
+            )
+            writer.append_result(result)
+            results.append(result)
+            _write_compare_progress(
+                writer,
+                config=config,
+                benchmark_id=benchmark_id,
+                primary_metric=primary_metric,
+                results=results,
+                progress_state="running",
+            )
+            continue
+
         result = evaluate_candidate_once(
             config,
             experiment_dir=experiment_dir,
@@ -650,6 +888,18 @@ def run_compare_mode(config: dict[str, Any], benchmarks: Benchmarks, experiment_
             decision="not_promoted",
             reason="compare_mode_fixed_comparison",
         )
+        if (
+            compare_policy["require_structured_output_for_extraction"]
+            and compare_policy["allow_degraded_candidates"]
+            and gate_probe.get("probe_status") == "ok"
+            and gate_mode == "none"
+        ):
+            result.metadata["eligibility_gate"] = {
+                **gate_probe,
+                "policy": compare_policy,
+                "degraded_experimental": True,
+            }
+            result.decision_reason = "compare_mode_degraded_experimental"
         writer.append_result(result)
         results.append(result)
         _write_compare_progress(

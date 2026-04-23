@@ -54,6 +54,22 @@ def test_checked_in_planned_configs_disallow_degraded_scores() -> None:
     for config_name in config_names:
         payload = json.loads((repo_root / "configs" / config_name).read_text(encoding="utf-8"))
         assert payload["acceptance"]["degraded_score_policy"] == "disallow"
+        if "compare_candidates" in payload:
+            assert payload["compare"]["require_structured_output_for_extraction"] is True
+            assert payload["compare"]["allow_degraded_candidates"] is False
+
+
+def test_checked_in_planned_configs_pin_non_gemma_non_qwen_judge_b() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    for path in (repo_root / "configs").glob("*.json"):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        manifests = (payload.get("benchmarks") or {}).get("manifests") or {}
+        for manifest in manifests.values():
+            eval_args = manifest.get("eval_args")
+            if not isinstance(eval_args, list) or "--judge-model-b" not in eval_args:
+                continue
+            judge_b = eval_args[eval_args.index("--judge-model-b") + 1]
+            assert judge_b == "mistralai/ministral-3-14b-reasoning"
 
 
 def test_compare_models_smoke_is_tiny_and_fast_by_contract() -> None:
