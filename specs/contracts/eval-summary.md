@@ -19,6 +19,8 @@ Eval outputs must preserve, in stable machine-readable form:
 - evidence metrics
 - join-failure and judge-failure diagnostics
 - compact main-app provenance passthrough needed for optimizer reporting
+- evidence-anchor audit totals and reason histograms
+- metadata-family summaries grouped by field kind, state, and failure attribution
 
 ## Headline metric policy
 
@@ -36,6 +38,7 @@ When dual-judge mode is enabled, eval summaries must preserve:
 - disagreement metrics
 - absolute delta metrics
 - judge-specific request-failure and unclear counts
+- judge response-mode usage summaries
 
 These outputs must stay explicit rather than being collapsed into a single opaque score.
 
@@ -51,6 +54,7 @@ That includes:
 - evidence-grounded metrics
 - compact extraction and retrieval provenance
 - failure-attribution counts
+- dual-judge completion truth plus enough per-judge detail for trust reporting
 
 ## Ownership boundary
 

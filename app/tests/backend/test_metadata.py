@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from backend.app.metadata import extract_matching_metadata, resolve_metadata_field
+from backend.app.metadata import extract_matching_metadata, extract_matching_metadata_debug, resolve_metadata_field
 
 
 def test_resolve_metadata_field_prefers_parser_metadata_for_doi() -> None:
@@ -80,3 +80,22 @@ def test_extract_matching_metadata_prefers_front_matter_year_before_full_text_fa
     )
 
     assert resolved.year == 2021
+
+
+def test_extract_matching_metadata_debug_surfaces_front_matter_and_field_diagnostics() -> None:
+    debug = extract_matching_metadata_debug(
+        {
+            "metadata": {"title": "Parser Title", "doi": "10.1000/xyz123"},
+            "blocks": [
+                {"page_number": 1, "text": "Parser Title", "block_type": "heading"},
+                {"page_number": 1, "text": "DOI: 10.1000/xyz123", "block_type": "paragraph"},
+            ],
+            "full_text": "Parser Title\nDOI: 10.1000/xyz123",
+            "parser_used": "docling",
+        }
+    )
+
+    assert debug.metadata.title == "Parser Title"
+    assert debug.front_matter_diagnostics["front_matter_detected"] is True
+    assert debug.field_diagnostics["title"].state == "found"
+    assert debug.field_diagnostics["doi"].diagnostics["candidate_count"] >= 1

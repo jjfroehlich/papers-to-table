@@ -49,6 +49,8 @@ Historical legacy detail is preserved under `archive/verbatim/`.
 - Keep eval file-driven and decoupled from main-app runtime imports.
 - Keep optimizer orchestration-only, with explicit separation between execution, scoring, and study control.
 - Keep shared contracts defined once in `contracts/` so tool changes update one owner instead of creating parallel truth.
+- Keep real benchmark studies explicit and separate from fixture or smoke studies.
+- Keep dual-judge, evidence-grounding, metadata-diagnostics, and degraded-mode truth visible in top-level reports rather than only raw artifacts.
 
 ## Current risks and mitigations
 

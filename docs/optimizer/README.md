@@ -62,12 +62,21 @@ The optimizer includes two main shell wrappers:
 - `scripts/run_study.sh`: run one compare or optimize study, summarize it, and optionally validate holdout
 - `scripts/run_overnight.sh`: run the recommended multi-stage overnight sequence
 
+Prepared config families now separate real-benchmark studies from smoke or fixture studies:
+
+- `compare_*_real_dev.json`: authoritative real-benchmark compare configs for meaningful development comparisons
+- `optimize_real_overnight.json`: authoritative real-benchmark optimize config for longer overnight studies
+- `compare_models_fixture_dev.json`: fast fixture-only compare config for local contract checks
+- `compare_models_smoke.json`: minimum smoke config
+
+Real-benchmark manifests now fail preflight if they point at fixture assets, omit required dual-judge settings, or reference missing benchmark files.
+
 Recommended study order:
 
-1. `compare_models_dev.json`
-2. `compare_prompts_dev.json`
-3. `compare_retrieval_dev.json`
-4. `optimize_overnight.json`
+1. `compare_models_real_dev.json`
+2. `compare_prompts_real_dev.json`
+3. `compare_retrieval_real_dev.json`
+4. `optimize_real_overnight.json`
 
 ## Artifact layout
 
@@ -84,6 +93,15 @@ Each experiment directory contains:
 - `runs/<candidate_id>/main/` launch artifacts
 - `runs/<candidate_id>/eval/` launch artifacts
 - `report.html`
+
+Candidate diagnostics and reports now also surface:
+
+- benchmark winner versus recommended default when trust caveats differ
+- dual-judge completion, disagreement, unclear counts, and request failures
+- prompt-only degraded runs and extraction-contract validity
+- evidence grounding and anchor-audit summaries
+- metadata-family failure signals and join failures
+- runtime totals plus provider-request accounting
 
 ## Why this tool stays internal
 

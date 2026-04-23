@@ -36,6 +36,8 @@ The optimizer supports:
 - `dev` drives compare and optimize decisions.
 - `holdout` remains separate from the main search benchmark.
 - Holdout validates final recommendations after dev-phase ranking or optimization.
+- Real benchmark configs must stay clearly separate from smoke or fixture configs.
+- Real benchmark manifests must fail preflight if they point at fixture assets, omit required benchmark files, or omit required dual-judge configuration.
 
 ## Candidate and result expectations
 
@@ -52,6 +54,8 @@ The optimizer must:
 - apply gated acceptance rather than single-scalar promotion alone
 - preserve truthful partial-study state for interrupted compare, optimize, and overnight workflows
 - generate operator-facing reports that explain what happened, why a candidate won or failed, and what to check next
+- make degraded prompt-only candidates unmistakable rather than treating them as healthy peers
+- distinguish the raw benchmark winner from the recommended operational default when trust caveats differ
 
 ## Ownership boundary
 

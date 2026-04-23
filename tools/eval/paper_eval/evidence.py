@@ -41,8 +41,6 @@ def validate_evidence_anchors(
         outcome_counts[str(item_result["outcome"])] += 1
         if item_result.get("reason"):
             reason_counts[str(item_result["reason"])] += 1
-        if item_result["outcome"] == "anchor_valid":
-            break
         if item_result["outcome"] == "evidence_present_but_unvalidated":
             saw_present_but_unvalidated = True
         elif item_result["outcome"] == "anchor_invalid":

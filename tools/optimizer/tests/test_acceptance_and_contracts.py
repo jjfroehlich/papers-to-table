@@ -118,6 +118,27 @@ def test_validate_preflight_accepts_src_layout_prompt_bundles(base_config: dict)
     validate_preflight(base_config, benches, require_holdout=True)
 
 
+def test_validate_preflight_rejects_real_benchmark_pointing_at_fixture_assets(base_config: dict) -> None:
+    base_config["benchmarks"]["manifests"]["bench_dev"]["benchmark_kind"] = "real_external_dev"
+    base_config["benchmarks"]["manifests"]["bench_dev"]["require_non_fixture_inputs"] = True
+    base_config["benchmarks"]["manifests"]["bench_dev"]["table_path"] = (
+        "/tmp/project/app/tests/fixtures/tables/literature_fixture.xlsx"
+    )
+    benches = load_benchmarks(base_config)
+
+    with pytest.raises(PreflightError, match="requires real benchmark inputs"):
+        validate_preflight(base_config, benches, require_holdout=True)
+
+
+def test_validate_preflight_rejects_missing_second_judge_when_required(base_config: dict) -> None:
+    base_config["benchmarks"]["manifests"]["bench_dev"]["required_judges"] = ["judge_a", "judge_b"]
+    base_config["benchmarks"]["manifests"]["bench_dev"]["eval_args"] = ["--judge-model", "judge-model-a"]
+    benches = load_benchmarks(base_config)
+
+    with pytest.raises(PreflightError, match="requires judge_b"):
+        validate_preflight(base_config, benches, require_holdout=True)
+
+
 def test_cli_preflight_command_accepts_valid_config(
     base_config: dict,
     tmp_path: Path,
