@@ -26,6 +26,8 @@ pip install -e .[dev]
 ### compare
 
 - evaluates an explicit fixed candidate set on the dev benchmark
+- defaults to `compare.require_structured_output_for_extraction=true`, which marks candidates ineligible when provider probing reports `structured_output_mode="none"`
+- supports explicit degraded experiments with `compare.allow_degraded_candidates=true`; those candidates stay labeled degraded-experimental in diagnostics
 - produces ranked summaries and compare plots
 - can optionally run holdout validation for top candidates
 
@@ -70,6 +72,7 @@ Prepared config families now separate real-benchmark studies from smoke or fixtu
 - `compare_models_smoke.json`: minimum smoke config
 
 Real-benchmark manifests now fail preflight if they point at fixture assets, omit required dual-judge settings, or reference missing benchmark files.
+Prepared configs now default `--judge-model-b` to `mistralai/ministral-3-14b-reasoning` so judge B is enabled by default without Gemma/Qwen coupling.
 
 Recommended study order:
 

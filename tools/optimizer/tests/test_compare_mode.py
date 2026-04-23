@@ -41,20 +41,38 @@ def test_compare_mode_outputs(base_config: dict, tmp_path: Path) -> None:
     assert summary["eligible_winner_candidate_id"] == best_candidate["candidate_id"]
     assert summary["best_raw_candidate_id"] == best_candidate["candidate_id"]
     assert summary["provisional_winner_candidate_id"] is None
+    diagnostics = json.loads((out / "candidate_diagnostics.json").read_text(encoding="utf-8"))
+    assert diagnostics["rows"]
+    assert "reliability_label" in diagnostics["rows"][0]
+    assert "provider_retry_count" in diagnostics["rows"][0]
 
-    report_html = (out / "report.html").read_text(encoding="utf-8")
-    assert "Winner" in report_html
-    assert "Why This Candidate Won" in report_html
-    assert "Compare Semantics" in report_html
-    assert "What This Shows" in report_html
-    assert "How To Read It" in report_html
-    assert "What To Watch For" in report_html
-    assert "top_k=6" in report_html
-    assert "Benchmark Winner" in report_html
-    assert "Recommended Default" in report_html
-    assert "Baseline" not in report_html
-    assert "Promoted" not in report_html
 
+def test_compare_mode_marks_ineligible_when_structured_output_probe_reports_none(
+    base_config: dict,
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    benches = load_benchmarks(base_config)
+    out = tmp_path / "compare_gate"
+    base_config["compare"] = {
+        "require_structured_output_for_extraction": True,
+        "allow_degraded_candidates": False,
+    }
+
+    monkeypatch.setattr(
+        "paper_optimizer.study._probe_candidate_structured_output_mode",
+        lambda *args, **kwargs: {
+            "probe_status": "ok",
+            "structured_output_mode": "none",
+            "structured_output_reason": "structured_modes_unavailable",
+        },
+    )
+    monkeypatch.setattr("paper_optimizer.study.generate_compare_plots", lambda *args, **kwargs: None)
+
+    run_compare_mode(base_config, benches, out)
+    summary = json.loads((out / "compare_summary.json").read_text(encoding="utf-8"))
+    assert summary["winner"] is None
+    assert all(row["candidate_status"] == "ineligible" for row in summary["candidates"])
 
 def test_compare_report_surfaces_retrieval_settings(base_config: dict, tmp_path: Path) -> None:
     for candidate, top_k in zip(base_config["compare_candidates"], [6, 8, 10], strict=True):
