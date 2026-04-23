@@ -20,6 +20,10 @@ class BenchmarkManifest:
     eval_schema_path: str | None
     main_args: list[str]
     eval_args: list[str]
+    benchmark_kind: str | None
+    benchmark_label: str | None
+    require_non_fixture_inputs: bool = False
+    required_judges: list[str] | None = None
 
 
 @dataclass(frozen=True)
@@ -48,6 +52,10 @@ def load_benchmarks(config: dict[str, Any]) -> Benchmarks:
             eval_schema_path=manifest.get("eval_schema_path"),
             main_args=list(manifest.get("main_args", [])),
             eval_args=list(manifest.get("eval_args", [])),
+            benchmark_kind=manifest.get("benchmark_kind"),
+            benchmark_label=manifest.get("benchmark_label"),
+            require_non_fixture_inputs=bool(manifest.get("require_non_fixture_inputs", False)),
+            required_judges=list(manifest.get("required_judges", [])),
         )
 
     split_to_id: dict[str, str] = {}

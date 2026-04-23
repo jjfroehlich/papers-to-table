@@ -170,6 +170,7 @@ Operator-visible status and persisted artifacts must distinguish at least:
 - `json_schema` unsupported
 - provider reachable but no compatible structured-output mode available
 - explicit prompt-only degraded fallback when used
+- extraction-contract validity and warnings
 
 These states must not be collapsed into one generic label.
 
@@ -210,10 +211,12 @@ The main app is acceptable when:
 
 1. A normal operator can start a run from a config path and see truthful readiness failures before extraction when setup is broken.
 2. PDF-to-row matching never silently hides unmatched, ambiguous, or duplicate-row outcomes.
+2a. Matching artifacts must preserve extracted metadata, front-matter diagnostics, candidate-score breakdowns, and threshold or gap reasoning for matched, unmatched, and ambiguous papers.
 3. Proposal generation remains schema-first and keeps one best proposal per eligible target cell with inspectable support.
 4. Weak, inferred, and fallback evidence remain visibly distinguished from direct support.
 5. Review stays queue-first and export writes a new workbook plus audit artifacts only after explicit reviewer action.
 6. Run artifacts remain sufficient for eval and optimizer tooling without runtime imports from the main app.
+6a. Run artifacts must preserve enough page-text and evidence context for downstream anchor validation, plus compact reviewer-summary truth for degraded structured-output and extraction-contract state.
 7. Reviewer-facing counts distinguish actionable review items from broader attempted or diagnostic totals.
 8. Provider-unavailable state at run start fails readiness rather than surfacing as a cosmetically successful run.
 9. Eval mode preserves masked-table and gold-table provenance without leaking target gold values into extraction.

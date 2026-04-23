@@ -166,6 +166,8 @@ def status_from_row(row: dict[str, Any], *, primary_metric: str | None = None) -
         return "failed"
     scored = parse_bool(row.get("scored"))
     if scored is True:
+        if parse_bool(row.get("prompt_only_degraded_mode_used")) or parse_bool(row.get("extraction_contract_valid")) is False:
+            return "scored_degraded"
         return "scored"
     primary_value = primary_value_from_row(row, primary_metric=primary_metric)
     if primary_value is not None:
@@ -290,14 +292,36 @@ def normalize_candidate_row(row: dict[str, Any], *, primary_metric: str | None =
         "decision_reason": first_present(row, ["decision_reason"]),
         "score_explanation": first_present(row, ["score_explanation"]),
         "judge_disagreement": safe_float(first_present(row, ["judge_disagreement", "diagnostic.judge_disagreement"])),
+        "judge_disagreement_count": safe_int(first_present(row, ["judge_disagreement_count", "diagnostic.judge_disagreement_count"])),
+        "judge_disagreement_rate": safe_float(first_present(row, ["judge_disagreement_rate", "diagnostic.judge_disagreement_rate"])),
         "correctness_judge_a": safe_float(first_present(row, ["correctness_judge_a", "primary.correctness_judge_a", "diagnostic.correctness_judge_a"])),
         "correctness_judge_b": safe_float(first_present(row, ["correctness_judge_b", "primary.correctness_judge_b", "diagnostic.correctness_judge_b"])),
+        "dual_judge_completed": parse_bool(first_present(row, ["dual_judge_completed", "diagnostic.dual_judge_completed"])),
         "scored_cell_count": safe_int(first_present(row, ["scored_cell_count", "diagnostic.scored_cell_count"])),
         "judge_text_scored_cell_count": safe_int(first_present(row, ["judge_text_scored_cell_count", "diagnostic.judge_text_scored_cell_count"])),
         "unscored_text_cell_count": safe_int(first_present(row, ["unscored_text_cell_count", "diagnostic.unscored_text_cell_count"])),
         "judge_request_failed_count": safe_int(first_present(row, ["judge_request_failed_count", "diagnostic.judge_request_failed_count"])),
+        "judge_a_request_failed_count": safe_int(first_present(row, ["judge_a_request_failed_count", "diagnostic.judge_a_request_failed_count"])),
+        "judge_b_request_failed_count": safe_int(first_present(row, ["judge_b_request_failed_count", "diagnostic.judge_b_request_failed_count"])),
+        "judge_a_unclear_text_cell_count": safe_int(first_present(row, ["judge_a_unclear_text_cell_count", "diagnostic.judge_a_unclear_text_cell_count"])),
+        "judge_b_unclear_text_cell_count": safe_int(first_present(row, ["judge_b_unclear_text_cell_count", "diagnostic.judge_b_unclear_text_cell_count"])),
+        "anchor_valid_rate": safe_float(first_present(row, ["anchor_valid_rate", "guardrail.evidence_quality"])),
+        "evidence_item_count": safe_int(first_present(row, ["evidence_item_count", "diagnostic.evidence_item_count"])),
+        "validated_evidence_item_count": safe_int(first_present(row, ["validated_evidence_item_count", "diagnostic.validated_evidence_item_count"])),
+        "anchor_invalid_count": safe_int(first_present(row, ["anchor_invalid_count", "diagnostic.anchor_invalid_count"])),
+        "evidence_present_but_unvalidated_count": safe_int(first_present(row, ["evidence_present_but_unvalidated_count", "diagnostic.evidence_present_but_unvalidated_count"])),
         "missing_proposal_count": safe_int(first_present(row, ["missing_proposal_count", "diagnostic.missing_proposal_count"])),
+        "join_failure_count": safe_int(first_present(row, ["join_failure_count", "guardrail.failure_count"])),
         "filled_on_gold_empty_count": safe_int(first_present(row, ["filled_on_gold_empty_count", "diagnostic.filled_on_gold_empty_count"])),
+        "parser_gap_count": safe_int(first_present(row, ["parser_gap_count", "diagnostic.parser_gap_count"])),
+        "retrieval_miss_count": safe_int(first_present(row, ["retrieval_miss_count", "diagnostic.retrieval_miss_count"])),
+        "extraction_miss_count": safe_int(first_present(row, ["extraction_miss_count", "diagnostic.extraction_miss_count"])),
+        "evidence_ambiguity_count": safe_int(first_present(row, ["evidence_ambiguity_count", "diagnostic.evidence_ambiguity_count"])),
+        "judge_failure_count": safe_int(first_present(row, ["judge_failure_count", "diagnostic.judge_failure_count"])),
+        "judge_unclear_count": safe_int(first_present(row, ["judge_unclear_count", "diagnostic.judge_unclear_count"])),
+        "metadata_summary": first_present(row, ["metadata_summary", "diagnostic.metadata_summary"]),
+        "judge_summary": first_present(row, ["judge_summary", "diagnostic.judge_summary"]),
+        "evidence_anchor_reason_counts": first_present(row, ["evidence_anchor_reason_counts", "diagnostic.evidence_anchor_reason_counts"]),
         "candidate_manifest_path": first_present(row, ["candidate_manifest_path"]),
         "candidate_bundle_dir": first_present(row, ["candidate_bundle_dir"]),
         "main_app_run_path": first_present(row, ["main_app_run_path"]),
@@ -305,6 +329,8 @@ def normalize_candidate_row(row: dict[str, Any], *, primary_metric: str | None =
         "main_app_overlay_path": first_present(row, ["main_app_overlay_path"]),
         "eval_output_path": first_present(row, ["eval_output_path"]),
         "eval_summary_path": first_present(row, ["eval_summary_path"]),
+        "provider_request_counts": first_present(row, ["provider_request_counts", "runtime.provider_request_counts"]),
+        "run_stats_counters": first_present(row, ["run_stats_counters", "runtime.run_stats_counters"]),
     }
     return normalized
 

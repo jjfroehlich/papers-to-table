@@ -782,9 +782,10 @@ class TestDeterministicScoring:
         paper = PaperMetadata(title="Massively parallel sequencing of DNA", year=2022)
         scores = score_all_rows(paper, df)
         # Scores should be sorted descending
-        assert scores[0][1] >= scores[1][1] >= scores[2][1]
+        assert scores[0].final_score >= scores[1].final_score >= scores[2].final_score
         # Row 1 (massively parallel) should be top
-        assert scores[0][0] == 1
+        assert scores[0].row_index == 1
+        assert "title_similarity_score" in scores[0].model_dump()
 
     def test_title_jaccard_symmetric(self):
         t1 = "Hello World Study"
@@ -1016,6 +1017,24 @@ class TestMatchArtifactPersistence:
         data = json.loads(path.read_text())
         for result in data:
             assert result.get("reasoning"), f"Missing reasoning for {result['pdf_id']}"
+            assert "top_candidates" in result
+            assert "threshold_reasoning" in result
+
+    def test_per_pdf_matching_debug_artifacts_are_written(self, tmp_path):
+        run_dir = self._run_matching_and_persist(tmp_path)
+        pdf_dir = run_dir / "matching" / "pdfs" / "unmatched_1"
+        assert (pdf_dir / "extracted_matching_metadata.json").exists()
+        assert (pdf_dir / "metadata_field_diagnostics.json").exists()
+        breakdown = json.loads((pdf_dir / "row_match_score_breakdown.json").read_text())
+        assert "top_candidates" in breakdown
+        assert "threshold_reasoning" in breakdown
+
+    def test_unmatched_artifacts_include_top_candidates_and_missing_metadata(self, tmp_path):
+        run_dir = self._run_matching_and_persist(tmp_path)
+        unmatched = json.loads((run_dir / "matching" / "unmatched.json").read_text())
+        unmatched_row = next(item for item in unmatched if item["pdf_id"] == "unmatched_1")
+        assert "top_candidates" in unmatched_row
+        assert "missing_metadata_fields" in unmatched_row
 
     def test_load_match_results_api_helper(self, tmp_path):
         run_dir = self._run_matching_and_persist(tmp_path)

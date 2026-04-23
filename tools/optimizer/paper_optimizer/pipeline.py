@@ -8,7 +8,7 @@ from .bundle import candidate_hash, materialize_candidate_bundle
 from .contracts import Candidate, CandidateResult
 from .launch_eval import launch_eval_app, map_eval_summary_to_metric_groups
 from .launch_main import LaunchError, launch_main_app
-from .utils import flatten_dict
+from .utils import flatten_dict, read_json
 from .validation import validate_eval_summary_contract, validate_main_launch_contract
 
 
@@ -42,6 +42,16 @@ def _load_main_reviewer_summary(main_launch: Any | None) -> dict[str, Any]:
     if run_path:
         return _read_json_if_exists(Path(run_path) / "summaries" / "reviewer_summary.json")
     return {}
+
+
+def _load_main_run_artifacts(main_launch: Any | None) -> tuple[dict[str, Any], dict[str, Any]]:
+    if main_launch is None or not isinstance(main_launch.run_path, str):
+        return {}, {}
+    run_dir = Path(main_launch.run_path)
+    return (
+        _read_json_if_exists(run_dir / "diagnostics" / "provider_request_counts.json"),
+        _read_json_if_exists(run_dir / "diagnostics" / "run_stats.json"),
+    )
 
 
 def _coalesce_bool(value: Any) -> bool | None:
@@ -82,6 +92,11 @@ def _failure_result(
             }
         )
     reviewer_summary = _load_main_reviewer_summary(main_launch)
+    provider_request_counts, run_stats = _load_main_run_artifacts(main_launch)
+    runtime_total = (
+        (main_launch.duration_seconds if main_launch is not None else 0.0)
+        + (eval_launch.duration_seconds if eval_launch is not None else 0.0)
+    )
 
     return CandidateResult(
         schema_version=str(config["schema_version"]),
@@ -105,14 +120,13 @@ def _failure_result(
         score_status="failed",
         unscored_reason=reason,
         unscored_reason_detail=str(metadata.get("launch_error") or reason),
-        runtime_seconds=main_launch.duration_seconds if main_launch is not None else None,
+        runtime_seconds=runtime_total if runtime_total > 0 else None,
         runtime_metadata={
             "main_app_duration_seconds": main_launch.duration_seconds if main_launch is not None else None,
             "eval_duration_seconds": eval_launch.duration_seconds if eval_launch is not None else None,
-            "total_duration_seconds": (
-                (main_launch.duration_seconds if main_launch is not None else 0.0)
-                + (eval_launch.duration_seconds if eval_launch is not None else 0.0)
-            ),
+            "total_duration_seconds": runtime_total,
+            "provider_request_counts": (provider_request_counts.get("counts") if isinstance(provider_request_counts.get("counts"), dict) else {}),
+            "run_stats_counters": (run_stats.get("counters") if isinstance(run_stats.get("counters"), dict) else {}),
         },
         started_at=(main_launch.started_at if main_launch is not None else ""),
         ended_at=(
@@ -152,7 +166,11 @@ def _failure_result(
             "payload": eval_launch.payload if eval_launch is not None else {},
             "artifact_paths": eval_launch.artifact_paths if eval_launch is not None else {},
         },
-        metadata=metadata,
+        metadata={
+            **metadata,
+            "provider_request_counts": provider_request_counts,
+            "run_stats": run_stats,
+        },
     )
 
 
@@ -284,11 +302,14 @@ def evaluate_candidate_once(
 
     primary_metrics, guardrail_metrics, diagnostic_metrics = map_eval_summary_to_metric_groups(eval_summary, config["eval_app"])
 
-    runtime_seconds = main_launch.duration_seconds if main_launch.duration_seconds > 0 else None
+    provider_request_counts, run_stats = _load_main_run_artifacts(main_launch)
+    runtime_seconds = (main_launch.duration_seconds + eval_launch.duration_seconds) or None
     runtime_metadata = {
         "main_app_duration_seconds": main_launch.duration_seconds,
         "eval_duration_seconds": eval_launch.duration_seconds,
         "total_duration_seconds": main_launch.duration_seconds + eval_launch.duration_seconds,
+        "provider_request_counts": (provider_request_counts.get("counts") if isinstance(provider_request_counts.get("counts"), dict) else {}),
+        "run_stats_counters": (run_stats.get("counters") if isinstance(run_stats.get("counters"), dict) else {}),
     }
     eval_metadata = eval_summary.get("metadata", {}) if isinstance(eval_summary.get("metadata"), dict) else {}
     reviewer_summary = _load_main_reviewer_summary(main_launch)
@@ -297,10 +318,13 @@ def evaluate_candidate_once(
     unscored_reason_detail = eval_summary.get("unscored_reason_detail")
     if "page_count" in eval_metadata:
         runtime_metadata["page_count"] = eval_metadata.get("page_count")
+    degraded_for_structure = bool(reviewer_summary.get("prompt_only_degraded_mode_used", False)) or reviewer_summary.get("structured_output_mode") == "none"
+    if reviewer_summary.get("extraction_contract_valid") is False:
+        degraded_for_structure = True
     score_status = _score_status(
         candidate_status="completed",
         scored=scored,
-        prompt_only_degraded_mode_used=bool(reviewer_summary.get("prompt_only_degraded_mode_used", False)),
+        prompt_only_degraded_mode_used=degraded_for_structure,
     )
     primary_metric_name = str(config["acceptance"]["primary_metric"])
     if scored and primary_metrics.get(primary_metric_name) is None:
@@ -373,6 +397,8 @@ def evaluate_candidate_once(
             "eval_summary": eval_summary,
             "eval_metadata": eval_metadata,
             "reviewer_summary": reviewer_summary,
+            "provider_request_counts": provider_request_counts,
+            "run_stats": run_stats,
             "main_stdout": main_launch.stdout,
             "main_stderr": main_launch.stderr,
             "eval_stdout": eval_launch.stdout,

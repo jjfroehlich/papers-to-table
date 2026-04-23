@@ -34,6 +34,7 @@ When present, the following files are part of the stable shared surface:
 - `proposal_index.json`
 - canonical evidence artifacts
 - persisted page-text-compatible or parsed-document artifacts needed for anchor validation
+- per-PDF matching debug artifacts such as extracted metadata, metadata-field diagnostics, front-matter diagnostics, and row-score breakdowns
 
 ## Stable artifact categories
 
@@ -99,6 +100,7 @@ That compact truth includes, when applicable:
 - retrieval mode and retrieval top-k
 - recall-rescue and whole-document retrieval usage
 - extraction lane and failure attribution
+- metadata diagnostics and failure attribution needed to explain parser-gap, retrieval-miss, evidence-ambiguity, extraction-miss, judge-failure, and judge-unclear outcomes
 - parser-cache and related reuse truth
 
 Stable eval-facing provenance should also preserve, when applicable:

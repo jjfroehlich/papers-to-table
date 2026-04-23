@@ -93,3 +93,9 @@ This repository also includes two internal developer tools:
 - Optimizer: bounded calibration and orchestration for compare/optimize studies. See [`docs/optimizer/README.md`](docs/optimizer/README.md).
 
 These tools support development and benchmarking. They are not the primary product surface.
+
+Current companion-tool truth:
+
+- real benchmark studies use the explicit `*_real_dev.json` and `*_real_overnight.json` optimizer configs instead of smoke or fixture configs
+- real benchmark studies are expected to run with two judges end to end
+- eval and optimizer reports now separate the raw benchmark winner from the recommended default when degraded or trust caveats differ

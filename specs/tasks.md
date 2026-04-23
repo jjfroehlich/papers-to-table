@@ -45,6 +45,9 @@ Treat this section as a point-in-time implementation note. If it becomes stale a
 - Implemented in the latest pass: backend packaging now uses a conventional `src/` layout with modular API routers, split config loading/readiness concerns, explicit app settings, and a `RunExecutor` abstraction.
 - Implemented in the latest pass: browser run launch is now preflight-first and persists compact review lookup artifacts for row/column/paper context.
 - Implemented in the latest pass: live run updates now stream over SSE and unresolved diagnostics moved into a dedicated review-inspection surface instead of competing with evidence.
+- Implemented in the latest pass: matching now persists per-PDF extracted metadata, front-matter diagnostics, candidate-score breakdowns, and threshold or gap reasoning artifacts.
+- Implemented in the latest pass: eval summaries now include evidence-anchor audits, metadata-family summaries, and richer dual-judge diagnostics.
+- Implemented in the latest pass: optimizer benchmark manifests now distinguish real versus fixture or smoke intent, enforce required dual-judge config, and report benchmark winner versus recommended default separately.
 - Historical run bundles under `runs/` are useful examples but are not the canonical artifact-shape source of truth.
 
 ## Canonical Checklist

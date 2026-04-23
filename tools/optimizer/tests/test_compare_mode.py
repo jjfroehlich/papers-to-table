@@ -50,6 +50,8 @@ def test_compare_mode_outputs(base_config: dict, tmp_path: Path) -> None:
     assert "How To Read It" in report_html
     assert "What To Watch For" in report_html
     assert "top_k=6" in report_html
+    assert "Benchmark Winner" in report_html
+    assert "Recommended Default" in report_html
     assert "Baseline" not in report_html
     assert "Promoted" not in report_html
 
@@ -276,3 +278,71 @@ def test_compare_mode_writes_no_eligible_winner_when_degraded_scores_are_disallo
     assert summary["provisional_winner_candidate_id"] == summary["best_raw_candidate_id"]
     assert summary["progress_state"] == "completed"
     assert summary["scored_degraded_candidate_count"] == len(base_config["compare_candidates"])
+
+
+def test_compare_report_surfaces_trust_notes_for_degraded_candidates(base_config: dict, tmp_path: Path, monkeypatch) -> None:
+    benches = load_benchmarks(base_config)
+    out = tmp_path / "compare_exp"
+
+    def _mixed_result(*args, **kwargs) -> CandidateResult:
+        candidate = kwargs["candidate"]
+        degraded = candidate.text_model_id == "text-model-a"
+        return CandidateResult(
+            schema_version="1.0",
+            experiment_id=base_config["experiment_id"],
+            study_type="compare",
+            benchmark_id="bench_dev",
+            candidate_id=candidate.candidate_id,
+            parent_candidate_id=candidate.parent_candidate_id,
+            round_index=candidate.round_index,
+            candidate_hash=f"hash-{candidate.candidate_id}",
+            candidate_manifest_path=str(out / f"{candidate.candidate_id}.json"),
+            candidate_bundle_dir=str(out / candidate.candidate_id),
+            prompt_bundle_id=candidate.prompt_bundle_id,
+            text_model_id=candidate.text_model_id,
+            vision_model_id=candidate.vision_model_id,
+            optimizer_knobs_flat=dict(candidate.optimizer_knobs),
+            primary_metrics={"correctness": 0.75 if degraded else 0.8},
+            guardrail_metrics={"evidence_quality": 0.0 if degraded else 0.9, "null_count": 0.0, "failure_count": 0.0},
+            diagnostic_metrics={
+                "dual_judge_completed": 1.0,
+                "judge_disagreement_rate": 0.25,
+                "anchor_valid_rate": 0.0 if degraded else 1.0,
+                "evidence_item_count": 2.0,
+            },
+            scored=True,
+            score_status="scored_degraded" if degraded else "scored",
+            runtime_seconds=1.0,
+            runtime_metadata={},
+            started_at="",
+            ended_at="",
+            candidate_status="completed",
+            promotion_decision="rejected",
+            decision_reason="completed",
+            structured_output_mode="none" if degraded else "json_schema",
+            prompt_only_degraded_mode_used=degraded,
+            extraction_contract_valid=not degraded,
+            extraction_contract_warnings=["missing_proposals_jsonl"] if degraded else [],
+            main_app_run_ref={},
+            eval_output_ref={},
+            metadata={
+                "deterministic_gate": {"passed": True, "failures": []},
+                "eval_summary": {
+                    "metrics": {
+                        "anchor_valid_rate": 0.0 if degraded else 1.0,
+                        "evidence_item_count": 2,
+                        "dual_judge_completed": True,
+                        "judge_disagreement_rate": 0.25,
+                    }
+                },
+            },
+        )
+
+    monkeypatch.setattr("paper_optimizer.study.evaluate_candidate_once", _mixed_result)
+    monkeypatch.setattr("paper_optimizer.study.generate_compare_plots", lambda *args, **kwargs: None)
+
+    run_compare_mode(base_config, benches, out)
+
+    report_html = (out / "report.html").read_text(encoding="utf-8")
+    assert "prompt-only degraded" in report_html
+    assert "zero grounded evidence" in report_html

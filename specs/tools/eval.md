@@ -54,6 +54,16 @@ Shared proposal and evidence expectations used during scoring are defined in `..
 - LM Studio is the default local-first judge path.
 - Judge behavior must remain bounded, reproducible, and fully instrumented.
 - Judge failures on one cell must not abort an otherwise valid evaluation run.
+- Real benchmark evaluation should run dual-judge scoring by default.
+- Per-run summaries must preserve per-judge verdicts, request failures, unclear counts, disagreement counts or rates, and response-mode usage.
+
+## Audit outputs
+
+Eval must emit inspectable audit summaries in stable per-run outputs for:
+
+- evidence-anchor validation totals, validated-versus-unvalidated counts, invalid-anchor counts, and reason histograms
+- metadata-family summaries grouped by field kind, state, and failure attribution
+- dual-judge completion truth and disagreement diagnostics
 
 ## Ownership boundary
 

@@ -348,6 +348,7 @@ class TextJudgeScoringTests(unittest.TestCase):
                 field_type="text",
             )
         )
+        loaded_run.metadata.page_count = 1
         gold = self._gold_dataset(
             GoldCell(
                 row_id="row-1",
@@ -815,6 +816,80 @@ class TextJudgeScoringTests(unittest.TestCase):
         self.assertEqual(summary.metrics["evidence_grounded_correctness"], 0.5)
         self.assertEqual(summary.metrics["parser_gap_count"], 1)
         self.assertEqual(summary.metrics["benchmark_style_profile_mode"], "masked_rows")
+        self.assertIn("year", summary.metrics["metadata_summary"]["fields"])
+
+    def test_dual_judge_summary_records_disagreement_and_per_judge_counts(self) -> None:
+        loaded_run = self._loaded_run(
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="notes",
+                cell_id="cell-notes-1",
+                proposed_value="expanded biology description with assay context",
+                field_type="text",
+            )
+        )
+        gold = self._gold_dataset(
+            GoldCell(
+                row_id="row-1",
+                column_name="notes",
+                cell_id="cell-notes-1",
+                raw_value="Expanded biological description for the assay",
+                is_present=True,
+            )
+        )
+
+        result = score_run(
+            loaded_run,
+            gold,
+            load_schema(None),
+            text_judges={"judge_a": FakeJudge("correct"), "judge_b": FakeJudge("incorrect")},
+            judge_configs={
+                "judge_a": JudgeConfig(model_id="judge-model-a", label="judge_a"),
+                "judge_b": JudgeConfig(model_id="judge-model-b", label="judge_b"),
+            },
+        )
+        summary = build_run_summary(loaded_run, gold, result.scored_cells)
+
+        self.assertTrue(summary.metrics["dual_judge_completed"])
+        self.assertEqual(summary.metrics["judge_disagreement_count"], 1)
+        self.assertEqual(summary.metrics["judge_disagreement_rate"], 1.0)
+        self.assertEqual(summary.metrics["judge_summary"]["request_failed_count"]["judge_a"], 0)
+        self.assertEqual(summary.metrics["judge_summary"]["verdict_counts"]["judge_b"]["incorrect"], 1)
+
+    def test_evidence_anchor_audit_reports_reason_histograms(self) -> None:
+        loaded_run = self._loaded_run(
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="status",
+                cell_id="cell-status-1",
+                proposed_value="present",
+                field_type="categorical",
+                evidence_items=[
+                    EvidenceItem(evidence_id="ev-good", page=1, quote_text="Status remained present throughout follow-up."),
+                    EvidenceItem(evidence_id="ev-bad", page=5, quote_text="missing page evidence"),
+                ],
+            )
+        )
+        loaded_run.metadata.page_count = 1
+        gold = self._gold_dataset(
+            GoldCell(
+                row_id="row-1",
+                column_name="status",
+                cell_id="cell-status-1",
+                raw_value="present",
+                is_present=True,
+            )
+        )
+
+        result = score_run(loaded_run, gold, load_schema(None))
+        summary = build_run_summary(loaded_run, gold, result.scored_cells)
+
+        self.assertEqual(summary.metrics["evidence_item_count"], 2)
+        self.assertEqual(summary.metrics["validated_evidence_item_count"], 1)
+        self.assertEqual(summary.metrics["anchor_invalid_count"], 1)
+        self.assertEqual(summary.metrics["evidence_anchor_reason_counts"]["page_out_of_bounds"], 1)
 
     def _loaded_run(self, *proposals: ProposalRecord) -> LoadedRun:
         return LoadedRun(

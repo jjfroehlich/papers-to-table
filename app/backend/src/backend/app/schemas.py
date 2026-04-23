@@ -231,10 +231,20 @@ class ReviewerSummary(BaseModel):
     structured_output_mode: Optional[str] = None
     structured_output_reason: Optional[str] = None
     structured_output_fallback_used: bool = False
+    prompt_only_degraded_mode_used: bool = False
+    parse_repair_used: bool = False
+    parse_repair_summary: Optional[dict] = None
     vision_structured_output_mode: Optional[str] = None
     vision_structured_output_reason: Optional[str] = None
     provider_readiness_error: Optional[str] = None
     provider_readiness_reason: Optional[str] = None
+    provider_model_management_path: Optional[str] = None
+    retrieval_mode: Optional[str] = None
+    retrieval_top_k: Optional[int] = None
+    recall_rescue_enabled: bool = False
+    whole_document_mode: bool = False
+    recall_rescue_used: bool = False
+    retrieval_provenance: Optional[dict] = None
     prompt_version: Optional[str] = None
     prompt_hash: Optional[str] = None
     prompt_bundle_id: Optional[str] = None
@@ -259,6 +269,9 @@ class ReviewerSummary(BaseModel):
     parse_cache_hit_count: int = 0
     parse_cache_miss_count: int = 0
     eval_artifacts: Optional[dict] = None
+    extraction_contract_valid: bool = False
+    extraction_contract_warnings: list[str] = []
+    extraction_provenance: Optional[dict] = None
     total_proposals: int
     reviewed: int = 0
     accepted: int

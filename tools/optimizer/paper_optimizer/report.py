@@ -10,6 +10,7 @@ from .reporting import (
     candidate_label,
     display_text,
     format_delta,
+    format_percent,
     format_runtime,
     format_score,
     format_timestamp,
@@ -148,6 +149,8 @@ def _build_caveats(
 ) -> list[str]:
     counts = status_counts(rows)
     caveats: list[str] = []
+    dual_judge_completed = any(row.get("dual_judge_completed") for row in rows)
+    dual_judge_incomplete_only = any(row.get("dual_judge_completed") is False for row in rows) and not dual_judge_completed
     if holdout["status"] != "completed":
         suffix = f": {holdout['skip_reason']}" if holdout.get("skip_reason") else ""
         caveats.append(f"Holdout was {holdout['status']}{suffix}.")
@@ -157,7 +160,7 @@ def _build_caveats(
         caveats.append(f"{counts['unscored']} candidate(s) were unscored.")
     if counts.get("failed", 0):
         caveats.append(f"{counts['failed']} candidate(s) failed before scoring.")
-    if not any(row.get("correctness_judge_a") is not None and row.get("correctness_judge_b") is not None for row in rows):
+    if dual_judge_incomplete_only:
         caveats.append("Dual-judge comparison was not recorded in this report.")
     if any(parse_bool(row.get("prompt_only_degraded_mode_used")) for row in rows):
         caveats.append("Prompt-only fallback was used for at least one candidate.")
@@ -168,6 +171,23 @@ def _build_caveats(
     if not caveats:
         caveats.append("No major report caveats were recorded.")
     return caveats
+
+
+def _trust_note(row: dict[str, Any]) -> str:
+    notes: list[str] = []
+    if parse_bool(row.get("prompt_only_degraded_mode_used")):
+        notes.append("prompt-only degraded")
+    if parse_bool(row.get("extraction_contract_valid")) is False:
+        notes.append("contract invalid")
+    if safe_float(row.get("anchor_valid_rate")) == 0 and (row.get("evidence_item_count") or 0):
+        notes.append("zero grounded evidence")
+    if (row.get("join_failure_count") or 0) > 0:
+        notes.append(f"join_failures={row.get('join_failure_count')}")
+    if row.get("dual_judge_completed"):
+        notes.append(f"dual_judge disagreement={format_percent(row.get('judge_disagreement_rate'), missing='0.0%')}")
+    elif row.get("dual_judge_completed") is False:
+        notes.append("dual_judge incomplete")
+    return "; ".join(notes) if notes else "healthy"
 
 
 def _build_next_checks(rows: list[dict[str, Any]], *, holdout: dict[str, Any], variant: str, study_type: str) -> list[str]:
@@ -500,8 +520,8 @@ def _build_provenance_items(
                     "label": "Winner Structure",
                     "value": display_text(winner_row.get("structured_output_mode"), missing="not recorded"),
                     "note": (
-                        f"contract_valid={display_text(winner_row.get('extraction_contract_valid'), missing='unknown')}; "
-                        f"prompt_only_fallback={display_text(winner_row.get('prompt_only_degraded_mode_used'), missing='not recorded')}"
+                        f"trust={_trust_note(winner_row)}; "
+                        f"anchor_valid_rate={format_percent(winner_row.get('anchor_valid_rate'), missing='not recorded')}"
                     ),
                 },
             ]
@@ -562,8 +582,8 @@ def _build_candidate_table(
                         build_table_cell(
                             display_text(row.get("structured_output_mode"), missing="not recorded"),
                             subtext=(
-                                f"contract={display_text(row.get('extraction_contract_valid'), missing='unknown')}; "
-                                f"fallback={display_text(row.get('prompt_only_degraded_mode_used'), missing='not recorded')}"
+                                f"trust={_trust_note(row)}; "
+                                f"anchor_valid_rate={format_percent(row.get('anchor_valid_rate'), missing='not recorded')}"
                             ),
                             details=display_text(row.get("structured_output_reason"), missing="no extra structure note recorded"),
                         ),
@@ -619,8 +639,8 @@ def _build_candidate_table(
                         build_table_cell(
                             display_text(row.get("structured_output_mode"), missing="not recorded"),
                             subtext=(
-                                f"contract={display_text(row.get('extraction_contract_valid'), missing='unknown')}; "
-                                f"fallback={display_text(row.get('prompt_only_degraded_mode_used'), missing='not recorded')}"
+                                f"trust={_trust_note(row)}; "
+                                f"anchor_valid_rate={format_percent(row.get('anchor_valid_rate'), missing='not recorded')}"
                             ),
                             details=display_text(row.get("structured_output_reason"), missing="no extra structure note recorded"),
                         ),
@@ -661,6 +681,7 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
     variant = study_variant(candidate_rows, study_type, experiment_id=str(experiment_json.get("experiment_id") or ""))
     winner_id = _winner_id(summary, best_candidate, compare_summary)
     winner_row = _winner_row(candidate_rows, winner_id)
+    best_raw_row = _winner_row(candidate_rows, summary.get("best_raw_candidate_id"))
     holdout = _holdout_payload(summary)
     started_at, ended_at = _time_window(candidate_rows, run_metadata)
     counts = status_counts(candidate_rows)
@@ -700,6 +721,8 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
         "hero_meta": [
             {"label": "Winner Label", "value": winner_label, "note": "Study-type-specific semantics."},
             {"label": "Benchmark", "value": display_text(summary.get("benchmark_id"), missing="not recorded"), "note": None},
+            {"label": "Benchmark Winner", "value": display_text(best_raw_row.get("candidate_id") if best_raw_row else None, missing="not recorded"), "note": format_score(best_raw_row.get("primary_metric_value") if best_raw_row else None)},
+            {"label": "Recommended Default", "value": display_text(winner_row.get("candidate_id") if winner_row else None, missing="not recorded"), "note": _trust_note(winner_row) if winner_row else None},
             {"label": "Started", "value": started_at, "note": None},
             {"label": "Ended", "value": ended_at, "note": None},
             {"label": "Candidates", "value": str(len(candidate_rows)), "note": _status_mix_text(counts)},
@@ -714,9 +737,9 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
                 "class_name": "",
             },
             {
-                "label": f"Best {primary_metric}",
-                "value": format_score(winner_row.get("primary_metric_value") if winner_row else None),
-                "note": f"runner-up gap={format_delta(gap, missing='not available')}",
+                "label": f"Best Benchmark {primary_metric}",
+                "value": format_score(best_raw_row.get("primary_metric_value") if best_raw_row else None),
+                "note": f"benchmark_winner={display_text(best_raw_row.get('candidate_id') if best_raw_row else None, missing='not recorded')}; runner-up gap={format_delta(gap, missing='not available')}",
                 "badges": [],
                 "class_name": "",
             },

@@ -47,6 +47,8 @@ python -m paper_eval evaluate \
   --run tests/fixtures/example_eval/runs/run-a \
   --gold tests/fixtures/example_eval/gold.csv \
   --schema tests/fixtures/example_eval/schema.json \
+  --judge-model google/gemma-4-26b-a4b \
+  --judge-model-b qwen/qwen3.6-35b-a3b \
   --out out/example-single
 ```
 
@@ -57,6 +59,8 @@ python -m paper_eval evaluate \
   --runs-root tests/fixtures/example_eval/runs \
   --gold tests/fixtures/example_eval/gold.csv \
   --schema tests/fixtures/example_eval/schema.json \
+  --judge-model google/gemma-4-26b-a4b \
+  --judge-model-b qwen/qwen3.6-35b-a3b \
   --out out/example-batch
 ```
 
@@ -93,6 +97,8 @@ out/
 - text fields can use judge-backed scoring when deterministic exact matching is insufficient
 - correctness and evidence are tracked separately
 - headline metrics default to content cells rather than inflating scores with metadata-only fields
+- metadata-family summaries are emitted per run so metadata-lane parser gaps, retrieval misses, evidence ambiguity, and judge failures stay inspectable
+- evidence anchor audits now emit evidence-item totals, validated-versus-unvalidated counts, anchor-invalid counts, and reason histograms
 
 ## Judge behavior
 
@@ -103,6 +109,13 @@ Eval uses the same bounded structured-output fallback ladder as the main app:
 - `json_schema`
 - `json_object`
 - prompt-only JSON mode with app-side parsing
+
+Real benchmark studies should use two judges. Per-run summaries and comparison rows now preserve:
+
+- `correctness_judge_a` and `correctness_judge_b`
+- disagreement count and rate
+- judge-specific unclear and request-failure counts
+- judge response-mode summaries
 
 ## Why this tool stays separate from the product surface
 

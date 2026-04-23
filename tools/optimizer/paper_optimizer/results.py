@@ -77,6 +77,8 @@ class ResultsWriter:
             "runtime.main_app_duration_seconds": result.runtime_metadata.get("main_app_duration_seconds"),
             "runtime.eval_duration_seconds": result.runtime_metadata.get("eval_duration_seconds"),
             "runtime.total_duration_seconds": result.runtime_metadata.get("total_duration_seconds"),
+            "runtime.provider_request_counts": result.runtime_metadata.get("provider_request_counts"),
+            "runtime.run_stats_counters": result.runtime_metadata.get("run_stats_counters"),
             "started_at": result.started_at,
             "ended_at": result.ended_at,
             "promotion_decision": result.promotion_decision,

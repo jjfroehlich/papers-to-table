@@ -22,7 +22,7 @@ import pandas as pd
 from pydantic import BaseModel
 
 from .artifacts import write_json
-from .metadata import extract_matching_metadata
+from .metadata import extract_matching_metadata_debug
 from .parsing import _DOI_PATTERN, _YEAR_PATTERN
 from .schemas import MatchOutcome
 
@@ -60,6 +60,24 @@ class MatchResult(BaseModel):
     blocked: bool            # True when extraction must be blocked
     blocked_reason: Optional[str] = None
     matched_at: str
+    extracted_metadata: dict[str, object] = {}
+    metadata_field_diagnostics: dict[str, object] = {}
+    front_matter_diagnostics: dict[str, object] = {}
+    missing_metadata_fields: list[str] = []
+    top_candidates: list[dict[str, object]] = []
+    threshold_reasoning: dict[str, object] = {}
+
+
+class RowMatchScoreBreakdown(BaseModel):
+    row_index: int
+    row_title: Optional[str] = None
+    doi_score: float = 0.0
+    exact_title_bonus: float = 0.0
+    title_similarity_score: float = 0.0
+    year_score: float = 0.0
+    first_author_score: float = 0.0
+    author_overlap_score: float = 0.0
+    final_score: float = 0.0
 
 
 class MatchSummary(BaseModel):
@@ -232,7 +250,7 @@ _YEAR_WEIGHT = 0.1
 _EXACT_TITLE_BONUS = 0.15
 
 
-def score_against_row(paper: PaperMetadata, row: dict) -> float:
+def score_against_row_breakdown(paper: PaperMetadata, row: dict, *, row_index: int) -> RowMatchScoreBreakdown:
     """Score a paper's metadata against a single table row (T034).
 
     Returns a float in [0, 1].
@@ -250,11 +268,13 @@ def score_against_row(paper: PaperMetadata, row: dict) -> float:
         score += _DOI_WEIGHT * doi_match
 
     title_sim = 0.0
+    exact_title_bonus = 0.0
     if paper.title and row_title:
         title_sim = _title_jaccard(paper.title, row_title)
         score += _TITLE_WEIGHT * title_sim
         if _norm(paper.title) == _norm(row_title):
-            score += _EXACT_TITLE_BONUS
+            exact_title_bonus = _EXACT_TITLE_BONUS
+            score += exact_title_bonus
 
     year_score = 0.0
     if paper.year and row_year:
@@ -270,11 +290,12 @@ def score_against_row(paper: PaperMetadata, row: dict) -> float:
         except (ValueError, TypeError):
             pass
 
-    first_author_match = False
+    first_author_score = 0.0
     overlap = 0.0
     if paper.authors and row_authors:
         first_author_match = _first_author_match(paper.authors, row_authors)
         if first_author_match:
+            first_author_score = 1.0
             score += _FIRST_AUTHOR_WEIGHT
         overlap = _author_overlap(paper.authors, row_authors)
         score += _AUTHOR_WEIGHT * overlap
@@ -291,24 +312,37 @@ def score_against_row(paper: PaperMetadata, row: dict) -> float:
     elif title_sim >= 0.75 and year_score >= 1.0:
         score = max(score, 0.6)
 
-    if first_author_match and overlap > 0 and year_score >= 1.0 and title_sim >= 0.4:
+    if first_author_score >= 1.0 and overlap > 0 and year_score >= 1.0 and title_sim >= 0.4:
         score = max(score, 0.8)
 
-    return round(min(score, 1.0), 6)
+    return RowMatchScoreBreakdown(
+        row_index=row_index,
+        row_title=row_title or None,
+        doi_score=round(doi_match, 6),
+        exact_title_bonus=round(exact_title_bonus, 6),
+        title_similarity_score=round(title_sim, 6),
+        year_score=round(year_score, 6),
+        first_author_score=round(first_author_score, 6),
+        author_overlap_score=round(overlap, 6),
+        final_score=round(min(score, 1.0), 6),
+    )
 
 
-def score_all_rows(paper: PaperMetadata, df: pd.DataFrame) -> list[tuple[int, float]]:
+def score_against_row(paper: PaperMetadata, row: dict) -> float:
+    return score_against_row_breakdown(paper, row, row_index=-1).final_score
+
+
+def score_all_rows(paper: PaperMetadata, df: pd.DataFrame) -> list[RowMatchScoreBreakdown]:
     """Score a paper against all rows in the table.
 
     Returns:
         List of (row_index, score) sorted descending by score.
     """
-    results = []
+    results: list[RowMatchScoreBreakdown] = []
     rows = df.to_dict("records")
     for i, row in enumerate(rows):
-        s = score_against_row(paper, row)
-        results.append((i, s))
-    results.sort(key=lambda x: x[1], reverse=True)
+        results.append(score_against_row_breakdown(paper, row, row_index=i))
+    results.sort(key=lambda x: x.final_score, reverse=True)
     return results
 
 
@@ -325,9 +359,14 @@ def assign_match_outcome(
     pdf_id: str,
     pdf_path: str,
     paper: PaperMetadata,
-    scored_rows: list[tuple[int, float]],
+    scored_rows: list[RowMatchScoreBreakdown],
     df: pd.DataFrame,
     ambiguity_threshold: float = _AMBIGUITY_GAP_MIN,
+    *,
+    extracted_metadata: Optional[dict[str, object]] = None,
+    metadata_field_diagnostics: Optional[dict[str, object]] = None,
+    front_matter_diagnostics: Optional[dict[str, object]] = None,
+    missing_metadata_fields: Optional[list[str]] = None,
 ) -> MatchResult:
     """Assign a match outcome for one PDF (T035, T036).
 
@@ -355,16 +394,33 @@ def assign_match_outcome(
             blocked=True,
             blocked_reason="unmatched: no rows in table",
             matched_at=now,
+            extracted_metadata=extracted_metadata or {},
+            metadata_field_diagnostics=metadata_field_diagnostics or {},
+            front_matter_diagnostics=front_matter_diagnostics or {},
+            missing_metadata_fields=missing_metadata_fields or [],
+            threshold_reasoning={"match_threshold": _MATCH_THRESHOLD, "ambiguity_gap_min": ambiguity_threshold},
         )
 
-    top_idx, top_score = scored_rows[0]
+    top_candidate = scored_rows[0]
+    top_idx, top_score = top_candidate.row_index, top_candidate.final_score
     runner_up_idx: Optional[int] = None
     runner_up_score = 0.0
     if len(scored_rows) > 1:
-        runner_up_idx, runner_up_score = scored_rows[1]
+        runner_up_idx, runner_up_score = scored_rows[1].row_index, scored_rows[1].final_score
+    gap = (top_score - runner_up_score) if runner_up_idx is not None else None
 
     top_row = df.iloc[top_idx].to_dict()
     top_row_title = str(top_row.get("Title", "") or "")
+    top_candidates = [candidate.model_dump() for candidate in scored_rows[:5]]
+    threshold_reasoning = {
+        "match_threshold": _MATCH_THRESHOLD,
+        "ambiguity_gap_min": ambiguity_threshold,
+        "top_score": top_score,
+        "runner_up_score": runner_up_score,
+        "score_gap": round(gap, 6) if gap is not None else None,
+        "rejected_for_threshold": top_score < _MATCH_THRESHOLD,
+        "rejected_for_gap": gap < ambiguity_threshold if gap is not None else False,
+    }
 
     # --- Unmatched: top score below threshold ---
     if top_score < _MATCH_THRESHOLD:
@@ -382,11 +438,17 @@ def assign_match_outcome(
             blocked=True,
             blocked_reason=f"unmatched: best score {top_score:.3f} < {_MATCH_THRESHOLD}",
             matched_at=now,
+            extracted_metadata=extracted_metadata or {},
+            metadata_field_diagnostics=metadata_field_diagnostics or {},
+            front_matter_diagnostics=front_matter_diagnostics or {},
+            missing_metadata_fields=missing_metadata_fields or [],
+            top_candidates=top_candidates,
+            threshold_reasoning=threshold_reasoning,
         )
 
     # --- Ambiguous: runner-up too close ---
     gap = top_score - runner_up_score
-    if gap < ambiguity_threshold:
+    if gap is not None and gap < ambiguity_threshold:
         # Limited fallback adjudication (T035): check if runner-up is a near-duplicate row
         # (same title + year in the table). If so, we can still pick the top row.
         is_duplicate_row = _are_rows_near_duplicate(
@@ -416,6 +478,12 @@ def assign_match_outcome(
                     f"(score {runner_up_score:.3f}) is below {ambiguity_threshold}"
                 ),
                 matched_at=now,
+                extracted_metadata=extracted_metadata or {},
+                metadata_field_diagnostics=metadata_field_diagnostics or {},
+                front_matter_diagnostics=front_matter_diagnostics or {},
+                missing_metadata_fields=missing_metadata_fields or [],
+                top_candidates=top_candidates,
+                threshold_reasoning=threshold_reasoning,
             )
         else:
             # Adjudication: runner-up is a near-duplicate table row — pick top row and note it
@@ -436,6 +504,12 @@ def assign_match_outcome(
                 blocked=False,
                 blocked_reason=None,
                 matched_at=now,
+                extracted_metadata=extracted_metadata or {},
+                metadata_field_diagnostics=metadata_field_diagnostics or {},
+                front_matter_diagnostics=front_matter_diagnostics or {},
+                missing_metadata_fields=missing_metadata_fields or [],
+                top_candidates=top_candidates,
+                threshold_reasoning=threshold_reasoning,
             )
 
     # --- Matched: clear winner ---
@@ -450,12 +524,18 @@ def assign_match_outcome(
         matched_row_title=top_row_title,
         reasoning=(
             f"Clear match: score {top_score:.3f} vs runner-up {runner_up_score:.3f} "
-            f"(gap {gap:.3f} >= {ambiguity_threshold}). "
+            f"({'single candidate' if gap is None else f'gap {gap:.3f} >= {ambiguity_threshold}'}) "
             f"Matched to row {top_idx}: '{top_row_title[:60]}'"
         ),
         blocked=False,
         blocked_reason=None,
         matched_at=now,
+        extracted_metadata=extracted_metadata or {},
+        metadata_field_diagnostics=metadata_field_diagnostics or {},
+        front_matter_diagnostics=front_matter_diagnostics or {},
+        missing_metadata_fields=missing_metadata_fields or [],
+        top_candidates=top_candidates,
+        threshold_reasoning=threshold_reasoning,
     )
 
 
@@ -561,7 +641,14 @@ def run_matching(
         pdf_id = doc_dict.get("pdf_id", "unknown")
         pdf_path = doc_dict.get("pdf_path", "")
 
-        paper = extract_paper_metadata(doc_dict)
+        metadata_debug = extract_matching_metadata_debug(doc_dict)
+        paper = PaperMetadata(
+            title=metadata_debug.metadata.title,
+            authors=metadata_debug.metadata.authors,
+            year=metadata_debug.metadata.year,
+            doi=metadata_debug.metadata.doi,
+            abstract_snippet=metadata_debug.metadata.abstract_snippet,
+        )
         scored_rows = score_all_rows(paper, df)
         result = assign_match_outcome(
             pdf_id=pdf_id,
@@ -570,6 +657,13 @@ def run_matching(
             scored_rows=scored_rows,
             df=df,
             ambiguity_threshold=ambiguity_threshold,
+            extracted_metadata=metadata_debug.metadata.model_dump(mode="json"),
+            metadata_field_diagnostics={
+                key: value.model_dump(mode="json")
+                for key, value in metadata_debug.field_diagnostics.items()
+            },
+            front_matter_diagnostics=metadata_debug.front_matter_diagnostics,
+            missing_metadata_fields=metadata_debug.missing_fields,
         )
         results.append(result)
 
@@ -613,6 +707,24 @@ def persist_match_artifacts(
         [r.model_dump() for r in results],
     )
 
+    per_pdf_dir = matching_dir / "pdfs"
+    per_pdf_dir.mkdir(parents=True, exist_ok=True)
+    for result in results:
+        pdf_dir = per_pdf_dir / str(result.pdf_id)
+        pdf_dir.mkdir(parents=True, exist_ok=True)
+        write_json(pdf_dir / "extracted_matching_metadata.json", result.extracted_metadata)
+        write_json(pdf_dir / "metadata_field_diagnostics.json", result.metadata_field_diagnostics)
+        write_json(pdf_dir / "front_matter_detection_diagnostics.json", result.front_matter_diagnostics)
+        write_json(
+            pdf_dir / "row_match_score_breakdown.json",
+            {
+                "pdf_id": result.pdf_id,
+                "missing_metadata_fields": result.missing_metadata_fields,
+                "threshold_reasoning": result.threshold_reasoning,
+                "top_candidates": result.top_candidates,
+            },
+        )
+
     # Partition by outcome
     matched = [r for r in results if r.outcome == MatchOutcome.matched]
     ambiguous = [r for r in results if r.outcome == MatchOutcome.ambiguous]
@@ -641,6 +753,10 @@ def persist_match_artifacts(
                 "score": r.score,
                 "reasoning": r.reasoning,
                 "blocked_reason": r.blocked_reason,
+                "extracted_metadata": r.extracted_metadata,
+                "missing_metadata_fields": r.missing_metadata_fields,
+                "top_candidates": r.top_candidates,
+                "threshold_reasoning": r.threshold_reasoning,
             }
             for r in unmatched
         ],
@@ -657,6 +773,10 @@ def persist_match_artifacts(
                 "runner_up_row_index": r.runner_up_row_index,
                 "reasoning": r.reasoning,
                 "blocked_reason": r.blocked_reason,
+                "extracted_metadata": r.extracted_metadata,
+                "missing_metadata_fields": r.missing_metadata_fields,
+                "top_candidates": r.top_candidates,
+                "threshold_reasoning": r.threshold_reasoning,
             }
             for r in ambiguous
         ],
@@ -674,6 +794,10 @@ def persist_match_artifacts(
                 "score": r.score,
                 "reasoning": r.reasoning,
                 "blocked_reason": r.blocked_reason,
+                "extracted_metadata": r.extracted_metadata,
+                "missing_metadata_fields": r.missing_metadata_fields,
+                "top_candidates": r.top_candidates,
+                "threshold_reasoning": r.threshold_reasoning,
             }
             for r in conflicts
         ],

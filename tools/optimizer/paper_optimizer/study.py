@@ -93,6 +93,11 @@ def _candidate_score_explanation(result: CandidateResult, primary_metric: str, e
     structured_output_mode = reviewer_summary.get("structured_output_mode")
     if structured_output_mode == "none":
         reasons.append("main extraction ran in prompt-only mode")
+    if reviewer_summary.get("extraction_contract_valid") is False:
+        reasons.append("extraction contract invalid")
+    anchor_valid_rate = eval_metrics.get("anchor_valid_rate")
+    if anchor_valid_rate is not None and anchor_valid_rate <= 0.0 and (eval_metrics.get("evidence_item_count") or 0) > 0:
+        reasons.append("zero evidence anchors validated")
     if score is not None and not reasons:
         return "primary metric computed"
     if score is not None:
@@ -136,16 +141,39 @@ def _candidate_diagnostic_row(result: CandidateResult, primary_metric: str) -> d
         "unscored_text_cell_count": eval_metrics.get("unscored_text_cell_count"),
         "judge_request_failed_count": eval_metrics.get("judge_request_failed_count"),
         "judge_unclear_text_cell_count": eval_metrics.get("judge_unclear_text_cell_count"),
+        "judge_a_request_failed_count": eval_metrics.get("judge_a_request_failed_count"),
+        "judge_b_request_failed_count": eval_metrics.get("judge_b_request_failed_count"),
+        "judge_a_unclear_text_cell_count": eval_metrics.get("judge_a_unclear_text_cell_count"),
+        "judge_b_unclear_text_cell_count": eval_metrics.get("judge_b_unclear_text_cell_count"),
+        "dual_judge_completed": eval_metrics.get("dual_judge_completed"),
+        "judge_disagreement_count": eval_metrics.get("judge_disagreement_count"),
+        "judge_disagreement_rate": eval_metrics.get("judge_disagreement_rate"),
+        "anchor_valid_rate": eval_metrics.get("anchor_valid_rate"),
+        "evidence_item_count": eval_metrics.get("evidence_item_count"),
+        "validated_evidence_item_count": eval_metrics.get("validated_evidence_item_count"),
+        "anchor_invalid_count": eval_metrics.get("anchor_invalid_count"),
+        "evidence_present_but_unvalidated_count": eval_metrics.get("evidence_present_but_unvalidated_count"),
+        "evidence_anchor_reason_counts": eval_metrics.get("evidence_anchor_reason_counts"),
+        "metadata_summary": eval_metrics.get("metadata_summary"),
+        "judge_summary": eval_metrics.get("judge_summary"),
         "proposal_coverage_on_content_gold_present": eval_metrics.get("proposal_coverage_on_content_gold_present"),
         "proposal_coverage_on_all_gold_present": eval_metrics.get("proposal_coverage_on_all_gold_present"),
         "filled_on_gold_empty_count": eval_metrics.get("filled_on_gold_empty_count"),
         "missing_proposal_count": eval_metrics.get("missing_proposal_count"),
+        "join_failure_count": eval_metrics.get("join_failure_count"),
+        "parser_gap_count": eval_metrics.get("parser_gap_count"),
+        "retrieval_miss_count": eval_metrics.get("retrieval_miss_count"),
+        "extraction_miss_count": eval_metrics.get("extraction_miss_count"),
+        "evidence_ambiguity_count": eval_metrics.get("evidence_ambiguity_count"),
+        "judge_failure_count": eval_metrics.get("judge_failure_count"),
+        "judge_unclear_count": eval_metrics.get("judge_unclear_count"),
         "main_structured_output_mode": result.structured_output_mode or reviewer_summary.get("structured_output_mode"),
         "main_structured_output_reason": result.structured_output_reason or reviewer_summary.get("structured_output_reason"),
         "prompt_only_degraded_mode_used": result.prompt_only_degraded_mode_used,
         "parse_repair_used": result.parse_repair_used,
         "extraction_contract_valid": result.extraction_contract_valid,
         "extraction_contract_warnings": "|".join(result.extraction_contract_warnings),
+        "extraction_contract_warning_count": len(result.extraction_contract_warnings),
         "retrieval_mode": result.retrieval_mode,
         "retrieval_top_k": result.retrieval_top_k,
         "recall_rescue_enabled": result.recall_rescue_enabled,
@@ -153,6 +181,12 @@ def _candidate_diagnostic_row(result: CandidateResult, primary_metric: str) -> d
         "whole_document_max_chars": result.whole_document_max_chars,
         "recall_rescue_used": result.recall_rescue_used,
         "recall_rescue_invocation_count": result.recall_rescue_invocation_count,
+        "whole_document_used_count": result.whole_document_used_count,
+        "runtime_total_duration_seconds": result.runtime_metadata.get("total_duration_seconds"),
+        "runtime_main_app_duration_seconds": result.runtime_metadata.get("main_app_duration_seconds"),
+        "runtime_eval_duration_seconds": result.runtime_metadata.get("eval_duration_seconds"),
+        "provider_request_counts": result.runtime_metadata.get("provider_request_counts"),
+        "run_stats_counters": result.runtime_metadata.get("run_stats_counters"),
         "main_total_proposals": reviewer_summary.get("total_proposals"),
         "main_pending_proposals": reviewer_summary.get("pending"),
     }

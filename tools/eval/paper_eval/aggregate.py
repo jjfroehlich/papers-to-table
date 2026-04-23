@@ -34,6 +34,11 @@ def build_run_summary(
     judge_json_schema_records = [cell for cell in gold_present_records if cell.judge_response_mode == "json_schema"]
     judge_json_object_records = [cell for cell in gold_present_records if cell.judge_response_mode == "json_object"]
     judge_prompt_only_records = [cell for cell in gold_present_records if cell.judge_response_mode == "none"]
+    dual_judge_evaluable_records = [
+        cell
+        for cell in content_gold_present_records
+        if {"judge_a", "judge_b"}.issubset(set((cell.judge_results or {}).keys()))
+    ]
     anchor_valid_records = [cell for cell in scored_records if cell.anchor_valid]
     evidence_unvalidated_records = [
         cell for cell in scored_records if cell.evidence_present_but_unvalidated
@@ -116,6 +121,9 @@ def build_run_summary(
         ) >= 2
     ]
     correctness_abs_delta = _judge_abs_delta(correctness_by_judge.get("judge_a"), correctness_by_judge.get("judge_b"))
+    evidence_audit = _build_evidence_audit(scored_records)
+    metadata_summary = _build_metadata_summary(metadata_gold_present_records)
+    judge_summary = _build_judge_summary(gold_present_records)
 
     metrics = {
         "content_correctness": content_correctness_on_gold_present,
@@ -138,6 +146,8 @@ def build_run_summary(
         "judge_disagreement": correctness_abs_delta,
         "judge_disagreement_count": len(judge_disagreement_records),
         "judge_disagreement_rate": _ratio(len(judge_disagreement_records), len(judge_disagreement_evaluable)),
+        "dual_judge_cell_count": len(dual_judge_evaluable_records),
+        "dual_judge_completed": len(dual_judge_evaluable_records) > 0,
         "structured_accuracy": _accuracy(structured_records),
         "boolean_accuracy": _accuracy(boolean_records),
         "categorical_accuracy": _accuracy(categorical_records),
@@ -189,6 +199,12 @@ def build_run_summary(
         "judge_b_unclear_text_cell_count": _judge_verdict_count(gold_present_records, "judge_b", "unclear"),
         "anchor_valid_count": len(anchor_valid_records),
         "evidence_present_but_unvalidated_count": len(evidence_unvalidated_records),
+        "evidence_item_count": evidence_audit["evidence_item_count"],
+        "validated_evidence_item_count": evidence_audit["validated_evidence_item_count"],
+        "anchor_invalid_count": evidence_audit["anchor_invalid_count"],
+        "evidence_anchor_reason_counts": evidence_audit["reason_counts"],
+        "evidence_anchor_outcome_counts": evidence_audit["outcome_counts"],
+        "evidence_anchor_audit": evidence_audit,
         "unscored_text_cell_count": sum(1 for cell in gold_present_records if cell.field_type == "text" and not cell.was_scored),
         "missing_proposal_count": sum(1 for cell in gold_present_records if cell.join_status == "missing_proposal"),
         "duplicate_proposal_join_count": sum(
@@ -210,6 +226,8 @@ def build_run_summary(
         "degraded_run_count": 1 if loaded_run.metadata.prompt_only_degraded_mode_used else 0,
         "contract_invalid_count": 0 if loaded_run.metadata.extraction_contract_valid is not False else 1,
         "benchmark_style_profile_mode": loaded_run.metadata.style_profile_mode,
+        "metadata_summary": metadata_summary,
+        "judge_summary": judge_summary,
     }
 
     scored = content_correctness_scored_only is not None
@@ -325,6 +343,132 @@ def _judge_abs_delta(first: float | None, second: float | None) -> float | None:
     if first is None or second is None:
         return None
     return abs(first - second)
+
+
+def _build_evidence_audit(records: Iterable[ScoredCell]) -> dict[str, object]:
+    evidence_item_count = 0
+    validated_evidence_item_count = 0
+    anchor_invalid_count = 0
+    evidence_present_but_unvalidated_count = 0
+    reason_counts: dict[str, int] = {}
+    outcome_counts: dict[str, int] = {}
+
+    for record in records:
+        evidence = record.diagnostics.get("evidence", {}) if isinstance(record.diagnostics, dict) else {}
+        evidence_item_count += int(evidence.get("evidence_item_count") or 0)
+        validated_evidence_item_count += int(evidence.get("validated_evidence_item_count") or 0)
+        anchor_invalid_count += int(evidence.get("anchor_invalid_count") or 0)
+        evidence_present_but_unvalidated_count += int(evidence.get("evidence_present_but_unvalidated_count") or 0)
+        for key, value in (evidence.get("reason_counts") or {}).items():
+            reason_counts[str(key)] = reason_counts.get(str(key), 0) + int(value or 0)
+        for key, value in (evidence.get("outcome_counts") or {}).items():
+            outcome_counts[str(key)] = outcome_counts.get(str(key), 0) + int(value or 0)
+
+    return {
+        "evidence_item_count": evidence_item_count,
+        "validated_evidence_item_count": validated_evidence_item_count,
+        "anchor_valid_count": validated_evidence_item_count,
+        "anchor_valid_rate": _ratio(validated_evidence_item_count, evidence_item_count),
+        "anchor_invalid_count": anchor_invalid_count,
+        "anchor_invalid_rate": _ratio(anchor_invalid_count, evidence_item_count),
+        "evidence_present_but_unvalidated_count": evidence_present_but_unvalidated_count,
+        "evidence_present_but_unvalidated_rate": _ratio(
+            evidence_present_but_unvalidated_count, evidence_item_count
+        ),
+        "reason_counts": dict(sorted(reason_counts.items())),
+        "outcome_counts": dict(sorted(outcome_counts.items())),
+    }
+
+
+def _metadata_field_kind(record: ScoredCell) -> str:
+    field_kind = (
+        (record.diagnostics.get("metadata_diagnostics") or {}).get("field_kind")
+        if isinstance(record.diagnostics, dict)
+        else None
+    )
+    if isinstance(field_kind, str) and field_kind.strip():
+        return field_kind.strip()
+    return (record.column_name or "unknown").strip().lower()
+
+
+def _build_metadata_summary(records: Iterable[ScoredCell]) -> dict[str, object]:
+    by_field: dict[str, dict[str, object]] = {}
+    for record in records:
+        field_kind = _metadata_field_kind(record)
+        field_row = by_field.setdefault(
+            field_kind,
+            {
+                "total": 0,
+                "found": 0,
+                "unclear": 0,
+                "missing_proposal": 0,
+                "failure_attribution": {},
+            },
+        )
+        field_row["total"] = int(field_row["total"]) + 1
+        state = "found" if record.join_status == "matched" else ("missing_proposal" if record.join_status == "missing_proposal" else "unclear")
+        field_row[state] = int(field_row[state]) + 1
+        if record.failure_attribution:
+            failure_map = field_row["failure_attribution"]
+            assert isinstance(failure_map, dict)
+            failure_map[record.failure_attribution] = int(failure_map.get(record.failure_attribution, 0)) + 1
+
+    aggregate_failure_counts: dict[str, int] = {}
+    for row in by_field.values():
+        failure_map = row["failure_attribution"]
+        assert isinstance(failure_map, dict)
+        total = int(row["total"])
+        row["found_rate"] = _ratio(int(row["found"]), total)
+        row["unclear_rate"] = _ratio(int(row["unclear"]), total)
+        row["missing_proposal_rate"] = _ratio(int(row["missing_proposal"]), total)
+        row["failure_attribution"] = dict(sorted(failure_map.items()))
+        for key, value in failure_map.items():
+            aggregate_failure_counts[key] = aggregate_failure_counts.get(key, 0) + int(value)
+
+    return {
+        "field_kind_count": len(by_field),
+        "fields": dict(sorted(by_field.items())),
+        "failure_attribution": dict(sorted(aggregate_failure_counts.items())),
+    }
+
+
+def _build_judge_summary(records: Iterable[ScoredCell]) -> dict[str, object]:
+    records_list = list(records)
+    labels = sorted(
+        {
+            label
+            for record in records_list
+            for label in (record.judge_results or {}).keys()
+        }
+    )
+    response_modes: dict[str, dict[str, int]] = {}
+    request_failed: dict[str, int] = {}
+    unclear_counts: dict[str, int] = {}
+    verdict_counts: dict[str, dict[str, int]] = {}
+    for label in labels:
+        response_modes[label] = {}
+        verdict_counts[label] = {}
+        request_failed[label] = _judge_flag_count(records_list, label, "error_message")
+        unclear_counts[label] = _judge_verdict_count(records_list, label, "unclear")
+    for label in labels:
+        for record in records_list:
+            result = (record.judge_results or {}).get(label, {})
+            mode = result.get("response_mode")
+            verdict = result.get("verdict")
+            if mode:
+                response_modes[label][str(mode)] = response_modes[label].get(str(mode), 0) + 1
+            if verdict:
+                verdict_counts[label][str(verdict)] = verdict_counts[label].get(str(verdict), 0) + 1
+        response_modes[label] = dict(sorted(response_modes[label].items()))
+        verdict_counts[label] = dict(sorted(verdict_counts[label].items()))
+    return {
+        "configured_labels": labels,
+        "dual_judge_configured": {"judge_a", "judge_b"}.issubset(set(labels)),
+        "request_failed_count": request_failed,
+        "unclear_count": unclear_counts,
+        "response_modes": response_modes,
+        "verdict_counts": verdict_counts,
+    }
 
 
 def _is_metadata_record(record: ScoredCell) -> bool:
