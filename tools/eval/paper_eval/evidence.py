@@ -21,7 +21,19 @@ def validate_evidence_anchors(
             outcome="missing_evidence",
             anchor_valid=False,
             evidence_present_but_unvalidated=False,
-            diagnostics={"evidence_item_count": 0},
+            diagnostics={
+                "evidence_item_count": 0,
+                "validated_evidence_item_count": 0,
+                "anchor_valid_count": 0,
+                "anchor_valid_rate": None,
+                "anchor_invalid_count": 0,
+                "anchor_invalid_rate": None,
+                "evidence_present_but_unvalidated_count": 0,
+                "evidence_present_but_unvalidated_rate": None,
+                "reason_counts": {},
+                "outcome_counts": {},
+                "evidence_items": [],
+            },
         )
 
     page_text_by_page = page_text_by_page or {}
@@ -51,7 +63,7 @@ def validate_evidence_anchors(
     anchor_invalid_count = outcome_counts.get("anchor_invalid", 0)
     if anchor_valid_count:
         outcome = "anchor_valid"
-    elif saw_present_but_unvalidated:
+    elif evidence_present_but_unvalidated_count > 0:
         outcome = "evidence_present_but_unvalidated"
     elif saw_invalid_anchor:
         outcome = "anchor_invalid"

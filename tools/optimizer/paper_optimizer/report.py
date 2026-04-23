@@ -149,6 +149,8 @@ def _build_caveats(
 ) -> list[str]:
     counts = status_counts(rows)
     caveats: list[str] = []
+    dual_judge_completed = any(row.get("dual_judge_completed") for row in rows)
+    dual_judge_incomplete_only = any(row.get("dual_judge_completed") is False for row in rows) and not dual_judge_completed
     if holdout["status"] != "completed":
         suffix = f": {holdout['skip_reason']}" if holdout.get("skip_reason") else ""
         caveats.append(f"Holdout was {holdout['status']}{suffix}.")
@@ -158,7 +160,7 @@ def _build_caveats(
         caveats.append(f"{counts['unscored']} candidate(s) were unscored.")
     if counts.get("failed", 0):
         caveats.append(f"{counts['failed']} candidate(s) failed before scoring.")
-    if any(row.get("dual_judge_completed") is False for row in rows) and not any(row.get("dual_judge_completed") for row in rows):
+    if dual_judge_incomplete_only:
         caveats.append("Dual-judge comparison was not recorded in this report.")
     if any(parse_bool(row.get("prompt_only_degraded_mode_used")) for row in rows):
         caveats.append("Prompt-only fallback was used for at least one candidate.")

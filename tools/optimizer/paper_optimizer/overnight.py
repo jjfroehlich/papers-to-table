@@ -152,6 +152,8 @@ def _main_conclusion(stage_rows: list[dict[str, Any]]) -> str:
 def _build_caveats(stage_rows: list[dict[str, Any]], all_candidate_rows: list[dict[str, Any]]) -> list[str]:
     caveats: list[str] = []
     counts = status_counts(all_candidate_rows)
+    dual_judge_completed = any(row.get("dual_judge_completed") for row in all_candidate_rows)
+    dual_judge_incomplete_only = any(row.get("dual_judge_completed") is False for row in all_candidate_rows) and not dual_judge_completed
     if any(stage.get("holdout_status") != "completed" for stage in stage_rows):
         caveats.append("At least one stage did not run holdout validation.")
     if counts.get("scored_degraded", 0):
@@ -160,7 +162,7 @@ def _build_caveats(stage_rows: list[dict[str, Any]], all_candidate_rows: list[di
         caveats.append(f"{counts['unscored']} pipeline candidates were unscored.")
     if counts.get("failed", 0):
         caveats.append(f"{counts['failed']} pipeline candidates failed before scoring.")
-    if any(row.get("dual_judge_completed") is False for row in all_candidate_rows) and not any(row.get("dual_judge_completed") for row in all_candidate_rows):
+    if dual_judge_incomplete_only:
         caveats.append("Dual-judge comparison was not recorded across the pipeline candidates.")
     if not caveats:
         caveats.append("No major overnight trust caveats were recorded.")

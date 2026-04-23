@@ -226,7 +226,7 @@ def resolve_metadata_field(column_name: str, column_description: str, doc_dict: 
     fallback_reasons = ["parser_metadata_missing", "front_matter_no_match"]
     return MetadataFieldResolution(
         field_kind=field_kind,
-        state="missing",
+        state="unclear",
         source="fallback_required",
         failure_attribution="parser_gap" if parser_gap else "retrieval_miss",
         fallback_reasons=fallback_reasons,

@@ -110,7 +110,7 @@ def _looks_like_fixture_path(path_str: str | None) -> bool:
     if not _is_non_empty_string(path_str):
         return False
     normalized = str(path_str).replace("\\", "/").lower()
-    return "/tests/fixtures/" in normalized or "/configs/benchmarks/" in normalized
+    return "tests/fixtures" in normalized or "configs/benchmarks" in normalized
 
 
 def _eval_arg_value(eval_args: list[str], flag: str) -> str | None:
@@ -132,6 +132,8 @@ def _validate_judge_contract(*, benchmark_id: str, eval_args: list[str], require
         errors.append(f"benchmarks.manifests.{benchmark_id}.eval_args declares --judge-model-b without a model id")
     if judge_api_base_b and not judge_b:
         errors.append(f"benchmarks.manifests.{benchmark_id}.eval_args declares --judge-api-base-b without --judge-model-b")
+    if judge_api_base_b and not judge_a:
+        errors.append(f"benchmarks.manifests.{benchmark_id}.eval_args declares --judge-api-base-b without judge_a")
     if "judge_a" in required_judges and not judge_a:
         errors.append(f"benchmarks.manifests.{benchmark_id} requires judge_a but eval_args is missing --judge-model")
     if "judge_b" in required_judges and not judge_b:

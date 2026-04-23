@@ -95,7 +95,8 @@ def _candidate_score_explanation(result: CandidateResult, primary_metric: str, e
         reasons.append("main extraction ran in prompt-only mode")
     if reviewer_summary.get("extraction_contract_valid") is False:
         reasons.append("extraction contract invalid")
-    if (eval_metrics.get("anchor_valid_rate") or 0) == 0 and (eval_metrics.get("evidence_item_count") or 0) > 0:
+    anchor_valid_rate = eval_metrics.get("anchor_valid_rate")
+    if anchor_valid_rate is not None and anchor_valid_rate <= 0.0 and (eval_metrics.get("evidence_item_count") or 0) > 0:
         reasons.append("zero evidence anchors validated")
     if score is not None and not reasons:
         return "primary metric computed"

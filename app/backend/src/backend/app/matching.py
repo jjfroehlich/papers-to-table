@@ -407,7 +407,7 @@ def assign_match_outcome(
     runner_up_score = 0.0
     if len(scored_rows) > 1:
         runner_up_idx, runner_up_score = scored_rows[1].row_index, scored_rows[1].final_score
-    gap = top_score - runner_up_score
+    gap = (top_score - runner_up_score) if runner_up_idx is not None else None
 
     top_row = df.iloc[top_idx].to_dict()
     top_row_title = str(top_row.get("Title", "") or "")
@@ -417,9 +417,9 @@ def assign_match_outcome(
         "ambiguity_gap_min": ambiguity_threshold,
         "top_score": top_score,
         "runner_up_score": runner_up_score,
-        "score_gap": round(gap, 6),
+        "score_gap": round(gap, 6) if gap is not None else None,
         "rejected_for_threshold": top_score < _MATCH_THRESHOLD,
-        "rejected_for_gap": (top_score - runner_up_score) < ambiguity_threshold if len(scored_rows) > 1 else False,
+        "rejected_for_gap": gap < ambiguity_threshold if gap is not None else False,
     }
 
     # --- Unmatched: top score below threshold ---
@@ -448,7 +448,7 @@ def assign_match_outcome(
 
     # --- Ambiguous: runner-up too close ---
     gap = top_score - runner_up_score
-    if gap < ambiguity_threshold:
+    if gap is not None and gap < ambiguity_threshold:
         # Limited fallback adjudication (T035): check if runner-up is a near-duplicate row
         # (same title + year in the table). If so, we can still pick the top row.
         is_duplicate_row = _are_rows_near_duplicate(
@@ -524,7 +524,7 @@ def assign_match_outcome(
         matched_row_title=top_row_title,
         reasoning=(
             f"Clear match: score {top_score:.3f} vs runner-up {runner_up_score:.3f} "
-            f"(gap {gap:.3f} >= {ambiguity_threshold}). "
+            f"({'single candidate' if gap is None else f'gap {gap:.3f} >= {ambiguity_threshold}'}) "
             f"Matched to row {top_idx}: '{top_row_title[:60]}'"
         ),
         blocked=False,
