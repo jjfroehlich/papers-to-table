@@ -106,6 +106,40 @@ def _mapping_has_target(mapping: dict[str, str] | list[str] | None, target_name:
     return target_name in mapping
 
 
+def _looks_like_fixture_path(path_str: str | None) -> bool:
+    if not _is_non_empty_string(path_str):
+        return False
+    normalized = str(path_str).replace("\\", "/").lower()
+    return "/tests/fixtures/" in normalized or "/configs/benchmarks/" in normalized
+
+
+def _eval_arg_value(eval_args: list[str], flag: str) -> str | None:
+    for index, token in enumerate(eval_args):
+        if token != flag:
+            continue
+        if index + 1 < len(eval_args):
+            value = eval_args[index + 1]
+            if _is_non_empty_string(value):
+                return str(value)
+    return None
+
+
+def _validate_judge_contract(*, benchmark_id: str, eval_args: list[str], required_judges: list[str], errors: list[str]) -> None:
+    judge_a = _eval_arg_value(eval_args, "--judge-model")
+    judge_b = _eval_arg_value(eval_args, "--judge-model-b")
+    judge_api_base_b = _eval_arg_value(eval_args, "--judge-api-base-b")
+    if "--judge-model-b" in eval_args and not judge_b:
+        errors.append(f"benchmarks.manifests.{benchmark_id}.eval_args declares --judge-model-b without a model id")
+    if judge_api_base_b and not judge_b:
+        errors.append(f"benchmarks.manifests.{benchmark_id}.eval_args declares --judge-api-base-b without --judge-model-b")
+    if "judge_a" in required_judges and not judge_a:
+        errors.append(f"benchmarks.manifests.{benchmark_id} requires judge_a but eval_args is missing --judge-model")
+    if "judge_b" in required_judges and not judge_b:
+        errors.append(f"benchmarks.manifests.{benchmark_id} requires judge_b but eval_args is missing --judge-model-b")
+    if judge_b and not judge_a:
+        errors.append(f"benchmarks.manifests.{benchmark_id}.eval_args cannot configure judge_b without judge_a")
+
+
 def validate_preflight(
     config: dict[str, Any],
     benchmarks: Benchmarks,
@@ -155,6 +189,23 @@ def validate_preflight(
             errors.append(f"benchmarks.manifests.{benchmark_id}.schema_path does not exist: {manifest.schema_path}")
         if manifest.eval_schema_path and not Path(manifest.eval_schema_path).exists():
             errors.append(f"benchmarks.manifests.{benchmark_id}.eval_schema_path does not exist: {manifest.eval_schema_path}")
+        if manifest.require_non_fixture_inputs:
+            for label, path_str in [
+                ("table_path", manifest.table_path),
+                ("schema_path", manifest.schema_path),
+                ("pdf_dir", manifest.pdf_dir),
+                ("gold_path", manifest.gold_path),
+            ]:
+                if _looks_like_fixture_path(path_str):
+                    errors.append(
+                        f"benchmarks.manifests.{benchmark_id}.{label} points at fixture assets but the manifest requires real benchmark inputs: {path_str}"
+                    )
+        _validate_judge_contract(
+            benchmark_id=benchmark_id,
+            eval_args=list(manifest.eval_args),
+            required_judges=list(manifest.required_judges or []),
+            errors=errors,
+        )
 
     if require_holdout and "holdout" not in benchmarks.split_to_id:
         errors.append("holdout benchmark split is required for unattended workflow")

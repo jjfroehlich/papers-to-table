@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 import re
 from typing import Iterable
 
@@ -27,6 +28,8 @@ def validate_evidence_anchors(
     item_diagnostics: list[dict[str, object]] = []
     saw_present_but_unvalidated = False
     saw_invalid_anchor = False
+    outcome_counts: Counter[str] = Counter()
+    reason_counts: Counter[str] = Counter()
 
     for item in items:
         item_result = _validate_single_anchor(
@@ -35,23 +38,22 @@ def validate_evidence_anchors(
             page_count=page_count,
         )
         item_diagnostics.append(item_result)
+        outcome_counts[str(item_result["outcome"])] += 1
+        if item_result.get("reason"):
+            reason_counts[str(item_result["reason"])] += 1
         if item_result["outcome"] == "anchor_valid":
-            return EvidenceValidationResult(
-                outcome="anchor_valid",
-                anchor_valid=True,
-                evidence_present_but_unvalidated=False,
-                diagnostics={
-                    "evidence_item_count": len(items),
-                    "validated_evidence_item_count": 1,
-                    "evidence_items": item_diagnostics,
-                },
-            )
+            break
         if item_result["outcome"] == "evidence_present_but_unvalidated":
             saw_present_but_unvalidated = True
         elif item_result["outcome"] == "anchor_invalid":
             saw_invalid_anchor = True
 
-    if saw_present_but_unvalidated:
+    anchor_valid_count = outcome_counts.get("anchor_valid", 0)
+    evidence_present_but_unvalidated_count = outcome_counts.get("evidence_present_but_unvalidated", 0)
+    anchor_invalid_count = outcome_counts.get("anchor_invalid", 0)
+    if anchor_valid_count:
+        outcome = "anchor_valid"
+    elif saw_present_but_unvalidated:
         outcome = "evidence_present_but_unvalidated"
     elif saw_invalid_anchor:
         outcome = "anchor_invalid"
@@ -60,11 +62,19 @@ def validate_evidence_anchors(
 
     return EvidenceValidationResult(
         outcome=outcome,
-        anchor_valid=False,
-        evidence_present_but_unvalidated=outcome == "evidence_present_but_unvalidated",
+        anchor_valid=anchor_valid_count > 0,
+        evidence_present_but_unvalidated=evidence_present_but_unvalidated_count > 0 and anchor_valid_count == 0,
         diagnostics={
             "evidence_item_count": len(items),
-            "validated_evidence_item_count": 0,
+            "validated_evidence_item_count": anchor_valid_count,
+            "anchor_valid_count": anchor_valid_count,
+            "anchor_valid_rate": anchor_valid_count / len(items),
+            "anchor_invalid_count": anchor_invalid_count,
+            "anchor_invalid_rate": anchor_invalid_count / len(items),
+            "evidence_present_but_unvalidated_count": evidence_present_but_unvalidated_count,
+            "evidence_present_but_unvalidated_rate": evidence_present_but_unvalidated_count / len(items),
+            "reason_counts": dict(sorted(reason_counts.items())),
+            "outcome_counts": dict(sorted(outcome_counts.items())),
             "evidence_items": item_diagnostics,
         },
     )

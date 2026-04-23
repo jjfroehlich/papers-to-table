@@ -176,10 +176,19 @@
         "eval_args": [
           "--judge-model",
           "google/gemma-4-26b-a4b",
+          "--judge-model-b",
+          "qwen/qwen3.6-35b-a3b",
           "--judge-api-base",
           "http://127.0.0.1:1234/v1"
         ],
-        "expected_items": 5
+        "expected_items": 5,
+        "benchmark_kind": "smoke_fixture",
+        "benchmark_label": "smoke_fixture",
+        "require_non_fixture_inputs": false,
+        "required_judges": [
+          "judge_a",
+          "judge_b"
+        ]
       },
       "bench_dev": {
         "table_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
@@ -190,10 +199,19 @@
         "eval_args": [
           "--judge-model",
           "google/gemma-4-26b-a4b",
+          "--judge-model-b",
+          "qwen/qwen3.6-35b-a3b",
           "--judge-api-base",
           "http://127.0.0.1:1234/v1"
         ],
-        "expected_items": 100
+        "expected_items": 100,
+        "benchmark_kind": "real_external_dev",
+        "benchmark_label": "real_external_dev",
+        "require_non_fixture_inputs": true,
+        "required_judges": [
+          "judge_a",
+          "judge_b"
+        ]
       }
     }
   },

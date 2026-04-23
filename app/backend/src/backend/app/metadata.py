@@ -33,6 +33,13 @@ class MetadataFieldResolution(BaseModel):
     diagnostics: dict[str, object] = Field(default_factory=dict)
 
 
+class MatchingMetadataDebug(BaseModel):
+    metadata: MatchingMetadata
+    field_diagnostics: dict[str, MetadataFieldResolution] = Field(default_factory=dict)
+    front_matter_diagnostics: dict[str, object] = Field(default_factory=dict)
+    missing_fields: list[str] = Field(default_factory=list)
+
+
 def is_metadata_field(column_name: str, column_description: str = "") -> Optional[str]:
     combined = f"{column_name} {column_description}".strip().lower()
     patterns = [
@@ -52,6 +59,10 @@ def is_metadata_field(column_name: str, column_description: str = "") -> Optiona
 
 
 def extract_matching_metadata(doc_dict: dict) -> MatchingMetadata:
+    return extract_matching_metadata_debug(doc_dict).metadata
+
+
+def extract_matching_metadata_debug(doc_dict: dict) -> MatchingMetadataDebug:
     meta = doc_dict.get("metadata") if isinstance(doc_dict.get("metadata"), dict) else {}
     blocks = _front_matter_blocks(doc_dict)
     full_text = str(doc_dict.get("full_text") or "")
@@ -61,13 +72,58 @@ def extract_matching_metadata(doc_dict: dict) -> MatchingMetadata:
     year_candidate = _year_candidate(meta, blocks, full_text, allow_full_text_fallback=True)
     doi_candidate = _doi_candidate(meta, blocks, full_text, allow_full_text_fallback=True)
     abstract_text, _abstract_page = _find_abstract(blocks)
-
-    return MatchingMetadata(
+    metadata = MatchingMetadata(
         title=title_candidate.get("value") if title_candidate else None,
         authors=authors,
         year=int(year_candidate["value"]) if year_candidate and year_candidate.get("value") else None,
         doi=doi_candidate.get("value") if doi_candidate else None,
         abstract_snippet=abstract_text[:500] if abstract_text else None,
+    )
+
+    field_diagnostics: dict[str, MetadataFieldResolution] = {}
+    for field_kind, column_name, description in [
+        ("title", "Title", "Paper title"),
+        ("authors", "Authors", "Author list"),
+        ("year", "Publication Year", "Publication year"),
+        ("doi", "DOI", "Digital object identifier"),
+        ("abstract", "Abstract", "Paper abstract"),
+    ]:
+        resolution = resolve_metadata_field(column_name, description, doc_dict)
+        if resolution is not None:
+            field_diagnostics[field_kind] = resolution
+
+    front_matter_diagnostics = {
+        "parser_used": str(doc_dict.get("parser_used") or "unknown"),
+        "front_matter_page_limit": 2,
+        "front_matter_block_limit": 40,
+        "front_matter_block_count": len(blocks),
+        "front_matter_detected": bool(blocks),
+        "front_matter_pages": sorted(
+            {
+                _coerce_page(block.get("page_number"))
+                for block in blocks
+                if _coerce_page(block.get("page_number")) is not None
+            }
+        ),
+        "front_matter_block_types": [str(block.get("block_type") or "unknown") for block in blocks[:20]],
+        "parser_metadata_present": bool(meta),
+        "full_text_available": bool(full_text.strip()),
+    }
+    missing_fields = [
+        field_name
+        for field_name, value in {
+            "title": metadata.title,
+            "authors": metadata.authors,
+            "year": metadata.year,
+            "doi": metadata.doi,
+        }.items()
+        if not value
+    ]
+    return MatchingMetadataDebug(
+        metadata=metadata,
+        field_diagnostics=field_diagnostics,
+        front_matter_diagnostics=front_matter_diagnostics,
+        missing_fields=missing_fields,
     )
 
 
@@ -83,6 +139,14 @@ def resolve_metadata_field(column_name: str, column_description: str, doc_dict: 
     diagnostics: dict[str, object] = {
         "parser_used": parser_used,
         "front_matter_block_count": len(blocks),
+        "front_matter_detected": bool(blocks),
+        "front_matter_pages": sorted(
+            {
+                _coerce_page(block.get("page_number"))
+                for block in blocks
+                if _coerce_page(block.get("page_number")) is not None
+            }
+        ),
         "parser_metadata_present": bool(meta),
     }
 
@@ -124,6 +188,16 @@ def resolve_metadata_field(column_name: str, column_description: str, doc_dict: 
 
     diagnostics["candidate_count"] = len(candidates)
     diagnostics["candidate_sources"] = [candidate["source"] for candidate in candidates]
+    diagnostics["candidate_values"] = [candidate["value"] for candidate in candidates]
+    diagnostics["candidates"] = [
+        {
+            "value": candidate.get("value"),
+            "source": candidate.get("source"),
+            "page_number": candidate.get("page_number"),
+            "quote_text": candidate.get("quote_text"),
+        }
+        for candidate in candidates
+    ]
 
     if len(candidates) == 1:
         candidate = candidates[0]
@@ -139,7 +213,6 @@ def resolve_metadata_field(column_name: str, column_description: str, doc_dict: 
         )
 
     if len(candidates) > 1:
-        diagnostics["candidate_values"] = [candidate["value"] for candidate in candidates]
         return MetadataFieldResolution(
             field_kind=field_kind,
             state="unclear",
@@ -153,7 +226,7 @@ def resolve_metadata_field(column_name: str, column_description: str, doc_dict: 
     fallback_reasons = ["parser_metadata_missing", "front_matter_no_match"]
     return MetadataFieldResolution(
         field_kind=field_kind,
-        state="unclear",
+        state="missing",
         source="fallback_required",
         failure_attribution="parser_gap" if parser_gap else "retrieval_miss",
         fallback_reasons=fallback_reasons,

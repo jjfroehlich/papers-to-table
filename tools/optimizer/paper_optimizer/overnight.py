@@ -16,6 +16,7 @@ from .reporting import (
     build_table_cell,
     display_text,
     format_delta,
+    format_percent,
     format_runtime,
     format_score,
     image_data_uri,
@@ -159,11 +160,26 @@ def _build_caveats(stage_rows: list[dict[str, Any]], all_candidate_rows: list[di
         caveats.append(f"{counts['unscored']} pipeline candidates were unscored.")
     if counts.get("failed", 0):
         caveats.append(f"{counts['failed']} pipeline candidates failed before scoring.")
-    if not any(row.get("correctness_judge_a") is not None and row.get("correctness_judge_b") is not None for row in all_candidate_rows):
+    if any(row.get("dual_judge_completed") is False for row in all_candidate_rows) and not any(row.get("dual_judge_completed") for row in all_candidate_rows):
         caveats.append("Dual-judge comparison was not recorded across the pipeline candidates.")
     if not caveats:
         caveats.append("No major overnight trust caveats were recorded.")
     return caveats
+
+
+def _trust_note(row: dict[str, Any]) -> str:
+    notes: list[str] = []
+    if parse_bool(row.get("prompt_only_degraded_mode_used")):
+        notes.append("prompt-only degraded")
+    if parse_bool(row.get("extraction_contract_valid")) is False:
+        notes.append("contract invalid")
+    if safe_float(row.get("anchor_valid_rate")) == 0 and (row.get("evidence_item_count") or 0):
+        notes.append("zero grounded evidence")
+    if row.get("dual_judge_completed"):
+        notes.append(f"dual_judge disagreement={format_percent(row.get('judge_disagreement_rate'), missing='0.0%')}")
+    elif row.get("dual_judge_completed") is False:
+        notes.append("dual_judge incomplete")
+    return "; ".join(notes) if notes else "healthy"
 
 
 def _build_next_checks(stage_rows: list[dict[str, Any]], all_candidate_rows: list[dict[str, Any]]) -> list[str]:
@@ -372,8 +388,8 @@ def _build_candidate_table(all_candidate_rows: list[dict[str, Any]]) -> dict[str
                     build_table_cell(
                         display_text(row.get("structured_output_mode"), missing="not recorded"),
                         subtext=(
-                            f"contract={display_text(row.get('extraction_contract_valid'), missing='unknown')}; "
-                            f"fallback={display_text(row.get('prompt_only_degraded_mode_used'), missing='not recorded')}"
+                            f"trust={_trust_note(row)}; "
+                            f"anchor_valid_rate={format_percent(row.get('anchor_valid_rate'), missing='not recorded')}"
                         ),
                     ),
                     build_table_cell(

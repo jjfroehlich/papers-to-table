@@ -85,6 +85,15 @@ def validate_config(config: dict[str, Any]) -> None:
         for optional_path_key in ["schema_path", "eval_schema_path"]:
             if optional_path_key in manifest and manifest[optional_path_key] is not None and not isinstance(manifest[optional_path_key], str):
                 raise ConfigError(f"benchmarks.manifests.{bench_id}.{optional_path_key} must be a string when provided")
+        for optional_text_key in ["benchmark_kind", "benchmark_label"]:
+            if optional_text_key in manifest and manifest[optional_text_key] is not None and not isinstance(manifest[optional_text_key], str):
+                raise ConfigError(f"benchmarks.manifests.{bench_id}.{optional_text_key} must be a string when provided")
+        if "require_non_fixture_inputs" in manifest and not isinstance(manifest["require_non_fixture_inputs"], bool):
+            raise ConfigError(f"benchmarks.manifests.{bench_id}.require_non_fixture_inputs must be a boolean when provided")
+        if "required_judges" in manifest:
+            required_judges = manifest["required_judges"]
+            if not isinstance(required_judges, list) or not all(isinstance(item, str) for item in required_judges):
+                raise ConfigError(f"benchmarks.manifests.{bench_id}.required_judges must be an array of strings when provided")
 
     main_app = _require(config, "main_app")
     eval_app = _require(config, "eval_app")

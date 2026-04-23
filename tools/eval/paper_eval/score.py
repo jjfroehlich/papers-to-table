@@ -275,10 +275,11 @@ def score_run(
                 judge_prompt_hash=None,
                 judge_temperature=None,
                 judge_input_hash=None,
-                diagnostics={
-                    **comparison.diagnostics,
-                    "evidence": evidence_result.diagnostics,
-                    "structured_support_proxy": {
+                    diagnostics={
+                        **comparison.diagnostics,
+                        "metadata_diagnostics": proposal.metadata_diagnostics,
+                        "evidence": evidence_result.diagnostics,
+                        "structured_support_proxy": {
                         "status": support_proxy.status,
                         "matched_evidence_ids": support_proxy.matched_evidence_ids,
                         **support_proxy.diagnostics,
@@ -642,9 +643,10 @@ def _score_text_cell(
             judge_score_mean=judge_score_mean,
             judge_disagreement=judge_disagreement,
             diagnostic_flags=diagnostic_flags,
-            diagnostics={
-                "text": text_diagnostics,
-                "judge": {
+                diagnostics={
+                    "text": text_diagnostics,
+                    "metadata_diagnostics": proposal.metadata_diagnostics,
+                    "judge": {
                     "provider": primary_result.get("provider"),
                     "configured_model_id": primary_result.get("configured_model_id"),
                     "resolved_model_id": primary_result.get("resolved_model_id"),
