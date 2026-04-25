@@ -126,7 +126,8 @@ def test_compare_model_configs_include_required_models_and_defaults() -> None:
 
         assert REQUIRED_COMPARE_MODELS.issubset(candidate_models)
         assert REQUIRED_COMPARE_MODELS.issubset(search_models)
-        assert payload["baseline_candidate"]["text_model_id"] == "google/gemma-4-e4b"
+        assert payload["baseline_candidate"]["text_model_id"] == "unsloth/gemma-4-26b-a4b-it"
+        assert "unsloth/gemma-4-26b-a4b-it" in search_models
         for candidate in [payload["baseline_candidate"], *payload["compare_candidates"]]:
             knobs = candidate["optimizer_knobs"]
             assert knobs["retrieval_mode"] == "hybrid_experimental"

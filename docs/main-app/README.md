@@ -92,7 +92,7 @@ The canonical provider token is `lm_studio`.
 
 Current extraction defaults:
 
-- text model: `google/gemma-4-e4b`
+- text model: `unsloth/gemma-4-26b-a4b-it`
 - retrieval mode: `hybrid_experimental`
 - retrieval top-k: `12`
 - recall rescue: disabled

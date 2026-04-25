@@ -82,7 +82,7 @@ These wrapper scripts assume the current working directory is the repository roo
 
 - Evidence types stay distinct: exact highlights, approximate highlights, quote-plus-page fallback, reasoning, and figure evidence.
 - Provider mode and degraded fallback states are recorded in run artifacts.
-- The default extraction path is `google/gemma-4-e4b` with `retrieval.mode=hybrid_experimental`, `retrieval.top_k=12`, recall rescue off, and whole-document mode off. `google/gemma-4-26b-a4b` remains the heavier optimization target.
+- The default extraction path is `unsloth/gemma-4-26b-a4b-it` with `retrieval.mode=hybrid_experimental`, `retrieval.top_k=12`, recall rescue off, and whole-document mode off. `google/gemma-4-26b-a4b` remains the heavier optimization target.
 - Review remains manual; proposal presence is not treated as proof.
 - Export is never automatic.
 

@@ -11,8 +11,8 @@
                       },
     "baseline_candidate":  {
                                "prompt_bundle_id":  "default",
-                               "text_model_id":  "google/gemma-4-e4b",
-                               "vision_model_id":  "google/gemma-4-e4b",
+                               "text_model_id":  "unsloth/gemma-4-26b-a4b-it",
+                               "vision_model_id":  "unsloth/gemma-4-26b-a4b-it",
                                "optimizer_knobs":  {
                                                        "retrieval_mode":  "hybrid_experimental",
                                                        "retrieval_top_k":  12,

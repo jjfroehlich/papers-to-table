@@ -9,12 +9,12 @@
     "token": "lm_studio",
     "base_url": "http://localhost:1234",
     "text_model": {
-      "model_id": "google/gemma-4-e4b",
+      "model_id": "unsloth/gemma-4-26b-a4b-it",
       "working_context_budget": 25000,
       "load_context_length": 32000
     },
     "vision_model": {
-      "model_id": "google/gemma-4-26b-a4b"
+      "model_id": "unsloth/gemma-4-26b-a4b-it"
     },
     "locality": "local"
   },

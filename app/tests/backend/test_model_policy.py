@@ -26,7 +26,7 @@ def test_qwen_policy_prefers_json_object_and_adds_json_reminder() -> None:
 
 
 def test_gemma_and_gpt_oss_policy_keep_schema_first_without_prompt_mutation() -> None:
-    for model_id in ["google/gemma-4-e4b", "openai/gpt-oss-20b"]:
+    for model_id in ["unsloth/gemma-4-26b-a4b-it", "openai/gpt-oss-20b"]:
         policy = resolve_model_request_policy(model_id)
         messages = [{"role": "user", "content": "Return the result."}]
 

@@ -93,7 +93,7 @@ Model-compare and overnight candidate lists include:
 - `unsloth/qwen3.6-35b-a3b`
 - `zai-org/glm-4.6v-flash`
 
-The operational default is `google/gemma-4-e4b` because the latest model compare had the best practical score/cost tradeoff. The benchmark winner and operational recommendation stay separate report concepts when trust, runtime, or degradation caveats differ.
+The operational default is `unsloth/gemma-4-26b-a4b-it` because the latest model compare had the best practical score/cost tradeoff. The benchmark winner and operational recommendation stay separate report concepts when trust, runtime, or degradation caveats differ.
 
 Reports surface dual-judge completion, disagreement, per-judge failures, evidence-anchor outcome counts, degraded or prompt-only status, and join failures directly in ranked candidate rows. Degraded and unscored candidates remain ranked below healthy scored candidates.
 
