@@ -63,7 +63,7 @@ paper-optimizer summarize --config config.example.json --experiment runs/optimiz
 
 Prepared configs under `tools/optimizer/configs/` use monorepo-local relative paths.
 
-The meaningful real compare and optimize paths use the real benchmark manifests. Fixture and smoke configs remain available only for fast contract checks.
+The canonical compare and optimize paths use real benchmark manifests by default. Smoke and fixture-manual configs remain available only for fast contract checks or deeper manual fixture checks.
 
 ## Overnight workflow
 
@@ -72,12 +72,12 @@ The optimizer includes two main shell wrappers:
 - `scripts/run_study.sh`: run one compare or optimize study, summarize it, and optionally validate holdout
 - `scripts/run_overnight.sh`: run the recommended multi-stage overnight sequence
 
-Prepared config families now separate real-benchmark studies from smoke or fixture studies:
+Prepared config families now separate canonical real-benchmark studies from smoke or fixture-manual checks:
 
-- `compare_*_real_dev.json`: authoritative real-benchmark compare configs for meaningful development comparisons
-- `optimize_real_overnight.json`: authoritative real-benchmark optimize config for longer overnight studies
-- `compare_models_fixture_dev.json`: fast fixture-only compare config for local contract checks
-- `compare_models_smoke.json`: minimum smoke config
+- `compare_models.json`, `compare_prompts.json`, `compare_retrieval.json`, and `compare_retrieval_modes.json`: authoritative real-benchmark compare configs for meaningful development comparisons
+- `compare_models_overnight.json` and `optimize_overnight.json`: canonical overnight configs
+- `compare_models_fixture_manual.json`: fixture-backed compare config for deeper manual checks
+- `compare_models_contract_smoke.json`: minimum smoke config for live contract checks
 
 Real-benchmark manifests now fail preflight if they point at fixture assets, omit required dual-judge settings, or reference missing benchmark files.
 Prepared configs now default `--judge-model-b` to `mistralai/ministral-3-14b-reasoning` so judge B is enabled by default without Gemma/Qwen coupling.
@@ -99,10 +99,10 @@ Reports surface dual-judge completion, disagreement, per-judge failures, evidenc
 
 Recommended study order:
 
-1. `compare_models_real_dev.json`
-2. `compare_prompts_real_dev.json`
-3. `compare_retrieval_real_dev.json`
-4. `optimize_real_overnight.json`
+1. `compare_models.json`
+2. `compare_prompts.json`
+3. `compare_retrieval.json`
+4. `optimize_overnight.json`
 
 ## Artifact layout
 

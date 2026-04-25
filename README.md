@@ -97,7 +97,7 @@ These tools support development and benchmarking. They are not the primary produ
 
 Current companion-tool truth:
 
-- real benchmark studies use the explicit `*_real_dev.json` and `*_real_overnight.json` optimizer configs instead of smoke or fixture configs
+- canonical optimizer studies use `compare_models.json`, `compare_prompts.json`, `compare_retrieval.json`, `compare_retrieval_modes.json`, and `optimize_overnight.json`; smoke and fixture-manual configs are only for contract checks
 - real benchmark studies are expected to run with two judges end to end
 - compare-model and overnight configs include Gemma, Qwen, GPT-OSS, Unsloth, and GLM candidates under the same extraction stack with small per-model request policies
 - eval and optimizer reports now separate the raw benchmark winner from the recommended default when degraded or trust caveats differ

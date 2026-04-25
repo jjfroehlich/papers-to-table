@@ -1,12 +1,11 @@
 {
     "schema_version":  "1.0",
-    "experiment_id":  "compare_models_overnight",
+    "experiment_id":  "compare_models",
     "operator_todo":  {
                           "notes":  [
-                                        "Model-only overnight config: use scripts/run_models_overnight.sh to run this as a single-stage overnight report.",
-                                        "This keeps the current staged overnight model list and adds the requested unsloth model variants.",
-                                        "mistralai/ministral-3-14b-reasoning was already present in compare_models_dev.json, so it is included once here.",
-                                        "Prompt and retrieval settings are frozen so the text-model comparison is easier to interpret."
+                                        "Replace bench_holdout paths with a true holdout split before trusting holdout validation.",
+                                        "Set explicit command_prefix values if the main app and eval app need different Python environments.",
+                                        "This model compare freezes prompt and retrieval settings so the text-model comparison is easier to interpret."
                                     ]
                       },
     "baseline_candidate":  {
@@ -132,21 +131,6 @@
                                },
                                {
                                    "prompt_bundle_id":  "default",
-                                   "text_model_id":  "unsloth/qwen3.6-35b-a3b",
-                                   "vision_model_id":  "unsloth/qwen3.6-35b-a3b",
-                                   "optimizer_knobs":  {
-                                                           "retrieval_mode":  "hybrid_experimental",
-                                                           "retrieval_top_k":  12,
-                                                           "recall_rescue_enabled":  false,
-                                                           "whole_document_mode":  false,
-                                                           "whole_document_max_chars":  20000,
-                                                           "style_profiles_enabled":  true,
-                                                           "style_profiles_max_examples":  3,
-                                                           "figure_review_enabled":  false
-                                                       }
-                               },
-                               {
-                                   "prompt_bundle_id":  "default",
                                    "text_model_id":  "unsloth/gemma-4-26b-a4b-it",
                                    "vision_model_id":  "unsloth/gemma-4-26b-a4b-it",
                                    "optimizer_knobs":  {
@@ -177,8 +161,23 @@
                                },
                                {
                                    "prompt_bundle_id":  "default",
+                                   "text_model_id":  "unsloth/qwen3.6-35b-a3b",
+                                   "vision_model_id":  "unsloth/qwen3.6-35b-a3b",
+                                   "optimizer_knobs":  {
+                                                           "retrieval_mode":  "hybrid_experimental",
+                                                           "retrieval_top_k":  12,
+                                                           "recall_rescue_enabled":  false,
+                                                           "whole_document_mode":  false,
+                                                           "whole_document_max_chars":  20000,
+                                                           "style_profiles_enabled":  true,
+                                                           "style_profiles_max_examples":  3,
+                                                           "figure_review_enabled":  false
+                                                       }
+                               },
+                               {
+                                   "prompt_bundle_id":  "default",
                                    "text_model_id":  "zai-org/glm-4.6v-flash",
-                                   "vision_model_id":  "google/gemma-4-26b-a4b",
+                                   "vision_model_id":  "zai-org/glm-4.6v-flash",
                                    "optimizer_knobs":  {
                                                            "retrieval_mode":  "hybrid_experimental",
                                                            "retrieval_top_k":  12,
@@ -213,6 +212,7 @@
                                                   "qwen/qwen3.6-27b",
                                                   "qwen/qwen3.6-35b-a3b",
                                                   "unsloth/qwen3.6-35b-a3b",
+                                                  "zai-org/glm-4.6v-flash",
                                                   "mistralai/ministral-3-14b-reasoning"
                                               ],
                          "numeric_knobs":  {
@@ -270,8 +270,8 @@
                                                                              "http://127.0.0.1:1234/v1"
                                                                          ],
                                                            "expected_items":  100,
-                                                           "benchmark_kind":  "real_external_overnight",
-                                                           "benchmark_label":  "real_external_overnight",
+                                                           "benchmark_kind":  "real_external_dev",
+                                                           "benchmark_label":  "real_external_dev",
                                                            "require_non_fixture_inputs":  true,
                                                            "required_judges":  [
                                                                                    "judge_a",

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "experiment_id": "compare_retrieval_modes_dev",
+  "experiment_id": "compare_retrieval_modes",
   "operator_todo": {
     "notes": [
       "This file is now the retrieval-feature sweep template used after the retrieval-core stage.",

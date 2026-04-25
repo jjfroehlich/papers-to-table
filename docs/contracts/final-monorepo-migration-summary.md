@@ -104,7 +104,7 @@ python -m pip install -e .[dev]
 
 ```bash
 cd tools/optimizer
-PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash scripts/run_study.sh compare configs/compare_models_smoke.json monorepo_smoke
+PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash scripts/run_study.sh compare configs/compare_models_contract_smoke.json monorepo_smoke
 ```
 
 ```bash
@@ -116,7 +116,6 @@ bash scripts/test-optimizer-tool.sh
 
 - `docs/contracts/monorepo-migration-prep.md` is intentionally historical and still mentions the old multi-repo layout.
 - Some generated run artifacts and logs under `tools/eval/runs/`, `tools/eval/out/`, `tools/optimizer/runs/`, and `tools/optimizer/logs/` still embed old paths from earlier runs.
-- `tools/optimizer/configs/compare_models_dev.json` still points at a developer-local desktop dataset for the `bench_dev` benchmark.
 - Python import and CLI names remain tool-specific by design: `backend.app.*`, `paper_optimizer`, `paper_eval`, and `paper-optimizer` stay unchanged even though distribution metadata now uses the `papers-to-table-*` scheme.
 - Live proposal generation and judge-backed scoring still depend on the local LM Studio setup and model availability.
 - Main app `e2e` and `smoke` pytest markers remain opt-in and are intentionally excluded from the root full-verification wrapper.

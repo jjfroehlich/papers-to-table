@@ -217,7 +217,7 @@ Command:
 
 ```bash
 cd /d/code/local/extract-structured-info-from-papers/tools/optimizer
-PAPER_OPTIMIZER_PYTHON=d:/code/web/guess-the-citations/.venv/Scripts/python.exe PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash scripts/run_study.sh compare configs/compare_models_smoke.json monorepo_path_repair_smoke
+PAPER_OPTIMIZER_PYTHON=d:/code/web/guess-the-citations/.venv/Scripts/python.exe PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash scripts/run_study.sh compare configs/compare_models_contract_smoke.json monorepo_path_repair_smoke
 ```
 
 Result:
@@ -407,12 +407,12 @@ The most important migration risk is the optimizer's current assumption that the
 Examples:
 
 - `config.example.json`
-- `configs/compare_models_dev.json`
-- `configs/compare_models_fixture_dev.json`
-- `configs/compare_models_smoke.json`
-- `configs/compare_prompts_dev.json`
-- `configs/compare_retrieval_dev.json`
-- `configs/compare_retrieval_modes_dev.json`
+- `configs/compare_models.json`
+- `configs/compare_models_fixture_manual.json`
+- `configs/compare_models_contract_smoke.json`
+- `configs/compare_prompts.json`
+- `configs/compare_retrieval.json`
+- `configs/compare_retrieval_modes.json`
 - `configs/optimize_overnight.json`
 
 Current assumptions include paths like:

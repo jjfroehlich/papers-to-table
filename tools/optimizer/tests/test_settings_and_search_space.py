@@ -50,12 +50,12 @@ def test_load_search_space_success(base_config: dict) -> None:
 def test_checked_in_planned_configs_disallow_degraded_scores() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     config_names = [
-        "compare_models_smoke.json",
-        "compare_models_dev.json",
+        "compare_models_contract_smoke.json",
+        "compare_models.json",
         "compare_models_overnight.json",
-        "compare_prompts_dev.json",
-        "compare_retrieval_dev.json",
-        "compare_retrieval_modes_dev.json",
+        "compare_prompts.json",
+        "compare_retrieval.json",
+        "compare_retrieval_modes.json",
         "optimize_overnight.json",
     ]
 
@@ -80,9 +80,9 @@ def test_checked_in_planned_configs_pin_non_gemma_non_qwen_judge_b() -> None:
             assert judge_b == "mistralai/ministral-3-14b-reasoning"
 
 
-def test_compare_models_smoke_is_tiny_and_fast_by_contract() -> None:
+def test_compare_models_contract_smoke_is_tiny_and_fast_by_contract() -> None:
     repo_root = Path(__file__).resolve().parents[1]
-    payload = json.loads((repo_root / "configs" / "compare_models_smoke.json").read_text(encoding="utf-8"))
+    payload = json.loads((repo_root / "configs" / "compare_models_contract_smoke.json").read_text(encoding="utf-8"))
     bench = payload["benchmarks"]["manifests"][payload["benchmarks"]["smoke"]]
 
     assert len(payload["compare_candidates"]) == 2
@@ -95,9 +95,9 @@ def test_compare_models_smoke_is_tiny_and_fast_by_contract() -> None:
 def test_real_benchmark_configs_use_real_inputs_and_dual_judges() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     config_names = [
-        "compare_models_real_dev.json",
-        "compare_models_real_overnight.json",
-        "optimize_real_overnight.json",
+        "compare_models.json",
+        "compare_models_overnight.json",
+        "optimize_overnight.json",
     ]
 
     for config_name in config_names:
@@ -117,10 +117,8 @@ def test_real_benchmark_configs_use_real_inputs_and_dual_judges() -> None:
 def test_compare_model_configs_include_required_models_and_defaults() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     for config_name in [
-        "compare_models_dev.json",
+        "compare_models.json",
         "compare_models_overnight.json",
-        "compare_models_real_dev.json",
-        "compare_models_real_overnight.json",
     ]:
         payload = json.loads((repo_root / "configs" / config_name).read_text(encoding="utf-8"))
         candidate_models = {candidate["text_model_id"] for candidate in payload["compare_candidates"]}
@@ -139,7 +137,7 @@ def test_compare_model_configs_include_required_models_and_defaults() -> None:
 
 def test_optimize_one_model_real_config_is_top_k_focused_on_gemma_26b() -> None:
     repo_root = Path(__file__).resolve().parents[1]
-    payload = json.loads((repo_root / "configs" / "optimize_real_overnight.json").read_text(encoding="utf-8"))
+    payload = json.loads((repo_root / "configs" / "optimize_overnight.json").read_text(encoding="utf-8"))
     knobs = payload["baseline_candidate"]["optimizer_knobs"]
 
     assert payload["baseline_candidate"]["text_model_id"] == "google/gemma-4-26b-a4b"

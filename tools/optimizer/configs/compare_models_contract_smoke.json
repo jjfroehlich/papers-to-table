@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "experiment_id": "compare_models_smoke",
+  "experiment_id": "compare_models_contract_smoke",
   "operator_todo": {
     "notes": [
       "This smoke config is intentionally tiny: three known-matched fixture rows, three content columns, and two explicit text-model candidates.",

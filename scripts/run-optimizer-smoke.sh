@@ -9,4 +9,4 @@ optimizer_dir="$repo_root/tools/optimizer"
 
 cd "$optimizer_dir"
 export PAPER_OPTIMIZER_SKIP_HOLDOUT="${PAPER_OPTIMIZER_SKIP_HOLDOUT:-1}"
-exec bash scripts/run_study.sh compare configs/compare_models_smoke.json "$label"
+exec bash scripts/run_study.sh compare configs/compare_models_contract_smoke.json "$label"

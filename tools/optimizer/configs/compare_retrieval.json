@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "experiment_id": "compare_retrieval_dev",
+  "experiment_id": "compare_retrieval",
   "operator_todo": {
     "notes": [
       "run_overnight.sh materializes this config onto the winner of the preceding prompt-compare stage.",

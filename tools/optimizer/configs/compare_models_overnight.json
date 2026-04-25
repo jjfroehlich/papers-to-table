@@ -5,7 +5,7 @@
                           "notes":  [
                                         "Model-only overnight config: use scripts/run_models_overnight.sh to run this as a single-stage overnight report.",
                                         "This keeps the current staged overnight model list and adds the requested unsloth model variants.",
-                                        "mistralai/ministral-3-14b-reasoning was already present in compare_models_dev.json, so it is included once here.",
+                                        "mistralai/ministral-3-14b-reasoning was already present in compare_models.json, so it is included once here.",
                                         "Prompt and retrieval settings are frozen so the text-model comparison is easier to interpret."
                                     ]
                       },
@@ -178,7 +178,7 @@
                                {
                                    "prompt_bundle_id":  "default",
                                    "text_model_id":  "zai-org/glm-4.6v-flash",
-                                   "vision_model_id":  "google/gemma-4-26b-a4b",
+                                   "vision_model_id":  "zai-org/glm-4.6v-flash",
                                    "optimizer_knobs":  {
                                                            "retrieval_mode":  "hybrid_experimental",
                                                            "retrieval_top_k":  12,
@@ -213,6 +213,7 @@
                                                   "qwen/qwen3.6-27b",
                                                   "qwen/qwen3.6-35b-a3b",
                                                   "unsloth/qwen3.6-35b-a3b",
+                                                  "zai-org/glm-4.6v-flash",
                                                   "mistralai/ministral-3-14b-reasoning"
                                               ],
                          "numeric_knobs":  {
