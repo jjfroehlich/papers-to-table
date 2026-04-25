@@ -32,7 +32,7 @@ resolve_optimizer_python() {
 optimizer_python="$(resolve_optimizer_python)"
 
 compare_config="$repo_root/configs/compare_models_overnight.json"
-compare_run_name="${session_id}_compare_models_overnight_${safe_label}"
+compare_run_name="${session_id}_models_overnight_${safe_label}/compare_models_overnight"
 overnight_dir="$repo_root/runs/${session_id}_models_overnight_${safe_label}"
 manifest_path="$overnight_dir/overnight_manifest.json"
 

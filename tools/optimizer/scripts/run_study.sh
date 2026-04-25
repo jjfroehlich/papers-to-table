@@ -17,6 +17,7 @@ holdout_dir="$run_root/holdout"
 log_file="$repo_root/logs/${run_name}.log"
 metadata_file="$run_root/run_metadata.json"
 mkdir -p "$run_root" "$experiment_dir" "$repo_root/logs"
+mkdir -p "$(dirname "$log_file")"
 
 resolve_optimizer_python() {
   if [[ -n "${PAPER_OPTIMIZER_PYTHON:-}" ]]; then

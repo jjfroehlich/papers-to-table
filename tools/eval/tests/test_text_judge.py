@@ -241,18 +241,36 @@ class LMStudioJudgeAdapterTests(unittest.TestCase):
             evidence_excerpt=None,
         )
         seen_urls: list[str] = []
+        management_probe_count = {"count": 0}
         model_probe_count = {"count": 0}
         load_payload = {}
+        unload_payload = {}
 
         def fake_urlopen(request_obj):
             import json
 
             seen_urls.append(request_obj.full_url)
+            if request_obj.full_url.endswith("/api/v1/models"):
+                management_probe_count["count"] += 1
+                return _FakeHTTPResponse(
+                    {
+                        "models": [
+                            {
+                                "key": "other-model",
+                                "loaded_instances": [{"id": "other-instance", "config": {"context_length": 32768}}],
+                            },
+                            {"key": "configured-model", "loaded_instances": []},
+                        ]
+                    }
+                )
             if request_obj.full_url.endswith("/v1/models"):
                 model_probe_count["count"] += 1
                 if model_probe_count["count"] == 1:
                     return _FakeHTTPResponse({"data": []})
                 return _FakeHTTPResponse({"data": [{"id": "configured-model"}]})
+            if request_obj.full_url.endswith("/api/v1/models/unload"):
+                unload_payload.update(json.loads(request_obj.data.decode("utf-8")))
+                return _FakeHTTPResponse({"instance_id": "other-instance"})
             if request_obj.full_url.endswith("/api/v1/models/load"):
                 load_payload.update(json.loads(request_obj.data.decode("utf-8")))
                 return _FakeHTTPResponse({"status": "loaded"})
@@ -270,11 +288,14 @@ class LMStudioJudgeAdapterTests(unittest.TestCase):
             response = judge.judge(judge_request)
 
         self.assertEqual(load_payload["model"], "configured-model")
+        self.assertEqual(unload_payload["instance_id"], "other-instance")
+        self.assertTrue(any(url.endswith("/api/v1/models/unload") for url in seen_urls))
         self.assertTrue(any(url.endswith("/api/v1/models/load") for url in seen_urls))
         self.assertTrue(any(url.endswith("/chat/completions") for url in seen_urls))
+        self.assertEqual(management_probe_count["count"], 1)
         self.assertEqual(response.metadata["resolved_model_id"], "resolved-runtime-model")
 
-    def test_lm_studio_adapter_reuses_verified_model_without_repeat_probe(self) -> None:
+    def test_lm_studio_adapter_reuses_loaded_model_without_loading_again(self) -> None:
         judge_config = JudgeConfig(model_id="configured-model")
         judge = LMStudioTextJudge(judge_config)
         judge_request = build_judge_request(
@@ -288,13 +309,34 @@ class LMStudioJudgeAdapterTests(unittest.TestCase):
             field_description=None,
             evidence_excerpt=None,
         )
+        management_probe_count = {"count": 0}
         model_probe_count = {"count": 0}
         completion_count = {"count": 0}
+        load_count = {"count": 0}
+        unload_count = {"count": 0}
 
         def fake_urlopen(request_obj):
+            if request_obj.full_url.endswith("/api/v1/models"):
+                management_probe_count["count"] += 1
+                return _FakeHTTPResponse(
+                    {
+                        "models": [
+                            {
+                                "key": "configured-model",
+                                "loaded_instances": [{"id": "configured-instance", "config": {}}],
+                            }
+                        ]
+                    }
+                )
             if request_obj.full_url.endswith("/models"):
                 model_probe_count["count"] += 1
                 return _FakeHTTPResponse({"data": [{"id": "configured-model"}]})
+            if request_obj.full_url.endswith("/api/v1/models/unload"):
+                unload_count["count"] += 1
+                raise AssertionError("unload should not be requested when the target model is already the only loaded model")
+            if request_obj.full_url.endswith("/api/v1/models/load"):
+                load_count["count"] += 1
+                raise AssertionError("load should not be requested when the target model is already loaded")
             if request_obj.full_url.endswith("/chat/completions"):
                 completion_count["count"] += 1
                 return _FakeHTTPResponse(
@@ -310,8 +352,11 @@ class LMStudioJudgeAdapterTests(unittest.TestCase):
             judge.judge(judge_request)
             judge.judge(judge_request)
 
-        self.assertEqual(model_probe_count["count"], 1)
+        self.assertEqual(management_probe_count["count"], 2)
+        self.assertEqual(model_probe_count["count"], 2)
         self.assertEqual(completion_count["count"], 2)
+        self.assertEqual(load_count["count"], 0)
+        self.assertEqual(unload_count["count"], 0)
 
     def test_lm_studio_adapter_fails_truthfully_when_unavailable(self) -> None:
         judge_config = JudgeConfig(model_id="configured-model")

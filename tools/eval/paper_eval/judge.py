@@ -230,7 +230,6 @@ def judge_record_from_result(
 class LMStudioTextJudge:
     def __init__(self, judge_config: JudgeConfig) -> None:
         self._judge_config = judge_config
-        self._verified_loaded_model_id: str | None = None
 
     def judge(self, judge_request: JudgeRequest) -> JudgeResponse:
         self._ensure_model_loaded(self._judge_config.model_id)
@@ -310,17 +309,93 @@ class LMStudioTextJudge:
         raise EvaluationError("Judge fallback ladder exhausted without a valid response.")
 
     def _ensure_model_loaded(self, model_id: str) -> None:
-        if self._verified_loaded_model_id == model_id:
-            return
+        models_payload = self._list_rest_models()
+        unload_plan = self._plan_model_unloads(models_payload, model_id)
+        for unload_item in unload_plan:
+            try:
+                self._unload_model_via_rest(instance_id=unload_item["instance_id"])
+            except EvaluationError:
+                continue
+
         if self._is_model_loaded(model_id):
-            self._verified_loaded_model_id = model_id
             return
+
         self._load_model(model_id)
         if not self._is_model_loaded(model_id):
             raise EvaluationError(
                 f"LM Studio reported a successful load request for judge model '{model_id}', but the model is still not listed at the OpenAI-compatible models endpoint."
             )
-        self._verified_loaded_model_id = model_id
+
+    @staticmethod
+    def _model_matches_requested_id(model_entry: dict[str, Any], model_id: str) -> bool:
+        if str(model_entry.get("key") or "") == model_id:
+            return True
+        loaded_instances = model_entry.get("loaded_instances") or []
+        return any(
+            isinstance(instance, dict) and str(instance.get("id") or "") == model_id
+            for instance in loaded_instances
+        )
+
+    @classmethod
+    def _find_requested_model(cls, models_payload: dict[str, Any], model_id: str) -> dict[str, Any] | None:
+        models = models_payload.get("models") or []
+        for model_entry in models:
+            if isinstance(model_entry, dict) and cls._model_matches_requested_id(model_entry, model_id):
+                return model_entry
+        return None
+
+    @classmethod
+    def _loaded_instance_ids(cls, model_entry: dict[str, Any]) -> list[str]:
+        loaded_instances = model_entry.get("loaded_instances") or []
+        instance_ids: list[str] = []
+        for instance in loaded_instances:
+            if not isinstance(instance, dict):
+                continue
+            instance_id = str(instance.get("id") or "").strip()
+            if instance_id:
+                instance_ids.append(instance_id)
+        return instance_ids
+
+    @classmethod
+    def _plan_model_unloads(cls, models_payload: dict[str, Any], model_id: str) -> list[dict[str, Any]]:
+        keep_instance_id = None
+        requested_model = cls._find_requested_model(models_payload, model_id)
+        if requested_model is not None:
+            loaded_instance_ids = cls._loaded_instance_ids(requested_model)
+            if loaded_instance_ids:
+                keep_instance_id = loaded_instance_ids[0]
+
+        unloads: list[dict[str, Any]] = []
+        for model_entry in models_payload.get("models") or []:
+            if not isinstance(model_entry, dict):
+                continue
+            model_key = str(model_entry.get("key") or "")
+            for instance_id in cls._loaded_instance_ids(model_entry):
+                if instance_id == keep_instance_id:
+                    continue
+                unloads.append(
+                    {
+                        "instance_id": instance_id,
+                        "model_id": model_key,
+                    }
+                )
+        return unloads
+
+    def _list_rest_models(self) -> dict[str, Any]:
+        endpoint = self._rest_api_base().rstrip("/") + "/api/v1/models"
+        http_request = request.Request(endpoint, headers=self._build_headers(), method="GET")
+        try:
+            with request.urlopen(http_request) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except error.HTTPError as exc:  # pragma: no cover - exercised by integration environments
+            detail = exc.read().decode("utf-8", errors="replace")
+            raise EvaluationError(
+                f"LM Studio judge request failed during model probe with HTTP {exc.code}: {detail}"
+            ) from exc
+        except error.URLError as exc:  # pragma: no cover - exercised by integration environments
+            raise EvaluationError(
+                f"LM Studio judge request failed during model probe at {endpoint}: {exc.reason}"
+            ) from exc
 
     def _is_model_loaded(self, model_id: str) -> bool:
         endpoint = (self._judge_config.api_base or DEFAULT_LM_STUDIO_API_BASE).rstrip("/") + "/models"
@@ -347,6 +422,28 @@ class LMStudioTextJudge:
             if str(entry.get("id") or "").strip() == model_id:
                 return True
         return False
+
+    def _unload_model_via_rest(self, *, instance_id: str) -> None:
+        endpoint = self._rest_api_base().rstrip("/") + "/api/v1/models/unload"
+        payload = {"instance_id": instance_id}
+        http_request = request.Request(
+            endpoint,
+            data=json.dumps(payload).encode("utf-8"),
+            headers=self._build_headers(content_type=True),
+            method="POST",
+        )
+        try:
+            with request.urlopen(http_request) as response:
+                response.read()
+        except error.HTTPError as exc:  # pragma: no cover - exercised by integration environments
+            detail = exc.read().decode("utf-8", errors="replace")
+            raise EvaluationError(
+                f"LM Studio judge request failed during model unload with HTTP {exc.code}: {detail}"
+            ) from exc
+        except error.URLError as exc:  # pragma: no cover - exercised by integration environments
+            raise EvaluationError(
+                f"LM Studio judge request failed during model unload at {endpoint}: {exc.reason}"
+            ) from exc
 
     def _load_model(self, model_id: str) -> None:
         endpoint = self._rest_api_base().rstrip("/") + "/api/v1/models/load"
