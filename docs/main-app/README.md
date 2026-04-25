@@ -98,6 +98,13 @@ Current extraction defaults:
 - recall rescue: disabled
 - whole-document mode: disabled
 
+Current LM Studio runtime policy:
+
+- target one loaded LLM instance by default
+- allow two only when text and vision genuinely need to coexist
+- unload stale instances before the run and explicitly clean up after extraction or terminal run transitions
+- persist model-management diagnostics including load and unload counters, cleanup timeline entries, peak loaded-instance count, and same-model multi-instance detection
+
 `google/gemma-4-26b-a4b` remains a documented heavier alternative and is the focused optimize-one-model target. Eval mode keeps the gold table masked for content extraction, but required metadata columns (`Title`, `Authors`, `Publication Year`) are emitted as parser/front-matter proposals so eval can score metadata without relying on hidden gold values.
 
 Model-specific provider behavior is isolated in a small request-policy layer. Unknown and newly added models use the shared generic default policy: schema-first structured requests, normal bounded retry, and `max_tokens` included. Gemma and GPT-OSS only override the family label while staying schema-first. Qwen-compatible models prefer non-thinking JSON-object requests, receive an explicit JSON reminder, omit `max_tokens` for structured requests, skip same-mode malformed-response retry, and move quickly through the fallback ladder when structured JSON validation fails.

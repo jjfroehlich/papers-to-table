@@ -7,7 +7,7 @@ from typing import Any
 
 STRUCTURED_FIELD_TYPES = {"boolean", "categorical", "numeric"}
 DEFAULT_JUDGE_PROVIDER = "lm_studio"
-DEFAULT_JUDGE_MODEL_ID = "qwen/qwen3.6-35b-a3b"
+DEFAULT_JUDGE_MODEL_ID = "google/gemma-4-26b-a4b"
 DEFAULT_LM_STUDIO_API_BASE = "http://127.0.0.1:1234/v1"
 
 

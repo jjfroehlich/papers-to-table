@@ -44,6 +44,7 @@ Prepared operator workflows are:
 - Holdout validates final recommendations after dev-phase ranking or optimization.
 - Real benchmark configs must stay clearly separate from smoke or fixture configs.
 - Real benchmark manifests must fail preflight if they point at fixture assets, omit required benchmark files, or omit required dual-judge configuration.
+- Real benchmark configs should default `judge_b` to `openai/gpt-oss-20b` unless current validation evidence shows a more stable cross-family second judge.
 - Meaningful compare, optimize, dev, and overnight configs must not silently fall back to fixture benchmarks; fixture and smoke configs exist only for fast contract checks.
 
 ## Candidate and result expectations
@@ -64,6 +65,7 @@ The optimizer must:
 - make degraded prompt-only candidates unmistakable rather than treating them as healthy peers
 - distinguish the raw benchmark winner from the recommended operational default when trust caveats differ
 - surface retrieval mode, top-k, rescue mode, whole-document mode, structured-output mode, fallback mode, dual-judge status, evidence-anchor audits, metadata-family summaries, join failures, and runtime accounting in reports
+- treat judge disagreement, judge request failures, and evidence weakness as first-class trust signals in ranking and report warnings rather than burying them as secondary diagnostics
 - sort healthy scored candidates ahead of scored-degraded, unscored, and failed candidates so unsupported structured-output candidates do not look equivalent to valid runs
 
 ## Ownership boundary

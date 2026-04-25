@@ -50,7 +50,7 @@ python -m paper_eval evaluate \
   --gold tests/fixtures/example_eval/gold.csv \
   --schema tests/fixtures/example_eval/schema.json \
   --judge-model google/gemma-4-26b-a4b \
-  --judge-model-b qwen/qwen3.6-35b-a3b \
+  --judge-model-b openai/gpt-oss-20b \
   --out out/example-single
 ```
 
@@ -62,7 +62,7 @@ python -m paper_eval evaluate \
   --gold tests/fixtures/example_eval/gold.csv \
   --schema tests/fixtures/example_eval/schema.json \
   --judge-model google/gemma-4-26b-a4b \
-  --judge-model-b qwen/qwen3.6-35b-a3b \
+  --judge-model-b openai/gpt-oss-20b \
   --out out/example-batch
 ```
 
@@ -116,10 +116,13 @@ Real benchmark studies should use two judges. Per-run summaries and comparison r
 
 - `correctness_judge_a` and `correctness_judge_b`
 - disagreement count and rate
+- judge-a versus judge-b correctness delta
 - judge-specific unclear and request-failure counts
 - judge response-mode summaries
 
-Dual-judge execution is judge-major by default: eval prepares all eligible text-cell requests, runs all `judge_a` batches, then all `judge_b` batches, grouped by effective provider/model/settings, and merges results back into the original deterministic cell order. If judge B fails, judge A records remain usable. Per-run summaries include `judge_execution_summary` with batch counts, eligible counts, runtimes, execution order, and model-switch diagnostics.
+Dual-judge execution is judge-major by default: eval prepares all eligible text-cell requests, runs all `judge_a` batches, then all `judge_b` batches, grouped by effective provider/model/settings, and merges results back into the original deterministic cell order. If judge B fails, judge A records remain usable. Per-run summaries include `judge_execution_summary` with batch counts, eligible counts, runtimes, execution order, model-switch diagnostics, and judge cleanup failures when LM Studio cleanup could not be completed cleanly.
+
+Eval now enforces range invariants for ratio metrics. Coverage-style metrics must stay within `[0, 1]`; impossible values are treated as implementation defects rather than silently published.
 
 ## Why this tool stays separate from the product surface
 

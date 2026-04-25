@@ -80,7 +80,7 @@ Prepared config families now separate canonical real-benchmark studies from smok
 - `compare_models_contract_smoke.json`: minimum smoke config for live contract checks
 
 Real-benchmark manifests now fail preflight if they point at fixture assets, omit required dual-judge settings, or reference missing benchmark files.
-Prepared configs now default `--judge-model-b` to `mistralai/ministral-3-14b-reasoning` so judge B is enabled by default without Gemma/Qwen coupling.
+Prepared configs now default `--judge-model-b` to `openai/gpt-oss-20b` so judge B is enabled by default without Gemma/Qwen coupling.
 
 Model-compare and overnight candidate lists include:
 
@@ -93,9 +93,9 @@ Model-compare and overnight candidate lists include:
 - `unsloth/qwen3.6-35b-a3b`
 - `zai-org/glm-4.6v-flash`
 
-The operational default is `unsloth/gemma-4-26b-a4b-it` because the latest model compare had the best practical score/cost tradeoff. The benchmark winner and operational recommendation stay separate report concepts when trust, runtime, or degradation caveats differ.
+The operational default is `unsloth/gemma-4-26b-a4b-it`. `google/gemma-4-26b-a4b` remains the focused optimize-one-model target. The benchmark winner and operational recommendation stay separate report concepts when trust, runtime, or degradation caveats differ.
 
-Reports surface dual-judge completion, disagreement, per-judge failures, evidence-anchor outcome counts, degraded or prompt-only status, and join failures directly in ranked candidate rows. Degraded and unscored candidates remain ranked below healthy scored candidates.
+Reports surface dual-judge completion, disagreement, per-judge failures, evidence-anchor outcome counts, degraded or prompt-only status, and join failures directly in ranked candidate rows. High disagreement and judge-request failures now penalize ranking directly instead of staying report-only context. Degraded and unscored candidates remain ranked below healthy scored candidates.
 
 Recommended study order:
 

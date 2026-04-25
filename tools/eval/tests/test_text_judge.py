@@ -947,6 +947,7 @@ class TextJudgeScoringTests(unittest.TestCase):
 
     def test_dual_judge_execution_is_judge_major_and_reported(self) -> None:
         calls: list[tuple[str, str | None]] = []
+        cleanup_calls: list[str] = []
 
         class RecordingJudge(FakeJudge):
             def __init__(self, label: str, verdict: str) -> None:
@@ -956,6 +957,9 @@ class TextJudgeScoringTests(unittest.TestCase):
             def judge(self, judge_request) -> JudgeResponse:
                 calls.append((self.label, judge_request.cell_id))
                 return super().judge(judge_request)
+
+            def cleanup_model_residency(self) -> None:
+                cleanup_calls.append(self.label)
 
         loaded_run = self._loaded_run(
             ProposalRecord(
@@ -1021,7 +1025,43 @@ class TextJudgeScoringTests(unittest.TestCase):
         self.assertEqual(result.judge_execution_summary["execution_order"], ["judge_a", "judge_b"])
         self.assertEqual(result.judge_execution_summary["eligible_cell_count"], 2)
         self.assertEqual(result.judge_execution_summary["batch_count"], 2)
+        self.assertEqual(cleanup_calls, ["judge_a", "judge_b"])
         self.assertEqual(summary.metrics["judge_execution_summary"]["execution_policy"], "judge_major_grouped_by_provider_model_settings")
+
+    def test_run_summary_never_reports_content_coverage_above_one(self) -> None:
+        loaded_run = self._loaded_run(
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="Title",
+                cell_id="cell-title-1",
+                proposed_value="Paper Title",
+                field_type="text",
+            ),
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="notes",
+                cell_id="cell-notes-1",
+                proposed_value="expanded biology description with assay context",
+                field_type="text",
+            ),
+        )
+        gold = self._gold_dataset(
+            GoldCell(row_id="row-1", column_name="Title", cell_id="cell-title-1", raw_value="Paper Title", is_present=True),
+            GoldCell(row_id="row-1", column_name="notes", cell_id="cell-notes-1", raw_value="Expanded biological description", is_present=True),
+        )
+        result = score_run(
+            loaded_run,
+            gold,
+            load_schema(None),
+            text_judges={"judge_a": FakeJudge("correct")},
+            judge_configs={"judge_a": JudgeConfig(model_id="judge-model-a", label="judge_a")},
+        )
+
+        summary = build_run_summary(loaded_run, gold, result.scored_cells, judge_execution_summary=result.judge_execution_summary)
+
+        self.assertLessEqual(summary.metrics["proposal_coverage_on_content_gold_present"], 1.0)
 
     def test_dual_judge_partial_failure_preserves_successful_judge_result(self) -> None:
         loaded_run = self._loaded_run(

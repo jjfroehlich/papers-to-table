@@ -224,7 +224,7 @@ class TestRunPipeline:
         stats_path = get_run_stats_path(output_dir, run_id)
         assert stats_path.exists()
         stats = read_json(stats_path)
-        assert stats["retrieval_mode"] == "lexical"
+        assert stats["retrieval_mode"] == "hybrid_experimental"
         assert stats["per_run"]["run_total_ms"] is not None
         assert "parse" in stats["per_run"]["stage_ms"]
         assert "stage_parsing_ms" in stats["per_run"]["stage_timing_ms"]
@@ -342,6 +342,7 @@ class TestRunPipeline:
         assert pdf_stats["neighbor_chunks_added_count"] == 2
         assert pdf_stats["text_model_call_count"] == 1
         assert pdf_stats["vision_model_call_count"] == 1
+        assert pdf_stats["evidence_item_count"] == 4
 
         assert cell_stats["candidate_chunk_count"] == 4
         assert cell_stats["selected_chunk_count"] == 2
@@ -355,6 +356,7 @@ class TestRunPipeline:
         assert stats["consistency"]["processed_cells_match_per_cell_records"] is True
         assert stats["consistency"]["retrieval_calls_match_per_pdf_sum"] is True
         assert stats["consistency"]["evidence_items_match_persisted_records"] is True
+        assert stats["consistency"]["per_pdf_evidence_items_match_persisted_records"] is True
         assert stats["consistency"]["text_model_calls_match_per_cell_sum"] is True
         assert stats["consistency"]["vision_model_calls_match_per_cell_sum"] is True
 

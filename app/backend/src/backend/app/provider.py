@@ -701,6 +701,23 @@ class LMStudioProvider(ProviderAdapter):
         }
         self._trace_records: list[dict[str, Any]] = []
         self._pending_transport_metadata: Optional[dict[str, Any]] = None
+        self._model_management_events: list[dict[str, Any]] = []
+        self._model_management_counters: dict[str, int] = {
+            "load_attempts": 0,
+            "load_successes": 0,
+            "load_failures": 0,
+            "unload_attempts": 0,
+            "unload_successes": 0,
+            "unload_failures": 0,
+            "model_switch_count": 0,
+            "same_model_multi_instance_detected": 0,
+            "channel_error_count": 0,
+            "client_disconnected_count": 0,
+            "model_load_canceled_count": 0,
+            "generation_canceled_count": 0,
+            "transition_conflict_count": 0,
+        }
+        self._peak_loaded_llm_count = 0
         self._model_management_report: dict[str, Any] = {
             "provider": "lm_studio",
             "base_url": self._base_url,
@@ -761,6 +778,67 @@ class LMStudioProvider(ProviderAdapter):
 
     def get_model_management_report(self) -> dict[str, Any]:
         return dict(self._model_management_report)
+
+    def _classify_operational_error(self, error_message: Optional[str]) -> Optional[str]:
+        text = str(error_message or "").lower()
+        if not text:
+            return None
+        if "channel error" in text:
+            return "channel_error"
+        if "client disconnected" in text:
+            return "client_disconnected"
+        if "operation canceled" in text and "load" in text:
+            return "model_load_canceled"
+        if "operation canceled" in text or "generation canceled" in text or "stopping generation" in text:
+            return "generation_canceled"
+        return None
+
+    def _record_model_management_event(
+        self,
+        *,
+        phase: str,
+        action: str,
+        status: str,
+        model_id: Optional[str] = None,
+        instance_id: Optional[str] = None,
+        details: Optional[dict[str, Any]] = None,
+    ) -> None:
+        event = {
+            "sequence": len(self._model_management_events) + 1,
+            "phase": phase,
+            "action": action,
+            "status": status,
+            "model_id": model_id,
+            "instance_id": instance_id,
+            "details": details or {},
+            "recorded_at": datetime.now(timezone.utc).isoformat(),
+        }
+        self._model_management_events.append(event)
+
+    def _update_loaded_model_observability(self, models_payload: dict[str, Any]) -> dict[str, Any]:
+        llm_loaded_count = 0
+        same_model_multi_instance: list[dict[str, Any]] = []
+        for model_entry in models_payload.get("models") or []:
+            if not isinstance(model_entry, dict):
+                continue
+            loaded_instances = self._loaded_instance_summaries(model_entry)
+            if str(model_entry.get("type") or "").lower() == "llm":
+                llm_loaded_count += len(loaded_instances)
+            if len(loaded_instances) > 1:
+                same_model_multi_instance.append(
+                    {
+                        "model_id": str(model_entry.get("key") or ""),
+                        "loaded_instances": loaded_instances,
+                    }
+                )
+        self._peak_loaded_llm_count = max(self._peak_loaded_llm_count, llm_loaded_count)
+        if same_model_multi_instance:
+            self._model_management_counters["same_model_multi_instance_detected"] += len(same_model_multi_instance)
+        return {
+            "loaded_llm_instance_count": llm_loaded_count,
+            "peak_loaded_llm_instance_count": self._peak_loaded_llm_count,
+            "same_model_multi_instance": same_model_multi_instance,
+        }
 
     def _truncate_preview(self, value: Optional[str], limit: int = 240) -> Optional[str]:
         if value is None:
@@ -950,6 +1028,15 @@ class LMStudioProvider(ProviderAdapter):
             outcome = "structured_backend_incompatible" if reason == "structured_backend_incompatible" else "structured_output_error"
         else:
             outcome = "provider_error"
+        error_classification = self._classify_operational_error(str(error))
+        if error_classification == "channel_error":
+            self._model_management_counters["channel_error_count"] += 1
+        elif error_classification == "client_disconnected":
+            self._model_management_counters["client_disconnected_count"] += 1
+        elif error_classification == "model_load_canceled":
+            self._model_management_counters["model_load_canceled_count"] += 1
+        elif error_classification == "generation_canceled":
+            self._model_management_counters["generation_canceled_count"] += 1
         self._record_attempt(
             request_kind=request_kind,
             structured_mode=structured_mode,
@@ -958,7 +1045,10 @@ class LMStudioProvider(ProviderAdapter):
             duration_ms=duration_ms,
             error_reason=getattr(error, "reason", None),
             error_message=str(error),
-            error_details=getattr(error, "details", None),
+            error_details={
+                **(getattr(error, "details", None) or {}),
+                "operational_error_classification": error_classification,
+            },
         )
 
     def _rest_url(self, path: str) -> str:
@@ -1116,6 +1206,7 @@ class LMStudioProvider(ProviderAdapter):
 
         load_started = perf_counter()
         try:
+            self._model_management_counters["load_attempts"] += 1
             async with httpx.AsyncClient(timeout=120.0) as client:
                 self._bump("http_total")
                 self._bump("model_management_load")
@@ -1148,8 +1239,18 @@ class LMStudioProvider(ProviderAdapter):
                 phase="model_management",
                 payload_summary=self._summarize_payload(payload),
             )
+            self._model_management_counters["load_successes"] += 1
+            self._record_model_management_event(
+                phase="model_management",
+                action="load",
+                status="success",
+                model_id=model_id,
+                instance_id=response_data.get("instance_id"),
+                details={"role": role, "required_load_context": required_load_context},
+            )
             return response_data
         except ProviderError:
+            self._model_management_counters["load_failures"] += 1
             raise
         except Exception as error:
             duration_ms = (perf_counter() - load_started) * 1000.0
@@ -1164,12 +1265,21 @@ class LMStudioProvider(ProviderAdapter):
                 duration_ms=duration_ms,
                 error=wrapped,
             )
+            self._model_management_counters["load_failures"] += 1
+            self._record_model_management_event(
+                phase="model_management",
+                action="load",
+                status="failed",
+                model_id=model_id,
+                details={"role": role, "required_load_context": required_load_context},
+            )
             raise wrapped from error
 
     async def _unload_model_via_rest(self, *, instance_id: str) -> dict[str, Any]:
         payload = {"instance_id": instance_id}
         load_started = perf_counter()
         try:
+            self._model_management_counters["unload_attempts"] += 1
             async with httpx.AsyncClient(timeout=60.0) as client:
                 self._bump("http_total")
                 self._bump("model_management_unload")
@@ -1201,8 +1311,16 @@ class LMStudioProvider(ProviderAdapter):
                 phase="model_management",
                 payload_summary=self._summarize_payload(payload),
             )
+            self._model_management_counters["unload_successes"] += 1
+            self._record_model_management_event(
+                phase="model_management",
+                action="unload",
+                status="success",
+                instance_id=instance_id,
+            )
             return response_data
         except ProviderError:
+            self._model_management_counters["unload_failures"] += 1
             raise
         except Exception as error:
             duration_ms = (perf_counter() - load_started) * 1000.0
@@ -1216,6 +1334,13 @@ class LMStudioProvider(ProviderAdapter):
                 model_id=instance_id,
                 duration_ms=duration_ms,
                 error=wrapped,
+            )
+            self._model_management_counters["unload_failures"] += 1
+            self._record_model_management_event(
+                phase="model_management",
+                action="unload",
+                status="failed",
+                instance_id=instance_id,
             )
             raise wrapped from error
 
@@ -1338,6 +1463,10 @@ class LMStudioProvider(ProviderAdapter):
                 "succeeded": [],
                 "failed": [],
             },
+            "residency_policy": {
+                "target_loaded_llm_instances": 1,
+                "max_loaded_llm_instances": 2,
+            },
             "recorded_at": datetime.now(timezone.utc).isoformat(),
         }
         try:
@@ -1348,6 +1477,7 @@ class LMStudioProvider(ProviderAdapter):
                 requested_model_ids[vision_model_id] = vision_load_context_length
 
             preflight_models = await self._list_rest_models()
+            report["preflight_state"] = self._update_loaded_model_observability(preflight_models)
             keep_instance_ids = self._loaded_instances_for_model_ids(preflight_models, requested_model_ids)
             unload_plan = self._plan_model_unloads(preflight_models, requested_model_ids)
             if unload_plan:
@@ -1386,7 +1516,14 @@ class LMStudioProvider(ProviderAdapter):
                     required_load_context=vision_load_context_length,
                 )
                 report["vision_model"] = vision_report
-
+            postflight_models = await self._list_rest_models()
+            report["postflight_state"] = self._update_loaded_model_observability(postflight_models)
+            report["timeline"] = list(self._model_management_events)
+            report["counters"] = dict(self._model_management_counters)
+            report["switch_required"] = bool(report["unloads"]["attempted"] or (text_report or {}).get("load_requested"))
+            if report["switch_required"]:
+                self._model_management_counters["model_switch_count"] += 1
+                report["counters"] = dict(self._model_management_counters)
             self._model_management_report = report
             return report
         except ProviderError as error:
@@ -1405,6 +1542,69 @@ class LMStudioProvider(ProviderAdapter):
                 reason=getattr(error, "reason", None),
                 details={"model_management": report},
             ) from error
+
+    async def cleanup_model_residency(
+        self,
+        *,
+        keep_model_ids: list[str] | None = None,
+        phase_label: str = "phase_cleanup",
+    ) -> dict[str, Any]:
+        keep_requested = {
+            model_id: None
+            for model_id in (keep_model_ids or [])
+            if _has_explicit_model_id(model_id)
+        }
+        before = await self._list_rest_models()
+        before_state = self._update_loaded_model_observability(before)
+        unload_plan = self._plan_model_unloads(before, keep_requested)
+        report = {
+            "phase_label": phase_label,
+            "keep_model_ids": sorted(keep_requested.keys()),
+            "before_state": before_state,
+            "attempted": list(unload_plan),
+            "succeeded": [],
+            "failed": [],
+            "recorded_at": datetime.now(timezone.utc).isoformat(),
+        }
+        self._record_model_management_event(
+            phase=phase_label,
+            action="cleanup_begin",
+            status="started",
+            details={"keep_model_ids": report["keep_model_ids"]},
+        )
+        for unload_item in unload_plan:
+            try:
+                response = await self._unload_model_via_rest(instance_id=unload_item["instance_id"])
+                report["succeeded"].append(
+                    {**unload_item, "response_instance_id": response.get("instance_id")}
+                )
+            except ProviderError as error:
+                report["failed"].append(
+                    {
+                        **unload_item,
+                        "reason": getattr(error, "reason", None),
+                        "message": str(error),
+                    }
+                )
+        after = await self._list_rest_models()
+        report["after_state"] = self._update_loaded_model_observability(after)
+        self._record_model_management_event(
+            phase=phase_label,
+            action="cleanup_end",
+            status="completed" if not report["failed"] else "completed_with_failures",
+            details={
+                "attempted": len(report["attempted"]),
+                "succeeded": len(report["succeeded"]),
+                "failed": len(report["failed"]),
+            },
+        )
+        self._model_management_report = {
+            **dict(self._model_management_report),
+            "last_cleanup": report,
+            "timeline": list(self._model_management_events),
+            "counters": dict(self._model_management_counters),
+        }
+        return report
 
     @property
     def token(self) -> str:

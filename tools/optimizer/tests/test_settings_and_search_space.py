@@ -77,7 +77,7 @@ def test_checked_in_planned_configs_pin_non_gemma_non_qwen_judge_b() -> None:
             if not isinstance(eval_args, list) or "--judge-model-b" not in eval_args:
                 continue
             judge_b = eval_args[eval_args.index("--judge-model-b") + 1]
-            assert judge_b == "mistralai/ministral-3-14b-reasoning"
+            assert judge_b == "openai/gpt-oss-20b"
 
 
 def test_compare_models_contract_smoke_is_tiny_and_fast_by_contract() -> None:

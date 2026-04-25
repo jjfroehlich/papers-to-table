@@ -27,6 +27,7 @@ from backend.app.matching import (
     score_against_row,
     score_all_rows,
 )
+from backend.app.metadata import extract_matching_metadata_debug
 from backend.app.parsing import (
     BasicTextParserAdapter,
     DocumentMetadata,
@@ -206,6 +207,22 @@ class TestParserAdapterInterface:
 
 
 class TestMetadataHeuristics:
+    def test_matching_metadata_rejects_correspondence_line_as_title(self):
+        doc_dict = {
+            "metadata": {"title": "For correspondence: b.v.steensel@nki.nl"},
+            "blocks": [
+                {"block_type": "paragraph", "page_number": 1, "text": "For correspondence: b.v.steensel@nki.nl"},
+                {"block_type": "heading", "page_number": 1, "text": "CRISPR perturbation mapping in mammalian cells"},
+            ],
+            "full_text": "CRISPR perturbation mapping in mammalian cells\nFor correspondence: b.v.steensel@nki.nl",
+            "parser_used": "docling",
+        }
+
+        resolved = extract_matching_metadata_debug(doc_dict)
+
+        assert resolved.metadata.title == "CRISPR perturbation mapping in mammalian cells"
+        assert resolved.front_matter_diagnostics["title_rejection_reasons"][0]["reason"] == "correspondence_line"
+
     def test_extract_authors_from_standard_header_line(self):
         first_pages_text = (
             "Engineering mammalian cells for robust reporter assays\n"

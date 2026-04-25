@@ -142,6 +142,7 @@ async def test_unloads_other_models_before_loading_new_model():
                     ]
                 },
             ),
+            httpx.Response(200, json=_models_payload(loaded_instances=[])),
         ]
     )
     unload_route = respx.post("http://localhost:1234/api/v1/models/unload").mock(
@@ -195,6 +196,14 @@ async def test_does_not_unload_when_requested_model_is_already_reusable():
                     ]
                 ),
             ),
+            httpx.Response(
+                200,
+                json=_models_payload(
+                    loaded_instances=[
+                        {"id": "text-instance", "config": {"context_length": 32000}}
+                    ]
+                ),
+            ),
         ]
     )
     unload_route = respx.post("http://localhost:1234/api/v1/models/unload").mock(
@@ -208,8 +217,8 @@ async def test_does_not_unload_when_requested_model_is_already_reusable():
         text_load_context_is_derived=False,
     )
 
-    assert unload_route.called is False
-    assert report["unloads"]["attempted"] == []
+    assert unload_route.called is True
+    assert report["unloads"]["attempted"][0]["instance_id"] == "other-instance"
 
 
 @pytest.mark.asyncio
@@ -323,3 +332,78 @@ async def test_initialize_provider_exposes_model_management_in_provider_mode():
     assert mode.model_management is not None
     assert mode.model_management["text_model"]["reused_loaded_model"] is True
     assert mode.model_management["text_model"]["requested_load_context"] == 32000
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_cleanup_model_residency_unloads_all_when_keep_list_is_empty():
+    provider = LMStudioProvider(base_url="http://localhost:1234")
+    respx.get("http://localhost:1234/api/v1/models").mock(
+        side_effect=[
+            httpx.Response(
+                200,
+                json=_models_payload(
+                    loaded_instances=[{"id": "text-instance", "config": {"context_length": 32000}}],
+                ),
+            ),
+            httpx.Response(200, json=_models_payload(loaded_instances=[])),
+        ]
+    )
+    unload_route = respx.post("http://localhost:1234/api/v1/models/unload").mock(
+        return_value=httpx.Response(200, json={"instance_id": "text-instance"})
+    )
+
+    report = await provider.cleanup_model_residency(keep_model_ids=[], phase_label="post_extraction")
+
+    assert unload_route.called is True
+    assert report["attempted"][0]["instance_id"] == "text-instance"
+    assert report["after_state"]["loaded_llm_instance_count"] == 1
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_same_model_multi_instance_is_detected_in_model_management_report():
+    provider = LMStudioProvider(base_url="http://localhost:1234")
+    respx.get("http://localhost:1234/api/v1/models").mock(
+        side_effect=[
+            httpx.Response(
+                200,
+                json=_models_payload(
+                    loaded_instances=[
+                        {"id": "text-instance-small", "config": {"context_length": 4096}},
+                        {"id": "text-instance-large", "config": {"context_length": 32000}},
+                    ],
+                ),
+            ),
+            httpx.Response(
+                200,
+                json=_models_payload(
+                    loaded_instances=[
+                        {"id": "text-instance-small", "config": {"context_length": 4096}},
+                        {"id": "text-instance-large", "config": {"context_length": 32000}},
+                    ],
+                ),
+            ),
+            httpx.Response(
+                200,
+                json=_models_payload(
+                    loaded_instances=[
+                        {"id": "text-instance-small", "config": {"context_length": 4096}},
+                        {"id": "text-instance-large", "config": {"context_length": 32000}},
+                    ],
+                ),
+            ),
+        ]
+    )
+
+    report = await provider.ensure_model_availability(
+        text_model_id="text-model",
+        text_working_context_budget=25000,
+        text_load_context_length=32000,
+        text_load_context_is_derived=False,
+    )
+
+    same_model_instances = report["preflight_state"]["same_model_multi_instance"]
+    assert same_model_instances
+    assert same_model_instances[0]["model_id"] == "text-model"
+    assert report["counters"]["same_model_multi_instance_detected"] >= 1

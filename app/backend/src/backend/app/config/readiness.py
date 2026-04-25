@@ -13,7 +13,7 @@ def _is_configured_model_id(model_id: Optional[str]) -> bool:
     if model_id is None:
         return False
     normalized = model_id.strip()
-    return bool(normalized) and normalized != DEFAULT_MODEL_ID
+    return bool(normalized) and normalized != "default"
 
 
 class ReadinessResult:
@@ -78,7 +78,7 @@ async def check_readiness(config: RunConfig) -> ReadinessResult:
             r.provider_readiness_reason = 'model_unavailable'
             r.provider_readiness_error = (
                 'provider.text_model.model_id must be set to a real LM Studio model id; '
-                f'"{DEFAULT_MODEL_ID}" is not allowed.'
+                '"default" is not allowed.'
             )
             r.fail(r.provider_readiness_error)
         try:

@@ -24,12 +24,22 @@ def _primary_metric_value(result: CandidateResult, metric_name: str) -> float:
     return float(result.primary_metrics.get(metric_name, float("-inf")))
 
 
+def _ranking_penalty(result: CandidateResult) -> tuple[float, float, float]:
+    eval_summary = result.metadata.get("eval_summary", {}) if isinstance(result.metadata.get("eval_summary"), dict) else {}
+    metrics = eval_summary.get("metrics", {}) if isinstance(eval_summary.get("metrics"), dict) else {}
+    disagreement = float(metrics.get("judge_disagreement_rate") or 0.0)
+    judge_failures = float(metrics.get("judge_request_failed_count") or 0.0)
+    missing_evidence = float(metrics.get("missing_evidence_count") or 0.0)
+    return (-disagreement, -judge_failures, -missing_evidence)
+
+
 def _rank_compare_results(results: list[CandidateResult], primary_metric: str) -> list[CandidateResult]:
     return sorted(
         results,
         key=lambda item: (
             item.candidate_status == "completed",
             _primary_metric_value(item, primary_metric),
+            *_ranking_penalty(item),
             -(item.runtime_seconds or float("inf")),
         ),
         reverse=True,
@@ -49,6 +59,9 @@ def _result_summary_row(result: CandidateResult, primary_metric: str) -> dict[st
     provider_diag = _load_candidate_provider_diagnostics(result)
     provider_counts = _provider_failure_counters(provider_diag)
     reliability_label = _reliability_label(result, reviewer_summary, provider_counts)
+    disagreement_rate = eval_metrics.get("judge_disagreement_rate")
+    correctness_a = eval_metrics.get("correctness_judge_a")
+    correctness_b = eval_metrics.get("correctness_judge_b")
     return {
         "candidate_id": result.candidate_id,
         "candidate_status": result.candidate_status,
@@ -164,6 +177,12 @@ def _candidate_diagnostic_row(result: CandidateResult, primary_metric: str) -> d
         "dual_judge_completed": eval_metrics.get("dual_judge_completed"),
         "judge_disagreement_count": eval_metrics.get("judge_disagreement_count"),
         "judge_disagreement_rate": eval_metrics.get("judge_disagreement_rate"),
+        "judge_disagreement_warning": bool(disagreement_rate is not None and float(disagreement_rate) >= 0.2),
+        "judge_correctness_delta": (
+            abs(float(correctness_a) - float(correctness_b))
+            if correctness_a is not None and correctness_b is not None
+            else None
+        ),
         "anchor_valid_rate": eval_metrics.get("anchor_valid_rate"),
         "evidence_item_count": eval_metrics.get("evidence_item_count"),
         "missing_evidence_count": eval_metrics.get("missing_evidence_count"),
@@ -270,9 +289,16 @@ def _reliability_label(
         or provider_counts["malformed_json_count"] > 0
         or provider_counts["retry_count"] > 0
     )
+    eval_summary = result.metadata.get("eval_summary", {}) if isinstance(result.metadata.get("eval_summary"), dict) else {}
+    eval_metrics = eval_summary.get("metrics", {}) if isinstance(eval_summary.get("metrics"), dict) else {}
+    high_disagreement = float(eval_metrics.get("judge_disagreement_rate") or 0.0) >= 0.2
+    weak_evidence = (
+        int(eval_metrics.get("missing_evidence_count") or 0) > 0
+        or int(eval_metrics.get("evidence_present_but_unvalidated_count") or 0) > 0
+    )
     if contract_invalid or degraded:
         return "degraded"
-    if unstable:
+    if unstable or high_disagreement or weak_evidence:
         return "unstable"
     return "healthy"
 

@@ -326,6 +326,15 @@ class LMStudioTextJudge:
                 f"LM Studio reported a successful load request for judge model '{model_id}', but the model is still not listed at the OpenAI-compatible models endpoint."
             )
 
+    def cleanup_model_residency(self) -> None:
+        models_payload = self._list_rest_models()
+        unload_plan = self._plan_model_unloads(models_payload, "")
+        for unload_item in unload_plan:
+            try:
+                self._unload_model_via_rest(instance_id=unload_item["instance_id"])
+            except EvaluationError:
+                continue
+
     @staticmethod
     def _model_matches_requested_id(model_entry: dict[str, Any], model_id: str) -> bool:
         if str(model_entry.get("key") or "") == model_id:

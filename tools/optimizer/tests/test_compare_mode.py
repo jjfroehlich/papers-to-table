@@ -8,7 +8,7 @@ from pathlib import Path
 from paper_optimizer.plotting import generate_compare_plots
 from paper_optimizer.benchmarks import load_benchmarks
 from paper_optimizer.contracts import CandidateResult
-from paper_optimizer.study import run_compare_mode
+from paper_optimizer.study import _rank_compare_results, run_compare_mode
 
 
 def test_compare_mode_outputs(base_config: dict, tmp_path: Path) -> None:
@@ -155,6 +155,52 @@ def test_compare_plots_keep_unscored_candidates(tmp_path: Path) -> None:
     )
     assert [row["text_model_id"] for row in model_rows] == ["google/gemma-4-26b-a4b", "qwen/qwen3.5-9b"]
     assert model_rows[1]["best_primary_score"] == ""
+
+
+def test_compare_ranking_penalizes_high_judge_disagreement() -> None:
+    def _result(candidate_id: str, disagreement: float) -> CandidateResult:
+        return CandidateResult(
+            schema_version="1.0",
+            experiment_id="exp",
+            study_type="compare",
+            benchmark_id="bench",
+            candidate_id=candidate_id,
+            parent_candidate_id=None,
+            round_index=0,
+            candidate_hash=f"hash-{candidate_id}",
+            candidate_manifest_path="candidate.json",
+            candidate_bundle_dir="bundle",
+            prompt_bundle_id="default",
+            text_model_id="model",
+            vision_model_id=None,
+            optimizer_knobs_flat={},
+            primary_metrics={"correctness": 0.8},
+            guardrail_metrics={},
+            diagnostic_metrics={},
+            scored=True,
+            score_status="scored",
+            runtime_seconds=5.0,
+            runtime_metadata={},
+            started_at="",
+            ended_at="",
+            candidate_status="completed",
+            promotion_decision="accepted",
+            decision_reason="completed",
+            structured_output_mode="json_schema",
+            prompt_only_degraded_mode_used=False,
+            extraction_contract_valid=True,
+            extraction_contract_warnings=[],
+            main_app_run_ref={},
+            eval_output_ref={},
+            metadata={"eval_summary": {"metrics": {"judge_disagreement_rate": disagreement}}},
+        )
+
+    ranked = _rank_compare_results(
+        [_result("cand_high", 0.4), _result("cand_low", 0.05)],
+        "correctness",
+    )
+
+    assert ranked[0].candidate_id == "cand_low"
 
 
 def test_compare_mode_writes_no_winner_artifact_when_all_candidates_fail(

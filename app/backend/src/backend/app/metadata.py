@@ -9,6 +9,13 @@ from .parsing import _DOI_PATTERN, _YEAR_PATTERN
 
 _URL_PATTERN = re.compile(r"https?://\S+", re.IGNORECASE)
 _PMID_PATTERN = re.compile(r"\bPMID\s*:?\s*(\d{5,})\b", re.IGNORECASE)
+_TITLE_JUNK_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("correspondence_line", re.compile(r"\b(for\s+correspondence|correspondence)\b", re.IGNORECASE)),
+    ("email_line", re.compile(r"\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b")),
+    ("doi_line", re.compile(r"\bdoi\b", re.IGNORECASE)),
+    ("published_line", re.compile(r"\b(received|accepted|published|copyright)\b", re.IGNORECASE)),
+    ("figure_or_table_label", re.compile(r"^(figure|fig\.?|table|supplementary)\b", re.IGNORECASE)),
+)
 
 
 class MatchingMetadata(BaseModel):
@@ -123,6 +130,8 @@ def extract_matching_metadata_debug(doc_dict: dict) -> MatchingMetadataDebug:
         "front_matter_block_types": [str(block.get("block_type") or "unknown") for block in blocks[:20]],
         "parser_metadata_present": bool(meta),
         "full_text_available": bool(full_text.strip()),
+        "title_candidate": dict(title_candidate) if title_candidate else None,
+        "title_rejection_reasons": _collect_title_rejection_reasons(meta, blocks),
     }
     missing_fields = [
         field_name
@@ -270,13 +279,13 @@ def _find_title_from_blocks(blocks: list[dict]) -> Optional[str]:
     for block in blocks:
         block_type = str(block.get("block_type") or "")
         text = _coerce_text(block.get("text"))
-        if block_type in {"heading", "section_heading"} and text and 15 < len(text) < 300:
+        if block_type in {"heading", "section_heading"} and text and 15 < len(text) < 300 and not _title_looks_corrupt(text):
             return text
     for block in blocks:
         text = _coerce_text(block.get("text"))
         if text and 20 < len(text) < 300:
             lowered = text.lower()
-            if not any(token in lowered for token in ["doi", "journal", "published", "received"]):
+            if not any(token in lowered for token in ["doi", "journal", "published", "received"]) and not _title_looks_corrupt(text):
                 return text
     return None
 
@@ -314,7 +323,7 @@ def _find_journal_candidates(blocks: list[dict]) -> list[dict[str, object]]:
 
 def _title_candidate(meta: dict, blocks: list[dict]) -> Optional[dict[str, object]]:
     parser_title = _coerce_text(meta.get("title"))
-    if parser_title:
+    if parser_title and not _title_looks_corrupt(parser_title):
         return _candidate(
             parser_title,
             source="parser_metadata",
@@ -328,6 +337,48 @@ def _title_candidate(meta: dict, blocks: list[dict]) -> Optional[dict[str, objec
             quote_text=front_matter_title,
             page_number=_find_text_page(blocks, front_matter_title),
         )
+    return None
+
+
+def _collect_title_rejection_reasons(meta: dict, blocks: list[dict]) -> list[dict[str, object]]:
+    reasons: list[dict[str, object]] = []
+    parser_title = _coerce_text(meta.get("title"))
+    if parser_title:
+        parser_reason = _title_rejection_reason(parser_title)
+        if parser_reason is not None:
+            reasons.append({"source": "parser_metadata", "reason": parser_reason, "value": parser_title})
+    for block in blocks[:10]:
+        text = _coerce_text(block.get("text"))
+        if not text:
+            continue
+        block_reason = _title_rejection_reason(text)
+        if block_reason is not None:
+            reasons.append(
+                {
+                    "source": "front_matter_block",
+                    "reason": block_reason,
+                    "value": text,
+                    "page_number": _coerce_page(block.get("page_number")),
+                }
+            )
+    return reasons
+
+
+def _title_looks_corrupt(text: str) -> bool:
+    return _title_rejection_reason(text) is not None
+
+
+def _title_rejection_reason(text: str) -> Optional[str]:
+    normalized = _coerce_text(text)
+    if not normalized:
+        return "empty"
+    if len(normalized) < 5:
+        return "too_short"
+    if len(normalized) > 300:
+        return "too_long"
+    for reason, pattern in _TITLE_JUNK_PATTERNS:
+        if pattern.search(normalized):
+            return reason
     return None
 
 

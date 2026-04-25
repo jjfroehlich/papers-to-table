@@ -166,6 +166,10 @@ def _build_caveats(
         caveats.append("Prompt-only fallback was used for at least one candidate.")
     if any(parse_bool(row.get("extraction_contract_valid")) is False for row in rows):
         caveats.append("At least one candidate failed extraction contract validation.")
+    if any((safe_float(row.get("judge_disagreement_rate")) or 0.0) >= 0.2 for row in rows):
+        caveats.append("At least one candidate had materially high dual-judge disagreement.")
+    if any((row.get("missing_evidence_count") or 0) > 0 for row in rows):
+        caveats.append("At least one candidate is carrying missing evidence into the ranked report.")
     if study_type == "optimize" and not caveats:
         caveats.append("No major trust caveats were recorded beyond the optimize acceptance policy.")
     if not caveats:
@@ -189,6 +193,8 @@ def _trust_note(row: dict[str, Any]) -> str:
         notes.append(f"dual_judge disagreement={format_percent(row.get('judge_disagreement_rate'), missing='0.0%')}")
     elif row.get("dual_judge_completed") is False:
         notes.append("dual_judge incomplete")
+    if parse_bool(row.get("judge_disagreement_warning")):
+        notes.append("high judge disagreement")
     return "; ".join(notes) if notes else "healthy"
 
 
@@ -716,6 +722,8 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
         )
     )
     caveats = _build_caveats(candidate_rows, holdout=holdout, study_type=study_type)
+    if str(run_metadata.get("status") or "").lower() == "running" and ended_at not in {"not recorded", "", None}:
+        caveats.insert(0, "Wrapper run metadata still says running even though experiment artifacts show an end time; treat wrapper status as stale.")
     next_checks = _build_next_checks(candidate_rows, holdout=holdout, variant=variant, study_type=study_type)
     gap = _gap_to_runner_up(candidate_rows)
 

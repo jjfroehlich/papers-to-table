@@ -473,6 +473,24 @@ async def run_pipeline(
         write_json(run_json_path, data)
         asyncio.create_task(publish_run_update(dict(data)))
 
+    async def cleanup_provider_models(
+        provider_obj: object | None,
+        *,
+        phase_label: str,
+        keep_model_ids: list[str] | None = None,
+    ) -> None:
+        if provider_obj is None:
+            return
+        cleanup = getattr(provider_obj, "cleanup_model_residency", None)
+        if not callable(cleanup):
+            return
+        try:
+            await cleanup(keep_model_ids=keep_model_ids, phase_label=phase_label)
+        finally:
+            if "run_dir" in locals():
+                sync_provider_artifacts(run_data, provider_obj, run_dir)
+                save_run_stats()
+
     def _finalize_active_stage() -> None:
         current_stage = stage_state.get("current")
         started = stage_state.get("started")
@@ -614,6 +632,17 @@ async def run_pipeline(
             if proposal is not None:
                 cell_stats.setdefault("warning_flags", list(proposal.warning_flags))
 
+        evidence_counts_per_pdf: dict[str, int] = {}
+        for proposal_id, proposal in proposal_by_id.items():
+            pdf_id = str(proposal.pdf_id or "")
+            if not pdf_id:
+                continue
+            evidence_counts_per_pdf[pdf_id] = evidence_counts_per_pdf.get(pdf_id, 0) + len(
+                evidence_by_proposal_id.get(proposal_id, [])
+            )
+        for pdf_id, pdf_stats in per_pdf.items():
+            pdf_stats["evidence_item_count"] = int(evidence_counts_per_pdf.get(pdf_id, 0) or 0)
+
         text_model_call_count = sum(int(cell.get("text_model_calls", 0) or 0) for cell in per_cell)
         vision_model_call_count = sum(int(cell.get("figure_review_calls", 0) or 0) for cell in per_cell)
         needs_more_evidence_count = sum(1 for cell in per_cell if bool(cell.get("needs_more_evidence")))
@@ -712,6 +741,11 @@ async def run_pipeline(
             "retrieval_calls_match_per_pdf_sum": retrieval_calls_total == sum(retrieval_calls_per_pdf.values()),
             "evidence_items_match_persisted_records": evidence_item_count == sum(
                 len(items) for items in evidence_by_proposal_id.values()
+            ),
+            "per_pdf_evidence_items_match_persisted_records": evidence_item_count == sum(
+                int(pdf_stats.get("evidence_item_count", 0) or 0)
+                for pdf_stats in per_pdf.values()
+                if isinstance(pdf_stats, dict)
             ),
             "text_model_calls_match_per_cell_sum": text_model_call_count == sum(
                 int(cell.get("text_model_calls", 0) or 0) for cell in per_cell
@@ -2015,6 +2049,7 @@ async def run_pipeline(
                 "message": f"{weak_count} proposal(s) have weak evidence.",
                 "context": {"count": weak_count},
             })
+        await cleanup_provider_models(provider, phase_label="post_extraction", keep_model_ids=[])
         run_data = sync_provider_artifacts(run_data, provider, run_dir)
         run_data = refresh_compact_contracts(run_data)
         save_run(run_data)
@@ -2126,6 +2161,7 @@ async def run_pipeline(
         run_stats["per_run"]["completed_at"] = run_data["completed_at"]
         run_stats["per_run"]["run_total_ms"] = round((perf_counter() - run_started_perf) * 1000.0, 3)
         if "run_dir" in locals():
+            await cleanup_provider_models(locals().get("provider"), phase_label="run_cancelled", keep_model_ids=[])
             run_data = sync_provider_artifacts(run_data, locals().get("provider"), run_dir)
         save_run(run_data)
         save_run_stats()
@@ -2144,6 +2180,7 @@ async def run_pipeline(
         run_stats["per_run"]["completed_at"] = run_data.get("completed_at") or datetime.now(timezone.utc).isoformat()
         run_stats["per_run"]["run_total_ms"] = round((perf_counter() - run_started_perf) * 1000.0, 3)
         if "run_dir" in locals():
+            await cleanup_provider_models(locals().get("provider"), phase_label="run_failed", keep_model_ids=[])
             run_data = sync_provider_artifacts(run_data, locals().get("provider"), run_dir)
         save_run(run_data)
         write_final_summaries(run_data, run_data.get("proposals_generated", 0))

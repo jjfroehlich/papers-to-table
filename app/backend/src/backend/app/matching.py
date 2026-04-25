@@ -22,7 +22,7 @@ import pandas as pd
 from pydantic import BaseModel
 
 from .artifacts import write_json
-from .metadata import extract_matching_metadata_debug
+from .metadata import extract_matching_metadata, extract_matching_metadata_debug
 from .parsing import _DOI_PATTERN, _YEAR_PATTERN
 from .schemas import MatchOutcome
 

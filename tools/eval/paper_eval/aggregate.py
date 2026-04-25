@@ -6,6 +6,17 @@ from typing import Iterable
 from paper_eval.contracts import GoldDataset, LoadedRun, RunSummary, ScoredCell
 
 
+def _checked_ratio(numerator: int, denominator: int, *, metric_name: str) -> float | None:
+    value = _ratio(numerator, denominator)
+    if value is None:
+        return None
+    if value < 0.0 or value > 1.0:
+        raise ValueError(
+            f"{metric_name} must be within [0, 1], got {value} from {numerator}/{denominator}."
+        )
+    return value
+
+
 def build_run_summary(
     loaded_run: LoadedRun,
     gold_dataset: GoldDataset,
@@ -75,6 +86,11 @@ def build_run_summary(
         for cell in gold_present_records
         if cell.join_status == "matched" and cell.proposal_count == 1
     ]
+    covered_content_gold_present = [
+        cell
+        for cell in content_gold_present_records
+        if cell.join_status == "matched" and cell.proposal_count == 1
+    ]
     join_problem_records = [
         cell
         for cell in scored_cells
@@ -100,11 +116,15 @@ def build_run_summary(
     content_correctness_on_gold_present = _accuracy_with_unscored_as_incorrect(content_gold_present_records)
     overall_correctness_on_gold_present = _accuracy_with_unscored_as_incorrect(gold_present_records)
     overall_correctness_mean = _accuracy(scored_records)
-    content_proposal_coverage_on_gold_present = _ratio(
-        len(covered_gold_present), len(content_gold_present_records)
+    content_proposal_coverage_on_gold_present = _checked_ratio(
+        len(covered_content_gold_present),
+        len(content_gold_present_records),
+        metric_name="proposal_coverage_on_content_gold_present",
     )
-    overall_proposal_coverage_on_gold_present = _ratio(
-        len(covered_gold_present), len(gold_present_records)
+    overall_proposal_coverage_on_gold_present = _checked_ratio(
+        len(covered_gold_present),
+        len(gold_present_records),
+        metric_name="proposal_coverage_on_all_gold_present",
     )
     judge_disagreement_records = [
         cell

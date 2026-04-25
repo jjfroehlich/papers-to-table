@@ -113,6 +113,7 @@ The backend may expose a stable non-UI automation entrypoint for tooling, but th
 
 - Retrieval should remain row-aware and column-aware rather than defaulting to whole-document prompting.
 - The intended default extraction path is `retrieval.mode=hybrid_experimental`, `retrieval.top_k=12`, recall rescue disabled, and whole-document mode disabled.
+- The intended default text extraction model is `unsloth/gemma-4-26b-a4b-it`.
 - Retrieval preparation may be cached per parsed document when that preserves truthful provenance and repeatability.
 - Whole-document or recall-rescue behavior may exist as bounded configured modes, but those choices must remain explicit in run artifacts and summaries.
 
@@ -123,6 +124,7 @@ The backend may expose a stable non-UI automation entrypoint for tooling, but th
 - A target cell is eligible only when the run has passed readiness, the source paper has a usable row match or allowed metadata path, and the cell is in scope for the selected run mode.
 - The app persists one best proposal per eligible target cell, but weaker fallback evidence and failure attribution must remain explicit so reviewers and downstream tooling can tell why a proposal looks the way it does.
 - The app should prefer `unclear` over weak guessing when current-paper evidence is not strong enough.
+- Matching metadata extraction must reject obvious correspondence or email lines as title candidates and preserve those rejection diagnostics in matching artifacts.
 
 ### Style-profile behavior
 
@@ -136,6 +138,7 @@ The backend may expose a stable non-UI automation entrypoint for tooling, but th
 - When vision capability is available, the app may use text-guided targeted figure review as supplemental evidence.
 - Figure review must remain shortlisted and targeted, not blanket per-page multimodal analysis.
 - Figure-derived evidence must stay visibly distinct from text-derived evidence in both review surfaces and persisted artifacts.
+- Run-time model orchestration must target one loaded LLM instance by default, permit two only when text and vision genuinely need to coexist, and persist truthful model-management diagnostics plus explicit post-phase cleanup behavior.
 
 ### Proposal and evidence truth
 

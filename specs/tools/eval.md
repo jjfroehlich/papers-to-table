@@ -52,12 +52,13 @@ Shared proposal and evidence expectations used during scoring are defined in `..
 ## Judge path
 
 - LM Studio is the default local-first judge path.
+- The default real-benchmark judge pair is `judge_a=google/gemma-4-26b-a4b` and `judge_b=openai/gpt-oss-20b`.
 - Judge behavior must remain bounded, reproducible, and fully instrumented.
 - Judge failures on one cell must not abort an otherwise valid evaluation run.
 - Real benchmark evaluation should run dual-judge scoring by default.
 - Dual-judge execution must be judge-major: prepare all eligible text-cell requests, execute all `judge_a` work, execute all `judge_b` work, group batches by effective provider/model/settings, then merge results back into deterministic scored-cell order.
 - Per-run summaries must preserve per-judge verdicts, request failures, unclear counts, disagreement counts or rates, and response-mode usage.
-- Per-run summaries must include judge execution diagnostics with batch counts, eligible counts, runtime totals, execution order, and model-switch counts.
+- Per-run summaries must include judge execution diagnostics with batch counts, eligible counts, runtime totals, execution order, model-switch counts, and cleanup failures.
 
 ## Audit outputs
 
@@ -68,6 +69,7 @@ Eval must emit inspectable audit summaries in stable per-run outputs for:
 - anchor outcome counts for missing evidence, valid anchors, invalid anchors, present-but-unvalidated evidence, invalid pages, missing quote text, page bounds, missing persisted text, and quote locatability
 - metadata-family summaries grouped by field kind, state, and failure attribution
 - dual-judge completion truth and disagreement diagnostics
+- ratio and coverage metrics must remain within valid numeric bounds; impossible values are contract defects
 
 ## Ownership boundary
 

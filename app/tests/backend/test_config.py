@@ -71,7 +71,7 @@ class TestLoadConfig:
         assert config.table_path == str(pathlib.Path(FIXTURE_TABLE).resolve())
         assert config.schema_path == str(pathlib.Path(FIXTURE_SCHEMA).resolve())
         assert config.pdf_dir == str(pathlib.Path(FIXTURE_PDF_DIR).resolve())
-        assert config.retrieval.mode == "lexical"
+        assert config.retrieval.mode == "hybrid_experimental"
         assert config.prompt.bundle == "default"
 
     def test_file_not_found(self):
@@ -101,8 +101,8 @@ class TestLoadConfig:
         assert config.provider.base_url == "http://localhost:1234"
         assert config.parser.backend == "docling"
         assert config.matching.ambiguity_threshold == 0.15
-        assert config.retrieval.top_k == 6
-        assert config.retrieval.mode == "lexical"
+        assert config.retrieval.top_k == 12
+        assert config.retrieval.mode == "hybrid_experimental"
         assert config.prompt.bundle is None
         assert config.prompt.bundle_path is None
         assert config.provider.text_model.working_context_budget == 12000
@@ -326,7 +326,7 @@ class TestReadiness:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_rejects_default_text_model(self, tmp_path, minimal_config_dict, monkeypatch):
+    async def test_rejects_placeholder_default_text_model(self, tmp_path, minimal_config_dict, monkeypatch):
         minimal_config_dict["provider"].pop("text_model", None)
         minimal_config_dict["output_dir"] = str(tmp_path / "runs")
         config = RunConfig.model_validate(minimal_config_dict)
@@ -338,6 +338,20 @@ class TestReadiness:
         result = await check_readiness(config)
         assert result.ok is False
         assert any("text_model.model_id" in e for e in result.errors)
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_accepts_real_default_lm_studio_model_id(self, tmp_path, minimal_config_dict, monkeypatch):
+        minimal_config_dict["provider"]["text_model"]["model_id"] = "unsloth/gemma-4-26b-a4b-it"
+        minimal_config_dict["output_dir"] = str(tmp_path / "runs")
+        config = RunConfig.model_validate(minimal_config_dict)
+        monkeypatch.setattr("backend.app.parsing.check_parser_readiness", lambda *_args: [])
+        monkeypatch.setattr("backend.app.parsing.check_ocr_readiness", lambda *_args: [])
+        respx.get("http://localhost:1234/v1/models").mock(
+            return_value=httpx.Response(200, json={"data": [{"id": "some-other-model"}]})
+        )
+        result = await check_readiness(config)
+        assert result.ok is True
 
     @pytest.mark.asyncio
     @respx.mock

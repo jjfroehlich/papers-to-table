@@ -105,6 +105,7 @@ That compact truth includes, when applicable:
 - evidence linkage through nested support evidence IDs and top-level proposal fields such as `primary_evidence_id`, `evidence_ids`, and `ordered_supporting_evidence_ids`
 - page-text-compatible source text or parsed-document text sufficient for downstream anchor validation when the run has generated locatable evidence
 - parser-cache and related reuse truth
+- model-management truth including load and unload counters, cleanup timeline entries, peak loaded-instance count, same-model multi-instance detection, and truthful phase-level cleanup outcomes
 
 Stable eval-facing provenance should also preserve, when applicable:
 

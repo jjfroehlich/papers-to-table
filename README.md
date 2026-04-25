@@ -83,6 +83,7 @@ These wrapper scripts assume the current working directory is the repository roo
 - Evidence types stay distinct: exact highlights, approximate highlights, quote-plus-page fallback, reasoning, and figure evidence.
 - Provider mode and degraded fallback states are recorded in run artifacts.
 - The default extraction path is `unsloth/gemma-4-26b-a4b-it` with `retrieval.mode=hybrid_experimental`, `retrieval.top_k=12`, recall rescue off, and whole-document mode off. `google/gemma-4-26b-a4b` remains the heavier optimization target.
+- LM Studio lifecycle now targets one loaded LLM instance by default, adds explicit post-phase cleanup, and records model-management timelines plus peak loaded-instance counts in diagnostics.
 - Review remains manual; proposal presence is not treated as proof.
 - Export is never automatic.
 
@@ -99,5 +100,6 @@ Current companion-tool truth:
 
 - canonical optimizer studies use `compare_models.json`, `compare_prompts.json`, `compare_retrieval.json`, `compare_retrieval_modes.json`, and `optimize_overnight.json`; smoke and fixture-manual configs are only for contract checks
 - real benchmark studies are expected to run with two judges end to end
+- real benchmark judge defaults are `judge_a=google/gemma-4-26b-a4b` and `judge_b=openai/gpt-oss-20b`
 - compare-model and overnight configs include Gemma, Qwen, GPT-OSS, Unsloth, and GLM candidates under the same extraction stack with small per-model request policies
-- eval and optimizer reports now separate the raw benchmark winner from the recommended default when degraded or trust caveats differ
+- eval and optimizer reports now separate the raw benchmark winner from the recommended default when degraded or trust caveats differ, and they warn more aggressively when judge disagreement or evidence weakness is high

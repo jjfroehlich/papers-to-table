@@ -88,7 +88,7 @@
           "--judge-model",
           "google/gemma-4-26b-a4b",
           "--judge-model-b",
-          "mistralai/ministral-3-14b-reasoning",
+          "openai/gpt-oss-20b",
           "--judge-api-base",
           "http://127.0.0.1:1234/v1"
         ],
@@ -111,7 +111,7 @@
           "--judge-model",
           "google/gemma-4-26b-a4b",
           "--judge-model-b",
-          "mistralai/ministral-3-14b-reasoning",
+          "openai/gpt-oss-20b",
           "--judge-api-base",
           "http://127.0.0.1:1234/v1"
         ],

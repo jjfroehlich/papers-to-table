@@ -574,6 +574,7 @@ def _execute_pending_judge_cells(
     batches: list[dict[str, Any]] = []
     runtime_seconds_by_judge: dict[str, float] = {}
     execution_order: list[str] = []
+    cleanup_failures: list[dict[str, Any]] = []
 
     for label in labels:
         judge_config = judge_configs[label]
@@ -651,6 +652,19 @@ def _execute_pending_judge_cells(
                     "runtime_seconds": runtime_seconds,
                 }
             )
+            cleanup = getattr(text_judge, "cleanup_model_residency", None)
+            if callable(cleanup):
+                try:
+                    cleanup()
+                except Exception as exc:
+                    cleanup_failures.append(
+                        {
+                            "judge_label": label,
+                            "provider": provider,
+                            "model_id": model_id,
+                            "message": str(exc),
+                        }
+                    )
 
     judged_cells = {
         pending.sequence: _merge_judged_text_cell(
@@ -675,6 +689,7 @@ def _execute_pending_judge_cells(
         "runtime_seconds_by_judge": runtime_seconds_by_judge,
         "execution_order": execution_order,
         "model_switch_count": _count_model_switches(batches),
+        "cleanup_failures": cleanup_failures,
     }
     return judged_cells, all_records, summary
 
