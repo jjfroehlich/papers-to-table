@@ -35,11 +35,11 @@
     "provider_preview_chars": 240
   },
   "retrieval": {
-    "mode": "lexical",
-    "top_k": 10,
-    "recall_rescue_enabled": true,
+    "mode": "hybrid_experimental",
+    "top_k": 12,
+    "recall_rescue_enabled": false,
     "whole_document_mode": false,
-    "whole_document_max_chars": 12000
+    "whole_document_max_chars": 20000
   },
   "figure_review": {
     "enabled": false,

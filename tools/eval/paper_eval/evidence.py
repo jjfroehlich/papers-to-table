@@ -31,7 +31,7 @@ def validate_evidence_anchors(
                 "evidence_present_but_unvalidated_count": 0,
                 "evidence_present_but_unvalidated_rate": None,
                 "reason_counts": {},
-                "outcome_counts": {},
+                "outcome_counts": {"missing_evidence": 1},
                 "evidence_items": [],
             },
         )
@@ -84,10 +84,20 @@ def validate_evidence_anchors(
             "evidence_present_but_unvalidated_count": evidence_present_but_unvalidated_count,
             "evidence_present_but_unvalidated_rate": evidence_present_but_unvalidated_count / len(items),
             "reason_counts": dict(sorted(reason_counts.items())),
-            "outcome_counts": dict(sorted(outcome_counts.items())),
+            "outcome_counts": _complete_outcome_counts(outcome_counts),
             "evidence_items": item_diagnostics,
         },
     )
+
+
+def _complete_outcome_counts(outcome_counts: Counter[str]) -> dict[str, int]:
+    expected = (
+        "missing_evidence",
+        "anchor_valid",
+        "anchor_invalid",
+        "evidence_present_but_unvalidated",
+    )
+    return {key: int(outcome_counts.get(key, 0)) for key in expected}
 
 
 def _validate_single_anchor(

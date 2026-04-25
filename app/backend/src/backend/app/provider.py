@@ -24,6 +24,7 @@ from typing import Any, Optional
 import httpx
 from pydantic import BaseModel
 
+from .model_policy import resolve_model_request_policy
 from .schemas import ProviderLocality
 
 
@@ -1760,7 +1761,9 @@ class LMStudioProvider(ProviderAdapter):
 
         last_error: Optional[Exception] = None
         try:
-            for mode in _fallback_modes_for(structured_mode):
+            policy = resolve_model_request_policy(model_id)
+            malformed_failures = 0
+            for mode in policy.ordered_structured_modes(structured_mode):
                 try:
                     return await self._complete_structured_with_mode(
                         messages=messages,
@@ -1771,11 +1774,19 @@ class LMStudioProvider(ProviderAdapter):
                         structured_mode=mode,
                         request_kind="text_structured",
                         post_method=self._post_structured_payload,
+                        retry_malformed_structured_response=policy.retry_malformed_structured_response,
                     )
                 except StructuredOutputError as e:
                     last_error = e
+                    malformed_failures += 1
                     if getattr(e, "reason", None) == "structured_backend_incompatible":
                         self._record_structured_backend_incompatibility(e, mode)
+                        continue
+                    if (
+                        policy.fast_abort_malformed_json_attempts is not None
+                        and malformed_failures >= policy.fast_abort_malformed_json_attempts
+                        and mode != "none"
+                    ):
                         continue
                     raise
             if last_error is not None:
@@ -1798,6 +1809,7 @@ class LMStudioProvider(ProviderAdapter):
         structured_mode: str,
         request_kind: str,
         post_method,
+        retry_malformed_structured_response: bool = True,
     ) -> dict:
         payload = self._build_payload(
             messages, model_id, max_tokens, temperature, response_schema, structured_mode
@@ -1897,6 +1909,8 @@ class LMStudioProvider(ProviderAdapter):
                     error=first_error,
                 )
             if getattr(first_error, "reason", None) == "structured_backend_incompatible":
+                raise
+            if not retry_malformed_structured_response:
                 raise
             self._bump("completion_retry_attempts")
             retry_instruction = self._build_retry_instruction(
@@ -2128,15 +2142,15 @@ class LMStudioProvider(ProviderAdapter):
         structured_mode: str,
     ) -> dict:
         """Build the request payload based on negotiated structured output mode."""
-        normalized_messages = list(messages)
-        if structured_mode in ("json_object", "none"):
-            normalized_messages = _ensure_json_keyword_in_messages(normalized_messages)
+        policy = resolve_model_request_policy(model_id)
+        normalized_messages = policy.apply_messages(list(messages), structured_mode)
         base: dict[str, Any] = {
             "model": model_id,
             "messages": normalized_messages,
-            "max_tokens": max_tokens,
             "temperature": temperature,
         }
+        if not policy.omit_max_tokens_for_structured:
+            base["max_tokens"] = max_tokens
         if structured_mode == "json_schema":
             base["response_format"] = {
                 "type": "json_schema",

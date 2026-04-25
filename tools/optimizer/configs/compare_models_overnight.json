@@ -1,321 +1,356 @@
 {
-  "schema_version": "1.0",
-  "experiment_id": "compare_models_overnight",
-  "operator_todo": {
-    "notes": [
-      "Model-only overnight config: use scripts/run_models_overnight.sh to run this as a single-stage overnight report.",
-      "This keeps the current staged overnight model list and adds the requested unsloth model variants.",
-      "mistralai/ministral-3-14b-reasoning was already present in compare_models_dev.json, so it is included once here.",
-      "Prompt and retrieval settings are frozen so the text-model comparison is easier to interpret."
-    ]
-  },
-  "baseline_candidate": {
-    "prompt_bundle_id": "default",
-    "text_model_id": "openai/gpt-oss-20b",
-    "vision_model_id": "google/gemma-4-26b-a4b",
-    "optimizer_knobs": {
-      "retrieval_mode": "lexical",
-      "retrieval_top_k": 10,
-      "recall_rescue_enabled": true,
-      "whole_document_mode": false,
-      "whole_document_max_chars": 20000,
-      "style_profiles_enabled": true,
-      "style_profiles_max_examples": 3,
-      "figure_review_enabled": false
-    }
-  },
-  "compare_candidates": [
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "openai/gpt-oss-20b",
-      "vision_model_id": "google/gemma-4-26b-a4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "lexical",
-        "retrieval_top_k": 10,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-26b-a4b",
-      "vision_model_id": "google/gemma-4-26b-a4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "lexical",
-        "retrieval_top_k": 10,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "qwen/qwen3.5-9b",
-      "vision_model_id": "qwen/qwen3.5-9b",
-      "optimizer_knobs": {
-        "retrieval_mode": "lexical",
-        "retrieval_top_k": 10,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "nvidia/nemotron-3-nano-4b",
-      "vision_model_id": "google/gemma-4-26b-a4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "lexical",
-        "retrieval_top_k": 10,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "qwen/qwen3.6-35b-a3b",
-      "vision_model_id": "qwen/qwen3.6-35b-a3b",
-      "optimizer_knobs": {
-        "retrieval_mode": "lexical",
-        "retrieval_top_k": 10,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-e4b",
-      "vision_model_id": "google/gemma-4-e4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "lexical",
-        "retrieval_top_k": 10,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "mistralai/ministral-3-14b-reasoning",
-      "vision_model_id": "mistralai/ministral-3-14b-reasoning",
-      "optimizer_knobs": {
-        "retrieval_mode": "lexical",
-        "retrieval_top_k": 10,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "unsloth/qwen3.6-35b-a3b",
-      "vision_model_id": "unsloth/qwen3.6-35b-a3b",
-      "optimizer_knobs": {
-        "retrieval_mode": "lexical",
-        "retrieval_top_k": 10,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "unsloth/gemma-4-26b-a4b-it",
-      "vision_model_id": "unsloth/gemma-4-26b-a4b-it",
-      "optimizer_knobs": {
-        "retrieval_mode": "lexical",
-        "retrieval_top_k": 10,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    }
-  ],
-  "search_space": {
-    "prompt_bundle_ids": [
-      "default"
-    ],
-    "text_model_ids": [
-      "openai/gpt-oss-20b",
-      "google/gemma-4-26b-a4b",
-      "qwen/qwen3.5-9b",
-      "nvidia/nemotron-3-nano-4b",
-      "qwen/qwen3.6-35b-a3b",
-      "google/gemma-4-e4b",
-      "mistralai/ministral-3-14b-reasoning",
-      "unsloth/qwen3.6-35b-a3b",
-      "unsloth/gemma-4-26b-a4b-it"
-    ],
-    "vision_model_ids": [
-      "google/gemma-4-26b-a4b",
-      "qwen/qwen3.5-9b",
-      "qwen/qwen3.6-35b-a3b",
-      "google/gemma-4-e4b",
-      "mistralai/ministral-3-14b-reasoning",
-      "unsloth/qwen3.6-35b-a3b",
-      "unsloth/gemma-4-26b-a4b-it"
-    ],
-    "numeric_knobs": {
-      "retrieval_top_k": {
-        "values": [
-          10
-        ]
-      }
-    }
-  },
-  "benchmarks": {
-    "smoke": "bench_smoke",
-    "dev": "bench_dev",
-    "manifests": {
-      "bench_smoke": {
-        "table_path": "../../../app/tests/fixtures/tables/literature_fixture.xlsx",
-        "schema_path": "../../../app/tests/fixtures/tables/literature_fixture_schema.csv",
-        "pdf_dir": "../../../app/tests/fixtures/papers",
-        "gold_path": "../../../app/tests/fixtures/tables/literature_fixture.xlsx",
-        "eval_schema_path": "../../eval/tests/fixtures/example_eval/schema.json",
-        "main_args": [],
-        "eval_args": [
-          "--judge-model",
-          "google/gemma-4-26b-a4b",
-          "--judge-model-b",
-          "mistralai/ministral-3-14b-reasoning",
-          "--judge-api-base",
-          "http://127.0.0.1:1234/v1"
-        ],
-        "expected_items": 5,
-        "benchmark_kind": "smoke_fixture",
-        "benchmark_label": "smoke_fixture",
-        "require_non_fixture_inputs": false,
-        "required_judges": [
-          "judge_a",
-          "judge_b"
-        ]
-      },
-      "bench_dev": {
-        "table_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
-        "schema_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture_schema.csv",
-        "pdf_dir": "C:/Users/jonat/Desktop/202601_MPRA_table",
-        "gold_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
-        "main_args": [],
-        "eval_args": [
-          "--judge-model",
-          "google/gemma-4-26b-a4b",
-          "--judge-model-b",
-          "mistralai/ministral-3-14b-reasoning",
-          "--judge-api-base",
-          "http://127.0.0.1:1234/v1"
-        ],
-        "expected_items": 100,
-        "benchmark_kind": "real_external_overnight",
-        "benchmark_label": "real_external_overnight",
-        "require_non_fixture_inputs": true,
-        "required_judges": [
-          "judge_a",
-          "judge_b"
-        ]
-      }
-    }
-  },
-  "main_app": {
-    "repo_root": "../../../app",
-    "base_config_path": "../../../app/config.json",
-    "command_prefix": [
-      "python",
-      "-m",
-      "backend.app.automation"
-    ],
-    "optimizer_knob_map": {
-      "retrieval_top_k": "retrieval.top_k",
-      "recall_rescue_enabled": "retrieval.recall_rescue_enabled",
-      "whole_document_mode": "retrieval.whole_document_mode",
-      "whole_document_max_chars": "retrieval.whole_document_max_chars",
-      "style_profiles_enabled": "style_profiles.enabled",
-      "style_profiles_max_examples": "style_profiles.max_examples",
-      "figure_review_enabled": "figure_review.enabled"
-    }
-  },
-  "eval_app": {
-    "repo_root": "../../eval",
-    "command_prefix": [
-      "python",
-      "-m",
-      "paper_eval"
-    ],
-    "metric_groups": {
-      "primary": {
-        "content_correctness": "content_correctness"
-      },
-      "guardrail": {
-        "evidence_quality": "anchor_valid_rate",
-        "null_count": "missing_proposal_count",
-        "failure_count": "join_failure_count"
-      },
-      "diagnostic": {
-        "contract_warning_count": "contract_warning_count",
-        "scored_cell_count": "scored_cell_count",
-        "text_scored_cell_count": "text_scored_cell_count",
-        "judge_text_scored_cell_count": "judge_text_scored_cell_count",
-        "unscored_text_cell_count": "unscored_text_cell_count",
-        "judge_request_failed_count": "judge_request_failed_count",
-        "judge_unclear_text_cell_count": "judge_unclear_text_cell_count",
-        "filled_on_gold_empty_count": "filled_on_gold_empty_count"
-      }
-    }
-  },
-  "acceptance": {
-    "primary_metric": "content_correctness",
-    "min_improvement": 0.01,
-    "degraded_score_policy": "disallow",
-    "guardrails": {
-      "evidence_quality": {
-        "min": 0.85
-      },
-      "null_count": {
-        "max": 5,
-        "max_delta": 1
-      },
-      "failure_count": {
-        "max": 0
-      }
-    }
-  },
-  "optimize": {
-    "rounds": 2,
-    "batch_size": 2
-  },
-  "compare": {
-    "holdout_top_k": 0,
-    "require_structured_output_for_extraction": true,
-    "allow_degraded_candidates": false
-  }
+    "schema_version":  "1.0",
+    "experiment_id":  "compare_models_overnight",
+    "operator_todo":  {
+                          "notes":  [
+                                        "Model-only overnight config: use scripts/run_models_overnight.sh to run this as a single-stage overnight report.",
+                                        "This keeps the current staged overnight model list and adds the requested unsloth model variants.",
+                                        "mistralai/ministral-3-14b-reasoning was already present in compare_models_dev.json, so it is included once here.",
+                                        "Prompt and retrieval settings are frozen so the text-model comparison is easier to interpret."
+                                    ]
+                      },
+    "baseline_candidate":  {
+                               "prompt_bundle_id":  "default",
+                               "text_model_id":  "google/gemma-4-e4b",
+                               "vision_model_id":  "google/gemma-4-e4b",
+                               "optimizer_knobs":  {
+                                                       "retrieval_mode":  "hybrid_experimental",
+                                                       "retrieval_top_k":  12,
+                                                       "recall_rescue_enabled":  false,
+                                                       "whole_document_mode":  false,
+                                                       "whole_document_max_chars":  20000,
+                                                       "style_profiles_enabled":  true,
+                                                       "style_profiles_max_examples":  3,
+                                                       "figure_review_enabled":  false
+                                                   }
+                           },
+    "compare_candidates":  [
+                               {
+                                   "prompt_bundle_id":  "default",
+                                   "text_model_id":  "openai/gpt-oss-20b",
+                                   "vision_model_id":  "google/gemma-4-26b-a4b",
+                                   "optimizer_knobs":  {
+                                                           "retrieval_mode":  "hybrid_experimental",
+                                                           "retrieval_top_k":  12,
+                                                           "recall_rescue_enabled":  false,
+                                                           "whole_document_mode":  false,
+                                                           "whole_document_max_chars":  20000,
+                                                           "style_profiles_enabled":  true,
+                                                           "style_profiles_max_examples":  3,
+                                                           "figure_review_enabled":  false
+                                                       }
+                               },
+                               {
+                                   "prompt_bundle_id":  "default",
+                                   "text_model_id":  "google/gemma-4-26b-a4b",
+                                   "vision_model_id":  "google/gemma-4-26b-a4b",
+                                   "optimizer_knobs":  {
+                                                           "retrieval_mode":  "hybrid_experimental",
+                                                           "retrieval_top_k":  12,
+                                                           "recall_rescue_enabled":  false,
+                                                           "whole_document_mode":  false,
+                                                           "whole_document_max_chars":  20000,
+                                                           "style_profiles_enabled":  true,
+                                                           "style_profiles_max_examples":  3,
+                                                           "figure_review_enabled":  false
+                                                       }
+                               },
+                               {
+                                   "prompt_bundle_id":  "default",
+                                   "text_model_id":  "qwen/qwen3.5-9b",
+                                   "vision_model_id":  "qwen/qwen3.5-9b",
+                                   "optimizer_knobs":  {
+                                                           "retrieval_mode":  "hybrid_experimental",
+                                                           "retrieval_top_k":  12,
+                                                           "recall_rescue_enabled":  false,
+                                                           "whole_document_mode":  false,
+                                                           "whole_document_max_chars":  20000,
+                                                           "style_profiles_enabled":  true,
+                                                           "style_profiles_max_examples":  3,
+                                                           "figure_review_enabled":  false
+                                                       }
+                               },
+                               {
+                                   "prompt_bundle_id":  "default",
+                                   "text_model_id":  "nvidia/nemotron-3-nano-4b",
+                                   "vision_model_id":  "google/gemma-4-26b-a4b",
+                                   "optimizer_knobs":  {
+                                                           "retrieval_mode":  "hybrid_experimental",
+                                                           "retrieval_top_k":  12,
+                                                           "recall_rescue_enabled":  false,
+                                                           "whole_document_mode":  false,
+                                                           "whole_document_max_chars":  20000,
+                                                           "style_profiles_enabled":  true,
+                                                           "style_profiles_max_examples":  3,
+                                                           "figure_review_enabled":  false
+                                                       }
+                               },
+                               {
+                                   "prompt_bundle_id":  "default",
+                                   "text_model_id":  "qwen/qwen3.6-35b-a3b",
+                                   "vision_model_id":  "qwen/qwen3.6-35b-a3b",
+                                   "optimizer_knobs":  {
+                                                           "retrieval_mode":  "hybrid_experimental",
+                                                           "retrieval_top_k":  12,
+                                                           "recall_rescue_enabled":  false,
+                                                           "whole_document_mode":  false,
+                                                           "whole_document_max_chars":  20000,
+                                                           "style_profiles_enabled":  true,
+                                                           "style_profiles_max_examples":  3,
+                                                           "figure_review_enabled":  false
+                                                       }
+                               },
+                               {
+                                   "prompt_bundle_id":  "default",
+                                   "text_model_id":  "google/gemma-4-e4b",
+                                   "vision_model_id":  "google/gemma-4-e4b",
+                                   "optimizer_knobs":  {
+                                                           "retrieval_mode":  "hybrid_experimental",
+                                                           "retrieval_top_k":  12,
+                                                           "recall_rescue_enabled":  false,
+                                                           "whole_document_mode":  false,
+                                                           "whole_document_max_chars":  20000,
+                                                           "style_profiles_enabled":  true,
+                                                           "style_profiles_max_examples":  3,
+                                                           "figure_review_enabled":  false
+                                                       }
+                               },
+                               {
+                                   "prompt_bundle_id":  "default",
+                                   "text_model_id":  "mistralai/ministral-3-14b-reasoning",
+                                   "vision_model_id":  "mistralai/ministral-3-14b-reasoning",
+                                   "optimizer_knobs":  {
+                                                           "retrieval_mode":  "hybrid_experimental",
+                                                           "retrieval_top_k":  12,
+                                                           "recall_rescue_enabled":  false,
+                                                           "whole_document_mode":  false,
+                                                           "whole_document_max_chars":  20000,
+                                                           "style_profiles_enabled":  true,
+                                                           "style_profiles_max_examples":  3,
+                                                           "figure_review_enabled":  false
+                                                       }
+                               },
+                               {
+                                   "prompt_bundle_id":  "default",
+                                   "text_model_id":  "unsloth/qwen3.6-35b-a3b",
+                                   "vision_model_id":  "unsloth/qwen3.6-35b-a3b",
+                                   "optimizer_knobs":  {
+                                                           "retrieval_mode":  "hybrid_experimental",
+                                                           "retrieval_top_k":  12,
+                                                           "recall_rescue_enabled":  false,
+                                                           "whole_document_mode":  false,
+                                                           "whole_document_max_chars":  20000,
+                                                           "style_profiles_enabled":  true,
+                                                           "style_profiles_max_examples":  3,
+                                                           "figure_review_enabled":  false
+                                                       }
+                               },
+                               {
+                                   "prompt_bundle_id":  "default",
+                                   "text_model_id":  "unsloth/gemma-4-26b-a4b-it",
+                                   "vision_model_id":  "unsloth/gemma-4-26b-a4b-it",
+                                   "optimizer_knobs":  {
+                                                           "retrieval_mode":  "hybrid_experimental",
+                                                           "retrieval_top_k":  12,
+                                                           "recall_rescue_enabled":  false,
+                                                           "whole_document_mode":  false,
+                                                           "whole_document_max_chars":  20000,
+                                                           "style_profiles_enabled":  true,
+                                                           "style_profiles_max_examples":  3,
+                                                           "figure_review_enabled":  false
+                                                       }
+                               },
+                               {
+                                   "prompt_bundle_id":  "default",
+                                   "text_model_id":  "qwen/qwen3.6-27b",
+                                   "vision_model_id":  "qwen/qwen3.6-27b",
+                                   "optimizer_knobs":  {
+                                                           "retrieval_mode":  "hybrid_experimental",
+                                                           "retrieval_top_k":  12,
+                                                           "recall_rescue_enabled":  false,
+                                                           "whole_document_mode":  false,
+                                                           "whole_document_max_chars":  20000,
+                                                           "style_profiles_enabled":  true,
+                                                           "style_profiles_max_examples":  3,
+                                                           "figure_review_enabled":  false
+                                                       }
+                               },
+                               {
+                                   "prompt_bundle_id":  "default",
+                                   "text_model_id":  "zai-org/glm-4.6v-flash",
+                                   "vision_model_id":  "google/gemma-4-26b-a4b",
+                                   "optimizer_knobs":  {
+                                                           "retrieval_mode":  "hybrid_experimental",
+                                                           "retrieval_top_k":  12,
+                                                           "recall_rescue_enabled":  false,
+                                                           "whole_document_mode":  false,
+                                                           "whole_document_max_chars":  20000,
+                                                           "style_profiles_enabled":  true,
+                                                           "style_profiles_max_examples":  3,
+                                                           "figure_review_enabled":  false
+                                                       }
+                               }
+                           ],
+    "search_space":  {
+                         "prompt_bundle_ids":  [
+                                                   "default"
+                                               ],
+                         "text_model_ids":  [
+                                                "openai/gpt-oss-20b",
+                                                "google/gemma-4-e4b",
+                                                "google/gemma-4-26b-a4b",
+                                                "unsloth/gemma-4-26b-a4b-it",
+                                                "qwen/qwen3.6-27b",
+                                                "qwen/qwen3.6-35b-a3b",
+                                                "unsloth/qwen3.6-35b-a3b",
+                                                "zai-org/glm-4.6v-flash",
+                                                "mistralai/ministral-3-14b-reasoning"
+                                            ],
+                         "vision_model_ids":  [
+                                                  "google/gemma-4-e4b",
+                                                  "google/gemma-4-26b-a4b",
+                                                  "unsloth/gemma-4-26b-a4b-it",
+                                                  "qwen/qwen3.6-27b",
+                                                  "qwen/qwen3.6-35b-a3b",
+                                                  "unsloth/qwen3.6-35b-a3b",
+                                                  "mistralai/ministral-3-14b-reasoning"
+                                              ],
+                         "numeric_knobs":  {
+                                               "retrieval_top_k":  {
+                                                                       "values":  [
+                                                                                      12
+                                                                                  ]
+                                                                   }
+                                           }
+                     },
+    "benchmarks":  {
+                       "smoke":  "bench_smoke",
+                       "dev":  "bench_dev",
+                       "manifests":  {
+                                         "bench_smoke":  {
+                                                             "table_path":  "../../../app/tests/fixtures/tables/literature_fixture.xlsx",
+                                                             "schema_path":  "../../../app/tests/fixtures/tables/literature_fixture_schema.csv",
+                                                             "pdf_dir":  "../../../app/tests/fixtures/papers",
+                                                             "gold_path":  "../../../app/tests/fixtures/tables/literature_fixture.xlsx",
+                                                             "eval_schema_path":  "../../eval/tests/fixtures/example_eval/schema.json",
+                                                             "main_args":  [
+
+                                                                           ],
+                                                             "eval_args":  [
+                                                                               "--judge-model",
+                                                                               "google/gemma-4-26b-a4b",
+                                                                               "--judge-model-b",
+                                                                               "mistralai/ministral-3-14b-reasoning",
+                                                                               "--judge-api-base",
+                                                                               "http://127.0.0.1:1234/v1"
+                                                                           ],
+                                                             "expected_items":  5,
+                                                             "benchmark_kind":  "smoke_fixture",
+                                                             "benchmark_label":  "smoke_fixture",
+                                                             "require_non_fixture_inputs":  false,
+                                                             "required_judges":  [
+                                                                                     "judge_a",
+                                                                                     "judge_b"
+                                                                                 ]
+                                                         },
+                                         "bench_dev":  {
+                                                           "table_path":  "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
+                                                           "schema_path":  "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture_schema.csv",
+                                                           "pdf_dir":  "C:/Users/jonat/Desktop/202601_MPRA_table",
+                                                           "gold_path":  "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
+                                                           "main_args":  [
+
+                                                                         ],
+                                                           "eval_args":  [
+                                                                             "--judge-model",
+                                                                             "google/gemma-4-26b-a4b",
+                                                                             "--judge-model-b",
+                                                                             "mistralai/ministral-3-14b-reasoning",
+                                                                             "--judge-api-base",
+                                                                             "http://127.0.0.1:1234/v1"
+                                                                         ],
+                                                           "expected_items":  100,
+                                                           "benchmark_kind":  "real_external_overnight",
+                                                           "benchmark_label":  "real_external_overnight",
+                                                           "require_non_fixture_inputs":  true,
+                                                           "required_judges":  [
+                                                                                   "judge_a",
+                                                                                   "judge_b"
+                                                                               ]
+                                                       }
+                                     }
+                   },
+    "main_app":  {
+                     "repo_root":  "../../../app",
+                     "base_config_path":  "../../../app/config.json",
+                     "command_prefix":  [
+                                            "python",
+                                            "-m",
+                                            "backend.app.automation"
+                                        ],
+                     "optimizer_knob_map":  {
+                                                "retrieval_top_k":  "retrieval.top_k",
+                                                "recall_rescue_enabled":  "retrieval.recall_rescue_enabled",
+                                                "whole_document_mode":  "retrieval.whole_document_mode",
+                                                "whole_document_max_chars":  "retrieval.whole_document_max_chars",
+                                                "style_profiles_enabled":  "style_profiles.enabled",
+                                                "style_profiles_max_examples":  "style_profiles.max_examples",
+                                                "figure_review_enabled":  "figure_review.enabled",
+                                                "retrieval_mode":  "retrieval.mode"
+                                            }
+                 },
+    "eval_app":  {
+                     "repo_root":  "../../eval",
+                     "command_prefix":  [
+                                            "python",
+                                            "-m",
+                                            "paper_eval"
+                                        ],
+                     "metric_groups":  {
+                                           "primary":  {
+                                                           "content_correctness":  "content_correctness"
+                                                       },
+                                           "guardrail":  {
+                                                             "evidence_quality":  "anchor_valid_rate",
+                                                             "null_count":  "missing_proposal_count",
+                                                             "failure_count":  "join_failure_count"
+                                                         },
+                                           "diagnostic":  {
+                                                              "contract_warning_count":  "contract_warning_count",
+                                                              "scored_cell_count":  "scored_cell_count",
+                                                              "text_scored_cell_count":  "text_scored_cell_count",
+                                                              "judge_text_scored_cell_count":  "judge_text_scored_cell_count",
+                                                              "unscored_text_cell_count":  "unscored_text_cell_count",
+                                                              "judge_request_failed_count":  "judge_request_failed_count",
+                                                              "judge_unclear_text_cell_count":  "judge_unclear_text_cell_count",
+                                                              "filled_on_gold_empty_count":  "filled_on_gold_empty_count"
+                                                          }
+                                       }
+                 },
+    "acceptance":  {
+                       "primary_metric":  "content_correctness",
+                       "min_improvement":  0.01,
+                       "degraded_score_policy":  "disallow",
+                       "guardrails":  {
+                                          "evidence_quality":  {
+                                                                   "min":  0.85
+                                                               },
+                                          "null_count":  {
+                                                             "max":  5,
+                                                             "max_delta":  1
+                                                         },
+                                          "failure_count":  {
+                                                                "max":  0
+                                                            }
+                                      }
+                   },
+    "optimize":  {
+                     "rounds":  2,
+                     "batch_size":  2
+                 },
+    "compare":  {
+                    "holdout_top_k":  0,
+                    "require_structured_output_for_extraction":  true,
+                    "allow_degraded_candidates":  false
+                }
 }

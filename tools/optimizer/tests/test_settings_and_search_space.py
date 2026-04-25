@@ -10,6 +10,14 @@ from paper_optimizer.propose import propose_candidates
 from paper_optimizer.search_space import load_search_space
 from paper_optimizer.settings import ConfigError, load_config
 
+REQUIRED_COMPARE_MODELS = {
+    "unsloth/gemma-4-26b-a4b-it",
+    "unsloth/qwen3.6-35b-a3b",
+    "openai/gpt-oss-20b",
+    "qwen/qwen3.6-27b",
+    "zai-org/glm-4.6v-flash",
+}
+
 
 def test_load_config_success(config_path: Path) -> None:
     cfg = load_config(config_path)
@@ -82,6 +90,66 @@ def test_compare_models_smoke_is_tiny_and_fast_by_contract() -> None:
     assert bench["table_path"] == "benchmarks/smoke_fixture_table.csv"
     assert bench["gold_path"] == "benchmarks/smoke_fixture_table.csv"
     assert bench["schema_path"] == "benchmarks/smoke_fixture_schema.csv"
+
+
+def test_real_benchmark_configs_use_real_inputs_and_dual_judges() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    config_names = [
+        "compare_models_real_dev.json",
+        "compare_models_real_overnight.json",
+        "optimize_real_overnight.json",
+    ]
+
+    for config_name in config_names:
+        payload = json.loads((repo_root / "configs" / config_name).read_text(encoding="utf-8"))
+        dev_manifest = payload["benchmarks"]["manifests"][payload["benchmarks"]["dev"]]
+
+        assert dev_manifest["require_non_fixture_inputs"] is True
+        assert dev_manifest["benchmark_kind"].startswith("real_external")
+        assert "app/tests/fixtures" not in dev_manifest["table_path"].replace("\\", "/")
+        assert "benchmarks/smoke_fixture" not in dev_manifest["table_path"].replace("\\", "/")
+        assert dev_manifest["expected_items"] >= 100
+        assert {"judge_a", "judge_b"}.issubset(set(dev_manifest["required_judges"]))
+        assert "--judge-model" in dev_manifest["eval_args"]
+        assert "--judge-model-b" in dev_manifest["eval_args"]
+
+
+def test_compare_model_configs_include_required_models_and_defaults() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    for config_name in [
+        "compare_models_dev.json",
+        "compare_models_overnight.json",
+        "compare_models_real_dev.json",
+        "compare_models_real_overnight.json",
+    ]:
+        payload = json.loads((repo_root / "configs" / config_name).read_text(encoding="utf-8"))
+        candidate_models = {candidate["text_model_id"] for candidate in payload["compare_candidates"]}
+        search_models = set(payload["search_space"]["text_model_ids"])
+
+        assert REQUIRED_COMPARE_MODELS.issubset(candidate_models)
+        assert REQUIRED_COMPARE_MODELS.issubset(search_models)
+        assert payload["baseline_candidate"]["text_model_id"] == "google/gemma-4-e4b"
+        for candidate in [payload["baseline_candidate"], *payload["compare_candidates"]]:
+            knobs = candidate["optimizer_knobs"]
+            assert knobs["retrieval_mode"] == "hybrid_experimental"
+            assert knobs["retrieval_top_k"] == 12
+            assert knobs["recall_rescue_enabled"] is False
+            assert knobs["whole_document_mode"] is False
+
+
+def test_optimize_one_model_real_config_is_top_k_focused_on_gemma_26b() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    payload = json.loads((repo_root / "configs" / "optimize_real_overnight.json").read_text(encoding="utf-8"))
+    knobs = payload["baseline_candidate"]["optimizer_knobs"]
+
+    assert payload["baseline_candidate"]["text_model_id"] == "google/gemma-4-26b-a4b"
+    assert payload["search_space"]["text_model_ids"] == ["google/gemma-4-26b-a4b"]
+    assert set(payload["search_space"]["numeric_knobs"]) == {"retrieval_top_k"}
+    assert payload["search_space"]["numeric_knobs"]["retrieval_top_k"]["values"] == [8, 10, 12, 14, 16]
+    assert knobs["retrieval_mode"] == "hybrid_experimental"
+    assert knobs["retrieval_top_k"] == 12
+    assert knobs["recall_rescue_enabled"] is False
+    assert knobs["whole_document_mode"] is False
 
 
 def test_propose_candidates_covers_multi_knob_combinations() -> None:

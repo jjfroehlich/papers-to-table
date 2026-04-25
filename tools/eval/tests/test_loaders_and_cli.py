@@ -187,6 +187,52 @@ class LoaderAndCliTests(unittest.TestCase):
             validation = validate_evidence_anchors([evidence_item], page_text_by_page=loaded.page_text_by_page)
             self.assertTrue(validation.anchor_valid)
 
+    def test_run_loader_resolves_top_level_proposal_evidence_ids(self) -> None:
+        temp_root = Path.cwd() / ".tmp_top_level_evidence_loader_test"
+        shutil.rmtree(temp_root, ignore_errors=True)
+        try:
+            run_dir = self._create_run_bundle(temp_root / "run-a")
+            (run_dir / "evidence").mkdir(parents=True)
+            (run_dir / "proposals" / "proposals.jsonl").write_text(
+                json.dumps(
+                    {
+                        "run_id": "run-a",
+                        "row_id": "row-1",
+                        "column_name": "notes",
+                        "cell_id": "cell-1",
+                        "pdf_id": "pdf-1",
+                        "proposed_value": "Some value",
+                        "field_type": "text",
+                        "primary_evidence_id": "ev-primary",
+                        "evidence_ids": ["ev-primary", "ev-support"],
+                        "ordered_supporting_evidence_ids": ["ev-support"],
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            for evidence_id, quote in [
+                ("ev-primary", "Primary quote."),
+                ("ev-support", "Supporting quote."),
+            ]:
+                (run_dir / "evidence" / f"{evidence_id}.json").write_text(
+                    json.dumps(
+                        {
+                            "evidence_id": evidence_id,
+                            "pdf_id": "pdf-1",
+                            "page_number": 1,
+                            "quote_text": quote,
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+
+            loaded = load_run(run_dir)
+
+            self.assertEqual([item.evidence_id for item in loaded.proposals[0].evidence_items], ["ev-primary", "ev-support"])
+        finally:
+            shutil.rmtree(temp_root, ignore_errors=True)
+
     def test_run_loader_normalizes_nullable_collection_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             run_dir = self._create_run_bundle(Path(temp_dir) / "run-a")

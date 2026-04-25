@@ -38,6 +38,8 @@ Required published join fields:
 - `column_name`
 - `cell_id`
 
+Evidence can be linked either through nested `support.evidence_ids` or through top-level main-app fields: `primary_evidence_id`, `evidence_ids`, and `ordered_supporting_evidence_ids`. Eval resolves those IDs against persisted evidence files and parsed page text before scoring anchors.
+
 ## Commands
 
 ### Evaluate one run
@@ -98,7 +100,7 @@ out/
 - correctness and evidence are tracked separately
 - headline metrics default to content cells rather than inflating scores with metadata-only fields
 - metadata-family summaries are emitted per run so metadata-lane parser gaps, retrieval misses, evidence ambiguity, and judge failures stay inspectable
-- evidence anchor audits now emit evidence-item totals, validated-versus-unvalidated counts, anchor-invalid counts, and reason histograms
+- evidence anchor audits now emit evidence-item totals, validated-versus-unvalidated counts, missing-evidence counts, anchor-invalid counts, outcome counts, and reason histograms including invalid pages, missing quote text, page out of bounds, no persisted text, quote not locatable, normalized quote located, and raw quote located
 
 ## Judge behavior
 
@@ -116,6 +118,8 @@ Real benchmark studies should use two judges. Per-run summaries and comparison r
 - disagreement count and rate
 - judge-specific unclear and request-failure counts
 - judge response-mode summaries
+
+Dual-judge execution is judge-major by default: eval prepares all eligible text-cell requests, runs all `judge_a` batches, then all `judge_b` batches, grouped by effective provider/model/settings, and merges results back into the original deterministic cell order. If judge B fails, judge A records remain usable. Per-run summaries include `judge_execution_summary` with batch counts, eligible counts, runtimes, execution order, and model-switch diagnostics.
 
 ## Why this tool stays separate from the product surface
 

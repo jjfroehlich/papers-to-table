@@ -135,7 +135,12 @@ def _handle_evaluate(args: argparse.Namespace) -> int:
                 text_judges=text_judges,
                 judge_configs=judge_configs,
             )
-            summary = build_run_summary(loaded_run, gold_dataset, score_result.scored_cells)
+            summary = build_run_summary(
+                loaded_run,
+                gold_dataset,
+                score_result.scored_cells,
+                judge_execution_summary=score_result.judge_execution_summary,
+            )
         except ContractError as exc:
             summary = _build_unscored_summary(
                 run_dir=run_dir,

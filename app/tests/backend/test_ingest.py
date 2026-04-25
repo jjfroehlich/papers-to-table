@@ -14,6 +14,7 @@ from backend.app.ingest import (
     TRIVIAL_PLACEHOLDERS,
     classify_cell_eligibility,
     get_eligible_cells,
+    get_target_columns,
     is_trivial_placeholder,
     load_schema,
     load_table,
@@ -253,6 +254,16 @@ class TestGetEligibleCells:
         cells = get_eligible_cells(df, schema, verify_mode=False)
         for cell in cells:
             assert cell["column_name"] not in {"Title", "Authors", "Publication Year"}
+
+    def test_eval_mode_includes_required_metadata_columns_for_proposal_generation(self):
+        df = load_table(FIXTURE_TABLE)
+        schema = load_schema(FIXTURE_SCHEMA, FIXTURE_TABLE)
+
+        normal_targets = get_target_columns(df, schema, include_required_metadata=False)
+        eval_targets = get_target_columns(df, schema, include_required_metadata=True)
+
+        assert set(REQUIRED_METADATA_COLS).isdisjoint(normal_targets)
+        assert set(REQUIRED_METADATA_COLS).issubset(eval_targets)
 
     def test_verify_mode_includes_more_cells(self):
         df = load_table(FIXTURE_TABLE)

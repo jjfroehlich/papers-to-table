@@ -96,11 +96,11 @@ class StyleProfileConfig(BaseModel):
 
 
 class RetrievalConfig(BaseModel):
-    mode: str = 'lexical'
-    top_k: int = 6
-    recall_rescue_enabled: bool = True
+    mode: str = 'hybrid_experimental'
+    top_k: int = 12
+    recall_rescue_enabled: bool = False
     whole_document_mode: bool = False
-    whole_document_max_chars: int = 12000
+    whole_document_max_chars: int = 20000
 
     @model_validator(mode='before')
     @classmethod
@@ -114,7 +114,7 @@ class RetrievalConfig(BaseModel):
         elif 'strategy' in normalized:
             normalized.pop('strategy')
 
-        mode = str(raw_mode or 'lexical').strip().lower()
+        mode = str(raw_mode or 'hybrid_experimental').strip().lower()
         normalized['mode'] = LEGACY_RETRIEVAL_MODE_ALIASES.get(mode, mode)
         return normalized
 

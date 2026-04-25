@@ -10,6 +10,8 @@ def build_run_summary(
     loaded_run: LoadedRun,
     gold_dataset: GoldDataset,
     scored_cells: Iterable[ScoredCell],
+    *,
+    judge_execution_summary: dict[str, object] | None = None,
 ) -> RunSummary:
     scored_cells = list(scored_cells)
     gold_cell_records = [cell for cell in scored_cells if cell.record_kind == "gold_cell"]
@@ -200,6 +202,7 @@ def build_run_summary(
         "anchor_valid_count": len(anchor_valid_records),
         "evidence_present_but_unvalidated_count": len(evidence_unvalidated_records),
         "evidence_item_count": evidence_audit["evidence_item_count"],
+        "missing_evidence_count": evidence_audit["missing_evidence_count"],
         "validated_evidence_item_count": evidence_audit["validated_evidence_item_count"],
         "anchor_invalid_count": evidence_audit["anchor_invalid_count"],
         "evidence_anchor_reason_counts": evidence_audit["reason_counts"],
@@ -228,6 +231,7 @@ def build_run_summary(
         "benchmark_style_profile_mode": loaded_run.metadata.style_profile_mode,
         "metadata_summary": metadata_summary,
         "judge_summary": judge_summary,
+        "judge_execution_summary": judge_execution_summary or {},
     }
 
     scored = content_correctness_scored_only is not None
@@ -366,6 +370,7 @@ def _build_evidence_audit(records: Iterable[ScoredCell]) -> dict[str, object]:
 
     return {
         "evidence_item_count": evidence_item_count,
+        "missing_evidence_count": outcome_counts.get("missing_evidence", 0),
         "validated_evidence_item_count": validated_evidence_item_count,
         "anchor_valid_count": validated_evidence_item_count,
         "anchor_valid_rate": _ratio(validated_evidence_item_count, evidence_item_count),

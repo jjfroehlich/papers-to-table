@@ -82,6 +82,7 @@ These wrapper scripts assume the current working directory is the repository roo
 
 - Evidence types stay distinct: exact highlights, approximate highlights, quote-plus-page fallback, reasoning, and figure evidence.
 - Provider mode and degraded fallback states are recorded in run artifacts.
+- The default extraction path is `google/gemma-4-e4b` with `retrieval.mode=hybrid_experimental`, `retrieval.top_k=12`, recall rescue off, and whole-document mode off. `google/gemma-4-26b-a4b` remains the heavier optimization target.
 - Review remains manual; proposal presence is not treated as proof.
 - Export is never automatic.
 
@@ -98,4 +99,5 @@ Current companion-tool truth:
 
 - real benchmark studies use the explicit `*_real_dev.json` and `*_real_overnight.json` optimizer configs instead of smoke or fixture configs
 - real benchmark studies are expected to run with two judges end to end
+- compare-model and overnight configs include Gemma, Qwen, GPT-OSS, Unsloth, and GLM candidates under the same extraction stack with small per-model request policies
 - eval and optimizer reports now separate the raw benchmark winner from the recommended default when degraded or trust caveats differ

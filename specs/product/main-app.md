@@ -112,12 +112,14 @@ The backend may expose a stable non-UI automation entrypoint for tooling, but th
 ### Retrieval strategy
 
 - Retrieval should remain row-aware and column-aware rather than defaulting to whole-document prompting.
+- The intended default extraction path is `retrieval.mode=hybrid_experimental`, `retrieval.top_k=12`, recall rescue disabled, and whole-document mode disabled.
 - Retrieval preparation may be cached per parsed document when that preserves truthful provenance and repeatability.
 - Whole-document or recall-rescue behavior may exist as bounded configured modes, but those choices must remain explicit in run artifacts and summaries.
 
 ### Extraction strategy
 
 - Proposal generation occurs only for eligible target cells in the active mode.
+- Eval/benchmark extraction must not send gold metadata values through LLM prompts, but it must emit parser/front-matter proposals for required metadata columns that eval scores, including `Title`, `Authors`, and `Publication Year`.
 - A target cell is eligible only when the run has passed readiness, the source paper has a usable row match or allowed metadata path, and the cell is in scope for the selected run mode.
 - The app persists one best proposal per eligible target cell, but weaker fallback evidence and failure attribution must remain explicit so reviewers and downstream tooling can tell why a proposal looks the way it does.
 - The app should prefer `unclear` over weak guessing when current-paper evidence is not strong enough.
@@ -179,6 +181,8 @@ The bounded structured-output recovery ladder is:
 - `json_schema`
 - `json_object`
 - prompt-only JSON mode with app-side parsing when that degraded path is explicitly allowed
+
+Model-family differences must be isolated in a small policy layer, not by forking the extraction stack. Unknown and newly added models use a shared generic default policy. Explicit family overrides may adjust only request construction, fallback order, and failure classification. Gemma and GPT-OSS are schema-first. Qwen-compatible models prefer non-thinking JSON-object requests with an explicit JSON reminder, omit `max_tokens` on structured calls, skip same-mode malformed-response retry, and classify repeated malformed structured responses quickly.
 
 ## Readiness and preflight requirements
 

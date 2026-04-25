@@ -31,6 +31,12 @@ The optimizer supports:
 - `optimize` for bounded incumbent-challenger promotion on a dev benchmark
 - `preflight` for contract and launch validation without running a study
 
+Prepared operator workflows are:
+
+- compare models, using fixed model lists on real dev or overnight manifests
+- optimize one model, focused on `google/gemma-4-26b-a4b` and primarily `retrieval_top_k` around the default retrieval stack
+- overnight run, using staged real-benchmark configs with incremental summaries
+
 ## Benchmark policy
 
 - `dev` drives compare and optimize decisions.
@@ -38,6 +44,7 @@ The optimizer supports:
 - Holdout validates final recommendations after dev-phase ranking or optimization.
 - Real benchmark configs must stay clearly separate from smoke or fixture configs.
 - Real benchmark manifests must fail preflight if they point at fixture assets, omit required benchmark files, or omit required dual-judge configuration.
+- Meaningful compare, optimize, dev, and overnight configs must not silently fall back to fixture benchmarks; fixture and smoke configs exist only for fast contract checks.
 
 ## Candidate and result expectations
 
@@ -56,6 +63,8 @@ The optimizer must:
 - generate operator-facing reports that explain what happened, why a candidate won or failed, and what to check next
 - make degraded prompt-only candidates unmistakable rather than treating them as healthy peers
 - distinguish the raw benchmark winner from the recommended operational default when trust caveats differ
+- surface retrieval mode, top-k, rescue mode, whole-document mode, structured-output mode, fallback mode, dual-judge status, evidence-anchor audits, metadata-family summaries, join failures, and runtime accounting in reports
+- sort healthy scored candidates ahead of scored-degraded, unscored, and failed candidates so unsupported structured-output candidates do not look equivalent to valid runs
 
 ## Ownership boundary
 

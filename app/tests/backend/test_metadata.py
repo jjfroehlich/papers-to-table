@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from backend.app.metadata import extract_matching_metadata, extract_matching_metadata_debug, resolve_metadata_field
+from backend.app.metadata import (
+    extract_matching_metadata,
+    extract_matching_metadata_debug,
+    is_metadata_field,
+    resolve_metadata_field,
+)
 
 
 def test_resolve_metadata_field_prefers_parser_metadata_for_doi() -> None:
@@ -99,3 +104,15 @@ def test_extract_matching_metadata_debug_surfaces_front_matter_and_field_diagnos
     assert debug.front_matter_diagnostics["front_matter_detected"] is True
     assert debug.field_diagnostics["title"].state == "found"
     assert debug.field_diagnostics["doi"].diagnostics["candidate_count"] >= 1
+
+
+def test_metadata_field_detection_is_exact_and_does_not_contaminate_content_columns() -> None:
+    assert is_metadata_field("Title", "Paper title") == "title"
+    assert is_metadata_field("Publication Year", "") == "year"
+    assert is_metadata_field("Authors", "") == "authors"
+    assert is_metadata_field("Bottlenecking", "Does the paper describe an author bottleneck or DOI?") is None
+    assert is_metadata_field("mean # Barcodes per sequence", "Report the publication year if relevant") is None
+
+
+def test_metadata_field_detection_allows_explicit_description_opt_in() -> None:
+    assert is_metadata_field("Article label", "metadata_field:title") == "title"

@@ -26,12 +26,12 @@ Use this file for checked/unchecked task state only. Keep behavior and contracts
 
 ## Current Repo-Truth Notes
 
-Reality-checked on 2026-04-06 against current backend/frontend source, targeted tests, historical run artifacts, and live browser behavior.
+Reality-checked on 2026-04-25 against current backend/frontend source, targeted tests, historical run artifacts, and live browser behavior.
 
 Treat this section as a point-in-time implementation note. If it becomes stale after a behavior change, refresh it in the same pass or remove outdated lines rather than letting it become a second drifting spec surface.
 
 - Implemented: resolved `config.snapshot.json` persistence and resolved input context.
-- Implemented: lexical retrieval baseline with persisted per-cell retrieval artifacts.
+- Implemented: hybrid-experimental retrieval default with persisted per-cell retrieval artifacts; lexical remains a supported explicit mode.
 - Implemented: prompt bundle loading plus persisted prompt identity/provenance.
 - Implemented: stable non-UI automation entrypoint with machine-readable start/status/wait outputs.
 - Implemented: provider/runtime diagnostics, artifact completeness summary, retrieval-failure diagnostics, and figure-review ROI diagnostics.
@@ -46,8 +46,10 @@ Treat this section as a point-in-time implementation note. If it becomes stale a
 - Implemented in the latest pass: browser run launch is now preflight-first and persists compact review lookup artifacts for row/column/paper context.
 - Implemented in the latest pass: live run updates now stream over SSE and unresolved diagnostics moved into a dedicated review-inspection surface instead of competing with evidence.
 - Implemented in the latest pass: matching now persists per-PDF extracted metadata, front-matter diagnostics, candidate-score breakdowns, and threshold or gap reasoning artifacts.
-- Implemented in the latest pass: eval summaries now include evidence-anchor audits, metadata-family summaries, and richer dual-judge diagnostics.
-- Implemented in the latest pass: optimizer benchmark manifests now distinguish real versus fixture or smoke intent, enforce required dual-judge config, and report benchmark winner versus recommended default separately.
+- Implemented in the latest pass: eval-mode extraction emits parser/front-matter proposals for required metadata fields so metadata-scored gold cells are not reported as join failures.
+- Implemented in the latest pass: eval resolves top-level proposal evidence IDs, emits evidence-anchor outcome counts, and runs dual judges in judge-major batches with execution summaries.
+- Implemented in the latest pass: the shared extraction stack has a small per-model request policy for Gemma, Qwen, and GPT-OSS behavior.
+- Implemented in the latest pass: optimizer benchmark manifests distinguish real versus fixture or smoke intent, enforce required dual-judge config, report benchmark winner versus recommended default separately, and use the new default retrieval/model settings.
 - Historical run bundles under `runs/` are useful examples but are not the canonical artifact-shape source of truth.
 
 ## Canonical Checklist
@@ -81,7 +83,7 @@ Treat this section as a point-in-time implementation note. If it becomes stale a
 - [x] **T016** Set up frontend test tooling and Playwright e2e scaffolding.
 - [x] **T016a** Harden the Playwright harness so fixture preparation and server startup are shell-robust.
 - [x] **T108** Clean up config and naming truth for retrieval-related settings.
-- [x] **T108a** Canonicalize retrieval config naming so it describes the implemented lexical baseline truthfully.
+- [x] **T108a** Canonicalize retrieval config naming so supported lexical and hybrid modes are explicit.
 - [x] **T108b** Normalize legacy retrieval aliases while persisting canonical values.
 - [x] **T108c** Add config naming tests for canonicalization and unknown-value failure behavior.
 - [x] **T110** Externalize important prompts while preserving deterministic prompt identity/provenance.
@@ -171,8 +173,8 @@ Treat this section as a point-in-time implementation note. If it becomes stale a
 - [x] **T111b** Persist heuristic policy details in retrieval artifacts.
 - [x] **T111c** Surface heuristic-policy usage summaries in run outputs.
 - [x] **T111d** Add heuristic-policy tests.
-- [x] **T112** Add an opt-in experimental hybrid retrieval benchmark path while keeping lexical retrieval as default.
-- [x] **T112a** Add a retrieval-mode toggle in config with lexical default baseline.
+- [x] **T112** Add a hybrid retrieval benchmark path and promote `hybrid_experimental` as the current default.
+- [x] **T112a** Add a retrieval-mode toggle in config with explicit lexical and hybrid modes.
 - [x] **T112b** Implement the hybrid retrieval path behind explicit opt-in mode.
 - [x] **T112c** Persist and expose retrieval mode in run artifacts and summaries.
 - [x] **T112d** Add hybrid-mode tests.

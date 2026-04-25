@@ -395,6 +395,7 @@ class JudgeRecord:
 class ScoreRunResult:
     scored_cells: list[ScoredCell]
     judge_records: list[JudgeRecord] = field(default_factory=list)
+    judge_execution_summary: dict[str, Any] = field(default_factory=dict)
 
 
 def _join_identity_and_version(identity: str | None, version: str | None) -> str | None:

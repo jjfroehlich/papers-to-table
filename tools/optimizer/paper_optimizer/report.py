@@ -181,6 +181,8 @@ def _trust_note(row: dict[str, Any]) -> str:
         notes.append("contract invalid")
     if safe_float(row.get("anchor_valid_rate")) == 0 and (row.get("evidence_item_count") or 0):
         notes.append("zero grounded evidence")
+    if (row.get("missing_evidence_count") or 0) > 0:
+        notes.append(f"missing_evidence={row.get('missing_evidence_count')}")
     if (row.get("join_failure_count") or 0) > 0:
         notes.append(f"join_failures={row.get('join_failure_count')}")
     if row.get("dual_judge_completed"):
@@ -585,7 +587,11 @@ def _build_candidate_table(
                                 f"trust={_trust_note(row)}; "
                                 f"anchor_valid_rate={format_percent(row.get('anchor_valid_rate'), missing='not recorded')}"
                             ),
-                            details=display_text(row.get("structured_output_reason"), missing="no extra structure note recorded"),
+                            details=(
+                                f"structure_reason={display_text(row.get('structured_output_reason'), missing='none')}; "
+                                f"evidence_outcomes={display_text(row.get('evidence_anchor_outcome_counts'), missing='not recorded')}; "
+                                f"judge_batches={display_text(row.get('judge_execution_summary'), missing='not recorded')}"
+                            ),
                         ),
                         build_table_cell(
                             display_text(row.get("promotion_decision"), missing="not recorded"),
@@ -642,7 +648,11 @@ def _build_candidate_table(
                                 f"trust={_trust_note(row)}; "
                                 f"anchor_valid_rate={format_percent(row.get('anchor_valid_rate'), missing='not recorded')}"
                             ),
-                            details=display_text(row.get("structured_output_reason"), missing="no extra structure note recorded"),
+                            details=(
+                                f"structure_reason={display_text(row.get('structured_output_reason'), missing='none')}; "
+                                f"evidence_outcomes={display_text(row.get('evidence_anchor_outcome_counts'), missing='not recorded')}; "
+                                f"judge_batches={display_text(row.get('judge_execution_summary'), missing='not recorded')}"
+                            ),
                         ),
                         build_table_cell(
                             display_text(row.get("unscored_reason"), missing=display_text(row.get("decision_reason"), missing="no issue recorded")),

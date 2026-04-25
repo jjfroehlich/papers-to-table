@@ -41,21 +41,36 @@ class MatchingMetadataDebug(BaseModel):
 
 
 def is_metadata_field(column_name: str, column_description: str = "") -> Optional[str]:
-    combined = f"{column_name} {column_description}".strip().lower()
-    patterns = [
-        ("doi", ["doi", "digital object identifier"]),
-        ("journal", ["journal", "publication venue", "venue", "conference"]),
-        ("link", ["url", "link", "website", "web address"]),
-        ("abstract", ["abstract", "summary"]),
-        ("title", ["title", "paper title", "article title"]),
-        ("authors", ["authors", "author list", "first author"]),
-        ("year", ["publication year", "year published", "publication date"]),
-        ("pmid", ["pmid", "pubmed"]),
-    ]
-    for kind, hints in patterns:
-        if any(hint in combined for hint in hints):
+    normalized_name = _normalize_metadata_label(column_name)
+    name_aliases = {
+        "doi": {"doi", "digital object identifier"},
+        "journal": {"journal", "publication venue", "venue", "conference"},
+        "link": {"link", "url", "website", "web address"},
+        "abstract": {"abstract", "summary"},
+        "title": {"title", "paper title", "article title"},
+        "authors": {"authors", "author", "author list", "first author"},
+        "year": {"publication year", "year published", "publication date", "year"},
+        "pmid": {"pmid", "pubmed", "pubmed id"},
+    }
+    for kind, aliases in name_aliases.items():
+        if normalized_name in aliases:
             return kind
+
+    # Descriptions are intentionally not substring-matched. A content column may
+    # mention a DOI, author, title, or year as guidance without being metadata.
+    # Schema authors can opt in explicitly with "metadata_field:<kind>".
+    description = column_description.casefold()
+    explicit = re.search(r"\bmetadata[_ -]field\s*:\s*([a-z_ -]+)", description)
+    if explicit:
+        normalized_kind = _normalize_metadata_label(explicit.group(1))
+        for kind, aliases in name_aliases.items():
+            if normalized_kind == kind or normalized_kind in aliases:
+                return kind
     return None
+
+
+def _normalize_metadata_label(value: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9]+", " ", str(value).casefold())).strip()
 
 
 def extract_matching_metadata(doc_dict: dict) -> MatchingMetadata:
@@ -137,6 +152,7 @@ def resolve_metadata_field(column_name: str, column_description: str, doc_dict: 
     full_text = str(doc_dict.get("full_text") or "")
     parser_used = str(doc_dict.get("parser_used") or "unknown")
     diagnostics: dict[str, object] = {
+        "field_kind": field_kind,
         "parser_used": parser_used,
         "front_matter_block_count": len(blocks),
         "front_matter_detected": bool(blocks),

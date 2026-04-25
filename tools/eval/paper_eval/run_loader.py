@@ -679,6 +679,14 @@ def _extract_evidence_items(
             if evidence_payload:
                 records.append(evidence_payload)
 
+    for evidence_id in _top_level_evidence_ids(payload):
+        evidence_payload = sidecar_evidence.get(str(evidence_id))
+        if evidence_payload and all(
+            _required_text(record.get("evidence_id") or record.get("id")) != str(evidence_id)
+            for record in records
+        ):
+            records.append(evidence_payload)
+
     evidence_items: list[EvidenceItem] = []
     for record in records:
         evidence_items.append(
@@ -690,6 +698,23 @@ def _extract_evidence_items(
             )
         )
     return evidence_items
+
+
+def _top_level_evidence_ids(payload: dict[str, Any]) -> list[str]:
+    ordered: list[str] = []
+    for key in ("primary_evidence_id", "evidence_ids", "ordered_supporting_evidence_ids"):
+        value = payload.get(key)
+        if isinstance(value, str):
+            candidates = [value]
+        elif isinstance(value, list):
+            candidates = [str(item) for item in value]
+        else:
+            candidates = []
+        for candidate in candidates:
+            candidate = candidate.strip()
+            if candidate and candidate not in ordered:
+                ordered.append(candidate)
+    return ordered
 
 
 def _load_evidence_records(run_dir: Path) -> dict[str, dict[str, Any]]:

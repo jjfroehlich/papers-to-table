@@ -1247,6 +1247,41 @@ class TestProviderCapabilities:
         assert provider._capabilities.structured_output_mode == "json_object"
         assert provider._capabilities.structured_output_reason == "structured_backend_incompatible"
 
+    @pytest.mark.asyncio
+    async def test_qwen_structured_policy_uses_json_object_without_max_tokens_or_retry(self):
+        provider = LMStudioProvider(base_url="http://localhost:1234")
+        provider.set_capabilities(
+            ProviderCapabilities(
+                supports_structured_output=True,
+                structured_output_mode="json_schema",
+                model_id="qwen/qwen3.6-27b",
+                vision_capable=False,
+            )
+        )
+        post = AsyncMock(side_effect=['{"state": "found"}', '{"value": "ok"}'])
+
+        with patch.object(provider, "_post_structured_payload", new=post):
+            result = await provider.chat_complete_structured(
+                messages=[{"role": "user", "content": "Return exactly one object."}],
+                response_schema={
+                    "type": "object",
+                    "properties": {"value": {"type": "string"}, "state": {"type": "string"}},
+                    "required": ["value"],
+                },
+                model_id="qwen/qwen3.6-27b",
+                max_tokens=2048,
+            )
+
+        assert result["value"] == "ok"
+        first_payload = post.await_args_list[0].args[0]
+        second_payload = post.await_args_list[1].args[0]
+        assert first_payload["response_format"] == {"type": "json_object"}
+        assert "max_tokens" not in first_payload
+        assert any("JSON" in message["content"] for message in first_payload["messages"])
+        assert any("non-thinking" in message["content"] for message in first_payload["messages"])
+        assert second_payload["response_format"]["type"] == "json_schema"
+        assert provider.get_request_counts()["completion_retry_attempts"] == 0
+
 
 # ===========================================================================
 # T067 — Extraction

@@ -743,6 +743,49 @@ class TextJudgeScoringTests(unittest.TestCase):
         self.assertEqual(summary.metrics["proposal_coverage_on_all_gold_present"], 0.5)
         self.assertEqual(summary.metrics["proposal_coverage_on_gold_present"], 0.5)
 
+    def test_required_metadata_proposals_eliminate_old_nine_join_failure_pattern(self) -> None:
+        proposals: list[ProposalRecord] = []
+        gold_cells: list[GoldCell] = []
+        for row_index in range(3):
+            row_id = f"row-{row_index + 1}"
+            for column_name, value, field_type in [
+                ("Title", f"Paper {row_index + 1}", "text"),
+                ("Authors", f"Author {row_index + 1}", "text"),
+                ("Publication Year", "2024", "numeric"),
+            ]:
+                cell_id = f"cell-{row_id}-{column_name.replace(' ', '-').lower()}"
+                proposals.append(
+                    ProposalRecord(
+                        run_id="run-a",
+                        row_id=row_id,
+                        column_name=column_name,
+                        cell_id=cell_id,
+                        proposed_value=value,
+                        field_type=field_type,
+                        scoring_policy="deterministic",
+                        extraction_lane="metadata_front_matter",
+                    )
+                )
+                gold_cells.append(
+                    GoldCell(
+                        row_id=row_id,
+                        column_name=column_name,
+                        cell_id=cell_id,
+                        raw_value=value,
+                        is_present=True,
+                    )
+                )
+        loaded_run = self._loaded_run(*proposals)
+        gold = self._gold_dataset(*gold_cells)
+
+        result = score_run(loaded_run, gold, load_schema(None))
+        summary = build_run_summary(loaded_run, gold, result.scored_cells)
+
+        self.assertEqual(summary.metrics["metadata_gold_present_cell_count"], 9)
+        self.assertEqual(summary.metrics["missing_proposal_count"], 0)
+        self.assertEqual(summary.metrics["join_failure_count"], 0)
+        self.assertEqual(summary.metrics["metadata_correctness"], 1.0)
+
     def test_summary_splits_content_metadata_and_evidence_grounded_metrics(self) -> None:
         loaded_run = LoadedRun(
             run_dir=Path("/tmp/run-a"),
@@ -856,6 +899,124 @@ class TextJudgeScoringTests(unittest.TestCase):
         self.assertEqual(summary.metrics["judge_disagreement_rate"], 1.0)
         self.assertEqual(summary.metrics["judge_summary"]["request_failed_count"]["judge_a"], 0)
         self.assertEqual(summary.metrics["judge_summary"]["verdict_counts"]["judge_b"]["incorrect"], 1)
+
+    def test_dual_judge_execution_is_judge_major_and_reported(self) -> None:
+        calls: list[tuple[str, str | None]] = []
+
+        class RecordingJudge(FakeJudge):
+            def __init__(self, label: str, verdict: str) -> None:
+                super().__init__(verdict=verdict)
+                self.label = label
+
+            def judge(self, judge_request) -> JudgeResponse:
+                calls.append((self.label, judge_request.cell_id))
+                return super().judge(judge_request)
+
+        loaded_run = self._loaded_run(
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="notes",
+                cell_id="cell-notes-1",
+                proposed_value="expanded biology description with assay context",
+                field_type="text",
+            ),
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-2",
+                column_name="notes",
+                cell_id="cell-notes-2",
+                proposed_value="another expanded biology description",
+                field_type="text",
+            ),
+        )
+        gold = self._gold_dataset(
+            GoldCell(
+                row_id="row-1",
+                column_name="notes",
+                cell_id="cell-notes-1",
+                raw_value="Expanded biological description for the assay",
+                is_present=True,
+            ),
+            GoldCell(
+                row_id="row-2",
+                column_name="notes",
+                cell_id="cell-notes-2",
+                raw_value="Another biological description for the assay",
+                is_present=True,
+            ),
+        )
+
+        result = score_run(
+            loaded_run,
+            gold,
+            load_schema(None),
+            text_judges={"judge_a": RecordingJudge("judge_a", "correct"), "judge_b": RecordingJudge("judge_b", "correct")},
+            judge_configs={
+                "judge_a": JudgeConfig(model_id="judge-model-a", label="judge_a"),
+                "judge_b": JudgeConfig(model_id="judge-model-b", label="judge_b"),
+            },
+        )
+        summary = build_run_summary(
+            loaded_run,
+            gold,
+            result.scored_cells,
+            judge_execution_summary=result.judge_execution_summary,
+        )
+
+        self.assertEqual(
+            calls,
+            [
+                ("judge_a", "cell-notes-1"),
+                ("judge_a", "cell-notes-2"),
+                ("judge_b", "cell-notes-1"),
+                ("judge_b", "cell-notes-2"),
+            ],
+        )
+        self.assertEqual(result.judge_execution_summary["execution_order"], ["judge_a", "judge_b"])
+        self.assertEqual(result.judge_execution_summary["eligible_cell_count"], 2)
+        self.assertEqual(result.judge_execution_summary["batch_count"], 2)
+        self.assertEqual(summary.metrics["judge_execution_summary"]["execution_policy"], "judge_major_grouped_by_provider_model_settings")
+
+    def test_dual_judge_partial_failure_preserves_successful_judge_result(self) -> None:
+        loaded_run = self._loaded_run(
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="notes",
+                cell_id="cell-notes-1",
+                proposed_value="expanded biology description with assay context",
+                field_type="text",
+            )
+        )
+        gold = self._gold_dataset(
+            GoldCell(
+                row_id="row-1",
+                column_name="notes",
+                cell_id="cell-notes-1",
+                raw_value="Expanded biological description for the assay",
+                is_present=True,
+            )
+        )
+
+        result = score_run(
+            loaded_run,
+            gold,
+            load_schema(None),
+            text_judges={"judge_a": FakeJudge("correct"), "judge_b": FailingJudge("judge-b failed")},
+            judge_configs={
+                "judge_a": JudgeConfig(model_id="judge-model-a", label="judge_a"),
+                "judge_b": JudgeConfig(model_id="judge-model-b", label="judge_b"),
+            },
+        )
+
+        scored_cell = result.scored_cells[0]
+        self.assertTrue(scored_cell.was_scored)
+        self.assertTrue(scored_cell.is_correct)
+        self.assertEqual(scored_cell.judge_results["judge_a"]["verdict"], "correct")
+        self.assertEqual(scored_cell.judge_results["judge_b"]["verdict"], "unclear")
+        self.assertIn("judge_request_failed", scored_cell.diagnostic_flags)
+        self.assertEqual(result.judge_execution_summary["eligible_cell_counts_by_judge"]["judge_b"], 1)
 
     def test_evidence_anchor_audit_reports_reason_histograms(self) -> None:
         loaded_run = self._loaded_run(

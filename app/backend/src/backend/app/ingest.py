@@ -233,7 +233,7 @@ def get_eligible_cells(
     """Return list of eligible cells: {row_id, row_index, column_name, current_value, eligibility}."""
     from .ids import generate_row_id
 
-    target_cols = set(get_target_columns(df, schema))
+    target_cols = set(get_target_columns(df, schema, include_required_metadata=eval_mode))
 
     eligible = []
     for row_idx, row in df.iterrows():
@@ -259,9 +259,18 @@ def get_eligible_cells(
     return eligible
 
 
-def get_target_columns(df: pd.DataFrame, schema: list[dict]) -> list[str]:
+def get_target_columns(
+    df: pd.DataFrame,
+    schema: list[dict],
+    *,
+    include_required_metadata: bool = False,
+) -> list[str]:
     schema_cols = {col["column_name"] for col in schema}
-    return [column for column in df.columns if column in schema_cols and column not in REQUIRED_METADATA_COLS]
+    return [
+        column
+        for column in df.columns
+        if column in schema_cols and (include_required_metadata or column not in REQUIRED_METADATA_COLS)
+    ]
 
 
 def create_masked_working_dataframe(

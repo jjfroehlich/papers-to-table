@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import shutil
 from pathlib import Path
 
 from paper_optimizer.plotting import generate_compare_plots
@@ -298,9 +299,58 @@ def test_compare_mode_writes_no_eligible_winner_when_degraded_scores_are_disallo
     assert summary["scored_degraded_candidate_count"] == len(base_config["compare_candidates"])
 
 
-def test_compare_report_surfaces_trust_notes_for_degraded_candidates(base_config: dict, tmp_path: Path, monkeypatch) -> None:
+def test_compare_report_surfaces_trust_notes_for_degraded_candidates(monkeypatch) -> None:
+    base_config = {
+        "schema_version": "1.0",
+        "experiment_id": "exp_report_trust_notes",
+        "baseline_candidate": {
+            "prompt_bundle_id": "default",
+            "text_model_id": "text-model-a",
+            "vision_model_id": None,
+            "optimizer_knobs": {"retrieval_top_k": 12},
+        },
+        "compare_candidates": [
+            {
+                "prompt_bundle_id": "default",
+                "text_model_id": "text-model-a",
+                "vision_model_id": None,
+                "optimizer_knobs": {"retrieval_top_k": 12},
+            },
+            {
+                "prompt_bundle_id": "default",
+                "text_model_id": "text-model-b",
+                "vision_model_id": None,
+                "optimizer_knobs": {"retrieval_top_k": 12},
+            },
+        ],
+        "benchmarks": {
+            "dev": "bench_dev",
+            "manifests": {
+                "bench_dev": {
+                    "table_path": "real_table.xlsx",
+                    "schema_path": "schema.json",
+                    "pdf_dir": "pdfs",
+                    "gold_path": "gold.csv",
+                    "eval_schema_path": "schema.json",
+                    "main_args": [],
+                    "eval_args": ["--judge-model", "judge-a", "--judge-model-b", "judge-b"],
+                    "expected_items": 100,
+                    "benchmark_kind": "real",
+                    "require_non_fixture_inputs": True,
+                    "required_judges": ["judge_a", "judge_b"],
+                }
+            },
+        },
+        "acceptance": {
+            "primary_metric": "correctness",
+            "degraded_score_policy": "allow",
+            "guardrails": {},
+        },
+        "compare": {"holdout_top_k": 0},
+    }
     benches = load_benchmarks(base_config)
-    out = tmp_path / "compare_exp"
+    out = Path.cwd() / ".tmp_compare_report_trust_notes"
+    shutil.rmtree(out, ignore_errors=True)
 
     def _mixed_result(*args, **kwargs) -> CandidateResult:
         candidate = kwargs["candidate"]
@@ -327,6 +377,9 @@ def test_compare_report_surfaces_trust_notes_for_degraded_candidates(base_config
                 "judge_disagreement_rate": 0.25,
                 "anchor_valid_rate": 0.0 if degraded else 1.0,
                 "evidence_item_count": 2.0,
+                "missing_evidence_count": 1.0 if degraded else 0.0,
+                "evidence_anchor_outcome_counts": {"missing_evidence": 1} if degraded else {"anchor_valid": 2},
+                "judge_execution_summary": {"batched": True, "execution_order": ["judge_a", "judge_b"]},
             },
             scored=True,
             score_status="scored_degraded" if degraded else "scored",
@@ -349,8 +402,11 @@ def test_compare_report_surfaces_trust_notes_for_degraded_candidates(base_config
                     "metrics": {
                         "anchor_valid_rate": 0.0 if degraded else 1.0,
                         "evidence_item_count": 2,
+                        "missing_evidence_count": 1 if degraded else 0,
+                        "evidence_anchor_outcome_counts": {"missing_evidence": 1} if degraded else {"anchor_valid": 2},
                         "dual_judge_completed": True,
                         "judge_disagreement_rate": 0.25,
+                        "judge_execution_summary": {"batched": True, "execution_order": ["judge_a", "judge_b"]},
                     }
                 },
             },
@@ -359,8 +415,15 @@ def test_compare_report_surfaces_trust_notes_for_degraded_candidates(base_config
     monkeypatch.setattr("paper_optimizer.study.evaluate_candidate_once", _mixed_result)
     monkeypatch.setattr("paper_optimizer.study.generate_compare_plots", lambda *args, **kwargs: None)
 
-    run_compare_mode(base_config, benches, out)
+    try:
+        run_compare_mode(base_config, benches, out)
 
-    report_html = (out / "report.html").read_text(encoding="utf-8")
-    assert "prompt-only degraded" in report_html
-    assert "zero grounded evidence" in report_html
+        report_html = (out / "report.html").read_text(encoding="utf-8")
+        assert "prompt-only degraded" in report_html
+        assert "zero grounded evidence" in report_html
+        assert "missing_evidence=1" in report_html
+        assert "evidence_outcomes" in report_html
+        assert "judge_batches" in report_html
+        assert "Dual-judge comparison was not recorded" not in report_html
+    finally:
+        shutil.rmtree(out, ignore_errors=True)

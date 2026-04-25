@@ -101,6 +101,9 @@ That compact truth includes, when applicable:
 - recall-rescue and whole-document retrieval usage
 - extraction lane and failure attribution
 - metadata diagnostics and failure attribution needed to explain parser-gap, retrieval-miss, evidence-ambiguity, extraction-miss, judge-failure, and judge-unclear outcomes
+- metadata proposal lane truth for required eval-scored metadata fields, especially `Title`, `Authors`, and `Publication Year`
+- evidence linkage through nested support evidence IDs and top-level proposal fields such as `primary_evidence_id`, `evidence_ids`, and `ordered_supporting_evidence_ids`
+- page-text-compatible source text or parsed-document text sufficient for downstream anchor validation when the run has generated locatable evidence
 - parser-cache and related reuse truth
 
 Stable eval-facing provenance should also preserve, when applicable:

@@ -23,6 +23,12 @@ pip install -e .[dev]
 
 ## Study modes
 
+The prepared optimizer app is organized around three operator workflows:
+
+- compare models: fixed model candidate lists on the real dev or overnight benchmark
+- optimize one model: focused `google/gemma-4-26b-a4b` sweeps, primarily `retrieval_top_k`, while holding the new retrieval defaults fixed
+- overnight run: staged longer-running real-benchmark studies with incremental summaries
+
 ### compare
 
 - evaluates an explicit fixed candidate set on the dev benchmark
@@ -57,6 +63,8 @@ paper-optimizer summarize --config config.example.json --experiment runs/optimiz
 
 Prepared configs under `tools/optimizer/configs/` use monorepo-local relative paths.
 
+The meaningful real compare and optimize paths use the real benchmark manifests. Fixture and smoke configs remain available only for fast contract checks.
+
 ## Overnight workflow
 
 The optimizer includes two main shell wrappers:
@@ -73,6 +81,21 @@ Prepared config families now separate real-benchmark studies from smoke or fixtu
 
 Real-benchmark manifests now fail preflight if they point at fixture assets, omit required dual-judge settings, or reference missing benchmark files.
 Prepared configs now default `--judge-model-b` to `mistralai/ministral-3-14b-reasoning` so judge B is enabled by default without Gemma/Qwen coupling.
+
+Model-compare and overnight candidate lists include:
+
+- `openai/gpt-oss-20b`
+- `google/gemma-4-e4b`
+- `google/gemma-4-26b-a4b`
+- `unsloth/gemma-4-26b-a4b-it`
+- `qwen/qwen3.6-27b`
+- `qwen/qwen3.6-35b-a3b`
+- `unsloth/qwen3.6-35b-a3b`
+- `zai-org/glm-4.6v-flash`
+
+The operational default is `google/gemma-4-e4b` because the latest model compare had the best practical score/cost tradeoff. The benchmark winner and operational recommendation stay separate report concepts when trust, runtime, or degradation caveats differ.
+
+Reports surface dual-judge completion, disagreement, per-judge failures, evidence-anchor outcome counts, degraded or prompt-only status, and join failures directly in ranked candidate rows. Degraded and unscored candidates remain ranked below healthy scored candidates.
 
 Recommended study order:
 
