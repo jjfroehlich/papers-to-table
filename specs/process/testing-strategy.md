@@ -52,6 +52,12 @@ Main-app changes should preserve:
 - verify backend startup, frontend startup, and wrapper scripts together
 - verify imports and editable installs on the new layout
 
+### If you changed documentation structure or docs tooling
+
+- run `python scripts/papers_to_table.py docs build`
+- fix broken nav links or missing pages before finalizing
+- verify README and docs command examples still match the real CLI surface
+
 ## Cross-tool regression rule
 
 Any change that affects a shared contract in `contracts/` must verify all impacted tools, not only the tool where the change was implemented.

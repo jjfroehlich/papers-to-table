@@ -245,6 +245,8 @@ The repo exposes one central operator and agent command surface:
 - `python scripts/papers_to_table.py optimizer compare-models`
 - `python scripts/papers_to_table.py optimizer optimize-one-model`
 - `python scripts/papers_to_table.py optimizer overnight`
+- `python scripts/papers_to_table.py docs serve`
+- `python scripts/papers_to_table.py docs build`
 
 ## 12. Diagnostics and limitations
 
@@ -258,3 +260,10 @@ The system must remain truthful about:
 - auto-accepted headless decisions
 
 Known practical limits include parser dependency drift, live model readiness variance, judge disagreement on fuzzy text fields, and the need for real benchmark manifests outside the checked-in fixture set.
+
+## 13. Documentation and agent-operating surfaces
+
+- `README.md` is the concise repository entry point.
+- `docs/` is the operator/developer manual and is also buildable as a local/static MkDocs Material site.
+- `specs/` remains the canonical rebuild-grade implementation truth.
+- `agent-skills/papers-to-table/` provides a focused headless operating procedure for external coding agents and must not replace installation or runtime readiness checks.

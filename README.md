@@ -1,22 +1,15 @@
 # papers-to-table
 
-papers-to-table is a local-first paper-to-table review app.
+papers-to-table is a local-first app that extracts evidence-backed values from scientific PDFs into structured tables, keeps review in a browser UI, and exports audited workbook updates.
 
-It ingests scientific PDFs plus a structured spreadsheet, proposes evidence-backed cell values, keeps human review in a browser UI, and exports an audited workbook only after explicit acceptance.
+The monorepo also includes:
 
-## Repository shape
-
-This monorepo has three operator-facing surfaces:
-
-- **Main app**: browser review workflow for preflight, extraction, review, and export
-- **Eval companion**: scores a main-app run bundle against gold data
-- **Optimizer companion**: launches repeated main-app + eval studies for compare and optimize workflows
-
-The browser UI is the primary human workflow. The JSON config file remains the authoritative advanced-control surface.
+- **eval** companion (scores run bundles)
+- **optimizer** companion (orchestrates compare/optimize studies)
 
 ## Quickstart
 
-Run these commands from the repository root:
+From the repository root:
 
 ```bash
 python scripts/papers_to_table.py install
@@ -25,16 +18,24 @@ python scripts/papers_to_table.py review
 
 Then open `http://127.0.0.1:5173`.
 
-## Most common commands
+## Core commands
 
-### Human-review main app
+### Docs manual
+
+```bash
+python -m pip install -r requirements-docs.txt
+python scripts/papers_to_table.py docs serve
+python scripts/papers_to_table.py docs build
+```
+
+### Main app (browser review)
 
 ```bash
 python scripts/papers_to_table.py review
 python scripts/papers_to_table.py preflight --config app/config.json
 ```
 
-### Headless extraction for agents or batch work
+### Headless extraction
 
 ```bash
 python scripts/papers_to_table.py headless \
@@ -43,9 +44,9 @@ python scripts/papers_to_table.py headless \
   --export
 ```
 
-Use `--accept-all` only when you explicitly want unattended review bypass. The resulting artifacts record that proposals were auto-accepted and still need audit.
+⚠️ `--accept-all` bypasses human review. Auto-accepted values are not human-reviewed and must be audited via run artifacts.
 
-### Eval a run bundle
+### Eval
 
 ```bash
 python scripts/papers_to_table.py eval \
@@ -55,7 +56,7 @@ python scripts/papers_to_table.py eval \
   --out /absolute/path/to/eval_out
 ```
 
-### Optimizer companion workflows
+### Optimizer
 
 ```bash
 python scripts/papers_to_table.py optimizer compare-models
@@ -63,37 +64,11 @@ python scripts/papers_to_table.py optimizer optimize-one-model
 python scripts/papers_to_table.py optimizer overnight
 ```
 
-## Default runtime assumptions
+## Documentation and specs
 
-- Default live provider path: **LM Studio** via config token `lm_studio`
-- Default text model: `unsloth/gemma-4-26b-a4b-it`
-- Default retrieval stack: `retrieval.mode=hybrid_experimental`, `retrieval.top_k=12`, recall rescue off, whole-document mode off
-- Browser review remains the normal operator path
-- Headless auto-accept is additive for agent and batch workflows only
+- Manual home: [`docs/index.md`](docs/index.md)
+- Manual map: [`docs/README.md`](docs/README.md)
+- Agent usage: [`docs/agents/agent-usage.md`](docs/agents/agent-usage.md)
+- Specs (canonical implementation truth): [`specs/README.md`](specs/README.md)
 
-## Outputs
-
-- Main-app run bundles default to `app/runs/{run_id}/` unless config overrides `output_dir`
-- Eval writes per-run and compare outputs under the `--out` directory you pass
-- Optimizer writes experiment bundles under `tools/optimizer/runs/` unless you pass `--out`
-
-## Documentation map
-
-- Central install, commands, and navigation: [`docs/README.md`](docs/README.md)
-- Human-review main app: [`docs/main-app/README.md`](docs/main-app/README.md)
-- Headless and agent usage: [`docs/headless-agent.md`](docs/headless-agent.md)
-- Config system reference: [`docs/configuration.md`](docs/configuration.md)
-- Eval companion: [`docs/eval/README.md`](docs/eval/README.md)
-- Optimizer companion: [`docs/optimizer/README.md`](docs/optimizer/README.md)
-- Troubleshooting: [`docs/troubleshooting.md`](docs/troubleshooting.md)
-- Spec system: [`specs/README.md`](specs/README.md)
-
-## Troubleshooting
-
-If LM Studio, parser readiness, or model loading looks wrong, run:
-
-```bash
-python scripts/papers_to_table.py preflight --config app/config.json
-```
-
-Then see [`docs/troubleshooting.md`](docs/troubleshooting.md).
+Use docs for operator guidance and specs for canonical rebuild-grade behavior.
