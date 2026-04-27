@@ -3,6 +3,7 @@
   "experiment_id": "optimize_one_model",
   "operator_todo": {
     "notes": [
+      "Replace the REPLACE_WITH_REAL_DEV_* bench_dev paths with your real benchmark paths before running the canonical optimize-one-model preset.",
       "Use this config for the canonical single-model optimize workflow on the dev benchmark.",
       "This preset keeps the baseline on google/gemma-4-26b-a4b while sweeping bounded retrieval knobs.",
       "Replace bench_holdout paths with a true holdout split before trusting holdout validation."
@@ -75,10 +76,10 @@
         ]
       },
       "bench_dev": {
-        "table_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
-        "schema_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture_schema.csv",
-        "pdf_dir": "C:/Users/jonat/Desktop/202601_MPRA_table",
-        "gold_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
+        "table_path": "REPLACE_WITH_REAL_DEV_TABLE.xlsx",
+        "schema_path": "REPLACE_WITH_REAL_DEV_SCHEMA.csv",
+        "pdf_dir": "REPLACE_WITH_REAL_DEV_PDF_DIR",
+        "gold_path": "REPLACE_WITH_REAL_DEV_GOLD.xlsx",
         "main_args": [],
         "eval_args": [
           "--judge-model",
