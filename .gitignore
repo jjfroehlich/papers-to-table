@@ -53,3 +53,6 @@ artifacts/
 frontend/test-results/
 frontend/tsconfig.tsbuildinfo
 tools/eval/out/
+
+site/
+**/.site/
