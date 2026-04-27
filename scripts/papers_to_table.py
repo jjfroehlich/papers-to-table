@@ -1,0 +1,255 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import os
+import signal
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+APP_DIR = REPO_ROOT / "app"
+BACKEND_SRC_DIR = APP_DIR / "backend" / "src"
+FRONTEND_DIR = APP_DIR / "frontend"
+EVAL_DIR = REPO_ROOT / "tools" / "eval"
+OPTIMIZER_DIR = REPO_ROOT / "tools" / "optimizer"
+
+
+def _env_with_pythonpath(*extra_paths: Path) -> dict[str, str]:
+    env = os.environ.copy()
+    pythonpath_parts = [str(path) for path in extra_paths]
+    existing = env.get("PYTHONPATH")
+    if existing:
+        pythonpath_parts.append(existing)
+    env["PYTHONPATH"] = os.pathsep.join(pythonpath_parts)
+    return env
+
+
+def _run(cmd: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> int:
+    completed = subprocess.run(cmd, cwd=str(cwd), env=env, check=False)
+    return int(completed.returncode)
+
+
+def _optimizer_default_out(name: str) -> Path:
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    return OPTIMIZER_DIR / "runs" / f"{name}_{timestamp}"
+
+
+def cmd_install(_args: argparse.Namespace) -> int:
+    env = _env_with_pythonpath(BACKEND_SRC_DIR, EVAL_DIR, OPTIMIZER_DIR)
+    commands = [
+        ([sys.executable, "-m", "pip", "install", "-e", "./backend[test]"], APP_DIR),
+        (["npm", "install"], FRONTEND_DIR),
+        ([sys.executable, "-m", "pip", "install", "-e", ".[dev]"], EVAL_DIR),
+        ([sys.executable, "-m", "pip", "install", "-e", ".[dev]"], OPTIMIZER_DIR),
+    ]
+    for cmd, cwd in commands:
+        exit_code = _run(cmd, cwd=cwd, env=env)
+        if exit_code != 0:
+            return exit_code
+    return 0
+
+
+def cmd_review(args: argparse.Namespace) -> int:
+    env = _env_with_pythonpath(BACKEND_SRC_DIR)
+    backend_cmd = [
+        sys.executable,
+        "-m",
+        "uvicorn",
+        "backend.app.main:app",
+        "--reload",
+        "--host",
+        args.backend_host,
+        "--port",
+        str(args.backend_port),
+    ]
+    frontend_cmd = [
+        "npm",
+        "run",
+        "dev",
+        "--",
+        "--host",
+        args.frontend_host,
+        "--port",
+        str(args.frontend_port),
+    ]
+
+    backend = subprocess.Popen(backend_cmd, cwd=str(APP_DIR), env=env)
+    frontend = None
+    try:
+        health_url = f"http://{args.backend_host}:{args.backend_port}/api/health"
+        for _ in range(60):
+            if backend.poll() is not None:
+                return int(backend.returncode or 1)
+            try:
+                with urllib.request.urlopen(health_url, timeout=1):
+                    break
+            except (urllib.error.URLError, TimeoutError):
+                time.sleep(1)
+        frontend = subprocess.Popen(frontend_cmd, cwd=str(FRONTEND_DIR), env=os.environ.copy())
+        print(
+            f"papers-to-table review mode ready.\n"
+            f"Backend:  {health_url}\n"
+            f"Frontend: http://{args.frontend_host}:{args.frontend_port}\n"
+            f"Press Ctrl+C to stop both processes.",
+            flush=True,
+        )
+        while True:
+            if backend.poll() is not None:
+                return int(backend.returncode or 1)
+            if frontend.poll() is not None:
+                return int(frontend.returncode or 1)
+            time.sleep(1)
+    except KeyboardInterrupt:
+        return 130
+    finally:
+        for process in (frontend, backend):
+            if process is None or process.poll() is not None:
+                continue
+            process.send_signal(signal.SIGINT)
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.terminate()
+
+
+def _backend_automation_cmd(args: argparse.Namespace, command: str) -> list[str]:
+    cmd = [sys.executable, "-m", "backend.app.automation", command, "--config-path", args.config]
+    if args.table_path:
+        cmd.extend(["--table-path", args.table_path])
+    if args.schema_path:
+        cmd.extend(["--schema-path", args.schema_path])
+    if args.pdf_dir:
+        cmd.extend(["--pdf-dir", args.pdf_dir])
+    timeout = getattr(args, "timeout_seconds", None)
+    if timeout is not None:
+        cmd.extend(["--timeout-seconds", str(timeout)])
+    return cmd
+
+
+def cmd_preflight(args: argparse.Namespace) -> int:
+    env = _env_with_pythonpath(BACKEND_SRC_DIR)
+    return _run(_backend_automation_cmd(args, "preflight"), cwd=APP_DIR, env=env)
+
+
+def cmd_headless(args: argparse.Namespace) -> int:
+    env = _env_with_pythonpath(BACKEND_SRC_DIR)
+    cmd = _backend_automation_cmd(args, "headless")
+    if args.accept_all:
+        cmd.append("--accept-all")
+    if args.export:
+        cmd.append("--export")
+    return _run(cmd, cwd=APP_DIR, env=env)
+
+
+def cmd_eval(args: argparse.Namespace) -> int:
+    env = _env_with_pythonpath(EVAL_DIR)
+    cmd = [sys.executable, "-m", "paper_eval", "evaluate"]
+    if args.run:
+        cmd.extend(["--run", args.run])
+    if args.runs_root:
+        cmd.extend(["--runs-root", args.runs_root])
+    cmd.extend(["--gold", args.gold, "--out", args.out])
+    if args.schema:
+        cmd.extend(["--schema", args.schema])
+    if args.judge_model:
+        cmd.extend(["--judge-model", args.judge_model])
+    if args.judge_model_b:
+        cmd.extend(["--judge-model-b", args.judge_model_b])
+    return _run(cmd, cwd=EVAL_DIR, env=env)
+
+
+def cmd_optimizer_compare(args: argparse.Namespace) -> int:
+    env = _env_with_pythonpath(OPTIMIZER_DIR, EVAL_DIR, BACKEND_SRC_DIR)
+    config = args.config or str(OPTIMIZER_DIR / "configs" / "compare_models.json")
+    out = args.out or str(_optimizer_default_out("compare_models"))
+    cmd = [sys.executable, "-m", "paper_optimizer.cli", "optimize", "--study-type", "compare", "--config", config, "--out", out]
+    return _run(cmd, cwd=OPTIMIZER_DIR, env=env)
+
+
+def cmd_optimizer_optimize_one_model(args: argparse.Namespace) -> int:
+    env = _env_with_pythonpath(OPTIMIZER_DIR, EVAL_DIR, BACKEND_SRC_DIR)
+    config = args.config or str(OPTIMIZER_DIR / "configs" / "optimize_one_model.json")
+    out = args.out or str(_optimizer_default_out("optimize_one_model"))
+    cmd = [sys.executable, "-m", "paper_optimizer.cli", "optimize", "--study-type", "optimize", "--config", config, "--out", out]
+    return _run(cmd, cwd=OPTIMIZER_DIR, env=env)
+
+
+def cmd_optimizer_overnight(args: argparse.Namespace) -> int:
+    label = args.label or f"overnight_{time.strftime('%Y%m%d-%H%M%S')}"
+    cmd = ["bash", str(OPTIMIZER_DIR / "scripts" / "run_overnight.sh"), label]
+    return _run(cmd, cwd=OPTIMIZER_DIR, env=os.environ.copy())
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="papers-to-table")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    install = subparsers.add_parser("install", help="Install backend, frontend, eval, and optimizer dependencies")
+    install.set_defaults(func=cmd_install)
+
+    review = subparsers.add_parser("review", help="Start backend and frontend together for browser review mode")
+    review.add_argument("--backend-host", default="127.0.0.1")
+    review.add_argument("--backend-port", type=int, default=8000)
+    review.add_argument("--frontend-host", default="127.0.0.1")
+    review.add_argument("--frontend-port", type=int, default=5173)
+    review.set_defaults(func=cmd_review)
+
+    for name, help_text, handler in (
+        ("preflight", "Run main-app preflight from the terminal", cmd_preflight),
+        ("headless", "Run main-app extraction without the browser UI", cmd_headless),
+    ):
+        sub = subparsers.add_parser(name, help=help_text)
+        sub.add_argument("--config", required=True)
+        sub.add_argument("--table-path")
+        sub.add_argument("--schema-path")
+        sub.add_argument("--pdf-dir")
+        sub.add_argument("--timeout-seconds", type=float)
+        if name == "headless":
+            sub.add_argument("--accept-all", action="store_true")
+            sub.add_argument("--export", action="store_true")
+        sub.set_defaults(func=handler)
+
+    eval_cmd = subparsers.add_parser("eval", help="Evaluate one run bundle or a runs root")
+    eval_cmd.add_argument("--run")
+    eval_cmd.add_argument("--runs-root")
+    eval_cmd.add_argument("--gold", required=True)
+    eval_cmd.add_argument("--schema")
+    eval_cmd.add_argument("--out", required=True)
+    eval_cmd.add_argument("--judge-model")
+    eval_cmd.add_argument("--judge-model-b")
+    eval_cmd.set_defaults(func=cmd_eval)
+
+    optimizer = subparsers.add_parser("optimizer", help="Run optimizer companion workflows")
+    optimizer_sub = optimizer.add_subparsers(dest="optimizer_command", required=True)
+
+    compare = optimizer_sub.add_parser("compare-models", help="Run the canonical compare-models study")
+    compare.add_argument("--config")
+    compare.add_argument("--out")
+    compare.set_defaults(func=cmd_optimizer_compare)
+
+    optimize_one = optimizer_sub.add_parser("optimize-one-model", help="Run the canonical single-model optimize study")
+    optimize_one.add_argument("--config")
+    optimize_one.add_argument("--out")
+    optimize_one.set_defaults(func=cmd_optimizer_optimize_one_model)
+
+    overnight = optimizer_sub.add_parser("overnight", help="Run the multi-stage overnight optimizer workflow")
+    overnight.add_argument("--label")
+    overnight.set_defaults(func=cmd_optimizer_overnight)
+
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    return int(args.func(args))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

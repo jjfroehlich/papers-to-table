@@ -28,6 +28,9 @@ test = [
     "respx>=0.21.0",
 ]
 
+[project.scripts]
+paper-runner = "backend.app.automation:main"
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 

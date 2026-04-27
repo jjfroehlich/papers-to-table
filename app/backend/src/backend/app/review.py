@@ -27,6 +27,7 @@ from .artifacts import (
 from .extraction import EvidenceRecord, ProposalRecord, load_evidence, load_proposals
 from .ids import generate_review_decision_id
 from .schemas import (
+    DecisionSource,
     EvidenceSourceType,
     ProviderLocality,
     ProposalState,
@@ -64,6 +65,7 @@ def record_review_decision(
     cell_id: str,
     run_id: str,
     decision: ReviewDecision,
+    decision_source: DecisionSource = DecisionSource.human_reviewer,
     resolution_reason: Optional[ReviewResolutionReason] = None,
     edited_value: Optional[str] = None,
     reviewer_note: Optional[str] = None,
@@ -83,6 +85,7 @@ def record_review_decision(
         proposal_id=proposal_id,
         cell_id=cell_id,
         decision=decision,
+        decision_source=decision_source,
         resolution_reason=resolution_reason,
         edited_value=edited_value,
         reviewer_note=reviewer_note,
@@ -372,6 +375,9 @@ def bulk_accept_proposals(
     run_dir: pathlib.Path,
     run_id: str,
     proposal_ids: list[str],
+    *,
+    decision_source: DecisionSource = DecisionSource.human_reviewer,
+    reviewer_note: Optional[str] = None,
 ) -> list[ReviewDecisionRecord]:
     """Accept a list of proposal IDs as a bulk operation.
 
@@ -398,7 +404,9 @@ def bulk_accept_proposals(
             cell_id=p.cell_id,
             run_id=run_id,
             decision=ReviewDecision.accepted,
+            decision_source=decision_source,
             resolution_reason=ReviewResolutionReason.accepted_as_proposed,
+            reviewer_note=reviewer_note,
         )
         recorded.append(rec)
     return recorded
@@ -421,6 +429,7 @@ def get_progress(run_dir: pathlib.Path) -> dict:
     confirmed_no_data = 0
     rejected = 0
     pending = 0
+    automation_accepted_count = 0
 
     for p in proposals:
         d = get_latest_decision(run_dir, p.proposal_id)
@@ -428,8 +437,12 @@ def get_progress(run_dir: pathlib.Path) -> dict:
             pending += 1
         elif d.decision == ReviewDecision.accepted:
             accepted += 1
+            if d.decision_source == DecisionSource.automation_accept_all:
+                automation_accepted_count += 1
         elif d.decision == ReviewDecision.accepted_with_edit:
             accepted_with_edit += 1
+            if d.decision_source == DecisionSource.automation_accept_all:
+                automation_accepted_count += 1
         elif d.decision == ReviewDecision.confirmed_no_data:
             confirmed_no_data += 1
         elif d.decision == ReviewDecision.rejected:
@@ -450,6 +463,8 @@ def get_progress(run_dir: pathlib.Path) -> dict:
         "explicitly_accepted": accepted + accepted_with_edit,
         "explicitly_rejected": rejected,
         "confirmed_absent": confirmed_no_data,
+        "automation_accepted_count": automation_accepted_count,
+        "automation_review_applied": automation_accepted_count > 0,
     }
 
 
@@ -563,6 +578,8 @@ def compute_reviewer_summary(run_dir: pathlib.Path, run_id: str) -> ReviewerSumm
         explicitly_accepted=progress["explicitly_accepted"],
         explicitly_rejected=progress["explicitly_rejected"],
         confirmed_absent=progress["confirmed_absent"],
+        automation_review_applied=bool(progress.get("automation_review_applied", False)),
+        automation_accepted_count=int(progress.get("automation_accepted_count", 0) or 0),
         generated_at=datetime.now(timezone.utc).isoformat(),
     )
 
@@ -744,7 +761,9 @@ def get_export_candidates(run_dir: pathlib.Path) -> list[dict]:
             "pdf_id": p.pdf_id,
             "proposed_value": p.proposed_value,
             "decision": latest.decision.value,
+            "decision_source": latest.decision_source.value,
             "edited_value": latest.edited_value,
+            "reviewer_note": latest.reviewer_note,
             # Export value: edited if accepted_with_edit, otherwise proposed
             "export_value": (
                 latest.edited_value

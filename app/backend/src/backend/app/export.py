@@ -280,7 +280,10 @@ def generate_audit_log(
                 "pdf_id": cand.get("pdf_id"),
             },
             "reviewer_decision": cand.get("decision"),
+            "decision_source": cand.get("decision_source"),
+            "auto_accepted": cand.get("decision_source") == "automation_accept_all",
             "edited_value": cand.get("edited_value"),
+            "reviewer_note": cand.get("reviewer_note"),
             "review_decision_id": cand.get("review_decision_id"),
             "decision_timestamp": cand.get("decided_at"),
         }
