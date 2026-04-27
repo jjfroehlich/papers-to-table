@@ -16,6 +16,8 @@ This file defines the normative layout and role boundaries for the monorepo.
 - `app/frontend/src/` is the canonical source root for the browser UI.
 - `tools/eval/` contains the internal scoring tool.
 - `tools/optimizer/` contains the internal orchestration tool.
+- `docs/` contains the operator/developer manual source (Markdown + MkDocs navigation).
+- `agent-skills/` contains reusable external agent operating procedures.
 - `specs/` contains the canonical spec system for all three surfaces.
 
 ## Spec ownership model

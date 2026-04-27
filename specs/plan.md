@@ -34,9 +34,10 @@ This file describes the current architecture direction and near-term roadmap for
 ### Documentation and specs
 
 - keep README concise and task-oriented
-- keep docs navigable from a single central index
+- keep docs navigable from a single central index and local/static MkDocs Material site
 - keep `spec.md` as the integrated current truth
 - keep research, plan, and tasks separate from normative product behavior
+- keep external agent usage guidance compact through a reusable headless skill package
 
 ## Near-term roadmap
 

@@ -9,10 +9,12 @@
 - [x] Optimizer has an explicit canonical `optimize_one_model.json` preset alongside compare and overnight presets
 - [x] README and docs now expose one clear install/run/navigation path
 - [x] Integrated current truth now exists in `specs/spec.md`
+- [x] Docs are now buildable as a local/static MkDocs Material manual
+- [x] Repo command surface includes docs serve/build wrappers
+- [x] Reusable headless agent skill exists under `agent-skills/papers-to-table/`
 
 ## Current backlog
 
-- [ ] Add more automated checks for docs-command examples where they can be validated cheaply
 - [ ] Continue removing personal-path assumptions from real benchmark preset examples
 - [ ] Refresh screenshots when the next visible UI workflow change lands
 - [ ] Keep supporting modular spec references aligned with the integrated spec as behavior evolves

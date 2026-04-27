@@ -1,59 +1,46 @@
 # papers-to-table documentation
 
-This is the central install, command, and navigation page for the monorepo.
+This directory is both:
 
-## Start here
+1. a readable Markdown manual on GitHub, and
+2. the source for a local/static MkDocs Material site.
 
-Run these commands from the repository root:
+## Build and preview the manual
+
+Install docs dependencies:
 
 ```bash
-python scripts/papers_to_table.py install
-python scripts/papers_to_table.py review
+python -m pip install -r requirements-docs.txt
 ```
 
-Open `http://127.0.0.1:5173` for the browser review workflow.
+Serve locally:
 
-## Command reference
+```bash
+python scripts/papers_to_table.py docs serve
+```
 
-### Main app
+Build static site:
 
-| Goal | Command |
-| --- | --- |
-| Install everything | `python scripts/papers_to_table.py install` |
-| Start browser review mode | `python scripts/papers_to_table.py review` |
-| Run terminal preflight | `python scripts/papers_to_table.py preflight --config app/config.json` |
-| Run headlessly and export with explicit auto-accept | `python scripts/papers_to_table.py headless --config app/config.json --accept-all --export` |
+```bash
+python scripts/papers_to_table.py docs build
+```
 
-### Eval companion
+You can also run `mkdocs serve` and `mkdocs build` directly from the repo root.
 
-| Goal | Command |
-| --- | --- |
-| Score one run bundle | `python scripts/papers_to_table.py eval --run /abs/run --gold /abs/gold.csv --schema /abs/schema.json --out /abs/eval_out` |
-| Use the low-level eval CLI directly | `cd tools/eval && paper-eval evaluate ...` |
+## Manual navigation start
 
-### Optimizer companion
+- Site home: [`index.md`](index.md)
+- Getting started: [`getting-started/index.md`](getting-started/index.md)
+- Main app: [`main-app/overview.md`](main-app/overview.md)
+- Companion tools: [`tools/eval.md`](tools/eval.md), [`tools/optimizer.md`](tools/optimizer.md)
+- Agents: [`agents/agent-usage.md`](agents/agent-usage.md)
+- Development/spec boundaries: [`development/specs.md`](development/specs.md)
 
-| Goal | Command |
-| --- | --- |
-| Compare models | `python scripts/papers_to_table.py optimizer compare-models` |
-| Optimize one model | `python scripts/papers_to_table.py optimizer optimize-one-model` |
-| Run the overnight sequence | `python scripts/papers_to_table.py optimizer overnight` |
+## Existing deep references
 
-## Pick the right page
+The existing detailed pages remain part of the manual and are linked from the new navigation:
 
-- **Human-review main app**: [`main-app/README.md`](main-app/README.md)
-- **Headless and agent usage**: [`headless-agent.md`](headless-agent.md)
-- **Config system reference**: [`configuration.md`](configuration.md)
-- **Eval companion**: [`eval/README.md`](eval/README.md)
-- **Optimizer companion**: [`optimizer/README.md`](optimizer/README.md)
-- **Artifacts and exports**: [`main-app/run-artifacts.md`](main-app/run-artifacts.md)
-- **Troubleshooting**: [`troubleshooting.md`](troubleshooting.md)
-- **Specs and development truth**: [`../specs/README.md`](../specs/README.md)
-
-## What confuses people most
-
-- `app/config.example.json` is the canonical main-app template; `app/config.json` is your local machine config.
-- The browser UI is the normal human workflow. Headless mode is additive for agent or batch usage.
-- Eval does not run extraction. It only scores existing run bundles.
-- Optimizer does not extract or score directly. It orchestrates main-app and eval runs.
-- `--accept-all` is intentionally explicit because it bypasses manual review.
+- main-app walkthrough and artifacts under `docs/main-app/`
+- configuration details in [`configuration.md`](configuration.md)
+- troubleshooting in [`troubleshooting.md`](troubleshooting.md)
+- eval/optimizer deep references under `docs/eval/` and `docs/optimizer/`

@@ -186,6 +186,18 @@ def cmd_optimizer_overnight(args: argparse.Namespace) -> int:
     return _run(cmd, cwd=OPTIMIZER_DIR, env=os.environ.copy())
 
 
+def cmd_docs_serve(args: argparse.Namespace) -> int:
+    cmd = ["mkdocs", "serve", "--dev-addr", f"{args.host}:{args.port}"]
+    return _run(cmd, cwd=REPO_ROOT, env=os.environ.copy())
+
+
+def cmd_docs_build(args: argparse.Namespace) -> int:
+    cmd = ["mkdocs", "build"]
+    if args.strict:
+        cmd.append("--strict")
+    return _run(cmd, cwd=REPO_ROOT, env=os.environ.copy())
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="papers-to-table")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -241,6 +253,18 @@ def build_parser() -> argparse.ArgumentParser:
     overnight = optimizer_sub.add_parser("overnight", help="Run the multi-stage overnight optimizer workflow")
     overnight.add_argument("--label")
     overnight.set_defaults(func=cmd_optimizer_overnight)
+
+    docs = subparsers.add_parser("docs", help="Serve or build the MkDocs manual")
+    docs_sub = docs.add_subparsers(dest="docs_command", required=True)
+
+    docs_serve = docs_sub.add_parser("serve", help="Serve docs locally")
+    docs_serve.add_argument("--host", default="127.0.0.1")
+    docs_serve.add_argument("--port", type=int, default=8001)
+    docs_serve.set_defaults(func=cmd_docs_serve)
+
+    docs_build = docs_sub.add_parser("build", help="Build static docs")
+    docs_build.add_argument("--strict", action="store_true")
+    docs_build.set_defaults(func=cmd_docs_build)
 
     return parser
 
