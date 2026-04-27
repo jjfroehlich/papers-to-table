@@ -23,8 +23,9 @@ The main-app workflow is:
 4. match each PDF to at most one row while surfacing unmatched, ambiguous, and duplicate-row issues
 5. generate one best proposal per eligible target cell using schema-first extraction with evidence
 6. let a reviewer inspect, filter, accept, edit, confirm no data, reject, or bulk-accept the visible filtered subset
-7. export only explicitly accepted updates to a new workbook plus audit artifacts
-8. preserve run artifacts so downstream eval and optimizer workflows can consume them from files alone
+7. optionally allow a terminal automation path to auto-accept all undecided reviewable proposals only when the caller explicitly passes `--accept-all`, while recording that automation in review artifacts
+8. export only explicitly accepted updates to a new workbook plus audit artifacts
+9. preserve run artifacts so downstream eval and optimizer workflows can consume them from files alone
 
 ## Run modes
 
@@ -68,7 +69,7 @@ The browser UI is the normal operator surface for:
 
 The UI may expose narrow picker-driven input overrides, but it must not become the primary advanced-settings surface.
 
-The backend may expose a stable non-UI automation entrypoint for tooling, but that path is additive. It must not replace the browser UI as the normal human workflow.
+The backend may expose a stable non-UI automation entrypoint for tooling, including preflight and headless export support, but that path is additive. It must not replace the browser UI as the normal human workflow.
 
 ## Input requirements
 
@@ -155,6 +156,7 @@ Shared proposal and evidence rules are defined in `../contracts/proposals-and-ev
 - Locked cells remain protected unless a human explicitly accepts a change in the appropriate mode.
 - Export must generate a new workbook and an audit log.
 - Export must include only explicitly accepted changes.
+- Headless auto-accept may create those explicit accept decisions only when the caller deliberately requests `--accept-all`; those records must remain distinguishable from normal human review decisions.
 
 Detailed review behavior is defined in `review-workflow.md`.
 

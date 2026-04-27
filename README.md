@@ -2,104 +2,98 @@
 
 papers-to-table is a local-first paper-to-table review app.
 
-It ingests scientific PDFs and a structured spreadsheet, proposes evidence-backed cell values, lets a human reviewer inspect the evidence in a browser UI, and exports an audited XLSX only after explicit review.
+It ingests scientific PDFs plus a structured spreadsheet, proposes evidence-backed cell values, keeps human review in a browser UI, and exports an audited workbook only after explicit acceptance.
 
-## What the main app does
+## Repository shape
 
-- resolves a run from a JSON config plus optional staged input overrides
-- shows preflight scope and provider/model readiness before launch
-- streams live run updates into the browser UI with SSE
-- keeps review, evidence inspection, diagnostics, and export in a browser workflow
-- persists run bundles with diagnostics, evidence, review artifacts, and reviewer summaries
-- produces explicit audited exports instead of silently modifying the source workbook
+This monorepo has three operator-facing surfaces:
 
-## Happy-path install and run
+- **Main app**: browser review workflow for preflight, extraction, review, and export
+- **Eval companion**: scores a main-app run bundle against gold data
+- **Optimizer companion**: launches repeated main-app + eval studies for compare and optimize workflows
 
-### Prerequisites
+The browser UI is the primary human workflow. The JSON config file remains the authoritative advanced-control surface.
 
-- Python 3.11 or later
-- Node.js 18 or later and npm
-- LM Studio running locally for live proposal generation
-
-### Install
+## Quickstart
 
 Run these commands from the repository root:
 
 ```bash
-git clone https://github.com/jjfroehlich/papers-to-table.git
-cd papers-to-table/app
-python -m pip install -e ./backend[test]
-cd frontend
-npm install
-cd ../..
+python scripts/papers_to_table.py install
+python scripts/papers_to_table.py review
 ```
 
-### Start the app
+Then open `http://127.0.0.1:5173`.
 
-Run these commands from the repository root:
+## Most common commands
+
+### Human-review main app
 
 ```bash
-bash scripts/run-main-backend.sh
-bash scripts/run-main-frontend.sh
+python scripts/papers_to_table.py review
+python scripts/papers_to_table.py preflight --config app/config.json
 ```
 
-Open `http://localhost:5173`.
-
-## Browser workflow
-
-1. Start from the **Run** tab.
-2. Run preflight to confirm the resolved table, schema, PDF scope, and provider/model readiness.
-3. Start the run only after the preflight context is understood.
-4. Review evidence-backed proposals in the queue-first workspace.
-5. Open the diagnostics surface when you need unmatched, ambiguous, or warning context.
-6. Export only after explicit review.
-
-## Wrapper scripts
-
-Use these scripts for the normal local workflow:
+### Headless extraction for agents or batch work
 
 ```bash
-bash scripts/run-main-backend.sh
-bash scripts/run-main-frontend.sh
-bash scripts/test-main-backend.sh
-bash scripts/test-main-frontend.sh
-bash scripts/verify-main-app-full.sh
+python scripts/papers_to_table.py headless \
+  --config app/config.json \
+  --accept-all \
+  --export
 ```
 
-These wrapper scripts assume the current working directory is the repository root.
+Use `--accept-all` only when you explicitly want unattended review bypass. The resulting artifacts record that proposals were auto-accepted and still need audit.
 
-## Main docs by audience
+### Eval a run bundle
 
-- Product and repo overview: this file
-- Operator docs: [`docs/main-app/README.md`](docs/main-app/README.md)
-- Screenshot-backed operator workflow: [`docs/main-app/operator-workflow.md`](docs/main-app/operator-workflow.md)
-- Contributor quickstart: [`CONTRIBUTING.md`](CONTRIBUTING.md)
-- Coding-agent and maintainer rules: [`AGENTS.md`](AGENTS.md)
-- Normative spec system: [`specs/README.md`](specs/README.md)
-- Docs map and glossary: [`docs/README.md`](docs/README.md), [`docs/glossary.md`](docs/glossary.md)
+```bash
+python scripts/papers_to_table.py eval \
+  --run /absolute/path/to/run_bundle \
+  --gold /absolute/path/to/gold.csv \
+  --schema /absolute/path/to/schema.json \
+  --out /absolute/path/to/eval_out
+```
 
-## Trustworthiness and evidence
+### Optimizer companion workflows
 
-- Evidence types stay distinct: exact highlights, approximate highlights, quote-plus-page fallback, reasoning, and figure evidence.
-- Provider mode and degraded fallback states are recorded in run artifacts.
-- The default extraction path is `unsloth/gemma-4-26b-a4b-it` with `retrieval.mode=hybrid_experimental`, `retrieval.top_k=12`, recall rescue off, and whole-document mode off. `google/gemma-4-26b-a4b` remains the heavier optimization target.
-- LM Studio lifecycle now targets one loaded LLM instance by default, adds explicit post-phase cleanup, and records model-management timelines plus peak loaded-instance counts in diagnostics.
-- Review remains manual; proposal presence is not treated as proof.
-- Export is never automatic.
+```bash
+python scripts/papers_to_table.py optimizer compare-models
+python scripts/papers_to_table.py optimizer optimize-one-model
+python scripts/papers_to_table.py optimizer overnight
+```
 
-## Companion tools
+## Default runtime assumptions
 
-This repository also includes two internal developer tools:
+- Default live provider path: **LM Studio** via config token `lm_studio`
+- Default text model: `unsloth/gemma-4-26b-a4b-it`
+- Default retrieval stack: `retrieval.mode=hybrid_experimental`, `retrieval.top_k=12`, recall rescue off, whole-document mode off
+- Browser review remains the normal operator path
+- Headless auto-accept is additive for agent and batch workflows only
 
-- Eval: benchmarking and scoring for run bundles. See [`docs/eval/README.md`](docs/eval/README.md).
-- Optimizer: bounded calibration and orchestration for compare/optimize studies. See [`docs/optimizer/README.md`](docs/optimizer/README.md).
+## Outputs
 
-These tools support development and benchmarking. They are not the primary product surface.
+- Main-app run bundles default to `app/runs/{run_id}/` unless config overrides `output_dir`
+- Eval writes per-run and compare outputs under the `--out` directory you pass
+- Optimizer writes experiment bundles under `tools/optimizer/runs/` unless you pass `--out`
 
-Current companion-tool truth:
+## Documentation map
 
-- canonical optimizer studies use `compare_models.json`, `compare_prompts.json`, `compare_retrieval.json`, `compare_retrieval_modes.json`, and `optimize_overnight.json`; smoke and fixture-manual configs are only for contract checks
-- real benchmark studies are expected to run with two judges end to end
-- real benchmark judge defaults are `judge_a=google/gemma-4-26b-a4b` and `judge_b=openai/gpt-oss-20b`
-- compare-model and overnight configs include Gemma, Qwen, GPT-OSS, Unsloth, and GLM candidates under the same extraction stack with small per-model request policies
-- eval and optimizer reports now separate the raw benchmark winner from the recommended default when degraded or trust caveats differ, and they warn more aggressively when judge disagreement or evidence weakness is high
+- Central install, commands, and navigation: [`docs/README.md`](docs/README.md)
+- Human-review main app: [`docs/main-app/README.md`](docs/main-app/README.md)
+- Headless and agent usage: [`docs/headless-agent.md`](docs/headless-agent.md)
+- Config system reference: [`docs/configuration.md`](docs/configuration.md)
+- Eval companion: [`docs/eval/README.md`](docs/eval/README.md)
+- Optimizer companion: [`docs/optimizer/README.md`](docs/optimizer/README.md)
+- Troubleshooting: [`docs/troubleshooting.md`](docs/troubleshooting.md)
+- Spec system: [`specs/README.md`](specs/README.md)
+
+## Troubleshooting
+
+If LM Studio, parser readiness, or model loading looks wrong, run:
+
+```bash
+python scripts/papers_to_table.py preflight --config app/config.json
+```
+
+Then see [`docs/troubleshooting.md`](docs/troubleshooting.md).

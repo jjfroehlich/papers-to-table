@@ -4,70 +4,45 @@ Thanks for contributing to papers-to-table.
 
 ## Start here
 
-- Repo overview and happy path: [`README.md`](README.md)
-- Docs map by audience: [`docs/README.md`](docs/README.md)
-- Main app operator docs: [`docs/main-app/README.md`](docs/main-app/README.md)
-- Repo operating rules for coding agents and maintainers: [`AGENTS.md`](AGENTS.md)
-- Normative spec system: [`specs/README.md`](specs/README.md)
+- Repo overview and common commands: [`README.md`](README.md)
+- Documentation home: [`docs/README.md`](docs/README.md)
+- Human-review workflow: [`docs/main-app/README.md`](docs/main-app/README.md)
+- Agent/headless workflow: [`docs/headless-agent.md`](docs/headless-agent.md)
+- Repo operating rules: [`AGENTS.md`](AGENTS.md)
+- Spec system: [`specs/README.md`](specs/README.md)
 
 ## Quick local setup
 
-Run these from the repo root unless noted otherwise.
+Run these from the repository root:
 
 ```bash
-cd app
-python -m pip install -e ./backend[test]
-cd frontend
-npm install
-cd ../..
+python scripts/papers_to_table.py install
 ```
 
 ## Common commands
 
-Use the wrapper scripts when possible:
-
 ```bash
-bash scripts/run-main-backend.sh
-bash scripts/run-main-frontend.sh
-bash scripts/test-main-backend.sh
-bash scripts/test-main-frontend.sh
-bash scripts/verify-main-app-full.sh
+python scripts/papers_to_table.py review
+python scripts/papers_to_table.py preflight --config app/config.json
+python scripts/papers_to_table.py headless --config app/config.json --accept-all --export
+python scripts/papers_to_table.py optimizer compare-models
 ```
 
-These wrapper commands assume you start in the repository root.
-
-## Main app workflow
-
-1. Start the backend and frontend.
-2. Open `http://localhost:5173`.
-3. Run preflight from the **Run** tab to confirm resolved inputs and provider readiness.
-4. Start a run only after the preflight is green or intentionally understood.
-5. Review evidence-backed proposals in the browser.
-6. Export explicitly after review.
+Lower-level wrapper scripts still exist under `scripts/` when you need backend-only or frontend-only control.
 
 ## When you change code
 
-- Update the owning docs/specs in the same pass when repo truth changes.
-- Keep screenshots current when the UI changes materially.
-- Prefer current files over archive material for active behavior.
-- Run the relevant tests before you finish.
+- Update the owning docs and specs in the same pass when repo truth changes.
+- Keep screenshots current when UI behavior changes materially.
+- Prefer the central command surface in `scripts/papers_to_table.py` for repo-wide workflows.
+- Run the relevant existing tests before you finish.
 
 ## Where things live
 
-- Backend: `app/backend/src/backend/app/`
-- Frontend: `app/frontend/src/`
-- Backend tests: `app/tests/backend/`
-- E2E tests and screenshot capture: `app/tests/e2e/`
-- Main app docs: `docs/main-app/`
-- Normative specs: `specs/`
-
-## Screenshot refresh
-
-Run this from the repository root:
-
-```bash
-python -m playwright install chromium
-python -m pytest app/tests/e2e/test_doc_screenshots.py -m e2e --capture-doc-screenshots
-```
-
-This updates the images under `docs/screenshots/`.
+- Main app backend: `app/backend/src/backend/app/`
+- Main app frontend: `app/frontend/src/`
+- Main app tests: `app/tests/`
+- Eval companion: `tools/eval/`
+- Optimizer companion: `tools/optimizer/`
+- User docs: `docs/`
+- Specs: `specs/`

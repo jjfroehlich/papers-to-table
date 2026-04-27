@@ -1,117 +1,63 @@
-# Main App Documentation
+# Main app: human-review workflow
 
-The main app is the product surface of this repository.
+The main app is the primary product surface.
 
-It is a local-first review workflow for extracting structured information from scientific papers into a spreadsheet with explicit evidence inspection and explicit export.
+Use it when a human needs to inspect evidence, accept or edit proposals, reject weak outputs, and export an audited workbook.
 
-## Start here
+## Recommended command
 
-- Operator workflow and screenshots: [operator-workflow.md](operator-workflow.md)
-- Run artifact reference: [run-artifacts.md](run-artifacts.md)
-- Contributor quickstart: [../../CONTRIBUTING.md](../../CONTRIBUTING.md)
-- Normative spec owner: [../../specs/product/main-app.md](../../specs/product/main-app.md)
-
-## Install and run
-
-Run these commands from the repo root unless noted otherwise.
-
-### Install
+From the repository root:
 
 ```bash
-cd app
-python -m pip install -e ./backend[test]
-cd frontend
-npm install
-cd ../..
+python scripts/papers_to_table.py review
 ```
 
-### Start backend and frontend
+This starts the backend and frontend together for the browser review workflow.
+
+## Before you start
+
+1. Copy `app/config.example.json` to `app/config.json` and point it at your table, schema, and PDF directory.
+2. Confirm LM Studio is running if you want live proposal generation.
+3. Run terminal preflight if you want a quick readiness check before opening the UI:
+
+```bash
+python scripts/papers_to_table.py preflight --config app/config.json
+```
+
+## Browser workflow
+
+1. Open `http://127.0.0.1:5173`.
+2. In the **Run** tab, choose the config and any staged overrides.
+3. Run **Preflight** to confirm resolved inputs, scope, and provider readiness.
+4. Start extraction.
+5. Review the queue in the browser workspace.
+6. Accept, edit, reject, or confirm no data for proposals.
+7. Export the audited workbook explicitly.
+
+## What the UI is responsible for
+
+- launch and preflight clarity
+- live run-state visibility
+- evidence inspection
+- decision recording
+- export and artifact download
+
+The UI is intentionally not the advanced-settings authority. Advanced runtime control stays in JSON config.
+
+## Lower-level commands
+
+These remain useful when you only want one process:
 
 ```bash
 bash scripts/run-main-backend.sh
 bash scripts/run-main-frontend.sh
-```
-
-## Wrapper-script verification
-
-Run these commands from the repository root:
-
-```bash
 bash scripts/test-main-backend.sh
 bash scripts/test-main-frontend.sh
-bash scripts/verify-main-app-full.sh
 ```
 
-## Current operator workflow summary
+## Detailed references
 
-1. Use the **Run** tab to point at a config and any one-run staged overrides.
-2. Run preflight to inspect resolved inputs, provider readiness, and scope.
-3. Start the run when the preflight context is acceptable.
-4. Follow live status updates in the browser while the backend runs.
-5. Review proposals in the queue-first workspace.
-6. Open the diagnostics surface for unresolved matching issues and warnings when needed.
-7. Export explicitly after review.
-
-## Non-UI automation entrypoint
-
-The browser UI remains the normal human workflow. For tooling, the backend also exposes a stable automation entrypoint:
-
-```bash
-cd app
-python -m backend.app.automation start --config-path config.json
-```
-
-Useful variants:
-
-```bash
-cd app
-python -m backend.app.automation start --config-path config.json --wait
-python -m backend.app.automation status --run-id <run_id> --output-dir ./runs
-python -m backend.app.automation wait --run-id <run_id> --output-dir ./runs
-```
-
-## Configuration
-
-Copy the checked-in example and edit it for your table, schema, PDF directory, and model settings.
-
-```bash
-cd app
-cp config.example.json config.json
-```
-
-Key config areas:
-
-- input paths: `table_path`, `schema_path`, `pdf_dir`, `output_dir`
-- runtime mode: `verify_mode`, `eval_mode`
-- provider settings: `provider.*`
-- parser settings: `parser.*`
-- retrieval settings: `retrieval.*`
-- diagnostics and style profiles: `diagnostics.*`, `style_profiles.*`
-
-The canonical provider token is `lm_studio`.
-
-Current extraction defaults:
-
-- text model: `unsloth/gemma-4-26b-a4b-it`
-- retrieval mode: `hybrid_experimental`
-- retrieval top-k: `12`
-- recall rescue: disabled
-- whole-document mode: disabled
-
-Current LM Studio runtime policy:
-
-- target one loaded LLM instance by default
-- allow two only when text and vision genuinely need to coexist
-- unload stale instances before the run and explicitly clean up after extraction or terminal run transitions
-- persist model-management diagnostics including load and unload counters, cleanup timeline entries, peak loaded-instance count, and same-model multi-instance detection
-
-`google/gemma-4-26b-a4b` remains a documented heavier alternative and is the focused optimize-one-model target. Eval mode keeps the gold table masked for content extraction, but required metadata columns (`Title`, `Authors`, `Publication Year`) are emitted as parser/front-matter proposals so eval can score metadata without relying on hidden gold values.
-
-Model-specific provider behavior is isolated in a small request-policy layer. Unknown and newly added models use the shared generic default policy: schema-first structured requests, normal bounded retry, and `max_tokens` included. Gemma and GPT-OSS only override the family label while staying schema-first. Qwen-compatible models prefer non-thinking JSON-object requests, receive an explicit JSON reminder, omit `max_tokens` for structured requests, skip same-mode malformed-response retry, and move quickly through the fallback ladder when structured JSON validation fails.
-
-## Related docs
-
-- Repository landing page: [../../README.md](../../README.md)
-- Docs map: [../README.md](../README.md)
-- Eval tool docs: [../eval/README.md](../eval/README.md)
-- Optimizer docs: [../optimizer/README.md](../optimizer/README.md)
+- Screenshot-backed walkthrough: [`operator-workflow.md`](operator-workflow.md)
+- Run-bundle layout: [`run-artifacts.md`](run-artifacts.md)
+- Headless mode: [`../headless-agent.md`](../headless-agent.md)
+- Config reference: [`../configuration.md`](../configuration.md)

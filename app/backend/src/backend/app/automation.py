@@ -19,12 +19,17 @@ from .artifacts import (
     get_run_summary_path,
     read_json,
 )
-from .config import RunConfig, apply_overrides, get_run_mode, load_config
+from .config import RunConfig, apply_overrides, check_readiness, get_run_mode, load_config
+from .export import run_export
+from .extraction import load_proposals
 from .ids import generate_run_id
+from .ingest import load_schema, load_table
+from .review import bulk_accept_proposals, get_export_candidates, get_latest_decision, recompute_summaries
 from .runner import run_pipeline
-from .schemas import RunStatus
+from .schemas import DecisionSource, ProposalState, RunStatus
 
 AUTOMATION_PAYLOAD_SCHEMA_VERSION = "main_app_automation.v1"
+HEADLESS_ACCEPT_ALL_NOTE = "Auto-accepted by headless CLI (--accept-all)."
 
 TERMINAL_STATUSES = {
     RunStatus.completed.value,
@@ -474,6 +479,169 @@ def run_wait(
     return exit_code, payload
 
 
+def run_preflight(
+    *,
+    config_path: str,
+    table_path: Optional[str] = None,
+    schema_path: Optional[str] = None,
+    pdf_dir: Optional[str] = None,
+) -> tuple[int, dict[str, Any]]:
+    config, resolved_inputs, resolved_config_path = _resolve_config_and_inputs(
+        config_path,
+        table_path,
+        schema_path,
+        pdf_dir,
+    )
+    readiness = asyncio.run(check_readiness(config))
+
+    table_rows = None
+    schema_columns = None
+    pdf_count = None
+    scope_warnings: list[str] = []
+
+    try:
+        table_rows = len(load_table(config.table_path))
+    except Exception as exc:
+        scope_warnings.append(f"Table preview unavailable: {exc}")
+    try:
+        schema_columns = len(load_schema(config.schema_path, config.table_path))
+    except Exception as exc:
+        scope_warnings.append(f"Schema preview unavailable: {exc}")
+    try:
+        pdf_count = len([path for path in pathlib.Path(config.pdf_dir).iterdir() if path.suffix.lower() == ".pdf"])
+    except Exception as exc:
+        scope_warnings.append(f"PDF scope preview unavailable: {exc}")
+
+    payload = {
+        "schema_version": AUTOMATION_PAYLOAD_SCHEMA_VERSION,
+        "command": "preflight",
+        "status": "ok" if readiness.ok else "readiness_failed",
+        "config_path": resolved_config_path,
+        "run_mode": get_run_mode(config),
+        "output_dir": str(pathlib.Path(config.output_dir).resolve()),
+        "resolved_inputs": resolved_inputs,
+        "provider": {
+            "token": config.provider.token,
+            "locality": config.provider.locality,
+            "base_url": config.provider.base_url,
+            "text_model_id": config.provider.text_model.model_id,
+            "vision_model_id": config.provider.vision_model.model_id if config.provider.vision_model else None,
+        },
+        "scope": {
+            "table_rows": table_rows,
+            "schema_columns": schema_columns,
+            "pdf_count": pdf_count,
+        },
+        "readiness": {
+            "ok": readiness.ok,
+            "errors": readiness.errors,
+            "warnings": readiness.warnings + scope_warnings,
+            "provider_mode": readiness.provider_mode,
+            "provider_readiness_reason": readiness.provider_readiness_reason,
+            "provider_readiness_error": readiness.provider_readiness_error,
+        },
+        "what_happens_next": [
+            "Validate inputs and provider readiness again at run start.",
+            "Parse PDFs and resolve row matching before extraction.",
+            "Generate one best proposal per eligible target cell with evidence.",
+            "Review proposals explicitly in the browser UI or use headless mode with --accept-all for an auditable auto-review export.",
+        ],
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    return (0 if readiness.ok else 2), payload
+
+
+def _reviewable_undecided_proposal_ids(run_dir: pathlib.Path) -> list[str]:
+    proposal_ids: list[str] = []
+    for proposal in load_proposals(run_dir):
+        if proposal.state in (ProposalState.blocked, ProposalState.skipped):
+            continue
+        if get_latest_decision(run_dir, proposal.proposal_id) is not None:
+            continue
+        proposal_ids.append(proposal.proposal_id)
+    return proposal_ids
+
+
+def run_headless(
+    *,
+    config_path: str,
+    table_path: Optional[str] = None,
+    schema_path: Optional[str] = None,
+    pdf_dir: Optional[str] = None,
+    accept_all: bool = False,
+    export: bool = False,
+    poll_interval: float = 0.5,
+    timeout_seconds: Optional[float] = None,
+) -> tuple[int, dict[str, Any]]:
+    preflight_exit, preflight_payload = run_preflight(
+        config_path=config_path,
+        table_path=table_path,
+        schema_path=schema_path,
+        pdf_dir=pdf_dir,
+    )
+    if preflight_exit != 0:
+        preflight_payload["command"] = "headless"
+        return preflight_exit, preflight_payload
+
+    exit_code, payload = run_start(
+        config_path=config_path,
+        table_path=table_path,
+        schema_path=schema_path,
+        pdf_dir=pdf_dir,
+        wait=True,
+        poll_interval=poll_interval,
+        timeout_seconds=timeout_seconds,
+    )
+    payload["command"] = "headless"
+    payload["preflight"] = preflight_payload
+    payload["headless_accept_all_requested"] = bool(accept_all)
+    payload["headless_export_requested"] = bool(export)
+
+    if exit_code != 0:
+        return exit_code, payload
+
+    run_dir = pathlib.Path(payload["artifacts"]["run_dir"])
+    run_id = str(payload["run_id"])
+    undecided_reviewable_ids = _reviewable_undecided_proposal_ids(run_dir)
+    payload["pending_reviewable_proposals"] = len(undecided_reviewable_ids)
+
+    if export and undecided_reviewable_ids and not accept_all:
+        payload["status"] = "review_required"
+        payload["is_terminal"] = True
+        payload["error_message"] = (
+            "Export requires explicit review decisions. Re-run with --accept-all for auditable headless auto-accept."
+        )
+        return 2, payload
+
+    accepted_decisions = []
+    if accept_all:
+        accepted_decisions = bulk_accept_proposals(
+            run_dir,
+            run_id,
+            undecided_reviewable_ids,
+            decision_source=DecisionSource.automation_accept_all,
+            reviewer_note=HEADLESS_ACCEPT_ALL_NOTE,
+        )
+        summaries = recompute_summaries(run_dir, run_id)
+        payload["reviewer_summary"] = summaries["reviewer_summary"]
+        payload["run_summary"] = summaries["run_summary"]
+    else:
+        reviewer_summary_path_value = payload["artifacts"].get("reviewer_summary_path")
+        if reviewer_summary_path_value:
+            reviewer_summary_path = pathlib.Path(reviewer_summary_path_value)
+            payload["reviewer_summary"] = read_json(reviewer_summary_path)
+
+    payload["auto_accepted_proposals"] = len(accepted_decisions)
+
+    if export:
+        export_result = run_export(run_dir, payload["output_dir"], run_id)
+        payload["export"] = export_result
+        payload["accepted_export_candidates"] = len(get_export_candidates(run_dir))
+        payload["artifacts"]["latest_export_path"] = export_result["workbook_path"]
+
+    return 0, payload
+
+
 def _print_json(payload: dict[str, Any]) -> None:
     print(json.dumps(payload, sort_keys=True, ensure_ascii=False))
 
@@ -484,6 +652,12 @@ def _build_parser() -> argparse.ArgumentParser:
         description="Stable non-UI automation entrypoint for run start and monitoring.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
+
+    preflight_parser = subparsers.add_parser("preflight", help="Resolve config and report scope/readiness")
+    preflight_parser.add_argument("--config-path", required=True)
+    preflight_parser.add_argument("--table-path")
+    preflight_parser.add_argument("--schema-path")
+    preflight_parser.add_argument("--pdf-dir")
 
     start_parser = subparsers.add_parser("start", help="Start a run from config with optional overrides")
     start_parser.add_argument("--config-path", required=True)
@@ -504,6 +678,27 @@ def _build_parser() -> argparse.ArgumentParser:
     wait_parser.add_argument("--poll-interval", type=float, default=0.5)
     wait_parser.add_argument("--timeout-seconds", type=float)
 
+    headless_parser = subparsers.add_parser(
+        "headless",
+        help="Run extraction without the browser UI and optionally auto-accept/export explicitly",
+    )
+    headless_parser.add_argument("--config-path", required=True)
+    headless_parser.add_argument("--table-path")
+    headless_parser.add_argument("--schema-path")
+    headless_parser.add_argument("--pdf-dir")
+    headless_parser.add_argument(
+        "--accept-all",
+        action="store_true",
+        help="Explicitly auto-accept all undecided reviewable proposals. Required for unattended review bypass.",
+    )
+    headless_parser.add_argument(
+        "--export",
+        action="store_true",
+        help="Write an audited export after extraction. Requires explicit review or --accept-all.",
+    )
+    headless_parser.add_argument("--poll-interval", type=float, default=0.5)
+    headless_parser.add_argument("--timeout-seconds", type=float)
+
     worker_parser = subparsers.add_parser("_run-worker", help=argparse.SUPPRESS)
     worker_parser.add_argument("--run-id", required=True)
     worker_parser.add_argument("--config-path", required=True)
@@ -519,6 +714,16 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = parser.parse_args(argv)
 
     try:
+        if args.command == "preflight":
+            exit_code, payload = run_preflight(
+                config_path=args.config_path,
+                table_path=args.table_path,
+                schema_path=args.schema_path,
+                pdf_dir=args.pdf_dir,
+            )
+            _print_json(payload)
+            return exit_code
+
         if args.command == "start":
             exit_code, payload = run_start(
                 config_path=args.config_path,
@@ -541,6 +746,20 @@ def main(argv: Optional[list[str]] = None) -> int:
             exit_code, payload = run_wait(
                 run_id=args.run_id,
                 output_dir=args.output_dir,
+                poll_interval=float(args.poll_interval),
+                timeout_seconds=args.timeout_seconds,
+            )
+            _print_json(payload)
+            return exit_code
+
+        if args.command == "headless":
+            exit_code, payload = run_headless(
+                config_path=args.config_path,
+                table_path=args.table_path,
+                schema_path=args.schema_path,
+                pdf_dir=args.pdf_dir,
+                accept_all=bool(args.accept_all),
+                export=bool(args.export),
                 poll_interval=float(args.poll_interval),
                 timeout_seconds=args.timeout_seconds,
             )

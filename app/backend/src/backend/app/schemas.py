@@ -70,6 +70,11 @@ class ReviewDecision(str, Enum):
     rejected = "rejected"
 
 
+class DecisionSource(str, Enum):
+    human_reviewer = "human_reviewer"
+    automation_accept_all = "automation_accept_all"
+
+
 class ReviewResolutionReason(str, Enum):
     accepted_as_proposed = "accepted_as_proposed"
     accepted_with_edit = "accepted_with_edit"
@@ -148,6 +153,7 @@ class ReviewDecisionRecord(BaseModel):
     proposal_id: str
     cell_id: str
     decision: ReviewDecision
+    decision_source: DecisionSource = DecisionSource.human_reviewer
     resolution_reason: Optional[ReviewResolutionReason] = None
     edited_value: Optional[str] = None
     reviewer_note: Optional[str] = None
@@ -287,6 +293,8 @@ class ReviewerSummary(BaseModel):
     explicitly_accepted: int = 0        # accepted + accepted_with_edit
     explicitly_rejected: int = 0        # rejected (model-wrong)
     confirmed_absent: int = 0           # confirmed_no_data (distinct from rejection)
+    automation_review_applied: bool = False
+    automation_accepted_count: int = 0
     generated_at: str
 
 
