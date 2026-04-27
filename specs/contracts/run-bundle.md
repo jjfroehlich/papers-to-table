@@ -31,6 +31,7 @@ When present, the following files are part of the stable shared surface:
 - `inputs/input_summary.json`
 - `summaries/run_summary.json`
 - `summaries/reviewer_summary.json`
+- `review/decisions.jsonl` with explicit decision-source truth when headless automation applies review decisions
 - `proposal_index.json`
 - canonical evidence artifacts
 - persisted page-text-compatible or parsed-document artifacts needed for anchor validation
@@ -95,6 +96,7 @@ Stable summary artifacts must expose compact provenance needed by downstream too
 That compact truth includes, when applicable:
 
 - structured-output mode and degraded fallback truth
+- whether automation review was applied and how many proposals were auto-accepted
 - parse-repair usage
 - extraction-contract validity and warnings
 - retrieval mode and retrieval top-k
