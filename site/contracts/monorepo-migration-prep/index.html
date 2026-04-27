@@ -1,0 +1,2201 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Local-first manual for papers-to-table workflows, tools, and operators.">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Monorepo Migration Prep - papers-to-table manual</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#monorepo-migration-prep" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="papers-to-table manual" class="md-header__button md-logo" aria-label="papers-to-table manual" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            papers-to-table manual
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Monorepo Migration Prep
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="papers-to-table manual" class="md-nav__button md-logo" aria-label="papers-to-table manual" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    papers-to-table manual
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../getting-started/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Main App
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Main App
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../main-app/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../main-app/browser-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Browser Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../main-app/headless/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Headless and Accept-All
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../main-app/outputs-and-artifacts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Outputs and Artifacts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Companion Tools
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Companion Tools
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/eval/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Eval
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/optimizer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Optimizer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operators
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operators
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operators/lm-studio/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LM Studio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operators/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agents
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Agents
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../agents/agent-usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../agents/papers-to-table-skill/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    papers-to-table Skill
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/specs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specs and Truth Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/github-pages/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitHub Pages (Future)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-source-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Source State
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#target-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Target Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#structural-migration-batch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Structural Migration Batch
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Structural Migration Batch">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#imports-performed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Imports performed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#main-app-moves-performed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Main app moves performed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#history-preservation-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        History preservation status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#minimal-path-adjustments-made-in-this-batch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Minimal path adjustments made in this batch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#temporary-broken-or-stale-paths-intentionally-left-for-the-next-batch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Temporary broken or stale paths intentionally left for the next batch
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#path-and-runtime-repair-batch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Path And Runtime Repair Batch
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Path And Runtime Repair Batch">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#old-to-new-path-map-used-in-active-docs-and-configs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Old-to-new path map used in active docs and configs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#active-fixes-applied" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Active fixes applied
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#root-wrapper-scripts-added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Root wrapper scripts added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verification-after-pathruntime-repair" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verification after path/runtime repair
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interpretation-after-the-repair-batch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interpretation after the repair batch
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-entrypoints-and-baseline-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Entrypoints And Baseline Commands
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Current Entrypoints And Baseline Commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#main-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Main app
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eval-repo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eval repo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#optimizer-repo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optimizer repo
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration Strategy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#baseline-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Baseline Verification
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Baseline Verification">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#main-app-baseline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Main app baseline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eval-baseline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eval baseline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#optimizer-baseline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optimizer baseline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#baseline-interpretation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Baseline interpretation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#known-path-assumptions-to-update-later" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Known Path Assumptions To Update Later
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Known Path Assumptions To Update Later">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#runtime-critical-assumptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime-critical assumptions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#documentation-assumptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation assumptions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#historical-artifacts-with-embedded-absolute-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Historical artifacts with embedded absolute paths
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#risk-areas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Risk Areas
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#batch-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batch Plan
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Batch Plan">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#batch-2-structural-import-and-move" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batch 2: Structural import and move
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#batch-3-path-and-runtime-fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batch 3: Path and runtime fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#batch-4-docs-polish-and-finalization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batch 4: Docs, polish, and finalization
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rollback-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rollback Strategy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#immediate-next-checks-for-batch-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Immediate Next Checks For Batch 2
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="monorepo-migration-prep">Monorepo Migration Prep<a class="headerlink" href="#monorepo-migration-prep" title="Permanent link">&para;</a></h1>
+<p>Historical note: this file intentionally preserves pre-migration repository names, old path assumptions, and migration-era risk statements. The current repository is now named <code>papers-to-table</code>; old names and paths below are preserved where they are part of the migration record. It is not the canonical operator-facing description of the current repo layout.</p>
+<h2 id="scope">Scope<a class="headerlink" href="#scope" title="Permanent link">&para;</a></h2>
+<p>This note records the baseline state for migrating the separate main app, eval, and optimizer repositories into the current main app repository as the long-term monorepo home.</p>
+<p>This note began as the preparation batch note and now also records the structural migration batch and the path/runtime repair batch.</p>
+<ul>
+<li>The destination repository remains the current main app repo.</li>
+<li>The main app stays primary in structure, naming, and operator-facing documentation.</li>
+<li>Public CLI semantics should be preserved unless a later batch requires a narrow compatibility adjustment.</li>
+</ul>
+<h2 id="current-source-state">Current Source State<a class="headerlink" href="#current-source-state" title="Permanent link">&para;</a></h2>
+<p>Recorded on <code>2026-04-18</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Repo role</th>
+<th>Local path</th>
+<th>Branch at capture</th>
+<th>HEAD SHA</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Destination main app</td>
+<td><code>D:/code/local/extract-structured-info-from-papers</code></td>
+<td><code>main</code> before branch creation</td>
+<td><code>83bb44cff2ad6445fa4ba7dd659b024512473263</code></td>
+</tr>
+<tr>
+<td>Source eval repo</td>
+<td><code>D:/code/local/extract-structured-info-from-papers-eval</code></td>
+<td><code>main</code></td>
+<td><code>1623c6b0b91b03166bb766e0fea3f73202427ea4</code></td>
+</tr>
+<tr>
+<td>Source optimizer repo</td>
+<td><code>D:/code/local/extract-structured-info-from-papers-optimizer</code></td>
+<td><code>main</code></td>
+<td><code>e9f1cb0d9d4ca745ef28d59c71b33e9a3c5396a5</code></td>
+</tr>
+</tbody>
+</table>
+<p>Migration work for this prep batch is on branch <code>migration/monorepo-prep</code> in the destination repo.</p>
+<h2 id="target-structure">Target Structure<a class="headerlink" href="#target-structure" title="Permanent link">&para;</a></h2>
+<p>Planned long-term layout:</p>
+<div class="highlight"><pre><span></span><code>extract-structured-info-from-papers/
+  README.md
+  docs/
+    main-app/
+    eval/
+    optimizer/
+    contracts/
+  benchmarks/
+  app/
+  tools/
+    eval/
+    optimizer/
+  scripts/
+</code></pre></div>
+<p>Interpretation for later batches:</p>
+<ul>
+<li><code>app/</code> becomes the primary home for the main app runtime and UI.</li>
+<li><code>tools/eval/</code> becomes the in-repo home for the evaluator.</li>
+<li><code>tools/optimizer/</code> becomes the in-repo home for the optimizer.</li>
+<li><code>docs/</code> is split so the main app remains clearly primary while eval and optimizer docs remain available.</li>
+<li>No shared runtime package is introduced during this migration.</li>
+</ul>
+<h2 id="structural-migration-batch">Structural Migration Batch<a class="headerlink" href="#structural-migration-batch" title="Permanent link">&para;</a></h2>
+<p>Structural migration completed on branch <code>migration/monorepo-prep</code> after the prep checkpoint.</p>
+<h3 id="imports-performed">Imports performed<a class="headerlink" href="#imports-performed" title="Permanent link">&para;</a></h3>
+<p>History-preserving imports were performed with <code>git subtree add</code> without <code>--squash</code>:</p>
+<ul>
+<li>Eval source <code>1623c6b0b91b03166bb766e0fea3f73202427ea4</code> imported to <code>tools/eval/</code></li>
+<li>Optimizer source <code>e9f1cb0d9d4ca745ef28d59c71b33e9a3c5396a5</code> imported to <code>tools/optimizer/</code></li>
+</ul>
+<p>Resulting import commits in the destination repo:</p>
+<ul>
+<li><code>36936208f10d6a53397471eb66990193577af4ce</code> for <code>tools/eval/</code></li>
+<li><code>34dd28c837e7e60dcd45d7d7407c9a749522d746</code> for <code>tools/optimizer/</code></li>
+</ul>
+<h3 id="main-app-moves-performed">Main app moves performed<a class="headerlink" href="#main-app-moves-performed" title="Permanent link">&para;</a></h3>
+<p>The main app runtime and immediate config/test surface were moved into <code>app/</code> using <code>git mv</code> where the files were tracked:</p>
+<ul>
+<li><code>backend/</code> -&gt; <code>app/backend/</code></li>
+<li><code>frontend/</code> -&gt; <code>app/frontend/</code></li>
+<li><code>tests/</code> -&gt; <code>app/tests/</code></li>
+<li><code>config.example.json</code> -&gt; <code>app/config.example.json</code></li>
+<li><code>config.json</code> -&gt; <code>app/config.json</code></li>
+<li><code>pyproject.toml</code> -&gt; <code>app/pyproject.toml</code></li>
+<li><code>uv.lock</code> -&gt; <code>app/uv.lock</code></li>
+</ul>
+<p>The generated <code>extract_structured_info_from_papers_backend.egg-info/</code> directory was present locally but not tracked, so it was not moved with <code>git mv</code>.</p>
+<h3 id="history-preservation-status">History preservation status<a class="headerlink" href="#history-preservation-status" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Eval history preserved through subtree import.</li>
+<li>Optimizer history preserved through subtree import.</li>
+<li>Main app move history preserved through <code>git mv</code> rename tracking for the tracked files listed above.</li>
+</ul>
+<h3 id="minimal-path-adjustments-made-in-this-batch">Minimal path adjustments made in this batch<a class="headerlink" href="#minimal-path-adjustments-made-in-this-batch" title="Permanent link">&para;</a></h3>
+<p>Only the smallest root-level path references were updated so the destination repo is structurally coherent:</p>
+<ul>
+<li>root <code>AGENTS.md</code> now points at <code>app/backend</code>, <code>app/frontend</code>, and <code>app/tests/fixtures</code></li>
+<li>root CI workflow now installs/tests from <code>app/backend</code> and <code>app/frontend</code></li>
+</ul>
+<h3 id="temporary-broken-or-stale-paths-intentionally-left-for-the-next-batch">Temporary broken or stale paths intentionally left for the next batch<a class="headerlink" href="#temporary-broken-or-stale-paths-intentionally-left-for-the-next-batch" title="Permanent link">&para;</a></h3>
+<p>The following are intentionally deferred to the path/runtime-fix batch rather than redesigned here:</p>
+<ul>
+<li>root <code>README.md</code> still documents pre-move main-app paths</li>
+<li>imported <code>tools/optimizer/README.md</code> still documents sibling repos</li>
+<li>imported optimizer configs still point at sibling repo paths such as <code>../extract-structured-info-from-papers</code> and <code>../extract-structured-info-from-papers-eval</code></li>
+<li>imported optimizer launchers and shell scripts still assume separate repo roots</li>
+<li>imported eval and optimizer CI files still reflect their original standalone-repo layouts</li>
+<li>any runtime command that shells into the old top-level <code>frontend/</code> path is now stale</li>
+</ul>
+<h2 id="path-and-runtime-repair-batch">Path And Runtime Repair Batch<a class="headerlink" href="#path-and-runtime-repair-batch" title="Permanent link">&para;</a></h2>
+<p>Path/runtime repair was completed on branch <code>migration/monorepo-prep</code> after the structural import batch.</p>
+<h3 id="old-to-new-path-map-used-in-active-docs-and-configs">Old-to-new path map used in active docs and configs<a class="headerlink" href="#old-to-new-path-map-used-in-active-docs-and-configs" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Old path assumption</th>
+<th>New monorepo path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>backend/</code></td>
+<td><code>app/backend/</code></td>
+</tr>
+<tr>
+<td><code>frontend/</code></td>
+<td><code>app/frontend/</code></td>
+</tr>
+<tr>
+<td><code>tests/</code></td>
+<td><code>app/tests/</code></td>
+</tr>
+<tr>
+<td><code>config.example.json</code></td>
+<td><code>app/config.example.json</code></td>
+</tr>
+<tr>
+<td><code>config.json</code></td>
+<td><code>app/config.json</code></td>
+</tr>
+<tr>
+<td><code>../extract-structured-info-from-papers</code> from optimizer</td>
+<td><code>../../app</code> or <code>../../../app</code> depending on config depth</td>
+</tr>
+<tr>
+<td><code>../extract-structured-info-from-papers-eval</code> from optimizer</td>
+<td><code>../eval</code> or <code>../../eval</code> depending on config depth</td>
+</tr>
+<tr>
+<td><code>../../extract-structured-info-from-papers/tests/fixtures/...</code></td>
+<td><code>../../../app/tests/fixtures/...</code></td>
+</tr>
+<tr>
+<td><code>../../extract-structured-info-from-papers-eval/tests/fixtures/...</code></td>
+<td><code>../../eval/tests/fixtures/...</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="active-fixes-applied">Active fixes applied<a class="headerlink" href="#active-fixes-applied" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Root operator guidance and CI were updated to run main-app commands from <code>app/</code> and frontend commands from <code>app/frontend/</code>.</li>
+<li>Root <code>README.md</code> was updated so install/start/test examples use the moved main-app paths.</li>
+<li>Imported eval and optimizer READMEs were updated to describe the in-repo monorepo layout rather than sibling repositories.</li>
+<li>Imported eval and optimizer CI files were updated to use <code>tools/eval/</code> and <code>tools/optimizer/</code> as their working directories.</li>
+<li>Active optimizer configs and <code>tools/optimizer/config.example.json</code> were rewritten to point at <code>app/</code>, <code>tools/eval/</code>, and moved fixture/schema paths.</li>
+<li>Root wrapper scripts were added under <code>scripts/</code> for common main app, eval, and optimizer actions.</li>
+<li><code>app/frontend/vite.config.ts</code> was corrected by removing unsupported Vitest option <code>minWorkers</code>, which had blocked the frontend build during verification.</li>
+</ul>
+<h3 id="root-wrapper-scripts-added">Root wrapper scripts added<a class="headerlink" href="#root-wrapper-scripts-added" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>scripts/run-main-backend.sh</code></li>
+<li><code>scripts/run-main-frontend.sh</code></li>
+<li><code>scripts/test-main-app.sh</code></li>
+<li><code>scripts/test-eval-tool.sh</code></li>
+<li><code>scripts/test-optimizer-tool.sh</code></li>
+<li><code>scripts/run-optimizer-smoke.sh</code></li>
+</ul>
+<h3 id="verification-after-pathruntime-repair">Verification after path/runtime repair<a class="headerlink" href="#verification-after-pathruntime-repair" title="Permanent link">&para;</a></h3>
+<p>Python commands used the currently configured interpreter:</p>
+<p><code>d:/code/web/guess-the-citations/.venv/Scripts/python.exe</code></p>
+<p>Command:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>/d/code/local/extract-structured-info-from-papers/app/frontend
+npm<span class="w"> </span>run<span class="w"> </span>build
+</code></pre></div>
+<p>Result:</p>
+<ul>
+<li>Passed, exit code <code>0</code></li>
+<li>Frontend build completed successfully after the <code>vite.config.ts</code> fix</li>
+<li>One existing bundle-size warning remained for <code>dist/assets/index-BOjLml0-.js</code> at about <code>674 kB</code></li>
+</ul>
+<p>Command:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>/d/code/local/extract-structured-info-from-papers/app
+d:/code/web/guess-the-citations/.venv/Scripts/python.exe<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/backend<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;not e2e and not smoke&quot;</span>
+</code></pre></div>
+<p>Result:</p>
+<ul>
+<li>Failed, exit code <code>1</code></li>
+<li><code>1 failed, 642 passed, 1 deselected in 66.32s</code></li>
+<li>Same pre-existing failing test as baseline: <code>tests/backend/test_e2e_hermetic.py::TestHermeticMatchedExtractionExport::test_export_xlsx_written_with_correct_value</code></li>
+</ul>
+<p>Command:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>/d/code/local/extract-structured-info-from-papers/tools/eval
+d:/code/web/guess-the-citations/.venv/Scripts/python.exe<span class="w"> </span>-m<span class="w"> </span>pytest
+</code></pre></div>
+<p>Result:</p>
+<ul>
+<li>Passed, exit code <code>0</code></li>
+<li><code>67 passed in 2.58s</code></li>
+</ul>
+<p>Command:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>/d/code/local/extract-structured-info-from-papers/tools/eval
+d:/code/web/guess-the-citations/.venv/Scripts/python.exe<span class="w"> </span>-m<span class="w"> </span>paper_eval<span class="w"> </span>evaluate<span class="w"> </span>--run<span class="w"> </span>tests/fixtures/example_eval/runs/run-a<span class="w"> </span>--gold<span class="w"> </span>tests/fixtures/example_eval/gold.csv<span class="w"> </span>--schema<span class="w"> </span>tests/fixtures/example_eval/schema.json<span class="w"> </span>--out<span class="w"> </span>out/example-single-monorepo
+</code></pre></div>
+<p>Result:</p>
+<ul>
+<li>Passed, exit code <code>0</code></li>
+<li>Wrote per-run outputs under <code>out/example-single-monorepo/per-run/run-a</code></li>
+<li>Wrote compare outputs under <code>out/example-single-monorepo/compare</code></li>
+</ul>
+<p>Command:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>/d/code/local/extract-structured-info-from-papers/tools/optimizer
+<span class="nv">MPLBACKEND</span><span class="o">=</span>Agg<span class="w"> </span>d:/code/web/guess-the-citations/.venv/Scripts/python.exe<span class="w"> </span>-m<span class="w"> </span>pytest
+</code></pre></div>
+<p>Result:</p>
+<ul>
+<li>Failed, exit code <code>1</code></li>
+<li><code>1 failed, 38 passed in 16.15s</code></li>
+<li>Same pre-existing failing test as baseline: <code>tests/test_proposer_and_confirmation.py::test_confirmation_rerun_can_block_promotion</code></li>
+</ul>
+<p>Command:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>/d/code/local/extract-structured-info-from-papers/tools/optimizer
+<span class="nv">PAPER_OPTIMIZER_PYTHON</span><span class="o">=</span>d:/code/web/guess-the-citations/.venv/Scripts/python.exe<span class="w"> </span><span class="nv">PAPER_OPTIMIZER_SKIP_HOLDOUT</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>bash<span class="w"> </span>scripts/run_study.sh<span class="w"> </span>compare<span class="w"> </span>configs/compare_models_contract_smoke.json<span class="w"> </span>monorepo_path_repair_smoke
+</code></pre></div>
+<p>Result:</p>
+<ul>
+<li>Did not finish within the initial <code>180s</code> observation window</li>
+<li>No decisive path error was emitted</li>
+<li>Run directory <code>runs/20260418_194446_compare_monorepo_path_repair_smoke/</code> was created</li>
+<li>Main candidate artifacts were materialized under <code>experiment/runs/cand_0001/main/main_app_output/...</code></li>
+<li>No eval artifacts or final <code>experiment/results/results.jsonl</code> were present during inspection</li>
+<li>Current interpretation: monorepo path wiring is working well enough for optimizer startup and main-app launch, while the long-running portion appears to be waiting on external provider work or still in progress rather than failing immediately on broken paths</li>
+</ul>
+<p>Command:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>/d/code/local/extract-structured-info-from-papers/app
+d:/code/web/guess-the-citations/.venv/Scripts/python.exe<span class="w"> </span>-m<span class="w"> </span>uvicorn<span class="w"> </span>backend.app.main:app<span class="w"> </span>--host<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span>--port<span class="w"> </span><span class="m">8010</span>
+</code></pre></div>
+<p>Follow-up probe:</p>
+<div class="highlight"><pre><span></span><code>d:/code/web/guess-the-citations/.venv/Scripts/python.exe<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import urllib.request; print(urllib.request.urlopen(&#39;http://127.0.0.1:8010/api/health&#39;).read().decode())&quot;</span>
+</code></pre></div>
+<p>Result:</p>
+<ul>
+<li>Passed</li>
+<li>Health endpoint returned <code>{"status":"ok"}</code></li>
+</ul>
+<h3 id="interpretation-after-the-repair-batch">Interpretation after the repair batch<a class="headerlink" href="#interpretation-after-the-repair-batch" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Main app backend startup from <code>app/</code> works.</li>
+<li>Main app frontend build from <code>app/frontend/</code> works.</li>
+<li>Eval tests and CLI work from <code>tools/eval/</code>.</li>
+<li>Optimizer tests match the pre-migration failure profile.</li>
+<li>Optimizer smoke execution no longer shows an immediate monorepo path failure and does launch the main app using the repaired config paths.</li>
+<li>Remaining uncertainty is limited to the long-running live optimizer smoke flow, which appears environment- or provider-timed rather than structurally broken.</li>
+</ul>
+<h2 id="current-entrypoints-and-baseline-commands">Current Entrypoints And Baseline Commands<a class="headerlink" href="#current-entrypoints-and-baseline-commands" title="Permanent link">&para;</a></h2>
+<h3 id="main-app">Main app<a class="headerlink" href="#main-app" title="Permanent link">&para;</a></h3>
+<p>Primary operator and automation entrypoints:</p>
+<ul>
+<li>Run these from <code>app/</code> unless noted otherwise.</li>
+<li>Backend API server: <code>python -m uvicorn backend.app.main:app --reload --port 8000</code></li>
+<li>Backend automation CLI: <code>python -m backend.app.automation start --config-path config.json</code></li>
+<li>Frontend dev server from <code>app/</code>: <code>npm --prefix frontend run dev</code></li>
+<li>Backend tests from <code>app/</code>: <code>pytest tests/backend -m "not e2e and not smoke"</code></li>
+<li>Frontend tests from <code>app/</code>: <code>npm --prefix frontend test -- --run</code></li>
+</ul>
+<p>Evidence:</p>
+<ul>
+<li><code>README.md</code></li>
+<li><code>app/backend/app/automation.py</code></li>
+<li><code>app/backend/app/main.py</code></li>
+<li><code>app/backend/pyproject.toml</code></li>
+<li><code>app/frontend/package.json</code></li>
+<li><code>.github/workflows/ci.yml</code></li>
+</ul>
+<h3 id="eval-repo">Eval repo<a class="headerlink" href="#eval-repo" title="Permanent link">&para;</a></h3>
+<p>Primary entrypoints:</p>
+<ul>
+<li>CLI: <code>python -m paper_eval evaluate ...</code></li>
+<li>Compare rebuild: <code>python -m paper_eval compare ...</code></li>
+<li>Tests: <code>pytest</code></li>
+</ul>
+<p>Evidence:</p>
+<ul>
+<li><code>README.md</code></li>
+<li><code>paper_eval/__main__.py</code></li>
+<li><code>paper_eval/cli.py</code></li>
+<li><code>.github/workflows/ci.yml</code></li>
+</ul>
+<h3 id="optimizer-repo">Optimizer repo<a class="headerlink" href="#optimizer-repo" title="Permanent link">&para;</a></h3>
+<p>Primary entrypoints:</p>
+<ul>
+<li>Installed CLI: <code>paper-optimizer ...</code></li>
+<li>Module CLI used by scripts: <code>python -m paper_optimizer.cli ...</code></li>
+<li>Study wrapper: <code>bash scripts/run_study.sh ...</code></li>
+<li>Overnight wrapper: <code>bash scripts/run_overnight.sh ...</code></li>
+<li>Tests: <code>pytest</code> with <code>MPLBACKEND=Agg</code></li>
+</ul>
+<p>Evidence:</p>
+<ul>
+<li><code>README.md</code></li>
+<li><code>pyproject.toml</code></li>
+<li><code>paper_optimizer/cli.py</code></li>
+<li><code>scripts/run_study.sh</code></li>
+<li><code>scripts/run_overnight.sh</code></li>
+<li><code>.github/workflows/ci.yml</code></li>
+</ul>
+<h2 id="migration-strategy">Migration Strategy<a class="headerlink" href="#migration-strategy" title="Permanent link">&para;</a></h2>
+<p>This migration stays structural first.</p>
+<ol>
+<li>Keep the main app repo as the destination and preserve its identity as the root product.</li>
+<li>Import eval and optimizer history into the destination repo with path prefixes rather than copying files without history.</li>
+<li>Use <code>git mv</code> for files already in the main app repo whenever they move to their monorepo locations.</li>
+<li>Land structural movement before behavior changes, then do the smallest path and runtime fixes needed to restore existing commands.</li>
+<li>Keep migration notes and per-batch verification in-repo so later batches can compare against a pinned baseline.</li>
+</ol>
+<h2 id="baseline-verification">Baseline Verification<a class="headerlink" href="#baseline-verification" title="Permanent link">&para;</a></h2>
+<p>Commands below were run before any structural import.</p>
+<p>Python commands used the currently configured interpreter:</p>
+<p><code>d:/code/web/guess-the-citations/.venv/Scripts/python.exe</code></p>
+<h3 id="main-app-baseline">Main app baseline<a class="headerlink" href="#main-app-baseline" title="Permanent link">&para;</a></h3>
+<p>Command:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>/d/code/local/extract-structured-info-from-papers
+d:/code/web/guess-the-citations/.venv/Scripts/python.exe<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/backend<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;not e2e and not smoke&quot;</span>
+</code></pre></div>
+<p>Result:</p>
+<ul>
+<li>Failed, exit code <code>1</code></li>
+<li><code>1 failed, 642 passed, 1 deselected in 77.25s</code></li>
+<li>Failing test: <code>tests/backend/test_e2e_hermetic.py::TestHermeticMatchedExtractionExport::test_export_xlsx_written_with_correct_value</code></li>
+<li>Decisive assertion excerpt: <code>AssertionError: assert 'Cloning' in ['column_name', 'description']</code></li>
+</ul>
+<p>Command:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>/d/code/local/extract-structured-info-from-papers
+npm<span class="w"> </span>--prefix<span class="w"> </span>frontend<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--<span class="w"> </span>--run
+</code></pre></div>
+<p>Result:</p>
+<ul>
+<li>Passed, exit code <code>0</code></li>
+<li><code>12 passed files, 71 passed tests</code></li>
+<li>Reported duration: <code>53.43s</code></li>
+</ul>
+<h3 id="eval-baseline">Eval baseline<a class="headerlink" href="#eval-baseline" title="Permanent link">&para;</a></h3>
+<p>Command:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>/d/code/local/extract-structured-info-from-papers-eval
+d:/code/web/guess-the-citations/.venv/Scripts/python.exe<span class="w"> </span>-m<span class="w"> </span>pytest
+</code></pre></div>
+<p>Result:</p>
+<ul>
+<li>Passed, exit code <code>0</code></li>
+<li><code>67 passed in 3.65s</code></li>
+</ul>
+<h3 id="optimizer-baseline">Optimizer baseline<a class="headerlink" href="#optimizer-baseline" title="Permanent link">&para;</a></h3>
+<p>Command:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>/d/code/local/extract-structured-info-from-papers-optimizer
+env<span class="w"> </span><span class="nv">MPLBACKEND</span><span class="o">=</span>Agg<span class="w"> </span>d:/code/web/guess-the-citations/.venv/Scripts/python.exe<span class="w"> </span>-m<span class="w"> </span>pytest
+</code></pre></div>
+<p>Result:</p>
+<ul>
+<li>Failed, exit code <code>1</code></li>
+<li><code>1 failed, 38 passed in 15.90s</code></li>
+<li>Failing test: <code>tests/test_proposer_and_confirmation.py::test_confirmation_rerun_can_block_promotion</code></li>
+<li>Decisive assertion excerpt: <code>AssertionError: assert 'cand_0001' == 'cand_0000'</code></li>
+</ul>
+<h3 id="baseline-interpretation">Baseline interpretation<a class="headerlink" href="#baseline-interpretation" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Eval is green at the captured SHA.</li>
+<li>Main app already has one failing backend test before migration work.</li>
+<li>Optimizer already has one failing test before migration work.</li>
+<li>Those failures should be treated as pre-existing baseline issues unless a later migration batch changes the same code paths.</li>
+</ul>
+<h2 id="known-path-assumptions-to-update-later">Known Path Assumptions To Update Later<a class="headerlink" href="#known-path-assumptions-to-update-later" title="Permanent link">&para;</a></h2>
+<p>The most important migration risk is the optimizer's current assumption that the main app and eval app live as sibling repositories.</p>
+<h3 id="runtime-critical-assumptions">Runtime-critical assumptions<a class="headerlink" href="#runtime-critical-assumptions" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Optimizer config files hardcode sibling-repo roots and fixture paths.</li>
+</ol>
+<p>Examples:</p>
+<ul>
+<li><code>config.example.json</code></li>
+<li><code>configs/compare_models.json</code></li>
+<li><code>configs/compare_models_fixture_manual.json</code></li>
+<li><code>configs/compare_models_contract_smoke.json</code></li>
+<li><code>configs/compare_prompts.json</code></li>
+<li><code>configs/compare_retrieval.json</code></li>
+<li><code>configs/compare_retrieval_modes.json</code></li>
+<li><code>configs/optimize_overnight.json</code></li>
+</ul>
+<p>Current assumptions include paths like:</p>
+<ul>
+<li><code>../extract-structured-info-from-papers</code></li>
+<li><code>../extract-structured-info-from-papers-eval</code></li>
+<li><code>../../extract-structured-info-from-papers/tests/fixtures/...</code></li>
+<li>
+<p><code>../../extract-structured-info-from-papers-eval/tests/fixtures/...</code></p>
+</li>
+<li>
+<p>Optimizer config loading resolves path fields relative to the optimizer config file location.</p>
+</li>
+</ul>
+<p>Evidence:</p>
+<ul>
+<li><code>paper_optimizer/settings.py</code></li>
+</ul>
+<p>Affected fields include:</p>
+<ul>
+<li><code>repo_root</code></li>
+<li><code>base_config_path</code></li>
+<li><code>table_path</code></li>
+<li><code>schema_path</code></li>
+<li><code>pdf_dir</code></li>
+<li><code>gold_path</code></li>
+<li>
+<p><code>eval_schema_path</code></p>
+</li>
+<li>
+<p>Optimizer launches the main app and eval app by switching subprocess working directories to separate repo roots.</p>
+</li>
+</ul>
+<p>Evidence:</p>
+<ul>
+<li><code>paper_optimizer/launch_main.py</code></li>
+<li>
+<p><code>paper_optimizer/launch_eval.py</code></p>
+</li>
+<li>
+<p>Optimizer shell wrappers assume their repo root is also the runtime root for configs, runs, and logs.</p>
+</li>
+</ul>
+<p>Evidence:</p>
+<ul>
+<li><code>scripts/run_study.sh</code></li>
+<li><code>scripts/run_overnight.sh</code></li>
+</ul>
+<p>These scripts are not wrong today, but their path math must be updated once the optimizer lives under <code>tools/optimizer/</code>.</p>
+<h3 id="documentation-assumptions">Documentation assumptions<a class="headerlink" href="#documentation-assumptions" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Optimizer README explicitly documents a multi-repo sibling checkout layout.</li>
+</ol>
+<p>Evidence:</p>
+<ul>
+<li>
+<p><code>extract-structured-info-from-papers-optimizer/README.md</code> in the source repo</p>
+</li>
+<li>
+<p>Main app README describes optimizer consumption as external tooling.</p>
+</li>
+</ul>
+<p>Evidence:</p>
+<ul>
+<li><code>README.md</code></li>
+</ul>
+<p>That wording is directionally correct today, but after migration it should describe optimizer and eval as in-repo tools instead of separate repositories.</p>
+<ol>
+<li>Eval README presents the evaluator as a separate repository identity.</li>
+</ol>
+<p>Evidence:</p>
+<ul>
+<li><code>extract-structured-info-from-papers-eval/README.md</code> in the source repo</li>
+</ul>
+<h3 id="historical-artifacts-with-embedded-absolute-paths">Historical artifacts with embedded absolute paths<a class="headerlink" href="#historical-artifacts-with-embedded-absolute-paths" title="Permanent link">&para;</a></h3>
+<p>Generated files under optimizer <code>runs/</code> and <code>logs/</code> embed absolute paths to the current repo layout.</p>
+<p>Examples:</p>
+<ul>
+<li>optimizer run metadata files</li>
+<li>materialized configs under past run directories</li>
+<li>overnight analysis reports and logs</li>
+</ul>
+<p>These are historical artifacts, not primary runtime code. Later batches should avoid broad rewriting of historical runs unless a specific operator requirement makes it necessary.</p>
+<h2 id="risk-areas">Risk Areas<a class="headerlink" href="#risk-areas" title="Permanent link">&para;</a></h2>
+<ol>
+<li>CLI compatibility during path moves.</li>
+<li>Optimizer subprocess launches that currently rely on separate working directories.</li>
+<li>Relative benchmark and fixture references in optimizer configs.</li>
+<li>Main app backend and frontend startup commands if <code>backend/</code> and <code>frontend/</code> move under <code>app/</code>.</li>
+<li>CI consolidation across Python backend, frontend, eval, and optimizer checks.</li>
+<li>Avoiding a premature shared package during path cleanup.</li>
+<li>Preserving git history for eval and optimizer imports.</li>
+</ol>
+<h2 id="batch-plan">Batch Plan<a class="headerlink" href="#batch-plan" title="Permanent link">&para;</a></h2>
+<h3 id="batch-2-structural-import-and-move">Batch 2: Structural import and move<a class="headerlink" href="#batch-2-structural-import-and-move" title="Permanent link">&para;</a></h3>
+<p>Goal: bring all three codebases into the destination repo with preserved history where practical, but keep fixes limited to what is required for the tree to exist coherently.</p>
+<p>Planned steps:</p>
+<ol>
+<li>Add source remotes for eval and optimizer to the destination repo and fetch pinned SHAs.</li>
+<li>Import eval into <code>tools/eval/</code> with history preserved via prefixed git import.</li>
+<li>Import optimizer into <code>tools/optimizer/</code> with history preserved via prefixed git import.</li>
+<li>Create destination doc folders:</li>
+<li><code>docs/main-app/</code></li>
+<li><code>docs/eval/</code></li>
+<li><code>docs/optimizer/</code></li>
+<li>Move main-app-owned docs into <code>docs/main-app/</code> only where the move is structural and low risk.</li>
+<li>Move main app runtime directories into the planned <code>app/</code> subtree with <code>git mv</code> rather than copy/delete.</li>
+<li>Move or create top-level <code>scripts/</code> only for scripts that belong at monorepo root.</li>
+<li>Keep imports and command fixes minimal in this batch; only add transitional notes if commands are temporarily expected to fail until Batch 3.</li>
+</ol>
+<p>Expected moved locations after Batch 2:</p>
+<ul>
+<li>main app runtime under <code>app/</code></li>
+<li>eval under <code>tools/eval/</code></li>
+<li>optimizer under <code>tools/optimizer/</code></li>
+</ul>
+<p>Verification target for Batch 2:</p>
+<ul>
+<li>tree shape exists as planned</li>
+<li>git history for imported repos is visible from the destination repo</li>
+<li>no accidental content drops</li>
+</ul>
+<h3 id="batch-3-path-and-runtime-fixes">Batch 3: Path and runtime fixes<a class="headerlink" href="#batch-3-path-and-runtime-fixes" title="Permanent link">&para;</a></h3>
+<p>Goal: restore working CLI, test, config, and script behavior from the new monorepo layout without redesigning ownership boundaries.</p>
+<p>Planned steps:</p>
+<ol>
+<li>Update optimizer config defaults and prepared configs to monorepo-local paths.</li>
+<li>Update optimizer path resolution and launch working-directory logic to the new in-repo locations.</li>
+<li>Adjust shell scripts so <code>tools/optimizer/scripts/*.sh</code> still produce the same run and log behavior from the new tree.</li>
+<li>Update main app backend and frontend startup/test commands if the <code>app/</code> move changes working directories.</li>
+<li>Update CI to run the same checks from the new paths.</li>
+<li>Add only narrow compatibility shims if needed to keep current public CLI semantics working.</li>
+<li>Re-run the same baseline commands from this note using monorepo paths and compare outcomes against the pre-migration baseline.</li>
+</ol>
+<p>Verification target for Batch 3:</p>
+<ul>
+<li>existing documented startup commands either still work or have explicit compatibility wrappers</li>
+<li>optimizer can locate main app, eval, and fixtures inside the monorepo</li>
+<li>baseline test surface is restored to at least the pre-migration pass/fail profile</li>
+</ul>
+<h3 id="batch-4-docs-polish-and-finalization">Batch 4: Docs, polish, and finalization<a class="headerlink" href="#batch-4-docs-polish-and-finalization" title="Permanent link">&para;</a></h3>
+<p>Goal: make the monorepo truthful and operator-usable once runtime paths work.</p>
+<p>Planned steps:</p>
+<ol>
+<li>Rewrite the root README so the main app remains primary and eval/optimizer are described as in-repo tools.</li>
+<li>Split or relocate repo-specific docs into <code>docs/main-app/</code>, <code>docs/eval/</code>, and <code>docs/optimizer/</code>.</li>
+<li>Update examples and setup instructions that currently assume sibling repositories.</li>
+<li>Add an explicit migration summary and final tree map.</li>
+<li>Remove stale cross-repo wording that no longer matches the monorepo.</li>
+<li>Run final baseline verification and record exact commands and outcomes.</li>
+</ol>
+<p>Verification target for Batch 4:</p>
+<ul>
+<li>docs match the new layout</li>
+<li>root repo identity is still centered on the main app</li>
+<li>eval and optimizer instructions remain available but secondary</li>
+</ul>
+<h2 id="rollback-strategy">Rollback Strategy<a class="headerlink" href="#rollback-strategy" title="Permanent link">&para;</a></h2>
+<p>Rollback should remain commit-based and batch-scoped.</p>
+<ol>
+<li>Keep each migration batch in a small, reviewable commit or short commit stack on <code>migration/monorepo-prep</code> or follow-on migration branches.</li>
+<li>Do not rewrite the source repositories during migration prep.</li>
+<li>If Batch 2 import or moves go wrong, revert the specific import or move commit instead of redesigning in place.</li>
+<li>If Batch 3 path fixes go wrong, revert only the runtime-fix commit(s) and keep the structural import commit intact for inspection.</li>
+<li>Keep this note updated with the exact source SHAs so a clean re-import remains possible.</li>
+<li>Do not merge to <code>main</code> until the baseline verification surface is re-run from the new layout.</li>
+</ol>
+<h2 id="immediate-next-checks-for-batch-2">Immediate Next Checks For Batch 2<a class="headerlink" href="#immediate-next-checks-for-batch-2" title="Permanent link">&para;</a></h2>
+<p>Before the next batch starts, confirm:</p>
+<ol>
+<li>The destination repo still has a clean diff except for this migration note.</li>
+<li>The source repo SHAs above are still the intended import points.</li>
+<li>The chosen git import method preserves history acceptably for review.</li>
+<li>No new unrelated failures appear in the existing baseline commands.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "content.code.copy", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

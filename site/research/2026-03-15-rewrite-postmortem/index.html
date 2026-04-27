@@ -1,0 +1,2342 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Local-first manual for papers-to-table workflows, tools, and operators.">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Paper Table Agent Rewrite Postmortem - papers-to-table manual</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#paper-table-agent-rewrite-postmortem" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="papers-to-table manual" class="md-header__button md-logo" aria-label="papers-to-table manual" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            papers-to-table manual
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Paper Table Agent Rewrite Postmortem
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="papers-to-table manual" class="md-nav__button md-logo" aria-label="papers-to-table manual" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    papers-to-table manual
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../getting-started/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Main App
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Main App
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../main-app/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../main-app/browser-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Browser Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../main-app/headless/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Headless and Accept-All
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../main-app/outputs-and-artifacts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Outputs and Artifacts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Companion Tools
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Companion Tools
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/eval/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Eval
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/optimizer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Optimizer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operators
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operators
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operators/lm-studio/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LM Studio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operators/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agents
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Agents
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../agents/agent-usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../agents/papers-to-table-skill/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    papers-to-table Skill
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/specs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specs and Truth Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/github-pages/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitHub Pages (Future)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#bottom-line" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bottom Line
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-was-actually-useful" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Was Actually Useful
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What Was Actually Useful">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-batch-pdf-to-table-proposal-generation-was-the-real-product" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Batch PDF-to-table proposal generation was the real product
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-auditeval-was-more-valuable-than-most-optional-runtime-sophistication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Audit/eval was more valuable than most optional runtime sophistication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-reviewable-evidence-was-useful-even-when-imperfect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Reviewable evidence was useful, even when imperfect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-stubmock-end-to-end-testing-was-high-value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Stub/mock end-to-end testing was high-value
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture-and-coupling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture And Coupling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Architecture And Coupling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-actual-runtime-architecture-was-much-more-centralized-than-the-module-layout-suggested" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The actual runtime architecture was much more centralized than the module layout suggested
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#langgraph-added-less-architectural-value-than-its-presence-implied" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LangGraph added less architectural value than its presence implied
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#runcontext-became-the-gravity-well-of-the-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RunContext became the gravity well of the system
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#runnerpy-absorbed-too-many-responsibilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        runner.py absorbed too many responsibilities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-code-had-modular-pieces-but-their-contracts-were-porous" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The code had modular pieces, but their contracts were porous
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-failure-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Failure Modes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common Failure Modes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-llm-output-formatting-and-provider-compatibility-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. LLM output formatting and provider compatibility failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-retrieval-quality-was-inconsistent-enough-that-fallback-modes-dominated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Retrieval quality was inconsistent enough that fallback modes dominated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-evidence-anchoring-and-highlighting-were-persistently-brittle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Evidence anchoring and highlighting were persistently brittle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-prompt-budgets-and-retries-caused-secondary-complexity-explosions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Prompt budgets and retries caused secondary complexity explosions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-header-extraction-and-matching-needed-repeated-repair-logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Header extraction and matching needed repeated repair logic
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pain-points-that-motivate-a-rewrite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pain Points That Motivate A Rewrite
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pain Points That Motivate A Rewrite">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-the-system-became-a-compensating-machine-for-other-unreliability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. The system became a compensating machine for other unreliability
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-the-dominant-product-path-was-obscured-by-adaptive-machinery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. The dominant product path was obscured by adaptive machinery
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-runtime-policy-lived-inside-code-instead-of-at-clean-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Runtime policy lived inside code instead of at clean boundaries
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-observability-was-strong-but-clarity-was-weak" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Observability was strong, but clarity was weak
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dead-complexity-and-config-sprawl" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dead Complexity And Config Sprawl
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dead Complexity And Config Sprawl">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#likely-low-yield-architecture-complexity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Likely low-yield architecture complexity
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Likely low-yield architecture complexity">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#langgraph-wrapper" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LangGraph wrapper
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multiple-provider-role-clients-with-identical-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multiple provider-role clients with identical models
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#retrieval-backend-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retrieval backend matrix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fulltext-plus-memory-plus-retrieval-all-in-one-runtime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fulltext plus memory plus retrieval all in one runtime
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#config-sprawl-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Config sprawl patterns
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Config sprawl patterns">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#quality_preset-plus-max_success_mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        quality_preset plus max_success_mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#user-facing-config-and-runtime-tuning-mixed-together" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        User-facing config and runtime tuning mixed together
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lessons-from-run-artifacts-tests-and-evaluation-outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lessons From Run Artifacts, Tests, And Evaluation Outputs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Lessons From Run Artifacts, Tests, And Evaluation Outputs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-preserved-run-says-the-system-was-productive-but-not-accurate-enough" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The preserved run says the system was productive but not accurate enough
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-logs-show-auxiliary-llm-work-may-have-been-too-expensive-relative-to-value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The logs show auxiliary LLM work may have been too expensive relative to value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-test-suite-distribution-is-itself-a-postmortem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The test suite distribution is itself a postmortem
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-compounding-notes-show-repeated-local-fixes-to-a-few-core-problem-families" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The compounding notes show repeated local fixes to a few core problem families
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#concrete-recommendations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Concrete Recommendations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#carry-forward" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Carry Forward
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Carry Forward">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-keep-the-product-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Keep the product loop
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-keep-auditeval-as-a-first-class-built-in" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Keep audit/eval as a first-class built-in
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-keep-hermetic-end-to-end-tests-with-stubmock-providers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Keep hermetic end-to-end tests with stub/mock providers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-keep-evidence-as-an-operator-facing-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Keep evidence as an operator-facing object
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-keep-matching-heuristics-but-make-them-a-small-standalone-subsystem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Keep matching heuristics, but make them a small standalone subsystem
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#re-simplify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Re-simplify
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Re-simplify">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-replace-the-graph-runtime-with-a-simple-staged-batch-runner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Replace the graph runtime with a simple staged batch runner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-separate-user-config-from-runtime-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Separate user config from runtime policy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-collapse-context-strategy-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Collapse context strategy options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-make-evidence-contracts-narrower-and-stricter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Make evidence contracts narrower and stricter
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-move-provider-specific-behavior-behind-strategy-adapters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Move provider-specific behavior behind strategy adapters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-treat-extra-llm-helper-passes-as-optional-experiments-not-baseline-runtime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Treat extra LLM helper passes as optional experiments, not baseline runtime
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#discard-or-deprioritize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discard Or Deprioritize
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Discard Or Deprioritize">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-discard-the-assumption-that-more-adaptive-routing-is-automatically-better" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Discard the assumption that more adaptive routing is automatically better
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-discard-low-signal-config-aliases-and-mode-duplication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Discard low-signal config aliases and mode duplication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-deprioritize-grobid-and-alternate-parser-backends-unless-the-rewrite-proves-structural-gains" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Deprioritize GROBID and alternate parser backends unless the rewrite proves structural gains
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-deprioritize-dense-retrieval-and-reranker-complexity-unless-they-measurably-improve-audited-accuracy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Deprioritize dense retrieval and reranker complexity unless they measurably improve audited accuracy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-discard-broad-salvage-ladders-as-the-first-answer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Discard broad salvage ladders as the first answer
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#suggested-rewrite-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Suggested Rewrite Shape
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#final-assessment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Final Assessment
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="paper-table-agent-rewrite-postmortem">Paper Table Agent Rewrite Postmortem<a class="headerlink" href="#paper-table-agent-rewrite-postmortem" title="Permanent link">&para;</a></h1>
+<p>Date: 2026-03-15</p>
+<h2 id="bottom-line">Bottom Line<a class="headerlink" href="#bottom-line" title="Permanent link">&para;</a></h2>
+<p>The old Paper Table Agent did succeed at one real job: take a table plus PDFs, match papers to rows, generate proposals with at least some evidence, and give the operator a review surface. That core loop is the part worth preserving.</p>
+<p>Most of the engineering drag came from trying to make one runtime handle too many adaptive strategies at once: multiple parsing paths, multiple context modes, multiple retrieval backends, multiple evidence repair paths, provider capability probing, JSON salvage, and a LangGraph wrapper on top of a mostly sequential batch loop. The result was a system with a lot of defensive sophistication but weak operational clarity.</p>
+<p>The strongest rewrite case is not that the product idea failed. It is that the implementation accumulated too many compensating layers around brittle LLM and PDF behavior, and those layers started to dominate the codebase.</p>
+<h2 id="what-was-actually-useful">What Was Actually Useful<a class="headerlink" href="#what-was-actually-useful" title="Permanent link">&para;</a></h2>
+<p>Not all features were equally valuable. The code, tests, and preserved run artifacts point to a fairly clear core.</p>
+<h3 id="1-batch-pdf-to-table-proposal-generation-was-the-real-product">1. Batch PDF-to-table proposal generation was the real product<a class="headerlink" href="#1-batch-pdf-to-table-proposal-generation-was-the-real-product" title="Permanent link">&para;</a></h3>
+<p>The useful heart of the system was:</p>
+<ol>
+<li>ingest a table and schema</li>
+<li>match PDFs to rows</li>
+<li>propose values for missing cells</li>
+<li>attach evidence when possible</li>
+<li>review and export</li>
+</ol>
+<p>That product loop is visible consistently across the CLI, UI, tests, and run outputs:</p>
+<ul>
+<li><code>paper_table_agent/cli.py</code> exposes <code>run</code>, <code>eval</code>, <code>export</code>, and <code>ui</code></li>
+<li><code>paper_table_agent/ui/app.py</code> is centered on Run and Review, not on fine-grained tuning</li>
+<li><code>tests/test_integration.py</code> spends its energy on end-to-end proposal production, review rows, export, and eval artifacts</li>
+</ul>
+<p>This is the part to carry forward intact.</p>
+<h3 id="2-auditeval-was-more-valuable-than-most-optional-runtime-sophistication">2. Audit/eval was more valuable than most optional runtime sophistication<a class="headerlink" href="#2-auditeval-was-more-valuable-than-most-optional-runtime-sophistication" title="Permanent link">&para;</a></h3>
+<p>The repo eventually made audit-mode extraction and eval first-class, and that looks correct in hindsight.</p>
+<p>Why it mattered:</p>
+<ul>
+<li>it created an internal quality loop without requiring a new benchmark corpus</li>
+<li>it forced the system to write measurable outputs instead of relying on anecdotes</li>
+<li>it made regressions legible at the run level</li>
+</ul>
+<p>The preserved run shows why this was useful. In <code>runs/20260308_172426__MPRA_team - literature_MPRAs/exports/proposal_eval.md</code>, the system reports:</p>
+<ul>
+<li>20 audited cells</li>
+<li>overall score 25%</li>
+<li>evidence coverage 100%</li>
+<li>anchorable quote rate 65.22%</li>
+<li>highlight OK rate 73.91%</li>
+</ul>
+<p>That is exactly the kind of sobering but actionable signal a rewrite needs. The system was often able to produce something, but not often able to produce something correct.</p>
+<h3 id="3-reviewable-evidence-was-useful-even-when-imperfect">3. Reviewable evidence was useful, even when imperfect<a class="headerlink" href="#3-reviewable-evidence-was-useful-even-when-imperfect" title="Permanent link">&para;</a></h3>
+<p>The old system was right to make evidence a first-class output instead of a hidden prompt artifact. Even though the evidence pipeline became too complicated, the product decision was sound.</p>
+<p>Useful aspects:</p>
+<ul>
+<li>quote/page/chunk anchoring gave the reviewer something concrete to inspect</li>
+<li>highlightability and evidence-quality flags created practical triage cues</li>
+<li>preserving values while downgrading evidence quality was better than deleting proposals outright</li>
+</ul>
+<p>This should stay in the rewrite, but with a much simpler contract.</p>
+<h3 id="4-stubmock-end-to-end-testing-was-high-value">4. Stub/mock end-to-end testing was high-value<a class="headerlink" href="#4-stubmock-end-to-end-testing-was-high-value" title="Permanent link">&para;</a></h3>
+<p>The repo made a good strategic choice to support deterministic tests without live models. <code>tests/test_integration.py</code> and related tests show that the team understood the need for a hermetic baseline.</p>
+<p>That is one of the best things to preserve.</p>
+<h2 id="architecture-and-coupling">Architecture And Coupling<a class="headerlink" href="#architecture-and-coupling" title="Permanent link">&para;</a></h2>
+<h3 id="the-actual-runtime-architecture-was-much-more-centralized-than-the-module-layout-suggested">The actual runtime architecture was much more centralized than the module layout suggested<a class="headerlink" href="#the-actual-runtime-architecture-was-much-more-centralized-than-the-module-layout-suggested" title="Permanent link">&para;</a></h3>
+<p>At a glance, the repo looks modular: <code>graph/</code>, <code>retrieval/</code>, <code>pdf/</code>, <code>llm/</code>, <code>ui/</code>, <code>store/</code>. In practice, the central behavior was concentrated into a few oversized orchestration modules.</p>
+<p>The most important coupling points were:</p>
+<ul>
+<li><code>paper_table_agent/graph/workflow.py</code></li>
+<li><code>paper_table_agent/graph/runner.py</code></li>
+<li><code>paper_table_agent/graph/context_planner.py</code></li>
+<li><code>paper_table_agent/graph/extraction.py</code></li>
+<li><code>paper_table_agent/graph/evidence_finder.py</code></li>
+<li><code>paper_table_agent/llm/client.py</code></li>
+</ul>
+<h3 id="langgraph-added-less-architectural-value-than-its-presence-implied">LangGraph added less architectural value than its presence implied<a class="headerlink" href="#langgraph-added-less-architectural-value-than-its-presence-implied" title="Permanent link">&para;</a></h3>
+<p><code>paper_table_agent/graph/workflow.py</code> uses LangGraph, but the graph is essentially:</p>
+<ol>
+<li>initialize state</li>
+<li>process next PDF</li>
+<li>loop until done</li>
+</ol>
+<p>That is a checkpointed sequential loop, not a rich graph-shaped workflow. The abstraction cost appears higher than the value returned.</p>
+<p>What it bought:</p>
+<ul>
+<li>resumability via checkpoints</li>
+</ul>
+<p>What it did not obviously buy:</p>
+<ul>
+<li>simpler composition</li>
+<li>better stage isolation</li>
+<li>clearer failure handling</li>
+</ul>
+<p>This is one of the clearest rewrite opportunities: keep resumability if needed, but remove the graph framework unless the new system genuinely needs branching graph semantics.</p>
+<h3 id="runcontext-became-the-gravity-well-of-the-system"><code>RunContext</code> became the gravity well of the system<a class="headerlink" href="#runcontext-became-the-gravity-well-of-the-system" title="Permanent link">&para;</a></h3>
+<p><code>paper_table_agent/graph/runner.py</code> defines a large <code>RunContext</code> carrying config, store, table data, grouped schema, locks, row assignments, four LLM clients, embedding/reranker clients, retrieval config, example data, audit targets, caches, logger, and prompt metadata.</p>
+<p>That is the architectural center of mass. Once a context object like that exists, every function tends to depend on everything.</p>
+<p>Consequences:</p>
+<ul>
+<li>hidden stage dependencies</li>
+<li>hard-to-reason side effects</li>
+<li>awkward unit boundaries</li>
+<li>config changes ripple across unrelated stages</li>
+<li>storage and domain logic become fused</li>
+</ul>
+<p>The rewrite should not reproduce this pattern.</p>
+<h3 id="runnerpy-absorbed-too-many-responsibilities"><code>runner.py</code> absorbed too many responsibilities<a class="headerlink" href="#runnerpy-absorbed-too-many-responsibilities" title="Permanent link">&para;</a></h3>
+<p><code>paper_table_agent/graph/runner.py</code> is effectively the real application layer. It handles:</p>
+<ul>
+<li>config normalization and quality presets</li>
+<li>health checks and provider capability routing</li>
+<li>table/schema loading</li>
+<li>PDF enumeration</li>
+<li>parser/backend selection</li>
+<li>matching</li>
+<li>retrieval backend fallback</li>
+<li>context planning</li>
+<li>extraction retries</li>
+<li>evidence finding</li>
+<li>eval triggering</li>
+<li>run report events</li>
+</ul>
+<p>That is too much for one module and too much for one stage coordinator. The module became the place where every exception, feature flag, compatibility special case, and artifact write ended up living.</p>
+<h3 id="the-code-had-modular-pieces-but-their-contracts-were-porous">The code had modular pieces, but their contracts were porous<a class="headerlink" href="#the-code-had-modular-pieces-but-their-contracts-were-porous" title="Permanent link">&para;</a></h3>
+<p>Examples:</p>
+<ul>
+<li><code>context_planner.py</code> decides between fulltext, memory, and retrieval, but that decision is entangled with token estimation, prompt construction, model capability assumptions, and extraction batching</li>
+<li><code>extraction.py</code> both builds prompts and validates evidence post hoc</li>
+<li><code>evidence_finder.py</code> both repairs evidence and performs highlight recovery</li>
+<li><code>llm/client.py</code> mixes transport, provider capability inference, prompt truncation, guided JSON routing, request recording, and repair behavior</li>
+</ul>
+<p>The result is not just complexity; it is cross-contamination of concerns.</p>
+<h2 id="common-failure-modes">Common Failure Modes<a class="headerlink" href="#common-failure-modes" title="Permanent link">&para;</a></h2>
+<p>The tests, compounding notes, changelog, and preserved logs all point to the same recurring classes of failure.</p>
+<h3 id="1-llm-output-formatting-and-provider-compatibility-failures">1. LLM output formatting and provider compatibility failures<a class="headerlink" href="#1-llm-output-formatting-and-provider-compatibility-failures" title="Permanent link">&para;</a></h3>
+<p>This repo spent a lot of energy compensating for model/backend mismatch.</p>
+<p>Evidence:</p>
+<ul>
+<li><code>paper_table_agent/llm/client.py</code> contains guided JSON routing, capability inference, prompt-only fallback, regex/schema stripping, HTTP 400 handling, timeout handling, and JSON repair behavior</li>
+<li>compounding notes include <code>2025-03-12-guided-json-fallback.md</code>, <code>2025-03-14-json-ingestion-and-capability-routing.md</code>, and <code>2025-03-13-lmstudio-compat-logging-and-budgets.md</code></li>
+<li><code>tests/test_llm_json_parsing.py</code> and <code>tests/test_llm_guided_json_fallback.py</code> exist because this was repeatedly painful</li>
+</ul>
+<p>In the preserved run log, nearly every request runs in <code>constraint_mode: constraints_off</code>. That is a strong signal that the nominal structured-output path was not the reliable default in practice.</p>
+<h3 id="2-retrieval-quality-was-inconsistent-enough-that-fallback-modes-dominated">2. Retrieval quality was inconsistent enough that fallback modes dominated<a class="headerlink" href="#2-retrieval-quality-was-inconsistent-enough-that-fallback-modes-dominated" title="Permanent link">&para;</a></h3>
+<p>The run report for the preserved MPRA run is especially revealing:</p>
+<ul>
+<li>69 proposals total</li>
+<li>64 inferred</li>
+<li>only 5 found</li>
+<li>60 proposals marked <code>needs_more_evidence</code></li>
+<li>35 extraction batches</li>
+<li>0 batches with chunks present</li>
+<li>35 batches with chunks missing</li>
+<li>all shown batch examples use <code>context_mode: memory</code></li>
+</ul>
+<p>That is the single most important operational clue in the repo.</p>
+<p>The architecture talked heavily about retrieval, reranking, dense embeddings, query expansion, HyDE, section windows, and chunk-aware evidence validation. But this real run indicates the system often fell back to memory-mode extraction without retrieved chunk context.</p>
+<p>That does not mean retrieval was useless. It means the retrieval-heavy architecture was not reliably the dominant path when it mattered.</p>
+<h3 id="3-evidence-anchoring-and-highlighting-were-persistently-brittle">3. Evidence anchoring and highlighting were persistently brittle<a class="headerlink" href="#3-evidence-anchoring-and-highlighting-were-persistently-brittle" title="Permanent link">&para;</a></h3>
+<p>This may be the clearest recurring pain area in the whole codebase.</p>
+<p>Evidence:</p>
+<ul>
+<li>multiple compounding docs are specifically about evidence normalization, chunk ids, page ranges, whole-text anchors, evidence backfill, and highlight guardrails</li>
+<li><code>paper_table_agent/graph/evidence_finder.py</code> is full of repair and salvage logic</li>
+<li>tests exist for evidence finder, evidence anchoring, highlight quality, layout regression, and verification support</li>
+<li>changelog entries repeatedly mention header/footer rejection, weak-evidence backfill, page inference, token salvage, normalized/dehyphenated highlight fallbacks, and found-to-inferred downgrades</li>
+</ul>
+<p>The preserved run still reports only 73.91% highlight OK rate even after all that defensive work.</p>
+<p>That suggests the system did improve this area, but never made it truly reliable.</p>
+<h3 id="4-prompt-budgets-and-retries-caused-secondary-complexity-explosions">4. Prompt budgets and retries caused secondary complexity explosions<a class="headerlink" href="#4-prompt-budgets-and-retries-caused-secondary-complexity-explosions" title="Permanent link">&para;</a></h3>
+<p>The old repo accumulated substantial code around prompt budgeting, truncation, batching, whole-text eligibility, memory summaries, and retries.</p>
+<p>This was not accidental complexity. It came from a real constraint: long papers plus many target columns do not fit comfortably into model budgets.</p>
+<p>But the operational outcome was messy:</p>
+<ul>
+<li>fulltext was prepared</li>
+<li>memory summaries were also generated</li>
+<li>retrieval expansions were also attempted</li>
+<li>retries were used when proposals were unclear or evidence was weak</li>
+</ul>
+<p>In the preserved run log, the system repeatedly issues <code>query_expand</code> and <code>hyde</code> calls, then extraction calls, then repair calls, with multiple timeouts along the way. That means the budget problem did not just affect model quality; it multiplied latency and moving parts.</p>
+<h3 id="5-header-extraction-and-matching-needed-repeated-repair-logic">5. Header extraction and matching needed repeated repair logic<a class="headerlink" href="#5-header-extraction-and-matching-needed-repeated-repair-logic" title="Permanent link">&para;</a></h3>
+<p>Matching was central and useful, but it also needed layered safeguards:</p>
+<ul>
+<li>header text truncation</li>
+<li>repair prompts</li>
+<li>deterministic thresholds plus LLM adjudication</li>
+<li>duplicate handling</li>
+<li>DOI bonuses and year tolerance</li>
+</ul>
+<p>This is a legitimate problem area, but less alarming than the evidence/provider issues. The preserved run matched 4 of 4 PDFs successfully, which suggests matching complexity may have ended in a relatively good place.</p>
+<h2 id="pain-points-that-motivate-a-rewrite">Pain Points That Motivate A Rewrite<a class="headerlink" href="#pain-points-that-motivate-a-rewrite" title="Permanent link">&para;</a></h2>
+<h3 id="1-the-system-became-a-compensating-machine-for-other-unreliability">1. The system became a compensating machine for other unreliability<a class="headerlink" href="#1-the-system-became-a-compensating-machine-for-other-unreliability" title="Permanent link">&para;</a></h3>
+<p>The old code increasingly exists to compensate for:</p>
+<ul>
+<li>inconsistent PDF structure</li>
+<li>inconsistent model JSON behavior</li>
+<li>inconsistent provider capabilities</li>
+<li>inconsistent retrieval quality</li>
+<li>inconsistent highlight recoverability</li>
+</ul>
+<p>That does not make the code bad. It makes it the kind of codebase that becomes hard to evolve because every new improvement gets added beside old guardrails instead of replacing them.</p>
+<h3 id="2-the-dominant-product-path-was-obscured-by-adaptive-machinery">2. The dominant product path was obscured by adaptive machinery<a class="headerlink" href="#2-the-dominant-product-path-was-obscured-by-adaptive-machinery" title="Permanent link">&para;</a></h3>
+<p>There was a relatively straightforward product underneath:</p>
+<ul>
+<li>parse enough text</li>
+<li>match the right paper</li>
+<li>ask focused questions per column</li>
+<li>provide evidence for review</li>
+</ul>
+<p>But the implementation increasingly foregrounded runtime adaptation:</p>
+<ul>
+<li>fulltext vs memory vs retrieval</li>
+<li>dense vs sparse vs reranked retrieval</li>
+<li>guided JSON vs prompt-only vs constraints-off</li>
+<li>local parser vs GROBID variants vs OCR rescue</li>
+<li>initial extraction vs retry-on-unclear vs evidence backfill</li>
+</ul>
+<p>The rewrite should restore a visible default path and make every deviation explicit and rare.</p>
+<h3 id="3-runtime-policy-lived-inside-code-instead-of-at-clean-boundaries">3. Runtime policy lived inside code instead of at clean boundaries<a class="headerlink" href="#3-runtime-policy-lived-inside-code-instead-of-at-clean-boundaries" title="Permanent link">&para;</a></h3>
+<p>The repo had many config knobs, but the harder problem was that runtime policy was embedded across modules. Example decisions were scattered:</p>
+<ul>
+<li>when to disable guided JSON</li>
+<li>when to fall back to TF-IDF</li>
+<li>when to choose memory mode</li>
+<li>when to retry extraction</li>
+<li>when to downgrade evidence</li>
+<li>when to backfill weak evidence</li>
+</ul>
+<p>This made behavior hard to predict from config alone.</p>
+<h3 id="4-observability-was-strong-but-clarity-was-weak">4. Observability was strong, but clarity was weak<a class="headerlink" href="#4-observability-was-strong-but-clarity-was-weak" title="Permanent link">&para;</a></h3>
+<p>The old repo wrote many artifacts and diagnostics, which was good. But the system often needed those diagnostics because the runtime path was difficult to reason about directly.</p>
+<p>The rewrite should preserve observability while reducing the number of things that need observing.</p>
+<h2 id="dead-complexity-and-config-sprawl">Dead Complexity And Config Sprawl<a class="headerlink" href="#dead-complexity-and-config-sprawl" title="Permanent link">&para;</a></h2>
+<p>Not all complexity was dead, but a meaningful amount looks low-yield or overextended.</p>
+<h3 id="likely-low-yield-architecture-complexity">Likely low-yield architecture complexity<a class="headerlink" href="#likely-low-yield-architecture-complexity" title="Permanent link">&para;</a></h3>
+<h4 id="langgraph-wrapper">LangGraph wrapper<a class="headerlink" href="#langgraph-wrapper" title="Permanent link">&para;</a></h4>
+<p>The workflow graph looks like a thin shell around a sequential loop. Unless checkpoint-resume is essential and cannot be implemented more simply, this should be removed.</p>
+<h4 id="multiple-provider-role-clients-with-identical-models">Multiple provider-role clients with identical models<a class="headerlink" href="#multiple-provider-role-clients-with-identical-models" title="Permanent link">&para;</a></h4>
+<p>The config supports separate header/match/extract/query-helper models and separate fallback models for each role. In the preserved run, all primary roles used the same model. That suggests the role separation may be more notional than operational.</p>
+<p>The rewrite can still support role-specific prompts, but it does not need a full matrix of model slots unless there is actual observed value.</p>
+<h4 id="retrieval-backend-matrix">Retrieval backend matrix<a class="headerlink" href="#retrieval-backend-matrix" title="Permanent link">&para;</a></h4>
+<p>The old config supports:</p>
+<ul>
+<li>sparse retrieval</li>
+<li>optional dense embeddings</li>
+<li>optional reranker</li>
+<li>LM Studio embedding backend</li>
+<li>TF-IDF fallback</li>
+<li>stub/hash backends for testing</li>
+</ul>
+<p>Some of this is legitimate. But the code also carries the branching burden of backend validation, health checks, fallback rewrites, and debug reporting. Given that the preserved run appears to lean on memory mode instead of retrieved chunks, the retrieval backend surface looks larger than its realized value.</p>
+<h4 id="fulltext-plus-memory-plus-retrieval-all-in-one-runtime">Fulltext plus memory plus retrieval all in one runtime<a class="headerlink" href="#fulltext-plus-memory-plus-retrieval-all-in-one-runtime" title="Permanent link">&para;</a></h4>
+<p>This is the biggest conceptual sprawl point.</p>
+<p>The old repo did not just support three context modes. It created planning and budgeting machinery for all three, and artifacts for both fulltext and memory were written per PDF in the preserved run. That is a lot of system for what should probably become a smaller number of clearly prioritized strategies.</p>
+<h3 id="config-sprawl-patterns">Config sprawl patterns<a class="headerlink" href="#config-sprawl-patterns" title="Permanent link">&para;</a></h3>
+<p><code>paper_table_agent/config.py</code> grew into a large policy surface:</p>
+<ul>
+<li>provider settings</li>
+<li>fallback provider settings</li>
+<li>prompt limits and overrides</li>
+<li>matching thresholds and margins</li>
+<li>extraction grouping, batching, whole-text, memory, retries, thinking-model keywords</li>
+<li>retrieval top-k, rerank-k, context budgets, summaries, query expansion, HyDE, dense backend, reranker backend, cache sizes</li>
+<li>OCR thresholds</li>
+<li>GROBID settings</li>
+<li>output debug flags</li>
+<li>audit settings</li>
+<li>quality preset plus <code>max_success_mode</code></li>
+</ul>
+<p>Two specific smells stand out:</p>
+<h4 id="quality_preset-plus-max_success_mode"><code>quality_preset</code> plus <code>max_success_mode</code><a class="headerlink" href="#quality_preset-plus-max_success_mode" title="Permanent link">&para;</a></h4>
+<p>This is redundant policy language. The code in <code>RunConfig.apply_quality_preset()</code> effectively lets <code>max_success_mode</code> override the named preset. That is exactly the kind of config shape that confuses operators and future maintainers.</p>
+<h4 id="user-facing-config-and-runtime-tuning-mixed-together">User-facing config and runtime tuning mixed together<a class="headerlink" href="#user-facing-config-and-runtime-tuning-mixed-together" title="Permanent link">&para;</a></h4>
+<p>Paths, schema choices, and table metadata live beside backend compatibility behavior, cache limits, and retrieval heuristics. Those are not the same category of configuration and should not be treated as one file of equal-status knobs.</p>
+<h2 id="lessons-from-run-artifacts-tests-and-evaluation-outputs">Lessons From Run Artifacts, Tests, And Evaluation Outputs<a class="headerlink" href="#lessons-from-run-artifacts-tests-and-evaluation-outputs" title="Permanent link">&para;</a></h2>
+<h3 id="the-preserved-run-says-the-system-was-productive-but-not-accurate-enough">The preserved run says the system was productive but not accurate enough<a class="headerlink" href="#the-preserved-run-says-the-system-was-productive-but-not-accurate-enough" title="Permanent link">&para;</a></h3>
+<p>The strongest concrete lesson comes from the real run artifact, not the docs.</p>
+<p>From <code>run_report.json</code> and <code>proposal_eval.md</code>:</p>
+<ul>
+<li>matching succeeded on all 4 PDFs</li>
+<li>proposal production was high: 69 proposals with values</li>
+<li>evidence was always attached in some form</li>
+<li>but only 5 proposals were <code>found</code></li>
+<li>64 were <code>inferred</code></li>
+<li>60 needed more evidence</li>
+<li>overall audited accuracy was 25%</li>
+<li>many columns had 0% match rate</li>
+</ul>
+<p>Interpretation:</p>
+<ul>
+<li>the system was good at always producing an answer</li>
+<li>it was much less good at producing the right answer</li>
+<li>evidence attachment did not imply correctness</li>
+<li>the proposal-first philosophy made sense for usability, but it also risked hiding how uncertain the system really was</li>
+</ul>
+<h3 id="the-logs-show-auxiliary-llm-work-may-have-been-too-expensive-relative-to-value">The logs show auxiliary LLM work may have been too expensive relative to value<a class="headerlink" href="#the-logs-show-auxiliary-llm-work-may-have-been-too-expensive-relative-to-value" title="Permanent link">&para;</a></h3>
+<p>The preserved run log shows heavy use of:</p>
+<ul>
+<li>header extraction</li>
+<li>header repair</li>
+<li>paper memory generation</li>
+<li>query expansion</li>
+<li>HyDE</li>
+<li>extraction</li>
+<li>JSON repair</li>
+</ul>
+<p>with repeated timeouts during helper-model calls.</p>
+<p>This suggests the system may have been over-investing in preparatory and recovery calls before the final extraction quality justified that cost.</p>
+<p>In a rewrite, every extra LLM call should have to earn its place.</p>
+<h3 id="the-test-suite-distribution-is-itself-a-postmortem">The test suite distribution is itself a postmortem<a class="headerlink" href="#the-test-suite-distribution-is-itself-a-postmortem" title="Permanent link">&para;</a></h3>
+<p>The repo has strong coverage, but what it covers is informative:</p>
+<ul>
+<li>evidence anchoring/highlighting</li>
+<li>JSON parsing and guided fallback</li>
+<li>context planning</li>
+<li>prompt budgeting</li>
+<li>retrieval</li>
+<li>parsing quality</li>
+<li>live LLM E2E behavior</li>
+</ul>
+<p>That is not the profile of a system whose pain lived mainly in business logic. It is the profile of a system whose pain lived in brittle boundaries: models, documents, retrieval, and evidence anchoring.</p>
+<p>That means the rewrite should spend design energy on boundary contracts first, not on adding more adaptive heuristics.</p>
+<h3 id="the-compounding-notes-show-repeated-local-fixes-to-a-few-core-problem-families">The compounding notes show repeated local fixes to a few core problem families<a class="headerlink" href="#the-compounding-notes-show-repeated-local-fixes-to-a-few-core-problem-families" title="Permanent link">&para;</a></h3>
+<p>The <code>docs/compounding/</code> directory is revealing. Many notes are clustered around:</p>
+<ul>
+<li>evidence finder and evidence normalization</li>
+<li>chunk ids and ID-based extraction</li>
+<li>JSON repair and ingestion</li>
+<li>prompt budgets and payload logging</li>
+<li>guided JSON fallback and capability routing</li>
+<li>whole-text anchors and span highlights</li>
+<li>audit eval harness</li>
+</ul>
+<p>This pattern says the repo was not suffering from many independent issues. It was suffering from a few stubborn systemic ones, repeatedly.</p>
+<h2 id="concrete-recommendations">Concrete Recommendations<a class="headerlink" href="#concrete-recommendations" title="Permanent link">&para;</a></h2>
+<h2 id="carry-forward">Carry Forward<a class="headerlink" href="#carry-forward" title="Permanent link">&para;</a></h2>
+<h3 id="1-keep-the-product-loop">1. Keep the product loop<a class="headerlink" href="#1-keep-the-product-loop" title="Permanent link">&para;</a></h3>
+<p>Carry forward the product shape:</p>
+<ol>
+<li>table + schema ingestion</li>
+<li>PDF matching</li>
+<li>missing-cell proposal generation</li>
+<li>evidence shown to humans</li>
+<li>review + export</li>
+</ol>
+<p>This was the right product boundary.</p>
+<h3 id="2-keep-auditeval-as-a-first-class-built-in">2. Keep audit/eval as a first-class built-in<a class="headerlink" href="#2-keep-auditeval-as-a-first-class-built-in" title="Permanent link">&para;</a></h3>
+<p>Do not relegate evaluation to an afterthought. The old repo became much more honest once audit/eval artifacts were standard.</p>
+<p>Carry forward:</p>
+<ul>
+<li>automatic eval when gold cells exist</li>
+<li>per-column metrics</li>
+<li>highlightability/anchorability metrics</li>
+<li>run-level summaries</li>
+</ul>
+<h3 id="3-keep-hermetic-end-to-end-tests-with-stubmock-providers">3. Keep hermetic end-to-end tests with stub/mock providers<a class="headerlink" href="#3-keep-hermetic-end-to-end-tests-with-stubmock-providers" title="Permanent link">&para;</a></h3>
+<p>This is one of the strongest engineering choices in the old repo. Preserve deterministic offline testing and use it as the rewrite baseline.</p>
+<h3 id="4-keep-evidence-as-an-operator-facing-object">4. Keep evidence as an operator-facing object<a class="headerlink" href="#4-keep-evidence-as-an-operator-facing-object" title="Permanent link">&para;</a></h3>
+<p>Do not regress to a system that only emits values. Preserve:</p>
+<ul>
+<li>quote text</li>
+<li>page reference</li>
+<li>evidence quality or confidence state</li>
+<li>review-time visibility</li>
+</ul>
+<p>But simplify how evidence is generated and validated.</p>
+<h3 id="5-keep-matching-heuristics-but-make-them-a-small-standalone-subsystem">5. Keep matching heuristics, but make them a small standalone subsystem<a class="headerlink" href="#5-keep-matching-heuristics-but-make-them-a-small-standalone-subsystem" title="Permanent link">&para;</a></h3>
+<p>Matching seems comparatively successful and conceptually coherent. Keep deterministic matching plus optional adjudication, but isolate it from the rest of the runtime.</p>
+<h2 id="re-simplify">Re-simplify<a class="headerlink" href="#re-simplify" title="Permanent link">&para;</a></h2>
+<h3 id="1-replace-the-graph-runtime-with-a-simple-staged-batch-runner">1. Replace the graph runtime with a simple staged batch runner<a class="headerlink" href="#1-replace-the-graph-runtime-with-a-simple-staged-batch-runner" title="Permanent link">&para;</a></h3>
+<p>Use explicit stages and persisted stage outputs if resumability matters. Do not keep LangGraph unless the new design truly requires branching workflows.</p>
+<h3 id="2-separate-user-config-from-runtime-policy">2. Separate user config from runtime policy<a class="headerlink" href="#2-separate-user-config-from-runtime-policy" title="Permanent link">&para;</a></h3>
+<p>Have a small user config for:</p>
+<ul>
+<li>table path</li>
+<li>PDF folder</li>
+<li>schema source</li>
+<li>column/task selection</li>
+<li>model/provider choice</li>
+</ul>
+<p>And a much smaller policy layer for:</p>
+<ul>
+<li>context strategy</li>
+<li>batch size</li>
+<li>retrieval on/off</li>
+<li>evidence mode</li>
+</ul>
+<p>Do not expose dozens of equal-status knobs by default.</p>
+<h3 id="3-collapse-context-strategy-options">3. Collapse context strategy options<a class="headerlink" href="#3-collapse-context-strategy-options" title="Permanent link">&para;</a></h3>
+<p>The old system had three major context modes. The rewrite should start with one primary path and one fallback, not three peers.</p>
+<p>A plausible shape:</p>
+<ul>
+<li>default: focused retrieval-based extraction with small, explicit evidence units</li>
+<li>fallback: fulltext extraction for small papers or when retrieval is disabled</li>
+</ul>
+<p>Only keep memory-mode summarization if it proves clearly better on measured outcomes.</p>
+<h3 id="4-make-evidence-contracts-narrower-and-stricter">4. Make evidence contracts narrower and stricter<a class="headerlink" href="#4-make-evidence-contracts-narrower-and-stricter" title="Permanent link">&para;</a></h3>
+<p>The rewrite should define a smaller evidence object with a smaller number of allowed states. Prefer fewer but more trustworthy evidence outcomes over many salvage paths.</p>
+<h3 id="5-move-provider-specific-behavior-behind-strategy-adapters">5. Move provider-specific behavior behind strategy adapters<a class="headerlink" href="#5-move-provider-specific-behavior-behind-strategy-adapters" title="Permanent link">&para;</a></h3>
+<p><code>llm/client.py</code> currently carries too much policy. The rewrite should isolate provider quirks so the core extraction code is not constantly aware of structured-output compatibility, regex stripping, and fallback conditions.</p>
+<h3 id="6-treat-extra-llm-helper-passes-as-optional-experiments-not-baseline-runtime">6. Treat extra LLM helper passes as optional experiments, not baseline runtime<a class="headerlink" href="#6-treat-extra-llm-helper-passes-as-optional-experiments-not-baseline-runtime" title="Permanent link">&para;</a></h3>
+<p>Query expansion, HyDE, memory summarization, repair passes, and similar helpers should be justified by measured lift. They should not all be baseline behavior.</p>
+<h2 id="discard-or-deprioritize">Discard Or Deprioritize<a class="headerlink" href="#discard-or-deprioritize" title="Permanent link">&para;</a></h2>
+<h3 id="1-discard-the-assumption-that-more-adaptive-routing-is-automatically-better">1. Discard the assumption that more adaptive routing is automatically better<a class="headerlink" href="#1-discard-the-assumption-that-more-adaptive-routing-is-automatically-better" title="Permanent link">&para;</a></h3>
+<p>The old repo often responded to brittleness by adding another fallback. That improved survival but hurt clarity. The rewrite should resist this reflex.</p>
+<h3 id="2-discard-low-signal-config-aliases-and-mode-duplication">2. Discard low-signal config aliases and mode duplication<a class="headerlink" href="#2-discard-low-signal-config-aliases-and-mode-duplication" title="Permanent link">&para;</a></h3>
+<p>Examples:</p>
+<ul>
+<li><code>max_success_mode</code> alongside <code>quality_preset</code></li>
+<li>overlapping prompt limit controls without a clear precedence story for users</li>
+<li>too many backend-specific settings in the main run config</li>
+</ul>
+<h3 id="3-deprioritize-grobid-and-alternate-parser-backends-unless-the-rewrite-proves-structural-gains">3. Deprioritize GROBID and alternate parser backends unless the rewrite proves structural gains<a class="headerlink" href="#3-deprioritize-grobid-and-alternate-parser-backends-unless-the-rewrite-proves-structural-gains" title="Permanent link">&para;</a></h3>
+<p>The old repo carried parser abstraction and GROBID support, but the preserved run artifacts are all from the local parser path. Keep parser contracts clean, but do not build a large parser matrix early in the rewrite.</p>
+<h3 id="4-deprioritize-dense-retrieval-and-reranker-complexity-unless-they-measurably-improve-audited-accuracy">4. Deprioritize dense retrieval and reranker complexity unless they measurably improve audited accuracy<a class="headerlink" href="#4-deprioritize-dense-retrieval-and-reranker-complexity-unless-they-measurably-improve-audited-accuracy" title="Permanent link">&para;</a></h3>
+<p>These features may help, but the preserved run does not make a strong case that the current retrieval sophistication translated into strong accuracy. Do not assume that retrieval complexity is where the next major gain lies.</p>
+<h3 id="5-discard-broad-salvage-ladders-as-the-first-answer">5. Discard broad salvage ladders as the first answer<a class="headerlink" href="#5-discard-broad-salvage-ladders-as-the-first-answer" title="Permanent link">&para;</a></h3>
+<p>If evidence anchoring is weak, the first question should be whether the extraction contract is too loose, not which additional salvage trick to add.</p>
+<h2 id="suggested-rewrite-shape">Suggested Rewrite Shape<a class="headerlink" href="#suggested-rewrite-shape" title="Permanent link">&para;</a></h2>
+<p>If the rewrite wants to stay ambitious while avoiding the old failure mode, a better architecture would likely look like:</p>
+<ol>
+<li><code>ingest</code>: table/schema normalization and PDF inventory</li>
+<li><code>parse</code>: one main parser, one normalized document contract</li>
+<li><code>match</code>: deterministic-first paper-to-row matching with optional adjudication</li>
+<li><code>extract</code>: a small number of explicit extraction strategies</li>
+<li><code>evidence</code>: one strict evidence validator and one simple locator path</li>
+<li><code>review</code>: operator UI over stored proposals and evidence</li>
+<li><code>eval</code>: always-on scoring when audit gold exists</li>
+</ol>
+<p>And each stage should:</p>
+<ul>
+<li>read a clear input artifact</li>
+<li>write a clear output artifact</li>
+<li>avoid mutating shared mega-context wherever possible</li>
+<li>be replayable independently</li>
+</ul>
+<h2 id="final-assessment">Final Assessment<a class="headerlink" href="#final-assessment" title="Permanent link">&para;</a></h2>
+<p>The old repo was not overbuilt because the team was careless. It was overbuilt because the problem is genuinely adversarial: messy PDFs, long contexts, evolving models, and evidence requirements are all hard at once.</p>
+<p>But the repo’s own artifacts now show where the engineering center drifted too far from the product center.</p>
+<p>What to preserve is the product intent, the evaluation discipline, and the operator-facing evidence model.</p>
+<p>What to rewrite is the runtime shape: fewer adaptive modes, fewer global knobs, fewer compensating fallbacks, stronger stage boundaries, and much stricter default contracts.</p>
+<p>That is the main lesson of this codebase.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "content.code.copy", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

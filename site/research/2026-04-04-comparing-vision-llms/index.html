@@ -1,0 +1,1665 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Local-first manual for papers-to-table workflows, tools, and operators.">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Benchmark Notes: Vision-Capable LLMs on Scientific Figure Interpretation - papers-to-table manual</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#benchmark-notes-vision-capable-llms-on-scientific-figure-interpretation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="papers-to-table manual" class="md-header__button md-logo" aria-label="papers-to-table manual" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            papers-to-table manual
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Benchmark Notes: Vision-Capable LLMs on Scientific Figure Interpretation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="papers-to-table manual" class="md-nav__button md-logo" aria-label="papers-to-table manual" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    papers-to-table manual
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../getting-started/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Main App
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Main App
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../main-app/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../main-app/browser-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Browser Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../main-app/headless/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Headless and Accept-All
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../main-app/outputs-and-artifacts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Outputs and Artifacts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Companion Tools
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Companion Tools
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/eval/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Eval
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/optimizer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Optimizer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operators
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operators
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operators/lm-studio/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LM Studio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operators/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agents
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Agents
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../agents/agent-usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../agents/papers-to-table-skill/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    papers-to-table Skill
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/specs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specs and Truth Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/github-pages/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitHub Pages (Future)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#task" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ground-truth-used-for-evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ground Truth Used for Evaluation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Ground Truth Used for Evaluation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#panel-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Panel a
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#panel-b" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Panel b
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#panel-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Panel c
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#model-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Model Mapping
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#processing-speed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Processing Speed
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overall-ranking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overall Ranking
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#per-response-assessment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-Response Assessment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#main-takeaways" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Main Takeaways
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Main Takeaways">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#best-overall-quality" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best overall quality
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#best-runner-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best runner-up
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#best-localfree-option" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best local/free option
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#most-disappointing-speedquality-balance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Most disappointing speed/quality balance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastest-but-least-reliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fastest but least reliable
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practical-interpretation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical Interpretation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#one-line-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One-Line Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#caveat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Caveat
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="benchmark-notes-vision-capable-llms-on-scientific-figure-interpretation">Benchmark Notes: Vision-Capable LLMs on Scientific Figure Interpretation<a class="headerlink" href="#benchmark-notes-vision-capable-llms-on-scientific-figure-interpretation" title="Permanent link">&para;</a></h1>
+<h2 id="task">Task<a class="headerlink" href="#task" title="Permanent link">&para;</a></h2>
+<p>I compared several vision-capable LLMs on the same prompt:</p>
+<blockquote>
+<p>"please analyze the attached plots"</p>
+</blockquote>
+<p>The input was a cropped scientific figure showing visible panels <strong>a–c</strong>.</p>
+<h2 id="ground-truth-used-for-evaluation">Ground Truth Used for Evaluation<a class="headerlink" href="#ground-truth-used-for-evaluation" title="Permanent link">&para;</a></h2>
+<p>Only the visibly supported content in the image was used for judging the responses.</p>
+<h3 id="panel-a">Panel a<a class="headerlink" href="#panel-a" title="Permanent link">&para;</a></h3>
+<p>Visible elements:
+- <strong>ExP library</strong>
+- <strong>DNase-seq</strong>
+- <strong>Gene promoters</strong>
+- <strong>Enhancers</strong>
+- promoter annotation around <strong>+20 bp</strong>
+- construct with labeled segments <strong>264 bp / 300 bp / 264 bp</strong>
+- labels <strong>BC</strong> and <strong>pA</strong>
+- steps:
+  - <strong>Build promoter–BC–enhancer dictionary</strong>
+  - <strong>Transfect K562 cells for 24 h</strong>
+  - <strong>STARR-seq expression = RNA/DNA</strong></p>
+<h3 id="panel-b">Panel b<a class="headerlink" href="#panel-b" title="Permanent link">&para;</a></h3>
+<p>Visible elements:
+- density/scatter-style replicate comparison
+- <strong>R² = 0.92</strong>
+- axes compare <strong>STARR-seq expression</strong>
+  - <strong>replicates 1 and 2</strong>
+  - <strong>replicates 3 and 4</strong></p>
+<h3 id="panel-c">Panel c<a class="headerlink" href="#panel-c" title="Permanent link">&para;</a></h3>
+<p>Visible elements:
+- y-axis: <strong>Average promoter activity (RNA/DNA)</strong>
+- groups:
+  - <strong>Genomic ctrls (n = 95)</strong>
+  - <strong>Not expressed (n = 20)</strong>
+  - <strong>Expressed (n = 870)</strong>
+- labeled examples:
+  - <strong>RPL3</strong>
+  - <strong>HSP90AA1</strong>
+  - <strong>ACTB</strong>
+  - <strong>MYC</strong>
+  - <strong>HBE1</strong>
+  - <strong>GATA1</strong></p>
+<hr />
+<h2 id="model-mapping">Model Mapping<a class="headerlink" href="#model-mapping" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Response</th>
+<th>Model</th>
+<th>Access</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>#1</td>
+<td><code>qwen/qwen3.6-35b-a3b Q4_K_M</code></td>
+<td>local</td>
+<td>free</td>
+</tr>
+<tr>
+<td>#2</td>
+<td><code>google/gemma-4-26b-a4b Q4_K_M</code></td>
+<td>local</td>
+<td>free</td>
+</tr>
+<tr>
+<td>#3</td>
+<td><code>ChatGPT 5.4 Thinking Extended</code></td>
+<td>web</td>
+<td>not free</td>
+</tr>
+<tr>
+<td>#4</td>
+<td><code>Gemini 3.1 Pro Preview</code></td>
+<td>web</td>
+<td>not free</td>
+</tr>
+<tr>
+<td>#5</td>
+<td><code>zai-org/glm-4.6v-flash Q4_K_M</code></td>
+<td>local</td>
+<td>free</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="processing-speed">Processing Speed<a class="headerlink" href="#processing-speed" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Response</th>
+<th>Model</th>
+<th style="text-align: right;">Processing Time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>#1</td>
+<td><code>qwen/qwen3.6-35b-a3b Q4_K_M</code></td>
+<td style="text-align: right;">52 s</td>
+</tr>
+<tr>
+<td>#2</td>
+<td><code>google/gemma-4-26b-a4b Q4_K_M</code></td>
+<td style="text-align: right;">6.5 s</td>
+</tr>
+<tr>
+<td>#3</td>
+<td><code>ChatGPT 5.4 Thinking Extended</code></td>
+<td style="text-align: right;">58 s</td>
+</tr>
+<tr>
+<td>#4</td>
+<td><code>Gemini 3.1 Pro Preview</code></td>
+<td style="text-align: right;">25 s</td>
+</tr>
+<tr>
+<td>#5</td>
+<td><code>zai-org/glm-4.6v-flash Q4_K_M</code></td>
+<td style="text-align: right;">6.3 s</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="overall-ranking">Overall Ranking<a class="headerlink" href="#overall-ranking" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Rank</th>
+<th style="text-align: right;">Response</th>
+<th>Model</th>
+<th>Access</th>
+<th style="text-align: right;">Speed</th>
+<th style="text-align: right;">Rating</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1</strong></td>
+<td style="text-align: right;"><strong>#3</strong></td>
+<td><strong>ChatGPT 5.4 Thinking Extended</strong></td>
+<td>web, not free</td>
+<td style="text-align: right;"><strong>58 s</strong></td>
+<td style="text-align: right;"><strong>8.8/10</strong></td>
+<td>Best overall; strongest balance of accuracy, restraint, and correct interpretation</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td style="text-align: right;"><strong>#4</strong></td>
+<td><strong>Gemini 3.1 Pro Preview</strong></td>
+<td>web, not free</td>
+<td style="text-align: right;"><strong>25 s</strong></td>
+<td style="text-align: right;"><strong>8.1/10</strong></td>
+<td>Very good and detailed; slightly more overreach than #3</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td style="text-align: right;"><strong>#2</strong></td>
+<td><strong>google/gemma-4-26b-a4b Q4_K_M</strong></td>
+<td>local, free</td>
+<td style="text-align: right;"><strong>6.5 s</strong></td>
+<td style="text-align: right;"><strong>6.9/10</strong></td>
+<td>Best speed/quality tradeoff among the fast local models</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td style="text-align: right;"><strong>#1</strong></td>
+<td><strong>qwen/qwen3.6-35b-a3b Q4_K_M</strong></td>
+<td>local, free</td>
+<td style="text-align: right;"><strong>52 s</strong></td>
+<td style="text-align: right;"><strong>6.3/10</strong></td>
+<td>Acceptable, but slower than expected for its quality here</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td style="text-align: right;"><strong>#5</strong></td>
+<td><strong>zai-org/glm-4.6v-flash Q4_K_M</strong></td>
+<td>local, free</td>
+<td style="text-align: right;"><strong>6.3 s</strong></td>
+<td style="text-align: right;"><strong>2.0/10</strong></td>
+<td>Fast, but clearly the least reliable on this figure</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="per-response-assessment">Per-Response Assessment<a class="headerlink" href="#per-response-assessment" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Response</th>
+<th style="text-align: right;">Overall</th>
+<th>What it got right</th>
+<th>Main mistakes / overreach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>#3</strong></td>
+<td style="text-align: right;"><strong>8.8/10</strong></td>
+<td>Best balance of accuracy and restraint. Correctly read the overall assay logic, strong reproducibility in panel b, and higher activity for the expressed group in panel c. Also appropriately noted that only panels a–c were visible.</td>
+<td>Slightly less complete than #4: did not explicitly report the visible sample sizes (<strong>95 / 20 / 870</strong>). Some interpretation beyond pure visual reading, but still reasonable.</td>
+</tr>
+<tr>
+<td><strong>#4</strong></td>
+<td style="text-align: right;"><strong>8.1/10</strong></td>
+<td>Best quantitative reading. Correctly captured <strong>+20 bp</strong>, <strong>264/300/264 bp</strong>, <strong>R² = 0.92</strong>, and the <strong>95 / 20 / 870</strong> counts. Correctly treated the labeled genes in panel c as highlighted examples within the expressed group.</td>
+<td>Added several things not directly shown in the figure: e.g. “randomly generated barcodes,” details about RNA content, and extra biological background. Also called <strong>R²</strong> a “Pearson correlation coefficient,” which is imprecise wording.</td>
+</tr>
+<tr>
+<td><strong>#2</strong></td>
+<td style="text-align: right;"><strong>6.9/10</strong></td>
+<td>Good overall structure. Correctly read panel b and the <strong>95 / 20 / 870</strong> counts in panel c.</td>
+<td>Misread the construct in panel a by effectively making <strong>BC = 300 bp</strong>, which the figure does not directly show. Also blurred the distinction between plot categories and inferred assay-defined classes.</td>
+</tr>
+<tr>
+<td><strong>#1</strong></td>
+<td style="text-align: right;"><strong>6.3/10</strong></td>
+<td>Got the broad storyline mostly right: assay design, reproducibility, and stronger activity in the expressed class.</td>
+<td>Several visible-number errors: read the groups as <strong>n = 99</strong> and <strong>n = 570</strong> instead of <strong>95</strong> and <strong>870</strong>. Also used words like “significant” without visible statistical support in the figure.</td>
+</tr>
+<tr>
+<td><strong>#5</strong></td>
+<td style="text-align: right;"><strong>2.0/10</strong></td>
+<td>Recognized that panel b was about reproducibility and that panel a was a STARR-seq workflow.</td>
+<td>Clearly the weakest. Badly misread panel c: the boxplots are <strong>not gene-specific boxplots</strong>, the labeled genes are highlighted points, and it reversed the sample sizes by saying <strong>expressed n = 20</strong> and <strong>non-expressed n = 870</strong>. Also garbled some labels.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="main-takeaways">Main Takeaways<a class="headerlink" href="#main-takeaways" title="Permanent link">&para;</a></h2>
+<h3 id="best-overall-quality">Best overall quality<a class="headerlink" href="#best-overall-quality" title="Permanent link">&para;</a></h3>
+<p><strong>ChatGPT 5.4 Thinking Extended</strong> (#3)</p>
+<h3 id="best-runner-up">Best runner-up<a class="headerlink" href="#best-runner-up" title="Permanent link">&para;</a></h3>
+<p><strong>Gemini 3.1 Pro Preview</strong> (#4)</p>
+<h3 id="best-localfree-option">Best local/free option<a class="headerlink" href="#best-localfree-option" title="Permanent link">&para;</a></h3>
+<p><strong>google/gemma-4-26b-a4b Q4_K_M</strong> (#2)</p>
+<h3 id="most-disappointing-speedquality-balance">Most disappointing speed/quality balance<a class="headerlink" href="#most-disappointing-speedquality-balance" title="Permanent link">&para;</a></h3>
+<p><strong>qwen/qwen3.6-35b-a3b Q4_K_M</strong> (#1)<br />
+It was much slower than Gemma but not better enough to justify the time in this test.</p>
+<h3 id="fastest-but-least-reliable">Fastest but least reliable<a class="headerlink" href="#fastest-but-least-reliable" title="Permanent link">&para;</a></h3>
+<p><strong>zai-org/glm-4.6v-flash Q4_K_M</strong> (#5)</p>
+<hr />
+<h2 id="practical-interpretation">Practical Interpretation<a class="headerlink" href="#practical-interpretation" title="Permanent link">&para;</a></h2>
+<p>If the goal is <strong>most trustworthy scientific figure reading</strong>, then for this test:</p>
+<p><strong>ChatGPT 5.4 Thinking Extended &gt; Gemini 3.1 Pro Preview &gt; Gemma 4 26B &gt; Qwen 3.5 35B &gt;&gt;&gt; GLM-4.6V-Flash</strong></p>
+<p>If the goal is <strong>speed/quality tradeoff</strong>:
+- <strong>Gemini</strong> looks especially strong because it stays near the top in quality while being much faster than ChatGPT.
+- <strong>Gemma</strong> is very attractive for a <strong>local/free</strong> workflow because it is fast and still reasonably solid.
+- <strong>Qwen</strong> did not justify its longer runtime in this particular comparison.
+- <strong>GLM</strong> was fast, but too error-prone for reliable scientific figure interpretation.</p>
+<hr />
+<h2 id="one-line-summary">One-Line Summary<a class="headerlink" href="#one-line-summary" title="Permanent link">&para;</a></h2>
+<p>For this single scientific-figure analysis task, <strong>ChatGPT 5.4 was best overall, Gemini was the best high-quality faster option, Gemma was the best local/free compromise, Qwen was slower than its result justified, and GLM was fast but unreliable.</strong></p>
+<hr />
+<h2 id="caveat">Caveat<a class="headerlink" href="#caveat" title="Permanent link">&para;</a></h2>
+<p>This benchmark is based on <strong>one image and one prompt only</strong>.<br />
+So this is a useful qualitative comparison for <strong>scientific figure reading under this task setup</strong>, but not a general ranking of all model vision performance.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "content.code.copy", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

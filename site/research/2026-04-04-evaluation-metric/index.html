@@ -1,0 +1,1932 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Local-first manual for papers-to-table workflows, tools, and operators.">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Automated Evaluation Metric for a Scientific Paper-to-Table Extraction App - papers-to-table manual</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#automated-evaluation-metric-for-a-scientific-paper-to-table-extraction-app" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="papers-to-table manual" class="md-header__button md-logo" aria-label="papers-to-table manual" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            papers-to-table manual
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Automated Evaluation Metric for a Scientific Paper-to-Table Extraction App
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="papers-to-table manual" class="md-nav__button md-logo" aria-label="papers-to-table manual" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    papers-to-table manual
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../getting-started/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Main App
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Main App
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../main-app/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../main-app/browser-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Browser Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../main-app/headless/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Headless and Accept-All
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../main-app/outputs-and-artifacts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Outputs and Artifacts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Companion Tools
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Companion Tools
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/eval/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Eval
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/optimizer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Optimizer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operators
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operators
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operators/lm-studio/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LM Studio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operators/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agents
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Agents
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../agents/agent-usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../agents/papers-to-table-skill/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    papers-to-table Skill
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/specs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specs and Truth Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/github-pages/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitHub Pages (Future)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#executive-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Executive summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#strongest-candidate-eval-designs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Strongest candidate eval designs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recommended-simplest-good-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recommended simplest good design
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#concrete-metric-definitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Concrete metric definitions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Concrete metric definitions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#core-unit-of-evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core unit of evaluation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#correctness-metrics-overall-design-choices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Correctness metrics: overall design choices
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#field-type-scoring-logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Field-type scoring logic
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Field-type scoring logic">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#boolean-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Boolean fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#categorical-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Categorical fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#numeric-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Numeric fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#text-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Text fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#evidence-metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Evidence metrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#retrieval-diagnostics-optional-not-core" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retrieval diagnostics (optional, not core)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#concrete-implementation-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Concrete implementation plan
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Concrete implementation plan">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#repository-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Repository layout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scoring-pipeline-deterministic-core" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scoring pipeline (deterministic core)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#where-deterministic-scoring-happens-vs-optional-judging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where deterministic scoring happens vs optional judging
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run comparison
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minimal-artifact-and-output-changes-needed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Minimal artifact and output changes needed
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Minimal artifact and output changes needed">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#keep-good-and-sufficient-as-a-base" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keep (good and sufficient as a base)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#add-the-minimal-extra-fields-that-make-eval-clean-and-debuggable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Add the minimal extra fields that make eval “clean” and debuggable
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#explicitly-do-not-store-or-do-not-require-in-mvp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Explicitly do not store (or do not require) in MVP
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#risks-and-failure-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Risks and failure modes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Risks and failure modes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gold-leakage-in-verify-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gold leakage in verify mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spreadsheet-gold-may-not-be-extractable-from-pdfs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spreadsheet “gold” may not be extractable from PDFs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metric-gaming-via-partial-credit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metric gaming via partial credit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#llm-judge-reliability-and-security" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LLM judge reliability and security
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#evidence-post-rationalization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Evidence post-rationalization
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-questions-and-what-to-test-first" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open questions and what to test first
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="automated-evaluation-metric-for-a-scientific-paper-to-table-extraction-app">Automated Evaluation Metric for a Scientific Paper-to-Table Extraction App<a class="headerlink" href="#automated-evaluation-metric-for-a-scientific-paper-to-table-extraction-app" title="Permanent link">&para;</a></h1>
+<h2 id="executive-summary">Executive summary<a class="headerlink" href="#executive-summary" title="Permanent link">&para;</a></h2>
+<p>A trustworthy automated eval for your app should <strong>separate “answer correctness” from “evidence quality”</strong> rather than folding them into a single score. The research on citation/attribution in retrieval-augmented systems shows that an answer can be correct while the cited evidence is not actually faithful or supportive (and vice‑versa), so combining them obscures failure modes and can create misleading improvements. citeturn11search0turn11search7turn0search2</p>
+<p>The simplest practical design that still supports rigorous A/B comparisons is a <strong>two-axis, mostly deterministic pipeline</strong>:</p>
+<ul>
+<li><strong>Answer correctness (reference-based):</strong> score the proposed cell value against the existing spreadsheet value using <strong>type-aware normalization + deterministic comparators</strong> (booleans, categorical, numeric). This matches how document parsing and extraction benchmarks typically rely on explicit ground truth comparisons and transparent metrics (precision/recall/F1 or exact/structured similarity), because they are debuggable and stable across runs. citeturn3search5turn3search0turn0search4turn4search3  </li>
+<li><strong>Evidence quality (reference-to-source):</strong> avoid “big faithfulness frameworks” initially; implement (1) <strong>anchor validity</strong> (evidence quote is findable in the parsed PDF output) and (2) a <strong>lightweight “support” proxy</strong> that is deterministic for extractive-friendly fields (especially numbers). This mirrors the broader attribution literature: stronger notions like AIS/AutoAIS exist, but they add complexity and model-dependence; for a product eval you can start with minimal but inspectable checks. citeturn4search25turn11search16turn11search5  </li>
+</ul>
+<p>Treat <strong>retrieval recall/sufficiency as diagnostics</strong>, not part of the core score. Many RAG eval frameworks explicitly keep retrieval metrics separate (e.g., context recall/precision) precisely because they explain <em>why</em> the generator succeeded or failed, but are not the same thing as end-task correctness. citeturn0search1turn0search5turn11search30  </p>
+<p>Finally, be adversarial about the “verify mode” benchmark: if your proposal model can see the existing cell value (directly or indirectly), you can get artificially high “accuracy” that does not measure extraction skill. Your eval design should assume and detect potential <strong>gold leakage</strong> by requiring evidence anchored in the PDF output. citeturn11search0turn4search25  </p>
+<h2 id="strongest-candidate-eval-designs">Strongest candidate eval designs<a class="headerlink" href="#strongest-candidate-eval-designs" title="Permanent link">&para;</a></h2>
+<p>Below are the strongest designs, ranked for <strong>best practical plan under strong simplicity and trust constraints</strong>, with explicit critiques of your current hypothesis.</p>
+<p><strong>Top candidate: Two-axis deterministic core with evidence anchoring (recommended baseline)</strong><br />
+This is: (1) deterministic scoring for booleans/categorical/numeric; (2) evidence anchor validity + a narrow “support” proxy for extractive fields; (3) retrieval diagnostics kept separate. It aligns with the way mature document-parsing/table-extraction benchmarks emphasize <strong>transparent ground-truth comparison</strong> and <strong>component-level analysis</strong> (subtasks and end-to-end). citeturn3search0turn0search4turn4search3turn0search1  </p>
+<p><strong>Second candidate: Deterministic core + selective semantic judging only for “hard residuals”</strong><br />
+Same as above, but add an <strong>optional semantic judge</strong> step only when deterministic scoring cannot decide (typically free-text fields, or categorical synonyms not in a curated alias list). If you do this, you must treat the judge as a potentially biased, attackable component and apply guardrails: fixed judge model, temperature 0, strict JSON schema, swap-order checks, and isolation from untrusted document text to mitigate prompt-injection and biases documented in LLM-as-judge research. citeturn0search3turn5search6turn5search1turn5search0  </p>
+<p><strong>Third candidate: “LLM-as-a-judge for everything”</strong><br />
+This is attractive because it’s “one prompt, one number,” and some work shows LLM-based semantic evaluation can correlate better with humans than rule-based metrics in specific settings (e.g., semantic table evaluation benchmarks). citeturn8view2turn7view1<br />
+But adversarially, this option is the easiest to fool and hardest to trust: LLM judges show position/verbosity/self-preference biases, and recent work documents prompt‑injection vulnerabilities that can directly manipulate judge outputs. citeturn0search3turn5search6turn5search0turn5search1  </p>
+<p><strong>Fourth candidate: Import table-structure metrics like TEDS/GriTS into your eval</strong><br />
+TEDS and GriTS are real, well-motivated metrics for <strong>table structure recognition</strong> and end-to-end table extraction evaluation, and are widely used in table recognition benchmarks. citeturn0search4turn4search3turn9view0<br />
+However, they are largely misaligned with your product’s core objective: you are not trying to reconstruct whole tables; you are extracting <strong>specific schema-aligned facts into a spreadsheet</strong>. Using these metrics would add engineering cost without directly answering “is this cell correct?” and would complicate attribution to retrieval vs. extraction vs. row-PDF matching. citeturn3search0turn9view0  </p>
+<h2 id="recommended-simplest-good-design">Recommended simplest good design<a class="headerlink" href="#recommended-simplest-good-design" title="Permanent link">&para;</a></h2>
+<p>This section intentionally attacks the weak points of your current hypothesis and proposes a simpler, more robust alternative while keeping the parts that are genuinely high-leverage.</p>
+<p><strong>What your current hypothesis gets right</strong><br />
+Type-aware deterministic scoring for structured fields (boolean/categorical/numeric) is the backbone of most reliable extraction evals because it is reproducible, cheap, and debuggable—properties emphasized in evaluation frameworks for document parsing and IE. citeturn3search5turn3search0  </p>
+<p><strong>Where your current hypothesis is too complicated (or mis-targeted)</strong>  </p>
+<p>1) <strong>Over-investing in nuanced numeric partial credit early can hide systematic errors.</strong><br />
+If you give lots of “medium scores” for being “close,” you can mask failures that matter to scientists (wrong unit, wrong cohort, wrong measurement timepoint). Table extraction work highlights that purely string/structure similarity can miss semantic correctness, and vice versa; partial credit needs careful calibration and error decomposition, otherwise it becomes a metric people optimize without improving usability. citeturn7view0turn8view1turn9view0  </p>
+<p>2) <strong>Evidence scoring is at risk of becoming a “mini faithfulness research project.”</strong><br />
+Once you attempt “support / contradiction” at scale, you are doing a form of fact verification / attribution evaluation. There is extensive literature (AIS/AutoAIS; NLI-based support; LLM prompting) precisely because this is hard and can fail in subtle ways. citeturn4search25turn11search16turn11search5turn4search0<br />
+That doesn’t mean “don’t do evidence”; it means start with <strong>anchor validity + extractive checks</strong> and report richer support judgments as optional.</p>
+<p>3) <strong>Retrieval recall should not be part of the main metric.</strong><br />
+RAG evaluation practice commonly separates retrieval diagnostics (context recall/precision) from answer correctness because retrieval can be “good” yet the generator fails, or retrieval can be “bad” yet the model answers from parametric knowledge. citeturn0search1turn0search5turn11search30<br />
+If you bake retrieval into the core score, you risk double-counting, confusing regressions, and making it harder to interpret whether a change improved parsing, retrieval, or generation.</p>
+<p>4) <strong>LLM judging is riskier than your draft implies, even if limited to text.</strong><br />
+LLM-as-judge can correlate with humans in some benchmarks, but documented biases (position/verbosity) and security vulnerabilities (prompt-injection attacks on judges) mean it is not automatically “trustworthy enough” for scientific-quality claims without guardrails. citeturn0search3turn5search6turn5search1turn5search0  </p>
+<p><strong>The simplest good design (minimum viable but meaningful)</strong>  </p>
+<p>Implement three layers, where only the third is optional:</p>
+<ul>
+<li><strong>Layer 1: Deterministic cell correctness (core scoreboard).</strong>  </li>
+<li>Score <strong>booleans, categorical, numeric</strong> deterministically after normalization.  </li>
+<li>
+<p>Treat free-text columns as <strong>separate</strong> from the main scoreboard at first (report them, but do not let them dominate comparisons).</p>
+</li>
+<li>
+<p><strong>Layer 2: Deterministic evidence checks (trust hooks).</strong>  </p>
+</li>
+<li><strong>Evidence anchor validity</strong> (quote exists, with stable location in parsed output).  </li>
+<li><strong>Answer-in-evidence</strong> for numeric/categorical when feasible (extractive support proxy).  </li>
+<li>
+<p>Report these separately from correctness, and also report their conjunction: “correct <em>and</em> anchored.”</p>
+</li>
+<li>
+<p><strong>Layer 3 (optional): Selective semantic judging only on residuals.</strong>  </p>
+</li>
+<li>Only for: free-text fields, or categorical mismatches where an alias list is incomplete.  </li>
+<li>Only when: evidence anchor is valid (to reduce judge hallucination and gold leakage).  </li>
+<li>Use strong guardrails (detailed later). citeturn5search6turn5search1turn5search0turn0search3  </li>
+</ul>
+<h2 id="concrete-metric-definitions">Concrete metric definitions<a class="headerlink" href="#concrete-metric-definitions" title="Permanent link">&para;</a></h2>
+<p>This section defines metrics in a way that is implementable, inspectable, and resistant to common gaming strategies.</p>
+<h3 id="core-unit-of-evaluation">Core unit of evaluation<a class="headerlink" href="#core-unit-of-evaluation" title="Permanent link">&para;</a></h3>
+<p>Define one evaluation instance as a <strong>(run_id, row_id, col_id, pdf_id)</strong> “cell proposal record,” containing:</p>
+<ul>
+<li>gold cell value (existing spreadsheet content)  </li>
+<li>proposed value (model output)  </li>
+<li>field type and config (tolerance, unit, allowed values, etc.)  </li>
+<li>evidence list (quotes/spans)  </li>
+</ul>
+<p>Score each instance with <strong>two primary outputs</strong>:</p>
+<ul>
+<li><strong>CorrectnessScore ∈ [0,1]</strong> (reference-based)  </li>
+<li><strong>EvidenceScore ∈ {0,1}</strong> (source-anchoring based; optionally extended)  </li>
+</ul>
+<p>Aggregate by micro-average across cells and per-column.</p>
+<h3 id="correctness-metrics-overall-design-choices">Correctness metrics: overall design choices<a class="headerlink" href="#correctness-metrics-overall-design-choices" title="Permanent link">&para;</a></h3>
+<p><strong>Use separate aggregates rather than one blended score.</strong><br />
+Define:</p>
+<ul>
+<li><strong>StructuredAccuracy</strong> = mean(CorrectnessScore) over boolean/categorical/numeric fields  </li>
+<li><strong>TextScore</strong> = mean(TextCorrectnessScore) over text fields (if you score them)  </li>
+<li><strong>AllFieldsScore</strong> = reported but not used as the only headline (because it can be dominated by text scoring ambiguity)</li>
+</ul>
+<p>This resembles the separation of dimensions in RAG evaluation (retrieval vs generation vs groundedness) and addresses the empirical point that correctness and faithfulness/attribution are not the same construct. citeturn0search2turn11search0turn0search1  </p>
+<h3 id="field-type-scoring-logic">Field-type scoring logic<a class="headerlink" href="#field-type-scoring-logic" title="Permanent link">&para;</a></h3>
+<p>The key simplification versus your hypothesis: don’t treat scoring as a zoo of special rules; treat it as <strong>normalize → canonical representation → comparator</strong>.</p>
+<h4 id="boolean-fields">Boolean fields<a class="headerlink" href="#boolean-fields" title="Permanent link">&para;</a></h4>
+<p><strong>Canonical representation</strong><br />
+Map both gold and predicted into one of: <code>{TRUE, FALSE, EMPTY, INVALID}</code>.</p>
+<ul>
+<li>Accept common surface forms (“true/false”, “yes/no”, “1/0”) via deterministic normalization.</li>
+</ul>
+<p><strong>CorrectnessScore</strong><br />
+- If gold = EMPTY:<br />
+  - pred = EMPTY → score 1 (correct abstention)<br />
+  - pred ∈ {TRUE,FALSE} → score 0 (false fill / hallucinated fill)<br />
+- If gold ∈ {TRUE,FALSE}:<br />
+  - pred = gold → score 1<br />
+  - pred ∈ {TRUE,FALSE} and pred ≠ gold → score 0<br />
+  - pred = EMPTY → score 0 (false abstention)</p>
+<p>Also report these rates explicitly:</p>
+<ul>
+<li><strong>FalseFillRate_bool</strong> = P(pred ∈ {TRUE,FALSE} | gold=EMPTY)  </li>
+<li><strong>FalseAbstainRate_bool</strong> = P(pred=EMPTY | gold ∈ {TRUE,FALSE})</li>
+</ul>
+<p>This “answerable vs unanswerable” framing is standard in QA-style evaluation setups where “no answer” is meaningful and separately scored. citeturn12search25turn12search2  </p>
+<h4 id="categorical-fields">Categorical fields<a class="headerlink" href="#categorical-fields" title="Permanent link">&para;</a></h4>
+<p><strong>Canonical representation</strong><br />
+Use a column-specific mapping:</p>
+<ul>
+<li><code>allowed_values</code>: list of canonical category IDs (strings)  </li>
+<li><code>aliases</code>: mapping of surface forms → canonical ID  </li>
+</ul>
+<p>Avoid automatic thesaurus expansion initially; in scientific data extraction, naive synonym expansion can silently introduce incorrect equivalences (a trust-killer).</p>
+<p><strong>CorrectnessScore</strong><br />
+- Normalize gold and prediction into canonical IDs or EMPTY/INVALID.<br />
+- Score as exact match on canonical ID, with the same EMPTY handling as boolean.</p>
+<p><strong>Diagnostics</strong><br />
+- Confusion matrix per column (top confusions).<br />
+- “Invalid category rate” (prediction not in allowed set).</p>
+<h4 id="numeric-fields">Numeric fields<a class="headerlink" href="#numeric-fields" title="Permanent link">&para;</a></h4>
+<p>Numeric extraction from papers can involve scalars, ranges, inequalities, units, and (sometimes) estimates from plots. A robust design should normalize these into a unified structure.</p>
+<p><strong>Canonical representation</strong><br />
+Convert gold and predicted to a normalized numeric object:</p>
+<ul>
+<li><code>value_type ∈ {SCALAR, INTERVAL, ONE_SIDED, EMPTY, INVALID}</code>  </li>
+<li><code>interval = [lo, hi]</code> where scalar is <code>[v, v]</code>  </li>
+<li><code>unit</code> (optional, but strongly recommended when your schemas include them)</li>
+</ul>
+<p>If units are present, convert to a configured canonical unit (e.g., mg/L). (Unit normalization is a large source of silent mismatch in scientific extraction, so treating it explicitly is high leverage.)</p>
+<p><strong>CorrectnessScore (simple but trustworthy)</strong><br />
+Use <strong>binary thresholding for the headline</strong>, and keep <strong>error magnitude</strong> as a diagnostic distribution (median absolute/relative error). This is simpler and harder to game than multi-level “medium score” rules.</p>
+<ul>
+<li>If both scalars:</li>
+<li>Compute absolute error <code>ae = |p − g|</code> and relative error <code>re = ae / max(|g|, ε)</code>.  </li>
+<li>Mark correct if <code>ae ≤ tol_abs OR re ≤ tol_rel</code> (tolerances are per column).</li>
+<li>If one or both are intervals:</li>
+<li>Compute overlap ratio <code>overlap = length(intersection) / length(gold_interval)</code> (treat as 0 if disjoint).  </li>
+<li>Mark correct if <code>overlap ≥ overlap_min</code> (e.g., 0.8), plus optional midpoint check.</li>
+</ul>
+<p><strong>Optional partial score (secondary, not headline)</strong><br />
+If you still want a [0,1] score, use a monotone function of error:</p>
+<ul>
+<li>For scalars: <code>score = max(0, 1 − re / tol_rel)</code> clipped to [0,1], but report it separately from binary accuracy.</li>
+</ul>
+<p>Why this design: table extraction research repeatedly notes that purely syntactic similarity can miss semantic correctness; in numeric extraction, unit errors and context mixups are <em>semantic</em> and your eval should make them visible via explicit error diagnostics rather than burying them under partial credit. citeturn7view0turn9view0turn8view1  </p>
+<h4 id="text-fields">Text fields<a class="headerlink" href="#text-fields" title="Permanent link">&para;</a></h4>
+<p>This is where your hypothesis is most vulnerable: “LLM judge only here” sounds simple, but it imports judge bias/security risk. citeturn5search6turn5search1turn0search3  </p>
+<p><strong>Minimum viable scoring (deterministic, debuggable)</strong><br />
+Score text fields with <strong>two reported metrics</strong>, not one:</p>
+<ul>
+<li><strong>ExactMatch_text (strict):</strong> normalized string exact match (lowercase, whitespace collapse, punctuation trim)  </li>
+<li><strong>TokenF1_text (soft):</strong> token overlap F1 (SQuAD-style), which is easy to implement and widely used for span-like answer comparisons. citeturn12search2turn12search25  </li>
+</ul>
+<p>Then, <em>crucially</em>, treat free-text metrics as <strong>secondary</strong> and keep them out of the primary “structured extraction accuracy” headline. Token-F1 is known to be imperfect (some answers require semantic equivalence beyond overlap), so you should expect it to be noisy. citeturn12search22turn12search2  </p>
+<p><strong>Optional semantic rescue (if needed)</strong><br />
+If text fields matter to your product, use a judge only for cases where:</p>
+<ul>
+<li>ExactMatch_text = 0 and TokenF1_text is in a “gray band” (e.g., 0.3–0.8), and  </li>
+<li>evidence anchor is valid.</li>
+</ul>
+<p>This reduces judge calls and focuses it on genuinely ambiguous cases.</p>
+<h3 id="evidence-metrics">Evidence metrics<a class="headerlink" href="#evidence-metrics" title="Permanent link">&para;</a></h3>
+<p>Evidence metrics should be <strong>separate from correctness</strong> because correctness and faithfulness/attribution can diverge; this is established both empirically and conceptually in the RAG attribution literature. citeturn11search0turn11search7turn4search25  </p>
+<p>Define a small, robust ladder:</p>
+<p><strong>EvidenceAnchorValid (binary, required)</strong><br />
+For each evidence item, verify:</p>
+<ul>
+<li>it contains a snippet <code>quote_text</code>  </li>
+<li>it has an anchor <code>(pdf_id, page, char_start, char_end)</code> or equivalent stable locator  </li>
+<li>when you re-render the parsed PDF text for that page, the substring at that span matches (or fuzzy-matches within a tiny threshold) the stored quote</li>
+</ul>
+<p>Aggregate:</p>
+<ul>
+<li><strong>AnchorValidRate</strong> = fraction of proposals with ≥1 valid evidence anchor  </li>
+<li><strong>AnchorMissingRate</strong> = fraction with no evidence / invalid anchors</li>
+</ul>
+<p>This is aligned with the general motivation of attribution frameworks: claims should be verifiable against provided sources. citeturn4search25turn11search5  </p>
+<p><strong>EvidenceContainsAnswer (binary, recommended for numeric/categorical)</strong><br />
+A simple support proxy:</p>
+<ul>
+<li>For numeric: parse numbers (and units) out of the quote; check whether at least one extracted numeric matches the proposed numeric within tolerance.  </li>
+<li>For categorical: check whether a canonicalized category label (or alias) appears in the quote.</li>
+</ul>
+<p>Aggregate:</p>
+<ul>
+<li><strong>ExtractiveSupportRate_structured</strong> = fraction of structured-field proposals where EvidenceContainsAnswer is true.</li>
+</ul>
+<p>This is intentionally <strong>not</strong> full semantic entailment; it’s a lightweight, inspectable proxy that strongly discourages “post-rationalized” citations (answer from memory + unrelated quote). The need to distinguish correctness from faithful citation is a central finding in attribution evaluation work. citeturn11search0turn11search7  </p>
+<p><strong>Optional SupportJudge (3-class) as a separate report line</strong><br />
+If you decide you need semantic support, use a 3-way label inspired by fact verification setups:</p>
+<ul>
+<li><code>SUPPORTED / CONTRADICTED / NOT_ENOUGH_INFO</code></li>
+</ul>
+<p>This structure is used in fact verification datasets where evidence is explicitly tied to labels. citeturn4search0turn4search4  </p>
+<p>But do <strong>not</strong> make this the MVP unless you accept judge complexity (LLM or NLI). There is a large body of work precisely because this is hard to do robustly. citeturn11search5turn11search16turn4search25  </p>
+<h3 id="retrieval-diagnostics-optional-not-core">Retrieval diagnostics (optional, not core)<a class="headerlink" href="#retrieval-diagnostics-optional-not-core" title="Permanent link">&para;</a></h3>
+<p>These should not change the “main score,” but they are invaluable to debug regressions.</p>
+<ul>
+<li><strong>GoldInRetrievedContextRate:</strong> for gold-present cells, does any retrieved chunk contain the gold value (normalized)?  </li>
+<li><strong>GoldInDocumentRate:</strong> does the gold value occur anywhere in the parsed PDF text/tables?  </li>
+</ul>
+<p>These parallel “context recall” / “sufficiency” concepts in RAG evaluation frameworks. citeturn0search1turn0search5turn11search26  </p>
+<p>The second metric is especially adversarially useful: if GoldInDocumentRate is low for a column, then your “verify mode gold” is not fully grounded in the PDFs, and your automated correctness score will penalize models for failing to extract information that is not there (or not parseable). The difficulty of reliably extracting text from PDFs is well documented, so separating “not in parse” from “model failed” matters for trust. citeturn3search19turn3search5  </p>
+<h2 id="concrete-implementation-plan">Concrete implementation plan<a class="headerlink" href="#concrete-implementation-plan" title="Permanent link">&para;</a></h2>
+<p>This is a code-level plan focused on minimal moving parts, strong reproducibility, and debuggability.</p>
+<h3 id="repository-layout">Repository layout<a class="headerlink" href="#repository-layout" title="Permanent link">&para;</a></h3>
+<p>Use a small, explicit evaluation package (Python suggested, but the structure applies in any language):</p>
+<ul>
+<li><code>eval/</code></li>
+<li><code>schemas.py</code> — schema parsing + column configs</li>
+<li><code>normalize/</code><ul>
+<li><code>base.py</code> — common normalization utilities</li>
+<li><code>bool_norm.py</code></li>
+<li><code>cat_norm.py</code></li>
+<li><code>num_norm.py</code></li>
+<li><code>text_norm.py</code></li>
+</ul>
+</li>
+<li><code>compare/</code><ul>
+<li><code>bool_cmp.py</code></li>
+<li><code>cat_cmp.py</code></li>
+<li><code>num_cmp.py</code></li>
+<li><code>text_cmp.py</code></li>
+</ul>
+</li>
+<li><code>evidence/</code><ul>
+<li><code>anchor_validate.py</code></li>
+<li><code>support_proxy.py</code></li>
+<li><code>judge_optional.py</code> (optional)</li>
+</ul>
+</li>
+<li><code>diagnostics/</code><ul>
+<li><code>retrieval_recall.py</code></li>
+<li><code>gold_in_doc.py</code></li>
+</ul>
+</li>
+<li><code>pipeline.py</code> — orchestrates scoring of a run</li>
+<li><code>report.py</code> — aggregation + run comparison</li>
+<li><code>cli.py</code> — <code>eval run</code>, <code>eval compare</code>, <code>eval explain</code></li>
+</ul>
+<h3 id="data-flow">Data flow<a class="headerlink" href="#data-flow" title="Permanent link">&para;</a></h3>
+<p><strong>Inputs</strong>
+- <code>schema.yaml</code> (or JSON): column definitions (type, allowed values, tolerances, units, normalization hints)
+- <code>gold_table.csv</code> (or your spreadsheet export)
+- <code>run_outputs.jsonl</code> (one record per proposed cell; includes evidence pointers)</p>
+<p><strong>Outputs</strong>
+- <code>cell_scores.parquet</code> (or JSONL): one record per scored cell with detailed fields
+- <code>run_summary.json</code>: aggregate metrics + per-column metrics
+- <code>run_report.md</code>: human-readable summary with top error categories
+- optional: <code>run_compare.md</code>: diffs between runs</p>
+<h3 id="scoring-pipeline-deterministic-core">Scoring pipeline (deterministic core)<a class="headerlink" href="#scoring-pipeline-deterministic-core" title="Permanent link">&para;</a></h3>
+<p>For each cell record:</p>
+<p>1) <strong>Resolve field config</strong> from schema (type, unit, tolerances).<br />
+2) <strong>Load gold value</strong> and predicted value.<br />
+3) <strong>Normalize gold and pred</strong> into canonical representations.<br />
+4) <strong>Correctness comparator</strong> returns:
+   - <code>correctness_score ∈ [0,1]</code>
+   - <code>match_method</code> (e.g., <code>exact</code>, <code>alias</code>, <code>within_tol</code>, <code>range_overlap</code>, <code>token_f1</code>)
+   - <code>error_features</code> (e.g., <code>abs_err</code>, <code>rel_err</code>, <code>unit_mismatch</code>, <code>invalid_parse</code>)
+5) <strong>Evidence anchor validation</strong> returns:
+   - <code>anchor_valid</code> (bool)
+   - <code>bad_anchor_reason</code> (if false)
+6) <strong>Evidence support proxy</strong> (only for appropriate types) returns:
+   - <code>evidence_contains_answer</code> (bool / null if not applicable)
+7) <strong>Optional judge step</strong> runs only if configured and gated.</p>
+<p>Store all intermediate artifacts per cell to enable “click-to-debug” style workflows.</p>
+<h3 id="where-deterministic-scoring-happens-vs-optional-judging">Where deterministic scoring happens vs optional judging<a class="headerlink" href="#where-deterministic-scoring-happens-vs-optional-judging" title="Permanent link">&para;</a></h3>
+<p><strong>Deterministic always-on</strong>
+- normalization + comparison for boolean/categorical/numeric<br />
+- text: at least ExactMatch_text and TokenF1_text<br />
+- evidence anchor validity<br />
+- evidence “contains answer” proxy for numeric (+ optionally categorical)</p>
+<p><strong>Optional (off by default)</strong>
+- text semantic equivalence judge<br />
+- boolean/categorical semantic support judge<br />
+- contradiction detection</p>
+<p>This matches the practical lesson from table evaluation research: rule-based metrics are stable but can miss semantic nuance; LLM-based semantic evaluation can correlate better with humans but should be layered on top, not replace the deterministic backbone. citeturn8view2turn7view0turn0search3  </p>
+<h3 id="run-comparison">Run comparison<a class="headerlink" href="#run-comparison" title="Permanent link">&para;</a></h3>
+<p>Implement <code>eval compare runA runB</code> that prints:</p>
+<ul>
+<li>headline deltas for:</li>
+<li>StructuredAccuracy (and per-type accuracy)</li>
+<li>FalseFillRate / FalseAbstainRate</li>
+<li>AnchorValidRate</li>
+<li>ExtractiveSupportRate_structured</li>
+<li>GoldInRetrievedContextRate (diagnostic)</li>
+</ul>
+<p>Include two “adversarial sanity checks”:</p>
+<ul>
+<li><strong>Evidence regression check:</strong> if StructuredAccuracy improves but ExtractiveSupportRate drops, flag it (possible “answer from memory” or evidence quality regression). citeturn11search0turn11search7  </li>
+<li><strong>Leakage suspicion check:</strong> if StructuredAccuracy is extremely high yet AnchorValidRate is low, flag it (possible gold leakage or non-grounded answering).</li>
+</ul>
+<p>Optionally add bootstrap confidence intervals later; don’t block MVP on significance testing.</p>
+<h2 id="minimal-artifact-and-output-changes-needed">Minimal artifact and output changes needed<a class="headerlink" href="#minimal-artifact-and-output-changes-needed" title="Permanent link">&para;</a></h2>
+<p>Your proposed artifacts are close; the biggest missing pieces are those that make evidence checks reproducible and that protect against benchmark leakage.</p>
+<h3 id="keep-good-and-sufficient-as-a-base">Keep (good and sufficient as a base)<a class="headerlink" href="#keep-good-and-sufficient-as-a-base" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>field_type</code>  </li>
+<li><code>gold_value_raw</code> (or original cell)  </li>
+<li><code>proposal_value_raw</code>  </li>
+<li><code>proposal_value_normalized</code> (or enough to recompute)  </li>
+<li><code>match_method</code>  </li>
+<li><code>run_id</code>, <code>model_id</code>, <code>prompt_version</code>  </li>
+</ul>
+<h3 id="add-the-minimal-extra-fields-that-make-eval-clean-and-debuggable">Add the minimal extra fields that make eval “clean” and debuggable<a class="headerlink" href="#add-the-minimal-extra-fields-that-make-eval-clean-and-debuggable" title="Permanent link">&para;</a></h3>
+<p><strong>Stable cell identity</strong>
+- <code>row_id</code> (stable key)<br />
+- <code>col_id</code> (stable key)<br />
+- <code>cell_id = hash(row_id, col_id)</code>  </p>
+<p><strong>PDF identity and versioning</strong>
+- <code>pdf_id</code> (filename or internal ID)<br />
+- <code>pdf_hash</code> (content hash)<br />
+- <code>parser_version</code> (so evidence anchors remain interpretable across parser changes)</p>
+<p>This matters because PDF parsing can change substantially with tool versions, and PDF text extraction quality is known to vary widely; without versioning you can misattribute regressions. citeturn3search19turn3search5  </p>
+<p><strong>Evidence anchoring fields (required for trustworthy evidence metrics)</strong>
+For each evidence item (store as list):
+- <code>page</code><br />
+- <code>char_start</code>, <code>char_end</code> (or token offsets)<br />
+- <code>quote_text</code> (verbatim snippet you expect at that anchor)<br />
+- optional (if you have it): bounding box coordinates  </p>
+<p>This enables deterministic anchor validation.</p>
+<p><strong>Abstention representation</strong>
+- <code>pred_is_empty</code> (boolean) + <code>abstain_reason</code> (short enum)<br />
+This is needed to compute false fill / false abstain robustly.</p>
+<p><strong>Schema version</strong>
+- <code>schema_hash</code> or <code>schema_version</code><br />
+So you can compare runs meaningfully when schema evolves.</p>
+<h3 id="explicitly-do-not-store-or-do-not-require-in-mvp">Explicitly do not store (or do not require) in MVP<a class="headerlink" href="#explicitly-do-not-store-or-do-not-require-in-mvp" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Full “judge reasoning” chains (they increase storage, privacy risk, and can leak prompt injection artifacts)  </li>
+<li>Complex claim graphs or sentence-level IE structures (these turn your eval into a research project)</li>
+</ul>
+<p>If you later add a judge, store only:
+- <code>judge_model_id</code>, <code>judge_prompt_version</code>, <code>judge_verdict</code>, <code>judge_confidence</code> (if provided), and <code>judge_input_hash</code>.</p>
+<h2 id="risks-and-failure-modes">Risks and failure modes<a class="headerlink" href="#risks-and-failure-modes" title="Permanent link">&para;</a></h2>
+<p>This section is intentionally adversarial: it lists how your eval can lie to you.</p>
+<h3 id="gold-leakage-in-verify-mode">Gold leakage in verify mode<a class="headerlink" href="#gold-leakage-in-verify-mode" title="Permanent link">&para;</a></h3>
+<p>If the generation model can see the existing spreadsheet value (directly in the prompt, or indirectly via a “row context” that includes it), your automated correctness metric becomes meaningless: the model can copy the answer. Evidence anchoring mitigates this if (and only if) you require evidence to be <strong>findable in the PDF parse</strong> and (ideally) to contain the answer for structured fields. This aligns with attribution motivations: verifiability against provided sources is essential. citeturn4search25turn11search0turn11search7  </p>
+<h3 id="spreadsheet-gold-may-not-be-extractable-from-pdfs">Spreadsheet “gold” may not be extractable from PDFs<a class="headerlink" href="#spreadsheet-gold-may-not-be-extractable-from-pdfs" title="Permanent link">&para;</a></h3>
+<p>Your benchmark assumes the spreadsheet value is the gold reference derived from the paper. In practice, humans may have filled values from:
+- supplemental materials not in the PDF
+- external databases
+- domain knowledge / calculations</p>
+<p>Without accounting for this, you will penalize models for failing to extract non-present information. The “GoldInDocumentRate” diagnostic is a non-manual way to detect this. The broader PDF extraction literature emphasizes that parsing itself is difficult and tool-dependent, so distinguishing absence from extraction failure is central to trustworthy evaluation. citeturn3search19turn3search5  </p>
+<h3 id="metric-gaming-via-partial-credit">Metric gaming via partial credit<a class="headerlink" href="#metric-gaming-via-partial-credit" title="Permanent link">&para;</a></h3>
+<p>Overly generous numeric partial scoring can reward wrong-but-close answers and incentivize “safe guessing.” Prefer binary thresholds for the headline plus explicit error distributions; this is simpler and exposes systematic mistakes (wrong unit, wrong subgroup) that matter scientifically. citeturn7view0turn9view0  </p>
+<h3 id="llm-judge-reliability-and-security">LLM judge reliability and security<a class="headerlink" href="#llm-judge-reliability-and-security" title="Permanent link">&para;</a></h3>
+<p>If you use an LLM judge, you inherit three classes of problems documented in the literature:</p>
+<ul>
+<li><strong>Bias and instability:</strong> position bias and other systematic biases can change rankings when response order changes; this can be exploited. citeturn5search6turn5search22  </li>
+<li><strong>Vulnerability to prompt injection:</strong> multiple papers show judge architectures can be manipulated by injected sequences to force desired verdicts. citeturn5search1turn5search0turn5search9  </li>
+<li><strong>Domain and grounding issues:</strong> recent work continues to question judge reliability in high-stakes correctness settings without human grounding and careful calibration. citeturn0search24turn0search28turn0search13  </li>
+</ul>
+<p><strong>Constraints that make LLM judging more reliable (if you must do it)</strong><br />
+- Use a <strong>fixed, strong judge model</strong> and log its exact version. citeturn0search3turn5search15<br />
+- Temperature 0; strict JSON schema; “no free-form explanations.”<br />
+- Swap order and average (or require consistency) to reduce position bias. citeturn5search6turn5search22<br />
+- Never pass untrusted document text as “instructions”; clearly delimit evidence as quoted material. (This is a standard defense motif in prompt-injection discussions, though it is not a complete solution.) citeturn5search16turn5search8<br />
+- Gate judge calls behind anchor validity and (for structured fields) behind deterministic mismatch detection to reduce attack surface and cost.</p>
+<h3 id="evidence-post-rationalization">Evidence post-rationalization<a class="headerlink" href="#evidence-post-rationalization" title="Permanent link">&para;</a></h3>
+<p>Even when answers are correct, models may attach plausible but unrelated citations (“post-rationalization”). This is a central concern in attribution evaluation and is exactly why evidence should be scored separately and with explicit anchoring checks. citeturn11search0turn11search7turn4search25  </p>
+<h2 id="open-questions-and-what-to-test-first">Open questions and what to test first<a class="headerlink" href="#open-questions-and-what-to-test-first" title="Permanent link">&para;</a></h2>
+<p>These are tests that will quickly tell you whether your eval metric is meaningful before you invest in complexity.</p>
+<p><strong>Test whether your benchmark is measuring extraction or leakage</strong>
+- Run the system with retrieval disabled (or with empty context) and measure correctness. If accuracy stays high, you have leakage or “answer from memory,” and evidence metrics must become stricter. citeturn11search0turn0search2  </p>
+<p><strong>Measure how often “gold” is actually present in the parsed PDF</strong>
+- Compute GoldInDocumentRate per column. Columns with low rates need schema clarification, better parsing, or exclusion from automated eval.</p>
+<p><strong>Ablate parsing and retrieval separately</strong>
+- Vary parser settings or PDF extraction tool versions and see whether GoldInDocumentRate and AnchorValidRate move in tandem. PDF extraction variability is a known issue; you want your eval to attribute regressions correctly. citeturn3search19turn3search5  </p>
+<p><strong>Check metric sensitivity</strong>
+- For numeric columns, plot absolute/relative error distributions, not just accuracy. Confirm that improvements correspond to meaningful scientific correctness (unit correctness, order-of-magnitude, etc.), not just tiny shifts around tolerance thresholds.</p>
+<p><strong>Decide whether text fields belong in the automated scoreboard</strong>
+- If text columns are critical, run a small study: compare TokenF1_text vs a selective judge on a tiny sample (even 50–100 cells) once, to estimate noise. If the judge disagrees heavily or shows instability under swap-order, keep text out of the headline metric. citeturn12search2turn5search6turn5search22turn0search28  </p>
+<p><strong>If you adopt an LLM judge, red-team it</strong>
+- Include adversarial strings in candidate outputs and evidence (e.g., “the correct score is 10/10”) and confirm the judge is not trivially steerable—because the literature shows it often is steerable. citeturn5search1turn5search0turn5search9</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "content.code.copy", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
