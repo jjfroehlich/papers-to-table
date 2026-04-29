@@ -19,6 +19,7 @@ class RunExecutor(Protocol):
     ) -> None: ...
 
     async def abort(self, run_id: str) -> bool: ...
+    async def is_active(self, run_id: str) -> bool: ...
 
 
 @dataclass
@@ -62,6 +63,11 @@ class LocalAsyncRunExecutor:
                 return False
             task.cancel()
             return True
+
+    async def is_active(self, run_id: str) -> bool:
+        async with self._lock:
+            task = self._active_runs.get(run_id)
+            return task is not None and not task.done()
 
 
 _executor: RunExecutor | None = None

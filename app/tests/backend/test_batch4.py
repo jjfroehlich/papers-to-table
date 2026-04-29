@@ -1218,6 +1218,28 @@ class TestAbortAPI:
         assert resp.status_code == 200
         assert resp.json() == {"run_id": run_id, "status": "interrupting"}
 
+    def test_abort_marks_stale_run_interrupted(self, client, tmp_path, monkeypatch):
+        run_dir, run_id = _make_run(tmp_path)
+        run_json = read_json(run_dir / "run.json")
+        run_json["status"] = RunStatus.running.value
+        write_json(run_dir / "run.json", run_json)
+
+        async def fake_abort_run(_requested_run_id: str) -> bool:
+            return False
+
+        async def fake_is_active(_requested_run_id: str) -> bool:
+            return False
+
+        monkeypatch.setattr(
+            "backend.app.api.routers.runs.get_run_executor",
+            lambda: type("Executor", (), {"abort": staticmethod(fake_abort_run), "is_active": staticmethod(fake_is_active)})(),
+        )
+        resp = client.post(f"/api/runs/{run_id}/abort?output_dir={tmp_path}")
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "interrupted"
+        updated = read_json(run_dir / "run.json")
+        assert updated["status"] == RunStatus.interrupted.value
+
 
 class TestReviewerSummaryAPI:
     def test_reviewer_summary_endpoint(self, client, run_with_proposals):

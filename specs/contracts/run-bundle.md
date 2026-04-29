@@ -32,7 +32,7 @@ When present, the following files are part of the stable shared surface:
 - `summaries/run_summary.json`
 - `summaries/reviewer_summary.json`
 - `review/decisions.jsonl` with explicit decision-source truth when headless automation applies review decisions
-- `proposal_index.json`
+- `proposals/proposal_index.json`
 - canonical evidence artifacts
 - persisted page-text-compatible or parsed-document artifacts needed for anchor validation
 - per-PDF matching debug artifacts such as extracted metadata, metadata-field diagnostics, front-matter diagnostics, and row-score breakdowns
@@ -60,7 +60,7 @@ Directory names may evolve with versioning, but downstream tools should continue
 ## Proposal persistence
 
 - `proposals/proposals.jsonl` is the canonical append-friendly proposal record stream.
-- Secondary proposal index or lookup files may exist for fast UI and tooling access, but they do not replace the canonical proposal stream.
+- `proposals/proposal_index.json` is a secondary index for fast lookup; it does not replace the canonical proposal stream.
 - Published proposal records must preserve stable cross-tool identifiers and enough provenance for review, eval, and optimizer consumers.
 
 ## Stable identifiers

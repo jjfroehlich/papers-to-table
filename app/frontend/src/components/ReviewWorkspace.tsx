@@ -341,6 +341,11 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
             )}
           </div>
         )}
+        {workspaceError && (
+          <div className="border-b border-rose-200 bg-rose-50 px-5 py-3 text-xs text-rose-800" data-testid="workspace-error-banner">
+            <strong>Workspace action failed:</strong> {workspaceError}
+          </div>
+        )}
 
         <div ref={layoutRef} className="flex flex-1 overflow-hidden">
           <div className="flex shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-slate-50/80" style={{ width: leftPaneWidth }}>

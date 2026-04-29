@@ -257,6 +257,21 @@ def generate_audit_log(
     proposals = load_proposals(run_dir)
     proposal_map = {p.proposal_id: p for p in proposals}
 
+    pre_export_lookup: dict[tuple[str, str], Any] = {}
+    try:
+        config_snapshot = read_json(run_dir / "config.snapshot.json")
+        source_table_path = config_snapshot.get("table_path")
+        if isinstance(source_table_path, str) and source_table_path.strip():
+            from .ids import generate_row_id
+            source_df = load_table(source_table_path)
+            for i in range(len(source_df)):
+                title = str(source_df.iloc[i].get("Title", "") if "Title" in source_df.columns else "")
+                row_id = generate_row_id(i, title)
+                for column_name in source_df.columns:
+                    pre_export_lookup[(row_id, str(column_name))] = source_df.iloc[i].get(column_name)
+    except Exception:
+        pre_export_lookup = {}
+
     records: list[dict] = []
     for cand in candidates:
         proposal_id = cand.get("proposal_id", "")
@@ -275,6 +290,7 @@ def generate_audit_log(
             "cell_id": cand.get("cell_id"),
             "old_value": old_value,
             "new_value": cand.get("export_value") or cand.get("proposed_value"),
+            "pre_export_cell_value": pre_export_lookup.get((str(cand.get("row_id")), str(cand.get("column_name")))),
             "proposal_source": {
                 "proposal_id": proposal_id,
                 "pdf_id": cand.get("pdf_id"),
