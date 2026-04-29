@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "evidence.jsonl record",
+  "type": "object",
+  "required": [
+    "evidence_id",
+    "run_id",
+    "proposal_id",
+    "source_type",
+    "is_primary"
+  ],
+  "properties": {
+    "evidence_schema_version": {
+      "type": "string"
+    },
+    "evidence_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "proposal_id": {
+      "type": "string"
+    },
+    "source_type": {
+      "type": "string"
+    },
+    "raw_text": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "page_number": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "is_primary": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

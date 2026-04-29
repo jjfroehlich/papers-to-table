@@ -71,8 +71,15 @@ class ReviewDecision(str, Enum):
 
 
 class DecisionSource(str, Enum):
-    human_reviewer = "human_reviewer"
+    human_individual = "human_individual"
+    human_bulk_accept = "human_bulk_accept"
     automation_accept_all = "automation_accept_all"
+
+    @classmethod
+    def _missing_(cls, value):
+        if value == "human_reviewer":
+            return cls.human_individual
+        return None
 
 
 class ReviewResolutionReason(str, Enum):
@@ -153,7 +160,7 @@ class ReviewDecisionRecord(BaseModel):
     proposal_id: str
     cell_id: str
     decision: ReviewDecision
-    decision_source: DecisionSource = DecisionSource.human_reviewer
+    decision_source: DecisionSource = DecisionSource.human_individual
     resolution_reason: Optional[ReviewResolutionReason] = None
     edited_value: Optional[str] = None
     reviewer_note: Optional[str] = None

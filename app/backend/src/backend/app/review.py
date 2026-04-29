@@ -65,7 +65,7 @@ def record_review_decision(
     cell_id: str,
     run_id: str,
     decision: ReviewDecision,
-    decision_source: DecisionSource = DecisionSource.human_reviewer,
+    decision_source: DecisionSource = DecisionSource.human_individual,
     resolution_reason: Optional[ReviewResolutionReason] = None,
     edited_value: Optional[str] = None,
     reviewer_note: Optional[str] = None,
@@ -376,7 +376,7 @@ def bulk_accept_proposals(
     run_id: str,
     proposal_ids: list[str],
     *,
-    decision_source: DecisionSource = DecisionSource.human_reviewer,
+    decision_source: DecisionSource = DecisionSource.human_bulk_accept,
     reviewer_note: Optional[str] = None,
 ) -> list[ReviewDecisionRecord]:
     """Accept a list of proposal IDs as a bulk operation.

@@ -563,6 +563,22 @@ class TestBulkAccept:
         recorded = bulk_accept_proposals(run_dir, run_id, ["prop_nonexistent"])
         assert recorded == []
 
+    def test_individual_decision_source_defaults_to_human_individual(self, tmp_path):
+        run_dir, run_id = _make_run(tmp_path)
+        pdf_id = generate_pdf_id("paper1.pdf")
+        row_id = generate_row_id(0, "Title A")
+        p = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose")
+        rec = record_review_decision(run_dir, p.proposal_id, p.cell_id, run_id, decision=ReviewDecision.accepted)
+        assert rec.decision_source.value == "human_individual"
+
+    def test_bulk_accept_uses_human_bulk_accept_source(self, tmp_path):
+        run_dir, run_id = _make_run(tmp_path)
+        pdf_id = generate_pdf_id("paper1.pdf")
+        row_id = generate_row_id(0, "Title A")
+        p = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose")
+        recorded = bulk_accept_proposals(run_dir, run_id, [p.proposal_id])
+        assert recorded[0].decision_source.value == "human_bulk_accept"
+
 
 # ---------------------------------------------------------------------------
 # T075/T075a — Progress counters (confirmed-no-data distinct from rejected)

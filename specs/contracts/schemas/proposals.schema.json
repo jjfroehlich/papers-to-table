@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "proposals.jsonl record",
+  "type": "object",
+  "required": [
+    "proposal_id",
+    "run_id",
+    "row_id",
+    "column_name",
+    "cell_id",
+    "state",
+    "support",
+    "evidence_ids"
+  ],
+  "properties": {
+    "proposal_schema_version": {
+      "type": "string"
+    },
+    "proposal_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "row_id": {
+      "type": "string"
+    },
+    "column_name": {
+      "type": "string"
+    },
+    "cell_id": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "support": {
+      "type": "string"
+    },
+    "proposed_value": {},
+    "evidence_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "created_at": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

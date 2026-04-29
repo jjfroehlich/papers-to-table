@@ -33,7 +33,7 @@ The run bundle is the auditable filesystem contract shared with eval and optimiz
 
 - only explicitly accepted proposals become export candidates
 - `review/decisions.jsonl` is append-only
-- headless `--accept-all` records `decision_source="automation_accept_all"`
+- decision sources are explicit in `review/decisions.jsonl` and export audit logs: `human_individual`, `human_bulk_accept`, `automation_accept_all` (legacy `human_reviewer` is accepted for backward compatibility).
 - headless auto-accept also adds a reviewer note stating that `--accept-all` was used
 - `summaries/reviewer_summary.json` records whether automation review was applied and how many proposals were auto-accepted
 

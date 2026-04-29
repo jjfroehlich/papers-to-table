@@ -129,6 +129,7 @@ describe('ReviewActionArea', () => {
     const bulkBtn = screen.getByText(/Bulk accept 1 pending/i)
     fireEvent.click(bulkBtn)
     expect(screen.getByText(/Confirm bulk accept/i)).toBeInTheDocument()
+    expect(screen.getByText(/decision_source=human_bulk_accept/i)).toBeInTheDocument()
   })
 
   it('accept-with-edit shows text input when clicked', () => {

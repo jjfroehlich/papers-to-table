@@ -198,7 +198,7 @@ export function ReviewActionArea({
           <p className="text-xs font-medium text-amber-800">
             Bulk accept {pendingCount + (proposal.latest_decision ? 0 : 1)} pending proposals?
           </p>
-          <p className="text-xs text-amber-700">This will accept all pending proposals in the current view. Review each one after if needed.</p>
+          <p className="text-xs text-amber-700">This will accept all pending proposals in the current view and record decision_source=human_bulk_accept. These cells are not individually reviewed decisions.</p>
           <div className="flex gap-2">
             <button
               onClick={handleBulkAccept}

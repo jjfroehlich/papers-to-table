@@ -159,6 +159,15 @@ def cmd_headless(args: argparse.Namespace) -> int:
     return _run(cmd, cwd=APP_DIR, env=env)
 
 
+
+
+def cmd_verify_contract(args: argparse.Namespace) -> int:
+    env = _env_with_pythonpath(BACKEND_SRC_DIR)
+    cmd = [sys.executable, "-m", "backend.app.contract_verify_cli", "--run", args.run]
+    if args.json:
+        cmd.append("--json")
+    return _run(cmd, cwd=APP_DIR, env=env)
+
 def cmd_eval(args: argparse.Namespace) -> int:
     env = _env_with_pythonpath(EVAL_DIR)
     cmd = [sys.executable, "-m", "paper_eval", "evaluate"]
@@ -204,10 +213,16 @@ def cmd_docs_serve(args: argparse.Namespace) -> int:
 
 
 def cmd_docs_build(args: argparse.Namespace) -> int:
-    if shutil.which("mkdocs") is None:
-        print("mkdocs is not installed. Install docs dependencies with: python -m pip install -r requirements-docs.txt", file=sys.stderr)
-        return 2
-    cmd = ["mkdocs", "build"]
+    mkdocs_bin = shutil.which("mkdocs")
+    if mkdocs_bin is None:
+        try:
+            import mkdocs  # type: ignore  # noqa: F401
+        except Exception:
+            print("mkdocs is not installed. Install docs dependencies with: python -m pip install -r requirements-docs.txt", file=sys.stderr)
+            return 2
+        cmd = [sys.executable, "-m", "mkdocs", "build"]
+    else:
+        cmd = [mkdocs_bin, "build"]
     if args.strict:
         cmd.append("--strict")
     return _run(cmd, cwd=REPO_ROOT, env=os.environ.copy())
@@ -241,6 +256,11 @@ def build_parser() -> argparse.ArgumentParser:
             sub.add_argument("--accept-all", action="store_true")
             sub.add_argument("--export", action="store_true")
         sub.set_defaults(func=handler)
+
+    verify_cmd = subparsers.add_parser("verify-contract", help="Validate run-bundle artifact contracts")
+    verify_cmd.add_argument("--run", required=True, help="Path to run bundle directory")
+    verify_cmd.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
+    verify_cmd.set_defaults(func=cmd_verify_contract)
 
     eval_cmd = subparsers.add_parser("eval", help="Evaluate one run bundle or a runs root")
     eval_cmd.add_argument("--run")

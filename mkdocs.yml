@@ -45,11 +45,13 @@ nav:
       - Optimizer: tools/optimizer.md
   - Operators:
       - LM Studio: operators/lm-studio.md
-      - Troubleshooting: operators/troubleshooting.md
+      - Troubleshooting (Canonical): operators/troubleshooting.md
+      - Privacy and Locality: operators/privacy-locality.md
   - Agents:
       - Agent Usage: agents/agent-usage.md
       - papers-to-table Skill: agents/papers-to-table-skill.md
   - Development:
       - Architecture: development/architecture.md
+      - First 30 Minutes: development/first-30-minutes.md
       - Specs and Truth Model: development/specs.md
       - GitHub Pages (Future): development/github-pages.md

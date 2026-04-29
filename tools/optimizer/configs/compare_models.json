@@ -228,10 +228,10 @@
     "dev": "bench_dev",
     "manifests": {
       "bench_smoke": {
-        "table_path": "../../../app/tests/fixtures/tables/literature_fixture.xlsx",
-        "schema_path": "../../../app/tests/fixtures/tables/literature_fixture_schema.csv",
-        "pdf_dir": "../../../app/tests/fixtures/papers",
-        "gold_path": "../../../app/tests/fixtures/tables/literature_fixture.xlsx",
+        "table_path": "../../.././YOUR_REAL_DATA/literature_fixture.xlsx",
+        "schema_path": "../../.././YOUR_REAL_DATA/literature_fixture_schema.csv",
+        "pdf_dir": "../../.././YOUR_REAL_DATA/papers",
+        "gold_path": "../../.././YOUR_REAL_DATA/literature_fixture.xlsx",
         "eval_schema_path": "../../eval/tests/fixtures/example_eval/schema.json",
         "main_args": [],
         "eval_args": [
@@ -252,10 +252,10 @@
         ]
       },
       "bench_dev": {
-        "table_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
-        "schema_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture_schema.csv",
-        "pdf_dir": "C:/Users/jonat/Desktop/202601_MPRA_table",
-        "gold_path": "C:/Users/jonat/Desktop/202601_MPRA_table/literature_fixture.xlsx",
+        "table_path": "./YOUR_REAL_DATA/literature_fixture.xlsx",
+        "schema_path": "./YOUR_REAL_DATA/literature_fixture_schema.csv",
+        "pdf_dir": "./YOUR_REAL_DATA/papers",
+        "gold_path": "./YOUR_REAL_DATA/literature_fixture.xlsx",
         "main_args": [],
         "eval_args": [
           "--judge-model",
