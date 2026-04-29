@@ -242,7 +242,7 @@ class TestLoadConfig:
         p = tmp_path / "config.json"
         p.write_text(json.dumps(data), encoding="utf-8")
         config = load_config(str(p))
-        assert config.provider.text_model.model_id == "default"
+        assert config.provider.text_model.model_id == "unsloth/gemma-4-26b-a4b-it"
 
     def test_separate_text_and_vision_model(self):
         config = load_config(FIXTURE_CONFIG)
@@ -337,7 +337,8 @@ class TestReadiness:
         )
         result = await check_readiness(config)
         assert result.ok is False
-        assert any("text_model.model_id" in e for e in result.errors)
+        assert result.provider_readiness_reason == "model_unavailable"
+        assert any("Configured text model" in e for e in result.errors)
 
     @pytest.mark.asyncio
     @respx.mock
@@ -351,11 +352,12 @@ class TestReadiness:
             return_value=httpx.Response(200, json={"data": [{"id": "some-other-model"}]})
         )
         result = await check_readiness(config)
-        assert result.ok is True
+        assert result.ok is False
+        assert result.provider_readiness_reason == "model_unavailable"
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_does_not_require_text_model_to_be_preloaded(self, tmp_path, minimal_config_dict, monkeypatch):
+    async def test_requires_text_model_to_be_preloaded(self, tmp_path, minimal_config_dict, monkeypatch):
         minimal_config_dict["output_dir"] = str(tmp_path / "runs")
         config = RunConfig.model_validate(minimal_config_dict)
         monkeypatch.setattr("backend.app.parsing.check_parser_readiness", lambda *_args: [])
@@ -364,9 +366,8 @@ class TestReadiness:
             return_value=httpx.Response(200, json={"data": [{"id": "some-other-model"}]})
         )
         result = await check_readiness(config)
-        assert result.ok is True
-
-    @pytest.mark.asyncio
+        assert result.ok is False
+        assert result.provider_readiness_reason == "model_unavailable"
     @respx.mock
     async def test_provider_unreachable(self, tmp_path, minimal_config_dict):
         minimal_config_dict["output_dir"] = str(tmp_path / "runs")

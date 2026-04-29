@@ -233,7 +233,7 @@ def get_eligible_cells(
     """Return list of eligible cells: {row_id, row_index, column_name, current_value, eligibility}."""
     from .ids import generate_row_id
 
-    target_cols = set(get_target_columns(df, schema, include_required_metadata=eval_mode))
+    target_cols = set(get_target_columns(df, schema, include_required_metadata=verify_mode))
 
     eligible = []
     for row_idx, row in df.iterrows():

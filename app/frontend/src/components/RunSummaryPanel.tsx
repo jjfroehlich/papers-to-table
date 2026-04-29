@@ -31,10 +31,11 @@ function SummaryChip({ label, value }: { label: string; value: string }) {
 export function RunSummaryPanel({ run, outputDir }: Props) {
   const [progress, setProgress] = useState<ReviewProgress | null>(null)
   const [matching, setMatching] = useState<MatchingSummary | null>(null)
+  const [summaryError, setSummaryError] = useState<string | null>(null)
 
   useEffect(() => {
-    api.getReviewProgress(run.run_id, outputDir).then(setProgress).catch(() => {})
-    api.getMatchingSummary(run.run_id, outputDir).then(setMatching).catch(() => {})
+    api.getReviewProgress(run.run_id, outputDir).then((value) => { setProgress(value); setSummaryError(null) }).catch((err) => setSummaryError(err instanceof Error ? err.message : String(err)))
+    api.getMatchingSummary(run.run_id, outputDir).then((value) => { setMatching(value); setSummaryError(null) }).catch((err) => setSummaryError(err instanceof Error ? err.message : String(err)))
   }, [outputDir, run.run_id])
 
   const actionableReviewed = progress?.reviewed ?? 0
@@ -55,6 +56,7 @@ export function RunSummaryPanel({ run, outputDir }: Props) {
 
   return (
     <div className="border-b border-slate-200 bg-[linear-gradient(135deg,#f8fafc,#ffffff_55%,#eff6ff)] px-5 py-4">
+      {summaryError && <div className="mb-3 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"><strong>Error:</strong> {summaryError}</div>}
       <div className="flex flex-wrap items-center gap-2">
         <SummaryChip label="Provider" value={`${providerLabel} · ${providerModeLabel}`} />
         <SummaryChip label="Actionable review" value={`${actionableReviewed} / ${actionableTotal}`} />

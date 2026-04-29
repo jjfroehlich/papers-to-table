@@ -59,9 +59,6 @@ def _result_summary_row(result: CandidateResult, primary_metric: str) -> dict[st
     provider_diag = _load_candidate_provider_diagnostics(result)
     provider_counts = _provider_failure_counters(provider_diag)
     reliability_label = _reliability_label(result, reviewer_summary, provider_counts)
-    disagreement_rate = eval_metrics.get("judge_disagreement_rate")
-    correctness_a = eval_metrics.get("correctness_judge_a")
-    correctness_b = eval_metrics.get("correctness_judge_b")
     return {
         "candidate_id": result.candidate_id,
         "candidate_status": result.candidate_status,
@@ -143,6 +140,9 @@ def _candidate_diagnostic_row(result: CandidateResult, primary_metric: str) -> d
     provider_counts = _provider_failure_counters(provider_diag)
     reliability_label = _reliability_label(result, reviewer_summary, provider_counts)
     score = result.primary_metrics.get(primary_metric)
+    disagreement_rate = eval_metrics.get("judge_disagreement_rate")
+    correctness_a = eval_metrics.get("correctness_judge_a")
+    correctness_b = eval_metrics.get("correctness_judge_b")
     return {
         "candidate_id": result.candidate_id,
         "candidate_status": result.candidate_status,
@@ -620,10 +620,7 @@ def _write_optimize_progress(
     primary_metric = config["acceptance"]["primary_metric"]
     ranked_results = _rank_compare_results(all_results, primary_metric)
     best_raw = _best_completed_result(all_results, primary_metric)
-    eligible_winner = next(
-        (result for result in ranked_results if _winner_eligible(result, config["acceptance"])),
-        None,
-    )
+    eligible_winner = incumbent_result if _winner_eligible(incumbent_result, config["acceptance"]) else None
     provisional_winner = best_raw if best_raw is not None and eligible_winner is None else None
 
     if eligible_winner is not None:
@@ -821,6 +818,11 @@ def _run_confirmation_reruns(
             reason="confirmation_rerun",
         )
         ok, reason = evaluate_promotion(incumbent_result, rerun_result, config["acceptance"])
+        incumbent_score = _candidate_score(incumbent_result, config["acceptance"]["primary_metric"])
+        rerun_score = _candidate_score(rerun_result, config["acceptance"]["primary_metric"])
+        if rerun_score <= incumbent_score:
+            ok = False
+            reason = "confirmation_primary_not_improved"
         payload["runs"].append(
             {
                 "attempt_index": attempt_index,
@@ -1150,6 +1152,8 @@ def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_spa
                 best_accepted_result.promotion_decision = "rejected"
                 best_accepted_result.decision_reason = "confirmation_rerun_failed"
                 decision_notes.append(f"{best_accepted_candidate.candidate_id}:confirmation_rerun_failed")
+                best_accepted_result = incumbent_result
+                best_accepted_candidate = None
 
         for _, challenger_result, _, _ in challenger_results:
             writer.append_result(challenger_result)

@@ -90,10 +90,37 @@ async def check_readiness(config: RunConfig) -> ReadinessResult:
                         'Is LM Studio running?'
                     )
                 else:
+                    payload = resp.json() if resp.content else {}
+                    model_rows = payload.get("data") if isinstance(payload, dict) else []
+                    available_model_ids = {
+                        str(item.get("id")).strip()
+                        for item in model_rows
+                        if isinstance(item, dict) and item.get("id")
+                    }
+                    text_model_id = (config.provider.text_model.model_id or "").strip()
+                    if text_model_id not in available_model_ids:
+                        message = (
+                            f"Configured text model '{text_model_id}' is not available at "
+                            f"{config.provider.base_url}/v1/models."
+                        )
+                        r.provider_mode = 'unavailable'
+                        r.provider_readiness_reason = 'model_unavailable'
+                        r.provider_readiness_error = message
+                        r.fail(message)
+
                     vision_model = config.provider.vision_model
-                    vision_model_id = vision_model.model_id if vision_model else None
+                    vision_model_id = (vision_model.model_id if vision_model else None)
                     if config.figure_review.enabled and not _is_configured_model_id(vision_model_id):
                         message = 'figure_review is enabled, but provider.vision_model.model_id is missing or invalid.'
+                        r.provider_mode = 'unavailable'
+                        r.provider_readiness_reason = 'model_unavailable'
+                        r.provider_readiness_error = message
+                        r.fail(message)
+                    elif config.figure_review.enabled and vision_model_id and vision_model_id.strip() not in available_model_ids:
+                        message = (
+                            f"Configured vision model '{vision_model_id}' is not available at "
+                            f"{config.provider.base_url}/v1/models."
+                        )
                         r.provider_mode = 'unavailable'
                         r.provider_readiness_reason = 'model_unavailable'
                         r.provider_readiness_error = message
