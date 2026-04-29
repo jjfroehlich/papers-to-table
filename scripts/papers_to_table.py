@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import os
 import signal
+import shutil
 import subprocess
 import sys
 import time
@@ -118,8 +119,19 @@ def cmd_review(args: argparse.Namespace) -> int:
                 process.terminate()
 
 
+
+
+def _resolve_repo_path(path_value: str) -> str:
+    candidate = Path(path_value)
+    if candidate.is_absolute():
+        return str(candidate)
+    repo_candidate = (REPO_ROOT / candidate).resolve()
+    if repo_candidate.exists():
+        return str(repo_candidate)
+    return path_value
+
 def _backend_automation_cmd(args: argparse.Namespace, command: str) -> list[str]:
-    cmd = [sys.executable, "-m", "backend.app.automation", command, "--config-path", args.config]
+    cmd = [sys.executable, "-m", "backend.app.automation", command, "--config-path", _resolve_repo_path(args.config)]
     if args.table_path:
         cmd.extend(["--table-path", args.table_path])
     if args.schema_path:
@@ -192,6 +204,9 @@ def cmd_docs_serve(args: argparse.Namespace) -> int:
 
 
 def cmd_docs_build(args: argparse.Namespace) -> int:
+    if shutil.which("mkdocs") is None:
+        print("mkdocs is not installed. Install docs dependencies with: python -m pip install -r requirements-docs.txt", file=sys.stderr)
+        return 2
     cmd = ["mkdocs", "build"]
     if args.strict:
         cmd.append("--strict")

@@ -93,6 +93,7 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
   const [exportResult, setExportResult] = useState<ExportResult | null>(null)
+  const [workspaceError, setWorkspaceError] = useState<string | null>(null)
 
   const warningTruth = useMemo(() => warningHeadline(run), [run])
 
@@ -102,6 +103,7 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
       api.getReviewProgress(run.run_id, outputDir),
     ])
       .then(([proposalResponse, progressResponse]) => {
+        setWorkspaceError(null)
         setProposalList(proposalResponse.proposals)
         setReviewProgress(progressResponse)
         setSelectedProposalId((current) => {
@@ -115,7 +117,7 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
           )
         })
       })
-      .catch(() => {})
+      .catch((err) => { setWorkspaceError(err instanceof Error ? err.message : String(err)) })
   }, [outputDir, run.run_id])
 
   useEffect(() => {
@@ -145,7 +147,7 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
     if (!selectedProposalId) return
     api.recordDecision(run.run_id, selectedProposalId, { decision }, outputDir)
       .then(() => handleDecisionRecorded({ autoAdvance: true }))
-      .catch(() => {})
+      .catch((err) => { setWorkspaceError(err instanceof Error ? err.message : String(err)) })
   }
 
   const handleDecisionRecorded = useCallback(
@@ -203,13 +205,14 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
     if (!selectedProposalId) return
     api.getProposalDetail(run.run_id, selectedProposalId, outputDir)
       .then((detail) => {
+        setWorkspaceError(null)
         setCurrentPdfId(detail.proposal.pdf_id)
         setCurrentEvidenceList(detail.evidence)
         const nextEvidence = detail.evidence.find((item) => item.evidence_id === detail.proposal.primary_evidence_id) ?? detail.evidence[0] ?? null
         setSelectedEvidenceId(nextEvidence?.evidence_id ?? null)
         setSelectedEvidence(nextEvidence)
       })
-      .catch(() => {})
+      .catch((err) => { setWorkspaceError(err instanceof Error ? err.message : String(err)) })
   }, [decisionVersion, outputDir, run.run_id, selectedProposalId])
 
   useEffect(() => {

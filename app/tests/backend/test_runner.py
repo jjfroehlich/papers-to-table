@@ -72,7 +72,7 @@ class TestGetInitialRunData:
         assert data["eval_mode"] is False
         assert data["run_mode"] == "normal"
         assert data["provider_token"] == "lm_studio"
-        assert data["retrieval_mode"] == "lexical"
+        assert data["retrieval_mode"] == "hybrid_experimental"
         assert data["prompt_hash"] is not None
         assert data["prompt_bundle_id"] == "default"
         assert data["prompt_manifest_hash"] is not None
@@ -200,7 +200,7 @@ class TestRunPipeline:
         assert snap_path.exists()
         snap = read_json(snap_path)
         assert snap["provider"]["token"] == "lm_studio"
-        assert snap["retrieval"]["mode"] == "lexical"
+        assert snap["retrieval"]["mode"] == "hybrid_experimental"
         assert "strategy" not in snap["retrieval"]
 
     @pytest.mark.asyncio
@@ -421,7 +421,7 @@ class TestRunPipeline:
         assert summary["table_rows"] > 0
         assert summary["pdf_count"] is not None
         assert summary["run_mode"] == "normal"
-        assert summary["retrieval_mode"] == "lexical"
+        assert summary["retrieval_mode"] == "hybrid_experimental"
         assert summary["prompt_hash"] is not None
         assert summary["prompt_bundle_id"] == "default"
         assert summary["prompt_manifest_hash"] is not None

@@ -43,15 +43,15 @@ async def test_readiness_reports_provider_unreachable(tmp_path: pathlib.Path):
 
 
 @pytest.mark.asyncio
-async def test_readiness_allows_model_loading_to_happen_during_provider_init(tmp_path: pathlib.Path):
+async def test_readiness_requires_configured_model_to_be_available(tmp_path: pathlib.Path):
     config = RunConfig.model_validate(_config_dict(tmp_path))
 
     response = httpx.Response(200, json={"data": [{"id": "other-model"}]})
     with patch("backend.app.config.httpx.AsyncClient.get", return_value=response):
         readiness = await check_readiness(config)
 
-    assert readiness.ok is True
-    assert readiness.provider_mode == "live_local"
+    assert readiness.ok is False
+    assert readiness.provider_readiness_reason == "model_unavailable"
 
 
 @pytest.mark.asyncio
