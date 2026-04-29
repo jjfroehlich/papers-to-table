@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "run.json",
+  "type": "object",
+  "required": [
+    "run_id",
+    "status"
+  ],
+  "properties": {
+    "artifact_schema_version": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string"
+    },
+    "run_mode": {
+      "type": "string"
+    },
+    "output_dir": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

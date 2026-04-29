@@ -1,11 +1,28 @@
-# Architecture (developer view)
+# Architecture and data flow
 
-High-level boundaries:
+```mermaid
+flowchart LR
+  A[Inputs: table + schema + PDFs + config] --> B[Preflight/readiness]
+  B --> C[Parsing]
+  C --> D[Matching]
+  D --> E[Retrieval]
+  E --> F[Extraction]
+  F --> G[proposals/proposals.jsonl + evidence/evidence.jsonl]
+  G --> H[Review decisions]
+  H --> I[Export content-only XLSX + audit logs]
+  G --> J[Eval consumes run bundle]
+  I --> J
+  J --> K[Optimizer orchestrates repeated main-app + eval runs]
+```
 
-- `app/`: main extraction/review/export product
-- `tools/eval/`: scoring companion
-- `tools/optimizer/`: orchestration companion
-- `specs/`: canonical implementation truth
-- `docs/`: operator/developer manual (MkDocs + Markdown)
+## Dependency boundaries
+- Main app emits run bundles.
+- Eval consumes run bundles from files only.
+- Optimizer orchestrates main app + eval.
+- Eval must not import main-app runtime internals.
+- Optimizer must not reimplement eval or main-app logic.
 
-Use specs for normative behavior; use docs for operator workflows and practical run guidance.
+## Key contracts
+- Run bundle contract: `specs/spec.md` and `specs/contracts/`
+- Artifact schemas: `specs/contracts/schemas/`
+- Canonical CLI: `scripts/papers_to_table.py`

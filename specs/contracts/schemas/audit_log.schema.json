@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "audit_log record",
+  "type": "object",
+  "required": [
+    "proposal_id",
+    "cell_id",
+    "decision"
+  ],
+  "properties": {
+    "proposal_id": {
+      "type": "string"
+    },
+    "cell_id": {
+      "type": "string"
+    },
+    "decision": {
+      "type": "string"
+    },
+    "decision_source": {
+      "type": "string"
+    },
+    "auto_accepted": {
+      "type": "boolean"
+    },
+    "exported_value": {}
+  },
+  "additionalProperties": true
+}

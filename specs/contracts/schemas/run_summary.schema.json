@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "run_summary.json",
+  "type": "object",
+  "required": [
+    "run_id",
+    "status",
+    "total_rows",
+    "eligible_cells"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "total_rows": {
+      "type": "integer"
+    },
+    "eligible_cells": {
+      "type": "integer"
+    },
+    "proposals_generated": {
+      "type": "integer"
+    },
+    "proposals_reviewed": {
+      "type": "integer"
+    }
+  },
+  "additionalProperties": true
+}

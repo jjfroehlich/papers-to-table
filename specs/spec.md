@@ -124,7 +124,7 @@ Valid explicit review outcomes are:
 - confirmed no data
 - rejected
 
-Headless auto-accept uses the same explicit decision records but tags them with `decision_source="automation_accept_all"` and a reviewer note.
+Decision records must distinguish `human_individual`, `human_bulk_accept`, and `automation_accept_all`. Legacy `human_reviewer` records remain readable for backward compatibility, but newly recorded manual decisions use explicit individual/bulk values.
 
 ### 5.7 Export semantics
 
@@ -153,6 +153,9 @@ Stable categories include:
 - exports
 
 Important shared files include:
+
+Schemas for machine validation live under `specs/contracts/schemas/` and are consumed by `verify-contract`.
+
 
 - `run.json`
 - `config.snapshot.json`
@@ -241,6 +244,7 @@ The repo exposes one central operator and agent command surface:
 - `python scripts/papers_to_table.py review`
 - `python scripts/papers_to_table.py preflight --config ...`
 - `python scripts/papers_to_table.py headless --config ... --accept-all --export`
+- `python scripts/papers_to_table.py verify-contract --run ...`
 - `python scripts/papers_to_table.py eval ...`
 - `python scripts/papers_to_table.py optimizer compare-models`
 - `python scripts/papers_to_table.py optimizer optimize-one-model`

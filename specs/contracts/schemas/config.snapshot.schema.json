@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "config.snapshot.json",
+  "type": "object",
+  "required": [
+    "provider"
+  ],
+  "properties": {
+    "provider": {
+      "type": "object"
+    },
+    "table_path": {
+      "type": "string"
+    },
+    "schema_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "pdf_dir": {
+      "type": "string"
+    },
+    "output_dir": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

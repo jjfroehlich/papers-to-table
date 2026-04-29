@@ -26,3 +26,9 @@ python scripts/papers_to_table.py headless \
 - `exports/diagnostics_*.json`
 
 Full agent-oriented guidance: [`../headless-agent.md`](../headless-agent.md).
+
+
+Decision sources:
+- `human_individual`: manually reviewed proposal decisions.
+- `human_bulk_accept`: UI bulk-accept decisions across multiple pending proposals.
+- `automation_accept_all`: headless/agent `--accept-all` decisions without individual human review.

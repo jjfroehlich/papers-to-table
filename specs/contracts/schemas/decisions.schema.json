@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "decisions.jsonl record",
+  "type": "object",
+  "required": [
+    "review_decision_id",
+    "run_id",
+    "proposal_id",
+    "cell_id",
+    "decision",
+    "decision_source",
+    "decided_at"
+  ],
+  "properties": {
+    "review_decision_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "proposal_id": {
+      "type": "string"
+    },
+    "cell_id": {
+      "type": "string"
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "accepted",
+        "accepted_with_edit",
+        "confirmed_no_data",
+        "rejected"
+      ]
+    },
+    "decision_source": {
+      "type": "string",
+      "enum": [
+        "human_individual",
+        "human_bulk_accept",
+        "automation_accept_all",
+        "human_reviewer"
+      ]
+    },
+    "edited_value": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "reviewer_note": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "decided_at": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

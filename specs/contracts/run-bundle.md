@@ -123,3 +123,14 @@ Those summary fields are the shared contract consumed by eval and optimizer repo
 This file owns the run-bundle surface.
 
 Main-app product docs and tool docs may reference this contract, but they must not restate its detailed file and field rules independently.
+
+
+## Contract verification command
+
+Canonical verifier command:
+
+```bash
+python scripts/papers_to_table.py verify-contract --run /abs/path/to/run_bundle
+```
+
+Use `--json` for machine-readable output. The verifier checks required files, JSON-schema shape, and cross-file consistency (proposal↔evidence, decision↔proposal, audit-log↔accepted decisions).

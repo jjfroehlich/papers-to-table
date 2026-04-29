@@ -76,7 +76,7 @@
       "bench_smoke": {
         "table_path": "benchmarks/smoke_fixture_table.csv",
         "schema_path": "benchmarks/smoke_fixture_schema.csv",
-        "pdf_dir": "../../../app/tests/fixtures/papers",
+        "pdf_dir": "../../.././YOUR_REAL_DATA/papers",
         "gold_path": "benchmarks/smoke_fixture_table.csv",
         "eval_schema_path": "../../eval/tests/fixtures/example_eval/schema.json",
         "main_args": [],
