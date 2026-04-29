@@ -1,9 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
 
 from ...artifacts import get_run_dir
 from ...review import get_evidence_asset_metadata, get_figure_crop_path, get_page_image_path, get_pdf_asset_path
-from ..common import open_in_local_viewer
+from ..common import ensure_local_host_action_allowed, open_in_local_viewer, validate_output_dir_access
 from ..models import OpenPdfResponse
 
 router = APIRouter()
@@ -11,6 +11,7 @@ router = APIRouter()
 
 @router.get('/api/runs/{run_id}/assets/pdf/{pdf_id}')
 async def serve_pdf(run_id: str, pdf_id: str, output_dir: str = './runs'):
+    validate_output_dir_access(output_dir)
     run_dir = get_run_dir(output_dir, run_id)
     if not run_dir.exists():
         raise HTTPException(status_code=404, detail=f'Run not found: {run_id}')
@@ -21,7 +22,9 @@ async def serve_pdf(run_id: str, pdf_id: str, output_dir: str = './runs'):
 
 
 @router.post('/api/runs/{run_id}/assets/pdf/{pdf_id}/open', response_model=OpenPdfResponse)
-async def open_pdf_in_local_viewer(run_id: str, pdf_id: str, output_dir: str = './runs'):
+async def open_pdf_in_local_viewer(run_id: str, pdf_id: str, request: Request, output_dir: str = './runs'):
+    validate_output_dir_access(output_dir)
+    ensure_local_host_action_allowed(request.client.host if request.client else None)
     run_dir = get_run_dir(output_dir, run_id)
     if not run_dir.exists():
         raise HTTPException(status_code=404, detail=f'Run not found: {run_id}')
@@ -37,6 +40,7 @@ async def open_pdf_in_local_viewer(run_id: str, pdf_id: str, output_dir: str = '
 
 @router.get('/api/runs/{run_id}/assets/pages/{pdf_id}/{page}')
 async def serve_page_image(run_id: str, pdf_id: str, page: int, output_dir: str = './runs'):
+    validate_output_dir_access(output_dir)
     run_dir = get_run_dir(output_dir, run_id)
     if not run_dir.exists():
         raise HTTPException(status_code=404, detail=f'Run not found: {run_id}')
@@ -48,6 +52,7 @@ async def serve_page_image(run_id: str, pdf_id: str, page: int, output_dir: str 
 
 @router.get('/api/runs/{run_id}/assets/figures/{pdf_id}/{figure_id}')
 async def serve_figure_crop(run_id: str, pdf_id: str, figure_id: str, output_dir: str = './runs'):
+    validate_output_dir_access(output_dir)
     run_dir = get_run_dir(output_dir, run_id)
     if not run_dir.exists():
         raise HTTPException(status_code=404, detail=f'Run not found: {run_id}')
@@ -59,6 +64,7 @@ async def serve_figure_crop(run_id: str, pdf_id: str, figure_id: str, output_dir
 
 @router.get('/api/runs/{run_id}/assets/evidence/{evidence_id}')
 async def get_evidence_metadata(run_id: str, evidence_id: str, output_dir: str = './runs'):
+    validate_output_dir_access(output_dir)
     run_dir = get_run_dir(output_dir, run_id)
     if not run_dir.exists():
         raise HTTPException(status_code=404, detail=f'Run not found: {run_id}')

@@ -36,4 +36,4 @@ python scripts/papers_to_table.py docs build
 
 LM Studio dependent/live tests are optional; run them only when a local LM Studio endpoint and configured model are available.
 
-Troubleshooting: `docs/operators/troubleshooting.md`.
+Troubleshooting: `docs/troubleshooting.md`.

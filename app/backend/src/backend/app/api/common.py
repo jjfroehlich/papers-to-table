@@ -30,6 +30,35 @@ def resolve_path_like(value: str, base_dir: pathlib.Path) -> str:
     return str((base_dir / candidate).resolve())
 
 
+def validate_output_dir_access(output_dir: str) -> pathlib.Path:
+    requested = pathlib.Path(output_dir).resolve()
+    enforce = os.environ.get("P2T_ENFORCE_OUTPUT_ROOT_POLICY", "").lower() in {"1", "true", "yes"}
+    if not enforce:
+        return requested
+    allowed_roots = os.environ.get("P2T_ALLOWED_OUTPUT_ROOTS", "./runs").split(os.pathsep)
+    allowed = [(pathlib.Path(root).resolve()) for root in allowed_roots if root.strip()]
+    if not any(requested == root or root in requested.parents for root in allowed):
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                f"output_dir '{requested}' is outside allowed roots. "
+                "Set P2T_ALLOWED_OUTPUT_ROOTS to opt into additional trusted output locations."
+            ),
+        )
+    return requested
+
+
+def ensure_local_host_action_allowed(client_host: str | None) -> None:
+    if os.environ.get("P2T_ALLOW_NONLOCAL_HOST_ACTIONS", "").lower() in {"1", "true", "yes"}:
+        return
+    trusted_hosts = {"127.0.0.1", "::1", "localhost"}
+    if client_host not in trusted_hosts:
+        raise HTTPException(
+            status_code=403,
+            detail="Host OS viewer actions are disabled for non-local clients. Use trusted loopback access or set P2T_ALLOW_NONLOCAL_HOST_ACTIONS=true.",
+        )
+
+
 def staged_root(output_dir: str) -> pathlib.Path:
     return pathlib.Path(output_dir).resolve() / '.staged_inputs'
 

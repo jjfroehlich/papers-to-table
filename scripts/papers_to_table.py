@@ -182,6 +182,14 @@ def cmd_eval(args: argparse.Namespace) -> int:
         cmd.extend(["--judge-model", args.judge_model])
     if args.judge_model_b:
         cmd.extend(["--judge-model-b", args.judge_model_b])
+    if args.gold_sheet:
+        cmd.extend(["--gold-sheet", args.gold_sheet])
+    if args.judge_api_base:
+        cmd.extend(["--judge-api-base", args.judge_api_base])
+    if args.judge_api_base_b:
+        cmd.extend(["--judge-api-base-b", args.judge_api_base_b])
+    if args.json_output:
+        cmd.extend(["--json-output", args.json_output])
     return _run(cmd, cwd=EVAL_DIR, env=env)
 
 
@@ -270,6 +278,10 @@ def build_parser() -> argparse.ArgumentParser:
     eval_cmd.add_argument("--out", required=True)
     eval_cmd.add_argument("--judge-model")
     eval_cmd.add_argument("--judge-model-b")
+    eval_cmd.add_argument("--gold-sheet", help="Gold workbook sheet name override for reproducible eval joins")
+    eval_cmd.add_argument("--judge-api-base", help="Primary judge API base URL")
+    eval_cmd.add_argument("--judge-api-base-b", help="Secondary judge API base URL for dual-judge mode")
+    eval_cmd.add_argument("--json-output", help="Path to write machine-readable eval JSON output")
     eval_cmd.set_defaults(func=cmd_eval)
 
     optimizer = subparsers.add_parser("optimizer", help="Run optimizer companion workflows")

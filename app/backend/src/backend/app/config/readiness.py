@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from json import JSONDecodeError
 from typing import Any, Optional
 
 import httpx
@@ -127,13 +128,39 @@ async def check_readiness(config: RunConfig) -> ReadinessResult:
                         r.fail(message)
                     if r.ok:
                         r.provider_mode = 'live_local'
-        except Exception as exc:
+        except httpx.TimeoutException as exc:
+            message = f'LM Studio timeout at {config.provider.base_url}: {exc}'
+            r.provider_mode = 'unavailable'
+            r.provider_readiness_reason = 'provider_unreachable'
+            r.provider_readiness_error = message
+            r.structured_output_mode = 'none'
+            r.structured_output_fallback_used = False
+            r.fail(message)
+        except httpx.HTTPError as exc:
             message = f'Cannot reach LM Studio at {config.provider.base_url}: {exc}. Is LM Studio running?'
             r.provider_mode = 'unavailable'
             r.provider_readiness_reason = 'provider_unreachable'
             r.provider_readiness_error = message
             r.structured_output_mode = 'none'
             r.structured_output_fallback_used = False
+            r.fail(message)
+        except JSONDecodeError as exc:
+            message = f'LM Studio returned invalid JSON from /v1/models: {exc}'
+            r.provider_mode = 'unavailable'
+            r.provider_readiness_reason = 'invalid_provider_response'
+            r.provider_readiness_error = message
+            r.fail(message)
+        except (TypeError, ValueError) as exc:
+            message = f'LM Studio response shape was invalid: {exc}'
+            r.provider_mode = 'unavailable'
+            r.provider_readiness_reason = 'invalid_provider_response'
+            r.provider_readiness_error = message
+            r.fail(message)
+        except Exception as exc:
+            message = f'Unexpected readiness error while probing LM Studio at {config.provider.base_url}: {exc}'
+            r.provider_mode = 'unavailable'
+            r.provider_readiness_reason = 'unexpected_error'
+            r.provider_readiness_error = message
             r.fail(message)
 
     from ..parsing import check_ocr_readiness, check_parser_readiness

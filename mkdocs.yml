@@ -43,9 +43,10 @@ nav:
   - Companion Tools:
       - Eval: tools/eval.md
       - Optimizer: tools/optimizer.md
+  - Troubleshooting: troubleshooting.md
   - Operators:
       - LM Studio: operators/lm-studio.md
-      - Troubleshooting (Canonical): operators/troubleshooting.md
+      - Troubleshooting Redirect: operators/troubleshooting.md
       - Privacy and Locality: operators/privacy-locality.md
   - Agents:
       - Agent Usage: agents/agent-usage.md

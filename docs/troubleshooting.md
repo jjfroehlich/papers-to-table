@@ -1,5 +1,7 @@
 # Troubleshooting
 
+This is the canonical troubleshooting page.
+
 ## First diagnostic step
 
 Run terminal preflight:
@@ -25,6 +27,7 @@ Checks:
 - the config uses `provider.token = "lm_studio"`
 - `provider.base_url` points at the local OpenAI-compatible LM Studio endpoint
 - the configured model ids are available in LM Studio
+- if required test deps are missing, install with `cd app && python -m pip install -e ./backend[test]`
 
 ### Model unavailable or structured-output mismatch
 
@@ -38,6 +41,7 @@ Checks:
 - inspect `run.json` and `summaries/reviewer_summary.json`
 - inspect `diagnostics/provider_model_management.json`
 - verify the configured model supports the expected structured-output path
+- load/download the configured model in LM Studio, then rerun preflight
 
 ### Parser issues
 
@@ -82,3 +86,11 @@ Remember:
 - optimizer orchestrates main app + eval; it is not another extraction runtime
 - smoke configs are only for contract checks
 - real benchmark configs should not silently use fixture inputs
+
+### Missing docs tooling
+
+If `python scripts/papers_to_table.py docs build` fails due to missing MkDocs:
+
+```bash
+python -m pip install -r requirements-docs.txt
+```

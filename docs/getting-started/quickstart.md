@@ -1,5 +1,7 @@
 # Quickstart
 
+> From a fresh clone, run `python scripts/papers_to_table.py install` first. See [Installation](installation.md).
+
 ## Browser review workflow (recommended)
 
 ```bash
