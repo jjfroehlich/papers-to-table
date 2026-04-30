@@ -1,5 +1,7 @@
 # papers-to-table
 
+![papers-to-table banner](app/frontend/public/banner_1.jpg)
+
 papers-to-table is a local-first app that extracts evidence-backed values from scientific PDFs into structured tables, keeps review in a browser UI, and exports audited workbook updates.
 
 The monorepo also includes:

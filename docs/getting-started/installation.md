@@ -1,4 +1,6 @@
-# Main Installation
+# Installation
+
+## Main app and companion apps
 
 Start by choosing a folder, fetching the repository, and changing into the repo root. 
 
@@ -16,9 +18,9 @@ python scripts/papers_to_table.py install
 
 This installs backend, frontend, eval, and optimizer, with dependencies.
 
-## Compile Documentation Pages
+## Compile Documentation
 
-Use this only when building or serving the local static manual.
+Use this only for compiling or serving the local Documentation manual.
 
 ```bash
 python -m pip install -r tools/docs/requirements.txt

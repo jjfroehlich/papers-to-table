@@ -47,9 +47,9 @@ validation:
 nav:
   - Start:
       - Basics: index.md
-  - Installation:
+  - Getting Started:
       - Model Provider (LM Studio): getting-started/lm-studio.md
-      - Main Installation: getting-started/installation.md
+      - Installation: getting-started/installation.md
       - Configuration: getting-started/configuration.md
       - Preflight And Run Commands: getting-started/preflight-and-run.md
       - Troubleshooting: getting-started/troubleshooting.md
