@@ -3,7 +3,7 @@
 - Status: Normative
 - Owner: Product
 - Depends on: product/main-app.md, contracts/proposals-and-evidence.md
-- Consumed by: docs/main-app/operator-workflow.md, app/frontend/src/
+- Consumed by: docs/main-app/browser-review.md, app/frontend/src/
 
 ## Purpose
 

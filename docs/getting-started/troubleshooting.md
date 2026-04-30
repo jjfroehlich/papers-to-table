@@ -1,7 +1,5 @@
 # Troubleshooting
 
-This is the canonical troubleshooting page.
-
 ## First diagnostic step
 
 Run terminal preflight:
@@ -86,11 +84,3 @@ Remember:
 - optimizer orchestrates main app + eval; it is not another extraction runtime
 - smoke configs are only for contract checks
 - real benchmark configs should not silently use fixture inputs
-
-### Missing docs tooling
-
-If `python scripts/papers_to_table.py docs build` fails due to missing MkDocs:
-
-```bash
-python -m pip install -r requirements-docs.txt
-```

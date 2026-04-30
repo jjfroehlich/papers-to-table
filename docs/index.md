@@ -1,23 +1,22 @@
-# papers-to-table manual
+# Home
 
-papers-to-table is a local-first system for extracting evidence-backed values from scientific PDFs into structured tables.
+papers-to-table is a local-first system for extracting information from scientific PDFs into structured tables. It combines a browser review app for human review, auditable run bundles, and companion tools for evaluation and optimization.
 
-Use this manual for operator and agent workflows. Keep these role boundaries in mind:
+## What The System Does
 
-- **README**: short entry point and command cheatsheet.
-- **Manual (this site)**: install/run/operator guidance.
-- **Specs (`specs/`)**: canonical implementation truth.
+- Reads one spreadsheet, one schema, and a directory of PDFs.
+- Runs preflight checks before extraction starts.
+- Parses and matches PDFs to table rows.
+- Proposes evidence-backed values for eligible cells.
+- Lets a reviewer accept, edit, reject, or confirm no data.
+- Exports a content-only workbook copy plus audit artifacts.
 
-## Primary workflows
+## Primary Workflow
 
-1. **Browser review mode** (default): run extraction, inspect evidence, and export only reviewed updates.
-2. **Headless mode**: run extraction from terminal/agent flows, optionally auto-accept only when explicitly requested.
-3. **Eval**: score run bundles against gold data.
-4. **Optimizer**: orchestrate repeated compare/optimize studies.
+1. Browser mode is the regular workflow which includes human-review or accept-all options.
 
-## Start here
+## Secondary Workflows
 
-- New users: [Getting Started](getting-started/index.md)
-- Human reviewers: [Main App → Browser Review](main-app/browser-review.md)
-- Agent flows: [Main App → Headless and Accept-All](main-app/headless.md)
-- Tooling: [Companion Tools](tools/eval.md)
+1. Command-line interface usage without human-review for agent use or other programmatic use-cases. 
+2. Eval tool scores run bundles against benchmark "gold" data.
+3. Optimizer tool compares model, prompt, and retrieval studies.

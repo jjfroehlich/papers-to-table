@@ -69,7 +69,7 @@ Before changing normative spec text, inspect the current code path, relevant tes
 - Do not insert pass-specific instructions, temporary status banners, or execution-order notes into normative spec files or `plan.md`.
 - If historical or temporary context is worth keeping, place it in a clearly labeled appendix or supporting audit doc rather than in the main body.
 - When operator or developer workflow changes, ensure the related README/MkDocs manual page is updated by the same work pass.
-- When manual pages are added, removed, or renamed, ensure `mkdocs.yml` navigation is updated outside `specs/`.
+- When manual pages are added, removed, or renamed, ensure `tools/docs/mkdocs.yml` navigation is updated outside `specs/`.
 
 ## Task discipline
 
@@ -96,7 +96,7 @@ Keep the following explicit when relevant:
 
 - Behavior was checked against current code, tests/fixtures, and relevant artifacts.
 - `spec.md` and the owning supporting spec agree.
-- README/manual docs are updated if workflow changed, and `mkdocs.yml` is updated if docs navigation changed.
+- README/manual docs are updated if workflow changed, and `tools/docs/mkdocs.yml` is updated if docs navigation changed.
 - Config examples, commands, artifact paths, provider names, and task status remain current.
 - Stale or contradictory text was removed rather than duplicated.
 - Verification was run, or the remaining verification gap is stated.

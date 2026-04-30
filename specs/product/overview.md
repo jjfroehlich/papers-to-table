@@ -3,7 +3,7 @@
 - Status: Normative
 - Owner: Product
 - Depends on: README.md
-- Consumed by: README.md, docs/main-app/README.md, app/backend/src/backend/app/
+- Consumed by: README.md, docs/main-app/browser-review.md, app/backend/src/backend/app/
 
 ## Purpose
 

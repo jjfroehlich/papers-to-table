@@ -23,7 +23,7 @@ Then open `http://127.0.0.1:5173`.
 ### Docs manual
 
 ```bash
-python -m pip install -r requirements-docs.txt
+python -m pip install -r tools/docs/requirements.txt
 python scripts/papers_to_table.py docs serve
 python scripts/papers_to_table.py docs build
 ```
@@ -68,7 +68,7 @@ python scripts/papers_to_table.py optimizer overnight
 
 - Manual home: [`docs/index.md`](docs/index.md)
 - Manual map: [`docs/README.md`](docs/README.md)
-- Agent usage: [`docs/agents/agent-usage.md`](docs/agents/agent-usage.md)
+- Agent skill: [`docs/agents/papers-to-table-skill.md`](docs/agents/papers-to-table-skill.md)
 - Specs (canonical implementation truth): [`specs/README.md`](specs/README.md)
 
 Use docs for operator guidance and specs for canonical rebuild-grade behavior.

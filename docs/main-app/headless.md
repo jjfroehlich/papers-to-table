@@ -1,6 +1,8 @@
-# Headless and accept-all
+# Headless And Accept-All
 
-Use headless mode for terminal/agent/batch workflows.
+Use headless mode when a terminal workflow, batch script, or coding agent needs to run the app without reviewing the extracted values and browser UI. 
+
+## Recommended Command
 
 ```bash
 python scripts/papers_to_table.py headless \
@@ -9,26 +11,66 @@ python scripts/papers_to_table.py headless \
   --export
 ```
 
-## Required clarity
+## Optional Path Overrides
 
-- `--accept-all` is explicit review bypass.
-- Auto-accepted proposals are **not human-reviewed**.
-- Always inspect diagnostics and evidence before downstream trust.
-- Export should write a new workbook; never silently overwrite source inputs.
+```bash
+python scripts/papers_to_table.py headless \
+  --config app/config.json \
+  --table-path /absolute/path/to/table.xlsx \
+  --schema-path /absolute/path/to/schema.csv \
+  --pdf-dir /absolute/path/to/pdfs \
+  --accept-all \
+  --export
+```
 
-## What to inspect after headless runs
+## Required Inputs
+
+- table file
+- schema file
+- PDF directory
+- main-app JSON config
+- output directory from the config
+
+You can keep paths in the config or override them on the command line.
+
+## Accept-All Semantics
+
+- `--accept-all` is an explicit review bypass.
+- Auto-accepted proposals are obviously not human-reviewed, so they might be wrong.
+- `--export` without explicit review or `--accept-all` is rejected when reviewable proposals are still pending.
+- The output artifacts will record that extracted information was auto-accepted.
+
+## Machine-Readable Result
+
+The command prints JSON that includes:
+
+- resolved config and inputs
+- preflight summary
+- run id and status
+- artifact paths
+- reviewer summary
+- export paths when `--export` is used
+- auto-accepted proposal count when `--accept-all` is used
+
+## Audit Files To Inspect
 
 - `run.json`
-- `summaries/reviewer_summary.json`
 - `summaries/run_summary.json`
+- `summaries/reviewer_summary.json`
 - `review/decisions.jsonl`
 - `exports/audit_log_*.json`
 - `exports/diagnostics_*.json`
 
-Full agent-oriented guidance: [`../headless-agent.md`](../headless-agent.md).
+Headless auto-accept records `decision_source="automation_accept_all"` and a reviewer note stating that `--accept-all` was used.
 
+## Avoiding Over-Trust
 
-Decision sources:
+- Inspect `reviewer_summary.json` and `run_summary.json` for degraded-mode or warning truth.
+- Inspect `review/decisions.jsonl` and `exports/audit_log_*.json` before using exported values downstream.
+- Inspect evidence and matching diagnostics inside the run bundle when values matter.
+
+## Decision Sources
+
 - `human_individual`: manually reviewed proposal decisions.
 - `human_bulk_accept`: UI bulk-accept decisions across multiple pending proposals.
-- `automation_accept_all`: headless/agent `--accept-all` decisions without individual human review.
+- `automation_accept_all`: headless or agent `--accept-all` decisions without individual human review.

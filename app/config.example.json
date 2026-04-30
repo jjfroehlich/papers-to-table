@@ -41,7 +41,7 @@
     "top_k": 12,
     "recall_rescue_enabled": false,
     "whole_document_mode": false,
-    "whole_document_max_chars": 20000
+    "whole_document_max_chars": 40000
   },
   "style_profiles": {
     "enabled": true,

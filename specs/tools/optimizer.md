@@ -3,7 +3,7 @@
 - Status: Normative
 - Owner: Optimizer
 - Depends on: contracts/eval-summary.md, contracts/optimizer-candidate.md, architecture/integration.md
-- Consumed by: tools/optimizer/, docs/optimizer/README.md
+- Consumed by: tools/optimizer/, docs/tools/optimizer.md
 
 ## Purpose
 

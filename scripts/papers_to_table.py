@@ -19,6 +19,8 @@ BACKEND_SRC_DIR = APP_DIR / "backend" / "src"
 FRONTEND_DIR = APP_DIR / "frontend"
 EVAL_DIR = REPO_ROOT / "tools" / "eval"
 OPTIMIZER_DIR = REPO_ROOT / "tools" / "optimizer"
+MKDOCS_CONFIG = REPO_ROOT / "tools" / "docs" / "mkdocs.yml"
+DOCS_REQUIREMENTS = REPO_ROOT / "tools" / "docs" / "requirements.txt"
 
 
 def _env_with_pythonpath(*extra_paths: Path) -> dict[str, str]:
@@ -34,6 +36,21 @@ def _env_with_pythonpath(*extra_paths: Path) -> dict[str, str]:
 def _run(cmd: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> int:
     completed = subprocess.run(cmd, cwd=str(cwd), env=env, check=False)
     return int(completed.returncode)
+
+
+def _mkdocs_cmd(subcommand: str) -> list[str] | None:
+    mkdocs_bin = shutil.which("mkdocs")
+    if mkdocs_bin is not None:
+        return [mkdocs_bin, subcommand, "-f", str(MKDOCS_CONFIG)]
+    try:
+        import mkdocs  # type: ignore  # noqa: F401
+    except Exception:
+        print(
+            f"mkdocs is not installed. Install docs dependencies with: python -m pip install -r {DOCS_REQUIREMENTS.relative_to(REPO_ROOT).as_posix()}",
+            file=sys.stderr,
+        )
+        return None
+    return [sys.executable, "-m", "mkdocs", subcommand, "-f", str(MKDOCS_CONFIG)]
 
 
 def _optimizer_default_out(name: str) -> Path:
@@ -216,21 +233,17 @@ def cmd_optimizer_overnight(args: argparse.Namespace) -> int:
 
 
 def cmd_docs_serve(args: argparse.Namespace) -> int:
-    cmd = ["mkdocs", "serve", "--dev-addr", f"{args.host}:{args.port}"]
+    cmd = _mkdocs_cmd("serve")
+    if cmd is None:
+        return 2
+    cmd.extend(["--dev-addr", f"{args.host}:{args.port}"])
     return _run(cmd, cwd=REPO_ROOT, env=os.environ.copy())
 
 
 def cmd_docs_build(args: argparse.Namespace) -> int:
-    mkdocs_bin = shutil.which("mkdocs")
-    if mkdocs_bin is None:
-        try:
-            import mkdocs  # type: ignore  # noqa: F401
-        except Exception:
-            print("mkdocs is not installed. Install docs dependencies with: python -m pip install -r requirements-docs.txt", file=sys.stderr)
-            return 2
-        cmd = [sys.executable, "-m", "mkdocs", "build"]
-    else:
-        cmd = [mkdocs_bin, "build"]
+    cmd = _mkdocs_cmd("build")
+    if cmd is None:
+        return 2
     if args.strict:
         cmd.append("--strict")
     return _run(cmd, cwd=REPO_ROOT, env=os.environ.copy())

@@ -3,7 +3,7 @@
 - Status: Normative
 - Owner: Eval
 - Depends on: contracts/run-bundle.md, contracts/eval-summary.md, contracts/proposals-and-evidence.md
-- Consumed by: tools/eval/, docs/eval/README.md
+- Consumed by: tools/eval/, docs/tools/eval.md
 
 ## Purpose
 

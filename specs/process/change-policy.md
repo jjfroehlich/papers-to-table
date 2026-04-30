@@ -25,7 +25,7 @@ Any behavior change must update the owning current file in the same work pass.
 ### If you changed reviewer workflow
 
 - update `specs/product/review-workflow.md`
-- update `docs/main-app/operator-workflow.md`
+- update `docs/main-app/browser-review.md`
 - update screenshots if the workflow UI changed materially
 - update frontend tests and any relevant e2e coverage
 
@@ -39,7 +39,7 @@ Any behavior change must update the owning current file in the same work pass.
 ### If you changed run setup, launch, or automation behavior
 
 - update `specs/product/main-app.md`
-- update `README.md`, `docs/main-app/README.md`, and `docs/main-app/operator-workflow.md`
+- update `README.md` and `docs/main-app/browser-review.md`
 - update wrapper-script guidance if the happy path changed
 - update backend/frontend tests and any relevant automation tests
 

@@ -268,6 +268,6 @@ Known practical limits include parser dependency drift, live model readiness var
 ## 13. Documentation and agent-operating surfaces
 
 - `README.md` is the concise repository entry point.
-- `docs/` is the operator/developer manual and is also buildable as a local/static MkDocs Material site.
+- `docs/` is the operator/developer manual and is also buildable as a local/static MkDocs Material site; its MkDocs config and optional docs requirements live under `tools/docs/`.
 - `specs/` remains the canonical rebuild-grade implementation truth.
 - `agent-skills/papers-to-table/` provides a focused headless operating procedure for external coding agents and must not replace installation or runtime readiness checks.

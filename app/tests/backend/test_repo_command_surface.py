@@ -17,6 +17,8 @@ def test_central_cli_help_commands_exit_successfully():
         [sys.executable, "scripts/papers_to_table.py", "optimizer", "compare-models", "--help"],
         [sys.executable, "scripts/papers_to_table.py", "optimizer", "optimize-one-model", "--help"],
         [sys.executable, "scripts/papers_to_table.py", "optimizer", "overnight", "--help"],
+        [sys.executable, "scripts/papers_to_table.py", "docs", "serve", "--help"],
+        [sys.executable, "scripts/papers_to_table.py", "docs", "build", "--help"],
     ]
 
     for command in commands:
@@ -44,12 +46,15 @@ def test_documented_configs_exist_and_parse():
 def test_documented_command_surface_files_exist():
     required_paths = [
         REPO_ROOT / "scripts" / "papers_to_table.py",
+        REPO_ROOT / "tools" / "docs" / "mkdocs.yml",
+        REPO_ROOT / "tools" / "docs" / "requirements.txt",
         REPO_ROOT / "docs" / "README.md",
-        REPO_ROOT / "docs" / "main-app" / "README.md",
-        REPO_ROOT / "docs" / "headless-agent.md",
-        REPO_ROOT / "docs" / "configuration.md",
-        REPO_ROOT / "docs" / "eval" / "README.md",
-        REPO_ROOT / "docs" / "optimizer" / "README.md",
+        REPO_ROOT / "docs" / "main-app" / "browser-review.md",
+        REPO_ROOT / "docs" / "main-app" / "headless.md",
+        REPO_ROOT / "docs" / "main-app" / "outputs-and-artifacts.md",
+        REPO_ROOT / "docs" / "tools" / "eval.md",
+        REPO_ROOT / "docs" / "tools" / "optimizer.md",
+        REPO_ROOT / "docs" / "agents" / "papers-to-table-skill.md",
         REPO_ROOT / "docs" / "troubleshooting.md",
         REPO_ROOT / "specs" / "spec.md",
         REPO_ROOT / "specs" / "research.md",

@@ -139,7 +139,7 @@ Done means the operator can understand what to do next without reading source co
 - When working inside `specs/`, follow `specs/AGENTS.md` for the spec-specific workflow.
 - `README.md` is the short repo entry point. `docs/` is the MkDocs manual for operators, agents, and developers. `specs/` is canonical implementation truth. `agent-skills/` contains agent operating procedures.
 - Update only the docs whose truth changed, but do it in the same pass as the behavior change.
-- When adding, removing, or renaming manual pages, update `mkdocs.yml` navigation in the same pass.
+- When adding, removing, or renaming manual pages, update `tools/docs/mkdocs.yml` navigation in the same pass.
 - Remove stale links when moving docs pages.
 - Keep docs/test tooling optional or dev-scoped when possible; do not make manual-building dependencies part of the runtime path unless the app requires them.
 - Remove stale text rather than letting old and new descriptions coexist.

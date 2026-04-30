@@ -3,7 +3,7 @@
 - Status: Normative
 - Owner: Shared Contracts
 - Depends on: tools/eval.md
-- Consumed by: tools/optimizer/, docs/optimizer/README.md
+- Consumed by: tools/optimizer/, docs/tools/optimizer.md
 
 ## Purpose
 
