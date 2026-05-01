@@ -33,7 +33,6 @@ python scripts/papers_to_table.py preflight --config app/config.json
 ### Command-line interface
 Use this headless mode when a terminal workflow, batch script, or coding agent needs to run the app without reviewing the extracted values and browser UI. 
 
-(description for )
 ```bash
 python scripts/papers_to_table.py headless \
   --config app/config.json \
@@ -65,5 +64,8 @@ Agents can use the skill when the task is to extract structured values from one 
 Copy `./agent-skills/papers-to-table/` into your agent system's skill directory. Keep the `references/` files with it.
 
 ## Documentation
-(link to relevant pages or better to static site if possible without a public github repository)
+The manual source lives in [`docs/`](docs/). Serve the static site locally with:
 
+```bash
+python scripts/papers_to_table.py docs serve
+```

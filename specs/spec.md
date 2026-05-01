@@ -30,9 +30,10 @@ The main app consumes:
 - one PDF directory
 - one JSON config
 
-The config controls provider selection, parser behavior, retrieval settings, prompt bundle, diagnostics, figure review, and output paths.
+The config controls provider selection, parser behavior, retrieval settings, prompt bundle, diagnostics, figure review, and default paths.
 
 `app/config.example.json` is the canonical checked-in template. `app/config.json` is the normal local operator config.
+In browser mode, `table_path`, `schema_path`, `pdf_dir`, and `output_dir` may be blank in `app/config.json`; the operator can choose them in the interface for each run.
 
 ## 4. Main-app modes
 
@@ -43,8 +44,8 @@ Human review mode is the default product workflow.
 Required behavior:
 
 1. operator starts the local app
-2. operator runs preflight and sees resolved scope and provider readiness
-3. extraction starts only after explicit operator action
+2. operator chooses or confirms table, schema, PDF, and output paths
+3. operator starts the run; preflight runs first and extraction continues only if readiness passes
 4. operator reviews proposals in the browser UI
 5. operator accepts, edits, rejects, or confirms no data explicitly
 6. export writes a new workbook and audit artifacts
@@ -92,7 +93,7 @@ The parser layer produces normalized parsed documents with:
 
 Each PDF is matched to at most one row.
 
-The system must keep unmatched, ambiguous, and duplicate-row conflicts explicit in artifacts and review diagnostics.
+If a PDF does not match an existing row, the normal browser workflow must stage a new row from extracted paper metadata and generate proposals for the schema-defined target cells. Ambiguous and duplicate-row conflicts remain blocked and explicit in artifacts and review diagnostics.
 
 ### 5.4 Retrieval and extraction
 

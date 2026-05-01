@@ -7,7 +7,6 @@ import { api } from './api/client'
 import type { RunData, RunStreamEvent } from './types'
 
 type View = 'run' | 'review'
-type StreamState = 'idle' | 'connected' | 'error'
 
 function upsertRun(runs: RunData[], nextRun: RunData): RunData[] {
   return [nextRun, ...runs.filter((run) => run.run_id !== nextRun.run_id)].sort((a, b) =>
@@ -21,9 +20,7 @@ export function App() {
   const [selectedRun, setSelectedRun] = useState<RunData | null>(null)
   const [loadingRuns, setLoadingRuns] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [streamState, setStreamState] = useState<StreamState>('idle')
   const [abortingRunId, setAbortingRunId] = useState<string | null>(null)
-  const [lastLiveUpdateAt, setLastLiveUpdateAt] = useState<string | null>(null)
 
   const syncSelectedRun = useCallback((nextRuns: RunData[]) => {
     setSelectedRun((current) => {
@@ -38,7 +35,6 @@ export function App() {
       setRuns(resp.runs)
       syncSelectedRun(resp.runs)
       setLoadError(null)
-      setLastLiveUpdateAt(new Date().toISOString())
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -60,8 +56,6 @@ export function App() {
       syncSelectedRun(payload.runs)
       setLoadingRuns(false)
       setLoadError(null)
-      setStreamState('connected')
-      setLastLiveUpdateAt(new Date().toISOString())
     }
 
     const handleRunUpdated = (event: MessageEvent<string>) => {
@@ -73,12 +67,10 @@ export function App() {
         return nextRuns
       })
       setLoadError(null)
-      setStreamState('connected')
-      setLastLiveUpdateAt(payload.recorded_at)
     }
 
     const handleError = () => {
-      setStreamState('error')
+      void loadRuns()
     }
 
     source.addEventListener('bootstrap', handleBootstrap as EventListener)
@@ -90,7 +82,7 @@ export function App() {
       source.removeEventListener('run.updated', handleRunUpdated as EventListener)
       source.close()
     }
-  }, [syncSelectedRun])
+  }, [loadRuns, syncSelectedRun])
 
   const handleRunCreated = useCallback((run: RunData) => {
     setRuns((current) => upsertRun(current, run))
@@ -122,18 +114,15 @@ export function App() {
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,#e0f2fe_0%,#f8fafc_32%,#e2e8f0_100%)] text-slate-900">
       <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-xl shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
         <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-4 px-5 py-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-700">papers-to-table</p>
-            <h1 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">Evidence-first paper review workstation</h1>
-            <p className="mt-1 text-sm text-slate-500">
-              Launch preflighted runs, follow live extraction state, then review only explicit evidence-backed proposals.
-            </p>
+          <div className="flex min-w-0 items-center gap-4">
+            <img src="/logo_1.svg" alt="papers-to-table" className="h-12 w-12 shrink-0 rounded-xl object-contain" />
+            <div className="min-w-0">
+              <h1 className="text-2xl font-semibold tracking-tight text-slate-950">papers-to-table</h1>
+              <p className="mt-1 text-sm font-medium text-slate-500">Evidence-backed literature extraction and review</p>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 shadow-sm">
-              Stream: <span className={`font-semibold ${streamState === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{streamState}</span>
-            </div>
             {activeRuns.length > 0 && (
               <div className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-medium text-sky-800 shadow-sm">
                 {activeRuns.length} active run{activeRuns.length !== 1 ? 's' : ''}
@@ -166,26 +155,11 @@ export function App() {
       </header>
 
       <main className={view === 'review' && isReviewable ? '' : 'mx-auto max-w-screen-2xl px-5 py-6'}>
-        {streamState === 'error' && (
-          <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm">
-            Live run updates are disconnected. The current list may be stale until the browser reconnects.
-            {lastLiveUpdateAt && (
-              <span className="ml-1 text-amber-800">Last live update: {new Date(lastLiveUpdateAt).toLocaleTimeString()}.</span>
-            )}
-            <button onClick={() => void loadRuns()} className="ml-3 text-xs font-semibold text-amber-900 underline">
-              Refresh now
-            </button>
-          </div>
-        )}
-
         {view === 'run' && (
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
             <section className="space-y-6">
               <div className="rounded-[32px] border border-white/70 bg-white/85 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
                 <h2 className="text-base font-semibold text-slate-900">Create run</h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Stage any one-off overrides, inspect the resolved launch context, then start when readiness is green.
-                </p>
                 <div className="mt-5">
                   <RunLaunchSurface onRunCreated={handleRunCreated} />
                 </div>
@@ -221,10 +195,9 @@ export function App() {
                 <RunDetail run={selectedRun} onAbort={handleAbortRun} aborting={abortingRunId === selectedRun.run_id} />
               ) : (
                 <div className="flex min-h-[420px] flex-col items-center justify-center text-center">
-                  <div className="rounded-full bg-sky-100 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Start here</div>
-                  <h2 className="mt-4 text-2xl font-semibold tracking-tight text-slate-900">No run selected yet</h2>
+                  <h2 className="text-2xl font-semibold tracking-tight text-slate-900">No run selected yet</h2>
                   <p className="mt-3 max-w-md text-sm leading-6 text-slate-500">
-                    Launch a new run or select an existing one to see its resolved inputs, provider state, warnings, and next action.
+                    Launch a new run or select an existing run summary on the left.
                   </p>
                 </div>
               )}

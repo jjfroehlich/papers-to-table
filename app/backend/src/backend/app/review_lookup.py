@@ -17,13 +17,32 @@ def build_review_lookup(
     schema_path: Optional[str],
     run_dir: Path,
 ) -> dict[str, Any]:
+    dataframe = load_table(table_path)
+    schema = load_schema(schema_path, table_path)
+    return build_review_lookup_from_dataframe(
+        run_id=run_id,
+        table_path=table_path,
+        schema_path=schema_path,
+        dataframe=dataframe,
+        schema=schema,
+        match_results=load_match_results(run_dir),
+    )
+
+
+def build_review_lookup_from_dataframe(
+    *,
+    run_id: str,
+    table_path: str,
+    schema_path: Optional[str],
+    dataframe: Any,
+    schema: list[dict],
+    match_results: list[Any],
+) -> dict[str, Any]:
     def _read_match_field(match_result: Any, field_name: str) -> Any:
         if isinstance(match_result, dict):
             return match_result.get(field_name)
         return getattr(match_result, field_name, None)
 
-    dataframe = load_table(table_path)
-    schema = load_schema(schema_path, table_path)
     rows_by_id: dict[str, Any] = {}
     rows_by_index: dict[str, str] = {}
     for row_index, row in dataframe.iterrows():
@@ -55,7 +74,7 @@ def build_review_lookup(
     }
 
     papers_by_pdf_id: dict[str, Any] = {}
-    for match_result in load_match_results(run_dir):
+    for match_result in match_results:
         matched_row_index = _read_match_field(match_result, 'matched_row_index')
         pdf_id = _read_match_field(match_result, 'pdf_id')
         if pdf_id in (None, ''):
@@ -90,9 +109,27 @@ def build_review_lookup(
     }
 
 
-def persist_review_lookup(run_id: str, output_dir: str, table_path: str, schema_path: Optional[str]) -> dict[str, Any]:
+def persist_review_lookup(
+    run_id: str,
+    output_dir: str,
+    table_path: str,
+    schema_path: Optional[str],
+    *,
+    dataframe: Any | None = None,
+    schema: list[dict] | None = None,
+) -> dict[str, Any]:
     run_dir = Path(output_dir) / run_id
-    lookup = build_review_lookup(run_id=run_id, table_path=table_path, schema_path=schema_path, run_dir=run_dir)
+    if dataframe is not None and schema is not None:
+        lookup = build_review_lookup_from_dataframe(
+            run_id=run_id,
+            table_path=table_path,
+            schema_path=schema_path,
+            dataframe=dataframe,
+            schema=schema,
+            match_results=load_match_results(run_dir),
+        )
+    else:
+        lookup = build_review_lookup(run_id=run_id, table_path=table_path, schema_path=schema_path, run_dir=run_dir)
     write_json(get_review_lookup_path(output_dir, run_id), lookup)
     return lookup
 

@@ -167,6 +167,27 @@ def generate_xlsx_export(
         rid = generate_row_id(i, title)
         row_id_to_index[rid] = i
 
+    synthetic_rows: dict[int, dict[str, object]] = {}
+    from .matching import load_match_results
+
+    for match_result in load_match_results(run_dir):
+        row_index = match_result.get("matched_row_index")
+        if not isinstance(row_index, int) or row_index < len(df):
+            continue
+        metadata = match_result.get("extracted_metadata") if isinstance(match_result.get("extracted_metadata"), dict) else {}
+        row = {str(column): "" for column in df.columns}
+        authors = metadata.get("authors")
+        if "Title" in row:
+            row["Title"] = str(metadata.get("title") or match_result.get("matched_row_title") or match_result.get("pdf_id") or "")
+        if "Authors" in row:
+            row["Authors"] = "; ".join(str(item).strip() for item in authors if str(item).strip()) if isinstance(authors, list) else str(authors or "")
+        if "Publication Year" in row:
+            row["Publication Year"] = str(metadata.get("year") or "")
+        if "DOI" in row:
+            row["DOI"] = str(metadata.get("doi") or "")
+        synthetic_rows[row_index] = row
+        row_id_to_index[generate_row_id(row_index, str(row.get("Title", "")))] = row_index
+
     # Map: (row_index, column_name) → export_value
     changes: dict[tuple[int, str], str] = {}
     for cand in candidates:
@@ -218,6 +239,14 @@ def generate_xlsx_export(
     for cell in out_ws[1]:  # type: ignore[index]
         if cell.value is not None:
             col_name_to_col_idx[str(cell.value)] = cell.column
+
+    for row_index, row_values in sorted(synthetic_rows.items()):
+        xlsx_row = row_index + xlsx_data_start_row(str(source_path))
+        for col_name, value in row_values.items():
+            col_idx = col_name_to_col_idx.get(col_name)
+            if col_idx is None:
+                continue
+            out_ws.cell(row=xlsx_row, column=col_idx, value=value)
 
     # Apply accepted changes and highlight
     for (row_index, col_name), export_value in changes.items():

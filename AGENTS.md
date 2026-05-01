@@ -137,7 +137,7 @@ Done means the operator can understand what to do next without reading source co
 
 - Current source of truth: `specs/README.md` for the spec-system guide, `specs/spec.md` for integrated current product/system truth, `specs/product/` for main-app product requirements, `specs/tools/` for companion-tool behavior, `specs/contracts/` for shared cross-tool rules, `specs/architecture/` for monorepo boundaries, `specs/process/` for maintenance policy, `specs/plan.md` for supportive planning, `specs/tasks.md` for verified implementation status, and this file for repo-level operating rules.
 - When working inside `specs/`, follow `specs/AGENTS.md` for the spec-specific workflow.
-- `README.md` is the short repo entry point. `docs/` is the MkDocs manual for operators, agents, and developers. `specs/` is canonical implementation truth. `agent-skills/` contains agent operating procedures.
+- `README.md` is the short repo entry point. `docs/` is the MkDocs manual for operators, agents, and developers. `specs/` is canonical implementation truth. 
 - Update only the docs whose truth changed, but do it in the same pass as the behavior change.
 - When adding, removing, or renaming manual pages, update `tools/docs/mkdocs.yml` navigation in the same pass.
 - Remove stale links when moving docs pages.
@@ -145,7 +145,7 @@ Done means the operator can understand what to do next without reading source co
 - Remove stale text rather than letting old and new descriptions coexist.
 - Preserve the existing canonical section structure when editing `README.md`, `AGENTS.md`, and files under `specs/`.
 - Prefer editing the correct existing section over appending ad hoc notes.
-- If `agent-skills/` procedures change, update the corresponding manual page under `docs/agents/` and keep skill references aligned with current CLI/config/artifact truth.
+- If `agent-skills/` procedures change, update the corresponding manual page under `/docs/tools/papers-to-table-skill.md` and keep skill references aligned with current CLI/config/artifact truth.
 
 ## Dependency policy
 
@@ -167,11 +167,8 @@ Done means the operator can understand what to do next without reading source co
 ## Repo map
 
 - `README.md`: repo landing page and happy-path operator/developer entrypoint
-- `CONTRIBUTING.md`: human-friendly contributor quickstart
-- `docs/README.md`: docs map by audience
 - `docs/main-app/`: main app operator and artifact docs
 - `docs/screenshots/`: browser screenshots referenced by docs
-- `docs/architecture-decisions/`: lightweight ADRs for durable repo decisions
 - `specs/`: canonical normative/supportive spec system
 - `agent-skills/`: agent operating procedures for installed skill workflows
 - `app/tests/fixtures/`: canonical workbook and PDF fixtures
@@ -191,7 +188,7 @@ Done means the operator can understand what to do next without reading source co
 ## Compounding lessons
 
 - Write a compounding lesson only when a bug, edge case, or workflow mistake reveals a reusable repo-level lesson.
-- Keep them under `/docs/engineering-lessons`.
+- Keep them under `/specs/archive/old-research-notes/engineering-lessons`.
 - Check existing lessons when you hit a suspicious repeat issue.
 
 ## Final rule

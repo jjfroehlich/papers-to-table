@@ -1,18 +1,69 @@
-(placeholder, this page should describe in more detail how the app actually works, what is happening step by step, best with some good example text snippets)
+# Architecture
 
-# Architecture and data flow
-(placeholder, we need a better diagram here, it can be ascii, or in some other way, but needs to be accurate and detailed and informative)
+papers-to-table is a local-first app with three layers:
+
+- Browser frontend: run setup, live run list, proposal review, and export.
+- Backend API: config resolution, preflight, run orchestration, review endpoints, assets, and exports.
+- Run bundle: filesystem artifacts that connect the main app, eval, optimizer, and audits.
+
 ```mermaid
-flowchart LR
-  A[Inputs: table + schema + PDFs + config] --> B[Preflight/readiness]
-  B --> C[Parsing]
-  C --> D[Matching]
-  D --> E[Retrieval]
-  E --> F[Extraction]
-  F --> G[proposals/proposals.jsonl + evidence/evidence.jsonl]
-  G --> H[Review decisions]
-  H --> I[Export content-only XLSX + audit logs]
-  G --> J[Eval consumes run bundle]
-  I --> J
-  J --> K[Optimizer orchestrates repeated main-app + eval runs]
+flowchart TD
+  UI[Browser UI] --> API[FastAPI backend]
+  API --> CFG[Config + selected paths]
+  API --> RUN[Run executor]
+  RUN --> PF[Preflight]
+  PF --> PARSE[Parse PDFs]
+  PARSE --> MATCH[Match PDFs to rows]
+  MATCH --> ROWS[Append unmatched PDF rows when needed]
+  ROWS --> STYP[Generate style profiles from filled cells
+(text model or heuristic fallback)]
+  STYP --> RET[Retrieve relevant text, tables, captions]
+  RET --> PROMPT[Build per-cell extraction prompts]
+  PROMPT --> LLM[Call text model via provider adapter\n(LM Studio / compatible OpenAI API)]
+  LLM --> PARSEOUT[Parse + validate structured response]
+  PARSEOUT --> FIGCHK{Figure review enabled\nand supported?}
+  FIGCHK -->|Yes| FIGREV[Targeted vision calls for figure checks]
+  FIGCHK -->|No| PROP
+  FIGREV --> PROP[Best proposal + evidence + diagnostics]
+  PARSEOUT --> PROP
+  PROP --> REVIEW[Human review decisions]
+  REVIEW --> EXPORT[Accepted-only workbook export]
+  PROP --> EVAL[Eval companion]
 ```
+
+## Run Lifecycle
+
+a. User clicks "Start Run". The frontend sends `config.json`.
+b. Headless run via command-line.
+
+1. The backend resolves paths and runs readiness checks.
+2. If readiness passes, the run executor creates `{output_dir}/{run_id}` and writes early run metadata.
+3. The parser converts each PDF into normalized document JSON, page images, figures, and parser diagnostics.
+4. Matching compares extracted paper metadata against table rows.
+5. Unmatched PDFs: new in-memory table rows are created from extracted title, authors, year, and DOI when available.
+6. Retrieval selects relevant document chunks for each eligible target cell.
+7. If style profiles are enabled and pre-filled cells exist, they are generated once per column. The text model (via LM Studio) analyzes the format, length, tone, units, and value shape of already filled cells and returns a compact format descriptor. If no filled cells exist, a default style profile is used instead. If style profiles are disabled in config, this stage is skipped entirely and extraction continues with schema guidance only.
+8. Prompt builder composes a per-cell instruction package from schema guidance and the style profile when one exists.
+9. The backend sends each prompt package to the text model by an OpenAI-compatible HTTP call to the model provider endpoint (LM Studio). Extraction may run additional text-model calls for bounded recovery passes if there are problems (for example with structured output by the model).
+10. Structured output from LM Studio is parsed and validated against the field schema. Output is normalized to fit format (for example: trimming wrappers, coercing numeric strings to numbers, mapping yes/no variants to booleans, deduplicating list items, and attaching units in a consistent format). 
+11. Optional figure review by the vision model via LM Studio. This is decided per cell, and done when: figure review is enabled config, evidence-aware triggers indicate likely value (for example weak/unclear/contradictory text evidence or figure-promising retrieval), and shortlisted figures are available. 
+12. Figure review outputs are merged into the same proposal state together with text extraction; the supporting evidence is appended and ranked, and conflicts with text proposal are flagged; deterministic process without LLM model.
+13. Proposals are filtered by validity/support rules and one final proposal record is persisted per cell. This is done deterministically without LLM model and combines one text-path proposal with zero or more figure-review hits used for corroboration or rescue.
+14. Run artifacts are updated incrementally (proposals, diagnostics, and progress state).
+
+a. Review by the user, records decisions.
+b. All proposals are automatically accepted.
+
+14. Export writes spreadsheet with accepted proposals.
+
+### Extraction Mechanics
+
+- Normalization is a post-parse repair step for recoverable formatting and typing issues, not a semantic rewrite of the model answer.
+- Style profiles are generated by the text model when enabled and filled cells exist; otherwise a heuristic fallback is used, and if the feature is disabled the prompts fall back to schema guidance only. No raw values are copied into prompts or persisted profiles.
+- Figure review is selectively invoked per cell using evidence-aware triggers; no per-column schema vision policy is required.
+- Steps after a triggered vision call are deterministic merge/filter logic; they do not call another LLM.
+- The current persisted contract is one final proposal per cell, with text and figure evidence co-located for auditability.
+
+## Figure Review
+
+Figure review is controlled by `figure_review.enabled` in the config. When enabled and a vision model is configured, extraction may call the vision path for targeted figure checks. If the provider cannot support the configured vision path, readiness or runtime warnings explain why figure review was skipped or suppressed.

@@ -25,6 +25,11 @@ cd tools/optimizer
 python -m pip install -e .[dev]
 ```
 
+## Test command
+```bash
+bash scripts/test-optimizer-tool.sh
+```
+
 ## Recommended Commands
 
 ### Compare Models
@@ -52,6 +57,22 @@ python scripts/papers_to_table.py optimizer optimize-one-model
 ```bash
 python scripts/papers_to_table.py optimizer overnight
 ```
+
+## Low-level Command (tool-local)
+```bash
+cd tools/optimizer
+python -m paper_optimizer.cli optimize --study-type compare --config configs/compare_models.json --out runs/compare_out
+```
+
+## Inputs
+- optimizer config preset (`tools/optimizer/configs/*.json`)
+- benchmark manifest paths (table/schema/pdf_dir/gold)
+- candidate definitions and optional search spaces
+
+## Outputs
+- study-level summary artifacts
+- per-candidate run/eval outputs
+- recommended winner/default diagnostics
 
 ## Canonical Presets
 

@@ -14,25 +14,24 @@ Then open `http://127.0.0.1:5173`.
 
 ## Before You Start
 
-1. If no `app/config.json` exists, copy `app/config.example.json` to `app/config.json`.
-2. Point the config at your table, schema, PDF directory, and output directory.
-3. Confirm LM Studio is running.
-4. Run terminal preflight if you want a readiness check before opening the UI.
+1. Confirm LM Studio is running with the configured model loaded or available.
+2. Prepare a table and schema.
+3. Keep `app/config.json` for provider, parser, retrieval, prompt, diagnostics, and figure-review settings.
+4. Leave `table_path`, `schema_path`, `pdf_dir`, and `output_dir` blank if you prefer to select them in the browser.
 
 ```bash
 python scripts/papers_to_table.py preflight --config app/config.json
 ```
 
-## Preflight-First Run Setup
+## Run Setup
 
 ![Run setup screenshot](../screenshots/run-setup.png)
 
 - Start from the Run tab.
-- Enter the backend-readable config path.
-- Expand optional path overrides only when you need a one-run override for the table, schema, or PDF directory.
-- Use staging controls when browser-selected files need backend-readable staged handles.
-- Run preflight before launching so the operator can see resolved inputs, runtime locators, table/schema/PDF scope, provider readiness, and what the backend will do next.
-- Start extraction only after the preflight context is acceptable.
+- Select the table, schema, PDF files, and output directory in the interface, or type backend-readable paths.
+- If those paths are already present in `app/config.json`, they are used as defaults and can still be overridden for a single run.
+- Use **Check setup** when you want to preview resolved inputs, runtime locators, table/schema/PDF scope, and provider readiness.
+- Use **Start run** to run preflight and, if it passes, continue directly into extraction.
 
 ## Review Workspace
 

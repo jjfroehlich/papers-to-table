@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import signal
 import shutil
@@ -21,6 +22,21 @@ EVAL_DIR = REPO_ROOT / "tools" / "eval"
 OPTIMIZER_DIR = REPO_ROOT / "tools" / "optimizer"
 MKDOCS_CONFIG = REPO_ROOT / "tools" / "docs" / "mkdocs.yml"
 DOCS_REQUIREMENTS = REPO_ROOT / "tools" / "docs" / "requirements.txt"
+
+
+def _ensure_local_app_config() -> None:
+    target = APP_DIR / "config.json"
+    if target.exists():
+        return
+    with open(APP_DIR / "config.example.json", "r", encoding="utf-8") as handle:
+        data = json.load(handle)
+    data["table_path"] = ""
+    data["schema_path"] = ""
+    data["pdf_dir"] = ""
+    data["output_dir"] = ""
+    with open(target, "w", encoding="utf-8") as handle:
+        json.dump(data, handle, indent=2)
+        handle.write("\n")
 
 
 def _env_with_pythonpath(*extra_paths: Path) -> dict[str, str]:
@@ -101,6 +117,7 @@ def cmd_install(_args: argparse.Namespace) -> int:
         exit_code = _run(cmd, cwd=cwd, env=env)
         if exit_code != 0:
             return exit_code
+    _ensure_local_app_config()
     return 0
 
 

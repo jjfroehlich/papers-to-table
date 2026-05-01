@@ -78,16 +78,21 @@ Low-level command:
 
 ```bash
 cd tools/eval
-paper-eval evaluate ...
+python -m paper_eval evaluate --run /abs/run --gold /abs/gold.csv --schema /abs/schema.json --out /abs/eval_out
+```
+
+## Test command
+```bash
+bash scripts/test-eval-tool.sh
 ```
 
 ## Inputs
 
 You need:
 
-- one run bundle path or a runs-root directory
-- one gold CSV or XLSX file
-- optional schema metadata JSON for field typing, aliases, tolerances, and text-scoring overrides
+- run bundle directory (`run.json`, `proposals/proposals.jsonl` minimum)
+- gold table (csv/xlsx)
+- optional eval schema JSON for field typing, aliases, tolerances, and text-scoring overrides
 
 Required run-bundle artifacts:
 
@@ -95,6 +100,9 @@ Required run-bundle artifacts:
 - `proposals/proposals.jsonl`
 
 ## Outputs
+- summary metrics
+- per-cell outputs
+- compare artifacts when batch mode is used
 
 `evaluate` writes:
 
@@ -115,11 +123,18 @@ out/
 
 ## How To Read The Metrics
 
-- content correctness: main metric for scored content cells
-- overall correctness: broader metric that can include metadata lanes
-- anchor-valid rate / evidence quality: how much persisted evidence remains anchor-valid. 
-- judge disagreement: how often judge A and judge B differ on their judgement of text fields
-- join failures / missing proposals: where the run bundle could not line up with benchmark data as expected
+Eval first joins run proposals to gold rows and columns. It uses stable run metadata when available (`row_id`, `row_index`, `column_name`) plus the gold table and optional eval schema. Cells that cannot be joined become join failures or missing-proposal counts rather than being treated as wrong values silently.
+
+Metrics are calculated from these joined cells:
+
+- content correctness: the main score for target content cells. Numeric, boolean, and categorical fields are scored deterministically where possible; free-text fields can be judged by one or two configured LLM judges.
+- overall correctness: a broader aggregate that can include metadata lanes when the schema included them.
+- evidence quality: checks whether persisted evidence exists and remains usable, including anchor-valid highlights, page references, and evidence type.
+- judge disagreement: the rate at which judge A and judge B differ on text-cell correctness.
+- missing proposals: target cells present in gold data but missing from the run proposals.
+- join failures: run or gold records that could not be aligned to the expected row/column contract.
+
+The evaluator writes per-cell records first, then aggregates those records into `run_summary.json`, `run_summary.csv`, and the cross-run comparison files.
 
 ## Warnings
 
@@ -128,9 +143,9 @@ out/
 - missing evidence or invalid anchors: the run produced values but evidence grounding is weak or missing
 - unscored text cells: the evaluator could not get a deterministic or judged answer for every text cell
 
-## Rebuild Comparison Outputs
+## Rebuilding Comparison Outputs
 
-Used to re-generate cross-run comparison files for an existing batch of runs (when you already have per-run eval outputs).
+Can be used to re-generate cross-run comparison files for an existing batch of runs (when you already have per-run eval outputs).
 
 ```bash
 cd tools/eval

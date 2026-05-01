@@ -50,6 +50,7 @@ nav:
   - Getting Started:
       - Model Provider (LM Studio): getting-started/lm-studio.md
       - Installation: getting-started/installation.md
+      - Prepare Table and Schema: getting-started/prepare-schema.md
       - Configuration: getting-started/configuration.md
       - Preflight And Run Commands: getting-started/preflight-and-run.md
       - Troubleshooting: getting-started/troubleshooting.md

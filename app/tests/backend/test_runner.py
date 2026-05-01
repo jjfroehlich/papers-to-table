@@ -781,7 +781,7 @@ class TestRunPipeline:
         proposals_dir = pathlib.Path(output_dir) / run_id / "proposals"
         run_data = read_json(get_run_json_path(output_dir, run_id))
 
-        assert run_data["proposals_generated"] == 1
+        assert run_data["proposals_generated"] == 2
         assert (proposals_dir / "proposals.jsonl").exists()
         assert (proposals_dir / "proposal_index.json").exists()
 

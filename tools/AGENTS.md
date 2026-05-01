@@ -9,12 +9,13 @@ Durable editing and verification rules for coding agents working in this reposit
 - Preserve strict role separation:
   - main app = execution
   - eval app = scoring
-  - optimizer = orchestration
+  - optimizer app = orchestration
 - Do not move extraction/scoring logic into optimizer docs or code unless explicitly requested as a product change.
 
 ## Canonical spec roles
 
 - `../../specs/tools/optimizer.md`: stable optimizer behavior and scope only.
+- `../../specs/tools/eval.md` records stable eval-tool behavior and scope.
 - `../../specs/contracts/`: shared cross-tool contracts.
 - `../../specs/architecture/`: monorepo structure and integration boundaries.
 - `../../specs/process/`: change and testing policy.
@@ -58,3 +59,7 @@ Before finishing a spec/doc pass:
 2. Confirm status truth appears in one canonical place (`../../specs/tasks.md`).
 3. Confirm no duplicated policy statements are spread across all docs unnecessarily.
 4. Confirm `README.md` remains truthful to current code behavior and limitations.
+
+## Run-bundle relationship
+Eval is a consumer of main-app contracts; it does not create or mutate run bundles.
+Optimizer orchestrates main-app runs and eval scoring; it does not reimplement extraction or scoring logic.

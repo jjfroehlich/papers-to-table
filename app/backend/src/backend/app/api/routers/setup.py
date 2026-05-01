@@ -40,6 +40,12 @@ def _resolve_preflight_config(request: RunPreflightRequest):
         raise HTTPException(status_code=400, detail=f'Config error: {exc}')
 
     config_base_dir = pathlib.Path(request.config_path).resolve().parent
+    if request.output_dir:
+        try:
+            config = apply_overrides(config, {'output_dir': request.output_dir}, base_dir=str(config_base_dir))
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f'Output directory override error: {exc}')
+
     resolved_inputs: dict[str, Any] = {
         'table_path': {
             'source_kind': 'config',
@@ -55,6 +61,11 @@ def _resolve_preflight_config(request: RunPreflightRequest):
             'source_kind': 'config',
             'logical_source': config.pdf_dir,
             'runtime_locator': config.pdf_dir,
+        },
+        'output_dir': {
+            'source_kind': 'path_override' if request.output_dir else 'config',
+            'logical_source': request.output_dir or config.output_dir,
+            'runtime_locator': config.output_dir,
         },
     }
 
@@ -161,6 +172,19 @@ async def preflight_run(request: RunPreflightRequest):
 @router.post('/api/runs', response_model=CreateRunResponse)
 async def create_run(request: CreateRunRequest):
     config, resolved_inputs = _resolve_preflight_config(RunPreflightRequest.model_validate(request.model_dump()))
+    readiness = await check_readiness(config)
+    if not readiness.ok:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                'message': 'Preflight failed. Resolve the blocking issues before starting the run.',
+                'errors': readiness.errors,
+                'warnings': readiness.warnings,
+                'provider_mode': readiness.provider_mode,
+                'provider_readiness_reason': readiness.provider_readiness_reason,
+                'provider_readiness_error': readiness.provider_readiness_error,
+            },
+        )
 
     run_id = generate_run_id()
     get_run_executor().launch(run_id, config, request.config_path, config.output_dir, resolved_inputs=resolved_inputs)

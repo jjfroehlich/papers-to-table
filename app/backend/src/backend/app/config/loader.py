@@ -38,7 +38,7 @@ def load_config(path: str) -> RunConfig:
 def apply_overrides(config: RunConfig, overrides: dict, base_dir: str | None = None) -> RunConfig:
     data = config.model_dump()
     resolved_base_dir = Path(base_dir).resolve() if base_dir else None
-    for key in ('table_path', 'schema_path', 'pdf_dir'):
+    for key in ('table_path', 'schema_path', 'pdf_dir', 'output_dir'):
         if key in overrides and overrides[key] is not None:
             data[key] = _resolve_path_value(overrides[key], resolved_base_dir) if resolved_base_dir is not None else overrides[key]
     return RunConfig.model_validate(data)

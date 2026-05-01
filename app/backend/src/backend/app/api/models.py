@@ -6,10 +6,11 @@ from pydantic import BaseModel
 
 
 class CreateRunRequest(BaseModel):
-    config_path: str
+    config_path: str = "config.json"
     table_path: Optional[str] = None
     schema_path: Optional[str] = None
     pdf_dir: Optional[str] = None
+    output_dir: Optional[str] = None
     table_staged_handle: Optional[str] = None
     schema_staged_handle: Optional[str] = None
     pdf_dir_staged_handle: Optional[str] = None

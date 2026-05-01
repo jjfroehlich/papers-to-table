@@ -131,6 +131,7 @@ export interface CreateRunRequest {
   table_path?: string
   schema_path?: string
   pdf_dir?: string
+  output_dir?: string
   table_staged_handle?: string
   schema_staged_handle?: string
   pdf_dir_staged_handle?: string

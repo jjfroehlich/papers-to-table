@@ -53,7 +53,7 @@ vi.mock('./components/ReviewWorkspace', () => ({
 }))
 
 describe('App', () => {
-  it('surfaces stale live-stream truth when the event stream disconnects', async () => {
+  it('refreshes runs quietly when the event stream reports an error', async () => {
     const source = new MockEventSource()
     vi.stubGlobal('EventSource', MockEventSource)
     mockCreateRunEventsSource.mockReturnValue(source)
@@ -101,7 +101,8 @@ describe('App', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByText(/Live run updates are disconnected/i)).toBeInTheDocument()
+      expect(mockListRuns).toHaveBeenCalledTimes(2)
     })
+    expect(screen.queryByText(/Live run updates are disconnected/i)).not.toBeInTheDocument()
   })
 })

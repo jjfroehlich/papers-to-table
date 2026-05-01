@@ -11,6 +11,8 @@ from importlib.metadata import PackageNotFoundError, version as package_version
 from time import perf_counter
 from typing import Optional
 
+import pandas as pd
+
 from .artifacts import (
     EVIDENCE_RECORD_SCHEMA_VERSION,
     PROPOSAL_RECORD_SCHEMA_VERSION,
@@ -119,6 +121,85 @@ def _default_parse_cache_dir(config: RunConfig) -> pathlib.Path:
     if isinstance(explicit, str) and explicit.strip():
         return pathlib.Path(explicit).resolve()
     return pathlib.Path(config.pdf_dir).resolve() / ".extract_structured_parse_cache"
+
+
+def _metadata_value(metadata: dict[str, object], key: str) -> str:
+    value = metadata.get(key)
+    if value is None:
+        return ""
+    if key == "authors" and isinstance(value, list):
+        return "; ".join(str(item).strip() for item in value if str(item).strip())
+    return str(value).strip()
+
+
+def _row_from_paper_metadata(df: pd.DataFrame, result: MatchResult) -> dict[str, str]:
+    metadata = result.extracted_metadata if isinstance(result.extracted_metadata, dict) else {}
+    row = {str(column): "" for column in df.columns}
+    if "Title" in row:
+        row["Title"] = _metadata_value(metadata, "title") or result.pdf_id
+    if "Authors" in row:
+        row["Authors"] = _metadata_value(metadata, "authors")
+    if "Publication Year" in row:
+        row["Publication Year"] = _metadata_value(metadata, "year")
+    if "DOI" in row:
+        row["DOI"] = _metadata_value(metadata, "doi")
+    return row
+
+
+def _materialize_unmatched_pdf_rows(
+    df: pd.DataFrame,
+    eligible: list[dict],
+    match_results: list[MatchResult],
+    schema: list[dict],
+) -> tuple[pd.DataFrame, list[dict], list[MatchResult], list[str], list[tuple[int, dict[str, str]]]]:
+    augmented_df = df.copy(deep=True)
+    augmented_eligible = list(eligible)
+    augmented_matches: list[MatchResult] = []
+    added_pdf_ids: list[str] = []
+    added_rows: list[tuple[int, dict[str, str]]] = []
+    target_columns = [
+        column.get("column_name")
+        for column in schema
+        if column.get("column_name") in augmented_df.columns
+        and column.get("column_name") not in {"Title", "Authors", "Publication Year"}
+    ]
+
+    for result in match_results:
+        if result.outcome != MatchOutcome.unmatched:
+            augmented_matches.append(result)
+            continue
+
+        new_index = len(augmented_df.index)
+        row = _row_from_paper_metadata(augmented_df, result)
+        augmented_df.loc[new_index] = row
+        added_pdf_ids.append(result.pdf_id)
+        added_rows.append((new_index, row))
+        for column_name in target_columns:
+            augmented_eligible.append(
+                {
+                    "row_index": int(new_index),
+                    "column_name": column_name,
+                    "current_value": "",
+                    "eligibility": "eligible",
+                }
+            )
+        augmented_matches.append(
+            result.model_copy(
+                update={
+                    "outcome": MatchOutcome.matched,
+                    "matched_row_index": int(new_index),
+                    "matched_row_title": row.get("Title") or result.pdf_id,
+                    "blocked": False,
+                    "blocked_reason": None,
+                    "reasoning": (
+                        result.reasoning
+                        + " A new table row was created from extracted paper metadata for proposal generation."
+                    ),
+                }
+            )
+        )
+
+    return augmented_df, augmented_eligible, augmented_matches, added_pdf_ids, added_rows
 
 
 def _installed_package_version(package_name: str) -> str | None:
@@ -1686,16 +1767,35 @@ async def run_pipeline(
             df=df,
             ambiguity_threshold=config.matching.ambiguity_threshold,
         )
+        df, eligible, match_results, added_pdf_ids, added_rows = _materialize_unmatched_pdf_rows(
+            df,
+            eligible,
+            match_results,
+            schema,
+        )
+        if added_rows:
+            for new_index, row in added_rows:
+                extraction_df.loc[new_index] = row
+                style_profile_df.loc[new_index] = row
         persist_match_artifacts(run_dir, run_id, match_results)
         persist_review_lookup(
             run_id=run_id,
             output_dir=output_dir,
             table_path=config.table_path,
             schema_path=config.schema_path,
+            dataframe=df,
+            schema=schema,
         )
 
         for mr in match_results:
-            if mr.outcome == MatchOutcome.unmatched:
+            if mr.pdf_id in added_pdf_ids:
+                run_stats["counters"]["matched_pdfs"] += 1
+                run_data.setdefault("warnings", []).append({
+                    "category": WC.unmatched_pdf.value,
+                    "message": f"PDF was not matched to an existing row; a new row was staged for review: {mr.pdf_id}",
+                    "context": {"pdf_id": mr.pdf_id, "row_index": mr.matched_row_index},
+                })
+            elif mr.outcome == MatchOutcome.unmatched:
                 run_stats["counters"]["unmatched_pdfs"] += 1
                 run_data.setdefault("warnings", []).append({
                     "category": WC.unmatched_pdf.value,
