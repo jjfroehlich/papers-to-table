@@ -343,11 +343,43 @@
   },
   "optimize": {
     "rounds": 2,
-    "batch_size": 2
+    "batch_size": 2,
+    "suite_id": "dev_suite"
   },
   "compare": {
     "holdout_top_k": 0,
     "require_structured_output_for_extraction": true,
-    "allow_degraded_candidates": false
+    "allow_degraded_candidates": false,
+    "suite_id": "dev_suite"
+  },
+  "benchmark_suites": {
+    "smoke_suite": {
+      "benchmark_ids": [
+        "bench_smoke"
+      ],
+      "aggregation": {
+        "method": "weighted_mean",
+        "primary_metric": "content_correctness",
+        "weights": {
+          "bench_smoke": 1.0
+        }
+      }
+    },
+    "dev_suite": {
+      "benchmark_ids": [
+        "bench_dev"
+      ],
+      "aggregation": {
+        "method": "weighted_mean",
+        "primary_metric": "content_correctness",
+        "weights": {
+          "bench_dev": 1.0
+        }
+      }
+    }
+  },
+  "replicates": {
+    "count": 1,
+    "continue_on_failure": true
   }
 }

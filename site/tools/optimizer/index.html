@@ -1245,7 +1245,7 @@ python<span class="w"> </span>-m<span class="w"> </span>paper_optimizer.cli<span
 <li><code>overnight</code> chains several compare and optimize stages together.</li>
 </ul>
 <h2 id="benchmark-suites-and-replicates">Benchmark Suites And Replicates<a class="headerlink" href="#benchmark-suites-and-replicates" title="Permanent link">&para;</a></h2>
-<p>Benchmark suites and replicates are implemented as additive runtime features. Existing single-benchmark configs and commands still use <code>benchmarks.dev</code>, <code>benchmarks.holdout</code>, and <code>benchmarks.smoke</code> exactly as before unless you opt into a suite or set <code>replicates.count &gt; 1</code>.</p>
+<p>Benchmark suites and replicates are the canonical runtime model. A simple run is a one-benchmark suite with <code>replicates.count = 1</code>; multi-benchmark suites and repeated replicates use the same execution path.</p>
 <p>Use benchmark suites when you need one study to cover several distinct benchmark aspects, for example:</p>
 <ul>
 <li>text extraction</li>
@@ -1254,7 +1254,7 @@ python<span class="w"> </span>-m<span class="w"> </span>paper_optimizer.cli<span
 <li>metadata-heavy matching and extraction</li>
 </ul>
 <p>Use replicates when you want to estimate stability instead of trusting one candidate x benchmark run.</p>
-<p>Additive config shape:</p>
+<p>Canonical config shape:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;benchmark_suites&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;dev_suite&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -1288,6 +1288,10 @@ python<span class="w"> </span>-m<span class="w"> </span>paper_optimizer.cli<span
 <p>Run suite mode with the low-level CLI:</p>
 <div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>tools/optimizer
 python<span class="w"> </span>-m<span class="w"> </span>paper_optimizer.cli<span class="w"> </span>optimize<span class="w"> </span>--study-type<span class="w"> </span>compare<span class="w"> </span>--config<span class="w"> </span>configs/compare_models.json<span class="w"> </span>--suite<span class="w"> </span>dev_suite<span class="w"> </span>--out<span class="w"> </span>runs/compare_suite
+</code></pre></div>
+<p>Evaluate one candidate against a suite:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>tools/optimizer
+python<span class="w"> </span>-m<span class="w"> </span>paper_optimizer.cli<span class="w"> </span>evaluate-candidate<span class="w"> </span>--config<span class="w"> </span>configs/compare_models_contract_smoke.json<span class="w"> </span>--candidate-file<span class="w"> </span>candidate.json<span class="w"> </span>--suite<span class="w"> </span>smoke_suite<span class="w"> </span>--out<span class="w"> </span>runs/single_candidate
 </code></pre></div>
 <p>Wrapper examples:</p>
 <div class="highlight"><pre><span></span><code>python<span class="w"> </span>scripts/papers_to_table.py<span class="w"> </span>optimizer<span class="w"> </span>compare-models<span class="w"> </span>--suite<span class="w"> </span>dev_suite<span class="w"> </span>--replicates<span class="w"> </span><span class="m">3</span>

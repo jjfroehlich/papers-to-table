@@ -4,14 +4,13 @@ import argparse
 import json
 from pathlib import Path
 
-from .benchmarks import benchmark_id_for_split, load_benchmarks
+from .benchmarks import load_benchmarks
 from .bundle import build_candidate_from_dict
-from .pipeline import evaluate_candidate_once
 from .overnight import generate_overnight_report
 from .results import ResultsWriter
 from .search_space import load_search_space
 from .settings import load_config
-from .study import run_compare_mode, run_optimize_mode, summarize, validate_best
+from .study import evaluate_candidate_suite, run_compare_mode, run_optimize_mode, summarize, validate_best
 from .utils import read_json
 from .validation import validate_preflight
 
@@ -30,10 +29,10 @@ def _build_parser() -> argparse.ArgumentParser:
     optimize.add_argument("--suite", help="Benchmark suite id from config.benchmark_suites")
     optimize.add_argument("--replicates", type=int, help="Override config replicates.count")
 
-    eval_candidate = sub.add_parser("evaluate-candidate", help="Evaluate one candidate against a benchmark split")
+    eval_candidate = sub.add_parser("evaluate-candidate", help="Evaluate one candidate against a benchmark suite")
     eval_candidate.add_argument("--config", type=Path, required=True)
     eval_candidate.add_argument("--candidate-file", type=Path, required=True)
-    eval_candidate.add_argument("--benchmark", choices=["smoke", "dev", "holdout"], required=True)
+    eval_candidate.add_argument("--suite", required=True, help="Benchmark suite id such as smoke_suite, dev_suite, or holdout_suite")
     eval_candidate.add_argument("--out", type=Path, required=True)
 
     validate = sub.add_parser("validate-best", help="Run holdout validation on best or top-k candidates")
@@ -78,6 +77,7 @@ def _cmd_preflight(args: argparse.Namespace) -> None:
                 "schema_version": config["schema_version"],
                 "experiment_id": config["experiment_id"],
                 "benchmarks": sorted(benchmarks.manifests.keys()),
+                "benchmark_suites": sorted(config.get("benchmark_suites", {}).keys()),
                 "splits": dict(sorted(benchmarks.split_to_id.items())),
             },
             sort_keys=True,
@@ -98,24 +98,24 @@ def _cmd_evaluate_candidate(args: argparse.Namespace) -> None:
         round_index=payload.get("round_index"),
     )
 
-    benchmark_id = benchmark_id_for_split(benchmarks, args.benchmark)
     writer = ResultsWriter(args.out)
     writer.write_experiment_manifest(
         {
             "schema_version": config["schema_version"],
             "experiment_id": config["experiment_id"],
             "study_type": "single",
-            "benchmark_id": benchmark_id,
+            "suite_id": args.suite,
         }
     )
-    result = evaluate_candidate_once(
+    result = evaluate_candidate_suite(
         config,
         experiment_dir=args.out,
         candidate=candidate,
-        benchmark_id=benchmark_id,
+        suite_id=args.suite,
         study_type="single",
         decision="evaluated",
         reason="single_candidate_eval",
+        writer=writer,
     )
     writer.append_result(result)
 

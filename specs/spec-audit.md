@@ -2,7 +2,7 @@
 
 ## Purpose and context
 
-This audit records the current state of the spec system after the 2026-05-01 spec-structure consolidation pass and before the next optimizer implementation pass.
+This audit records the current state of the spec system after the 2026-05-01 spec-structure consolidation pass and the optimizer suite/replicate implementation pass.
 
 Audit date: 2026-05-01  
 Repository: `/home/runner/work/papers-to-table/papers-to-table`
@@ -38,11 +38,10 @@ The consolidation completed earlier in this branch moved `specs/spec.md` toward 
 ### Where specs and app currently appear aligned
 
 - The integrated spec now describes `specs/spec.md` as the cross-repo summary instead of a second full owner for optimizer, eval, and contract detail.
-- The optimizer code currently matches a single-benchmark selection model:
-  - `/home/runner/work/papers-to-table/papers-to-table/tools/optimizer/paper_optimizer/benchmarks.py` loads named manifests and maps `smoke`, `dev`, and `holdout` splits to one benchmark id each.
-  - `/home/runner/work/papers-to-table/papers-to-table/tools/optimizer/paper_optimizer/settings.py` validates one `benchmarks` object with manifest definitions plus optional `smoke`/`dev`/`holdout` selectors.
-  - `/home/runner/work/papers-to-table/papers-to-table/tools/optimizer/paper_optimizer/pipeline.py` evaluates one candidate against one benchmark id at a time.
-  - `/home/runner/work/papers-to-table/papers-to-table/tools/optimizer/paper_optimizer/cli.py` limits `evaluate-candidate --benchmark` to `smoke`, `dev`, or `holdout`.
+- The optimizer runtime now uses suite/replicate orchestration as the canonical execution path. One-benchmark work is represented as a one-benchmark suite with one replicate.
+  - `/home/runner/work/papers-to-table/papers-to-table/tools/optimizer/paper_optimizer/settings.py` normalizes split aliases into suites for migration convenience.
+  - `/home/runner/work/papers-to-table/papers-to-table/tools/optimizer/paper_optimizer/study.py` orchestrates candidate x suite x benchmark x replicate execution.
+  - `/home/runner/work/papers-to-table/papers-to-table/tools/optimizer/paper_optimizer/cli.py` uses suite ids for low-level candidate evaluation.
 - The docs and specs both treat optimizer as an orchestration tool rather than an extraction or scoring runtime.
 
 ### Where specs were recently consolidated
@@ -54,54 +53,53 @@ The consolidation completed earlier in this branch moved `specs/spec.md` toward 
 ### Where docs, specs, and configs still risk duplication or drift
 
 - Optimizer docs, optimizer spec text, and `tools/optimizer/configs/*.json` all describe benchmark behavior; they can drift if future suite/replicate config adds fields without simultaneous doc/spec updates.
-- Optimizer reports and plotting code currently emit candidate-level outputs, while the next planned suite/replicate extension will need new aggregate artifacts and clear naming to avoid mismatches between report wording and actual files.
-- The checked-in optimizer configs remain centered on manifest-level `smoke`/`dev`/`holdout` selectors, so future suite examples must avoid implying that suite execution already exists.
-- The CLI surface and docs currently describe single benchmark split selection; any later suite CLI surface must be additive and must not silently redefine existing split semantics.
+- Optimizer reports and plotting now emit candidate, replicate, benchmark-summary, and suite-summary outputs.
+- Checked-in optimizer configs now declare explicit benchmark suites and replicate settings.
+- Split aliases may remain for convenience, but suite ids are the runtime-facing selection surface.
 
 ## Optimizer-specific current-state findings
 
-The current optimizer implementation is still single-benchmark oriented.
+The current optimizer implementation is suite/replicate oriented.
 
-- Current optimizer supports single benchmark split selection via `smoke` / `dev` / `holdout`.
-- Current `BenchmarkManifest` represents one table/schema/pdf_dir/gold/eval setup.
-- Current `evaluate_candidate_once` evaluates one candidate on one benchmark.
-- Current CLI `evaluate-candidate` is limited to `smoke` / `dev` / `holdout`.
-- Current reports are candidate-level, not true suite or replicate aggregation.
+- Canonical execution is candidate x suite x benchmark x replicate.
+- `BenchmarkManifest` still represents one table/schema/pdf_dir/gold/eval setup.
+- One-benchmark suites are the supported simple case.
+- `evaluate_candidate_once` remains as the leaf implementation for one candidate x one benchmark x one replicate.
+- Compare, optimize, holdout validation, and low-level candidate evaluation resolve to suite execution plans.
+- Current reports include suite ranking, benchmark summaries, replicate visibility, failure/degraded counts, and trust caveats.
 
 Observed code anchors:
 
-- `tools/optimizer/paper_optimizer/benchmarks.py`
 - `tools/optimizer/paper_optimizer/settings.py`
 - `tools/optimizer/paper_optimizer/pipeline.py`
 - `tools/optimizer/paper_optimizer/study.py`
+- `tools/optimizer/paper_optimizer/results.py`
 - `tools/optimizer/paper_optimizer/report.py`
 - `tools/optimizer/paper_optimizer/plotting.py`
 - `tools/optimizer/paper_optimizer/cli.py`
 
-## Explicit missing features
+## Suite and replicate implementation status
 
-These features were missing at the time of the audit and have since been implemented in the optimizer runtime:
+Implemented runtime features:
 
-- benchmark suites
-- replicates
-- suite-level aggregation and reporting
-
-Current implementation follow-up:
-
-- config validation now covers `benchmark_suites`
-- config validation now covers `replicates`
-- persisted replicate rows include `replicate_index` and `replicate_id`
-- suite-level weighted aggregation uses benchmark-level means
-- report and plotting outputs now surface replicate caveats and `n=1` warnings
+- benchmark suite config validation
+- replicate config validation
+- suite execution plans
+- candidate x suite x benchmark x replicate orchestration
+- persisted `replicate_index` and `replicate_id`
+- benchmark-level aggregate artifacts
+- suite-level aggregate artifacts using benchmark-level means
+- report and plotting outputs that surface replicate caveats and `n=1` warnings
 
 ## Implementation order used for suite and replicate support
 
-1. Extend optimizer config loading and validation to accept additive `benchmark_suites` and `replicates` sections without breaking existing `benchmarks.dev` / `benchmarks.holdout` behavior.
-2. Add benchmark-suite resolution logic that turns an explicit ordered suite id into ordered benchmark ids, while preserving the current single-benchmark default when no suite is configured.
+1. Extend optimizer config loading and validation to accept `benchmark_suites` and `replicates` sections.
+2. Add benchmark-suite resolution logic that turns an explicit ordered suite id into ordered benchmark ids.
 3. Add replicate orchestration for candidate x benchmark execution, with explicit replicate ids, artifact paths, and visible failed or degraded replicate results.
 4. Add persisted benchmark-level and suite-level aggregation artifacts, including benchmark coverage, failure counts, degraded counts, runtime summaries, SD, and SEM.
-5. Update ranking, reporting, and plotting so suite mode and replicate mode show trust caveats, error bars, `n=1` warnings, and the distinction between raw winner and recommended default.
-6. Add backward-compatibility tests for old configs, old CLI behavior, and readability of existing result files.
+5. Update ranking, reporting, and plotting so suite mode and replicate mode show trust caveats, `n=1` warnings, and the distinction between raw winner and recommended default.
+6. Replace old one-benchmark execution branches with the canonical suite execution path.
+7. Migrate checked-in optimizer configs to explicit suite and replicate settings.
 
 ## Verification performed
 

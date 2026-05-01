@@ -74,8 +74,3 @@ def load_benchmarks(config: dict[str, Any]) -> Benchmarks:
 
     return Benchmarks(split_to_id=split_to_id, manifests=manifests)
 
-
-def benchmark_id_for_split(benchmarks: Benchmarks, split: str) -> str:
-    if split not in benchmarks.split_to_id:
-        raise BenchmarkError(f"Unknown or unconfigured benchmark split: {split}")
-    return benchmarks.split_to_id[split]

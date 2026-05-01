@@ -352,6 +352,36 @@ def base_config(tmp_path: Path, stub_scripts: dict[str, str]) -> dict:
                 },
             },
         },
+        "benchmark_suites": {
+            "smoke_suite": {
+                "benchmark_ids": ["bench_smoke"],
+                "aggregation": {
+                    "method": "weighted_mean",
+                    "primary_metric": "correctness",
+                    "weights": {"bench_smoke": 1.0},
+                },
+            },
+            "dev_suite": {
+                "benchmark_ids": ["bench_dev"],
+                "aggregation": {
+                    "method": "weighted_mean",
+                    "primary_metric": "correctness",
+                    "weights": {"bench_dev": 1.0},
+                },
+            },
+            "holdout_suite": {
+                "benchmark_ids": ["bench_holdout"],
+                "aggregation": {
+                    "method": "weighted_mean",
+                    "primary_metric": "correctness",
+                    "weights": {"bench_holdout": 1.0},
+                },
+            },
+        },
+        "replicates": {
+            "count": 1,
+            "continue_on_failure": True,
+        },
         "main_app": {
             "repo_root": stub_scripts["main_repo"],
             "base_config_path": stub_scripts["base_config_path"],
@@ -393,9 +423,13 @@ def base_config(tmp_path: Path, stub_scripts: dict[str, str]) -> dict:
         "optimize": {
             "rounds": 2,
             "batch_size": 2,
+            "suite_id": "dev_suite",
+            "holdout_suite_id": "holdout_suite",
         },
         "compare": {
             "holdout_top_k": 1,
+            "suite_id": "dev_suite",
+            "holdout_suite_id": "holdout_suite",
         },
     }
 

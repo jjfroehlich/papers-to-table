@@ -67,6 +67,27 @@ def test_checked_in_planned_configs_disallow_degraded_scores() -> None:
             assert payload["compare"]["allow_degraded_candidates"] is False
 
 
+def test_checked_in_configs_use_explicit_suites_and_replicates() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    for path in (repo_root / "configs").glob("*.json"):
+        cfg = load_config(path)
+        suites = cfg["benchmark_suites"]
+        assert suites
+        assert cfg["replicates"]["count"] >= 1
+        assert isinstance(cfg["replicates"]["continue_on_failure"], bool)
+        for suite_id, suite in suites.items():
+            assert suite["benchmark_ids"]
+            assert suite["aggregation"]["method"] == "weighted_mean"
+            assert suite["aggregation"]["primary_metric"] == cfg["acceptance"]["primary_metric"]
+            assert set(suite["aggregation"]["weights"]).issubset(set(suite["benchmark_ids"]))
+        assert cfg["compare"]["suite_id"] in suites
+        assert cfg["optimize"]["suite_id"] in suites
+        if "holdout_suite_id" in cfg["compare"]:
+            assert cfg["compare"]["holdout_suite_id"] in suites
+        if "holdout_suite_id" in cfg["optimize"]:
+            assert cfg["optimize"]["holdout_suite_id"] in suites
+
+
 def test_checked_in_planned_configs_pin_non_gemma_non_qwen_judge_b() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     for path in (repo_root / "configs").glob("*.json"):

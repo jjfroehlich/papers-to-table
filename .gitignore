@@ -54,4 +54,6 @@ frontend/test-results/
 frontend/tsconfig.tsbuildinfo
 tools/eval/out/
 
+# built documentation pages
 **/.site/
+site/

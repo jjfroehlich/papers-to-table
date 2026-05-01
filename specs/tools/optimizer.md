@@ -49,19 +49,19 @@ Prepared operator workflows are:
 
 ## Current benchmark selection behavior
 
-The current optimizer runtime selects one benchmark at a time.
+The optimizer runtime uses suite and replicate execution as its canonical model:
 
-- `benchmarks.smoke`, `benchmarks.dev`, and `benchmarks.holdout` map split names to one benchmark id each.
-- Compare and optimize studies currently run against one resolved `dev` benchmark id at a time.
-- Holdout validation currently runs against one resolved `holdout` benchmark id at a time.
-- Tool-local `evaluate-candidate` currently accepts only `--benchmark smoke`, `--benchmark dev`, or `--benchmark holdout`.
-- Current reports, plots, and result rows are candidate-level outputs for one benchmark at a time, not true suite or replicate aggregates.
+candidate x suite x benchmark x replicate
 
-This single-benchmark behavior is current runtime truth and must remain backward-compatible.
+A one-benchmark run is represented as a one-benchmark suite with `replicates.count = 1`.
+
+The split names `smoke`, `dev`, and `holdout` may remain as convenience aliases in configs, but runtime execution resolves them into explicit suites such as `smoke_suite`, `dev_suite`, and `holdout_suite`.
+
+Tool-local `evaluate-candidate` is suite-based and accepts `--suite`.
 
 ## Benchmark manifests
 
-Existing single benchmark manifests remain valid.
+Single benchmark manifests remain valid as benchmark leaves inside suites.
 
 One manifest represents one benchmark definition with one:
 
@@ -75,11 +75,9 @@ One manifest represents one benchmark definition with one:
 
 Manifest-level `benchmark_kind` and `benchmark_label` remain important because they distinguish real benchmark evidence from fixture, smoke, or other non-canonical evidence.
 
-The current runtime shape is represented by `BenchmarkManifest` and corresponds to one table/schema/pdf_dir/gold/eval setup, not a multi-benchmark suite.
+`BenchmarkManifest` corresponds to one table/schema/pdf_dir/gold/eval setup. Multi-benchmark behavior belongs to suite execution, not to an overloaded manifest.
 
 ## Benchmark suites
-
-Benchmark suites are specified additive behavior for the next implementation pass. They are not implemented in the current runtime yet.
 
 A benchmark suite is an explicit ordered set of benchmark ids.
 
@@ -92,16 +90,17 @@ Its purpose is to let one study evaluate candidates across separate benchmark as
 
 Required suite rules:
 
-- Suites must be explicit in config.
+- Suites must be explicit in checked-in configs.
 - Optimizer must not silently include all manifests unless config explicitly asks for that.
-- Existing `benchmarks.dev` behavior remains the backward-compatible default when no suite is configured.
+- One-benchmark suites are the supported simple case.
+- A small config-load normalization shim may convert split aliases into one-benchmark suites for local migration convenience.
 - Suite order must be preserved in persisted metadata and reports so operators can tell which benchmark ran first and how the suite was constructed.
 - A suite must reference known benchmark ids only.
 - Suite metadata must preserve enough information to distinguish the suite identifier from the benchmark identifiers nested inside it.
 
-## Proposed additive config shape
+## Config shape
 
-The next implementation pass should accept additive suite and replicate config like:
+Canonical optimizer configs include suite and replicate sections like:
 
 ```json
 {
@@ -122,26 +121,33 @@ The next implementation pass should accept additive suite and replicate config l
   "replicates": {
     "count": 3,
     "continue_on_failure": true
+  },
+  "compare": {
+    "suite_id": "dev_suite",
+    "holdout_suite_id": "holdout_suite"
+  },
+  "optimize": {
+    "suite_id": "dev_suite",
+    "holdout_suite_id": "holdout_suite"
   }
 }
 ```
 
-Config requirements for that additive shape:
+Config requirements:
 
 - `benchmark_suites` is an object keyed by suite id.
 - Each suite definition must include an ordered `benchmark_ids` array.
 - Each suite definition must include explicit aggregation intent.
-- `aggregation.method` currently should support `weighted_mean` for suite-level scoring.
+- `aggregation.method` currently supports `weighted_mean` for suite-level scoring.
 - `aggregation.primary_metric` must name one metric already exposed through optimizer acceptance and reporting.
 - `aggregation.weights` must be explicit when `weighted_mean` is used.
 - `replicates.count` must be a positive integer.
-- `replicates.continue_on_failure` controls whether one failed replicate blocks the remaining planned replicates for that candidate × benchmark.
+- `replicates.continue_on_failure` controls whether one failed replicate blocks the remaining planned replicates for that candidate x benchmark.
 
 ## Replicates
 
-Replicates are specified additive behavior for the next implementation pass. They are not implemented in the current runtime yet.
 
-Replicates repeat candidate × benchmark evaluation.
+Replicates repeat candidate x benchmark evaluation.
 
 One replicate is one full main-app plus eval execution for one candidate on one benchmark.
 
@@ -171,11 +177,9 @@ Replicate rules:
 
 ## Aggregation
 
-Aggregation is specified additive behavior for the next implementation pass. It is not implemented in the current runtime yet.
+### Per candidate x benchmark aggregation
 
-### Per candidate × benchmark aggregation
-
-The optimizer should aggregate replicate rows into one candidate × benchmark summary that preserves:
+The optimizer aggregates replicate rows into one candidate x benchmark summary that preserves:
 
 - mean primary metric
 - SD
@@ -188,9 +192,9 @@ The optimizer should aggregate replicate rows into one candidate × benchmark su
 - runtime SD when available
 - trust caveats
 
-### Per candidate × suite aggregation
+### Per candidate x suite aggregation
 
-The optimizer should aggregate benchmark summaries into one candidate × suite summary that preserves:
+The optimizer aggregates benchmark summaries into one candidate x suite summary that preserves:
 
 - weighted mean primary metric across benchmark-level means
 - benchmark coverage
@@ -205,13 +209,11 @@ Ranking must consider trust signals, not only scalar score. Trust signals includ
 
 ## Reports
 
-Suite and replicate reporting is specified additive behavior for the next implementation pass. It is not implemented in the current runtime yet.
-
-HTML reports for suite mode must show:
+HTML reports show:
 
 - suite-level ranking
 - per-benchmark breakdown
-- replicate mean ± SD or SEM when `n > 1`
+- replicate mean plus SD or SEM when `n > 1`
 - warning when `n = 1`
 - failed, unscored, and degraded replicate counts
 - candidate stability notes
@@ -226,18 +228,22 @@ Plotting and report tables should make it possible to answer:
 - whether error bars overlap enough that the ranking is fragile
 - whether trust caveats weaken the raw winner recommendation
 
-## Backward compatibility
+## Migration policy
 
-Suite and replicate mode is additive.
+This private optimizer is allowed to drop pre-suite internal compatibility when simplification improves the tool.
 
-The following current behavior must continue to work unchanged:
+Supported behavior:
 
-- existing compare and optimize configs using `benchmarks.dev`
-- existing `evaluate-candidate --benchmark smoke|dev|holdout`
-- existing result files must remain readable
-- existing candidate-level reports must remain readable for old runs
+- ergonomic wrapper commands remain available
+- low-level compare and optimize commands are suite-based
+- one-benchmark suites are the supported simple case
+- split labels may remain as convenience aliases, but they resolve to suites
 
-New suite and replicate config must not redefine existing split semantics or silently change the meaning of old configs.
+Not guaranteed:
+
+- old pre-suite result artifacts remain readable
+- old internal one-benchmark execution paths remain available
+- old configs without explicit suites are not the preferred config form
 
 ## Candidate and result expectations
 

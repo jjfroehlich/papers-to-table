@@ -125,7 +125,7 @@ Important interpretation rules:
 
 ## Benchmark Suites And Replicates
 
-Benchmark suites and replicates are implemented as additive runtime features. Existing single-benchmark configs and commands still use `benchmarks.dev`, `benchmarks.holdout`, and `benchmarks.smoke` exactly as before unless you opt into a suite or set `replicates.count > 1`.
+Benchmark suites and replicates are the canonical runtime model. A simple run is a one-benchmark suite with `replicates.count = 1`; multi-benchmark suites and repeated replicates use the same execution path.
 
 Use benchmark suites when you need one study to cover several distinct benchmark aspects, for example:
 
@@ -136,7 +136,7 @@ Use benchmark suites when you need one study to cover several distinct benchmark
 
 Use replicates when you want to estimate stability instead of trusting one candidate x benchmark run.
 
-Additive config shape:
+Canonical config shape:
 
 ```json
 {
@@ -175,6 +175,13 @@ Run suite mode with the low-level CLI:
 ```bash
 cd tools/optimizer
 python -m paper_optimizer.cli optimize --study-type compare --config configs/compare_models.json --suite dev_suite --out runs/compare_suite
+```
+
+Evaluate one candidate against a suite:
+
+```bash
+cd tools/optimizer
+python -m paper_optimizer.cli evaluate-candidate --config configs/compare_models_contract_smoke.json --candidate-file candidate.json --suite smoke_suite --out runs/single_candidate
 ```
 
 Wrapper examples:

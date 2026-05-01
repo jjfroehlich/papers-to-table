@@ -5,11 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from paper_optimizer.benchmarks import benchmark_id_for_split, load_benchmarks
+from paper_optimizer.benchmarks import load_benchmarks
 from paper_optimizer.bundle import build_candidate_from_dict
 from paper_optimizer.launch_eval import map_eval_summary_to_metric_groups
 from paper_optimizer.launch_main import build_main_app_overlay, build_resolved_main_config
 from paper_optimizer.pipeline import evaluate_candidate_once
+from paper_optimizer.settings import normalize_config
 
 
 def test_build_main_app_overlay_maps_candidate_into_main_config(base_config: dict) -> None:
@@ -40,8 +41,10 @@ def test_build_main_app_overlay_maps_candidate_into_main_config(base_config: dic
 
 
 def test_build_resolved_main_config_binds_benchmark_inputs(base_config: dict, tmp_path: Path) -> None:
+    base_config = normalize_config(base_config)
     benches = load_benchmarks(base_config)
-    benchmark = benches.manifests[benchmark_id_for_split(benches, "smoke")]
+    benchmark_id = base_config["benchmark_suites"]["smoke_suite"]["benchmark_ids"][0]
+    benchmark = benches.manifests[benchmark_id]
     candidate = build_candidate_from_dict(
         "cand_0008",
         base_config["compare_candidates"][0],
@@ -114,12 +117,12 @@ def test_evaluate_candidate_records_failure_when_main_artifacts_missing(base_con
     assert result.metadata["failure_stage"] == "main_app_launch"
 
 
-def test_benchmark_split_handling_supports_smoke_dev_holdout(base_config: dict) -> None:
-    benches = load_benchmarks(base_config)
+def test_config_normalization_builds_smoke_dev_holdout_suites(base_config: dict) -> None:
+    config = normalize_config(base_config)
 
-    assert benchmark_id_for_split(benches, "smoke") == "bench_smoke"
-    assert benchmark_id_for_split(benches, "dev") == "bench_dev"
-    assert benchmark_id_for_split(benches, "holdout") == "bench_holdout"
+    assert config["benchmark_suites"]["smoke_suite"]["benchmark_ids"] == ["bench_smoke"]
+    assert config["benchmark_suites"]["dev_suite"]["benchmark_ids"] == ["bench_dev"]
+    assert config["benchmark_suites"]["holdout_suite"]["benchmark_ids"] == ["bench_holdout"]
 
 
 def test_compare_candidate_results_capture_realish_refs(base_config: dict, tmp_path: Path) -> None:

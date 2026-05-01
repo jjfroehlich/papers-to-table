@@ -33,8 +33,52 @@ def load_config(config_path: Path) -> dict[str, Any]:
             "eval_schema_path",
         },
     )
-    validate_config(config)
-    return config
+    normalized = normalize_config(config)
+    validate_config(normalized)
+    return normalized
+
+
+def normalize_config(config: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(config)
+    benchmarks = dict(normalized.get("benchmarks", {}))
+    normalized["benchmarks"] = benchmarks
+    suites = dict(normalized.get("benchmark_suites") or {})
+    acceptance_primary = (
+        normalized.get("acceptance", {}).get("primary_metric")
+        if isinstance(normalized.get("acceptance"), dict)
+        else "correctness"
+    )
+    for split in ["smoke", "dev", "holdout"]:
+        benchmark_id = benchmarks.get(split)
+        suite_id = f"{split}_suite"
+        if isinstance(benchmark_id, str) and suite_id not in suites:
+            suites[suite_id] = {
+                "benchmark_ids": [benchmark_id],
+                "aggregation": {
+                    "method": "weighted_mean",
+                    "primary_metric": acceptance_primary,
+                    "weights": {benchmark_id: 1.0},
+                },
+            }
+    normalized["benchmark_suites"] = suites
+
+    replicates = dict(normalized.get("replicates") or {})
+    replicates.setdefault("count", 1)
+    replicates.setdefault("continue_on_failure", True)
+    normalized["replicates"] = replicates
+
+    compare = dict(normalized.get("compare") or {})
+    compare.setdefault("suite_id", "dev_suite")
+    if "holdout_suite" in suites:
+        compare.setdefault("holdout_suite_id", "holdout_suite")
+    normalized["compare"] = compare
+
+    optimize = dict(normalized.get("optimize") or {})
+    optimize.setdefault("suite_id", "dev_suite")
+    if "holdout_suite" in suites:
+        optimize.setdefault("holdout_suite_id", "holdout_suite")
+    normalized["optimize"] = optimize
+    return normalized
 
 
 def validate_config(config: dict[str, Any]) -> None:
@@ -67,6 +111,9 @@ def validate_config(config: dict[str, Any]) -> None:
         for bool_key in ["require_structured_output_for_extraction", "allow_degraded_candidates"]:
             if bool_key in compare and not isinstance(compare[bool_key], bool):
                 raise ConfigError(f"compare.{bool_key} must be a boolean when provided")
+        for suite_key in ["suite_id", "holdout_suite_id"]:
+            if suite_key in compare and (not isinstance(compare[suite_key], str) or not compare[suite_key].strip()):
+                raise ConfigError(f"compare.{suite_key} must be a non-empty string when provided")
 
     benchmarks = _require(config, "benchmarks")
     if not isinstance(benchmarks, dict):
@@ -149,6 +196,15 @@ def validate_config(config: dict[str, Any]) -> None:
                     raise ConfigError(
                         f"benchmark_suites.{suite_id}.aggregation.weights.{weight_key} must be a non-negative number"
                     )
+
+        for section_name in ["compare", "optimize"]:
+            section = config.get(section_name, {})
+            if not isinstance(section, dict):
+                continue
+            for suite_key in ["suite_id", "holdout_suite_id"]:
+                suite_ref = section.get(suite_key)
+                if isinstance(suite_ref, str) and suite_ref.strip() and suite_ref not in benchmark_suites:
+                    raise ConfigError(f"{section_name}.{suite_key} references unknown benchmark suite: {suite_ref}")
 
     replicates = config.get("replicates", {})
     if replicates is not None:
@@ -238,6 +294,9 @@ def validate_config(config: dict[str, Any]) -> None:
     optimize = config.get("optimize", {})
     if not isinstance(optimize, dict):
         raise ConfigError("optimize must be an object when provided")
+    for suite_key in ["suite_id", "holdout_suite_id"]:
+        if suite_key in optimize and (not isinstance(optimize[suite_key], str) or not optimize[suite_key].strip()):
+            raise ConfigError(f"optimize.{suite_key} must be a non-empty string when provided")
 
     rounds = optimize.get("rounds", 0)
     if not isinstance(rounds, int) or rounds < 0:

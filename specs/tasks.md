@@ -23,4 +23,5 @@
 - [x] Add optimizer suite and replicate orchestration
 - [x] Add optimizer aggregation artifacts for benchmark-level and suite-level summaries
 - [x] Update optimizer reports and plots with replicate caveats and `n=1` warnings
-- [x] Add backward compatibility tests for suite and replicate support
+- [x] Replace old optimizer one-benchmark execution branches with canonical suite and replicate execution
+- [x] Migrate checked-in optimizer configs to explicit benchmark suites and replicate settings

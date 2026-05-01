@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +11,12 @@ from paper_optimizer.benchmarks import load_benchmarks
 from paper_optimizer.contracts import Candidate, CandidateResult
 from paper_optimizer.settings import ConfigError, load_config
 from paper_optimizer.study import run_compare_mode
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT / "scripts") not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+
+import papers_to_table  # noqa: E402
 
 
 def _write_config(tmp_path: Path, payload: dict[str, Any]) -> Path:
@@ -161,6 +168,36 @@ def test_suite_replicate_orchestration_and_artifacts(
     assert suite_summary["benchmark_coverage"] == 1.0
 
 
+def test_one_benchmark_suite_with_one_replicate_uses_canonical_outputs(
+    tmp_path: Path,
+    base_config: dict,
+) -> None:
+    config = json.loads(json.dumps(base_config))
+    config["compare_candidates"] = [config["compare_candidates"][0]]
+    config["compare"]["suite_id"] = "dev_suite"
+    config["replicates"]["count"] = 1
+    benches = load_benchmarks(config)
+
+    out_dir = tmp_path / "experiment"
+    run_compare_mode(config, benches, out_dir)
+
+    replicate_rows = [
+        json.loads(line)
+        for line in (out_dir / "results" / "replicate_results.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    benchmark_rows = json.loads((out_dir / "results" / "benchmark_summary.json").read_text(encoding="utf-8"))["rows"]
+    suite_rows = json.loads((out_dir / "results" / "suite_summary.json").read_text(encoding="utf-8"))["rows"]
+
+    assert len(replicate_rows) == 1
+    assert replicate_rows[0]["suite_id"] == "dev_suite"
+    assert replicate_rows[0]["replicate_index"] == 1
+    assert benchmark_rows[0]["suite_id"] == "dev_suite"
+    assert benchmark_rows[0]["n_total"] == 1
+    assert suite_rows[0]["suite_id"] == "dev_suite"
+    assert "Suite Ranking" in (out_dir / "report.html").read_text(encoding="utf-8")
+
+
 def test_failed_and_single_replicates_remain_visible(
     tmp_path: Path,
     base_config: dict,
@@ -199,3 +236,32 @@ def test_failed_and_single_replicates_remain_visible(
     assert "Trust And Caveats" in report_html
     assert "Nested Artifacts" in report_html
     assert "n = 1" in report_html
+
+
+def test_wrapper_compare_command_resolves_suite_and_replicates(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_run(cmd: list[str], *, cwd: Path, env: dict[str, str]) -> int:
+        captured["cmd"] = cmd
+        captured["cwd"] = cwd
+        captured["env"] = env
+        return 0
+
+    monkeypatch.setattr(papers_to_table, "_run", fake_run)
+    args = type(
+        "Args",
+        (),
+        {
+            "config": None,
+            "out": None,
+            "suite": "dev_suite",
+            "replicates": 3,
+        },
+    )()
+
+    assert papers_to_table.cmd_optimizer_compare(args) == 0
+
+    cmd = captured["cmd"]
+    assert cmd[:4] == [sys.executable, "-m", "paper_optimizer.cli", "optimize"]
+    assert ["--suite", "dev_suite"] == cmd[cmd.index("--suite") : cmd.index("--suite") + 2]
+    assert ["--replicates", "3"] == cmd[cmd.index("--replicates") : cmd.index("--replicates") + 2]
