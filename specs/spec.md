@@ -174,6 +174,8 @@ Detailed optimizer behavior is owned by `tools/optimizer.md` and `contracts/opti
 
 At the integrated level, optimizer remains orchestration-only: it loads explicit candidate bundles and search spaces, launches main-app and eval runs, keeps compare and optimize workflows distinct, distinguishes real benchmark presets from fixture and smoke presets, and reports raw winners separately from recommended defaults when trust caveats differ.
 
+Benchmark-suite and replicate direction is additive, remains owned by `tools/optimizer.md`, and must not redefine the current single-benchmark split behavior until runtime support actually lands.
+
 ## 10. Config families
 
 ### 10.1 Main app

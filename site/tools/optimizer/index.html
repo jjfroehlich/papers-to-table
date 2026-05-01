@@ -1033,6 +1033,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#planned-benchmark-suites-and-replicates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Planned Benchmark Suites And Replicates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#how-outputs-are-organized" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1231,6 +1242,46 @@ python<span class="w"> </span>-m<span class="w"> </span>paper_optimizer.cli<span
 <li><code>optimize-one-model</code> starts from one baseline and proposes challengers.</li>
 <li><code>overnight</code> chains several compare and optimize stages together.</li>
 </ul>
+<h2 id="planned-benchmark-suites-and-replicates">Planned Benchmark Suites And Replicates<a class="headerlink" href="#planned-benchmark-suites-and-replicates" title="Permanent link">&para;</a></h2>
+<p>Benchmark suites and replicates are now specified in the optimizer spec, but they are not implemented in the current runtime yet.</p>
+<p>Use benchmark suites when you need one study to cover several distinct benchmark aspects, for example:</p>
+<ul>
+<li>text extraction</li>
+<li>figure or vision-heavy extraction</li>
+<li>reasoning-heavy fields</li>
+<li>metadata-heavy matching and extraction</li>
+</ul>
+<p>Use replicates when you want to estimate stability instead of trusting one candidate × benchmark run.</p>
+<p>Planned additive config shape:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;benchmark_suites&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;dev_suite&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;benchmark_ids&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;bench_text&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;bench_vision&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;bench_reasoning&quot;</span><span class="p">],</span>
+<span class="w">      </span><span class="nt">&quot;aggregation&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;weighted_mean&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;primary_metric&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;content_correctness&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;weights&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;bench_text&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;bench_vision&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;bench_reasoning&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;replicates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;continue_on_failure&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Interpretation guidance for the future suite or replicate reports:</p>
+<ul>
+<li>mean ± SD or SEM gives a stability signal when <code>n &gt; 1</code></li>
+<li><code>n = 1</code> should be read as a warning, not as a variance estimate</li>
+<li>failed, unscored, or degraded replicates must stay visible in the report</li>
+<li>raw winner and recommended default can differ when trust caveats are material</li>
+</ul>
+<p>Until runtime support lands, continue using the current single-benchmark <code>smoke</code> / <code>dev</code> / <code>holdout</code> workflow.</p>
 <h2 id="how-outputs-are-organized">How Outputs Are Organized<a class="headerlink" href="#how-outputs-are-organized" title="Permanent link">&para;</a></h2>
 <p>Each experiment writes an experiment directory with:</p>
 <ul>
