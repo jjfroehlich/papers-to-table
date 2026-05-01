@@ -1,6 +1,6 @@
 # Browser Review
 
-Browser review is the primary product workflow. Use it when an expert needs to inspect evidence, accept or edit proposals, and reject weak outputs. The main app ingests PDFs and a spreadsheet that defines the required information, proposes evidence-backed values, supports review in a browser UI, and exports the results as a spreadsheet.
+Browser review is the primary workflow where the user can inspect evidence, and accept or edit proposals. The main app ingests PDFs and a spreadsheet that defines the required information, proposes evidence-backed values, supports review in a browser UI, and exports the results as a spreadsheet.
 
 ## Start The App
 

@@ -62,4 +62,4 @@ nav:
   - Companion Tools:
       - Eval: tools/eval.md
       - Optimizer: tools/optimizer.md
-      - /papers-to-table Skill: tools/papers-to-table-skill.md
+      - Papers-to-Table Skill: tools/papers-to-table-skill.md

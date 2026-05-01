@@ -323,9 +323,9 @@ export function RunLaunchSurface({ onRunCreated }: Props) {
           </div>
 
           <div className="grid gap-3 md:grid-cols-3">
-            <InputPreview label="Table" value={preflight.resolved_inputs.table_path.logical_source} locator={preflight.resolved_inputs.table_path.runtime_locator} />
-            <InputPreview label="Schema" value={preflight.resolved_inputs.schema_path.logical_source} locator={preflight.resolved_inputs.schema_path.runtime_locator} />
-            <InputPreview label="PDF scope" value={preflight.resolved_inputs.pdf_dir.logical_source} locator={preflight.resolved_inputs.pdf_dir.runtime_locator} />
+            <InputPreview label="Table" value={preflight.resolved_inputs.table_path?.logical_source ?? null} locator={preflight.resolved_inputs.table_path?.runtime_locator ?? null} />
+            <InputPreview label="Schema" value={preflight.resolved_inputs.schema_path?.logical_source ?? null} locator={preflight.resolved_inputs.schema_path?.runtime_locator ?? null} />
+            <InputPreview label="PDF scope" value={preflight.resolved_inputs.pdf_dir?.logical_source ?? null} locator={preflight.resolved_inputs.pdf_dir?.runtime_locator ?? null} />
           </div>
 
           <div className="grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">

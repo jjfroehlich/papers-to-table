@@ -16,7 +16,7 @@ Install from the repo root:
 python scripts/papers_to_table.py install
 ```
 
-This installs backend, frontend, eval, and optimizer, with dependencies.
+This installs backend, frontend, eval, and optimizer, with dependencies. It also upgrades `pip`, runs `npm audit fix` for the frontend, and fails if `npm audit --audit-level=moderate` still finds a moderate-or-worse vulnerability.
 
 ## Compile Documentation
 

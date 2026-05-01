@@ -33,9 +33,37 @@ def _env_with_pythonpath(*extra_paths: Path) -> dict[str, str]:
     return env
 
 
+def _resolve_executable(name: str) -> str | None:
+    if os.path.dirname(name):
+        return name
+    return shutil.which(name)
+
+
+def _resolve_cmd(cmd: list[str]) -> list[str] | None:
+    executable = _resolve_executable(cmd[0])
+    if executable is None:
+        print(
+            f"Required executable '{cmd[0]}' was not found on PATH. "
+            "Install it or start a shell where it is available, then rerun the command.",
+            file=sys.stderr,
+        )
+        return None
+    return [executable, *cmd[1:]]
+
+
 def _run(cmd: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> int:
-    completed = subprocess.run(cmd, cwd=str(cwd), env=env, check=False)
+    resolved_cmd = _resolve_cmd(cmd)
+    if resolved_cmd is None:
+        return 127
+    completed = subprocess.run(resolved_cmd, cwd=str(cwd), env=env, check=False)
     return int(completed.returncode)
+
+
+def _popen(cmd: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> subprocess.Popen[bytes] | None:
+    resolved_cmd = _resolve_cmd(cmd)
+    if resolved_cmd is None:
+        return None
+    return subprocess.Popen(resolved_cmd, cwd=str(cwd), env=env)
 
 
 def _mkdocs_cmd(subcommand: str) -> list[str] | None:
@@ -61,8 +89,11 @@ def _optimizer_default_out(name: str) -> Path:
 def cmd_install(_args: argparse.Namespace) -> int:
     env = _env_with_pythonpath(BACKEND_SRC_DIR, EVAL_DIR, OPTIMIZER_DIR)
     commands = [
+        ([sys.executable, "-m", "pip", "install", "--upgrade", "pip"], REPO_ROOT),
         ([sys.executable, "-m", "pip", "install", "-e", "./backend[test]"], APP_DIR),
         (["npm", "install"], FRONTEND_DIR),
+        (["npm", "audit", "fix"], FRONTEND_DIR),
+        (["npm", "audit", "--audit-level=moderate"], FRONTEND_DIR),
         ([sys.executable, "-m", "pip", "install", "-e", ".[dev]"], EVAL_DIR),
         ([sys.executable, "-m", "pip", "install", "-e", ".[dev]"], OPTIMIZER_DIR),
     ]
@@ -97,7 +128,9 @@ def cmd_review(args: argparse.Namespace) -> int:
         str(args.frontend_port),
     ]
 
-    backend = subprocess.Popen(backend_cmd, cwd=str(APP_DIR), env=env)
+    backend = _popen(backend_cmd, cwd=APP_DIR, env=env)
+    if backend is None:
+        return 127
     frontend = None
     try:
         health_url = f"http://{args.backend_host}:{args.backend_port}/api/health"
@@ -109,7 +142,9 @@ def cmd_review(args: argparse.Namespace) -> int:
                     break
             except (urllib.error.URLError, TimeoutError):
                 time.sleep(1)
-        frontend = subprocess.Popen(frontend_cmd, cwd=str(FRONTEND_DIR), env=os.environ.copy())
+        frontend = _popen(frontend_cmd, cwd=FRONTEND_DIR, env=os.environ.copy())
+        if frontend is None:
+            return 127
         print(
             f"papers-to-table review mode ready.\n"
             f"Backend:  {health_url}\n"

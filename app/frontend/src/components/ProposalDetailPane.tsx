@@ -139,7 +139,9 @@ export function ProposalDetailPane({ proposalId, runId, outputDir, selectedEvide
           <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Field under review</p>
             <div className="mt-3 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
-              <p className="text-sm font-semibold text-slate-900">{columnDefinition?.name ?? proposal.column_name}</p>
+              <p className="text-sm font-semibold text-slate-900">
+                {typeof columnDefinition?.name === 'string' ? columnDefinition.name : proposal.column_name}
+              </p>
               {typeof columnDefinition?.description === 'string' && <p className="mt-2 text-sm leading-6 text-slate-600">{columnDefinition.description}</p>}
             </div>
 
