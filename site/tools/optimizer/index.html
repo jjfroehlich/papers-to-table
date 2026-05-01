@@ -917,6 +917,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#test-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test command
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recommended-commands" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -963,6 +974,39 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#low-level-command-tool-local" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Low-level Command (tool-local)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inputs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Outputs
+      
+    </span>
+  </a>
   
 </li>
       
@@ -1100,6 +1144,9 @@ From the repository root:</p>
 <div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>tools/optimizer
 python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="o">[</span>dev<span class="o">]</span>
 </code></pre></div>
+<h2 id="test-command">Test command<a class="headerlink" href="#test-command" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>bash<span class="w"> </span>scripts/test-optimizer-tool.sh
+</code></pre></div>
 <h2 id="recommended-commands">Recommended Commands<a class="headerlink" href="#recommended-commands" title="Permanent link">&para;</a></h2>
 <h3 id="compare-models">Compare Models<a class="headerlink" href="#compare-models" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1124,6 +1171,22 @@ python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </sp
 </ul>
 <div class="highlight"><pre><span></span><code>python<span class="w"> </span>scripts/papers_to_table.py<span class="w"> </span>optimizer<span class="w"> </span>overnight
 </code></pre></div>
+<h2 id="low-level-command-tool-local">Low-level Command (tool-local)<a class="headerlink" href="#low-level-command-tool-local" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>tools/optimizer
+python<span class="w"> </span>-m<span class="w"> </span>paper_optimizer.cli<span class="w"> </span>optimize<span class="w"> </span>--study-type<span class="w"> </span>compare<span class="w"> </span>--config<span class="w"> </span>configs/compare_models.json<span class="w"> </span>--out<span class="w"> </span>runs/compare_out
+</code></pre></div>
+<h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
+<ul>
+<li>optimizer config preset (<code>tools/optimizer/configs/*.json</code>)</li>
+<li>benchmark manifest paths (table/schema/pdf_dir/gold)</li>
+<li>candidate definitions and optional search spaces</li>
+</ul>
+<h2 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h2>
+<ul>
+<li>study-level summary artifacts</li>
+<li>per-candidate run/eval outputs</li>
+<li>recommended winner/default diagnostics</li>
+</ul>
 <h2 id="canonical-presets">Canonical Presets<a class="headerlink" href="#canonical-presets" title="Permanent link">&para;</a></h2>
 <p>These are the experiment templates. Each preset is focused on one comparison question. </p>
 <ul>

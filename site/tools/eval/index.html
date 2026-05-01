@@ -922,6 +922,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#test-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test command
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#inputs" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -966,10 +977,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#rebuild-comparison-outputs" class="md-nav__link">
+  <a href="#rebuilding-comparison-outputs" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Rebuild Comparison Outputs
+        Rebuilding Comparison Outputs
       
     </span>
   </a>
@@ -1126,14 +1137,17 @@ python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </sp
 </code></pre></div>
 <p>Low-level command:</p>
 <div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>tools/eval
-paper-eval<span class="w"> </span>evaluate<span class="w"> </span>...
+python<span class="w"> </span>-m<span class="w"> </span>paper_eval<span class="w"> </span>evaluate<span class="w"> </span>--run<span class="w"> </span>/abs/run<span class="w"> </span>--gold<span class="w"> </span>/abs/gold.csv<span class="w"> </span>--schema<span class="w"> </span>/abs/schema.json<span class="w"> </span>--out<span class="w"> </span>/abs/eval_out
+</code></pre></div>
+<h2 id="test-command">Test command<a class="headerlink" href="#test-command" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>bash<span class="w"> </span>scripts/test-eval-tool.sh
 </code></pre></div>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <p>You need:</p>
 <ul>
-<li>one run bundle path or a runs-root directory</li>
-<li>one gold CSV or XLSX file</li>
-<li>optional schema metadata JSON for field typing, aliases, tolerances, and text-scoring overrides</li>
+<li>run bundle directory (<code>run.json</code>, <code>proposals/proposals.jsonl</code> minimum)</li>
+<li>gold table (csv/xlsx)</li>
+<li>optional eval schema JSON for field typing, aliases, tolerances, and text-scoring overrides</li>
 </ul>
 <p>Required run-bundle artifacts:</p>
 <ul>
@@ -1141,6 +1155,11 @@ paper-eval<span class="w"> </span>evaluate<span class="w"> </span>...
 <li><code>proposals/proposals.jsonl</code></li>
 </ul>
 <h2 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h2>
+<ul>
+<li>summary metrics</li>
+<li>per-cell outputs</li>
+<li>compare artifacts when batch mode is used</li>
+</ul>
 <p><code>evaluate</code> writes:</p>
 <div class="highlight"><pre><span></span><code>out/
   per-run/
@@ -1160,7 +1179,7 @@ paper-eval<span class="w"> </span>evaluate<span class="w"> </span>...
 <p>Metrics are calculated from these joined cells:</p>
 <ul>
 <li>content correctness: the main score for target content cells. Numeric, boolean, and categorical fields are scored deterministically where possible; free-text fields can be judged by one or two configured LLM judges.</li>
-<li>overall correctness: a broader aggregate that can include metadata lanes when the schema asks for them.</li>
+<li>overall correctness: a broader aggregate that can include metadata lanes when the schema included them.</li>
 <li>evidence quality: checks whether persisted evidence exists and remains usable, including anchor-valid highlights, page references, and evidence type.</li>
 <li>judge disagreement: the rate at which judge A and judge B differ on text-cell correctness.</li>
 <li>missing proposals: target cells present in gold data but missing from the run proposals.</li>
@@ -1174,8 +1193,8 @@ paper-eval<span class="w"> </span>evaluate<span class="w"> </span>...
 <li>missing evidence or invalid anchors: the run produced values but evidence grounding is weak or missing</li>
 <li>unscored text cells: the evaluator could not get a deterministic or judged answer for every text cell</li>
 </ul>
-<h2 id="rebuild-comparison-outputs">Rebuild Comparison Outputs<a class="headerlink" href="#rebuild-comparison-outputs" title="Permanent link">&para;</a></h2>
-<p>Used to re-generate cross-run comparison files for an existing batch of runs (when you already have per-run eval outputs).</p>
+<h2 id="rebuilding-comparison-outputs">Rebuilding Comparison Outputs<a class="headerlink" href="#rebuilding-comparison-outputs" title="Permanent link">&para;</a></h2>
+<p>Can be used to re-generate cross-run comparison files for an existing batch of runs (when you already have per-run eval outputs).</p>
 <div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>tools/eval
 paper-eval<span class="w"> </span>compare<span class="w"> </span>--summaries<span class="w"> </span>/absolute/path/to/per-run<span class="w"> </span>--out<span class="w"> </span>/absolute/path/to/compare_out
 </code></pre></div>
