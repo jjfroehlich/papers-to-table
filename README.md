@@ -64,8 +64,12 @@ Agents can use the skill when the task is to extract structured values from one 
 Copy `./agent-skills/papers-to-table/` into your agent system's skill directory. Keep the `references/` files with it.
 
 ## Documentation
-The manual source lives in [`docs/`](docs/). Serve the static site locally with:
-
+The manual source lives in [`docs/`](docs/). 
+Serve the static site locally with:
 ```bash
 python scripts/papers_to_table.py docs serve
+```
+Compile the static site to /site:
+```bash
+python scripts/papers_to_table.py docs build
 ```
