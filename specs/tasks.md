@@ -18,9 +18,9 @@
 
 - [ ] Continue removing personal-path assumptions from real benchmark preset examples
 - [ ] Refresh screenshots when the next visible UI workflow change lands
-- [ ] Add optimizer benchmark suite config validation
-- [ ] Add optimizer replicate config validation
-- [ ] Add optimizer suite and replicate orchestration
-- [ ] Add optimizer aggregation artifacts for benchmark-level and suite-level summaries
-- [ ] Update optimizer reports and plots with error bars and `n=1` warnings
-- [ ] Add backward compatibility tests for suite and replicate support
+- [x] Add optimizer benchmark suite config validation
+- [x] Add optimizer replicate config validation
+- [x] Add optimizer suite and replicate orchestration
+- [x] Add optimizer aggregation artifacts for benchmark-level and suite-level summaries
+- [x] Update optimizer reports and plots with replicate caveats and `n=1` warnings
+- [x] Add backward compatibility tests for suite and replicate support

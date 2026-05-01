@@ -405,8 +405,17 @@ def _build_plot_cards(experiment_dir: Path, *, study_type: str, variant: str) ->
     plots_dir = experiment_dir / "plots"
     if not plots_dir.exists():
         return []
+    has_suite = (experiment_dir / "results" / "suite_summary.csv").exists() or (experiment_dir / "results" / "benchmark_summary.csv").exists()
     preferred: list[str]
-    if study_type == "optimize":
+    if has_suite:
+        preferred = [
+            "suite_score_by_candidate",
+            "suite_benchmark_breakdown",
+            "suite_replicate_visibility",
+            "compare_score_status_counts",
+            "optimize_score_status_counts",
+        ]
+    elif study_type == "optimize":
         preferred = [
             "optimize_history_best_so_far",
             "optimize_best_by_round",
@@ -466,6 +475,12 @@ def _build_artifact_links(experiment_dir: Path) -> list[dict[str, str]]:
         ("No Winner", experiment_dir / "no_winner.json"),
         ("Results CSV", experiment_dir / "results" / "results.csv"),
         ("Results JSONL", experiment_dir / "results" / "results.jsonl"),
+        ("Replicate Results CSV", experiment_dir / "results" / "replicate_results.csv"),
+        ("Replicate Results JSONL", experiment_dir / "results" / "replicate_results.jsonl"),
+        ("Benchmark Summary CSV", experiment_dir / "results" / "benchmark_summary.csv"),
+        ("Benchmark Summary JSON", experiment_dir / "results" / "benchmark_summary.json"),
+        ("Suite Summary CSV", experiment_dir / "results" / "suite_summary.csv"),
+        ("Suite Summary JSON", experiment_dir / "results" / "suite_summary.json"),
         ("Candidate Diagnostics CSV", experiment_dir / "results" / "candidate_diagnostics.csv"),
         ("Candidate Diagnostics JSON", experiment_dir / "candidate_diagnostics.json"),
     ]
@@ -474,6 +489,59 @@ def _build_artifact_links(experiment_dir: Path) -> list[dict[str, str]]:
         if path.exists():
             links.append({"label": label, "href": relative_href(path, base_dir=experiment_dir), "text": path.name})
     return links
+
+
+def _build_suite_report_cards(experiment_dir: Path) -> list[dict[str, Any]]:
+    suite_summary = load_json_if_exists(experiment_dir / "results" / "suite_summary.json")
+    benchmark_summary = load_json_if_exists(experiment_dir / "results" / "benchmark_summary.json")
+    replicate_rows = load_csv_rows(experiment_dir / "results" / "replicate_results.csv")
+    suite_rows = suite_summary.get("rows", []) if isinstance(suite_summary.get("rows"), list) else []
+    benchmark_rows = benchmark_summary.get("rows", []) if isinstance(benchmark_summary.get("rows"), list) else []
+    if not suite_rows and not benchmark_rows and not replicate_rows:
+        return []
+    failed_replicates = sum(1 for row in replicate_rows if str(row.get("score_status")) == "failed")
+    unscored_replicates = sum(1 for row in replicate_rows if str(row.get("score_status")) == "unscored")
+    degraded_replicates = sum(
+        1
+        for row in replicate_rows
+        if str(row.get("score_status")) == "scored_degraded" or str(row.get("prompt_only_degraded_mode_used")).lower() == "true"
+    )
+    single_replicate = any(str(row.get("n_total")) == "1" for row in benchmark_rows)
+    top_suite = suite_rows[0] if suite_rows else {}
+    return [
+        {
+            "title": "Suite Ranking",
+            "lead": "Suite-level ranking distinguishes the raw weighted-mean winner from the recommended default by retaining trust caveats.",
+            "items": [
+                f"Top suite candidate: {display_text(top_suite.get('candidate_id'), missing='not recorded')}.",
+                f"Weighted suite score: {format_score(top_suite.get('suite_primary_metric_weighted_mean'))}.",
+                f"Benchmark coverage: {display_text(top_suite.get('benchmark_coverage'), missing='not recorded')}.",
+                "Raw winner and recommended default can diverge when failures, degraded mode, invalid contracts, judge instability, missing evidence, or coverage loss are present.",
+            ],
+            "badges": [{"text": "suite", "tone": "neutral"}],
+        },
+        {
+            "title": "Benchmark And Replicate Stability",
+            "lead": "Per-benchmark summaries use replicate mean plus SD and SEM when n > 1; n = 1 is flagged without fake variance.",
+            "items": [
+                f"Benchmark summary rows: {len(benchmark_rows)}.",
+                f"Replicate rows visible: {len(replicate_rows)}.",
+                f"Failed replicates: {failed_replicates}; unscored replicates: {unscored_replicates}; degraded replicates: {degraded_replicates}.",
+                "Warning: n = 1 produces no variance estimate." if single_replicate else "Replicate variance is reported where two or more scored replicates exist.",
+            ],
+            "badges": [{"text": "replicates", "tone": "warn" if single_replicate or failed_replicates else "good"}],
+        },
+        {
+            "title": "Nested Artifacts",
+            "lead": "Replicate rows retain main-app and eval artifact references for follow-up inspection.",
+            "items": [
+                "Use replicate_results for candidate x benchmark x replicate diagnostics.",
+                "Use benchmark_summary for candidate x benchmark mean, SD, SEM, runtime, and trust caveats.",
+                "Use suite_summary for weighted suite score, coverage, failures, degraded counts, and caveats.",
+            ],
+            "badges": [{"text": "artifacts", "tone": "neutral"}],
+        },
+    ]
 
 
 def _build_provenance_items(
@@ -809,7 +877,10 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
             },
         ],
         "candidate_table": _build_candidate_table(candidate_rows, study_type=study_type, primary_metric=primary_metric, winner_id=winner_id),
-        "study_cards": _build_study_cards(candidate_rows, study_type=study_type, variant=variant, summary=summary),
+        "study_cards": [
+            *_build_suite_report_cards(experiment_dir),
+            *_build_study_cards(candidate_rows, study_type=study_type, variant=variant, summary=summary),
+        ],
         "plots": _build_plot_cards(experiment_dir, study_type=study_type, variant=variant),
         "artifact_links": _build_artifact_links(experiment_dir),
         "provenance_items": _build_provenance_items(winner_row, summary=summary, run_metadata=run_metadata, holdout=holdout),

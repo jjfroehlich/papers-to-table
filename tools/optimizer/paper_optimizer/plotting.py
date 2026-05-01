@@ -670,6 +670,75 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
     _write_dev_vs_holdout_plot(experiment_dir, plots_dir, rows, primary_key)
 
 
+def generate_suite_plots(experiment_dir: Path, primary_metric: str) -> None:
+    plots_dir = experiment_dir / "plots"
+    plots_dir.mkdir(parents=True, exist_ok=True)
+
+    suite_rows = _load_rows(experiment_dir / "results" / "suite_summary.csv")
+    if suite_rows:
+        labels = [row.get("candidate_id", "") for row in suite_rows]
+        values = [
+            _safe_float(row.get("suite_primary_metric_weighted_mean")) or 0.0
+            for row in suite_rows
+        ]
+        _write_bar_plot(
+            path=plots_dir / "suite_score_by_candidate.png",
+            labels=labels,
+            values=values,
+            title="Suite weighted mean score by candidate",
+            ylabel=primary_metric,
+        )
+        _write_plot_csv(
+            plots_dir / "suite_score_by_candidate.csv",
+            [
+                {
+                    "candidate_id": row.get("candidate_id", ""),
+                    "suite_id": row.get("suite_id", ""),
+                    "suite_primary_metric_weighted_mean": row.get("suite_primary_metric_weighted_mean", ""),
+                    "benchmark_coverage": row.get("benchmark_coverage", ""),
+                    "failed_replicate_count": row.get("failed_replicate_count", ""),
+                    "degraded_replicate_count": row.get("degraded_replicate_count", ""),
+                    "trust_caveats": row.get("trust_caveats", ""),
+                }
+                for row in suite_rows
+            ],
+        )
+
+    benchmark_rows = _load_rows(experiment_dir / "results" / "benchmark_summary.csv")
+    if benchmark_rows:
+        _write_plot_csv(plots_dir / "suite_benchmark_breakdown.csv", benchmark_rows)
+        labels = [f"{row.get('candidate_id', '')}:{row.get('benchmark_id', '')}" for row in benchmark_rows]
+        values = [_safe_float(row.get("primary_metric_mean")) or 0.0 for row in benchmark_rows]
+        if labels:
+            _write_bar_plot(
+                path=plots_dir / "suite_benchmark_breakdown.png",
+                labels=labels,
+                values=values,
+                title="Per-benchmark mean score",
+                ylabel=primary_metric,
+            )
+
+    replicate_rows = _load_rows(experiment_dir / "results" / "replicate_results.csv")
+    if replicate_rows:
+        _write_plot_csv(
+            plots_dir / "suite_replicate_visibility.csv",
+            [
+                {
+                    "candidate_id": row.get("candidate_id", ""),
+                    "suite_id": row.get("suite_id", ""),
+                    "benchmark_id": row.get("benchmark_id", ""),
+                    "replicate_index": row.get("replicate_index", ""),
+                    "score_status": row.get("score_status", ""),
+                    "candidate_status": row.get("candidate_status", ""),
+                    f"primary.{primary_metric}": row.get(f"primary.{primary_metric}", ""),
+                    "runtime_seconds": row.get("runtime_seconds", ""),
+                    "prompt_only_degraded_mode_used": row.get("prompt_only_degraded_mode_used", ""),
+                }
+                for row in replicate_rows
+            ],
+        )
+
+
 def generate_optimize_plots(experiment_dir: Path, primary_metric: str) -> None:
     results_csv = experiment_dir / "results" / "results.csv"
     rows = _load_rows(results_csv)

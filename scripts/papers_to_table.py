@@ -267,6 +267,10 @@ def cmd_optimizer_compare(args: argparse.Namespace) -> int:
     config = args.config or str(OPTIMIZER_DIR / "configs" / "compare_models.json")
     out = args.out or str(_optimizer_default_out("compare_models"))
     cmd = [sys.executable, "-m", "paper_optimizer.cli", "optimize", "--study-type", "compare", "--config", config, "--out", out]
+    if args.suite:
+        cmd.extend(["--suite", args.suite])
+    if args.replicates is not None:
+        cmd.extend(["--replicates", str(args.replicates)])
     return _run(cmd, cwd=OPTIMIZER_DIR, env=env)
 
 
@@ -275,6 +279,10 @@ def cmd_optimizer_optimize_one_model(args: argparse.Namespace) -> int:
     config = args.config or str(OPTIMIZER_DIR / "configs" / "optimize_one_model.json")
     out = args.out or str(_optimizer_default_out("optimize_one_model"))
     cmd = [sys.executable, "-m", "paper_optimizer.cli", "optimize", "--study-type", "optimize", "--config", config, "--out", out]
+    if args.suite:
+        cmd.extend(["--suite", args.suite])
+    if args.replicates is not None:
+        cmd.extend(["--replicates", str(args.replicates)])
     return _run(cmd, cwd=OPTIMIZER_DIR, env=env)
 
 
@@ -355,11 +363,15 @@ def build_parser() -> argparse.ArgumentParser:
     compare = optimizer_sub.add_parser("compare-models", help="Run the canonical compare-models study")
     compare.add_argument("--config")
     compare.add_argument("--out")
+    compare.add_argument("--suite")
+    compare.add_argument("--replicates", type=int)
     compare.set_defaults(func=cmd_optimizer_compare)
 
     optimize_one = optimizer_sub.add_parser("optimize-one-model", help="Run the canonical single-model optimize study")
     optimize_one.add_argument("--config")
     optimize_one.add_argument("--out")
+    optimize_one.add_argument("--suite")
+    optimize_one.add_argument("--replicates", type=int)
     optimize_one.set_defaults(func=cmd_optimizer_optimize_one_model)
 
     overnight = optimizer_sub.add_parser("overnight", help="Run the multi-stage overnight optimizer workflow")

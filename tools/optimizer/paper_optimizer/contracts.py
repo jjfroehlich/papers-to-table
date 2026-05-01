@@ -84,6 +84,9 @@ class CandidateResult:
     main_app_run_ref: dict[str, Any] = field(default_factory=dict)
     eval_output_ref: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
+    suite_id: str | None = None
+    replicate_index: int | None = None
+    replicate_id: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

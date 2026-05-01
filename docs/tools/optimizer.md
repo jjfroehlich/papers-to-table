@@ -108,6 +108,8 @@ Common config areas:
 - `acceptance`
 - `optimize`
 - `compare`
+- `benchmark_suites` (optional)
+- `replicates` (optional)
 
 Benchmark intent labels:
 
@@ -121,9 +123,9 @@ Important interpretation rules:
 - `optimize-one-model` starts from one baseline and proposes challengers.
 - `overnight` chains several compare and optimize stages together.
 
-## Planned Benchmark Suites And Replicates
+## Benchmark Suites And Replicates
 
-Benchmark suites and replicates are now specified in the optimizer spec, but they are not implemented in the current runtime yet.
+Benchmark suites and replicates are implemented as additive runtime features. Existing single-benchmark configs and commands still use `benchmarks.dev`, `benchmarks.holdout`, and `benchmarks.smoke` exactly as before unless you opt into a suite or set `replicates.count > 1`.
 
 Use benchmark suites when you need one study to cover several distinct benchmark aspects, for example:
 
@@ -132,9 +134,9 @@ Use benchmark suites when you need one study to cover several distinct benchmark
 - reasoning-heavy fields
 - metadata-heavy matching and extraction
 
-Use replicates when you want to estimate stability instead of trusting one candidate × benchmark run.
+Use replicates when you want to estimate stability instead of trusting one candidate x benchmark run.
 
-Planned additive config shape:
+Additive config shape:
 
 ```json
 {
@@ -159,14 +161,36 @@ Planned additive config shape:
 }
 ```
 
-Interpretation guidance for the future suite or replicate reports:
+Validation rules:
 
-- mean ± SD or SEM gives a stability signal when `n > 1`
-- `n = 1` should be read as a warning, not as a variance estimate
-- failed, unscored, or degraded replicates must stay visible in the report
+- `benchmark_suites` and `replicates` are optional.
+- suite `benchmark_ids` must reference `benchmarks.manifests` and preserve their configured order.
+- `aggregation.method` currently supports `weighted_mean`.
+- `aggregation.weights` may only reference benchmark ids in the same suite.
+- `replicates.count` must be a positive integer.
+- `replicates.continue_on_failure` defaults to continuing when omitted.
+
+Run suite mode with the low-level CLI:
+
+```bash
+cd tools/optimizer
+python -m paper_optimizer.cli optimize --study-type compare --config configs/compare_models.json --suite dev_suite --out runs/compare_suite
+```
+
+Wrapper examples:
+
+```bash
+python scripts/papers_to_table.py optimizer compare-models --suite dev_suite --replicates 3
+python scripts/papers_to_table.py optimizer optimize-one-model --suite dev_suite --replicates 3
+```
+
+Interpretation guidance:
+
+- mean plus SD or SEM gives a stability signal when `n > 1`
+- `n = 1` is reported as a warning, not as a variance estimate
+- failed, unscored, or degraded replicates stay visible in machine-readable outputs and `report.html`
+- suite-level weighted means use benchmark-level means, not raw replicate rows
 - raw winner and recommended default can differ when trust caveats are material
-
-Until runtime support lands, continue using the current single-benchmark `smoke` / `dev` / `holdout` workflow.
 
 ## How Outputs Are Organized
 
@@ -178,6 +202,9 @@ Each experiment writes an experiment directory with:
 - `best_candidate.json` winner record, when one exists
 - `results/results.csv` tabular candidate results
 - `results/results.jsonl` candidate results with nested detail
+- `results/replicate_results.csv` and `results/replicate_results.jsonl` in suite or replicate mode
+- `results/benchmark_summary.csv` and `results/benchmark_summary.json` in suite or replicate mode
+- `results/suite_summary.csv` and `results/suite_summary.json` in suite mode
 - `runs/{candidate_id}/main/` main-app run bundle for that candidate
 - `runs/{candidate_id}/eval/` eval run bundle for that candidate
 - `plots/` generated comparison charts

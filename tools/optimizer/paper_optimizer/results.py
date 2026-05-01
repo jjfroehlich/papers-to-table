@@ -53,6 +53,18 @@ class ResultsWriter:
         self._append_csv(row)
         self._append_jsonl(result.to_dict())
 
+    def write_table_artifacts(self, stem: str, rows: list[dict[str, Any]], payload: Any | None = None) -> None:
+        write_json(self.results_dir / f"{stem}.json", payload if payload is not None else {"rows": rows})
+        self._write_csv(self.results_dir / f"{stem}.csv", rows)
+
+    def write_replicate_results(self, results: list[CandidateResult]) -> None:
+        rows = [self._flatten_row(result) for result in results]
+        jsonl_path = self.results_dir / "replicate_results.jsonl"
+        with jsonl_path.open("w", encoding="utf-8") as handle:
+            for result in results:
+                handle.write(json.dumps(result.to_dict(), ensure_ascii=True, sort_keys=True) + "\n")
+        self._write_csv(self.results_dir / "replicate_results.csv", rows)
+
     def _flatten_row(self, result: CandidateResult) -> dict[str, Any]:
         row: dict[str, Any] = {
             "schema_version": result.schema_version,
@@ -60,9 +72,12 @@ class ResultsWriter:
             "study_type": result.study_type,
             "candidate_status": result.candidate_status,
             "candidate_id": result.candidate_id,
+            "suite_id": result.suite_id,
             "parent_candidate_id": result.parent_candidate_id,
             "round_index": result.round_index,
             "benchmark_id": result.benchmark_id,
+            "replicate_index": result.replicate_index,
+            "replicate_id": result.replicate_id,
             "candidate_hash": result.candidate_hash,
             "candidate_manifest_path": result.candidate_manifest_path,
             "candidate_bundle_dir": result.candidate_bundle_dir,
@@ -148,6 +163,21 @@ class ResultsWriter:
     def _append_jsonl(self, payload: dict[str, Any]) -> None:
         with self.jsonl_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(payload, ensure_ascii=True, sort_keys=True) + "\n")
+
+    def _write_csv(self, path: Path, rows: list[dict[str, Any]]) -> None:
+        if not rows:
+            path.write_text("", encoding="utf-8")
+            return
+        fieldnames: list[str] = []
+        for row in rows:
+            for key in row:
+                if key not in fieldnames:
+                    fieldnames.append(key)
+        with path.open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=fieldnames)
+            writer.writeheader()
+            for row in rows:
+                writer.writerow({key: row.get(key) for key in fieldnames})
 
 
 def load_results_jsonl(experiment_dir: Path) -> list[dict[str, Any]]:

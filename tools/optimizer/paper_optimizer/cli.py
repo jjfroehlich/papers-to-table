@@ -27,6 +27,8 @@ def _build_parser() -> argparse.ArgumentParser:
     optimize.add_argument("--study-type", choices=["compare", "optimize"], required=True)
     optimize.add_argument("--config", type=Path, required=True)
     optimize.add_argument("--out", type=Path, required=True)
+    optimize.add_argument("--suite", help="Benchmark suite id from config.benchmark_suites")
+    optimize.add_argument("--replicates", type=int, help="Override config replicates.count")
 
     eval_candidate = sub.add_parser("evaluate-candidate", help="Evaluate one candidate against a benchmark split")
     eval_candidate.add_argument("--config", type=Path, required=True)
@@ -51,14 +53,18 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _cmd_optimize(args: argparse.Namespace) -> None:
     config = load_config(args.config)
+    if args.replicates is not None:
+        if args.replicates <= 0:
+            raise ValueError("--replicates must be a positive integer")
+        config.setdefault("replicates", {})["count"] = args.replicates
     benchmarks = load_benchmarks(config)
     search_space = load_search_space(config)
     validate_preflight(config, benchmarks, require_holdout=False)
 
     if args.study_type == "compare":
-        run_compare_mode(config, benchmarks, args.out)
+        run_compare_mode(config, benchmarks, args.out, suite_id=args.suite)
     else:
-        run_optimize_mode(config, benchmarks, search_space, args.out)
+        run_optimize_mode(config, benchmarks, search_space, args.out, suite_id=args.suite)
 
 
 def _cmd_preflight(args: argparse.Namespace) -> None:

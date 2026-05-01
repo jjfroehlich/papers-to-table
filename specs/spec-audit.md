@@ -80,25 +80,25 @@ Observed code anchors:
 
 ## Explicit missing features
 
-These features are not implemented yet in the current optimizer runtime:
+These features were missing at the time of the audit and have since been implemented in the optimizer runtime:
 
-- benchmark suites are not implemented yet
-- replicates are not implemented yet
-- suite-level aggregation and reporting are not implemented yet
+- benchmark suites
+- replicates
+- suite-level aggregation and reporting
 
-Related consequences of the current runtime:
+Current implementation follow-up:
 
-- there is no current config validation for `benchmark_suites`
-- there is no current config validation for `replicates`
-- there is no persisted replicate-level identifier such as `replicate_index`
-- there is no current suite-level weighted aggregation using benchmark-level means
-- there are no current report or plotting outputs for mean ± SD or SEM error bars
+- config validation now covers `benchmark_suites`
+- config validation now covers `replicates`
+- persisted replicate rows include `replicate_index` and `replicate_id`
+- suite-level weighted aggregation uses benchmark-level means
+- report and plotting outputs now surface replicate caveats and `n=1` warnings
 
-## Recommended implementation order for the next coding pass
+## Implementation order used for suite and replicate support
 
 1. Extend optimizer config loading and validation to accept additive `benchmark_suites` and `replicates` sections without breaking existing `benchmarks.dev` / `benchmarks.holdout` behavior.
 2. Add benchmark-suite resolution logic that turns an explicit ordered suite id into ordered benchmark ids, while preserving the current single-benchmark default when no suite is configured.
-3. Add replicate orchestration for candidate × benchmark execution, with explicit replicate ids, artifact paths, and visible failed or degraded replicate results.
+3. Add replicate orchestration for candidate x benchmark execution, with explicit replicate ids, artifact paths, and visible failed or degraded replicate results.
 4. Add persisted benchmark-level and suite-level aggregation artifacts, including benchmark coverage, failure counts, degraded counts, runtime summaries, SD, and SEM.
 5. Update ranking, reporting, and plotting so suite mode and replicate mode show trust caveats, error bars, `n=1` warnings, and the distinction between raw winner and recommended default.
 6. Add backward-compatibility tests for old configs, old CLI behavior, and readability of existing result files.

@@ -3,7 +3,9 @@ from __future__ import annotations
 import csv
 import json
 import asyncio
+import math
 import sys
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -12,7 +14,7 @@ from .benchmarks import Benchmarks, benchmark_id_for_split
 from .bundle import build_candidate_from_dict, candidate_hash
 from .contracts import Candidate, CandidateResult, RoundSummary
 from .pipeline import evaluate_candidate_once
-from .plotting import generate_compare_plots, generate_optimize_plots
+from .plotting import generate_compare_plots, generate_optimize_plots, generate_suite_plots
 from .report import generate_experiment_report
 from .propose import propose_candidates
 from .proposer import collect_proposer_candidates
@@ -24,13 +26,20 @@ def _primary_metric_value(result: CandidateResult, metric_name: str) -> float:
     return float(result.primary_metrics.get(metric_name, float("-inf")))
 
 
-def _ranking_penalty(result: CandidateResult) -> tuple[float, float, float]:
+def _ranking_penalty(result: CandidateResult) -> tuple[float, ...]:
     eval_summary = result.metadata.get("eval_summary", {}) if isinstance(result.metadata.get("eval_summary"), dict) else {}
     metrics = eval_summary.get("metrics", {}) if isinstance(eval_summary.get("metrics"), dict) else {}
     disagreement = float(metrics.get("judge_disagreement_rate") or 0.0)
     judge_failures = float(metrics.get("judge_request_failed_count") or 0.0)
     missing_evidence = float(metrics.get("missing_evidence_count") or 0.0)
-    return (-disagreement, -judge_failures, -missing_evidence)
+    suite_summary = result.metadata.get("suite_summary", {}) if isinstance(result.metadata.get("suite_summary"), dict) else {}
+    benchmark_summary = result.metadata.get("benchmark_summary", {}) if isinstance(result.metadata.get("benchmark_summary"), dict) else {}
+    failed = float(suite_summary.get("failed_replicate_count") or benchmark_summary.get("n_failed") or 0.0)
+    unscored = float(suite_summary.get("unscored_replicate_count") or benchmark_summary.get("n_unscored") or 0.0)
+    degraded = float(suite_summary.get("degraded_replicate_count") or benchmark_summary.get("n_degraded") or 0.0)
+    coverage_loss = 1.0 - float(suite_summary.get("benchmark_coverage", 1.0) or 0.0)
+    caveat_count = float(len(suite_summary.get("trust_caveats") or benchmark_summary.get("trust_caveats") or []))
+    return (-failed, -unscored, -degraded, -coverage_loss, -caveat_count, -disagreement, -judge_failures, -missing_evidence)
 
 
 def _rank_compare_results(results: list[CandidateResult], primary_metric: str) -> list[CandidateResult]:
@@ -43,6 +52,335 @@ def _rank_compare_results(results: list[CandidateResult], primary_metric: str) -
             -(item.runtime_seconds or float("inf")),
         ),
         reverse=True,
+    )
+
+
+def _replicate_count(config: dict[str, Any]) -> int:
+    replicates = config.get("replicates") if isinstance(config.get("replicates"), dict) else {}
+    return int(replicates.get("count", 1) or 1)
+
+
+def _continue_on_replicate_failure(config: dict[str, Any]) -> bool:
+    replicates = config.get("replicates") if isinstance(config.get("replicates"), dict) else {}
+    return bool(replicates.get("continue_on_failure", True))
+
+
+def _suite_config(config: dict[str, Any], suite_id: str | None) -> dict[str, Any] | None:
+    if suite_id is None:
+        return None
+    suites = config.get("benchmark_suites") if isinstance(config.get("benchmark_suites"), dict) else {}
+    suite = suites.get(suite_id)
+    if not isinstance(suite, dict):
+        raise ValueError(f"Unknown benchmark suite: {suite_id}")
+    return suite
+
+
+def _suite_or_replicate_mode(config: dict[str, Any], suite_id: str | None) -> bool:
+    return suite_id is not None or _replicate_count(config) > 1
+
+
+def _planned_benchmark_ids(benchmarks: Benchmarks, config: dict[str, Any], suite_id: str | None) -> list[str]:
+    suite = _suite_config(config, suite_id)
+    if suite is None:
+        return [benchmark_id_for_split(benchmarks, "dev")]
+    return list(suite["benchmark_ids"])
+
+
+def _mean(values: list[float]) -> float | None:
+    return sum(values) / len(values) if values else None
+
+
+def _sd(values: list[float]) -> float | None:
+    if len(values) <= 1:
+        return None
+    mean_value = sum(values) / len(values)
+    return math.sqrt(sum((value - mean_value) ** 2 for value in values) / (len(values) - 1))
+
+
+def _sem(values: list[float]) -> float | None:
+    sd_value = _sd(values)
+    return sd_value / math.sqrt(len(values)) if sd_value is not None and values else None
+
+
+def _trust_caveats_for_results(results: list[CandidateResult], *, planned_replicates: int) -> list[str]:
+    caveats: list[str] = []
+    if planned_replicates == 1:
+        caveats.append("single_replicate_no_variance_estimate")
+    if any(result.score_status == "failed" or result.candidate_status != "completed" for result in results):
+        caveats.append("failed_replicates_visible")
+    if any(result.score_status == "unscored" or not result.scored for result in results):
+        caveats.append("unscored_replicates_visible")
+    if any(result.score_status == "scored_degraded" or result.prompt_only_degraded_mode_used for result in results):
+        caveats.append("degraded_replicates_visible")
+    if any(result.extraction_contract_valid is False for result in results):
+        caveats.append("invalid_contract_observed")
+    for result in results:
+        eval_summary = result.metadata.get("eval_summary", {}) if isinstance(result.metadata.get("eval_summary"), dict) else {}
+        metrics = eval_summary.get("metrics", {}) if isinstance(eval_summary.get("metrics"), dict) else {}
+        if (metrics.get("judge_disagreement_rate") or 0) and float(metrics.get("judge_disagreement_rate") or 0) > 0:
+            caveats.append("judge_instability_observed")
+            break
+        if (metrics.get("missing_evidence_count") or 0) and float(metrics.get("missing_evidence_count") or 0) > 0:
+            caveats.append("missing_evidence_observed")
+            break
+    return sorted(set(caveats))
+
+
+def _benchmark_summary_row(
+    *,
+    candidate: Candidate,
+    suite_id: str | None,
+    benchmark_id: str,
+    primary_metric: str,
+    replicate_results: list[CandidateResult],
+    planned_replicates: int,
+) -> dict[str, Any]:
+    scored_values = [
+        float(result.primary_metrics[primary_metric])
+        for result in replicate_results
+        if result.scored and result.primary_metrics.get(primary_metric) is not None
+    ]
+    runtimes = [float(result.runtime_seconds) for result in replicate_results if result.runtime_seconds is not None]
+    n_degraded = sum(
+        1
+        for result in replicate_results
+        if result.score_status == "scored_degraded" or result.prompt_only_degraded_mode_used
+    )
+    return {
+        "candidate_id": candidate.candidate_id,
+        "suite_id": suite_id,
+        "benchmark_id": benchmark_id,
+        "primary_metric": primary_metric,
+        "primary_metric_mean": _mean(scored_values),
+        "primary_metric_sd": _sd(scored_values),
+        "primary_metric_sem": _sem(scored_values),
+        "n_total": len(replicate_results),
+        "n_scored": len(scored_values),
+        "n_failed": sum(1 for result in replicate_results if result.score_status == "failed" or result.candidate_status != "completed"),
+        "n_unscored": sum(1 for result in replicate_results if result.score_status == "unscored" or not result.scored),
+        "n_degraded": n_degraded,
+        "runtime_mean_seconds": _mean(runtimes),
+        "runtime_sd_seconds": _sd(runtimes),
+        "trust_caveats": _trust_caveats_for_results(replicate_results, planned_replicates=planned_replicates),
+    }
+
+
+def _suite_summary_row(
+    *,
+    candidate: Candidate,
+    suite_id: str,
+    suite: dict[str, Any],
+    primary_metric: str,
+    benchmark_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    weights = dict((suite.get("aggregation") or {}).get("weights") or {})
+    weighted_values: list[tuple[float, float]] = []
+    for benchmark_id in suite["benchmark_ids"]:
+        row = next((item for item in benchmark_rows if item["benchmark_id"] == benchmark_id), None)
+        if row is None or row.get("primary_metric_mean") is None:
+            continue
+        weighted_values.append((float(row["primary_metric_mean"]), float(weights.get(benchmark_id, 1.0))))
+    weight_total = sum(weight for _, weight in weighted_values)
+    weighted_mean = (
+        sum(value * weight for value, weight in weighted_values) / weight_total
+        if weighted_values and weight_total > 0
+        else None
+    )
+    failed_benchmarks = sum(1 for row in benchmark_rows if row.get("n_scored", 0) == 0 or row.get("n_failed", 0) > 0)
+    degraded_benchmarks = sum(1 for row in benchmark_rows if row.get("n_degraded", 0) > 0)
+    caveats = sorted(
+        {
+            caveat
+            for row in benchmark_rows
+            for caveat in (row.get("trust_caveats") or [])
+        }
+        | ({"benchmark_coverage_loss"} if len(weighted_values) < len(suite["benchmark_ids"]) else set())
+    )
+    return {
+        "candidate_id": candidate.candidate_id,
+        "suite_id": suite_id,
+        "primary_metric": primary_metric,
+        "suite_primary_metric_weighted_mean": weighted_mean,
+        "benchmark_coverage": len(weighted_values) / len(suite["benchmark_ids"]) if suite["benchmark_ids"] else 0.0,
+        "benchmarks_total": len(suite["benchmark_ids"]),
+        "benchmarks_scored": len(weighted_values),
+        "failed_benchmark_count": failed_benchmarks,
+        "failed_replicate_count": sum(int(row.get("n_failed", 0)) for row in benchmark_rows),
+        "unscored_replicate_count": sum(int(row.get("n_unscored", 0)) for row in benchmark_rows),
+        "degraded_benchmark_count": degraded_benchmarks,
+        "degraded_replicate_count": sum(int(row.get("n_degraded", 0)) for row in benchmark_rows),
+        "trust_caveats": caveats,
+    }
+
+
+def _summary_sort_key(row: dict[str, Any]) -> tuple[Any, ...]:
+    caveats = set(row.get("trust_caveats") or [])
+    score = row.get("suite_primary_metric_weighted_mean")
+    if score is None:
+        score = row.get("primary_metric_mean")
+    return (
+        row.get("benchmark_coverage", 1.0),
+        -(int(row.get("failed_benchmark_count", 0)) + int(row.get("failed_replicate_count", 0))),
+        -(int(row.get("unscored_replicate_count", 0))),
+        -(int(row.get("degraded_benchmark_count", 0)) + int(row.get("degraded_replicate_count", 0))),
+        -len(caveats),
+        float(score) if score is not None else float("-inf"),
+    )
+
+
+def _aggregate_result_from_summary(
+    template: CandidateResult,
+    *,
+    suite_id: str | None,
+    benchmark_id: str,
+    primary_metric: str,
+    score: float | None,
+    runtime_seconds: float | None,
+    metadata: dict[str, Any],
+) -> CandidateResult:
+    scored = score is not None
+    return replace(
+        template,
+        suite_id=suite_id,
+        benchmark_id=benchmark_id,
+        replicate_index=None,
+        replicate_id=None,
+        primary_metrics={primary_metric: float(score)} if scored else {},
+        scored=scored,
+        score_status="scored" if scored else "unscored",
+        unscored_reason=None if scored else "aggregate_missing_scored_replicates",
+        runtime_seconds=runtime_seconds,
+        candidate_status="completed" if scored else "failed",
+        metadata={**template.metadata, **metadata},
+    )
+
+
+def _evaluate_candidate_with_suite_and_replicates(
+    config: dict[str, Any],
+    benchmarks: Benchmarks,
+    writer: ResultsWriter,
+    *,
+    experiment_dir: Path,
+    candidate: Candidate,
+    suite_id: str | None,
+    benchmark_id: str,
+    study_type: str,
+    decision: str,
+    reason: str,
+) -> CandidateResult:
+    planned_replicates = _replicate_count(config)
+    benchmark_ids = _planned_benchmark_ids(benchmarks, config, suite_id)
+    suite = _suite_config(config, suite_id)
+    primary_metric = (
+        str((suite.get("aggregation") or {}).get("primary_metric"))
+        if suite is not None
+        else str(config["acceptance"]["primary_metric"])
+    )
+    all_replicates: list[CandidateResult] = []
+    benchmark_rows: list[dict[str, Any]] = []
+
+    for planned_benchmark_id in benchmark_ids:
+        per_benchmark: list[CandidateResult] = []
+        for replicate_index in range(1, planned_replicates + 1):
+            result = evaluate_candidate_once(
+                config,
+                experiment_dir=experiment_dir,
+                candidate=candidate,
+                benchmark_id=planned_benchmark_id,
+                study_type=study_type,
+                decision=decision,
+                reason=reason,
+            )
+            result.suite_id = suite_id
+            result.replicate_index = replicate_index
+            result.replicate_id = f"{candidate.candidate_id}:{suite_id or planned_benchmark_id}:{planned_benchmark_id}:r{replicate_index:03d}"
+            result.metadata["replicate"] = {
+                "suite_id": suite_id,
+                "benchmark_id": planned_benchmark_id,
+                "replicate_index": replicate_index,
+                "replicate_id": result.replicate_id,
+            }
+            per_benchmark.append(result)
+            all_replicates.append(result)
+            if result.score_status == "failed" and not _continue_on_replicate_failure(config):
+                break
+        benchmark_rows.append(
+            _benchmark_summary_row(
+                candidate=candidate,
+                suite_id=suite_id,
+                benchmark_id=planned_benchmark_id,
+                primary_metric=primary_metric,
+                replicate_results=per_benchmark,
+                planned_replicates=planned_replicates,
+            )
+        )
+
+    existing_replicates: list[CandidateResult] = []
+    replicate_jsonl = experiment_dir / "results" / "replicate_results.jsonl"
+    if replicate_jsonl.exists():
+        for line in replicate_jsonl.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            payload = json.loads(line)
+            existing_replicates.append(CandidateResult(**payload))
+    writer.write_replicate_results(existing_replicates + all_replicates)
+
+    benchmark_summary_path = experiment_dir / "results" / "benchmark_summary.json"
+    prior_benchmark_rows: list[dict[str, Any]] = []
+    if benchmark_summary_path.exists():
+        existing = read_json(benchmark_summary_path)
+        prior_benchmark_rows = list(existing.get("rows", [])) if isinstance(existing, dict) else []
+    benchmark_rows_all = [
+        row for row in prior_benchmark_rows if row.get("candidate_id") != candidate.candidate_id
+    ] + benchmark_rows
+    writer.write_table_artifacts(
+        "benchmark_summary",
+        benchmark_rows_all,
+        {"primary_metric": primary_metric, "rows": benchmark_rows_all},
+    )
+
+    if suite_id is not None and suite is not None:
+        suite_row = _suite_summary_row(
+            candidate=candidate,
+            suite_id=suite_id,
+            suite=suite,
+            primary_metric=primary_metric,
+            benchmark_rows=benchmark_rows,
+        )
+        prior_rows = []
+        suite_summary_path = experiment_dir / "results" / "suite_summary.json"
+        if suite_summary_path.exists():
+            existing = read_json(suite_summary_path)
+            prior_rows = list(existing.get("rows", [])) if isinstance(existing, dict) else []
+        suite_rows = [row for row in prior_rows if row.get("candidate_id") != candidate.candidate_id]
+        suite_rows.append(suite_row)
+        suite_rows = sorted(suite_rows, key=_summary_sort_key, reverse=True)
+        writer.write_table_artifacts("suite_summary", suite_rows, {"primary_metric": primary_metric, "rows": suite_rows})
+        return _aggregate_result_from_summary(
+            all_replicates[0],
+            suite_id=suite_id,
+            benchmark_id=benchmark_id,
+            primary_metric=primary_metric,
+            score=suite_row.get("suite_primary_metric_weighted_mean"),
+            runtime_seconds=_mean(
+                [
+                    float(row["runtime_mean_seconds"])
+                    for row in benchmark_rows
+                    if row.get("runtime_mean_seconds") is not None
+                ]
+            ),
+            metadata={"suite_summary": suite_row, "benchmark_summaries": benchmark_rows, "replicate_count": planned_replicates},
+        )
+
+    benchmark_row = benchmark_rows[0]
+    return _aggregate_result_from_summary(
+        all_replicates[0],
+        suite_id=None,
+        benchmark_id=benchmark_id,
+        primary_metric=primary_metric,
+        score=benchmark_row.get("primary_metric_mean"),
+        runtime_seconds=benchmark_row.get("runtime_mean_seconds"),
+        metadata={"benchmark_summary": benchmark_row, "replicate_count": planned_replicates},
     )
 
 
@@ -528,6 +866,7 @@ def _write_compare_progress(
     progress_state: str,
 ) -> None:
     ranked_results = _rank_compare_results(results, primary_metric)
+    active_suite_id = next((result.suite_id for result in results if result.suite_id), None)
     best_raw = _best_completed_result(results, primary_metric)
     eligible_winner = next(
         (result for result in ranked_results if _winner_eligible(result, config["acceptance"])),
@@ -540,6 +879,7 @@ def _write_compare_progress(
             {
                 "candidate_id": eligible_winner.candidate_id,
                 "benchmark_id": benchmark_id,
+                "suite_id": active_suite_id,
                 "study_type": "compare",
                 "primary_metric": primary_metric,
                 "primary_metric_value": eligible_winner.primary_metrics.get(primary_metric),
@@ -559,6 +899,7 @@ def _write_compare_progress(
             {
                 "study_type": "compare",
                 "benchmark_id": benchmark_id,
+                "suite_id": active_suite_id,
                 "reason": "no_eligible_winner" if any(result.candidate_status == "completed" for result in results) else "no_completed_candidates",
                 "candidate_count": len(results),
                 "degraded_score_policy": degraded_score_policy(config["acceptance"]),
@@ -844,16 +1185,21 @@ def _run_confirmation_reruns(
     return bool(payload["confirmed"]), payload
 
 
-def run_compare_mode(config: dict[str, Any], benchmarks: Benchmarks, experiment_dir: Path) -> None:
+def run_compare_mode(config: dict[str, Any], benchmarks: Benchmarks, experiment_dir: Path, suite_id: str | None = None) -> None:
     writer = ResultsWriter(experiment_dir)
     benchmark_id = benchmark_id_for_split(benchmarks, "dev")
     primary_metric = config["acceptance"]["primary_metric"]
+    if suite_id is not None:
+        suite = _suite_config(config, suite_id)
+        primary_metric = str((suite.get("aggregation") or {}).get("primary_metric") or primary_metric)
     writer.write_experiment_manifest(
         {
             "schema_version": config["schema_version"],
             "experiment_id": config["experiment_id"],
             "study_type": "compare",
             "benchmark_id": benchmark_id,
+            "suite_id": suite_id,
+            "replicates": {"count": _replicate_count(config), "continue_on_failure": _continue_on_replicate_failure(config)},
         }
     )
 
@@ -910,15 +1256,29 @@ def run_compare_mode(config: dict[str, Any], benchmarks: Benchmarks, experiment_
             )
             continue
 
-        result = evaluate_candidate_once(
-            config,
-            experiment_dir=experiment_dir,
-            candidate=candidate,
-            benchmark_id=benchmark_id,
-            study_type="compare",
-            decision="not_promoted",
-            reason="compare_mode_fixed_comparison",
-        )
+        if _suite_or_replicate_mode(config, suite_id):
+            result = _evaluate_candidate_with_suite_and_replicates(
+                config,
+                benchmarks,
+                writer,
+                experiment_dir=experiment_dir,
+                candidate=candidate,
+                suite_id=suite_id,
+                benchmark_id=benchmark_id,
+                study_type="compare",
+                decision="not_promoted",
+                reason="compare_mode_fixed_comparison",
+            )
+        else:
+            result = evaluate_candidate_once(
+                config,
+                experiment_dir=experiment_dir,
+                candidate=candidate,
+                benchmark_id=benchmark_id,
+                study_type="compare",
+                decision="not_promoted",
+                reason="compare_mode_fixed_comparison",
+            )
         if (
             compare_policy["require_structured_output_for_extraction"]
             and compare_policy["allow_degraded_candidates"]
@@ -963,12 +1323,24 @@ def run_compare_mode(config: dict[str, Any], benchmarks: Benchmarks, experiment_
     )
 
     generate_compare_plots(experiment_dir, primary_metric)
+    if _suite_or_replicate_mode(config, suite_id):
+        generate_suite_plots(experiment_dir, primary_metric)
     generate_experiment_report(experiment_dir)
 
 
-def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_space: Any, experiment_dir: Path) -> None:
+def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_space: Any, experiment_dir: Path, suite_id: str | None = None) -> None:
     writer = ResultsWriter(experiment_dir)
     benchmark_id = benchmark_id_for_split(benchmarks, "dev")
+    if suite_id is not None:
+        suite = _suite_config(config, suite_id)
+        suite_primary_metric = str((suite.get("aggregation") or {}).get("primary_metric") or config["acceptance"]["primary_metric"])
+        config = {
+            **config,
+            "acceptance": {
+                **config["acceptance"],
+                "primary_metric": suite_primary_metric,
+            },
+        }
 
     writer.write_experiment_manifest(
         {
@@ -976,21 +1348,37 @@ def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_spa
             "experiment_id": config["experiment_id"],
             "study_type": "optimize",
             "benchmark_id": benchmark_id,
+            "suite_id": suite_id,
+            "replicates": {"count": _replicate_count(config), "continue_on_failure": _continue_on_replicate_failure(config)},
             "rounds": config.get("optimize", {}).get("rounds", 0),
             "batch_size": config.get("optimize", {}).get("batch_size", 1),
         }
     )
 
     incumbent_candidate = _baseline_candidate(config)
-    incumbent_result = evaluate_candidate_once(
-        config,
-        experiment_dir=experiment_dir,
-        candidate=incumbent_candidate,
-        benchmark_id=benchmark_id,
-        study_type="optimize",
-        decision="incumbent",
-        reason="baseline",
-    )
+    if _suite_or_replicate_mode(config, suite_id):
+        incumbent_result = _evaluate_candidate_with_suite_and_replicates(
+            config,
+            benchmarks,
+            writer,
+            experiment_dir=experiment_dir,
+            candidate=incumbent_candidate,
+            suite_id=suite_id,
+            benchmark_id=benchmark_id,
+            study_type="optimize",
+            decision="incumbent",
+            reason="baseline",
+        )
+    else:
+        incumbent_result = evaluate_candidate_once(
+            config,
+            experiment_dir=experiment_dir,
+            candidate=incumbent_candidate,
+            benchmark_id=benchmark_id,
+            study_type="optimize",
+            decision="incumbent",
+            reason="baseline",
+        )
     writer.append_result(incumbent_result)
     if incumbent_result.candidate_status != "completed":
         writer.write_no_winner(
@@ -1108,15 +1496,29 @@ def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_spa
         challenger_results: list[tuple[Candidate, CandidateResult, bool, str]] = []
 
         for candidate in filtered:
-            challenger_result = evaluate_candidate_once(
-                config,
-                experiment_dir=experiment_dir,
-                candidate=candidate,
-                benchmark_id=benchmark_id,
-                study_type="optimize",
-                decision="rejected",
-                reason="not_evaluated",
-            )
+            if _suite_or_replicate_mode(config, suite_id):
+                challenger_result = _evaluate_candidate_with_suite_and_replicates(
+                    config,
+                    benchmarks,
+                    writer,
+                    experiment_dir=experiment_dir,
+                    candidate=candidate,
+                    suite_id=suite_id,
+                    benchmark_id=benchmark_id,
+                    study_type="optimize",
+                    decision="rejected",
+                    reason="not_evaluated",
+                )
+            else:
+                challenger_result = evaluate_candidate_once(
+                    config,
+                    experiment_dir=experiment_dir,
+                    candidate=candidate,
+                    benchmark_id=benchmark_id,
+                    study_type="optimize",
+                    decision="rejected",
+                    reason="not_evaluated",
+                )
 
             ok, reason = evaluate_promotion(incumbent_result, challenger_result, config["acceptance"])
             if ok:
@@ -1205,6 +1607,8 @@ def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_spa
     )
 
     generate_optimize_plots(experiment_dir, config["acceptance"]["primary_metric"])
+    if _suite_or_replicate_mode(config, suite_id):
+        generate_suite_plots(experiment_dir, config["acceptance"]["primary_metric"])
     generate_experiment_report(experiment_dir)
 
 

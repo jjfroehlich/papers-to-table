@@ -102,6 +102,64 @@ def validate_config(config: dict[str, Any]) -> None:
             if not isinstance(required_judges, list) or not all(isinstance(item, str) for item in required_judges):
                 raise ConfigError(f"benchmarks.manifests.{bench_id}.required_judges must be an array of strings when provided")
 
+    benchmark_suites = config.get("benchmark_suites", {})
+    if benchmark_suites is not None:
+        if not isinstance(benchmark_suites, dict):
+            raise ConfigError("benchmark_suites must be an object when provided")
+        known_benchmark_ids = set(manifests)
+        for suite_id, suite in benchmark_suites.items():
+            if not isinstance(suite_id, str) or not suite_id.strip():
+                raise ConfigError("benchmark_suites keys must be non-empty suite ids")
+            if not isinstance(suite, dict):
+                raise ConfigError(f"benchmark_suites.{suite_id} must be an object")
+            benchmark_ids = suite.get("benchmark_ids")
+            if (
+                not isinstance(benchmark_ids, list)
+                or not benchmark_ids
+                or not all(isinstance(item, str) and item.strip() for item in benchmark_ids)
+            ):
+                raise ConfigError(f"benchmark_suites.{suite_id}.benchmark_ids must be a non-empty array of benchmark ids")
+            for benchmark_id in benchmark_ids:
+                if benchmark_id not in known_benchmark_ids:
+                    raise ConfigError(
+                        f"benchmark_suites.{suite_id}.benchmark_ids references unknown benchmark id: {benchmark_id}"
+                    )
+            aggregation = suite.get("aggregation")
+            if not isinstance(aggregation, dict):
+                raise ConfigError(f"benchmark_suites.{suite_id}.aggregation must be an object")
+            method = aggregation.get("method")
+            if method != "weighted_mean":
+                raise ConfigError(f"benchmark_suites.{suite_id}.aggregation.method must be 'weighted_mean'")
+            acceptance_primary = config.get("acceptance", {}).get("primary_metric") if isinstance(config.get("acceptance"), dict) else None
+            primary_metric = aggregation.get("primary_metric", acceptance_primary)
+            if not isinstance(primary_metric, str) or not primary_metric.strip():
+                raise ConfigError(f"benchmark_suites.{suite_id}.aggregation.primary_metric must be a non-empty string")
+            weights = aggregation.get("weights", {})
+            if weights is None:
+                weights = {}
+            if not isinstance(weights, dict):
+                raise ConfigError(f"benchmark_suites.{suite_id}.aggregation.weights must be an object when provided")
+            suite_benchmark_ids = set(benchmark_ids)
+            for weight_key, weight in weights.items():
+                if weight_key not in suite_benchmark_ids:
+                    raise ConfigError(
+                        f"benchmark_suites.{suite_id}.aggregation.weights references unknown suite benchmark id: {weight_key}"
+                    )
+                if not isinstance(weight, (int, float)) or float(weight) < 0:
+                    raise ConfigError(
+                        f"benchmark_suites.{suite_id}.aggregation.weights.{weight_key} must be a non-negative number"
+                    )
+
+    replicates = config.get("replicates", {})
+    if replicates is not None:
+        if not isinstance(replicates, dict):
+            raise ConfigError("replicates must be an object when provided")
+        count = replicates.get("count", 1)
+        if not isinstance(count, int) or count <= 0:
+            raise ConfigError("replicates.count must be a positive integer")
+        if "continue_on_failure" in replicates and not isinstance(replicates["continue_on_failure"], bool):
+            raise ConfigError("replicates.continue_on_failure must be a boolean when provided")
+
     main_app = _require(config, "main_app")
     eval_app = _require(config, "eval_app")
     for section_name, section in [("main_app", main_app), ("eval_app", eval_app)]:
