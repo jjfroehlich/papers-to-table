@@ -989,7 +989,7 @@
 
 
 <h1 id="prepare-table-and-schema">Prepare Table and Schema<a class="headerlink" href="#prepare-table-and-schema" title="Permanent link">&para;</a></h1>
-<p>The app needs a table and a schema because they answer different questions.</p>
+<p>The app needs a table and a schema that define which information needs to be extracted.</p>
 <p>The table is the working spreadsheet. Each row is a paper, and each column is a field you want filled or checked. The app uses <code>Title</code>, <code>Authors</code>, and <code>Publication Year</code> to match PDFs to existing rows. If a PDF does not match any row, the app stages a new row from extracted paper metadata and generates proposals for the schema-defined target columns.</p>
 <p>The schema is the extraction contract. It tells the model what each target column means, what evidence is acceptable, and whether the value should be text, numeric, boolean, or categorical.</p>
 <h2 id="table">Table<a class="headerlink" href="#table" title="Permanent link">&para;</a></h2>
@@ -997,13 +997,12 @@
 <div class="highlight"><pre><span></span><code>Title,Authors,Publication Year,Species,Model system,Readout
 Example paper title,&quot;Smith, J.; Doe, A.&quot;,2024,,,
 </code></pre></div>
-<p>Use one row per paper when you already know the literature set. Leave target cells blank when you want proposals. Filled cells are skipped in normal mode, checked in verify mode, and masked in eval mode.</p>
+<p>Use one row per paper when you already know the literature set. Leave target cells blank when you want proposals. Already pre-filled cells are skipped in normal mode, checked in <code>verify mode</code>, and masked in <code>eval mode</code>.</p>
 <h2 id="schema">Schema<a class="headerlink" href="#schema" title="Permanent link">&para;</a></h2>
-<p>Use a CSV with these columns:</p>
-<div class="highlight"><pre><span></span><code>column_name,description,field_type,allowed_values
-Species,Species used in the assay or model system.,categorical,&quot;[&quot;&quot;human&quot;&quot;,&quot;&quot;mouse&quot;&quot;,&quot;&quot;yeast&quot;&quot;]&quot;
-Model system,Cell line or organism context used for the reported experiment.,text,
-Readout,Primary assay readout used to measure expression or activity.,text,
+<p>Use a CSV with these columns, for example:</p>
+<div class="highlight"><pre><span></span><code>column_name,description
+Species,Species used in the assay or model system.
+Model system,Cell line or organism context used for the reported experiment.
 </code></pre></div>
 <p>Rules:</p>
 <ul>
@@ -1012,7 +1011,7 @@ Readout,Primary assay readout used to measure expression or activity.,text,
 <li><code>field_type</code> can be <code>text</code>, <code>number</code>, <code>categorical</code>, or <code>boolean</code>.</li>
 <li><code>allowed_values</code> is only for categorical fields and should be a JSON list.</li>
 </ul>
-<p>Do not put <code>Title</code>, <code>Authors</code>, or <code>Publication Year</code> in the schema unless you are deliberately running verify/eval behavior for metadata. In normal runs, the schema should focus on the fields you want extracted.</p>
+<p>Do not put <code>Title</code>, <code>Authors</code>, or <code>Publication Year</code> in the schema.</p>
 <h2 id="writing-better-descriptions">Writing Better Descriptions<a class="headerlink" href="#writing-better-descriptions" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Name the fact, not the workflow step.</li>

@@ -121,6 +121,53 @@ Important interpretation rules:
 - `optimize-one-model` starts from one baseline and proposes challengers.
 - `overnight` chains several compare and optimize stages together.
 
+## Planned Benchmark Suites And Replicates
+
+Benchmark suites and replicates are now specified in the optimizer spec, but they are not implemented in the current runtime yet.
+
+Use benchmark suites when you need one study to cover several distinct benchmark aspects, for example:
+
+- text extraction
+- figure or vision-heavy extraction
+- reasoning-heavy fields
+- metadata-heavy matching and extraction
+
+Use replicates when you want to estimate stability instead of trusting one candidate × benchmark run.
+
+Planned additive config shape:
+
+```json
+{
+  "benchmark_suites": {
+    "dev_suite": {
+      "benchmark_ids": ["bench_text", "bench_vision", "bench_reasoning"],
+      "aggregation": {
+        "method": "weighted_mean",
+        "primary_metric": "content_correctness",
+        "weights": {
+          "bench_text": 1.0,
+          "bench_vision": 1.0,
+          "bench_reasoning": 1.0
+        }
+      }
+    }
+  },
+  "replicates": {
+    "count": 3,
+    "continue_on_failure": true
+  }
+}
+```
+
+Interpretation guidance for the future suite or replicate reports:
+
+- mean ± SD or SEM gives a stability signal when `n > 1`
+- `n = 1` should be read as a warning, not as a variance estimate
+- failed, unscored, or degraded replicates must stay visible in the report
+- raw winner and recommended default can differ when trust caveats are material
+
+Until runtime support lands, continue using the current single-benchmark `smoke` / `dev` / `holdout` workflow.
+
 ## How Outputs Are Organized
 
 Each experiment writes an experiment directory with:

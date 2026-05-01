@@ -23,7 +23,9 @@ Keep fewer normative files:
 - `contracts/`: machine-readable schemas and artifact contracts.
 - `archive/`: old plans, generated scaffolds, and superseded verbatim specs.
 
-Treat `plan.md`, `product/`, `tools/`, `architecture/`, and `process/` as supporting references while gradually folding durable truth into `spec.md` or `contracts/`. New behavior changes should update `spec.md` first, then only the specific supporting page that owns extra detail.
+`spec.md` is the integrated cross-repo entry point, not a replacement for the domain-owning current specs.
+
+`product/`, `tools/`, `contracts/`, `architecture/`, and `process/` remain normative for their domains. New behavior changes should update `spec.md` plus the specific owning current file that carries the detailed durable truth.
 
 ## Reading order
 
@@ -31,16 +33,20 @@ Treat `plan.md`, `product/`, `tools/`, `architecture/`, and `process/` as suppor
 2. [`research.md`](research.md) — rationale, tradeoffs, and historical notes that still matter
 3. [`plan.md`](plan.md) — technical direction and roadmap
 4. [`tasks.md`](tasks.md) — current verified status and backlog
+5. [`process/change-policy.md`](process/change-policy.md) — spec-update ownership and anti-duplication rules
+6. [`process/testing-strategy.md`](process/testing-strategy.md) — verification expectations for behavior, docs, and contracts
 
 ## Supporting references
 
-The subdirectories remain useful supporting references for modular ownership and detailed contracts:
+The subdirectories remain useful current specs for modular ownership and detailed contracts:
 
-- `product/` — focused product slices
+- `product/` — focused product slices and reviewer workflow ownership
 - `tools/` — eval and optimizer scope details
-- `contracts/` — shared filesystem and evidence contracts
+- `contracts/` — shared filesystem, summary, and evidence contracts
 - `architecture/` — repo boundaries and integration structure
 - `process/` — testing and change policy
 - `archive/verbatim/` — preserved historical material only
 
 When current truth changes, update `spec.md` plus any owning supporting reference in the same pass.
+
+When `spec.md` and a supporting current file overlap, keep the detailed durable truth in the owning current file and reduce `spec.md` to the integrated summary needed to understand the whole repo.

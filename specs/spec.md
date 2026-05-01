@@ -1,6 +1,13 @@
 # papers-to-table integrated specification
 
 - Status: Normative integrated spec
+- Owner: System Integration
+- Depends on: product/overview.md, product/main-app.md, product/review-workflow.md, tools/eval.md, tools/optimizer.md, contracts/run-bundle.md, contracts/proposals-and-evidence.md, contracts/eval-summary.md, contracts/optimizer-candidate.md, architecture/integration.md, architecture/monorepo-layout.md, process/change-policy.md, process/testing-strategy.md
+- Consumed by: README.md, AGENTS.md, docs/, app/backend/src/backend/app/, app/frontend/src/, tools/eval/, tools/optimizer/
+
+This file integrates current system truth across the main app, companion tools, shared contracts, architecture, and process rules.
+
+It should summarize the repo-wide picture and point to the owning current file when detailed domain behavior already lives elsewhere.
 
 ## 1. Product purpose
 
@@ -13,6 +20,10 @@ The product has three coordinated surfaces:
 - **optimizer companion**: orchestrates repeated main-app plus eval studies
 
 ## 2. Core philosophy
+
+The complete product-level principles live in `product/overview.md`.
+
+Repo-wide requirements that must remain visible across all owning specs are:
 
 - local-first by default
 - browser UI is the primary human operator surface
@@ -106,15 +117,15 @@ If a PDF does not match an existing row, the normal browser workflow must stage 
 
 ### 5.5 Proposal and evidence truth
 
-Proposal records must preserve:
+Shared proposal and evidence semantics are owned by `contracts/proposals-and-evidence.md`.
 
+At the integrated level, the system must still preserve:
+
+- one best proposal per eligible target cell
 - stable join identity (`row_id`, `column_name`, `cell_id`)
-- proposed value
-- support quality
-- evidence ids
+- reviewer-visible support-quality truth
+- auditable evidence linkage
 - degraded-mode, fallback, metadata-lane, and failure-attribution truth when relevant
-
-Evidence must remain auditable and typed distinctly, including direct quote, inferred reasoning, calculation, approximate highlight, quote-plus-page, and figure evidence.
 
 ### 5.6 Review semantics
 
@@ -137,81 +148,33 @@ The source workbook is never mutated in place.
 
 ## 6. Run bundle contract
 
-A run bundle is the stable filesystem artifact at `{output_dir}/{run_id}/`.
+The detailed shared filesystem contract is owned by `contracts/run-bundle.md`.
 
-Stable categories include:
+At the integrated level, a run bundle remains the stable artifact rooted at `{output_dir}/{run_id}/` and must stay consumable from files alone by the main app, eval, and optimizer.
 
-- inputs
-- style profiles
-- parsed artifacts
-- matching artifacts
-- retrieval artifacts
-- proposals
-- evidence
-- review decisions
-- summaries
-- diagnostics
-- exports
-
-Important shared files include:
+Stable categories include inputs, parsed artifacts, matching artifacts, retrieval artifacts, proposals, evidence, review decisions, summaries, diagnostics, and exports.
 
 Schemas for machine validation live under `specs/contracts/schemas/` and are consumed by `verify-contract`.
 
-
-- `run.json`
-- `config.snapshot.json`
-- `inputs/input_summary.json`
-- `proposals/proposals.jsonl`
-- `summaries/run_summary.json`
-- `summaries/reviewer_summary.json`
-- `review/decisions.jsonl`
-- `exports/workbook_*.xlsx`
-- `exports/audit_log_*.json`
-
 ## 7. Provider policy
 
-The default live provider path is LM Studio with config token `lm_studio`.
+Detailed provider policy and readiness behavior are owned by `product/main-app.md`.
 
-Required truth to preserve:
-
-- provider reachable vs unreachable
-- model available vs unavailable
-- negotiated structured-output mode
-- prompt-only degraded fallback when used
-- extraction-contract validity and warnings
-- explicit model-management lifecycle assumptions and cleanup diagnostics
+At the integrated level, the default live provider path is LM Studio with config token `lm_studio`, and the repo must preserve truthful distinctions for provider reachability, model availability, negotiated structured-output mode, degraded fallback, extraction-contract validity, and model-management diagnostics.
 
 ## 8. Eval companion
 
-Eval is CLI-first and file-driven.
+Detailed eval behavior is owned by `tools/eval.md` and the shared summary contract in `contracts/eval-summary.md`.
 
-It must:
-
-- read run bundles from files alone
-- score against gold data
-- keep correctness and evidence metrics separate
-- preserve dual-judge details when configured
-- publish per-run and compare artifacts under the caller's output directory
-
-Real benchmark evaluation should use two judges by default.
+At the integrated level, eval remains CLI-first and file-driven: it reads run bundles from files alone, scores against gold data, keeps correctness and evidence metrics separate, preserves dual-judge details, and publishes stable output artifacts under the caller's output directory.
 
 ## 9. Optimizer companion
 
-Optimizer is orchestration-only.
+Detailed optimizer behavior is owned by `tools/optimizer.md` and `contracts/optimizer-candidate.md`.
 
-It must:
+At the integrated level, optimizer remains orchestration-only: it loads explicit candidate bundles and search spaces, launches main-app and eval runs, keeps compare and optimize workflows distinct, distinguishes real benchmark presets from fixture and smoke presets, and reports raw winners separately from recommended defaults when trust caveats differ.
 
-- load explicit candidate bundles and search spaces
-- launch main-app and eval runs
-- keep compare and optimize workflows distinct
-- distinguish real benchmark presets from fixture and smoke presets
-- report winner and recommended default separately when trust caveats differ
-
-Canonical operator workflows are:
-
-- compare models
-- optimize one model
-- overnight sequence
+Benchmark-suite and replicate direction is additive, remains owned by `tools/optimizer.md`, and must not redefine the current single-benchmark split behavior until runtime support actually lands.
 
 ## 10. Config families
 
@@ -236,6 +199,8 @@ Canonical presets:
 - `optimize_overnight.json`
 
 Smoke and fixture-manual configs remain explicitly labeled non-canonical benchmark evidence.
+
+Detailed eval and optimizer config semantics are owned by `tools/eval.md` and `tools/optimizer.md`.
 
 ## 11. Operator command surface
 
