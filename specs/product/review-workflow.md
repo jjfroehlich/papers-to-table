@@ -53,6 +53,14 @@ The reviewer must be able to:
 
 These decision types are first-class curation outcomes and must remain distinct in artifacts and summaries.
 
+Persisted review artifacts must also distinguish how a decision was recorded:
+
+- `human_individual` for ordinary reviewer actions
+- `human_bulk_accept` for bulk acceptance of the visible filtered subset
+- `automation_accept_all` for explicit headless `--accept-all` runs
+
+Legacy `human_reviewer` values remain readable for backward compatibility, but newly written review artifacts must use the explicit current decision-source values.
+
 No-value states must remain actionable. The review workspace should support explicit manual entry and explicit `confirm no data` behavior rather than dead-ending in an empty detail pane.
 
 ## Evidence handling
