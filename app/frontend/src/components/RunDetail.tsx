@@ -83,7 +83,7 @@ function ResolvedInputRow({
         <div className="mt-2 min-w-0 text-xs text-slate-500">
           <span className="font-semibold text-slate-600">Locator</span>
           <p className="mt-1 truncate font-mono" title={locator}>
-            {locatorName !== locator ? locator : locator}
+            {locatorName}
           </p>
         </div>
       )}

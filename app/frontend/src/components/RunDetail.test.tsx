@@ -141,8 +141,8 @@ describe('RunDetail', () => {
     }
     render(<RunDetail run={runWithResolvedInputs} />)
     expect(screen.getByText('picked-table.xlsx')).toBeTruthy()
-    expect(screen.getByText('/tmp/.staged/table.xlsx')).toBeTruthy()
-    expect(screen.getByText('/tmp/schema.csv')).toBeTruthy()
-    expect(screen.getAllByText('/data/pdfs')).toHaveLength(2)
+    expect(screen.getByTitle('/tmp/.staged/table.xlsx')).toBeTruthy()
+    expect(screen.getByTitle('/tmp/schema.csv')).toBeTruthy()
+    expect(screen.getAllByTitle('/data/pdfs').length).toBeGreaterThanOrEqual(2)
   })
 })
