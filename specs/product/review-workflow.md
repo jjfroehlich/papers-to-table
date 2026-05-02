@@ -31,6 +31,13 @@ It must provide:
 - a dedicated diagnostics surface for unresolved matching issues and run warnings
 
 The workspace must default to actionable review items rather than loading every diagnostic-only pipeline outcome into the main queue.
+The default workspace layout must be a viewport-contained three-panel review surface:
+
+- proposal queue on the left
+- proposal detail and decisions in the center
+- evidence and PDF inspection on the right
+
+The top review bar must stay compact and workflow-oriented. It should show current run context, review progress, warning count, diagnostics access, export, and any small mode labels that are still necessary. Large summary cards or dashboard-style status blocks must remain secondary rather than occupying the default review viewport.
 
 ## Queue behavior
 
@@ -40,6 +47,7 @@ The workspace must default to actionable review items rather than loading every 
 - Unresolved diagnostics should not compete with the primary evidence panel for attention during normal review.
 - Bulk review actions apply only to the currently visible filtered subset, never to hidden queue items.
 - Grouping and ordering should support fast scanning rather than flattening every proposal into one undifferentiated list.
+- Queue rows should stay compact and calm: field name, proposed value or explicit no-value text, support marker, and warning indicator only when needed.
 
 ## Review decisions
 
@@ -81,10 +89,15 @@ The review workspace must support:
 
 - stable selection behavior
 - adjustable pane widths
+- internal scrolling for the queue, proposal detail pane, and evidence viewer without requiring the whole page to become one oversized canvas
+- always-visible or sticky review actions within the proposal-detail area
 - evidence navigation synchronized with the document viewer
+- a persistent evidence toolbar while the document area scrolls
 - ordinary PDF reading affordances such as zoom, pan, and text copy when the source PDF allows it
 - fast sequential review, including keyboard shortcuts where implemented
 - auto-advance after an explicit decision when that behavior is implemented
+
+Diagnostics must be collapsed by default and opened intentionally in a secondary drawer, panel, or equivalent surface that preserves the current review selection.
 
 ## Review state transitions
 

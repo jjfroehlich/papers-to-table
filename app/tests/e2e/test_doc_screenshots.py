@@ -23,6 +23,12 @@ def _open_review_workspace(page: Page, frontend_url: str, run_id: str) -> None:
     expect(page.locator("[data-testid='review-workspace']")).to_be_visible()
 
 
+def _select_run(page: Page, run_id: str) -> None:
+    run_item = page.locator("[data-testid='run-item']", has_text=run_id)
+    expect(run_item).to_be_visible()
+    run_item.click()
+
+
 def _capture(locator, path: pathlib.Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     locator.screenshot(path=str(path))
@@ -41,19 +47,35 @@ def test_capture_readme_screenshots(
     page.set_viewport_size({"width": 1680, "height": 1180})
 
     page.goto(frontend_url)
-    page.get_by_placeholder("e.g. config.example.json").fill(str(APP_DIR / "config.example.json"))
-    page.get_by_role("button", name="▼ Show optional path overrides").click()
-    page.get_by_role("button", name="Run preflight").click()
-    expect(page.get_by_text("Resolved launch context")).to_be_visible()
+    expect(page.locator("[data-testid='run-launch-surface']")).to_be_visible()
     _capture(page.locator("[data-testid='run-launch-surface']"), docs_screenshot_dir / "run-setup.png")
+
+    _select_run(page, demo_run_ids.screenshots)
+    page.wait_for_timeout(500)
+    _capture(page.locator("main"), docs_screenshot_dir / "run-screen-cleanup.png")
 
     _open_review_workspace(page, frontend_url, demo_run_ids.screenshots)
     page.wait_for_timeout(1500)
     _capture(page.locator("[data-testid='review-workspace']"), docs_screenshot_dir / "review-workspace.png")
 
+    page.get_by_role("button", name="Diagnostics").click()
+    expect(page.get_by_text("Run warnings and unresolved review context")).to_be_visible()
+    _capture(page.locator("[data-testid='review-workspace']"), docs_screenshot_dir / "review-diagnostics-open.png")
+    page.get_by_role("button", name="Close").click()
+
+    queue_scroll = page.get_by_test_id("proposal-queue-scroll")
+    queue_scroll.evaluate("(node) => { node.scrollTop = Math.max(node.scrollHeight * 0.45, 240); return node.scrollTop; }")
+    page.wait_for_timeout(300)
+    _capture(page.locator("[data-testid='review-workspace']"), docs_screenshot_dir / "review-queue-scrolled.png")
+
+    evidence_scroll = page.get_by_test_id("evidence-scroll-region")
+    evidence_scroll.evaluate("(node) => { node.scrollTop = Math.max(node.scrollHeight * 0.35, 320); return node.scrollTop; }")
+    page.wait_for_timeout(300)
+    _capture(page.locator("[data-testid='review-workspace']"), docs_screenshot_dir / "review-evidence-scrolled.png")
+
     page.get_by_role("button", name="Accept", exact=True).click()
-    expect(page.get_by_text("HEK293T", exact=True)).to_be_visible()
+    expect(page.get_by_text("HEK293T", exact=True).first).to_be_visible()
     page.get_by_role("button", name="Export reviewed workbook").click()
     expect(page.get_by_text("Export completed at")).to_be_visible()
-    page.get_by_role("button", name="Diagnostics & run inspection").click()
+    page.get_by_role("button", name="Diagnostics").click()
     _capture(page.locator("[data-testid='review-workspace']"), docs_screenshot_dir / "export-diagnostics.png")
