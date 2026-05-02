@@ -85,15 +85,15 @@ export function ReviewActionArea({
   const currentDecision = proposal.latest_decision?.decision
 
   return (
-    <div className="shrink-0 border-t border-gray-200 bg-white px-4 py-3 space-y-3">
+    <div className="shrink-0 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur" data-testid="review-action-area">
       {/* Current decision indicator */}
       {isDecided && (
-        <div className="text-xs text-gray-500">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
           Decision: <strong>{currentDecision?.replace(/_/g, ' ')}</strong>
           {proposal.latest_decision?.edited_value && (
             <span> → <em>{proposal.latest_decision.edited_value}</em></span>
           )}
-          <span className="ml-2 text-gray-400">
+          <span className="ml-2 text-slate-400">
             {new Date(proposal.latest_decision!.decided_at).toLocaleTimeString()}
           </span>
         </div>
@@ -101,7 +101,7 @@ export function ReviewActionArea({
 
       {/* Edit input */}
       {showEditInput && (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <input
             ref={editInputRef}
             autoFocus
@@ -116,18 +116,18 @@ export function ReviewActionArea({
               }
             }}
             placeholder="Enter corrected value…"
-            className="flex-1 text-sm border border-gray-300 rounded px-2 py-1.5"
+            className="min-w-[220px] flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm"
           />
           <button
             onClick={() => decide('accepted_with_edit', { edited_value: editValue.trim() })}
             disabled={!editValue.trim() || loading}
-            className="px-3 py-1.5 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-50"
           >
             Save
           </button>
           <button
             onClick={() => setShowEditInput(false)}
-            className="px-3 py-1.5 text-sm rounded border border-gray-200 hover:bg-gray-50"
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
           >
             Cancel
           </button>
@@ -136,12 +136,12 @@ export function ReviewActionArea({
 
       {/* Main action buttons */}
       {!showEditInput && (
-        <div className="flex flex-wrap gap-2">
+        <div className="grid gap-2 md:grid-cols-[repeat(4,minmax(0,1fr))_auto]">
           <button
             onClick={() => decide('accepted')}
             disabled={loading}
             title="Accept (A)"
-            className="px-3 py-1.5 text-xs rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 font-medium"
+            className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
           >
             Accept
           </button>
@@ -149,14 +149,14 @@ export function ReviewActionArea({
             onClick={() => setShowEditInput(true)}
             disabled={loading}
             title="Accept with edit"
-            className="px-3 py-1.5 text-xs rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 font-medium"
+            className="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-50"
           >
             Accept with Edit
           </button>
           <button
             onClick={() => decide('confirmed_no_data')}
             disabled={loading}
-            className="px-3 py-1.5 text-xs rounded bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 font-medium"
+            className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50"
           >
             No Data
           </button>
@@ -164,7 +164,7 @@ export function ReviewActionArea({
             onClick={() => decide('rejected')}
             disabled={loading}
             title="Reject (R)"
-            className="px-3 py-1.5 text-xs rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 font-medium"
+            className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
           >
             Reject
           </button>
@@ -172,7 +172,7 @@ export function ReviewActionArea({
             onClick={onNext}
             disabled={loading}
             title="Next (])"
-            className="px-3 py-1.5 text-xs rounded bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 font-medium ml-auto"
+            className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-200 disabled:opacity-50"
           >
             Next →
           </button>
@@ -185,7 +185,7 @@ export function ReviewActionArea({
           <button
             onClick={() => setShowBulkConfirm(true)}
             disabled={loading}
-            className="text-xs text-gray-500 hover:text-gray-700 underline"
+            className="text-xs text-slate-500 underline hover:text-slate-700"
           >
             Bulk accept {pendingCount} pending proposal{pendingCount !== 1 ? 's' : ''}…
           </button>
@@ -194,7 +194,7 @@ export function ReviewActionArea({
 
       {/* Bulk confirm dialog */}
       {showBulkConfirm && (
-        <div className="rounded border border-amber-200 bg-amber-50 p-3 space-y-2">
+        <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
           <p className="text-xs font-medium text-amber-800">
             Bulk accept {pendingCount + (proposal.latest_decision ? 0 : 1)} pending proposals?
           </p>
@@ -202,13 +202,13 @@ export function ReviewActionArea({
           <div className="flex gap-2">
             <button
               onClick={handleBulkAccept}
-              className="px-3 py-1 text-xs rounded bg-amber-600 text-white hover:bg-amber-700"
+              className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
             >
               Confirm bulk accept
             </button>
             <button
               onClick={() => setShowBulkConfirm(false)}
-              className="px-3 py-1 text-xs rounded border border-amber-300 hover:bg-amber-100"
+              className="rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100"
             >
               Cancel
             </button>
@@ -218,7 +218,7 @@ export function ReviewActionArea({
 
       {/* Error */}
       {error && (
-        <div className="text-xs text-red-600">
+        <div className="text-xs text-rose-600">
           <strong>Error:</strong> {error}
         </div>
       )}

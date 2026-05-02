@@ -257,7 +257,18 @@ describe('ReviewWorkspace', () => {
     })
   })
 
-  it('surfaces duplicate-conflict warning truth in the toolbar', async () => {
+  it('renders contained scroll regions for queue, detail, evidence, and actions', async () => {
+    render(<ReviewWorkspace run={baseRun} outputDir="./runs" />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('proposal-queue-scroll')).toBeInTheDocument()
+      expect(screen.getByTestId('proposal-detail-scroll')).toBeInTheDocument()
+      expect(screen.getByTestId('evidence-viewer')).toBeInTheDocument()
+      expect(screen.getByTestId('review-action-area')).toBeInTheDocument()
+    })
+  })
+
+  it('shows warning count in the compact toolbar', async () => {
     const warningRun: RunData = {
       ...baseRun,
       warnings: [
@@ -269,7 +280,7 @@ describe('ReviewWorkspace', () => {
     render(<ReviewWorkspace run={warningRun} outputDir="./runs" />)
 
     await waitFor(() => {
-      expect(screen.getAllByText(/duplicate conflicts/i).length).toBeGreaterThan(0)
+      expect(screen.getByText('3 warnings')).toBeInTheDocument()
     })
   })
 
@@ -288,7 +299,7 @@ describe('ReviewWorkspace', () => {
   it('shows the unresolved inspection empty state when toggled', async () => {
     render(<ReviewWorkspace run={baseRun} outputDir="./runs" />)
 
-    fireEvent.click(screen.getByRole('button', { name: /Diagnostics & run inspection/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Diagnostics' }))
 
     expect(await screen.findByText(/No unmatched PDFs in this run/i)).toBeInTheDocument()
   })

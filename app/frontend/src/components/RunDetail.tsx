@@ -7,24 +7,88 @@ interface Props {
   aborting?: boolean
 }
 
+function formatLabel(value: string | null | undefined) {
+  if (!value) return null
+  return value.replace(/_/g, ' ')
+}
+
+function basename(value: string | null | undefined) {
+  if (!value) return null
+  const normalized = value.replace(/\\/g, '/')
+  const trimmed = normalized.endsWith('/') ? normalized.slice(0, -1) : normalized
+  return trimmed.split('/').pop() || trimmed
+}
+
+function statusSentence(run: RunData, providerLabel: string) {
+  const statusLead = {
+    completed: 'Run completed',
+    completed_with_warnings: 'Run completed with warnings',
+    failed: 'Run could not complete',
+    interrupted: 'Run interrupted',
+    running: 'Run in progress',
+    validating: 'Run validating inputs',
+    created: 'Run created',
+  }[run.status] ?? 'Run ready'
+
+  const reviewLead =
+    run.status === 'completed' || run.status === 'completed_with_warnings'
+      ? 'Review available'
+      : run.status === 'failed'
+      ? 'Review unavailable'
+      : 'Review locked until completion'
+
+  return `${statusLead} · ${reviewLead} · Local provider: ${providerLabel}`
+}
+
 function DetailRow({ label, value }: { label: string; value: string | number | boolean | null }) {
   if (value === null || value === undefined) return null
   return (
     <div className="grid gap-1 md:grid-cols-[140px_minmax(0,1fr)] md:gap-3">
       <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</span>
-      <span className="break-all text-sm text-slate-800">{String(value)}</span>
+      <span className="min-w-0 break-all text-sm text-slate-800">{String(value)}</span>
     </div>
   )
 }
 
-function Chip({ label, tone }: { label: string; tone: 'neutral' | 'success' | 'warning' | 'danger' }) {
-  const className = {
-    neutral: 'bg-slate-100 text-slate-700',
-    success: 'bg-emerald-100 text-emerald-800',
-    warning: 'bg-amber-100 text-amber-800',
-    danger: 'bg-rose-100 text-rose-700',
-  }[tone]
-  return <span className={`rounded-full px-3 py-1 text-xs font-semibold ${className}`}>{label}</span>
+function ResolvedInputRow({
+  label,
+  source,
+  locator,
+}: {
+  label: string
+  source: string | null | undefined
+  locator: string | null | undefined
+}) {
+  if (!source && !locator) return null
+
+  const sourceName = basename(source) ?? source
+  const locatorName = basename(locator) ?? locator
+
+  return (
+    <div className="rounded-[22px] border border-slate-200 bg-white px-4 py-3 shadow-sm">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</p>
+      {source && (
+        <div className="mt-2 min-w-0">
+          <p className="truncate text-sm font-semibold text-slate-900" title={source}>
+            {sourceName}
+          </p>
+          {sourceName !== source && (
+            <p className="mt-1 truncate text-xs text-slate-500" title={source}>
+              {source}
+            </p>
+          )}
+        </div>
+      )}
+      {locator && (
+        <div className="mt-2 min-w-0 text-xs text-slate-500">
+          <span className="font-semibold text-slate-600">Locator</span>
+          <p className="mt-1 truncate font-mono" title={locator}>
+            {locatorName !== locator ? locator : locator}
+          </p>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function RunDetail({ run, onAbort, aborting }: Props) {
@@ -40,15 +104,13 @@ export function RunDetail({ run, onAbort, aborting }: Props) {
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Selected run</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{run.run_id}</h2>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-3">
             <RunStatusBadge status={run.status} />
-            <Chip label={run.run_mode.replace(/_/g, ' ')} tone="neutral" />
-            {run.provider_mode && <Chip label={run.provider_mode.replace(/_/g, ' ')} tone={run.provider_mode === 'unavailable' ? 'danger' : 'success'} />}
-            <Chip label={providerLabel} tone="neutral" />
+            <p className="text-sm text-slate-600">{statusSentence(run, providerLabel)}</p>
           </div>
         </div>
         {isAbortable && (
-          <button onClick={() => onAbort?.(run)} disabled={aborting} className="rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-60">
+          <button onClick={() => onAbort?.(run)} disabled={aborting} className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-60">
             {aborting ? 'Aborting…' : 'Abort run'}
           </button>
         )}
@@ -57,14 +119,23 @@ export function RunDetail({ run, onAbort, aborting }: Props) {
       <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
         <section className="rounded-[28px] border border-slate-200 bg-slate-50 p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Resolved inputs</p>
-          <div className="mt-3 space-y-3">
-            <DetailRow label="Table source" value={resolvedTable?.logical_source ?? run.table_path} />
-            <DetailRow label="Table locator" value={resolvedTable?.runtime_locator ?? null} />
-            <DetailRow label="Schema source" value={resolvedSchema?.logical_source ?? run.schema_path} />
-            <DetailRow label="Schema locator" value={resolvedSchema?.runtime_locator ?? null} />
-            <DetailRow label="PDF source" value={resolvedPdfDir?.logical_source ?? run.pdf_dir} />
-            <DetailRow label="PDF locator" value={resolvedPdfDir?.runtime_locator ?? null} />
-            <DetailRow label="Output dir" value={run.output_dir} />
+          <div className="mt-3 grid gap-3">
+            <ResolvedInputRow
+              label="Table"
+              source={resolvedTable?.logical_source ?? run.table_path}
+              locator={resolvedTable?.runtime_locator ?? null}
+            />
+            <ResolvedInputRow
+              label="Schema"
+              source={resolvedSchema?.logical_source ?? run.schema_path}
+              locator={resolvedSchema?.runtime_locator ?? null}
+            />
+            <ResolvedInputRow
+              label="PDFs"
+              source={resolvedPdfDir?.logical_source ?? run.pdf_dir}
+              locator={resolvedPdfDir?.runtime_locator ?? null}
+            />
+            <ResolvedInputRow label="Output directory" source={run.output_dir} locator={null} />
           </div>
         </section>
 
@@ -91,11 +162,13 @@ export function RunDetail({ run, onAbort, aborting }: Props) {
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Runtime details</p>
         <div className="mt-3 space-y-3">
           <DetailRow label="Provider" value={providerLabel} />
+          <DetailRow label="Run mode" value={formatLabel(run.run_mode)} />
+          <DetailRow label="Provider mode" value={formatLabel(run.provider_mode ?? null)} />
           <DetailRow label="Text model" value={run.provider_text_model_id ?? null} />
           <DetailRow label="Vision model" value={run.provider_vision_model_id ?? null} />
-          <DetailRow label="Structured output" value={run.structured_output_mode?.replace(/_/g, ' ') ?? null} />
-          <DetailRow label="Structured reason" value={run.structured_output_reason?.replace(/_/g, ' ') ?? null} />
-          <DetailRow label="Readiness reason" value={run.provider_readiness_reason?.replace(/_/g, ' ') ?? null} />
+          <DetailRow label="Structured output" value={formatLabel(run.structured_output_mode ?? null)} />
+          <DetailRow label="Structured reason" value={formatLabel(run.structured_output_reason ?? null)} />
+          <DetailRow label="Readiness reason" value={formatLabel(run.provider_readiness_reason ?? null)} />
           <DetailRow label="Parser" value={run.parser_identity ?? null} />
           <DetailRow label="Gold table source" value={run.eval_artifacts?.gold_table?.source_reference ?? null} />
           <DetailRow label="Gold table snapshot" value={run.eval_artifacts?.gold_table?.snapshot_path ?? null} />

@@ -28,7 +28,7 @@ def test_fast_sequential_review_supports_auto_advance_and_evidence_cycling(
 ):
     _open_review_workspace(page, frontend_url, demo_run_ids.review)
 
-    expect(page.get_by_test_id("review-toolbar").get_by_text("human", exact=True)).to_be_visible()
+    expect(page.get_by_text("human", exact=True).first).to_be_visible()
     page.get_by_role("button", name="Next evidence").click()
     expect(page.get_by_text("Text fallback – exact highlighting unavailable")).to_be_visible()
 
@@ -64,9 +64,8 @@ def test_review_workspace_exposes_warning_truth_and_unresolved_panel(
 ):
     _open_review_workspace(page, frontend_url, demo_run_ids.review)
 
-    expect(page.get_by_test_id("review-toolbar").get_by_text("parsing fallback")).to_be_visible()
-    expect(page.get_by_test_id("review-toolbar").get_by_text("evidence fallback")).to_be_visible()
+    expect(page.get_by_test_id("review-toolbar").get_by_text("2 warnings")).to_be_visible()
 
-    page.get_by_role("button", name="Diagnostics & run inspection").click()
+    page.get_by_role("button", name="Diagnostics").click()
 
     expect(page.get_by_text("No unmatched PDFs in this run.")).to_be_visible()

@@ -138,6 +138,8 @@ Valid explicit review outcomes are:
 
 Decision records must distinguish `human_individual`, `human_bulk_accept`, and `automation_accept_all`. Legacy `human_reviewer` records remain readable for backward compatibility, but newly recorded manual decisions use explicit individual/bulk values.
 
+The default browser review viewport must stay focused on the proposal-review loop: a compact review bar plus a contained three-panel workspace for queue, decision detail, and evidence inspection. Queue, detail, and evidence panes must scroll independently, while diagnostics and broader run summaries remain secondary surfaces that open intentionally instead of permanently displacing the review task.
+
 ### 5.7 Export semantics
 
 Export writes a new workbook and audit artifacts.

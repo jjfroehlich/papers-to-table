@@ -87,6 +87,15 @@ def _build_demo_run(
     run_dir = init_run_bundle(str(runs_dir), run_id)
     pdf_id = "paper_1"
     created_iso = created_at.isoformat()
+    additional_columns = [
+        ("Assay", "VAMP-seq", SupportLabel.direct_evidence, EvidenceSourceType.direct_quote, 1),
+        ("Gene", "PTEN", SupportLabel.direct_evidence, EvidenceSourceType.direct_quote, 1),
+        ("Variant count", "7,801", SupportLabel.direct_evidence, EvidenceSourceType.direct_quote, 1),
+        ("Cell line", "HEK293T", SupportLabel.weak_evidence, EvidenceSourceType.quote_plus_page, 3),
+        ("Readout", "variant abundance", SupportLabel.inferred_from_evidence, EvidenceSourceType.inferred_reasoning, 2),
+        ("Organism", "human", SupportLabel.direct_evidence, EvidenceSourceType.direct_quote, 1),
+    ] if run_id == "run_docs_screenshots" else []
+    total_proposals = 2 + len(additional_columns)
 
     run_json = {
         "run_id": run_id,
@@ -109,8 +118,8 @@ def _build_demo_run(
         "completed_at": (created_at + timedelta(minutes=2)).isoformat(),
         "current_stage": None,
         "total_rows": 1,
-        "eligible_cells": 2,
-        "proposals_generated": 2,
+        "eligible_cells": total_proposals,
+        "proposals_generated": total_proposals,
         "proposals_reviewed": 0,
         "warnings": [
             {
@@ -306,5 +315,52 @@ def _build_demo_run(
             created_at=created_iso,
         ),
     )
+
+    for offset, (column_name, proposed_value, support, source_type, page_number) in enumerate(additional_columns, start=1):
+        cell_id = generate_cell_id(row_id, column_name)
+        proposal_id = f"{run_id}__{cell_id}"
+        evidence_id = generate_evidence_id(proposal_id)
+        is_direct = source_type == EvidenceSourceType.direct_quote
+        persist_proposal(
+            run_dir,
+            ProposalRecord(
+                proposal_id=proposal_id,
+                run_id=run_id,
+                pdf_id=pdf_id,
+                row_id=row_id,
+                column_name=column_name,
+                cell_id=cell_id,
+                state=ProposalState.found if is_direct else ProposalState.unclear,
+                support=support,
+                proposed_value=proposed_value,
+                rationale=f"- Demo screenshot proposal for {column_name}.\n- Keeps the queue tall enough to exercise internal scrolling.",
+                primary_evidence_id=evidence_id,
+                ordered_supporting_evidence_ids=[],
+                evidence_ids=[evidence_id],
+                warning_flags=["fallback_evidence_used"] if support != SupportLabel.direct_evidence else [],
+                needs_more_evidence=support != SupportLabel.direct_evidence,
+                is_verify_mode=False,
+                provider_mode="live_local",
+                created_at=(created_at + timedelta(seconds=offset)).isoformat(),
+            ),
+        )
+        persist_evidence(
+            run_dir,
+            EvidenceRecord(
+                evidence_id=evidence_id,
+                run_id=run_id,
+                proposal_id=proposal_id,
+                pdf_id=pdf_id,
+                source_type=source_type,
+                quote_text=f"Demo evidence for {column_name}: {proposed_value}.",
+                page_number=page_number,
+                exact_highlight_regions=[{"x0": 72, "y0": 540, "x1": 356, "y1": 575, "page": page_number}] if is_direct else None,
+                approximate_highlight_regions=None,
+                anchor_confidence=0.86 if is_direct else 0.41,
+                evidence_rank=1,
+                is_primary=True,
+                created_at=(created_at + timedelta(seconds=offset)).isoformat(),
+            ),
+        )
 
     recompute_summaries(run_dir, run_id)

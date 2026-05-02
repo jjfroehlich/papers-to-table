@@ -30,18 +30,19 @@ python scripts/papers_to_table.py preflight --config app/config.json
 - Start from the Run tab.
 - Select the table, schema, PDF files, and output directory in the interface, or type backend-readable paths.
 - If those paths are already present in `app/config.json`, they are used as defaults and can still be overridden for a single run.
-- Use **Check setup** when you want to preview resolved inputs, runtime locators, table/schema/PDF scope, and provider readiness.
-- Use **Start run** to run preflight and, if it passes, continue directly into extraction.
+- Use the selected-run detail pane to confirm labeled runtime details such as run mode, provider mode, provider, models, warnings, and resolved input locators without relying on ambiguous chips.
+
+![Run screen screenshot](../screenshots/run-screen-cleanup.png)
 
 ## Review Workspace
 
 ![Review workspace screenshot](../screenshots/review-workspace.png)
 
-- The queue defaults to actionable pending proposals and supports grouped triage by paper or column.
-- The detail pane keeps the selected paper, field, proposed value, and ordered evidence list together.
-- The evidence panel stays focused on the selected evidence item.
-- Unmatched, ambiguous, duplicate-conflict, and warning context lives in diagnostics instead of competing with evidence in the same panel.
-- The workspace preserves keyboard shortcuts and explicit review actions.
+- The default review viewport is a contained three-panel workspace: proposal queue on the left, proposal detail and decisions in the middle, and evidence/PDF inspection on the right.
+- The queue defaults to actionable pending proposals, supports grouped triage by paper or column, and scrolls independently from the rest of the workspace.
+- The detail pane keeps the selected paper, field, proposed value, ordered evidence list, and review actions together, with its own internal scroll region.
+- The evidence panel keeps the PDF toolbar visible while the PDF page area scrolls independently for document inspection.
+- The top review bar stays compact: current run context, review progress, warning count, diagnostics, export, and keyboard help.
 
 ## Evidence Semantics
 
@@ -57,6 +58,22 @@ python scripts/papers_to_table.py preflight --config app/config.json
 - The UI surfaces provider mode directly: `live local`, `live cloud`, `unavailable`, `disabled`, or `stub/demo` when applicable.
 - If the configured live provider is unavailable at startup, the run fails during readiness check.
 - Parsing fallback, OCR fallback, duplicate conflicts, and evidence fallback should stay visible through warnings, summaries, and the diagnostics surface.
+
+## Diagnostics Drawer
+
+![Diagnostics screenshot](../screenshots/review-diagnostics-open.png)
+
+- Diagnostics are secondary by default and open in a dedicated drawer instead of permanently taking review-space away from evidence inspection.
+- The drawer keeps warnings, unmatched PDFs, ambiguous matches, duplicate conflicts, and related run-summary context available without displacing the current proposal selection.
+
+## Scrollable Review Surfaces
+
+![Queue scrolled screenshot](../screenshots/review-queue-scrolled.png)
+
+![Evidence scrolled screenshot](../screenshots/review-evidence-scrolled.png)
+
+- The proposal queue, proposal detail pane, and evidence viewer each scroll independently.
+- Review actions stay available while long proposal notes or tall PDF pages are inspected.
 
 ## Explicit Export
 

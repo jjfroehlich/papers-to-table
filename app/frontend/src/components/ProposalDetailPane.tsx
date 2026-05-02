@@ -21,14 +21,14 @@ function SourceTypeBadge({ sourceType }: { sourceType: string }) {
     visual_interpretation_figure_evidence: 'bg-fuchsia-100 text-fuchsia-800',
   }
   const label = sourceType.replace(/_/g, ' ')
-  return <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${map[sourceType] ?? 'bg-slate-100 text-slate-700'}`}>{label}</span>
+  return <span className={`rounded-md px-2 py-1 text-[11px] font-semibold ${map[sourceType] ?? 'bg-slate-100 text-slate-700'}`}>{label}</span>
 }
 
 function EvidenceCard({ item, isSelected, onClick }: { item: EvidenceItem; isSelected: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className={`w-full rounded-[22px] border px-3 py-3 text-left transition ${
+      className={`w-full rounded-[18px] border px-3 py-3 text-left transition ${
         isSelected ? 'border-sky-300 bg-sky-50 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
       }`}
     >
@@ -120,35 +120,45 @@ export function ProposalDetailPane({ proposalId, runId, outputDir, selectedEvide
   } as const
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto bg-[linear-gradient(180deg,#ffffff,#f8fafc)] px-5 py-5">
-      <div className="space-y-5">
-        <div className="rounded-[28px] border border-slate-200 bg-slate-950 p-5 text-white shadow-[0_18px_50px_rgba(15,23,42,0.12)]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-200">Current paper</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight">{rowTitle}</h2>
-          {(rowAuthors || rowYear) && <p className="mt-2 text-sm text-slate-300">{rowAuthors}{rowAuthors && rowYear ? ' · ' : ''}{rowYear}</p>}
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${badgeClass[proposal.state] ?? 'bg-slate-100 text-slate-700'}`}>{proposal.state}</span>
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${supportClass[proposal.support] ?? 'bg-slate-100 text-slate-700'}`}>{proposal.support.replace(/_/g, ' ')}</span>
-            {proposal.provider_mode && <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-slate-200">{proposal.provider_mode.replace(/_/g, ' ')}</span>}
-            {proposal.is_figure_derived && <span className="rounded-full bg-violet-400/20 px-3 py-1 text-xs font-semibold text-violet-100">figure evidence</span>}
-            {proposal.is_fallback_evidence && <span className="rounded-full bg-orange-400/20 px-3 py-1 text-xs font-semibold text-orange-100">fallback evidence</span>}
-          </div>
-        </div>
-
-        <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[linear-gradient(180deg,#ffffff,#f8fafc)]">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5" data-testid="proposal-detail-scroll">
+        <div className="space-y-4">
           <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Field under review</p>
-            <div className="mt-3 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
-              <p className="text-sm font-semibold text-slate-900">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Paper context</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{rowTitle}</h2>
+            {(rowAuthors || rowYear) && (
+              <p className="mt-2 text-sm text-slate-500">
+                {rowAuthors}
+                {rowAuthors && rowYear ? ' · ' : ''}
+                {rowYear}
+              </p>
+            )}
+
+            <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Field under review</p>
+              <p className="mt-2 text-sm font-semibold text-slate-900">
                 {typeof columnDefinition?.name === 'string' ? columnDefinition.name : proposal.column_name}
               </p>
-              {typeof columnDefinition?.description === 'string' && <p className="mt-2 text-sm leading-6 text-slate-600">{columnDefinition.description}</p>}
+              {typeof columnDefinition?.description === 'string' && (
+                <p className="mt-2 text-sm leading-6 text-slate-600">{columnDefinition.description}</p>
+              )}
             </div>
 
-            <div className="mt-4 rounded-[24px] border border-slate-200 bg-[linear-gradient(135deg,#eff6ff,#ffffff)] px-4 py-4 shadow-sm">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Proposed value</p>
-              <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{proposal.proposed_value ?? 'No value proposed'}</p>
-              {detail.support_label_display && <p className="mt-2 text-sm text-slate-600">{detail.support_label_display}</p>}
+            <div className="mt-4 rounded-[24px] border border-sky-100 bg-[linear-gradient(135deg,#eff6ff,#ffffff)] px-4 py-5 shadow-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`rounded-md px-2 py-1 text-[11px] font-semibold ${badgeClass[proposal.state] ?? 'bg-slate-100 text-slate-700'}`}>
+                  {proposal.state}
+                </span>
+                <span className={`rounded-md px-2 py-1 text-[11px] font-semibold ${supportClass[proposal.support] ?? 'bg-slate-100 text-slate-700'}`}>
+                  {proposal.is_fallback_evidence ? 'fallback' : proposal.support.replace(/_/g, ' ')}
+                </span>
+                {proposal.is_figure_derived && (
+                  <span className="rounded-md bg-violet-100 px-2 py-1 text-[11px] font-semibold text-violet-700">figure evidence</span>
+                )}
+              </div>
+              <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Proposed value</p>
+              <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">{proposal.proposed_value ?? 'No value proposed'}</p>
+              {detail.support_label_display && <p className="mt-3 text-sm text-slate-600">{detail.support_label_display}</p>}
             </div>
 
             {proposal.is_verify_mode && (proposal.existing_value != null || rowContext[proposal.column_name] !== undefined) && (
@@ -176,28 +186,32 @@ export function ProposalDetailPane({ proposalId, runId, outputDir, selectedEvide
           </section>
 
           <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Evidence stack</p>
-              <span className="text-[11px] text-slate-400">{evidence.length} item{evidence.length !== 1 ? 's' : ''}</span>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Evidence stack</p>
+                <p className="mt-2 text-sm text-slate-500">Select the strongest supporting passage to sync the PDF viewer.</p>
+              </div>
+              <span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
+                {evidence.length} item{evidence.length !== 1 ? 's' : ''}
+              </span>
             </div>
-            <p className="mt-2 text-sm text-slate-500">Primary evidence is ranked first. Select an item to sync the document viewer.</p>
             <div className="mt-4 space-y-3">
               {evidence.map((item) => (
                 <EvidenceCard key={item.evidence_id} item={item} isSelected={selectedEvidenceId === item.evidence_id} onClick={() => onEvidenceSelect(item.evidence_id)} />
               ))}
             </div>
           </section>
-        </div>
 
-        {proposal.rationale && (
-          <div className="rounded-[24px] border border-slate-200 bg-white shadow-sm">
-            <button onClick={() => setRationaleOpen((open) => !open)} className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50">
-              <span>Reviewer-visible rationale</span>
-              <span>{rationaleOpen ? '▲' : '▼'}</span>
-            </button>
-            {rationaleOpen && <div className="border-t border-slate-100 px-4 py-4 text-sm leading-6 text-slate-600 whitespace-pre-wrap">{proposal.rationale}</div>}
-          </div>
-        )}
+          {proposal.rationale && (
+            <div className="rounded-[24px] border border-slate-200 bg-white shadow-sm">
+              <button onClick={() => setRationaleOpen((open) => !open)} className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                <span>Reviewer-visible rationale</span>
+                <span>{rationaleOpen ? '▲' : '▼'}</span>
+              </button>
+              {rationaleOpen && <div className="border-t border-slate-100 px-4 py-4 whitespace-pre-wrap text-sm leading-6 text-slate-600">{proposal.rationale}</div>}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
