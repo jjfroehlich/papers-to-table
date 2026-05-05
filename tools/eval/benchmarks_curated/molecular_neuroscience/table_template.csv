@@ -1,0 +1,6 @@
+﻿"paper_id","pdf_filename","paper_title","doi","year","species","brain_region_or_neural_cell_type","perturbation_or_condition","primary_assay_or_readout","key_quantitative_result","main_mechanistic_conclusion","figure_panel_for_primary_result"
+"MN01","MN01_Ortega_2018_presynaptic_homeostatic_plasticity.pdf","Molecular mechanisms that stabilize short term synaptic plasticity during presynaptic homeostatic plasticity","10.7554/eLife.40385","2018","","","","","","",""
+"MN02","MN02_Ding_2019_neuropeptide_reporter.pdf","Imaging neuropeptide release at synapses with a genetically engineered reporter","10.7554/eLife.46421","2019","","","","","","",""
+"MN03","MN03_Cangalaya_2020_microglia_synapse_remodeling.pdf","Light-induced engagement of microglia to focally remodel synapses in the adult brain","10.7554/eLife.58435","2020","","","","","","",""
+"MN04","MN04_Sando_2021_latrophilin_synapse_formation.pdf","Latrophilin GPCR signaling mediates synapse formation","10.7554/eLife.65717","2021","","","","","","",""
+"MN05","MN05_Chipman_2021_astrocyte_GluN2C.pdf","Astrocyte GluN2C NMDA receptors control basal synaptic strengths of hippocampal CA1 pyramidal neurons in the stratum radiatum","10.7554/eLife.70818","2021","","","","","","",""
