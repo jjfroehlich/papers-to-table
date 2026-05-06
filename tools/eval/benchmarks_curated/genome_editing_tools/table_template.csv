@@ -1,6 +1,0 @@
-﻿"paper_id","pdf_filename","paper_title","doi","year","editing_modality","main_editor_or_system_name","best_or_selected_variant","primary_assay_system","highest_reported_editing_efficiency_percent","construct_or_editor_architecture_compact","architecture_source_figure"
-"GE01","GE01_Tan_2019_high_precision_base_editors.pdf","Engineering of high-precision base editors for site-specific single nucleotide replacement","10.1038/s41467-018-08034-8","2019","","","","","","",""
-"GE02","GE02_Tan_2020_expanded_scope_base_editors.pdf","Expanding the genome-targeting scope and the site selectivity of high-precision base editors","10.1038/s41467-020-14465-z","2020","","","","","","",""
-"GE03","GE03_Chen_2021_CGBE.pdf","Programmable C:G to G:C genome editing with CRISPR-Cas9-directed base excision repair proteins","10.1038/s41467-021-21559-9","2021","","","","","","",""
-"GE04","GE04_Liu_2020_Cas_embedding_base_editors.pdf","A Cas-embedding strategy for minimizing off-target effects of DNA base editors","10.1038/s41467-020-19690-0","2020","","","","","","",""
-"GE05","GE05_Yuan_2022_DAP_multiplex_editing.pdf","Multiplex base- and prime-editing with drive-and-process CRISPR arrays","10.1038/s41467-022-30514-1","2022","","","","","","",""

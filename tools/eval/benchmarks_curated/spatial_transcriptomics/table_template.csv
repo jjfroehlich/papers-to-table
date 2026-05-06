@@ -1,6 +1,0 @@
-﻿"paper_id","pdf_filename","paper_title","doi","year","species","tissue_or_disease_context","spatial_platform","spatial_resolution_or_capture_unit","main_analysis_output","key_spatial_domain_or_cell_type_finding","representative_spatial_figure_panel"
-"ST01","ST01_Vickovic_2022_SM_Omics.pdf","SM-Omics is an automated platform for high-throughput spatial multi-omics","10.1038/s41467-022-28445-y","2022","","","","","","",""
-"ST02","ST02_Wirth_2023_multiplexed_DBiT.pdf","Spatial transcriptomics using multiplexed deterministic barcoding in tissue","10.1038/s41467-023-37111-w","2023","","","","","","",""
-"ST03","ST03_Shen_2022_Spatial_ID.pdf","Spatial-ID: a cell typing method for spatially resolved transcriptomics via transfer learning and spatial embedding","10.1038/s41467-022-35288-0","2022","","","","","","",""
-"ST04","ST04_ClusterMap_2021_spatial_gene_expression.pdf","ClusterMap for multi-scale clustering analysis of spatial gene expression","10.1038/s41467-021-26044-x","2021","","","","","","",""
-"ST05","ST05_Park_2021_segmentation_free_cell_typing.pdf","Cell segmentation-free inference of cell types from in situ transcriptomics data","10.1038/s41467-021-23807-4","2021","","","","","","",""

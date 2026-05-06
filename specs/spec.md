@@ -170,6 +170,8 @@ Detailed eval behavior is owned by `tools/eval.md` and the shared summary contra
 
 At the integrated level, eval remains CLI-first and file-driven: it reads run bundles from files alone, scores against gold data, keeps correctness and evidence metrics separate, preserves dual-judge details, and publishes stable output artifacts under the caller's output directory.
 
+The current curated eval benchmark suite lives at `tools/eval/benchmarks_curated/` and is intentionally mixed by journal and publisher family across `genome_editing_tools`, `molecular_neuroscience`, and `spatial_transcriptomics`. The prior publisher-homogeneous suite is historical only and is preserved at `tools/eval/benchmarks_curated_old/`.
+
 ## 9. Optimizer companion
 
 Detailed optimizer behavior is owned by `tools/optimizer.md` and `contracts/optimizer-candidate.md`.
