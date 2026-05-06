@@ -2,7 +2,7 @@
   <img src="./app/frontend/public/banner_1.jpg" width="900" alt="Title banner" />
 </p>
 
-papers-to-table is a local-first system for extracting information from scientific PDFs into structured tables. It combines a browser review app for human review, auditable run bundles, and companion tools for getting benchmarking scores and for optimizing parameters.
+papers-to-table is a local-first system to extract information from scientific PDFs into structured tables. It combines a browser review app for human review, auditable run bundles, and companion tools for getting benchmarking scores and for optimizing parameters.
 
 ## Quickstart
 
