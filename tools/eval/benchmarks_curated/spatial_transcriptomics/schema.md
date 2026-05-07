@@ -1,153 +1,241 @@
-# Spatial transcriptomics schema
+# Spatial transcriptomics curated benchmark schema
 
-This file is the human-readable annotation guide for the curated benchmark schema.
+This file is the human-readable gold-annotation guide for the benchmark columns. `schema.csv` is the normal app-facing schema input; this file adds richer guidance for manual annotation and scoring.
 
-## paper_id
+## Authors
 
-- **What to extract:** Stable benchmark row identifier for the active spatial-transcriptomics paper.
-- **Expected answer style:** Exact short identifier.
-- **What counts as correct:** Correct when it matches the assigned paper row id.
-- **Allowed aliases or variants:** No aliases.
-- **Evidence expected:** Neither; benchmark metadata lane.
+- **What to extract:** Extract the full author list in publication order from the paper front matter or PDF metadata. Preserve author names and separate them with semicolons in the stored value. Leave blank only if the full author line is not confidently recoverable from the provided PDF.
+- **Expected answer style:** Semicolon-separated author names in publication order
 - **Difficulty:** easy
-- **Common pitfalls:** Do not substitute filename text for the curated id.
+- **Evidence expected:** Text evidence from the author line on the title page or article front matter; PDF metadata can confirm spelling when needed.
+- **Requires vision:** no
+- **Requires reasoning:** no
+- **Requires calculation:** no
+- **Null/placeholder policy:** Blank allowed
+- **Example answer:** `Marie Schott; Daniel León-Periñán; Elena Splendiani`
+- **Scoring notes:** Minor punctuation or whitespace normalization is acceptable if author order and identity are preserved.
+- **Gold-annotation notes:** Prefer the author line from the paper over inferred bibliographic exports.
 
-## pdf_filename
+## Publication Year
 
-- **What to extract:** Renamed active PDF filename stored in the dataset pdfs directory.
-- **Expected answer style:** Exact filename with .pdf extension.
-- **What counts as correct:** Correct when the filename matches the curated active PDF in /pdfs.
-- **Allowed aliases or variants:** No aliases.
-- **Evidence expected:** Neither; benchmark metadata lane.
+- **What to extract:** Extract the 4-digit publication year of this paper. Use the year shown in the PDF metadata or article front matter. Leave the cell blank if the year is not confidently recoverable from the provided PDF.
+- **Expected answer style:** YYYY
 - **Difficulty:** easy
-- **Common pitfalls:** Do not use the original source filename once the curated rename is applied.
+- **Evidence expected:** Text evidence from the article front matter, DOI line, journal header, or posted-date line.
+- **Requires vision:** no
+- **Requires reasoning:** no
+- **Requires calculation:** no
+- **Null/placeholder policy:** Blank allowed
+- **Example answer:** `2024`
+- **Scoring notes:** Use a single 4-digit year only.
+- **Gold-annotation notes:** For preprints, use the posted year visible in the PDF if present.
 
-## paper_title
+## Title
 
-- **What to extract:** Paper title exactly as shown in the PDF title page or metadata, normalized only for spacing.
-- **Expected answer style:** Full title sentence case.
-- **What counts as correct:** Correct when it captures the published title.
-- **Allowed aliases or variants:** Minor punctuation and spacing normalization only.
-- **Evidence expected:** Text evidence.
+- **What to extract:** Extract the exact title of the paper from the PDF front matter. Preserve the published wording and normalize only obvious spacing artifacts.
+- **Expected answer style:** Full title text
 - **Difficulty:** easy
-- **Common pitfalls:** Do not replace the title with highlights or summary bullets.
+- **Evidence expected:** Text evidence from the article title page or PDF metadata.
+- **Requires vision:** no
+- **Requires reasoning:** no
+- **Requires calculation:** no
+- **Null/placeholder policy:** Expected to be answerable from the main PDF unless the description explicitly allows NOT_FOUND/NOT_APPLICABLE.
+- **Example answer:** `Open-ST: High-resolution spatial transcriptomics in 3D`
+- **Scoring notes:** Minor spacing normalization is acceptable.
+- **Gold-annotation notes:** Do not substitute a running head or graphical abstract caption.
 
-## doi
+## Journal
 
-- **What to extract:** Canonical DOI for the paper when confidently visible in the PDF; otherwise leave blank.
-- **Expected answer style:** Bare DOI string without doi: prefix.
-- **What counts as correct:** Correct when the DOI is copied exactly or left blank for uncertain cases.
-- **Allowed aliases or variants:** Accept doi.org URL forms only after normalization to bare DOI.
-- **Evidence expected:** Text evidence.
+- **What to extract:** Extract the journal, venue, or preprint server shown by the PDF. Use the visible publication venue rather than the publisher family.
+- **Expected answer style:** Venue name
 - **Difficulty:** easy
-- **Common pitfalls:** Do not copy cited-reference DOIs or malformed trailing text.
+- **Evidence expected:** Text evidence from the journal masthead, venue line, or PDF metadata.
+- **Requires vision:** no
+- **Requires reasoning:** no
+- **Requires calculation:** no
+- **Null/placeholder policy:** Blank allowed
+- **Example answer:** `Nature`
+- **Scoring notes:** Standard journal-name normalization is acceptable.
+- **Gold-annotation notes:** Do not substitute publisher family labels.
 
-## year
+## DOI
 
-- **What to extract:** Publication or posted year visible in the PDF front matter.
-- **Expected answer style:** Four-digit year.
-- **What counts as correct:** Correct when it matches the visible publication year.
-- **Allowed aliases or variants:** No aliases.
-- **Evidence expected:** Text evidence.
+- **What to extract:** Extract the canonical DOI when it is confidently visible in the provided PDF. Store the bare DOI string without a doi: prefix or URL wrapper. Leave blank if the DOI is not confidently recoverable from the PDF.
+- **Expected answer style:** 10.xxxx/...
 - **Difficulty:** easy
-- **Common pitfalls:** Do not infer the year only from repository naming if the PDF itself is unclear.
+- **Evidence expected:** Text evidence from the title page, header, footer, or DOI line.
+- **Requires vision:** no
+- **Requires reasoning:** no
+- **Requires calculation:** no
+- **Null/placeholder policy:** Blank allowed
+- **Example answer:** `10.1038/s41586-023-06837-4`
+- **Scoring notes:** Normalize doi.org URLs to the bare DOI string.
+- **Gold-annotation notes:** Do not copy cited-reference DOIs.
 
-## journal
+## Spatial platform or method
 
-- **What to extract:** Journal or preprint venue name shown by the PDF.
-- **Expected answer style:** Concise venue name.
-- **What counts as correct:** Correct when it names the actual venue for the supplied PDF.
-- **Allowed aliases or variants:** Common abbreviations only if they unambiguously resolve to the same venue.
-- **Evidence expected:** Text evidence.
-- **Difficulty:** easy
-- **Common pitfalls:** Do not substitute publisher family for journal name.
-
-## publisher_family
-
-- **What to extract:** High-level publisher family when clear from the venue; otherwise leave blank.
-- **Expected answer style:** Controlled category.
-- **What counts as correct:** Correct when the journal or venue clearly belongs to that publisher family.
-- **Allowed aliases or variants:** No aliases beyond exact curated family names.
-- **Evidence expected:** Text evidence.
-- **Difficulty:** easy
-- **Common pitfalls:** Do not guess when the venue identity is uncertain.
-
-## spatial_platform_or_method
-
-- **What to extract:** Primary spatial platform, protocol, or named method developed or used centrally in the paper.
-- **Expected answer style:** Short platform or method label.
-- **What counts as correct:** Correct when it captures the central experimental or computational method the paper is about.
-- **Allowed aliases or variants:** Named commercial or method aliases are acceptable if they are author-preferred.
-- **Evidence expected:** Mostly text evidence.
+- **What to extract:** Extract the platform or named method used or introduced by the paper, such as Open-ST, Slide-tags, HDST, Slide-seq, SpaceBar, Visium, MERFISH, seqFISH, or Stereo-seq. Use the method name the paper foregrounds.
+- **Expected answer style:** Named platform or method label
 - **Difficulty:** medium
-- **Common pitfalls:** Do not answer with a downstream analysis package unless the paper itself is method-focused on that package.
+- **Evidence expected:** Primarily text evidence from the title, abstract, and early results.
+- **Requires vision:** no
+- **Requires reasoning:** yes
+- **Requires calculation:** no
+- **Null/placeholder policy:** Expected to be answerable from the main PDF unless the description explicitly allows NOT_FOUND/NOT_APPLICABLE.
+- **Example answer:** `Open-ST`
+- **Scoring notes:** Prefer the named platform over a generic umbrella label.
+- **Gold-annotation notes:** If the paper profiles a commercial platform but foregrounds a new derivative name, keep the derivative name.
 
-## tissue_or_disease_context
+## Species
 
-- **What to extract:** Biological tissue, organ, developmental context, or disease setting that anchors the main spatial analysis.
-- **Expected answer style:** Short noun phrase.
-- **What counts as correct:** Correct when it identifies the primary biological context for the headline spatial result.
-- **Allowed aliases or variants:** Common anatomical synonyms are acceptable when unambiguous.
-- **Evidence expected:** Mostly text evidence.
+- **What to extract:** Extract the biological species of the main experimental sample, not every species mentioned in the paper. Use the species that anchors the main analysis output.
+- **Expected answer style:** Short species label
 - **Difficulty:** medium
-- **Common pitfalls:** Do not switch to a follow-up validation tissue if another sample drives the main findings.
+- **Evidence expected:** Text evidence from sample descriptions, abstract, and methods.
+- **Requires vision:** no
+- **Requires reasoning:** yes
+- **Requires calculation:** no
+- **Null/placeholder policy:** Blank allowed
+- **Example answer:** `human`
+- **Scoring notes:** Use the species tied to the principal spatial analysis.
+- **Gold-annotation notes:** For multi-sample papers, choose the species emphasized in the representative figure and main finding.
 
-## sample_or_section_type
+## Tissue or disease context
 
-- **What to extract:** Sample unit or preparation type used for the main spatial assay, such as fresh frozen tissue section, FFPE section, organoid, or intact tissue block.
-- **Expected answer style:** Short descriptive phrase.
-- **What counts as correct:** Correct when it names the actual section or sample type used for the representative analysis.
-- **Allowed aliases or variants:** FF and fresh frozen are equivalent when the paper uses both.
-- **Evidence expected:** Mostly text evidence.
+- **What to extract:** Extract the organ, tissue, disease, developmental stage, or biological setting of the main analysis. Use the context that anchors the main spatial result rather than every sample mentioned.
+- **Expected answer style:** Concise tissue or disease phrase
 - **Difficulty:** medium
-- **Common pitfalls:** Do not answer only with the tissue name when the question asks for preparation type.
+- **Evidence expected:** Text evidence from the abstract, sample description, and early results.
+- **Requires vision:** no
+- **Requires reasoning:** yes
+- **Requires calculation:** no
+- **Null/placeholder policy:** Expected to be answerable from the main PDF unless the description explicitly allows NOT_FOUND/NOT_APPLICABLE.
+- **Example answer:** `mouse hippocampus`
+- **Scoring notes:** Prefer the primary analysis context over follow-up validation samples.
+- **Gold-annotation notes:** Human review is useful when the paper rotates across several tissues or disease states.
 
-## spatial_resolution_or_capture_unit
+## Sample or section type
 
-- **What to extract:** Resolution or capture-unit description used for the central assay. This can be a spot size, bead size, pixel size, single-cell or single-nucleus resolution claim, or another concise capture-unit description. If the paper reports heterogeneous resolutions, record the main headline resolution used in the principal result figure.
-- **Expected answer style:** Compact numeric-plus-unit phrase or capture-unit phrase.
-- **What counts as correct:** Correct when it captures the main resolution language a reader would use to compare methods.
-- **Allowed aliases or variants:** Micro sign normalization (um vs μm) is acceptable.
-- **Evidence expected:** Mostly text evidence, sometimes figure-supported.
+- **What to extract:** Extract the physical sample type, such as fresh frozen tissue section, FFPE section, embryo, tumor section, brain section, organoid, or dissociated nuclei with spatial barcoding. Use NOT_FOUND if the paper does not state a recoverable sample type in the main PDF.
+- **Expected answer style:** Concise sample-type phrase
+- **Difficulty:** medium
+- **Evidence expected:** Text evidence from methods summaries or sample descriptions.
+- **Requires vision:** no
+- **Requires reasoning:** yes
+- **Requires calculation:** no
+- **Null/placeholder policy:** Blank allowed
+- **Example answer:** `fresh frozen tissue section`
+- **Scoring notes:** Capture the specimen format, not just the tissue name.
+- **Gold-annotation notes:** This field is expected to be absent or implicit in some methods papers.
+
+## Spatial resolution or capture unit
+
+- **What to extract:** Extract the paper's own headline resolution or capture-unit phrase, such as bead diameter, spot size, single-nucleus level, subcellular, pixel, capture area, or 3D voxel description. Preserve the paper's phrasing rather than forcing a numeric normalization. Use NOT_FOUND if the main PDF does not provide a clear representative phrase.
+- **Expected answer style:** Resolution or capture-unit phrase
 - **Difficulty:** hard
-- **Common pitfalls:** Do not confuse sequencing read depth or field of view with spatial resolution.
+- **Evidence expected:** Usually text evidence from the abstract or methods, optionally confirmed by figures.
+- **Requires vision:** no
+- **Requires reasoning:** yes
+- **Requires calculation:** no
+- **Null/placeholder policy:** Blank allowed
+- **Example answer:** `less than 10 μm spatial resolution`
+- **Scoring notes:** Choose the main headline resolution, not every bin size or downstream computational setting.
+- **Gold-annotation notes:** This field is intentionally hard because papers mix spot, bead, cell, and subcellular descriptions.
 
-## main_analysis_output
+## Calculated capture area from diameter
 
-- **What to extract:** Central downstream analysis output emphasized in the paper, such as spatial domains, cell-type maps, clone maps, ligand-receptor interactions, spatial factors, or tissue architecture.
-- **Expected answer style:** Short controlled phrase.
-- **What counts as correct:** Correct when it reflects the main type of spatial analysis product the paper foregrounds.
-- **Allowed aliases or variants:** Equivalent phrasing such as spatial domains versus tissue domains is acceptable when the figure semantics match.
-- **Evidence expected:** Both text and figure evidence can help.
-- **Difficulty:** medium
-- **Common pitfalls:** Do not list every analysis performed; pick the central output type.
-
-## key_spatial_domain_or_cell_type_finding
-
-- **What to extract:** Concise biological or spatial finding derived from the core results and representative maps.
-- **Expected answer style:** Concise explanatory sentence fragment.
-- **What counts as correct:** Correct when it captures a central spatial or cell-type finding supported by the paper's core maps.
-- **Allowed aliases or variants:** Equivalent biological paraphrases are acceptable if they preserve the same finding.
-- **Evidence expected:** Both text and figure evidence.
+- **What to extract:** Calculate the approximate area of a circular capture unit from the reported diameter using pi times radius squared. Report square micrometers as a number rounded to one decimal place. Use NOT_APPLICABLE if the platform does not have a meaningful circular capture diameter. Use NOT_FOUND if the needed diameter is not reported in the main PDF.
+- **Expected answer style:** Square micrometers rounded to one decimal place
 - **Difficulty:** hard
-- **Common pitfalls:** Do not report a purely technical performance claim when a biological finding is requested.
+- **Evidence expected:** Text evidence for the representative circular diameter; figures can help confirm the representative capture unit.
+- **Requires vision:** no
+- **Requires reasoning:** yes
+- **Requires calculation:** yes
+- **Null/placeholder policy:** Blank allowed
+- **Example answer:** `78.5`
+- **Scoring notes:** Use the same representative diameter referenced by the spatial-resolution field when possible.
+- **Gold-annotation notes:** Document the source diameter during gold annotation because this field is calculation-heavy.
 
-## representative_spatial_figure_panel
+## Main analysis output
 
-- **What to extract:** Figure or panel that best represents the main spatial map, tissue image, or domain visualization supporting the key finding.
-- **Expected answer style:** Short figure-panel citation.
-- **What counts as correct:** Correct when it points to the representative spatial visualization used for the main finding.
-- **Allowed aliases or variants:** Fig. 2A and Figure 2A are equivalent.
-- **Evidence expected:** Figure evidence.
+- **What to extract:** Extract the main output type emphasized by the paper, such as spatial domains, cell-type maps, clone tracing, 3D reconstruction, multimodal cell-state maps, spatial factors, tissue architecture, or differential spatial expression.
+- **Expected answer style:** Short output-type phrase
 - **Difficulty:** medium
-- **Common pitfalls:** Do not cite a workflow cartoon if the question asks for the main mapped biological result.
+- **Evidence expected:** Synthesis across result headings and the dominant mapped output shown in figures.
+- **Requires vision:** no
+- **Requires reasoning:** yes
+- **Requires calculation:** no
+- **Null/placeholder policy:** Expected to be answerable from the main PDF unless the description explicitly allows NOT_FOUND/NOT_APPLICABLE.
+- **Example answer:** `3D reconstruction`
+- **Scoring notes:** Choose the dominant analysis product, not every downstream analysis in the paper.
+- **Gold-annotation notes:** Keep this distinct from the biological finding field.
 
-## validation_or_followup_method
+## Key spatial domain or cell-type finding
 
-- **What to extract:** Main validation or orthogonal follow-up method used to support the spatial findings, if present.
-- **Expected answer style:** One or a few short method labels.
-- **What counts as correct:** Correct when it names the follow-up assay or validation approach explicitly used to support the spatial interpretation.
-- **Allowed aliases or variants:** Common method abbreviations such as IF, smFISH, or RNAscope are acceptable.
-- **Evidence expected:** Mostly text evidence, sometimes figure-supported.
+- **What to extract:** Extract one concise biological or spatial finding supported by the representative map, tissue image, or cell-type/domain visualization. Do not answer with a generic statement such as clusters were identified.
+- **Expected answer style:** One concise phrase or sentence
+- **Difficulty:** hard
+- **Evidence expected:** Usually both the representative spatial figure and the corresponding results text.
+- **Requires vision:** yes
+- **Requires reasoning:** yes
+- **Requires calculation:** no
+- **Null/placeholder policy:** Expected to be answerable from the main PDF unless the description explicitly allows NOT_FOUND/NOT_APPLICABLE.
+- **Example answer:** `Distinct cell states organize around tumor-lymph node boundary hotspots that are not obvious in 2D alone.`
+- **Scoring notes:** Reward concise biological interpretation tied to the main map.
+- **Gold-annotation notes:** This field usually needs human review because multiple plausible findings may appear in the paper.
+
+## Representative spatial figure
+
+- **What to extract:** Identify a main figure or panel showing a spatial map, tissue image, cluster map, spatial factor, or cell-type/domain visualization that supports the key finding. Use NOT_FOUND if the main PDF lacks a clear representative spatial figure.
+- **Expected answer style:** Fig. 2a
 - **Difficulty:** medium
-- **Common pitfalls:** Do not mistake the primary spatial platform itself for the validation method.
+- **Evidence expected:** Figure evidence from the panel that most clearly shows the main spatial map, tissue image, or domain visualization.
+- **Requires vision:** yes
+- **Requires reasoning:** no
+- **Requires calculation:** no
+- **Null/placeholder policy:** Blank allowed
+- **Example answer:** `Fig. 2a`
+- **Scoring notes:** Equivalent figure formatting such as Figure 2A is acceptable.
+- **Gold-annotation notes:** Prefer a figure with the actual spatial result rather than a workflow cartoon.
+
+## Number of bar-chart panels in Figure 1
+
+- **What to extract:** Count the Figure 1 panels that are bar charts or grouped bar charts only. Do not count schematics, tissue images, scatter plots, line plots, heatmaps, or microscopy panels. Use 0 when Figure 1 has no qualifying bar charts. Use NOT_APPLICABLE only if the paper has no Figure 1.
+- **Expected answer style:** Non-negative integer
+- **Difficulty:** medium
+- **Evidence expected:** Figure evidence from Figure 1 only.
+- **Requires vision:** yes
+- **Requires reasoning:** yes
+- **Requires calculation:** no
+- **Null/placeholder policy:** Blank allowed
+- **Example answer:** `2`
+- **Scoring notes:** Scope this count to Figure 1 only.
+- **Gold-annotation notes:** This is a scoped vision diagnostic field.
+
+## Library preparation or chemistry
+
+- **What to extract:** Extract the named kit, sequencing chemistry, capture chemistry, or library preparation workflow if stated in the main PDF. Use NOT_FOUND if the paper does not provide a recoverable chemistry or library-prep name.
+- **Expected answer style:** Short chemistry or protocol phrase
+- **Difficulty:** medium
+- **Evidence expected:** Text evidence from methods or figure captions; figure evidence is optional.
+- **Requires vision:** no
+- **Requires reasoning:** yes
+- **Requires calculation:** no
+- **Null/placeholder policy:** Blank allowed
+- **Example answer:** `Illumina flow-cell-derived capture chemistry`
+- **Scoring notes:** Prefer the actual library-preparation or capture chemistry description over a generic sequencing-platform mention.
+- **Gold-annotation notes:** This protocol field is expected to be absent in some papers.
+
+## Validation or follow-up method
+
+- **What to extract:** Extract the main validation or orthogonal follow-up method used to support the spatial findings, such as immunofluorescence, smFISH, RNAscope, histology, independent dataset validation, targeted sequencing, perturbation, or imaging validation. Use NOT_FOUND if no clear validation method is stated.
+- **Expected answer style:** Short validation-method phrase
+- **Difficulty:** medium
+- **Evidence expected:** Text evidence from results or methods, with figure captions sometimes clarifying the validation method.
+- **Requires vision:** no
+- **Requires reasoning:** yes
+- **Requires calculation:** no
+- **Null/placeholder policy:** Blank allowed
+- **Example answer:** `Imaging-based spatial transcriptomics validation`
+- **Scoring notes:** Do not mistake the primary spatial platform itself for the validation method.
+- **Gold-annotation notes:** Some papers validate computationally rather than with wet-lab imaging; capture the actual follow-up used.

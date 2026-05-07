@@ -53,9 +53,9 @@ Each dataset must contain:
 
 - `pdfs/` with exactly five active renamed PDFs
 - `backup_excluded_papers/` with the preserved excluded source PDFs
-- `table_template.csv`
-- `schema.json`
-- `schema.md`
+- `table_template.csv` as the app-facing spreadsheet input
+- `schema.csv` as the app-facing schema input with exactly `column_name,description`
+- `schema.json` and `schema.md` as richer gold-annotation guides
 - `dataset_readme.md`
 - `source_log.csv`
 - `curation_notes.md`
@@ -63,7 +63,7 @@ Each dataset must contain:
 
 The suite-level overview lives at `tools/eval/benchmarks_curated/benchmark_suite_overview.md`.
 
-The curated suite is intentionally journal-, publisher-, and layout-diverse. Each active dataset should keep exactly five PDFs, preserve traceability from original filenames to active renamed filenames, and leave gold-standard extraction cells blank in `table_template.csv` until manual annotation.
+The curated suite is intentionally journal-, publisher-, and layout-diverse. Each active dataset should keep exactly five PDFs, preserve traceability from original filenames to active renamed filenames, keep internal fields such as `paper_id`, `pdf_filename`, and `publisher_family` out of the app-facing table, and leave gold-standard extraction cells blank in `table_template.csv` until manual annotation.
 
 The previous publisher-homogeneous suite is preserved for historical comparison only at `tools/eval/benchmarks_curated_old/`.
 
