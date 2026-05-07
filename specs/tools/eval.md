@@ -44,15 +44,26 @@ Shared proposal and evidence expectations used during scoring are defined in `..
 
 The current curated benchmark corpus lives under `tools/eval/benchmarks_curated/`.
 
-It is organized as three mixed-publisher datasets:
+It is currently organized as two mixed-layout datasets:
 
 - `genome_editing_tools/`
-- `molecular_neuroscience/`
 - `spatial_transcriptomics/`
 
-Each dataset must contain `pdfs/`, `table_template.csv`, `schema.json`, `schema.md`, `dataset_readme.md`, `source_log.csv`, and `curation_notes.md`. The suite-level overview lives at `tools/eval/benchmarks_curated/benchmark_suite_overview.md`.
+Each dataset must contain:
 
-The curated suite is intentionally journal- and publisher-diverse. Each dataset should have 4-5 PDFs, at least four distinct journals, at least three distinct publisher families, no repeated journal, and no more than two papers from the same publisher family. Gold-standard extraction cells in `table_template.csv` are intentionally blank until manually annotated.
+- `pdfs/` with exactly five active renamed PDFs
+- `backup_excluded_papers/` with the preserved excluded source PDFs
+- `table_template.csv`
+- `schema.json`
+- `schema.md`
+- `dataset_readme.md`
+- `source_log.csv`
+- `curation_notes.md`
+- `rename_map.csv`
+
+The suite-level overview lives at `tools/eval/benchmarks_curated/benchmark_suite_overview.md`.
+
+The curated suite is intentionally journal-, publisher-, and layout-diverse. Each active dataset should keep exactly five PDFs, preserve traceability from original filenames to active renamed filenames, and leave gold-standard extraction cells blank in `table_template.csv` until manual annotation.
 
 The previous publisher-homogeneous suite is preserved for historical comparison only at `tools/eval/benchmarks_curated_old/`.
 
