@@ -26,6 +26,7 @@ from .artifacts import (
 )
 from .extraction import EvidenceRecord, ProposalRecord, load_evidence, load_proposals
 from .ids import generate_review_decision_id
+from .parsing import get_parsed_dir
 from .schemas import (
     DecisionSource,
     EvidenceSourceType,
@@ -787,7 +788,7 @@ def get_pdf_asset_path(run_dir: pathlib.Path, pdf_id: str) -> Optional[pathlib.P
 
     The original PDF path is stored in the parsed document metadata.
     """
-    parsed_path = run_dir / "parsed" / pdf_id / "parsed_document.json"
+    parsed_path = get_parsed_dir(run_dir, pdf_id) / "parsed_document.json"
     if not parsed_path.exists():
         return None
     try:
@@ -804,7 +805,7 @@ def get_pdf_asset_path(run_dir: pathlib.Path, pdf_id: str) -> Optional[pathlib.P
 
 def get_page_image_path(run_dir: pathlib.Path, pdf_id: str, page: int) -> Optional[pathlib.Path]:
     """Return the path to a rendered page image if it was stored during parsing."""
-    img_path = run_dir / "parsed" / pdf_id / "pages" / f"page_{page:04d}.png"
+    img_path = get_parsed_dir(run_dir, pdf_id) / "pages" / f"page_{page:04d}.png"
     if img_path.exists():
         return img_path
     return None
@@ -814,7 +815,7 @@ def get_figure_crop_path(
     run_dir: pathlib.Path, pdf_id: str, figure_id: str
 ) -> Optional[pathlib.Path]:
     """Return the path to a figure crop image if available."""
-    figures_dir = run_dir / "parsed" / pdf_id / "figures"
+    figures_dir = get_parsed_dir(run_dir, pdf_id) / "figures"
     for candidate in [
         figures_dir / f"{figure_id}.png",
         figures_dir / f"{figure_id}.jpg",

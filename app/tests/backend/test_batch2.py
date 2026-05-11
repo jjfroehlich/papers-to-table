@@ -1,6 +1,7 @@
 """Tests for Batch 2: Parsing and row-matching baseline (T025–T040)."""
 from __future__ import annotations
 
+import backend.app.parsing as parsing_module
 import json
 import pathlib
 from typing import Optional
@@ -204,6 +205,24 @@ class TestParserAdapterInterface:
         assert figure.crop_path is not None
         assert figure.full_page_path == "parsed/paper_2/pages/page_0001.png"
         assert (run_dir / pathlib.Path(figure.crop_path)).exists()
+
+    def test_get_parsed_dir_shortens_under_windows_path_budget(self, tmp_path, monkeypatch):
+        """Parsed artifact dirs should shorten deterministically under deep Windows run roots."""
+        run_dir = tmp_path / "deep_optimizer_root" / "candidate_bundle" / "main_app_output"
+        run_dir.mkdir(parents=True)
+        pdf_id = "MPRA01_sahu_2022_sequence_determinants"
+
+        monkeypatch.setattr(parsing_module.os, "name", "nt", raising=False)
+        base_dir = (run_dir / "parsed").resolve()
+        forced_budget = len(str(base_dir)) + len("\\") + parsing_module._PARSED_ARTIFACT_PATH_RESERVE + 20
+        monkeypatch.setattr(parsing_module, "_WINDOWS_PATH_BUDGET", forced_budget)
+
+        parsed_dir = get_parsed_dir(run_dir, pdf_id)
+
+        assert parsed_dir.parent == run_dir / "parsed"
+        assert parsed_dir.name != pdf_id
+        assert get_parsed_dir(run_dir, pdf_id) == parsed_dir
+        assert len(str(parsed_dir)) + parsing_module._PARSED_ARTIFACT_PATH_RESERVE <= forced_budget
 
 
 class TestMetadataHeuristics:

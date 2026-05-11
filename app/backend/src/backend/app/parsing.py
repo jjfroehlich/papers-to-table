@@ -13,7 +13,9 @@ T031 – Parser diagnostics per PDF
 from __future__ import annotations
 
 import abc
+import hashlib
 import io
+import os
 import pathlib
 import re
 import unicodedata
@@ -27,6 +29,9 @@ from .artifacts import write_json
 
 PARSED_DOCUMENT_CONTRACT_VERSION = "parsed_document.v1"
 PARSER_DIAGNOSTICS_CONTRACT_VERSION = "parser_diagnostics.v1"
+_INVALID_FILENAME_CHARS = re.compile(r'[\\/:*?"<>|]')
+_WINDOWS_PATH_BUDGET = 240
+_PARSED_ARTIFACT_PATH_RESERVE = len("\\figures\\figure_0001_crop.png")
 
 # ---------------------------------------------------------------------------
 # Shared regex constants (avoids duplication across metadata extraction points)
@@ -47,6 +52,38 @@ def _normalize_linebreaks(text: str) -> str:
 def _unwrap_docling_item(item_entry: object) -> object:
     """Normalize Docling iterate_items() payload shape across supported versions."""
     return item_entry[0] if isinstance(item_entry, tuple) else item_entry
+
+
+def _safe_artifact_dir_name(name: str, *, max_len: Optional[int] = None) -> str:
+    """Return a filesystem-safe directory name, shortening only when required."""
+    safe = _INVALID_FILENAME_CHARS.sub("_", name)
+    safe = safe.replace(" ", "_")
+    safe = re.sub(r"_+", "_", safe).strip("._")
+    if not safe:
+        safe = "pdf"
+    if max_len is None or len(safe) <= max_len:
+        return safe
+    digest = hashlib.sha1(name.encode("utf-8")).hexdigest()[:10]
+    if max_len <= len(digest) + 2:
+        short_digest = digest[: max(4, max_len - 2)]
+        return f"p_{short_digest}"[:max_len]
+    prefix_budget = max_len - len(digest) - 1
+    truncated = safe[:prefix_budget].rstrip("._") or "pdf"
+    return f"{truncated}_{digest}"
+
+
+def _parsed_dir_name_budget(parsed_base_dir: pathlib.Path) -> Optional[int]:
+    if os.name != "nt":
+        return None
+    base_length = len(str(parsed_base_dir.resolve())) + len("\\")
+    available = _WINDOWS_PATH_BUDGET - base_length - _PARSED_ARTIFACT_PATH_RESERVE
+    return max(12, min(64, available))
+
+
+def get_parsed_dir_from_base(parsed_base_dir: pathlib.Path, pdf_id: str) -> pathlib.Path:
+    """Return the artifact directory for a parsed PDF under an explicit parsed base dir."""
+    safe_name = _safe_artifact_dir_name(pdf_id, max_len=_parsed_dir_name_budget(parsed_base_dir))
+    return parsed_base_dir / safe_name
 
 
 # ---------------------------------------------------------------------------
@@ -1130,7 +1167,7 @@ def _apply_ocr_fallback(
 
 def get_parsed_dir(run_dir: pathlib.Path, pdf_id: str) -> pathlib.Path:
     """Return the artifact directory for a single parsed PDF."""
-    return run_dir / "parsed" / pdf_id
+    return get_parsed_dir_from_base(run_dir / "parsed", pdf_id)
 
 
 def persist_parse_artifacts(
@@ -1379,7 +1416,7 @@ def parse_pdf(
                     f"OCR needed ({ocr_reason}) but ocrmypdf not available: {ocr_unavail_reason}"
                 )
             else:
-                tmp_dir = run_dir / "parsed" / pdf_id
+                tmp_dir = get_parsed_dir(run_dir, pdf_id)
                 tmp_dir.mkdir(parents=True, exist_ok=True)
                 doc = doc.model_copy(update={"ocr_reason": ocr_reason})
                 doc = _apply_ocr_fallback(pdf_path, pdf_id, doc, ocr_language, tmp_dir)

@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 
 from ...artifacts import get_run_dir, read_json
 from ...matching import load_ambiguous, load_conflicts, load_match_results, load_match_summary, load_unmatched
+from ...parsing import get_parsed_dir
 
 router = APIRouter()
 
@@ -52,7 +53,7 @@ async def get_run_conflicts(run_id: str, output_dir: str = './runs'):
 @router.get('/api/runs/{run_id}/parsed/{pdf_id}')
 async def get_parsed_document(run_id: str, pdf_id: str, output_dir: str = './runs'):
     run_dir = get_run_dir(output_dir, run_id)
-    parsed_path = run_dir / 'parsed' / pdf_id / 'parsed_document.json'
+    parsed_path = get_parsed_dir(run_dir, pdf_id) / 'parsed_document.json'
     if not parsed_path.exists():
         raise HTTPException(status_code=404, detail=f'Parsed document not found for pdf_id={pdf_id} in run {run_id}')
     return read_json(parsed_path)
@@ -61,7 +62,7 @@ async def get_parsed_document(run_id: str, pdf_id: str, output_dir: str = './run
 @router.get('/api/runs/{run_id}/parsed/{pdf_id}/diagnostics')
 async def get_parse_diagnostics(run_id: str, pdf_id: str, output_dir: str = './runs'):
     run_dir = get_run_dir(output_dir, run_id)
-    diagnostics_path = run_dir / 'parsed' / pdf_id / 'diagnostics.json'
+    diagnostics_path = get_parsed_dir(run_dir, pdf_id) / 'diagnostics.json'
     if not diagnostics_path.exists():
         raise HTTPException(status_code=404, detail=f'Parser diagnostics not found for pdf_id={pdf_id} in run {run_id}')
     return read_json(diagnostics_path)

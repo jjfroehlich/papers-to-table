@@ -17,9 +17,13 @@ REQUIRED_COMPARE_MODELS = {
     "zai-org/glm-4.6v-flash",
 }
 
-REQUIRED_OVERNIGHT_ONLY_MODELS = {
+REQUIRED_OVERNIGHT_MODELS = {
+    "unsloth/gemma-4-26b-a4b-it",
+    "openai/gpt-oss-20b",
+    "google/gemma-4-e4b",
+    "mistralai/ministral-3-14b-reasoning",
     "unsloth/qwen3.6-27b",
-    "nvidia/nemotron-3-nano-omni",
+    "zai-org/glm-4.6v-flash",
 }
 
 
@@ -141,10 +145,7 @@ def test_real_benchmark_configs_use_real_inputs_and_dual_judges() -> None:
 
 def test_compare_model_configs_include_required_models_and_defaults() -> None:
     repo_root = Path(__file__).resolve().parents[1]
-    for config_name in [
-        "compare_models.json",
-        "compare_models_overnight.json",
-    ]:
+    for config_name in ["compare_models.json"]:
         payload = json.loads((repo_root / "configs" / config_name).read_text(encoding="utf-8"))
         candidate_models = {candidate["text_model_id"] for candidate in payload["compare_candidates"]}
         all_models = candidate_models | {payload["baseline_candidate"]["text_model_id"]}
@@ -171,13 +172,15 @@ def test_compare_models_overnight_tracks_requested_model_set() -> None:
     }
     search_models = set(payload["search_space"]["text_model_ids"])
 
-    assert REQUIRED_OVERNIGHT_ONLY_MODELS.issubset(all_models)
-    assert REQUIRED_OVERNIGHT_ONLY_MODELS.issubset(search_models)
+    assert all_models == REQUIRED_OVERNIGHT_MODELS
+    assert search_models == REQUIRED_OVERNIGHT_MODELS
     assert "google/gemma-4-26b-a4b" not in all_models
     assert "nvidia/nemotron-3-nano-4b" not in all_models
+    assert "nvidia/nemotron-3-nano-omni" not in all_models
     assert "qwen/qwen3.5-9b" not in all_models
     assert "qwen/qwen3.6-35b-a3b" not in all_models
     assert "qwen/qwen3.6-27b" not in all_models
+    assert "unsloth/qwen3.6-35b-a3b" not in all_models
 
 
 def test_model_only_overnight_config_runs_triplicate() -> None:

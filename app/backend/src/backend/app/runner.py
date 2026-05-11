@@ -62,6 +62,8 @@ from .parsing import (
     PARSER_DIAGNOSTICS_CONTRACT_VERSION,
     ParsedDocument,
     ParserDiagnostics,
+    get_parsed_dir,
+    get_parsed_dir_from_base,
     parse_pdf,
 )
 from .provider import ProviderError, _canonical_structured_output_reason, initialize_provider
@@ -254,12 +256,12 @@ def _load_cached_parse_bundle(
     pdf_id: str,
 ) -> tuple[dict, dict, list[str]] | None:
     entry_dir, parsed_dir = _parse_cache_paths(cache_root, cache_key)
-    source_dir = parsed_dir / pdf_id
+    source_dir = get_parsed_dir_from_base(parsed_dir, pdf_id)
     parsed_document_path = source_dir / "parsed_document.json"
     diagnostics_path = source_dir / "diagnostics.json"
     if not parsed_document_path.exists() or not diagnostics_path.exists():
         return None
-    target_dir = run_dir / "parsed" / pdf_id
+    target_dir = get_parsed_dir(run_dir, pdf_id)
     if target_dir.exists():
         shutil.rmtree(target_dir)
     shutil.copytree(source_dir, target_dir)
@@ -281,11 +283,11 @@ def _store_parse_bundle_in_cache(
     pdf_id: str,
 ) -> None:
     entry_dir, parsed_dir = _parse_cache_paths(cache_root, cache_key)
-    source_dir = run_dir / "parsed" / pdf_id
+    source_dir = get_parsed_dir(run_dir, pdf_id)
     if not source_dir.exists():
         return
     parsed_dir.mkdir(parents=True, exist_ok=True)
-    target_dir = parsed_dir / pdf_id
+    target_dir = get_parsed_dir_from_base(parsed_dir, pdf_id)
     if target_dir.exists():
         shutil.rmtree(target_dir)
     shutil.copytree(source_dir, target_dir)
