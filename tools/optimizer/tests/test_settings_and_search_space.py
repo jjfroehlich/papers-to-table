@@ -14,8 +14,12 @@ REQUIRED_COMPARE_MODELS = {
     "unsloth/gemma-4-26b-a4b-it",
     "unsloth/qwen3.6-35b-a3b",
     "openai/gpt-oss-20b",
-    "qwen/qwen3.6-27b",
     "zai-org/glm-4.6v-flash",
+}
+
+REQUIRED_OVERNIGHT_ONLY_MODELS = {
+    "unsloth/qwen3.6-27b",
+    "nvidia/nemotron-3-nano-omni",
 }
 
 
@@ -143,9 +147,10 @@ def test_compare_model_configs_include_required_models_and_defaults() -> None:
     ]:
         payload = json.loads((repo_root / "configs" / config_name).read_text(encoding="utf-8"))
         candidate_models = {candidate["text_model_id"] for candidate in payload["compare_candidates"]}
+        all_models = candidate_models | {payload["baseline_candidate"]["text_model_id"]}
         search_models = set(payload["search_space"]["text_model_ids"])
 
-        assert REQUIRED_COMPARE_MODELS.issubset(candidate_models)
+        assert REQUIRED_COMPARE_MODELS.issubset(all_models)
         assert REQUIRED_COMPARE_MODELS.issubset(search_models)
         assert payload["baseline_candidate"]["text_model_id"] == "unsloth/gemma-4-26b-a4b-it"
         assert "unsloth/gemma-4-26b-a4b-it" in search_models
@@ -155,6 +160,31 @@ def test_compare_model_configs_include_required_models_and_defaults() -> None:
             assert knobs["retrieval_top_k"] == 12
             assert knobs["recall_rescue_enabled"] is False
             assert knobs["whole_document_mode"] is False
+
+
+def test_compare_models_overnight_tracks_requested_model_set() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    payload = json.loads((repo_root / "configs" / "compare_models_overnight.json").read_text(encoding="utf-8"))
+
+    all_models = {payload["baseline_candidate"]["text_model_id"]} | {
+        candidate["text_model_id"] for candidate in payload["compare_candidates"]
+    }
+    search_models = set(payload["search_space"]["text_model_ids"])
+
+    assert REQUIRED_OVERNIGHT_ONLY_MODELS.issubset(all_models)
+    assert REQUIRED_OVERNIGHT_ONLY_MODELS.issubset(search_models)
+    assert "google/gemma-4-26b-a4b" not in all_models
+    assert "nvidia/nemotron-3-nano-4b" not in all_models
+    assert "qwen/qwen3.5-9b" not in all_models
+    assert "qwen/qwen3.6-35b-a3b" not in all_models
+    assert "qwen/qwen3.6-27b" not in all_models
+
+
+def test_model_only_overnight_config_runs_triplicate() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    payload = json.loads((repo_root / "configs" / "compare_models_overnight.json").read_text(encoding="utf-8"))
+
+    assert payload["replicates"]["count"] == 3
 
 
 def test_optimize_one_model_real_config_is_top_k_focused_on_gemma_26b() -> None:

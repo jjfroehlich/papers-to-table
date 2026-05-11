@@ -191,12 +191,16 @@ def _write_bar_plot(
     title: str,
     ylabel: str,
     rotation: int = 45,
+    error_values: list[float] | None = None,
 ) -> None:
     if not labels:
         return
     plt.figure(figsize=(max(7, len(labels) * 0.9), 4))
-    plt.bar(labels, values, color="tab:blue")
-    plt.xticks(rotation=rotation, ha="right")
+    xs = list(range(len(labels)))
+    plt.bar(xs, values, color="tab:blue")
+    if error_values is not None and any(value > 0 for value in error_values):
+        plt.errorbar(xs, values, yerr=error_values, fmt="none", ecolor="#1f2d2f", elinewidth=1.1, capsize=4)
+    plt.xticks(xs, labels, rotation=rotation, ha="right")
     plt.ylabel(ylabel)
     plt.title(title)
     plt.tight_layout()
@@ -709,13 +713,15 @@ def generate_suite_plots(experiment_dir: Path, primary_metric: str) -> None:
         _write_plot_csv(plots_dir / "suite_benchmark_breakdown.csv", benchmark_rows)
         labels = [f"{row.get('candidate_id', '')}:{row.get('benchmark_id', '')}" for row in benchmark_rows]
         values = [_safe_float(row.get("primary_metric_mean")) or 0.0 for row in benchmark_rows]
+        sem_values = [_safe_float(row.get("primary_metric_sem")) or 0.0 for row in benchmark_rows]
         if labels:
             _write_bar_plot(
                 path=plots_dir / "suite_benchmark_breakdown.png",
                 labels=labels,
                 values=values,
-                title="Per-benchmark mean score",
+                title="Per-benchmark mean score (+/- SEM where available)",
                 ylabel=primary_metric,
+                error_values=sem_values,
             )
 
     replicate_rows = _load_rows(experiment_dir / "results" / "replicate_results.csv")

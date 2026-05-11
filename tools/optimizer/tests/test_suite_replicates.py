@@ -9,6 +9,7 @@ import pytest
 
 from paper_optimizer.benchmarks import load_benchmarks
 from paper_optimizer.contracts import Candidate, CandidateResult
+from paper_optimizer.plotting import generate_suite_plots
 from paper_optimizer.settings import ConfigError, load_config
 from paper_optimizer.study import run_compare_mode
 
@@ -236,6 +237,121 @@ def test_failed_and_single_replicates_remain_visible(
     assert "Trust And Caveats" in report_html
     assert "Nested Artifacts" in report_html
     assert "n = 1" in report_html
+
+
+def test_suite_plots_include_replicate_variability_artifacts(tmp_path: Path) -> None:
+    experiment_dir = tmp_path / "suite_exp"
+    results_dir = experiment_dir / "results"
+    results_dir.mkdir(parents=True)
+
+    suite_fieldnames = [
+        "candidate_id",
+        "suite_id",
+        "suite_primary_metric_weighted_mean",
+        "benchmark_coverage",
+        "failed_replicate_count",
+        "degraded_replicate_count",
+        "trust_caveats",
+    ]
+    with (results_dir / "suite_summary.csv").open("w", encoding="utf-8", newline="") as handle:
+        writer = json  # placeholder to keep context stable
+
+    with (results_dir / "suite_summary.csv").open("w", encoding="utf-8", newline="") as handle:
+        import csv
+
+        writer = csv.DictWriter(handle, fieldnames=suite_fieldnames)
+        writer.writeheader()
+        writer.writerow(
+            {
+                "candidate_id": "cand_0001",
+                "suite_id": "dev_suite",
+                "suite_primary_metric_weighted_mean": "0.82",
+                "benchmark_coverage": "1.0",
+                "failed_replicate_count": "0",
+                "degraded_replicate_count": "0",
+                "trust_caveats": "[]",
+            }
+        )
+
+    benchmark_fieldnames = [
+        "candidate_id",
+        "suite_id",
+        "benchmark_id",
+        "primary_metric_mean",
+        "primary_metric_sem",
+        "n_total",
+        "n_scored",
+    ]
+    with (results_dir / "benchmark_summary.csv").open("w", encoding="utf-8", newline="") as handle:
+        import csv
+
+        writer = csv.DictWriter(handle, fieldnames=benchmark_fieldnames)
+        writer.writeheader()
+        writer.writerow(
+            {
+                "candidate_id": "cand_0001",
+                "suite_id": "dev_suite",
+                "benchmark_id": "bench_dev",
+                "primary_metric_mean": "0.81",
+                "primary_metric_sem": "0.05",
+                "n_total": "3",
+                "n_scored": "3",
+            }
+        )
+        writer.writerow(
+            {
+                "candidate_id": "cand_0001",
+                "suite_id": "dev_suite",
+                "benchmark_id": "bench_other",
+                "primary_metric_mean": "0.78",
+                "primary_metric_sem": "0.02",
+                "n_total": "3",
+                "n_scored": "3",
+            }
+        )
+
+    with (results_dir / "replicate_results.csv").open("w", encoding="utf-8", newline="") as handle:
+        import csv
+
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=[
+                "candidate_id",
+                "suite_id",
+                "benchmark_id",
+                "replicate_index",
+                "score_status",
+                "candidate_status",
+                "primary.correctness",
+                "runtime_seconds",
+                "prompt_only_degraded_mode_used",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow(
+            {
+                "candidate_id": "cand_0001",
+                "suite_id": "dev_suite",
+                "benchmark_id": "bench_dev",
+                "replicate_index": "1",
+                "score_status": "scored",
+                "candidate_status": "completed",
+                "primary.correctness": "0.8",
+                "runtime_seconds": "10.0",
+                "prompt_only_degraded_mode_used": "false",
+            }
+        )
+
+    generate_suite_plots(experiment_dir, "correctness")
+
+    assert (experiment_dir / "plots" / "suite_benchmark_breakdown.png").exists()
+    plot_rows = list(
+        __import__("csv").DictReader(
+            (experiment_dir / "plots" / "suite_benchmark_breakdown.csv").open("r", encoding="utf-8", newline="")
+        )
+    )
+    assert plot_rows[0]["primary_metric_sem"] == "0.05"
+    assert plot_rows[1]["primary_metric_sem"] == "0.02"
 
 
 def test_wrapper_compare_command_resolves_suite_and_replicates(monkeypatch: pytest.MonkeyPatch) -> None:
