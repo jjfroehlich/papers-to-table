@@ -36,7 +36,9 @@ Rules:
 
 For ordinary extraction tables, do not put `Title`, `Authors`, or `Publication Year` in the schema. Benchmark/eval datasets may include metadata columns in the schema when those fields are intentionally scored.
 
-## Writing Better Descriptions
+## Writing Good Descriptions
+
+Schema descriptions are crucial because they are converted into model prompts. A vague description is a vague prompt. You can use an LLM to draft or improve these descriptions, but review them before running. The final schema should clarify what is being looked for and should not smuggle in default answers that might be used in hallucinations.
 
 - Name the fact, not the workflow step.
 - Say what counts as evidence.
