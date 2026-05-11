@@ -225,7 +225,7 @@ class TestCreateRun:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post("/api/runs", json={
                 "config_path": str(minimal_config_file),
-                "pdf_dir": "tests/fixtures/papers",
+                "pdf_dir": "../benchmark_datasets/massively_parallel_reporter_assays/pdfs",
             })
         assert resp.status_code == 200
         await asyncio.sleep(0.2)
@@ -286,9 +286,9 @@ class TestCreateRun:
     @pytest.mark.asyncio
     @respx.mock
     async def test_create_run_uses_staged_handles_and_reports_resolved_context(self, tmp_path):
-        table_fixture = pathlib.Path("tests/fixtures/tables/literature_fixture.xlsx").resolve()
-        schema_fixture = pathlib.Path("tests/fixtures/tables/literature_fixture_schema.csv").resolve()
-        pdf_fixture = pathlib.Path("tests/fixtures/papers/paper_1.pdf").resolve()
+        table_fixture = pathlib.Path("../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv").resolve()
+        schema_fixture = pathlib.Path("../benchmark_datasets/massively_parallel_reporter_assays/schema.csv").resolve()
+        pdf_fixture = pathlib.Path("../benchmark_datasets/massively_parallel_reporter_assays/pdfs/MPRA01_sahu_2022_sequence_determinants.pdf").resolve()
 
         config_path = tmp_path / "staged-config.json"
         output_dir = tmp_path / "runs"
@@ -419,3 +419,4 @@ class TestCreateRun:
         assert run_json["table_path"] == str(table_path.resolve())
         assert run_json["schema_path"] == str(schema_path.resolve())
         assert run_json["pdf_dir"] == str((tmp_path / "missing-pdfs").resolve())
+

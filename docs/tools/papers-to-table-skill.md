@@ -20,10 +20,11 @@ The agent should then:
 
 1. Confirm the papers-to-table app and LM Studio with a good LLM model is installed and runnable in the environment.
 2. Run preflight for readiness and input resolution.
-3. Run headless extraction.
-4. Use `--accept-all`, this skips the human review of the extracted values.
-5. Inspect diagnostics and evidence artifacts before reporting results.
-6. Report output table path plus reliability caveats.
+3. Inspect schema descriptions and improve vague descriptions before extraction; these descriptions are prompt instructions.
+4. Run headless extraction.
+5. Use `--accept-all`, this skips the human review of the extracted values.
+6. Inspect diagnostics and evidence artifacts before reporting results.
+7. Report output table path plus reliability caveats.
 
 ## Command Pattern
 

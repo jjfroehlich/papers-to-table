@@ -618,6 +618,40 @@ class LoaderAndCliTests(unittest.TestCase):
             self.assertEqual(exit_code, 0)
             self.assertTrue((output_dir / "per-run" / "run-a" / "run_summary.json").exists())
 
+    def test_cli_scores_external_filled_table(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            gold_path = base / "gold.csv"
+            gold_path.write_text(
+                "row_id,status,score\nrow-1,yes,10\nrow-2,no,20\n",
+                encoding="utf-8",
+            )
+            external_path = base / "external.csv"
+            external_path.write_text(
+                "row_id,status,score\nrow-1,yes,10.0\nrow-2,no,19\n",
+                encoding="utf-8",
+            )
+            output_dir = base / "out"
+
+            exit_code = main(
+                [
+                    "evaluate",
+                    "--external-result",
+                    str(external_path),
+                    "--gold",
+                    str(gold_path),
+                    "--out",
+                    str(output_dir),
+                ]
+            )
+
+            self.assertEqual(exit_code, 0)
+            run_output = output_dir / "per-run" / "external_external"
+            self.assertTrue((run_output / "run_summary.json").exists())
+            rows = self._read_csv(run_output / "scored_cells.csv")
+            self.assertEqual(self._find_row(rows, row_id="row-1", column_name="status")["is_correct"], "True")
+            self.assertEqual(self._find_row(rows, row_id="row-2", column_name="score")["is_correct"], "False")
+
     def test_cli_supports_repeated_run_arguments(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             base = Path(temp_dir)

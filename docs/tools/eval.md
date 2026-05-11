@@ -16,7 +16,7 @@ Eval is CLI-first.
 
 Required arguments:
 
-- one `--run` or `--runs-root`
+- one `--run`, `--runs-root`, or `--external-result`
 - `--gold`
 - `--out`
 
@@ -39,6 +39,7 @@ Use this if you want to:
 
 - score extracted values against benchmark data (table with "gold" values)
 - compare several runs side by side, for instance to compare different LLM models, prompts, or parameters.
+- score a filled table from external software with `--external-result` and compare it to regular main-app runs.
 
 Eval tool will: 
 
@@ -81,6 +82,16 @@ cd tools/eval
 python -m paper_eval evaluate --run /abs/run --gold /abs/gold.csv --schema /abs/schema.json --out /abs/eval_out
 ```
 
+External filled table:
+
+```bash
+cd tools/eval
+python -m paper_eval evaluate \
+  --external-result /abs/external_filled_table.csv \
+  --gold /abs/table_gold.csv \
+  --out /abs/eval_out
+```
+
 ## Test command
 ```bash
 bash scripts/test-eval-tool.sh
@@ -91,6 +102,7 @@ bash scripts/test-eval-tool.sh
 You need:
 
 - run bundle directory (`run.json`, `proposals/proposals.jsonl` minimum)
+- or an external filled result table with stable `row_id` values
 - gold table (csv/xlsx)
 - optional eval schema JSON for field typing, aliases, tolerances, and text-scoring overrides
 

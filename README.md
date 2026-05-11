@@ -4,6 +4,8 @@
 
 papers-to-table is a local-first system to extract information from scientific PDFs into structured tables. It combines a browser review app for human review, auditable run bundles, and companion tools for getting benchmarking scores and for optimizing parameters.
 
+Curated benchmark datasets live in [`benchmark_datasets/`](benchmark_datasets/). The default example config uses the massively parallel reporter assay benchmark.
+
 ## Quickstart
 
 From the repository root:
@@ -50,6 +52,8 @@ python scripts/papers_to_table.py eval \
   --schema /absolute/path/to/schema.json \
   --out /absolute/path/to/eval_out
 ```
+
+Eval can also score a filled table from external software with `--external-result`.
 
 ### Optimizer tool
 Optimizer is an orchestration tool for comparing different models, prompts, and configuration parameters with Eval scoring.

@@ -684,9 +684,9 @@ class TestRunnerProviderTruth:
         output_dir = str(tmp_path / "runs")
         config = RunConfig.model_validate(
             {
-                "table_path": "tests/fixtures/tables/literature_fixture.xlsx",
-                "schema_path": "tests/fixtures/tables/literature_fixture_schema.csv",
-                "pdf_dir": "tests/fixtures/papers",
+                "table_path": "../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv",
+                "schema_path": "../benchmark_datasets/massively_parallel_reporter_assays/schema.csv",
+                "pdf_dir": "../benchmark_datasets/massively_parallel_reporter_assays/pdfs",
                 "output_dir": output_dir,
                 "provider": {
                     "token": "lm_studio",
@@ -726,3 +726,4 @@ class TestRunnerProviderTruth:
         reviewer_summary = json.loads((tmp_path / "runs" / "run_provider_fail" / "summaries" / "reviewer_summary.json").read_text(encoding="utf-8"))
         assert provider_mode["mode"] == "unavailable"
         assert reviewer_summary["total_proposals"] == 0
+

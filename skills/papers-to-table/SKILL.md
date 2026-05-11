@@ -36,6 +36,10 @@ Use this skill when a user wants structured table values extracted from scientif
 - schema file (config or `--schema-path` override)
 - PDF directory (config or `--pdf-dir` override)
 
+## Schema guidance
+
+Schema descriptions are converted into extraction prompts. Before running, inspect descriptions for vague wording, missing units, overloaded concepts, or unclear evidence criteria. If needed, use an LLM to improve the descriptions, then verify that each description states exactly what should be extracted and what evidence is acceptable.
+
 ## Headless command pattern
 
 ```bash
@@ -90,6 +94,7 @@ Return:
 - Evidence quality and warnings must be inspected before trust.
 - Do not silently overwrite original input tables; export to new artifacts.
 - Treat provider-readiness failures as blockers, not soft warnings.
+- Treat vague schema descriptions as extraction-risk blockers when the requested fields are ambiguous.
 
 ## References
 

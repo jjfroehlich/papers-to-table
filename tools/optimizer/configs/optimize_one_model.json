@@ -52,10 +52,10 @@
     "dev": "bench_dev",
     "manifests": {
       "bench_smoke": {
-        "table_path": "../../.././YOUR_REAL_DATA/literature_fixture.xlsx",
-        "schema_path": "../../.././YOUR_REAL_DATA/literature_fixture_schema.csv",
-        "pdf_dir": "../../.././YOUR_REAL_DATA/papers",
-        "gold_path": "../../.././YOUR_REAL_DATA/literature_fixture.xlsx",
+        "table_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv",
+        "schema_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/schema.csv",
+        "pdf_dir": "../../../benchmark_datasets/massively_parallel_reporter_assays/pdfs",
+        "gold_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/table_gold.csv",
         "eval_schema_path": "../../eval/tests/fixtures/example_eval/schema.json",
         "main_args": [],
         "eval_args": [

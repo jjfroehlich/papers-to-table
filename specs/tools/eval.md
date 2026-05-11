@@ -42,7 +42,7 @@ Shared proposal and evidence expectations used during scoring are defined in `..
 
 ## Curated benchmark suite
 
-The current curated benchmark corpus lives under `tools/eval/benchmarks_curated/`.
+The current curated benchmark corpus lives under `benchmark_datasets/`.
 
 It is currently organized as two mixed-layout datasets:
 
@@ -61,11 +61,11 @@ Each dataset must contain:
 - `curation_notes.md`
 - `rename_map.csv`
 
-The suite-level overview lives at `tools/eval/benchmarks_curated/benchmark_suite_overview.md`.
+Dataset-level benchmark files live under `benchmark_datasets/{dataset_id}/`.
 
 The curated suite is intentionally journal-, publisher-, and layout-diverse. Each active dataset should keep exactly five PDFs, preserve traceability from original filenames to active renamed filenames, keep internal fields such as `paper_id`, `pdf_filename`, and `publisher_family` out of the app-facing table, and leave gold-standard extraction cells blank in `table_template.csv` until manual annotation.
 
-The previous publisher-homogeneous suite is preserved for historical comparison only at `tools/eval/benchmarks_curated_old/`.
+Older tool-local benchmark locations are historical only; active datasets should be referenced from `benchmark_datasets/`.
 
 ## Scoring policy
 

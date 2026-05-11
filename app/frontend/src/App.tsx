@@ -110,6 +110,14 @@ export function App() {
     [runs]
   )
 
+  useEffect(() => {
+    if (activeRuns.length === 0) return
+    const interval = window.setInterval(() => {
+      void loadRuns()
+    }, 2000)
+    return () => window.clearInterval(interval)
+  }, [activeRuns.length, loadRuns])
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,#e0f2fe_0%,#f8fafc_32%,#e2e8f0_100%)] text-slate-900">
       <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-xl shadow-[0_10px_35px_rgba(15,23,42,0.06)]">

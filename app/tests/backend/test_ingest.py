@@ -23,9 +23,9 @@ from backend.app.ingest import (
     xlsx_data_start_row,
 )
 
-FIXTURE_TABLE = "tests/fixtures/tables/literature_fixture.xlsx"
-FIXTURE_TABLE_CSV = "tests/fixtures/tables/literature_fixture_table.csv"
-FIXTURE_SCHEMA = "tests/fixtures/tables/literature_fixture_schema.csv"
+FIXTURE_TABLE = "../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv"
+FIXTURE_TABLE_CSV = "../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv"
+FIXTURE_SCHEMA = "../benchmark_datasets/massively_parallel_reporter_assays/schema.csv"
 
 
 class TestLoadTable:
@@ -280,3 +280,4 @@ class TestGetEligibleCells:
         ids1 = {c["row_id"] for c in cells1}
         ids2 = {c["row_id"] for c in cells2}
         assert ids1 == ids2
+

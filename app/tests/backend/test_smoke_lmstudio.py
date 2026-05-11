@@ -25,9 +25,9 @@ from backend.app.config import RunConfig, check_readiness
 from backend.app.extraction import load_evidence, load_proposals
 from backend.app.runner import run_pipeline
 
-FIXTURE_TABLE = "tests/fixtures/tables/literature_fixture.xlsx"
-FIXTURE_SCHEMA = "tests/fixtures/tables/literature_fixture_schema.csv"
-FIXTURE_PDF_DIR = "tests/fixtures/papers"
+FIXTURE_TABLE = "../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv"
+FIXTURE_SCHEMA = "../benchmark_datasets/massively_parallel_reporter_assays/schema.csv"
+FIXTURE_PDF_DIR = "../benchmark_datasets/massively_parallel_reporter_assays/pdfs"
 
 # Register custom marker in pyproject.toml or via conftest if needed
 pytestmark = pytest.mark.smoke
@@ -121,3 +121,4 @@ async def test_live_lm_studio_produces_proposals(tmp_path: pathlib.Path):
         "At least one found proposal must have attached evidence for reviewer usability. "
         f"Found {len(found_proposals)} proposals but none had evidence."
     )
+

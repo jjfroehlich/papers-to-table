@@ -170,7 +170,7 @@ Detailed eval behavior is owned by `tools/eval.md` and the shared summary contra
 
 At the integrated level, eval remains CLI-first and file-driven: it reads run bundles from files alone, scores against gold data, keeps correctness and evidence metrics separate, preserves dual-judge details, and publishes stable output artifacts under the caller's output directory.
 
-The current curated eval benchmark suite lives at `tools/eval/benchmarks_curated/` and currently packages two mixed-layout, mixed-publisher datasets: `genome_editing_tools` and `spatial_transcriptomics`. Each dataset keeps exactly five active PDFs under `pdfs/`, preserves excluded repository PDFs under `backup_excluded_papers/`, exposes app-facing inputs through `table_template.csv` and `schema.csv`, and keeps richer gold-annotation plus traceability files in `schema.json`, `schema.md`, `dataset_readme.md`, `source_log.csv`, `curation_notes.md`, and `rename_map.csv`. The prior publisher-homogeneous suite is historical only and is preserved at `tools/eval/benchmarks_curated_old/`.
+The current curated eval benchmark suite lives at the repository root in `benchmark_datasets/` and currently includes `massively_parallel_reporter_assays`, `genome_editing_tools`, and `spatial_transcriptomics`. Each dataset keeps active PDFs under `pdfs/`, exposes app-facing inputs through `table_template.csv` and `schema.csv`, and keeps human-curated answers in `table_gold.csv`.
 
 ## 9. Optimizer companion
 

@@ -61,6 +61,7 @@ nav:
       - Architecture: main-app/architecture.md
       - Privacy and Locality: main-app/privacy-locality.md
   - Companion Tools:
+      - Benchmark Datasets: tools/benchmark-datasets.md
       - Eval: tools/eval.md
       - Optimizer: tools/optimizer.md
       - Papers-to-Table Skill: tools/papers-to-table-skill.md

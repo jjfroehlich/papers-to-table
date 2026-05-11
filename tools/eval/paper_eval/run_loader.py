@@ -102,10 +102,12 @@ def _normalize_optional_dict(value: Any) -> dict[str, Any]:
     return dict(value)
 
 
-def discover_run_directories(run_paths: list[Path], runs_root: Path | None) -> list[Path]:
+def discover_run_directories(run_paths: list[Path], runs_root: Path | None, *, allow_empty: bool = False) -> list[Path]:
     if run_paths and runs_root is not None:
         raise CliUsageError("Use either repeated --run values or --runs-root, not both.")
     if not run_paths and runs_root is None:
+        if allow_empty:
+            return []
         raise CliUsageError("Provide at least one --run or --runs-root.")
 
     if run_paths:

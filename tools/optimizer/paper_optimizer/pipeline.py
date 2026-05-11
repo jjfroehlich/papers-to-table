@@ -174,6 +174,117 @@ def _failure_result(
     )
 
 
+def evaluate_external_result_once(
+    config: dict[str, Any],
+    *,
+    experiment_dir: Path,
+    benchmark_id: str,
+    external_result: dict[str, Any],
+    study_type: str,
+) -> CandidateResult:
+    benchmarks = load_benchmarks(config)
+    benchmark = benchmarks.manifests[benchmark_id]
+    label = str(external_result.get("label") or Path(str(external_result["path"])).stem)
+    candidate = Candidate(
+        candidate_id=f"external_{label}",
+        prompt_bundle_id="external_result",
+        text_model_id=str(external_result.get("system") or "external"),
+        vision_model_id=None,
+        optimizer_knobs={},
+    )
+    eval_out = experiment_dir / "runs" / candidate.candidate_id / "eval"
+    eval_out.mkdir(parents=True, exist_ok=True)
+    if not benchmark.gold_path:
+        return _failure_result(
+            config,
+            candidate=candidate,
+            benchmark_id=benchmark_id,
+            study_type=study_type,
+            decision="external_baseline",
+            reason="external_result_missing_gold_path",
+            candidate_dir=eval_out,
+        )
+
+    from .launch_eval import launch_external_eval_app
+
+    try:
+        eval_launch, eval_summary = launch_external_eval_app(
+            config,
+            benchmark=benchmark,
+            benchmark_id=benchmark_id,
+            external_result_path=Path(str(external_result["path"])),
+            out_dir=eval_out,
+            extra_eval_args=list(external_result.get("eval_args", [])),
+        )
+    except ValueError as exc:
+        return _failure_result(
+            config,
+            candidate=candidate,
+            benchmark_id=benchmark_id,
+            study_type=study_type,
+            decision="external_baseline",
+            reason="external_eval_launch_failed",
+            candidate_dir=eval_out,
+            extra_metadata={"launch_error": str(exc), "failure_stage": "external_eval_launch"},
+        )
+
+    primary_metrics, guardrail_metrics, diagnostic_metrics = map_eval_summary_to_metric_groups(eval_summary, config["eval_app"])
+    primary_metric_name = str(config["acceptance"]["primary_metric"])
+    scored = bool(eval_summary.get("scored", primary_metrics.get(primary_metric_name) is not None))
+    score_status = "scored" if scored else "unscored"
+    unscored_reason = None if scored else eval_summary.get("unscored_reason", "external_result_unscored")
+    if scored and primary_metrics.get(primary_metric_name) is None:
+        scored = False
+        score_status = "unscored"
+        unscored_reason = "metric_projection_failure"
+
+    return CandidateResult(
+        schema_version=str(config["schema_version"]),
+        experiment_id=str(config["experiment_id"]),
+        study_type=study_type,
+        benchmark_id=benchmark_id,
+        candidate_id=candidate.candidate_id,
+        parent_candidate_id=None,
+        round_index=None,
+        candidate_hash=candidate_hash(candidate),
+        candidate_manifest_path="",
+        candidate_bundle_dir=str(eval_out.resolve()),
+        prompt_bundle_id=candidate.prompt_bundle_id,
+        text_model_id=candidate.text_model_id,
+        vision_model_id=None,
+        optimizer_knobs_flat={},
+        primary_metrics=primary_metrics,
+        guardrail_metrics=guardrail_metrics,
+        diagnostic_metrics=diagnostic_metrics,
+        scored=scored,
+        score_status=score_status,
+        unscored_reason=unscored_reason,
+        runtime_seconds=eval_launch.duration_seconds,
+        runtime_metadata={
+            "eval_duration_seconds": eval_launch.duration_seconds,
+            "total_duration_seconds": eval_launch.duration_seconds,
+        },
+        started_at=eval_launch.started_at,
+        ended_at=eval_launch.ended_at,
+        candidate_status="completed" if eval_launch.success else "failed",
+        promotion_decision="external_baseline",
+        decision_reason="external_result_comparison",
+        eval_output_ref={
+            "output_path": eval_launch.output_path,
+            "return_code": eval_launch.return_code,
+            "summary_path": eval_launch.summary_path,
+            "payload": eval_launch.payload,
+            "artifact_paths": eval_launch.artifact_paths,
+        },
+        metadata={
+            "external_result": external_result,
+            "eval_summary": eval_summary,
+            "eval_stdout": eval_launch.stdout,
+            "eval_stderr": eval_launch.stderr,
+        },
+    )
+
+
 def evaluate_candidate_once(
     config: dict[str, Any],
     *,
@@ -326,6 +437,7 @@ def evaluate_candidate_once(
         scored=scored,
         prompt_only_degraded_mode_used=degraded_for_structure,
     )
+
     primary_metric_name = str(config["acceptance"]["primary_metric"])
     if scored and primary_metrics.get(primary_metric_name) is None:
         scored = False

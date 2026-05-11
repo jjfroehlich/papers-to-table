@@ -72,6 +72,7 @@ python -m paper_optimizer.cli optimize --study-type compare --config configs/com
 ## Outputs
 - study-level summary artifacts
 - per-candidate run/eval outputs
+- optional external-result baselines scored by Eval and shown beside internal candidates
 - recommended winner/default diagnostics
 
 ## Canonical Presets
@@ -135,6 +136,22 @@ Use benchmark suites when you need one study to cover several distinct benchmark
 - metadata-heavy matching and extraction
 
 Use replicates when you want to estimate stability instead of trusting one candidate x benchmark run.
+
+## External Result Baselines
+
+Benchmarks can include precomputed filled tables from external software. Optimizer scores them with Eval before the internal candidates and includes them in `results/results.csv`, plots, and the HTML report as `external_{label}` rows.
+
+```json
+"external_results": [
+  {
+    "label": "external_tool_v1",
+    "system": "external-tool",
+    "path": "../../../external_results/mpra_filled.csv"
+  }
+]
+```
+
+The external table must use stable `row_id` values matching the benchmark gold table. Wide format uses one row per paper and one column per field; long format uses `row_id,column_name,proposed_value`.
 
 Canonical config shape:
 

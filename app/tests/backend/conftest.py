@@ -7,10 +7,10 @@ from typing import Generator
 
 import pytest
 
-FIXTURE_TABLE = "tests/fixtures/tables/literature_fixture.xlsx"
-FIXTURE_TABLE_CSV = "tests/fixtures/tables/literature_fixture_table.csv"
-FIXTURE_SCHEMA = "tests/fixtures/tables/literature_fixture_schema.csv"
-FIXTURE_PDF_DIR = "tests/fixtures/papers"
+FIXTURE_TABLE = "../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv"
+FIXTURE_TABLE_CSV = "../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv"
+FIXTURE_SCHEMA = "../benchmark_datasets/massively_parallel_reporter_assays/schema.csv"
+FIXTURE_PDF_DIR = "../benchmark_datasets/massively_parallel_reporter_assays/pdfs"
 FIXTURE_CONFIG = "config.example.json"
 
 
@@ -50,3 +50,4 @@ def minimal_config_file(tmp_path: pathlib.Path, minimal_config_dict: dict) -> pa
 def lm_studio_config(minimal_config_dict: dict):
     from backend.app.config import RunConfig
     return RunConfig.model_validate(minimal_config_dict)
+

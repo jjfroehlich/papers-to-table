@@ -11,9 +11,9 @@ The main app uses JSON as the advanced-control authority.
 
 ```json
 {
-  "table_path": "tests/fixtures/tables/literature_fixture.xlsx",
-  "schema_path": "tests/fixtures/tables/literature_fixture_schema.csv",
-  "pdf_dir": "tests/fixtures/papers",
+  "table_path": "../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv",
+  "schema_path": "../benchmark_datasets/massively_parallel_reporter_assays/schema.csv",
+  "pdf_dir": "../benchmark_datasets/massively_parallel_reporter_assays/pdfs",
   "output_dir": "./runs",
   "provider": {
     "token": "lm_studio",

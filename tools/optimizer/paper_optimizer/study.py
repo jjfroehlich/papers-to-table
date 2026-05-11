@@ -13,7 +13,7 @@ from .acceptance import degraded_score_policy, evaluate_promotion, is_degraded_s
 from .benchmarks import Benchmarks
 from .bundle import build_candidate_from_dict, candidate_hash
 from .contracts import Candidate, CandidateResult, RoundSummary
-from .pipeline import evaluate_candidate_once
+from .pipeline import evaluate_candidate_once, evaluate_external_result_once
 from .plotting import generate_compare_plots, generate_optimize_plots, generate_suite_plots
 from .report import generate_experiment_report
 from .propose import propose_candidates
@@ -1257,6 +1257,20 @@ def run_compare_mode(config: dict[str, Any], benchmarks: Benchmarks, experiment_
 
     results: list[CandidateResult] = []
     compare_policy = _compare_policy(config)
+
+    for planned_benchmark_id in plan.benchmark_ids:
+        benchmark = benchmarks.manifests[planned_benchmark_id]
+        for external_result in benchmark.external_results or []:
+            result = evaluate_external_result_once(
+                config,
+                experiment_dir=experiment_dir,
+                benchmark_id=planned_benchmark_id,
+                external_result=external_result,
+                study_type="compare",
+            )
+            result.suite_id = plan.suite_id
+            writer.append_result(result)
+            results.append(result)
 
     for candidate in candidates:
         gate_probe = _probe_candidate_structured_output_mode(

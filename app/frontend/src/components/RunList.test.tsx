@@ -7,9 +7,9 @@ const mockRun: RunData = {
   run_id: 'run_20240315_143022_abc123',
   status: 'completed',
   config_path: 'config.json',
-  table_path: 'tests/fixtures/tables/literature_fixture.xlsx',
+  table_path: '../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv',
   schema_path: null,
-  pdf_dir: 'tests/fixtures/papers',
+  pdf_dir: '../benchmark_datasets/massively_parallel_reporter_assays/pdfs',
   output_dir: './runs',
   verify_mode: false,
   eval_mode: false,
@@ -60,3 +60,4 @@ describe('RunList', () => {
     expect(screen.getByText('Provider unreachable')).toBeTruthy()
   })
 })
+

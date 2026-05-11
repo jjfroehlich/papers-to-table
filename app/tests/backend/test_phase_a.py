@@ -35,9 +35,9 @@ from backend.app.ingest import (
 from backend.app.lifecycle import LifecycleError, apply_transition, validate_transition
 from backend.app.schemas import RunStatus
 
-FIXTURE_TABLE = "tests/fixtures/tables/literature_fixture.xlsx"
-FIXTURE_SCHEMA = "tests/fixtures/tables/literature_fixture_schema.csv"
-FIXTURE_PDF_DIR = "tests/fixtures/papers"
+FIXTURE_TABLE = "../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv"
+FIXTURE_SCHEMA = "../benchmark_datasets/massively_parallel_reporter_assays/schema.csv"
+FIXTURE_PDF_DIR = "../benchmark_datasets/massively_parallel_reporter_assays/pdfs"
 FIXTURE_CONFIG = "config.example.json"
 
 
@@ -142,7 +142,7 @@ def test_list_run_ids(tmp_path):
 def test_load_config_example():
     config = load_config(FIXTURE_CONFIG)
     assert config.provider.token == "lm_studio"
-    assert config.table_path == str(pathlib.Path("tests/fixtures/tables/literature_fixture.xlsx").resolve())
+    assert config.table_path == str(pathlib.Path("../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv").resolve())
 
 
 def test_invalid_provider_token():
@@ -203,7 +203,7 @@ def test_load_table_xlsx():
 
 
 def test_load_table_csv():
-    df = load_table("tests/fixtures/tables/literature_fixture_table.csv")
+    df = load_table("../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv")
     assert "Title" in df.columns
     assert len(df) > 0
 
@@ -336,3 +336,4 @@ async def test_get_run_not_found(tmp_path):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.get(f"/api/runs/run_missing?output_dir={tmp_path}")
     assert resp.status_code == 404
+

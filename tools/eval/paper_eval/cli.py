@@ -14,6 +14,7 @@ from paper_eval.contracts import (
     RunSummary,
 )
 from paper_eval.errors import CliUsageError, ContractError, EvaluationError
+from paper_eval.external_loader import load_external_result
 from paper_eval.gold_loader import load_gold
 from paper_eval.judge import LMStudioTextJudge
 from paper_eval.output_paths import create_output_layout
@@ -39,6 +40,14 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate = subparsers.add_parser("evaluate", help="Score one or more runs against a gold table.")
     evaluate.add_argument("--run", dest="runs", action="append", default=[], help="Path to a run directory.")
     evaluate.add_argument("--runs-root", type=Path, help="Directory containing many run directories.")
+    evaluate.add_argument(
+        "--external-result",
+        dest="external_results",
+        action="append",
+        default=[],
+        type=Path,
+        help="Path to an external filled result table to score against the gold table.",
+    )
     evaluate.add_argument("--gold", type=Path, required=True, help="Path to the gold CSV or XLSX file.")
     evaluate.add_argument(
         "--gold-sheet",
@@ -101,7 +110,11 @@ def main(argv: list[str] | None = None) -> int:
 def _handle_evaluate(args: argparse.Namespace) -> int:
     output_layout = create_output_layout(args.out.resolve())
     schema = load_schema(args.schema.resolve() if args.schema else None)
-    run_dirs = discover_run_directories([Path(path).resolve() for path in args.runs], args.runs_root.resolve() if args.runs_root else None)
+    run_dirs = discover_run_directories(
+        [Path(path).resolve() for path in args.runs],
+        args.runs_root.resolve() if args.runs_root else None,
+        allow_empty=bool(args.external_results),
+    )
     judge_configs = build_judge_configs(args)
     text_judges = build_text_judges(judge_configs)
     gold_path = args.gold.resolve()
@@ -111,10 +124,15 @@ def _handle_evaluate(args: argparse.Namespace) -> int:
     run_summary_paths: list[str] = []
     scored_cells_paths: list[str] = []
     judge_records_paths: list[str] = []
-    for run_dir in run_dirs:
+    for loaded_run_input in [*run_dirs, *[Path(path).resolve() for path in args.external_results]]:
         score_result = None
+        is_external_result = loaded_run_input in [Path(path).resolve() for path in args.external_results]
         try:
-            loaded_run = load_run(run_dir)
+            loaded_run = (
+                load_external_result(loaded_run_input, run_id=None, schema=schema)
+                if is_external_result
+                else load_run(loaded_run_input)
+            )
             cache_key = None
             if loaded_run.matched_row_indices is not None:
                 cache_key = tuple(sorted(loaded_run.matched_row_indices))
@@ -143,7 +161,7 @@ def _handle_evaluate(args: argparse.Namespace) -> int:
             )
         except ContractError as exc:
             summary = _build_unscored_summary(
-                run_dir=run_dir,
+                run_dir=loaded_run_input,
                 gold_path=gold_path,
                 gold_sheet=args.gold_sheet,
                 reason="invalid_run_bundle_contract",
@@ -152,7 +170,7 @@ def _handle_evaluate(args: argparse.Namespace) -> int:
             score_result = None
         except EvaluationError as exc:
             summary = _build_unscored_summary(
-                run_dir=run_dir,
+                run_dir=loaded_run_input,
                 gold_path=gold_path,
                 gold_sheet=args.gold_sheet,
                 reason="judge_failure" if "judge" in str(exc).lower() else "missing_required_eval_inputs",

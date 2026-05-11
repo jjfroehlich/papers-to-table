@@ -32,10 +32,11 @@ def prepare_demo_runtime(runtime_root: pathlib.Path, repo_root: pathlib.Path) ->
     runs_dir = runtime_root / "runs"
     runs_dir.mkdir(parents=True, exist_ok=True)
 
-    table_path = repo_root / "tests" / "fixtures" / "tables" / "literature_fixture.xlsx"
-    schema_path = repo_root / "tests" / "fixtures" / "tables" / "literature_fixture_schema.csv"
-    pdf_dir = repo_root / "tests" / "fixtures" / "papers"
-    pdf_path = pdf_dir / "paper_1.pdf"
+    benchmark_root = repo_root.parent / "benchmark_datasets" / "massively_parallel_reporter_assays"
+    table_path = benchmark_root / "table_template.csv"
+    schema_path = benchmark_root / "schema.csv"
+    pdf_dir = benchmark_root / "pdfs"
+    pdf_path = pdf_dir / "MPRA01_sahu_2022_sequence_determinants.pdf"
 
     table = load_table(str(table_path))
     row_index = 2
@@ -85,7 +86,7 @@ def _build_demo_run(
     created_at: datetime,
 ) -> None:
     run_dir = init_run_bundle(str(runs_dir), run_id)
-    pdf_id = "paper_1"
+    pdf_id = "mpra01"
     created_iso = created_at.isoformat()
     additional_columns = [
         ("Assay", "VAMP-seq", SupportLabel.direct_evidence, EvidenceSourceType.direct_quote, 1),

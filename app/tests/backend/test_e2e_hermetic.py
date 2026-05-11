@@ -61,9 +61,9 @@ from backend.app.schemas import (
     WarningCategory,
 )
 
-FIXTURE_TABLE = "tests/fixtures/tables/literature_fixture.xlsx"
-FIXTURE_SCHEMA = "tests/fixtures/tables/literature_fixture_schema.csv"
-FIXTURE_PDF_DIR = "tests/fixtures/papers"
+FIXTURE_TABLE = "../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv"
+FIXTURE_SCHEMA = "../benchmark_datasets/massively_parallel_reporter_assays/schema.csv"
+FIXTURE_PDF_DIR = "../benchmark_datasets/massively_parallel_reporter_assays/pdfs"
 
 
 # ---------------------------------------------------------------------------
@@ -623,3 +623,4 @@ class TestHermeticReviewLifecycle:
         candidates = get_export_candidates(run_dir)
         assert candidates[0]["export_value"] == "RT-PCR"
         assert candidates[0]["edited_value"] == "RT-PCR"
+

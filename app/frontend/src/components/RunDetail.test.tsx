@@ -7,9 +7,9 @@ const baseRun: RunData = {
   run_id: 'run_20240315_143022_abc123',
   status: 'completed',
   config_path: 'config.json',
-  table_path: 'tests/fixtures/tables/literature_fixture.xlsx',
-  schema_path: 'tests/fixtures/tables/schema.csv',
-  pdf_dir: 'tests/fixtures/papers',
+  table_path: '../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv',
+  schema_path: '../benchmark_datasets/massively_parallel_reporter_assays/schema.csv',
+  pdf_dir: '../benchmark_datasets/massively_parallel_reporter_assays/pdfs',
   output_dir: './runs',
   verify_mode: false,
   eval_mode: false,
@@ -146,3 +146,4 @@ describe('RunDetail', () => {
     expect(screen.getAllByTitle('/data/pdfs').length).toBeGreaterThanOrEqual(2)
   })
 })
+

@@ -31,6 +31,7 @@ def load_config(config_path: Path) -> dict[str, Any]:
             "pdf_dir",
             "gold_path",
             "eval_schema_path",
+            "path",
         },
     )
     normalized = normalize_config(config)
@@ -148,6 +149,24 @@ def validate_config(config: dict[str, Any]) -> None:
             required_judges = manifest["required_judges"]
             if not isinstance(required_judges, list) or not all(isinstance(item, str) for item in required_judges):
                 raise ConfigError(f"benchmarks.manifests.{bench_id}.required_judges must be an array of strings when provided")
+        if "external_results" in manifest:
+            external_results = manifest["external_results"]
+            if not isinstance(external_results, list):
+                raise ConfigError(f"benchmarks.manifests.{bench_id}.external_results must be an array when provided")
+            for index, item in enumerate(external_results):
+                if not isinstance(item, dict):
+                    raise ConfigError(f"benchmarks.manifests.{bench_id}.external_results[{index}] must be an object")
+                if not isinstance(item.get("path"), str) or not item.get("path", "").strip():
+                    raise ConfigError(f"benchmarks.manifests.{bench_id}.external_results[{index}].path must be a non-empty string")
+                if "label" in item and item["label"] is not None and not isinstance(item["label"], str):
+                    raise ConfigError(f"benchmarks.manifests.{bench_id}.external_results[{index}].label must be a string")
+                if "system" in item and item["system"] is not None and not isinstance(item["system"], str):
+                    raise ConfigError(f"benchmarks.manifests.{bench_id}.external_results[{index}].system must be a string")
+                if "eval_args" in item and (
+                    not isinstance(item["eval_args"], list)
+                    or not all(isinstance(arg, str) for arg in item["eval_args"])
+                ):
+                    raise ConfigError(f"benchmarks.manifests.{bench_id}.external_results[{index}].eval_args must be an array of strings")
 
     benchmark_suites = config.get("benchmark_suites", {})
     if benchmark_suites is not None:

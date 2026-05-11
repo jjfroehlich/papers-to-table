@@ -19,9 +19,9 @@ from backend.app.config import (
 
 
 FIXTURE_CONFIG = "config.example.json"
-FIXTURE_TABLE = "tests/fixtures/tables/literature_fixture.xlsx"
-FIXTURE_SCHEMA = "tests/fixtures/tables/literature_fixture_schema.csv"
-FIXTURE_PDF_DIR = "tests/fixtures/papers"
+FIXTURE_TABLE = "../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv"
+FIXTURE_SCHEMA = "../benchmark_datasets/massively_parallel_reporter_assays/schema.csv"
+FIXTURE_PDF_DIR = "../benchmark_datasets/massively_parallel_reporter_assays/pdfs"
 
 
 class TestCanonicalProviderPolicy:
@@ -410,3 +410,4 @@ class TestReadiness:
         )
         result = await check_readiness(config)
         assert out.exists()
+

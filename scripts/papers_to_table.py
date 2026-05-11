@@ -244,6 +244,8 @@ def cmd_eval(args: argparse.Namespace) -> int:
         cmd.extend(["--run", args.run])
     if args.runs_root:
         cmd.extend(["--runs-root", args.runs_root])
+    if args.external_result:
+        cmd.extend(["--external-result", args.external_result])
     cmd.extend(["--gold", args.gold, "--out", args.out])
     if args.schema:
         cmd.extend(["--schema", args.schema])
@@ -258,7 +260,7 @@ def cmd_eval(args: argparse.Namespace) -> int:
     if args.judge_api_base_b:
         cmd.extend(["--judge-api-base-b", args.judge_api_base_b])
     if args.json_output:
-        cmd.extend(["--json-output", args.json_output])
+        cmd.append("--json-output")
     return _run(cmd, cwd=EVAL_DIR, env=env)
 
 
@@ -346,6 +348,7 @@ def build_parser() -> argparse.ArgumentParser:
     eval_cmd = subparsers.add_parser("eval", help="Evaluate one run bundle or a runs root")
     eval_cmd.add_argument("--run")
     eval_cmd.add_argument("--runs-root")
+    eval_cmd.add_argument("--external-result")
     eval_cmd.add_argument("--gold", required=True)
     eval_cmd.add_argument("--schema")
     eval_cmd.add_argument("--out", required=True)
@@ -354,7 +357,7 @@ def build_parser() -> argparse.ArgumentParser:
     eval_cmd.add_argument("--gold-sheet", help="Gold workbook sheet name override for reproducible eval joins")
     eval_cmd.add_argument("--judge-api-base", help="Primary judge API base URL")
     eval_cmd.add_argument("--judge-api-base-b", help="Secondary judge API base URL for dual-judge mode")
-    eval_cmd.add_argument("--json-output", help="Path to write machine-readable eval JSON output")
+    eval_cmd.add_argument("--json-output", action="store_true", help="Emit machine-readable eval JSON to stdout")
     eval_cmd.set_defaults(func=cmd_eval)
 
     optimizer = subparsers.add_parser("optimizer", help="Run optimizer companion workflows")

@@ -4,7 +4,7 @@ The app needs a table and a schema that define which information needs to be ext
 
 The table is the working spreadsheet. Each row is a paper, and each column is a field you want filled or checked. The app uses `Title`, `Authors`, and `Publication Year` to match PDFs to existing rows. If a PDF does not match any row, the app stages a new row from extracted paper metadata and generates proposals for the schema-defined target columns.
 
-The schema is the extraction contract. It tells the model what each target column means, what evidence is acceptable, and whether the value should be text, numeric, boolean, or categorical.
+The schema is the extraction contract. Its descriptions are inserted into the extraction prompts, so they directly shape what the model looks for. Treat each description as prompt text: define the fact precisely, say what counts as evidence, and include units or scope boundaries. It is often useful to ask an LLM to draft or refine these descriptions, then review them for domain correctness before running extraction.
 
 ## Table
 
@@ -30,11 +30,11 @@ Model system,Cell line or organism context used for the reported experiment.
 Rules:
 
 - `column_name` must match a table column exactly.
-- `description` should define the paper-facing fact and acceptable evidence.
+- `description` should define the paper-facing fact and acceptable evidence. These descriptions become model instructions, so unclear descriptions usually create unclear extractions.
 - `field_type` can be `text`, `number`, `categorical`, or `boolean`.
 - `allowed_values` is only for categorical fields and should be a JSON list.
 
-Do not put `Title`, `Authors`, or `Publication Year` in the schema.
+For ordinary extraction tables, do not put `Title`, `Authors`, or `Publication Year` in the schema. Benchmark/eval datasets may include metadata columns in the schema when those fields are intentionally scored.
 
 ## Writing Better Descriptions
 

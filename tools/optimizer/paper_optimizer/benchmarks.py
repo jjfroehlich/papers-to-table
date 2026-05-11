@@ -24,6 +24,7 @@ class BenchmarkManifest:
     benchmark_label: str | None
     require_non_fixture_inputs: bool = False
     required_judges: list[str] | None = None
+    external_results: list[dict[str, Any]] | None = None
 
 
 @dataclass(frozen=True)
@@ -56,6 +57,7 @@ def load_benchmarks(config: dict[str, Any]) -> Benchmarks:
             benchmark_label=manifest.get("benchmark_label"),
             require_non_fixture_inputs=bool(manifest.get("require_non_fixture_inputs", False)),
             required_judges=list(manifest.get("required_judges", [])),
+            external_results=list(manifest.get("external_results", [])),
         )
 
     split_to_id: dict[str, str] = {}

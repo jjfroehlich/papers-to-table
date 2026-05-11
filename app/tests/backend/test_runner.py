@@ -36,9 +36,9 @@ from backend.app.ids import generate_proposal_id
 from backend.app.matching import MatchResult
 from backend.app.schemas import EvidenceSourceType, MatchOutcome, ProposalState, RunStatus, SupportLabel
 
-FIXTURE_TABLE = "tests/fixtures/tables/literature_fixture.xlsx"
-FIXTURE_SCHEMA = "tests/fixtures/tables/literature_fixture_schema.csv"
-FIXTURE_PDF_DIR = "tests/fixtures/papers"
+FIXTURE_TABLE = "../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv"
+FIXTURE_SCHEMA = "../benchmark_datasets/massively_parallel_reporter_assays/schema.csv"
+FIXTURE_PDF_DIR = "../benchmark_datasets/massively_parallel_reporter_assays/pdfs"
 _CAPTURED_ROW_CONTEXTS: list[dict] = []
 
 
@@ -1270,3 +1270,4 @@ async def _fake_extract_cell_with_metrics(**kwargs):
 async def _fake_extract_cell_capture(**kwargs):
     _CAPTURED_ROW_CONTEXTS.append(dict(kwargs["row_context"]))
     return await _fake_extract_cell(**kwargs)
+

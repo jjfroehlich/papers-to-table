@@ -52,13 +52,13 @@ from backend.app.parsing import (
 )
 from backend.app.schemas import MatchOutcome
 
-FIXTURE_PDF_DIR = "tests/fixtures/papers"
-FIXTURE_TABLE = "tests/fixtures/tables/literature_fixture.xlsx"
-PAPER_1 = "tests/fixtures/papers/paper_1.pdf"
-PAPER_2 = "tests/fixtures/papers/paper_2.pdf"
-PAPER_3 = "tests/fixtures/papers/paper_3.pdf"
-PAPER_4 = "tests/fixtures/papers/paper_4.pdf"
-UNMATCHED_PDF = "tests/fixtures/papers/unmatched_1.pdf"
+FIXTURE_PDF_DIR = "../benchmark_datasets/massively_parallel_reporter_assays/pdfs"
+FIXTURE_TABLE = "../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv"
+PAPER_1 = "../benchmark_datasets/massively_parallel_reporter_assays/pdfs/MPRA01_sahu_2022_sequence_determinants.pdf"
+PAPER_2 = "../benchmark_datasets/massively_parallel_reporter_assays/pdfs/MPRA02_trauernicht_2024_optimized_reporters.pdf"
+PAPER_3 = "../benchmark_datasets/massively_parallel_reporter_assays/pdfs/MPRA03_arnold_2013_starr_seq_maps.pdf"
+PAPER_4 = "../benchmark_datasets/massively_parallel_reporter_assays/pdfs/MPRA04_cornwall_scoones_2025_signal_dependent_cres.pdf"
+UNMATCHED_PDF = "../benchmark_datasets/spatial_transcriptomics/pdfs/ST01_open_st_3d.pdf"
 
 
 # ===========================================================================
@@ -980,13 +980,17 @@ class TestMatchArtifactPersistence:
     def _run_matching_and_persist(self, tmp_path: pathlib.Path) -> pathlib.Path:
         run_dir = tmp_path / "run"
         run_dir.mkdir()
-        df = pd.read_excel(FIXTURE_TABLE, dtype=str)
+        df = pd.read_csv(FIXTURE_TABLE, dtype=str).fillna("")
 
         docs = []
-        for pdf_file in ["paper_2.pdf", "paper_3.pdf", "unmatched_1.pdf"]:
+        for pdf_id, pdf_path in [
+            ("mpra02", PAPER_2),
+            ("mpra03", PAPER_3),
+            ("unmatched_1", UNMATCHED_PDF),
+        ]:
             doc, _, _ = parse_pdf(
-                pdf_path=f"tests/fixtures/papers/{pdf_file}",
-                pdf_id=pdf_file.replace(".pdf", ""),
+                pdf_path=pdf_path,
+                pdf_id=pdf_id,
                 configured_parser="pypdfium2",
                 allow_basic_fallback=False,
                 ocr_enabled=False,
@@ -1088,16 +1092,22 @@ class TestEndToEndMatching:
 
     @pytest.fixture(scope="class")
     def df(self):
-        return pd.read_excel(FIXTURE_TABLE, dtype=str)
+        return pd.read_csv(FIXTURE_TABLE, dtype=str).fillna("")
 
     @pytest.fixture(scope="class")
     def parsed_docs(self, tmp_path_factory):
         """Parse all fixture PDFs once for end-to-end tests."""
         run_dir = tmp_path_factory.mktemp("run")
         docs = {}
-        for name in ["paper_2", "paper_3", "paper_4", "unmatched_1"]:
+        pdfs = {
+            "mpra02": PAPER_2,
+            "mpra03": PAPER_3,
+            "mpra04": PAPER_4,
+            "unmatched_1": UNMATCHED_PDF,
+        }
+        for name, pdf_path in pdfs.items():
             doc, _, _ = parse_pdf(
-                pdf_path=f"tests/fixtures/papers/{name}.pdf",
+                pdf_path=pdf_path,
                 pdf_id=name,
                 configured_parser="pypdfium2",
                 allow_basic_fallback=False,
@@ -1110,34 +1120,34 @@ class TestEndToEndMatching:
         return docs
 
     def test_paper_2_matches_a_row(self, df, parsed_docs):
-        """paper_2.pdf (Compatibility rules) should match row 157."""
-        paper = extract_paper_metadata(parsed_docs["paper_2"])
+        """MPRA02 should match its benchmark template row."""
+        paper = extract_paper_metadata(parsed_docs["mpra02"])
         scores = score_all_rows(paper, df)
-        result = assign_match_outcome("paper_2", "paper_2.pdf", paper, scores, df)
+        result = assign_match_outcome("mpra02", "MPRA02_trauernicht_2024_optimized_reporters.pdf", paper, scores, df)
         assert result.outcome == MatchOutcome.matched, (
             f"Expected matched, got {result.outcome}: {result.reasoning}"
         )
-        assert result.matched_row_index == 157
+        assert result.matched_row_index == 1
 
     def test_paper_3_matches_a_row(self, df, parsed_docs):
-        """paper_3.pdf (Optimized reporters) should match row 190."""
-        paper = extract_paper_metadata(parsed_docs["paper_3"])
+        """MPRA03 should match its benchmark template row."""
+        paper = extract_paper_metadata(parsed_docs["mpra03"])
         scores = score_all_rows(paper, df)
-        result = assign_match_outcome("paper_3", "paper_3.pdf", paper, scores, df)
+        result = assign_match_outcome("mpra03", "MPRA03_arnold_2013_starr_seq_maps.pdf", paper, scores, df)
         assert result.outcome == MatchOutcome.matched, (
             f"Expected matched, got {result.outcome}: {result.reasoning}"
         )
-        assert result.matched_row_index == 190
+        assert result.matched_row_index == 2
 
     def test_paper_4_matches_a_row(self, df, parsed_docs):
-        """paper_4.pdf (Large-scale analysis) should match row 191."""
-        paper = extract_paper_metadata(parsed_docs["paper_4"])
+        """MPRA04 should match its benchmark template row."""
+        paper = extract_paper_metadata(parsed_docs["mpra04"])
         scores = score_all_rows(paper, df)
-        result = assign_match_outcome("paper_4", "paper_4.pdf", paper, scores, df)
+        result = assign_match_outcome("mpra04", "MPRA04_cornwall_scoones_2025_signal_dependent_cres.pdf", paper, scores, df)
         assert result.outcome == MatchOutcome.matched, (
             f"Expected matched, got {result.outcome}: {result.reasoning}"
         )
-        assert result.matched_row_index == 191
+        assert result.matched_row_index == 3
 
     def test_unmatched_pdf_gives_unmatched(self, df, parsed_docs):
         """unmatched_1.pdf should not match any row."""
@@ -1149,7 +1159,7 @@ class TestEndToEndMatching:
 
     def test_matched_pdfs_not_blocked(self, df, parsed_docs):
         """Matched PDFs must not be blocked."""
-        for name in ["paper_2", "paper_3", "paper_4"]:
+        for name in ["mpra02", "mpra03", "mpra04"]:
             paper = extract_paper_metadata(parsed_docs[name])
             scores = score_all_rows(paper, df)
             result = assign_match_outcome(name, f"{name}.pdf", paper, scores, df)
@@ -1245,3 +1255,4 @@ class TestAreRowsNearDuplicate:
         row_a = {"Title": "Massively parallel study", "Publication Year": "2020"}
         row_b = {"Title": "Massively parallel study", "Publication Year": "2021"}
         assert _are_rows_near_duplicate(row_a, row_b) is False
+

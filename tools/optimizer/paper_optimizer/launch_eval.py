@@ -251,3 +251,83 @@ def launch_eval_app(
         },
     )
     return launch, summary
+
+
+def launch_external_eval_app(
+    config: dict[str, Any],
+    *,
+    benchmark: BenchmarkManifest,
+    benchmark_id: str,
+    external_result_path: Path,
+    out_dir: Path,
+    extra_eval_args: list[str] | None = None,
+) -> tuple[LaunchResult, dict[str, Any]]:
+    eval_cfg = config["eval_app"]
+    out_dir.mkdir(parents=True, exist_ok=True)
+    if not benchmark.gold_path:
+        raise ValueError(f"Benchmark '{benchmark_id}' is missing gold_path required for external eval")
+
+    command_prefix = normalize_python_command_prefix(
+        eval_cfg.get(
+            "command_prefix",
+            [eval_cfg.get("python_executable") or sys.executable, "-m", eval_cfg.get("module", "paper_eval")],
+        )
+    )
+    command = command_prefix + [
+        "evaluate",
+        "--external-result",
+        str(external_result_path),
+        "--gold",
+        benchmark.gold_path,
+        "--out",
+        str(out_dir),
+        "--json-output",
+    ]
+    if benchmark.gold_sheet:
+        command.extend(["--gold-sheet", benchmark.gold_sheet])
+    if benchmark.eval_schema_path:
+        command.extend(["--schema", benchmark.eval_schema_path])
+    command.extend(list(benchmark.eval_args))
+    command.extend(list(extra_eval_args or []))
+
+    working_dir = str(Path(eval_cfg["repo_root"]).resolve())
+    started_at = utc_now_iso()
+    started_monotonic = time.monotonic()
+    proc = subprocess.run(command, capture_output=True, text=True, check=False, cwd=working_dir)
+    ended_at = utc_now_iso()
+    duration_seconds = time.monotonic() - started_monotonic
+
+    try:
+        payload = _parse_json_stdout(proc.stdout)
+    except ValueError as exc:
+        raise ValueError(_format_subprocess_failure(return_code=proc.returncode, stdout=proc.stdout, stderr=proc.stderr)) from exc
+    payload_path = out_dir / "eval_result.json"
+    write_json(payload_path, payload)
+    run_summary_paths = payload.get("run_summary_paths", []) if isinstance(payload, dict) else []
+    summary_path = Path(run_summary_paths[0]) if run_summary_paths else None
+    summary: dict[str, Any] = read_json(summary_path) if summary_path and summary_path.exists() else {}
+    launch = LaunchResult(
+        success=proc.returncode == 0 and bool(summary),
+        command=command,
+        return_code=proc.returncode,
+        stdout=proc.stdout,
+        stderr=proc.stderr,
+        started_at=started_at,
+        ended_at=ended_at,
+        duration_seconds=duration_seconds,
+        run_id=(payload.get("run_ids") or [None])[0],
+        run_path=str(external_result_path.resolve()),
+        summary_path=str(summary_path.resolve()) if summary_path and summary_path.exists() else None,
+        working_dir=working_dir,
+        output_path=str(out_dir.resolve()),
+        payload=payload,
+        artifact_paths={
+            "eval_result_path": str(payload_path.resolve()),
+            "gold_path": benchmark.gold_path,
+            "external_result_path": str(external_result_path.resolve()),
+            "compare_dir": payload.get("compare_dir"),
+            "per_run_dir": payload.get("per_run_dir"),
+            "runs_comparison_csv": (payload.get("comparison_artifacts") or {}).get("runs_comparison_csv"),
+        },
+    )
+    return launch, summary

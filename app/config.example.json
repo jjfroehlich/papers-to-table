@@ -1,7 +1,7 @@
 {
-  "table_path": "tests/fixtures/tables/literature_fixture.xlsx",
-  "schema_path": "tests/fixtures/tables/literature_fixture_schema.csv",
-  "pdf_dir": "tests/fixtures/papers",
+  "table_path": "../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv",
+  "schema_path": "../benchmark_datasets/massively_parallel_reporter_assays/schema.csv",
+  "pdf_dir": "../benchmark_datasets/massively_parallel_reporter_assays/pdfs",
   "output_dir": "./runs",
   "verify_mode": false,
   "eval_mode": false,
@@ -24,7 +24,7 @@
     "ocr_language": "en",
     "allow_basic_fallback": false,
     "cache_enabled": true,
-    "cache_dir": "tests/fixtures/papers/.extract_structured_parse_cache"
+    "cache_dir": "../benchmark_datasets/massively_parallel_reporter_assays/pdfs/.extract_structured_parse_cache"
   },
   "matching": {
     "ambiguity_threshold": 0.15
