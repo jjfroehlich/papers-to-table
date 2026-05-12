@@ -1,60 +1,74 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# local tooling
+# OS and local tooling
 .DS_Store
 Thumbs.db
 *.pem
 
-# node
-node_modules/
-
-# docker
-**/.docker/
-
-# env files (can opt-in for committing if needed)
+# Environment files
 .env
 .env.*
 !.env.example
+*.local
 
-# local env files
+# Virtual environments
 .venv/
 **/.venv/
+venv/
 
-# python
+# Python caches and build artifacts
 __pycache__/
 *.pyc
 *.pyo
-.venv/
 .pytest_cache/
 *.egg-info/
 build/
 dist/
+dist-ssr
 .coverage
 .mypy_cache/
 .ruff_cache/
-.idea/
-
-# editor/temporary
-.vscode/
-*.swp
-*.tmp
-
-# additional common Python/dev ignores
-venv/
 coverage/
+
+# Node and frontend
+node_modules/
+**/test-results/
+*.tsbuildinfo
+
+# Docker
+**/.docker/
+
+# Editor and temporary files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.sw?
+*.tmp
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Logs
 logs/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# runs
+# Generated runs and artifacts
 runs/
 artifacts/
 **/.extract_structured_parse_cache/
-# playwright runtime
-.playwright-runtime/
-frontend/test-results/
-frontend/tsconfig.tsbuildinfo
 tools/eval/out/
 
-# built documentation pages
+# Playwright runtime
+.playwright-runtime/
+
+# Built documentation pages
 **/.site/
 site/
+
