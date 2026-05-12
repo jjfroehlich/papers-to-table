@@ -1,0 +1,18 @@
+{
+  "pdf_id": "MPRA05_king_2020_cis_regulatory_grammar",
+  "pdf_path": "D:\\code\\local\\papers-to-table\\benchmark_datasets\\massively_parallel_reporter_assays\\pdfs\\MPRA05_king_2020_cis_regulatory_grammar.pdf",
+  "configured_parser": "docling",
+  "actual_parser_used": "docling",
+  "fallback_used": false,
+  "fallback_reason": null,
+  "ocr_used": false,
+  "ocr_reason": null,
+  "page_count": 24,
+  "text_char_count": 97105,
+  "total_blocks": 228,
+  "major_extraction_gaps": [
+    "authors_not_extracted"
+  ],
+  "parse_warnings": [],
+  "parsed_at": "2026-05-11T21:49:42.343050+00:00"
+}

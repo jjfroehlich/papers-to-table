@@ -1,0 +1,1019 @@
+{
+  "pdf_id": "MPRA03_arnold_2013_starr_seq_maps",
+  "pdf_path": "D:\\code\\local\\papers-to-table\\benchmark_datasets\\massively_parallel_reporter_assays\\pdfs\\MPRA03_arnold_2013_starr_seq_maps.pdf",
+  "metadata": {
+    "title": "Genome-Wide Quantitative Enhancer Activity Maps Identified by STARR-seq",
+    "authors": [
+      "Cosmas D. Arnold",
+      "Daniel Gerlach",
+      "Christoph Stelzer",
+      "M. Boryn",
+      "Martina Rath",
+      "Alexander Stark"
+    ],
+    "year": 2010,
+    "doi": "10.1126/science.1232542",
+    "abstract": null
+  },
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 594.0,
+      "height": 756.0,
+      "text_accessible": true,
+      "block_count": 14
+    },
+    {
+      "page_number": 2,
+      "width": 594.0,
+      "height": 756.0,
+      "text_accessible": true,
+      "block_count": 3
+    },
+    {
+      "page_number": 3,
+      "width": 594.0,
+      "height": 756.0,
+      "text_accessible": true,
+      "block_count": 7
+    },
+    {
+      "page_number": 4,
+      "width": 594.0,
+      "height": 756.0,
+      "text_accessible": true,
+      "block_count": 37
+    }
+  ],
+  "blocks": [
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p1_0",
+      "block_type": "section_heading",
+      "page_number": 1,
+      "text": "Genome-Wide Quantitative Enhancer Activity Maps Identified by STARR-seq",
+      "normalized_text": "genome-wide quantitative enhancer activity maps identified by starr-seq",
+      "reading_order": 0,
+      "bbox": [
+        36.0,
+        641.8904421999999,
+        379.9998710000001,
+        597.5945684
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p1_1",
+      "block_type": "paragraph",
+      "page_number": 1,
+      "text": "Cosmas D. Arnold, Daniel Gerlach, Christoph Stelzer, Ł ukasz M. Boryn ´, Martina Rath, Alexander Stark *",
+      "normalized_text": "cosmas d. arnold, daniel gerlach, christoph stelzer, ł ukasz m. boryn , martina rath, alexander stark *",
+      "reading_order": 1,
+      "bbox": [
+        36.0,
+        589.3397524000001,
+        380.05852459999994,
+        578.3886976
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p1_2",
+      "block_type": "paragraph",
+      "page_number": 1,
+      "text": "Genomic enhancers are important regulators of gene expression, but their identification is a challenge, and methods depend on indirect measures of activity. We developed a method termed STARR-seq to directly and quantitatively assess enhancer activity for millions of candidates from arbitrary sources of DNA, which enables screens across entire genomes. When applied to the Drosophila genome, STARR-seq identifies thousands of cell type -specific enhancers across a broad continuum of strengths, links differential gene expression to differences in enhancer activity, and creates a genome-wide quantitative enhancer map. This map reveals the highly complex regulation of transcription, with several independent enhancers for both developmental regulators and ubiquitously expressed genes. STARR-seq can be used to identify and quantify enhancer activity in other eukaryotes, including humans.",
+      "normalized_text": "genomic enhancers are important regulators of gene expression, but their identification is a challenge, and methods depend on indirect measures of activity. we developed a method termed starr-seq to directly and quantitatively assess enhancer activity for millions of candidates from arbitrary sources of dna, which enables screens across entire genomes. when applied to the drosophila genome, starr-seq identifies thousands of cell type -specific enhancers across a broad continuum of strengths, links differential gene expression to differences in enhancer activity, and creates a genome-wide quantitative enhancer map. this map reveals the highly complex regulation of transcription, with several independent enhancers for both developmental regulators and ubiquitously expressed genes. starr-seq can be used to identify and quantify enhancer activity in other eukaryotes, including humans.",
+      "reading_order": 2,
+      "bbox": [
+        35.98572839999994,
+        569.2012774,
+        380.0316257,
+        478.12985255761976
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p1_3",
+      "block_type": "paragraph",
+      "page_number": 1,
+      "text": "E nhancers ( 1 ) are DNA sequences that recruit transcription factors (TFs) to regulate the transcription of target genes in a cell type -specific manner, thereby governing development and physiology ( 2 ). Despite their importance, enhancer discovery has remained challenging, and rather few enhancers have been described and functionally characterized ( 3 ). Two types of recently developed methods enable genomewide enhancer predictions via enhancer-associated chromatin features ( 4 ). Deep sequencing of deoxyribonuclease I -hypersensitive sites [DHS-seq ( 5 )] or formaldehyde-assisted isolation of regulatory elements sequencing [FAIRE-seq ( 6 )] allows the mapping of open chromatin, and chromatin immunoprecipitation followed by deep sequencing [ChIP-seq ( 7 , 8 )] enables the detection of regulator",
+      "normalized_text": "e nhancers ( 1 ) are dna sequences that recruit transcription factors (tfs) to regulate the transcription of target genes in a cell type -specific manner, thereby governing development and physiology ( 2 ). despite their importance, enhancer discovery has remained challenging, and rather few enhancers have been described and functionally characterized ( 3 ). two types of recently developed methods enable genomewide enhancer predictions via enhancer-associated chromatin features ( 4 ). deep sequencing of deoxyribonuclease i -hypersensitive sites [dhs-seq ( 5 )] or formaldehyde-assisted isolation of regulatory elements sequencing [faire-seq ( 6 )] allows the mapping of open chromatin, and chromatin immunoprecipitation followed by deep sequencing [chip-seq ( 7 , 8 )] enables the detection of regulator",
+      "reading_order": 3,
+      "bbox": [
+        35.98806029999999,
+        464.5629983,
+        202.11835658999985,
+        289.60358640000004
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p1_4",
+      "block_type": "paragraph",
+      "page_number": 1,
+      "text": "Research Institute of Molecular Pathology (IMP), 1030 Vienna, Austria.",
+      "normalized_text": "research institute of molecular pathology (imp), 1030 vienna, austria.",
+      "reading_order": 4,
+      "bbox": [
+        36.0,
+        272.3038828,
+        202.00621086000012,
+        257.63614295732947
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p1_5",
+      "block_type": "paragraph",
+      "page_number": 1,
+      "text": "*To whom correspondence should be addressed. E-mail: stark@starklab.org",
+      "normalized_text": "*to whom correspondence should be addressed. e-mail: stark@starklab.org",
+      "reading_order": 5,
+      "bbox": [
+        36.0,
+        252.346705,
+        202.0047165000001,
+        237.73126775732942
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p1_6",
+      "block_type": "paragraph",
+      "page_number": 1,
+      "text": "Fig. 1. STARR-seq genomewide quantitative enhancer discovery. ( A ) STARR-seq reporter setup [enh., enhancer candidate; ORF, open-reading frame (here: GFP); pA site, polyadenylation site; +, transcriptional activation]. ( B ) STARR-seq (blue) and input (gray) fragment densities in the srp locus. Black boxes denote predicted enhancers ( ' peaks ' ). ( C ) STARR-seq and luciferase signals are linearly correlated: R 2 , coefficient of determination and Pearson correlation coefficient (PCC",
+      "normalized_text": "fig. 1. starr-seq genomewide quantitative enhancer discovery. ( a ) starr-seq reporter setup [enh., enhancer candidate; orf, open-reading frame (here: gfp); pa site, polyadenylation site; +, transcriptional activation]. ( b ) starr-seq (blue) and input (gray) fragment densities in the srp locus. black boxes denote predicted enhancers ( ' peaks ' ). ( c ) starr-seq and luciferase signals are linearly correlated: r 2 , coefficient of determination and pearson correlation coefficient (pcc",
+      "reading_order": 6,
+      "bbox": [
+        35.99103369999998,
+        215.55592980000006,
+        127.21339769999993,
+        48.7972968576197
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p1_7",
+      "block_type": "paragraph",
+      "page_number": 1,
+      "text": "(e.g., TF or cofactor) binding sites and enhancerassociated histone modifications [e.g., histone 3 (H3) Lys 4 monomethylation (H3K4me1) or H3 Lys 27 acetylation (H3K27ac)]. These methods, however, do not provide a direct functional or quantitative readout of enhancer activity, which requires reporter assays that infer enhancer strength from the abundance of reporter transcripts [e.g., by means of luciferase or barcodes ( 9 , 10 )]. Such assays, however, do not scale to the millions of tests required for genome-wide enhancer identification.",
+      "normalized_text": "(e.g., tf or cofactor) binding sites and enhancerassociated histone modifications [e.g., histone 3 (h3) lys 4 monomethylation (h3k4me1) or h3 lys 27 acetylation (h3k27ac)]. these methods, however, do not provide a direct functional or quantitative readout of enhancer activity, which requires reporter assays that infer enhancer strength from the abundance of reporter transcripts [e.g., by means of luciferase or barcodes ( 9 , 10 )]. such assays, however, do not scale to the millions of tests required for genome-wide enhancer identification.",
+      "reading_order": 7,
+      "bbox": [
+        214.0049805,
+        464.5719646,
+        380.08412882000107,
+        352.43983868333333
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p1_8",
+      "block_type": "paragraph",
+      "page_number": 1,
+      "text": "To comprehensively identify sequences that function as transcriptional enhancers in a direct, quantitative, and genome-wide manner, we developed STARR-seq (self-transcribing active regulatory region sequencing). Because enhancers can function independently of their relative positions ( 1 ), we placed candidate sequences downstream of a minimal promoter (Fig. 1A), such that active enhancers transcribe themselves, and each enhancer ' s strength is reflected by its abundance among cellular RNAs. This direct coupling of candidate sequences to enhancer activity allows the parallel assessment of millions of DNA fragments from arbitrary sources.",
+      "normalized_text": "to comprehensively identify sequences that function as transcriptional enhancers in a direct, quantitative, and genome-wide manner, we developed starr-seq (self-transcribing active regulatory region sequencing). because enhancers can function independently of their relative positions ( 1 ), we placed candidate sequences downstream of a minimal promoter (fig. 1a), such that active enhancers transcribe themselves, and each enhancer ' s strength is reflected by its abundance among cellular rnas. this direct coupling of candidate sequences to enhancer activity allows the parallel assessment of millions of dna fragments from arbitrary sources.",
+      "reading_order": 8,
+      "bbox": [
+        214.01569999999992,
+        349.5383867,
+        380.1101310899994,
+        237.35737818333337
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p1_9",
+      "block_type": "paragraph",
+      "page_number": 1,
+      "text": "Wecloned a genome-wide reporter library from randomly sheared genomic DNA of the Drosophila melanogaster reference strain ( 11 ) (fig. S1). This library contained at least 11.3 million independent candidate fragments with a median length of ~ 600 base pairs (bp) as revealed by paired-end sequencing (fig. S2A). It covered 96% of the nonrepetitive genome at least 10-fold and was sufficiently complex to represent the entire 169 Mb D. melanogaster genome (fig. S2, B to E). We transfected the library (fig. S2F) into Drosophila S2 cells, isolated polyadenylated RNA, and selectively reverse-transcribed, polymerase chain reaction (PCR) -amplified, and paired-end sequenced the candidate fragments. After mapping the sequences to the genome, we quantified the enrichment over input for each position (Fig. 1B and fig. S3).",
+      "normalized_text": "wecloned a genome-wide reporter library from randomly sheared genomic dna of the drosophila melanogaster reference strain ( 11 ) (fig. s1). this library contained at least 11.3 million independent candidate fragments with a median length of ~ 600 base pairs (bp) as revealed by paired-end sequencing (fig. s2a). it covered 96% of the nonrepetitive genome at least 10-fold and was sufficiently complex to represent the entire 169 mb d. melanogaster genome (fig. s2, b to e). we transfected the library (fig. s2f) into drosophila s2 cells, isolated polyadenylated rna, and selectively reverse-transcribed, polymerase chain reaction (pcr) -amplified, and paired-end sequenced the candidate fragments. after mapping the sequences to the genome, we quantified the enrichment over input for each position (fig. 1b and fig. s3).",
+      "reading_order": 9,
+      "bbox": [
+        392.01468759999983,
+        610.9598295000001,
+        558.1082220600001,
+        436.02368728333346
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p1_10",
+      "block_type": "paragraph",
+      "page_number": 1,
+      "text": "This yielded 5499 regions that were significantly enriched [ ' peaks ' ; P ≤ 0.001, binomial test; empirical false discovery rate (FDR) = 1.8%; Fig. 1B and fig. S4A] at various genomic positions, including weak and strong (1953 with ≥ threefold enrichment) enhancers over a wide dynamic range (fig. S5A). A biological replicate showed a Pearson correlation coefficient ( r ) of 0.92 for the peak summits, which indicated that STARR-seq is highly reproducible (figs. S6, A, B, and E, and S7, A, B, and G).",
+      "normalized_text": "this yielded 5499 regions that were significantly enriched [ ' peaks ' ; p ≤ 0.001, binomial test; empirical false discovery rate (fdr) = 1.8%; fig. 1b and fig. s4a] at various genomic positions, including weak and strong (1953 with ≥ threefold enrichment) enhancers over a wide dynamic range (fig. s5a). a biological replicate showed a pearson correlation coefficient ( r ) of 0.92 for the peak summits, which indicated that starr-seq is highly reproducible (figs. s6, a, b, and e, and s7, a, b, and g).",
+      "reading_order": 10,
+      "bbox": [
+        392.0057212999999,
+        433.1222353000001,
+        558.0427680699999,
+        321.0039908833335
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p1_11",
+      "block_type": "paragraph",
+      "page_number": 1,
+      "text": "To validate STARR-seq, we tested 77 peaks chosen across a wide range of enrichments and 65 negative controls by luciferase assays. Our assays showed that 81% (62 out of 77) of the peaks but only 14% (9 out of 65) of the negative controls were at least two times the baseline ( P <0.05, t test; see detailed sensitivity and specificity analyses in figs. S8 to S11). STARR-seq enrichment and",
+      "normalized_text": "to validate starr-seq, we tested 77 peaks chosen across a wide range of enrichments and 65 negative controls by luciferase assays. our assays showed that 81% (62 out of 77) of the peaks but only 14% (9 out of 65) of the negative controls were at least two times the baseline ( p <0.05, t test; see detailed sensitivity and specificity analyses in figs. s8 to s11). starr-seq enrichment and",
+      "reading_order": 11,
+      "bbox": [
+        392.0057212999999,
+        318.03977480000015,
+        558.0813231599996,
+        237.3304792833335
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p1_12",
+      "block_type": "paragraph",
+      "page_number": 1,
+      "text": "2",
+      "normalized_text": "2",
+      "reading_order": 12,
+      "bbox": [
+        531.067,
+        55.486625000000004,
+        533.47865,
+        51.47443750000002
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p1_13",
+      "block_type": "paragraph",
+      "page_number": 1,
+      "text": "or r ). [Error bars indicate two independent biological replicates; (Inset) the same data as a boxplot; *** P ≤ 0.001, Wilcoxon rank-sum test; n = 65, 8, and 69.]",
+      "normalized_text": "or r ). [error bars indicate two independent biological replicates; (inset) the same data as a boxplot; *** p ≤ 0.001, wilcoxon rank-sum test; n = 65, 8, and 69.]",
+      "reading_order": 13,
+      "bbox": [
+        35.9992278,
+        49.56911439999999,
+        549.0688464000003,
+        38.00258740000004
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p2_14",
+      "block_type": "paragraph",
+      "page_number": 2,
+      "text": "luciferase activity were strongly linearly related over the entire range of enrichment values ( r = 0.83; Fig. 1C), which established STARR-seq as a quanti- tative assay applicable to millions of fragments for the genome-wide identification of enhancers that substantially outperforms methods based on chro- matin features (figs. S9 to S11). We did not find any evidence that the location of candidates inside the transcript would bias their assessment:",
+      "normalized_text": "luciferase activity were strongly linearly related over the entire range of enrichment values ( r = 0.83; fig. 1c), which established starr-seq as a quanti- tative assay applicable to millions of fragments for the genome-wide identification of enhancers that substantially outperforms methods based on chro- matin features (figs. s9 to s11). we did not find any evidence that the location of candidates inside the transcript would bias their assessment:",
+      "reading_order": 14,
+      "bbox": [
+        36.0,
+        715.5991983,
+        202.10608727999997,
+        687.1535688533335
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p2_15",
+      "block_type": "caption",
+      "page_number": 2,
+      "text": "Fig. 2. Complexity of gene regulation. ( A ) Enrichment and depletion of different enhancer strengths (left) and enhancer number (right) in specific gene categories versus all genes. ( B ) STARR-seq enhancers and fragment densities in the Act5C and shn loci. ( C ) Gene expression versus the number and the combined strengths of enhancers per gene locus (bins of 100 genes).",
+      "normalized_text": "fig. 2. complexity of gene regulation. ( a ) enrichment and depletion of different enhancer strengths (left) and enhancer number (right) in specific gene categories versus all genes. ( b ) starr-seq enhancers and fragment densities in the act5c and shn loci. ( c ) gene expression versus the number and the combined strengths of enhancers per gene locus (bins of 100 genes).",
+      "reading_order": 15,
+      "bbox": [
+        35.998206740000015,
+        667.3999560200002,
+        125.25324008999993,
+        530.51791121762
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p2_16",
+      "block_type": "caption",
+      "page_number": 2,
+      "text": "Fig. 3. Regulation of enhancer activity at the chromatin level. ( A ) Histone modifications (modEncode) at STARRseq enhancers separated into open ( P ≤ 0.05, binomial test) and closed ( P >0.05) classes by DHSseq (rows within each class sorted by STARR-seq P value). ( B ) Boxplots for STARR-seq enhancers in open (blue) and closed (red) chromatin indicating flanking gene expression (RPKM) and H3K27ac, H3K4me1,andH3K27me3 enrichments compared with a random control (gray) (*** P ≤ 0.001, ~ P > 0.05, Wilcoxon rank-sum test; n = 1349, 604, and 500). ( C ) Luciferase assays of stable cell lines with genomically integrated reporter constructs for open (blue) and closed (red) S2 STARR-seq enhancers and negative controls (green; *** P ≤ 0.001, Wilcoxon rank-sum test; n = 15, 7; see fig. S21 for details).",
+      "normalized_text": "fig. 3. regulation of enhancer activity at the chromatin level. ( a ) histone modifications (modencode) at starrseq enhancers separated into open ( p ≤ 0.05, binomial test) and closed ( p >0.05) classes by dhsseq (rows within each class sorted by starr-seq p value). ( b ) boxplots for starr-seq enhancers in open (blue) and closed (red) chromatin indicating flanking gene expression (rpkm) and h3k27ac, h3k4me1,andh3k27me3 enrichments compared with a random control (gray) (*** p ≤ 0.001, ~ p > 0.05, wilcoxon rank-sum test; n = 1349, 604, and 500). ( c ) luciferase assays of stable cell lines with genomically integrated reporter constructs for open (blue) and closed (red) s2 starr-seq enhancers and negative controls (green; *** p ≤ 0.001, wilcoxon rank-sum test; n = 15, 7; see fig. s21 for details).",
+      "reading_order": 16,
+      "bbox": [
+        35.998206739999986,
+        441.70392979999997,
+        115.30064708999997,
+        105.5503506476199
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p3_17",
+      "block_type": "paragraph",
+      "page_number": 3,
+      "text": "STARR-seq and luciferase assays agreed for sequences that, in their endogenous genomic contexts, occur upstream or within transcribed regions (fig. S12A). Moreover, more than 99% of all enhancers were supported similarly by fragments from both strands (figs. S12C and S13F), and even sequences that contained transcript-destabilizing elements were not substantially depleted during STARR-seq (fig. S12B).",
+      "normalized_text": "starr-seq and luciferase assays agreed for sequences that, in their endogenous genomic contexts, occur upstream or within transcribed regions (fig. s12a). moreover, more than 99% of all enhancers were supported similarly by fragments from both strands (figs. s12c and s13f), and even sequences that contained transcript-destabilizing elements were not substantially depleted during starr-seq (fig. s12b).",
+      "reading_order": 17,
+      "bbox": [
+        36.0,
+        715.5991983,
+        202.1141569499998,
+        624.3957452633337
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p3_18",
+      "block_type": "paragraph",
+      "page_number": 3,
+      "text": "The majority (55.6%) of identified enhancers were located within introns, especially in the first intron (37.2%), and in intergenic regions (22.6%) (fig. S13, A and B), consistent with predictions based on chromatin features ( 12 , 13 ) (figs. S13, Aand B, and S14). To our surprise, 4.5% overlapped annotated transcription start sites (TSSs), which suggested that these sequences can both initiate transcription and enhance transcription from a remote TSS (fig. S13E). Indeed, as expected for bona fide enhancers, all tested (7 out of 7) TSS proximal regions activated luciferase expression irrespective of their relative orientation toward the luciferase TSS (fig. S13F).",
+      "normalized_text": "the majority (55.6%) of identified enhancers were located within introns, especially in the first intron (37.2%), and in intergenic regions (22.6%) (fig. s13, a and b), consistent with predictions based on chromatin features ( 12 , 13 ) (figs. s13, aand b, and s14). to our surprise, 4.5% overlapped annotated transcription start sites (tsss), which suggested that these sequences can both initiate transcription and enhance transcription from a remote tss (fig. s13e). indeed, as expected for bona fide enhancers, all tested (7 out of 7) tss proximal regions activated luciferase expression irrespective of their relative orientation toward the luciferase tss (fig. s13f).",
+      "reading_order": 18,
+      "bbox": [
+        35.999999999999986,
+        621.4907067600003,
+        202.10877716999988,
+        477.9608235533339
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p3_19",
+      "block_type": "paragraph",
+      "page_number": 3,
+      "text": "The strongest enhancers were next to housekeeping genes such as enzymes (e.g., Cct1 ; enhancer rank no. 3) or constituents of the cytoskeleton (e.g., Actin5C ; no. 31; Fig. 2, A and B) and also developmental regulators such as the TFs luna (no. 37), shn (no. 46), pnt (no. 49), or the fly fibroblast growth factor receptor htl (no. 45) (Fig. 2B). In fact, the strongest enhancer was located in the intron of the TF zfh1 (fig. S15), and 18 of",
+      "normalized_text": "the strongest enhancers were next to housekeeping genes such as enzymes (e.g., cct1 ; enhancer rank no. 3) or constituents of the cytoskeleton (e.g., actin5c ; no. 31; fig. 2, a and b) and also developmental regulators such as the tfs luna (no. 37), shn (no. 46), pnt (no. 49), or the fly fibroblast growth factor receptor htl (no. 45) (fig. 2b). in fact, the strongest enhancer was located in the intron of the tf zfh1 (fig. s15), and 18 of",
+      "reading_order": 19,
+      "bbox": [
+        35.99999999999997,
+        474.9992973600006,
+        202.08187827000003,
+        383.7098105400006
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p3_20",
+      "block_type": "paragraph",
+      "page_number": 3,
+      "text": "Fig. 4. Identification of cell type -specific enhancers. ( A ) STARR-seq enrichments in S2 cells versus OSCs. ( B ) Enhancer activities and gene expression levels change consistently between cell types (fraction of enhancers for each gene expression class; details in fig. S26). ( C ) STARR-, DHS-, and RNA-seq tracks for S2 cells and OSCs at the srp locus (black bars, STARRseq enhancers). ( D ) In vivo validation of predicted OSC enhancers in ovaries of transgenic flies (OSC enhancers → Gal4; UAS → CD8-GFP; green, GFP; blue for DNA, 4 ′ ,6 ′ -diamidino-2-phenylindole). See fig. S29 for details and all 13 tested candidates.",
+      "normalized_text": "fig. 4. identification of cell type -specific enhancers. ( a ) starr-seq enrichments in s2 cells versus oscs. ( b ) enhancer activities and gene expression levels change consistently between cell types (fraction of enhancers for each gene expression class; details in fig. s26). ( c ) starr-, dhs-, and rna-seq tracks for s2 cells and oscs at the srp locus (black bars, starrseq enhancers). ( d ) in vivo validation of predicted osc enhancers in ovaries of transgenic flies (osc enhancers → gal4; uas → cd8-gfp; green, gfp; blue for dna, 4 ′ ,6 ′ -diamidino-2-phenylindole). see fig. s29 for details and all 13 tested candidates.",
+      "reading_order": 20,
+      "bbox": [
+        35.99765075999977,
+        369.14102563000023,
+        119.22643387999982,
+        142.57266844762012
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p3_21",
+      "block_type": "paragraph",
+      "page_number": 3,
+      "text": "the top 100 and 364 of all strong enhancers were in TF gene loci. The only prominent class of genes with poorly ranking enhancers was the ribosomal protein genes (e.g., RpS3 , rank 760) (Fig. 2A), presumably because their enhancers require a TCT motif -containing core promoter ( 14 ).",
+      "normalized_text": "the top 100 and 364 of all strong enhancers were in tf gene loci. the only prominent class of genes with poorly ranking enhancers was the ribosomal protein genes (e.g., rps3 , rank 760) (fig. 2a), presumably because their enhancers require a tct motif -containing core promoter ( 14 ).",
+      "reading_order": 21,
+      "bbox": [
+        214.01692019999996,
+        715.6072679700005,
+        380.0745894599996,
+        655.7249367900007
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p3_22",
+      "block_type": "paragraph",
+      "page_number": 3,
+      "text": "Even in a single cell type, many genes appeared to be regulated by several independently functioning enhancers (e.g., shn ): 203 gene loci (see supplementary materials) contained five or more enhancers and 26 loci, 10 or more (Fig. 2A). Moreover, 434 genes had at least two and 56 had three or more enhancers within 2 kb of the TSS, including 14 TFs but also 30 housekeeping genes such as Actin5C (Fig. 2A). The sum of the enhancer strengths per gene correlated well with gene expression levels on average ( r = 0.7; Fig. 2C), which directly linked gene expression to enhancer activity. Together, these findings suggest that transcription of a large number of genes, including ubiquitously expressed housekeeping genes, is complex and controlled by numerous enhancers per gene, even in a single cell type. These enhancers presumably function additively or redundantly to ensure robustness ( 15 , 16 ).",
+      "normalized_text": "even in a single cell type, many genes appeared to be regulated by several independently functioning enhancers (e.g., shn ): 203 gene loci (see supplementary materials) contained five or more enhancers and 26 loci, 10 or more (fig. 2a). moreover, 434 genes had at least two and 56 had three or more enhancers within 2 kb of the tss, including 14 tfs but also 30 housekeeping genes such as actin5c (fig. 2a). the sum of the enhancer strengths per gene correlated well with gene expression levels on average ( r = 0.7; fig. 2c), which directly linked gene expression to enhancer activity. together, these findings suggest that transcription of a large number of genes, including ubiquitously expressed housekeeping genes, is complex and controlled by numerous enhancers per gene, even in a single cell type. these enhancers presumably function additively or redundantly to ensure robustness ( 15 , 16 ).",
+      "reading_order": 22,
+      "bbox": [
+        214.01692019999987,
+        652.8494443800007,
+        380.1543895300002,
+        456.9635849100011
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p3_23",
+      "block_type": "paragraph",
+      "page_number": 3,
+      "text": "STARR-seq assesses the ability of DNA sequences to enhance transcription in a heterologous context, whereas the complementary DHSseq and ChIP-seq determine enhancer-associated characteristics in the endogenous genomic context. We performed DHS-seq in S2 cells (figs. S16, A, C, and D, and S17, A and B) and found that the majority (69%) of strong STARR-seq enhancers were accessible (DHS enrichment P ≤ 0.05, binomial test; Fig. 3A), and all weak enhancers showed above-random DHS enrichment on average (fig. S18), which suggests that they are active in their endogenous contexts. However, 604 (31%) strong STARR-seq enhancers were not accessible ( ' closed chromatin ' ; Fig. 3A) and occurred next to genes (e.g., the Hox TFs; fig. S19) expressed at significantly lower levels than genes next to open STARR-seq enhancers (25-fold difference; P < 2.2 × 10 -16 , Wilcoxon rank-sum test; Fig. 3B). Open and closed enhancers both function in luciferase assays and show the same linear correlation between STARR-seq and luciferase signals (fig. S20), which suggests that sequences with enhancer potential can be silenced in their endogenous contexts, presumably at the chromatin level. Indeed, in contrast to open STARR-seq enhancers, closed enhancers are not marked by H3K27ac, a histone modification associated with active enhancers, but lie in broad domains of repressive H3K27me3 (Fig. 3A and fig. S19), suggestive of Polycombmediated repression ( 17 ) or a poised enhancer state ( 18 ). It is noteworthy that both open and closed enhancers are marked to similar extents by H3K4me1, which labels enhancers irrespective of their activity ( 19 , 20 ) (Fig. 3A). The precise labeling of closed enhancers by H3K4me1 is particularly evident for Hox genes (fig. S19) and holds genome-wide (Fig. 3, A and B), which suggests that these sequences are recognized as functional enhancers, yet actively repressed.",
+      "normalized_text": "starr-seq assesses the ability of dna sequences to enhance transcription in a heterologous context, whereas the complementary dhsseq and chip-seq determine enhancer-associated characteristics in the endogenous genomic context. we performed dhs-seq in s2 cells (figs. s16, a, c, and d, and s17, a and b) and found that the majority (69%) of strong starr-seq enhancers were accessible (dhs enrichment p ≤ 0.05, binomial test; fig. 3a), and all weak enhancers showed above-random dhs enrichment on average (fig. s18), which suggests that they are active in their endogenous contexts. however, 604 (31%) strong starr-seq enhancers were not accessible ( ' closed chromatin ' ; fig. 3a) and occurred next to genes (e.g., the hox tfs; fig. s19) expressed at significantly lower levels than genes next to open starr-seq enhancers (25-fold difference; p < 2.2 × 10 -16 , wilcoxon rank-sum test; fig. 3b). open and closed enhancers both function in luciferase assays and show the same linear correlation between starr-seq and luciferase signals (fig. s20), which suggests that sequences with enhancer potential can be silenced in their endogenous contexts, presumably at the chromatin level. indeed, in contrast to open starr-seq enhancers, closed enhancers are not marked by h3k27ac, a histone modification associated with active enhancers, but lie in broad domains of repressive h3k27me3 (fig. 3a and fig. s19), suggestive of polycombmediated repression ( 17 ) or a poised enhancer state ( 18 ). it is noteworthy that both open and closed enhancers are marked to similar extents by h3k4me1, which labels enhancers irrespective of their activity ( 19 , 20 ) (fig. 3a). the precise labeling of closed enhancers by h3k4me1 is particularly evident for hox genes (fig. s19) and holds genome-wide (fig. 3, a and b), which suggests that these sequences are recognized as functional enhancers, yet actively repressed.",
+      "reading_order": 23,
+      "bbox": [
+        214.01781682999982,
+        454.0880925000011,
+        380.16514908999966,
+        383.80391399333445
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_24",
+      "block_type": "paragraph",
+      "page_number": 4,
+      "text": "To test the functionality of STARR-seq enhancers when integrated into the genome, we created 22 stable S2 cell lines each carrying stably integrated luciferase reporter constructs with an enhancer (15 lines) or a negative fragment (fig. S21). All enhancers, including three out of three closed enhancers, showed strong luciferase activity, whereas none of the negative controls did (Fig. 3Cand fig. S21). For all, the luciferase activity was constant over a course of 4 weeks, measured 3, 5, and 7 weeks after integration (fig. S21). The activity of the three closed enhancers suggests that their endogenous inactive state might depend on the genomic context and/or on regulatory activities in S2 precursor cells. This shows that enhancers identified by ectopic assays, such as STARR-seq, can function when integrated into a chromosomal context, even if they are silenced endogenously.",
+      "normalized_text": "to test the functionality of starr-seq enhancers when integrated into the genome, we created 22 stable s2 cell lines each carrying stably integrated luciferase reporter constructs with an enhancer (15 lines) or a negative fragment (fig. s21). all enhancers, including three out of three closed enhancers, showed strong luciferase activity, whereas none of the negative controls did (fig. 3cand fig. s21). for all, the luciferase activity was constant over a course of 4 weeks, measured 3, 5, and 7 weeks after integration (fig. s21). the activity of the three closed enhancers suggests that their endogenous inactive state might depend on the genomic context and/or on regulatory activities in s2 precursor cells. this shows that enhancers identified by ectopic assays, such as starr-seq, can function when integrated into a chromosomal context, even if they are silenced endogenously.",
+      "reading_order": 24,
+      "bbox": [
+        36.0,
+        694.6808204,
+        202.15809182,
+        509.3168712833334
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_25",
+      "block_type": "paragraph",
+      "page_number": 4,
+      "text": "We next applied STARR-seq to Drosophila adult ovarian somatic cells [OSCs ( 21 )] and identified a comparable number of enhancers (4682; P ≤ 0.001, binomial test; FDR = 0.2%) with similar characteristics (figs. S4B; S5B; S6, C to E; S12D; S13, C and D; and S22, A to C). Out of 8659 enhancers found in S2 cells or OSCs, 5404 (62.4%) changed at least twofold and 2138 (24.7%) at least fourfold between both cell types (Fig. 4A, and figs. S23 and S24, A and D), and luciferase assays confirmed these differences quantitatively ( r = 0.85; fig. S24, B and C). Changes in enhancer strengths between the two cell types were reflected in the differential mRNA abundance (fig. S25) of the flanking genes (Fig. 4, B and C, and fig. S26): 74% of all enhancers near genes that are fourfold up-regulated in S2 cells appear stronger in S2 cells, whereas only 16% appear stronger in OSCs and vice versa (66% versus 19%). This establishes a direct link between quantitative differences in genome-wide enhancer strengths and differential gene expression. Up to 19% of cell type -specific enhancers were accessible in the cell-type in which they were not active (fig. S27). We also observed 514 genes for which individual enhancers changed more than twofold between cell types, whereas the sum of enhancer activities and the gene expression levels remained constant (<twofold change; fig. S28).",
+      "normalized_text": "we next applied starr-seq to drosophila adult ovarian somatic cells [oscs ( 21 )] and identified a comparable number of enhancers (4682; p ≤ 0.001, binomial test; fdr = 0.2%) with similar characteristics (figs. s4b; s5b; s6, c to e; s12d; s13, c and d; and s22, a to c). out of 8659 enhancers found in s2 cells or oscs, 5404 (62.4%) changed at least twofold and 2138 (24.7%) at least fourfold between both cell types (fig. 4a, and figs. s23 and s24, a and d), and luciferase assays confirmed these differences quantitatively ( r = 0.85; fig. s24, b and c). changes in enhancer strengths between the two cell types were reflected in the differential mrna abundance (fig. s25) of the flanking genes (fig. 4, b and c, and fig. s26): 74% of all enhancers near genes that are fourfold up-regulated in s2 cells appear stronger in s2 cells, whereas only 16% appear stronger in oscs and vice versa (66% versus 19%). this establishes a direct link between quantitative differences in genome-wide enhancer strengths and differential gene expression. up to 19% of cell type -specific enhancers were accessible in the cell-type in which they were not active (fig. s27). we also observed 514 genes for which individual enhancers changed more than twofold between cell types, whereas the sum of enhancer activities and the gene expression levels remained constant (<twofold change; fig. s28).",
+      "reading_order": 25,
+      "bbox": [
+        35.99999999999997,
+        506.41541930000005,
+        202.07380859999964,
+        205.96900968333352
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_26",
+      "block_type": "paragraph",
+      "page_number": 4,
+      "text": "As OSCs have been derived from adult Drosophila ovaries and retained marker gene expression and other functional aspects of their in vivo counterparts ( 21 ), we assessed the activity of 13 OSC STARR-seq enhancers in ovaries of transgenic flies with site-specifically integrated transcriptional reporter constructs. In these flies, 85%(11outof13)ofthe enhancers but none of five control regions were active (Fig. 4D and fig. S29).",
+      "normalized_text": "as oscs have been derived from adult drosophila ovaries and retained marker gene expression and other functional aspects of their in vivo counterparts ( 21 ), we assessed the activity of 13 osc starr-seq enhancers in ovaries of transgenic flies with site-specifically integrated transcriptional reporter constructs. in these flies, 85%(11outof13)ofthe enhancers but none of five control regions were active (fig. 4d and fig. s29).",
+      "reading_order": 26,
+      "bbox": [
+        35.99999999999998,
+        203.06755770000018,
+        202.07022207999955,
+        111.86769118333348
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_27",
+      "block_type": "paragraph",
+      "page_number": 4,
+      "text": "Here, we present STARR-seq, which complements ChIP-seq and DHS-seq as the third principal method to study transcriptional regulatory elements in entire genomes. It is unique in its ability to assess enhancer strengths quantitatively and to discover regulatory elements directly based on their ability to enhance transcription, even when silenced endogenously. Applied to two Drosophila cell types, it revealed thousands of cell type -specific enhancers with a broad range of strengths and provided the first genome-wide quantitative enhancer activity maps in any organism. STARR-seq is widely applicable to screening arbitrary sources of DNA in any cell type or tissue that allow the efficient introduction of reporter constructs (e.g., by plasmid transfection). This includes human HeLa cells, for which we confirm the quantitative nature of STARR-seq and its ability to identify enhancers that function in luciferase assays independent of their chromatin states and, thus, more reliably than previous methods (figs. S30 and S31). STARR-seq should be widely applied to many cell types across organisms to annotate cell type -specific gene regulatory elements and functionally assess noncoding mutations.",
+      "normalized_text": "here, we present starr-seq, which complements chip-seq and dhs-seq as the third principal method to study transcriptional regulatory elements in entire genomes. it is unique in its ability to assess enhancer strengths quantitatively and to discover regulatory elements directly based on their ability to enhance transcription, even when silenced endogenously. applied to two drosophila cell types, it revealed thousands of cell type -specific enhancers with a broad range of strengths and provided the first genome-wide quantitative enhancer activity maps in any organism. starr-seq is widely applicable to screening arbitrary sources of dna in any cell type or tissue that allow the efficient introduction of reporter constructs (e.g., by plasmid transfection). this includes human hela cells, for which we confirm the quantitative nature of starr-seq and its ability to identify enhancers that function in luciferase assays independent of their chromatin states and, thus, more reliably than previous methods (figs. s30 and s31). starr-seq should be widely applied to many cell types across organisms to annotate cell type -specific gene regulatory elements and functionally assess noncoding mutations.",
+      "reading_order": 27,
+      "bbox": [
+        35.999999999999986,
+        108.90347510000015,
+        202.0720153399996,
+        38.621986483333444
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_28",
+      "block_type": "section_heading",
+      "page_number": 4,
+      "text": "References and Notes",
+      "normalized_text": "references and notes",
+      "reading_order": 28,
+      "bbox": [
+        228.359,
+        517.2636194,
+        298.9773630600002,
+        510.67738852626997
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_29",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "J. Banerji, S. Rusconi, W. Schaffner, Cell 27 , 299 (1981).",
+      "normalized_text": "j. banerji, s. rusconi, w. schaffner, cell 27 , 299 (1981).",
+      "reading_order": 29,
+      "bbox": [
+        219.6283,
+        508.1717486,
+        380.0326737999997,
+        502.4088998801161
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_30",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "M. Levine, Curr. Biol. 20 , R754 (2010).",
+      "normalized_text": "m. levine, curr. biol. 20 , r754 (2010).",
+      "reading_order": 30,
+      "bbox": [
+        219.62829999999997,
+        499.6706864,
+        334.7929358199997,
+        493.90783768011613
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_31",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "J. O. Yá ñez-Cuna, E. Z. Kvon, A. Stark, Trends Genet. 29 , 11 (2013).",
+      "normalized_text": "j. o. ya nez-cuna, e. z. kvon, a. stark, trends genet. 29 , 11 (2013).",
+      "reading_order": 31,
+      "bbox": [
+        219.62829999999997,
+        491.2254146,
+        380.05359519999996,
+        477.01922731059506
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_32",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "N. D. Heintzman et al ., Nature 459 , 108 (2009).",
+      "normalized_text": "n. d. heintzman et al ., nature 459 , 108 (2009).",
+      "reading_order": 32,
+      "bbox": [
+        219.62829999999997,
+        474.27908060000004,
+        361.19643999999977,
+        468.51623188011615
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_33",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "A. P. Boyle et al ., Cell 132 , 311 (2008).",
+      "normalized_text": "a. p. boyle et al ., cell 132 , 311 (2008).",
+      "reading_order": 33,
+      "bbox": [
+        219.6213262,
+        465.83380880000004,
+        337.4367033999998,
+        460.07096008011615
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_34",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "K. J. Gaulton et al ., Nat. Genet. 42 , 255 (2010).",
+      "normalized_text": "k. j. gaulton et al ., nat. genet. 42 , 255 (2010).",
+      "reading_order": 34,
+      "bbox": [
+        219.61435239999997,
+        457.33274660000006,
+        359.5924659999998,
+        451.5698978801162
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_35",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "D. S. Johnson, A. Mortazavi, R. M. Myers, B. Wold, Science 316 , 1497 (2007).",
+      "normalized_text": "d. s. johnson, a. mortazavi, r. m. myers, b. wold, science 316 , 1497 (2007).",
+      "reading_order": 35,
+      "bbox": [
+        219.6073786,
+        448.88050100000004,
+        379.9796729199999,
+        434.6793542801162
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_36",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "G. Robertson et al ., Nat. Methods 4 , 651 (2007).",
+      "normalized_text": "g. robertson et al ., nat. methods 4 , 651 (2007).",
+      "reading_order": 36,
+      "bbox": [
+        219.6073786,
+        431.9411408000001,
+        361.1755185999998,
+        426.1782920801162
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_37",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "A. Melnikov et al ., Nat. Biotechnol. 30 , 271 (2012).",
+      "normalized_text": "a. melnikov et al ., nat. biotechnol. 30 , 271 (2012).",
+      "reading_order": 37,
+      "bbox": [
+        219.60040480000004,
+        423.4958690000001,
+        369.39065499999975,
+        417.7330202801162
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_38",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "R. P. Patwardhan et al ., Nat. Biotechnol. 30 , 265 (2012).",
+      "normalized_text": "r. p. patwardhan et al ., nat. biotechnol. 30 , 265 (2012).",
+      "reading_order": 38,
+      "bbox": [
+        216.14139999999998,
+        415.0505972000001,
+        373.9403621199997,
+        409.2877484801162
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_39",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "M. D. Adams et al ., Science 287 , 2185 (2000).",
+      "normalized_text": "m. d. adams et al ., science 287 , 2185 (2000).",
+      "reading_order": 39,
+      "bbox": [
+        216.14837379999994,
+        406.5495350000001,
+        355.8468380199997,
+        400.7866862801162
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_40",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "P. V. Kharchenko et al ., Nature 471 , 480 (2011).",
+      "normalized_text": "p. v. kharchenko et al ., nature 471 , 480 (2011).",
+      "reading_order": 40,
+      "bbox": [
+        216.14837379999994,
+        398.1042632000001,
+        362.53540959999975,
+        392.3414144801162
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_41",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "modENCODE Consortium et al ., Science 330 , 1787 (2010).",
+      "normalized_text": "modencode consortium et al ., science 330 , 1787 (2010).",
+      "reading_order": 41,
+      "bbox": [
+        216.14139999999998,
+        389.6032010000001,
+        380.0131471599996,
+        383.84035228011624
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_42",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "T. J. Parry et al ., Genes Dev. 24 , 2013 (2010).",
+      "normalized_text": "t. j. parry et al ., genes dev. 24 , 2013 (2010).",
+      "reading_order": 42,
+      "bbox": [
+        394.0988283999999,
+        715.6980890000001,
+        531.9841046199997,
+        709.9352402801162
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_43",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "M. W. Perry, A. N. Boettiger, M. Levine, Proc. Natl. Acad. Sci. U.S.A. 108 , 13570 (2011).",
+      "normalized_text": "m. w. perry, a. n. boettiger, m. levine, proc. natl. acad. sci. u.s.a. 108 , 13570 (2011).",
+      "reading_order": 43,
+      "bbox": [
+        394.0988283999999,
+        707.2458434000001,
+        558.0082340799997,
+        693.0446966801162
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_44",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "N. Frankel et al ., Nature 466 , 490 (2010).",
+      "normalized_text": "n. frankel et al ., nature 466 , 490 (2010).",
+      "reading_order": 44,
+      "bbox": [
+        394.0918545999999,
+        690.3064832000001,
+        522.2772723999998,
+        684.5436344801162
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_45",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "L. A. Boyer et al ., Nature 441 , 349 (2006).",
+      "normalized_text": "l. a. boyer et al ., nature 441 , 349 (2006).",
+      "reading_order": 45,
+      "bbox": [
+        394.0848807999999,
+        681.8612114000001,
+        523.7626917999997,
+        676.0983626801162
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_46",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "A. Rada-Iglesias et al ., Nature 470 , 279 (2011).",
+      "normalized_text": "a. rada-iglesias et al ., nature 470 , 279 (2011).",
+      "reading_order": 46,
+      "bbox": [
+        394.08488079999984,
+        673.4159396000001,
+        536.8455405999996,
+        667.6530908801162
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_47",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "M. P. Creyghton et al ., Proc. Natl. Acad. Sci. U.S.A. 107 , 21931 (2010).",
+      "normalized_text": "m. p. creyghton et al ., proc. natl. acad. sci. u.s.a. 107 , 21931 (2010).",
+      "reading_order": 47,
+      "bbox": [
+        394.08488079999984,
+        664.9148774000001,
+        558.0249711999999,
+        650.7086901105953
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_48",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "S. Bonn et al ., Nat. Genet. 44 , 148 (2012).",
+      "normalized_text": "s. bonn et al ., nat. genet. 44 , 148 (2012).",
+      "reading_order": 48,
+      "bbox": [
+        394.0848807999998,
+        647.9685434000002,
+        524.1462507999996,
+        642.2056946801163
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_49",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "K. Saito et al ., Nature 461 , 1296 (2009).",
+      "normalized_text": "k. saito et al ., nature 461 , 1296 (2009).",
+      "reading_order": 49,
+      "bbox": [
+        394.0848807999998,
+        639.5232716000002,
+        518.8245440199996,
+        633.7604228801163
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_50",
+      "block_type": "section_heading",
+      "page_number": 4,
+      "text": "Acknowledgments: We thank H. K. Akyüz, M. Pagani,",
+      "normalized_text": "acknowledgments: we thank h. k. akyuz, m. pagani,",
+      "reading_order": 50,
+      "bbox": [
+        392.09037399999977,
+        622.5699638000002,
+        537.6510144999995,
+        616.8071150801163
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_51",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "Schernhuber, D. Spies, H. Tagoh, M. Busslinger,",
+      "normalized_text": "schernhuber, d. spies, h. tagoh, m. busslinger,",
+      "reading_order": 51,
+      "bbox": [
+        391.5743127999998,
+        614.1177182000002,
+        527.7363630399993,
+        608.3637765105954
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_52",
+      "block_type": "paragraph",
+      "page_number": 4,
+      "text": "S. Westermann, J. M. Peters, J. Zuber (IMP), J. Brennecke and group, U. Elling [Institute of Molecular Biotechnology (IMBA)], and the IMP/IMBA BioOptics and Graphics Services for help. Deep sequencing was performed at the CSF Next-Generation Sequencing Unit (http://csf.ac.at); Vienna Tile (VT) lines were obtained from the Dickson laboratory via the Vienna Drosophila RNAi Center (http://stockcenter.vdrc.at). C.D.A., L.M.B., and M.R. are supported by a European Research Council (ERC) Starting Grant (no. 242922) awarded to A.S. Basic research at the IMP is supported by Boehringer Ingelheim GmbH. C.D.A. and A.S. are authors on a patent application for STARR-seq (EP 12 004 520.8) filed by Boehringer Ingelheim International GmbH. All constructs are available from the authors subject to a Material Transfer Agreement. All deep sequencing data are available at www.starklab.org and GEO (series accession number GSE40739).",
+      "normalized_text": "s. westermann, j. m. peters, j. zuber (imp), j. brennecke and group, u. elling [institute of molecular biotechnology (imba)], and the imp/imba biooptics and graphics services for help. deep sequencing was performed at the csf next-generation sequencing unit (http://csf.ac.at); vienna tile (vt) lines were obtained from the dickson laboratory via the vienna drosophila rnai center (http://stockcenter.vdrc.at). c.d.a., l.m.b., and m.r. are supported by a european research council (erc) starting grant (no. 242922) awarded to a.s. basic research at the imp is supported by boehringer ingelheim gmbh. c.d.a. and a.s. are authors on a patent application for starr-seq (ep 12 004 520.8) filed by boehringer ingelheim international gmbh. all constructs are available from the authors subject to a material transfer agreement. all deep sequencing data are available at www.starklab.org and geo (series accession number gse40739).",
+      "reading_order": 52,
+      "bbox": [
+        391.5743127999998,
+        605.6724464000002,
+        558.0507742599991,
+        481.3499571105954
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_53",
+      "block_type": "section_heading",
+      "page_number": 4,
+      "text": "Supplementary Materials",
+      "normalized_text": "supplementary materials",
+      "reading_order": 53,
+      "bbox": [
+        392.0314,
+        462.4983194,
+        473.1273879800001,
+        455.91208852627
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_54",
+      "block_type": "paragraph",
+      "page_number": 4,
+      "text": "www.sciencemag.org/cgi/content/full/science.1232542/DC1 Materials and Methods",
+      "normalized_text": "www.sciencemag.org/cgi/content/full/science.1232542/dc1 materials and methods",
+      "reading_order": 54,
+      "bbox": [
+        392.0314,
+        453.3427748,
+        546.9446036799992,
+        439.14356131059503
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_55",
+      "block_type": "paragraph",
+      "page_number": 4,
+      "text": "Figs. S1 to S31",
+      "normalized_text": "figs. s1 to s31",
+      "reading_order": 55,
+      "bbox": [
+        392.0314,
+        436.45223119999997,
+        433.01572521999975,
+        430.69828951059503
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_56",
+      "block_type": "paragraph",
+      "page_number": 4,
+      "text": "Tables S1 to S12",
+      "normalized_text": "tables s1 to s12",
+      "reading_order": 56,
+      "bbox": [
+        392.0314,
+        427.951169,
+        437.15746503999975,
+        422.19722731059505
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_57",
+      "block_type": "paragraph",
+      "page_number": 4,
+      "text": "References (",
+      "normalized_text": "references (",
+      "reading_order": 57,
+      "bbox": [
+        392.0314,
+        419.5058972,
+        424.67575779999993,
+        413.75195551059505
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_58",
+      "block_type": "paragraph",
+      "page_number": 4,
+      "text": "22 - 48 )",
+      "normalized_text": "22 - 48 )",
+      "reading_order": 58,
+      "bbox": [
+        424.68970540000004,
+        420.4473602,
+        444.18008164,
+        413.6269838
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_59",
+      "block_type": "list_item",
+      "page_number": 4,
+      "text": "9 November 2012; accepted 8 January 2013 Published online 17 January 2013;",
+      "normalized_text": "9 november 2012; accepted 8 january 2013 published online 17 january 2013;",
+      "reading_order": 59,
+      "bbox": [
+        392.03837380000004,
+        406.5834458,
+        512.5017028599996,
+        392.3284419105951
+      ],
+      "provenance": "docling"
+    },
+    {
+      "block_id": "MPRA03_arnold_2013_starr_seq_maps_p4_60",
+      "block_type": "paragraph",
+      "page_number": 4,
+      "text": "10.1126/science.1232542",
+      "normalized_text": "10.1126/science.1232542",
+      "reading_order": 60,
+      "bbox": [
+        392.03837380000004,
+        389.6371118,
+        461.48207943999955,
+        383.8831701105951
+      ],
+      "provenance": "docling"
+    }
+  ],
+  "figures": [
+    {
+      "figure_id": "MPRA03_arnold_2013_starr_seq_maps_fig1",
+      "page_number": 1,
+      "caption_block_id": "MPRA03_arnold_2013_starr_seq_maps_p2_15",
+      "caption_text": "Fig. 2. Complexity of gene regulation. ( A ) Enrichment and depletion of different enhancer strengths (left) and enhancer number (right) in specific gene categories versus all genes. ( B ) STARR-seq enhancers and fragment densities in the Act5C and shn loci. ( C ) Gene expression versus the number and the combined strengths of enhancers per gene locus (bins of 100 genes).",
+      "bbox": [
+        135.71951293945312,
+        216.40087890625,
+        559.198486328125,
+        53.38140869140625
+      ],
+      "crop_path": null,
+      "full_page_path": "parsed/p_f5fe1f87f7/pages/page_0001.png"
+    },
+    {
+      "figure_id": "MPRA03_arnold_2013_starr_seq_maps_fig2",
+      "page_number": 2,
+      "caption_block_id": null,
+      "caption_text": null,
+      "bbox": [
+        123.09424591064453,
+        670.3225173950195,
+        559.6556396484375,
+        39.3975830078125
+      ],
+      "crop_path": null,
+      "full_page_path": "parsed/p_f5fe1f87f7/pages/page_0002.png"
+    },
+    {
+      "figure_id": "MPRA03_arnold_2013_starr_seq_maps_fig3",
+      "page_number": 3,
+      "caption_block_id": null,
+      "caption_text": null,
+      "bbox": [
+        127.60647583007812,
+        368.2779235839844,
+        558.6138305664062,
+        41.11676025390625
+      ],
+      "crop_path": null,
+      "full_page_path": "parsed/p_f5fe1f87f7/pages/page_0003.png"
+    }
+  ],
+  "full_text": "Genome-Wide Quantitative Enhancer Activity Maps Identified by STARR-seq\n\nCosmas D. Arnold, Daniel Gerlach, Christoph Stelzer, Ł ukasz M. Boryn ´, Martina Rath, Alexander Stark *\n\nGenomic enhancers are important regulators of gene expression, but their identification is a challenge, and methods depend on indirect measures of activity. We developed a method termed STARR-seq to directly and quantitatively assess enhancer activity for millions of candidates from arbitrary sources of DNA, which enables screens across entire genomes. When applied to the Drosophila genome, STARR-seq identifies thousands of cell type -specific enhancers across a broad continuum of strengths, links differential gene expression to differences in enhancer activity, and creates a genome-wide quantitative enhancer map. This map reveals the highly complex regulation of transcription, with several independent enhancers for both developmental regulators and ubiquitously expressed genes. STARR-seq can be used to identify and quantify enhancer activity in other eukaryotes, including humans.\n\nE nhancers ( 1 ) are DNA sequences that recruit transcription factors (TFs) to regulate the transcription of target genes in a cell type -specific manner, thereby governing development and physiology ( 2 ). Despite their importance, enhancer discovery has remained challenging, and rather few enhancers have been described and functionally characterized ( 3 ). Two types of recently developed methods enable genomewide enhancer predictions via enhancer-associated chromatin features ( 4 ). Deep sequencing of deoxyribonuclease I -hypersensitive sites [DHS-seq ( 5 )] or formaldehyde-assisted isolation of regulatory elements sequencing [FAIRE-seq ( 6 )] allows the mapping of open chromatin, and chromatin immunoprecipitation followed by deep sequencing [ChIP-seq ( 7 , 8 )] enables the detection of regulator\n\nResearch Institute of Molecular Pathology (IMP), 1030 Vienna, Austria.\n\n*To whom correspondence should be addressed. E-mail: stark@starklab.org\n\nFig. 1. STARR-seq genomewide quantitative enhancer discovery. ( A ) STARR-seq reporter setup [enh., enhancer candidate; ORF, open-reading frame (here: GFP); pA site, polyadenylation site; +, transcriptional activation]. ( B ) STARR-seq (blue) and input (gray) fragment densities in the srp locus. Black boxes denote predicted enhancers ( ' peaks ' ). ( C ) STARR-seq and luciferase signals are linearly correlated: R 2 , coefficient of determination and Pearson correlation coefficient (PCC\n\n(e.g., TF or cofactor) binding sites and enhancerassociated histone modifications [e.g., histone 3 (H3) Lys 4 monomethylation (H3K4me1) or H3 Lys 27 acetylation (H3K27ac)]. These methods, however, do not provide a direct functional or quantitative readout of enhancer activity, which requires reporter assays that infer enhancer strength from the abundance of reporter transcripts [e.g., by means of luciferase or barcodes ( 9 , 10 )]. Such assays, however, do not scale to the millions of tests required for genome-wide enhancer identification.\n\nTo comprehensively identify sequences that function as transcriptional enhancers in a direct, quantitative, and genome-wide manner, we developed STARR-seq (self-transcribing active regulatory region sequencing). Because enhancers can function independently of their relative positions ( 1 ), we placed candidate sequences downstream of a minimal promoter (Fig. 1A), such that active enhancers transcribe themselves, and each enhancer ' s strength is reflected by its abundance among cellular RNAs. This direct coupling of candidate sequences to enhancer activity allows the parallel assessment of millions of DNA fragments from arbitrary sources.\n\nWecloned a genome-wide reporter library from randomly sheared genomic DNA of the Drosophila melanogaster reference strain ( 11 ) (fig. S1). This library contained at least 11.3 million independent candidate fragments with a median length of ~ 600 base pairs (bp) as revealed by paired-end sequencing (fig. S2A). It covered 96% of the nonrepetitive genome at least 10-fold and was sufficiently complex to represent the entire 169 Mb D. melanogaster genome (fig. S2, B to E). We transfected the library (fig. S2F) into Drosophila S2 cells, isolated polyadenylated RNA, and selectively reverse-transcribed, polymerase chain reaction (PCR) -amplified, and paired-end sequenced the candidate fragments. After mapping the sequences to the genome, we quantified the enrichment over input for each position (Fig. 1B and fig. S3).\n\nThis yielded 5499 regions that were significantly enriched [ ' peaks ' ; P ≤ 0.001, binomial test; empirical false discovery rate (FDR) = 1.8%; Fig. 1B and fig. S4A] at various genomic positions, including weak and strong (1953 with ≥ threefold enrichment) enhancers over a wide dynamic range (fig. S5A). A biological replicate showed a Pearson correlation coefficient ( r ) of 0.92 for the peak summits, which indicated that STARR-seq is highly reproducible (figs. S6, A, B, and E, and S7, A, B, and G).\n\nTo validate STARR-seq, we tested 77 peaks chosen across a wide range of enrichments and 65 negative controls by luciferase assays. Our assays showed that 81% (62 out of 77) of the peaks but only 14% (9 out of 65) of the negative controls were at least two times the baseline ( P <0.05, t test; see detailed sensitivity and specificity analyses in figs. S8 to S11). STARR-seq enrichment and\n\n2\n\nor r ). [Error bars indicate two independent biological replicates; (Inset) the same data as a boxplot; *** P ≤ 0.001, Wilcoxon rank-sum test; n = 65, 8, and 69.]\n\nluciferase activity were strongly linearly related over the entire range of enrichment values ( r = 0.83; Fig. 1C), which established STARR-seq as a quanti- tative assay applicable to millions of fragments for the genome-wide identification of enhancers that substantially outperforms methods based on chro- matin features (figs. S9 to S11). We did not find any evidence that the location of candidates inside the transcript would bias their assessment:\n\nFig. 2. Complexity of gene regulation. ( A ) Enrichment and depletion of different enhancer strengths (left) and enhancer number (right) in specific gene categories versus all genes. ( B ) STARR-seq enhancers and fragment densities in the Act5C and shn loci. ( C ) Gene expression versus the number and the combined strengths of enhancers per gene locus (bins of 100 genes).\n\nFig. 3. Regulation of enhancer activity at the chromatin level. ( A ) Histone modifications (modEncode) at STARRseq enhancers separated into open ( P ≤ 0.05, binomial test) and closed ( P >0.05) classes by DHSseq (rows within each class sorted by STARR-seq P value). ( B ) Boxplots for STARR-seq enhancers in open (blue) and closed (red) chromatin indicating flanking gene expression (RPKM) and H3K27ac, H3K4me1,andH3K27me3 enrichments compared with a random control (gray) (*** P ≤ 0.001, ~ P > 0.05, Wilcoxon rank-sum test; n = 1349, 604, and 500). ( C ) Luciferase assays of stable cell lines with genomically integrated reporter constructs for open (blue) and closed (red) S2 STARR-seq enhancers and negative controls (green; *** P ≤ 0.001, Wilcoxon rank-sum test; n = 15, 7; see fig. S21 for details).\n\nSTARR-seq and luciferase assays agreed for sequences that, in their endogenous genomic contexts, occur upstream or within transcribed regions (fig. S12A). Moreover, more than 99% of all enhancers were supported similarly by fragments from both strands (figs. S12C and S13F), and even sequences that contained transcript-destabilizing elements were not substantially depleted during STARR-seq (fig. S12B).\n\nThe majority (55.6%) of identified enhancers were located within introns, especially in the first intron (37.2%), and in intergenic regions (22.6%) (fig. S13, A and B), consistent with predictions based on chromatin features ( 12 , 13 ) (figs. S13, Aand B, and S14). To our surprise, 4.5% overlapped annotated transcription start sites (TSSs), which suggested that these sequences can both initiate transcription and enhance transcription from a remote TSS (fig. S13E). Indeed, as expected for bona fide enhancers, all tested (7 out of 7) TSS proximal regions activated luciferase expression irrespective of their relative orientation toward the luciferase TSS (fig. S13F).\n\nThe strongest enhancers were next to housekeeping genes such as enzymes (e.g., Cct1 ; enhancer rank no. 3) or constituents of the cytoskeleton (e.g., Actin5C ; no. 31; Fig. 2, A and B) and also developmental regulators such as the TFs luna (no. 37), shn (no. 46), pnt (no. 49), or the fly fibroblast growth factor receptor htl (no. 45) (Fig. 2B). In fact, the strongest enhancer was located in the intron of the TF zfh1 (fig. S15), and 18 of\n\nFig. 4. Identification of cell type -specific enhancers. ( A ) STARR-seq enrichments in S2 cells versus OSCs. ( B ) Enhancer activities and gene expression levels change consistently between cell types (fraction of enhancers for each gene expression class; details in fig. S26). ( C ) STARR-, DHS-, and RNA-seq tracks for S2 cells and OSCs at the srp locus (black bars, STARRseq enhancers). ( D ) In vivo validation of predicted OSC enhancers in ovaries of transgenic flies (OSC enhancers → Gal4; UAS → CD8-GFP; green, GFP; blue for DNA, 4 ′ ,6 ′ -diamidino-2-phenylindole). See fig. S29 for details and all 13 tested candidates.\n\nthe top 100 and 364 of all strong enhancers were in TF gene loci. The only prominent class of genes with poorly ranking enhancers was the ribosomal protein genes (e.g., RpS3 , rank 760) (Fig. 2A), presumably because their enhancers require a TCT motif -containing core promoter ( 14 ).\n\nEven in a single cell type, many genes appeared to be regulated by several independently functioning enhancers (e.g., shn ): 203 gene loci (see supplementary materials) contained five or more enhancers and 26 loci, 10 or more (Fig. 2A). Moreover, 434 genes had at least two and 56 had three or more enhancers within 2 kb of the TSS, including 14 TFs but also 30 housekeeping genes such as Actin5C (Fig. 2A). The sum of the enhancer strengths per gene correlated well with gene expression levels on average ( r = 0.7; Fig. 2C), which directly linked gene expression to enhancer activity. Together, these findings suggest that transcription of a large number of genes, including ubiquitously expressed housekeeping genes, is complex and controlled by numerous enhancers per gene, even in a single cell type. These enhancers presumably function additively or redundantly to ensure robustness ( 15 , 16 ).\n\nSTARR-seq assesses the ability of DNA sequences to enhance transcription in a heterologous context, whereas the complementary DHSseq and ChIP-seq determine enhancer-associated characteristics in the endogenous genomic context. We performed DHS-seq in S2 cells (figs. S16, A, C, and D, and S17, A and B) and found that the majority (69%) of strong STARR-seq enhancers were accessible (DHS enrichment P ≤ 0.05, binomial test; Fig. 3A), and all weak enhancers showed above-random DHS enrichment on average (fig. S18), which suggests that they are active in their endogenous contexts. However, 604 (31%) strong STARR-seq enhancers were not accessible ( ' closed chromatin ' ; Fig. 3A) and occurred next to genes (e.g., the Hox TFs; fig. S19) expressed at significantly lower levels than genes next to open STARR-seq enhancers (25-fold difference; P < 2.2 × 10 -16 , Wilcoxon rank-sum test; Fig. 3B). Open and closed enhancers both function in luciferase assays and show the same linear correlation between STARR-seq and luciferase signals (fig. S20), which suggests that sequences with enhancer potential can be silenced in their endogenous contexts, presumably at the chromatin level. Indeed, in contrast to open STARR-seq enhancers, closed enhancers are not marked by H3K27ac, a histone modification associated with active enhancers, but lie in broad domains of repressive H3K27me3 (Fig. 3A and fig. S19), suggestive of Polycombmediated repression ( 17 ) or a poised enhancer state ( 18 ). It is noteworthy that both open and closed enhancers are marked to similar extents by H3K4me1, which labels enhancers irrespective of their activity ( 19 , 20 ) (Fig. 3A). The precise labeling of closed enhancers by H3K4me1 is particularly evident for Hox genes (fig. S19) and holds genome-wide (Fig. 3, A and B), which suggests that these sequences are recognized as functional enhancers, yet actively repressed.\n\nTo test the functionality of STARR-seq enhancers when integrated into the genome, we created 22 stable S2 cell lines each carrying stably integrated luciferase reporter constructs with an enhancer (15 lines) or a negative fragment (fig. S21). All enhancers, including three out of three closed enhancers, showed strong luciferase activity, whereas none of the negative controls did (Fig. 3Cand fig. S21). For all, the luciferase activity was constant over a course of 4 weeks, measured 3, 5, and 7 weeks after integration (fig. S21). The activity of the three closed enhancers suggests that their endogenous inactive state might depend on the genomic context and/or on regulatory activities in S2 precursor cells. This shows that enhancers identified by ectopic assays, such as STARR-seq, can function when integrated into a chromosomal context, even if they are silenced endogenously.\n\nWe next applied STARR-seq to Drosophila adult ovarian somatic cells [OSCs ( 21 )] and identified a comparable number of enhancers (4682; P ≤ 0.001, binomial test; FDR = 0.2%) with similar characteristics (figs. S4B; S5B; S6, C to E; S12D; S13, C and D; and S22, A to C). Out of 8659 enhancers found in S2 cells or OSCs, 5404 (62.4%) changed at least twofold and 2138 (24.7%) at least fourfold between both cell types (Fig. 4A, and figs. S23 and S24, A and D), and luciferase assays confirmed these differences quantitatively ( r = 0.85; fig. S24, B and C). Changes in enhancer strengths between the two cell types were reflected in the differential mRNA abundance (fig. S25) of the flanking genes (Fig. 4, B and C, and fig. S26): 74% of all enhancers near genes that are fourfold up-regulated in S2 cells appear stronger in S2 cells, whereas only 16% appear stronger in OSCs and vice versa (66% versus 19%). This establishes a direct link between quantitative differences in genome-wide enhancer strengths and differential gene expression. Up to 19% of cell type -specific enhancers were accessible in the cell-type in which they were not active (fig. S27). We also observed 514 genes for which individual enhancers changed more than twofold between cell types, whereas the sum of enhancer activities and the gene expression levels remained constant (<twofold change; fig. S28).\n\nAs OSCs have been derived from adult Drosophila ovaries and retained marker gene expression and other functional aspects of their in vivo counterparts ( 21 ), we assessed the activity of 13 OSC STARR-seq enhancers in ovaries of transgenic flies with site-specifically integrated transcriptional reporter constructs. In these flies, 85%(11outof13)ofthe enhancers but none of five control regions were active (Fig. 4D and fig. S29).\n\nHere, we present STARR-seq, which complements ChIP-seq and DHS-seq as the third principal method to study transcriptional regulatory elements in entire genomes. It is unique in its ability to assess enhancer strengths quantitatively and to discover regulatory elements directly based on their ability to enhance transcription, even when silenced endogenously. Applied to two Drosophila cell types, it revealed thousands of cell type -specific enhancers with a broad range of strengths and provided the first genome-wide quantitative enhancer activity maps in any organism. STARR-seq is widely applicable to screening arbitrary sources of DNA in any cell type or tissue that allow the efficient introduction of reporter constructs (e.g., by plasmid transfection). This includes human HeLa cells, for which we confirm the quantitative nature of STARR-seq and its ability to identify enhancers that function in luciferase assays independent of their chromatin states and, thus, more reliably than previous methods (figs. S30 and S31). STARR-seq should be widely applied to many cell types across organisms to annotate cell type -specific gene regulatory elements and functionally assess noncoding mutations.\n\nReferences and Notes\n\nJ. Banerji, S. Rusconi, W. Schaffner, Cell 27 , 299 (1981).\n\nM. Levine, Curr. Biol. 20 , R754 (2010).\n\nJ. O. Yá ñez-Cuna, E. Z. Kvon, A. Stark, Trends Genet. 29 , 11 (2013).\n\nN. D. Heintzman et al ., Nature 459 , 108 (2009).\n\nA. P. Boyle et al ., Cell 132 , 311 (2008).\n\nK. J. Gaulton et al ., Nat. Genet. 42 , 255 (2010).\n\nD. S. Johnson, A. Mortazavi, R. M. Myers, B. Wold, Science 316 , 1497 (2007).\n\nG. Robertson et al ., Nat. Methods 4 , 651 (2007).\n\nA. Melnikov et al ., Nat. Biotechnol. 30 , 271 (2012).\n\nR. P. Patwardhan et al ., Nat. Biotechnol. 30 , 265 (2012).\n\nM. D. Adams et al ., Science 287 , 2185 (2000).\n\nP. V. Kharchenko et al ., Nature 471 , 480 (2011).\n\nmodENCODE Consortium et al ., Science 330 , 1787 (2010).\n\nT. J. Parry et al ., Genes Dev. 24 , 2013 (2010).\n\nM. W. Perry, A. N. Boettiger, M. Levine, Proc. Natl. Acad. Sci. U.S.A. 108 , 13570 (2011).\n\nN. Frankel et al ., Nature 466 , 490 (2010).\n\nL. A. Boyer et al ., Nature 441 , 349 (2006).\n\nA. Rada-Iglesias et al ., Nature 470 , 279 (2011).\n\nM. P. Creyghton et al ., Proc. Natl. Acad. Sci. U.S.A. 107 , 21931 (2010).\n\nS. Bonn et al ., Nat. Genet. 44 , 148 (2012).\n\nK. Saito et al ., Nature 461 , 1296 (2009).\n\nAcknowledgments: We thank H. K. Akyüz, M. Pagani,\n\nSchernhuber, D. Spies, H. Tagoh, M. Busslinger,\n\nS. Westermann, J. M. Peters, J. Zuber (IMP), J. Brennecke and group, U. Elling [Institute of Molecular Biotechnology (IMBA)], and the IMP/IMBA BioOptics and Graphics Services for help. Deep sequencing was performed at the CSF Next-Generation Sequencing Unit (http://csf.ac.at); Vienna Tile (VT) lines were obtained from the Dickson laboratory via the Vienna Drosophila RNAi Center (http://stockcenter.vdrc.at). C.D.A., L.M.B., and M.R. are supported by a European Research Council (ERC) Starting Grant (no. 242922) awarded to A.S. Basic research at the IMP is supported by Boehringer Ingelheim GmbH. C.D.A. and A.S. are authors on a patent application for STARR-seq (EP 12 004 520.8) filed by Boehringer Ingelheim International GmbH. All constructs are available from the authors subject to a Material Transfer Agreement. All deep sequencing data are available at www.starklab.org and GEO (series accession number GSE40739).\n\nSupplementary Materials\n\nwww.sciencemag.org/cgi/content/full/science.1232542/DC1 Materials and Methods\n\nFigs. S1 to S31\n\nTables S1 to S12\n\nReferences (\n\n22 - 48 )\n\n9 November 2012; accepted 8 January 2013 Published online 17 January 2013;\n\n10.1126/science.1232542",
+  "normalized_text": "genome-wide quantitative enhancer activity maps identified by starr-seq cosmas d. arnold, daniel gerlach, christoph stelzer, ł ukasz m. boryn , martina rath, alexander stark * genomic enhancers are important regulators of gene expression, but their identification is a challenge, and methods depend on indirect measures of activity. we developed a method termed starr-seq to directly and quantitatively assess enhancer activity for millions of candidates from arbitrary sources of dna, which enables screens across entire genomes. when applied to the drosophila genome, starr-seq identifies thousands of cell type -specific enhancers across a broad continuum of strengths, links differential gene expression to differences in enhancer activity, and creates a genome-wide quantitative enhancer map. this map reveals the highly complex regulation of transcription, with several independent enhancers for both developmental regulators and ubiquitously expressed genes. starr-seq can be used to identify and quantify enhancer activity in other eukaryotes, including humans. e nhancers ( 1 ) are dna sequences that recruit transcription factors (tfs) to regulate the transcription of target genes in a cell type -specific manner, thereby governing development and physiology ( 2 ). despite their importance, enhancer discovery has remained challenging, and rather few enhancers have been described and functionally characterized ( 3 ). two types of recently developed methods enable genomewide enhancer predictions via enhancer-associated chromatin features ( 4 ). deep sequencing of deoxyribonuclease i -hypersensitive sites [dhs-seq ( 5 )] or formaldehyde-assisted isolation of regulatory elements sequencing [faire-seq ( 6 )] allows the mapping of open chromatin, and chromatin immunoprecipitation followed by deep sequencing [chip-seq ( 7 , 8 )] enables the detection of regulator research institute of molecular pathology (imp), 1030 vienna, austria. *to whom correspondence should be addressed. e-mail: stark@starklab.org fig. 1. starr-seq genomewide quantitative enhancer discovery. ( a ) starr-seq reporter setup [enh., enhancer candidate; orf, open-reading frame (here: gfp); pa site, polyadenylation site; +, transcriptional activation]. ( b ) starr-seq (blue) and input (gray) fragment densities in the srp locus. black boxes denote predicted enhancers ( ' peaks ' ). ( c ) starr-seq and luciferase signals are linearly correlated: r 2 , coefficient of determination and pearson correlation coefficient (pcc (e.g., tf or cofactor) binding sites and enhancerassociated histone modifications [e.g., histone 3 (h3) lys 4 monomethylation (h3k4me1) or h3 lys 27 acetylation (h3k27ac)]. these methods, however, do not provide a direct functional or quantitative readout of enhancer activity, which requires reporter assays that infer enhancer strength from the abundance of reporter transcripts [e.g., by means of luciferase or barcodes ( 9 , 10 )]. such assays, however, do not scale to the millions of tests required for genome-wide enhancer identification. to comprehensively identify sequences that function as transcriptional enhancers in a direct, quantitative, and genome-wide manner, we developed starr-seq (self-transcribing active regulatory region sequencing). because enhancers can function independently of their relative positions ( 1 ), we placed candidate sequences downstream of a minimal promoter (fig. 1a), such that active enhancers transcribe themselves, and each enhancer ' s strength is reflected by its abundance among cellular rnas. this direct coupling of candidate sequences to enhancer activity allows the parallel assessment of millions of dna fragments from arbitrary sources. wecloned a genome-wide reporter library from randomly sheared genomic dna of the drosophila melanogaster reference strain ( 11 ) (fig. s1). this library contained at least 11.3 million independent candidate fragments with a median length of ~ 600 base pairs (bp) as revealed by paired-end sequencing (fig. s2a). it covered 96% of the nonrepetitive genome at least 10-fold and was sufficiently complex to represent the entire 169 mb d. melanogaster genome (fig. s2, b to e). we transfected the library (fig. s2f) into drosophila s2 cells, isolated polyadenylated rna, and selectively reverse-transcribed, polymerase chain reaction (pcr) -amplified, and paired-end sequenced the candidate fragments. after mapping the sequences to the genome, we quantified the enrichment over input for each position (fig. 1b and fig. s3). this yielded 5499 regions that were significantly enriched [ ' peaks ' ; p ≤ 0.001, binomial test; empirical false discovery rate (fdr) = 1.8%; fig. 1b and fig. s4a] at various genomic positions, including weak and strong (1953 with ≥ threefold enrichment) enhancers over a wide dynamic range (fig. s5a). a biological replicate showed a pearson correlation coefficient ( r ) of 0.92 for the peak summits, which indicated that starr-seq is highly reproducible (figs. s6, a, b, and e, and s7, a, b, and g). to validate starr-seq, we tested 77 peaks chosen across a wide range of enrichments and 65 negative controls by luciferase assays. our assays showed that 81% (62 out of 77) of the peaks but only 14% (9 out of 65) of the negative controls were at least two times the baseline ( p <0.05, t test; see detailed sensitivity and specificity analyses in figs. s8 to s11). starr-seq enrichment and 2 or r ). [error bars indicate two independent biological replicates; (inset) the same data as a boxplot; *** p ≤ 0.001, wilcoxon rank-sum test; n = 65, 8, and 69.] luciferase activity were strongly linearly related over the entire range of enrichment values ( r = 0.83; fig. 1c), which established starr-seq as a quanti- tative assay applicable to millions of fragments for the genome-wide identification of enhancers that substantially outperforms methods based on chro- matin features (figs. s9 to s11). we did not find any evidence that the location of candidates inside the transcript would bias their assessment: fig. 2. complexity of gene regulation. ( a ) enrichment and depletion of different enhancer strengths (left) and enhancer number (right) in specific gene categories versus all genes. ( b ) starr-seq enhancers and fragment densities in the act5c and shn loci. ( c ) gene expression versus the number and the combined strengths of enhancers per gene locus (bins of 100 genes). fig. 3. regulation of enhancer activity at the chromatin level. ( a ) histone modifications (modencode) at starrseq enhancers separated into open ( p ≤ 0.05, binomial test) and closed ( p >0.05) classes by dhsseq (rows within each class sorted by starr-seq p value). ( b ) boxplots for starr-seq enhancers in open (blue) and closed (red) chromatin indicating flanking gene expression (rpkm) and h3k27ac, h3k4me1,andh3k27me3 enrichments compared with a random control (gray) (*** p ≤ 0.001, ~ p > 0.05, wilcoxon rank-sum test; n = 1349, 604, and 500). ( c ) luciferase assays of stable cell lines with genomically integrated reporter constructs for open (blue) and closed (red) s2 starr-seq enhancers and negative controls (green; *** p ≤ 0.001, wilcoxon rank-sum test; n = 15, 7; see fig. s21 for details). starr-seq and luciferase assays agreed for sequences that, in their endogenous genomic contexts, occur upstream or within transcribed regions (fig. s12a). moreover, more than 99% of all enhancers were supported similarly by fragments from both strands (figs. s12c and s13f), and even sequences that contained transcript-destabilizing elements were not substantially depleted during starr-seq (fig. s12b). the majority (55.6%) of identified enhancers were located within introns, especially in the first intron (37.2%), and in intergenic regions (22.6%) (fig. s13, a and b), consistent with predictions based on chromatin features ( 12 , 13 ) (figs. s13, aand b, and s14). to our surprise, 4.5% overlapped annotated transcription start sites (tsss), which suggested that these sequences can both initiate transcription and enhance transcription from a remote tss (fig. s13e). indeed, as expected for bona fide enhancers, all tested (7 out of 7) tss proximal regions activated luciferase expression irrespective of their relative orientation toward the luciferase tss (fig. s13f). the strongest enhancers were next to housekeeping genes such as enzymes (e.g., cct1 ; enhancer rank no. 3) or constituents of the cytoskeleton (e.g., actin5c ; no. 31; fig. 2, a and b) and also developmental regulators such as the tfs luna (no. 37), shn (no. 46), pnt (no. 49), or the fly fibroblast growth factor receptor htl (no. 45) (fig. 2b). in fact, the strongest enhancer was located in the intron of the tf zfh1 (fig. s15), and 18 of fig. 4. identification of cell type -specific enhancers. ( a ) starr-seq enrichments in s2 cells versus oscs. ( b ) enhancer activities and gene expression levels change consistently between cell types (fraction of enhancers for each gene expression class; details in fig. s26). ( c ) starr-, dhs-, and rna-seq tracks for s2 cells and oscs at the srp locus (black bars, starrseq enhancers). ( d ) in vivo validation of predicted osc enhancers in ovaries of transgenic flies (osc enhancers → gal4; uas → cd8-gfp; green, gfp; blue for dna, 4 ′ ,6 ′ -diamidino-2-phenylindole). see fig. s29 for details and all 13 tested candidates. the top 100 and 364 of all strong enhancers were in tf gene loci. the only prominent class of genes with poorly ranking enhancers was the ribosomal protein genes (e.g., rps3 , rank 760) (fig. 2a), presumably because their enhancers require a tct motif -containing core promoter ( 14 ). even in a single cell type, many genes appeared to be regulated by several independently functioning enhancers (e.g., shn ): 203 gene loci (see supplementary materials) contained five or more enhancers and 26 loci, 10 or more (fig. 2a). moreover, 434 genes had at least two and 56 had three or more enhancers within 2 kb of the tss, including 14 tfs but also 30 housekeeping genes such as actin5c (fig. 2a). the sum of the enhancer strengths per gene correlated well with gene expression levels on average ( r = 0.7; fig. 2c), which directly linked gene expression to enhancer activity. together, these findings suggest that transcription of a large number of genes, including ubiquitously expressed housekeeping genes, is complex and controlled by numerous enhancers per gene, even in a single cell type. these enhancers presumably function additively or redundantly to ensure robustness ( 15 , 16 ). starr-seq assesses the ability of dna sequences to enhance transcription in a heterologous context, whereas the complementary dhsseq and chip-seq determine enhancer-associated characteristics in the endogenous genomic context. we performed dhs-seq in s2 cells (figs. s16, a, c, and d, and s17, a and b) and found that the majority (69%) of strong starr-seq enhancers were accessible (dhs enrichment p ≤ 0.05, binomial test; fig. 3a), and all weak enhancers showed above-random dhs enrichment on average (fig. s18), which suggests that they are active in their endogenous contexts. however, 604 (31%) strong starr-seq enhancers were not accessible ( ' closed chromatin ' ; fig. 3a) and occurred next to genes (e.g., the hox tfs; fig. s19) expressed at significantly lower levels than genes next to open starr-seq enhancers (25-fold difference; p < 2.2 × 10 -16 , wilcoxon rank-sum test; fig. 3b). open and closed enhancers both function in luciferase assays and show the same linear correlation between starr-seq and luciferase signals (fig. s20), which suggests that sequences with enhancer potential can be silenced in their endogenous contexts, presumably at the chromatin level. indeed, in contrast to open starr-seq enhancers, closed enhancers are not marked by h3k27ac, a histone modification associated with active enhancers, but lie in broad domains of repressive h3k27me3 (fig. 3a and fig. s19), suggestive of polycombmediated repression ( 17 ) or a poised enhancer state ( 18 ). it is noteworthy that both open and closed enhancers are marked to similar extents by h3k4me1, which labels enhancers irrespective of their activity ( 19 , 20 ) (fig. 3a). the precise labeling of closed enhancers by h3k4me1 is particularly evident for hox genes (fig. s19) and holds genome-wide (fig. 3, a and b), which suggests that these sequences are recognized as functional enhancers, yet actively repressed. to test the functionality of starr-seq enhancers when integrated into the genome, we created 22 stable s2 cell lines each carrying stably integrated luciferase reporter constructs with an enhancer (15 lines) or a negative fragment (fig. s21). all enhancers, including three out of three closed enhancers, showed strong luciferase activity, whereas none of the negative controls did (fig. 3cand fig. s21). for all, the luciferase activity was constant over a course of 4 weeks, measured 3, 5, and 7 weeks after integration (fig. s21). the activity of the three closed enhancers suggests that their endogenous inactive state might depend on the genomic context and/or on regulatory activities in s2 precursor cells. this shows that enhancers identified by ectopic assays, such as starr-seq, can function when integrated into a chromosomal context, even if they are silenced endogenously. we next applied starr-seq to drosophila adult ovarian somatic cells [oscs ( 21 )] and identified a comparable number of enhancers (4682; p ≤ 0.001, binomial test; fdr = 0.2%) with similar characteristics (figs. s4b; s5b; s6, c to e; s12d; s13, c and d; and s22, a to c). out of 8659 enhancers found in s2 cells or oscs, 5404 (62.4%) changed at least twofold and 2138 (24.7%) at least fourfold between both cell types (fig. 4a, and figs. s23 and s24, a and d), and luciferase assays confirmed these differences quantitatively ( r = 0.85; fig. s24, b and c). changes in enhancer strengths between the two cell types were reflected in the differential mrna abundance (fig. s25) of the flanking genes (fig. 4, b and c, and fig. s26): 74% of all enhancers near genes that are fourfold up-regulated in s2 cells appear stronger in s2 cells, whereas only 16% appear stronger in oscs and vice versa (66% versus 19%). this establishes a direct link between quantitative differences in genome-wide enhancer strengths and differential gene expression. up to 19% of cell type -specific enhancers were accessible in the cell-type in which they were not active (fig. s27). we also observed 514 genes for which individual enhancers changed more than twofold between cell types, whereas the sum of enhancer activities and the gene expression levels remained constant (<twofold change; fig. s28). as oscs have been derived from adult drosophila ovaries and retained marker gene expression and other functional aspects of their in vivo counterparts ( 21 ), we assessed the activity of 13 osc starr-seq enhancers in ovaries of transgenic flies with site-specifically integrated transcriptional reporter constructs. in these flies, 85%(11outof13)ofthe enhancers but none of five control regions were active (fig. 4d and fig. s29). here, we present starr-seq, which complements chip-seq and dhs-seq as the third principal method to study transcriptional regulatory elements in entire genomes. it is unique in its ability to assess enhancer strengths quantitatively and to discover regulatory elements directly based on their ability to enhance transcription, even when silenced endogenously. applied to two drosophila cell types, it revealed thousands of cell type -specific enhancers with a broad range of strengths and provided the first genome-wide quantitative enhancer activity maps in any organism. starr-seq is widely applicable to screening arbitrary sources of dna in any cell type or tissue that allow the efficient introduction of reporter constructs (e.g., by plasmid transfection). this includes human hela cells, for which we confirm the quantitative nature of starr-seq and its ability to identify enhancers that function in luciferase assays independent of their chromatin states and, thus, more reliably than previous methods (figs. s30 and s31). starr-seq should be widely applied to many cell types across organisms to annotate cell type -specific gene regulatory elements and functionally assess noncoding mutations. references and notes j. banerji, s. rusconi, w. schaffner, cell 27 , 299 (1981). m. levine, curr. biol. 20 , r754 (2010). j. o. ya nez-cuna, e. z. kvon, a. stark, trends genet. 29 , 11 (2013). n. d. heintzman et al ., nature 459 , 108 (2009). a. p. boyle et al ., cell 132 , 311 (2008). k. j. gaulton et al ., nat. genet. 42 , 255 (2010). d. s. johnson, a. mortazavi, r. m. myers, b. wold, science 316 , 1497 (2007). g. robertson et al ., nat. methods 4 , 651 (2007). a. melnikov et al ., nat. biotechnol. 30 , 271 (2012). r. p. patwardhan et al ., nat. biotechnol. 30 , 265 (2012). m. d. adams et al ., science 287 , 2185 (2000). p. v. kharchenko et al ., nature 471 , 480 (2011). modencode consortium et al ., science 330 , 1787 (2010). t. j. parry et al ., genes dev. 24 , 2013 (2010). m. w. perry, a. n. boettiger, m. levine, proc. natl. acad. sci. u.s.a. 108 , 13570 (2011). n. frankel et al ., nature 466 , 490 (2010). l. a. boyer et al ., nature 441 , 349 (2006). a. rada-iglesias et al ., nature 470 , 279 (2011). m. p. creyghton et al ., proc. natl. acad. sci. u.s.a. 107 , 21931 (2010). s. bonn et al ., nat. genet. 44 , 148 (2012). k. saito et al ., nature 461 , 1296 (2009). acknowledgments: we thank h. k. akyuz, m. pagani, schernhuber, d. spies, h. tagoh, m. busslinger, s. westermann, j. m. peters, j. zuber (imp), j. brennecke and group, u. elling [institute of molecular biotechnology (imba)], and the imp/imba biooptics and graphics services for help. deep sequencing was performed at the csf next-generation sequencing unit (http://csf.ac.at); vienna tile (vt) lines were obtained from the dickson laboratory via the vienna drosophila rnai center (http://stockcenter.vdrc.at). c.d.a., l.m.b., and m.r. are supported by a european research council (erc) starting grant (no. 242922) awarded to a.s. basic research at the imp is supported by boehringer ingelheim gmbh. c.d.a. and a.s. are authors on a patent application for starr-seq (ep 12 004 520.8) filed by boehringer ingelheim international gmbh. all constructs are available from the authors subject to a material transfer agreement. all deep sequencing data are available at www.starklab.org and geo (series accession number gse40739). supplementary materials www.sciencemag.org/cgi/content/full/science.1232542/dc1 materials and methods figs. s1 to s31 tables s1 to s12 references ( 22 - 48 ) 9 november 2012; accepted 8 january 2013 published online 17 january 2013; 10.1126/science.1232542",
+  "configured_parser": "docling",
+  "parser_used": "docling",
+  "fallback_used": false,
+  "fallback_reason": null,
+  "ocr_used": false,
+  "ocr_reason": null,
+  "parse_warnings": [],
+  "parsed_at": "2026-05-11T21:47:57.073366+00:00"
+}

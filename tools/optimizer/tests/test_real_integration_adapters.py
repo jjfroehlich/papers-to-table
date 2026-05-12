@@ -24,6 +24,9 @@ def test_build_main_app_overlay_maps_candidate_into_main_config(base_config: dic
                 "retrieval_top_k": 6,
                 "recall_rescue_enabled": True,
                 "whole_document_mode": False,
+                "text_temperature": 0.7,
+                "text_top_p": 0.8,
+                "text_chat_template_kwargs": {"enable_thinking": False},
             },
         },
         parent_candidate_id=None,
@@ -38,6 +41,9 @@ def test_build_main_app_overlay_maps_candidate_into_main_config(base_config: dic
     assert overlay["retrieval"]["top_k"] == 6
     assert overlay["retrieval"]["recall_rescue_enabled"] is True
     assert overlay["retrieval"]["whole_document_mode"] is False
+    assert overlay["provider"]["text_model"]["temperature"] == 0.7
+    assert overlay["provider"]["text_model"]["top_p"] == 0.8
+    assert overlay["provider"]["text_model"]["chat_template_kwargs"] == {"enable_thinking": False}
 
 
 def test_build_resolved_main_config_binds_benchmark_inputs(base_config: dict, tmp_path: Path) -> None:

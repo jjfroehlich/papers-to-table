@@ -1,0 +1,16 @@
+{
+  "pdf_id": "GE01_enhanced_prime_editing",
+  "pdf_path": "D:\\code\\local\\papers-to-table\\benchmark_datasets\\genome_editing_tools\\pdfs\\GE01_enhanced_prime_editing.pdf",
+  "configured_parser": "docling",
+  "actual_parser_used": "docling",
+  "fallback_used": false,
+  "fallback_reason": null,
+  "ocr_used": false,
+  "ocr_reason": null,
+  "page_count": 48,
+  "text_char_count": 181618,
+  "total_blocks": 436,
+  "major_extraction_gaps": [],
+  "parse_warnings": [],
+  "parsed_at": "2026-05-11T21:55:36.418313+00:00"
+}

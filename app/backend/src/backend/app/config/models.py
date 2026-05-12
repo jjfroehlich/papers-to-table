@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -11,6 +11,13 @@ class TextModelConfig(BaseModel):
     model_id: str = DEFAULT_MODEL_ID
     temperature: float = 0.0
     max_tokens: int = 2048
+    top_p: Optional[float] = None
+    top_k: Optional[int] = None
+    min_p: Optional[float] = None
+    presence_penalty: Optional[float] = None
+    repetition_penalty: Optional[float] = None
+    extra_body: dict[str, Any] = Field(default_factory=dict)
+    chat_template_kwargs: dict[str, Any] = Field(default_factory=dict)
     working_context_budget: int = Field(default=12000, ge=1)
     load_context_length: Optional[int] = Field(default=None, ge=1)
 
@@ -36,6 +43,13 @@ class VisionModelConfig(BaseModel):
     model_id: str = DEFAULT_MODEL_ID
     temperature: float = 0.0
     max_tokens: int = 2048
+    top_p: Optional[float] = None
+    top_k: Optional[int] = None
+    min_p: Optional[float] = None
+    presence_penalty: Optional[float] = None
+    repetition_penalty: Optional[float] = None
+    extra_body: dict[str, Any] = Field(default_factory=dict)
+    chat_template_kwargs: dict[str, Any] = Field(default_factory=dict)
     load_context_length: Optional[int] = Field(default=None, ge=1)
 
 

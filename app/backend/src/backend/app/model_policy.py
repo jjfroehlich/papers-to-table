@@ -13,6 +13,9 @@ class ModelRequestPolicy:
     omit_max_tokens_for_structured: bool = False
     fast_abort_malformed_json_attempts: int | None = None
     retry_malformed_structured_response: bool = True
+    request_defaults: dict[str, Any] | None = None
+    extra_body_defaults: dict[str, Any] | None = None
+    chat_template_kwargs_defaults: dict[str, Any] | None = None
 
     def ordered_structured_modes(self, negotiated_mode: str) -> list[str]:
         supported = _fallback_modes_for(negotiated_mode)
@@ -46,6 +49,15 @@ _MODEL_POLICY_OVERRIDES: tuple[tuple[Callable[[str], bool], ModelRequestPolicy],
             omit_max_tokens_for_structured=True,
             fast_abort_malformed_json_attempts=1,
             retry_malformed_structured_response=False,
+            request_defaults={
+                "temperature": 0.7,
+                "top_p": 0.8,
+                "top_k": 20,
+                "min_p": 0.0,
+                "presence_penalty": 1.5,
+                "repetition_penalty": 1.0,
+            },
+            chat_template_kwargs_defaults={"enable_thinking": False},
         ),
     ),
     (
@@ -54,7 +66,31 @@ _MODEL_POLICY_OVERRIDES: tuple[tuple[Callable[[str], bool], ModelRequestPolicy],
     ),
     (
         lambda model_id: "gemma" in model_id,
-        ModelRequestPolicy(family="gemma", preferred_structured_mode="json_schema"),
+        ModelRequestPolicy(
+            family="gemma",
+            preferred_structured_mode="json_schema",
+            request_defaults={
+                "temperature": 1.0,
+                "top_p": 0.95,
+                "top_k": 64,
+            },
+        ),
+    ),
+    (
+        lambda model_id: "ministral" in model_id and "reasoning" in model_id,
+        ModelRequestPolicy(
+            family="ministral_reasoning",
+            preferred_structured_mode="json_schema",
+            request_defaults={"temperature": 0.7, "top_p": 0.95},
+        ),
+    ),
+    (
+        lambda model_id: "ministral" in model_id,
+        ModelRequestPolicy(
+            family="ministral_instruct",
+            preferred_structured_mode="json_schema",
+            request_defaults={"temperature": 0.15},
+        ),
     ),
 )
 

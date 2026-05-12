@@ -1277,10 +1277,43 @@ class TestProviderCapabilities:
         second_payload = post.await_args_list[1].args[0]
         assert first_payload["response_format"] == {"type": "json_object"}
         assert "max_tokens" not in first_payload
+        assert first_payload["temperature"] == 0.7
+        assert first_payload["top_p"] == 0.8
+        assert first_payload["top_k"] == 20
+        assert first_payload["min_p"] == 0.0
+        assert first_payload["presence_penalty"] == 1.5
+        assert first_payload["repetition_penalty"] == 1.0
+        assert first_payload["chat_template_kwargs"] == {"enable_thinking": False}
         assert any("JSON" in message["content"] for message in first_payload["messages"])
         assert any("non-thinking" in message["content"] for message in first_payload["messages"])
         assert second_payload["response_format"]["type"] == "json_schema"
         assert provider.get_request_counts()["completion_retry_attempts"] == 0
+
+    def test_model_config_overrides_policy_payload_defaults(self):
+        from backend.app.config import TextModelConfig
+
+        model_config = TextModelConfig(
+            model_id="qwen/qwen3.6-27b",
+            temperature=0.2,
+            top_p=0.9,
+            extra_body={"custom_flag": "yes"},
+            chat_template_kwargs={"enable_thinking": True},
+        )
+        provider = LMStudioProvider(text_model_config=model_config)
+        payload = provider._build_payload(
+            [{"role": "user", "content": "Return JSON."}],
+            "qwen/qwen3.6-27b",
+            2048,
+            None,
+            {"type": "object", "properties": {}, "required": []},
+            "json_object",
+        )
+
+        assert payload["temperature"] == 0.2
+        assert payload["top_p"] == 0.9
+        assert payload["top_k"] == 20
+        assert payload["custom_flag"] == "yes"
+        assert payload["chat_template_kwargs"] == {"enable_thinking": True}
 
 
 # ===========================================================================
@@ -2606,6 +2639,42 @@ class TestCanonicalFixtureReadiness:
         assert config.provider.text_model.model_id == "text-model-1"
         assert config.provider.vision_model is not None
         assert config.provider.vision_model.model_id == "vision-model-1"
+
+    def test_model_config_accepts_request_payload_overrides(self):
+        """Model config can carry OpenAI-compatible sampling and extra-body settings."""
+        from backend.app.config import RunConfig
+
+        config = RunConfig.model_validate({
+            "table_path": FIXTURE_TABLE,
+            "schema_path": FIXTURE_SCHEMA,
+            "pdf_dir": FIXTURE_PDF_DIR,
+            "output_dir": "./runs",
+            "provider": {
+                "token": "lm_studio",
+                "base_url": "http://localhost:1234",
+                "text_model": {
+                    "model_id": "qwen/qwen3.6-27b",
+                    "top_p": 0.8,
+                    "top_k": 20,
+                    "min_p": 0.0,
+                    "presence_penalty": 1.5,
+                    "repetition_penalty": 1.0,
+                    "extra_body": {"custom_flag": True},
+                    "chat_template_kwargs": {"enable_thinking": False},
+                },
+                "vision_model": {
+                    "model_id": "vision-model-1",
+                    "top_p": 0.95,
+                    "chat_template_kwargs": {"enable_thinking": True},
+                },
+            },
+        })
+
+        assert config.provider.text_model.top_k == 20
+        assert config.provider.text_model.extra_body == {"custom_flag": True}
+        assert config.provider.text_model.chat_template_kwargs == {"enable_thinking": False}
+        assert config.provider.vision_model is not None
+        assert config.provider.vision_model.top_p == 0.95
 
     def test_unknown_provider_fails_explicitly(self):
         """T009a: unknown provider token fails early."""

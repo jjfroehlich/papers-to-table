@@ -1230,6 +1230,12 @@ async def run_pipeline(
                     probe_report.update(get_probe_report() or {})
                 except Exception:
                     pass
+            get_request_profiles = getattr(provider_obj, "get_model_request_profile_report", None)
+            if callable(get_request_profiles):
+                try:
+                    probe_report["model_request_profiles"] = get_request_profiles() or {}
+                except Exception:
+                    pass
         provider_probe_path = get_provider_probe_path(output_dir, run_id)
         write_json(provider_probe_path, probe_report)
         data["provider_probe_path"] = _relative_run_path(run_dir, provider_probe_path)

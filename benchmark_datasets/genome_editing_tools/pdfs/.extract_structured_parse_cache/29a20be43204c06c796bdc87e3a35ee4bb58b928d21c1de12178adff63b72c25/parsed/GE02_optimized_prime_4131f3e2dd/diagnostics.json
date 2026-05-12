@@ -1,0 +1,18 @@
+{
+  "pdf_id": "GE02_optimized_prime_editing_cells",
+  "pdf_path": "D:\\code\\local\\papers-to-table\\benchmark_datasets\\genome_editing_tools\\pdfs\\GE02_optimized_prime_editing_cells.pdf",
+  "configured_parser": "docling",
+  "actual_parser_used": "docling",
+  "fallback_used": false,
+  "fallback_reason": null,
+  "ocr_used": false,
+  "ocr_reason": null,
+  "page_count": 11,
+  "text_char_count": 42194,
+  "total_blocks": 107,
+  "major_extraction_gaps": [
+    "authors_not_extracted"
+  ],
+  "parse_warnings": [],
+  "parsed_at": "2026-05-11T21:55:57.636797+00:00"
+}

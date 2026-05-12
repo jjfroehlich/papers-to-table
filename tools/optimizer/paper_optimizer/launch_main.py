@@ -63,6 +63,22 @@ def _default_knob_path(knob_name: str) -> str:
         "style_profiles_enabled": "style_profiles.enabled",
         "style_profiles_max_examples": "style_profiles.max_examples",
         "figure_review_enabled": "figure_review.enabled",
+        "text_temperature": "provider.text_model.temperature",
+        "text_top_p": "provider.text_model.top_p",
+        "text_top_k": "provider.text_model.top_k",
+        "text_min_p": "provider.text_model.min_p",
+        "text_presence_penalty": "provider.text_model.presence_penalty",
+        "text_repetition_penalty": "provider.text_model.repetition_penalty",
+        "text_extra_body": "provider.text_model.extra_body",
+        "text_chat_template_kwargs": "provider.text_model.chat_template_kwargs",
+        "vision_temperature": "provider.vision_model.temperature",
+        "vision_top_p": "provider.vision_model.top_p",
+        "vision_top_k": "provider.vision_model.top_k",
+        "vision_min_p": "provider.vision_model.min_p",
+        "vision_presence_penalty": "provider.vision_model.presence_penalty",
+        "vision_repetition_penalty": "provider.vision_model.repetition_penalty",
+        "vision_extra_body": "provider.vision_model.extra_body",
+        "vision_chat_template_kwargs": "provider.vision_model.chat_template_kwargs",
     }
     return alias_map.get(knob_name, knob_name)
 

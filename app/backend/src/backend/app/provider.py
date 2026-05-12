@@ -178,7 +178,7 @@ class ProviderAdapter(abc.ABC):
         response_schema: dict,
         model_id: str,
         max_tokens: int = 2048,
-        temperature: float = 0.0,
+        temperature: Optional[float] = None,
     ) -> dict:
         """Structured-output completion. Returns parsed dict.
 
@@ -195,7 +195,7 @@ class ProviderAdapter(abc.ABC):
         model_id: str,
         image_b64: str,
         max_tokens: int = 2048,
-        temperature: float = 0.0,
+        temperature: Optional[float] = None,
     ) -> dict:
         """Vision-capable structured completion. Returns parsed dict."""
         ...
@@ -266,6 +266,10 @@ class ProviderAdapter(abc.ABC):
 
     def get_probe_report(self) -> dict[str, Any]:
         """Return capability-probe details suitable for diagnostics artifacts."""
+        return {}
+
+    def get_model_request_profile_report(self) -> dict[str, Any]:
+        """Return effective model request settings suitable for run artifacts."""
         return {}
 
     def get_model_management_report(self) -> dict[str, Any]:
@@ -672,11 +676,18 @@ class LMStudioProvider(ProviderAdapter):
         *,
         verbose_logging: bool = False,
         preview_limit: int = 240,
+        text_model_config: Optional[object] = None,
+        vision_model_config: Optional[object] = None,
     ):
         self._base_url = base_url.rstrip("/")
         self._capabilities: Optional[ProviderCapabilities] = None
         self._verbose_logging = verbose_logging
         self._preview_limit = max(80, int(preview_limit or 240))
+        self._model_configs: dict[str, object] = {}
+        for model_config in (text_model_config, vision_model_config):
+            model_id = getattr(model_config, "model_id", None)
+            if _has_explicit_model_id(model_id):
+                self._model_configs[str(model_id)] = model_config
         self._request_counts: dict[str, int] = {
             "http_total": 0,
             "models_list": 0,
@@ -773,6 +784,25 @@ class LMStudioProvider(ProviderAdapter):
     def get_probe_report(self) -> dict[str, Any]:
         return dict(self._probe_report)
 
+    def get_model_request_profile_report(self) -> dict[str, Any]:
+        profiles: dict[str, Any] = {}
+        for model_id in sorted(self._model_configs):
+            policy = resolve_model_request_policy(model_id)
+            profiles[model_id] = {
+                "family": policy.family,
+                "preferred_structured_mode": policy.preferred_structured_mode,
+                "request_settings": self._effective_request_settings(
+                    model_id=model_id,
+                    max_tokens=None,
+                    temperature=None,
+                ),
+            }
+        return {
+            "provider": "lm_studio",
+            "base_url": self._base_url,
+            "models": profiles,
+        }
+
     def get_trace_records(self) -> list[dict[str, Any]]:
         return [dict(item) for item in self._trace_records]
 
@@ -859,10 +889,40 @@ class LMStudioProvider(ProviderAdapter):
     def _summarize_payload(self, payload: dict[str, Any]) -> dict[str, Any]:
         response_format = payload.get("response_format")
         messages = payload.get("messages") or []
+        sampling_keys = [
+            "temperature",
+            "top_p",
+            "top_k",
+            "min_p",
+            "presence_penalty",
+            "repetition_penalty",
+        ]
+        request_settings = {
+            key: payload.get(key)
+            for key in ["max_tokens", *sampling_keys]
+            if key in payload
+        }
+        if isinstance(payload.get("chat_template_kwargs"), dict):
+            request_settings["chat_template_kwargs"] = dict(payload["chat_template_kwargs"])
+        passthrough_keys = sorted(
+            key
+            for key in payload
+            if key
+            not in {
+                "model",
+                "messages",
+                "max_tokens",
+                "response_format",
+                *sampling_keys,
+                "chat_template_kwargs",
+            }
+        )
         summary: dict[str, Any] = {
             "model": payload.get("model"),
             "max_tokens": payload.get("max_tokens"),
             "temperature": payload.get("temperature"),
+            "request_settings": request_settings,
+            "extra_body_keys": passthrough_keys,
             "response_format_type": response_format.get("type") if isinstance(response_format, dict) else None,
             "message_count": len(messages),
             "message_roles": [msg.get("role") for msg in messages if isinstance(msg, dict)],
@@ -917,6 +977,61 @@ class LMStudioProvider(ProviderAdapter):
                 response_summary["schema_property_count"] = len(schema.get("properties", {}))
             summary["response_format"] = response_summary
         return summary
+
+    def _config_field_was_set(self, model_config: Optional[object], field_name: str) -> bool:
+        if model_config is None:
+            return False
+        fields_set = getattr(model_config, "model_fields_set", set())
+        return field_name in fields_set
+
+    def _dict_from_model_config(self, model_config: Optional[object], field_name: str) -> dict[str, Any]:
+        value = getattr(model_config, field_name, None) if model_config is not None else None
+        return dict(value) if isinstance(value, dict) else {}
+
+    def _effective_request_settings(
+        self,
+        *,
+        model_id: str,
+        max_tokens: Optional[int],
+        temperature: Optional[float],
+        structured: bool = True,
+    ) -> dict[str, Any]:
+        policy = resolve_model_request_policy(model_id)
+        model_config = self._model_configs.get(model_id)
+        payload: dict[str, Any] = dict(policy.request_defaults or {})
+
+        for field_name in [
+            "temperature",
+            "top_p",
+            "top_k",
+            "min_p",
+            "presence_penalty",
+            "repetition_penalty",
+        ]:
+            value = getattr(model_config, field_name, None) if model_config is not None else None
+            if value is not None and (field_name != "temperature" or self._config_field_was_set(model_config, field_name)):
+                payload[field_name] = value
+
+        if temperature is not None:
+            payload["temperature"] = temperature
+        if "temperature" not in payload:
+            payload["temperature"] = 0.0
+
+        if max_tokens is not None and (not structured or not policy.omit_max_tokens_for_structured):
+            payload["max_tokens"] = max_tokens
+
+        chat_template_kwargs = {
+            **dict(policy.chat_template_kwargs_defaults or {}),
+            **self._dict_from_model_config(model_config, "chat_template_kwargs"),
+        }
+        extra_body = {
+            **dict(policy.extra_body_defaults or {}),
+            **self._dict_from_model_config(model_config, "extra_body"),
+        }
+        if chat_template_kwargs:
+            payload["chat_template_kwargs"] = chat_template_kwargs
+        payload.update(extra_body)
+        return payload
 
     def _append_trace_record(self, record: dict[str, Any]) -> None:
         if not self._verbose_logging:
@@ -1734,11 +1849,15 @@ class LMStudioProvider(ProviderAdapter):
         """Probe best supported structured mode for a text or vision request shape."""
 
         async def _run_probe(mode: str) -> tuple[bool, Optional[str], Optional[str], dict[str, Any]]:
+            policy = resolve_model_request_policy(model_id)
             payload: dict[str, Any] = {
                 "model": model_id,
-                "messages": self._build_probe_messages(modality),
-                "max_tokens": 96,
-                "temperature": 0.0,
+                "messages": policy.apply_messages(self._build_probe_messages(modality), mode),
+                **self._effective_request_settings(
+                    model_id=model_id,
+                    max_tokens=96,
+                    temperature=None,
+                ),
             }
             if mode == "json_schema":
                 payload["response_format"] = {
@@ -1914,8 +2033,12 @@ class LMStudioProvider(ProviderAdapter):
         payload: dict[str, Any] = {
             "model": model_id,
             "messages": messages,
-            "max_tokens": max_tokens,
-            "temperature": 0.0,
+            **self._effective_request_settings(
+                model_id=model_id,
+                max_tokens=max_tokens,
+                temperature=None,
+                structured=False,
+            ),
         }
         try:
             async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
@@ -1945,7 +2068,7 @@ class LMStudioProvider(ProviderAdapter):
         response_schema: dict,
         model_id: str,
         max_tokens: int = 2048,
-        temperature: float = 0.0,
+        temperature: Optional[float] = None,
     ) -> dict:
         """Structured-output chat completion with one bounded recovery ladder.
 
@@ -2005,7 +2128,7 @@ class LMStudioProvider(ProviderAdapter):
         response_schema: dict,
         model_id: str,
         max_tokens: int,
-        temperature: float,
+        temperature: Optional[float],
         structured_mode: str,
         request_kind: str,
         post_method,
@@ -2337,7 +2460,7 @@ class LMStudioProvider(ProviderAdapter):
         messages: list[dict],
         model_id: str,
         max_tokens: int,
-        temperature: float,
+        temperature: Optional[float],
         response_schema: dict,
         structured_mode: str,
     ) -> dict:
@@ -2347,10 +2470,12 @@ class LMStudioProvider(ProviderAdapter):
         base: dict[str, Any] = {
             "model": model_id,
             "messages": normalized_messages,
-            "temperature": temperature,
+            **self._effective_request_settings(
+                model_id=model_id,
+                max_tokens=max_tokens,
+                temperature=temperature,
+            ),
         }
-        if not policy.omit_max_tokens_for_structured:
-            base["max_tokens"] = max_tokens
         if structured_mode == "json_schema":
             base["response_format"] = {
                 "type": "json_schema",
@@ -2372,7 +2497,7 @@ class LMStudioProvider(ProviderAdapter):
         model_id: str,
         image_b64: str,
         max_tokens: int = 2048,
-        temperature: float = 0.0,
+        temperature: Optional[float] = None,
     ) -> dict:
         """Vision-capable structured completion (T055).
 
@@ -2586,6 +2711,8 @@ def build_provider(config: object, diagnostics_config: Optional[object] = None) 
             base_url=config.base_url,
             verbose_logging=verbose_logging,
             preview_limit=preview_limit,
+            text_model_config=getattr(config, "text_model", None),
+            vision_model_config=getattr(config, "vision_model", None),
         )
 
     # Cloud provider slot (T051a)

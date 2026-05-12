@@ -19,6 +19,8 @@ def test_qwen_policy_prefers_json_object_and_adds_json_reminder() -> None:
     assert policy.omit_max_tokens_for_structured is True
     assert policy.fast_abort_malformed_json_attempts == 1
     assert policy.retry_malformed_structured_response is False
+    assert policy.request_defaults["top_p"] == 0.8
+    assert policy.chat_template_kwargs_defaults == {"enable_thinking": False}
     assert policy.ordered_structured_modes("json_schema")[:2] == ["json_object", "json_schema"]
     messages = policy.apply_messages([{"role": "user", "content": "Return the result."}], "json_object")
     assert "JSON" in messages[-1]["content"]
@@ -34,3 +36,13 @@ def test_gemma_and_gpt_oss_policy_keep_schema_first_without_prompt_mutation() ->
         assert policy.omit_max_tokens_for_structured is False
         assert policy.ordered_structured_modes("json_schema")[0] == "json_schema"
         assert policy.apply_messages(messages, "json_schema") == messages
+
+
+def test_ministral_policy_has_reasoning_and_instruct_defaults() -> None:
+    reasoning = resolve_model_request_policy("mistralai/ministral-3-14b-reasoning")
+    instruct = resolve_model_request_policy("mistralai/ministral-3-3b-instruct")
+
+    assert reasoning.family == "ministral_reasoning"
+    assert reasoning.request_defaults == {"temperature": 0.7, "top_p": 0.95}
+    assert instruct.family == "ministral_instruct"
+    assert instruct.request_defaults == {"temperature": 0.15}

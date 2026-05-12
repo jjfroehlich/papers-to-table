@@ -1,0 +1,19 @@
+{
+  "pdf_id": "MPRA01_sahu_2022_sequence_determinants",
+  "pdf_path": "D:\\code\\local\\papers-to-table\\benchmark_datasets\\massively_parallel_reporter_assays\\pdfs\\MPRA01_sahu_2022_sequence_determinants.pdf",
+  "configured_parser": "docling",
+  "actual_parser_used": "docling",
+  "fallback_used": false,
+  "fallback_reason": null,
+  "ocr_used": false,
+  "ocr_reason": null,
+  "page_count": 35,
+  "text_char_count": 111163,
+  "total_blocks": 213,
+  "major_extraction_gaps": [
+    "authors_not_extracted",
+    "2_pages_text_inaccessible"
+  ],
+  "parse_warnings": [],
+  "parsed_at": "2026-05-11T21:47:00.169694+00:00"
+}
