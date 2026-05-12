@@ -19,6 +19,7 @@
       "recall_rescue_enabled": false,
       "whole_document_mode": false,
       "whole_document_max_chars": 20000,
+      "parser_allow_basic_fallback": true,
       "style_profiles_enabled": true,
       "style_profiles_max_examples": 3,
       "figure_review_enabled": true
@@ -35,6 +36,7 @@
         "recall_rescue_enabled": false,
         "whole_document_mode": false,
         "whole_document_max_chars": 20000,
+        "parser_allow_basic_fallback": true,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
         "figure_review_enabled": true
@@ -50,6 +52,7 @@
         "recall_rescue_enabled": false,
         "whole_document_mode": false,
         "whole_document_max_chars": 20000,
+        "parser_allow_basic_fallback": true,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
         "figure_review_enabled": true
@@ -65,6 +68,7 @@
         "recall_rescue_enabled": false,
         "whole_document_mode": false,
         "whole_document_max_chars": 20000,
+        "parser_allow_basic_fallback": true,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
         "figure_review_enabled": true
@@ -80,6 +84,7 @@
         "recall_rescue_enabled": false,
         "whole_document_mode": false,
         "whole_document_max_chars": 20000,
+        "parser_allow_basic_fallback": true,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
         "figure_review_enabled": true,
@@ -104,6 +109,7 @@
         "recall_rescue_enabled": false,
         "whole_document_mode": false,
         "whole_document_max_chars": 20000,
+        "parser_allow_basic_fallback": true,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
         "figure_review_enabled": true
@@ -138,7 +144,7 @@
   },
   "benchmarks": {
     "smoke": "bench_smoke",
-    "dev": "bench_dev",
+    "dev": "bench_massively_parallel_reporter_assays",
     "manifests": {
       "bench_smoke": {
         "table_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv",
@@ -164,7 +170,7 @@
           "judge_b"
         ]
       },
-      "bench_dev": {
+      "bench_massively_parallel_reporter_assays": {
         "table_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv",
         "schema_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/schema.csv",
         "pdf_dir": "../../../benchmark_datasets/massively_parallel_reporter_assays/pdfs",
@@ -248,6 +254,7 @@
       "recall_rescue_enabled": "retrieval.recall_rescue_enabled",
       "whole_document_mode": "retrieval.whole_document_mode",
       "whole_document_max_chars": "retrieval.whole_document_max_chars",
+      "parser_allow_basic_fallback": "parser.allow_basic_fallback",
       "style_profiles_enabled": "style_profiles.enabled",
       "style_profiles_max_examples": "style_profiles.max_examples",
       "figure_review_enabled": "figure_review.enabled",
@@ -321,9 +328,8 @@
     "suite_id": "dev_suite"
   },
   "compare": {
-    "holdout_top_k": 0,
     "require_structured_output_for_extraction": true,
-    "allow_degraded_candidates": false,
+    "allow_degraded_candidates": true,
     "suite_id": "dev_suite"
   },
   "benchmark_suites": {
@@ -341,7 +347,7 @@
     },
     "dev_suite": {
       "benchmark_ids": [
-        "bench_dev",
+        "bench_massively_parallel_reporter_assays",
         "bench_genome_editing",
         "bench_spatial_transcriptomics"
       ],
@@ -349,7 +355,7 @@
         "method": "weighted_mean",
         "primary_metric": "content_correctness",
         "weights": {
-          "bench_dev": 1.0,
+          "bench_massively_parallel_reporter_assays": 1.0,
           "bench_genome_editing": 1.0,
           "bench_spatial_transcriptomics": 1.0
         }

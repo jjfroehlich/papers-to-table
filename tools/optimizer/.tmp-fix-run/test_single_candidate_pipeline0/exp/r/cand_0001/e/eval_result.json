@@ -1,0 +1,25 @@
+{
+  "command": "evaluate",
+  "compare_dir": "D:\\code\\local\\papers-to-table\\tools\\optimizer\\.tmp-fix-run\\test_single_candidate_pipeline0\\exp\\r\\cand_0001\\e\\compare",
+  "comparison_artifacts": {
+    "runs_comparison_csv": "D:\\code\\local\\papers-to-table\\tools\\optimizer\\.tmp-fix-run\\test_single_candidate_pipeline0\\exp\\r\\cand_0001\\e\\compare\\runs_comparison.csv",
+    "runs_comparison_parquet": "D:\\code\\local\\papers-to-table\\tools\\optimizer\\.tmp-fix-run\\test_single_candidate_pipeline0\\exp\\r\\cand_0001\\e\\compare\\runs_comparison.parquet",
+    "runs_comparison_xlsx": "D:\\code\\local\\papers-to-table\\tools\\optimizer\\.tmp-fix-run\\test_single_candidate_pipeline0\\exp\\r\\cand_0001\\e\\compare\\runs_comparison.xlsx"
+  },
+  "judge_records_paths": [],
+  "output_dir": "D:\\code\\local\\papers-to-table\\tools\\optimizer\\.tmp-fix-run\\test_single_candidate_pipeline0\\exp\\r\\cand_0001\\e",
+  "per_run_dir": "D:\\code\\local\\papers-to-table\\tools\\optimizer\\.tmp-fix-run\\test_single_candidate_pipeline0\\exp\\r\\cand_0001\\e\\per-run",
+  "run_count": 1,
+  "run_ids": [
+    "run_cand_0001"
+  ],
+  "run_summary_paths": [
+    "D:\\code\\local\\papers-to-table\\tools\\optimizer\\.tmp-fix-run\\test_single_candidate_pipeline0\\exp\\r\\cand_0001\\e\\per-run\\run_cand_0001\\run_summary.json"
+  ],
+  "schema_version": "paper_eval_cli.v1",
+  "scored_cells_paths": [
+    "D:\\code\\local\\papers-to-table\\tools\\optimizer\\.tmp-fix-run\\test_single_candidate_pipeline0\\exp\\r\\cand_0001\\e\\per-run\\run_cand_0001\\scored_cells.jsonl"
+  ],
+  "status": "ok",
+  "success": true
+}

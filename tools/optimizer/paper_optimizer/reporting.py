@@ -195,9 +195,6 @@ def status_tone(status: str) -> str:
         "failed": "bad",
         "winner": "good",
         "incumbent": "good",
-        "holdout_passed": "good",
-        "holdout_failed": "bad",
-        "holdout_skipped": "warn",
         "info": "neutral",
     }.get(status, "neutral")
 
@@ -443,11 +440,6 @@ def build_plot_guidance(stem: str) -> dict[str, str]:
             "what": "Agreement between judge A and judge B on candidate correctness.",
             "how": "Points near the diagonal indicate agreement; farther points indicate higher disagreement.",
             "watch": "Wide spread means ranking confidence is lower even when the mean score looks strong.",
-        },
-        "compare_dev_vs_holdout": {
-            "what": "Dev score versus holdout score for the same candidates.",
-            "how": "Parallel lines suggest the dev ordering generalizes; divergence suggests overfitting.",
-            "watch": "A winner that drops sharply on holdout needs closer review before adoption.",
         },
         "optimize_best_by_round": {
             "what": "Best score observed in each optimization round.",

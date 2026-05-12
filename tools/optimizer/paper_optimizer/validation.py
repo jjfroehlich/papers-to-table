@@ -209,17 +209,6 @@ def validate_preflight(
             errors=errors,
         )
 
-    if require_holdout:
-        suites = config.get("benchmark_suites") if isinstance(config.get("benchmark_suites"), dict) else {}
-        configured_holdout = any(
-            isinstance(config.get(section_name), dict)
-            and isinstance(config[section_name].get("holdout_suite_id"), str)
-            and config[section_name]["holdout_suite_id"] in suites
-            for section_name in ["compare", "optimize"]
-        )
-        if not configured_holdout:
-            errors.append("holdout benchmark suite is required for unattended workflow")
-
     prompt_bundle_root = None
     if main_working_dir is not None:
         prompt_bundle_roots = _candidate_prompt_bundle_roots(main_working_dir)

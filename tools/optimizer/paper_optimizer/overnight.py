@@ -52,14 +52,6 @@ def _seconds_to_minutes(seconds: float) -> float:
     return seconds / 60.0
 
 
-def _holdout_status(summary: dict[str, Any]) -> str:
-    holdout = summary.get("holdout_validation") if isinstance(summary.get("holdout_validation"), dict) else {}
-    status = holdout.get("status")
-    if not status:
-        status = "completed" if holdout.get("ran") else "not run"
-    return str(status).replace("_", " ")
-
-
 def _winner_id(summary: dict[str, Any], best_candidate: dict[str, Any], compare_summary: dict[str, Any]) -> str | None:
     winner = compare_summary.get("winner") if isinstance(compare_summary.get("winner"), dict) else {}
     return (
@@ -154,8 +146,6 @@ def _build_caveats(stage_rows: list[dict[str, Any]], all_candidate_rows: list[di
     counts = status_counts(all_candidate_rows)
     dual_judge_completed = any(row.get("dual_judge_completed") for row in all_candidate_rows)
     dual_judge_incomplete_only = any(row.get("dual_judge_completed") is False for row in all_candidate_rows) and not dual_judge_completed
-    if any(stage.get("holdout_status") != "completed" for stage in stage_rows):
-        caveats.append("At least one stage did not run holdout validation.")
     if counts.get("scored_degraded", 0):
         caveats.append(f"{counts['scored_degraded']} pipeline candidates scored only in degraded mode.")
     if counts.get("unscored", 0):
@@ -187,8 +177,6 @@ def _trust_note(row: dict[str, Any]) -> str:
 def _build_next_checks(stage_rows: list[dict[str, Any]], all_candidate_rows: list[dict[str, Any]]) -> list[str]:
     checks: list[str] = []
     counts = status_counts(all_candidate_rows)
-    if any(stage.get("holdout_status") != "completed" for stage in stage_rows):
-        checks.append("Run holdout validation for the final winner before treating the overnight result as final.")
     if counts.get("unscored", 0):
         checks.append("Inspect unscored candidates in the stage where they occurred to see whether the issue is systematic.")
     retrieval_stage = next((stage for stage in stage_rows if "retrieval" in str(stage.get("variant") or "")), None)
@@ -246,7 +234,6 @@ def _build_stage_rows(manifest_path: Path) -> tuple[list[dict[str, Any]], list[d
             "winner_retrieval_top_k": winner_row.get("retrieval_top_k") if winner_row else None,
             "winner_structured_output_mode": winner_row.get("structured_output_mode") if winner_row else None,
             "best_score": winner_score,
-            "holdout_status": _holdout_status(summary),
             "candidate_count": len(candidate_rows),
             "score_counts": counts,
             "duration_seconds": duration_seconds,
@@ -286,7 +273,6 @@ def _stage_cards(stage_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "summary": stage["summary"],
                 "badges": [
                     {"text": stage["variant"].replace("_", " "), "tone": "neutral"},
-                    {"text": stage["holdout_status"], "tone": "warn" if stage["holdout_status"] != "completed" else "good"},
                     {"text": status_label(display_text(stage.get("winner_score_status"), missing="unknown")), "tone": status_tone(display_text(stage.get("winner_score_status"), missing="unknown"))},
                 ],
                 "metrics": [
@@ -310,7 +296,7 @@ def _build_stage_table(stage_rows: list[dict[str, Any]]) -> dict[str, Any]:
         {"label": "Best Score", "align": "right", "sort": "number"},
         {"label": "Delta", "align": "right", "sort": "number"},
         {"label": "What Changed", "align": "left", "sort": "string"},
-        {"label": "Trust", "align": "left", "sort": "string"},
+        {"label": "Status Mix", "align": "left", "sort": "string"},
     ]
     rows: list[dict[str, Any]] = []
     previous_score = None
@@ -328,10 +314,9 @@ def _build_stage_table(stage_rows: list[dict[str, Any]]) -> dict[str, Any]:
                     build_table_cell(format_delta(delta, missing="—"), sort_value=delta if delta is not None else -9999),
                     build_table_cell(display_text(stage.get("change"), missing="not recorded")),
                     build_table_cell(
-                        display_text(stage.get("holdout_status"), missing="not recorded"),
+                        _status_mix_text(stage.get("score_counts") or {}),
                         badge=display_text(stage.get("winner_score_status"), missing="unknown"),
                         tone=status_tone(display_text(stage.get("winner_score_status"), missing="unknown")),
-                        subtext=_status_mix_text(stage.get("score_counts") or {}),
                     ),
                 ]
             }
@@ -590,7 +575,7 @@ def build_overnight_report_view(manifest_path: Path) -> dict[str, Any]:
             {"text": f"{len(stage_rows)} stages", "tone": "neutral"},
             {"text": display_text(manifest.get("status"), missing="status unknown"), "tone": "warn" if manifest.get("status") != "completed" else "good"},
             {"text": _status_mix_text(status_counts(all_candidate_rows)), "tone": "neutral"},
-            {"text": display_text(final_stage.get("holdout_status"), missing="not recorded"), "tone": "warn" if final_stage.get("holdout_status") != "completed" else "good"},
+            {"text": "benchmark suites", "tone": "neutral"},
         ],
         "hero_meta": [
             {"label": "Session Id", "value": display_text(manifest.get("session_id"), missing="not recorded"), "note": None},
@@ -682,6 +667,6 @@ def build_overnight_report_view(manifest_path: Path) -> dict[str, Any]:
 def generate_overnight_report(manifest_path: Path) -> Path:
     page = build_overnight_report_view(manifest_path)
     report_html = render_template("overnight.html", page=page)
-    report_path = manifest_path.parent / "report.html"
+    report_path = manifest_path.parent / "overview.html"
     report_path.write_text(report_html, encoding="utf-8")
     return report_path

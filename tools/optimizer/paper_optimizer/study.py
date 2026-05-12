@@ -715,10 +715,24 @@ def _probe_candidate_structured_output_mode(
 
         class _ModelCfg:
             def __init__(self, payload: dict[str, Any]):
+                self.model_id = payload.get("model_id")
+                self.temperature = payload.get("temperature", 0.0)
+                self.top_p = payload.get("top_p")
+                self.top_k = payload.get("top_k")
+                self.min_p = payload.get("min_p")
+                self.presence_penalty = payload.get("presence_penalty")
+                self.repetition_penalty = payload.get("repetition_penalty")
+                self.extra_body = dict(payload.get("extra_body") or {})
+                self.chat_template_kwargs = dict(payload.get("chat_template_kwargs") or {})
                 self.working_context_budget = payload.get("working_context_budget")
-                self.required_load_context_length = payload.get("required_load_context_length")
+                self.required_load_context_length = (
+                    payload.get("required_load_context_length")
+                    or payload.get("load_context_length")
+                    or payload.get("working_context_budget")
+                )
                 self.load_context_is_derived = payload.get("load_context_is_derived", False)
                 self.load_context_length = payload.get("load_context_length")
+                self.model_fields_set = set(payload)
 
         class _ProviderCfg:
             def __init__(self) -> None:
@@ -727,7 +741,7 @@ def _probe_candidate_structured_output_mode(
                 self.text_model = _ModelCfg(text_cfg)
                 self.vision_model = _ModelCfg(vision_cfg) if isinstance(vision_cfg, dict) else None
 
-        _, provider_mode = asyncio.run(
+        provider, provider_mode = asyncio.run(
             initialize_provider(
                 _ProviderCfg(),
                 text_model_id=candidate.text_model_id,
@@ -739,6 +753,16 @@ def _probe_candidate_structured_output_mode(
             "probe_status": "ok",
             "structured_output_mode": provider_mode.structured_output_mode,
             "structured_output_reason": provider_mode.structured_output_reason,
+            "model_request_profiles": (
+                provider.get_model_request_profile_report()
+                if hasattr(provider, "get_model_request_profile_report")
+                else {}
+            ),
+            "provider_probe": (
+                provider.get_probe_report()
+                if hasattr(provider, "get_probe_report")
+                else {}
+            ),
         }
     except Exception as exc:
         return {"probe_status": "error", "error": str(exc)}
@@ -970,9 +994,6 @@ def _write_compare_progress(
             "rejection_reason_counts": _aggregate_reason_counts(results),
             "model_rollup": _aggregate_best_by_field(results, primary_metric, "text_model_id"),
             "prompt_rollup": _aggregate_best_by_field(results, primary_metric, "prompt_bundle_id"),
-            "holdout_validation": {
-                **_initial_holdout_validation_summary(config, study_type="compare"),
-            },
             "ranked_candidates": [_result_summary_row(result, primary_metric) for result in ranked_results],
         }
     )
@@ -1073,54 +1094,11 @@ def _write_optimize_progress(
                 _result_summary_row(result, primary_metric)
                 for result in ranked_results[:5]
             ],
-            "holdout_validation": _initial_holdout_validation_summary(config, study_type="optimize"),
             "winner_eligible": _winner_eligible(incumbent_result, config["acceptance"]),
             "fatal_error": fatal_error,
             "no_winner_reason": None if eligible_winner is not None else ("baseline_candidate_failed" if fatal_error else "no_eligible_winner"),
         }
     )
-
-
-def _write_holdout_status(
-    experiment_dir: Path,
-    *,
-    holdout_dir: Path,
-    candidate_ids: list[str],
-    benchmark_id: str,
-) -> None:
-    summary_path = experiment_dir / "summary.json"
-    if not summary_path.exists():
-        return
-    payload = read_json(summary_path)
-    holdout_records = load_results_jsonl(holdout_dir)
-    holdout_scores = [
-        float(record.get("primary_metrics", {}).get(payload.get("primary_metric"), float("-inf")))
-        for record in holdout_records
-        if isinstance(record.get("primary_metrics"), dict) and record.get("primary_metrics", {}).get(payload.get("primary_metric")) is not None
-    ]
-    payload["holdout_validation"] = {
-        "configured": True,
-        "status": "completed",
-        "ran": True,
-        "benchmark_id": benchmark_id,
-        "candidate_ids": candidate_ids,
-        "output_dir": str(holdout_dir.resolve()),
-        "score": max(holdout_scores) if holdout_scores else None,
-        "score_statuses": [record.get("score_status") for record in holdout_records],
-    }
-    write_json(summary_path, payload)
-
-
-def _initial_holdout_validation_summary(config: dict[str, Any], *, study_type: str) -> dict[str, Any]:
-    configured = "holdout" in config.get("benchmarks", {})
-    configured_top_k = int(config.get("compare", {}).get("holdout_top_k", 0) or 0) if study_type == "compare" else 1
-    return {
-        "configured": configured,
-        "configured_top_k": configured_top_k,
-        "status": "not_run",
-        "ran": False,
-        "skip_reason": None,
-    }
 
 
 def _baseline_candidate(config: dict[str, Any]) -> Candidate:
@@ -1631,95 +1609,6 @@ def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_spa
 
     generate_optimize_plots(experiment_dir, config["acceptance"]["primary_metric"])
     generate_suite_plots(experiment_dir, config["acceptance"]["primary_metric"])
-    generate_experiment_report(experiment_dir)
-
-
-def validate_best(config: dict[str, Any], benchmarks: Benchmarks, experiment_dir: Path, out_dir: Path) -> None:
-    config = normalize_config(config)
-    records = load_results_jsonl(experiment_dir)
-    if not records:
-        raise ValueError("No experiment records found")
-
-    study_type = records[0].get("study_type", "optimize")
-    primary_metric = config["acceptance"]["primary_metric"]
-    section = config.get(study_type) if isinstance(config.get(study_type), dict) else {}
-    holdout_suite_id = str(section.get("holdout_suite_id") or "holdout_suite")
-    plan = _suite_plan(config, holdout_suite_id)
-    config = {
-        **config,
-        "acceptance": {
-            **config["acceptance"],
-            "primary_metric": plan.primary_metric,
-        },
-    }
-    primary_metric = plan.primary_metric
-
-    if study_type == "optimize":
-        best_candidate_path = experiment_dir / "best_candidate.json"
-        if not best_candidate_path.exists():
-            raise ValueError("No best_candidate.json found for optimize holdout validation")
-        best_candidate_payload = read_json(best_candidate_path)
-        best_candidate_id = best_candidate_payload.get("candidate_id")
-        top = [record for record in records if record.get("candidate_id") == best_candidate_id]
-        if not top:
-            raise ValueError("Configured optimize incumbent was not found in experiment results")
-    else:
-        top_k = int(config.get("compare", {}).get("holdout_top_k", 0))
-        if top_k <= 0:
-            return
-        ranked = sorted(records, key=lambda r: float(r.get("primary_metrics", {}).get(primary_metric, float("-inf"))), reverse=True)
-        top = ranked[:top_k]
-
-    writer = ResultsWriter(out_dir)
-    writer.write_experiment_manifest(
-        {
-            "schema_version": config["schema_version"],
-            "experiment_id": config["experiment_id"],
-            "study_type": study_type,
-            "benchmark_id": plan.benchmark_ids[0],
-            "suite_id": plan.suite_id,
-            "benchmark_ids": plan.benchmark_ids,
-            "validation": True,
-        }
-    )
-
-    for item in top:
-        candidate = Candidate(
-            candidate_id=str(item["candidate_id"]),
-            prompt_bundle_id=str(item["prompt_bundle_id"]),
-            text_model_id=str(item["text_model_id"]),
-            vision_model_id=item.get("vision_model_id"),
-            optimizer_knobs=dict(item.get("optimizer_knobs_flat", {})),
-            parent_candidate_id=item.get("parent_candidate_id"),
-            round_index=None,
-        )
-        result = _evaluate_candidate_with_suite_and_replicates(
-            config,
-            writer,
-            experiment_dir=out_dir,
-            candidate=candidate,
-            plan=plan,
-            study_type=study_type,
-            decision="validated",
-            reason="holdout_validation",
-        )
-        writer.append_result(result)
-
-    candidate_ids = [str(item["candidate_id"]) for item in top]
-    writer.write_experiment_summary(
-        {
-            "experiment_id": config["experiment_id"],
-            "study_type": study_type,
-            "benchmark_id": plan.benchmark_ids[0],
-            "suite_id": plan.suite_id,
-            "benchmark_ids": plan.benchmark_ids,
-            "primary_metric": primary_metric,
-            "validated_candidate_ids": candidate_ids,
-            "candidate_count": len(candidate_ids),
-            "completed_candidate_count": len(candidate_ids),
-        }
-    )
-    _write_holdout_status(experiment_dir, holdout_dir=out_dir, candidate_ids=candidate_ids, benchmark_id=plan.benchmark_ids[0])
     generate_experiment_report(experiment_dir)
 
 

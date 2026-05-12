@@ -1,0 +1,14 @@
+{
+  "prompt": {
+    "bundle": "prompt_a"
+  },
+  "provider": {
+    "text_model": {
+      "model_id": "text-model-a"
+    },
+    "vision_model": null
+  },
+  "retrieval": {
+    "top_k": 5
+  }
+}

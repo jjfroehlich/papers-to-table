@@ -49,7 +49,7 @@ def normalize_config(config: dict[str, Any]) -> dict[str, Any]:
         if isinstance(normalized.get("acceptance"), dict)
         else "correctness"
     )
-    for split in ["smoke", "dev", "holdout"]:
+    for split in ["smoke", "dev"]:
         benchmark_id = benchmarks.get(split)
         suite_id = f"{split}_suite"
         if isinstance(benchmark_id, str) and suite_id not in suites:
@@ -70,14 +70,13 @@ def normalize_config(config: dict[str, Any]) -> dict[str, Any]:
 
     compare = dict(normalized.get("compare") or {})
     compare.setdefault("suite_id", "dev_suite")
-    if "holdout_suite" in suites:
-        compare.setdefault("holdout_suite_id", "holdout_suite")
+    compare.pop("holdout_suite_id", None)
+    compare.pop("holdout_top_k", None)
     normalized["compare"] = compare
 
     optimize = dict(normalized.get("optimize") or {})
     optimize.setdefault("suite_id", "dev_suite")
-    if "holdout_suite" in suites:
-        optimize.setdefault("holdout_suite_id", "holdout_suite")
+    optimize.pop("holdout_suite_id", None)
     normalized["optimize"] = optimize
     return normalized
 
@@ -112,7 +111,7 @@ def validate_config(config: dict[str, Any]) -> None:
         for bool_key in ["require_structured_output_for_extraction", "allow_degraded_candidates"]:
             if bool_key in compare and not isinstance(compare[bool_key], bool):
                 raise ConfigError(f"compare.{bool_key} must be a boolean when provided")
-        for suite_key in ["suite_id", "holdout_suite_id"]:
+        for suite_key in ["suite_id"]:
             if suite_key in compare and (not isinstance(compare[suite_key], str) or not compare[suite_key].strip()):
                 raise ConfigError(f"compare.{suite_key} must be a non-empty string when provided")
 
@@ -124,7 +123,7 @@ def validate_config(config: dict[str, Any]) -> None:
     if not isinstance(manifests, dict) or not manifests:
         raise ConfigError("benchmarks.manifests must be a non-empty object")
 
-    for split in ["dev", "holdout"]:
+    for split in ["dev"]:
         if split in benchmarks and not isinstance(benchmarks[split], str):
             raise ConfigError(f"benchmarks.{split} must be a string benchmark id")
 
@@ -220,7 +219,7 @@ def validate_config(config: dict[str, Any]) -> None:
             section = config.get(section_name, {})
             if not isinstance(section, dict):
                 continue
-            for suite_key in ["suite_id", "holdout_suite_id"]:
+            for suite_key in ["suite_id"]:
                 suite_ref = section.get(suite_key)
                 if isinstance(suite_ref, str) and suite_ref.strip() and suite_ref not in benchmark_suites:
                     raise ConfigError(f"{section_name}.{suite_key} references unknown benchmark suite: {suite_ref}")
@@ -313,7 +312,7 @@ def validate_config(config: dict[str, Any]) -> None:
     optimize = config.get("optimize", {})
     if not isinstance(optimize, dict):
         raise ConfigError("optimize must be an object when provided")
-    for suite_key in ["suite_id", "holdout_suite_id"]:
+    for suite_key in ["suite_id"]:
         if suite_key in optimize and (not isinstance(optimize[suite_key], str) or not optimize[suite_key].strip()):
             raise ConfigError(f"optimize.{suite_key} must be a non-empty string when provided")
 

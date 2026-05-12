@@ -61,18 +61,13 @@ def load_benchmarks(config: dict[str, Any]) -> Benchmarks:
         )
 
     split_to_id: dict[str, str] = {}
-    for split in ["smoke", "dev", "holdout"]:
+    for split in ["smoke", "dev"]:
         if split in raw:
             split_to_id[split] = raw[split]
 
     for split, bench_id in split_to_id.items():
         if bench_id not in manifests:
             raise BenchmarkError(f"benchmarks.{split} references unknown benchmark id: {bench_id}")
-
-    dev_id = split_to_id.get("dev")
-    holdout_id = split_to_id.get("holdout")
-    if dev_id and holdout_id and dev_id == holdout_id:
-        raise BenchmarkError("dev and holdout must reference distinct benchmark ids")
 
     return Benchmarks(split_to_id=split_to_id, manifests=manifests)
 

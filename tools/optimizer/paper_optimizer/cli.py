@@ -10,7 +10,7 @@ from .overnight import generate_overnight_report
 from .results import ResultsWriter
 from .search_space import load_search_space
 from .settings import load_config
-from .study import evaluate_candidate_suite, run_compare_mode, run_optimize_mode, summarize, validate_best
+from .study import evaluate_candidate_suite, run_compare_mode, run_optimize_mode, summarize
 from .utils import read_json
 from .validation import validate_preflight
 
@@ -32,13 +32,8 @@ def _build_parser() -> argparse.ArgumentParser:
     eval_candidate = sub.add_parser("evaluate-candidate", help="Evaluate one candidate against a benchmark suite")
     eval_candidate.add_argument("--config", type=Path, required=True)
     eval_candidate.add_argument("--candidate-file", type=Path, required=True)
-    eval_candidate.add_argument("--suite", required=True, help="Benchmark suite id such as smoke_suite, dev_suite, or holdout_suite")
+    eval_candidate.add_argument("--suite", required=True, help="Benchmark suite id such as smoke_suite or dev_suite")
     eval_candidate.add_argument("--out", type=Path, required=True)
-
-    validate = sub.add_parser("validate-best", help="Run holdout validation on best or top-k candidates")
-    validate.add_argument("--config", type=Path, required=True)
-    validate.add_argument("--experiment", type=Path, required=True)
-    validate.add_argument("--out", type=Path, required=True)
 
     summarize_cmd = sub.add_parser("summarize", help="Rebuild summaries and plots from saved artifacts")
     summarize_cmd.add_argument("--config", type=Path, required=True)
@@ -120,13 +115,6 @@ def _cmd_evaluate_candidate(args: argparse.Namespace) -> None:
     writer.append_result(result)
 
 
-def _cmd_validate_best(args: argparse.Namespace) -> None:
-    config = load_config(args.config)
-    benchmarks = load_benchmarks(config)
-    validate_preflight(config, benchmarks, require_holdout=True, experiment_dir=args.experiment)
-    validate_best(config, benchmarks, args.experiment, args.out)
-
-
 def _cmd_summarize(args: argparse.Namespace) -> None:
     config = load_config(args.config)
     benchmarks = load_benchmarks(config)
@@ -148,8 +136,6 @@ def main() -> None:
         _cmd_preflight(args)
     elif args.command == "evaluate-candidate":
         _cmd_evaluate_candidate(args)
-    elif args.command == "validate-best":
-        _cmd_validate_best(args)
     elif args.command == "summarize":
         _cmd_summarize(args)
     elif args.command == "overnight-report":

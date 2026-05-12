@@ -60,6 +60,7 @@ def _default_knob_path(knob_name: str) -> str:
         "recall_rescue_enabled": "retrieval.recall_rescue_enabled",
         "whole_document_mode": "retrieval.whole_document_mode",
         "whole_document_max_chars": "retrieval.whole_document_max_chars",
+        "parser_allow_basic_fallback": "parser.allow_basic_fallback",
         "style_profiles_enabled": "style_profiles.enabled",
         "style_profiles_max_examples": "style_profiles.max_examples",
         "figure_review_enabled": "figure_review.enabled",
@@ -242,7 +243,7 @@ def launch_main_app(
             out_dir=out_dir,
         )
 
-    main_run_output_dir = out_dir / "main_app_output"
+    main_run_output_dir = out_dir / "app_output"
     overlay, resolved_config = build_resolved_main_config(
         config,
         candidate=candidate,

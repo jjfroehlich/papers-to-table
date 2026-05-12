@@ -48,6 +48,7 @@ logs/
 # runs
 runs/
 artifacts/
+**/.extract_structured_parse_cache/
 # playwright runtime
 .playwright-runtime/
 frontend/test-results/

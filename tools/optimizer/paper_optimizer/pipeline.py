@@ -192,7 +192,7 @@ def evaluate_external_result_once(
         vision_model_id=None,
         optimizer_knobs={},
     )
-    eval_out = experiment_dir / "runs" / candidate.candidate_id / "eval"
+    eval_out = experiment_dir / "r" / candidate.candidate_id / "e"
     eval_out.mkdir(parents=True, exist_ok=True)
     if not benchmark.gold_path:
         return _failure_result(

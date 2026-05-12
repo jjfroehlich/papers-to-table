@@ -49,12 +49,11 @@ def _load_csv_gold(
     excluded_columns: set[str] | None,
 ) -> GoldDataset:
     try:
-        with path.open("r", encoding="utf-8", newline="") as handle:
-            reader = csv.DictReader(handle)
-            rows = list(reader)
-            fieldnames = list(reader.fieldnames or [])
+        rows, fieldnames = _read_csv_dicts(path)
     except CsvError as exc:
         raise ContractError(f"Gold CSV could not be parsed at {path}: {exc}") from exc
+    except UnicodeDecodeError as exc:
+        raise ContractError(f"Gold CSV could not be decoded at {path}: {exc}") from exc
     if not fieldnames:
         raise ContractError(f"Gold CSV '{path}' is empty or missing a header row.")
     cells = _rows_to_gold_cells(
@@ -66,6 +65,20 @@ def _load_csv_gold(
     )
     cells = _filter_gold_cells_by_row_index(cells, allowed_row_indices=allowed_row_indices)
     return GoldDataset(source_path=path, sheet_name=None, cells=cells)
+
+
+def _read_csv_dicts(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
+    last_decode_error: UnicodeDecodeError | None = None
+    for encoding in ("utf-8-sig", "cp1252"):
+        try:
+            with path.open("r", encoding=encoding, newline="") as handle:
+                reader = csv.DictReader(handle)
+                return list(reader), list(reader.fieldnames or [])
+        except UnicodeDecodeError as exc:
+            last_decode_error = exc
+    if last_decode_error is not None:
+        raise last_decode_error
+    return [], []
 
 
 def _load_xlsx_gold(

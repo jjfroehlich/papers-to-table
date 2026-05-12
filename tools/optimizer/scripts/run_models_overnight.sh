@@ -32,8 +32,8 @@ resolve_optimizer_python() {
 optimizer_python="$(resolve_optimizer_python)"
 
 compare_config="$repo_root/configs/compare_models_overnight.json"
-compare_run_name="${session_id}_models_overnight_${safe_label}/compare_models_overnight"
-overnight_dir="$repo_root/runs/${session_id}_models_overnight_${safe_label}"
+compare_run_name="${session_id}_models/model_compare"
+overnight_dir="$repo_root/runs/${session_id}_models"
 manifest_path="$overnight_dir/overnight_manifest.json"
 
 mkdir -p "$overnight_dir"
@@ -121,13 +121,13 @@ pushd "$repo_root" >/dev/null
 popd >/dev/null
 
 echo "[$(date -Iseconds)] Step 2: model-only compare study"
-PAPER_OPTIMIZER_RUN_NAME="$compare_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$compare_config" "${safe_label}_model_compare"
+PAPER_OPTIMIZER_RUN_NAME="$compare_run_name" bash "$script_dir/run_study.sh" compare "$compare_config" "${safe_label}_model_compare"
 append_stage model_compare "$compare_run_name"
 write_manifest completed "$(date -Iseconds)"
 refresh_overnight_report
 trap - EXIT
 
 echo "[$(date -Iseconds)] Model-only overnight workflow finished"
-echo "Overnight report: $overnight_dir/report.html"
+echo "Overnight overview: $overnight_dir/overview.html"
 echo "All candidates CSV: $overnight_dir/all_candidates.csv"
 echo "Compare run: $repo_root/runs/$compare_run_name"

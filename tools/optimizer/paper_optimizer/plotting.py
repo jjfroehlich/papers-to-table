@@ -5,8 +5,6 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .utils import read_json
-
 import matplotlib
 
 matplotlib.use("Agg")
@@ -166,23 +164,6 @@ def _status_value(row: dict[str, str]) -> str:
     return "scored" if row.get("primary.correctness") not in (None, "") else "unscored"
 
 
-def _load_holdout_rows(experiment_dir: Path) -> list[dict[str, str]]:
-    summary_path = experiment_dir / "summary.json"
-    if not summary_path.exists():
-        return []
-    try:
-        summary = read_json(summary_path)
-    except Exception:
-        return []
-    holdout = summary.get("holdout_validation", {}) if isinstance(summary, dict) else {}
-    if not isinstance(holdout, dict):
-        return []
-    output_dir = holdout.get("output_dir")
-    if not isinstance(output_dir, str) or not output_dir.strip():
-        return []
-    return _load_rows(Path(output_dir) / "results" / "results.csv")
-
-
 def _write_bar_plot(
     *,
     path: Path,
@@ -302,53 +283,6 @@ def _write_compare_judge_plot(plots_dir: Path, rows: list[dict[str, str]]) -> No
     plt.title("Judge A vs Judge B")
     plt.tight_layout()
     plt.savefig(plots_dir / "compare_judge_a_vs_judge_b.png")
-    plt.close()
-
-
-def _write_dev_vs_holdout_plot(experiment_dir: Path, plots_dir: Path, rows: list[dict[str, str]], primary_key: str) -> None:
-    holdout_rows = _load_holdout_rows(experiment_dir)
-    if not holdout_rows:
-        return
-    holdout_by_id = {row.get("candidate_id", ""): row for row in holdout_rows}
-    paired_rows: list[dict[str, Any]] = []
-    dev_scores: list[float] = []
-    holdout_scores: list[float] = []
-    labels: list[str] = []
-    for row in rows:
-        candidate_id = row.get("candidate_id", "")
-        holdout_row = holdout_by_id.get(candidate_id)
-        if holdout_row is None:
-            continue
-        dev_score = _safe_float(row.get(primary_key))
-        holdout_score = _safe_float(holdout_row.get(primary_key))
-        paired_rows.append(
-            {
-                "candidate_id": candidate_id,
-                "dev_primary_score": dev_score,
-                "holdout_primary_score": holdout_score,
-                "dev_status": _status_value(row),
-                "holdout_status": _status_value(holdout_row),
-            }
-        )
-        if dev_score is not None and holdout_score is not None:
-            dev_scores.append(dev_score)
-            holdout_scores.append(holdout_score)
-            labels.append(candidate_id)
-    if not paired_rows:
-        return
-    _write_plot_csv(plots_dir / "compare_dev_vs_holdout.csv", paired_rows)
-    if not labels:
-        return
-    plt.figure(figsize=(max(7, len(labels) * 0.9), 4))
-    x_positions = list(range(len(labels)))
-    plt.plot(x_positions, dev_scores, marker="o", label="dev")
-    plt.plot(x_positions, holdout_scores, marker="s", label="holdout")
-    plt.xticks(x_positions, labels, rotation=45, ha="right")
-    plt.ylabel(primary_key.removeprefix("primary."))
-    plt.title("Dev vs holdout primary score")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(plots_dir / "compare_dev_vs_holdout.png")
     plt.close()
 
 
@@ -671,7 +605,6 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
         plt.close()
 
     _write_compare_judge_plot(plots_dir, rows)
-    _write_dev_vs_holdout_plot(experiment_dir, plots_dir, rows, primary_key)
 
 
 def generate_suite_plots(experiment_dir: Path, primary_metric: str) -> None:
@@ -711,18 +644,43 @@ def generate_suite_plots(experiment_dir: Path, primary_metric: str) -> None:
     benchmark_rows = _load_rows(experiment_dir / "results" / "benchmark_summary.csv")
     if benchmark_rows:
         _write_plot_csv(plots_dir / "suite_benchmark_breakdown.csv", benchmark_rows)
-        labels = [f"{row.get('candidate_id', '')}:{row.get('benchmark_id', '')}" for row in benchmark_rows]
-        values = [_safe_float(row.get("primary_metric_mean")) or 0.0 for row in benchmark_rows]
-        sem_values = [_safe_float(row.get("primary_metric_sem")) or 0.0 for row in benchmark_rows]
-        if labels:
-            _write_bar_plot(
-                path=plots_dir / "suite_benchmark_breakdown.png",
-                labels=labels,
-                values=values,
-                title="Per-benchmark mean score (+/- SEM where available)",
-                ylabel=primary_metric,
-                error_values=sem_values,
+        by_benchmark: dict[str, dict[str, Any]] = {}
+        for row in benchmark_rows:
+            benchmark_id = row.get("benchmark_id", "")
+            if not benchmark_id:
+                continue
+            bucket = by_benchmark.setdefault(
+                benchmark_id,
+                {
+                    "benchmark_id": benchmark_id,
+                    "candidate_count": 0,
+                    "best_primary_score": None,
+                    "scored_candidate_count": 0,
+                    "failed_replicate_count": 0,
+                    "unscored_replicate_count": 0,
+                },
             )
+            bucket["candidate_count"] += 1
+            bucket["failed_replicate_count"] += int(_safe_float(row.get("n_failed")) or 0)
+            bucket["unscored_replicate_count"] += int(_safe_float(row.get("n_unscored")) or 0)
+            score = _safe_float(row.get("primary_metric_mean"))
+            if score is not None:
+                bucket["scored_candidate_count"] += 1
+                current = bucket["best_primary_score"]
+                bucket["best_primary_score"] = score if current is None else max(float(current), score)
+
+        breakdown_rows = [by_benchmark[key] for key in sorted(by_benchmark)]
+        _write_plot_csv(plots_dir / "suite_benchmark_breakdown_by_benchmark.csv", breakdown_rows)
+        _write_bar_plot(
+            path=plots_dir / "suite_benchmark_breakdown.png",
+            labels=[str(row["benchmark_id"]) for row in breakdown_rows],
+            values=[
+                float(row["best_primary_score"]) if row["best_primary_score"] is not None else 0.0
+                for row in breakdown_rows
+            ],
+            title="Best primary score by benchmark (0 = no scored candidates)",
+            ylabel=primary_metric,
+        )
 
     replicate_rows = _load_rows(experiment_dir / "results" / "replicate_results.csv")
     if replicate_rows:

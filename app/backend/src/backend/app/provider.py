@@ -791,6 +791,11 @@ class LMStudioProvider(ProviderAdapter):
             profiles[model_id] = {
                 "family": policy.family,
                 "preferred_structured_mode": policy.preferred_structured_mode,
+                "require_json_keyword": policy.require_json_keyword,
+                "disable_thinking_reminder": policy.disable_thinking_reminder,
+                "omit_max_tokens_for_structured": policy.omit_max_tokens_for_structured,
+                "fast_abort_malformed_json_attempts": policy.fast_abort_malformed_json_attempts,
+                "retry_malformed_structured_response": policy.retry_malformed_structured_response,
                 "request_settings": self._effective_request_settings(
                     model_id=model_id,
                     max_tokens=None,
@@ -1972,37 +1977,43 @@ class LMStudioProvider(ProviderAdapter):
                 )
                 return False, "probe_exception", self._truncate_preview(str(error), 300), record
 
+        policy = resolve_model_request_policy(model_id)
         structured_reason: Optional[str] = None
         structured_error: Optional[str] = None
-        json_schema_ok, json_schema_reason, json_schema_error, json_schema_record = await _run_probe("json_schema")
+        probe_records: dict[str, dict[str, Any] | None] = {"json_schema": None, "json_object": None}
+        for mode in policy.ordered_structured_modes("json_schema"):
+            if mode == "none":
+                continue
+            ok, reason, error, record = await _run_probe(mode)
+            probe_records[mode] = record
+            if ok:
+                report: dict[str, Any] = {
+                    "modality": modality,
+                    "model_id": model_id,
+                    "best_mode": mode,
+                    "json_schema": probe_records.get("json_schema"),
+                    "json_object": probe_records.get("json_object"),
+                    "recorded_at": datetime.now(timezone.utc).isoformat(),
+                }
+                fallback_reason = None if mode == "json_schema" else _canonical_structured_output_reason(mode, structured_reason)
+                fallback_error = None if mode == "json_schema" else structured_error
+                if fallback_reason == "json_schema_unsupported" and not fallback_error:
+                    fallback_error = (
+                        "LM Studio did not provide json_schema support for this model/runtime combination."
+                    )
+                return mode, fallback_reason, fallback_error, report
+            if not structured_reason:
+                structured_reason = reason
+                structured_error = error
+
         report: dict[str, Any] = {
             "modality": modality,
             "model_id": model_id,
             "best_mode": None,
-            "json_schema": json_schema_record,
-            "json_object": None,
+            "json_schema": probe_records.get("json_schema"),
+            "json_object": probe_records.get("json_object"),
             "recorded_at": datetime.now(timezone.utc).isoformat(),
         }
-        if json_schema_ok:
-            report["best_mode"] = "json_schema"
-            return "json_schema", None, None, report
-        structured_reason = json_schema_reason
-        structured_error = json_schema_error
-
-        json_object_ok, json_object_reason, json_object_error, json_object_record = await _run_probe("json_object")
-        report["json_object"] = json_object_record
-        if json_object_ok:
-            report["best_mode"] = "json_object"
-            fallback_reason = _canonical_structured_output_reason("json_object", structured_reason)
-            fallback_error = structured_error
-            if fallback_reason == "json_schema_unsupported" and not fallback_error:
-                fallback_error = (
-                    "LM Studio did not provide json_schema support for this model/runtime combination."
-                )
-            return "json_object", fallback_reason, fallback_error, report
-        if not structured_reason:
-            structured_reason = json_object_reason
-            structured_error = json_object_error
         report["best_mode"] = "none"
         structured_reason = _canonical_structured_output_reason("none", structured_reason)
         if structured_reason == "structured_modes_unavailable" and not structured_error:

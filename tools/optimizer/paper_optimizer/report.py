@@ -50,21 +50,6 @@ def _winner_row(rows: list[dict[str, Any]], winner_id: str | None) -> dict[str, 
     return next((row for row in rows if row.get("candidate_id") == winner_id), None)
 
 
-def _holdout_payload(summary: dict[str, Any]) -> dict[str, Any]:
-    holdout = summary.get("holdout_validation") if isinstance(summary.get("holdout_validation"), dict) else {}
-    if not holdout:
-        return {"status": "not run", "score": None, "configured": False}
-    status = holdout.get("status")
-    if not status:
-        status = "completed" if holdout.get("ran") else "not run"
-    return {
-        "status": str(status).replace("_", " "),
-        "score": holdout.get("score"),
-        "configured": bool(holdout.get("configured", holdout.get("ran", False))),
-        "skip_reason": holdout.get("skip_reason"),
-    }
-
-
 def _status_mix_text(counts: dict[str, int]) -> str:
     return (
         f"{counts.get('scored', 0)} scored, "
@@ -95,7 +80,6 @@ def _compare_summary_sentence(
     winner_row: dict[str, Any] | None,
     rows: list[dict[str, Any]],
     primary_metric: str,
-    holdout: dict[str, Any],
     variant: str,
 ) -> str:
     counts = status_counts(rows)
@@ -103,7 +87,7 @@ def _compare_summary_sentence(
     if winner_row is None:
         return (
             f"No winner was materialized in this {variant.replace('_', ' ')} study. "
-            f"Status mix: {_status_mix_text(counts)}. Holdout was {holdout['status']}."
+            f"Status mix: {_status_mix_text(counts)}."
         )
     summary = (
         f"{winner_label} {display_text(winner_row.get('candidate_id'), missing='not recorded')} led the {variant.replace('_', ' ')} study "
@@ -111,7 +95,7 @@ def _compare_summary_sentence(
     )
     if gap is not None:
         summary += f" The margin to the runner-up was {format_delta(gap)}."
-    summary += f" Status mix: {_status_mix_text(counts)}. Holdout was {holdout['status']}."
+    summary += f" Status mix: {_status_mix_text(counts)}."
     return summary
 
 
@@ -122,7 +106,6 @@ def _optimize_summary_sentence(
     rows: list[dict[str, Any]],
     primary_metric: str,
     summary: dict[str, Any],
-    holdout: dict[str, Any],
 ) -> str:
     counts = status_counts(rows)
     promoted_count = sum(1 for entry in summary.get("promotion_history", []) if entry.get("promoted_candidate_id"))
@@ -130,30 +113,26 @@ def _optimize_summary_sentence(
     if winner_row is None:
         return (
             f"No incumbent was materialized after {rounds_completed} optimize rounds. "
-            f"Status mix: {_status_mix_text(counts)}. Holdout was {holdout['status']}."
+            f"Status mix: {_status_mix_text(counts)}."
         )
     incumbent_changed = winner_row.get("candidate_id") != "cand_0000"
     changed_text = "changed from baseline" if incumbent_changed else "remained the baseline incumbent"
     return (
         f"{winner_label} {display_text(winner_row.get('candidate_id'), missing='not recorded')} {changed_text} after {rounds_completed} rounds, "
         f"finishing with {primary_metric} {format_score(winner_row.get('primary_metric_value'))}. "
-        f"Promoted challengers: {promoted_count}. Status mix: {_status_mix_text(counts)}. Holdout was {holdout['status']}."
+        f"Promoted challengers: {promoted_count}. Status mix: {_status_mix_text(counts)}."
     )
 
 
 def _build_caveats(
     rows: list[dict[str, Any]],
     *,
-    holdout: dict[str, Any],
     study_type: str,
 ) -> list[str]:
     counts = status_counts(rows)
     caveats: list[str] = []
     dual_judge_completed = any(row.get("dual_judge_completed") for row in rows)
     dual_judge_incomplete_only = any(row.get("dual_judge_completed") is False for row in rows) and not dual_judge_completed
-    if holdout["status"] != "completed":
-        suffix = f": {holdout['skip_reason']}" if holdout.get("skip_reason") else ""
-        caveats.append(f"Holdout was {holdout['status']}{suffix}.")
     if counts.get("scored_degraded", 0):
         caveats.append(f"{counts['scored_degraded']} candidate(s) scored only in degraded mode.")
     if counts.get("unscored", 0):
@@ -198,11 +177,9 @@ def _trust_note(row: dict[str, Any]) -> str:
     return "; ".join(notes) if notes else "healthy"
 
 
-def _build_next_checks(rows: list[dict[str, Any]], *, holdout: dict[str, Any], variant: str, study_type: str) -> list[str]:
+def _build_next_checks(rows: list[dict[str, Any]], *, variant: str, study_type: str) -> list[str]:
     next_checks: list[str] = []
     counts = status_counts(rows)
-    if holdout["status"] != "completed":
-        next_checks.append("Run holdout validation before treating this recommendation as final.")
     if counts.get("unscored", 0):
         next_checks.append("Inspect unscored candidates to determine whether the failure mode is fixable or expected.")
     if counts.get("scored_degraded", 0):
@@ -225,7 +202,6 @@ def _build_why_winner(
     rows: list[dict[str, Any]],
     *,
     primary_metric: str,
-    holdout: dict[str, Any],
     study_type: str,
 ) -> list[str]:
     if winner_row is None:
@@ -240,8 +216,6 @@ def _build_why_winner(
         bullets.append(f"It outscored the runner-up by {format_delta(gap)} on the primary metric.")
     if parse_bool(winner_row.get("prompt_only_degraded_mode_used")):
         bullets.append("Selection is weaker because the winner required prompt-only fallback.")
-    if holdout["status"] != "completed":
-        bullets.append("Selection remains provisional because holdout validation was not completed.")
     if study_type == "optimize":
         bullets.append(
             f"Optimize kept or promoted it under the acceptance policy with decision '{display_text(winner_row.get('promotion_decision'), missing='not recorded')}'."
@@ -445,7 +419,6 @@ def _build_plot_cards(experiment_dir: Path, *, study_type: str, variant: str) ->
             "compare_primary_by_text_model",
             "compare_primary_by_prompt_bundle",
             "compare_judge_a_vs_judge_b",
-            "compare_dev_vs_holdout",
         ]
     plot_cards: list[dict[str, Any]] = []
     for index, stem in enumerate(preferred):
@@ -549,7 +522,6 @@ def _build_provenance_items(
     *,
     summary: dict[str, Any],
     run_metadata: dict[str, Any],
-    holdout: dict[str, Any],
 ) -> list[dict[str, str | None]]:
     items = [
         {
@@ -561,11 +533,6 @@ def _build_provenance_items(
             "label": "Config",
             "value": display_text(run_metadata.get("config_path"), missing="not recorded"),
             "note": "Raw filesystem paths are kept here instead of the summary band.",
-        },
-        {
-            "label": "Holdout",
-            "value": holdout["status"],
-            "note": f"score={format_score(holdout.get('score'), missing='not run')}" if holdout.get("score") is not None else None,
         },
     ]
     if winner_row is not None:
@@ -766,7 +733,6 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
     winner_id = _winner_id(summary, best_candidate, compare_summary)
     winner_row = _winner_row(candidate_rows, winner_id)
     best_raw_row = _winner_row(candidate_rows, summary.get("best_raw_candidate_id"))
-    holdout = _holdout_payload(summary)
     started_at, ended_at = _time_window(candidate_rows, run_metadata)
     counts = status_counts(candidate_rows)
     winner_label = "Incumbent" if study_type == "optimize" else "Winner"
@@ -777,7 +743,6 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
             rows=candidate_rows,
             primary_metric=primary_metric,
             summary=summary,
-            holdout=holdout,
         )
         if study_type == "optimize"
         else _compare_summary_sentence(
@@ -785,14 +750,13 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
             winner_row=winner_row,
             rows=candidate_rows,
             primary_metric=primary_metric,
-            holdout=holdout,
             variant=variant,
         )
     )
-    caveats = _build_caveats(candidate_rows, holdout=holdout, study_type=study_type)
+    caveats = _build_caveats(candidate_rows, study_type=study_type)
     if str(run_metadata.get("status") or "").lower() == "running" and ended_at not in {"not recorded", "", None}:
         caveats.insert(0, "Wrapper run metadata still says running even though experiment artifacts show an end time; treat wrapper status as stale.")
-    next_checks = _build_next_checks(candidate_rows, holdout=holdout, variant=variant, study_type=study_type)
+    next_checks = _build_next_checks(candidate_rows, variant=variant, study_type=study_type)
     gap = _gap_to_runner_up(candidate_rows)
 
     page = {
@@ -801,7 +765,6 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
         "top_badges": [
             {"text": study_type, "tone": "good"},
             {"text": variant.replace("_", " "), "tone": "neutral"},
-            {"text": holdout["status"], "tone": "warn" if holdout["status"] != "completed" else "good"},
             {"text": _status_mix_text(counts), "tone": "neutral"},
         ],
         "hero_meta": [
@@ -812,7 +775,6 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
             {"label": "Started", "value": started_at, "note": None},
             {"label": "Ended", "value": ended_at, "note": None},
             {"label": "Candidates", "value": str(len(candidate_rows)), "note": _status_mix_text(counts)},
-            {"label": "Holdout", "value": holdout["status"], "note": display_text(holdout.get("skip_reason"), missing=None)},
         ],
         "executive_cards": [
             {
@@ -847,8 +809,8 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
         "decision_cards": [
             {
                 "title": "Why This Candidate Won",
-                "lead": "Deterministic explanation derived from score, status, runtime, and holdout state.",
-                "items": _build_why_winner(winner_row, candidate_rows, primary_metric=primary_metric, holdout=holdout, study_type=study_type),
+                "lead": "Deterministic explanation derived from score, status, and runtime.",
+                "items": _build_why_winner(winner_row, candidate_rows, primary_metric=primary_metric, study_type=study_type),
                 "badges": [{"text": winner_label.lower(), "tone": "good"}] if winner_row else [{"text": "no winner", "tone": "warn"}],
             },
             {
@@ -883,7 +845,7 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
         ],
         "plots": _build_plot_cards(experiment_dir, study_type=study_type, variant=variant),
         "artifact_links": _build_artifact_links(experiment_dir),
-        "provenance_items": _build_provenance_items(winner_row, summary=summary, run_metadata=run_metadata, holdout=holdout),
+        "provenance_items": _build_provenance_items(winner_row, summary=summary, run_metadata=run_metadata),
     }
     return page
 

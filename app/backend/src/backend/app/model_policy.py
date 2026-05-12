@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import json
+import os
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 from typing import Any, Callable
 
 
@@ -38,69 +42,60 @@ class ModelRequestPolicy:
 
 DEFAULT_MODEL_REQUEST_POLICY = ModelRequestPolicy()
 
-_MODEL_POLICY_OVERRIDES: tuple[tuple[Callable[[str], bool], ModelRequestPolicy], ...] = (
-    (
-        lambda model_id: "qwen" in model_id,
-        ModelRequestPolicy(
-            family="qwen",
-            preferred_structured_mode="json_object",
-            require_json_keyword=True,
-            disable_thinking_reminder=True,
-            omit_max_tokens_for_structured=True,
-            fast_abort_malformed_json_attempts=1,
-            retry_malformed_structured_response=False,
-            request_defaults={
-                "temperature": 0.7,
-                "top_p": 0.8,
-                "top_k": 20,
-                "min_p": 0.0,
-                "presence_penalty": 1.5,
-                "repetition_penalty": 1.0,
-            },
-            chat_template_kwargs_defaults={"enable_thinking": False},
-        ),
-    ),
-    (
-        lambda model_id: "gpt-oss" in model_id,
-        ModelRequestPolicy(family="gpt_oss", preferred_structured_mode="json_schema"),
-    ),
-    (
-        lambda model_id: "gemma" in model_id,
-        ModelRequestPolicy(
-            family="gemma",
-            preferred_structured_mode="json_schema",
-            request_defaults={
-                "temperature": 1.0,
-                "top_p": 0.95,
-                "top_k": 64,
-            },
-        ),
-    ),
-    (
-        lambda model_id: "ministral" in model_id and "reasoning" in model_id,
-        ModelRequestPolicy(
-            family="ministral_reasoning",
-            preferred_structured_mode="json_schema",
-            request_defaults={"temperature": 0.7, "top_p": 0.95},
-        ),
-    ),
-    (
-        lambda model_id: "ministral" in model_id,
-        ModelRequestPolicy(
-            family="ministral_instruct",
-            preferred_structured_mode="json_schema",
-            request_defaults={"temperature": 0.15},
-        ),
-    ),
-)
+DEFAULT_MODEL_PROFILES_PATH = Path(__file__).with_name("model_profiles") / "default_profiles.json"
 
 
 def resolve_model_request_policy(model_id: str | None) -> ModelRequestPolicy:
     normalized = (model_id or "").casefold()
-    for predicate, policy in _MODEL_POLICY_OVERRIDES:
+    for predicate, policy in _load_model_policy_overrides():
         if predicate(normalized):
             return policy
     return DEFAULT_MODEL_REQUEST_POLICY
+
+
+@lru_cache(maxsize=1)
+def _load_model_policy_overrides() -> tuple[tuple[Callable[[str], bool], ModelRequestPolicy], ...]:
+    path = Path(os.environ.get("PAPERS_TO_TABLE_MODEL_PROFILES") or DEFAULT_MODEL_PROFILES_PATH)
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return ()
+    profiles = payload.get("profiles")
+    if not isinstance(profiles, list):
+        return ()
+    overrides: list[tuple[Callable[[str], bool], ModelRequestPolicy]] = []
+    for item in profiles:
+        if not isinstance(item, dict):
+            continue
+        match = item.get("match")
+        policy_payload = item.get("policy")
+        if not isinstance(match, dict) or not isinstance(policy_payload, dict):
+            continue
+        predicate = _compile_matcher(match)
+        if predicate is None:
+            continue
+        try:
+            policy = ModelRequestPolicy(**policy_payload)
+        except TypeError:
+            continue
+        overrides.append((predicate, policy))
+    return tuple(overrides)
+
+
+def _compile_matcher(match: dict[str, Any]) -> Callable[[str], bool] | None:
+    exact = match.get("exact")
+    contains = match.get("contains")
+    all_contains = match.get("all_contains")
+    if isinstance(exact, str) and exact.strip():
+        expected = exact.casefold()
+        return lambda model_id: model_id == expected
+    if isinstance(contains, str) and contains.strip():
+        needle = contains.casefold()
+        return lambda model_id: needle in model_id
+    if isinstance(all_contains, list) and all(isinstance(item, str) and item.strip() for item in all_contains):
+        needles = [item.casefold() for item in all_contains]
+        return lambda model_id: all(needle in model_id for needle in needles)
+    return None
 
 
 def _fallback_modes_for(structured_mode: str) -> list[str]:
