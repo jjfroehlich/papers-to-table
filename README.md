@@ -65,7 +65,7 @@ python scripts/papers_to_table.py optimizer overnight
 ```
 ### /Papers-to-table skill
 Agents can use the skill when the task is to extract structured values from one or several scientific publications (for which .pdf files are available). 
-Copy `./agent-skills/papers-to-table/` into your agent system's skill directory. Keep the `references/` files with it.
+Copy `./skills/papers-to-table/` into your agent system's skill directory. Keep the `references/` files with it.
 
 ## Documentation
 The manual source lives in [`docs/`](docs/). 

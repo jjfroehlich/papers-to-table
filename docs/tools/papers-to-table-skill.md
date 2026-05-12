@@ -1,6 +1,6 @@
 # /papers-to-table Skill
 
-The project ships an agent skill at `agent-skills/papers-to-table/SKILL.md`.
+The project ships an agent skill at `skills/papers-to-table/SKILL.md`.
 
 ## Use cases
 
@@ -12,7 +12,7 @@ Agents can use the /papers-to-table skill when the task is to:
 
 ## Installation Or Registration
 
-Copy `agent-skills/papers-to-table/` into your agent system's skill directory, or register it in that system's equivalent skill catalog. Keep the `references/` files with it.
+Copy `skills/papers-to-table/` into your agent system's skill directory, or register it in that system's equivalent skill catalog. Keep the `references/` files with it.
 
 ## Agent Workflow
 
