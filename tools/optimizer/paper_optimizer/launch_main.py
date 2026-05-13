@@ -89,6 +89,8 @@ def build_main_app_overlay(config: dict[str, Any], *, candidate: Candidate) -> d
     knob_map = dict(main_cfg.get("optimizer_knob_map", {}))
 
     overlay: dict[str, Any] = {
+        "eval_mode": True,
+        "verify_mode": False,
         "prompt": {"bundle": candidate.prompt_bundle_id},
         "provider": {
             "text_model": {"model_id": candidate.text_model_id},
@@ -243,7 +245,7 @@ def launch_main_app(
             out_dir=out_dir,
         )
 
-    main_run_output_dir = out_dir / "app_output"
+    main_run_output_dir = out_dir / "out"
     overlay, resolved_config = build_resolved_main_config(
         config,
         candidate=candidate,

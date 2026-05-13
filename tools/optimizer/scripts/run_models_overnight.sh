@@ -32,7 +32,7 @@ resolve_optimizer_python() {
 optimizer_python="$(resolve_optimizer_python)"
 
 compare_config="$repo_root/configs/compare_models_overnight.json"
-compare_run_name="${session_id}_models/model_compare"
+compare_run_name="${session_id}_models/compare"
 overnight_dir="$repo_root/runs/${session_id}_models"
 manifest_path="$overnight_dir/overnight_manifest.json"
 
@@ -121,10 +121,18 @@ pushd "$repo_root" >/dev/null
 popd >/dev/null
 
 echo "[$(date -Iseconds)] Step 2: model-only compare study"
-PAPER_OPTIMIZER_RUN_NAME="$compare_run_name" bash "$script_dir/run_study.sh" compare "$compare_config" "${safe_label}_model_compare"
-append_stage model_compare "$compare_run_name"
-write_manifest completed "$(date -Iseconds)"
-refresh_overnight_report
+if PAPER_OPTIMIZER_RUN_NAME="$compare_run_name" bash "$script_dir/run_study.sh" compare "$compare_config" "${safe_label}_model_compare"; then
+	append_stage model_compare "$compare_run_name"
+	write_manifest completed "$(date -Iseconds)"
+	refresh_overnight_report
+else
+	run_status=$?
+	append_stage model_compare "$compare_run_name" || true
+	write_manifest failed "$(date -Iseconds)" || true
+	refresh_overnight_report || true
+	trap - EXIT
+	exit "$run_status"
+fi
 trap - EXIT
 
 echo "[$(date -Iseconds)] Model-only overnight workflow finished"

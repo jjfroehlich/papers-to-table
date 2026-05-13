@@ -44,6 +44,17 @@ class TestLoadTable:
         assert "Authors" in df.columns
         assert "\ufeffAuthors" not in df.columns
 
+    def test_csv_cp1252_fallback(self, tmp_path: pathlib.Path):
+        table_path = tmp_path / "table.csv"
+        table_path.write_bytes(
+            "Title,Authors,Publication Year,Measurement\n"
+            "Paper A,Smith,2025,10 \xb5g/mL\n".encode("cp1252")
+        )
+
+        df = load_table(str(table_path))
+
+        assert df.loc[0, "Measurement"] == "10 \u00b5g/mL"
+
     def test_csv_has_rows(self):
         df = load_table(FIXTURE_TABLE_CSV)
         assert len(df) > 0
@@ -99,6 +110,16 @@ class TestLoadSchema:
                 "allowed_values": None,
             }
         ]
+
+    def test_schema_csv_cp1252_fallback(self, tmp_path: pathlib.Path):
+        schema_path = tmp_path / "schema.csv"
+        schema_path.write_bytes(
+            "column_name,description\nDose,Dose in \xb5g/mL\n".encode("cp1252")
+        )
+
+        schema = load_schema(str(schema_path), str(tmp_path / "table.csv"))
+
+        assert schema[0]["description"] == "Dose in \u00b5g/mL"
 
     def test_loads_inline_schema_row_from_xlsx_when_no_schema_path(self, tmp_path: pathlib.Path):
         workbook_path = tmp_path / "inline.xlsx"

@@ -14,6 +14,18 @@ TRIVIAL_PLACEHOLDERS = {"n/a", "na", "tbd", "tba", "unknown", "-", "--", "none",
 REQUIRED_METADATA_COLS = {"Title", "Authors", "Publication Year"}
 
 
+def _read_text_with_encoding_fallback(path: str | pathlib.Path) -> str:
+    last_error: UnicodeDecodeError | None = None
+    for encoding in ("utf-8-sig", "cp1252"):
+        try:
+            return pathlib.Path(path).read_text(encoding=encoding)
+        except UnicodeDecodeError as exc:
+            last_error = exc
+    if last_error is not None:
+        raise last_error
+    return pathlib.Path(path).read_text(encoding="utf-8-sig")
+
+
 def _normalize_cell_text(value: object) -> str:
     return str(value or "").strip()
 
@@ -81,8 +93,7 @@ def load_table(path: str) -> pd.DataFrame:
             df[col] = df[col].fillna("")
         return df
     else:
-        with open(path, "r", encoding="utf-8-sig") as f:
-            content = f.read()
+        content = _read_text_with_encoding_fallback(path)
         df = pd.read_csv(io.StringIO(content), dtype=str)
         df = df.fillna("")
         return df
@@ -149,9 +160,9 @@ def load_schema(schema_path: Optional[str], table_path: str) -> list[dict]:
     if schema_path:
         p = pathlib.Path(schema_path)
         if p.suffix.lower() == ".csv":
-            with open(schema_path, "r", encoding="utf-8-sig") as f:
-                reader = csv.DictReader(f)
-                return [_schema_row_to_dict(row) for row in reader]
+            content = _read_text_with_encoding_fallback(schema_path)
+            reader = csv.DictReader(io.StringIO(content))
+            return [_schema_row_to_dict(row) for row in reader]
     tp = pathlib.Path(table_path)
     if tp.suffix.lower() in (".xlsx", ".xls"):
         try:

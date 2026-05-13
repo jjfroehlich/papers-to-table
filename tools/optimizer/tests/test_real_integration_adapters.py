@@ -35,6 +35,8 @@ def test_build_main_app_overlay_maps_candidate_into_main_config(base_config: dic
 
     overlay = build_main_app_overlay(base_config, candidate=candidate)
 
+    assert overlay["eval_mode"] is True
+    assert overlay["verify_mode"] is False
     assert overlay["prompt"]["bundle"] == "default"
     assert overlay["provider"]["text_model"]["model_id"] == "text-model-b"
     assert overlay["provider"]["vision_model"] is None
@@ -69,6 +71,8 @@ def test_build_resolved_main_config_binds_benchmark_inputs(base_config: dict, tm
     assert resolved["schema_path"] == benchmark.schema_path
     assert resolved["pdf_dir"] == benchmark.pdf_dir
     assert resolved["output_dir"] == str((tmp_path / "main_out").resolve())
+    assert resolved["eval_mode"] is True
+    assert resolved["verify_mode"] is False
 
 
 def test_map_eval_summary_groups_flat_metrics(base_config: dict) -> None:

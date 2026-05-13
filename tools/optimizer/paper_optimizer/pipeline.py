@@ -300,7 +300,7 @@ def evaluate_candidate_once(
     benchmarks = load_benchmarks(config)
     benchmark = benchmarks.manifests[benchmark_id]
 
-    main_out = experiment_dir / "runs" / candidate.candidate_id / "main"
+    main_out = experiment_dir / "runs" / candidate.candidate_id / "app"
     eval_out = experiment_dir / "runs" / candidate.candidate_id / "eval"
 
     try:
