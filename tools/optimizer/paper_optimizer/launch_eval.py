@@ -179,7 +179,7 @@ def launch_eval_app(
     if main_run_dir is None:
         raise ValueError("main_run_dir is required for real eval-app integration")
     bundled_gold_path = _resolve_run_bundled_gold_path(main_run_dir)
-    gold_path = str(bundled_gold_path) if bundled_gold_path is not None else benchmark.gold_path
+    gold_path = benchmark.gold_path or (str(bundled_gold_path) if bundled_gold_path is not None else None)
     if not gold_path:
         raise ValueError(f"Benchmark '{benchmark_id}' is missing gold_path required for eval")
 
@@ -243,6 +243,7 @@ def launch_eval_app(
         artifact_paths={
             "eval_result_path": str(payload_path.resolve()),
             "gold_path": gold_path,
+            "run_bundled_gold_path": str(bundled_gold_path) if bundled_gold_path is not None else None,
             "compare_dir": payload.get("compare_dir"),
             "per_run_dir": payload.get("per_run_dir"),
             "runs_comparison_csv": (payload.get("comparison_artifacts") or {}).get("runs_comparison_csv"),

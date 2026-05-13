@@ -1612,6 +1612,135 @@ def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_spa
     generate_experiment_report(experiment_dir)
 
 
+def _write_holdout_status(
+    experiment_dir: Path,
+    *,
+    holdout_dir: Path,
+    candidate_ids: list[str],
+    benchmark_id: str,
+) -> None:
+    summary_path = experiment_dir / "summary.json"
+    if not summary_path.exists():
+        return
+
+    payload = read_json(summary_path)
+    primary_metric = payload.get("primary_metric")
+    holdout_records = load_results_jsonl(holdout_dir)
+    holdout_scores = [
+        float(record.get("primary_metrics", {}).get(primary_metric, float("-inf")))
+        for record in holdout_records
+        if isinstance(record.get("primary_metrics"), dict)
+        and record.get("primary_metrics", {}).get(primary_metric) is not None
+    ]
+    payload["holdout_validation"] = {
+        "configured": True,
+        "status": "completed",
+        "ran": True,
+        "benchmark_id": benchmark_id,
+        "candidate_ids": candidate_ids,
+        "output_dir": str(holdout_dir.resolve()),
+        "score": max(holdout_scores) if holdout_scores else None,
+        "score_statuses": [record.get("score_status") for record in holdout_records],
+    }
+    write_json(summary_path, payload)
+
+
+def validate_best(config: dict[str, Any], benchmarks: Benchmarks, experiment_dir: Path, out_dir: Path) -> None:
+    config = normalize_config(config)
+    records = load_results_jsonl(experiment_dir)
+    if not records:
+        raise ValueError("No experiment records found")
+
+    study_type = str(records[0].get("study_type", "optimize"))
+    section = config.get(study_type) if isinstance(config.get(study_type), dict) else {}
+    holdout_suite_id = str(section.get("holdout_suite_id") or "holdout_suite")
+    plan = _suite_plan(config, holdout_suite_id)
+    config = {
+        **config,
+        "acceptance": {
+            **config["acceptance"],
+            "primary_metric": plan.primary_metric,
+        },
+    }
+    primary_metric = plan.primary_metric
+
+    if study_type == "optimize":
+        best_candidate_path = experiment_dir / "best_candidate.json"
+        if not best_candidate_path.exists():
+            raise ValueError("No best_candidate.json found for optimize holdout validation")
+        best_candidate_payload = read_json(best_candidate_path)
+        best_candidate_id = best_candidate_payload.get("candidate_id")
+        selected = [record for record in records if record.get("candidate_id") == best_candidate_id]
+        if not selected:
+            raise ValueError("Configured optimize incumbent was not found in experiment results")
+    else:
+        top_k = int(config.get("compare", {}).get("holdout_top_k", 0) or 0)
+        if top_k <= 0:
+            return
+        selected = sorted(
+            records,
+            key=lambda record: float(record.get("primary_metrics", {}).get(primary_metric, float("-inf"))),
+            reverse=True,
+        )[:top_k]
+
+    writer = ResultsWriter(out_dir)
+    writer.write_experiment_manifest(
+        {
+            "schema_version": config["schema_version"],
+            "experiment_id": config["experiment_id"],
+            "study_type": study_type,
+            "benchmark_id": plan.benchmark_ids[0],
+            "suite_id": plan.suite_id,
+            "benchmark_ids": plan.benchmark_ids,
+            "validation": True,
+        }
+    )
+
+    for item in selected:
+        candidate = Candidate(
+            candidate_id=str(item["candidate_id"]),
+            prompt_bundle_id=str(item["prompt_bundle_id"]),
+            text_model_id=str(item["text_model_id"]),
+            vision_model_id=item.get("vision_model_id"),
+            optimizer_knobs=dict(item.get("optimizer_knobs_flat", {})),
+            parent_candidate_id=item.get("parent_candidate_id"),
+            round_index=None,
+        )
+        result = _evaluate_candidate_with_suite_and_replicates(
+            config,
+            writer,
+            experiment_dir=out_dir,
+            candidate=candidate,
+            plan=plan,
+            study_type=study_type,
+            decision="validated",
+            reason="holdout_validation",
+        )
+        writer.append_result(result)
+
+    candidate_ids = [str(item["candidate_id"]) for item in selected]
+    writer.write_experiment_summary(
+        {
+            "experiment_id": config["experiment_id"],
+            "study_type": study_type,
+            "benchmark_id": plan.benchmark_ids[0],
+            "suite_id": plan.suite_id,
+            "benchmark_ids": plan.benchmark_ids,
+            "primary_metric": primary_metric,
+            "validated_candidate_ids": candidate_ids,
+            "candidate_count": len(candidate_ids),
+            "completed_candidate_count": len(candidate_ids),
+        }
+    )
+    _write_holdout_status(
+        experiment_dir,
+        holdout_dir=out_dir,
+        candidate_ids=candidate_ids,
+        benchmark_id=plan.benchmark_ids[0],
+    )
+    generate_experiment_report(experiment_dir)
+
+
 def summarize(config: dict[str, Any], experiment_dir: Path) -> None:
     manifest = read_json(experiment_dir / "experiment.json")
     study_type = manifest.get("study_type", "optimize")

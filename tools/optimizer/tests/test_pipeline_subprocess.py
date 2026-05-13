@@ -39,8 +39,9 @@ def test_single_candidate_pipeline(base_config: dict, tmp_path: Path) -> None:
     assert result.main_app_run_ref.get("run_id") == "run_cand_0001"
     assert result.candidate_status == "completed"
     assert result.eval_output_ref.get("summary_path")
-    assert Path(result.eval_output_ref.get("artifact_paths", {}).get("gold_path", "")).as_posix().endswith("inputs/gold_table.csv")
-    assert Path(result.metadata.get("eval_summary", {}).get("gold_source", "")).as_posix().endswith("inputs/gold_table.csv")
+    assert Path(result.eval_output_ref.get("artifact_paths", {}).get("gold_path", "")).as_posix().endswith("gold/dev.csv")
+    assert Path(result.eval_output_ref.get("artifact_paths", {}).get("run_bundled_gold_path", "")).as_posix().endswith("inputs/gold_table.csv")
+    assert Path(result.metadata.get("eval_summary", {}).get("gold_source", "")).as_posix().endswith("gold/dev.csv")
 
 
 def test_launch_eval_reports_explicit_cli_failure(base_config: dict, tmp_path: Path) -> None:

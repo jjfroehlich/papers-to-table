@@ -12,6 +12,7 @@ import pytest
 from backend.app.ingest import (
     REQUIRED_METADATA_COLS,
     TRIVIAL_PLACEHOLDERS,
+    build_eval_snapshot_dataframe,
     classify_cell_eligibility,
     get_eligible_cells,
     get_target_columns,
@@ -282,9 +283,12 @@ class TestGetEligibleCells:
 
         normal_targets = get_target_columns(df, schema, include_required_metadata=False)
         eval_targets = get_target_columns(df, schema, include_required_metadata=True)
+        eval_cells = get_eligible_cells(df, schema, eval_mode=True)
+        eval_cell_columns = {cell["column_name"] for cell in eval_cells}
 
         assert set(REQUIRED_METADATA_COLS).isdisjoint(normal_targets)
         assert set(REQUIRED_METADATA_COLS).issubset(eval_targets)
+        assert set(REQUIRED_METADATA_COLS).issubset(eval_cell_columns)
 
     def test_verify_mode_includes_more_cells(self):
         df = load_table(FIXTURE_TABLE)
@@ -301,4 +305,24 @@ class TestGetEligibleCells:
         ids1 = {c["row_id"] for c in cells1}
         ids2 = {c["row_id"] for c in cells2}
         assert ids1 == ids2
+
+
+class TestBuildEvalSnapshotDataFrame:
+    def test_regenerates_existing_join_columns(self):
+        df = pd.DataFrame(
+            {
+                "row_id": ["stale-row-id"],
+                "row_index": ["99"],
+                "Title": ["Paper A"],
+                "Authors": ["Smith"],
+            }
+        )
+
+        snapshot = build_eval_snapshot_dataframe(df)
+
+        assert list(snapshot.columns[:2]) == ["row_id", "row_index"]
+        assert snapshot["row_id"].tolist() != ["stale-row-id"]
+        assert snapshot["row_index"].tolist() == [0]
+        assert snapshot.columns.tolist().count("row_id") == 1
+        assert snapshot.columns.tolist().count("row_index") == 1
 

@@ -244,7 +244,7 @@ def get_eligible_cells(
     """Return list of eligible cells: {row_id, row_index, column_name, current_value, eligibility}."""
     from .ids import generate_row_id
 
-    target_cols = set(get_target_columns(df, schema, include_required_metadata=verify_mode))
+    target_cols = set(get_target_columns(df, schema, include_required_metadata=verify_mode or eval_mode))
 
     eligible = []
     for row_idx, row in df.iterrows():
@@ -309,6 +309,7 @@ def build_eval_snapshot_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     from .ids import generate_row_id
 
     snapshot_df = df.copy(deep=True)
+    snapshot_df = snapshot_df.drop(columns=["row_id", "row_index"], errors="ignore")
     row_indices = [int(row_idx) for row_idx in snapshot_df.index]
     row_ids = [
         generate_row_id(int(row_idx), str(snapshot_df.loc[row_idx].get("Title", "")))

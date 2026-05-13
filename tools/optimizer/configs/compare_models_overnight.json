@@ -329,7 +329,7 @@
   },
   "compare": {
     "require_structured_output_for_extraction": true,
-    "allow_degraded_candidates": true,
+    "allow_degraded_candidates": false,
     "suite_id": "dev_suite"
   },
   "benchmark_suites": {
