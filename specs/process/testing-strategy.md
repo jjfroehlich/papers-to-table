@@ -1,6 +1,8 @@
 # Testing Strategy
 
-- Status: Normative
+> Compatibility reference: canonical product/system truth now lives in [`../spec.md`](../spec.md), roadmap direction in [`../plan.md`](../plan.md), and status/backlog in [`../tasks.md`](../tasks.md). Do not treat this file as normative when it conflicts with the canonical files.
+
+- Status: Compatibility reference
 - Owner: Process
 - Depends on: process/change-policy.md
 - Consumed by: contributors, coding agents

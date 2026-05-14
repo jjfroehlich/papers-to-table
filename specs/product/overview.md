@@ -1,6 +1,8 @@
 # Product Overview
 
-- Status: Normative
+> Compatibility reference: canonical product/system truth now lives in [`../spec.md`](../spec.md), roadmap direction in [`../plan.md`](../plan.md), and status/backlog in [`../tasks.md`](../tasks.md). Do not treat this file as normative when it conflicts with the canonical files.
+
+- Status: Compatibility reference
 - Owner: Product
 - Depends on: product/main-app.md, tools/eval.md, tools/optimizer.md
 - Consumed by: README.md, specs/spec.md, docs/main-app/browser-review.md, app/backend/src/backend/app/
@@ -121,4 +123,4 @@ The product is succeeding when:
 - Shared cross-tool contracts are specified once in `../contracts/`.
 - Monorepo and integration boundaries are specified in `../architecture/`.
 
-Those boundaries are normative and should be used to avoid duplicated truth.
+Those boundaries are compatibility guidance; canonical boundaries live in `../spec.md`.

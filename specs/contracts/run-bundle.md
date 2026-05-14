@@ -1,6 +1,8 @@
 # Run Bundle Contract
 
-- Status: Normative
+> Compatibility reference: canonical product/system truth now lives in [`../spec.md`](../spec.md), roadmap direction in [`../plan.md`](../plan.md), and status/backlog in [`../tasks.md`](../tasks.md). Machine-readable contracts under [`schemas/`](schemas/) remain current.
+
+- Status: Compatibility reference
 - Owner: Shared Contracts
 - Depends on: product/main-app.md
 - Consumed by: tools/eval/, tools/optimizer/, app/backend/src/backend/app/
@@ -120,7 +122,7 @@ Those summary fields are the shared contract consumed by eval and optimizer repo
 
 ## Ownership boundary
 
-This file owns the run-bundle surface.
+This file is a compatibility reference for the run-bundle surface. Canonical markdown behavior lives in `../spec.md`, and machine-readable contracts live in `schemas/`.
 
 Main-app product docs and tool docs may reference this contract, but they must not restate its detailed file and field rules independently.
 

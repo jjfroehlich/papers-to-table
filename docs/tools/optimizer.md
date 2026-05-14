@@ -216,6 +216,28 @@ Interpretation guidance:
 - suite-level weighted means use benchmark-level means, not raw replicate rows
 - raw winner and recommended default can differ when trust caveats are material
 
+## Execution Phases
+
+Optimizer is orchestration-only. It does not extract values itself and it does not judge values itself. For every internal candidate x benchmark x replicate, it runs the same ordered phases:
+
+1. Resolve study config: load the preset, selected suite, benchmark manifests, replicate count, candidates, and search space.
+2. Materialize candidate bundle: write the candidate manifest and resolved config overlays for that candidate.
+3. Launch main-app extraction: start a headless/eval-mode main-app run for that candidate and benchmark. This run parses PDFs, matches rows, retrieves evidence, produces proposals, runs optional figure review, and writes the run bundle.
+4. Validate main-app output: confirm the expected run reference, run directory, `run.json`, config snapshot, summaries, and proposal artifacts exist.
+5. Launch eval: pass the completed run bundle to eval. Eval then performs its own deterministic scoring phase followed by judge-major LLM batches.
+6. Validate eval output: confirm eval summary and expected per-run artifacts satisfy the optimizer contract.
+7. Record candidate result: merge main-app runtime metadata, eval metrics, diagnostics, warnings, and artifact references into candidate result rows.
+8. Aggregate replicates and suites: summarize candidate x benchmark, candidate x suite, and study-level results.
+9. Rank and recommend: rank raw results, apply guardrails and trust caveats, then write `best_candidate.json`, `summary.json`, plots, and `report.html`.
+
+The default implementation is sequential. A candidate's proposal-generation phase completes before its eval judging phase starts, and the next candidate does not start until the current candidate's main-app and eval phases have finished. This keeps one shared LM Studio server from being asked to load, unload, and generate for unrelated jobs at the same time.
+
+### Proposal And Judging Organization
+
+Proposal generation belongs to the main app phase. The optimizer waits for the main app to produce proposals for the whole candidate run before eval starts. It does not alternate "extract one cell, judge one cell" loops.
+
+Judging belongs to the eval phase. Eval first determines all cells that require LLM judging, then runs grouped judge batches. In dual-judge mode, both judges' per-cell records are preserved and disagreement is reported as a trust signal.
+
 ## How Outputs Are Organized
 
 Each experiment writes an experiment directory with:

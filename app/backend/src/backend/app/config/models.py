@@ -59,6 +59,13 @@ class ProviderConfig(BaseModel):
     text_model: TextModelConfig = Field(default_factory=TextModelConfig)
     vision_model: Optional[VisionModelConfig] = None
     locality: str = 'local'
+    request_timeout_seconds: float = Field(default=300.0, ge=1)
+    vision_request_timeout_seconds: float = Field(default=420.0, ge=1)
+    model_load_timeout_seconds: float = Field(default=600.0, ge=1)
+    model_unload_timeout_seconds: float = Field(default=180.0, ge=1)
+    lm_studio_lock_enabled: bool = True
+    lm_studio_lock_timeout_seconds: float = Field(default=900.0, ge=1)
+    lm_studio_lock_path: Optional[str] = None
 
 
 class ParserConfig(BaseModel):

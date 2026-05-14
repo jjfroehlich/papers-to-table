@@ -1,6 +1,6 @@
 # Spec System
 
-This directory is the current source of truth for papers-to-table.
+This directory contains the current source of truth for papers-to-table.
 
 ## Review Pass, 2026-05-01
 
@@ -13,40 +13,34 @@ The current implementation mostly follows the integrated spec: browser mode is p
 
 Those gaps are now reflected in `spec.md` and the manual.
 
-## Proposed Structure
+## Canonical Structure
 
 Keep fewer normative files:
 
-- `spec.md`: product, workflow, contracts, and behavior that must stay true.
-- `tasks.md`: current backlog and verified status only.
-- `research.md`: rationale and historical tradeoffs that still matter.
-- `contracts/`: machine-readable schemas and artifact contracts.
+- `spec.md`: full product and system behavior, backend phases, run bundle, eval/optimizer behavior, model residency policy, and report/output truth.
+- `plan.md`: roadmap and technical direction only.
+- `tasks.md`: verified status and backlog only.
+- `contracts/schemas/*.json`: machine-readable validation contracts.
 - `archive/`: old plans, generated scaffolds, and superseded verbatim specs.
 
-`spec.md` is the integrated cross-repo entry point, not a replacement for the domain-owning current specs.
-
-`product/`, `tools/`, `contracts/`, `architecture/`, and `process/` remain normative for their domains. New behavior changes should update `spec.md` plus the specific owning current file that carries the detailed durable truth.
+`spec.md`, `plan.md`, and `tasks.md` are the only normative markdown specs. Markdown files under `product/`, `tools/`, `contracts/`, `architecture/`, and `process/` are compatibility references unless they explicitly point back to the canonical files. New behavior changes should update the canonical files first, then update manuals or schemas when needed.
 
 ## Reading order
 
 1. [`spec.md`](spec.md) — integrated current product and system specification
-2. [`research.md`](research.md) — rationale, tradeoffs, and historical notes that still matter
-3. [`plan.md`](plan.md) — technical direction and roadmap
-4. [`tasks.md`](tasks.md) — current verified status and backlog
-5. [`process/change-policy.md`](process/change-policy.md) — spec-update ownership and anti-duplication rules
-6. [`process/testing-strategy.md`](process/testing-strategy.md) — verification expectations for behavior, docs, and contracts
+2. [`plan.md`](plan.md) — technical direction and roadmap
+3. [`tasks.md`](tasks.md) — current verified status and backlog
+4. [`research.md`](research.md) — non-normative rationale, tradeoffs, and historical notes that still matter
 
 ## Supporting references
 
-The subdirectories remain useful current specs for modular ownership and detailed contracts:
+The subdirectories remain useful compatibility references and historical detail:
 
-- `product/` — focused product slices and reviewer workflow ownership
-- `tools/` — eval and optimizer scope details
-- `contracts/` — shared filesystem, summary, and evidence contracts
-- `architecture/` — repo boundaries and integration structure
-- `process/` — testing and change policy
+- `product/` — older focused product slices and reviewer workflow notes
+- `tools/` — older eval and optimizer scope notes
+- `contracts/` — older shared artifact notes plus current `schemas/`
+- `architecture/` — older repo boundary and integration notes
+- `process/` — older testing and change-policy notes
 - `archive/verbatim/` — preserved historical material only
 
-When current truth changes, update `spec.md` plus any owning supporting reference in the same pass.
-
-When `spec.md` and a supporting current file overlap, keep the detailed durable truth in the owning current file and reduce `spec.md` to the integrated summary needed to understand the whole repo.
+When current truth changes, update `spec.md`, `plan.md`, or `tasks.md`. Do not create a new normative markdown spec unless the canonical structure changes in this README first.

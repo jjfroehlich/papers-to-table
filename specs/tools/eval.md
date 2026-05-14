@@ -1,6 +1,8 @@
 # Eval Tool
 
-- Status: Normative
+> Compatibility reference: canonical product/system truth now lives in [`../spec.md`](../spec.md), roadmap direction in [`../plan.md`](../plan.md), and status/backlog in [`../tasks.md`](../tasks.md). Do not treat this file as normative when it conflicts with the canonical files.
+
+- Status: Compatibility reference
 - Owner: Eval
 - Depends on: contracts/run-bundle.md, contracts/eval-summary.md, contracts/proposals-and-evidence.md
 - Consumed by: tools/eval/, docs/tools/eval.md
@@ -11,7 +13,7 @@ The eval tool is an internal CLI-first evaluator for main-app run bundles.
 
 It reads run artifacts from files, scores proposals against a human-filled gold table, and writes inspectable per-cell, per-run, and cross-run comparison artifacts.
 
-Archive material may remain useful for historical background, but this current file is the complete active source of truth for eval behavior.
+Archive material may remain useful for historical background, but canonical eval behavior now lives in `../spec.md`.
 
 Eval is a companion tool. It is not a second extraction product and it does not run extraction itself.
 
@@ -100,6 +102,6 @@ Eval must emit inspectable audit summaries in stable per-run outputs for:
 
 ## Ownership boundary
 
-This file owns eval-tool behavior and scope.
+This file is a compatibility reference for eval-tool behavior and scope. Canonical behavior lives in `../spec.md`.
 
 It does not own the shared run-bundle, proposal/evidence, or summary contracts. Those belong in `../contracts/`.

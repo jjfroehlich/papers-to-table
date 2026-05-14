@@ -132,6 +132,12 @@ class LMStudioJudgeAdapterTests(unittest.TestCase):
         self.assertEqual(response.metadata["provider"], DEFAULT_JUDGE_PROVIDER)
         self.assertEqual(response.metadata["configured_model_id"], "configured-model")
         self.assertEqual(response.metadata["resolved_model_id"], "resolved-runtime-model")
+        self.assertEqual(response.metadata["request_timeout_seconds"], 300.0)
+        self.assertEqual(response.metadata["model_load_timeout_seconds"], 600.0)
+        self.assertEqual(response.metadata["model_unload_timeout_seconds"], 180.0)
+        self.assertTrue(response.metadata["lm_studio_lock_enabled"])
+        self.assertTrue(response.metadata["lm_studio_lock_path"].endswith(".lock"))
+        self.assertGreaterEqual(response.metadata["lm_studio_lock_wait_ms"], 0.0)
 
     def test_lm_studio_adapter_falls_back_to_json_object_when_json_schema_fails(self) -> None:
         judge_config = JudgeConfig(model_id="configured-model")

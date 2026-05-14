@@ -1,6 +1,8 @@
 # Eval Summary Contract
 
-- Status: Normative
+> Compatibility reference: canonical product/system truth now lives in [`../spec.md`](../spec.md), roadmap direction in [`../plan.md`](../plan.md), and status/backlog in [`../tasks.md`](../tasks.md). Machine-readable contracts under [`schemas/`](schemas/) remain current.
+
+- Status: Compatibility reference
 - Owner: Shared Contracts
 - Depends on: tools/eval.md
 - Consumed by: tools/optimizer/, docs/tools/optimizer.md
@@ -58,6 +60,6 @@ That includes:
 
 ## Ownership boundary
 
-This file owns the shared eval-output surface used by optimizer.
+This file is a compatibility reference for the shared eval-output surface used by optimizer. Canonical markdown behavior lives in `../spec.md`.
 
 Optimizer docs may define how the tool uses these summaries, but not redefine their shared fields here.

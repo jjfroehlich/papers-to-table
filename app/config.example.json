@@ -16,7 +16,13 @@
     "vision_model": {
       "model_id": "unsloth/gemma-4-26b-a4b-it"
     },
-    "locality": "local"
+    "locality": "local",
+    "request_timeout_seconds": 300,
+    "vision_request_timeout_seconds": 420,
+    "model_load_timeout_seconds": 600,
+    "model_unload_timeout_seconds": 180,
+    "lm_studio_lock_enabled": true,
+    "lm_studio_lock_timeout_seconds": 900
   },
   "parser": {
     "backend": "docling",

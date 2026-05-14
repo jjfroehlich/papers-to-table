@@ -1,13 +1,15 @@
 # Review Workflow
 
-- Status: Normative
+> Compatibility reference: canonical product/system truth now lives in [`../spec.md`](../spec.md), roadmap direction in [`../plan.md`](../plan.md), and status/backlog in [`../tasks.md`](../tasks.md). Do not treat this file as normative when it conflicts with the canonical files.
+
+- Status: Compatibility reference
 - Owner: Product
 - Depends on: product/main-app.md, contracts/proposals-and-evidence.md
 - Consumed by: docs/main-app/browser-review.md, app/frontend/src/
 
 ## Purpose
 
-This file defines the normative reviewer workflow for the main app.
+This file preserves reviewer workflow compatibility notes for the main app.
 
 The reviewer is reviewing what the paper supports, not grading the model. The review workspace must therefore keep paper evidence, review actions, and explicit curation outcomes primary.
 
@@ -81,7 +83,7 @@ No-value states must remain actionable. The review workspace should support expl
 - When figure evidence is used, the reviewer should be able to understand whether it came from a targeted crop, a page-level region, or broader figure-context inspection.
 - The evidence list and the document viewer should stay synchronized around the selected evidence item.
 
-Shared evidence-type and support-label rules are owned by `../contracts/proposals-and-evidence.md`.
+Shared evidence-type and support-label rules are canonical in `../spec.md`; this file preserves older compatibility detail.
 
 ## Review ergonomics
 
@@ -129,6 +131,6 @@ Unreviewed proposals must not be treated as accepted changes during export.
 
 ## Ownership boundary
 
-This file owns reviewer workflow behavior.
+This file is a compatibility reference for reviewer workflow behavior. Canonical behavior lives in `../spec.md`.
 
 It does not own shared artifact contracts, score semantics, or optimizer behavior.

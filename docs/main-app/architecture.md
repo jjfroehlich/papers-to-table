@@ -8,33 +8,31 @@ papers-to-table is a local-first app with three layers:
 
 ```mermaid
 flowchart TD
-  UI[Browser UI] --> API[FastAPI backend]
-  API --> CFG[Config + selected paths]
-  API --> RUN[Run executor]
-  RUN --> PF[Preflight]
-  PF --> PARSE[Parse PDFs]
-  PARSE --> MATCH[Match PDFs to rows]
-  MATCH --> ROWS[Append unmatched PDF rows when needed]
-  ROWS --> STYP[Generate style profiles from filled cells
-(text model or heuristic fallback)]
-  STYP --> RET[Retrieve relevant text, tables, captions]
-  RET --> PROMPT[Build per-cell extraction prompts]
-  PROMPT --> LLM[Call text model via provider adapter\n(LM Studio / compatible OpenAI API)]
-  LLM --> PARSEOUT[Parse + validate structured response]
-  PARSEOUT --> FIGCHK{Figure review enabled\nand supported?}
-  FIGCHK -->|Yes| FIGREV[Targeted vision calls for figure checks]
+  UI["Browser UI"] --> API["FastAPI backend"]
+  API --> CFG["Config + selected paths"]
+  API --> RUN["Run executor"]
+  RUN --> PF["Preflight"]
+  PF --> PARSE["Parse PDFs"]
+  PARSE --> MATCH["Match PDFs to rows"]
+  MATCH --> ROWS["Append unmatched PDF rows<br/>when needed"]
+  ROWS --> STYP["Generate style profiles<br/>(text model or heuristic fallback)"]
+  STYP --> RET["Retrieve relevant text,<br/>tables, captions"]
+  RET --> PROMPT["Build per-cell extraction prompts"]
+  PROMPT --> LLM["Call text model via provider adapter<br/>(LM Studio / compatible OpenAI API)"]
+  LLM --> PARSEOUT["Parse + validate structured response"]
+  PARSEOUT --> FIGCHK{"Figure review enabled<br/>and supported?"}
+  FIGCHK -->|Yes| FIGREV["Targeted vision calls<br/>for figure checks"]
   FIGCHK -->|No| PROP
-  FIGREV --> PROP[Best proposal + evidence + diagnostics]
+  FIGREV --> PROP["Best proposal + evidence + diagnostics"]
   PARSEOUT --> PROP
-  PROP --> REVIEW[Human review decisions]
-  REVIEW --> EXPORT[Accepted-only workbook export]
-  PROP --> EVAL[Eval companion]
+  PROP --> REVIEW["Human review decisions"]
+  REVIEW --> EXPORT["Accepted-only workbook export"]
+  PROP --> EVAL["Eval companion"]
 ```
 
 ## Run Lifecycle
 
-a. User clicks "Start Run". The frontend sends `config.json`.
-b. Headless run via command-line.
+Browser runs start when the user clicks "Start Run" and the frontend sends the selected config. Headless runs use the same backend executor through the command line.
 
 1. The backend resolves paths and runs readiness checks.
 2. If readiness passes, the run executor creates `{output_dir}/{run_id}` and writes early run metadata.
@@ -49,12 +47,9 @@ b. Headless run via command-line.
 11. Optional figure review by the vision model via LM Studio. This is decided per cell, and done when: figure review is enabled config, evidence-aware triggers indicate likely value (for example weak/unclear/contradictory text evidence or figure-promising retrieval), and shortlisted figures are available. 
 12. Figure review outputs are merged into the same proposal state together with text extraction; the supporting evidence is appended and ranked, and conflicts with text proposal are flagged; deterministic process without LLM model.
 13. Proposals are filtered by validity/support rules and one final proposal record is persisted per cell. This is done deterministically without LLM model and combines one text-path proposal with zero or more figure-review hits used for corroboration or rescue.
-14. Run artifacts are updated incrementally (proposals, diagnostics, and progress state).
-
-a. Review by the user, records decisions.
-b. All proposals are automatically accepted.
-
-14. Export writes spreadsheet with accepted proposals.
+14. Run artifacts are updated incrementally: proposals, diagnostics, provider diagnostics, and progress state.
+15. Human review records explicit decisions, or headless `--accept-all` records automation decisions.
+16. Export writes a spreadsheet with accepted proposals only.
 
 ### Extraction Mechanics
 
@@ -63,6 +58,9 @@ b. All proposals are automatically accepted.
 - Figure review is selectively invoked per cell using evidence-aware triggers; no per-column schema vision policy is required.
 - Steps after a triggered vision call are deterministic merge/filter logic; they do not call another LLM.
 - The current persisted contract is one final proposal per cell, with text and figure evidence co-located for auditability.
+- Extraction, eval, and optimizer runs are phase-separated. The main app finishes all extraction proposals before optimizer-launched eval starts. Eval scores deterministic cells first, then runs text judging in judge-major batches grouped by provider, model, and settings.
+- LM Studio calls are serialized through a shared lock by default. Load, unload, text completion, vision completion, structured-output probes, and eval judge completions do not run concurrently against the same local LM Studio server unless the operator explicitly disables the lock.
+- Local LM Studio timeouts are configurable and conservative by default: request, vision request, model load, model unload, and lock wait limits are recorded in provider diagnostics.
 
 ## Figure Review
 

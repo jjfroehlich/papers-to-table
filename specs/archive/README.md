@@ -4,7 +4,7 @@
 
 This directory preserves historical legacy spec files.
 
-Nothing here is the current source of truth. Current behavior lives under `../product/`, `../tools/`, `../contracts/`, `../architecture/`, and `../process/`.
+Nothing here is the current source of truth. Current behavior lives in `../spec.md`, `../plan.md`, `../tasks.md`, and JSON schemas under `../contracts/schemas/`.
 
 ## Structure
 

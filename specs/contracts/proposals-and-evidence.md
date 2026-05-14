@@ -1,6 +1,8 @@
 # Proposals And Evidence Contract
 
-- Status: Normative
+> Compatibility reference: canonical product/system truth now lives in [`../spec.md`](../spec.md), roadmap direction in [`../plan.md`](../plan.md), and status/backlog in [`../tasks.md`](../tasks.md). Machine-readable contracts under [`schemas/`](schemas/) remain current.
+
+- Status: Compatibility reference
 - Owner: Shared Contracts
 - Depends on: product/main-app.md, product/review-workflow.md
 - Consumed by: app/backend/src/backend/app/, tools/eval/
@@ -71,6 +73,6 @@ The contract must preserve a clear distinction between:
 
 ## Ownership boundary
 
-This file owns proposal and evidence semantics shared across main app and eval.
+This file is a compatibility reference for proposal and evidence semantics shared across main app and eval. Canonical markdown behavior lives in `../spec.md`, and machine-readable contracts live in `schemas/`.
 
 Tool docs must reference this file rather than redefining evidence types or support labels.

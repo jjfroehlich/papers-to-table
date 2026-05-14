@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import httpx
@@ -7,7 +8,13 @@ import pytest
 import respx
 from unittest.mock import AsyncMock, patch
 
-from backend.app.provider import LMStudioProvider, ProviderCapabilities, ProviderError, initialize_provider
+from backend.app.provider import (
+    LMStudioProvider,
+    ProviderCapabilities,
+    ProviderError,
+    _default_lm_studio_lock_path,
+    initialize_provider,
+)
 
 
 def _provider_config(*, working_context_budget: int = 25000, load_context_length: int | None = 32000):
@@ -42,6 +49,62 @@ def _models_payload(*, loaded_instances: list[dict] | None = None, max_context_l
             },
         ]
     }
+
+
+def test_default_lm_studio_lock_path_normalizes_localhost_aliases():
+    assert _default_lm_studio_lock_path("http://localhost:1234") == _default_lm_studio_lock_path(
+        "http://127.0.0.1:1234/v1"
+    )
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_model_management_reports_timeout_and_lock_metadata():
+    lock_path = Path(".tmp_lm_studio_test.lock").resolve()
+    if lock_path.exists():
+        lock_path.unlink()
+    provider = LMStudioProvider(
+        base_url="http://localhost:1234",
+        request_timeout_seconds=11,
+        vision_request_timeout_seconds=22,
+        model_load_timeout_seconds=33,
+        model_unload_timeout_seconds=44,
+        lock_timeout_seconds=55,
+        lock_path=str(lock_path),
+    )
+    respx.get("http://localhost:1234/api/v1/models").mock(
+        return_value=httpx.Response(200, json=_models_payload(loaded_instances=[]))
+    )
+    respx.post("http://localhost:1234/api/v1/models/load").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "type": "llm",
+                "instance_id": "text-model",
+                "load_time_seconds": 4.2,
+                "status": "loaded",
+                "load_config": {"context_length": 32000},
+            },
+        )
+    )
+
+    report = await provider.ensure_model_availability(
+        text_model_id="text-model",
+        text_working_context_budget=25000,
+        text_load_context_length=32000,
+        text_load_context_is_derived=False,
+    )
+    diagnostics = provider.get_diagnostics()
+
+    assert report["timeouts"]["request_timeout_seconds"] == 11
+    assert report["timeouts"]["vision_request_timeout_seconds"] == 22
+    assert report["timeouts"]["model_load_timeout_seconds"] == 33
+    assert report["timeouts"]["model_unload_timeout_seconds"] == 44
+    assert report["lock"]["enabled"] is True
+    assert report["lock"]["path"] == str(lock_path)
+    assert diagnostics["model_management_counters"]["lock_acquire_count"] >= 1
+    assert diagnostics["lock"]["path"] == str(lock_path)
+    assert not lock_path.exists()
 
 
 @pytest.mark.asyncio

@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import tempfile
+import time
 from typing import Any, Protocol
 from urllib import error, request
 
@@ -30,6 +33,11 @@ Rules:
 - Use verdict "unclear" only when the provided bounded context is insufficient.
 """
 
+DEFAULT_JUDGE_REQUEST_TIMEOUT_SECONDS = 300.0
+DEFAULT_JUDGE_MODEL_LOAD_TIMEOUT_SECONDS = 600.0
+DEFAULT_JUDGE_MODEL_UNLOAD_TIMEOUT_SECONDS = 180.0
+DEFAULT_LM_STUDIO_LOCK_TIMEOUT_SECONDS = 900.0
+
 
 class TextJudge(Protocol):
     def judge(self, judge_request: JudgeRequest) -> JudgeResponse:
@@ -46,6 +54,99 @@ def _fallback_modes_for(structured_mode: str) -> list[str]:
     if structured_mode == "json_object":
         return ["json_object", "none"]
     return ["none"]
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw_value = os.environ.get(name)
+    if raw_value is None:
+        return default
+    return raw_value.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _env_float(name: str, default: float) -> float:
+    raw_value = os.environ.get(name)
+    if raw_value is None:
+        return default
+    try:
+        return float(raw_value)
+    except ValueError:
+        return default
+
+
+def _default_lm_studio_lock_path(base_url: str) -> str:
+    normalized = base_url.rstrip("/")
+    if normalized.endswith("/v1"):
+        normalized = normalized[: -len("/v1")]
+    normalized = normalized.replace("://localhost", "://127.0.0.1")
+    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
+    return os.path.join(tempfile.gettempdir(), f"papers_to_table_lm_studio_{digest}.lock")
+
+
+def _urlopen_with_timeout(http_request: request.Request, timeout_seconds: float):
+    try:
+        return request.urlopen(http_request, timeout=timeout_seconds)
+    except TypeError:
+        # Unit tests often patch urlopen with a one-argument fake.
+        return request.urlopen(http_request)
+
+
+class _LMStudioFileLock:
+    def __init__(self, *, path: str, timeout_seconds: float, owner: str, enabled: bool, on_acquire=None) -> None:
+        self._path = path
+        self._timeout_seconds = timeout_seconds
+        self._owner = owner
+        self._enabled = enabled
+        self._on_acquire = on_acquire
+        self.wait_ms = 0.0
+        self.acquired = False
+
+    def __enter__(self) -> "_LMStudioFileLock":
+        if not self._enabled:
+            return self
+        os.makedirs(os.path.dirname(self._path), exist_ok=True)
+        deadline = time.monotonic() + self._timeout_seconds
+        start = time.monotonic()
+        stale_after_seconds = max(self._timeout_seconds * 4, 3600.0)
+        while True:
+            try:
+                fd = os.open(self._path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            except FileExistsError:
+                try:
+                    age = time.time() - os.path.getmtime(self._path)
+                    if age > stale_after_seconds:
+                        os.unlink(self._path)
+                        continue
+                except OSError:
+                    pass
+                if time.monotonic() >= deadline:
+                    self.wait_ms = (time.monotonic() - start) * 1000.0
+                    raise EvaluationError(
+                        f"Timed out waiting for LM Studio lock after {self._timeout_seconds:.1f}s: {self._path}"
+                    )
+                time.sleep(0.25)
+                continue
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                json.dump(
+                    {
+                        "owner": self._owner,
+                        "pid": os.getpid(),
+                        "created_at": time.time(),
+                    },
+                    handle,
+                )
+            self.wait_ms = (time.monotonic() - start) * 1000.0
+            self.acquired = True
+            if self._on_acquire is not None:
+                self._on_acquire(self.wait_ms)
+            return self
+
+    def __exit__(self, exc_type, exc, tb) -> bool:
+        if self.acquired:
+            try:
+                os.unlink(self._path)
+            except FileNotFoundError:
+                pass
+        return False
 
 
 def _strip_json_fence(text: str) -> str:
@@ -230,6 +331,25 @@ def judge_record_from_result(
 class LMStudioTextJudge:
     def __init__(self, judge_config: JudgeConfig) -> None:
         self._judge_config = judge_config
+        api_base = self._judge_config.api_base or DEFAULT_LM_STUDIO_API_BASE
+        self._request_timeout_seconds = _env_float(
+            "PAPER_EVAL_JUDGE_REQUEST_TIMEOUT_SECONDS", DEFAULT_JUDGE_REQUEST_TIMEOUT_SECONDS
+        )
+        self._model_load_timeout_seconds = _env_float(
+            "PAPER_EVAL_JUDGE_MODEL_LOAD_TIMEOUT_SECONDS", DEFAULT_JUDGE_MODEL_LOAD_TIMEOUT_SECONDS
+        )
+        self._model_unload_timeout_seconds = _env_float(
+            "PAPER_EVAL_JUDGE_MODEL_UNLOAD_TIMEOUT_SECONDS", DEFAULT_JUDGE_MODEL_UNLOAD_TIMEOUT_SECONDS
+        )
+        self._lock_enabled = _env_bool(
+            "PAPER_EVAL_LM_STUDIO_LOCK_ENABLED",
+            _env_bool("PAPER_TO_TABLE_LM_STUDIO_LOCK_ENABLED", True),
+        )
+        self._lock_timeout_seconds = _env_float(
+            "PAPER_TO_TABLE_LM_STUDIO_LOCK_TIMEOUT_SECONDS", DEFAULT_LM_STUDIO_LOCK_TIMEOUT_SECONDS
+        )
+        self._lock_path = os.environ.get("PAPER_TO_TABLE_LM_STUDIO_LOCK_PATH") or _default_lm_studio_lock_path(api_base)
+        self._last_lock_wait_ms = 0.0
 
     def judge(self, judge_request: JudgeRequest) -> JudgeResponse:
         self._ensure_model_loaded(self._judge_config.model_id)
@@ -255,8 +375,9 @@ class LMStudioTextJudge:
                 headers["Authorization"] = f"Bearer {self._judge_config.api_key}"
             http_request = request.Request(endpoint, data=data, headers=headers, method="POST")
             try:
-                with request.urlopen(http_request) as response:
-                    response_payload = json.loads(response.read().decode("utf-8"))
+                with self._lm_studio_lock(f"eval_judge:{self._judge_config.label}:{self._judge_config.model_id}:{mode}"):
+                    with _urlopen_with_timeout(http_request, self._request_timeout_seconds) as response:
+                        response_payload = json.loads(response.read().decode("utf-8"))
             except error.HTTPError as exc:  # pragma: no cover - exercised by integration environments
                 detail = exc.read().decode("utf-8", errors="replace")
                 if exc.code == 400 and index < len(modes) - 1:
@@ -303,6 +424,12 @@ class LMStudioTextJudge:
                     "usage": response_payload.get("usage", {}),
                     "judge_response_mode": mode,
                     "structured_output_fallback_used": mode != modes[0],
+                    "request_timeout_seconds": self._request_timeout_seconds,
+                    "model_load_timeout_seconds": self._model_load_timeout_seconds,
+                    "model_unload_timeout_seconds": self._model_unload_timeout_seconds,
+                    "lm_studio_lock_enabled": self._lock_enabled,
+                    "lm_studio_lock_path": self._lock_path,
+                    "lm_studio_lock_wait_ms": self._last_lock_wait_ms,
                 },
             )
 
@@ -394,7 +521,7 @@ class LMStudioTextJudge:
         endpoint = self._rest_api_base().rstrip("/") + "/api/v1/models"
         http_request = request.Request(endpoint, headers=self._build_headers(), method="GET")
         try:
-            with request.urlopen(http_request) as response:
+            with _urlopen_with_timeout(http_request, self._request_timeout_seconds) as response:
                 return json.loads(response.read().decode("utf-8"))
         except error.HTTPError as exc:  # pragma: no cover - exercised by integration environments
             detail = exc.read().decode("utf-8", errors="replace")
@@ -410,7 +537,7 @@ class LMStudioTextJudge:
         endpoint = (self._judge_config.api_base or DEFAULT_LM_STUDIO_API_BASE).rstrip("/") + "/models"
         http_request = request.Request(endpoint, headers=self._build_headers(), method="GET")
         try:
-            with request.urlopen(http_request) as response:
+            with _urlopen_with_timeout(http_request, self._request_timeout_seconds) as response:
                 response_payload = json.loads(response.read().decode("utf-8"))
         except error.HTTPError as exc:  # pragma: no cover - exercised by integration environments
             detail = exc.read().decode("utf-8", errors="replace")
@@ -442,8 +569,9 @@ class LMStudioTextJudge:
             method="POST",
         )
         try:
-            with request.urlopen(http_request) as response:
-                response.read()
+            with self._lm_studio_lock(f"eval_unload:{instance_id}"):
+                with _urlopen_with_timeout(http_request, self._model_unload_timeout_seconds) as response:
+                    response.read()
         except error.HTTPError as exc:  # pragma: no cover - exercised by integration environments
             detail = exc.read().decode("utf-8", errors="replace")
             raise EvaluationError(
@@ -467,8 +595,9 @@ class LMStudioTextJudge:
             method="POST",
         )
         try:
-            with request.urlopen(http_request) as response:
-                response.read()
+            with self._lm_studio_lock(f"eval_load:{model_id}"):
+                with _urlopen_with_timeout(http_request, self._model_load_timeout_seconds) as response:
+                    response.read()
         except error.HTTPError as exc:  # pragma: no cover - exercised by integration environments
             detail = exc.read().decode("utf-8", errors="replace")
             raise EvaluationError(
@@ -492,6 +621,15 @@ class LMStudioTextJudge:
         if self._judge_config.api_key:
             headers["Authorization"] = f"Bearer {self._judge_config.api_key}"
         return headers
+
+    def _lm_studio_lock(self, owner: str) -> _LMStudioFileLock:
+        return _LMStudioFileLock(
+            path=self._lock_path,
+            timeout_seconds=self._lock_timeout_seconds,
+            owner=owner,
+            enabled=self._lock_enabled,
+            on_acquire=lambda wait_ms: setattr(self, "_last_lock_wait_ms", wait_ms),
+        )
 
 # Backward-compatible alias for existing imports; prefer LMStudioTextJudge in new code and remove this alias if the old name is no longer needed.
 OpenAICompatibleTextJudge = LMStudioTextJudge

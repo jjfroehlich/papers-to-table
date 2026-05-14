@@ -1,6 +1,8 @@
 # Main App
 
-- Status: Normative
+> Compatibility reference: canonical product/system truth now lives in [`../spec.md`](../spec.md), roadmap direction in [`../plan.md`](../plan.md), and status/backlog in [`../tasks.md`](../tasks.md). Do not treat this file as normative when it conflicts with the canonical files.
+
+- Status: Compatibility reference
 - Owner: Product
 - Depends on: product/overview.md, contracts/run-bundle.md, contracts/proposals-and-evidence.md
 - Consumed by: docs/main-app/, app/backend/src/backend/app/, app/frontend/src/
@@ -11,7 +13,7 @@ The main app is the primary product in this monorepo.
 
 It ingests PDFs plus a structured spreadsheet, proposes schema-defined values with evidence, supports human review in a browser UI, and exports audited XLSX updates.
 
-Archive material may remain useful for historical background, but this current file is the complete active source of truth for the main app.
+Archive material may remain useful for historical background, but canonical main-app behavior now lives in `../spec.md`.
 
 ## End-to-end workflow
 

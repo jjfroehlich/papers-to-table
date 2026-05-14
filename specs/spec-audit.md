@@ -7,31 +7,32 @@ This audit records the current state of the spec system after the 2026-05-01 spe
 Audit date: 2026-05-01  
 Repository: `/home/runner/work/papers-to-table/papers-to-table`
 
-This document is an audit artifact, not a second owner of runtime behavior. Current behavior remains owned by the existing current specs, docs, and code paths named below.
+This document is an audit artifact, not a second owner of runtime behavior. Current behavior remains owned by `spec.md`, `plan.md`, `tasks.md`, current docs, and code paths named below.
 
 ## Current spec ownership model
 
 The current spec system uses:
 
-- `specs/spec.md` as the integrated repo-level summary
-- domain-owning current specs under `specs/product/`, `specs/tools/`, `specs/contracts/`, `specs/architecture/`, and `specs/process/`
+- `specs/spec.md` as the canonical product/system behavior file
+- `specs/plan.md` as roadmap and technical direction
 - `specs/tasks.md` as current verified status plus backlog
+- `specs/contracts/schemas/*.json` as machine-readable validation contracts
+- markdown under `specs/product/`, `specs/tools/`, `specs/contracts/`, `specs/architecture/`, and `specs/process/` as compatibility references
 - `specs/archive/` as historical material only
 
-The consolidation completed earlier in this branch moved `specs/spec.md` toward an integration role and reduced duplicated detailed truth there. Detailed durable truth is expected to live in the owning current file and be referenced from `spec.md`, not copied into it.
+The consolidation completed earlier in this branch moved durable markdown truth into `specs/spec.md`, with roadmap/status split into `plan.md` and `tasks.md`.
 
 ## Current truth owners
 
 | Topic | Current owner |
 | --- | --- |
-| Integrated truth | `/home/runner/work/papers-to-table/papers-to-table/specs/spec.md` |
-| Main-app product behavior | `/home/runner/work/papers-to-table/papers-to-table/specs/product/main-app.md` and `/home/runner/work/papers-to-table/papers-to-table/specs/product/review-workflow.md` |
-| Optimizer behavior | `/home/runner/work/papers-to-table/papers-to-table/specs/tools/optimizer.md` |
-| Eval behavior | `/home/runner/work/papers-to-table/papers-to-table/specs/tools/eval.md` |
-| Run-bundle contracts | `/home/runner/work/papers-to-table/papers-to-table/specs/contracts/run-bundle.md`, `/home/runner/work/papers-to-table/papers-to-table/specs/contracts/eval-summary.md`, `/home/runner/work/papers-to-table/papers-to-table/specs/contracts/proposals-and-evidence.md`, `/home/runner/work/papers-to-table/papers-to-table/specs/contracts/optimizer-candidate.md` |
-| Testing and change policy | `/home/runner/work/papers-to-table/papers-to-table/specs/process/testing-strategy.md` and `/home/runner/work/papers-to-table/papers-to-table/specs/process/change-policy.md` |
-| Docs and manual | `/home/runner/work/papers-to-table/papers-to-table/README.md` and `/home/runner/work/papers-to-table/papers-to-table/docs/` |
-| Archive and historical material | `/home/runner/work/papers-to-table/papers-to-table/specs/archive/` |
+| Product/system behavior | `specs/spec.md` |
+| Roadmap and technical direction | `specs/plan.md` |
+| Verified status and backlog | `specs/tasks.md` |
+| Machine-readable contracts | `specs/contracts/schemas/*.json` |
+| Docs and manual | `README.md` and `docs/` |
+| Compatibility references | `specs/product/`, `specs/tools/`, `specs/contracts/`, `specs/architecture/`, and `specs/process/` |
+| Archive and historical material | `specs/archive/` |
 
 ## Alignment observations
 
@@ -46,9 +47,9 @@ The consolidation completed earlier in this branch moved `specs/spec.md` toward 
 
 ### Where specs were recently consolidated
 
-- `specs/spec.md` now carries explicit ownership metadata and points to owning current files instead of copying large sections of optimizer/eval/contract detail.
-- `specs/README.md` now states that `product/`, `tools/`, `contracts/`, `architecture/`, and `process/` remain normative owners for their domains.
-- `specs/tasks.md` now records that `specs/spec.md` acts as the integrated summary while detailed truth stays in owning current specs.
+- `specs/spec.md` now carries explicit canonical behavior for main app, eval, optimizer, model phases, and report/output truth.
+- `specs/README.md` now states that `spec.md`, `plan.md`, and `tasks.md` are the canonical markdown truth files, with JSON schemas as machine-readable contracts.
+- `specs/tasks.md` now records that `specs/spec.md`, `plan.md`, and `tasks.md` are the canonical markdown truth files.
 
 ### Where docs, specs, and configs still risk duplication or drift
 

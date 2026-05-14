@@ -1,6 +1,8 @@
 # Optimizer Tool
 
-- Status: Normative
+> Compatibility reference: canonical product/system truth now lives in [`../spec.md`](../spec.md), roadmap direction in [`../plan.md`](../plan.md), and status/backlog in [`../tasks.md`](../tasks.md). Do not treat this file as normative when it conflicts with the canonical files.
+
+- Status: Compatibility reference
 - Owner: Optimizer
 - Depends on: contracts/eval-summary.md, contracts/optimizer-candidate.md, architecture/integration.md
 - Consumed by: tools/optimizer/, docs/tools/optimizer.md
@@ -11,7 +13,7 @@ The optimizer is an internal CLI-first orchestration tool for bounded candidate 
 
 It coordinates the main app and eval tool to answer a bounded question: which explicit prompt, model, or config candidate performs best on a fixed benchmark under explicit guardrails.
 
-Archive material may remain useful for historical background, but this current file is the complete active source of truth for optimizer behavior.
+Archive material may remain useful for historical background, but canonical optimizer behavior now lives in `../spec.md`.
 
 Optimizer is a companion tool. It is not an extraction runtime and it is not a scoring runtime.
 
@@ -21,7 +23,7 @@ Optimizer is a companion tool. It is not an extraction runtime and it is not a s
 - eval = scoring
 - optimizer = orchestration and tracking
 
-This separation is normative.
+This separation is retained here as compatibility guidance and is canonical only where it is reflected in `../spec.md`.
 
 ## Study modes
 
@@ -268,6 +270,6 @@ The optimizer must:
 
 ## Ownership boundary
 
-This file owns optimizer behavior and mode semantics.
+This file is a compatibility reference for optimizer behavior and mode semantics. Canonical behavior lives in `../spec.md`.
 
 It does not own shared scorer outputs or main-app artifact contracts. Those belong in `../contracts/`.

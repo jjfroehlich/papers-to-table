@@ -14,9 +14,13 @@ No silent fallback from a live path to stub or degraded mode.
 from __future__ import annotations
 
 import abc
+import hashlib
 import json
+import os
 import re
+import tempfile
 import textwrap
+import time
 from datetime import datetime, timezone
 from time import perf_counter
 from typing import Any, Optional
@@ -659,8 +663,98 @@ _MINIMAL_PNG_DATA_URL = (
 # LM Studio provider (T051)
 # ---------------------------------------------------------------------------
 
-DEFAULT_TIMEOUT = 60.0
+DEFAULT_TIMEOUT = 300.0
+DEFAULT_VISION_TIMEOUT = 420.0
+DEFAULT_MODEL_LOAD_TIMEOUT = 600.0
+DEFAULT_MODEL_UNLOAD_TIMEOUT = 180.0
+DEFAULT_LOCK_TIMEOUT = 900.0
 DEFAULT_RETRIES = 1  # bounded: one retry
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _default_lm_studio_lock_path(base_url: str) -> str:
+    normalized = base_url.rstrip("/")
+    if normalized.endswith("/v1"):
+        normalized = normalized[: -len("/v1")]
+    normalized = normalized.replace("://localhost", "://127.0.0.1")
+    key = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
+    return str(os.path.join(tempfile.gettempdir(), f"papers_to_table_lm_studio_{key}.lock"))
+
+
+class _LMStudioFileLock:
+    def __init__(
+        self,
+        *,
+        path: str,
+        timeout_seconds: float,
+        enabled: bool,
+        owner: str,
+        record_event: Any,
+    ) -> None:
+        self.path = path
+        self.timeout_seconds = max(1.0, float(timeout_seconds or DEFAULT_LOCK_TIMEOUT))
+        self.enabled = enabled
+        self.owner = owner
+        self.record_event = record_event
+        self.acquired = False
+        self.wait_ms = 0.0
+
+    def __enter__(self) -> "_LMStudioFileLock":
+        if not self.enabled:
+            self.record_event("skipped", 0.0, None)
+            return self
+
+        start = perf_counter()
+        deadline = time.monotonic() + self.timeout_seconds
+        stale_seconds = max(self.timeout_seconds * 4.0, 3600.0)
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        last_error: Optional[Exception] = None
+        while True:
+            try:
+                fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                    payload = {
+                        "owner": self.owner,
+                        "pid": os.getpid(),
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                    json.dump(payload, handle, sort_keys=True)
+                self.acquired = True
+                self.wait_ms = round((perf_counter() - start) * 1000.0, 3)
+                self.record_event("acquired", self.wait_ms, None)
+                return self
+            except FileExistsError as exc:
+                last_error = exc
+                try:
+                    age = time.time() - os.path.getmtime(self.path)
+                    if age > stale_seconds:
+                        os.remove(self.path)
+                        continue
+                except OSError:
+                    pass
+                if time.monotonic() >= deadline:
+                    self.wait_ms = round((perf_counter() - start) * 1000.0, 3)
+                    self.record_event("timeout", self.wait_ms, str(last_error))
+                    raise ProviderTimeoutError(
+                        f"Timed out waiting {self.timeout_seconds:.1f}s for LM Studio lock {self.path}",
+                        reason="lm_studio_lock_timeout",
+                        details={"lock_path": self.path, "owner": self.owner, "wait_ms": self.wait_ms},
+                    ) from last_error
+                time.sleep(0.2)
+
+    def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+        if self.acquired:
+            try:
+                os.remove(self.path)
+                self.record_event("released", self.wait_ms, None)
+            except OSError as error:
+                self.record_event("release_failed", self.wait_ms, str(error))
 
 
 class LMStudioProvider(ProviderAdapter):
@@ -678,11 +772,29 @@ class LMStudioProvider(ProviderAdapter):
         preview_limit: int = 240,
         text_model_config: Optional[object] = None,
         vision_model_config: Optional[object] = None,
+        request_timeout_seconds: float = DEFAULT_TIMEOUT,
+        vision_request_timeout_seconds: float = DEFAULT_VISION_TIMEOUT,
+        model_load_timeout_seconds: float = DEFAULT_MODEL_LOAD_TIMEOUT,
+        model_unload_timeout_seconds: float = DEFAULT_MODEL_UNLOAD_TIMEOUT,
+        lock_enabled: bool = True,
+        lock_timeout_seconds: float = DEFAULT_LOCK_TIMEOUT,
+        lock_path: Optional[str] = None,
     ):
         self._base_url = base_url.rstrip("/")
         self._capabilities: Optional[ProviderCapabilities] = None
         self._verbose_logging = verbose_logging
         self._preview_limit = max(80, int(preview_limit or 240))
+        self._request_timeout_seconds = float(request_timeout_seconds or DEFAULT_TIMEOUT)
+        self._vision_request_timeout_seconds = float(vision_request_timeout_seconds or DEFAULT_VISION_TIMEOUT)
+        self._model_load_timeout_seconds = float(model_load_timeout_seconds or DEFAULT_MODEL_LOAD_TIMEOUT)
+        self._model_unload_timeout_seconds = float(model_unload_timeout_seconds or DEFAULT_MODEL_UNLOAD_TIMEOUT)
+        self._lock_enabled = _env_bool("PAPER_TO_TABLE_LM_STUDIO_LOCK_ENABLED", bool(lock_enabled))
+        self._lock_timeout_seconds = float(lock_timeout_seconds or DEFAULT_LOCK_TIMEOUT)
+        self._lock_path = (
+            os.environ.get("PAPER_TO_TABLE_LM_STUDIO_LOCK_PATH")
+            or lock_path
+            or _default_lm_studio_lock_path(self._base_url)
+        )
         self._model_configs: dict[str, object] = {}
         for model_config in (text_model_config, vision_model_config):
             model_id = getattr(model_config, "model_id", None)
@@ -727,11 +839,16 @@ class LMStudioProvider(ProviderAdapter):
             "model_load_canceled_count": 0,
             "generation_canceled_count": 0,
             "transition_conflict_count": 0,
+            "lock_acquire_count": 0,
+            "lock_timeout_count": 0,
+            "lock_wait_ms_total": 0,
         }
         self._peak_loaded_llm_count = 0
         self._model_management_report: dict[str, Any] = {
             "provider": "lm_studio",
             "base_url": self._base_url,
+            "timeouts": self._timeout_report(),
+            "lock": self._lock_report(),
             "text_model": None,
             "vision_model": None,
             "recorded_at": None,
@@ -742,6 +859,50 @@ class LMStudioProvider(ProviderAdapter):
 
     def get_request_counts(self) -> dict[str, int]:
         return dict(self._request_counts)
+
+    def _timeout_report(self) -> dict[str, float]:
+        return {
+            "request_timeout_seconds": self._request_timeout_seconds,
+            "vision_request_timeout_seconds": self._vision_request_timeout_seconds,
+            "model_load_timeout_seconds": self._model_load_timeout_seconds,
+            "model_unload_timeout_seconds": self._model_unload_timeout_seconds,
+            "lm_studio_lock_timeout_seconds": self._lock_timeout_seconds,
+        }
+
+    def _lock_report(self) -> dict[str, Any]:
+        return {
+            "enabled": self._lock_enabled,
+            "path": self._lock_path,
+            "env_override_path": bool(os.environ.get("PAPER_TO_TABLE_LM_STUDIO_LOCK_PATH")),
+        }
+
+    def _record_lock_event(self, *, owner: str, status: str, wait_ms: float, error: Optional[str]) -> None:
+        if status == "acquired":
+            self._model_management_counters["lock_acquire_count"] += 1
+            self._model_management_counters["lock_wait_ms_total"] += int(round(wait_ms))
+        elif status == "timeout":
+            self._model_management_counters["lock_timeout_count"] += 1
+            self._model_management_counters["transition_conflict_count"] += 1
+        self._record_model_management_event(
+            phase="lm_studio_lock",
+            action=owner,
+            status=status,
+            details={"lock_path": self._lock_path, "wait_ms": wait_ms, "error": error},
+        )
+
+    def _lm_studio_lock(self, owner: str) -> _LMStudioFileLock:
+        return _LMStudioFileLock(
+            path=self._lock_path,
+            timeout_seconds=self._lock_timeout_seconds,
+            enabled=self._lock_enabled,
+            owner=owner,
+            record_event=lambda status, wait_ms, error: self._record_lock_event(
+                owner=owner,
+                status=status,
+                wait_ms=wait_ms,
+                error=error,
+            ),
+        )
 
     def get_diagnostics(self) -> dict[str, Any]:
         attempts = list(self._diagnostic_attempts)
@@ -772,6 +933,9 @@ class LMStudioProvider(ProviderAdapter):
             "by_request_kind": by_request_kind,
             "last_error": last_error,
             "attempts": attempts,
+            "timeouts": self._timeout_report(),
+            "lock": self._lock_report(),
+            "model_management_counters": dict(self._model_management_counters),
         }
 
     def get_diagnostics_cursor(self) -> int:
@@ -1327,10 +1491,11 @@ class LMStudioProvider(ProviderAdapter):
         load_started = perf_counter()
         try:
             self._model_management_counters["load_attempts"] += 1
-            async with httpx.AsyncClient(timeout=120.0) as client:
-                self._bump("http_total")
-                self._bump("model_management_load")
-                resp = await client.post(self._rest_url("/api/v1/models/load"), json=payload)
+            with self._lm_studio_lock(f"load:{role}:{model_id}"):
+                async with httpx.AsyncClient(timeout=self._model_load_timeout_seconds) as client:
+                    self._bump("http_total")
+                    self._bump("model_management_load")
+                    resp = await client.post(self._rest_url("/api/v1/models/load"), json=payload)
             duration_ms = (perf_counter() - load_started) * 1000.0
             if resp.status_code != 200:
                 message = (
@@ -1400,10 +1565,11 @@ class LMStudioProvider(ProviderAdapter):
         load_started = perf_counter()
         try:
             self._model_management_counters["unload_attempts"] += 1
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                self._bump("http_total")
-                self._bump("model_management_unload")
-                resp = await client.post(self._rest_url("/api/v1/models/unload"), json=payload)
+            with self._lm_studio_lock(f"unload:{instance_id}"):
+                async with httpx.AsyncClient(timeout=self._model_unload_timeout_seconds) as client:
+                    self._bump("http_total")
+                    self._bump("model_management_unload")
+                    resp = await client.post(self._rest_url("/api/v1/models/unload"), json=payload)
             duration_ms = (perf_counter() - load_started) * 1000.0
             if resp.status_code != 200:
                 message = (
@@ -1576,6 +1742,8 @@ class LMStudioProvider(ProviderAdapter):
         report: dict[str, Any] = {
             "provider": "lm_studio",
             "base_url": self._base_url,
+            "timeouts": self._timeout_report(),
+            "lock": self._lock_report(),
             "text_model": None,
             "vision_model": None,
             "unloads": {
@@ -1721,6 +1889,8 @@ class LMStudioProvider(ProviderAdapter):
         self._model_management_report = {
             **dict(self._model_management_report),
             "last_cleanup": report,
+            "timeouts": self._timeout_report(),
+            "lock": self._lock_report(),
             "timeline": list(self._model_management_events),
             "counters": dict(self._model_management_counters),
         }
@@ -1882,13 +2052,14 @@ class LMStudioProvider(ProviderAdapter):
                 "payload_summary": payload_summary if self._verbose_logging else None,
             }
             try:
-                async with httpx.AsyncClient(timeout=15.0) as client:
-                    self._bump("http_total")
-                    self._bump("completions_total")
-                    self._bump("completions_probe_structured")
-                    resp = await client.post(
-                        f"{self._base_url}/v1/chat/completions", json=payload
-                    )
+                with self._lm_studio_lock(f"probe:{modality}:{model_id}:{mode}"):
+                    async with httpx.AsyncClient(timeout=self._request_timeout_seconds) as client:
+                        self._bump("http_total")
+                        self._bump("completions_total")
+                        self._bump("completions_probe_structured")
+                        resp = await client.post(
+                            f"{self._base_url}/v1/chat/completions", json=payload
+                        )
                 duration_ms = round((perf_counter() - started) * 1000.0, 3)
                 record["duration_ms"] = duration_ms
                 record["http_status"] = resp.status_code
@@ -2052,13 +2223,14 @@ class LMStudioProvider(ProviderAdapter):
             ),
         }
         try:
-            async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
-                self._bump("http_total")
-                self._bump("completions_total")
-                self._bump("completions_text_raw")
-                resp = await client.post(
-                    f"{self._base_url}/v1/chat/completions", json=payload
-                )
+            with self._lm_studio_lock(f"text_raw:{model_id}"):
+                async with httpx.AsyncClient(timeout=self._request_timeout_seconds) as client:
+                    self._bump("http_total")
+                    self._bump("completions_total")
+                    self._bump("completions_text_raw")
+                    resp = await client.post(
+                        f"{self._base_url}/v1/chat/completions", json=payload
+                    )
                 if resp.status_code == 200:
                     return resp.json()["choices"][0]["message"]["content"]
                 raise ProviderError(
@@ -2389,13 +2561,14 @@ class LMStudioProvider(ProviderAdapter):
     async def _post_structured_payload(self, payload: dict, model_id: str) -> str:
         started = perf_counter()
         payload_summary = self._summarize_payload(payload)
-        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
-            self._bump("http_total")
-            self._bump("completions_total")
-            self._bump("completions_text_structured")
-            resp = await client.post(
-                f"{self._base_url}/v1/chat/completions", json=payload
-            )
+        with self._lm_studio_lock(f"text_structured:{model_id}"):
+            async with httpx.AsyncClient(timeout=self._request_timeout_seconds) as client:
+                self._bump("http_total")
+                self._bump("completions_total")
+                self._bump("completions_text_structured")
+                resp = await client.post(
+                    f"{self._base_url}/v1/chat/completions", json=payload
+                )
         duration_ms = (perf_counter() - started) * 1000.0
         structured_mode = payload.get("response_format", {}).get("type") if isinstance(payload.get("response_format"), dict) else "none"
         if resp.status_code == 404:
@@ -2574,13 +2747,14 @@ class LMStudioProvider(ProviderAdapter):
     async def _post_vision_payload(self, payload: dict, model_id: str) -> str:
         started = perf_counter()
         payload_summary = self._summarize_payload(payload)
-        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT * 2) as client:
-            self._bump("http_total")
-            self._bump("completions_total")
-            self._bump("completions_vision_structured")
-            resp = await client.post(
-                f"{self._base_url}/v1/chat/completions", json=payload
-            )
+        with self._lm_studio_lock(f"vision_structured:{model_id}"):
+            async with httpx.AsyncClient(timeout=self._vision_request_timeout_seconds) as client:
+                self._bump("http_total")
+                self._bump("completions_total")
+                self._bump("completions_vision_structured")
+                resp = await client.post(
+                    f"{self._base_url}/v1/chat/completions", json=payload
+                )
         duration_ms = (perf_counter() - started) * 1000.0
         structured_mode = payload.get("response_format", {}).get("type") if isinstance(payload.get("response_format"), dict) else "none"
         if resp.status_code == 404:
@@ -2724,6 +2898,13 @@ def build_provider(config: object, diagnostics_config: Optional[object] = None) 
             preview_limit=preview_limit,
             text_model_config=getattr(config, "text_model", None),
             vision_model_config=getattr(config, "vision_model", None),
+            request_timeout_seconds=getattr(config, "request_timeout_seconds", DEFAULT_TIMEOUT),
+            vision_request_timeout_seconds=getattr(config, "vision_request_timeout_seconds", DEFAULT_VISION_TIMEOUT),
+            model_load_timeout_seconds=getattr(config, "model_load_timeout_seconds", DEFAULT_MODEL_LOAD_TIMEOUT),
+            model_unload_timeout_seconds=getattr(config, "model_unload_timeout_seconds", DEFAULT_MODEL_UNLOAD_TIMEOUT),
+            lock_enabled=getattr(config, "lm_studio_lock_enabled", True),
+            lock_timeout_seconds=getattr(config, "lm_studio_lock_timeout_seconds", DEFAULT_LOCK_TIMEOUT),
+            lock_path=getattr(config, "lm_studio_lock_path", None),
         )
 
     # Cloud provider slot (T051a)

@@ -1,13 +1,15 @@
 # Integration
 
-- Status: Normative
+> Compatibility reference: canonical product/system truth now lives in [`../spec.md`](../spec.md), roadmap direction in [`../plan.md`](../plan.md), and status/backlog in [`../tasks.md`](../tasks.md). Do not treat this file as normative when it conflicts with the canonical files.
+
+- Status: Compatibility reference
 - Owner: Architecture
 - Depends on: contracts/run-bundle.md, contracts/eval-summary.md, contracts/optimizer-candidate.md
 - Consumed by: tools/eval/, tools/optimizer/, docs/contracts/
 
 ## Purpose
 
-This file defines the normative integration model across the main app, eval, and optimizer.
+This file preserves compatibility notes for the integration model across the main app, eval, and optimizer. Canonical integration behavior lives in `../spec.md`.
 
 ## Integration flow
 

@@ -1,6 +1,8 @@
 # Optimizer Candidate Contract
 
-- Status: Normative
+> Compatibility reference: canonical product/system truth now lives in [`../spec.md`](../spec.md), roadmap direction in [`../plan.md`](../plan.md), and status/backlog in [`../tasks.md`](../tasks.md). Machine-readable contracts under [`schemas/`](schemas/) remain current.
+
+- Status: Compatibility reference
 - Owner: Shared Contracts
 - Depends on: tools/optimizer.md
 - Consumed by: tools/optimizer/
@@ -58,6 +60,6 @@ Interrupted studies must still leave truthful current-state artifacts on disk, i
 
 ## Ownership boundary
 
-This file owns optimizer candidate, result, and decision semantics.
+This file is a compatibility reference for optimizer candidate, result, and decision semantics. Canonical markdown behavior lives in `../spec.md`.
 
 Shared scorer outputs consumed by those records belong in `eval-summary.md`.

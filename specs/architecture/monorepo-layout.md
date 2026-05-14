@@ -1,13 +1,15 @@
 # Monorepo Layout
 
-- Status: Normative
+> Compatibility reference: canonical product/system truth now lives in [`../spec.md`](../spec.md), roadmap direction in [`../plan.md`](../plan.md), and status/backlog in [`../tasks.md`](../tasks.md). Do not treat this file as normative when it conflicts with the canonical files.
+
+- Status: Compatibility reference
 - Owner: Architecture
 - Depends on: README.md, AGENTS.md
 - Consumed by: contributors, coding agents, docs/README.md
 
 ## Purpose
 
-This file defines the normative layout and role boundaries for the monorepo.
+This file preserves compatibility notes for monorepo layout and role boundaries. Canonical layout and role behavior lives in `../spec.md`.
 
 ## Product and tool roles
 
