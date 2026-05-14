@@ -462,6 +462,7 @@ def _build_artifact_links(experiment_dir: Path) -> list[dict[str, str]]:
         ("Candidate Diagnostics CSV", experiment_dir / "results" / "candidate_diagnostics.csv"),
         ("Candidate Diagnostics JSON", experiment_dir / "candidate_diagnostics.json"),
         ("Proposal Tables Manifest", experiment_dir / "results" / "proposal_tables" / "manifest.json"),
+        ("Cell Review CSV", experiment_dir / "results" / "proposal_tables" / "cell_review.csv"),
         ("All Proposals CSV", experiment_dir / "results" / "proposal_tables" / "all_proposals.csv"),
         ("All Scored Cells CSV", experiment_dir / "results" / "proposal_tables" / "all_scored_cells.csv"),
         ("Column Difficulty CSV", experiment_dir / "results" / "proposal_tables" / "column_difficulty.csv"),

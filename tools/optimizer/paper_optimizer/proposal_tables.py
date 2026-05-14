@@ -114,6 +114,47 @@ DIFFICULTY_FIELDS = [
     "replicate_count",
 ]
 
+CELL_REVIEW_FIELDS = [
+    "candidate_id",
+    "candidate_label",
+    "text_model_id",
+    "benchmark_id",
+    "suite_id",
+    "replicate_index",
+    "replicate_id",
+    "run_id",
+    "row_index",
+    "row_id",
+    "column_name",
+    "gold_value",
+    "proposed_value",
+    "was_scored",
+    "is_correct",
+    "join_status",
+    "comparison_kind",
+    "proposal_count",
+    "proposal_count_from_table",
+    "selected_proposal_state",
+    "judge_verdict",
+    "judge_score_mean",
+    "judge_model_id",
+    "evidence_outcome",
+    "diagnostic_flags",
+    "proposal_values_all",
+    "proposal_states_all",
+    "proposal_support_all",
+    "proposal_warning_flags",
+    "proposal_rationale",
+    "proposal_calculation",
+    "primary_evidence_id",
+    "extraction_lane",
+    "failure_attribution",
+    "main_app_run_path",
+    "proposal_source_path",
+    "scored_cell_source_path",
+    "eval_summary_path",
+]
+
 METADATA_SCORE_EXCLUDED_COLUMNS = {"Title", "Authors", "Publication Year", "DOI", "Journal"}
 
 
@@ -386,6 +427,57 @@ def _difficulty_rows(scored_rows: list[dict[str, Any]], *, by_candidate: bool) -
     )
 
 
+def _review_key(row: dict[str, Any]) -> tuple[str, str, str, str, str, str, str]:
+    return (
+        str(row.get("candidate_id") or ""),
+        str(row.get("benchmark_id") or ""),
+        str(row.get("replicate_index") or ""),
+        str(row.get("run_id") or ""),
+        str(row.get("row_id") or ""),
+        str(row.get("column_name") or ""),
+        str(row.get("cell_id") or ""),
+    )
+
+
+def _cell_review_rows(scored_rows: list[dict[str, Any]], proposal_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    proposals_by_key: dict[tuple[str, str, str, str, str, str, str], list[dict[str, Any]]] = defaultdict(list)
+    for proposal in proposal_rows:
+        proposals_by_key[_review_key(proposal)].append(proposal)
+
+    review_rows: list[dict[str, Any]] = []
+    for cell in scored_rows:
+        proposals = proposals_by_key.get(_review_key(cell), [])
+        selected = proposals[0] if proposals else {}
+        if proposals and cell.get("proposed_value") not in (None, ""):
+            expected = str(cell.get("proposed_value"))
+            selected = next((proposal for proposal in proposals if str(proposal.get("proposed_value") or "") == expected), selected)
+        review_rows.append(
+            {
+                **cell,
+                "proposal_count_from_table": len(proposals),
+                "proposal_values_all": [proposal.get("proposed_value") for proposal in proposals],
+                "proposal_states_all": [proposal.get("state") for proposal in proposals],
+                "proposal_support_all": [proposal.get("support") for proposal in proposals],
+                "proposal_warning_flags": selected.get("warning_flags"),
+                "proposal_rationale": selected.get("rationale"),
+                "proposal_calculation": selected.get("calculation"),
+                "primary_evidence_id": selected.get("primary_evidence_id"),
+                "main_app_run_path": selected.get("main_app_run_path"),
+                "proposal_source_path": selected.get("proposal_source_path"),
+            }
+        )
+    return sorted(
+        review_rows,
+        key=lambda row: (
+            str(row.get("benchmark_id") or ""),
+            str(row.get("candidate_id") or ""),
+            str(row.get("replicate_index") or ""),
+            int(row.get("row_index") or 0),
+            str(row.get("column_name") or ""),
+        ),
+    )
+
+
 def write_proposal_tables(experiment_dir: Path) -> dict[str, Any]:
     """Export flattened proposal and scored-cell inspection tables for an optimizer experiment."""
 
@@ -412,6 +504,9 @@ def write_proposal_tables(experiment_dir: Path) -> dict[str, Any]:
     _write_jsonl(output_dir / "all_proposals.jsonl", proposal_rows)
     _write_csv(output_dir / "all_scored_cells.csv", scored_rows, SCORED_CELL_FIELDS)
     _write_jsonl(output_dir / "all_scored_cells.jsonl", scored_rows)
+    review_rows = _cell_review_rows(scored_rows, proposal_rows)
+    _write_csv(output_dir / "cell_review.csv", review_rows, CELL_REVIEW_FIELDS)
+    _write_jsonl(output_dir / "cell_review.jsonl", review_rows)
 
     difficulty_rows = _difficulty_rows(scored_rows, by_candidate=False)
     difficulty_by_candidate_rows = _difficulty_rows(scored_rows, by_candidate=True)
@@ -420,12 +515,15 @@ def write_proposal_tables(experiment_dir: Path) -> dict[str, Any]:
 
     by_benchmark: dict[str, list[dict[str, Any]]] = defaultdict(list)
     scored_by_benchmark: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    review_by_benchmark: dict[str, list[dict[str, Any]]] = defaultdict(list)
     difficulty_by_benchmark: dict[str, list[dict[str, Any]]] = defaultdict(list)
     difficulty_by_candidate_by_benchmark: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in proposal_rows:
         by_benchmark[str(row.get("benchmark_id") or "unknown")].append(row)
     for row in scored_rows:
         scored_by_benchmark[str(row.get("benchmark_id") or "unknown")].append(row)
+    for row in review_rows:
+        review_by_benchmark[str(row.get("benchmark_id") or "unknown")].append(row)
     for row in difficulty_rows:
         difficulty_by_benchmark[str(row.get("benchmark_id") or "unknown")].append(row)
     for row in difficulty_by_candidate_rows:
@@ -435,6 +533,8 @@ def write_proposal_tables(experiment_dir: Path) -> dict[str, Any]:
         _write_csv(output_dir / "by_benchmark" / f"{_safe_stem(benchmark_id)}_proposals.csv", rows, PROPOSAL_FIELDS)
     for benchmark_id, rows in scored_by_benchmark.items():
         _write_csv(output_dir / "by_benchmark" / f"{_safe_stem(benchmark_id)}_scored_cells.csv", rows, SCORED_CELL_FIELDS)
+    for benchmark_id, rows in review_by_benchmark.items():
+        _write_csv(output_dir / "by_benchmark" / f"{_safe_stem(benchmark_id)}_cell_review.csv", rows, CELL_REVIEW_FIELDS)
     for benchmark_id, rows in difficulty_by_benchmark.items():
         _write_csv(output_dir / "by_benchmark" / f"{_safe_stem(benchmark_id)}_column_difficulty.csv", rows, DIFFICULTY_FIELDS)
     for benchmark_id, rows in difficulty_by_candidate_by_benchmark.items():
@@ -446,24 +546,31 @@ def write_proposal_tables(experiment_dir: Path) -> dict[str, Any]:
 
     by_candidate: dict[str, list[dict[str, Any]]] = defaultdict(list)
     scored_by_candidate: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    review_by_candidate: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in proposal_rows:
         by_candidate[str(row.get("candidate_id") or "unknown")].append(row)
     for row in scored_rows:
         scored_by_candidate[str(row.get("candidate_id") or "unknown")].append(row)
+    for row in review_rows:
+        review_by_candidate[str(row.get("candidate_id") or "unknown")].append(row)
     for candidate_id, rows in by_candidate.items():
         _write_csv(output_dir / "by_candidate" / f"{_safe_stem(candidate_id)}_proposals.csv", rows, PROPOSAL_FIELDS)
     for candidate_id, rows in scored_by_candidate.items():
         _write_csv(output_dir / "by_candidate" / f"{_safe_stem(candidate_id)}_scored_cells.csv", rows, SCORED_CELL_FIELDS)
+    for candidate_id, rows in review_by_candidate.items():
+        _write_csv(output_dir / "by_candidate" / f"{_safe_stem(candidate_id)}_cell_review.csv", rows, CELL_REVIEW_FIELDS)
 
     manifest = {
         "proposal_row_count": len(proposal_rows),
         "scored_cell_row_count": len(scored_rows),
+        "cell_review_row_count": len(review_rows),
         "column_difficulty_row_count": len(difficulty_rows),
         "replicate_row_count": len(replicate_rows),
         "output_dir": str(output_dir),
         "primary_files": [
             "all_proposals.csv",
             "all_scored_cells.csv",
+            "cell_review.csv",
             "column_difficulty.csv",
             "column_difficulty_by_candidate.csv",
         ],

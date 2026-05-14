@@ -149,6 +149,19 @@ def test_validate_preflight_rejects_planned_gold_without_stable_ids(base_config:
         validate_preflight(base_config, benches, require_holdout=True)
 
 
+def test_validate_preflight_rejects_empty_template_with_nonempty_gold(base_config: dict, tmp_path: Path) -> None:
+    table_path = tmp_path / "table_template.csv"
+    gold_path = tmp_path / "table_gold.csv"
+    table_path.write_text("Title,status\n", encoding="utf-8")
+    gold_path.write_text("row_id,row_index,Title,status\nrow_1,0,Paper A,yes\n", encoding="utf-8")
+    base_config["benchmarks"]["manifests"]["bench_dev"]["table_path"] = str(table_path)
+    base_config["benchmarks"]["manifests"]["bench_dev"]["gold_path"] = str(gold_path)
+    benches = load_benchmarks(base_config)
+
+    with pytest.raises(PreflightError, match="table_path has no paper rows"):
+        validate_preflight(base_config, benches, require_holdout=True)
+
+
 def test_cli_preflight_command_accepts_valid_config(
     base_config: dict,
     tmp_path: Path,

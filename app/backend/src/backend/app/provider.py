@@ -626,6 +626,25 @@ def _coerce_message_content(raw: Any) -> str:
     return str(raw)
 
 
+def _structured_message_content(message: dict[str, Any]) -> tuple[str, str]:
+    """Return structured-output text from LM Studio message payloads.
+
+    Some reasoning models can place the final JSON in `reasoning_content` while
+    leaving the normal assistant `content` empty even when thinking is disabled.
+    Treat that as a recoverable transport quirk instead of rejecting the model.
+    """
+
+    raw_content = message.get("content")
+    content = _coerce_message_content(raw_content) if raw_content is not None else ""
+    if content.strip():
+        return content, "content"
+    raw_reasoning_content = message.get("reasoning_content")
+    reasoning_content = _coerce_message_content(raw_reasoning_content) if raw_reasoning_content is not None else ""
+    if reasoning_content.strip():
+        return reasoning_content, "reasoning_content"
+    return content, "content"
+
+
 _PROBE_RESPONSE_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -2064,12 +2083,13 @@ class LMStudioProvider(ProviderAdapter):
                 record["duration_ms"] = duration_ms
                 record["http_status"] = resp.status_code
                 if resp.status_code == 200:
-                    content = _coerce_message_content(resp.json()["choices"][0]["message"]["content"])
+                    content, content_source = _structured_message_content(resp.json()["choices"][0]["message"])
                     try:
                         _parsed, parse_details = _parse_and_validate_response_with_details(content, _PROBE_RESPONSE_SCHEMA)
                         record["supported"] = True
                         record["parse_details"] = parse_details
                         record["response_preview"] = self._preview_for_logging(content)
+                        record["message_content_source"] = content_source
                         self._append_trace_record(
                             {
                                 "phase": "probe",
@@ -2081,6 +2101,7 @@ class LMStudioProvider(ProviderAdapter):
                                 "http_status": resp.status_code,
                                 "payload_summary": payload_summary,
                                 "response_preview": self._preview_for_logging(content),
+                                "message_content_source": content_source,
                                 "parse_details": parse_details,
                             }
                         )
@@ -2091,6 +2112,7 @@ class LMStudioProvider(ProviderAdapter):
                         record["error_message"] = str(error)
                         record["parse_details"] = details
                         record["response_preview"] = self._preview_for_logging(content)
+                        record["message_content_source"] = content_source
                         self._append_trace_record(
                             {
                                 "phase": "probe",
@@ -2102,6 +2124,7 @@ class LMStudioProvider(ProviderAdapter):
                                 "http_status": resp.status_code,
                                 "payload_summary": payload_summary,
                                 "response_preview": self._preview_for_logging(content),
+                                "message_content_source": content_source,
                                 "parse_details": details,
                                 "error_message": str(error),
                             }
@@ -2627,7 +2650,7 @@ class LMStudioProvider(ProviderAdapter):
             raise ProviderError(
                 f"LM Studio returned HTTP {resp.status_code}: {resp.text[:300]}"
             )
-        raw = _coerce_message_content(resp.json()["choices"][0]["message"]["content"])
+        raw, content_source = _structured_message_content(resp.json()["choices"][0]["message"])
         self._set_pending_transport_metadata(
             request_kind="text_structured",
             structured_mode=structured_mode,
@@ -2635,7 +2658,7 @@ class LMStudioProvider(ProviderAdapter):
             duration_ms=duration_ms,
             http_status=resp.status_code,
             raw_preview=raw,
-            payload_summary=payload_summary,
+            payload_summary={**payload_summary, "message_content_source": content_source},
         )
         return raw
 
@@ -2813,7 +2836,7 @@ class LMStudioProvider(ProviderAdapter):
             raise ProviderError(
                 f"Vision completion failed HTTP {resp.status_code}: {resp.text[:200]}"
             )
-        raw = _coerce_message_content(resp.json()["choices"][0]["message"]["content"])
+        raw, content_source = _structured_message_content(resp.json()["choices"][0]["message"])
         self._set_pending_transport_metadata(
             request_kind="vision_structured",
             structured_mode=structured_mode,
@@ -2821,7 +2844,7 @@ class LMStudioProvider(ProviderAdapter):
             duration_ms=duration_ms,
             http_status=resp.status_code,
             raw_preview=raw,
-            payload_summary=payload_summary,
+            payload_summary={**payload_summary, "message_content_source": content_source},
         )
         return raw
 

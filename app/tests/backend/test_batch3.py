@@ -63,6 +63,7 @@ from backend.app.provider import (
     StructuredOutputError,
     _ensure_json_keyword_in_messages,
     _coerce_message_content,
+    _structured_message_content,
     _try_repair_json,
     initialize_provider,
 )
@@ -957,6 +958,13 @@ class TestProviderCapabilities:
         normalized = _coerce_message_content(content)
         assert '{"value":' in normalized
         assert '"ok"}' in normalized
+
+    def test_structured_message_content_falls_back_to_reasoning_content(self):
+        raw, source = _structured_message_content(
+            {"content": "", "reasoning_content": '{"value": "ok"}'}
+        )
+        assert raw == '{"value": "ok"}'
+        assert source == "reasoning_content"
 
     @pytest.mark.asyncio
     async def test_initialize_provider_accepts_json_object_mode(self):

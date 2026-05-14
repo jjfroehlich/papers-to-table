@@ -170,6 +170,37 @@ def _read_tabular_header(path: Path, *, sheet_name: str | None = None) -> list[s
     return []
 
 
+def _read_tabular_shape(path: Path, *, sheet_name: str | None = None) -> tuple[list[str], int]:
+    suffix = path.suffix.casefold()
+    if suffix == ".csv":
+        last_decode_error: UnicodeDecodeError | None = None
+        for encoding in ("utf-8-sig", "cp1252"):
+            try:
+                with path.open("r", encoding=encoding, newline="") as handle:
+                    reader = csv.DictReader(handle)
+                    header = list(reader.fieldnames or [])
+                    return header, sum(1 for _row in reader)
+            except UnicodeDecodeError as exc:
+                last_decode_error = exc
+        if last_decode_error is not None:
+            raise last_decode_error
+        return [], 0
+    if suffix in {".xlsx", ".xlsm"}:
+        from openpyxl import load_workbook
+
+        workbook = load_workbook(path, read_only=True, data_only=True)
+        try:
+            selected_sheet_name = sheet_name or workbook.sheetnames[0]
+            worksheet = workbook[selected_sheet_name]
+            rows = worksheet.iter_rows(values_only=True)
+            first_row = next(rows, ())
+            header = [str(value).strip() if value is not None else "" for value in first_row]
+            return header, sum(1 for _row in rows)
+        finally:
+            workbook.close()
+    return [], 0
+
+
 def _schema_columns(path: Path) -> set[str]:
     suffix = path.suffix.casefold()
     if suffix == ".csv":
@@ -244,6 +275,31 @@ def _validate_gold_contract(*, benchmark_id: str, manifest: Any, errors: list[st
         )
 
 
+def _validate_table_gold_alignment(*, benchmark_id: str, manifest: Any, errors: list[str]) -> None:
+    if not manifest.gold_path or not manifest.table_path:
+        return
+    gold_path = Path(manifest.gold_path)
+    table_path = Path(manifest.table_path)
+    if not gold_path.exists() or not table_path.exists():
+        return
+    try:
+        _gold_header, gold_row_count = _read_tabular_shape(gold_path, sheet_name=manifest.gold_sheet)
+        _table_header, table_row_count = _read_tabular_shape(table_path)
+    except Exception as exc:
+        errors.append(f"benchmarks.manifests.{benchmark_id} table/gold row alignment could not be inspected: {exc}")
+        return
+    if gold_row_count > 0 and table_row_count == 0:
+        errors.append(
+            f"benchmarks.manifests.{benchmark_id}.table_path has no paper rows while gold_path has "
+            f"{gold_row_count}; eval-mode extraction needs stable template rows so app row_id values join to gold"
+        )
+    if gold_row_count > 0 and table_row_count not in (0, gold_row_count):
+        errors.append(
+            f"benchmarks.manifests.{benchmark_id}.table_path row count ({table_row_count}) does not match "
+            f"gold_path row count ({gold_row_count}); optimizer eval joins require the same paper rows"
+        )
+
+
 def validate_preflight(
     config: dict[str, Any],
     benchmarks: Benchmarks,
@@ -311,6 +367,7 @@ def validate_preflight(
             errors=errors,
         )
         _validate_gold_contract(benchmark_id=benchmark_id, manifest=manifest, errors=errors)
+        _validate_table_gold_alignment(benchmark_id=benchmark_id, manifest=manifest, errors=errors)
 
     prompt_bundle_root = None
     if main_working_dir is not None:

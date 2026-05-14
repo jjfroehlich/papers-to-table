@@ -528,6 +528,7 @@ def _artifact_links(output_dir: Path, manifest_path: Path) -> list[dict[str, str
     proposal_dir = output_dir / "compare" / "experiment" / "results" / "proposal_tables"
     proposal_files = [
         ("Proposal Tables Manifest", proposal_dir / "manifest.json"),
+        ("Cell Review CSV", proposal_dir / "cell_review.csv"),
         ("All Proposals CSV", proposal_dir / "all_proposals.csv"),
         ("All Scored Cells CSV", proposal_dir / "all_scored_cells.csv"),
         ("Column Difficulty CSV", proposal_dir / "column_difficulty.csv"),

@@ -121,14 +121,27 @@ def test_write_proposal_tables_exports_proposals_scored_cells_and_difficulty(tmp
     output_dir = experiment_dir / "results" / "proposal_tables"
     assert manifest["proposal_row_count"] == 1
     assert manifest["scored_cell_row_count"] == 3
+    assert manifest["cell_review_row_count"] == 3
     assert (output_dir / "all_proposals.csv").exists()
+    assert (output_dir / "cell_review.csv").exists()
     assert not (output_dir / "spatial_transcriptomics_scored_cells.csv").exists()
     assert (output_dir / "by_benchmark" / "bench_spatial_transcriptomics_scored_cells.csv").exists()
+    assert (output_dir / "by_benchmark" / "bench_spatial_transcriptomics_cell_review.csv").exists()
 
     proposals = _read_csv(output_dir / "all_proposals.csv")
     assert proposals[0]["candidate_label"] == "spatial-model-long-name (cand_0001)"
     assert proposals[0]["proposed_value"] == "Visium"
     assert proposals[0]["metadata_candidate_values"] == '["Visium"]'
+
+    review = _read_csv(output_dir / "cell_review.csv")
+    matched = next(row for row in review if row["column_name"] == "Spatial platform or method")
+    assert matched["gold_value"] == "Visium"
+    assert matched["proposed_value"] == "Visium"
+    assert matched["is_correct"] == "true"
+    assert matched["proposal_values_all"] == '["Visium"]'
+    missing = next(row for row in review if row["column_name"] == "Main analysis output")
+    assert missing["join_status"] == "missing_proposal"
+    assert missing["proposal_count_from_table"] == "0"
 
     difficulty = _read_csv(output_dir / "by_benchmark" / "bench_spatial_transcriptomics_column_difficulty.csv")
     assert "Authors" not in {row["column_name"] for row in difficulty}
