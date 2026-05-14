@@ -234,7 +234,7 @@ def test_failed_and_single_replicates_remain_visible(
     assert "Benchmark And Replicate Stability" in report_html
     assert "Failed replicates" in report_html
     assert "degraded replicates" in report_html
-    assert "Trust And Caveats" in report_html
+    assert "Caveats" in report_html
     assert "Nested Artifacts" in report_html
     assert "n = 1" in report_html
 

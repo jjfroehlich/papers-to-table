@@ -24,6 +24,7 @@ from .reporting import (
     load_csv_rows,
     load_json_if_exists,
     merge_candidate_rows,
+    model_nickname,
     parse_bool,
     relative_href,
     safe_float,
@@ -97,6 +98,12 @@ def _stage_duration(rows: list[dict[str, Any]]) -> float | None:
     return sum(numeric)
 
 
+def _save_plot(path: Path) -> None:
+    plt.savefig(path)
+    if path.suffix.casefold() == ".png":
+        plt.savefig(path.with_suffix(".pdf"))
+
+
 def _main_conclusion(stage_rows: list[dict[str, Any]]) -> str:
     if not stage_rows:
         return "No stages were recorded in the overnight manifest."
@@ -105,7 +112,7 @@ def _main_conclusion(stage_rows: list[dict[str, Any]]) -> str:
         final = stage_rows[-1]
         return (
             f"{len(stage_rows)} stages completed, but none recorded a numeric winner score. "
-            f"Final stage '{final['stage_name']}' ended with winner {display_text(final.get('winner_candidate_id'), missing='not recorded')} "
+            f"Final stage '{final['stage_name']}' ended with winner {display_text(final.get('winner_model_name'), missing=display_text(final.get('winner_candidate_id'), missing='not recorded'))} "
             f"and status {display_text(final.get('winner_score_status'), missing='unknown')}."
         )
     best_stage = max(numeric_scores, key=lambda row: row["best_score"])
@@ -127,7 +134,7 @@ def _main_conclusion(stage_rows: list[dict[str, Any]]) -> str:
         previous_score = score
     conclusion = (
         f"Across {len(stage_rows)} stages, the strongest score came from '{best_stage['stage_name']}' with "
-        f"winner {display_text(best_stage.get('winner_candidate_id'), missing='not recorded')} at {format_score(best_stage.get('best_score'))}."
+        f"winner {display_text(best_stage.get('winner_model_name'), missing=display_text(best_stage.get('winner_candidate_id'), missing='not recorded'))} at {format_score(best_stage.get('best_score'))}."
     )
     if len(stage_rows) > 1:
         previous_final = stage_rows[-2].get("best_score")
@@ -226,6 +233,7 @@ def _build_stage_rows(manifest_path: Path) -> tuple[list[dict[str, Any]], list[d
             "study_type": study_type,
             "variant": variant,
             "winner_candidate_id": winner_id,
+            "winner_model_name": model_nickname(winner_row.get("text_model_id")) if winner_row else None,
             "winner_score_status": winner_row.get("score_status") if winner_row else None,
             "winner_unscored_reason": winner_row.get("unscored_reason") if winner_row else None,
             "winner_prompt_bundle_id": winner_row.get("prompt_bundle_id") if winner_row else best_candidate.get("prompt_bundle_id"),
@@ -240,7 +248,7 @@ def _build_stage_rows(manifest_path: Path) -> tuple[list[dict[str, Any]], list[d
             "change": change,
             "report_href": relative_href(experiment_dir / "report.html", base_dir=manifest_path.parent) if (experiment_dir / "report.html").exists() else None,
             "summary": (
-                f"Winner {display_text(winner_id, missing='not recorded')} finished with {format_score(winner_score)} and status "
+                f"Winner {display_text(model_nickname(winner_row.get('text_model_id')) if winner_row else None, missing=display_text(winner_id, missing='not recorded'))} finished with {format_score(winner_score)} and status "
                 f"{status_label(display_text(winner_row.get('score_status') if winner_row else None, missing='unknown'))}."
             ),
         }
@@ -276,7 +284,7 @@ def _stage_cards(stage_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     {"text": status_label(display_text(stage.get("winner_score_status"), missing="unknown")), "tone": status_tone(display_text(stage.get("winner_score_status"), missing="unknown"))},
                 ],
                 "metrics": [
-                    {"label": "Winner", "value": display_text(stage.get("winner_candidate_id"), missing="not recorded")},
+                    {"label": "Winner", "value": display_text(stage.get("winner_model_name"), missing=display_text(stage.get("winner_candidate_id"), missing="not recorded"))},
                     {"label": "Best Score", "value": format_score(stage.get("best_score"))},
                     {"label": "Candidates", "value": str(stage.get("candidate_count") or 0)},
                     {"label": "Duration", "value": format_runtime(stage.get("duration_seconds"))},
@@ -309,7 +317,7 @@ def _build_stage_table(stage_rows: list[dict[str, Any]]) -> dict[str, Any]:
                 "cells": [
                     build_table_cell(stage["stage_name"], subtext=display_text(stage.get("variant"), missing="not recorded")),
                     build_table_cell(display_text(stage.get("study_type"), missing="not recorded")),
-                    build_table_cell(display_text(stage.get("winner_candidate_id"), missing="not recorded"), monospace=True),
+                    build_table_cell(display_text(stage.get("winner_model_name"), missing="not recorded"), subtext=display_text(stage.get("winner_candidate_id"), missing="not recorded")),
                     build_table_cell(format_score(stage.get("best_score")), sort_value=stage.get("best_score") if stage.get("best_score") is not None else -1),
                     build_table_cell(format_delta(delta, missing="—"), sort_value=delta if delta is not None else -9999),
                     build_table_cell(display_text(stage.get("change"), missing="not recorded")),
@@ -357,14 +365,11 @@ def _build_candidate_table(all_candidate_rows: list[dict[str, Any]]) -> dict[str
             {
                 "cells": [
                     build_table_cell(display_text(row.get("stage_name"), missing="not recorded"), subtext=display_text(row.get("stage_study_type"), missing="not recorded")),
-                    build_table_cell(display_text(row.get("candidate_id"), missing="not recorded"), monospace=True, subtext="winner" if row.get("winner_candidate") else None),
+                    build_table_cell(model_nickname(row.get("text_model_id")), subtext=f"{display_text(row.get('candidate_id'), missing='not recorded')} · {'winner' if row.get('winner_candidate') else display_text(row.get('prompt_bundle_id'), missing='prompt not recorded')}"),
                     build_table_cell(format_score(row.get("primary_metric_value")), sort_value=row.get("primary_metric_value") if row.get("primary_metric_value") is not None else -1),
                     build_table_cell(status_label(display_text(row.get("score_status"), missing="unknown")), badge=status_label(display_text(row.get("score_status"), missing="unknown")), tone=status_tone(display_text(row.get("score_status"), missing="unknown"))),
                     build_table_cell(format_runtime(row.get("runtime_seconds")), sort_value=row.get("runtime_seconds") if row.get("runtime_seconds") is not None else -1),
-                    build_table_cell(
-                        display_text(row.get("text_model_id"), missing="not recorded"),
-                        subtext=display_text(row.get("prompt_bundle_id"), missing="not recorded"),
-                    ),
+                    build_table_cell(model_nickname(row.get("text_model_id")), subtext=display_text(row.get("prompt_bundle_id"), missing="not recorded")),
                     build_table_cell(
                         display_text(row.get("retrieval_mode"), missing="not configured"),
                         subtext=(
@@ -417,13 +422,14 @@ def _build_plot_assets(output_dir: Path, stage_rows: list[dict[str, Any]], all_c
         plt.ylabel("best_score")
         plt.title("Stage-to-stage score trajectory")
         plt.tight_layout()
-        plt.savefig(png_path)
+        _save_plot(png_path)
         plt.close()
         assets.append({
             "stem": "pipeline_stage_trajectory",
             "title": "Stage-To-Stage Score Trajectory",
             "csv_href": relative_href(csv_path, base_dir=output_dir),
             "png_href": relative_href(png_path, base_dir=output_dir),
+            "pdf_href": relative_href(png_path.with_suffix(".pdf"), base_dir=output_dir),
             "image_data_uri": image_data_uri(png_path),
             "hero": True,
         })
@@ -445,13 +451,14 @@ def _build_plot_assets(output_dir: Path, stage_rows: list[dict[str, Any]], all_c
         plt.ylabel("duration_minutes")
         plt.title("Stage durations")
         plt.tight_layout()
-        plt.savefig(png_path)
+        _save_plot(png_path)
         plt.close()
         assets.append({
             "stem": "pipeline_stage_durations",
             "title": "Stage Durations",
             "csv_href": relative_href(csv_path, base_dir=output_dir),
             "png_href": relative_href(png_path, base_dir=output_dir),
+            "pdf_href": relative_href(png_path.with_suffix(".pdf"), base_dir=output_dir),
             "image_data_uri": image_data_uri(png_path),
             "hero": False,
         })
@@ -491,13 +498,14 @@ def _build_plot_assets(output_dir: Path, stage_rows: list[dict[str, Any]], all_c
         plt.title("Pipeline candidate frontier")
         plt.legend()
         plt.tight_layout()
-        plt.savefig(png_path)
+        _save_plot(png_path)
         plt.close()
         assets.append({
             "stem": "pipeline_candidate_frontier",
             "title": "Pipeline Candidate Frontier",
             "csv_href": relative_href(csv_path, base_dir=output_dir),
             "png_href": relative_href(png_path, base_dir=output_dir),
+            "pdf_href": relative_href(png_path.with_suffix(".pdf"), base_dir=output_dir),
             "image_data_uri": image_data_uri(png_path),
             "hero": False,
         })
@@ -517,6 +525,16 @@ def _artifact_links(output_dir: Path, manifest_path: Path) -> list[dict[str, str
     plots_dir = output_dir / "pipeline_plots"
     if plots_dir.exists():
         links.append({"label": "Pipeline Plots", "href": "pipeline_plots/pipeline_stage_trajectory.csv", "text": "pipeline_plots/"})
+    proposal_dir = output_dir / "compare" / "experiment" / "results" / "proposal_tables"
+    proposal_files = [
+        ("Proposal Tables Manifest", proposal_dir / "manifest.json"),
+        ("All Proposals CSV", proposal_dir / "all_proposals.csv"),
+        ("All Scored Cells CSV", proposal_dir / "all_scored_cells.csv"),
+        ("Column Difficulty CSV", proposal_dir / "column_difficulty.csv"),
+    ]
+    for label, path in proposal_files:
+        if path.exists():
+            links.append({"label": label, "href": relative_href(path, base_dir=output_dir), "text": path.name})
     return links
 
 
@@ -574,54 +592,23 @@ def build_overnight_report_view(manifest_path: Path) -> dict[str, Any]:
             {"text": "pipeline", "tone": "good"},
             {"text": f"{len(stage_rows)} stages", "tone": "neutral"},
             {"text": display_text(manifest.get("status"), missing="status unknown"), "tone": "warn" if manifest.get("status") != "completed" else "good"},
-            {"text": _status_mix_text(status_counts(all_candidate_rows)), "tone": "neutral"},
-            {"text": "benchmark suites", "tone": "neutral"},
         ],
         "hero_meta": [
             {"label": "Session Id", "value": display_text(manifest.get("session_id"), missing="not recorded"), "note": None},
             {"label": "Label", "value": display_text(manifest.get("label"), missing="not recorded"), "note": None},
             {"label": "Session Status", "value": display_text(manifest.get("status"), missing="not recorded"), "note": display_text(manifest.get("completed_at"), missing=None)},
-            {"label": "Final Winner", "value": display_text(final_stage.get("winner_candidate_id"), missing="not recorded"), "note": display_text(final_stage.get("study_type"), missing="not recorded")},
+            {"label": "Final Winner", "value": display_text(final_stage.get("winner_model_name"), missing=display_text(final_stage.get("winner_candidate_id"), missing="not recorded")), "note": display_text(final_stage.get("study_type"), missing="not recorded")},
             {"label": "Final Score", "value": format_score(final_stage.get("best_score")), "note": display_text(final_stage.get("winner_score_status"), missing="unknown")},
             {"label": "Candidate Count", "value": str(len(all_candidate_rows)), "note": _status_mix_text(status_counts(all_candidate_rows))},
             {"label": "Stage Count", "value": str(len(stage_rows)), "note": None},
         ],
-        "executive_cards": [
-            {
-                "label": "Main Conclusion",
-                "value": display_text(final_stage.get("winner_candidate_id"), missing="no final winner"),
-                "note": _main_conclusion(stage_rows),
-                "badges": [{"text": "final winner", "tone": "good"}] if final_stage else [{"text": "no stages", "tone": "warn"}],
-                "class_name": "",
-            },
-            {
-                "label": "Biggest Gain",
-                "value": next((stage["stage_name"] for stage in stage_rows if stage.get("change") and "->" in str(stage.get("change"))), "not isolated"),
-                "note": "Stage-to-stage gain is called out explicitly so the parent report stays meaningful on its own.",
-                "badges": [],
-                "class_name": "",
-            },
-            {
-                "label": "Trust / Caveats",
-                "value": "healthy" if caveats == ["No major overnight trust caveats were recorded."] else "review needed",
-                "note": caveats[0],
-                "badges": [{"text": item.split(".")[0], "tone": "warn"} for item in caveats[:2]],
-                "class_name": "",
-            },
-            {
-                "label": "Next Check",
-                "value": next_checks[0],
-                "note": "; ".join(next_checks[1:]) if len(next_checks) > 1 else None,
-                "badges": [{"text": "pipeline", "tone": "neutral"}],
-                "class_name": "",
-            },
-        ],
+        "executive_cards": [],
         "decision_cards": [
             {
-                "title": "Why The Final Configuration Won",
+                "title": "Final Selection",
                 "lead": "Selection rationale at the pipeline level, not just stage-local artifact links.",
                 "items": [
-                    f"Final stage winner was {display_text(final_stage.get('winner_candidate_id'), missing='not recorded')} with score {format_score(final_stage.get('best_score'))}.",
+                    f"Final stage winner was {display_text(final_stage.get('winner_model_name'), missing=display_text(final_stage.get('winner_candidate_id'), missing='not recorded'))} with score {format_score(final_stage.get('best_score'))}.",
                     f"Final winner status was {status_label(display_text(final_stage.get('winner_score_status'), missing='unknown'))}.",
                     "Final stage improved the score relative to the preceding stage."
                     if len(stage_rows) > 1 and safe_float(final_stage.get("best_score")) is not None and safe_float(stage_rows[-2].get("best_score")) is not None and safe_float(final_stage.get("best_score")) > safe_float(stage_rows[-2].get("best_score"))
@@ -642,7 +629,7 @@ def build_overnight_report_view(manifest_path: Path) -> dict[str, Any]:
                 "badges": [{"text": "stage evolution", "tone": "neutral"}],
             },
             {
-                "title": "Trust And Caveats",
+                "title": "Caveats",
                 "lead": "Pipeline-wide trust summary aggregated from every stage and candidate.",
                 "items": caveats,
                 "badges": [{"text": "trust", "tone": "warn" if caveats and caveats[0] != "No major overnight trust caveats were recorded." else "good"}],

@@ -208,6 +208,8 @@ class GoldDataset:
     source_path: Path
     sheet_name: str | None
     cells: list[GoldCell]
+    contract_warnings: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

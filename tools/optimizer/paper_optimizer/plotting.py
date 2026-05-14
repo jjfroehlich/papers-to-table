@@ -50,11 +50,27 @@ def _slugify(name: str) -> str:
     return re.sub(r"[^a-zA-Z0-9]+", "_", name).strip("_").lower()
 
 
+def _save_plot(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(path)
+    if path.suffix.casefold() == ".png":
+        plt.savefig(path.with_suffix(".pdf"))
+
+
+def _model_nickname(model_id: str | None) -> str:
+    if not model_id:
+        return ""
+    text = str(model_id).strip().rstrip("/")
+    base = text.split("/")[-1] if "/" in text else text
+    base = re.sub(r"(?i)^models[-_]", "", base)
+    return base or text
+
+
 def _candidate_labels(rows: list[dict[str, str]]) -> dict[str, str]:
     prompt_count = len({row.get("prompt_bundle_id") for row in rows if row.get("prompt_bundle_id") not in (None, "")})
     base_counts: dict[str, int] = {}
     for row in rows:
-        base = row.get("text_model_id") or row.get("candidate_id") or "unknown"
+        base = _model_nickname(row.get("text_model_id")) or row.get("candidate_id") or "unknown"
         if prompt_count > 1 and row.get("prompt_bundle_id"):
             base = f"{base} [{row['prompt_bundle_id']}]"
         base_counts[base] = base_counts.get(base, 0) + 1
@@ -63,7 +79,7 @@ def _candidate_labels(rows: list[dict[str, str]]) -> dict[str, str]:
     seen_counts: dict[str, int] = {}
     for row in rows:
         candidate_id = row.get("candidate_id", "")
-        base = row.get("text_model_id") or candidate_id or "unknown"
+        base = _model_nickname(row.get("text_model_id")) or candidate_id or "unknown"
         if prompt_count > 1 and row.get("prompt_bundle_id"):
             base = f"{base} [{row['prompt_bundle_id']}]"
         if base_counts.get(base, 0) > 1 and candidate_id:
@@ -134,7 +150,7 @@ def _write_category_plot(
     plt.ylabel("primary_score")
     plt.title(f"{title} (NA = unscored)")
     plt.tight_layout()
-    plt.savefig(plots_dir / f"{filename_prefix}.png")
+    _save_plot(plots_dir / f"{filename_prefix}.png")
     plt.close()
 
 
@@ -185,7 +201,7 @@ def _write_bar_plot(
     plt.ylabel(ylabel)
     plt.title(title)
     plt.tight_layout()
-    plt.savefig(path)
+    _save_plot(path)
     plt.close()
 
 
@@ -282,7 +298,7 @@ def _write_compare_judge_plot(plots_dir: Path, rows: list[dict[str, str]]) -> No
     plt.ylabel("correctness_judge_b")
     plt.title("Judge A vs Judge B")
     plt.tight_layout()
-    plt.savefig(plots_dir / "compare_judge_a_vs_judge_b.png")
+    _save_plot(plots_dir / "compare_judge_a_vs_judge_b.png")
     plt.close()
 
 
@@ -373,7 +389,7 @@ def _write_optimize_disagreement_plot(plots_dir: Path, rows: list[dict[str, str]
     plt.ylabel("judge_disagreement")
     plt.title("Judge disagreement by round")
     plt.tight_layout()
-    plt.savefig(plots_dir / "optimize_judge_disagreement.png")
+    _save_plot(plots_dir / "optimize_judge_disagreement.png")
     plt.close()
 
 
@@ -433,7 +449,7 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
         plt.tight_layout()
         plt.title("Primary metric by candidate (NA = unscored)")
         plt.ylabel(primary_metric)
-        plt.savefig(plots_dir / "compare_primary_by_candidate.png")
+        _save_plot(plots_dir / "compare_primary_by_candidate.png")
         plt.close()
 
     _write_compare_status_plots(plots_dir, rows)
@@ -574,7 +590,7 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
         plt.ylabel(primary_metric)
         plt.title("Correctness vs runtime")
         plt.tight_layout()
-        plt.savefig(plots_dir / "compare_correctness_vs_runtime.png")
+        _save_plot(plots_dir / "compare_correctness_vs_runtime.png")
         plt.close()
 
     if xs_evidence and ys_evidence:
@@ -585,7 +601,7 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
         plt.ylabel(primary_metric)
         plt.title("Correctness vs evidence quality")
         plt.tight_layout()
-        plt.savefig(plots_dir / "compare_correctness_vs_evidence.png")
+        _save_plot(plots_dir / "compare_correctness_vs_evidence.png")
         plt.close()
 
     if trend_rows:
@@ -601,7 +617,7 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
         plt.legend()
         plt.tight_layout()
         plt.title("Null/failure trends")
-        plt.savefig(plots_dir / "compare_null_failure_trends.png")
+        _save_plot(plots_dir / "compare_null_failure_trends.png")
         plt.close()
 
     _write_compare_judge_plot(plots_dir, rows)
@@ -610,10 +626,12 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
 def generate_suite_plots(experiment_dir: Path, primary_metric: str) -> None:
     plots_dir = experiment_dir / "plots"
     plots_dir.mkdir(parents=True, exist_ok=True)
+    aggregate_rows = _load_rows(experiment_dir / "results" / "results.csv")
+    aggregate_labels = _candidate_labels(aggregate_rows) if aggregate_rows else {}
 
     suite_rows = _load_rows(experiment_dir / "results" / "suite_summary.csv")
     if suite_rows:
-        labels = [row.get("candidate_id", "") for row in suite_rows]
+        labels = [aggregate_labels.get(row.get("candidate_id", ""), row.get("candidate_id", "")) for row in suite_rows]
         values = [
             _safe_float(row.get("suite_primary_metric_weighted_mean")) or 0.0
             for row in suite_rows
@@ -630,11 +648,17 @@ def generate_suite_plots(experiment_dir: Path, primary_metric: str) -> None:
             [
                 {
                     "candidate_id": row.get("candidate_id", ""),
+                    "candidate_label": aggregate_labels.get(row.get("candidate_id", ""), row.get("candidate_id", "")),
                     "suite_id": row.get("suite_id", ""),
+                    "benchmark_ids": row.get("benchmark_ids", ""),
+                    "replicate_count": row.get("replicate_count", ""),
                     "suite_primary_metric_weighted_mean": row.get("suite_primary_metric_weighted_mean", ""),
                     "benchmark_coverage": row.get("benchmark_coverage", ""),
                     "failed_replicate_count": row.get("failed_replicate_count", ""),
                     "degraded_replicate_count": row.get("degraded_replicate_count", ""),
+                    "runtime_total_seconds": row.get("runtime_total_seconds", ""),
+                    "runtime_mean_per_benchmark_seconds": row.get("runtime_mean_per_benchmark_seconds", ""),
+                    "runtime_mean_per_scored_cell_seconds": row.get("runtime_mean_per_scored_cell_seconds", ""),
                     "trust_caveats": row.get("trust_caveats", ""),
                 }
                 for row in suite_rows
@@ -684,11 +708,13 @@ def generate_suite_plots(experiment_dir: Path, primary_metric: str) -> None:
 
     replicate_rows = _load_rows(experiment_dir / "results" / "replicate_results.csv")
     if replicate_rows:
+        replicate_labels = _candidate_labels(replicate_rows)
         _write_plot_csv(
             plots_dir / "suite_replicate_visibility.csv",
             [
                 {
                     "candidate_id": row.get("candidate_id", ""),
+                    "candidate_label": replicate_labels.get(row.get("candidate_id", ""), row.get("candidate_id", "")),
                     "suite_id": row.get("suite_id", ""),
                     "benchmark_id": row.get("benchmark_id", ""),
                     "replicate_index": row.get("replicate_index", ""),
@@ -701,6 +727,58 @@ def generate_suite_plots(experiment_dir: Path, primary_metric: str) -> None:
                 for row in replicate_rows
             ],
         )
+        distribution_rows: list[dict[str, Any]] = []
+        grouped_scores: dict[str, list[float]] = {}
+        grouped_labels: dict[str, str] = {}
+        primary_key = f"primary.{primary_metric}"
+        for row in replicate_rows:
+            score = _safe_float(row.get(primary_key))
+            if score is None:
+                continue
+            candidate_id = row.get("candidate_id", "")
+            label = replicate_labels.get(candidate_id, candidate_id or "unknown")
+            grouped_scores.setdefault(candidate_id, []).append(score)
+            grouped_labels[candidate_id] = label
+            distribution_rows.append(
+                {
+                    "candidate_id": candidate_id,
+                    "candidate_label": label,
+                    "suite_id": row.get("suite_id", ""),
+                    "benchmark_id": row.get("benchmark_id", ""),
+                    "replicate_index": row.get("replicate_index", ""),
+                    "primary_score": score,
+                    "runtime_seconds": row.get("runtime_seconds", ""),
+                    "score_status": row.get("score_status", ""),
+                }
+            )
+        if distribution_rows:
+            _write_plot_csv(plots_dir / "suite_replicate_score_distribution.csv", distribution_rows)
+            ordered_ids = [
+                row.get("candidate_id", "")
+                for row in suite_rows
+                if row.get("candidate_id", "") in grouped_scores
+            ] or sorted(grouped_scores)
+            data = [grouped_scores[candidate_id] for candidate_id in ordered_ids]
+            labels = [grouped_labels.get(candidate_id, candidate_id) for candidate_id in ordered_ids]
+            plt.figure(figsize=(max(8, len(labels) * 1.15), 4.8))
+            plt.boxplot(data, tick_labels=labels, showmeans=True, patch_artist=True)
+            for x_index, values_for_candidate in enumerate(data, start=1):
+                count = len(values_for_candidate)
+                offsets = [0.0] if count == 1 else [(-0.18 + (0.36 * i / (count - 1))) for i in range(count)]
+                plt.scatter(
+                    [x_index + offset for offset in offsets],
+                    values_for_candidate,
+                    color="#1f2d2f",
+                    s=24,
+                    alpha=0.78,
+                    zorder=3,
+                )
+            plt.xticks(rotation=45, ha="right")
+            plt.ylabel(primary_metric)
+            plt.title("Replicate score distribution by model")
+            plt.tight_layout()
+            _save_plot(plots_dir / "suite_replicate_score_distribution.png")
+            plt.close()
 
 
 def generate_optimize_plots(experiment_dir: Path, primary_metric: str) -> None:
@@ -795,7 +873,7 @@ def generate_optimize_plots(experiment_dir: Path, primary_metric: str) -> None:
     plt.ylabel(primary_metric)
     plt.title("Best score by round")
     plt.tight_layout()
-    plt.savefig(plots_dir / "optimize_best_by_round.png")
+    _save_plot(plots_dir / "optimize_best_by_round.png")
     plt.close()
 
     plt.figure(figsize=(8, 4))
@@ -806,7 +884,7 @@ def generate_optimize_plots(experiment_dir: Path, primary_metric: str) -> None:
     plt.ylabel(primary_metric)
     plt.title("All candidate scores by round")
     plt.tight_layout()
-    plt.savefig(plots_dir / "optimize_all_scores_by_round.png")
+    _save_plot(plots_dir / "optimize_all_scores_by_round.png")
     plt.close()
 
     plt.figure(figsize=(7, 4))
@@ -815,7 +893,7 @@ def generate_optimize_plots(experiment_dir: Path, primary_metric: str) -> None:
     plt.ylabel("avg_runtime_minutes")
     plt.title("Runtime by round")
     plt.tight_layout()
-    plt.savefig(plots_dir / "optimize_runtime_by_round.png")
+    _save_plot(plots_dir / "optimize_runtime_by_round.png")
     plt.close()
 
     plt.figure(figsize=(7, 4))
@@ -824,7 +902,7 @@ def generate_optimize_plots(experiment_dir: Path, primary_metric: str) -> None:
     plt.ylabel("score_delta")
     plt.title("Score delta by round")
     plt.tight_layout()
-    plt.savefig(plots_dir / "optimize_score_delta_by_round.png")
+    _save_plot(plots_dir / "optimize_score_delta_by_round.png")
     plt.close()
 
     plt.figure(figsize=(7, 4))
@@ -833,7 +911,7 @@ def generate_optimize_plots(experiment_dir: Path, primary_metric: str) -> None:
     plt.ylabel(primary_metric)
     plt.title("Champion lineage trace")
     plt.tight_layout()
-    plt.savefig(plots_dir / "optimize_champion_lineage.png")
+    _save_plot(plots_dir / "optimize_champion_lineage.png")
     plt.close()
 
     best_so_far: list[float] = []
@@ -848,7 +926,7 @@ def generate_optimize_plots(experiment_dir: Path, primary_metric: str) -> None:
     plt.ylabel(primary_metric)
     plt.title("Optimization history (best-so-far)")
     plt.tight_layout()
-    plt.savefig(plots_dir / "optimize_history_best_so_far.png")
+    _save_plot(plots_dir / "optimize_history_best_so_far.png")
     plt.close()
 
     if decision_counts_rows:
@@ -861,7 +939,7 @@ def generate_optimize_plots(experiment_dir: Path, primary_metric: str) -> None:
         plt.title("Decision counts by round")
         plt.legend()
         plt.tight_layout()
-        plt.savefig(plots_dir / "optimize_decision_counts_by_round.png")
+        _save_plot(plots_dir / "optimize_decision_counts_by_round.png")
         plt.close()
 
     _write_optimize_retrieval_plot(plots_dir, rows, primary_key)
@@ -899,5 +977,5 @@ def generate_optimize_plots(experiment_dir: Path, primary_metric: str) -> None:
         plt.ylabel(primary_metric)
         plt.title(f"Primary score by {knob_key}")
         plt.tight_layout()
-        plt.savefig(plots_dir / f"{base_name}.png")
+        _save_plot(plots_dir / f"{base_name}.png")
         plt.close()

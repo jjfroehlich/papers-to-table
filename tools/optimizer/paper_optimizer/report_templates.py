@@ -89,6 +89,7 @@ _COMPONENTS_TEMPLATE = """
     <div class="link-row">
       {% if plot.csv_href %}<a href="{{ plot.csv_href }}">CSV</a>{% endif %}
       {% if plot.png_href %}<a href="{{ plot.png_href }}">PNG</a>{% endif %}
+      {% if plot.pdf_href %}<a href="{{ plot.pdf_href }}">PDF</a>{% endif %}
     </div>
   </div>
   {% if plot.image_data_uri %}
@@ -170,7 +171,7 @@ _BASE_TEMPLATE = """
       --bad-bg: #fde8e8;
       --neutral-bg: #ece4d5;
       --shadow: 0 18px 40px rgba(32, 48, 51, 0.08);
-      --radius: 20px;
+      --radius: 8px;
     }
     * { box-sizing: border-box; }
     body {
@@ -184,7 +185,7 @@ _BASE_TEMPLATE = """
     main { max-width: 1520px; margin: 0 auto; padding: 24px; }
     a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
-    h1, h2, h3 { margin: 0 0 10px; line-height: 1.15; }
+    h1, h2, h3 { margin: 0 0 10px; line-height: 1.15; overflow-wrap: anywhere; }
     h1 { font-size: clamp(2rem, 4vw, 3.3rem); }
     h2 { font-size: 1.4rem; }
     h3 { font-size: 1.05rem; }
@@ -217,7 +218,7 @@ _BASE_TEMPLATE = """
       text-transform: uppercase;
       letter-spacing: 0.08em;
     }
-    .hero-summary { font-size: 1.08rem; max-width: 88ch; }
+    .hero-summary { font-size: 1.08rem; max-width: 88ch; overflow-wrap: anywhere; }
     .chip-row { display: flex; gap: 8px; flex-wrap: wrap; }
     .badge {
       display: inline-flex;
@@ -229,14 +230,15 @@ _BASE_TEMPLATE = """
       border: 1px solid transparent;
       text-transform: uppercase;
       letter-spacing: 0.04em;
+      overflow-wrap: anywhere;
     }
     .badge-good { background: var(--good-bg); color: var(--good); border-color: rgba(22, 101, 52, 0.18); }
     .badge-warn { background: var(--warn-bg); color: var(--warn); border-color: rgba(161, 98, 7, 0.18); }
     .badge-bad { background: var(--bad-bg); color: var(--bad); border-color: rgba(185, 28, 28, 0.18); }
     .badge-neutral { background: var(--neutral-bg); color: var(--ink); border-color: rgba(32, 48, 51, 0.08); }
     .hero-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-top: 18px; }
-    .hero-meta-item { background: rgba(255, 255, 255, 0.48); border: 1px solid rgba(201, 176, 142, 0.5); border-radius: 16px; padding: 12px 14px; }
-    .hero-meta-item strong { display: block; font-size: 1.05rem; margin-top: 4px; }
+    .hero-meta-item { background: rgba(255, 255, 255, 0.48); border: 1px solid rgba(201, 176, 142, 0.5); border-radius: 8px; padding: 12px 14px; min-width: 0; }
+    .hero-meta-item strong { display: block; font-size: 1.05rem; margin-top: 4px; overflow-wrap: anywhere; }
     .grid-3 { display: grid; gap: 16px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .grid-4 { display: grid; gap: 16px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .split-grid { display: grid; gap: 16px; grid-template-columns: 1.2fr 1fr; }
@@ -248,7 +250,7 @@ _BASE_TEMPLATE = """
       padding: 18px;
     }
     .metric-card { display: grid; gap: 8px; }
-    .metric-value { font-size: clamp(1.45rem, 2.5vw, 2.1rem); font-weight: 700; }
+    .metric-value { font-size: clamp(1.45rem, 2.5vw, 2.1rem); font-weight: 700; overflow-wrap: anywhere; }
     .mini-value { font-size: 1.05rem; font-weight: 700; }
     .note, .section-subtitle, .cell-subtext, .lead, .cell-details, details summary { color: var(--muted); }
     .lead { margin-bottom: 10px; }
@@ -259,7 +261,7 @@ _BASE_TEMPLATE = """
     .table-card { padding-bottom: 10px; }
     .table-wrap { overflow: auto; border-radius: 16px; border: 1px solid var(--line); }
     table { width: 100%; border-collapse: collapse; min-width: 920px; background: var(--surface); }
-    th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
     th {
       position: sticky;
       top: 0;
@@ -273,7 +275,8 @@ _BASE_TEMPLATE = """
     tbody tr:nth-child(odd) { background: rgba(255, 248, 238, 0.74); }
     .align-right { text-align: right; }
     .align-center { text-align: center; }
-    .cell-text { font-weight: 600; }
+    .cell-text { font-weight: 600; overflow-wrap: anywhere; }
+    .cell-subtext, .cell-details, .note { overflow-wrap: anywhere; }
     .monospace { font-family: Consolas, "SFMono-Regular", monospace; font-size: 0.88rem; }
     details { margin-top: 6px; }
     .plot-grid { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -302,7 +305,7 @@ _BASE_TEMPLATE = """
       main { padding: 16px; }
       .hero { padding: 20px; }
       .hero-top { flex-direction: column; }
-      .hero-meta { grid-template-columns: 1fr 1fr; }
+      .hero-meta { grid-template-columns: 1fr; }
       .metric-mini-grid { grid-template-columns: 1fr; }
       table { min-width: 640px; }
     }
@@ -370,26 +373,23 @@ _EXPERIMENT_TEMPLATE = """
   </div>
 </section>
 
+{% if page.executive_cards %}
 <section class="grid-4">
   {% for card in page.executive_cards %}{{ ui.metric_card(card) }}{% endfor %}
 </section>
+{% endif %}
 
-<section class="split-grid">
-  <div class="grid-3">
-    {% for section in page.decision_cards[:3] %}{{ ui.bullet_card(section) }}{% endfor %}
-  </div>
-  <div class="grid-3">
-    {% for section in page.decision_cards[3:] %}{{ ui.bullet_card(section) }}{% endfor %}
-  </div>
+<section class="grid-3">
+  {% for section in page.decision_cards %}{{ ui.bullet_card(section) }}{% endfor %}
 </section>
-
-{{ ui.table_card(page.candidate_table) }}
 
 {% if page.study_cards %}
 <section class="grid-3">
   {% for card in page.study_cards %}{{ ui.bullet_card(card) }}{% endfor %}
 </section>
 {% endif %}
+
+{{ ui.table_card(page.candidate_table) }}
 
 {% if page.plots %}
 <section>
@@ -460,9 +460,11 @@ _OVERNIGHT_TEMPLATE = """
   </div>
 </section>
 
+{% if page.executive_cards %}
 <section class="grid-4">
   {% for card in page.executive_cards %}{{ ui.metric_card(card) }}{% endfor %}
 </section>
+{% endif %}
 
 <section class="grid-3">
   {% for section in page.decision_cards %}{{ ui.bullet_card(section) }}{% endfor %}

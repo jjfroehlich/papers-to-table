@@ -1,13 +1,25 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 from csv import Error as CsvError
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from paper_eval.contracts import GoldCell, GoldDataset
 from paper_eval.errors import ContractError
 from paper_eval.normalize import is_empty_value
+
+
+SYNTHESIZED_ROW_ID_WARNING = "gold_row_ids_synthesized_from_row_index_and_title"
+
+
+@dataclass
+class _GoldRowsResult:
+    cells: list[GoldCell]
+    contract_warnings: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 def load_gold(
@@ -56,15 +68,21 @@ def _load_csv_gold(
         raise ContractError(f"Gold CSV could not be decoded at {path}: {exc}") from exc
     if not fieldnames:
         raise ContractError(f"Gold CSV '{path}' is empty or missing a header row.")
-    cells = _rows_to_gold_cells(
+    result = _rows_to_gold_cells(
         rows,
         fieldnames,
         sheet_name=None,
         scored_columns=scored_columns,
         excluded_columns=excluded_columns,
     )
-    cells = _filter_gold_cells_by_row_index(cells, allowed_row_indices=allowed_row_indices)
-    return GoldDataset(source_path=path, sheet_name=None, cells=cells)
+    cells = _filter_gold_cells_by_row_index(result.cells, allowed_row_indices=allowed_row_indices)
+    return GoldDataset(
+        source_path=path,
+        sheet_name=None,
+        cells=cells,
+        contract_warnings=result.contract_warnings,
+        metadata=result.metadata,
+    )
 
 
 def _read_csv_dicts(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
@@ -111,15 +129,21 @@ def _load_xlsx_gold(
             raise ContractError(f"Gold worksheet '{selected_sheet_name}' is empty.")
         fieldnames = [str(value).strip() if value is not None else "" for value in rows[0]]
         data_rows = [dict(zip(fieldnames, values)) for values in rows[1:]]
-        cells = _rows_to_gold_cells(
+        result = _rows_to_gold_cells(
             data_rows,
             fieldnames,
             sheet_name=selected_sheet_name,
             scored_columns=scored_columns,
             excluded_columns=excluded_columns,
         )
-        cells = _filter_gold_cells_by_row_index(cells, allowed_row_indices=allowed_row_indices)
-        return GoldDataset(source_path=path, sheet_name=selected_sheet_name, cells=cells)
+        cells = _filter_gold_cells_by_row_index(result.cells, allowed_row_indices=allowed_row_indices)
+        return GoldDataset(
+            source_path=path,
+            sheet_name=selected_sheet_name,
+            cells=cells,
+            contract_warnings=result.contract_warnings,
+            metadata=result.metadata,
+        )
     finally:
         workbook.close()
 
@@ -131,8 +155,10 @@ def _rows_to_gold_cells(
     sheet_name: str | None,
     scored_columns: set[str] | None,
     excluded_columns: set[str] | None,
-) -> list[GoldCell]:
+) -> _GoldRowsResult:
     fieldname_set = set(fieldnames)
+    contract_warnings: list[str] = []
+    metadata: dict[str, Any] = {}
     if {"row_id", "column_name", "gold_value"}.issubset(fieldname_set):
         cells = _load_long_form_rows(
             rows,
@@ -141,6 +167,11 @@ def _rows_to_gold_cells(
             excluded_columns=excluded_columns,
         )
     else:
+        if "row_id" not in fieldnames:
+            rows, fieldnames = _synthesize_wide_gold_join_fields(rows, fieldnames)
+            contract_warnings.append(SYNTHESIZED_ROW_ID_WARNING)
+            metadata["gold_row_ids_synthesized"] = True
+            metadata["gold_row_id_algorithm"] = "sha256(row_index::Title)[:12]"
         cells = _load_wide_form_rows(
             rows,
             fieldnames,
@@ -149,7 +180,7 @@ def _rows_to_gold_cells(
             excluded_columns=excluded_columns,
         )
     _validate_unique_gold_join_keys(cells)
-    return cells
+    return _GoldRowsResult(cells=cells, contract_warnings=contract_warnings, metadata=metadata)
 
 
 def _load_long_form_rows(
@@ -219,6 +250,33 @@ def _load_wide_form_rows(
                 )
             )
     return cells
+
+
+def _synthesize_wide_gold_join_fields(
+    rows: list[dict[str, Any]],
+    fieldnames: list[str],
+) -> tuple[list[dict[str, Any]], list[str]]:
+    synthesized_rows: list[dict[str, Any]] = []
+    for index, row in enumerate(rows):
+        row_index = _optional_int(row.get("row_index"))
+        if row_index is None:
+            row_index = index
+        title = _optional_text(row.get("Title")) or ""
+        synthesized = dict(row)
+        synthesized["row_index"] = row_index
+        synthesized["row_id"] = _generate_row_id(row_index=row_index, title=title)
+        synthesized_rows.append(synthesized)
+
+    updated_fieldnames = list(fieldnames)
+    if "row_index" not in updated_fieldnames:
+        updated_fieldnames.insert(0, "row_index")
+    updated_fieldnames.insert(0, "row_id")
+    return synthesized_rows, updated_fieldnames
+
+
+def _generate_row_id(*, row_index: int, title: str) -> str:
+    digest = hashlib.sha256(f"{row_index}::{title}".encode("utf-8")).hexdigest()[:12]
+    return f"row_{digest}"
 
 
 def _required_join_value(value: Any, field_name: str) -> str:

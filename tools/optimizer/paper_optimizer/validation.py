@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import shutil
 from pathlib import Path
 from typing import Any
@@ -142,6 +143,107 @@ def _validate_judge_contract(*, benchmark_id: str, eval_args: list[str], require
         errors.append(f"benchmarks.manifests.{benchmark_id}.eval_args cannot configure judge_b without judge_a")
 
 
+def _read_tabular_header(path: Path, *, sheet_name: str | None = None) -> list[str]:
+    suffix = path.suffix.casefold()
+    if suffix == ".csv":
+        last_decode_error: UnicodeDecodeError | None = None
+        for encoding in ("utf-8-sig", "cp1252"):
+            try:
+                with path.open("r", encoding=encoding, newline="") as handle:
+                    return list(csv.DictReader(handle).fieldnames or [])
+            except UnicodeDecodeError as exc:
+                last_decode_error = exc
+        if last_decode_error is not None:
+            raise last_decode_error
+        return []
+    if suffix in {".xlsx", ".xlsm"}:
+        from openpyxl import load_workbook
+
+        workbook = load_workbook(path, read_only=True, data_only=True)
+        try:
+            selected_sheet_name = sheet_name or workbook.sheetnames[0]
+            worksheet = workbook[selected_sheet_name]
+            first_row = next(worksheet.iter_rows(values_only=True), ())
+            return [str(value).strip() if value is not None else "" for value in first_row]
+        finally:
+            workbook.close()
+    return []
+
+
+def _schema_columns(path: Path) -> set[str]:
+    suffix = path.suffix.casefold()
+    if suffix == ".csv":
+        last_decode_error: UnicodeDecodeError | None = None
+        for encoding in ("utf-8-sig", "cp1252"):
+            try:
+                with path.open("r", encoding=encoding, newline="") as handle:
+                    reader = csv.DictReader(handle)
+                    if reader.fieldnames and "column_name" in reader.fieldnames:
+                        return {
+                            str(row.get("column_name", "")).strip()
+                            for row in reader
+                            if str(row.get("column_name", "")).strip()
+                        }
+                    return {name for name in (reader.fieldnames or []) if name}
+            except UnicodeDecodeError as exc:
+                last_decode_error = exc
+        if last_decode_error is not None:
+            raise last_decode_error
+        return set()
+    if suffix == ".json":
+        payload = read_json(path)
+        columns = payload.get("columns", []) if isinstance(payload, dict) else []
+        if isinstance(columns, dict):
+            return {str(name).strip() for name in columns if str(name).strip()}
+        if isinstance(columns, list):
+            names = set()
+            for column in columns:
+                if isinstance(column, dict):
+                    name = column.get("name") or column.get("column_name")
+                    if name:
+                        names.add(str(name).strip())
+                elif column:
+                    names.add(str(column).strip())
+            return names
+    return set()
+
+
+def _validate_gold_contract(*, benchmark_id: str, manifest: Any, errors: list[str]) -> None:
+    if not manifest.gold_path or not Path(manifest.gold_path).exists():
+        return
+    gold_path = Path(manifest.gold_path)
+    try:
+        gold_header = _read_tabular_header(gold_path, sheet_name=manifest.gold_sheet)
+    except Exception as exc:
+        errors.append(f"benchmarks.manifests.{benchmark_id}.gold_path could not be inspected: {exc}")
+        return
+
+    gold_header_set = {name for name in gold_header if name}
+    for required in ("row_id", "row_index"):
+        if required not in gold_header_set:
+            errors.append(
+                f"benchmarks.manifests.{benchmark_id}.gold_path is missing required stable join column: {required}"
+            )
+
+    schema_path = manifest.schema_path or manifest.eval_schema_path
+    if not schema_path or not Path(schema_path).exists():
+        return
+    schema_columns = _schema_columns(Path(schema_path))
+    if not schema_columns:
+        return
+    ignored = {"row_id", "row_index", "column_name", "gold_value", "cell_id"}
+    gold_columns = {
+        name
+        for name in gold_header
+        if name and name not in ignored and not name.endswith("__cell_id")
+    }
+    unknown = sorted(gold_columns - schema_columns)
+    if unknown:
+        errors.append(
+            f"benchmarks.manifests.{benchmark_id}.gold_path has columns absent from schema: {', '.join(unknown)}"
+        )
+
+
 def validate_preflight(
     config: dict[str, Any],
     benchmarks: Benchmarks,
@@ -208,6 +310,7 @@ def validate_preflight(
             required_judges=list(manifest.required_judges or []),
             errors=errors,
         )
+        _validate_gold_contract(benchmark_id=benchmark_id, manifest=manifest, errors=errors)
 
     prompt_bundle_root = None
     if main_working_dir is not None:

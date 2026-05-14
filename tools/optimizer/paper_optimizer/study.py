@@ -15,6 +15,7 @@ from .bundle import build_candidate_from_dict, candidate_hash
 from .contracts import Candidate, CandidateResult, RoundSummary
 from .pipeline import evaluate_candidate_once, evaluate_external_result_once
 from .plotting import generate_compare_plots, generate_optimize_plots, generate_suite_plots
+from .proposal_tables import write_proposal_tables
 from .report import generate_experiment_report
 from .propose import propose_candidates
 from .proposer import collect_proposer_candidates
@@ -130,6 +131,22 @@ def _sem(values: list[float]) -> float | None:
     return sd_value / math.sqrt(len(values)) if sd_value is not None and values else None
 
 
+def _metric_float(result: CandidateResult, *names: str) -> float | None:
+    for name in names:
+        value = result.diagnostic_metrics.get(name)
+        if value is None:
+            eval_summary = result.metadata.get("eval_summary", {}) if isinstance(result.metadata.get("eval_summary"), dict) else {}
+            metrics = eval_summary.get("metrics", {}) if isinstance(eval_summary.get("metrics"), dict) else {}
+            value = metrics.get(name)
+        if value is None:
+            continue
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
 def _trust_caveats_for_results(results: list[CandidateResult], *, planned_replicates: int) -> list[str]:
     caveats: list[str] = []
     if planned_replicates == 1:
@@ -169,6 +186,19 @@ def _benchmark_summary_row(
         if result.scored and result.primary_metrics.get(primary_metric) is not None
     ]
     runtimes = [float(result.runtime_seconds) for result in replicate_results if result.runtime_seconds is not None]
+    runtime_total = sum(runtimes) if runtimes else None
+    scored_cell_counts = [
+        value
+        for result in replicate_results
+        for value in [_metric_float(result, "scored_cell_count")]
+        if value is not None and value > 0
+    ]
+    gold_present_cell_counts = [
+        value
+        for result in replicate_results
+        for value in [_metric_float(result, "content_gold_present_cell_count", "gold_present_cell_count")]
+        if value is not None and value > 0
+    ]
     n_degraded = sum(
         1
         for result in replicate_results
@@ -189,6 +219,19 @@ def _benchmark_summary_row(
         "n_degraded": n_degraded,
         "runtime_mean_seconds": _mean(runtimes),
         "runtime_sd_seconds": _sd(runtimes),
+        "runtime_total_seconds": runtime_total,
+        "scored_cell_count_total": sum(scored_cell_counts) if scored_cell_counts else None,
+        "gold_present_cell_count_total": sum(gold_present_cell_counts) if gold_present_cell_counts else None,
+        "runtime_mean_per_scored_cell_seconds": (
+            runtime_total / sum(scored_cell_counts)
+            if runtime_total is not None and scored_cell_counts and sum(scored_cell_counts) > 0
+            else None
+        ),
+        "runtime_mean_per_gold_present_cell_seconds": (
+            runtime_total / sum(gold_present_cell_counts)
+            if runtime_total is not None and gold_present_cell_counts and sum(gold_present_cell_counts) > 0
+            else None
+        ),
         "trust_caveats": _trust_caveats_for_results(replicate_results, planned_replicates=planned_replicates),
     }
 
@@ -213,6 +256,10 @@ def _suite_summary_row(
     )
     failed_benchmarks = sum(1 for row in benchmark_rows if row.get("n_scored", 0) == 0 or row.get("n_failed", 0) > 0)
     degraded_benchmarks = sum(1 for row in benchmark_rows if row.get("n_degraded", 0) > 0)
+    total_runtime_values = [float(row["runtime_total_seconds"]) for row in benchmark_rows if row.get("runtime_total_seconds") is not None]
+    scored_cell_total = sum(float(row.get("scored_cell_count_total") or 0.0) for row in benchmark_rows)
+    gold_present_cell_total = sum(float(row.get("gold_present_cell_count_total") or 0.0) for row in benchmark_rows)
+    runtime_total = sum(total_runtime_values) if total_runtime_values else None
     caveats = sorted(
         {
             caveat
@@ -224,6 +271,8 @@ def _suite_summary_row(
     return {
         "candidate_id": candidate.candidate_id,
         "suite_id": plan.suite_id,
+        "benchmark_ids": list(plan.benchmark_ids),
+        "replicate_count": plan.replicate_count,
         "primary_metric": plan.primary_metric,
         "suite_primary_metric_weighted_mean": weighted_mean,
         "benchmark_coverage": len(weighted_values) / len(plan.benchmark_ids) if plan.benchmark_ids else 0.0,
@@ -234,6 +283,24 @@ def _suite_summary_row(
         "unscored_replicate_count": sum(int(row.get("n_unscored", 0)) for row in benchmark_rows),
         "degraded_benchmark_count": degraded_benchmarks,
         "degraded_replicate_count": sum(int(row.get("n_degraded", 0)) for row in benchmark_rows),
+        "runtime_total_seconds": runtime_total,
+        "runtime_mean_per_benchmark_seconds": (
+            runtime_total / len(plan.benchmark_ids)
+            if runtime_total is not None and plan.benchmark_ids
+            else None
+        ),
+        "runtime_mean_per_scored_cell_seconds": (
+            runtime_total / scored_cell_total
+            if runtime_total is not None and scored_cell_total > 0
+            else None
+        ),
+        "runtime_mean_per_gold_present_cell_seconds": (
+            runtime_total / gold_present_cell_total
+            if runtime_total is not None and gold_present_cell_total > 0
+            else None
+        ),
+        "scored_cell_count_total": scored_cell_total or None,
+        "gold_present_cell_count_total": gold_present_cell_total or None,
         "trust_caveats": caveats,
     }
 
@@ -276,6 +343,18 @@ def _aggregate_result_from_summary(
         score_status=score_status if scored else "unscored",
         unscored_reason=None if scored else "aggregate_missing_scored_replicates",
         runtime_seconds=runtime_seconds,
+        runtime_metadata={
+            **template.runtime_metadata,
+            "suite_total_runtime_seconds": metadata.get("suite_summary", {}).get("runtime_total_seconds")
+            if isinstance(metadata.get("suite_summary"), dict)
+            else None,
+            "suite_mean_runtime_per_benchmark_seconds": metadata.get("suite_summary", {}).get("runtime_mean_per_benchmark_seconds")
+            if isinstance(metadata.get("suite_summary"), dict)
+            else None,
+            "suite_mean_runtime_per_scored_cell_seconds": metadata.get("suite_summary", {}).get("runtime_mean_per_scored_cell_seconds")
+            if isinstance(metadata.get("suite_summary"), dict)
+            else None,
+        },
         candidate_status="completed" if scored else "failed",
         metadata={**template.metadata, **metadata},
     )
@@ -372,16 +451,10 @@ def _evaluate_candidate_with_suite_and_replicates(
     return _aggregate_result_from_summary(
         all_replicates[0],
         suite_id=plan.suite_id,
-        benchmark_id=plan.benchmark_ids[0],
+        benchmark_id=f"suite:{plan.suite_id}",
         primary_metric=plan.primary_metric,
         score=suite_row.get("suite_primary_metric_weighted_mean"),
-        runtime_seconds=_mean(
-            [
-                float(row["runtime_mean_seconds"])
-                for row in benchmark_rows
-                if row.get("runtime_mean_seconds") is not None
-            ]
-        ),
+        runtime_seconds=suite_row.get("runtime_total_seconds"),
         score_status=(
             "scored_degraded"
             if int(suite_row.get("degraded_replicate_count", 0) or 0) > 0
@@ -1350,6 +1423,7 @@ def run_compare_mode(config: dict[str, Any], benchmarks: Benchmarks, experiment_
         winner=winner,
     )
 
+    write_proposal_tables(experiment_dir)
     generate_compare_plots(experiment_dir, primary_metric)
     generate_suite_plots(experiment_dir, primary_metric)
     generate_experiment_report(experiment_dir)
@@ -1607,6 +1681,7 @@ def run_optimize_mode(config: dict[str, Any], benchmarks: Benchmarks, search_spa
         progress_state="completed",
     )
 
+    write_proposal_tables(experiment_dir)
     generate_optimize_plots(experiment_dir, config["acceptance"]["primary_metric"])
     generate_suite_plots(experiment_dir, config["acceptance"]["primary_metric"])
     generate_experiment_report(experiment_dir)
@@ -1738,6 +1813,7 @@ def validate_best(config: dict[str, Any], benchmarks: Benchmarks, experiment_dir
         candidate_ids=candidate_ids,
         benchmark_id=plan.benchmark_ids[0],
     )
+    write_proposal_tables(experiment_dir)
     generate_experiment_report(experiment_dir)
 
 
@@ -1749,4 +1825,5 @@ def summarize(config: dict[str, Any], experiment_dir: Path) -> None:
         generate_compare_plots(experiment_dir, primary_metric)
     else:
         generate_optimize_plots(experiment_dir, primary_metric)
+    write_proposal_tables(experiment_dir)
     generate_experiment_report(experiment_dir)

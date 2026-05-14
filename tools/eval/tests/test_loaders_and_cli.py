@@ -325,6 +325,23 @@ class LoaderAndCliTests(unittest.TestCase):
 
             self.assertEqual({cell.row_id for cell in gold.cells}, {"row-2"})
 
+    def test_gold_loader_synthesizes_legacy_wide_row_ids_with_warning(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            gold_path = Path(temp_dir) / "gold.csv"
+            gold_path.write_text(
+                "Title,status,notes\n"
+                "Paper A,yes,alpha\n"
+                "Paper B,no,beta\n",
+                encoding="utf-8",
+            )
+
+            gold = load_gold(gold_path)
+
+            self.assertEqual({cell.row_index for cell in gold.cells}, {0, 1})
+            self.assertEqual({cell.row_id for cell in gold.cells}, {"row_acab937a79e6", "row_8e11caa603ac"})
+            self.assertIn("gold_row_ids_synthesized_from_row_index_and_title", gold.contract_warnings)
+            self.assertTrue(gold.metadata["gold_row_ids_synthesized"])
+
     def test_gold_loader_rejects_duplicate_join_keys(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             gold_path = Path(temp_dir) / "gold.csv"
@@ -368,6 +385,43 @@ class LoaderAndCliTests(unittest.TestCase):
 
             with self.assertRaisesRegex(ContractError, "Schema 'columns' must be either"):
                 load_schema(schema_path)
+
+    def test_schema_loader_excludes_metadata_columns_from_scoring_by_default(self) -> None:
+        schema = load_schema(None)
+
+        self.assertEqual(
+            set(schema.excluded_columns),
+            {"Title", "Authors", "Publication Year", "DOI", "Journal"},
+        )
+        for column_name in ["Title", "Authors", "Publication Year", "DOI", "Journal"]:
+            self.assertFalse(schema.should_score_column(column_name))
+        self.assertTrue(schema.should_score_column("Main analysis output"))
+
+    def test_schema_loader_merges_default_metadata_exclusions_with_schema_exclusions(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            schema_path = Path(temp_dir) / "schema.json"
+            schema_path.write_text(json.dumps({"excluded_columns": ["Internal Notes"]}), encoding="utf-8")
+
+            schema = load_schema(schema_path)
+
+        self.assertEqual(
+            set(schema.excluded_columns),
+            {"Title", "Authors", "Publication Year", "DOI", "Journal", "Internal Notes"},
+        )
+
+    def test_gold_loader_keeps_metadata_in_file_but_excludes_it_from_scored_cells(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            gold_path = Path(temp_dir) / "gold.csv"
+            gold_path.write_text(
+                "row_id,row_index,Title,Authors,Publication Year,DOI,Journal,Main analysis output\n"
+                "row-1,0,Paper A,A. Author,2024,10.123/example,Nature,cell-type map\n",
+                encoding="utf-8",
+            )
+            schema = load_schema(None)
+
+            gold = load_gold(gold_path, excluded_columns=set(schema.excluded_columns))
+
+        self.assertEqual([(cell.row_id, cell.column_name, cell.raw_value) for cell in gold.cells], [("row-1", "Main analysis output", "cell-type map")])
 
     def test_gold_xlsx_uses_first_sheet_by_default_and_supports_selection(self) -> None:
         try:

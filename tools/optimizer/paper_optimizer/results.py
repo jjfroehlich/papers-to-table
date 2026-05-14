@@ -132,6 +132,30 @@ class ResultsWriter:
         for key, value in result.diagnostic_metrics.items():
             row[f"diagnostic.{key}"] = value
 
+        suite_summary = result.metadata.get("suite_summary") if isinstance(result.metadata.get("suite_summary"), dict) else {}
+        if suite_summary:
+            row.update(
+                {
+                    "suite.benchmark_ids": "|".join(str(item) for item in suite_summary.get("benchmark_ids", []) or []),
+                    "suite.replicate_count": suite_summary.get("replicate_count"),
+                    "suite.benchmark_coverage": suite_summary.get("benchmark_coverage"),
+                    "suite.suite_primary_metric_weighted_mean": suite_summary.get("suite_primary_metric_weighted_mean"),
+                    "suite.benchmarks_total": suite_summary.get("benchmarks_total"),
+                    "suite.benchmarks_scored": suite_summary.get("benchmarks_scored"),
+                    "suite.failed_benchmark_count": suite_summary.get("failed_benchmark_count"),
+                    "suite.failed_replicate_count": suite_summary.get("failed_replicate_count"),
+                    "suite.unscored_replicate_count": suite_summary.get("unscored_replicate_count"),
+                    "suite.degraded_replicate_count": suite_summary.get("degraded_replicate_count"),
+                    "suite.runtime_total_seconds": suite_summary.get("runtime_total_seconds"),
+                    "suite.runtime_mean_per_benchmark_seconds": suite_summary.get("runtime_mean_per_benchmark_seconds"),
+                    "suite.runtime_mean_per_scored_cell_seconds": suite_summary.get("runtime_mean_per_scored_cell_seconds"),
+                    "suite.runtime_mean_per_gold_present_cell_seconds": suite_summary.get("runtime_mean_per_gold_present_cell_seconds"),
+                    "suite.scored_cell_count_total": suite_summary.get("scored_cell_count_total"),
+                    "suite.gold_present_cell_count_total": suite_summary.get("gold_present_cell_count_total"),
+                    "suite.trust_caveats": "|".join(str(item) for item in suite_summary.get("trust_caveats", []) or []),
+                }
+            )
+
         return row
 
     def _append_csv(self, row: dict[str, Any]) -> None:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import csv
 import os
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -157,6 +158,15 @@ def format_timestamp(value: Any, *, missing: str = "not recorded") -> str:
     return dt.strftime(f"%Y-%m-%d %H:%M {tz}")
 
 
+def model_nickname(model_id: Any) -> str:
+    if is_missing(model_id):
+        return "model not recorded"
+    text = str(model_id).strip().rstrip("/")
+    base = text.split("/")[-1] if "/" in text else text
+    base = re.sub(r"(?i)^models[-_]", "", base)
+    return base or text
+
+
 def status_from_row(row: dict[str, Any], *, primary_metric: str | None = None) -> str:
     explicit = str(row.get("score_status") or "").strip()
     if explicit:
@@ -219,7 +229,7 @@ def reason_text(row: dict[str, Any], *, missing: str = "not recorded") -> str:
 
 
 def candidate_label(row: dict[str, Any]) -> str:
-    model = display_text(row.get("text_model_id"), missing="model not recorded")
+    model = model_nickname(row.get("text_model_id"))
     prompt = display_text(row.get("prompt_bundle_id"), missing="prompt not recorded")
     return f"{display_text(row.get('candidate_id'), missing='candidate')} · {model} · {prompt}"
 
@@ -267,6 +277,17 @@ def normalize_candidate_row(row: dict[str, Any], *, primary_metric: str | None =
         "unscored_reason_detail": first_present(row, ["unscored_reason_detail"]),
         "primary_metric_value": primary_value,
         "runtime_seconds": safe_float(first_present(row, ["runtime_seconds"])),
+        "suite_id": first_present(row, ["suite_id"]),
+        "suite_benchmark_ids": first_present(row, ["suite.benchmark_ids", "benchmark_ids"]),
+        "suite_replicate_count": safe_int(first_present(row, ["suite.replicate_count", "replicate_count"])),
+        "benchmark_coverage": safe_float(first_present(row, ["suite.benchmark_coverage", "benchmark_coverage"])),
+        "suite_primary_metric_weighted_mean": safe_float(first_present(row, ["suite.suite_primary_metric_weighted_mean", "suite_primary_metric_weighted_mean"])),
+        "failed_replicate_count": safe_int(first_present(row, ["suite.failed_replicate_count", "failed_replicate_count"])),
+        "unscored_replicate_count": safe_int(first_present(row, ["suite.unscored_replicate_count", "unscored_replicate_count"])),
+        "degraded_replicate_count": safe_int(first_present(row, ["suite.degraded_replicate_count", "degraded_replicate_count"])),
+        "runtime_mean_per_benchmark_seconds": safe_float(first_present(row, ["suite.runtime_mean_per_benchmark_seconds", "runtime_mean_per_benchmark_seconds"])),
+        "runtime_mean_per_scored_cell_seconds": safe_float(first_present(row, ["suite.runtime_mean_per_scored_cell_seconds", "runtime_mean_per_scored_cell_seconds"])),
+        "runtime_mean_per_gold_present_cell_seconds": safe_float(first_present(row, ["suite.runtime_mean_per_gold_present_cell_seconds", "runtime_mean_per_gold_present_cell_seconds"])),
         "started_at": first_present(row, ["started_at"]),
         "ended_at": first_present(row, ["ended_at"]),
         "text_model_id": first_present(row, ["text_model_id"]),

@@ -146,6 +146,13 @@ def _handle_evaluate(args: argparse.Namespace) -> int:
                     excluded_columns=set(schema.excluded_columns) if schema.excluded_columns else None,
                 )
                 gold_cache[cache_key] = gold_dataset
+            if getattr(gold_dataset, "contract_warnings", None):
+                for warning in gold_dataset.contract_warnings:
+                    if warning not in loaded_run.contract_warnings:
+                        loaded_run.contract_warnings.append(warning)
+                loaded_run.metadata.extras.update(
+                    {f"gold_loader.{key}": value for key, value in gold_dataset.metadata.items()}
+                )
             score_result = score_run(
                 loaded_run,
                 gold_dataset,

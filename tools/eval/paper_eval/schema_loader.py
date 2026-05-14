@@ -9,7 +9,7 @@ from paper_eval.contracts import ColumnSchema, EvaluatorSchema, NumericTolerance
 from paper_eval.errors import ContractError
 
 
-DEFAULT_EXCLUDED_SCORE_COLUMNS = ["Title", "Authors", "Publication Year"]
+DEFAULT_EXCLUDED_SCORE_COLUMNS = ["Title", "Authors", "Publication Year", "DOI", "Journal"]
 
 
 def _normalize_optional_list(value: Any) -> list[Any]:
@@ -37,7 +37,7 @@ def _parse_numeric_tolerance(payload: dict[str, Any] | None) -> NumericTolerance
 
 def load_schema(path: Path | None) -> EvaluatorSchema:
     if path is None:
-        return EvaluatorSchema()
+        return EvaluatorSchema(excluded_columns=list(DEFAULT_EXCLUDED_SCORE_COLUMNS))
 
     if not path.exists():
         raise ContractError(f"Schema file does not exist: {path}")
@@ -83,7 +83,7 @@ def load_schema(path: Path | None) -> EvaluatorSchema:
     ) or NumericTolerance()
 
     scored_columns = _normalize_optional_list(payload.get("scored_columns") or payload.get("target_columns"))
-    excluded_columns = _normalize_optional_list(payload.get("excluded_columns")) or list(DEFAULT_EXCLUDED_SCORE_COLUMNS)
+    excluded_columns = list(dict.fromkeys([*DEFAULT_EXCLUDED_SCORE_COLUMNS, *_normalize_optional_list(payload.get("excluded_columns"))]))
 
     return EvaluatorSchema(
         columns=columns,

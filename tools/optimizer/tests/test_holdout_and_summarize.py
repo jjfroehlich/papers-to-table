@@ -59,7 +59,7 @@ def test_generate_overnight_report_writes_aggregate_outputs(base_config: dict, t
 
     report_path = generate_overnight_report(manifest_path)
 
-    assert report_path == overnight_dir / "report.html"
+    assert report_path == overnight_dir / "overview.html"
     assert (overnight_dir / "all_candidates.csv").exists()
     assert (overnight_dir / "all_candidates.json").exists()
     report_html = report_path.read_text(encoding="utf-8")

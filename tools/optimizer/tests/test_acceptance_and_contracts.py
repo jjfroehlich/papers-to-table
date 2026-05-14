@@ -139,6 +139,16 @@ def test_validate_preflight_rejects_missing_second_judge_when_required(base_conf
         validate_preflight(base_config, benches, require_holdout=True)
 
 
+def test_validate_preflight_rejects_planned_gold_without_stable_ids(base_config: dict, tmp_path: Path) -> None:
+    gold_path = tmp_path / "legacy_gold.csv"
+    gold_path.write_text("Title,status\nPaper A,yes\n", encoding="utf-8")
+    base_config["benchmarks"]["manifests"]["bench_dev"]["gold_path"] = str(gold_path)
+    benches = load_benchmarks(base_config)
+
+    with pytest.raises(PreflightError, match="missing required stable join column: row_id"):
+        validate_preflight(base_config, benches, require_holdout=True)
+
+
 def test_cli_preflight_command_accepts_valid_config(
     base_config: dict,
     tmp_path: Path,

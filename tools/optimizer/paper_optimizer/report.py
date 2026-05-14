@@ -19,6 +19,7 @@ from .reporting import (
     load_csv_rows,
     load_json_if_exists,
     merge_candidate_rows,
+    model_nickname,
     parse_bool,
     primary_value_from_row,
     reason_text,
@@ -89,8 +90,9 @@ def _compare_summary_sentence(
             f"No winner was materialized in this {variant.replace('_', ' ')} study. "
             f"Status mix: {_status_mix_text(counts)}."
         )
+    winner_name = model_nickname(winner_row.get("text_model_id"))
     summary = (
-        f"{winner_label} {display_text(winner_row.get('candidate_id'), missing='not recorded')} led the {variant.replace('_', ' ')} study "
+        f"{winner_name} led the {variant.replace('_', ' ')} study "
         f"with {primary_metric} {format_score(winner_row.get('primary_metric_value'))}."
     )
     if gap is not None:
@@ -115,10 +117,11 @@ def _optimize_summary_sentence(
             f"No incumbent was materialized after {rounds_completed} optimize rounds. "
             f"Status mix: {_status_mix_text(counts)}."
         )
+    winner_name = model_nickname(winner_row.get("text_model_id"))
     incumbent_changed = winner_row.get("candidate_id") != "cand_0000"
     changed_text = "changed from baseline" if incumbent_changed else "remained the baseline incumbent"
     return (
-        f"{winner_label} {display_text(winner_row.get('candidate_id'), missing='not recorded')} {changed_text} after {rounds_completed} rounds, "
+        f"{winner_name} {changed_text} after {rounds_completed} rounds, "
         f"finishing with {primary_metric} {format_score(winner_row.get('primary_metric_value'))}. "
         f"Promoted challengers: {promoted_count}. Status mix: {_status_mix_text(counts)}."
     )
@@ -383,9 +386,9 @@ def _build_plot_cards(experiment_dir: Path, *, study_type: str, variant: str) ->
     preferred: list[str]
     if has_suite:
         preferred = [
+            "suite_replicate_score_distribution",
             "suite_score_by_candidate",
             "suite_benchmark_breakdown",
-            "suite_replicate_visibility",
             "compare_score_status_counts",
             "optimize_score_status_counts",
         ]
@@ -423,6 +426,7 @@ def _build_plot_cards(experiment_dir: Path, *, study_type: str, variant: str) ->
     plot_cards: list[dict[str, Any]] = []
     for index, stem in enumerate(preferred):
         png_path = plots_dir / f"{stem}.png"
+        pdf_path = plots_dir / f"{stem}.pdf"
         csv_path = plots_dir / f"{stem}.csv"
         if not png_path.exists() and not csv_path.exists():
             continue
@@ -433,6 +437,7 @@ def _build_plot_cards(experiment_dir: Path, *, study_type: str, variant: str) ->
                 "hero": index == 0,
                 "csv_href": relative_href(csv_path, base_dir=experiment_dir) if csv_path.exists() else None,
                 "png_href": relative_href(png_path, base_dir=experiment_dir) if png_path.exists() else None,
+                "pdf_href": relative_href(pdf_path, base_dir=experiment_dir) if pdf_path.exists() else None,
                 "image_data_uri": image_data_uri(png_path) if png_path.exists() else None,
                 "guidance": build_plot_guidance(stem),
             }
@@ -456,6 +461,14 @@ def _build_artifact_links(experiment_dir: Path) -> list[dict[str, str]]:
         ("Suite Summary JSON", experiment_dir / "results" / "suite_summary.json"),
         ("Candidate Diagnostics CSV", experiment_dir / "results" / "candidate_diagnostics.csv"),
         ("Candidate Diagnostics JSON", experiment_dir / "candidate_diagnostics.json"),
+        ("Proposal Tables Manifest", experiment_dir / "results" / "proposal_tables" / "manifest.json"),
+        ("All Proposals CSV", experiment_dir / "results" / "proposal_tables" / "all_proposals.csv"),
+        ("All Scored Cells CSV", experiment_dir / "results" / "proposal_tables" / "all_scored_cells.csv"),
+        ("Column Difficulty CSV", experiment_dir / "results" / "proposal_tables" / "column_difficulty.csv"),
+        (
+            "Column Difficulty By Candidate CSV",
+            experiment_dir / "results" / "proposal_tables" / "column_difficulty_by_candidate.csv",
+        ),
     ]
     links: list[dict[str, str]] = []
     for label, path in candidates:
@@ -590,6 +603,9 @@ def _build_candidate_table(
             {"label": "Status", "align": "left", "sort": "string"},
             {"label": "Round", "align": "right", "sort": "number"},
             {"label": "Runtime", "align": "right", "sort": "number"},
+            {"label": "Coverage", "align": "right", "sort": "number"},
+            {"label": "Runtime / Benchmark", "align": "right", "sort": "number"},
+            {"label": "Runtime / Cell", "align": "right", "sort": "number"},
             {"label": "Retrieval", "align": "left", "sort": "string"},
             {"label": "Structure", "align": "left", "sort": "string"},
             {"label": "Decision", "align": "left", "sort": "string"},
@@ -605,9 +621,8 @@ def _build_candidate_table(
                     "cells": [
                         build_table_cell(str(index), sort_value=index),
                         build_table_cell(
-                            display_text(row.get("candidate_id"), missing="not recorded"),
-                            subtext=f"parent={display_text(row.get('parent_candidate_id'), missing='—')}",
-                            monospace=True,
+                            model_nickname(row.get("text_model_id")),
+                            subtext=f"{display_text(row.get('candidate_id'), missing='not recorded')} · {display_text(row.get('prompt_bundle_id'), missing='prompt not recorded')}",
                         ),
                         build_table_cell(role, badge=role, tone=status_tone(role)),
                         build_table_cell(
@@ -618,6 +633,9 @@ def _build_candidate_table(
                         build_table_cell(status_label(row.get("score_status") or "unknown"), badge=status_label(row.get("score_status") or "unknown"), tone=status_tone(str(row.get("score_status") or "unknown"))),
                         build_table_cell(display_text(row.get("round_index"), missing="baseline"), sort_value=row.get("round_index") if row.get("round_index") is not None else -1),
                         build_table_cell(format_runtime(row.get("runtime_seconds")), sort_value=row.get("runtime_seconds") if row.get("runtime_seconds") is not None else -1),
+                        build_table_cell(format_percent(row.get("benchmark_coverage")), sort_value=row.get("benchmark_coverage") if row.get("benchmark_coverage") is not None else -1),
+                        build_table_cell(format_runtime(row.get("runtime_mean_per_benchmark_seconds")), sort_value=row.get("runtime_mean_per_benchmark_seconds") if row.get("runtime_mean_per_benchmark_seconds") is not None else -1),
+                        build_table_cell(format_runtime(row.get("runtime_mean_per_scored_cell_seconds")), sort_value=row.get("runtime_mean_per_scored_cell_seconds") if row.get("runtime_mean_per_scored_cell_seconds") is not None else -1),
                         build_table_cell(
                             display_text(row.get("retrieval_mode"), missing="not configured"),
                             subtext=f"top_k={display_text(row.get('retrieval_top_k'), missing='not configured')}",
@@ -650,6 +668,9 @@ def _build_candidate_table(
             {"label": "Gap To Winner", "align": "right", "sort": "number"},
             {"label": "Status", "align": "left", "sort": "string"},
             {"label": "Runtime", "align": "right", "sort": "number"},
+            {"label": "Coverage", "align": "right", "sort": "number"},
+            {"label": "Runtime / Benchmark", "align": "right", "sort": "number"},
+            {"label": "Runtime / Cell", "align": "right", "sort": "number"},
             {"label": "Retrieval", "align": "left", "sort": "string"},
             {"label": "Structure", "align": "left", "sort": "string"},
             {"label": "Reason / Trust", "align": "left", "sort": "string"},
@@ -664,9 +685,8 @@ def _build_candidate_table(
                     "cells": [
                         build_table_cell(str(index), sort_value=index),
                         build_table_cell(
-                            display_text(row.get("candidate_id"), missing="not recorded"),
-                            subtext=candidate_label(row),
-                            monospace=True,
+                            model_nickname(row.get("text_model_id")),
+                            subtext=f"{display_text(row.get('candidate_id'), missing='not recorded')} · {display_text(row.get('prompt_bundle_id'), missing='prompt not recorded')}",
                         ),
                         build_table_cell(
                             format_score(row.get("primary_metric_value"), missing="not scored"),
@@ -675,6 +695,9 @@ def _build_candidate_table(
                         build_table_cell(format_delta(gap, missing="—"), sort_value=gap if gap is not None else -9999),
                         build_table_cell(status_label(row.get("score_status") or "unknown"), badge=status_label(row.get("score_status") or "unknown"), tone=status_tone(str(row.get("score_status") or "unknown"))),
                         build_table_cell(format_runtime(row.get("runtime_seconds")), sort_value=row.get("runtime_seconds") if row.get("runtime_seconds") is not None else -1),
+                        build_table_cell(format_percent(row.get("benchmark_coverage")), sort_value=row.get("benchmark_coverage") if row.get("benchmark_coverage") is not None else -1),
+                        build_table_cell(format_runtime(row.get("runtime_mean_per_benchmark_seconds")), sort_value=row.get("runtime_mean_per_benchmark_seconds") if row.get("runtime_mean_per_benchmark_seconds") is not None else -1),
+                        build_table_cell(format_runtime(row.get("runtime_mean_per_scored_cell_seconds")), sort_value=row.get("runtime_mean_per_scored_cell_seconds") if row.get("runtime_mean_per_scored_cell_seconds") is not None else -1),
                         build_table_cell(
                             display_text(row.get("retrieval_mode"), missing="not configured"),
                             subtext=(
@@ -758,6 +781,8 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
         caveats.insert(0, "Wrapper run metadata still says running even though experiment artifacts show an end time; treat wrapper status as stale.")
     next_checks = _build_next_checks(candidate_rows, variant=variant, study_type=study_type)
     gap = _gap_to_runner_up(candidate_rows)
+    winner_name = model_nickname(winner_row.get("text_model_id")) if winner_row else None
+    best_raw_name = model_nickname(best_raw_row.get("text_model_id")) if best_raw_row else None
 
     page = {
         "title": f"{display_text(experiment_json.get('experiment_id'), missing='experiment')} decision report",
@@ -765,68 +790,34 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
         "top_badges": [
             {"text": study_type, "tone": "good"},
             {"text": variant.replace("_", " "), "tone": "neutral"},
-            {"text": _status_mix_text(counts), "tone": "neutral"},
         ],
         "hero_meta": [
-            {"label": "Winner Label", "value": winner_label, "note": "Study-type-specific semantics."},
-            {"label": "Benchmark", "value": display_text(summary.get("benchmark_id"), missing="not recorded"), "note": None},
-            {"label": "Benchmark Winner", "value": display_text(best_raw_row.get("candidate_id") if best_raw_row else None, missing="not recorded"), "note": format_score(best_raw_row.get("primary_metric_value") if best_raw_row else None)},
-            {"label": "Recommended Default", "value": display_text(winner_row.get("candidate_id") if winner_row else None, missing="not recorded"), "note": _trust_note(winner_row) if winner_row else None},
-            {"label": "Started", "value": started_at, "note": None},
-            {"label": "Ended", "value": ended_at, "note": None},
-            {"label": "Candidates", "value": str(len(candidate_rows)), "note": _status_mix_text(counts)},
+            {"label": "Recommended Model", "value": display_text(winner_name, missing="not recorded"), "note": display_text(winner_row.get("candidate_id") if winner_row else None, missing="")},
+            {"label": "Suite Score", "value": format_score(winner_row.get("primary_metric_value") if winner_row else None), "note": f"coverage={format_percent(winner_row.get('benchmark_coverage') if winner_row else None)}"},
+            {"label": "Benchmark Scope", "value": display_text(summary.get("benchmark_id"), missing=display_text(winner_row.get("suite_id") if winner_row else None, missing="not recorded")), "note": display_text(winner_row.get("suite_benchmark_ids") if winner_row else None, missing=None)},
+            {"label": "Replicates", "value": display_text(winner_row.get("suite_replicate_count") if winner_row else None, missing="not recorded"), "note": _status_mix_text(counts)},
+            {"label": "Total Runtime", "value": format_runtime(winner_row.get("runtime_seconds") if winner_row else None), "note": f"per benchmark={format_runtime(winner_row.get('runtime_mean_per_benchmark_seconds') if winner_row else None)}"},
+            {"label": "Ended", "value": ended_at, "note": f"started={started_at}"},
         ],
-        "executive_cards": [
-            {
-                "label": winner_label,
-                "value": display_text(winner_row.get("candidate_id") if winner_row else None, missing="no winner recorded"),
-                "note": candidate_label(winner_row) if winner_row else "No winner candidate record was available.",
-                "badges": [{"text": winner_label.lower(), "tone": "good"}] if winner_row else [{"text": "no winner", "tone": "warn"}],
-                "class_name": "",
-            },
-            {
-                "label": f"Best Benchmark {primary_metric}",
-                "value": format_score(best_raw_row.get("primary_metric_value") if best_raw_row else None),
-                "note": f"benchmark_winner={display_text(best_raw_row.get('candidate_id') if best_raw_row else None, missing='not recorded')}; runner-up gap={format_delta(gap, missing='not available')}",
-                "badges": [],
-                "class_name": "",
-            },
-            {
-                "label": "Trust / Caveats",
-                "value": "healthy" if caveats == ["No major report caveats were recorded."] else "review needed",
-                "note": caveats[0],
-                "badges": [{"text": item.split(".")[0], "tone": "warn"} for item in caveats[:2]],
-                "class_name": "",
-            },
-            {
-                "label": "Next Check",
-                "value": next_checks[0],
-                "note": "; ".join(next_checks[1:]) if len(next_checks) > 1 else None,
-                "badges": [{"text": "deterministic", "tone": "neutral"}],
-                "class_name": "",
-            },
-        ],
+        "executive_cards": [],
         "decision_cards": [
             {
-                "title": "Why This Candidate Won",
-                "lead": "Deterministic explanation derived from score, status, and runtime.",
-                "items": _build_why_winner(winner_row, candidate_rows, primary_metric=primary_metric, study_type=study_type),
+                "title": "Ranking Drivers",
+                "lead": "Deterministic explanation derived from score, coverage, status, and runtime.",
+                "items": [
+                    *_build_why_winner(winner_row, candidate_rows, primary_metric=primary_metric, study_type=study_type),
+                    *_build_why_others(candidate_rows, winner_id)[:2],
+                ],
                 "badges": [{"text": winner_label.lower(), "tone": "good"}] if winner_row else [{"text": "no winner", "tone": "warn"}],
             },
             {
-                "title": "Why Others Did Not Win",
-                "lead": "Grouped loss reasons rather than a raw artifact dump.",
-                "items": _build_why_others(candidate_rows, winner_id),
-                "badges": [{"text": "runner-ups", "tone": "neutral"}],
-            },
-            {
-                "title": "Interpretation",
+                "title": "Study Interpretation",
                 "lead": "Study-aware takeaways generated from metrics and statuses.",
                 "items": _build_interpretation(candidate_rows, study_type=study_type, variant=variant, summary=summary),
                 "badges": [{"text": variant.replace("_", " "), "tone": "neutral"}],
             },
             {
-                "title": "Trust And Caveats",
+                "title": "Caveats",
                 "lead": "Human-facing trust summary; missing data is surfaced explicitly, not silently hidden.",
                 "items": caveats,
                 "badges": [{"text": "trust", "tone": "warn" if caveats and caveats[0] != "No major report caveats were recorded." else "good"}],
@@ -839,10 +830,7 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
             },
         ],
         "candidate_table": _build_candidate_table(candidate_rows, study_type=study_type, primary_metric=primary_metric, winner_id=winner_id),
-        "study_cards": [
-            *_build_suite_report_cards(experiment_dir),
-            *_build_study_cards(candidate_rows, study_type=study_type, variant=variant, summary=summary),
-        ],
+        "study_cards": _build_suite_report_cards(experiment_dir),
         "plots": _build_plot_cards(experiment_dir, study_type=study_type, variant=variant),
         "artifact_links": _build_artifact_links(experiment_dir),
         "provenance_items": _build_provenance_items(winner_row, summary=summary, run_metadata=run_metadata),

@@ -7,6 +7,7 @@ from pathlib import Path
 from .benchmarks import load_benchmarks
 from .bundle import build_candidate_from_dict
 from .overnight import generate_overnight_report
+from .proposal_tables import write_proposal_tables
 from .results import ResultsWriter
 from .search_space import load_search_space
 from .settings import load_config
@@ -38,6 +39,9 @@ def _build_parser() -> argparse.ArgumentParser:
     summarize_cmd = sub.add_parser("summarize", help="Rebuild summaries and plots from saved artifacts")
     summarize_cmd.add_argument("--config", type=Path, required=True)
     summarize_cmd.add_argument("--experiment", type=Path, required=True)
+
+    proposals_cmd = sub.add_parser("proposal-tables", help="Export proposal and scored-cell inspection tables")
+    proposals_cmd.add_argument("--experiment", type=Path, required=True)
 
     overnight_cmd = sub.add_parser("overnight-report", help="Build a combined overnight aggregate table and report")
     overnight_cmd.add_argument("--manifest", type=Path, required=True)
@@ -126,6 +130,11 @@ def _cmd_overnight_report(args: argparse.Namespace) -> None:
     generate_overnight_report(args.manifest)
 
 
+def _cmd_proposal_tables(args: argparse.Namespace) -> None:
+    manifest = write_proposal_tables(args.experiment)
+    print(json.dumps(manifest, sort_keys=True))
+
+
 def main() -> None:
     parser = _build_parser()
     args = parser.parse_args()
@@ -140,6 +149,8 @@ def main() -> None:
         _cmd_summarize(args)
     elif args.command == "overnight-report":
         _cmd_overnight_report(args)
+    elif args.command == "proposal-tables":
+        _cmd_proposal_tables(args)
     else:
         parser.error("Unknown command")
 
