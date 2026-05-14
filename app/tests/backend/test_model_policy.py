@@ -12,17 +12,18 @@ def test_unknown_model_uses_shared_default_policy() -> None:
     assert policy.retry_malformed_structured_response is True
 
 
-def test_qwen_policy_prefers_json_object_and_adds_json_reminder() -> None:
+def test_qwen_policy_prefers_json_schema_and_keeps_non_thinking_json_guard() -> None:
     policy = resolve_model_request_policy("qwen/qwen3.6-27b")
 
-    assert policy.preferred_structured_mode == "json_object"
-    assert policy.omit_max_tokens_for_structured is True
-    assert policy.fast_abort_malformed_json_attempts == 1
-    assert policy.retry_malformed_structured_response is False
+    assert policy.preferred_structured_mode == "json_schema"
+    assert policy.omit_max_tokens_for_structured is False
+    assert policy.fast_abort_malformed_json_attempts == 3
+    assert policy.retry_malformed_structured_response is True
     assert policy.request_defaults["top_p"] == 0.8
+    assert policy.request_defaults["presence_penalty"] == 0.0
     assert policy.chat_template_kwargs_defaults == {"enable_thinking": False}
-    assert policy.ordered_structured_modes("json_schema")[:2] == ["json_object", "json_schema"]
-    messages = policy.apply_messages([{"role": "user", "content": "Return the result."}], "json_object")
+    assert policy.ordered_structured_modes("json_schema")[:2] == ["json_schema", "json_object"]
+    messages = policy.apply_messages([{"role": "user", "content": "Return the result."}], "json_schema")
     assert "JSON" in messages[-1]["content"]
     assert "thinking" in messages[-1]["content"].casefold()
 

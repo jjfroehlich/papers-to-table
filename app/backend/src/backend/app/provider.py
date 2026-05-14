@@ -2260,7 +2260,7 @@ class LMStudioProvider(ProviderAdapter):
                     }
                 ],
                 model_id,
-                min(max_tokens, 1024),
+                max_tokens,
                 temperature,
                 response_schema,
                 structured_mode,

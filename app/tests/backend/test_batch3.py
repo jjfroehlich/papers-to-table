@@ -1248,7 +1248,7 @@ class TestProviderCapabilities:
         assert provider._capabilities.structured_output_reason == "structured_backend_incompatible"
 
     @pytest.mark.asyncio
-    async def test_qwen_structured_policy_uses_json_object_without_max_tokens_or_retry(self):
+    async def test_qwen_structured_policy_uses_json_schema_with_max_tokens_and_retry(self):
         provider = LMStudioProvider(base_url="http://localhost:1234")
         provider.set_capabilities(
             ProviderCapabilities(
@@ -1275,19 +1275,20 @@ class TestProviderCapabilities:
         assert result["value"] == "ok"
         first_payload = post.await_args_list[0].args[0]
         second_payload = post.await_args_list[1].args[0]
-        assert first_payload["response_format"] == {"type": "json_object"}
-        assert "max_tokens" not in first_payload
+        assert first_payload["response_format"]["type"] == "json_schema"
+        assert first_payload["max_tokens"] == 2048
         assert first_payload["temperature"] == 0.7
         assert first_payload["top_p"] == 0.8
         assert first_payload["top_k"] == 20
         assert first_payload["min_p"] == 0.0
-        assert first_payload["presence_penalty"] == 1.5
+        assert first_payload["presence_penalty"] == 0.0
         assert first_payload["repetition_penalty"] == 1.0
         assert first_payload["chat_template_kwargs"] == {"enable_thinking": False}
         assert any("JSON" in message["content"] for message in first_payload["messages"])
         assert any("non-thinking" in message["content"] for message in first_payload["messages"])
         assert second_payload["response_format"]["type"] == "json_schema"
-        assert provider.get_request_counts()["completion_retry_attempts"] == 0
+        assert second_payload["max_tokens"] == 2048
+        assert provider.get_request_counts()["completion_retry_attempts"] == 1
 
     def test_model_config_overrides_policy_payload_defaults(self):
         from backend.app.config import TextModelConfig
