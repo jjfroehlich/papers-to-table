@@ -33,30 +33,48 @@ bash scripts/test-optimizer-tool.sh
 ## Recommended Commands
 
 ### Compare Models
+- use it to choose among fixed list of models
 - fixed candidate list
-- same benchmark, same prompt stack, same retrieval defaults
-- use when choosing among explicit model candidates
+- on current three-dataset benchmark suite
+- same prompt package and retrieval parameters
+- done in triplicate to measure variability
+- timing basis: the May 14, 2026 compare run averaged about 49 minutes per completed model for all three benchmark datasets in triplicate
+- Python command delegates to `tools/optimizer/scripts/compare_models.sh`
+- uses `tools/optimizer/configs/compare_models.json`
 
 ```bash
 python scripts/papers_to_table.py optimizer compare-models
 ```
 
-### Optimize One Model
-- one baseline candidate
-- bounded search space for a single model family
-- use when you want to tune retrieval parameters or similar knobs without changing the model family
+### Full Benchmark
+- full phased benchmark chain
+- compare models first, then compare prompt packages, retrieval parameters, extraction feature toggles, and finally run a minimal parameter-sweep stub
+- use when you want a broad end-to-end tuning pass rather than only model selection
+- each phase runs in triplicate on the current three-dataset dev suite
+- Python command delegates to `tools/optimizer/scripts/full_benchmark.sh`
+- model phase uses `tools/optimizer/configs/compare_models.json`
+- prompt phase materializes `compare_prompts.json` with the model-phase winner
+- retrieval-parameter phase materializes `compare_retrieval_parameters.json` with the prompt-phase winner
+- extraction-feature phase materializes `compare_extraction_features.json` from the top retrieval-parameter candidates
+- final parameter-sweep phase materializes `optimize_parameter_sweeps.json` with the extraction-feature winner. Currently runs a deliberately small optimizer stub and only tests `retrieval_top_k` values `12` and `14`
 
 ```bash
-python scripts/papers_to_table.py optimizer optimize-one-model
+python scripts/papers_to_table.py optimizer full-benchmark
 ```
 
-### Overnight Sequence
-- multi-stage sequence
-- compare models, prompts, retrieval settings, retrieval modes, then run the optimization stage which sweeps different parameter spaces
+Runtime estimate calculation:
 
-```bash
-python scripts/papers_to_table.py optimizer overnight
+```text
+May 14, 2026 observed mean: ~0.82 h per candidate for all 3 datasets in triplicate
+model comparison:       9 candidates  * 0.82 h =  7.38 h
+prompt comparison:      2 candidates  * 0.82 h =  1.64 h
+retrieval parameters:  10 candidates  * 0.82 h =  8.20 h
+extraction features:   16 candidates  * 0.82 h = 13.12 h
+parameter sweep stub:   2 candidates  * 0.82 h =  1.64 h
+estimated total:       39 candidates  * 0.82 h = 31.98 h
 ```
+
+`tools/optimizer/scripts/run_study.sh` is an internal helper used by both wrappers. It runs one compare or optimize study from one materialized config, writes logs and run metadata, calls the optimizer CLI, and builds the per-study summary.
 
 ## Low-level Command (tool-local)
 ```bash
@@ -81,18 +99,22 @@ These are the experiment templates. Each preset is focused on one comparison que
 
 - `tools/optimizer/configs/compare_models.json`
 - `tools/optimizer/configs/compare_prompts.json`
-- `tools/optimizer/configs/compare_retrieval.json`
-- `tools/optimizer/configs/compare_retrieval_modes.json`
-- `tools/optimizer/configs/optimize_one_model.json`
-- `tools/optimizer/configs/compare_models_overnight.json`
-- `tools/optimizer/configs/optimize_overnight.json`
+- `tools/optimizer/configs/compare_retrieval_parameters.json`
+- `tools/optimizer/configs/compare_extraction_features.json`
+- `tools/optimizer/configs/optimize_parameter_sweeps.json`
+
+The current dev suite in the planned real-run presets aggregates all three checked-in benchmark datasets:
+
+- `bench_massively_parallel_reporter_assays`
+- `bench_genome_editing`
+- `bench_spatial_transcriptomics`
 
 You would modify a preset if you want to:
 
 - test a new candidate model or remove one that is no longer relevant
 - compare a different prompt bundle or retrieval configuration
-- narrow or widen the search space for a single-model optimization run
-- create a new overnight sequence with your own staged order
+- narrow or widen the search space for the full-benchmark optimization stage
+- create a new full-benchmark sequence with your own staged order
 
 ## Config Structure
 
@@ -114,26 +136,25 @@ Common config areas:
 
 Benchmark intent labels:
 
-- real benchmark: expects non-fixture paths and meaningful development or overnight use
+- real benchmark: expects non-fixture paths and meaningful development or long-running benchmark use
 - fixture/manual: safe for checked-in examples and manual inspection
 - smoke: minimal contract check, not meaningful benchmark evidence
 
 Important interpretation rules:
 
 - `compare-models` ranks explicit candidate lists.
-- `optimize-one-model` starts from one baseline and proposes challengers.
-- `overnight` chains several compare and optimize stages together.
+- `full-benchmark` chains several compare and optimize stages together.
 
 ## Benchmark Suites And Replicates
 
-Benchmark suites and replicates are the canonical runtime model. A simple run is a one-benchmark suite with `replicates.count = 1`; multi-benchmark suites and repeated replicates use the same execution path.
+Benchmark suites and replicates are the canonical runtime model. A simple run is on one benchmark dataset with `replicates.count = 1`; multi-benchmark suites (multiple benchmark datasets) and repeated replicates use the same execution path.
 
 Use benchmark suites when you need one study to cover several distinct benchmark aspects, for example:
 
+- different kind of topics
 - text extraction
 - figure or vision-heavy extraction
 - reasoning-heavy fields
-- metadata-heavy matching and extraction
 
 Use replicates when you want to estimate stability instead of trusting one candidate x benchmark run.
 
@@ -201,13 +222,6 @@ cd tools/optimizer
 python -m paper_optimizer.cli evaluate-candidate --config configs/compare_models_contract_smoke.json --candidate-file candidate.json --suite smoke_suite --out runs/single_candidate
 ```
 
-Wrapper examples:
-
-```bash
-python scripts/papers_to_table.py optimizer compare-models --suite dev_suite --replicates 3
-python scripts/papers_to_table.py optimizer optimize-one-model --suite dev_suite --replicates 3
-```
-
 Interpretation guidance:
 
 - mean plus SD or SEM gives a stability signal when `n > 1`
@@ -229,8 +243,6 @@ Optimizer is orchestration-only. It does not extract values itself and it does n
 7. Record candidate result: merge main-app runtime metadata, eval metrics, diagnostics, warnings, and artifact references into candidate result rows.
 8. Aggregate replicates and suites: summarize candidate x benchmark, candidate x suite, and study-level results.
 9. Rank and recommend: rank raw results, apply guardrails and trust caveats, then write `best_candidate.json`, `summary.json`, plots, and `report.html`.
-
-The default implementation is sequential. A candidate's proposal-generation phase completes before its eval judging phase starts, and the next candidate does not start until the current candidate's main-app and eval phases have finished. This keeps one shared LM Studio server from being asked to load, unload, and generate for unrelated jobs at the same time.
 
 ### Proposal And Judging Organization
 

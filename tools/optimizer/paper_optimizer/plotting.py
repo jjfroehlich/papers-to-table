@@ -61,9 +61,8 @@ def _model_nickname(model_id: str | None) -> str:
     if not model_id:
         return ""
     text = str(model_id).strip().rstrip("/")
-    base = text.split("/")[-1] if "/" in text else text
-    base = re.sub(r"(?i)^models[-_]", "", base)
-    return base or text
+    text = re.sub(r"(?i)^models[-_]", "", text)
+    return text or ""
 
 
 def _candidate_labels(rows: list[dict[str, str]]) -> dict[str, str]:

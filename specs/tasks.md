@@ -6,7 +6,7 @@
 - [x] Headless mode supports explicit `--accept-all` and rejects unattended export when review is still pending
 - [x] Headless auto-accept is recorded in decision artifacts and reviewer summaries
 - [x] Eval is packaged as an installable companion CLI
-- [x] Optimizer has an explicit canonical `optimize_one_model.json` preset alongside compare and overnight presets
+- [x] Optimizer exposes canonical `compare_models.json` and `optimize_parameter_sweeps.json` presets for model comparison and full-benchmark parameter sweeps
 - [x] README and docs now expose one clear install/run/navigation path
 - [x] Integrated current truth now exists in `specs/spec.md`
 - [x] `specs/spec.md`, `specs/plan.md`, and `specs/tasks.md` are the canonical markdown truth files

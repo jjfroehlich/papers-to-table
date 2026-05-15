@@ -44,9 +44,6 @@ Use this if you want to:
 Eval tool will: 
 
 - compare the values with the correct values, and use LLMs as judges to determine if the proposed values are correct. 
-
-The output of will: 
-
 - evaluate per-cell correctness and evidence quality
 - quantify judge disagreement and degraded behavior
 
@@ -142,11 +139,9 @@ Eval is intentionally staged so deterministic scoring and LLM judging are not in
 3. Score deterministic cells: numeric, boolean, categorical, date-like, and exact/normalized text cases are scored without an LLM when the eval schema allows it.
 4. Collect judge-needed cells: fuzzy free-text cells that still need semantic grading are collected into a pending judge queue.
 5. Run judge-major batches: eval iterates by judge label first, then groups cells by provider, model, and settings. This means judge A handles its grouped cells, then judge B handles its grouped cells, instead of switching models for every individual cell.
-6. Clean up judge residency: for LM Studio judges, model cleanup happens after a judge-major batch, not during another active judge request.
-7. Merge judged cells: per-judge verdicts, disagreement state, evidence checks, and deterministic scores are merged into `scored_cells`.
-8. Aggregate outputs: write per-run summaries first, then comparison files when multiple runs or existing summaries are compared.
+6. Merge judged cells: per-judge verdicts, disagreement state, evidence checks, and deterministic scores are merged into `scored_cells`.
+7. Aggregate outputs: write per-run summaries first, then comparison files when multiple runs or existing summaries are compared.
 
-This layout is important for local model stability. It lets one model stay resident for a batch, reduces load/unload churn, and works with the shared LM Studio lock used by the main app and optimizer-launched subprocesses.
 
 ## How To Read The Metrics
 

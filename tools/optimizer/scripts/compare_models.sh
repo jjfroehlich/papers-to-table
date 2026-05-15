@@ -2,7 +2,7 @@
 
 set -eEuo pipefail
 
-label="${1:-models_overnight}"
+label="${1:-compare_models}"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
 session_id="$(date +%Y%m%d_%H%M%S)"
@@ -31,9 +31,9 @@ resolve_optimizer_python() {
 
 optimizer_python="$(resolve_optimizer_python)"
 
-compare_config="$repo_root/configs/compare_models_overnight.json"
-compare_run_name="${session_id}_models/compare"
-overnight_dir="$repo_root/runs/${session_id}_models"
+compare_config="$repo_root/configs/compare_models.json"
+compare_run_name="${session_id}_compare_models/compare"
+overnight_dir="$repo_root/runs/${session_id}_compare_models"
 manifest_path="$overnight_dir/overnight_manifest.json"
 
 mkdir -p "$overnight_dir"
@@ -114,13 +114,13 @@ trap 'mark_failed "$?"' EXIT
 
 write_manifest running
 
-echo "[$(date -Iseconds)] Step 1: model-only config preflight"
+echo "[$(date -Iseconds)] Step 1: compare-models config preflight"
 echo "[$(date -Iseconds)] Optimizer python: $optimizer_python"
 pushd "$repo_root" >/dev/null
 "$optimizer_python" -m paper_optimizer.cli preflight --config "$compare_config"
 popd >/dev/null
 
-echo "[$(date -Iseconds)] Step 2: model-only compare study"
+echo "[$(date -Iseconds)] Step 2: compare-models study"
 if PAPER_OPTIMIZER_RUN_NAME="$compare_run_name" bash "$script_dir/run_study.sh" compare "$compare_config" "${safe_label}_model_compare"; then
 	append_stage model_compare "$compare_run_name"
 	write_manifest completed "$(date -Iseconds)"
@@ -135,7 +135,7 @@ else
 fi
 trap - EXIT
 
-echo "[$(date -Iseconds)] Model-only overnight workflow finished"
-echo "Overnight overview: $overnight_dir/overview.html"
+echo "[$(date -Iseconds)] Model-comparison workflow finished"
+echo "Comparison overview: $overnight_dir/overview.html"
 echo "All candidates CSV: $overnight_dir/all_candidates.csv"
 echo "Compare run: $repo_root/runs/$compare_run_name"

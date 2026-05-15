@@ -12,17 +12,13 @@ from paper_optimizer.settings import ConfigError, load_config
 
 REQUIRED_COMPARE_MODELS = {
     "unsloth/gemma-4-26b-a4b-it",
-    "unsloth/qwen3.6-35b-a3b",
-    "openai/gpt-oss-20b",
-    "zai-org/glm-4.6v-flash",
-}
-
-REQUIRED_OVERNIGHT_MODELS = {
-    "unsloth/gemma-4-26b-a4b-it",
     "openai/gpt-oss-20b",
     "google/gemma-4-e4b",
     "mistralai/ministral-3-14b-reasoning",
     "unsloth/qwen3.6-27b",
+    "unsloth/qwen3.6-35b-a3b",
+    "qwen/qwen3.6-35b-a3b",
+    "qwen/qwen3.6-27b",
     "zai-org/glm-4.6v-flash",
 }
 
@@ -60,11 +56,10 @@ def test_checked_in_planned_configs_disallow_degraded_scores() -> None:
     config_names = [
         "compare_models_contract_smoke.json",
         "compare_models.json",
-        "compare_models_overnight.json",
         "compare_prompts.json",
-        "compare_retrieval.json",
-        "compare_retrieval_modes.json",
-        "optimize_overnight.json",
+        "compare_retrieval_parameters.json",
+        "compare_extraction_features.json",
+        "optimize_parameter_sweeps.json",
     ]
 
     for config_name in config_names:
@@ -125,80 +120,104 @@ def test_real_benchmark_configs_use_real_inputs_and_dual_judges() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     config_names = [
         "compare_models.json",
-        "compare_models_overnight.json",
-        "optimize_overnight.json",
+        "optimize_parameter_sweeps.json",
     ]
 
     for config_name in config_names:
         payload = json.loads((repo_root / "configs" / config_name).read_text(encoding="utf-8"))
-        dev_manifest = payload["benchmarks"]["manifests"][payload["benchmarks"]["dev"]]
+        dev_ids = payload["benchmark_suites"]["dev_suite"]["benchmark_ids"]
+        assert dev_ids == [
+            "bench_massively_parallel_reporter_assays",
+            "bench_genome_editing",
+            "bench_spatial_transcriptomics",
+        ]
 
-        assert dev_manifest["require_non_fixture_inputs"] is True
-        assert dev_manifest["benchmark_kind"].startswith("real_external")
-        assert "app/tests/fixtures" not in dev_manifest["table_path"].replace("\\", "/")
-        assert "benchmarks/smoke_fixture" not in dev_manifest["table_path"].replace("\\", "/")
-        assert dev_manifest["expected_items"] >= 100
-        assert {"judge_a", "judge_b"}.issubset(set(dev_manifest["required_judges"]))
-        assert "--judge-model" in dev_manifest["eval_args"]
-        assert "--judge-model-b" in dev_manifest["eval_args"]
+        for benchmark_id in dev_ids:
+            dev_manifest = payload["benchmarks"]["manifests"][benchmark_id]
+            assert dev_manifest["require_non_fixture_inputs"] is True
+            assert dev_manifest["benchmark_kind"].startswith("real_external")
+            assert "app/tests/fixtures" not in dev_manifest["table_path"].replace("\\", "/")
+            assert "benchmarks/smoke_fixture" not in dev_manifest["table_path"].replace("\\", "/")
+            assert dev_manifest["expected_items"] == 5
+            assert {"judge_a", "judge_b"}.issubset(set(dev_manifest["required_judges"]))
+            assert "--judge-model" in dev_manifest["eval_args"]
+            assert "--judge-model-b" in dev_manifest["eval_args"]
 
 
-def test_compare_model_configs_include_required_models_and_defaults() -> None:
+def test_compare_models_tracks_requested_model_set() -> None:
     repo_root = Path(__file__).resolve().parents[1]
-    for config_name in ["compare_models.json"]:
-        payload = json.loads((repo_root / "configs" / config_name).read_text(encoding="utf-8"))
-        candidate_models = {candidate["text_model_id"] for candidate in payload["compare_candidates"]}
-        all_models = candidate_models | {payload["baseline_candidate"]["text_model_id"]}
-        search_models = set(payload["search_space"]["text_model_ids"])
-
-        assert REQUIRED_COMPARE_MODELS.issubset(all_models)
-        assert REQUIRED_COMPARE_MODELS.issubset(search_models)
-        assert payload["baseline_candidate"]["text_model_id"] == "unsloth/gemma-4-26b-a4b-it"
-        assert "unsloth/gemma-4-26b-a4b-it" in search_models
-        for candidate in [payload["baseline_candidate"], *payload["compare_candidates"]]:
-            knobs = candidate["optimizer_knobs"]
-            assert knobs["retrieval_mode"] == "hybrid_experimental"
-            assert knobs["retrieval_top_k"] == 12
-            assert knobs["recall_rescue_enabled"] is False
-            assert knobs["whole_document_mode"] is False
-
-
-def test_compare_models_overnight_tracks_requested_model_set() -> None:
-    repo_root = Path(__file__).resolve().parents[1]
-    payload = json.loads((repo_root / "configs" / "compare_models_overnight.json").read_text(encoding="utf-8"))
+    payload = json.loads((repo_root / "configs" / "compare_models.json").read_text(encoding="utf-8"))
 
     all_models = {payload["baseline_candidate"]["text_model_id"]} | {
         candidate["text_model_id"] for candidate in payload["compare_candidates"]
     }
+    compared_models = {candidate["text_model_id"] for candidate in payload["compare_candidates"]}
     search_models = set(payload["search_space"]["text_model_ids"])
 
-    assert all_models == REQUIRED_OVERNIGHT_MODELS
-    assert search_models == REQUIRED_OVERNIGHT_MODELS
+    assert all_models == REQUIRED_COMPARE_MODELS
+    assert compared_models == REQUIRED_COMPARE_MODELS
+    assert search_models == REQUIRED_COMPARE_MODELS
     assert "google/gemma-4-26b-a4b" not in all_models
     assert "nvidia/nemotron-3-nano-4b" not in all_models
     assert "nvidia/nemotron-3-nano-omni" not in all_models
     assert "qwen/qwen3.5-9b" not in all_models
-    assert "qwen/qwen3.6-35b-a3b" not in all_models
-    assert "qwen/qwen3.6-27b" not in all_models
-    assert "unsloth/qwen3.6-35b-a3b" not in all_models
+    assert "qwen/qwen3.6-35b-a3b" in all_models
+    assert "qwen/qwen3.6-27b" in all_models
+    assert "unsloth/qwen3.6-35b-a3b" in all_models
+    assert payload["baseline_candidate"]["text_model_id"] == "unsloth/gemma-4-26b-a4b-it"
+    for candidate in [payload["baseline_candidate"], *payload["compare_candidates"]]:
+        knobs = candidate["optimizer_knobs"]
+        assert knobs["retrieval_mode"] == "hybrid_experimental"
+        assert knobs["retrieval_top_k"] == 12
+        assert knobs["recall_rescue_enabled"] is False
+        assert knobs["whole_document_mode"] is False
 
 
-def test_model_only_overnight_config_runs_triplicate() -> None:
+def test_compare_models_config_runs_triplicate() -> None:
     repo_root = Path(__file__).resolve().parents[1]
-    payload = json.loads((repo_root / "configs" / "compare_models_overnight.json").read_text(encoding="utf-8"))
+    payload = json.loads((repo_root / "configs" / "compare_models.json").read_text(encoding="utf-8"))
 
     assert payload["replicates"]["count"] == 3
 
 
-def test_optimize_one_model_real_config_is_top_k_focused_on_gemma_26b() -> None:
+def test_full_benchmark_compare_phases_run_triplicate_with_figure_review() -> None:
     repo_root = Path(__file__).resolve().parents[1]
-    payload = json.loads((repo_root / "configs" / "optimize_overnight.json").read_text(encoding="utf-8"))
+    for config_name in ["compare_models.json", "compare_prompts.json", "compare_retrieval_parameters.json"]:
+        payload = json.loads((repo_root / "configs" / config_name).read_text(encoding="utf-8"))
+        assert payload["replicates"]["count"] == 3
+        for candidate in [payload["baseline_candidate"], *payload.get("compare_candidates", [])]:
+            assert candidate["optimizer_knobs"]["figure_review_enabled"] is True
+
+
+def test_extraction_feature_config_runs_triplicate_factorial() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    payload = json.loads((repo_root / "configs" / "compare_extraction_features.json").read_text(encoding="utf-8"))
+
+    assert payload["experiment_id"] == "compare_extraction_features"
+    assert payload["replicates"]["count"] == 3
+    feature_sets = {
+        (
+            candidate["optimizer_knobs"]["recall_rescue_enabled"],
+            candidate["optimizer_knobs"]["whole_document_mode"],
+            candidate["optimizer_knobs"]["figure_review_enabled"],
+        )
+        for candidate in payload["compare_candidates"]
+    }
+    assert len(feature_sets) == 8
+
+
+def test_full_benchmark_optimize_stage_is_top_k_focused_on_gemma_26b() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    payload = json.loads((repo_root / "configs" / "optimize_parameter_sweeps.json").read_text(encoding="utf-8"))
     knobs = payload["baseline_candidate"]["optimizer_knobs"]
 
     assert payload["baseline_candidate"]["text_model_id"] == "google/gemma-4-26b-a4b"
     assert payload["search_space"]["text_model_ids"] == ["google/gemma-4-26b-a4b"]
     assert set(payload["search_space"]["numeric_knobs"]) == {"retrieval_top_k"}
-    assert payload["search_space"]["numeric_knobs"]["retrieval_top_k"]["values"] == [8, 10, 12, 14, 16]
+    assert payload["search_space"]["numeric_knobs"]["retrieval_top_k"]["values"] == [12, 14]
+    assert payload["optimize"]["rounds"] == 1
+    assert payload["optimize"]["batch_size"] == 2
+    assert payload["replicates"]["count"] == 3
     assert knobs["retrieval_mode"] == "hybrid_experimental"
     assert knobs["retrieval_top_k"] == 12
     assert knobs["recall_rescue_enabled"] is False

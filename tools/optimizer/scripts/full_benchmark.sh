@@ -2,7 +2,7 @@
 
 set -eEuo pipefail
 
-label="${1:-overnight}"
+label="${1:-full_benchmark}"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
 session_id="$(date +%Y%m%d_%H%M%S)"
@@ -11,15 +11,15 @@ optimizer_python="${PAPER_OPTIMIZER_PYTHON:-python}"
 
 compare_config="$repo_root/configs/compare_models.json"
 prompt_config="$repo_root/configs/compare_prompts.json"
-retrieval_core_config="$repo_root/configs/compare_retrieval.json"
-retrieval_feature_config="$repo_root/configs/compare_retrieval_modes.json"
-optimize_config="$repo_root/configs/optimize_overnight.json"
+retrieval_parameter_config="$repo_root/configs/compare_retrieval_parameters.json"
+extraction_feature_config="$repo_root/configs/compare_extraction_features.json"
+optimize_config="$repo_root/configs/optimize_parameter_sweeps.json"
 compare_run_name="${session_id}_compare_models_${safe_label}"
 prompt_run_name="${session_id}_compare_prompts_${safe_label}"
-retrieval_core_run_name="${session_id}_compare_retrieval_${safe_label}"
-retrieval_feature_run_name="${session_id}_compare_retrieval_modes_${safe_label}"
-optimize_run_name="${session_id}_optimize_overnight_${safe_label}"
-overnight_dir="$repo_root/runs/${session_id}_overnight_${safe_label}"
+retrieval_parameter_run_name="${session_id}_compare_retrieval_parameters_${safe_label}"
+extraction_feature_run_name="${session_id}_compare_extraction_features_${safe_label}"
+optimize_run_name="${session_id}_optimize_parameter_sweeps_${safe_label}"
+overnight_dir="$repo_root/runs/${session_id}_full_benchmark_${safe_label}"
 
 resolve_best_candidate_json() {
 	local run_name="$1"
@@ -156,7 +156,7 @@ target_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
 PY
 }
 
-materialize_retrieval_feature_config() {
+materialize_extraction_feature_config() {
 	local source_config="$1"
 	local results_jsonl="$2"
 	local target_config="$3"
@@ -212,11 +212,11 @@ records = [json.loads(line) for line in results_path.read_text(encoding="utf-8")
 records.sort(key=sort_key)
 seed_records = [record for record in records if record.get("candidate_status") == "completed"][:max_seed_candidates]
 if not seed_records:
-	raise SystemExit("No completed retrieval-core candidates were available for retrieval-feature materialization.")
+	raise SystemExit("No completed retrieval-parameter candidates were available for extraction-feature materialization.")
 
 template_candidates = list(config.get("compare_candidates", []))
 if not template_candidates:
-	raise SystemExit("Retrieval-feature template has no compare_candidates to expand.")
+	raise SystemExit("Extraction-feature template has no compare_candidates to expand.")
 
 materialized_candidates = []
 for seed in seed_records:
@@ -248,9 +248,9 @@ PY
 tmp_dir="$overnight_dir/materialized_configs"
 mkdir -p "$tmp_dir" "$overnight_dir"
 prompt_config_materialized="$tmp_dir/compare_prompts.json"
-retrieval_core_config_materialized="$tmp_dir/compare_retrieval.json"
-retrieval_feature_config_materialized="$tmp_dir/compare_retrieval_modes.json"
-optimize_config_materialized="$tmp_dir/optimize_overnight.json"
+retrieval_parameter_config_materialized="$tmp_dir/compare_retrieval_parameters.json"
+extraction_feature_config_materialized="$tmp_dir/compare_extraction_features.json"
+optimize_config_materialized="$tmp_dir/optimize_parameter_sweeps.json"
 manifest_path="$overnight_dir/overnight_manifest.json"
 
 write_manifest() {
@@ -345,30 +345,30 @@ append_stage prompt_compare "$prompt_run_name"
 refresh_overnight_report
 
 echo "[$(date -Iseconds)] Step 4: retrieval sweep on the prompt-compare winner"
-materialize_config_with_winner "$retrieval_core_config" "$(require_best_candidate_json "$prompt_run_name")" "$retrieval_core_config_materialized" retrieval_compare
-PAPER_OPTIMIZER_RUN_NAME="$retrieval_core_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$retrieval_core_config_materialized" "${safe_label}_retrieval_core"
-append_stage retrieval_core_compare "$retrieval_core_run_name"
+materialize_config_with_winner "$retrieval_parameter_config" "$(require_best_candidate_json "$prompt_run_name")" "$retrieval_parameter_config_materialized" retrieval_compare
+PAPER_OPTIMIZER_RUN_NAME="$retrieval_parameter_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$retrieval_parameter_config_materialized" "${safe_label}_retrieval_parameters"
+append_stage retrieval_parameter_compare "$retrieval_parameter_run_name"
 refresh_overnight_report
 
-echo "[$(date -Iseconds)] Step 5: retrieval feature sweep on the top retrieval-core candidates"
-materialize_retrieval_feature_config "$retrieval_feature_config" "$(resolve_results_jsonl "$retrieval_core_run_name")" "$retrieval_feature_config_materialized" 2
-PAPER_OPTIMIZER_RUN_NAME="$retrieval_feature_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$retrieval_feature_config_materialized" "${safe_label}_retrieval_features"
-append_stage retrieval_feature_compare "$retrieval_feature_run_name"
+echo "[$(date -Iseconds)] Step 5: extraction feature sweep on the top retrieval-parameter candidates"
+materialize_extraction_feature_config "$extraction_feature_config" "$(resolve_results_jsonl "$retrieval_parameter_run_name")" "$extraction_feature_config_materialized" 2
+PAPER_OPTIMIZER_RUN_NAME="$extraction_feature_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$extraction_feature_config_materialized" "${safe_label}_extraction_features"
+append_stage extraction_feature_compare "$extraction_feature_run_name"
 refresh_overnight_report
 
-echo "[$(date -Iseconds)] Step 6: optimize study from the retrieval-feature winner"
-materialize_config_with_winner "$optimize_config" "$(require_best_candidate_json "$retrieval_feature_run_name")" "$optimize_config_materialized" optimize
+echo "[$(date -Iseconds)] Step 6: optimize study from the extraction-feature winner"
+materialize_config_with_winner "$optimize_config" "$(require_best_candidate_json "$extraction_feature_run_name")" "$optimize_config_materialized" optimize
 PAPER_OPTIMIZER_RUN_NAME="$optimize_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" optimize "$optimize_config_materialized" "${safe_label}_optimize"
 append_stage optimize "$optimize_run_name"
 write_manifest completed "$(date -Iseconds)"
 refresh_overnight_report
 trap - EXIT
 
-echo "[$(date -Iseconds)] Overnight workflow finished"
-echo "Overnight report: $overnight_dir/report.html"
+echo "[$(date -Iseconds)] Full benchmark workflow finished"
+echo "Full benchmark report: $overnight_dir/report.html"
 echo "All candidates CSV: $overnight_dir/all_candidates.csv"
 echo "Compare run: $repo_root/runs/$compare_run_name"
 echo "Prompt run: $repo_root/runs/$prompt_run_name"
-echo "Retrieval core run: $repo_root/runs/$retrieval_core_run_name"
-echo "Retrieval feature run: $repo_root/runs/$retrieval_feature_run_name"
+echo "Retrieval parameter run: $repo_root/runs/$retrieval_parameter_run_name"
+echo "Extraction feature run: $repo_root/runs/$extraction_feature_run_name"
 echo "Optimize run: $repo_root/runs/$optimize_run_name"

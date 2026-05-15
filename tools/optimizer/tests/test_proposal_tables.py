@@ -129,7 +129,7 @@ def test_write_proposal_tables_exports_proposals_scored_cells_and_difficulty(tmp
     assert (output_dir / "by_benchmark" / "bench_spatial_transcriptomics_cell_review.csv").exists()
 
     proposals = _read_csv(output_dir / "all_proposals.csv")
-    assert proposals[0]["candidate_label"] == "spatial-model-long-name (cand_0001)"
+    assert proposals[0]["candidate_label"] == "provider/spatial-model-long-name (cand_0001)"
     assert proposals[0]["proposed_value"] == "Visium"
     assert proposals[0]["metadata_candidate_values"] == '["Visium"]'
 

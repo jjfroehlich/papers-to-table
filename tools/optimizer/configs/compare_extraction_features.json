@@ -1,11 +1,11 @@
 {
   "schema_version": "1.0",
-  "experiment_id": "compare_retrieval",
+  "experiment_id": "compare_extraction_features",
   "operator_todo": {
     "notes": [
-      "run_overnight.sh materializes this config onto the winner of the preceding prompt-compare stage.",
-      "This is the retrieval-core sweep: lexical vs hybrid_experimental across top_k = 8/10/12/14/16.",
-      "Skip holdout for tonight; add a real holdout split before re-enabling validate-best."
+      "This file is now the extraction-feature sweep template used after the retrieval-parameter stage.",
+      "full_benchmark.sh materializes the top 1-2 retrieval-parameter candidates into this feature sweep before optimize.",
+      "This phase compares extraction feature toggles: recall_rescue_enabled, whole_document_mode, and figure_review_enabled."
     ]
   },
   "baseline_candidate": {
@@ -20,7 +20,8 @@
       "whole_document_max_chars": 20000,
       "style_profiles_enabled": true,
       "style_profiles_max_examples": 3,
-      "figure_review_enabled": false
+      "figure_review_enabled": false,
+      "parser_allow_basic_fallback": true
     }
   },
   "compare_candidates": [
@@ -30,13 +31,14 @@
       "vision_model_id": "google/gemma-4-26b-a4b",
       "optimizer_knobs": {
         "retrieval_mode": "lexical",
-        "retrieval_top_k": 8,
+        "retrieval_top_k": 10,
         "recall_rescue_enabled": true,
         "whole_document_mode": false,
         "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
+        "figure_review_enabled": false,
+        "parser_allow_basic_fallback": true
       }
     },
     {
@@ -44,14 +46,47 @@
       "text_model_id": "google/gemma-4-26b-a4b",
       "vision_model_id": "google/gemma-4-26b-a4b",
       "optimizer_knobs": {
-        "retrieval_mode": "hybrid_experimental",
-        "retrieval_top_k": 8,
-        "recall_rescue_enabled": true,
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 10,
+        "recall_rescue_enabled": false,
         "whole_document_mode": false,
         "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
+        "figure_review_enabled": false,
+        "parser_allow_basic_fallback": true
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "google/gemma-4-26b-a4b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 10,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": true,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false,
+        "parser_allow_basic_fallback": true
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "google/gemma-4-26b-a4b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 10,
+        "recall_rescue_enabled": false,
+        "whole_document_mode": true,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": false,
+        "parser_allow_basic_fallback": true
       }
     },
     {
@@ -66,7 +101,8 @@
         "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
+        "figure_review_enabled": true,
+        "parser_allow_basic_fallback": true
       }
     },
     {
@@ -74,14 +110,31 @@
       "text_model_id": "google/gemma-4-26b-a4b",
       "vision_model_id": "google/gemma-4-26b-a4b",
       "optimizer_knobs": {
-        "retrieval_mode": "hybrid_experimental",
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 10,
+        "recall_rescue_enabled": false,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": true,
+        "parser_allow_basic_fallback": true
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "google/gemma-4-26b-a4b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "lexical",
         "retrieval_top_k": 10,
         "recall_rescue_enabled": true,
-        "whole_document_mode": false,
+        "whole_document_mode": true,
         "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
+        "figure_review_enabled": true,
+        "parser_allow_basic_fallback": true
       }
     },
     {
@@ -90,88 +143,14 @@
       "vision_model_id": "google/gemma-4-26b-a4b",
       "optimizer_knobs": {
         "retrieval_mode": "lexical",
-        "retrieval_top_k": 12,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
+        "retrieval_top_k": 10,
+        "recall_rescue_enabled": false,
+        "whole_document_mode": true,
         "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-26b-a4b",
-      "vision_model_id": "google/gemma-4-26b-a4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "hybrid_experimental",
-        "retrieval_top_k": 12,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-26b-a4b",
-      "vision_model_id": "google/gemma-4-26b-a4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "lexical",
-        "retrieval_top_k": 14,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-26b-a4b",
-      "vision_model_id": "google/gemma-4-26b-a4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "hybrid_experimental",
-        "retrieval_top_k": 14,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-26b-a4b",
-      "vision_model_id": "google/gemma-4-26b-a4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "lexical",
-        "retrieval_top_k": 16,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-26b-a4b",
-      "vision_model_id": "google/gemma-4-26b-a4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "hybrid_experimental",
-        "retrieval_top_k": 16,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
+        "figure_review_enabled": true,
+        "parser_allow_basic_fallback": true
       }
     }
   ],
@@ -188,25 +167,20 @@
     "numeric_knobs": {
       "retrieval_top_k": {
         "values": [
-          8,
-          10,
-          12,
-          14,
-          16
+          10
         ]
       }
     }
   },
   "benchmarks": {
     "smoke": "bench_smoke",
-    "dev": "bench_dev",
+    "dev": "bench_massively_parallel_reporter_assays",
     "manifests": {
       "bench_smoke": {
         "table_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv",
         "schema_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/schema.csv",
         "pdf_dir": "../../../benchmark_datasets/massively_parallel_reporter_assays/pdfs",
         "gold_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/table_gold.csv",
-        "eval_schema_path": "../../eval/tests/fixtures/example_eval/schema.json",
         "main_args": [],
         "eval_args": [
           "--judge-model",
@@ -223,9 +197,10 @@
         "required_judges": [
           "judge_a",
           "judge_b"
-        ]
+        ],
+        "eval_schema_path": "../../eval/tests/fixtures/example_eval/schema.json"
       },
-      "bench_dev": {
+      "bench_massively_parallel_reporter_assays": {
         "table_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv",
         "schema_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/schema.csv",
         "pdf_dir": "../../../benchmark_datasets/massively_parallel_reporter_assays/pdfs",
@@ -240,8 +215,54 @@
           "http://127.0.0.1:1234/v1"
         ],
         "expected_items": 5,
-        "benchmark_kind": "real_external_dev",
-        "benchmark_label": "real_external_dev",
+        "benchmark_kind": "real_external_long_run",
+        "benchmark_label": "real_external_long_run",
+        "require_non_fixture_inputs": true,
+        "required_judges": [
+          "judge_a",
+          "judge_b"
+        ]
+      },
+      "bench_genome_editing": {
+        "table_path": "../../../benchmark_datasets/genome_editing_tools/table_template.csv",
+        "schema_path": "../../../benchmark_datasets/genome_editing_tools/schema.csv",
+        "pdf_dir": "../../../benchmark_datasets/genome_editing_tools/pdfs",
+        "gold_path": "../../../benchmark_datasets/genome_editing_tools/table_gold.csv",
+        "main_args": [],
+        "eval_args": [
+          "--judge-model",
+          "google/gemma-4-26b-a4b",
+          "--judge-model-b",
+          "openai/gpt-oss-20b",
+          "--judge-api-base",
+          "http://127.0.0.1:1234/v1"
+        ],
+        "expected_items": 5,
+        "benchmark_kind": "real_external_long_run",
+        "benchmark_label": "genome_editing_tools",
+        "require_non_fixture_inputs": true,
+        "required_judges": [
+          "judge_a",
+          "judge_b"
+        ]
+      },
+      "bench_spatial_transcriptomics": {
+        "table_path": "../../../benchmark_datasets/spatial_transcriptomics/table_template.csv",
+        "schema_path": "../../../benchmark_datasets/spatial_transcriptomics/schema.csv",
+        "pdf_dir": "../../../benchmark_datasets/spatial_transcriptomics/pdfs",
+        "gold_path": "../../../benchmark_datasets/spatial_transcriptomics/table_gold.csv",
+        "main_args": [],
+        "eval_args": [
+          "--judge-model",
+          "google/gemma-4-26b-a4b",
+          "--judge-model-b",
+          "openai/gpt-oss-20b",
+          "--judge-api-base",
+          "http://127.0.0.1:1234/v1"
+        ],
+        "expected_items": 5,
+        "benchmark_kind": "real_external_long_run",
+        "benchmark_label": "spatial_transcriptomics",
         "require_non_fixture_inputs": true,
         "required_judges": [
           "judge_a",
@@ -259,13 +280,32 @@
       "backend.app.automation"
     ],
     "optimizer_knob_map": {
+      "retrieval_mode": "retrieval.mode",
       "retrieval_top_k": "retrieval.top_k",
       "recall_rescue_enabled": "retrieval.recall_rescue_enabled",
       "whole_document_mode": "retrieval.whole_document_mode",
       "whole_document_max_chars": "retrieval.whole_document_max_chars",
       "style_profiles_enabled": "style_profiles.enabled",
       "style_profiles_max_examples": "style_profiles.max_examples",
-      "figure_review_enabled": "figure_review.enabled"
+      "figure_review_enabled": "figure_review.enabled",
+      "text_temperature": "provider.text_model.temperature",
+      "text_max_tokens": "provider.text_model.max_tokens",
+      "text_top_p": "provider.text_model.top_p",
+      "text_top_k": "provider.text_model.top_k",
+      "text_min_p": "provider.text_model.min_p",
+      "text_presence_penalty": "provider.text_model.presence_penalty",
+      "text_repetition_penalty": "provider.text_model.repetition_penalty",
+      "text_extra_body": "provider.text_model.extra_body",
+      "text_chat_template_kwargs": "provider.text_model.chat_template_kwargs",
+      "vision_temperature": "provider.vision_model.temperature",
+      "vision_top_p": "provider.vision_model.top_p",
+      "vision_top_k": "provider.vision_model.top_k",
+      "vision_min_p": "provider.vision_model.min_p",
+      "vision_presence_penalty": "provider.vision_model.presence_penalty",
+      "vision_repetition_penalty": "provider.vision_model.repetition_penalty",
+      "vision_extra_body": "provider.vision_model.extra_body",
+      "vision_chat_template_kwargs": "provider.vision_model.chat_template_kwargs",
+      "parser_allow_basic_fallback": "parser.allow_basic_fallback"
     }
   },
   "eval_app": {
@@ -285,14 +325,10 @@
         "failure_count": "join_failure_count"
       },
       "diagnostic": {
-        "contract_warning_count": "contract_warning_count",
-        "scored_cell_count": "scored_cell_count",
-        "text_scored_cell_count": "text_scored_cell_count",
-        "judge_text_scored_cell_count": "judge_text_scored_cell_count",
-        "unscored_text_cell_count": "unscored_text_cell_count",
-        "judge_request_failed_count": "judge_request_failed_count",
-        "judge_unclear_text_cell_count": "judge_unclear_text_cell_count",
-        "filled_on_gold_empty_count": "filled_on_gold_empty_count"
+        "correctness_judge_a": "correctness_judge_a",
+        "correctness_judge_b": "correctness_judge_b",
+        "judge_disagreement": "judge_disagreement",
+        "contract_warning_count": "contract_warning_count"
       }
     }
   },
@@ -339,19 +375,23 @@
     },
     "dev_suite": {
       "benchmark_ids": [
-        "bench_dev"
+        "bench_massively_parallel_reporter_assays",
+        "bench_genome_editing",
+        "bench_spatial_transcriptomics"
       ],
       "aggregation": {
         "method": "weighted_mean",
         "primary_metric": "content_correctness",
         "weights": {
-          "bench_dev": 1.0
+          "bench_massively_parallel_reporter_assays": 1.0,
+          "bench_genome_editing": 1.0,
+          "bench_spatial_transcriptomics": 1.0
         }
       }
     }
   },
   "replicates": {
-    "count": 1,
+    "count": 3,
     "continue_on_failure": true
   }
 }

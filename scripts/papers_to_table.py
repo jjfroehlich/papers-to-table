@@ -264,33 +264,15 @@ def cmd_eval(args: argparse.Namespace) -> int:
     return _run(cmd, cwd=EVAL_DIR, env=env)
 
 
-def cmd_optimizer_compare(args: argparse.Namespace) -> int:
-    env = _env_with_pythonpath(OPTIMIZER_DIR, EVAL_DIR, BACKEND_SRC_DIR)
-    config = args.config or str(OPTIMIZER_DIR / "configs" / "compare_models.json")
-    out = args.out or str(_optimizer_default_out("compare_models"))
-    cmd = [sys.executable, "-m", "paper_optimizer.cli", "optimize", "--study-type", "compare", "--config", config, "--out", out]
-    if args.suite:
-        cmd.extend(["--suite", args.suite])
-    if args.replicates is not None:
-        cmd.extend(["--replicates", str(args.replicates)])
-    return _run(cmd, cwd=OPTIMIZER_DIR, env=env)
+def cmd_optimizer_compare_models(args: argparse.Namespace) -> int:
+    label = args.label or f"compare_models_{time.strftime('%Y%m%d-%H%M%S')}"
+    cmd = ["bash", str(OPTIMIZER_DIR / "scripts" / "compare_models.sh"), label]
+    return _run(cmd, cwd=OPTIMIZER_DIR, env=os.environ.copy())
 
 
-def cmd_optimizer_optimize_one_model(args: argparse.Namespace) -> int:
-    env = _env_with_pythonpath(OPTIMIZER_DIR, EVAL_DIR, BACKEND_SRC_DIR)
-    config = args.config or str(OPTIMIZER_DIR / "configs" / "optimize_one_model.json")
-    out = args.out or str(_optimizer_default_out("optimize_one_model"))
-    cmd = [sys.executable, "-m", "paper_optimizer.cli", "optimize", "--study-type", "optimize", "--config", config, "--out", out]
-    if args.suite:
-        cmd.extend(["--suite", args.suite])
-    if args.replicates is not None:
-        cmd.extend(["--replicates", str(args.replicates)])
-    return _run(cmd, cwd=OPTIMIZER_DIR, env=env)
-
-
-def cmd_optimizer_overnight(args: argparse.Namespace) -> int:
-    label = args.label or f"overnight_{time.strftime('%Y%m%d-%H%M%S')}"
-    cmd = ["bash", str(OPTIMIZER_DIR / "scripts" / "run_overnight.sh"), label]
+def cmd_optimizer_full_benchmark(args: argparse.Namespace) -> int:
+    label = args.label or f"full_benchmark_{time.strftime('%Y%m%d-%H%M%S')}"
+    cmd = ["bash", str(OPTIMIZER_DIR / "scripts" / "full_benchmark.sh"), label]
     return _run(cmd, cwd=OPTIMIZER_DIR, env=os.environ.copy())
 
 
@@ -363,23 +345,16 @@ def build_parser() -> argparse.ArgumentParser:
     optimizer = subparsers.add_parser("optimizer", help="Run optimizer companion workflows")
     optimizer_sub = optimizer.add_subparsers(dest="optimizer_command", required=True)
 
-    compare = optimizer_sub.add_parser("compare-models", help="Run the canonical compare-models study")
-    compare.add_argument("--config")
-    compare.add_argument("--out")
-    compare.add_argument("--suite")
-    compare.add_argument("--replicates", type=int)
-    compare.set_defaults(func=cmd_optimizer_compare)
+    compare = optimizer_sub.add_parser("compare-models", help="Run the canonical model-comparison workflow")
+    compare.add_argument("--label")
+    compare.set_defaults(func=cmd_optimizer_compare_models)
 
-    optimize_one = optimizer_sub.add_parser("optimize-one-model", help="Run the canonical single-model optimize study")
-    optimize_one.add_argument("--config")
-    optimize_one.add_argument("--out")
-    optimize_one.add_argument("--suite")
-    optimize_one.add_argument("--replicates", type=int)
-    optimize_one.set_defaults(func=cmd_optimizer_optimize_one_model)
-
-    overnight = optimizer_sub.add_parser("overnight", help="Run the multi-stage overnight optimizer workflow")
-    overnight.add_argument("--label")
-    overnight.set_defaults(func=cmd_optimizer_overnight)
+    full_benchmark = optimizer_sub.add_parser(
+        "full-benchmark",
+        help="Run the full phased benchmark workflow",
+    )
+    full_benchmark.add_argument("--label")
+    full_benchmark.set_defaults(func=cmd_optimizer_full_benchmark)
 
     docs = subparsers.add_parser("docs", help="Serve or build the MkDocs manual")
     docs_sub = docs.add_subparsers(dest="docs_command", required=True)

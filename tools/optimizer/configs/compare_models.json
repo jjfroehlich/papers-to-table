@@ -3,9 +3,11 @@
   "experiment_id": "compare_models",
   "operator_todo": {
     "notes": [
-      "Replace bench_holdout paths with a true holdout split before trusting holdout validation.",
-      "Set explicit command_prefix values if the main app and eval app need different Python environments.",
-      "This model compare freezes prompt and retrieval settings so the text-model comparison is easier to interpret."
+      "Canonical model-comparison config: use scripts/compare_models.sh or `python scripts/papers_to_table.py optimizer compare-models` to run this as a single-stage comparison report.",
+      "This local preset keeps the structured-output-eligible local models from the latest LM Studio probe so model-comparison runs do not spend time on candidates that will be rejected before scoring.",
+      "Prompt and retrieval settings are frozen so the text-model comparison is easier to interpret while figure review stays enabled to exercise vision support.",
+      "The dev suite aggregates all three checked-in benchmark datasets so the model comparison reflects the broader paper mix rather than only MPRA.",
+      "Includes the May 2026 requested Gemma, Qwen, and Unsloth model IDs; report labels preserve provider prefixes so similarly named models remain distinguishable."
     ]
   },
   "baseline_candidate": {
@@ -18,12 +20,29 @@
       "recall_rescue_enabled": false,
       "whole_document_mode": false,
       "whole_document_max_chars": 20000,
+      "parser_allow_basic_fallback": true,
       "style_profiles_enabled": true,
       "style_profiles_max_examples": 3,
-      "figure_review_enabled": false
+      "figure_review_enabled": true
     }
   },
   "compare_candidates": [
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "unsloth/gemma-4-26b-a4b-it",
+      "vision_model_id": "unsloth/gemma-4-26b-a4b-it",
+      "optimizer_knobs": {
+        "retrieval_mode": "hybrid_experimental",
+        "retrieval_top_k": 12,
+        "recall_rescue_enabled": false,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
+        "parser_allow_basic_fallback": true,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": true
+      }
+    },
     {
       "prompt_bundle_id": "default",
       "text_model_id": "openai/gpt-oss-20b",
@@ -34,69 +53,10 @@
         "recall_rescue_enabled": false,
         "whole_document_mode": false,
         "whole_document_max_chars": 20000,
+        "parser_allow_basic_fallback": true,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-26b-a4b",
-      "vision_model_id": "google/gemma-4-26b-a4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "hybrid_experimental",
-        "retrieval_top_k": 12,
-        "recall_rescue_enabled": false,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "qwen/qwen3.5-9b",
-      "vision_model_id": "qwen/qwen3.5-9b",
-      "optimizer_knobs": {
-        "retrieval_mode": "hybrid_experimental",
-        "retrieval_top_k": 12,
-        "recall_rescue_enabled": false,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "nvidia/nemotron-3-nano-4b",
-      "vision_model_id": "google/gemma-4-26b-a4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "hybrid_experimental",
-        "retrieval_top_k": 12,
-        "recall_rescue_enabled": false,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "qwen/qwen3.6-35b-a3b",
-      "vision_model_id": "qwen/qwen3.6-35b-a3b",
-      "optimizer_knobs": {
-        "retrieval_mode": "hybrid_experimental",
-        "retrieval_top_k": 12,
-        "recall_rescue_enabled": false,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
+        "figure_review_enabled": true
       }
     },
     {
@@ -109,69 +69,52 @@
         "recall_rescue_enabled": false,
         "whole_document_mode": false,
         "whole_document_max_chars": 20000,
+        "parser_allow_basic_fallback": true,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
+        "figure_review_enabled": true
       }
     },
     {
       "prompt_bundle_id": "default",
-      "text_model_id": "openai/gpt-oss-20b",
-      "vision_model_id": "openai/gpt-oss-20b",
+      "text_model_id": "mistralai/ministral-3-14b-reasoning",
+      "vision_model_id": "google/gemma-4-26b-a4b",
       "optimizer_knobs": {
         "retrieval_mode": "hybrid_experimental",
         "retrieval_top_k": 12,
         "recall_rescue_enabled": false,
         "whole_document_mode": false,
         "whole_document_max_chars": 20000,
+        "parser_allow_basic_fallback": true,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
+        "figure_review_enabled": true
       }
     },
     {
       "prompt_bundle_id": "default",
-      "text_model_id": "unsloth/gemma-4-26b-a4b-it",
-      "vision_model_id": "unsloth/gemma-4-26b-a4b-it",
+      "text_model_id": "unsloth/qwen3.6-27b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
       "optimizer_knobs": {
         "retrieval_mode": "hybrid_experimental",
         "retrieval_top_k": 12,
         "recall_rescue_enabled": false,
         "whole_document_mode": false,
         "whole_document_max_chars": 20000,
+        "parser_allow_basic_fallback": true,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "qwen/qwen3.6-27b",
-      "vision_model_id": "qwen/qwen3.6-27b",
-      "optimizer_knobs": {
-        "retrieval_mode": "hybrid_experimental",
-        "retrieval_top_k": 12,
-        "recall_rescue_enabled": false,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "unsloth/qwen3.6-35b-a3b",
-      "vision_model_id": "unsloth/qwen3.6-35b-a3b",
-      "optimizer_knobs": {
-        "retrieval_mode": "hybrid_experimental",
-        "retrieval_top_k": 12,
-        "recall_rescue_enabled": false,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
+        "figure_review_enabled": true,
+        "text_temperature": 0.7,
+        "text_max_tokens": 16384,
+        "text_top_p": 0.8,
+        "text_top_k": 20,
+        "text_min_p": 0.0,
+        "text_presence_penalty": 0.0,
+        "text_repetition_penalty": 1.0,
+        "text_chat_template_kwargs": {
+          "enable_thinking": false
+        }
       }
     },
     {
@@ -184,9 +127,88 @@
         "recall_rescue_enabled": false,
         "whole_document_mode": false,
         "whole_document_max_chars": 20000,
+        "parser_allow_basic_fallback": true,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": false
+        "figure_review_enabled": true
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "unsloth/qwen3.6-35b-a3b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "hybrid_experimental",
+        "retrieval_top_k": 12,
+        "recall_rescue_enabled": false,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
+        "parser_allow_basic_fallback": true,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": true,
+        "text_temperature": 0.7,
+        "text_max_tokens": 16384,
+        "text_top_p": 0.8,
+        "text_top_k": 20,
+        "text_min_p": 0.0,
+        "text_presence_penalty": 0.0,
+        "text_repetition_penalty": 1.0,
+        "text_chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "qwen/qwen3.6-35b-a3b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "hybrid_experimental",
+        "retrieval_top_k": 12,
+        "recall_rescue_enabled": false,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
+        "parser_allow_basic_fallback": true,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": true,
+        "text_temperature": 0.7,
+        "text_max_tokens": 16384,
+        "text_top_p": 0.8,
+        "text_top_k": 20,
+        "text_min_p": 0.0,
+        "text_presence_penalty": 0.0,
+        "text_repetition_penalty": 1.0,
+        "text_chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "qwen/qwen3.6-27b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "hybrid_experimental",
+        "retrieval_top_k": 12,
+        "recall_rescue_enabled": false,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
+        "parser_allow_basic_fallback": true,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": true,
+        "text_temperature": 0.7,
+        "text_max_tokens": 16384,
+        "text_top_p": 0.8,
+        "text_top_k": 20,
+        "text_min_p": 0.0,
+        "text_presence_penalty": 0.0,
+        "text_repetition_penalty": 1.0,
+        "text_chat_template_kwargs": {
+          "enable_thinking": false
+        }
       }
     }
   ],
@@ -195,25 +217,21 @@
       "default"
     ],
     "text_model_ids": [
+      "unsloth/gemma-4-26b-a4b-it",
       "openai/gpt-oss-20b",
       "google/gemma-4-e4b",
-      "google/gemma-4-26b-a4b",
-      "unsloth/gemma-4-26b-a4b-it",
-      "qwen/qwen3.6-27b",
-      "qwen/qwen3.6-35b-a3b",
-      "unsloth/qwen3.6-35b-a3b",
+      "mistralai/ministral-3-14b-reasoning",
+      "unsloth/qwen3.6-27b",
       "zai-org/glm-4.6v-flash",
-      "openai/gpt-oss-20b"
+      "unsloth/qwen3.6-35b-a3b",
+      "qwen/qwen3.6-35b-a3b",
+      "qwen/qwen3.6-27b"
     ],
     "vision_model_ids": [
-      "google/gemma-4-e4b",
-      "google/gemma-4-26b-a4b",
       "unsloth/gemma-4-26b-a4b-it",
-      "qwen/qwen3.6-27b",
-      "qwen/qwen3.6-35b-a3b",
-      "unsloth/qwen3.6-35b-a3b",
-      "zai-org/glm-4.6v-flash",
-      "openai/gpt-oss-20b"
+      "google/gemma-4-26b-a4b",
+      "google/gemma-4-e4b",
+      "zai-org/glm-4.6v-flash"
     ],
     "numeric_knobs": {
       "retrieval_top_k": {
@@ -225,14 +243,13 @@
   },
   "benchmarks": {
     "smoke": "bench_smoke",
-    "dev": "bench_dev",
+    "dev": "bench_massively_parallel_reporter_assays",
     "manifests": {
       "bench_smoke": {
         "table_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv",
         "schema_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/schema.csv",
         "pdf_dir": "../../../benchmark_datasets/massively_parallel_reporter_assays/pdfs",
         "gold_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/table_gold.csv",
-        "eval_schema_path": "../../eval/tests/fixtures/example_eval/schema.json",
         "main_args": [],
         "eval_args": [
           "--judge-model",
@@ -249,9 +266,10 @@
         "required_judges": [
           "judge_a",
           "judge_b"
-        ]
+        ],
+        "eval_schema_path": "../../eval/tests/fixtures/example_eval/schema.json"
       },
-      "bench_dev": {
+      "bench_massively_parallel_reporter_assays": {
         "table_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv",
         "schema_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/schema.csv",
         "pdf_dir": "../../../benchmark_datasets/massively_parallel_reporter_assays/pdfs",
@@ -266,8 +284,54 @@
           "http://127.0.0.1:1234/v1"
         ],
         "expected_items": 5,
-        "benchmark_kind": "real_external_dev",
-        "benchmark_label": "real_external_dev",
+        "benchmark_kind": "real_external_long_run",
+        "benchmark_label": "real_external_long_run",
+        "require_non_fixture_inputs": true,
+        "required_judges": [
+          "judge_a",
+          "judge_b"
+        ]
+      },
+      "bench_genome_editing": {
+        "table_path": "../../../benchmark_datasets/genome_editing_tools/table_template.csv",
+        "schema_path": "../../../benchmark_datasets/genome_editing_tools/schema.csv",
+        "pdf_dir": "../../../benchmark_datasets/genome_editing_tools/pdfs",
+        "gold_path": "../../../benchmark_datasets/genome_editing_tools/table_gold.csv",
+        "main_args": [],
+        "eval_args": [
+          "--judge-model",
+          "google/gemma-4-26b-a4b",
+          "--judge-model-b",
+          "openai/gpt-oss-20b",
+          "--judge-api-base",
+          "http://127.0.0.1:1234/v1"
+        ],
+        "expected_items": 5,
+        "benchmark_kind": "real_external_long_run",
+        "benchmark_label": "genome_editing_tools",
+        "require_non_fixture_inputs": true,
+        "required_judges": [
+          "judge_a",
+          "judge_b"
+        ]
+      },
+      "bench_spatial_transcriptomics": {
+        "table_path": "../../../benchmark_datasets/spatial_transcriptomics/table_template.csv",
+        "schema_path": "../../../benchmark_datasets/spatial_transcriptomics/schema.csv",
+        "pdf_dir": "../../../benchmark_datasets/spatial_transcriptomics/pdfs",
+        "gold_path": "../../../benchmark_datasets/spatial_transcriptomics/table_gold.csv",
+        "main_args": [],
+        "eval_args": [
+          "--judge-model",
+          "google/gemma-4-26b-a4b",
+          "--judge-model-b",
+          "openai/gpt-oss-20b",
+          "--judge-api-base",
+          "http://127.0.0.1:1234/v1"
+        ],
+        "expected_items": 5,
+        "benchmark_kind": "real_external_long_run",
+        "benchmark_label": "spatial_transcriptomics",
         "require_non_fixture_inputs": true,
         "required_judges": [
           "judge_a",
@@ -289,10 +353,28 @@
       "recall_rescue_enabled": "retrieval.recall_rescue_enabled",
       "whole_document_mode": "retrieval.whole_document_mode",
       "whole_document_max_chars": "retrieval.whole_document_max_chars",
+      "parser_allow_basic_fallback": "parser.allow_basic_fallback",
       "style_profiles_enabled": "style_profiles.enabled",
       "style_profiles_max_examples": "style_profiles.max_examples",
       "figure_review_enabled": "figure_review.enabled",
-      "retrieval_mode": "retrieval.mode"
+      "retrieval_mode": "retrieval.mode",
+      "text_temperature": "provider.text_model.temperature",
+      "text_max_tokens": "provider.text_model.max_tokens",
+      "text_top_p": "provider.text_model.top_p",
+      "text_top_k": "provider.text_model.top_k",
+      "text_min_p": "provider.text_model.min_p",
+      "text_presence_penalty": "provider.text_model.presence_penalty",
+      "text_repetition_penalty": "provider.text_model.repetition_penalty",
+      "text_extra_body": "provider.text_model.extra_body",
+      "text_chat_template_kwargs": "provider.text_model.chat_template_kwargs",
+      "vision_temperature": "provider.vision_model.temperature",
+      "vision_top_p": "provider.vision_model.top_p",
+      "vision_top_k": "provider.vision_model.top_k",
+      "vision_min_p": "provider.vision_model.min_p",
+      "vision_presence_penalty": "provider.vision_model.presence_penalty",
+      "vision_repetition_penalty": "provider.vision_model.repetition_penalty",
+      "vision_extra_body": "provider.vision_model.extra_body",
+      "vision_chat_template_kwargs": "provider.vision_model.chat_template_kwargs"
     }
   },
   "eval_app": {
@@ -346,7 +428,6 @@
     "suite_id": "dev_suite"
   },
   "compare": {
-    "holdout_top_k": 0,
     "require_structured_output_for_extraction": true,
     "allow_degraded_candidates": false,
     "suite_id": "dev_suite"
@@ -366,19 +447,23 @@
     },
     "dev_suite": {
       "benchmark_ids": [
-        "bench_dev"
+        "bench_massively_parallel_reporter_assays",
+        "bench_genome_editing",
+        "bench_spatial_transcriptomics"
       ],
       "aggregation": {
         "method": "weighted_mean",
         "primary_metric": "content_correctness",
         "weights": {
-          "bench_dev": 1.0
+          "bench_massively_parallel_reporter_assays": 1.0,
+          "bench_genome_editing": 1.0,
+          "bench_spatial_transcriptomics": 1.0
         }
       }
     }
   },
   "replicates": {
-    "count": 1,
+    "count": 3,
     "continue_on_failure": true
   }
 }

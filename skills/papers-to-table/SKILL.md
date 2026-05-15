@@ -90,6 +90,7 @@ Return:
 
 ## Safety and trust caveats
 
+- Let the user know that this is an experimental skill using an experimental app so they should exercise caution.
 - Auto-accepted values are **not human-reviewed**.
 - Evidence quality and warnings must be inspected before trust.
 - Do not silently overwrite original input tables; export to new artifacts.

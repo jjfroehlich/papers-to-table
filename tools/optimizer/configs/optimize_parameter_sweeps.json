@@ -1,11 +1,13 @@
 {
   "schema_version": "1.0",
-  "experiment_id": "optimize_overnight",
+  "experiment_id": "optimize_parameter_sweeps",
   "operator_todo": {
     "notes": [
-      "run_overnight.sh materializes this config onto the winner of the preceding retrieval-feature stage.",
+      "full_benchmark.sh materializes this config onto the winner of the preceding extraction-feature stage.",
       "The search space keeps both prompt bundles live so optimize can still challenge the incumbent on prompt choice.",
-      "Skip holdout for tonight; add a real holdout split before re-enabling validate-best."
+      "Skip holdout for tonight; add a real holdout split before re-enabling validate-best.",
+      "Final full-benchmark stage: starts from the extraction-feature winner and runs one short optimizer round over retrieval_top_k values 12 and 14.",
+      "This is intentionally a stub sweep: one short optimizer round over retrieval_top_k values 12 and 14 only."
     ]
   },
   "baseline_candidate": {
@@ -20,7 +22,8 @@
       "whole_document_max_chars": 20000,
       "style_profiles_enabled": true,
       "style_profiles_max_examples": 3,
-      "figure_review_enabled": false
+      "figure_review_enabled": false,
+      "parser_allow_basic_fallback": true
     }
   },
   "compare_candidates": [],
@@ -37,25 +40,21 @@
     "numeric_knobs": {
       "retrieval_top_k": {
         "values": [
-          8,
-          10,
           12,
-          14,
-          16
+          14
         ]
       }
     }
   },
   "benchmarks": {
     "smoke": "bench_smoke",
-    "dev": "bench_dev",
+    "dev": "bench_massively_parallel_reporter_assays",
     "manifests": {
       "bench_smoke": {
         "table_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv",
         "schema_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/schema.csv",
         "pdf_dir": "../../../benchmark_datasets/massively_parallel_reporter_assays/pdfs",
         "gold_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/table_gold.csv",
-        "eval_schema_path": "../../eval/tests/fixtures/example_eval/schema.json",
         "main_args": [],
         "eval_args": [
           "--judge-model",
@@ -72,9 +71,10 @@
         "required_judges": [
           "judge_a",
           "judge_b"
-        ]
+        ],
+        "eval_schema_path": "../../eval/tests/fixtures/example_eval/schema.json"
       },
-      "bench_dev": {
+      "bench_massively_parallel_reporter_assays": {
         "table_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv",
         "schema_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/schema.csv",
         "pdf_dir": "../../../benchmark_datasets/massively_parallel_reporter_assays/pdfs",
@@ -89,8 +89,54 @@
           "http://127.0.0.1:1234/v1"
         ],
         "expected_items": 5,
-        "benchmark_kind": "real_external_overnight",
-        "benchmark_label": "real_external_overnight",
+        "benchmark_kind": "real_external_long_run",
+        "benchmark_label": "real_external_long_run",
+        "require_non_fixture_inputs": true,
+        "required_judges": [
+          "judge_a",
+          "judge_b"
+        ]
+      },
+      "bench_genome_editing": {
+        "table_path": "../../../benchmark_datasets/genome_editing_tools/table_template.csv",
+        "schema_path": "../../../benchmark_datasets/genome_editing_tools/schema.csv",
+        "pdf_dir": "../../../benchmark_datasets/genome_editing_tools/pdfs",
+        "gold_path": "../../../benchmark_datasets/genome_editing_tools/table_gold.csv",
+        "main_args": [],
+        "eval_args": [
+          "--judge-model",
+          "google/gemma-4-26b-a4b",
+          "--judge-model-b",
+          "openai/gpt-oss-20b",
+          "--judge-api-base",
+          "http://127.0.0.1:1234/v1"
+        ],
+        "expected_items": 5,
+        "benchmark_kind": "real_external_long_run",
+        "benchmark_label": "genome_editing_tools",
+        "require_non_fixture_inputs": true,
+        "required_judges": [
+          "judge_a",
+          "judge_b"
+        ]
+      },
+      "bench_spatial_transcriptomics": {
+        "table_path": "../../../benchmark_datasets/spatial_transcriptomics/table_template.csv",
+        "schema_path": "../../../benchmark_datasets/spatial_transcriptomics/schema.csv",
+        "pdf_dir": "../../../benchmark_datasets/spatial_transcriptomics/pdfs",
+        "gold_path": "../../../benchmark_datasets/spatial_transcriptomics/table_gold.csv",
+        "main_args": [],
+        "eval_args": [
+          "--judge-model",
+          "google/gemma-4-26b-a4b",
+          "--judge-model-b",
+          "openai/gpt-oss-20b",
+          "--judge-api-base",
+          "http://127.0.0.1:1234/v1"
+        ],
+        "expected_items": 5,
+        "benchmark_kind": "real_external_long_run",
+        "benchmark_label": "spatial_transcriptomics",
         "require_non_fixture_inputs": true,
         "required_judges": [
           "judge_a",
@@ -115,7 +161,25 @@
       "style_profiles_enabled": "style_profiles.enabled",
       "style_profiles_max_examples": "style_profiles.max_examples",
       "figure_review_enabled": "figure_review.enabled",
-      "retrieval_mode": "retrieval.mode"
+      "retrieval_mode": "retrieval.mode",
+      "text_temperature": "provider.text_model.temperature",
+      "text_max_tokens": "provider.text_model.max_tokens",
+      "text_top_p": "provider.text_model.top_p",
+      "text_top_k": "provider.text_model.top_k",
+      "text_min_p": "provider.text_model.min_p",
+      "text_presence_penalty": "provider.text_model.presence_penalty",
+      "text_repetition_penalty": "provider.text_model.repetition_penalty",
+      "text_extra_body": "provider.text_model.extra_body",
+      "text_chat_template_kwargs": "provider.text_model.chat_template_kwargs",
+      "vision_temperature": "provider.vision_model.temperature",
+      "vision_top_p": "provider.vision_model.top_p",
+      "vision_top_k": "provider.vision_model.top_k",
+      "vision_min_p": "provider.vision_model.min_p",
+      "vision_presence_penalty": "provider.vision_model.presence_penalty",
+      "vision_repetition_penalty": "provider.vision_model.repetition_penalty",
+      "vision_extra_body": "provider.vision_model.extra_body",
+      "vision_chat_template_kwargs": "provider.vision_model.chat_template_kwargs",
+      "parser_allow_basic_fallback": "parser.allow_basic_fallback"
     }
   },
   "eval_app": {
@@ -197,8 +261,8 @@
     }
   },
   "optimize": {
-    "rounds": 6,
-    "batch_size": 4,
+    "rounds": 1,
+    "batch_size": 2,
     "suite_id": "dev_suite"
   },
   "compare": {
@@ -222,19 +286,23 @@
     },
     "dev_suite": {
       "benchmark_ids": [
-        "bench_dev"
+        "bench_massively_parallel_reporter_assays",
+        "bench_genome_editing",
+        "bench_spatial_transcriptomics"
       ],
       "aggregation": {
         "method": "weighted_mean",
         "primary_metric": "content_correctness",
         "weights": {
-          "bench_dev": 1.0
+          "bench_massively_parallel_reporter_assays": 1.0,
+          "bench_genome_editing": 1.0,
+          "bench_spatial_transcriptomics": 1.0
         }
       }
     }
   },
   "replicates": {
-    "count": 1,
+    "count": 3,
     "continue_on_failure": true
   }
 }

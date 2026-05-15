@@ -162,9 +162,8 @@ def model_nickname(model_id: Any) -> str:
     if is_missing(model_id):
         return "model not recorded"
     text = str(model_id).strip().rstrip("/")
-    base = text.split("/")[-1] if "/" in text else text
-    base = re.sub(r"(?i)^models[-_]", "", base)
-    return base or text
+    text = re.sub(r"(?i)^models[-_]", "", text)
+    return text or "model not recorded"
 
 
 def status_from_row(row: dict[str, Any], *, primary_metric: str | None = None) -> str:

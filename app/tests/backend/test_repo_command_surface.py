@@ -27,8 +27,7 @@ def test_central_cli_help_commands_exit_successfully():
         [sys.executable, "scripts/papers_to_table.py", "preflight", "--help"],
         [sys.executable, "scripts/papers_to_table.py", "headless", "--help"],
         [sys.executable, "scripts/papers_to_table.py", "optimizer", "compare-models", "--help"],
-        [sys.executable, "scripts/papers_to_table.py", "optimizer", "optimize-one-model", "--help"],
-        [sys.executable, "scripts/papers_to_table.py", "optimizer", "overnight", "--help"],
+        [sys.executable, "scripts/papers_to_table.py", "optimizer", "full-benchmark", "--help"],
         [sys.executable, "scripts/papers_to_table.py", "docs", "serve", "--help"],
         [sys.executable, "scripts/papers_to_table.py", "docs", "build", "--help"],
     ]
@@ -43,11 +42,9 @@ def test_documented_configs_exist_and_parse():
         REPO_ROOT / "app" / "config.example.json",
         REPO_ROOT / "tools" / "optimizer" / "configs" / "compare_models.json",
         REPO_ROOT / "tools" / "optimizer" / "configs" / "compare_prompts.json",
-        REPO_ROOT / "tools" / "optimizer" / "configs" / "compare_retrieval.json",
-        REPO_ROOT / "tools" / "optimizer" / "configs" / "compare_retrieval_modes.json",
-        REPO_ROOT / "tools" / "optimizer" / "configs" / "optimize_one_model.json",
-        REPO_ROOT / "tools" / "optimizer" / "configs" / "compare_models_overnight.json",
-        REPO_ROOT / "tools" / "optimizer" / "configs" / "optimize_overnight.json",
+        REPO_ROOT / "tools" / "optimizer" / "configs" / "compare_retrieval_parameters.json",
+        REPO_ROOT / "tools" / "optimizer" / "configs" / "compare_extraction_features.json",
+        REPO_ROOT / "tools" / "optimizer" / "configs" / "optimize_parameter_sweeps.json",
     ]
 
     for path in json_files:

@@ -252,11 +252,9 @@ Canonical presets:
 
 - `compare_models.json`
 - `compare_prompts.json`
-- `compare_retrieval.json`
-- `compare_retrieval_modes.json`
-- `optimize_one_model.json`
-- `compare_models_overnight.json`
-- `optimize_overnight.json`
+- `compare_retrieval_parameters.json`
+- `compare_extraction_features.json`
+- `optimize_parameter_sweeps.json`
 
 Smoke and fixture-manual configs remain explicitly labeled non-canonical benchmark evidence.
 
@@ -273,8 +271,7 @@ The repo exposes one central operator and agent command surface:
 - `python scripts/papers_to_table.py verify-contract --run ...`
 - `python scripts/papers_to_table.py eval ...`
 - `python scripts/papers_to_table.py optimizer compare-models`
-- `python scripts/papers_to_table.py optimizer optimize-one-model`
-- `python scripts/papers_to_table.py optimizer overnight`
+- `python scripts/papers_to_table.py optimizer full-benchmark`
 - `python scripts/papers_to_table.py docs serve`
 - `python scripts/papers_to_table.py docs build`
 

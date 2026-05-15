@@ -60,11 +60,10 @@ Optimizer is an orchestration tool for comparing different models, prompts, and 
 
 ```bash
 python scripts/papers_to_table.py optimizer compare-models
-python scripts/papers_to_table.py optimizer optimize-one-model
-python scripts/papers_to_table.py optimizer overnight
+python scripts/papers_to_table.py optimizer full-benchmark
 ```
 ### /Papers-to-table skill
-Agents can use the skill when the task is to extract structured values from one or several scientific publications (for which .pdf files are available). 
+Agents can use this experimental skill when the task is to extract structured values from one or several scientific publications (for which .pdf files are available). 
 Copy `./skills/papers-to-table/` into your agent system's skill directory. Keep the `references/` files with it.
 
 ## Documentation

@@ -4,7 +4,7 @@
   "operator_todo": {
     "notes": [
       "This smoke config is intentionally tiny: three known-matched fixture rows, three content columns, and two explicit text-model candidates.",
-      "Use it for fast live contract checks before larger fixture-backed or overnight runs.",
+      "Use it for fast live contract checks before larger fixture-backed or long-running runs.",
       "Set explicit command_prefix values if the optimizer, main app, and eval app do not share one Python environment."
     ]
   },
@@ -74,10 +74,10 @@
     "dev": "bench_smoke",
     "manifests": {
       "bench_smoke": {
-        "table_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv",
-        "schema_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/schema.csv",
+        "table_path": "benchmarks/smoke_fixture_table.csv",
+        "schema_path": "benchmarks/smoke_fixture_schema.csv",
         "pdf_dir": "../../../benchmark_datasets/massively_parallel_reporter_assays/pdfs",
-        "gold_path": "../../../benchmark_datasets/massively_parallel_reporter_assays/table_gold.csv",
+        "gold_path": "benchmarks/smoke_fixture_table.csv",
         "eval_schema_path": "../../eval/tests/fixtures/example_eval/schema.json",
         "main_args": [],
         "eval_args": [
@@ -88,7 +88,7 @@
           "--judge-api-base",
           "http://127.0.0.1:1234/v1"
         ],
-        "expected_items": 5,
+        "expected_items": 3,
         "benchmark_kind": "smoke_fixture",
         "benchmark_label": "smoke_fixture",
         "require_non_fixture_inputs": false,
