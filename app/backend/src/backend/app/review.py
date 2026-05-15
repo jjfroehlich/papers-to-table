@@ -823,6 +823,22 @@ def get_figure_crop_path(
     ]:
         if candidate.exists():
             return candidate
+    parsed_path = get_parsed_dir(run_dir, pdf_id) / "parsed_document.json"
+    if parsed_path.exists():
+        try:
+            doc = read_json(parsed_path)
+            for figure in doc.get("figures", []) or []:
+                if not isinstance(figure, dict) or figure.get("figure_id") != figure_id:
+                    continue
+                crop_path = figure.get("crop_path")
+                if not isinstance(crop_path, str) or not crop_path.strip():
+                    continue
+                candidate = pathlib.Path(crop_path)
+                resolved = candidate if candidate.is_absolute() else run_dir / candidate
+                if resolved.exists():
+                    return resolved
+        except Exception:
+            pass
     return None
 
 

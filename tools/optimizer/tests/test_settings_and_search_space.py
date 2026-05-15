@@ -255,6 +255,18 @@ def test_full_benchmark_optimize_stage_is_top_k_focused_on_gemma_26b() -> None:
     assert knobs["whole_document_mode"] is False
 
 
+def test_full_benchmark_stage_run_names_are_path_length_safe() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    script = (repo_root / "scripts" / "full_benchmark.sh").read_text(encoding="utf-8")
+
+    assert 'compare_run_name="${session_id}_fb_model"' in script
+    assert 'prompt_run_name="${session_id}_fb_prompt"' in script
+    assert 'retrieval_parameter_run_name="${session_id}_fb_retrieval"' in script
+    assert 'extraction_feature_run_name="${session_id}_fb_features"' in script
+    assert 'optimize_run_name="${session_id}_fb_optimize"' in script
+    assert "compare_retrieval_parameters_${safe_label}" not in script
+
+
 def test_propose_candidates_covers_multi_knob_combinations() -> None:
     incumbent = Candidate(
         candidate_id="cand_0000",

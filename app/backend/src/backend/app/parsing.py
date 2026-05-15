@@ -80,6 +80,15 @@ def _parsed_dir_name_budget(parsed_base_dir: pathlib.Path) -> Optional[int]:
     return max(12, min(64, available))
 
 
+def _safe_artifact_file_stem(parent_dir: pathlib.Path, stem: str, *, suffix: str) -> str:
+    safe_stem = _safe_artifact_dir_name(stem)
+    if os.name != "nt":
+        return safe_stem
+    base_length = len(str(parent_dir.resolve())) + len("\\") + len(suffix)
+    available = _WINDOWS_PATH_BUDGET - base_length
+    return _safe_artifact_dir_name(stem, max_len=max(1, min(80, available)))
+
+
 def get_parsed_dir_from_base(parsed_base_dir: pathlib.Path, pdf_id: str) -> pathlib.Path:
     """Return the artifact directory for a parsed PDF under an explicit parsed base dir."""
     safe_name = _safe_artifact_dir_name(pdf_id, max_len=_parsed_dir_name_budget(parsed_base_dir))
@@ -1256,7 +1265,8 @@ def generate_figure_artifacts(
                         figure.bbox,
                         scale=scale,
                     )
-                    out_path = figures_dir / f"{figure.figure_id}.png"
+                    figure_file_stem = _safe_artifact_file_stem(figures_dir, figure.figure_id, suffix=".png")
+                    out_path = figures_dir / f"{figure_file_stem}.png"
                     out_path.write_bytes(png_bytes)
                     crop_path = str(out_path.relative_to(run_dir)).replace("\\", "/")
                 except Exception:
