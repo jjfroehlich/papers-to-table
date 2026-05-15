@@ -31,7 +31,7 @@
       }
     },
     {
-      "prompt_bundle_id": "evidence_strict",
+      "prompt_bundle_id": "context_balanced",
       "text_model_id": "REPLACE_TEXT_MODEL_B",
       "vision_model_id": null,
       "optimizer_knobs": {
@@ -48,7 +48,8 @@
   "search_space": {
     "prompt_bundle_ids": [
       "default",
-      "evidence_strict"
+      "context_balanced",
+      "checklist_guided"
     ],
     "text_model_ids": [
       "REPLACE_TEXT_MODEL_A",

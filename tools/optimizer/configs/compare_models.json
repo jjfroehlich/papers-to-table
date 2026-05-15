@@ -104,17 +104,7 @@
         "parser_allow_basic_fallback": true,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
-        "text_temperature": 0.7,
-        "text_max_tokens": 16384,
-        "text_top_p": 0.8,
-        "text_top_k": 20,
-        "text_min_p": 0.0,
-        "text_presence_penalty": 0.0,
-        "text_repetition_penalty": 1.0,
-        "text_chat_template_kwargs": {
-          "enable_thinking": false
-        }
+        "figure_review_enabled": true
       }
     },
     {
@@ -146,17 +136,7 @@
         "parser_allow_basic_fallback": true,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
-        "text_temperature": 0.7,
-        "text_max_tokens": 16384,
-        "text_top_p": 0.8,
-        "text_top_k": 20,
-        "text_min_p": 0.0,
-        "text_presence_penalty": 0.0,
-        "text_repetition_penalty": 1.0,
-        "text_chat_template_kwargs": {
-          "enable_thinking": false
-        }
+        "figure_review_enabled": true
       }
     },
     {
@@ -172,17 +152,7 @@
         "parser_allow_basic_fallback": true,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
-        "text_temperature": 0.7,
-        "text_max_tokens": 16384,
-        "text_top_p": 0.8,
-        "text_top_k": 20,
-        "text_min_p": 0.0,
-        "text_presence_penalty": 0.0,
-        "text_repetition_penalty": 1.0,
-        "text_chat_template_kwargs": {
-          "enable_thinking": false
-        }
+        "figure_review_enabled": true
       }
     },
     {
@@ -198,17 +168,7 @@
         "parser_allow_basic_fallback": true,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
-        "text_temperature": 0.7,
-        "text_max_tokens": 16384,
-        "text_top_p": 0.8,
-        "text_top_k": 20,
-        "text_min_p": 0.0,
-        "text_presence_penalty": 0.0,
-        "text_repetition_penalty": 1.0,
-        "text_chat_template_kwargs": {
-          "enable_thinking": false
-        }
+        "figure_review_enabled": true
       }
     }
   ],

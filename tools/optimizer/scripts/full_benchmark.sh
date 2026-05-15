@@ -314,6 +314,13 @@ refresh_overnight_report() {
 	popd >/dev/null
 }
 
+preflight_config() {
+	local config_path="$1"
+	pushd "$repo_root" >/dev/null
+	"$optimizer_python" -m paper_optimizer.cli preflight --config "$config_path"
+	popd >/dev/null
+}
+
 mark_failed() {
 	local exit_code="$1"
 	if [[ "$exit_code" -eq 0 ]]; then
@@ -329,9 +336,7 @@ trap 'mark_failed "$?"' EXIT
 write_manifest running
 
 echo "[$(date -Iseconds)] Step 1: fast config preflight"
-pushd "$repo_root" >/dev/null
-"$optimizer_python" -m paper_optimizer.cli preflight --config "$compare_config"
-popd >/dev/null
+preflight_config "$compare_config"
 
 echo "[$(date -Iseconds)] Step 2: main compare study"
 PAPER_OPTIMIZER_RUN_NAME="$compare_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$compare_config" "${safe_label}_compare"
@@ -340,24 +345,28 @@ refresh_overnight_report
 
 echo "[$(date -Iseconds)] Step 3: prompt compare on the model-compare winner"
 materialize_config_with_winner "$prompt_config" "$(require_best_candidate_json "$compare_run_name")" "$prompt_config_materialized" prompt_compare
+preflight_config "$prompt_config_materialized"
 PAPER_OPTIMIZER_RUN_NAME="$prompt_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$prompt_config_materialized" "${safe_label}_prompts"
 append_stage prompt_compare "$prompt_run_name"
 refresh_overnight_report
 
 echo "[$(date -Iseconds)] Step 4: retrieval sweep on the prompt-compare winner"
 materialize_config_with_winner "$retrieval_parameter_config" "$(require_best_candidate_json "$prompt_run_name")" "$retrieval_parameter_config_materialized" retrieval_compare
+preflight_config "$retrieval_parameter_config_materialized"
 PAPER_OPTIMIZER_RUN_NAME="$retrieval_parameter_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$retrieval_parameter_config_materialized" "${safe_label}_retrieval_parameters"
 append_stage retrieval_parameter_compare "$retrieval_parameter_run_name"
 refresh_overnight_report
 
 echo "[$(date -Iseconds)] Step 5: extraction feature sweep on the top retrieval-parameter candidates"
 materialize_extraction_feature_config "$extraction_feature_config" "$(resolve_results_jsonl "$retrieval_parameter_run_name")" "$extraction_feature_config_materialized" 2
+preflight_config "$extraction_feature_config_materialized"
 PAPER_OPTIMIZER_RUN_NAME="$extraction_feature_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$extraction_feature_config_materialized" "${safe_label}_extraction_features"
 append_stage extraction_feature_compare "$extraction_feature_run_name"
 refresh_overnight_report
 
 echo "[$(date -Iseconds)] Step 6: optimize study from the extraction-feature winner"
 materialize_config_with_winner "$optimize_config" "$(require_best_candidate_json "$extraction_feature_run_name")" "$optimize_config_materialized" optimize
+preflight_config "$optimize_config_materialized"
 PAPER_OPTIMIZER_RUN_NAME="$optimize_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" optimize "$optimize_config_materialized" "${safe_label}_optimize"
 append_stage optimize "$optimize_run_name"
 write_manifest completed "$(date -Iseconds)"

@@ -55,6 +55,28 @@ def test_default_bundle_loads():
     assert "text_extraction_user" in bundle["prompts"]
 
 
+def test_context_balanced_bundle_loads():
+    clear_prompt_bundle_cache()
+    bundle = get_prompt_bundle(bundle="context_balanced")
+
+    assert bundle["bundle_id"] == "context_balanced"
+    assert bundle["manifest_hash"]
+    assert bundle["bundle_hash"]
+    assert "text_extraction_user" in bundle["prompts"]
+    assert "reviewer-verifiable" in bundle["prompts"]["text_extraction_system"]
+
+
+def test_checklist_guided_bundle_loads():
+    clear_prompt_bundle_cache()
+    bundle = get_prompt_bundle(bundle="checklist_guided")
+
+    assert bundle["bundle_id"] == "checklist_guided"
+    assert bundle["manifest_hash"]
+    assert bundle["bundle_hash"]
+    assert "text_extraction_user" in bundle["prompts"]
+    assert "strict extraction protocol" in bundle["prompts"]["text_extraction_system"]
+
+
 def test_explicit_bundle_selection(monkeypatch, tmp_path: pathlib.Path):
     bundles_root = tmp_path / "prompt_bundles"
     _write_bundle(bundles_root, "default", "default")

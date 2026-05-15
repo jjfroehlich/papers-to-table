@@ -4,7 +4,7 @@
   "operator_todo": {
     "notes": [
       "full_benchmark.sh materializes this config onto the winner of the preceding model-compare stage.",
-      "This prompt compare is intentionally bounded to default vs evidence_strict while keeping retrieval settings frozen.",
+      "This prompt compare is intentionally bounded to default vs context_balanced vs checklist_guided while keeping retrieval settings frozen.",
       "Full-benchmark preset uses triplicate runs and keeps figure_review_enabled=true through this phase."
     ]
   },
@@ -42,7 +42,23 @@
       }
     },
     {
-      "prompt_bundle_id": "evidence_strict",
+      "prompt_bundle_id": "context_balanced",
+      "text_model_id": "google/gemma-4-26b-a4b",
+      "vision_model_id": "google/gemma-4-26b-a4b",
+      "optimizer_knobs": {
+        "retrieval_mode": "lexical",
+        "retrieval_top_k": 10,
+        "recall_rescue_enabled": true,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": true,
+        "parser_allow_basic_fallback": true
+      }
+    },
+    {
+      "prompt_bundle_id": "checklist_guided",
       "text_model_id": "google/gemma-4-26b-a4b",
       "vision_model_id": "google/gemma-4-26b-a4b",
       "optimizer_knobs": {
@@ -61,7 +77,8 @@
   "search_space": {
     "prompt_bundle_ids": [
       "default",
-      "evidence_strict"
+      "context_balanced",
+      "checklist_guided"
     ],
     "text_model_ids": [
       "google/gemma-4-26b-a4b"

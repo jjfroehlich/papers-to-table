@@ -4,4 +4,4 @@ Schema guidance (not evidence unless it appears in the paper): $column_descripti
 Passages:
 $context_passages
 
-Return the single best verbatim quote that would let a reviewer verify the field value quickly.
+Return the single best verbatim quote that most directly supports or verifies the proposed field value.

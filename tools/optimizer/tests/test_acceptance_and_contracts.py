@@ -98,7 +98,7 @@ def test_rank_compare_results_uses_runtime_tiebreaker() -> None:
 
 
 def test_validate_preflight_fails_on_missing_prompt_bundle(base_config: dict) -> None:
-    base_config["search_space"]["prompt_bundle_ids"] = ["default", "evidence_strict"]
+    base_config["search_space"]["prompt_bundle_ids"] = ["default", "missing_prompt_bundle"]
     benches = load_benchmarks(base_config)
 
     with pytest.raises(PreflightError):

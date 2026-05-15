@@ -20,7 +20,7 @@ def test_qwen_policy_prefers_json_schema_and_keeps_non_thinking_json_guard() -> 
     assert policy.fast_abort_malformed_json_attempts == 3
     assert policy.retry_malformed_structured_response is True
     assert policy.request_defaults["top_p"] == 0.8
-    assert policy.request_defaults["presence_penalty"] == 0.0
+    assert policy.request_defaults["presence_penalty"] == 1.5
     assert policy.chat_template_kwargs_defaults == {"enable_thinking": False}
     assert policy.ordered_structured_modes("json_schema")[:2] == ["json_schema", "json_object"]
     messages = policy.apply_messages([{"role": "user", "content": "Return the result."}], "json_schema")
@@ -39,11 +39,24 @@ def test_gemma_and_gpt_oss_policy_keep_schema_first_without_prompt_mutation() ->
         assert policy.apply_messages(messages, "json_schema") == messages
 
 
+def test_glm_policy_uses_model_card_sampling_defaults() -> None:
+    policy = resolve_model_request_policy("zai-org/glm-4.6v-flash")
+
+    assert policy.family == "glm_4_6v_flash"
+    assert policy.preferred_structured_mode == "json_schema"
+    assert policy.request_defaults == {
+        "temperature": 0.8,
+        "top_p": 0.6,
+        "top_k": 2,
+        "repetition_penalty": 1.1,
+    }
+
+
 def test_ministral_policy_has_reasoning_and_instruct_defaults() -> None:
     reasoning = resolve_model_request_policy("mistralai/ministral-3-14b-reasoning")
     instruct = resolve_model_request_policy("mistralai/ministral-3-3b-instruct")
 
     assert reasoning.family == "ministral_reasoning"
-    assert reasoning.request_defaults == {"temperature": 0.7, "top_p": 0.95}
+    assert reasoning.request_defaults == {"temperature": 1.0, "top_p": 0.95}
     assert instruct.family == "ministral_instruct"
     assert instruct.request_defaults == {"temperature": 0.15}

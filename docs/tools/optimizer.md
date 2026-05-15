@@ -36,9 +36,10 @@ bash scripts/test-optimizer-tool.sh
 - use it to choose among fixed list of models
 - fixed candidate list
 - on current three-dataset benchmark suite
-- same prompt package and retrieval parameters
 - done in triplicate to measure variability
-- timing basis: the May 14, 2026 compare run averaged about 49 minutes per completed model for all three benchmark datasets in triplicate
+- same prompt package, retrieval parameters, and extraction features
+- model-specific request settings come from `app/backend/src/backend/app/model_profiles/default_profiles.json`; one can add optimizer knobs to compare model-settings such as temperature/top-p/chat-templates.
+- estimated runtime: average 50 minutes per model for all three benchmark datasets in triplicate (May 14, 2026 compare run)
 - Python command delegates to `tools/optimizer/scripts/compare_models.sh`
 - uses `tools/optimizer/configs/compare_models.json`
 
@@ -47,16 +48,16 @@ python scripts/papers_to_table.py optimizer compare-models
 ```
 
 ### Full Benchmark
-- full phased benchmark chain
-- compare models first, then compare prompt packages, retrieval parameters, extraction feature toggles, and finally run a minimal parameter-sweep stub
 - use when you want a broad end-to-end tuning pass rather than only model selection
+- compare models first, then compare prompt packages, retrieval parameters, extraction feature toggles, and finally run a minimal parameter-sweep stub
 - each phase runs in triplicate on the current three-dataset dev suite
+- model-specific request settings are inherited from `app/backend/src/backend/app/model_profiles/default_profiles.json` unless a future config deliberately sweeps model settings
 - Python command delegates to `tools/optimizer/scripts/full_benchmark.sh`
 - model phase uses `tools/optimizer/configs/compare_models.json`
 - prompt phase materializes `compare_prompts.json` with the model-phase winner
 - retrieval-parameter phase materializes `compare_retrieval_parameters.json` with the prompt-phase winner
 - extraction-feature phase materializes `compare_extraction_features.json` from the top retrieval-parameter candidates
-- final parameter-sweep phase materializes `optimize_parameter_sweeps.json` with the extraction-feature winner. Currently runs a deliberately small optimizer stub and only tests `retrieval_top_k` values `12` and `14`
+- final parameter-sweep phase materializes `optimize_parameter_sweeps.json` with the extraction-feature winner. Current parameter sweep is just a small proof of principle (`retrieval_top_k`: `12`, `14`), can be expanded in the future. 
 
 ```bash
 python scripts/papers_to_table.py optimizer full-benchmark
@@ -67,11 +68,11 @@ Runtime estimate calculation:
 ```text
 May 14, 2026 observed mean: ~0.82 h per candidate for all 3 datasets in triplicate
 model comparison:       9 candidates  * 0.82 h =  7.38 h
-prompt comparison:      2 candidates  * 0.82 h =  1.64 h
+prompt comparison:      3 candidates  * 0.82 h =  2.46 h
 retrieval parameters:  10 candidates  * 0.82 h =  8.20 h
 extraction features:   16 candidates  * 0.82 h = 13.12 h
-parameter sweep stub:   2 candidates  * 0.82 h =  1.64 h
-estimated total:       39 candidates  * 0.82 h = 31.98 h
+parameter sweep stub:   2-3 candidates * 0.82 h =  1.64-2.46 h
+estimated total:       40-41 candidates * 0.82 h = 32.80-33.62 h
 ```
 
 `tools/optimizer/scripts/run_study.sh` is an internal helper used by both wrappers. It runs one compare or optimize study from one materialized config, writes logs and run metadata, calls the optimizer CLI, and builds the per-study summary.

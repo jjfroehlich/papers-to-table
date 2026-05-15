@@ -1289,7 +1289,7 @@ class TestProviderCapabilities:
         assert first_payload["top_p"] == 0.8
         assert first_payload["top_k"] == 20
         assert first_payload["min_p"] == 0.0
-        assert first_payload["presence_penalty"] == 0.0
+        assert first_payload["presence_penalty"] == 1.5
         assert first_payload["repetition_penalty"] == 1.0
         assert first_payload["chat_template_kwargs"] == {"enable_thinking": False}
         assert any("JSON" in message["content"] for message in first_payload["messages"])

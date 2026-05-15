@@ -22,6 +22,27 @@ REQUIRED_COMPARE_MODELS = {
     "zai-org/glm-4.6v-flash",
 }
 
+MODEL_PROFILE_MANAGED_KNOBS = {
+    "text_temperature",
+    "text_max_tokens",
+    "text_top_p",
+    "text_top_k",
+    "text_min_p",
+    "text_presence_penalty",
+    "text_repetition_penalty",
+    "text_extra_body",
+    "text_chat_template_kwargs",
+    "vision_temperature",
+    "vision_max_tokens",
+    "vision_top_p",
+    "vision_top_k",
+    "vision_min_p",
+    "vision_presence_penalty",
+    "vision_repetition_penalty",
+    "vision_extra_body",
+    "vision_chat_template_kwargs",
+}
+
 
 def test_load_config_success(config_path: Path) -> None:
     cfg = load_config(config_path)
@@ -171,6 +192,7 @@ def test_compare_models_tracks_requested_model_set() -> None:
         assert knobs["retrieval_top_k"] == 12
         assert knobs["recall_rescue_enabled"] is False
         assert knobs["whole_document_mode"] is False
+        assert MODEL_PROFILE_MANAGED_KNOBS.isdisjoint(knobs)
 
 
 def test_compare_models_config_runs_triplicate() -> None:
@@ -178,6 +200,15 @@ def test_compare_models_config_runs_triplicate() -> None:
     payload = json.loads((repo_root / "configs" / "compare_models.json").read_text(encoding="utf-8"))
 
     assert payload["replicates"]["count"] == 3
+
+
+def test_compare_prompts_tracks_three_prompt_bundles() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    payload = json.loads((repo_root / "configs" / "compare_prompts.json").read_text(encoding="utf-8"))
+
+    prompt_ids = {candidate["prompt_bundle_id"] for candidate in payload["compare_candidates"]}
+    assert prompt_ids == {"default", "context_balanced", "checklist_guided"}
+    assert set(payload["search_space"]["prompt_bundle_ids"]) == prompt_ids
 
 
 def test_full_benchmark_compare_phases_run_triplicate_with_figure_review() -> None:

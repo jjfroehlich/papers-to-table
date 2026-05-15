@@ -7,7 +7,7 @@
       "The search space keeps both prompt bundles live so optimize can still challenge the incumbent on prompt choice.",
       "Skip holdout for tonight; add a real holdout split before re-enabling validate-best.",
       "Final full-benchmark stage: starts from the extraction-feature winner and runs one short optimizer round over retrieval_top_k values 12 and 14.",
-      "This is intentionally a stub sweep: one short optimizer round over retrieval_top_k values 12 and 14 only."
+      "This is intentionally a small realistic sweep: full_benchmark.sh inserts the winner value for swept knobs, then keeps the additional retrieval_top_k values bounded to 12 and 14."
     ]
   },
   "baseline_candidate": {
