@@ -116,7 +116,7 @@ The backend may expose a stable non-UI automation entrypoint for tooling, includ
 
 - Retrieval should remain row-aware and column-aware rather than defaulting to whole-document prompting.
 - The intended default extraction path is `retrieval.mode=hybrid_experimental`, `retrieval.top_k=12`, recall rescue disabled, and whole-document mode disabled.
-- The intended default text extraction model is `unsloth/gemma-4-26b-a4b-it`.
+- The intended default text extraction model is `google/gemma-4-e4b`.
 - Retrieval preparation may be cached per parsed document when that preserves truthful provenance and repeatability.
 - Whole-document or recall-rescue behavior may exist as bounded configured modes, but those choices must remain explicit in run artifacts and summaries.
 

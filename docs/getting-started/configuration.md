@@ -19,7 +19,7 @@ The main app uses JSON as the advanced-control authority.
     "token": "lm_studio",
     "base_url": "http://localhost:1234",
     "text_model": {
-      "model_id": "unsloth/gemma-4-26b-a4b-it"
+      "model_id": "google/gemma-4-e4b"
     }
   }
 }
@@ -30,13 +30,13 @@ The `model_id` must match the model you downloaded or loaded in LM Studio.
 ## Current Defaults
 
 - provider token: `lm_studio`
-- default vision model: `unsloth/gemma-4-26b-a4b-it`
+- default vision model: `google/gemma-4-e4b`
 - retrieval mode: `hybrid_experimental`
 - retrieval top-k: `12`
 - recall rescue: disabled
 - whole-document mode: disabled
 - figure review: disabled (code default); enabled in the example config
-- default text model: `unsloth/gemma-4-26b-a4b-it`
+- default text model: `google/gemma-4-e4b`
 
 ## Most Important Parameters
 
