@@ -877,6 +877,38 @@ class TestProviderCapabilities:
         )
         assert caps.structured_output_mode == "json_schema"
 
+    @pytest.mark.asyncio
+    async def test_vision_completion_uses_vision_structured_mode(self):
+        provider = LMStudioProvider()
+        provider._capabilities = ProviderCapabilities(
+            supports_structured_output=True,
+            structured_output_mode="json_schema",
+            model_id="text-model",
+            vision_capable=True,
+            vision_structured_output_mode="none",
+        )
+        observed_modes: list[str] = []
+
+        async def fake_complete(**kwargs):
+            observed_modes.append(kwargs["structured_mode"])
+            return {"value": "ok"}
+
+        provider._complete_structured_with_mode = fake_complete
+
+        result = await provider.vision_complete_structured(
+            messages=[{"role": "user", "content": "Return JSON."}],
+            response_schema={
+                "type": "object",
+                "properties": {"value": {"type": "string"}},
+                "required": ["value"],
+            },
+            model_id="vision-model",
+            image_b64="abc",
+        )
+
+        assert result == {"value": "ok"}
+        assert observed_modes == ["none"]
+
     def test_provider_mode_is_live(self):
         mode = ProviderMode(
             token="lm_studio",

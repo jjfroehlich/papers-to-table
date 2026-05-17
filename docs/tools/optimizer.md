@@ -172,12 +172,18 @@ Benchmarks can include precomputed filled tables from external software. Optimiz
   {
     "label": "external_tool_v1",
     "system": "external-tool",
-    "path": "../../../external_results/mpra_filled.csv"
+    "replicates": [
+      {"replicate_index": 1, "path": "../../../benchmark_datasets/data/external_tool_v1/rep1/mpra_filled.csv"},
+      {"replicate_index": 2, "path": "../../../benchmark_datasets/data/external_tool_v1/rep2/mpra_filled.csv"},
+      {"replicate_index": 3, "path": "../../../benchmark_datasets/data/external_tool_v1/rep3/mpra_filled.csv"}
+    ]
   }
 ]
 ```
 
 The external table must use stable `row_id` values matching the benchmark gold table. Wide format uses one row per paper and one column per field; long format uses `row_id,column_name,proposed_value`.
+
+Checked-in model-compare runs include external filled-table baselines from `benchmark_datasets/data/` when the corresponding files are present. These external systems are scored once in the model-compare stage and appear in the same suite replicate outputs and boxplot-with-jitter plots as local model candidates. Later full-benchmark stages do not re-score the external tables.
 
 Canonical config shape:
 

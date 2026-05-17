@@ -490,15 +490,18 @@ def write_proposal_tables(experiment_dir: Path) -> dict[str, Any]:
     for replicate in replicate_rows:
         context = _replicate_context(replicate)
         app_run_path_raw = replicate.get("main_app_run_path") or ""
-        app_run_path = Path(app_run_path_raw) if app_run_path_raw else Path()
-        proposals_path = app_run_path / "proposals" / "proposals.jsonl" if app_run_path_raw else Path()
-        for proposal in _jsonl_rows(proposals_path):
-            proposal_rows.append(_proposal_row(context, proposal, proposals_path, app_run_path))
+        if app_run_path_raw:
+            app_run_path = Path(app_run_path_raw)
+            proposals_path = app_run_path / "proposals" / "proposals.jsonl"
+            if proposals_path.is_file():
+                for proposal in _jsonl_rows(proposals_path):
+                    proposal_rows.append(_proposal_row(context, proposal, proposals_path, app_run_path))
 
         eval_summary_path = replicate.get("eval_summary_path") or ""
         scored_path = Path(eval_summary_path).parent / "scored_cells.jsonl" if eval_summary_path else Path()
-        for cell in _jsonl_rows(scored_path):
-            scored_rows.append(_scored_cell_row(context, cell, scored_path, eval_summary_path))
+        if scored_path.is_file():
+            for cell in _jsonl_rows(scored_path):
+                scored_rows.append(_scored_cell_row(context, cell, scored_path, eval_summary_path))
 
     _write_csv(output_dir / "all_proposals.csv", proposal_rows, PROPOSAL_FIELDS)
     _write_jsonl(output_dir / "all_proposals.jsonl", proposal_rows)

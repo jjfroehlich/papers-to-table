@@ -156,7 +156,7 @@ class RetrievalConfig(BaseModel):
 class FigureReviewConfig(BaseModel):
     enabled: bool = False
     max_figures_per_paper: int = 20
-    skip_when_prompt_only_degraded: bool = True
+    skip_when_prompt_only_degraded: bool = False
 
 
 class ReviewConfig(BaseModel):

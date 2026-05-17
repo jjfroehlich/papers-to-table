@@ -179,6 +179,7 @@ def test_compare_models_tracks_requested_model_set() -> None:
     assert "qwen/qwen3.6-27b" in all_models
     assert "unsloth/qwen3.6-35b-a3b" in all_models
     assert payload["baseline_candidate"]["text_model_id"] == "google/gemma-4-e4b"
+    assert payload["baseline_candidate"]["vision_model_id"] == "google/gemma-4-e4b"
     for candidate in [payload["baseline_candidate"], *payload["compare_candidates"]]:
         knobs = candidate["optimizer_knobs"]
         assert knobs["retrieval_mode"] == "hybrid_experimental"
@@ -186,6 +187,11 @@ def test_compare_models_tracks_requested_model_set() -> None:
         assert knobs["recall_rescue_enabled"] is False
         assert knobs["whole_document_mode"] is False
         assert MODEL_PROFILE_MANAGED_KNOBS.isdisjoint(knobs)
+
+        if candidate["text_model_id"] == "openai/gpt-oss-20b":
+            assert candidate["vision_model_id"] == "google/gemma-4-e4b"
+        else:
+            assert candidate["vision_model_id"] == candidate["text_model_id"]
 
 
 def test_compare_models_config_runs_triplicate() -> None:
@@ -228,6 +234,12 @@ def test_extraction_feature_config_runs_triplicate_factorial() -> None:
         for candidate in payload["compare_candidates"]
     }
     assert len(feature_sets) == 8
+    assert feature_sets == {
+        (recall_rescue_enabled, whole_document_mode, figure_review_enabled)
+        for recall_rescue_enabled in [False, True]
+        for whole_document_mode in [False, True]
+        for figure_review_enabled in [False, True]
+    }
 
 
 def test_full_benchmark_stage_run_names_are_path_length_safe() -> None:

@@ -186,13 +186,14 @@ def evaluate_external_result_once(
     benchmark = benchmarks.manifests[benchmark_id]
     label = str(external_result.get("label") or Path(str(external_result["path"])).stem)
     candidate = Candidate(
-        candidate_id=f"external_{label}",
+        candidate_id=str(external_result.get("candidate_id") or f"external_{label}"),
         prompt_bundle_id="external_result",
         text_model_id=str(external_result.get("system") or "external"),
         vision_model_id=None,
         optimizer_knobs={},
     )
-    eval_out = experiment_dir / "r" / candidate.candidate_id / "e"
+    eval_subdir = str(external_result.get("_eval_subdir") or "e")
+    eval_out = experiment_dir / "r" / candidate.candidate_id / eval_subdir
     eval_out.mkdir(parents=True, exist_ok=True)
     if not benchmark.gold_path:
         return _failure_result(

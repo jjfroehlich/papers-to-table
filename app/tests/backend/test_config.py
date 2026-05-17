@@ -107,6 +107,7 @@ class TestLoadConfig:
         assert config.prompt.bundle_path is None
         assert config.provider.text_model.working_context_budget == 12000
         assert config.provider.text_model.required_load_context_length == 12000
+        assert config.figure_review.skip_when_prompt_only_degraded is False
 
     def test_text_model_supports_separate_working_and_load_context(self):
         config = RunConfig.model_validate({

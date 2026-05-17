@@ -4,6 +4,7 @@ import csv
 import json
 import asyncio
 import math
+import re
 import sys
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -358,6 +359,88 @@ def _aggregate_result_from_summary(
     )
 
 
+def _slug(value: str) -> str:
+    slug = re.sub(r"[^A-Za-z0-9_.-]+", "_", value.strip()).strip("_")
+    return slug or "external"
+
+
+def _external_candidate_id(external_result: dict[str, Any]) -> str:
+    if isinstance(external_result.get("candidate_id"), str) and external_result["candidate_id"].strip():
+        return str(external_result["candidate_id"]).strip()
+    label = str(external_result.get("label") or external_result.get("system") or "external")
+    return f"external_{_slug(label)}"
+
+
+def _external_replicates(external_result: dict[str, Any]) -> list[dict[str, Any]]:
+    base_eval_args = list(external_result.get("eval_args", []))
+    if isinstance(external_result.get("replicates"), list):
+        rows = []
+        for index, replicate in enumerate(external_result["replicates"], start=1):
+            item = dict(replicate)
+            item.setdefault("replicate_index", index)
+            item["eval_args"] = [*base_eval_args, *list(item.get("eval_args", []))]
+            rows.append(item)
+        return rows
+    return [
+        {
+            "path": external_result["path"],
+            "replicate_index": int(external_result.get("replicate_index", 1) or 1),
+            "eval_args": base_eval_args,
+        }
+    ]
+
+
+def _write_aggregate_tables(
+    writer: ResultsWriter,
+    *,
+    experiment_dir: Path,
+    candidate: Candidate,
+    plan: SuiteExecutionPlan,
+    benchmark_rows: list[dict[str, Any]],
+    all_replicates: list[CandidateResult],
+) -> None:
+    existing_replicates: list[CandidateResult] = []
+    replicate_jsonl = experiment_dir / "results" / "replicate_results.jsonl"
+    if replicate_jsonl.exists():
+        for line in replicate_jsonl.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            payload = json.loads(line)
+            if payload.get("candidate_id") == candidate.candidate_id:
+                continue
+            existing_replicates.append(CandidateResult(**payload))
+    writer.write_replicate_results(existing_replicates + all_replicates)
+
+    benchmark_summary_path = experiment_dir / "results" / "benchmark_summary.json"
+    prior_benchmark_rows: list[dict[str, Any]] = []
+    if benchmark_summary_path.exists():
+        existing = read_json(benchmark_summary_path)
+        prior_benchmark_rows = list(existing.get("rows", [])) if isinstance(existing, dict) else []
+    benchmark_rows_all = [
+        row for row in prior_benchmark_rows if row.get("candidate_id") != candidate.candidate_id
+    ] + benchmark_rows
+    writer.write_table_artifacts(
+        "benchmark_summary",
+        benchmark_rows_all,
+        {"primary_metric": plan.primary_metric, "rows": benchmark_rows_all},
+    )
+
+    suite_row = _suite_summary_row(
+        candidate=candidate,
+        plan=plan,
+        benchmark_rows=benchmark_rows,
+    )
+    prior_rows = []
+    suite_summary_path = experiment_dir / "results" / "suite_summary.json"
+    if suite_summary_path.exists():
+        existing = read_json(suite_summary_path)
+        prior_rows = list(existing.get("rows", [])) if isinstance(existing, dict) else []
+    suite_rows = [row for row in prior_rows if row.get("candidate_id") != candidate.candidate_id]
+    suite_rows.append(suite_row)
+    suite_rows = sorted(suite_rows, key=_summary_sort_key, reverse=True)
+    writer.write_table_artifacts("suite_summary", suite_rows, {"primary_metric": plan.primary_metric, "rows": suite_rows})
+
+
 def _evaluate_candidate_with_suite_and_replicates(
     config: dict[str, Any],
     writer: ResultsWriter,
@@ -408,44 +491,19 @@ def _evaluate_candidate_with_suite_and_replicates(
             )
         )
 
-    existing_replicates: list[CandidateResult] = []
-    replicate_jsonl = experiment_dir / "results" / "replicate_results.jsonl"
-    if replicate_jsonl.exists():
-        for line in replicate_jsonl.read_text(encoding="utf-8").splitlines():
-            if not line.strip():
-                continue
-            payload = json.loads(line)
-            existing_replicates.append(CandidateResult(**payload))
-    writer.write_replicate_results(existing_replicates + all_replicates)
-
-    benchmark_summary_path = experiment_dir / "results" / "benchmark_summary.json"
-    prior_benchmark_rows: list[dict[str, Any]] = []
-    if benchmark_summary_path.exists():
-        existing = read_json(benchmark_summary_path)
-        prior_benchmark_rows = list(existing.get("rows", [])) if isinstance(existing, dict) else []
-    benchmark_rows_all = [
-        row for row in prior_benchmark_rows if row.get("candidate_id") != candidate.candidate_id
-    ] + benchmark_rows
-    writer.write_table_artifacts(
-        "benchmark_summary",
-        benchmark_rows_all,
-        {"primary_metric": plan.primary_metric, "rows": benchmark_rows_all},
+    _write_aggregate_tables(
+        writer,
+        experiment_dir=experiment_dir,
+        candidate=candidate,
+        plan=plan,
+        benchmark_rows=benchmark_rows,
+        all_replicates=all_replicates,
     )
-
     suite_row = _suite_summary_row(
         candidate=candidate,
         plan=plan,
         benchmark_rows=benchmark_rows,
     )
-    prior_rows = []
-    suite_summary_path = experiment_dir / "results" / "suite_summary.json"
-    if suite_summary_path.exists():
-        existing = read_json(suite_summary_path)
-        prior_rows = list(existing.get("rows", [])) if isinstance(existing, dict) else []
-    suite_rows = [row for row in prior_rows if row.get("candidate_id") != candidate.candidate_id]
-    suite_rows.append(suite_row)
-    suite_rows = sorted(suite_rows, key=_summary_sort_key, reverse=True)
-    writer.write_table_artifacts("suite_summary", suite_rows, {"primary_metric": plan.primary_metric, "rows": suite_rows})
     return _aggregate_result_from_summary(
         all_replicates[0],
         suite_id=plan.suite_id,
@@ -458,6 +516,99 @@ def _evaluate_candidate_with_suite_and_replicates(
             if int(suite_row.get("degraded_replicate_count", 0) or 0) > 0
             else "scored"
         ),
+        metadata={"suite_summary": suite_row, "benchmark_summaries": benchmark_rows, "replicate_count": plan.replicate_count},
+    )
+
+
+def _evaluate_external_result_with_suite_and_replicates(
+    config: dict[str, Any],
+    writer: ResultsWriter,
+    *,
+    experiment_dir: Path,
+    plan: SuiteExecutionPlan,
+    external_results_by_benchmark: dict[str, dict[str, Any]],
+    study_type: str,
+) -> CandidateResult:
+    first_external = next(iter(external_results_by_benchmark.values()))
+    candidate = Candidate(
+        candidate_id=_external_candidate_id(first_external),
+        prompt_bundle_id="external_result",
+        text_model_id=str(first_external.get("system") or first_external.get("label") or "external"),
+        vision_model_id=None,
+        optimizer_knobs={},
+    )
+    all_replicates: list[CandidateResult] = []
+    benchmark_rows: list[dict[str, Any]] = []
+
+    for planned_benchmark_id in plan.benchmark_ids:
+        external_result = external_results_by_benchmark.get(planned_benchmark_id)
+        if external_result is None:
+            continue
+        per_benchmark: list[CandidateResult] = []
+        replicates = _external_replicates(external_result)
+        for fallback_index, replicate in enumerate(replicates, start=1):
+            replicate_index = int(replicate.get("replicate_index", fallback_index) or fallback_index)
+            replicate_external = {
+                **external_result,
+                **replicate,
+                "candidate_id": candidate.candidate_id,
+                "_eval_subdir": f"{planned_benchmark_id}/rep{replicate_index:03d}",
+            }
+            result = evaluate_external_result_once(
+                config,
+                experiment_dir=experiment_dir,
+                benchmark_id=planned_benchmark_id,
+                external_result=replicate_external,
+                study_type=study_type,
+            )
+            result.suite_id = plan.suite_id
+            result.replicate_index = replicate_index
+            result.replicate_id = f"{candidate.candidate_id}:{plan.suite_id}:{planned_benchmark_id}:r{replicate_index:03d}"
+            result.metadata["replicate"] = {
+                "suite_id": plan.suite_id,
+                "benchmark_id": planned_benchmark_id,
+                "replicate_index": replicate_index,
+                "replicate_id": result.replicate_id,
+            }
+            result.metadata["external_result"] = {
+                **dict(result.metadata.get("external_result") or {}),
+                "replicate_index": replicate_index,
+            }
+            per_benchmark.append(result)
+            all_replicates.append(result)
+            if result.score_status == "failed" and not plan.continue_on_failure:
+                break
+        benchmark_rows.append(
+            _benchmark_summary_row(
+                candidate=candidate,
+                suite_id=plan.suite_id,
+                benchmark_id=planned_benchmark_id,
+                primary_metric=plan.primary_metric,
+                replicate_results=per_benchmark,
+                planned_replicates=len(replicates),
+            )
+        )
+
+    if not all_replicates:
+        raise ValueError(f"No external replicate results were available for {candidate.candidate_id}")
+
+    _write_aggregate_tables(
+        writer,
+        experiment_dir=experiment_dir,
+        candidate=candidate,
+        plan=plan,
+        benchmark_rows=benchmark_rows,
+        all_replicates=all_replicates,
+    )
+    suite_row = _suite_summary_row(candidate=candidate, plan=plan, benchmark_rows=benchmark_rows)
+    return _aggregate_result_from_summary(
+        all_replicates[0],
+        suite_id=plan.suite_id,
+        benchmark_id=f"suite:{plan.suite_id}",
+        primary_metric=plan.primary_metric,
+        score=suite_row.get("suite_primary_metric_weighted_mean"),
+        runtime_seconds=suite_row.get("runtime_total_seconds"),
+        score_status=("scored_degraded" if int(suite_row.get("degraded_replicate_count", 0) or 0) > 0 else "scored"),
         metadata={"suite_summary": suite_row, "benchmark_summaries": benchmark_rows, "replicate_count": plan.replicate_count},
     )
 
@@ -1136,19 +1287,25 @@ def run_compare_mode(
         results.extend(resumed_by_candidate_id.values())
     compare_policy = _compare_policy(config)
 
+    external_groups: dict[str, dict[str, dict[str, Any]]] = {}
     for planned_benchmark_id in plan.benchmark_ids:
         benchmark = benchmarks.manifests[planned_benchmark_id]
         for external_result in benchmark.external_results or []:
-            result = evaluate_external_result_once(
-                config,
-                experiment_dir=experiment_dir,
-                benchmark_id=planned_benchmark_id,
-                external_result=external_result,
-                study_type="compare",
-            )
-            result.suite_id = plan.suite_id
-            writer.append_result(result)
-            results.append(result)
+            external_groups.setdefault(_external_candidate_id(external_result), {})[planned_benchmark_id] = external_result
+
+    for external_candidate_id, external_results_by_benchmark in sorted(external_groups.items()):
+        if resume and external_candidate_id in resumed_by_candidate_id:
+            continue
+        result = _evaluate_external_result_with_suite_and_replicates(
+            config,
+            writer,
+            experiment_dir=experiment_dir,
+            plan=plan,
+            external_results_by_benchmark=external_results_by_benchmark,
+            study_type="compare",
+        )
+        writer.append_result(result)
+        results.append(result)
 
     for candidate in candidates:
         resumed_result = resumed_by_candidate_id.get(candidate.candidate_id)

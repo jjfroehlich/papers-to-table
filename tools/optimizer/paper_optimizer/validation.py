@@ -349,6 +349,19 @@ def validate_preflight(
             errors.append(f"benchmarks.manifests.{benchmark_id}.schema_path does not exist: {manifest.schema_path}")
         if manifest.eval_schema_path and not Path(manifest.eval_schema_path).exists():
             errors.append(f"benchmarks.manifests.{benchmark_id}.eval_schema_path does not exist: {manifest.eval_schema_path}")
+        for external_index, external_result in enumerate(manifest.external_results or []):
+            replicate_rows = external_result.get("replicates")
+            if isinstance(replicate_rows, list) and replicate_rows:
+                for replicate_index, replicate in enumerate(replicate_rows):
+                    path_str = replicate.get("path") if isinstance(replicate, dict) else None
+                    if not _existing_path(path_str):
+                        errors.append(
+                            f"benchmarks.manifests.{benchmark_id}.external_results[{external_index}].replicates[{replicate_index}].path does not exist: {path_str}"
+                        )
+            else:
+                path_str = external_result.get("path")
+                if not _existing_path(path_str):
+                    errors.append(f"benchmarks.manifests.{benchmark_id}.external_results[{external_index}].path does not exist: {path_str}")
         if manifest.require_non_fixture_inputs:
             for label, path_str in [
                 ("table_path", manifest.table_path),

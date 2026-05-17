@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 import time
@@ -267,6 +268,9 @@ def launch_external_eval_app(
     out_dir.mkdir(parents=True, exist_ok=True)
     if not benchmark.gold_path:
         raise ValueError(f"Benchmark '{benchmark_id}' is missing gold_path required for external eval")
+    external_result_for_eval = out_dir / f"external_input{external_result_path.suffix}"
+    if external_result_path.resolve() != external_result_for_eval.resolve():
+        shutil.copyfile(external_result_path, external_result_for_eval)
 
     command_prefix = normalize_python_command_prefix(
         eval_cfg.get(
@@ -277,7 +281,7 @@ def launch_external_eval_app(
     command = command_prefix + [
         "evaluate",
         "--external-result",
-        str(external_result_path),
+        str(external_result_for_eval),
         "--gold",
         benchmark.gold_path,
         "--out",
@@ -326,6 +330,7 @@ def launch_external_eval_app(
             "eval_result_path": str(payload_path.resolve()),
             "gold_path": benchmark.gold_path,
             "external_result_path": str(external_result_path.resolve()),
+            "external_result_eval_input_path": str(external_result_for_eval.resolve()),
             "compare_dir": payload.get("compare_dir"),
             "per_run_dir": payload.get("per_run_dir"),
             "runs_comparison_csv": (payload.get("comparison_artifacts") or {}).get("runs_comparison_csv"),

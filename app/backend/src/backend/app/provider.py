@@ -2733,7 +2733,7 @@ class LMStudioProvider(ProviderAdapter):
             }
 
         caps = self._capabilities
-        structured_mode = caps.structured_output_mode if caps else "none"
+        structured_mode = caps.vision_structured_output_mode if caps else "none"
         if structured_mode not in ("json_schema", "json_object", "none"):
             structured_mode = "none"
 

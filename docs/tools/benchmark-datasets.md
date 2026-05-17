@@ -15,6 +15,21 @@ Available datasets:
 - `genome_editing_tools`
 - `spatial_transcriptomics`
 
+Additional benchmark-adjacent filled tables live under `benchmark_datasets/data/`. These are not new benchmark definitions; they are completed proposal tables from external systems or positive controls. Optimizer configs can reference them under each benchmark manifest's `external_results` section so Eval scores them beside local app runs.
+
+Current external-result folders:
+
+- `benchmark_datasets/data/20260517_external_codex_gpt-pro-5-5-extra-high`
+- `benchmark_datasets/data/20260517_gold_positive_control`
+
+Each folder is organized by replicate:
+
+```text
+rep1/{benchmark_name}_filled.csv
+rep2/{benchmark_name}_filled.csv
+rep3/{benchmark_name}_filled.csv
+```
+
 <style>
 .gold-table-details {
   margin: 1rem 0;

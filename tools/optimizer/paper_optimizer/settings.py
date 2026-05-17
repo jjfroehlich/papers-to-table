@@ -151,8 +151,10 @@ def validate_config(config: dict[str, Any]) -> None:
             for index, item in enumerate(external_results):
                 if not isinstance(item, dict):
                     raise ConfigError(f"benchmarks.manifests.{bench_id}.external_results[{index}] must be an object")
-                if not isinstance(item.get("path"), str) or not item.get("path", "").strip():
-                    raise ConfigError(f"benchmarks.manifests.{bench_id}.external_results[{index}].path must be a non-empty string")
+                has_path = isinstance(item.get("path"), str) and bool(item.get("path", "").strip())
+                has_replicates = isinstance(item.get("replicates"), list) and bool(item.get("replicates"))
+                if not has_path and not has_replicates:
+                    raise ConfigError(f"benchmarks.manifests.{bench_id}.external_results[{index}] must define path or replicates")
                 if "label" in item and item["label"] is not None and not isinstance(item["label"], str):
                     raise ConfigError(f"benchmarks.manifests.{bench_id}.external_results[{index}].label must be a string")
                 if "system" in item and item["system"] is not None and not isinstance(item["system"], str):
@@ -162,6 +164,19 @@ def validate_config(config: dict[str, Any]) -> None:
                     or not all(isinstance(arg, str) for arg in item["eval_args"])
                 ):
                     raise ConfigError(f"benchmarks.manifests.{bench_id}.external_results[{index}].eval_args must be an array of strings")
+                if "replicates" in item:
+                    replicates = item["replicates"]
+                    if not isinstance(replicates, list) or not replicates:
+                        raise ConfigError(f"benchmarks.manifests.{bench_id}.external_results[{index}].replicates must be a non-empty array")
+                    for replicate_index, replicate in enumerate(replicates):
+                        if not isinstance(replicate, dict):
+                            raise ConfigError(f"benchmarks.manifests.{bench_id}.external_results[{index}].replicates[{replicate_index}] must be an object")
+                        if not isinstance(replicate.get("path"), str) or not replicate.get("path", "").strip():
+                            raise ConfigError(f"benchmarks.manifests.{bench_id}.external_results[{index}].replicates[{replicate_index}].path must be a non-empty string")
+                        if "replicate_index" in replicate and (
+                            not isinstance(replicate["replicate_index"], int) or replicate["replicate_index"] <= 0
+                        ):
+                            raise ConfigError(f"benchmarks.manifests.{bench_id}.external_results[{index}].replicates[{replicate_index}].replicate_index must be a positive integer")
 
     benchmark_suites = config.get("benchmark_suites", {})
     if benchmark_suites is not None:
