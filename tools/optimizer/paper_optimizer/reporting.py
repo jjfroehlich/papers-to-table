@@ -351,6 +351,13 @@ def normalize_candidate_row(row: dict[str, Any], *, primary_metric: str | None =
         "eval_summary_path": first_present(row, ["eval_summary_path"]),
         "provider_request_counts": first_present(row, ["provider_request_counts", "runtime.provider_request_counts"]),
         "run_stats_counters": first_present(row, ["run_stats_counters", "runtime.run_stats_counters"]),
+        "vision_model_call_count": safe_int(first_present(row, ["vision_model_call_count", "diagnostic.vision_model_call_count"])),
+        "figure_review_triggered_count": safe_int(first_present(row, ["figure_review_triggered_count", "diagnostic.figure_review_triggered_count"])),
+        "figure_review_suppressed_count": safe_int(first_present(row, ["figure_review_suppressed_count", "diagnostic.figure_review_suppressed_count"])),
+        "figure_review_failed_count": safe_int(first_present(row, ["figure_review_failed_count", "diagnostic.figure_review_failed_count"])),
+        "figure_derived_evidence_count": safe_int(first_present(row, ["figure_derived_evidence_count", "diagnostic.figure_derived_evidence_count"])),
+        "recall_rescue_skipped_count": safe_int(first_present(row, ["recall_rescue_skipped_count", "diagnostic.recall_rescue_skipped_count"])),
+        "whole_document_skipped_count": safe_int(first_present(row, ["whole_document_skipped_count", "diagnostic.whole_document_skipped_count"])),
     }
     return normalized
 

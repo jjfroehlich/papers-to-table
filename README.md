@@ -2,9 +2,7 @@
   <img src="./app/frontend/public/banner_1.jpg" width="900" alt="Title banner" />
 </p>
 
-papers-to-table is a local-first system to extract information from scientific PDFs into structured tables. It combines a browser review app for human review, auditable run bundles, and companion tools for getting benchmarking scores and for optimizing parameters.
-
-Curated benchmark datasets live in [`benchmark_datasets/`](benchmark_datasets/). The default example config uses the massively parallel reporter assay benchmark.
+papers-to-table is an experimental system to extract information from scientific PDFs into structured tables using large language models. It includes a browser interface for human review, auditable run bundles, and tools for benchmarking analyses and experiments.
 
 ## Quickstart
 
@@ -43,7 +41,7 @@ python scripts/papers_to_table.py headless \
 ```
 
 ### Eval tool
-Eval can score main-app output against human-verified data to create benchmark scores. 
+Eval can score main-app output against benchmarking datasets to create benchmark scores. 
 
 ```bash
 python scripts/papers_to_table.py eval \
@@ -53,8 +51,6 @@ python scripts/papers_to_table.py eval \
   --out /absolute/path/to/eval_out
 ```
 
-Eval can also score a filled table from external software with `--external-result`.
-
 ### Optimizer tool
 Optimizer is an orchestration tool for comparing different models, prompts, and configuration parameters with Eval scoring.
 
@@ -63,11 +59,6 @@ python scripts/papers_to_table.py optimizer compare-models
 python scripts/papers_to_table.py optimizer full-benchmark
 ```
 
-Resume an interrupted full benchmark from its manifest:
-
-```bash
-python scripts/papers_to_table.py optimizer full-benchmark --resume tools/optimizer/runs/<run_id>/overnight_manifest.json
-```
 ### /Papers-to-table skill
 Agents can use this experimental skill when the task is to extract structured values from one or several scientific publications (for which .pdf files are available). 
 Copy `./skills/papers-to-table/` into your agent system's skill directory. Keep the `references/` files with it.

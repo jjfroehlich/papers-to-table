@@ -112,6 +112,8 @@ If a PDF does not match an existing row, the normal browser workflow must stage 
 - one best proposal is persisted per eligible target cell
 - evidence quality stays explicit and honest
 - figure review is targeted and text-guided, not blanket page vision
+- figures are first-class retrieval chunks at the figure level only; panel-level chunks are out of scope
+- candidate selection is a bounded optional final adjudication over collected text, rescue, recovery, and figure candidates
 
 Backend extraction phases are ordered:
 
@@ -123,12 +125,14 @@ Backend extraction phases are ordered:
 6. parse PDFs into normalized documents, page images, figures, captions, and diagnostics
 7. match PDFs to table rows and stage unmatched PDF rows when needed
 8. generate style profiles once per column when enabled and filled cells exist, otherwise use heuristic or schema-only guidance
-9. retrieve text, table, and caption evidence for each eligible target cell
+9. retrieve text, table, caption, and figure-level evidence for each eligible target cell
 10. produce text-model proposals for target cells through the provider adapter
-11. run optional targeted figure review for cells whose evidence triggers vision review
-12. merge, normalize, validate, and filter proposal candidates deterministically
-13. persist one best proposal per cell with evidence, diagnostics, and provider metadata
-14. write final summaries, provider diagnostics, reviewer summaries, artifact inventory, and model cleanup results
+11. run at most one selective recall-rescue pass, with optional whole-document context only when enabled and size-bounded
+12. run optional targeted figure review for cells whose evidence triggers vision review
+13. run at most one candidate-selection call when competing or weak candidates require adjudication
+14. merge, normalize, validate, and filter proposal candidates deterministically
+15. persist one best proposal per cell with evidence, diagnostics, and provider metadata
+16. write final summaries, provider diagnostics, reviewer summaries, artifact inventory, and model cleanup results
 
 The optimizer must not start eval for a candidate until the candidate's extraction run has finished proposal production, written final summaries, and left the run bundle readable from disk.
 
@@ -141,6 +145,7 @@ The proposal/evidence contract must preserve:
 - reviewer-visible support-quality truth
 - auditable evidence linkage
 - degraded-mode, fallback, metadata-lane, and failure-attribution truth when relevant
+- optional candidate answers and selection diagnostics when the app had to choose among competing evidence sources
 
 ### 5.6 Review semantics
 

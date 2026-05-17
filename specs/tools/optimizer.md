@@ -221,6 +221,7 @@ HTML reports show:
 - candidate stability notes
 - links to nested main-app and eval artifacts
 - distinction between raw winner and recommended default
+- capability-use and suppression diagnostics for vision, figure evidence, candidate selection, recall rescue, and whole-document fallback
 
 Plotting and report tables should make it possible to answer:
 
@@ -264,7 +265,7 @@ The optimizer must:
 - generate operator-facing reports that explain what happened, why a candidate won or failed, and what to check next
 - make degraded prompt-only candidates unmistakable rather than treating them as healthy peers
 - distinguish the raw benchmark winner from the recommended operational default when trust caveats differ
-- surface retrieval mode, top-k, rescue mode, whole-document mode, structured-output mode, fallback mode, dual-judge status, evidence-anchor audits, metadata-family summaries, join failures, and runtime accounting in reports
+- surface retrieval mode, top-k, rescue mode, whole-document mode, structured-output mode, fallback mode, dual-judge status, evidence-anchor audits, metadata-family summaries, capability-use/suppression counters, join failures, and runtime accounting in reports
 - treat judge disagreement, judge request failures, and evidence weakness as first-class trust signals in ranking and report warnings rather than burying them as secondary diagnostics
 - sort healthy scored candidates ahead of scored-degraded, unscored, and failed candidates so unsupported structured-output candidates do not look equivalent to valid runs
 

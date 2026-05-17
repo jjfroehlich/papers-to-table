@@ -32,7 +32,7 @@ from datetime import datetime, timezone
 from time import perf_counter
 from typing import Any, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .artifacts import (
     EVIDENCE_RECORD_SCHEMA_VERSION,
@@ -157,7 +157,25 @@ class ProposalRecord(BaseModel):
     fallback_reasons: list[str] = []
     metadata_diagnostics: Optional[dict] = None
     style_profile_mode: Optional[str] = None
+    candidate_answers: Optional[list[dict]] = None
+    selection_diagnostics: Optional[dict] = None
     created_at: str
+
+
+class CandidateAnswer(BaseModel):
+    candidate_id: str
+    value: Optional[str] = None
+    state: str = "unclear"
+    source: str
+    evidence_ids: list[str] = Field(default_factory=list)
+    confidence_rationale: Optional[str] = None
+    warning_flags: list[str] = Field(default_factory=list)
+
+
+class RecallRescueDecision(BaseModel):
+    eligible: bool
+    trigger_reasons: list[str] = Field(default_factory=list)
+    skip_reason: Optional[str] = None
 
 
 class FigureReviewHit(BaseModel):
@@ -361,6 +379,26 @@ VISION_EXTRACTION_SCHEMA = {
     ],
 }
 
+CANDIDATE_SELECTION_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "selected_candidate_id": {"type": ["string", "null"]},
+        "selected_value": {"type": ["string", "null"]},
+        "selected_state": {"type": "string", "enum": ["found", "inferred", "unclear"]},
+        "rejected_candidate_ids": {"type": "array", "items": {"type": "string"}},
+        "rationale": {"type": ["string", "null"]},
+        "needs_more_evidence": {"type": "boolean"},
+    },
+    "required": [
+        "selected_candidate_id",
+        "selected_value",
+        "selected_state",
+        "rejected_candidate_ids",
+        "rationale",
+        "needs_more_evidence",
+    ],
+}
+
 
 def _select_text_extraction_schema(caps: Any) -> tuple[dict[str, Any], str]:
     structured_mode = getattr(caps, "structured_output_mode", None)
@@ -515,7 +553,7 @@ def build_text_extraction_prompt(
     whole_document_block = ""
     if whole_document_text:
         whole_document_block = (
-            "\n\nWhole-document rescue context (use only because the first pass was unclear):\n"
+            "\n\nWhole-document rescue context (use only because the first pass needed more evidence):\n"
             f"{whole_document_text}"
         )
 
@@ -607,6 +645,35 @@ def build_figure_extraction_prompt(
             ),
         },
         {"role": "user", "content": user_content},
+    ]
+
+
+def build_candidate_selection_prompt(
+    *,
+    column_name: str,
+    column_description: str,
+    row_context: dict,
+    candidates: list[CandidateAnswer],
+) -> list[dict]:
+    row_lines = []
+    for key in ("Title", "Authors", "Publication Year"):
+        if row_context.get(key):
+            row_lines.append(f"- {key}: {row_context[key]}")
+    candidate_payload = [candidate.model_dump(mode="json") for candidate in candidates]
+    user = (
+        "Select the best final answer for this table cell using only the candidate answers and their evidence IDs.\n"
+        "Do not invent a new answer. If no candidate is adequately supported, select null and state unclear.\n\n"
+        f"Column: {column_name}\n"
+        f"Column description: {column_description}\n"
+        f"Row context:\n{chr(10).join(row_lines) if row_lines else '- (none)'}\n\n"
+        f"Candidate answers JSON:\n{json.dumps(candidate_payload, ensure_ascii=False, indent=2)}"
+    )
+    return [
+        {
+            "role": "system",
+            "content": "Return JSON only. Compare generic text, recovered, rescued, and figure candidates against the column contract.",
+        },
+        {"role": "user", "content": user},
     ]
 
 
@@ -1136,6 +1203,21 @@ def _collect_retrieval_reference_snippets(retrieval: Optional[RetrievalResult]) 
     return refs
 
 
+def _retrieved_figure_chunk_score(figure: dict, retrieval: Optional[RetrievalResult]) -> float:
+    if retrieval is None:
+        return 0.0
+    figure_ref = str(figure.get("figure_id") or "")
+    figure_no = _extract_figure_number(figure)
+    for chunk in retrieval.chunks:
+        if chunk.chunk_type != "figure":
+            continue
+        if figure_ref and chunk.figure_ref == figure_ref:
+            return 1.0
+        if figure_no is not None and figure_no == _extract_figure_number({"figure_id": chunk.figure_ref, "caption_text": chunk.caption_text}):
+            return 0.85
+    return 0.0
+
+
 def _collect_document_reference_snippets(doc_dict: dict) -> list[FigureReference]:
     refs: list[FigureReference] = []
     for block in doc_dict.get("blocks", []):
@@ -1168,8 +1250,14 @@ def _score_figure_candidate(
 
     nearby_context = _find_nearby_text(str(figure.get("figure_id", "")), doc_dict, window=3)
     nearby_context_score = _safe_overlap_score(nearby_context or "", query_terms)
+    retrieved_figure_score = _retrieved_figure_chunk_score(figure, retrieval)
 
-    total = (0.45 * caption_score) + (0.35 * reference_score) + (0.20 * nearby_context_score)
+    total = (
+        (0.35 * caption_score)
+        + (0.25 * reference_score)
+        + (0.20 * nearby_context_score)
+        + (0.20 * retrieved_figure_score)
+    )
     if total >= 0.65:
         confidence = "high"
     elif total >= 0.35:
@@ -1184,6 +1272,8 @@ def _score_figure_candidate(
         rationale.append(f"figure_refs={len(matched_refs)}")
     if nearby_context_score > 0:
         rationale.append(f"nearby_context_overlap={nearby_context_score:.2f}")
+    if retrieved_figure_score > 0:
+        rationale.append(f"retrieved_figure_chunk={retrieved_figure_score:.2f}")
 
     retrieved_context_snippets = _collect_retrieved_context_snippets(retrieval)
     section_context = None
@@ -1306,6 +1396,59 @@ def _values_match(left: Optional[str], right: Optional[str]) -> bool:
     return bool(left_norm and right_norm and left_norm == right_norm)
 
 
+def _candidate_value_key(value: Optional[str]) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip().lower())
+
+
+def _candidate_selection_needed(
+    *,
+    candidates: list[CandidateAnswer],
+    support: SupportLabel,
+    needs_more_evidence: bool,
+    recall_rescue_used: bool,
+    state: ProposalState,
+) -> bool:
+    valued = [candidate for candidate in candidates if candidate.value]
+    distinct_values = {_candidate_value_key(candidate.value) for candidate in valued if candidate.value}
+    has_figure = any(candidate.source == "figure_review" for candidate in candidates)
+    has_text = any(candidate.source in {"first_pass_text", "rescued_text", "evidence_recovery"} for candidate in candidates)
+    text_figure_conflict = has_figure and has_text and len(distinct_values) > 1
+    if len(distinct_values) <= 1:
+        return False
+    return (
+        len(distinct_values) > 1
+        or support == SupportLabel.weak_evidence
+        or needs_more_evidence
+        or text_figure_conflict
+        or (recall_rescue_used and len(valued) > 1)
+        or state == ProposalState.unclear
+        or (has_figure and len(valued) > 1)
+    )
+
+
+async def run_candidate_selection(
+    *,
+    provider: ProviderAdapter,
+    text_model_id: str,
+    column_name: str,
+    column_description: str,
+    row_context: dict,
+    candidates: list[CandidateAnswer],
+) -> dict:
+    messages = build_candidate_selection_prompt(
+        column_name=column_name,
+        column_description=column_description,
+        row_context=row_context,
+        candidates=candidates,
+    )
+    return await provider.chat_complete_structured(
+        messages=messages,
+        response_schema=CANDIDATE_SELECTION_SCHEMA,
+        model_id=text_model_id,
+        max_tokens=1024,
+    )
+
+
 async def run_figure_review(
     proposal_id: str,
     run_id: str,
@@ -1324,6 +1467,7 @@ async def run_figure_review(
     max_figures: int = 5,
     prompt_bundle_name: Optional[str] = None,
     prompt_bundle_path: Optional[str] = None,
+    attempt_diagnostics: Optional[list[dict]] = None,
 ) -> list[FigureReviewHit]:
     """Proactive figure review (T062): run vision model over relevant figures.
 
@@ -1356,6 +1500,15 @@ async def run_figure_review(
         # Load figure crop image
         image_b64 = _load_figure_image_b64(figure, run_dir)
         if image_b64 is None:
+            if attempt_diagnostics is not None:
+                attempt_diagnostics.append(
+                    {
+                        "figure_id": fig_id,
+                        "attempted": False,
+                        "succeeded": False,
+                        "failure_reason": "missing_figure_crop",
+                    }
+                )
             continue
 
         # Build vision prompt (T063)
@@ -1380,6 +1533,15 @@ async def run_figure_review(
                 model_id=vision_model_id,
                 image_b64=image_b64,
             )
+            if attempt_diagnostics is not None:
+                attempt_diagnostics.append(
+                    {
+                        "figure_id": fig_id,
+                        "attempted": True,
+                        "succeeded": True,
+                        "failure_reason": None,
+                    }
+                )
             fig_state = result.get("state", "unclear")
             fig_value = result.get("proposed_value")
             fig_rationale = result.get("rationale")
@@ -1388,9 +1550,6 @@ async def run_figure_review(
 
             if fig_state == "unclear" or not fig_value:
                 continue  # This figure doesn't support the field
-
-            if current_proposed_value and not _values_match(fig_value, current_proposed_value):
-                continue
 
             figure_source_type = (
                 EvidenceSourceType.caption_grounded_figure_evidence
@@ -1442,7 +1601,17 @@ async def run_figure_review(
                     evidence=ev,
                 )
             )
-        except Exception:
+        except Exception as exc:
+            if attempt_diagnostics is not None:
+                attempt_diagnostics.append(
+                    {
+                        "figure_id": fig_id,
+                        "attempted": True,
+                        "succeeded": False,
+                        "failure_reason": type(exc).__name__,
+                        "failure_message": str(exc)[:240],
+                    }
+                )
             # Single figure failure does not abort the rest (T052)
             continue
 
@@ -1482,11 +1651,57 @@ def _retrieval_looks_figure_promising(retrieval: Optional[RetrievalResult]) -> b
     marker = re.compile(r"\b(fig(?:ure)?\.?\s*\d+|panel\s*[a-z]|chart|plot|graph|image|microscopy)\b", re.IGNORECASE)
     for chunk in retrieval.chunks[:8]:
         text = chunk.display_text or ""
-        if chunk.chunk_type == "caption":
+        if chunk.chunk_type in {"caption", "figure"}:
             return True
         if marker.search(text):
             return True
     return False
+
+
+def _has_usable_quote_payload(quotes: list[dict]) -> bool:
+    return any(str(quote.get("text") or "").strip() for quote in quotes)
+
+
+def should_run_recall_rescue(
+    *,
+    recall_rescue_enabled: bool,
+    rescue_already_used: bool,
+    state: ProposalState,
+    support: Optional[SupportLabel] = None,
+    quotes: Optional[list[dict]] = None,
+    retrieval: Optional[RetrievalResult] = None,
+    needs_more_evidence: bool = False,
+    figure_evidence_count: int = 0,
+    text_figure_conflict: bool = False,
+    candidate_selection_needs_more_evidence: bool = False,
+) -> RecallRescueDecision:
+    reasons: list[str] = []
+    quote_items = quotes or []
+    if state == ProposalState.unclear:
+        reasons.append("unclear_state")
+    if needs_more_evidence or not _has_usable_quote_payload(quote_items):
+        reasons.append("missing_usable_evidence")
+    if support in {SupportLabel.weak_evidence, SupportLabel.inferred_from_evidence}:
+        reasons.append("weak_or_inferred_evidence")
+    if _retrieval_looks_figure_promising(retrieval) and figure_evidence_count == 0:
+        reasons.append("figure_relevant_without_figure_evidence")
+    if text_figure_conflict:
+        reasons.append("text_figure_conflict")
+    if candidate_selection_needs_more_evidence:
+        reasons.append("candidate_selection_requested_more_evidence")
+
+    ordered: list[str] = []
+    for reason in reasons:
+        if reason not in ordered:
+            ordered.append(reason)
+
+    if not ordered:
+        return RecallRescueDecision(eligible=False, skip_reason="not_needed")
+    if rescue_already_used:
+        return RecallRescueDecision(eligible=True, trigger_reasons=ordered, skip_reason="already_used")
+    if not recall_rescue_enabled:
+        return RecallRescueDecision(eligible=True, trigger_reasons=ordered, skip_reason="disabled")
+    return RecallRescueDecision(eligible=True, trigger_reasons=ordered)
 
 
 def decide_vision_trigger_reasons(
@@ -1638,6 +1853,8 @@ async def extract_cell(
     artifact_context: Optional[dict] = None,
     max_figures_for_review: int = 5,
     skip_figure_review_when_prompt_only_degraded: bool = False,
+    candidate_selection_enabled: bool = True,
+    max_candidate_selection_calls_per_cell: int = 1,
     stats_sink: Optional[dict[str, object]] = None,
     retrieval_cache: Optional[dict[tuple[str, bool, bool], Any]] = None,
 ) -> ProposalRecord:
@@ -1667,8 +1884,19 @@ async def extract_cell(
     figure_review_calls = 0
     recall_rescue_used = False
     whole_document_used = False
+    recall_rescue_decision = RecallRescueDecision(eligible=False, skip_reason="not_evaluated")
+    whole_document_decision: dict[str, object] = {
+        "eligible": False,
+        "used": False,
+        "skip_reason": "not_evaluated",
+    }
     needs_more = False
     figure_hits: list[FigureReviewHit] = []
+    figure_attempts: list[dict] = []
+    candidate_selection_calls = 0
+    candidate_selection_value_changed = False
+    candidate_answers_payload: Optional[list[dict]] = None
+    selection_diagnostics: Optional[dict] = None
     provider_diag_cursor = _get_provider_diagnostics_cursor(provider)
     provider_diag_summary: Optional[dict] = None
     retrieval_diag_summary: Optional[dict] = None
@@ -1692,8 +1920,18 @@ async def extract_cell(
                 "recall_rescue_retrieval_prep_ms": round(recall_rescue_retrieval_prep_ms, 3),
                 "recall_rescue_used": recall_rescue_used,
                 "whole_document_used": whole_document_used,
+                "recall_rescue_eligible": recall_rescue_decision.eligible,
+                "recall_rescue_trigger_reasons": list(recall_rescue_decision.trigger_reasons),
+                "recall_rescue_skip_reason": recall_rescue_decision.skip_reason,
+                "whole_document_eligible": bool(whole_document_decision.get("eligible")),
+                "whole_document_skip_reason": whole_document_decision.get("skip_reason"),
                 "needs_more_evidence": needs_more,
                 "figure_hits_count": len(figure_hits),
+                "figure_review_attempted": any(bool(item.get("attempted")) for item in figure_attempts),
+                "figure_review_succeeded": any(bool(item.get("succeeded")) for item in figure_attempts),
+                "figure_review_failed": any(bool(item.get("attempted")) and not bool(item.get("succeeded")) for item in figure_attempts),
+                "candidate_selection_calls": candidate_selection_calls,
+                "candidate_selection_value_changed": candidate_selection_value_changed,
                 "provider_diagnostics": provider_diag_summary,
                 "retrieval_diagnostics": retrieval_diag_summary,
                 "figure_review_diagnostics": figure_review_diag_summary,
@@ -1949,8 +2187,48 @@ async def extract_cell(
         finalize_stats(proposal)
         return proposal
 
-    raw_state = raw_result.get("state", "unclear")
-    if raw_state == "unclear" and recall_rescue_enabled:
+    first_pass_result = _normalize_text_extraction_result(raw_result, response_schema_profile)
+    first_pass_value = _coerce_text_value(first_pass_result.get("proposed_value"), joiner="; ")
+    first_pass_quotes = _normalize_quotes_payload(first_pass_result.get("quotes"))
+    first_pass_state, _ = adjudicate_state(
+        str(first_pass_result.get("state", "unclear") or "unclear"),
+        first_pass_value,
+        first_pass_quotes,
+        is_verify_mode,
+    )
+    first_pass_has_direct_quote = any(
+        str(quote.get("source_type") or "direct_quote") == "direct_quote"
+        and str(quote.get("text") or "").strip()
+        for quote in first_pass_quotes
+    )
+    first_pass_has_inferred_quote = any(
+        str(quote.get("source_type") or "") in {"inferred_reasoning", "calculation"}
+        and str(quote.get("text") or "").strip()
+        for quote in first_pass_quotes
+    )
+    first_pass_support = (
+        SupportLabel.direct_evidence
+        if first_pass_state != ProposalState.unclear and first_pass_has_direct_quote
+        else SupportLabel.inferred_from_evidence
+        if first_pass_state != ProposalState.unclear and first_pass_has_inferred_quote
+        else determine_support_label(
+            first_pass_state,
+            [],
+            proposed_value=first_pass_value,
+            field_type=field_type,
+        )
+    )
+    first_pass_needs_more = bool(first_pass_value and not _has_usable_quote_payload(first_pass_quotes))
+    recall_rescue_decision = should_run_recall_rescue(
+        recall_rescue_enabled=recall_rescue_enabled,
+        rescue_already_used=recall_rescue_used,
+        state=first_pass_state,
+        support=first_pass_support,
+        quotes=first_pass_quotes,
+        retrieval=retrieval,
+        needs_more_evidence=first_pass_needs_more,
+    )
+    if recall_rescue_decision.eligible and recall_rescue_decision.skip_reason is None:
         recall_rescue_used = True
         rescue_retrieval = retrieval
         if retrieval is not None and doc_dict:
@@ -1965,7 +2243,7 @@ async def extract_cell(
                 run_dir=run_dir,
                 top_k=max((retrieval.top_k if retrieval else 6) + 3, 9),
                 mode="recall_rescue",
-                rescue_reason="first_pass_unclear",
+                rescue_reason=",".join(recall_rescue_decision.trigger_reasons) or "evidence_quality",
                 retrieval_cache=retrieval_cache,
                 cache_key=pdf_id,
             )
@@ -1974,9 +2252,19 @@ async def extract_cell(
             recall_rescue_retrieval_prep_ms += float(rescue_stats.get("chunk_build_ms", 0.0) or 0.0)
             recall_rescue_retrieval_prep_ms += float(rescue_stats.get("idf_build_ms", 0.0) or 0.0)
         whole_document_text = None
+        whole_document_decision = {
+            "eligible": bool(whole_document_mode),
+            "used": False,
+            "skip_reason": None,
+        }
         if whole_document_mode:
             whole_document_text = build_whole_document_context(doc_dict, whole_document_max_chars)
             whole_document_used = whole_document_text is not None
+            whole_document_decision["used"] = whole_document_used
+            if not whole_document_used:
+                whole_document_decision["skip_reason"] = "document_missing_or_exceeds_limit"
+        else:
+            whole_document_decision["skip_reason"] = "disabled"
         rescue_messages = build_text_extraction_prompt(
             column_name=column_name,
             column_description=column_description,
@@ -2053,6 +2341,8 @@ async def extract_cell(
             persist_proposal(run_dir, proposal)
             finalize_stats(proposal)
             return proposal
+    elif recall_rescue_decision.eligible and recall_rescue_decision.skip_reason == "disabled":
+        whole_document_decision = {"eligible": bool(whole_document_mode), "used": False, "skip_reason": "recall_rescue_skipped"}
 
     # Parse and adjudicate result (T058)
     normalized_result = _normalize_text_extraction_result(raw_result, response_schema_profile)
@@ -2206,11 +2496,10 @@ async def extract_cell(
         proposed_value=proposed_value,
     )
     figure_review_suppressed_reason: Optional[str] = None
-    should_run_vision = bool(
-        vision_model_id
-        and doc_dict.get("figures")
-        and vision_trigger_reasons
-    )
+    figure_review_triggered = bool(doc_dict.get("figures") and vision_trigger_reasons)
+    should_run_vision = bool(vision_model_id and figure_review_triggered)
+    if figure_review_triggered and not vision_model_id:
+        figure_review_suppressed_reason = "vision_not_configured"
     if (
         should_run_vision
         and skip_figure_review_when_prompt_only_degraded
@@ -2260,10 +2549,20 @@ async def extract_cell(
                 max_figures=max_figures_for_review,
                 prompt_bundle_name=prompt_bundle_name,
                 prompt_bundle_path=prompt_bundle_path,
+                attempt_diagnostics=figure_attempts,
             )
             figure_review_ms += (perf_counter() - figure_review_started) * 1000.0
-            figure_review_calls += 1
-        except Exception:
+            figure_review_calls += sum(1 for item in figure_attempts if bool(item.get("attempted")))
+        except Exception as exc:
+            figure_attempts.append(
+                {
+                    "figure_id": None,
+                    "attempted": False,
+                    "succeeded": False,
+                    "failure_reason": type(exc).__name__,
+                    "failure_message": str(exc)[:240],
+                }
+            )
             pass  # Figure review failure does not abort the proposal
 
     figure_evidence = [hit.evidence for hit in figure_hits]
@@ -2296,6 +2595,168 @@ async def extract_cell(
             rationale = _normalize_rationale(best_figure_hit.rationale)
         state = ProposalState.inferred
         needs_more = False
+
+    support = determine_support_label(
+        state,
+        ranked_evidence,
+        proposed_value=proposed_value,
+        field_type=field_type,
+    )
+
+    candidate_answers: list[CandidateAnswer] = []
+    seen_candidate_keys: set[tuple[str, str]] = set()
+    candidate_numeric_forms: dict[str, Optional[NumericValueForm]] = {}
+
+    def add_candidate(
+        *,
+        value: Optional[str],
+        candidate_state: str,
+        source: str,
+        evidence_ids: list[str],
+        rationale_text: Optional[str],
+        warning_flags_for_candidate: Optional[list[str]] = None,
+        numeric_form: Optional[NumericValueForm] = None,
+    ) -> None:
+        candidate_value = _coerce_text_value(value, joiner="; ")
+        if not candidate_value:
+            return
+        key = (source, _candidate_value_key(candidate_value))
+        if key in seen_candidate_keys:
+            return
+        seen_candidate_keys.add(key)
+        candidate_id = f"cand_{len(candidate_answers) + 1}"
+        candidate_answers.append(
+            CandidateAnswer(
+                candidate_id=candidate_id,
+                value=candidate_value,
+                state=candidate_state if candidate_state in {"found", "inferred", "unclear"} else "unclear",
+                source=source,
+                evidence_ids=list(evidence_ids),
+                confidence_rationale=_normalize_rationale(rationale_text),
+                warning_flags=list(warning_flags_for_candidate or []),
+            )
+        )
+        candidate_numeric_forms[candidate_id] = numeric_form
+
+    first_pass_candidate_state = str(first_pass_result.get("state", "unclear") or "unclear")
+    add_candidate(
+        value=first_pass_value,
+        candidate_state=first_pass_candidate_state,
+        source="first_pass_text",
+        evidence_ids=[] if recall_rescue_used else [ev.evidence_id for ev in evidence_records],
+        rationale_text=_coerce_text_value(first_pass_result.get("rationale"), joiner="\n"),
+        warning_flags_for_candidate=["first_pass"],
+        numeric_form=_normalize_numeric_value_form(first_pass_result.get("numeric_value_form"), field_type),
+    )
+    if recall_rescue_used:
+        add_candidate(
+            value=proposed_value,
+            candidate_state=state.value,
+            source="rescued_text",
+            evidence_ids=[ev.evidence_id for ev in evidence_records],
+            rationale_text=rationale,
+            warning_flags_for_candidate=["recall_rescue_used"],
+            numeric_form=numeric_value_form,
+        )
+    if any(ev.source_type == EvidenceSourceType.quote_plus_page for ev in evidence_records):
+        add_candidate(
+            value=proposed_value,
+            candidate_state=state.value,
+            source="evidence_recovery",
+            evidence_ids=[ev.evidence_id for ev in evidence_records],
+            rationale_text=rationale,
+            warning_flags_for_candidate=["fallback_evidence_used"],
+            numeric_form=numeric_value_form,
+        )
+    for hit in figure_hits:
+        flags = ["figure_derived"]
+        if proposed_value and not _values_match(hit.proposed_value, proposed_value):
+            flags.append("competing_evidence")
+        add_candidate(
+            value=hit.proposed_value,
+            candidate_state="inferred",
+            source="figure_review",
+            evidence_ids=[hit.evidence.evidence_id],
+            rationale_text=hit.rationale,
+            warning_flags_for_candidate=flags,
+            numeric_form=hit.numeric_value_form,
+        )
+
+    if (
+        candidate_selection_enabled
+        and max_candidate_selection_calls_per_cell > 0
+        and candidate_answers
+        and _candidate_selection_needed(
+            candidates=candidate_answers,
+            support=support,
+            needs_more_evidence=needs_more,
+            recall_rescue_used=recall_rescue_used,
+            state=state,
+        )
+    ):
+        previous_value = proposed_value
+        try:
+            selection_started = perf_counter()
+            selection_result = await run_candidate_selection(
+                provider=provider,
+                text_model_id=text_model_id,
+                column_name=column_name,
+                column_description=column_description,
+                row_context=row_context,
+                candidates=candidate_answers,
+            )
+            selection_elapsed_ms = (perf_counter() - selection_started) * 1000.0
+            text_model_ms += selection_elapsed_ms
+            text_model_calls += 1
+            candidate_selection_calls += 1
+            selected_value = _coerce_text_value(selection_result.get("selected_value"), joiner="; ")
+            selected_state_raw = str(selection_result.get("selected_state") or "unclear")
+            selected_candidate_id = _coerce_text_value(selection_result.get("selected_candidate_id"), joiner=" ")
+            if selected_value:
+                proposed_value = selected_value
+            if selected_state_raw in {"found", "inferred", "unclear"}:
+                state = ProposalState(selected_state_raw)
+            selected_candidate = next(
+                (candidate for candidate in candidate_answers if candidate.candidate_id == selected_candidate_id),
+                None,
+            )
+            if selected_candidate and selected_candidate.evidence_ids:
+                selected_ids = set(selected_candidate.evidence_ids)
+                ranked_evidence = sorted(
+                    ranked_evidence,
+                    key=lambda ev: (0 if ev.evidence_id in selected_ids else 1, ev.evidence_rank),
+                )
+                selected_numeric_form = candidate_numeric_forms.get(selected_candidate.candidate_id)
+                if selected_numeric_form is not None:
+                    numeric_value_form = selected_numeric_form
+            if selection_result.get("rationale"):
+                rationale = _normalize_rationale(selection_result.get("rationale"))
+            needs_more = bool(selection_result.get("needs_more_evidence"))
+            candidate_selection_value_changed = _candidate_value_key(previous_value) != _candidate_value_key(proposed_value)
+            selection_diagnostics = {
+                "attempted": True,
+                "succeeded": True,
+                "selected_candidate_id": selected_candidate_id,
+                "rejected_candidate_ids": list(selection_result.get("rejected_candidate_ids") or []),
+                "needs_more_evidence": needs_more,
+                "value_changed": candidate_selection_value_changed,
+            }
+        except Exception as exc:
+            selection_diagnostics = {
+                "attempted": True,
+                "succeeded": False,
+                "failure_reason": type(exc).__name__,
+                "failure_message": str(exc)[:240],
+            }
+    elif candidate_answers:
+        selection_diagnostics = {
+            "attempted": False,
+            "succeeded": False,
+            "skip_reason": "not_needed_or_disabled",
+            "candidate_count": len(candidate_answers),
+        }
+
+    candidate_answers_payload = [candidate.model_dump(mode="json") for candidate in candidate_answers] or None
 
     support = determine_support_label(
         state,
@@ -2351,16 +2812,19 @@ async def extract_cell(
         evidence_records=ranked_evidence,
         needs_more_evidence=needs_more,
         recall_rescue_used=recall_rescue_used,
+        recall_rescue_decision=recall_rescue_decision,
         whole_document_used=whole_document_used,
+        whole_document_decision=whole_document_decision,
         warning_flags=warning_flags,
     )
     figure_review_diag_summary = _build_figure_review_diagnostics(
-        triggered=should_run_vision,
+        triggered=figure_review_triggered,
         trigger_reasons=vision_trigger_reasons,
         shortlist_metadata=shortlist_metadata,
         figure_review_calls=figure_review_calls,
         figure_review_ms=figure_review_ms,
         figure_hits=figure_hits,
+        attempt_diagnostics=figure_attempts,
         ranked_evidence=ranked_evidence,
         figure_rescued_value=bool(figure_hits and not proposed_value_before_figure and proposed_value),
         suppressed_reason=figure_review_suppressed_reason,
@@ -2426,6 +2890,8 @@ async def extract_cell(
         fallback_reasons=fallback_reasons,
         metadata_diagnostics=(metadata_resolution.diagnostics if metadata_resolution is not None else None),
         style_profile_mode=style_profile_mode,
+        candidate_answers=candidate_answers_payload,
+        selection_diagnostics=selection_diagnostics,
         created_at=now,
     )
 
@@ -2634,7 +3100,9 @@ def _build_retrieval_diagnostics(
     evidence_records: list[EvidenceRecord],
     needs_more_evidence: bool,
     recall_rescue_used: bool,
+    recall_rescue_decision: RecallRescueDecision,
     whole_document_used: bool,
+    whole_document_decision: dict[str, object],
     warning_flags: list[str],
 ) -> dict:
     parser_signals = _parser_gap_signals(doc_dict)
@@ -2700,6 +3168,11 @@ def _build_retrieval_diagnostics(
         "figure_evidence_count": figure_evidence,
         "proposed_value_seen_in_retrieval": proposed_value_present,
         "quoted_text_seen_in_retrieval": quoted_text_present,
+        "recall_rescue_eligible": recall_rescue_decision.eligible,
+        "recall_rescue_trigger_reasons": list(recall_rescue_decision.trigger_reasons),
+        "recall_rescue_skip_reason": recall_rescue_decision.skip_reason,
+        "whole_document_eligible": bool(whole_document_decision.get("eligible")),
+        "whole_document_skip_reason": whole_document_decision.get("skip_reason"),
     }
 
 
@@ -2711,16 +3184,33 @@ def _build_figure_review_diagnostics(
     figure_review_calls: int,
     figure_review_ms: float,
     figure_hits: list[FigureReviewHit],
+    attempt_diagnostics: list[dict],
     ranked_evidence: list[EvidenceRecord],
     figure_rescued_value: bool,
     suppressed_reason: Optional[str] = None,
 ) -> dict:
     figure_evidence_persisted = sum(1 for ev in ranked_evidence if ev.is_figure_derived)
     useful = figure_evidence_persisted > 0 or figure_rescued_value
+    attempted = any(bool(item.get("attempted")) for item in attempt_diagnostics)
+    succeeded = any(bool(item.get("succeeded")) for item in attempt_diagnostics)
+    failed = any(bool(item.get("attempted")) and not bool(item.get("succeeded")) for item in attempt_diagnostics)
+    failure_reason = next(
+        (
+            str(item.get("failure_reason"))
+            for item in reversed(attempt_diagnostics)
+            if item.get("failure_reason")
+        ),
+        None,
+    )
     return {
         "triggered": triggered,
+        "attempted": attempted,
+        "succeeded": succeeded,
+        "failed": failed,
+        "suppressed": suppressed_reason is not None,
         "trigger_reasons": list(trigger_reasons),
         "suppressed_reason": suppressed_reason,
+        "failure_reason": failure_reason,
         "shortlist_size": len(shortlist_metadata),
         "review_calls": figure_review_calls,
         "review_ms": round(figure_review_ms, 3),
@@ -2728,6 +3218,7 @@ def _build_figure_review_diagnostics(
         "useful": useful,
         "figure_evidence_persisted": figure_evidence_persisted,
         "rescued_value": figure_rescued_value,
+        "attempts": attempt_diagnostics[:10],
     }
 
 

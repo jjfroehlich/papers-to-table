@@ -275,6 +275,24 @@
             ]
           },
           {
+            "label": "codex_gpt_pro_5_5_extra_high_wo_skill",
+            "system": "external_codex_wo_skill",
+            "replicates": [
+              {
+                "replicate_index": 1,
+                "path": "../../../benchmark_datasets/data/20260517_external_codex_gpt-pro-5-5-extra-high_wo-skill/rep1/massively_parallel_reporter_assays_filled.csv"
+              },
+              {
+                "replicate_index": 2,
+                "path": "../../../benchmark_datasets/data/20260517_external_codex_gpt-pro-5-5-extra-high_wo-skill/rep2/massively_parallel_reporter_assays_filled.csv"
+              },
+              {
+                "replicate_index": 3,
+                "path": "../../../benchmark_datasets/data/20260517_external_codex_gpt-pro-5-5-extra-high_wo-skill/rep3/massively_parallel_reporter_assays_filled.csv"
+              }
+            ]
+          },
+          {
             "label": "gold_positive_control",
             "system": "external_gold",
             "replicates": [
@@ -336,6 +354,24 @@
             ]
           },
           {
+            "label": "codex_gpt_pro_5_5_extra_high_wo_skill",
+            "system": "external_codex_wo_skill",
+            "replicates": [
+              {
+                "replicate_index": 1,
+                "path": "../../../benchmark_datasets/data/20260517_external_codex_gpt-pro-5-5-extra-high_wo-skill/rep1/genome_editing_tools_filled.csv"
+              },
+              {
+                "replicate_index": 2,
+                "path": "../../../benchmark_datasets/data/20260517_external_codex_gpt-pro-5-5-extra-high_wo-skill/rep2/genome_editing_tools_filled.csv"
+              },
+              {
+                "replicate_index": 3,
+                "path": "../../../benchmark_datasets/data/20260517_external_codex_gpt-pro-5-5-extra-high_wo-skill/rep3/genome_editing_tools_filled.csv"
+              }
+            ]
+          },
+          {
             "label": "gold_positive_control",
             "system": "external_gold",
             "replicates": [
@@ -393,6 +429,24 @@
               {
                 "replicate_index": 3,
                 "path": "../../../benchmark_datasets/data/20260517_external_codex_gpt-pro-5-5-extra-high/rep3/spatial_transcriptomics_filled.csv"
+              }
+            ]
+          },
+          {
+            "label": "codex_gpt_pro_5_5_extra_high_wo_skill",
+            "system": "external_codex_wo_skill",
+            "replicates": [
+              {
+                "replicate_index": 1,
+                "path": "../../../benchmark_datasets/data/20260517_external_codex_gpt-pro-5-5-extra-high_wo-skill/rep1/spatial_transcriptomics_filled.csv"
+              },
+              {
+                "replicate_index": 2,
+                "path": "../../../benchmark_datasets/data/20260517_external_codex_gpt-pro-5-5-extra-high_wo-skill/rep2/spatial_transcriptomics_filled.csv"
+              },
+              {
+                "replicate_index": 3,
+                "path": "../../../benchmark_datasets/data/20260517_external_codex_gpt-pro-5-5-extra-high_wo-skill/rep3/spatial_transcriptomics_filled.csv"
               }
             ]
           },

@@ -253,6 +253,8 @@ def _proposal_row(context: dict[str, Any], proposal: dict[str, Any], source_path
         "fallback_reasons": proposal.get("fallback_reasons"),
         "metadata_candidate_count": metadata.get("candidate_count"),
         "metadata_candidate_values": metadata.get("candidate_values"),
+        "candidate_answers": proposal.get("candidate_answers"),
+        "selection_diagnostics": proposal.get("selection_diagnostics"),
         "proposal_source_path": str(source_path),
         "main_app_run_path": str(app_run_path),
         "raw_proposal_json": _json_compact(proposal),

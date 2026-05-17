@@ -54,6 +54,7 @@ from backend.app.extraction import (
     proposal_support_display,
     rank_evidence,
     select_relevant_figures,
+    should_run_recall_rescue,
 )
 from backend.app.provider import (
     LMStudioProvider,
@@ -421,6 +422,14 @@ class TestRetrievalChunks:
         assert "paragraph" in types
         assert "caption" in types
         assert "table_region" in types
+        assert "figure" in types
+
+    def test_figure_chunks_include_metadata(self, minimal_doc_dict: dict):
+        chunks = build_chunks_from_parsed_doc(minimal_doc_dict)
+        figure_chunks = [chunk for chunk in chunks if chunk.chunk_type == "figure"]
+        assert figure_chunks
+        assert figure_chunks[0].figure_ref == "fig_1"
+        assert "Micro-CT" in (figure_chunks[0].caption_text or "")
 
     def test_display_text_equals_source_text(self, minimal_doc_dict: dict):
         """T046: display_text must preserve source text."""
@@ -550,6 +559,7 @@ class TestRetrievalChunks:
         assert data["policy"]["allowed_chunk_types"] == [
             "abstract",
             "caption",
+            "figure",
             "list_item",
             "paragraph",
             "section",
@@ -1963,6 +1973,32 @@ class TestExtractionOrchestrator:
         assert normalized is not None
         assert "- Scaffold implanted in tibial defect." in normalized
 
+    def test_recall_rescue_helper_triggers_for_missing_evidence(self):
+        decision = should_run_recall_rescue(
+            recall_rescue_enabled=True,
+            rescue_already_used=False,
+            state=ProposalState.found,
+            support=SupportLabel.direct_evidence,
+            quotes=[],
+            retrieval=None,
+            needs_more_evidence=True,
+        )
+        assert decision.eligible is True
+        assert decision.skip_reason is None
+        assert "missing_usable_evidence" in decision.trigger_reasons
+
+    def test_recall_rescue_helper_records_disabled_skip(self):
+        decision = should_run_recall_rescue(
+            recall_rescue_enabled=False,
+            rescue_already_used=False,
+            state=ProposalState.unclear,
+            support=SupportLabel.blocked,
+            quotes=[],
+            retrieval=None,
+        )
+        assert decision.eligible is True
+        assert decision.skip_reason == "disabled"
+
     async def test_list_shaped_llm_fields_do_not_crash_extraction(
         self, run_dir: pathlib.Path, minimal_doc_dict: dict
     ):
@@ -2408,9 +2444,161 @@ class TestFigureReview:
             skip_figure_review_when_prompt_only_degraded=True,
         )
 
-        assert proposal.figure_review_diagnostics["triggered"] is False
+        assert proposal.figure_review_diagnostics["triggered"] is True
+        assert proposal.figure_review_diagnostics["suppressed"] is True
         assert proposal.figure_review_diagnostics["suppressed_reason"] == "prompt_only_provider_mode"
         assert provider.vision_complete_structured.call_count == 0
+
+    async def test_prompt_only_vision_runs_by_default(
+        self, run_dir: pathlib.Path, minimal_doc_dict: dict
+    ):
+        doc_with_crop = dict(minimal_doc_dict)
+        crop_path = run_dir / "fig_crop_prompt_only_runs.png"
+        crop_path.write_bytes(_minimal_png_bytes())
+        doc_with_crop["figures"] = [{**minimal_doc_dict["figures"][0], "crop_path": str(crop_path)}]
+
+        provider = AsyncMock()
+        provider.chat_complete_structured = AsyncMock(return_value={
+            "proposed_value": None,
+            "state": "unclear",
+            "rationale": None,
+            "calculation": None,
+            "numeric_value_form": None,
+            "quotes": [],
+        })
+        provider.vision_complete_structured = AsyncMock(return_value={
+            "proposed_value": "45.3%",
+            "state": "found",
+            "rationale": "- Figure shows BVF = 45.3%.",
+            "numeric_value_form": "exact",
+            "figure_description": "BVF bar chart",
+            "caption_relevant": True,
+        })
+
+        proposal = await extract_cell(
+            run_id="run_test",
+            pdf_id="paper_test",
+            row_id="row_test",
+            cell_id="cell_prompt_only_runs",
+            column_name="Bone volume fraction",
+            column_description="BVF",
+            row_context={},
+            doc_dict=doc_with_crop,
+            run_dir=run_dir,
+            provider=provider,
+            text_model_id="text-model",
+            vision_model_id="vision-model",
+            caps=SimpleNamespace(vision_structured_output_mode="none"),
+        )
+
+        assert provider.vision_complete_structured.call_count == 1
+        assert proposal.figure_review_diagnostics["attempted"] is True
+        assert proposal.figure_review_diagnostics["succeeded"] is True
+        assert proposal.figure_review_diagnostics["suppressed"] is False
+
+    async def test_conflicting_figure_evidence_is_persisted(
+        self, run_dir: pathlib.Path, minimal_doc_dict: dict
+    ):
+        doc_with_crop = dict(minimal_doc_dict)
+        crop_path = run_dir / "fig_crop_conflict.png"
+        crop_path.write_bytes(_minimal_png_bytes())
+        doc_with_crop["figures"] = [{**minimal_doc_dict["figures"][0], "crop_path": str(crop_path)}]
+
+        provider = AsyncMock()
+        provider.chat_complete_structured = AsyncMock(return_value={
+            "proposed_value": "40%",
+            "state": "found",
+            "rationale": "- Text reports 40%.",
+            "calculation": None,
+            "numeric_value_form": "exact",
+            "quotes": [{"text": "Bone volume fraction (BVF) was measured as 45.3%", "page": 2, "source_type": "direct_quote"}],
+        })
+        provider.vision_complete_structured = AsyncMock(return_value={
+            "proposed_value": "45.3%",
+            "state": "found",
+            "rationale": "- Figure indicates 45.3%.",
+            "numeric_value_form": "exact",
+            "figure_description": "BVF bar reaches 45.3%.",
+            "caption_relevant": True,
+        })
+
+        proposal = await extract_cell(
+            run_id="run_test",
+            pdf_id="paper_test",
+            row_id="row_test",
+            cell_id="cell_conflict_figure",
+            column_name="Bone volume fraction",
+            column_description="BVF figure graph value",
+            row_context={},
+            doc_dict=doc_with_crop,
+            run_dir=run_dir,
+            provider=provider,
+            text_model_id="text-model",
+            vision_model_id="vision-model",
+            candidate_selection_enabled=False,
+        )
+
+        evidence = load_evidence(run_dir)
+        assert any(ev.is_figure_derived for ev in evidence)
+        assert any(
+            candidate["source"] == "figure_review" and "competing_evidence" in candidate["warning_flags"]
+            for candidate in (proposal.candidate_answers or [])
+        )
+
+    async def test_candidate_selection_can_choose_figure_candidate(
+        self, run_dir: pathlib.Path, minimal_doc_dict: dict
+    ):
+        doc_with_crop = dict(minimal_doc_dict)
+        crop_path = run_dir / "fig_crop_select.png"
+        crop_path.write_bytes(_minimal_png_bytes())
+        doc_with_crop["figures"] = [{**minimal_doc_dict["figures"][0], "crop_path": str(crop_path)}]
+
+        provider = AsyncMock()
+        provider.chat_complete_structured = AsyncMock(side_effect=[
+            {
+                "proposed_value": "40%",
+                "state": "found",
+                "rationale": "- Text reports a local percentage.",
+                "calculation": None,
+                "numeric_value_form": "exact",
+                "quotes": [{"text": "Bone volume fraction (BVF) was measured as 45.3%", "page": 2, "source_type": "direct_quote"}],
+            },
+            {
+                "selected_candidate_id": "cand_2",
+                "selected_value": "45.3%",
+                "selected_state": "inferred",
+                "rejected_candidate_ids": ["cand_1"],
+                "rationale": "- Figure candidate better matches the requested graph value.",
+                "needs_more_evidence": False,
+            },
+        ])
+        provider.vision_complete_structured = AsyncMock(return_value={
+            "proposed_value": "45.3%",
+            "state": "found",
+            "rationale": "- Figure indicates 45.3%.",
+            "numeric_value_form": "exact",
+            "figure_description": "BVF bar reaches 45.3%.",
+            "caption_relevant": True,
+        })
+
+        proposal = await extract_cell(
+            run_id="run_test",
+            pdf_id="paper_test",
+            row_id="row_test",
+            cell_id="cell_select_figure",
+            column_name="Bone volume fraction",
+            column_description="BVF figure graph value",
+            row_context={},
+            doc_dict=doc_with_crop,
+            run_dir=run_dir,
+            provider=provider,
+            text_model_id="text-model",
+            vision_model_id="vision-model",
+        )
+
+        assert proposal.proposed_value == "45.3%"
+        assert proposal.selection_diagnostics["attempted"] is True
+        assert proposal.selection_diagnostics["value_changed"] is True
 
     async def test_figure_approximate_or_range_numeric_rescue_is_honest(
         self, run_dir: pathlib.Path, minimal_doc_dict: dict

@@ -327,6 +327,7 @@ class TestRunPipeline:
         assert policy_summary["allowed_chunk_types"] == [
             "abstract",
             "caption",
+            "figure",
             "list_item",
             "paragraph",
             "section",
@@ -1154,6 +1155,7 @@ def _fake_retrieval_result(**kwargs):
             "allowed_chunk_types": [
                 "abstract",
                 "caption",
+                "figure",
                 "list_item",
                 "paragraph",
                 "section",

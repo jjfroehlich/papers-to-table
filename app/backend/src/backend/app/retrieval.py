@@ -47,14 +47,14 @@ def _safe_filename(name: str, max_len: int = 16) -> str:
 # Retrieval chunk contract (T045)
 # ---------------------------------------------------------------------------
 
-CHUNK_TYPES = frozenset({"paragraph", "section", "caption", "table_region", "abstract", "list_item"})
+CHUNK_TYPES = frozenset({"paragraph", "section", "caption", "table_region", "abstract", "list_item", "figure"})
 
 
 class RetrievalChunk(BaseModel):
     """A single typed retrieval unit from a parsed document."""
     chunk_id: str
     source_block_id: str
-    chunk_type: str         # paragraph | section | caption | table_region | abstract | list_item
+    chunk_type: str         # paragraph | section | caption | table_region | abstract | list_item | figure
     page_number: int
     reading_order: int
 
@@ -66,6 +66,10 @@ class RetrievalChunk(BaseModel):
     provenance: str = "unknown"
     section_context: Optional[str] = None   # heading text of parent section
     is_neighbor: bool = False               # True when included as neighbor window
+    figure_ref: Optional[str] = None
+    caption_text: Optional[str] = None
+    crop_path: Optional[str] = None
+    full_page_path: Optional[str] = None
 
 
 class RetrievalResult(BaseModel):
@@ -187,6 +191,58 @@ def build_chunks_from_parsed_doc(doc_dict: dict) -> list[RetrievalChunk]:
             is_neighbor=False,
         )
         chunks.append(chunk)
+
+    figure_order_base = (
+        max((int(block.get("reading_order", 0) or 0) for block in sorted_blocks), default=0) + 1
+    )
+    caption_by_id = {
+        str(block.get("block_id")): block
+        for block in sorted_blocks
+        if str(block.get("block_type") or "") == "caption"
+    }
+    for fig_idx, figure in enumerate(doc_dict.get("figures", []) or []):
+        if not isinstance(figure, dict):
+            continue
+        figure_ref = str(figure.get("figure_id") or figure.get("id") or f"figure_{fig_idx + 1}").strip()
+        caption_text = str(figure.get("caption_text") or "").strip()
+        caption_block_id = figure.get("caption_block_id")
+        caption_block = caption_by_id.get(str(caption_block_id)) if caption_block_id is not None else None
+        if not caption_text and caption_block is not None:
+            caption_text = str(caption_block.get("text") or "").strip()
+        if not caption_text and not figure_ref:
+            continue
+        page_number = int(figure.get("page_number") or (caption_block or {}).get("page_number") or 1)
+        reading_order = int(
+            figure.get("reading_order")
+            or (caption_block or {}).get("reading_order")
+            or (figure_order_base + fig_idx)
+        )
+        display_text = caption_text or figure_ref
+        retrieval_parts = [f"[Figure: {figure_ref}]"]
+        if caption_text:
+            retrieval_parts.append(caption_text)
+        if figure.get("nearby_text"):
+            retrieval_parts.append(str(figure.get("nearby_text")).strip())
+        retrieval_text = " ".join(part for part in retrieval_parts if part).strip()
+        chunks.append(
+            RetrievalChunk(
+                chunk_id=f"chunk_figure_{_safe_filename(figure_ref, max_len=40)}_{fig_idx}",
+                source_block_id=str(caption_block_id or figure_ref or fig_idx),
+                chunk_type="figure",
+                page_number=page_number,
+                reading_order=reading_order,
+                display_text=display_text or retrieval_text,
+                retrieval_text=retrieval_text or display_text,
+                bbox=figure.get("bbox"),
+                provenance=str(figure.get("provenance") or "figure"),
+                section_context=str(figure.get("section_context") or "") or None,
+                is_neighbor=False,
+                figure_ref=figure_ref or None,
+                caption_text=caption_text or None,
+                crop_path=figure.get("crop_path"),
+                full_page_path=figure.get("full_page_path"),
+            )
+        )
 
     return chunks
 
@@ -490,7 +546,7 @@ def _retrieve_with_metadata(
         for chunk in all_chunks:
             chunk_count_by_type[chunk.chunk_type] = chunk_count_by_type.get(chunk.chunk_type, 0) + 1
 
-        allowed_types = {"paragraph", "section", "abstract", "list_item"}
+        allowed_types = {"paragraph", "section", "abstract", "list_item", "figure"}
         if include_captions:
             allowed_types.add("caption")
         if include_tables:
@@ -552,7 +608,7 @@ def prepare_retrieval_index(
     for chunk in all_chunks:
         chunk_count_by_type[chunk.chunk_type] = chunk_count_by_type.get(chunk.chunk_type, 0) + 1
 
-    allowed_types = {"paragraph", "section", "abstract", "list_item"}
+    allowed_types = {"paragraph", "section", "abstract", "list_item", "figure"}
     if include_captions:
         allowed_types.add("caption")
     if include_tables:
@@ -657,7 +713,7 @@ def run_retrieval_for_cell(
     include_captions = True
     include_tables = True
     include_neighbor_window = True
-    allowed_chunk_types = ["abstract", "caption", "list_item", "paragraph", "section", "table_region"]
+    allowed_chunk_types = ["abstract", "caption", "figure", "list_item", "paragraph", "section", "table_region"]
     if retrieval_cache is not None and cache_key is not None:
         cache_tuple = (cache_key, retrieval_mode, include_captions, include_tables)
         prepared_index = retrieval_cache.get(cache_tuple)

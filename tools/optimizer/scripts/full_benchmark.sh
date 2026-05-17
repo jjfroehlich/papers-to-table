@@ -4,10 +4,15 @@ set -eEuo pipefail
 
 label="full_benchmark"
 resume_manifest=""
+initial_model=""
 while [[ $# -gt 0 ]]; do
 	case "$1" in
 		--label)
 			label="${2:?--label requires a value}"
+			shift 2
+			;;
+		--initial-model)
+			initial_model="${2:?--initial-model requires a model id}"
 			shift 2
 			;;
 		--resume)
@@ -24,6 +29,12 @@ while [[ $# -gt 0 ]]; do
 			;;
 	esac
 done
+
+if [[ -n "$resume_manifest" && -n "$initial_model" ]]; then
+	echo "--initial-model is only valid when starting a new full benchmark; resume uses the manifest's existing materialized configs." >&2
+	exit 2
+fi
+
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
 session_id="$(date +%Y%m%d_%H%M%S)"
@@ -50,7 +61,8 @@ PY
 )"
 fi
 
-compare_config="$repo_root/configs/compare_models.json"
+base_compare_config="$repo_root/configs/compare_models.json"
+compare_config="$base_compare_config"
 prompt_config="$repo_root/configs/compare_prompts.json"
 retrieval_parameter_config="$repo_root/configs/compare_retrieval_parameters.json"
 extraction_feature_config="$repo_root/configs/compare_extraction_features.json"
@@ -103,6 +115,47 @@ PY
 resolve_results_jsonl() {
 	local run_name="$1"
 	printf '%s\n' "$repo_root/runs/$run_name/experiment/results/results.jsonl"
+}
+
+materialize_initial_model_config() {
+	local source_config="$1"
+	local target_config="$2"
+	local model_id="$3"
+
+	"$optimizer_python" - "$source_config" "$target_config" "$model_id" <<'PY'
+import json
+import sys
+from copy import deepcopy
+from pathlib import Path
+
+source_path = Path(sys.argv[1])
+target_path = Path(sys.argv[2])
+model_id = sys.argv[3]
+
+config = json.loads(source_path.read_text(encoding="utf-8"))
+candidates = [config["baseline_candidate"], *list(config.get("compare_candidates", []) or [])]
+matches = [deepcopy(candidate) for candidate in candidates if candidate.get("text_model_id") == model_id]
+if not matches:
+	available = sorted({str(candidate.get("text_model_id")) for candidate in candidates if candidate.get("text_model_id")})
+	raise SystemExit(
+		f"--initial-model {model_id!r} was not found in {source_path}. "
+		f"Available model ids: {', '.join(available)}"
+	)
+
+selected = matches[0]
+config["baseline_candidate"] = deepcopy(selected)
+config["compare_candidates"] = [deepcopy(selected)]
+config.setdefault("search_space", {})
+config["search_space"]["text_model_ids"] = [model_id]
+vision_model_id = selected.get("vision_model_id")
+config["search_space"]["vision_model_ids"] = [vision_model_id] if vision_model_id else []
+notes = config.setdefault("operator_todo", {}).setdefault("notes", [])
+notes.append(
+	f"Run-local full-benchmark override: model-compare stage was limited to initial model {model_id}; "
+	"the checked-in compare_models.json preset was not changed."
+)
+target_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+PY
 }
 
 materialize_config_with_winner() {
@@ -269,15 +322,25 @@ PY
 
 tmp_dir="$overnight_dir/materialized_configs"
 mkdir -p "$tmp_dir" "$overnight_dir"
+compare_config_materialized="$tmp_dir/compare_models.json"
 prompt_config_materialized="$tmp_dir/compare_prompts.json"
 retrieval_parameter_config_materialized="$tmp_dir/compare_retrieval_parameters.json"
 extraction_feature_config_materialized="$tmp_dir/compare_extraction_features.json"
 manifest_path="$overnight_dir/overnight_manifest.json"
 
+if [[ -n "$resume_manifest" && -f "$compare_config_materialized" ]]; then
+	compare_config="$compare_config_materialized"
+fi
+
+if [[ -n "$initial_model" ]]; then
+	materialize_initial_model_config "$base_compare_config" "$compare_config_materialized" "$initial_model"
+	compare_config="$compare_config_materialized"
+fi
+
 write_manifest() {
 	local status="$1"
 	local completed_at="${2:-}"
-	"$optimizer_python" - "$manifest_path" "$session_id" "$safe_label" "$status" "$completed_at" <<'PY'
+	"$optimizer_python" - "$manifest_path" "$session_id" "$safe_label" "$status" "$completed_at" "$initial_model" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -287,6 +350,7 @@ session_id = sys.argv[2]
 label = sys.argv[3]
 status = sys.argv[4]
 completed_at = sys.argv[5] or None
+initial_model = sys.argv[6] or None
 
 if manifest_path.exists():
 	payload = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -296,6 +360,8 @@ else:
 payload["session_id"] = session_id
 payload["label"] = label
 payload["status"] = status
+if initial_model:
+	payload["initial_model_filter"] = {"text_model_id": initial_model}
 if completed_at is not None:
 	payload["completed_at"] = completed_at
 elif status == "running":

@@ -25,6 +25,7 @@ Proposal records should preserve enough published information for downstream rev
 - support label and primary evidence
 - extraction lane when the proposal came from metadata or another non-default path
 - failure attribution or degraded-path truth when the proposal is weak, fallback-driven, or partially blocked
+- optional candidate answers and selection diagnostics when final selection compared multiple generic candidates
 
 ## Evidence rules
 
@@ -49,6 +50,13 @@ The contract must distinguish at least:
 
 Fallback evidence must be labeled as fallback rather than presented as exact.
 Figure-derived evidence must remain distinct from text-derived evidence even when both support the same proposal.
+Conflicting figure-derived evidence should be persisted as competing evidence rather than discarded before final selection.
+
+## Retrieval evidence
+
+Retrieval chunks include normal text/table/caption units plus `figure` chunks. A `figure` chunk represents one parsed figure with its figure reference, page, caption text, crop path, full-page path, bounding box, and nearby/section context when available.
+
+The contract intentionally stays at whole-figure chunk granularity. Panel-level reasoning may happen inside the vision prompt over a whole figure crop, but persisted retrieval evidence remains figure-level.
 
 ## Anchor-validation compatibility
 

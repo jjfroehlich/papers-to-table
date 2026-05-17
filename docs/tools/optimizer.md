@@ -39,13 +39,16 @@ bash scripts/test-optimizer-tool.sh
 - done in triplicate to measure variability
 - same prompt package, retrieval parameters, and extraction features
 - model-specific request settings come from `app/backend/src/backend/app/model_profiles/default_profiles.json`; one can add optimizer knobs to compare model-settings such as temperature/top-p/chat-templates.
-- estimated runtime: average 50 minutes per model for all three benchmark datasets in triplicate (May 14, 2026 compare run)
 - Python command delegates to `tools/optimizer/scripts/compare_models.sh`
 - uses `tools/optimizer/configs/compare_models.json`
 
 ```bash
 python scripts/papers_to_table.py optimizer compare-models
 ```
+
+Options:
+- `--help`: help
+- `--label LABEL`: choose the run label instead of the timestamped default. The label is used in optimizer run directory names and reports.
 
 ### Full Benchmark
 - use when you want a broad end-to-end tuning pass rather than only model selection
@@ -62,6 +65,20 @@ python scripts/papers_to_table.py optimizer compare-models
 python scripts/papers_to_table.py optimizer full-benchmark
 ```
 
+Options:
+- `--help`: help
+- `--label LABEL`: choose the full-benchmark run label instead of the timestamped default. Ignored when `--resume` is used because resume reads the label from the existing manifest.
+- `--initial-model MODEL_ID`: start a new full benchmark with a run-local model-compare config limited to one text model id.
+- `--resume PATH`: resume from an existing full-benchmark `overnight_manifest.json`.
+
+To start the same full benchmark but limit only the initial model-selection phase to one model:
+
+```bash
+python scripts/papers_to_table.py optimizer full-benchmark --initial-model google/gemma-4-e4b
+```
+
+This writes a run-local `materialized_configs/compare_models.json` under the full-benchmark run directory, records the filter in `overnight_manifest.json`, and leaves `tools/optimizer/configs/compare_models.json` unchanged. Later phases still use the model-phase winner in the usual sequence. The command fails if the requested model id is not present in the canonical model preset. `--initial-model` is for starting a new full benchmark; resume uses the manifest and materialized configs from the existing run.
+
 Resume an interrupted full benchmark by pointing to the existing `overnight_manifest.json`:
 
 ```bash
@@ -69,17 +86,6 @@ python scripts/papers_to_table.py optimizer full-benchmark --resume tools/optimi
 ```
 
 Resume skips stages already recorded in the manifest and, for the currently active compare stage, reuses completed candidate rows from `experiment/results/results.jsonl`.
-
-Runtime estimate calculation:
-
-```text
-May 14, 2026 observed mean: ~0.82 h per candidate for all 3 datasets in triplicate
-model comparison:       9 candidates  * 0.82 h =  7.38 h
-prompt comparison:      3 candidates  * 0.82 h =  2.46 h
-retrieval parameters:  10 candidates  * 0.82 h =  8.20 h
-extraction features:   16 candidates  * 0.82 h = 13.12 h
-estimated total:       38 candidates * 0.82 h = 31.16 h
-```
 
 `tools/optimizer/scripts/run_study.sh` is an internal helper used by both wrappers. It runs one compare study from one materialized config, writes logs and run metadata, calls the optimizer CLI, and builds the per-study summary.
 
@@ -109,18 +115,18 @@ These are the experiment templates. Each preset is focused on one comparison que
 - `tools/optimizer/configs/compare_retrieval_parameters.json`
 - `tools/optimizer/configs/compare_extraction_features.json`
 
-The current dev suite in the planned real-run presets aggregates all three checked-in benchmark datasets:
-
-- `bench_massively_parallel_reporter_assays`
-- `bench_genome_editing`
-- `bench_spatial_transcriptomics`
-
 You would modify a preset if you want to:
 
 - test a new candidate model or remove one that is no longer relevant
 - compare a different prompt bundle or retrieval configuration
 - narrow or widen a deterministic compare search space
 - create a new full-benchmark sequence with your own staged order
+
+The current dev suite in the planned real-run presets run on all three checked-in benchmark datasets:
+
+- `bench_massively_parallel_reporter_assays`
+- `bench_genome_editing`
+- `bench_spatial_transcriptomics`
 
 ## Config Structure
 
@@ -183,7 +189,7 @@ Benchmarks can include precomputed filled tables from external software. Optimiz
 
 The external table must use stable `row_id` values matching the benchmark gold table. Wide format uses one row per paper and one column per field; long format uses `row_id,column_name,proposed_value`.
 
-Checked-in model-compare runs include external filled-table baselines from `benchmark_datasets/data/` when the corresponding files are present. These external systems are scored once in the model-compare stage and appear in the same suite replicate outputs and boxplot-with-jitter plots as local model candidates. Later full-benchmark stages do not re-score the external tables.
+Checked-in model-compare runs include external filled-table baselines from `benchmark_datasets/data/` when the corresponding files are present. These external systems are scored once in the model-compare stage and appear in the content_correctness plots as comparison. 
 
 Canonical config shape:
 

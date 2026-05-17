@@ -44,6 +44,58 @@
         "type": "string"
       }
     },
+    "candidate_answers": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "candidate_id": {
+            "type": "string"
+          },
+          "value": {},
+          "state": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "first_pass_text",
+              "rescued_text",
+              "evidence_recovery",
+              "figure_review"
+            ]
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence_rationale": {},
+          "warning_flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "candidate_id",
+          "source",
+          "evidence_ids"
+        ],
+        "additionalProperties": true
+      }
+    },
+    "selection_diagnostics": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
     "created_at": {
       "type": "string"
     }

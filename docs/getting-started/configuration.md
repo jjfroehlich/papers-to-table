@@ -36,6 +36,8 @@ The `model_id` must match the model you downloaded or loaded in LM Studio.
 - recall rescue: disabled
 - whole-document mode: disabled
 - figure review: disabled (code default); enabled in the example config
+- prompt-only vision review: enabled by default when figure review is enabled
+- candidate selection: enabled, max one selector call per cell
 - default text model: `google/gemma-4-e4b`
 
 ## Most Important Parameters
@@ -67,7 +69,12 @@ The `model_id` must match the model you downloaded or loaded in LM Studio.
 - `provider.text_model.working_context_budget`: total character budget reserved for the assembled extraction context (retrieved chunks + style examples). The example config uses `25000` for a 32k context window. 
 - `provider.text_model.load_context_length`: the context window size to request when loading the text model. Defaults to `null` (derived from `working_context_budget`). When set explicitly, must be ≥ `working_context_budget`. 
 - `style_profiles.enabled`: create style examples from existing values in a column, to improve the extraction prompts. Enabled by default. 
-- `figure_review.enabled`: vision-model pass over figures. Enabled by default. 
+- `figure_review.enabled`: vision-model pass over targeted figures. Enabled in the example config, disabled by the code default.
+- `figure_review.skip_when_prompt_only_degraded`: when `false`, a vision-capable model may still run with prompt-only JSON if structured vision JSON schema is unavailable. Default is `false`.
+- `extraction.candidate_selection_enabled`: when `true`, the app can run one generic selector call if collected candidates conflict or evidence is weak. Default is `true`.
+- `extraction.max_candidate_selection_calls_per_cell`: hard cap on selector calls per cell. Default is `1`.
+
+Retrieval includes figure-level chunks built from parsed figures when available. The app does not create panel-level retrieval chunks; vision prompts inspect the selected whole-figure crop when needed.
 
 **Diagnostics**
 

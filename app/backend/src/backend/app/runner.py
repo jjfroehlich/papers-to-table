@@ -88,6 +88,7 @@ _RETRIEVAL_CHUNK_TYPES = (
     "paragraph",
     "section",
     "caption",
+    "figure",
     "table_region",
     "abstract",
     "list_item",
@@ -513,10 +514,20 @@ async def run_pipeline(
             "needs_more_evidence_cells": 0,
             "figure_review_cells": 0,
             "figure_review_triggered_cells": 0,
+            "figure_review_attempted_cells": 0,
+            "figure_review_succeeded_cells": 0,
+            "figure_review_failed_cells": 0,
+            "figure_review_suppressed_cells": 0,
             "figure_review_hit_cells": 0,
             "figure_review_useful_cells": 0,
             "figure_review_rescue_cells": 0,
             "figure_review_hits_total": 0,
+            "candidate_selection_attempt_count": 0,
+            "candidate_selection_value_change_count": 0,
+            "recall_rescue_eligible_count": 0,
+            "recall_rescue_skipped_count": 0,
+            "whole_document_eligible_count": 0,
+            "whole_document_skipped_count": 0,
             "pdf_count": 0,
             "eligible_cell_count": 0,
             "processed_cell_count": 0,
@@ -546,6 +557,10 @@ async def run_pipeline(
             "recall_rescue_used_count": 0,
             "whole_document_used_count": 0,
             "figure_review_triggered_count": 0,
+            "figure_review_attempted_count": 0,
+            "figure_review_succeeded_count": 0,
+            "figure_review_failed_count": 0,
+            "figure_review_suppressed_count": 0,
         },
         "consistency": {},
         "recorded_at": stats_started_at,
@@ -732,6 +747,29 @@ async def run_pipeline(
         recall_rescue_used_count = sum(1 for cell in per_cell if bool(cell.get("recall_rescue_used")))
         whole_document_used_count = sum(1 for cell in per_cell if bool(cell.get("whole_document_used")))
         figure_review_triggered_count = sum(1 for cell in per_cell if bool(cell.get("figure_review_triggered")))
+        figure_review_attempted_count = sum(1 for cell in per_cell if bool(cell.get("figure_review_attempted")))
+        figure_review_succeeded_count = sum(1 for cell in per_cell if bool(cell.get("figure_review_succeeded")))
+        figure_review_failed_count = sum(1 for cell in per_cell if bool(cell.get("figure_review_failed")))
+        figure_review_suppressed_count = sum(
+            1
+            for cell in per_cell
+            if isinstance(cell.get("figure_review_diagnostics"), dict)
+            and bool(cell["figure_review_diagnostics"].get("suppressed"))
+        )
+        candidate_selection_attempt_count = sum(int(cell.get("candidate_selection_calls", 0) or 0) for cell in per_cell)
+        candidate_selection_value_change_count = sum(1 for cell in per_cell if bool(cell.get("candidate_selection_value_changed")))
+        recall_rescue_eligible_count = sum(1 for cell in per_cell if bool(cell.get("recall_rescue_eligible")))
+        recall_rescue_skipped_count = sum(
+            1
+            for cell in per_cell
+            if bool(cell.get("recall_rescue_eligible")) and not bool(cell.get("recall_rescue_used"))
+        )
+        whole_document_eligible_count = sum(1 for cell in per_cell if bool(cell.get("whole_document_eligible")))
+        whole_document_skipped_count = sum(
+            1
+            for cell in per_cell
+            if bool(cell.get("whole_document_eligible")) and not bool(cell.get("whole_document_used"))
+        )
         processed_cell_count = len(per_cell)
 
         query_modes: set[str] = set()
@@ -818,6 +856,16 @@ async def run_pipeline(
         counters["recall_rescue_used_count"] = recall_rescue_used_count
         counters["whole_document_used_count"] = whole_document_used_count
         counters["figure_review_triggered_count"] = figure_review_triggered_count
+        counters["figure_review_attempted_count"] = figure_review_attempted_count
+        counters["figure_review_succeeded_count"] = figure_review_succeeded_count
+        counters["figure_review_failed_count"] = figure_review_failed_count
+        counters["figure_review_suppressed_count"] = figure_review_suppressed_count
+        counters["candidate_selection_attempt_count"] = candidate_selection_attempt_count
+        counters["candidate_selection_value_change_count"] = candidate_selection_value_change_count
+        counters["recall_rescue_eligible_count"] = recall_rescue_eligible_count
+        counters["recall_rescue_skipped_count"] = recall_rescue_skipped_count
+        counters["whole_document_eligible_count"] = whole_document_eligible_count
+        counters["whole_document_skipped_count"] = whole_document_skipped_count
 
         run_stats["consistency"] = {
             "processed_cells_match_per_cell_records": int(counters.get("processed_cells", 0) or 0) == processed_cell_count,
@@ -2074,6 +2122,8 @@ async def run_pipeline(
                 skip_figure_review_when_prompt_only_degraded=(
                     config.figure_review.skip_when_prompt_only_degraded
                 ),
+                candidate_selection_enabled=config.extraction.candidate_selection_enabled,
+                max_candidate_selection_calls_per_cell=config.extraction.max_candidate_selection_calls_per_cell,
                 stats_sink=cell_stats,
                 retrieval_cache=retrieval_cache,
             )
@@ -2088,6 +2138,14 @@ async def run_pipeline(
                 run_stats["counters"]["needs_more_evidence_cells"] += 1
             if cell_stats.get("figure_review_triggered"):
                 run_stats["counters"]["figure_review_triggered_cells"] += 1
+            if cell_stats.get("figure_review_attempted"):
+                run_stats["counters"]["figure_review_attempted_cells"] += 1
+            if cell_stats.get("figure_review_succeeded"):
+                run_stats["counters"]["figure_review_succeeded_cells"] += 1
+            if cell_stats.get("figure_review_failed"):
+                run_stats["counters"]["figure_review_failed_cells"] += 1
+            if isinstance(cell_stats.get("figure_review_diagnostics"), dict) and cell_stats["figure_review_diagnostics"].get("suppressed"):
+                run_stats["counters"]["figure_review_suppressed_cells"] += 1
             if cell_stats.get("figure_review_calls"):
                 run_stats["counters"]["figure_review_cells"] += 1
             if cell_stats.get("figure_hits_count"):

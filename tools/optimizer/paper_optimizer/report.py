@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import ast
 from pathlib import Path
 from typing import Any
 
@@ -152,11 +154,102 @@ def _build_caveats(
         caveats.append("At least one candidate had materially high dual-judge disagreement.")
     if any((row.get("missing_evidence_count") or 0) > 0 for row in rows):
         caveats.append("At least one candidate is carrying missing evidence into the ranked report.")
+    for row in rows:
+        counters = _row_counters(row)
+        if int(counters.get("figure_review_triggered_count", 0) or 0) > 0 and int(counters.get("vision_model_call_count", 0) or 0) == 0:
+            caveats.append("Figure review was triggered for at least one candidate, but no vision model calls were recorded.")
+            break
+    if any(int(_row_counters(row).get("figure_review_suppressed_count", 0) or 0) > 0 for row in rows):
+        caveats.append("At least one candidate suppressed figure review after visual triggers.")
+    if any(int(_row_counters(row).get("figure_review_failed_count", 0) or 0) > 0 for row in rows):
+        caveats.append("At least one candidate had failed vision review attempts.")
+    if any(int(_row_counters(row).get("recall_rescue_skipped_count", 0) or 0) > 0 for row in rows):
+        caveats.append("Recall rescue was eligible but skipped for at least one candidate.")
+    if any(int(_row_counters(row).get("whole_document_skipped_count", 0) or 0) > 0 for row in rows):
+        caveats.append("Whole-document fallback was eligible but skipped for at least one candidate.")
+    if any(
+        int(_row_counters(row).get("figure_review_triggered_count", 0) or 0) > 0
+        and int(_row_counters(row).get("figure_derived_evidence_count", 0) or 0) == 0
+        for row in rows
+    ):
+        caveats.append("At least one candidate had visual triggers but zero figure-derived evidence.")
     if study_type == "optimize" and not caveats:
         caveats.append("No major trust caveats were recorded beyond the optimize acceptance policy.")
     if not caveats:
         caveats.append("No major report caveats were recorded.")
     return caveats
+
+
+def _row_counters(row: dict[str, Any]) -> dict[str, Any]:
+    raw = row.get("run_stats_counters") or row.get("runtime.run_stats_counters")
+    if raw is None and isinstance(row.get("runtime_metadata"), dict):
+        raw = row["runtime_metadata"].get("run_stats_counters")
+    if isinstance(raw, dict):
+        return raw
+    if isinstance(raw, str) and raw.strip():
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            try:
+                parsed = ast.literal_eval(raw)
+                if isinstance(parsed, dict):
+                    return parsed
+            except Exception:
+                return {}
+    fallback_keys = [
+        "text_model_call_count",
+        "vision_model_call_count",
+        "figure_review_triggered_count",
+        "figure_review_suppressed_count",
+        "figure_review_failed_count",
+        "figure_derived_evidence_count",
+        "candidate_selection_attempt_count",
+        "recall_rescue_used_count",
+        "recall_rescue_eligible_count",
+        "recall_rescue_skipped_count",
+        "whole_document_used_count",
+        "whole_document_eligible_count",
+        "whole_document_skipped_count",
+    ]
+    fallback = {key: row.get(key) for key in fallback_keys if row.get(key) is not None}
+    return fallback
+
+
+def _build_capability_cards(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if not rows:
+        return []
+    items: list[str] = []
+    for row in rows[:6]:
+        counters = _row_counters(row)
+        if not counters:
+            continue
+        items.append(
+            f"{display_text(row.get('candidate_id'), missing='candidate')}: "
+            f"text_calls={display_text(counters.get('text_model_call_count'), missing='0')}; "
+            f"vision_calls={display_text(counters.get('vision_model_call_count'), missing='0')}; "
+            f"vision_triggered={display_text(counters.get('figure_review_triggered_count'), missing='0')}; "
+            f"vision_suppressed={display_text(counters.get('figure_review_suppressed_count'), missing='0')}; "
+            f"vision_failed={display_text(counters.get('figure_review_failed_count'), missing='0')}; "
+            f"figure_evidence={display_text(counters.get('figure_derived_evidence_count'), missing='0')}; "
+            f"candidate_select={display_text(counters.get('candidate_selection_attempt_count'), missing='0')}; "
+            f"rescue_used={display_text(counters.get('recall_rescue_used_count'), missing='0')}/{display_text(counters.get('recall_rescue_eligible_count'), missing='0')}; "
+            f"whole_doc_used={display_text(counters.get('whole_document_used_count'), missing='0')}/{display_text(counters.get('whole_document_eligible_count'), missing='0')}."
+        )
+    if not items:
+        items = ["Capability counters were not recorded for these candidates."]
+    suppressed = any(int(_row_counters(row).get("figure_review_suppressed_count", 0) or 0) > 0 for row in rows)
+    failed = any(int(_row_counters(row).get("figure_review_failed_count", 0) or 0) > 0 for row in rows)
+    skipped = any(int(_row_counters(row).get("recall_rescue_skipped_count", 0) or 0) > 0 for row in rows)
+    return [
+        {
+            "title": "Capability Use and Suppression",
+            "lead": "Counters distinguish configured capabilities from capabilities that actually executed.",
+            "items": items,
+            "badges": [{"text": "capabilities", "tone": "warn" if suppressed or failed or skipped else "good"}],
+        }
+    ]
 
 
 def _trust_note(row: dict[str, Any]) -> str:
@@ -831,7 +924,7 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
             },
         ],
         "candidate_table": _build_candidate_table(candidate_rows, study_type=study_type, primary_metric=primary_metric, winner_id=winner_id),
-        "study_cards": _build_suite_report_cards(experiment_dir),
+        "study_cards": [*_build_capability_cards(candidate_rows), *_build_suite_report_cards(experiment_dir)],
         "plots": _build_plot_cards(experiment_dir, study_type=study_type, variant=variant),
         "artifact_links": _build_artifact_links(experiment_dir),
         "provenance_items": _build_provenance_items(winner_row, summary=summary, run_metadata=run_metadata),

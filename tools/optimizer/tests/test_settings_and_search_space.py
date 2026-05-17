@@ -254,6 +254,20 @@ def test_full_benchmark_stage_run_names_are_path_length_safe() -> None:
     assert "compare_retrieval_parameters_${safe_label}" not in script
 
 
+def test_full_benchmark_supports_run_local_initial_model_filter() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    script = (repo_root / "scripts" / "full_benchmark.sh").read_text(encoding="utf-8")
+    wrapper = (repo_root.parents[1] / "scripts" / "papers_to_table.py").read_text(encoding="utf-8")
+
+    assert "--initial-model" in script
+    assert "materialize_initial_model_config" in script
+    assert 'compare_config_materialized="$tmp_dir/compare_models.json"' in script
+    assert 'config["compare_candidates"] = [deepcopy(selected)]' in script
+    assert 'payload["initial_model_filter"] = {"text_model_id": initial_model}' in script
+    assert "full_benchmark.add_argument(" in wrapper
+    assert "--initial-model" in wrapper
+
+
 def test_propose_candidates_covers_multi_knob_combinations() -> None:
     incumbent = Candidate(
         candidate_id="cand_0000",

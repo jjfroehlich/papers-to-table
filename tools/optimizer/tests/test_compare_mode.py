@@ -183,7 +183,41 @@ def test_compare_ranking_penalizes_high_judge_disagreement() -> None:
             scored=True,
             score_status="scored",
             runtime_seconds=5.0,
-            runtime_metadata={},
+            runtime_metadata={
+                "run_stats_counters": (
+                    {
+                        "text_model_call_count": 3,
+                        "vision_model_call_count": 0,
+                        "figure_review_triggered_count": 2,
+                        "figure_review_suppressed_count": 2,
+                        "figure_review_failed_count": 0,
+                        "figure_derived_evidence_count": 0,
+                        "candidate_selection_attempt_count": 1,
+                        "recall_rescue_used_count": 0,
+                        "recall_rescue_eligible_count": 2,
+                        "recall_rescue_skipped_count": 2,
+                        "whole_document_used_count": 0,
+                        "whole_document_eligible_count": 1,
+                        "whole_document_skipped_count": 1,
+                    }
+                    if degraded
+                    else {
+                        "text_model_call_count": 3,
+                        "vision_model_call_count": 1,
+                        "figure_review_triggered_count": 1,
+                        "figure_review_suppressed_count": 0,
+                        "figure_review_failed_count": 0,
+                        "figure_derived_evidence_count": 1,
+                        "candidate_selection_attempt_count": 0,
+                        "recall_rescue_used_count": 1,
+                        "recall_rescue_eligible_count": 1,
+                        "recall_rescue_skipped_count": 0,
+                        "whole_document_used_count": 0,
+                        "whole_document_eligible_count": 0,
+                        "whole_document_skipped_count": 0,
+                    }
+                )
+            },
             started_at="",
             ended_at="",
             candidate_status="completed",
@@ -527,6 +561,12 @@ def test_compare_report_surfaces_trust_notes_for_degraded_candidates(monkeypatch
                 "missing_evidence_count": 1.0 if degraded else 0.0,
                 "evidence_anchor_outcome_counts": {"missing_evidence": 1} if degraded else {"anchor_valid": 2},
                 "judge_execution_summary": {"batched": True, "execution_order": ["judge_a", "judge_b"]},
+                "figure_review_triggered_count": 2.0 if degraded else 1.0,
+                "vision_model_call_count": 0.0 if degraded else 1.0,
+                "figure_review_suppressed_count": 2.0 if degraded else 0.0,
+                "figure_derived_evidence_count": 0.0 if degraded else 1.0,
+                "recall_rescue_skipped_count": 2.0 if degraded else 0.0,
+                "whole_document_skipped_count": 1.0 if degraded else 0.0,
             },
             scored=True,
             score_status="scored_degraded" if degraded else "scored",
@@ -571,6 +611,9 @@ def test_compare_report_surfaces_trust_notes_for_degraded_candidates(monkeypatch
         assert "missing_evidence=1" in report_html
         assert "evidence_outcomes" in report_html
         assert "judge_batches" in report_html
+        assert "Capability Use and Suppression" in report_html
+        assert "Figure review was triggered" in report_html
+        assert "Recall rescue was eligible but skipped" in report_html
         assert "Dual-judge comparison was not recorded" not in report_html
     finally:
         shutil.rmtree(out, ignore_errors=True)

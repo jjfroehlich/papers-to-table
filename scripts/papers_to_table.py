@@ -277,6 +277,8 @@ def cmd_optimizer_full_benchmark(args: argparse.Namespace) -> int:
         cmd.extend(["--resume", args.resume])
     else:
         cmd.extend(["--label", label])
+    if args.initial_model:
+        cmd.extend(["--initial-model", args.initial_model])
     return _run(cmd, cwd=OPTIMIZER_DIR, env=os.environ.copy())
 
 
@@ -359,6 +361,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     full_benchmark.add_argument("--label")
     full_benchmark.add_argument("--resume", help="Resume from a full-benchmark overnight_manifest.json")
+    full_benchmark.add_argument(
+        "--initial-model",
+        help="Start with a run-local model-compare config limited to this text model id",
+    )
     full_benchmark.set_defaults(func=cmd_optimizer_full_benchmark)
 
     docs = subparsers.add_parser("docs", help="Serve or build the MkDocs manual")

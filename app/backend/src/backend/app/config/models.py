@@ -159,6 +159,11 @@ class FigureReviewConfig(BaseModel):
     skip_when_prompt_only_degraded: bool = False
 
 
+class ExtractionConfig(BaseModel):
+    candidate_selection_enabled: bool = True
+    max_candidate_selection_calls_per_cell: int = Field(default=1, ge=0)
+
+
 class ReviewConfig(BaseModel):
     max_proposals_per_cell: int = 1
 
@@ -191,6 +196,7 @@ class RunConfig(BaseModel):
     style_profiles: StyleProfileConfig = Field(default_factory=StyleProfileConfig)
     retrieval: RetrievalConfig = Field(default_factory=RetrievalConfig)
     figure_review: FigureReviewConfig = Field(default_factory=FigureReviewConfig)
+    extraction: ExtractionConfig = Field(default_factory=ExtractionConfig)
     review: ReviewConfig = Field(default_factory=ReviewConfig)
     export: ExportConfig = Field(default_factory=ExportConfig)
     prompt: PromptConfig = Field(default_factory=PromptConfig)

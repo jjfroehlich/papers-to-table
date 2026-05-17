@@ -108,6 +108,8 @@ class TestLoadConfig:
         assert config.provider.text_model.working_context_budget == 12000
         assert config.provider.text_model.required_load_context_length == 12000
         assert config.figure_review.skip_when_prompt_only_degraded is False
+        assert config.extraction.candidate_selection_enabled is True
+        assert config.extraction.max_candidate_selection_calls_per_cell == 1
 
     def test_text_model_supports_separate_working_and_load_context(self):
         config = RunConfig.model_validate({

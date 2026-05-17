@@ -203,6 +203,8 @@ export interface Proposal {
   calculation: string | null
   evidence_ids: string[]
   warning_flags: string[]
+  candidate_answers?: Array<Record<string, unknown>> | null
+  selection_diagnostics?: Record<string, unknown> | null
   created_at: string
 }
 
@@ -260,6 +262,8 @@ export interface EnrichedProposal {
   numeric_value_form?: 'exact' | 'range' | 'approximate' | null
   recall_rescue_used?: boolean
   whole_document_used?: boolean
+  candidate_answers?: Array<Record<string, unknown>> | null
+  selection_diagnostics?: Record<string, unknown> | null
   provider_mode?: string
   created_at: string
   latest_decision: DecisionRecord | null
