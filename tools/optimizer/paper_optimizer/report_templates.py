@@ -66,7 +66,11 @@ _COMPONENTS_TEMPLATE = """
           {% set column = table.columns[idx] %}
           <td class="align-{{ column.align or 'left' }}" data-sort-value="{{ cell.sort }}">
             {% if cell.badge %}{{ badge(cell.badge, cell.tone) }}{% endif %}
+            {% set cell_text = cell.text|string %}
+            {% set badge_text = cell.badge|string if cell.badge else '' %}
+            {% if cell_text and (not cell.badge or cell_text|lower != badge_text|lower) %}
             <div class="cell-text {{ 'monospace' if cell.monospace else '' }}">{{ cell.text }}</div>
+            {% endif %}
             {% if cell.subtext %}<div class="cell-subtext">{{ cell.subtext }}</div>{% endif %}
             {% if cell.details %}<details><summary>details</summary><div class="cell-details">{{ cell.details }}</div></details>{% endif %}
           </td>
@@ -259,9 +263,28 @@ _BASE_TEMPLATE = """
     .bullet-list { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
     .section-chips { margin-bottom: 10px; }
     .table-card { padding-bottom: 10px; }
-    .table-wrap { overflow: auto; border-radius: 16px; border: 1px solid var(--line); }
-    table { width: 100%; border-collapse: collapse; min-width: 920px; background: var(--surface); }
-    th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+    .table-wrap {
+      overflow-x: auto;
+      overflow-y: hidden;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      scrollbar-gutter: stable;
+    }
+    table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
+      background: var(--surface);
+    }
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      min-width: 118px;
+      max-width: 360px;
+      overflow-wrap: normal;
+      word-break: normal;
+    }
     th {
       position: sticky;
       top: 0;
@@ -271,11 +294,16 @@ _BASE_TEMPLATE = """
       letter-spacing: 0.05em;
       cursor: pointer;
       z-index: 1;
+      white-space: nowrap;
     }
+    th:nth-child(1), td:nth-child(1) { min-width: 72px; }
+    th:nth-child(2), td:nth-child(2) { min-width: 220px; }
+    th:nth-child(5), td:nth-child(5) { min-width: 132px; }
+    th:nth-child(n+10), td:nth-child(n+10) { min-width: 210px; }
     tbody tr:nth-child(odd) { background: rgba(255, 248, 238, 0.74); }
     .align-right { text-align: right; }
     .align-center { text-align: center; }
-    .cell-text { font-weight: 600; overflow-wrap: anywhere; }
+    .cell-text { font-weight: 600; overflow-wrap: normal; word-break: normal; }
     .cell-subtext, .cell-details, .note { overflow-wrap: anywhere; }
     .monospace { font-family: Consolas, "SFMono-Regular", monospace; font-size: 0.88rem; }
     details { margin-top: 6px; }
@@ -299,7 +327,9 @@ _BASE_TEMPLATE = """
     .detail-item:first-child { border-top: 0; padding-top: 0; }
     @media (max-width: 1080px) {
       .grid-3, .grid-4, .split-grid, .details-grid, .guidance-grid, .plot-grid { grid-template-columns: 1fr; }
-      table { min-width: 760px; }
+      th, td { min-width: 132px; }
+      th:nth-child(1), td:nth-child(1) { min-width: 72px; }
+      th:nth-child(2), td:nth-child(2) { min-width: 220px; }
     }
     @media (max-width: 720px) {
       main { padding: 16px; }
@@ -307,7 +337,7 @@ _BASE_TEMPLATE = """
       .hero-top { flex-direction: column; }
       .hero-meta { grid-template-columns: 1fr; }
       .metric-mini-grid { grid-template-columns: 1fr; }
-      table { min-width: 640px; }
+      th, td { min-width: 132px; }
     }
   </style>
   <script>

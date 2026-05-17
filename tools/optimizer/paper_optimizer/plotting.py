@@ -10,6 +10,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 
 def _safe_float(value: Any) -> float | None:
@@ -63,6 +64,29 @@ def _model_nickname(model_id: str | None) -> str:
     text = str(model_id).strip().rstrip("/")
     text = re.sub(r"(?i)^models[-_]", "", text)
     return text or ""
+
+
+def _short_plot_label(label: Any, *, max_len: int = 34) -> str:
+    text = str(label or "").strip()
+    if len(text) <= max_len:
+        return text
+    return f"{text[: max_len - 1]}..."
+
+
+def _annotate_points(xs: list[float], ys: list[float], labels: list[str]) -> None:
+    for index, (x_value, y_value, label) in enumerate(zip(xs, ys, labels, strict=True)):
+        x_offset = 5 if index % 2 == 0 else -5
+        y_offset = 5 if index % 3 != 0 else -8
+        ha = "left" if x_offset > 0 else "right"
+        plt.annotate(
+            _short_plot_label(label),
+            (x_value, y_value),
+            textcoords="offset points",
+            xytext=(x_offset, y_offset),
+            ha=ha,
+            fontsize=7,
+            color="#334155",
+        )
 
 
 def _candidate_labels(rows: list[dict[str, str]]) -> dict[str, str]:
@@ -486,8 +510,10 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
     trend_rows: list[dict[str, Any]] = []
     xs_runtime: list[float] = []
     ys_runtime: list[float] = []
+    labels_runtime: list[str] = []
     xs_evidence: list[float] = []
     ys_evidence: list[float] = []
+    labels_evidence: list[str] = []
 
     for row in rows:
         score = _safe_float(row.get(primary_key))
@@ -526,10 +552,12 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
 
         if score is not None and runtime is not None:
             runtime_minutes = _seconds_to_minutes(runtime)
+            label = candidate_labels.get(row.get("candidate_id", ""), row.get("candidate_id", ""))
             xs_runtime.append(runtime_minutes)
             ys_runtime.append(score)
+            labels_runtime.append(label)
             scatter_rows_runtime.append({
-                "candidate_label": candidate_labels.get(row.get("candidate_id", ""), row.get("candidate_id", "")),
+                "candidate_label": label,
                 "runtime_minutes": runtime_minutes,
                 "primary_score": score,
                 "candidate_id": row.get("candidate_id", ""),
@@ -546,10 +574,12 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
             })
 
         if score is not None and evidence is not None:
+            label = candidate_labels.get(row.get("candidate_id", ""), row.get("candidate_id", ""))
             xs_evidence.append(evidence)
             ys_evidence.append(score)
+            labels_evidence.append(label)
             scatter_rows_evidence.append({
-                "candidate_label": candidate_labels.get(row.get("candidate_id", ""), row.get("candidate_id", "")),
+                "candidate_label": label,
                 "evidence_metric_value": evidence,
                 "evidence_metric_name": evidence_key,
                 "primary_score": score,
@@ -583,22 +613,26 @@ def generate_compare_plots(experiment_dir: Path, primary_metric: str) -> None:
     _write_plot_csv(plots_dir / "compare_null_failure_trends.csv", trend_rows)
 
     if xs_runtime and ys_runtime:
-        plt.figure(figsize=(6, 4))
-        plt.scatter(xs_runtime, ys_runtime)
+        plt.figure(figsize=(7.5, 4.8))
+        plt.scatter(xs_runtime, ys_runtime, color="tab:blue", edgecolors="white", linewidths=0.7, s=42)
+        _annotate_points(xs_runtime, ys_runtime, labels_runtime)
         plt.xlabel("runtime_minutes")
         plt.ylabel(primary_metric)
         plt.title("Correctness vs runtime")
+        plt.margins(x=0.18, y=0.14)
         plt.tight_layout()
         _save_plot(plots_dir / "compare_correctness_vs_runtime.png")
         plt.close()
 
     if xs_evidence and ys_evidence:
-        plt.figure(figsize=(6, 4))
-        plt.scatter(xs_evidence, ys_evidence)
+        plt.figure(figsize=(7.5, 4.8))
+        plt.scatter(xs_evidence, ys_evidence, color="tab:blue", edgecolors="white", linewidths=0.7, s=42)
+        _annotate_points(xs_evidence, ys_evidence, labels_evidence)
         evidence_label = scatter_rows_evidence[0].get("evidence_metric_name") or "evidence_metric"
         plt.xlabel(str(evidence_label))
         plt.ylabel(primary_metric)
         plt.title("Correctness vs evidence quality")
+        plt.margins(x=0.18, y=0.14)
         plt.tight_layout()
         _save_plot(plots_dir / "compare_correctness_vs_evidence.png")
         plt.close()
@@ -760,7 +794,16 @@ def generate_suite_plots(experiment_dir: Path, primary_metric: str) -> None:
             data = [grouped_scores[candidate_id] for candidate_id in ordered_ids]
             labels = [grouped_labels.get(candidate_id, candidate_id) for candidate_id in ordered_ids]
             plt.figure(figsize=(max(8, len(labels) * 1.15), 4.8))
-            plt.boxplot(data, tick_labels=labels, showmeans=True, patch_artist=True)
+            plt.boxplot(
+                data,
+                tick_labels=labels,
+                showmeans=True,
+                meanline=True,
+                showfliers=False,
+                patch_artist=True,
+                medianprops={"color": "tab:orange", "linewidth": 1.6},
+                meanprops={"color": "tab:green", "linestyle": "-", "linewidth": 1.6},
+            )
             for x_index, values_for_candidate in enumerate(data, start=1):
                 count = len(values_for_candidate)
                 offsets = [0.0] if count == 1 else [(-0.18 + (0.36 * i / (count - 1))) for i in range(count)]
@@ -775,6 +818,15 @@ def generate_suite_plots(experiment_dir: Path, primary_metric: str) -> None:
             plt.xticks(rotation=45, ha="right")
             plt.ylabel(primary_metric)
             plt.title("Replicate score distribution by model")
+            plt.legend(
+                handles=[
+                    Line2D([0], [0], color="tab:orange", linewidth=1.6, label="median"),
+                    Line2D([0], [0], color="tab:green", linewidth=1.6, label="mean"),
+                    Line2D([0], [0], marker="o", color="none", markerfacecolor="#1f2d2f", markeredgecolor="#1f2d2f", markersize=5, label="replicate"),
+                ],
+                loc="best",
+                frameon=False,
+            )
             plt.tight_layout()
             _save_plot(plots_dir / "suite_replicate_score_distribution.png")
             plt.close()

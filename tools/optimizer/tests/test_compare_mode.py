@@ -27,6 +27,9 @@ def test_compare_mode_outputs(base_config: dict, tmp_path: Path) -> None:
     assert (out / "plots" / "compare_correctness_vs_runtime.png").exists()
     assert (out / "plots" / "compare_primary_by_text_model.png").exists()
     assert (out / "plots" / "compare_primary_by_knob_retrieval_top_k.png").exists()
+    report_html = (out / "report.html").read_text(encoding="utf-8")
+    assert "width: max-content" in report_html
+    assert "<div class=\"cell-text \">scored</div>" not in report_html
 
     best_candidate = json.loads((out / "best_candidate.json").read_text(encoding="utf-8"))
     compare_summary = json.loads((out / "compare_summary.json").read_text(encoding="utf-8"))

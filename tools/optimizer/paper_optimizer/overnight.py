@@ -53,6 +53,29 @@ def _seconds_to_minutes(seconds: float) -> float:
     return seconds / 60.0
 
 
+def _short_plot_label(label: Any, *, max_len: int = 34) -> str:
+    text = str(label or "").strip()
+    if len(text) <= max_len:
+        return text
+    return f"{text[: max_len - 1]}..."
+
+
+def _annotate_points(xs: list[float], ys: list[float], labels: list[str]) -> None:
+    for index, (x_value, y_value, label) in enumerate(zip(xs, ys, labels, strict=True)):
+        x_offset = 5 if index % 2 == 0 else -5
+        y_offset = 5 if index % 3 != 0 else -8
+        ha = "left" if x_offset > 0 else "right"
+        plt.annotate(
+            _short_plot_label(label),
+            (x_value, y_value),
+            textcoords="offset points",
+            xytext=(x_offset, y_offset),
+            ha=ha,
+            fontsize=7,
+            color="#334155",
+        )
+
+
 def _winner_id(summary: dict[str, Any], best_candidate: dict[str, Any], compare_summary: dict[str, Any]) -> str | None:
     winner = compare_summary.get("winner") if isinstance(compare_summary.get("winner"), dict) else {}
     return (
@@ -475,6 +498,7 @@ def _build_plot_assets(output_dir: Path, stage_rows: list[dict[str, Any]], all_c
                 {
                     "stage_name": row.get("stage_name"),
                     "candidate_id": row.get("candidate_id"),
+                    "candidate_label": model_nickname(row.get("text_model_id")),
                     "primary_metric_value": row.get("primary_metric_value"),
                     "runtime_minutes": _seconds_to_minutes(float(row.get("runtime_seconds"))),
                 }
@@ -487,16 +511,23 @@ def _build_plot_assets(output_dir: Path, stage_rows: list[dict[str, Any]], all_c
         plt.figure(figsize=(7, 5))
         for stage_name in stage_names:
             subset = [row for row in frontier_rows if display_text(row.get("stage_name"), missing="stage") == stage_name]
+            xs = [_seconds_to_minutes(float(row["runtime_seconds"])) for row in subset]
+            ys = [row["primary_metric_value"] for row in subset]
             plt.scatter(
-                [_seconds_to_minutes(float(row["runtime_seconds"])) for row in subset],
-                [row["primary_metric_value"] for row in subset],
+                xs,
+                ys,
                 label=stage_name,
                 color=colors[stage_name],
+                edgecolors="white",
+                linewidths=0.7,
+                s=42,
             )
+            _annotate_points(xs, ys, [model_nickname(row.get("text_model_id")) for row in subset])
         plt.xlabel("runtime_minutes")
         plt.ylabel("primary_score")
         plt.title("Pipeline candidate frontier")
         plt.legend()
+        plt.margins(x=0.18, y=0.14)
         plt.tight_layout()
         _save_plot(png_path)
         plt.close()
