@@ -507,7 +507,7 @@ def build_plot_guidance(stem: str) -> dict[str, str]:
             "watch": "If only one depth appears near the top, the knob may deserve tighter bounds.",
         },
         "pipeline_stage_trajectory": {
-            "what": "Best stage score from early compare stages through final optimize.",
+            "what": "Best stage score across the compare stages.",
             "how": "Upward moves show genuine pipeline gains; flat moves show validation or no net improvement.",
             "watch": "A late flat stage means the earlier stage likely found the real winner.",
         },

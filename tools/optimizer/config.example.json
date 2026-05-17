@@ -236,22 +236,6 @@
       ]
     }
   },
-  "optimize": {
-    "rounds": 6,
-    "batch_size": 4,
-    "confirmation_reruns": {
-      "enabled": false,
-      "count": 1
-    }
-  },
-  "proposer": {
-    "enabled": false,
-    "provider": "lm_studio",
-    "model_id": "qwen/qwen3.6-35b-a3b",
-    "api_base": "http://127.0.0.1:1234/v1",
-    "temperature": 0.0,
-    "max_candidates": 2
-  },
   "compare": {
     "holdout_top_k": 2
   }

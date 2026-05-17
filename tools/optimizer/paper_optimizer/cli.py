@@ -9,9 +9,8 @@ from .bundle import build_candidate_from_dict
 from .overnight import generate_overnight_report
 from .proposal_tables import write_proposal_tables
 from .results import ResultsWriter
-from .search_space import load_search_space
 from .settings import load_config
-from .study import evaluate_candidate_suite, run_compare_mode, run_optimize_mode, summarize
+from .study import evaluate_candidate_suite, run_compare_mode, summarize
 from .utils import read_json
 from .validation import validate_preflight
 
@@ -23,12 +22,12 @@ def _build_parser() -> argparse.ArgumentParser:
     preflight = sub.add_parser("preflight", help="Validate config and benchmark wiring without launching candidates")
     preflight.add_argument("--config", type=Path, required=True)
 
-    optimize = sub.add_parser("optimize", help="Run compare or optimize study")
-    optimize.add_argument("--study-type", choices=["compare", "optimize"], required=True)
-    optimize.add_argument("--config", type=Path, required=True)
-    optimize.add_argument("--out", type=Path, required=True)
-    optimize.add_argument("--suite", help="Benchmark suite id from config.benchmark_suites")
-    optimize.add_argument("--replicates", type=int, help="Override config replicates.count")
+    compare = sub.add_parser("compare", help="Run a compare study")
+    compare.add_argument("--config", type=Path, required=True)
+    compare.add_argument("--out", type=Path, required=True)
+    compare.add_argument("--suite", help="Benchmark suite id from config.benchmark_suites")
+    compare.add_argument("--replicates", type=int, help="Override config replicates.count")
+    compare.add_argument("--resume", action="store_true", help="Reuse completed candidate rows already present in the output directory")
 
     eval_candidate = sub.add_parser("evaluate-candidate", help="Evaluate one candidate against a benchmark suite")
     eval_candidate.add_argument("--config", type=Path, required=True)
@@ -49,20 +48,16 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _cmd_optimize(args: argparse.Namespace) -> None:
+def _cmd_compare(args: argparse.Namespace) -> None:
     config = load_config(args.config)
     if args.replicates is not None:
         if args.replicates <= 0:
             raise ValueError("--replicates must be a positive integer")
         config.setdefault("replicates", {})["count"] = args.replicates
     benchmarks = load_benchmarks(config)
-    search_space = load_search_space(config)
     validate_preflight(config, benchmarks, require_holdout=False)
 
-    if args.study_type == "compare":
-        run_compare_mode(config, benchmarks, args.out, suite_id=args.suite)
-    else:
-        run_optimize_mode(config, benchmarks, search_space, args.out, suite_id=args.suite)
+    run_compare_mode(config, benchmarks, args.out, suite_id=args.suite, resume=args.resume)
 
 
 def _cmd_preflight(args: argparse.Namespace) -> None:
@@ -139,8 +134,8 @@ def main() -> None:
     parser = _build_parser()
     args = parser.parse_args()
 
-    if args.command == "optimize":
-        _cmd_optimize(args)
+    if args.command == "compare":
+        _cmd_compare(args)
     elif args.command == "preflight":
         _cmd_preflight(args)
     elif args.command == "evaluate-candidate":

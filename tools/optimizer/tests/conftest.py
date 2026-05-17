@@ -420,12 +420,6 @@ def base_config(tmp_path: Path, stub_scripts: dict[str, str]) -> dict:
                 "runtime_seconds": {"max_delta": 1000},
             },
         },
-        "optimize": {
-            "rounds": 2,
-            "batch_size": 2,
-            "suite_id": "dev_suite",
-            "holdout_suite_id": "holdout_suite",
-        },
         "compare": {
             "holdout_top_k": 1,
             "suite_id": "dev_suite",

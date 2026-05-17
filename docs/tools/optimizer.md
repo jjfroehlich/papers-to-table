@@ -49,7 +49,7 @@ python scripts/papers_to_table.py optimizer compare-models
 
 ### Full Benchmark
 - use when you want a broad end-to-end tuning pass rather than only model selection
-- compare models first, then compare prompt packages, retrieval parameters, extraction feature toggles, and finally run a minimal parameter-sweep stub
+- compare models first, then compare prompt packages, retrieval parameters, and extraction feature toggles
 - each phase runs in triplicate on the current three-dataset dev suite
 - model-specific request settings are inherited from `app/backend/src/backend/app/model_profiles/default_profiles.json` unless a future config deliberately sweeps model settings
 - Python command delegates to `tools/optimizer/scripts/full_benchmark.sh`
@@ -57,11 +57,18 @@ python scripts/papers_to_table.py optimizer compare-models
 - prompt phase materializes `compare_prompts.json` with the model-phase winner
 - retrieval-parameter phase materializes `compare_retrieval_parameters.json` with the prompt-phase winner
 - extraction-feature phase materializes `compare_extraction_features.json` from the top retrieval-parameter candidates
-- final parameter-sweep phase materializes `optimize_parameter_sweeps.json` with the extraction-feature winner. Current parameter sweep is just a small proof of principle (`retrieval_top_k`: `12`, `14`), can be expanded in the future. 
 
 ```bash
 python scripts/papers_to_table.py optimizer full-benchmark
 ```
+
+Resume an interrupted full benchmark by pointing to the existing `overnight_manifest.json`:
+
+```bash
+python scripts/papers_to_table.py optimizer full-benchmark --resume tools/optimizer/runs/<run_id>/overnight_manifest.json
+```
+
+Resume skips stages already recorded in the manifest and, for the currently active compare stage, reuses completed candidate rows from `experiment/results/results.jsonl`.
 
 Runtime estimate calculation:
 
@@ -71,16 +78,15 @@ model comparison:       9 candidates  * 0.82 h =  7.38 h
 prompt comparison:      3 candidates  * 0.82 h =  2.46 h
 retrieval parameters:  10 candidates  * 0.82 h =  8.20 h
 extraction features:   16 candidates  * 0.82 h = 13.12 h
-parameter sweep stub:   2-3 candidates * 0.82 h =  1.64-2.46 h
-estimated total:       40-41 candidates * 0.82 h = 32.80-33.62 h
+estimated total:       38 candidates * 0.82 h = 31.16 h
 ```
 
-`tools/optimizer/scripts/run_study.sh` is an internal helper used by both wrappers. It runs one compare or optimize study from one materialized config, writes logs and run metadata, calls the optimizer CLI, and builds the per-study summary.
+`tools/optimizer/scripts/run_study.sh` is an internal helper used by both wrappers. It runs one compare study from one materialized config, writes logs and run metadata, calls the optimizer CLI, and builds the per-study summary.
 
 ## Low-level Command (tool-local)
 ```bash
 cd tools/optimizer
-python -m paper_optimizer.cli optimize --study-type compare --config configs/compare_models.json --out runs/compare_out
+python -m paper_optimizer.cli compare --config configs/compare_models.json --out runs/compare_out
 ```
 
 ## Inputs
@@ -102,7 +108,6 @@ These are the experiment templates. Each preset is focused on one comparison que
 - `tools/optimizer/configs/compare_prompts.json`
 - `tools/optimizer/configs/compare_retrieval_parameters.json`
 - `tools/optimizer/configs/compare_extraction_features.json`
-- `tools/optimizer/configs/optimize_parameter_sweeps.json`
 
 The current dev suite in the planned real-run presets aggregates all three checked-in benchmark datasets:
 
@@ -114,7 +119,7 @@ You would modify a preset if you want to:
 
 - test a new candidate model or remove one that is no longer relevant
 - compare a different prompt bundle or retrieval configuration
-- narrow or widen the search space for the full-benchmark optimization stage
+- narrow or widen a deterministic compare search space
 - create a new full-benchmark sequence with your own staged order
 
 ## Config Structure
@@ -130,7 +135,6 @@ Common config areas:
 - `main_app`
 - `eval_app`
 - `acceptance`
-- `optimize`
 - `compare`
 - `benchmark_suites` (optional)
 - `replicates` (optional)
@@ -144,7 +148,7 @@ Benchmark intent labels:
 Important interpretation rules:
 
 - `compare-models` ranks explicit candidate lists.
-- `full-benchmark` chains several compare and optimize stages together.
+- `full-benchmark` chains several compare stages together.
 
 ## Benchmark Suites And Replicates
 
@@ -213,7 +217,7 @@ Run suite mode with the low-level CLI:
 
 ```bash
 cd tools/optimizer
-python -m paper_optimizer.cli optimize --study-type compare --config configs/compare_models.json --suite dev_suite --out runs/compare_suite
+python -m paper_optimizer.cli compare --config configs/compare_models.json --suite dev_suite --out runs/compare_suite
 ```
 
 Evaluate one candidate against a suite:

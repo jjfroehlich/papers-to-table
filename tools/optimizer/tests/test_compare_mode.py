@@ -282,6 +282,104 @@ def test_compare_mode_writes_progressive_summary_states(
     assert progress_states[-1] == "completed"
 
 
+def test_compare_mode_resume_skips_completed_candidates(
+    base_config: dict,
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    benches = load_benchmarks(base_config)
+    out = tmp_path / "compare_resume"
+    resumed = CandidateResult(
+        schema_version="1.0",
+        experiment_id=base_config["experiment_id"],
+        study_type="compare",
+        benchmark_id="suite:dev_suite",
+        candidate_id="cand_0001",
+        parent_candidate_id=None,
+        round_index=None,
+        candidate_hash="hash-cand_0001",
+        candidate_manifest_path=str(out / "candidates" / "cand_0001" / "candidate.json"),
+        candidate_bundle_dir=str(out / "candidates" / "cand_0001"),
+        prompt_bundle_id="default",
+        text_model_id="text-model-a",
+        vision_model_id=None,
+        optimizer_knobs_flat={"retrieval_top_k": 6},
+        primary_metrics={"correctness": 0.6},
+        guardrail_metrics={},
+        diagnostic_metrics={},
+        scored=True,
+        score_status="scored",
+        runtime_seconds=10.0,
+        runtime_metadata={},
+        candidate_status="completed",
+        promotion_decision="not_promoted",
+        decision_reason="compare_mode_fixed_comparison",
+        main_app_run_ref={},
+        eval_output_ref={},
+        metadata={},
+        suite_id="dev_suite",
+    )
+
+    from paper_optimizer.results import ResultsWriter
+
+    ResultsWriter(out).append_result(resumed)
+    evaluated: list[str] = []
+
+    def _fake_evaluate(*args, **kwargs) -> CandidateResult:
+        candidate = kwargs["candidate"]
+        evaluated.append(candidate.candidate_id)
+        return CandidateResult(
+            schema_version="1.0",
+            experiment_id=base_config["experiment_id"],
+            study_type="compare",
+            benchmark_id="suite:dev_suite",
+            candidate_id=candidate.candidate_id,
+            parent_candidate_id=candidate.parent_candidate_id,
+            round_index=candidate.round_index,
+            candidate_hash=f"hash-{candidate.candidate_id}",
+            candidate_manifest_path=str(out / "candidates" / candidate.candidate_id / "candidate.json"),
+            candidate_bundle_dir=str(out / "candidates" / candidate.candidate_id),
+            prompt_bundle_id=candidate.prompt_bundle_id,
+            text_model_id=candidate.text_model_id,
+            vision_model_id=candidate.vision_model_id,
+            optimizer_knobs_flat=dict(candidate.optimizer_knobs),
+            primary_metrics={"correctness": 0.7},
+            guardrail_metrics={},
+            diagnostic_metrics={},
+            scored=True,
+            score_status="scored",
+            runtime_seconds=11.0,
+            runtime_metadata={},
+            candidate_status="completed",
+            promotion_decision="not_promoted",
+            decision_reason="compare_mode_fixed_comparison",
+            main_app_run_ref={},
+            eval_output_ref={},
+            metadata={},
+            suite_id="dev_suite",
+        )
+
+    monkeypatch.setattr(
+        "paper_optimizer.study._probe_candidate_structured_output_mode",
+        lambda *args, **kwargs: {"probe_status": "ok", "structured_output_mode": "json_schema"},
+    )
+    monkeypatch.setattr("paper_optimizer.study._evaluate_candidate_with_suite_and_replicates", _fake_evaluate)
+    monkeypatch.setattr("paper_optimizer.study.generate_compare_plots", lambda *args, **kwargs: None)
+    monkeypatch.setattr("paper_optimizer.study.generate_suite_plots", lambda *args, **kwargs: None)
+    monkeypatch.setattr("paper_optimizer.study.generate_experiment_report", lambda *args, **kwargs: None)
+    monkeypatch.setattr("paper_optimizer.study.write_proposal_tables", lambda *args, **kwargs: None)
+
+    run_compare_mode(base_config, benches, out, resume=True)
+
+    assert evaluated == ["cand_0002", "cand_0003"]
+    rows = [json.loads(line) for line in (out / "results" / "results.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert [row["candidate_id"] for row in rows] == ["cand_0001", "cand_0002", "cand_0003"]
+    summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
+    assert summary["candidate_count"] == 3
+    assert summary["completed_candidate_count"] == 3
+    assert summary["progress_state"] == "completed"
+
+
 def test_compare_mode_writes_no_eligible_winner_when_degraded_scores_are_disallowed(
     base_config: dict,
     tmp_path: Path,

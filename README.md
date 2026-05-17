@@ -62,6 +62,12 @@ Optimizer is an orchestration tool for comparing different models, prompts, and 
 python scripts/papers_to_table.py optimizer compare-models
 python scripts/papers_to_table.py optimizer full-benchmark
 ```
+
+Resume an interrupted full benchmark from its manifest:
+
+```bash
+python scripts/papers_to_table.py optimizer full-benchmark --resume tools/optimizer/runs/<run_id>/overnight_manifest.json
+```
 ### /Papers-to-table skill
 Agents can use this experimental skill when the task is to extract structured values from one or several scientific publications (for which .pdf files are available). 
 Copy `./skills/papers-to-table/` into your agent system's skill directory. Keep the `references/` files with it.

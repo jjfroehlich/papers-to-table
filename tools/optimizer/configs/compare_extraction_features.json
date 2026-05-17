@@ -4,7 +4,7 @@
   "operator_todo": {
     "notes": [
       "This file is now the extraction-feature sweep template used after the retrieval-parameter stage.",
-      "full_benchmark.sh materializes the top 1-2 retrieval-parameter candidates into this feature sweep before optimize.",
+      "full_benchmark.sh materializes the top 1-2 retrieval-parameter candidates into this feature sweep.",
       "This phase compares extraction feature toggles: recall_rescue_enabled, whole_document_mode, and figure_review_enabled."
     ]
   },
@@ -348,11 +348,6 @@
         "max": 0
       }
     }
-  },
-  "optimize": {
-    "rounds": 2,
-    "batch_size": 2,
-    "suite_id": "dev_suite"
   },
   "compare": {
     "holdout_top_k": 0,

@@ -6,36 +6,29 @@ import json
 
 from paper_optimizer.benchmarks import load_benchmarks
 from paper_optimizer.overnight import generate_overnight_report
-from paper_optimizer.search_space import load_search_space
-from paper_optimizer.study import run_optimize_mode, summarize, validate_best
-from paper_optimizer.utils import read_json
+from paper_optimizer.study import run_compare_mode, summarize
 
 
-def test_holdout_validation_and_summarize(base_config: dict, tmp_path: Path) -> None:
+def test_summarize_rebuilds_compare_outputs(base_config: dict, tmp_path: Path) -> None:
     benches = load_benchmarks(base_config)
-    search_space = load_search_space(base_config)
 
-    exp = tmp_path / "optimize_exp"
-    run_optimize_mode(base_config, benches, search_space, exp)
+    exp = tmp_path / "compare_exp"
+    run_compare_mode(base_config, benches, exp)
 
-    holdout = tmp_path / "holdout_exp"
-    validate_best(base_config, benches, exp, holdout)
-    assert (holdout / "results" / "results.csv").exists()
-    assert read_json(exp / "summary.json")["holdout_validation"]["ran"] is True
+    assert (exp / "results" / "results.csv").exists()
 
     summarize(base_config, exp)
-    assert (exp / "plots" / "optimize_best_by_round.png").exists()
+    assert (exp / "plots" / "compare_primary_scores.png").exists()
     report_html = (exp / "report.html").read_text(encoding="utf-8")
     assert "Main Conclusion" in report_html
 
 
 def test_generate_overnight_report_writes_aggregate_outputs(base_config: dict, tmp_path: Path) -> None:
     benches = load_benchmarks(base_config)
-    search_space = load_search_space(base_config)
 
     run_root = tmp_path / "runs" / "session_compare"
     experiment_dir = run_root / "experiment"
-    run_optimize_mode(base_config, benches, search_space, experiment_dir)
+    run_compare_mode(base_config, benches, experiment_dir)
 
     overnight_dir = tmp_path / "overnight"
     overnight_dir.mkdir(parents=True)
@@ -47,7 +40,7 @@ def test_generate_overnight_report_writes_aggregate_outputs(base_config: dict, t
                 "label": "nightly",
                 "stages": [
                     {
-                        "stage_name": "optimize",
+                        "stage_name": "model_compare",
                         "run_name": "session_compare",
                         "run_root": str(run_root.resolve()),
                     }
@@ -73,17 +66,16 @@ def test_generate_overnight_report_writes_aggregate_outputs(base_config: dict, t
     assert "None" not in report_html
     payload = json.loads((overnight_dir / "all_candidates.json").read_text(encoding="utf-8"))
     assert payload
-    assert payload[0]["stage_name"] == "optimize"
+    assert payload[0]["stage_name"] == "model_compare"
     assert (overnight_dir / "pipeline_plots" / "pipeline_stage_trajectory.png").exists()
 
 
 def test_generate_overnight_report_surfaces_manifest_failure_status(base_config: dict, tmp_path: Path) -> None:
     benches = load_benchmarks(base_config)
-    search_space = load_search_space(base_config)
 
     run_root = tmp_path / "runs" / "session_compare"
     experiment_dir = run_root / "experiment"
-    run_optimize_mode(base_config, benches, search_space, experiment_dir)
+    run_compare_mode(base_config, benches, experiment_dir)
 
     overnight_dir = tmp_path / "overnight"
     overnight_dir.mkdir(parents=True)
@@ -97,7 +89,7 @@ def test_generate_overnight_report_surfaces_manifest_failure_status(base_config:
                 "completed_at": "2026-04-15T01:02:03Z",
                 "stages": [
                     {
-                        "stage_name": "optimize",
+                        "stage_name": "model_compare",
                         "run_name": "session_compare",
                         "run_root": str(run_root.resolve()),
                     }

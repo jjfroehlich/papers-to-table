@@ -74,10 +74,6 @@ def normalize_config(config: dict[str, Any]) -> dict[str, Any]:
     compare.pop("holdout_top_k", None)
     normalized["compare"] = compare
 
-    optimize = dict(normalized.get("optimize") or {})
-    optimize.setdefault("suite_id", "dev_suite")
-    optimize.pop("holdout_suite_id", None)
-    normalized["optimize"] = optimize
     return normalized
 
 
@@ -215,7 +211,7 @@ def validate_config(config: dict[str, Any]) -> None:
                         f"benchmark_suites.{suite_id}.aggregation.weights.{weight_key} must be a non-negative number"
                     )
 
-        for section_name in ["compare", "optimize"]:
+        for section_name in ["compare"]:
             section = config.get(section_name, {})
             if not isinstance(section, dict):
                 continue
@@ -308,43 +304,3 @@ def validate_config(config: dict[str, Any]) -> None:
                 raise ConfigError(
                     f"acceptance.tie_break.secondary_objectives[{index}].min_improvement must be numeric when provided"
                 )
-
-    optimize = config.get("optimize", {})
-    if not isinstance(optimize, dict):
-        raise ConfigError("optimize must be an object when provided")
-    for suite_key in ["suite_id"]:
-        if suite_key in optimize and (not isinstance(optimize[suite_key], str) or not optimize[suite_key].strip()):
-            raise ConfigError(f"optimize.{suite_key} must be a non-empty string when provided")
-
-    rounds = optimize.get("rounds", 0)
-    if not isinstance(rounds, int) or rounds < 0:
-        raise ConfigError("optimize.rounds must be a non-negative integer")
-
-    batch_size = optimize.get("batch_size", 1)
-    if not isinstance(batch_size, int) or batch_size <= 0:
-        raise ConfigError("optimize.batch_size must be a positive integer")
-
-    confirmation_reruns = optimize.get("confirmation_reruns", {})
-    if confirmation_reruns is not None:
-        if not isinstance(confirmation_reruns, dict):
-            raise ConfigError("optimize.confirmation_reruns must be an object when provided")
-        if "enabled" in confirmation_reruns and not isinstance(confirmation_reruns["enabled"], bool):
-            raise ConfigError("optimize.confirmation_reruns.enabled must be a boolean")
-        if "count" in confirmation_reruns and (
-            not isinstance(confirmation_reruns["count"], int) or confirmation_reruns["count"] < 0
-        ):
-            raise ConfigError("optimize.confirmation_reruns.count must be a non-negative integer")
-
-    proposer = config.get("proposer", {})
-    if proposer is not None:
-        if not isinstance(proposer, dict):
-            raise ConfigError("proposer must be an object when provided")
-        if "enabled" in proposer and not isinstance(proposer["enabled"], bool):
-            raise ConfigError("proposer.enabled must be a boolean")
-        for key in ["provider", "model_id", "api_base"]:
-            if key in proposer and proposer[key] is not None and not isinstance(proposer[key], str):
-                raise ConfigError(f"proposer.{key} must be a string when provided")
-        if "max_candidates" in proposer and (
-            not isinstance(proposer["max_candidates"], int) or proposer["max_candidates"] <= 0
-        ):
-            raise ConfigError("proposer.max_candidates must be a positive integer")

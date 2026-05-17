@@ -14,8 +14,7 @@ from paper_optimizer.bundle import build_candidate_from_dict
 from paper_optimizer.cli import main as cli_main
 from paper_optimizer.contracts import CandidateResult
 from paper_optimizer.pipeline import evaluate_candidate_once
-from paper_optimizer.search_space import load_search_space
-from paper_optimizer.study import _rank_compare_results, run_optimize_mode, validate_best
+from paper_optimizer.study import _rank_compare_results
 from paper_optimizer.validation import PreflightError, validate_preflight
 
 
@@ -249,24 +248,3 @@ print(json.dumps({
     assert result.metadata["failure_stage"] == "main_app_contract"
 
 
-def test_validate_best_uses_promoted_incumbent_not_top_score(base_config: dict, tmp_path: Path) -> None:
-    benches = load_benchmarks(base_config)
-    search_space = load_search_space(base_config)
-
-    exp = tmp_path / "optimize_exp"
-    run_optimize_mode(base_config, benches, search_space, exp)
-
-    best_candidate = json.loads((exp / "best_candidate.json").read_text(encoding="utf-8"))["candidate_id"]
-    results_path = exp / "results" / "results.jsonl"
-    records = [json.loads(line) for line in results_path.read_text(encoding="utf-8").splitlines() if line.strip()]
-    for record in records:
-        if record["candidate_id"] != best_candidate and record["candidate_status"] == "completed":
-            record["primary_metrics"]["correctness"] = 999.0
-            break
-    results_path.write_text("\n".join(json.dumps(record, sort_keys=True) for record in records) + "\n", encoding="utf-8")
-
-    holdout = tmp_path / "holdout_exp"
-    validate_best(base_config, benches, exp, holdout)
-
-    holdout_records = [json.loads(line) for line in (holdout / "results" / "results.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
-    assert holdout_records[0]["candidate_id"] == best_candidate

@@ -80,7 +80,6 @@ def test_checked_in_planned_configs_disallow_degraded_scores() -> None:
         "compare_prompts.json",
         "compare_retrieval_parameters.json",
         "compare_extraction_features.json",
-        "optimize_parameter_sweeps.json",
     ]
 
     for config_name in config_names:
@@ -105,11 +104,8 @@ def test_checked_in_configs_use_explicit_suites_and_replicates() -> None:
             assert suite["aggregation"]["primary_metric"] == cfg["acceptance"]["primary_metric"]
             assert set(suite["aggregation"]["weights"]).issubset(set(suite["benchmark_ids"]))
         assert cfg["compare"]["suite_id"] in suites
-        assert cfg["optimize"]["suite_id"] in suites
         if "holdout_suite_id" in cfg["compare"]:
             assert cfg["compare"]["holdout_suite_id"] in suites
-        if "holdout_suite_id" in cfg["optimize"]:
-            assert cfg["optimize"]["holdout_suite_id"] in suites
 
 
 def test_checked_in_planned_configs_pin_non_gemma_non_qwen_judge_b() -> None:
@@ -139,10 +135,7 @@ def test_compare_models_contract_smoke_is_tiny_and_fast_by_contract() -> None:
 
 def test_real_benchmark_configs_use_real_inputs_and_dual_judges() -> None:
     repo_root = Path(__file__).resolve().parents[1]
-    config_names = [
-        "compare_models.json",
-        "optimize_parameter_sweeps.json",
-    ]
+    config_names = ["compare_models.json"]
 
     for config_name in config_names:
         payload = json.loads((repo_root / "configs" / config_name).read_text(encoding="utf-8"))
@@ -237,24 +230,6 @@ def test_extraction_feature_config_runs_triplicate_factorial() -> None:
     assert len(feature_sets) == 8
 
 
-def test_full_benchmark_optimize_stage_is_top_k_focused_on_gemma_26b() -> None:
-    repo_root = Path(__file__).resolve().parents[1]
-    payload = json.loads((repo_root / "configs" / "optimize_parameter_sweeps.json").read_text(encoding="utf-8"))
-    knobs = payload["baseline_candidate"]["optimizer_knobs"]
-
-    assert payload["baseline_candidate"]["text_model_id"] == "google/gemma-4-26b-a4b"
-    assert payload["search_space"]["text_model_ids"] == ["google/gemma-4-26b-a4b"]
-    assert set(payload["search_space"]["numeric_knobs"]) == {"retrieval_top_k"}
-    assert payload["search_space"]["numeric_knobs"]["retrieval_top_k"]["values"] == [12, 14]
-    assert payload["optimize"]["rounds"] == 1
-    assert payload["optimize"]["batch_size"] == 2
-    assert payload["replicates"]["count"] == 3
-    assert knobs["retrieval_mode"] == "hybrid_experimental"
-    assert knobs["retrieval_top_k"] == 12
-    assert knobs["recall_rescue_enabled"] is False
-    assert knobs["whole_document_mode"] is False
-
-
 def test_full_benchmark_stage_run_names_are_path_length_safe() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     script = (repo_root / "scripts" / "full_benchmark.sh").read_text(encoding="utf-8")
@@ -263,7 +238,7 @@ def test_full_benchmark_stage_run_names_are_path_length_safe() -> None:
     assert 'prompt_run_name="${session_id}_fb_prompt"' in script
     assert 'retrieval_parameter_run_name="${session_id}_fb_retrieval"' in script
     assert 'extraction_feature_run_name="${session_id}_fb_features"' in script
-    assert 'optimize_run_name="${session_id}_fb_optimize"' in script
+    assert "fb_optimize" not in script
     assert "compare_retrieval_parameters_${safe_label}" not in script
 
 

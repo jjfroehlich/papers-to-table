@@ -2,24 +2,63 @@
 
 set -eEuo pipefail
 
-label="${1:-full_benchmark}"
+label="full_benchmark"
+resume_manifest=""
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+		--label)
+			label="${2:?--label requires a value}"
+			shift 2
+			;;
+		--resume)
+			resume_manifest="${2:?--resume requires an overnight_manifest.json path}"
+			shift 2
+			;;
+		-*)
+			echo "Unknown option: $1" >&2
+			exit 2
+			;;
+		*)
+			label="$1"
+			shift
+			;;
+	esac
+done
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
 session_id="$(date +%Y%m%d_%H%M%S)"
 safe_label="$(printf '%s' "$label" | tr ' /:' '___')"
 optimizer_python="${PAPER_OPTIMIZER_PYTHON:-python}"
 
+if [[ -n "$resume_manifest" ]]; then
+	eval "$("$optimizer_python" - "$resume_manifest" <<'PY'
+import json
+import shlex
+import sys
+from pathlib import Path
+
+manifest_path = Path(sys.argv[1]).resolve()
+payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+session_id = str(payload["session_id"])
+label = str(payload.get("label") or "full_benchmark")
+print(f"session_id={shlex.quote(session_id)}")
+print(f"safe_label={shlex.quote(label)}")
+print(f"label={shlex.quote(label)}")
+print(f"resume_manifest={shlex.quote(str(manifest_path))}")
+print(f"resume_overnight_dir={shlex.quote(str(manifest_path.parent))}")
+PY
+)"
+fi
+
 compare_config="$repo_root/configs/compare_models.json"
 prompt_config="$repo_root/configs/compare_prompts.json"
 retrieval_parameter_config="$repo_root/configs/compare_retrieval_parameters.json"
 extraction_feature_config="$repo_root/configs/compare_extraction_features.json"
-optimize_config="$repo_root/configs/optimize_parameter_sweeps.json"
 compare_run_name="${session_id}_fb_model"
 prompt_run_name="${session_id}_fb_prompt"
 retrieval_parameter_run_name="${session_id}_fb_retrieval"
 extraction_feature_run_name="${session_id}_fb_features"
-optimize_run_name="${session_id}_fb_optimize"
-overnight_dir="$repo_root/runs/${session_id}_full_benchmark_${safe_label}"
+overnight_dir="${resume_overnight_dir:-$repo_root/runs/${session_id}_full_benchmark_${safe_label}}"
 
 resolve_best_candidate_json() {
 	local run_name="$1"
@@ -131,23 +170,6 @@ elif mode == "retrieval_compare":
 	apply_candidate(config["baseline_candidate"], include_knobs=False)
 	for row in config.get("compare_candidates", []):
 		apply_candidate(row, include_knobs=False)
-elif mode == "optimize":
-	apply_candidate(config["baseline_candidate"], include_knobs=True)
-	if winner_prompt not in config.get("search_space", {}).get("prompt_bundle_ids", []):
-		config.setdefault("search_space", {}).setdefault("prompt_bundle_ids", []).insert(0, winner_prompt)
-	if winner_model not in config.get("search_space", {}).get("text_model_ids", []):
-		config.setdefault("search_space", {}).setdefault("text_model_ids", []).insert(0, winner_model)
-	if winner_vision is not None and winner_vision not in config.get("search_space", {}).get("vision_model_ids", []):
-		config.setdefault("search_space", {}).setdefault("vision_model_ids", []).insert(0, winner_vision)
-	if winner_knobs:
-		for knob_name, knob_value in winner_knobs.items():
-			knob_spec = config.get("search_space", {}).get("numeric_knobs", {}).get(knob_name)
-			if not isinstance(knob_spec, dict):
-				continue
-			values = list(knob_spec.get("values", []))
-			if knob_value not in values:
-				values.insert(0, knob_value)
-			knob_spec["values"] = values
 else:
 	raise SystemExit(f"Unsupported materialization mode: {mode}")
 
@@ -250,7 +272,6 @@ mkdir -p "$tmp_dir" "$overnight_dir"
 prompt_config_materialized="$tmp_dir/compare_prompts.json"
 retrieval_parameter_config_materialized="$tmp_dir/compare_retrieval_parameters.json"
 extraction_feature_config_materialized="$tmp_dir/compare_extraction_features.json"
-optimize_config_materialized="$tmp_dir/optimize_parameter_sweeps.json"
 manifest_path="$overnight_dir/overnight_manifest.json"
 
 write_manifest() {
@@ -277,6 +298,8 @@ payload["label"] = label
 payload["status"] = status
 if completed_at is not None:
 	payload["completed_at"] = completed_at
+elif status == "running":
+	payload.pop("completed_at", None)
 manifest_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 PY
 }
@@ -306,6 +329,40 @@ stages.append(stage_payload)
 payload["stages"] = stages
 manifest_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 PY
+}
+
+stage_recorded() {
+	local stage_name="$1"
+	"$optimizer_python" - "$manifest_path" "$stage_name" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+manifest_path = Path(sys.argv[1])
+stage_name = sys.argv[2]
+if not manifest_path.exists():
+    raise SystemExit(1)
+payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+for stage in payload.get("stages", []) or []:
+    if stage.get("stage_name") == stage_name:
+        raise SystemExit(0)
+raise SystemExit(1)
+PY
+}
+
+run_stage() {
+	local stage_name="$1"
+	local run_name="$2"
+	local study_type="$3"
+	local config_path="$4"
+	local label_suffix="$5"
+	if stage_recorded "$stage_name"; then
+		echo "[$(date -Iseconds)] Skipping $stage_name; already recorded in manifest"
+		return 0
+	fi
+	PAPER_OPTIMIZER_RUN_NAME="$run_name" PAPER_OPTIMIZER_RESUME=1 PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" "$study_type" "$config_path" "${safe_label}_${label_suffix}"
+	append_stage "$stage_name" "$run_name"
+	refresh_overnight_report
 }
 
 refresh_overnight_report() {
@@ -339,36 +396,23 @@ echo "[$(date -Iseconds)] Step 1: fast config preflight"
 preflight_config "$compare_config"
 
 echo "[$(date -Iseconds)] Step 2: main compare study"
-PAPER_OPTIMIZER_RUN_NAME="$compare_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$compare_config" "${safe_label}_compare"
-append_stage model_compare "$compare_run_name"
-refresh_overnight_report
+run_stage model_compare "$compare_run_name" compare "$compare_config" compare
 
 echo "[$(date -Iseconds)] Step 3: prompt compare on the model-compare winner"
 materialize_config_with_winner "$prompt_config" "$(require_best_candidate_json "$compare_run_name")" "$prompt_config_materialized" prompt_compare
 preflight_config "$prompt_config_materialized"
-PAPER_OPTIMIZER_RUN_NAME="$prompt_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$prompt_config_materialized" "${safe_label}_prompts"
-append_stage prompt_compare "$prompt_run_name"
-refresh_overnight_report
+run_stage prompt_compare "$prompt_run_name" compare "$prompt_config_materialized" prompts
 
 echo "[$(date -Iseconds)] Step 4: retrieval sweep on the prompt-compare winner"
 materialize_config_with_winner "$retrieval_parameter_config" "$(require_best_candidate_json "$prompt_run_name")" "$retrieval_parameter_config_materialized" retrieval_compare
 preflight_config "$retrieval_parameter_config_materialized"
-PAPER_OPTIMIZER_RUN_NAME="$retrieval_parameter_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$retrieval_parameter_config_materialized" "${safe_label}_retrieval_parameters"
-append_stage retrieval_parameter_compare "$retrieval_parameter_run_name"
-refresh_overnight_report
+run_stage retrieval_parameter_compare "$retrieval_parameter_run_name" compare "$retrieval_parameter_config_materialized" retrieval_parameters
 
 echo "[$(date -Iseconds)] Step 5: extraction feature sweep on the top retrieval-parameter candidates"
 materialize_extraction_feature_config "$extraction_feature_config" "$(resolve_results_jsonl "$retrieval_parameter_run_name")" "$extraction_feature_config_materialized" 2
 preflight_config "$extraction_feature_config_materialized"
-PAPER_OPTIMIZER_RUN_NAME="$extraction_feature_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" compare "$extraction_feature_config_materialized" "${safe_label}_extraction_features"
-append_stage extraction_feature_compare "$extraction_feature_run_name"
-refresh_overnight_report
+run_stage extraction_feature_compare "$extraction_feature_run_name" compare "$extraction_feature_config_materialized" extraction_features
 
-echo "[$(date -Iseconds)] Step 6: optimize study from the extraction-feature winner"
-materialize_config_with_winner "$optimize_config" "$(require_best_candidate_json "$extraction_feature_run_name")" "$optimize_config_materialized" optimize
-preflight_config "$optimize_config_materialized"
-PAPER_OPTIMIZER_RUN_NAME="$optimize_run_name" PAPER_OPTIMIZER_SKIP_HOLDOUT=1 bash "$script_dir/run_study.sh" optimize "$optimize_config_materialized" "${safe_label}_optimize"
-append_stage optimize "$optimize_run_name"
 write_manifest completed "$(date -Iseconds)"
 refresh_overnight_report
 trap - EXIT
@@ -380,4 +424,3 @@ echo "Compare run: $repo_root/runs/$compare_run_name"
 echo "Prompt run: $repo_root/runs/$prompt_run_name"
 echo "Retrieval parameter run: $repo_root/runs/$retrieval_parameter_run_name"
 echo "Extraction feature run: $repo_root/runs/$extraction_feature_run_name"
-echo "Optimize run: $repo_root/runs/$optimize_run_name"

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -12,13 +11,6 @@ from paper_optimizer.contracts import Candidate, CandidateResult
 from paper_optimizer.plotting import generate_suite_plots
 from paper_optimizer.settings import ConfigError, load_config
 from paper_optimizer.study import run_compare_mode
-
-REPO_ROOT = Path(__file__).resolve().parents[3]
-if str(REPO_ROOT / "scripts") not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT / "scripts"))
-
-import papers_to_table  # noqa: E402
-
 
 def _write_config(tmp_path: Path, payload: dict[str, Any]) -> Path:
     path = tmp_path / "optimizer.json"
@@ -352,32 +344,3 @@ def test_suite_plots_include_replicate_variability_artifacts(tmp_path: Path) -> 
     )
     assert plot_rows[0]["primary_metric_sem"] == "0.05"
     assert plot_rows[1]["primary_metric_sem"] == "0.02"
-
-
-def test_wrapper_compare_command_resolves_suite_and_replicates(monkeypatch: pytest.MonkeyPatch) -> None:
-    captured: dict[str, Any] = {}
-
-    def fake_run(cmd: list[str], *, cwd: Path, env: dict[str, str]) -> int:
-        captured["cmd"] = cmd
-        captured["cwd"] = cwd
-        captured["env"] = env
-        return 0
-
-    monkeypatch.setattr(papers_to_table, "_run", fake_run)
-    args = type(
-        "Args",
-        (),
-        {
-            "config": None,
-            "out": None,
-            "suite": "dev_suite",
-            "replicates": 3,
-        },
-    )()
-
-    assert papers_to_table.cmd_optimizer_compare(args) == 0
-
-    cmd = captured["cmd"]
-    assert cmd[:4] == [sys.executable, "-m", "paper_optimizer.cli", "optimize"]
-    assert ["--suite", "dev_suite"] == cmd[cmd.index("--suite") : cmd.index("--suite") + 2]
-    assert ["--replicates", "3"] == cmd[cmd.index("--replicates") : cmd.index("--replicates") + 2]

@@ -2,9 +2,13 @@
 
 set -euo pipefail
 
-study_type="${1:?usage: run_study.sh <compare|optimize> <config-path> [label]}"
-config_path="${2:?usage: run_study.sh <compare|optimize> <config-path> [label]}"
+study_type="${1:?usage: run_study.sh <compare> <config-path> [label]}"
+config_path="${2:?usage: run_study.sh <compare> <config-path> [label]}"
 label="${3:-study}"
+if [[ "$study_type" != "compare" ]]; then
+  echo "Unsupported study type '$study_type'. Only compare studies are currently supported." >&2
+  exit 2
+fi
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
@@ -17,6 +21,10 @@ log_file="$repo_root/logs/${run_name}.log"
 metadata_file="$run_root/run_metadata.json"
 mkdir -p "$run_root" "$experiment_dir" "$repo_root/logs"
 mkdir -p "$(dirname "$log_file")"
+tee_args=("$log_file")
+if [[ "${PAPER_OPTIMIZER_RESUME:-0}" == "1" ]]; then
+  tee_args=(-a "$log_file")
+fi
 
 resolve_optimizer_python() {
   if [[ -n "${PAPER_OPTIMIZER_PYTHON:-}" ]]; then
@@ -175,7 +183,11 @@ if missing:
 PY
 
   pushd "$repo_root" >/dev/null
-  "$optimizer_python" -m paper_optimizer.cli optimize --study-type "$study_type" --config "$config_path" --out "$experiment_dir"
+  optimizer_args=(compare --config "$config_path" --out "$experiment_dir")
+  if [[ "${PAPER_OPTIMIZER_RESUME:-0}" == "1" ]]; then
+    optimizer_args+=(--resume)
+  fi
+  "$optimizer_python" -m paper_optimizer.cli "${optimizer_args[@]}"
   "$optimizer_python" -m paper_optimizer.cli summarize --config "$config_path" --experiment "$experiment_dir"
   "$optimizer_python" - "$experiment_dir/summary.json" <<'PY'
 import json
@@ -200,4 +212,4 @@ PY
   echo "Summary: $experiment_dir/summary.json"
   echo "Best candidate: $experiment_dir/best_candidate.json"
   echo "Run metadata: $metadata_file"
-} 2>&1 | tee "$log_file"
+} 2>&1 | tee "${tee_args[@]}"

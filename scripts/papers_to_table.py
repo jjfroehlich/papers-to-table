@@ -272,7 +272,11 @@ def cmd_optimizer_compare_models(args: argparse.Namespace) -> int:
 
 def cmd_optimizer_full_benchmark(args: argparse.Namespace) -> int:
     label = args.label or f"full_benchmark_{time.strftime('%Y%m%d-%H%M%S')}"
-    cmd = ["bash", str(OPTIMIZER_DIR / "scripts" / "full_benchmark.sh"), label]
+    cmd = ["bash", str(OPTIMIZER_DIR / "scripts" / "full_benchmark.sh")]
+    if args.resume:
+        cmd.extend(["--resume", args.resume])
+    else:
+        cmd.extend(["--label", label])
     return _run(cmd, cwd=OPTIMIZER_DIR, env=os.environ.copy())
 
 
@@ -354,6 +358,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run the full phased benchmark workflow",
     )
     full_benchmark.add_argument("--label")
+    full_benchmark.add_argument("--resume", help="Resume from a full-benchmark overnight_manifest.json")
     full_benchmark.set_defaults(func=cmd_optimizer_full_benchmark)
 
     docs = subparsers.add_parser("docs", help="Serve or build the MkDocs manual")

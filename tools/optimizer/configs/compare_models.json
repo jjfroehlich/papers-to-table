@@ -382,11 +382,6 @@
       }
     }
   },
-  "optimize": {
-    "rounds": 2,
-    "batch_size": 2,
-    "suite_id": "dev_suite"
-  },
   "compare": {
     "require_structured_output_for_extraction": true,
     "allow_degraded_candidates": false,
