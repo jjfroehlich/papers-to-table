@@ -178,6 +178,39 @@ class TestWriteReadJson:
         tmp_files = list(nested.glob("*.tmp"))
         assert tmp_files == []
 
+    def test_write_json_handles_deep_optimizer_matching_path(self, tmp_path):
+        deep_run_dir = (
+            tmp_path
+            / "runs"
+            / "20260518_165008_gemma4e4b_mpra_r1_compare"
+            / "compare_no_external"
+            / "experiment"
+            / "runs"
+            / "cand_0001"
+            / "app"
+            / "out"
+            / "run_20260518_154835_15mpql"
+        )
+        path = (
+            deep_run_dir
+            / "matching"
+            / "pdfs"
+            / "MPRA01_sahu_2022_sequence_determinants"
+            / "front_matter_detection_diagnostics.json"
+        )
+        while len(str(path)) <= 260:
+            deep_run_dir = deep_run_dir / "extra_depth"
+            path = (
+                deep_run_dir
+                / "matching"
+                / "pdfs"
+                / "MPRA01_sahu_2022_sequence_determinants"
+                / "front_matter_detection_diagnostics.json"
+            )
+        assert len(str(path)) > 260
+        write_json(path, {"ok": True})
+        assert read_json(path) == {"ok": True}
+
 
 class TestJsonl:
     def test_append_and_read(self, tmp_path):

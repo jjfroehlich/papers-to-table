@@ -59,6 +59,30 @@ python scripts/papers_to_table.py optimizer compare-models --initial-model googl
 
 This writes `materialized_configs/compare_models.json` under the compare run directory, records the filter in `overnight_manifest.json`, and fails fast if the requested model id is not present in the canonical model preset.
 
+### Development Check
+- use during implementation to get one fast correctness/runtime signal
+- uses the same candidate settings as the canonical model-compare preset
+- runs one model, one benchmark, and one replicate
+- removes external-result scoring from the run-local config so the report reflects only the app candidate
+- defaults to `google/gemma-4-e4b` on `bench_genome_editing`
+- writes only run-local materialized config files; checked-in optimizer configs are unchanged
+
+```bash
+python scripts/papers_to_table.py optimizer dev-check
+```
+
+Options:
+- `--help`: help
+- `--label LABEL`: choose the run directory label under `tools/optimizer/runs`.
+- `--model MODEL_ID`: choose the configured model id. Defaults to `google/gemma-4-e4b`.
+- `--benchmark-id BENCHMARK_ID`: choose one benchmark dataset. Defaults to `bench_genome_editing`, which has a useful mix of retrieval-heavy method fields and clear figure-dependent fields such as architecture figures and Figure 3 bar-chart counting.
+
+Example:
+
+```bash
+python scripts/papers_to_table.py optimizer dev-check --label dev_check_after_parser_fix
+```
+
 ### Full Benchmark
 - use when you want a broad end-to-end tuning pass rather than only model selection
 - compare models first, then compare prompt packages, retrieval parameters, and extraction feature toggles

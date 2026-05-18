@@ -102,6 +102,12 @@ def _optimizer_default_out(name: str) -> Path:
     return OPTIMIZER_DIR / "runs" / f"{name}_{timestamp}"
 
 
+def _safe_label(value: str) -> str:
+    safe = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in value.strip())
+    safe = "_".join(part for part in safe.split("_") if part)
+    return safe or "run"
+
+
 def cmd_install(_args: argparse.Namespace) -> int:
     env = _env_with_pythonpath(BACKEND_SRC_DIR, EVAL_DIR, OPTIMIZER_DIR)
     commands = [
@@ -284,6 +290,110 @@ def cmd_optimizer_full_benchmark(args: argparse.Namespace) -> int:
     return _run(cmd, cwd=OPTIMIZER_DIR, env=os.environ.copy())
 
 
+def _remove_external_results(config: dict) -> None:
+    manifests = config.get("benchmarks", {}).get("manifests", {})
+    if not isinstance(manifests, dict):
+        return
+    for manifest in manifests.values():
+        if isinstance(manifest, dict):
+            manifest.pop("external_results", None)
+
+
+def _filter_compare_config_for_dev_check(config: dict, *, model_id: str, benchmark_id: str) -> dict:
+    config = json.loads(json.dumps(config))
+    config.setdefault("operator_todo", {}).setdefault("notes", []).append(
+        "Run-local development check: one model, one benchmark, one replicate, no external result scoring. "
+        "Checked-in optimizer configs were not changed."
+    )
+
+    candidate_sources = list(config.get("compare_candidates") or [])
+    if not candidate_sources and isinstance(config.get("baseline_candidate"), dict):
+        candidate_sources = [config["baseline_candidate"]]
+    matching = [candidate for candidate in candidate_sources if candidate.get("text_model_id") == model_id]
+    if not matching:
+        raise ValueError(f"Model id {model_id!r} is not present in compare_candidates or baseline_candidate")
+
+    selected = json.loads(json.dumps(matching[0]))
+    selected["text_model_id"] = model_id
+    if selected.get("vision_model_id") is not None:
+        selected["vision_model_id"] = model_id
+    config["baseline_candidate"] = selected
+    config["compare_candidates"] = [selected]
+
+    search_space = config.get("search_space")
+    if isinstance(search_space, dict):
+        search_space["text_model_ids"] = [model_id]
+        if "vision_model_ids" in search_space:
+            search_space["vision_model_ids"] = [model_id]
+
+    suites = config.setdefault("benchmark_suites", {})
+    suites["dev_check"] = {
+        "benchmark_ids": [benchmark_id],
+        "description": "Single-benchmark development check suite.",
+        "split": "dev",
+    }
+    config.setdefault("compare", {})["suite_id"] = "dev_check"
+    config["replicates"] = {"count": 1, "continue_on_failure": True}
+    _remove_external_results(config)
+    return config
+
+
+def cmd_optimizer_dev_check(args: argparse.Namespace) -> int:
+    label = args.label or f"dev_check_{time.strftime('%Y%m%d-%H%M%S')}"
+    safe_label = _safe_label(label)
+    run_root = OPTIMIZER_DIR / "runs" / safe_label
+    materialized_dir = run_root / "materialized_configs"
+    experiment_dir = run_root / "dev_check" / "experiment"
+    materialized_dir.mkdir(parents=True, exist_ok=True)
+    experiment_dir.mkdir(parents=True, exist_ok=True)
+
+    source_config = OPTIMIZER_DIR / "configs" / "compare_models.json"
+    target_config = materialized_dir / "dev_check_compare_models.json"
+    with open(source_config, "r", encoding="utf-8") as handle:
+        config = json.load(handle)
+    try:
+        materialized = _filter_compare_config_for_dev_check(
+            config,
+            model_id=args.model,
+            benchmark_id=args.benchmark_id,
+        )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    with open(target_config, "w", encoding="utf-8") as handle:
+        json.dump(materialized, handle, indent=2)
+        handle.write("\n")
+
+    env = _env_with_pythonpath(OPTIMIZER_DIR)
+    print(f"Dev-check config: {target_config}", flush=True)
+    print(f"Experiment dir:   {experiment_dir}", flush=True)
+    preflight = _run(
+        [sys.executable, "-m", "paper_optimizer.cli", "preflight", "--config", str(target_config)],
+        cwd=OPTIMIZER_DIR,
+        env=env,
+    )
+    if preflight != 0:
+        return preflight
+    return _run(
+        [
+            sys.executable,
+            "-m",
+            "paper_optimizer.cli",
+            "compare",
+            "--config",
+            str(target_config),
+            "--out",
+            str(experiment_dir),
+            "--suite",
+            "dev_check",
+            "--replicates",
+            "1",
+        ],
+        cwd=OPTIMIZER_DIR,
+        env=env,
+    )
+
+
 def cmd_docs_serve(args: argparse.Namespace) -> int:
     cmd = _mkdocs_cmd("serve")
     if cmd is None:
@@ -372,6 +482,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="Start with a run-local model-compare config limited to this text model id",
     )
     full_benchmark.set_defaults(func=cmd_optimizer_full_benchmark)
+
+    dev_check = optimizer_sub.add_parser(
+        "dev-check",
+        help="Run one configured model on one benchmark and one replicate for development feedback",
+    )
+    dev_check.add_argument("--label", help="Run directory label under tools/optimizer/runs")
+    dev_check.add_argument("--model", default="google/gemma-4-e4b", help="Model id to test")
+    dev_check.add_argument(
+        "--benchmark-id",
+        default="bench_genome_editing",
+        help="Benchmark id to run; defaults to genome editing for mixed retrieval and clear figure-dependent coverage",
+    )
+    dev_check.set_defaults(func=cmd_optimizer_dev_check)
 
     docs = subparsers.add_parser("docs", help="Serve or build the MkDocs manual")
     docs_sub = docs.add_subparsers(dest="docs_command", required=True)

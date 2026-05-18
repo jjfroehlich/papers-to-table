@@ -283,6 +283,19 @@ def test_compare_models_supports_run_local_initial_model_filter() -> None:
     assert "--initial-model" in wrapper
 
 
+def test_wrapper_exposes_optimizer_dev_check_shortcut() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    wrapper = (repo_root.parents[1] / "scripts" / "papers_to_table.py").read_text(encoding="utf-8")
+    docs = (repo_root.parents[1] / "docs" / "tools" / "optimizer.md").read_text(encoding="utf-8")
+
+    assert 'optimizer_sub.add_parser(\n        "dev-check"' in wrapper
+    assert 'default="google/gemma-4-e4b"' in wrapper
+    assert 'default="bench_genome_editing"' in wrapper
+    assert "_remove_external_results(config)" in wrapper
+    assert "dev-check" in docs
+    assert "bench_genome_editing" in docs
+
+
 def test_propose_candidates_covers_multi_knob_combinations() -> None:
     incumbent = Candidate(
         candidate_id="cand_0000",

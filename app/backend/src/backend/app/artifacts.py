@@ -140,30 +140,49 @@ def init_run_bundle(output_dir: str, run_id: str) -> pathlib.Path:
 def write_json(path: pathlib.Path, data: Any) -> None:
     """Atomic write: write to .tmp then rename."""
     path.parent.mkdir(parents=True, exist_ok=True)
+    target = _fs_path(path)
     fd, tmp_name = tempfile.mkstemp(
         prefix=".tmp-",
         suffix=path.suffix or ".json",
-        dir=path.parent,
+        dir=_fs_path(path.parent),
         text=True,
     )
     tmp_path = pathlib.Path(tmp_name)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
-        os.replace(tmp_path, path)
+        os.replace(_fs_path(tmp_path), target)
     except Exception:
         try:
-            tmp_path.unlink(missing_ok=True)
+            os.unlink(_fs_path(tmp_path))
+        except FileNotFoundError:
+            pass
         except Exception:
             pass
         raise
+
+
+def _fs_path(path: pathlib.Path | str) -> str:
+    """Return a filesystem path string that also works past MAX_PATH on Windows."""
+    value = str(path)
+    if os.name != "nt":
+        return value
+    if value.startswith("\\\\?\\"):
+        return value
+    try:
+        resolved = str(pathlib.Path(value).resolve())
+    except OSError:
+        resolved = str(pathlib.Path(value).absolute())
+    if resolved.startswith("\\\\"):
+        return "\\\\?\\UNC\\" + resolved.lstrip("\\")
+    return "\\\\?\\" + resolved
 
 
 def hash_file(path: pathlib.Path | str) -> str:
     """Return the SHA-256 hash of a file."""
     file_path = pathlib.Path(path)
     digest = hashlib.sha256()
-    with open(file_path, "rb") as handle:
+    with open(_fs_path(file_path), "rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
@@ -177,14 +196,14 @@ def hash_json_data(data: Any) -> str:
 
 def read_json(path: pathlib.Path) -> Any:
     """Read JSON file."""
-    with open(path, "r", encoding="utf-8") as f:
+    with open(_fs_path(path), "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def append_jsonl(path: pathlib.Path, record: Any) -> None:
     """Append a record as a JSON line."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "a", encoding="utf-8") as f:
+    with open(_fs_path(path), "a", encoding="utf-8") as f:
         f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
