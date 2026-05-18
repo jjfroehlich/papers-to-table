@@ -1,5 +1,5 @@
 # Extraction Accuracy and Speed Improvements
-
+ 
 - Status: Supporting implementation plan, not current implementation truth.
 - Current behavior owner: `specs/spec.md`.
 - Purpose: define the next main-app extraction improvements and the optimizer measurement path for accuracy and speed.
