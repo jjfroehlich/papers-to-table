@@ -366,6 +366,12 @@ def normalize_candidate_row(row: dict[str, Any], *, primary_metric: str | None =
         "recall_rescue_skipped_count": safe_int(first_present(row, ["recall_rescue_skipped_count", "diagnostic.recall_rescue_skipped_count"])),
         "whole_document_skipped_count": safe_int(first_present(row, ["whole_document_skipped_count", "diagnostic.whole_document_skipped_count"])),
     }
+    planner_attempts = normalized.get("figure_planner_attempt_count")
+    scored_cells = normalized.get("scored_cell_count")
+    if planner_attempts is not None and scored_cells:
+        normalized["figure_planner_calls_per_scored_cell"] = planner_attempts / scored_cells
+    else:
+        normalized["figure_planner_calls_per_scored_cell"] = None
     return normalized
 
 

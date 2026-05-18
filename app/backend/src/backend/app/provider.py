@@ -472,6 +472,52 @@ def _coerce_schema_text_value(value: object) -> Optional[str]:
     return stripped or None
 
 
+def _is_extraction_state_schema(schema: dict[str, Any]) -> bool:
+    enum_values = schema.get("enum")
+    if not isinstance(enum_values, list):
+        return False
+    return {"found", "inferred", "unclear"}.issubset({str(item) for item in enum_values})
+
+
+def _normalize_extraction_state_value(value: object, proposed_value: object = None) -> object:
+    if not isinstance(value, str):
+        return value
+    normalized = re.sub(r"[^a-z0-9]+", "_", value.strip().lower()).strip("_")
+    if normalized in {"found", "inferred", "unclear"}:
+        return normalized
+    if normalized in {"yes", "present", "visible", "clear", "success", "succeeded"}:
+        return "found"
+    if normalized == "possible":
+        return "inferred"
+    if normalized in {"propose", "proposed", "propose_value", "proposed_value"}:
+        return "found" if _coerce_schema_text_value(proposed_value) else "unclear"
+    return value
+
+
+def _describe_schema_repairs(original: object, normalized: object, schema: dict[str, Any]) -> list[str]:
+    repairs: list[str] = []
+    if not isinstance(original, dict) or not isinstance(normalized, dict):
+        return repairs
+    properties = schema.get("properties") if isinstance(schema.get("properties"), dict) else {}
+    state_schema = properties.get("state")
+    if (
+        isinstance(state_schema, dict)
+        and _is_extraction_state_schema(state_schema)
+        and original.get("state") != normalized.get("state")
+    ):
+        repairs.append("state_synonym_normalized")
+    numeric_schema = properties.get("numeric_value_form")
+    if (
+        isinstance(numeric_schema, dict)
+        and original.get("numeric_value_form") != normalized.get("numeric_value_form")
+    ):
+        repairs.append("numeric_value_form_normalized")
+    for field_name in schema.get("required", []):
+        if field_name not in original and field_name in normalized:
+            repairs.append(f"missing_{field_name}_defaulted")
+    return repairs
+
+
 def _normalize_value_for_schema(value: object, schema: dict[str, Any]) -> object:
     if value is None:
         return None
@@ -497,6 +543,12 @@ def _normalize_value_for_schema(value: object, schema: dict[str, Any]) -> object
         for field_name, field_schema in properties.items():
             if field_name in normalized:
                 normalized[field_name] = _normalize_value_for_schema(normalized[field_name], field_schema)
+        state_schema = properties.get("state")
+        if isinstance(state_schema, dict) and _is_extraction_state_schema(state_schema):
+            normalized["state"] = _normalize_extraction_state_value(
+                normalized.get("state"),
+                normalized.get("proposed_value"),
+            )
         for field_name in schema.get("required", []):
             if field_name in normalized:
                 continue
@@ -579,6 +631,9 @@ def _parse_and_validate_response_with_details(
         if isinstance(normalized, dict):
             parsed = normalized
             details["degraded_normalization_used"] = normalized != original_parsed
+            repairs = _describe_schema_repairs(original_parsed, normalized, response_schema)
+            if repairs:
+                details["degraded_normalization_repairs"] = repairs
     if not isinstance(parsed, dict):
         error = StructuredOutputError(f"LM Studio returned malformed JSON after bounded recovery: {raw[:200]}")
         error.details = details

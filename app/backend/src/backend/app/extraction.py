@@ -812,6 +812,9 @@ def build_figure_planner_prompt(
         "Decide whether image-based figure review is needed for this table cell. "
         "If it is needed, choose the most relevant available figures to inspect. "
         "Select figures that directly answer the cell request; do not select figures merely because they share a related keyword. "
+        "Do not request vision for non-visual fields when retrieved text or caption snippets already answer the question. "
+        "For text-primary fields, set needs_vision=false unless the text evidence is weak, unclear, contradictory, or missing. "
+        "Selected figures must directly answer the requested field, not merely provide background context. "
         "Use full_page when the request depends on layout, panel counting, or full-figure context; otherwise prefer crop. "
         "Select at most two figures. Return JSON only.\n\n"
         f"Planning payload JSON:\n{json.dumps(payload, ensure_ascii=False, indent=2)}"
@@ -2163,17 +2166,23 @@ def decide_vision_trigger_reasons(
     column_description: str = "",
 ) -> list[str]:
     reasons: list[str] = []
-    if state == ProposalState.unclear:
+    text_unclear = state == ProposalState.unclear
+    text_weak = support == SupportLabel.weak_evidence or needs_more_evidence
+    text_contradictory = _has_numeric_conflict_in_quotes(quotes)
+    direct_figure_context = _retrieval_has_direct_figure_context(retrieval)
+    visual_request = _cell_request_looks_visual(column_name, column_description) and _retrieval_looks_figure_promising(retrieval)
+    missing_value = proposed_value is None
+    if text_unclear:
         reasons.append("text_unclear")
-    if support == SupportLabel.weak_evidence or needs_more_evidence:
+    if text_weak:
         reasons.append("text_weak")
-    if _has_numeric_conflict_in_quotes(quotes):
+    if text_contradictory:
         reasons.append("text_contradictory")
-    if _retrieval_has_direct_figure_context(retrieval):
-        reasons.append("direct_figure_context")
-    if _cell_request_looks_visual(column_name, column_description) and _retrieval_looks_figure_promising(retrieval):
+    if visual_request:
         reasons.append("visual_request")
-    if proposed_value is None and _retrieval_has_direct_figure_context(retrieval):
+    if direct_figure_context and (text_unclear or text_weak or text_contradictory or missing_value or visual_request):
+        reasons.append("direct_figure_context")
+    if missing_value and direct_figure_context:
         reasons.append("figure_rescue_candidate")
     # Stable order + dedupe
     ordered: list[str] = []

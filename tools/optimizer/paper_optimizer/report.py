@@ -270,6 +270,27 @@ def _build_capability_cards(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     ]
 
 
+def _call_counts_cell(row: dict[str, Any]) -> dict[str, Any]:
+    counters = _row_counters(row)
+    planner_count = int(counters.get("figure_planner_attempt_count", 0) or 0)
+    scored_cells = row.get("scored_cell_count")
+    planner_per_cell = None
+    if scored_cells:
+        try:
+            planner_per_cell = planner_count / float(scored_cells)
+        except Exception:
+            planner_per_cell = None
+    return build_table_cell(
+        (
+            f"text={display_text(counters.get('text_model_call_count'), missing='0')}; "
+            f"vision={display_text(counters.get('vision_model_call_count'), missing='0')}; "
+            f"planner={display_text(planner_count, missing='0')}"
+        ),
+        subtext=f"planner/cell={planner_per_cell:.2f}" if planner_per_cell is not None else "planner/cell=not recorded",
+        sort_value=planner_count,
+    )
+
+
 def _trust_note(row: dict[str, Any]) -> str:
     notes: list[str] = []
     if parse_bool(row.get("prompt_only_degraded_mode_used")):
@@ -718,6 +739,7 @@ def _build_candidate_table(
             {"label": "Coverage", "align": "right", "sort": "number"},
             {"label": "Runtime / Benchmark", "align": "right", "sort": "number"},
             {"label": "Runtime / Cell", "align": "right", "sort": "number"},
+            {"label": "Calls", "align": "left", "sort": "number"},
             {"label": "Retrieval", "align": "left", "sort": "string"},
             {"label": "Structure", "align": "left", "sort": "string"},
             {"label": "Decision", "align": "left", "sort": "string"},
@@ -748,6 +770,7 @@ def _build_candidate_table(
                         build_table_cell(format_percent(row.get("benchmark_coverage")), sort_value=row.get("benchmark_coverage") if row.get("benchmark_coverage") is not None else -1),
                         build_table_cell(format_runtime(row.get("runtime_mean_per_benchmark_seconds")), sort_value=row.get("runtime_mean_per_benchmark_seconds") if row.get("runtime_mean_per_benchmark_seconds") is not None else -1),
                         build_table_cell(format_runtime(row.get("runtime_mean_per_scored_cell_seconds")), sort_value=row.get("runtime_mean_per_scored_cell_seconds") if row.get("runtime_mean_per_scored_cell_seconds") is not None else -1),
+                        _call_counts_cell(row),
                         build_table_cell(
                             display_text(row.get("retrieval_mode"), missing="not configured"),
                             subtext=f"top_k={display_text(row.get('retrieval_top_k'), missing='not configured')}",
@@ -783,6 +806,7 @@ def _build_candidate_table(
             {"label": "Coverage", "align": "right", "sort": "number"},
             {"label": "Runtime / Benchmark", "align": "right", "sort": "number"},
             {"label": "Runtime / Cell", "align": "right", "sort": "number"},
+            {"label": "Calls", "align": "left", "sort": "number"},
             {"label": "Retrieval", "align": "left", "sort": "string"},
             {"label": "Structure", "align": "left", "sort": "string"},
             {"label": "Reason / Trust", "align": "left", "sort": "string"},
@@ -810,6 +834,7 @@ def _build_candidate_table(
                         build_table_cell(format_percent(row.get("benchmark_coverage")), sort_value=row.get("benchmark_coverage") if row.get("benchmark_coverage") is not None else -1),
                         build_table_cell(format_runtime(row.get("runtime_mean_per_benchmark_seconds")), sort_value=row.get("runtime_mean_per_benchmark_seconds") if row.get("runtime_mean_per_benchmark_seconds") is not None else -1),
                         build_table_cell(format_runtime(row.get("runtime_mean_per_scored_cell_seconds")), sort_value=row.get("runtime_mean_per_scored_cell_seconds") if row.get("runtime_mean_per_scored_cell_seconds") is not None else -1),
+                        _call_counts_cell(row),
                         build_table_cell(
                             display_text(row.get("retrieval_mode"), missing="not configured"),
                             subtext=(

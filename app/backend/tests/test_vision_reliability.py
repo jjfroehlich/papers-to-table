@@ -8,6 +8,7 @@ import pytest
 
 from backend.app.extraction import (
     VISION_EXTRACTION_SCHEMA,
+    build_figure_planner_prompt,
     decide_vision_trigger_reasons,
     run_figure_review,
 )
@@ -112,6 +113,63 @@ def test_prompt_only_vision_schema_repairs_optional_and_na_values():
     assert details["degraded_normalization_used"] is True
 
 
+@pytest.mark.parametrize("raw_state", ["yes", "present", "visible", "clear", "success", "succeeded"])
+def test_prompt_only_vision_schema_repairs_found_state_synonyms(raw_state: str):
+    parsed, details = _parse_and_validate_response_with_details(
+        '{"proposed_value":"supported value","state":"%s","rationale":"visible",'
+        '"numeric_value_form":null,"figure_description":"diagram"}' % raw_state,
+        VISION_EXTRACTION_SCHEMA,
+        allow_degraded_normalization=True,
+    )
+
+    assert parsed["state"] == "found"
+    assert "state_synonym_normalized" in details["degraded_normalization_repairs"]
+
+
+def test_prompt_only_vision_schema_repairs_possible_to_inferred():
+    parsed, details = _parse_and_validate_response_with_details(
+        '{"proposed_value":"possible value","state":"possible","rationale":"may be visible",'
+        '"numeric_value_form":null,"figure_description":"diagram"}',
+        VISION_EXTRACTION_SCHEMA,
+        allow_degraded_normalization=True,
+    )
+
+    assert parsed["state"] == "inferred"
+    assert "state_synonym_normalized" in details["degraded_normalization_repairs"]
+
+
+@pytest.mark.parametrize(
+    ("raw_state", "proposed_value", "expected"),
+    [("propose", "architecture", "found"), ("propose_value", "architecture", "found"), ("propose", None, "unclear")],
+)
+def test_prompt_only_vision_schema_repairs_malformed_propose_states(raw_state: str, proposed_value: str | None, expected: str):
+    proposed_json = "null" if proposed_value is None else f'"{proposed_value}"'
+    parsed, details = _parse_and_validate_response_with_details(
+        '{"proposed_value":%s,"state":"%s","rationale":"draft",'
+        '"numeric_value_form":null,"figure_description":"diagram"}' % (proposed_json, raw_state),
+        VISION_EXTRACTION_SCHEMA,
+        allow_degraded_normalization=True,
+    )
+
+    assert parsed["state"] == expected
+    assert "state_synonym_normalized" in details["degraded_normalization_repairs"]
+
+
+def test_state_repair_does_not_rewrite_unrelated_schema_enum():
+    unrelated_schema = {
+        "type": "object",
+        "properties": {"state": {"type": "string", "enum": ["open", "closed"]}},
+        "required": ["state"],
+    }
+
+    with pytest.raises(Exception):
+        _parse_and_validate_response_with_details(
+            '{"state":"clear"}',
+            unrelated_schema,
+            allow_degraded_normalization=True,
+        )
+
+
 def test_schema_validation_omission_does_not_request_retry():
     with pytest.raises(Exception) as exc_info:
         _parse_and_validate_response_with_details(
@@ -123,12 +181,12 @@ def test_schema_validation_omission_does_not_request_retry():
     assert _should_retry_structured_output_error(exc_info.value) is False
 
 
-def test_vision_gate_skips_confirmation_only_strong_text():
+def test_vision_gate_skips_direct_figure_context_alone_for_strong_non_visual_text():
     reasons = decide_vision_trigger_reasons(
         state=ProposalState.found,
         support=SupportLabel.direct_evidence,
         quotes=[{"text": "HEK293T cells were used."}],
-        retrieval=_retrieval("paragraph"),
+        retrieval=_retrieval("caption"),
         needs_more_evidence=False,
         proposed_value="HEK293T",
         column_name="Cell line",
@@ -136,6 +194,38 @@ def test_vision_gate_skips_confirmation_only_strong_text():
     )
 
     assert reasons == []
+
+
+def test_vision_gate_keeps_direct_figure_context_when_text_is_weak():
+    reasons = decide_vision_trigger_reasons(
+        state=ProposalState.found,
+        support=SupportLabel.weak_evidence,
+        quotes=[],
+        retrieval=_retrieval("caption"),
+        needs_more_evidence=False,
+        proposed_value="HEK293T",
+        column_name="Cell line",
+        column_description="Cell line used in the paper",
+    )
+
+    assert "text_weak" in reasons
+    assert "direct_figure_context" in reasons
+
+
+def test_vision_gate_keeps_visual_request_even_with_strong_text():
+    reasons = decide_vision_trigger_reasons(
+        state=ProposalState.found,
+        support=SupportLabel.direct_evidence,
+        quotes=[{"text": "Figure 1 contains UMAP plots."}],
+        retrieval=_retrieval("figure"),
+        needs_more_evidence=False,
+        proposed_value="4",
+        column_name="Number of UMAP plot panels",
+        column_description="How many UMAP plot panels are visible in Figure 1?",
+    )
+
+    assert "visual_request" in reasons
+    assert "direct_figure_context" in reasons
 
 
 def test_vision_gate_keeps_visual_weak_cells_active():
@@ -153,6 +243,22 @@ def test_vision_gate_keeps_visual_weak_cells_active():
     assert "text_unclear" in reasons
     assert "direct_figure_context" in reasons
     assert "visual_request" in reasons
+
+
+def test_figure_planner_prompt_discourages_non_visual_confirmation():
+    messages = build_figure_planner_prompt(
+        column_name="Cell line",
+        column_description="Cell line used in the paper",
+        row_context={},
+        proposed_value="HEK293T",
+        rationale="The retrieved snippet directly states HEK293T cells were used.",
+        retrieval=_retrieval("caption"),
+        figures=[],
+    )
+    prompt_text = "\n".join(str(message.get("content")) for message in messages)
+
+    assert "Do not request vision for non-visual fields" in prompt_text
+    assert "text or caption snippets already answer" in prompt_text
 
 
 @pytest.mark.asyncio

@@ -565,6 +565,10 @@ def test_compare_report_surfaces_trust_notes_for_degraded_candidates(monkeypatch
                 "vision_model_call_count": 0.0 if degraded else 1.0,
                 "figure_review_suppressed_count": 2.0 if degraded else 0.0,
                 "figure_derived_evidence_count": 0.0 if degraded else 1.0,
+                "figure_planner_attempt_count": 3.0 if degraded else 2.0,
+                "figure_planner_success_count": 2.0 if degraded else 2.0,
+                "figure_planner_skipped_count": 1.0 if degraded else 0.0,
+                "figure_planner_fallback_count": 1.0 if degraded else 0.0,
                 "recall_rescue_skipped_count": 2.0 if degraded else 0.0,
                 "whole_document_skipped_count": 1.0 if degraded else 0.0,
             },
@@ -612,6 +616,8 @@ def test_compare_report_surfaces_trust_notes_for_degraded_candidates(monkeypatch
         assert "evidence_outcomes" in report_html
         assert "judge_batches" in report_html
         assert "Capability Use and Suppression" in report_html
+        assert "planner=" in report_html
+        assert "planner/cell=" in report_html
         assert "Figure review was triggered" in report_html
         assert "Recall rescue was eligible but skipped" in report_html
         assert "Dual-judge comparison was not recorded" not in report_html
