@@ -219,6 +219,7 @@ class RunSummary(BaseModel):
     parser_cache_dir: Optional[str] = None
     parse_cache_hit_count: int = 0
     parse_cache_miss_count: int = 0
+    parse_cache_rejected_count: int = 0
     eval_artifacts: Optional[dict] = None
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
@@ -281,6 +282,7 @@ class ReviewerSummary(BaseModel):
     parser_cache_dir: Optional[str] = None
     parse_cache_hit_count: int = 0
     parse_cache_miss_count: int = 0
+    parse_cache_rejected_count: int = 0
     eval_artifacts: Optional[dict] = None
     extraction_contract_valid: bool = False
     extraction_contract_warnings: list[str] = []

@@ -398,11 +398,17 @@ class TestPDFiumBackend:
     def test_render_crop_returns_png_bytes(self):
         backend = PDFiumBackend(PAPER_2)
         w, h = backend.page_size(0)
-        # Crop a small region from the top-left
+        # PDF bbox coordinates use a bottom-left origin.
         bbox = [0.0, 0.0, w * 0.3, h * 0.2]
         crop = backend.render_crop(0, bbox, scale=1.0)
         assert isinstance(crop, bytes)
         assert crop[:4] == b"\x89PNG"
+        backend.close()
+
+    def test_render_crop_rejects_invalid_bbox(self):
+        backend = PDFiumBackend(PAPER_2)
+        with pytest.raises(ValueError):
+            backend.render_crop(0, [100000.0, 10.0, 100001.0, 20.0], scale=1.0)
         backend.close()
 
 

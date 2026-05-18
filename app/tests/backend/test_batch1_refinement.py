@@ -132,8 +132,16 @@ def _minimal_png_bytes() -> bytes:
         payload = struct.pack(">I", len(data)) + tag + data
         return payload + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
 
-    ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
-    idat = zlib.compress(b"\x00\xFF\xFF\xFF")
+    width = height = 150
+    rows = []
+    for y in range(height):
+        row = bytearray([0])
+        for x in range(width):
+            value = 255 if (x // 10 + y // 10) % 2 == 0 else 80
+            row.extend([value, value, value])
+        rows.append(bytes(row))
+    ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+    idat = zlib.compress(b"".join(rows))
     return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", idat) + chunk(b"IEND", b"")
 
 

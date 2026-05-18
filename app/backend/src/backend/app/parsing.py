@@ -322,8 +322,8 @@ class PDFiumBackend:
         y0_raw, y1_raw = sorted((bbox[1], bbox[3]))
 
         x0 = max(0.0, x0_raw - padding)
-        y0 = max(0.0, y0_raw - padding)
         x1 = min(width, x1_raw + padding)
+        y0 = max(0.0, y0_raw - padding)
         y1 = min(height, y1_raw + padding)
 
         if x1 <= x0 or y1 <= y0:
@@ -335,11 +335,13 @@ class PDFiumBackend:
             may_draw_forms=False,
         )
         pil_image = bitmap.to_pil()
+        # PDF coordinates use a bottom-left origin; PIL crop coordinates use
+        # a top-left origin. Convert only the y axis here.
         crop_box = (
             int(round(x0 * scale)),
-            int(round(y0 * scale)),
+            int(round((height - y1) * scale)),
             int(round(x1 * scale)),
-            int(round(y1 * scale)),
+            int(round((height - y0) * scale)),
         )
         pil_image = pil_image.crop(crop_box)
         buf = io.BytesIO()

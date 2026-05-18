@@ -186,6 +186,16 @@ class FigureReviewHit(BaseModel):
 
 
 @dataclass
+class FigureImageSelection:
+    image_b64: Optional[str]
+    image_source: Optional[str]
+    image_path: Optional[str]
+    failure_reason: Optional[str]
+    crop_quality: Optional[str]
+    fallback_reason: Optional[str]
+
+
+@dataclass
 class FigureReference:
     reference_text: str
     figure_numbers: list[int]
@@ -1368,19 +1378,120 @@ def build_figure_shortlist(
     return shortlist[:max_figures]
 
 
-def _load_figure_image_b64(figure: dict, run_dir: pathlib.Path) -> Optional[str]:
-    """Load a figure crop as base64 PNG, if the crop file exists."""
-    crop_path = figure.get("crop_path")
-    if not crop_path:
+def _looks_like_explicit_figure_request(column_name: str, column_description: str) -> bool:
+    text = f"{column_name} {column_description}"
+    return bool(re.search(r"\b(?:fig(?:ure)?\.?|extended data fig(?:ure)?\.?)\s*\d+\b", text, flags=re.IGNORECASE))
+
+
+def _resolve_artifact_path(run_dir: pathlib.Path, artifact_path: Optional[str]) -> Optional[pathlib.Path]:
+    if not artifact_path:
         return None
-    full_path = run_dir / crop_path if not pathlib.Path(crop_path).is_absolute() else pathlib.Path(crop_path)
-    if full_path.exists():
-        try:
-            with open(full_path, "rb") as f:
-                return base64.b64encode(f.read()).decode("ascii")
-        except Exception:
-            return None
-    return None
+    path = pathlib.Path(artifact_path)
+    return path if path.is_absolute() else run_dir / path
+
+
+def _display_artifact_path(run_dir: pathlib.Path, path: pathlib.Path) -> str:
+    try:
+        return str(path.relative_to(run_dir)).replace("\\", "/")
+    except ValueError:
+        return str(path)
+
+
+def _encode_image_file_b64(path: pathlib.Path) -> Optional[str]:
+    try:
+        with open(path, "rb") as f:
+            return base64.b64encode(f.read()).decode("ascii")
+    except Exception:
+        return None
+
+
+def _assess_crop_quality(path: pathlib.Path) -> tuple[bool, str]:
+    try:
+        from PIL import Image, ImageStat
+
+        with Image.open(path) as image:
+            width, height = image.size
+            if width < 120 or height < 120:
+                return False, "too_small"
+            grayscale = image.convert("L")
+            stat = ImageStat.Stat(grayscale)
+            extrema = grayscale.getextrema()
+            variance = float(stat.var[0] if stat.var else 0.0)
+            if extrema[1] - extrema[0] < 10 or variance < 8.0:
+                return False, "mostly_blank"
+    except Exception:
+        return False, "unreadable"
+    return True, "ok"
+
+
+def _select_figure_image(
+    figure: dict,
+    run_dir: pathlib.Path,
+    *,
+    column_name: str,
+    column_description: str,
+) -> FigureImageSelection:
+    """Select the image sent to vision for a figure review attempt."""
+    crop_path = _resolve_artifact_path(run_dir, figure.get("crop_path"))
+    full_page_path = _resolve_artifact_path(run_dir, figure.get("full_page_path"))
+    full_page_exists = bool(full_page_path and full_page_path.exists())
+
+    if _looks_like_explicit_figure_request(column_name, column_description) and full_page_exists and full_page_path:
+        image_b64 = _encode_image_file_b64(full_page_path)
+        if image_b64:
+            return FigureImageSelection(
+                image_b64=image_b64,
+                image_source="full_page_preferred",
+                image_path=_display_artifact_path(run_dir, full_page_path),
+                failure_reason=None,
+                crop_quality="not_checked",
+                fallback_reason="explicit_figure_request",
+            )
+
+    fallback_reason: Optional[str] = None
+    crop_quality: Optional[str] = None
+    if crop_path is None:
+        fallback_reason = "missing_crop_path"
+    elif not crop_path.exists():
+        fallback_reason = "missing_figure_crop"
+    else:
+        crop_ok, crop_quality = _assess_crop_quality(crop_path)
+        if crop_ok:
+            image_b64 = _encode_image_file_b64(crop_path)
+            if image_b64:
+                return FigureImageSelection(
+                    image_b64=image_b64,
+                    image_source="crop",
+                    image_path=_display_artifact_path(run_dir, crop_path),
+                    failure_reason=None,
+                    crop_quality=crop_quality,
+                    fallback_reason=None,
+                )
+            fallback_reason = "crop_read_failed"
+            crop_quality = "unreadable"
+        else:
+            fallback_reason = f"suspicious_crop_{crop_quality}"
+
+    if full_page_exists and full_page_path:
+        image_b64 = _encode_image_file_b64(full_page_path)
+        if image_b64:
+            return FigureImageSelection(
+                image_b64=image_b64,
+                image_source="full_page_fallback",
+                image_path=_display_artifact_path(run_dir, full_page_path),
+                failure_reason=None,
+                crop_quality=crop_quality,
+                fallback_reason=fallback_reason,
+            )
+
+    return FigureImageSelection(
+        image_b64=None,
+        image_source=None,
+        image_path=None,
+        failure_reason=fallback_reason or "missing_figure_image",
+        crop_quality=crop_quality,
+        fallback_reason=fallback_reason,
+    )
 
 
 def _normalize_value_for_compare(value: Optional[str]) -> str:
@@ -1497,16 +1608,24 @@ async def run_figure_review(
         caption = figure.get("caption_text", "")
         nearby_text = candidate.nearby_context_excerpt or _find_nearby_text(fig_id, doc_dict)
 
-        # Load figure crop image
-        image_b64 = _load_figure_image_b64(figure, run_dir)
-        if image_b64 is None:
+        image_selection = _select_figure_image(
+            figure,
+            run_dir,
+            column_name=column_name,
+            column_description=column_description,
+        )
+        if image_selection.image_b64 is None:
             if attempt_diagnostics is not None:
                 attempt_diagnostics.append(
                     {
                         "figure_id": fig_id,
                         "attempted": False,
                         "succeeded": False,
-                        "failure_reason": "missing_figure_crop",
+                        "failure_reason": image_selection.failure_reason or "missing_figure_image",
+                        "image_source": image_selection.image_source,
+                        "image_path": image_selection.image_path,
+                        "crop_quality": image_selection.crop_quality,
+                        "fallback_reason": image_selection.fallback_reason,
                     }
                 )
             continue
@@ -1531,7 +1650,7 @@ async def run_figure_review(
                 messages=messages,
                 response_schema=VISION_EXTRACTION_SCHEMA,
                 model_id=vision_model_id,
-                image_b64=image_b64,
+                image_b64=image_selection.image_b64,
             )
             if attempt_diagnostics is not None:
                 attempt_diagnostics.append(
@@ -1540,6 +1659,10 @@ async def run_figure_review(
                         "attempted": True,
                         "succeeded": True,
                         "failure_reason": None,
+                        "image_source": image_selection.image_source,
+                        "image_path": image_selection.image_path,
+                        "crop_quality": image_selection.crop_quality,
+                        "fallback_reason": image_selection.fallback_reason,
                     }
                 )
             fig_state = result.get("state", "unclear")
@@ -1610,6 +1733,10 @@ async def run_figure_review(
                         "succeeded": False,
                         "failure_reason": type(exc).__name__,
                         "failure_message": str(exc)[:240],
+                        "image_source": image_selection.image_source,
+                        "image_path": image_selection.image_path,
+                        "crop_quality": image_selection.crop_quality,
+                        "fallback_reason": image_selection.fallback_reason,
                     }
                 )
             # Single figure failure does not abort the rest (T052)

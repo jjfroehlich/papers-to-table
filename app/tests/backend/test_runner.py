@@ -31,7 +31,7 @@ from backend.app.artifacts import (
 from backend.app.extraction import EvidenceRecord, ProposalRecord, load_proposals, persist_evidence, persist_proposal
 from backend.app import runner as runner_module
 from backend.app.config import RunConfig
-from backend.app.runner import _parse_cache_key, get_initial_run_data, run_pipeline
+from backend.app.runner import _load_cached_parse_bundle, _parse_cache_key, get_initial_run_data, run_pipeline
 from backend.app.ids import generate_proposal_id
 from backend.app.matching import MatchResult
 from backend.app.schemas import EvidenceSourceType, MatchOutcome, ProposalState, RunStatus, SupportLabel
@@ -157,6 +157,155 @@ class TestParseCacheKey:
         updated = _parse_cache_key(config, str(pdf_path))
 
         assert baseline != updated
+
+    def test_changes_when_parse_cache_format_version_changes(self, tmp_path, monkeypatch):
+        config = make_config(tmp_path)
+        pdf_path = tmp_path / "paper.pdf"
+        pdf_path.write_bytes(b"%PDF-1.4\n%stub")
+
+        monkeypatch.setattr(runner_module, "hash_file", lambda path: "same-pdf-hash")
+        monkeypatch.setattr(
+            runner_module,
+            "_parse_runtime_fingerprint",
+            lambda config: {"python_version": "3.11.9", "package_versions": {"pypdfium2": "4.30.0"}},
+        )
+        baseline = _parse_cache_key(config, str(pdf_path))
+
+        monkeypatch.setattr(runner_module, "_PARSE_CACHE_FORMAT_VERSION", "parse_cache.test_version")
+        updated = _parse_cache_key(config, str(pdf_path))
+
+        assert baseline != updated
+
+    def test_load_cached_parse_bundle_rejects_missing_figure_assets(self, tmp_path):
+        cache_root = tmp_path / "cache"
+        run_dir = tmp_path / "run"
+        cache_key = "cache_key"
+        pdf_id = "paper"
+        source_dir = cache_root / cache_key / "parsed" / pdf_id
+        source_dir.mkdir(parents=True)
+        write_json(
+            source_dir / "parsed_document.json",
+            {
+                "parsed_document_contract_version": "parsed_document.v1",
+                "pdf_id": pdf_id,
+                "pdf_path": "paper.pdf",
+                "metadata": {},
+                "pages": [],
+                "blocks": [],
+                "figures": [
+                    {
+                        "figure_id": "fig1",
+                        "page_number": 1,
+                        "bbox": [0, 0, 10, 10],
+                        "crop_path": f"parsed/{pdf_id}/figures/missing.png",
+                        "full_page_path": None,
+                    }
+                ],
+                "tables": [],
+                "full_text": "",
+                "normalized_text": "",
+                "configured_parser": "pypdfium2",
+                "parser_used": "pypdfium2",
+                "fallback_used": False,
+                "ocr_used": False,
+                "parse_warnings": [],
+                "parsed_at": "2026-04-01T00:00:00+00:00",
+            },
+        )
+        write_json(
+            source_dir / "diagnostics.json",
+            {
+                "parser_diagnostics_contract_version": "parser_diagnostics.v1",
+                "pdf_id": pdf_id,
+                "configured_parser": "pypdfium2",
+                "actual_parser_used": "pypdfium2",
+                "fallback_used": False,
+                "ocr_used": False,
+                "page_count": 0,
+                "block_count": 0,
+                "figure_count": 1,
+                "table_count": 0,
+                "warnings": [],
+                "errors": [],
+                "parsed_at": "2026-04-01T00:00:00+00:00",
+            },
+        )
+
+        result = _load_cached_parse_bundle(
+            cache_root=cache_root,
+            cache_key=cache_key,
+            run_dir=run_dir,
+            pdf_id=pdf_id,
+        )
+
+        assert result is not None
+        assert result[3] == "missing_figure_assets"
+        assert not (run_dir / "parsed" / pdf_id).exists()
+
+    def test_load_cached_parse_bundle_accepts_missing_crop_when_full_page_exists(self, tmp_path):
+        cache_root = tmp_path / "cache"
+        run_dir = tmp_path / "run"
+        cache_key = "cache_key"
+        pdf_id = "paper"
+        source_dir = cache_root / cache_key / "parsed" / pdf_id
+        page_dir = source_dir / "pages"
+        page_dir.mkdir(parents=True)
+        (page_dir / "page_0001.png").write_bytes(b"png")
+        doc_payload = {
+            "parsed_document_contract_version": "parsed_document.v1",
+            "pdf_id": pdf_id,
+            "pdf_path": "paper.pdf",
+            "metadata": {},
+            "pages": [],
+            "blocks": [],
+            "figures": [
+                {
+                    "figure_id": "fig1",
+                    "page_number": 1,
+                    "bbox": [0, 0, 10, 10],
+                    "crop_path": f"parsed/{pdf_id}/figures/missing.png",
+                    "full_page_path": f"parsed/{pdf_id}/pages/page_0001.png",
+                }
+            ],
+            "tables": [],
+            "full_text": "",
+            "normalized_text": "",
+            "configured_parser": "pypdfium2",
+            "parser_used": "pypdfium2",
+            "fallback_used": False,
+            "ocr_used": False,
+            "parse_warnings": [],
+            "parsed_at": "2026-04-01T00:00:00+00:00",
+        }
+        diagnostics_payload = {
+            "parser_diagnostics_contract_version": "parser_diagnostics.v1",
+            "pdf_id": pdf_id,
+            "configured_parser": "pypdfium2",
+            "actual_parser_used": "pypdfium2",
+            "fallback_used": False,
+            "ocr_used": False,
+            "page_count": 0,
+            "block_count": 0,
+            "figure_count": 1,
+            "table_count": 0,
+            "warnings": [],
+            "errors": [],
+            "parsed_at": "2026-04-01T00:00:00+00:00",
+        }
+        write_json(source_dir / "parsed_document.json", doc_payload)
+        write_json(source_dir / "diagnostics.json", diagnostics_payload)
+
+        result = _load_cached_parse_bundle(
+            cache_root=cache_root,
+            cache_key=cache_key,
+            run_dir=run_dir,
+            pdf_id=pdf_id,
+        )
+
+        assert result is not None
+        assert result[0] == doc_payload
+        assert result[3] is None
+        assert (run_dir / "parsed" / pdf_id / "pages" / "page_0001.png").exists()
 
 
 class TestRunPipeline:

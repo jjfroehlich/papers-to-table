@@ -183,6 +183,7 @@ def _build_output_payload(
         payload["parser_cache_dir"] = run_data.get("parser_cache_dir")
         payload["parse_cache_hit_count"] = int(run_data.get("parse_cache_hit_count", 0) or 0)
         payload["parse_cache_miss_count"] = int(run_data.get("parse_cache_miss_count", 0) or 0)
+        payload["parse_cache_rejected_count"] = int(run_data.get("parse_cache_rejected_count", 0) or 0)
         payload["parse_repair_used"] = bool(run_data.get("parse_repair_used", False))
         payload["extraction_contract_valid"] = bool(
             run_data.get("extraction_contract_valid", False)
@@ -215,6 +216,7 @@ def _build_output_payload(
             "parser_cache_dir": run_data.get("parser_cache_dir"),
             "parse_cache_hit_count": int(run_data.get("parse_cache_hit_count", 0) or 0),
             "parse_cache_miss_count": int(run_data.get("parse_cache_miss_count", 0) or 0),
+            "parse_cache_rejected_count": int(run_data.get("parse_cache_rejected_count", 0) or 0),
             "parse_repair_used": bool(run_data.get("parse_repair_used", False)),
             "extraction_contract_valid": bool(
                 run_data.get("extraction_contract_valid", False)

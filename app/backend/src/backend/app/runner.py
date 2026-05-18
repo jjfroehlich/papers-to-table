@@ -83,7 +83,7 @@ _STAGE_TIMING_KEYS = {
     "style_profiles": "stage_style_profiles_ms",
     "extraction": "stage_extraction_ms",
 }
-_PARSE_CACHE_FORMAT_VERSION = "parse_cache.v2"
+_PARSE_CACHE_FORMAT_VERSION = "parse_cache.v3"
 _RETRIEVAL_CHUNK_TYPES = (
     "paragraph",
     "section",
@@ -249,13 +249,32 @@ def _parse_cache_paths(cache_root: pathlib.Path, cache_key: str) -> tuple[pathli
     return entry_dir, parsed_dir
 
 
+def _cached_artifact_exists(run_dir: pathlib.Path, artifact_path: object) -> bool:
+    if not isinstance(artifact_path, str) or not artifact_path:
+        return False
+    path = pathlib.Path(artifact_path)
+    resolved = path if path.is_absolute() else run_dir / path
+    return resolved.exists()
+
+
+def _validate_cached_parse_bundle_assets(doc: dict, run_dir: pathlib.Path) -> str | None:
+    for figure in doc.get("figures", []) if isinstance(doc.get("figures"), list) else []:
+        if not isinstance(figure, dict):
+            continue
+        crop_path = figure.get("crop_path")
+        full_page_path = figure.get("full_page_path")
+        if crop_path and not _cached_artifact_exists(run_dir, crop_path) and not _cached_artifact_exists(run_dir, full_page_path):
+            return "missing_figure_assets"
+    return None
+
+
 def _load_cached_parse_bundle(
     *,
     cache_root: pathlib.Path,
     cache_key: str,
     run_dir: pathlib.Path,
     pdf_id: str,
-) -> tuple[dict, dict, list[str]] | None:
+) -> tuple[dict | None, dict | None, list[str], str | None] | None:
     entry_dir, parsed_dir = _parse_cache_paths(cache_root, cache_key)
     source_dir = get_parsed_dir_from_base(parsed_dir, pdf_id)
     parsed_document_path = source_dir / "parsed_document.json"
@@ -268,12 +287,16 @@ def _load_cached_parse_bundle(
     shutil.copytree(source_dir, target_dir)
     doc = read_json(target_dir / "parsed_document.json")
     diagnostics = read_json(target_dir / "diagnostics.json")
+    rejection_reason = _validate_cached_parse_bundle_assets(doc, run_dir)
+    if rejection_reason is not None:
+        shutil.rmtree(target_dir, ignore_errors=True)
+        return None, None, [], rejection_reason
     pages_dir = target_dir / "pages"
     page_paths = [
         _relative_run_path(run_dir, path)
         for path in sorted(pages_dir.glob("page_*.png"))
     ]
-    return doc, diagnostics, page_paths
+    return doc, diagnostics, page_paths, None
 
 
 def _store_parse_bundle_in_cache(
@@ -434,6 +457,7 @@ def get_initial_run_data(
         ),
         "parse_cache_hit_count": 0,
         "parse_cache_miss_count": 0,
+        "parse_cache_rejected_count": 0,
         "eval_artifacts": None,
         "provider_readiness_error": None,
         "started_at": None,
@@ -503,6 +527,7 @@ async def run_pipeline(
             "parse_warnings": 0,
             "parse_cache_hit_count": 0,
             "parse_cache_miss_count": 0,
+            "parse_cache_rejected_count": 0,
             "matched_pdfs": 0,
             "unmatched_pdfs": 0,
             "ambiguous_pdfs": 0,
@@ -1087,6 +1112,7 @@ async def run_pipeline(
                 "parser_cache_dir": data.get("parser_cache_dir"),
                 "parse_cache_hit_count": int(data.get("parse_cache_hit_count", 0) or 0),
                 "parse_cache_miss_count": int(data.get("parse_cache_miss_count", 0) or 0),
+                "parse_cache_rejected_count": int(data.get("parse_cache_rejected_count", 0) or 0),
                 "eval_artifacts": data.get("eval_artifacts"),
                 "extraction_contract_valid": bool(data.get("extraction_contract_valid", False)),
                 "extraction_contract_warnings": data.get("extraction_contract_warnings", []),
@@ -1715,8 +1741,17 @@ async def run_pipeline(
                         run_dir=run_dir,
                         pdf_id=pdf_id,
                     )
+                cache_rejection_reason = None
                 if cached_bundle is not None:
-                    doc_payload, diagnostics_payload, _page_paths = cached_bundle
+                    doc_payload, diagnostics_payload, _page_paths, cache_rejection_reason = cached_bundle
+                    if cache_rejection_reason is not None:
+                        cached_bundle = None
+                        run_data["parse_cache_rejected_count"] = int(run_data.get("parse_cache_rejected_count", 0) or 0) + 1
+                        run_stats["counters"]["parse_cache_rejected_count"] = int(run_stats["counters"].get("parse_cache_rejected_count", 0) or 0) + 1
+                        pdf_stats["parse_cache_rejected"] = True
+                        pdf_stats["parse_cache_rejection_reason"] = cache_rejection_reason
+                if cached_bundle is not None:
+                    doc_payload, diagnostics_payload, _page_paths, _cache_rejection_reason = cached_bundle
                     doc = ParsedDocument.model_validate(doc_payload)
                     diagnostics = ParserDiagnostics.model_validate(diagnostics_payload)
                     run_data["parse_cache_hit_count"] = int(run_data.get("parse_cache_hit_count", 0) or 0) + 1
@@ -1736,6 +1771,7 @@ async def run_pipeline(
                     run_data["parse_cache_miss_count"] = int(run_data.get("parse_cache_miss_count", 0) or 0) + 1
                     run_stats["counters"]["parse_cache_miss_count"] = int(run_stats["counters"].get("parse_cache_miss_count", 0) or 0) + 1
                     pdf_stats["parse_cache_hit"] = False
+                    pdf_stats.setdefault("parse_cache_rejected", False)
                     if parse_cache_root is not None and cache_key is not None:
                         _store_parse_bundle_in_cache(
                             cache_root=parse_cache_root,
@@ -2293,6 +2329,7 @@ async def run_pipeline(
                 "parser_cache_dir": run_data.get("parser_cache_dir"),
                 "parse_cache_hit_count": int(run_data.get("parse_cache_hit_count", 0) or 0),
                 "parse_cache_miss_count": int(run_data.get("parse_cache_miss_count", 0) or 0),
+                "parse_cache_rejected_count": int(run_data.get("parse_cache_rejected_count", 0) or 0),
                 "eval_artifacts": run_data.get("eval_artifacts"),
                 "extraction_contract_valid": bool(run_data.get("extraction_contract_valid", False)),
                 "extraction_contract_warnings": run_data.get("extraction_contract_warnings", []),

@@ -7,7 +7,7 @@
       "This local preset keeps the structured-output-eligible local models from the latest LM Studio probe so model-comparison runs do not spend time on candidates that will be rejected before scoring.",
       "Prompt and retrieval settings are frozen so the text-model comparison is easier to interpret while figure review stays enabled to exercise vision support.",
       "The dev suite aggregates all three checked-in benchmark datasets so the model comparison reflects the broader paper mix rather than only MPRA.",
-      "Includes the May 2026 requested Gemma, Qwen, and Unsloth model IDs; report labels preserve provider prefixes so similarly named models remain distinguishable."
+      "Includes the May 2026 development model shortlist; report labels preserve provider prefixes so similarly named models remain distinguishable."
     ]
   },
   "baseline_candidate": {
@@ -61,22 +61,6 @@
     },
     {
       "prompt_bundle_id": "default",
-      "text_model_id": "unsloth/gemma-4-26b-a4b-it",
-      "vision_model_id": "unsloth/gemma-4-26b-a4b-it",
-      "optimizer_knobs": {
-        "retrieval_mode": "hybrid_experimental",
-        "retrieval_top_k": 12,
-        "recall_rescue_enabled": false,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "parser_allow_basic_fallback": true,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": true
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
       "text_model_id": "mistralai/ministral-3-14b-reasoning",
       "vision_model_id": "mistralai/ministral-3-14b-reasoning",
       "optimizer_knobs": {
@@ -93,56 +77,8 @@
     },
     {
       "prompt_bundle_id": "default",
-      "text_model_id": "unsloth/qwen3.6-27b",
-      "vision_model_id": "unsloth/qwen3.6-27b",
-      "optimizer_knobs": {
-        "retrieval_mode": "hybrid_experimental",
-        "retrieval_top_k": 12,
-        "recall_rescue_enabled": false,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "parser_allow_basic_fallback": true,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": true
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
       "text_model_id": "zai-org/glm-4.6v-flash",
       "vision_model_id": "zai-org/glm-4.6v-flash",
-      "optimizer_knobs": {
-        "retrieval_mode": "hybrid_experimental",
-        "retrieval_top_k": 12,
-        "recall_rescue_enabled": false,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "parser_allow_basic_fallback": true,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": true
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "unsloth/qwen3.6-35b-a3b",
-      "vision_model_id": "unsloth/qwen3.6-35b-a3b",
-      "optimizer_knobs": {
-        "retrieval_mode": "hybrid_experimental",
-        "retrieval_top_k": 12,
-        "recall_rescue_enabled": false,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "parser_allow_basic_fallback": true,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": true
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "qwen/qwen3.6-35b-a3b",
-      "vision_model_id": "qwen/qwen3.6-35b-a3b",
       "optimizer_knobs": {
         "retrieval_mode": "hybrid_experimental",
         "retrieval_top_k": 12,
@@ -178,23 +114,15 @@
     ],
     "text_model_ids": [
       "google/gemma-4-e4b",
-      "unsloth/gemma-4-26b-a4b-it",
       "openai/gpt-oss-20b",
       "mistralai/ministral-3-14b-reasoning",
-      "unsloth/qwen3.6-27b",
       "zai-org/glm-4.6v-flash",
-      "unsloth/qwen3.6-35b-a3b",
-      "qwen/qwen3.6-35b-a3b",
       "qwen/qwen3.6-27b"
     ],
     "vision_model_ids": [
       "google/gemma-4-e4b",
-      "unsloth/gemma-4-26b-a4b-it",
       "mistralai/ministral-3-14b-reasoning",
-      "unsloth/qwen3.6-27b",
       "zai-org/glm-4.6v-flash",
-      "unsloth/qwen3.6-35b-a3b",
-      "qwen/qwen3.6-35b-a3b",
       "qwen/qwen3.6-27b"
     ],
     "numeric_knobs": {

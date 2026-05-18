@@ -204,8 +204,16 @@ def _minimal_png_bytes() -> bytes:
         c = struct.pack(">I", len(data)) + tag + data
         return c + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
 
-    ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
-    idat = zlib.compress(b"\x00\xFF\xFF\xFF")
+    width = height = 150
+    rows = []
+    for y in range(height):
+        row = bytearray([0])
+        for x in range(width):
+            value = 255 if (x // 10 + y // 10) % 2 == 0 else 80
+            row.extend([value, value, value])
+        rows.append(bytes(row))
+    ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+    idat = zlib.compress(b"".join(rows))
     return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", idat) + chunk(b"IEND", b"")
 
 
@@ -2147,6 +2155,117 @@ class TestFigureReview:
         )
         # Should have been called with the bone ingrowth figure
         assert provider.vision_complete_structured.called
+
+    def test_select_figure_image_uses_crop_when_valid(self, run_dir: pathlib.Path, minimal_doc_dict: dict):
+        from backend.app.extraction import _select_figure_image
+
+        crop_path = run_dir / "valid_crop.png"
+        crop_path.write_bytes(_minimal_png_bytes())
+        figure = {**minimal_doc_dict["figures"][0], "crop_path": str(crop_path)}
+
+        selected = _select_figure_image(
+            figure,
+            run_dir,
+            column_name="Bone volume fraction",
+            column_description="BVF measurement from CT",
+        )
+
+        assert selected.image_b64
+        assert selected.image_source == "crop"
+        assert selected.crop_quality == "ok"
+
+    def test_select_figure_image_falls_back_to_full_page_for_missing_crop(
+        self, run_dir: pathlib.Path, minimal_doc_dict: dict
+    ):
+        from backend.app.extraction import _select_figure_image
+
+        page_path = run_dir / "page.png"
+        page_path.write_bytes(_minimal_png_bytes())
+        figure = {
+            **minimal_doc_dict["figures"][0],
+            "crop_path": str(run_dir / "missing_crop.png"),
+            "full_page_path": str(page_path),
+        }
+
+        selected = _select_figure_image(
+            figure,
+            run_dir,
+            column_name="Bone volume fraction",
+            column_description="BVF measurement from CT",
+        )
+
+        assert selected.image_b64
+        assert selected.image_source == "full_page_fallback"
+        assert selected.fallback_reason == "missing_figure_crop"
+
+    def test_select_figure_image_prefers_full_page_for_explicit_figure_request(
+        self, run_dir: pathlib.Path, minimal_doc_dict: dict
+    ):
+        from backend.app.extraction import _select_figure_image
+
+        crop_path = run_dir / "crop.png"
+        page_path = run_dir / "page.png"
+        crop_path.write_bytes(_minimal_png_bytes())
+        page_path.write_bytes(_minimal_png_bytes())
+        figure = {
+            **minimal_doc_dict["figures"][0],
+            "crop_path": str(crop_path),
+            "full_page_path": str(page_path),
+        }
+
+        selected = _select_figure_image(
+            figure,
+            run_dir,
+            column_name="Number of bar-chart panels in Figure 3",
+            column_description="Count panels in Figure 3 that are bar charts.",
+        )
+
+        assert selected.image_source == "full_page_preferred"
+        assert selected.fallback_reason == "explicit_figure_request"
+        assert selected.image_path == "page.png"
+
+    async def test_figure_review_missing_crop_uses_full_page_fallback(
+        self, run_dir: pathlib.Path, minimal_doc_dict: dict
+    ):
+        from backend.app.extraction import run_figure_review
+
+        page_path = run_dir / "page_fallback.png"
+        page_path.write_bytes(_minimal_png_bytes())
+        doc_with_page = dict(minimal_doc_dict)
+        doc_with_page["figures"] = [
+            {
+                **minimal_doc_dict["figures"][0],
+                "crop_path": str(run_dir / "missing_crop.png"),
+                "full_page_path": str(page_path),
+            }
+        ]
+        attempts: list[dict] = []
+        provider = AsyncMock()
+        provider.vision_complete_structured = AsyncMock(return_value={
+            "proposed_value": "45.3%",
+            "state": "found",
+            "rationale": "- Figure shows 45.3% bone volume.",
+            "figure_description": "Bar chart showing BVF values",
+            "caption_relevant": True,
+        })
+
+        await run_figure_review(
+            proposal_id="prop_fallback",
+            run_id="run_test",
+            pdf_id="paper_test",
+            column_name="Bone volume fraction",
+            column_description="BVF measurement from CT",
+            doc_dict=doc_with_page,
+            run_dir=run_dir,
+            provider=provider,
+            vision_model_id="vision-model",
+            attempt_diagnostics=attempts,
+        )
+
+        assert provider.vision_complete_structured.called
+        assert attempts[0]["attempted"] is True
+        assert attempts[0]["image_source"] == "full_page_fallback"
+        assert attempts[0]["fallback_reason"] == "missing_figure_crop"
 
     async def test_figure_evidence_supports_any_field_type(
         self, run_dir: pathlib.Path, minimal_doc_dict: dict
