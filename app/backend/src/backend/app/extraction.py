@@ -706,6 +706,12 @@ def build_figure_extraction_prompt(
         user_content = f"{user_content.rstrip()}\n\n{reference_block}"
     if section_block and section_block not in user_content:
         user_content = f"{user_content.rstrip()}\n\n{section_block}"
+    required_value_instruction = (
+        "If state is 'found' or 'inferred', proposed_value must contain the extracted answer itself. "
+        "Do not leave proposed_value null, blank, or filled with a placeholder when returning found/inferred."
+    )
+    if required_value_instruction not in user_content:
+        user_content = f"{user_content.rstrip()}\n\n{required_value_instruction}"
 
     return [
         {

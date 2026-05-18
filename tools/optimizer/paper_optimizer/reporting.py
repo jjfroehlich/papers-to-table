@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import base64
 import csv
+import ast
+import json
 import os
 import re
 from datetime import datetime
@@ -81,6 +83,28 @@ def is_missing(value: Any) -> bool:
     if isinstance(value, str) and value.strip() in {"", "None", "null"}:
         return True
     return False
+
+
+def _parse_counter_mapping(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str) and value.strip():
+        for parser in (json.loads, ast.literal_eval):
+            try:
+                parsed = parser(value)
+            except Exception:
+                continue
+            if isinstance(parsed, dict):
+                return parsed
+    return {}
+
+
+def _counter_value(row: dict[str, Any], key: str) -> Any:
+    direct = first_present(row, [key, f"diagnostic.{key}"])
+    if direct is not None:
+        return direct
+    counters = _parse_counter_mapping(first_present(row, ["run_stats_counters", "runtime.run_stats_counters"]))
+    return counters.get(key)
 
 
 def first_present(mapping: dict[str, Any], keys: list[str]) -> Any:
@@ -351,20 +375,21 @@ def normalize_candidate_row(row: dict[str, Any], *, primary_metric: str | None =
         "eval_summary_path": first_present(row, ["eval_summary_path"]),
         "provider_request_counts": first_present(row, ["provider_request_counts", "runtime.provider_request_counts"]),
         "run_stats_counters": first_present(row, ["run_stats_counters", "runtime.run_stats_counters"]),
-        "vision_model_call_count": safe_int(first_present(row, ["vision_model_call_count", "diagnostic.vision_model_call_count"])),
-        "figure_review_triggered_count": safe_int(first_present(row, ["figure_review_triggered_count", "diagnostic.figure_review_triggered_count"])),
-        "figure_review_suppressed_count": safe_int(first_present(row, ["figure_review_suppressed_count", "diagnostic.figure_review_suppressed_count"])),
-        "figure_review_failed_count": safe_int(first_present(row, ["figure_review_failed_count", "diagnostic.figure_review_failed_count"])),
-        "figure_derived_evidence_count": safe_int(first_present(row, ["figure_derived_evidence_count", "diagnostic.figure_derived_evidence_count"])),
-        "figure_planner_attempt_count": safe_int(first_present(row, ["figure_planner_attempt_count", "diagnostic.figure_planner_attempt_count"])),
-        "figure_planner_success_count": safe_int(first_present(row, ["figure_planner_success_count", "diagnostic.figure_planner_success_count"])),
-        "figure_planner_skipped_count": safe_int(first_present(row, ["figure_planner_skipped_count", "diagnostic.figure_planner_skipped_count"])),
-        "figure_planner_fallback_count": safe_int(first_present(row, ["figure_planner_fallback_count", "diagnostic.figure_planner_fallback_count"])),
-        "structured_output_repair_count": safe_int(first_present(row, ["structured_output_repair_count", "diagnostic.structured_output_repair_count"])),
-        "structured_output_retry_count": safe_int(first_present(row, ["structured_output_retry_count", "diagnostic.structured_output_retry_count"])),
-        "candidate_selection_figure_override_blocked_count": safe_int(first_present(row, ["candidate_selection_figure_override_blocked_count", "diagnostic.candidate_selection_figure_override_blocked_count"])),
-        "recall_rescue_skipped_count": safe_int(first_present(row, ["recall_rescue_skipped_count", "diagnostic.recall_rescue_skipped_count"])),
-        "whole_document_skipped_count": safe_int(first_present(row, ["whole_document_skipped_count", "diagnostic.whole_document_skipped_count"])),
+        "vision_model_call_count": safe_int(_counter_value(row, "vision_model_call_count")),
+        "figure_review_triggered_count": safe_int(_counter_value(row, "figure_review_triggered_count")),
+        "figure_review_suppressed_count": safe_int(_counter_value(row, "figure_review_suppressed_count")),
+        "figure_review_failed_count": safe_int(_counter_value(row, "figure_review_failed_count")),
+        "figure_review_succeeded_without_hit_count": safe_int(_counter_value(row, "figure_review_succeeded_without_hit_count")),
+        "figure_derived_evidence_count": safe_int(_counter_value(row, "figure_derived_evidence_count")),
+        "figure_planner_attempt_count": safe_int(_counter_value(row, "figure_planner_attempt_count")),
+        "figure_planner_success_count": safe_int(_counter_value(row, "figure_planner_success_count")),
+        "figure_planner_skipped_count": safe_int(_counter_value(row, "figure_planner_skipped_count")),
+        "figure_planner_fallback_count": safe_int(_counter_value(row, "figure_planner_fallback_count")),
+        "structured_output_repair_count": safe_int(_counter_value(row, "structured_output_repair_count")),
+        "structured_output_retry_count": safe_int(_counter_value(row, "structured_output_retry_count")),
+        "candidate_selection_figure_override_blocked_count": safe_int(_counter_value(row, "candidate_selection_figure_override_blocked_count")),
+        "recall_rescue_skipped_count": safe_int(_counter_value(row, "recall_rescue_skipped_count")),
+        "whole_document_skipped_count": safe_int(_counter_value(row, "whole_document_skipped_count")),
     }
     planner_attempts = normalized.get("figure_planner_attempt_count")
     scored_cells = normalized.get("scored_cell_count")

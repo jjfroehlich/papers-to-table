@@ -16,5 +16,6 @@ Analyze the figure image and decide whether it supports the requested field.
 3. If the value must be read from a graph, extract it only when the visual basis is clear; set numeric_value_form='approximate' or 'range' honestly.
 4. If the figure supports direction or category but not an exact number, preserve that form rather than inventing precision.
 5. Return state='unclear' when the figure is ambiguous, the relevant panel cannot be identified, or the evidence appears to describe a different context.
-6. Never use schema wording, type hints, blank-value conventions, or examples as evidence.
-7. Return ONLY valid JSON matching the schema.
+6. If state is 'found' or 'inferred', proposed_value must contain the extracted answer itself. Do not leave proposed_value null, blank, or filled with a placeholder when returning found/inferred.
+7. Never use schema wording, type hints, blank-value conventions, or examples as evidence.
+8. Return ONLY valid JSON matching the schema.

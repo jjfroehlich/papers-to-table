@@ -208,6 +208,7 @@ def _row_counters(row: dict[str, Any]) -> dict[str, Any]:
         "figure_review_triggered_count",
         "figure_review_suppressed_count",
         "figure_review_failed_count",
+        "figure_review_succeeded_without_hit_count",
         "figure_derived_evidence_count",
         "figure_planner_attempt_count",
         "figure_planner_success_count",
@@ -244,6 +245,7 @@ def _build_capability_cards(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             f"vision_triggered={display_text(counters.get('figure_review_triggered_count'), missing='0')}; "
             f"vision_suppressed={display_text(counters.get('figure_review_suppressed_count'), missing='0')}; "
             f"vision_failed={display_text(counters.get('figure_review_failed_count'), missing='0')}; "
+            f"vision_no_hit={display_text(counters.get('figure_review_succeeded_without_hit_count'), missing='0')}; "
             f"figure_evidence={display_text(counters.get('figure_derived_evidence_count'), missing='0')}; "
             f"planner={display_text(counters.get('figure_planner_success_count'), missing='0')}/{display_text(counters.get('figure_planner_attempt_count'), missing='0')}; "
             f"planner_skipped={display_text(counters.get('figure_planner_skipped_count'), missing='0')}; "

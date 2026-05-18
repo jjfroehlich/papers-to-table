@@ -463,6 +463,8 @@ class TestRunPipeline:
         assert counters["needs_more_evidence_count"] == 1
         assert counters["recall_rescue_used_count"] == 1
         assert counters["figure_review_triggered_count"] == 1
+        assert counters["figure_review_succeeded_without_hit_count"] == 2
+        assert stats["per_run"]["figure_review_roi"]["succeeded_without_hit_count"] == 2
         assert counters["cells_per_pdf"] == {"paper_1": 1}
         assert counters["chunk_count_total"] == 6
         assert counters["chunk_count_by_type"]["paragraph"] == 2
@@ -1362,7 +1364,12 @@ async def _fake_extract_cell_with_metrics(**kwargs):
                     "outcomes": {"success": 2},
                 },
                 "retrieval_diagnostics": {"classification": "reasoning_gap"},
-                "figure_review_diagnostics": {"triggered": True, "useful": True, "rescued_value": False},
+                "figure_review_diagnostics": {
+                    "triggered": True,
+                    "useful": True,
+                    "rescued_value": False,
+                    "succeeded_without_hit_count": 2,
+                },
                 "figure_review_triggered": True,
                 "figure_review_useful": True,
                 "figure_review_rescued": False,
@@ -1386,7 +1393,12 @@ async def _fake_extract_cell_with_metrics(**kwargs):
         needs_more_evidence=True,
         recall_rescue_used=True,
         whole_document_used=False,
-        figure_review_diagnostics={"triggered": True, "useful": True, "rescued_value": False},
+        figure_review_diagnostics={
+            "triggered": True,
+            "useful": True,
+            "rescued_value": False,
+            "succeeded_without_hit_count": 2,
+        },
         created_at=datetime.now(timezone.utc).isoformat(),
     )
     persist_proposal(kwargs["run_dir"], proposal)

@@ -28,6 +28,7 @@ $section_block
 4. Use state='inferred' for clear visual reading, simple unit conversion, or normalization from visible/stated values.
 5. Use state='unclear' if the figure is only generally related, the panel/category is ambiguous, or the value is not visible enough to verify.
 6. Preserve approximate/range semantics and avoid false precision.
-7. Never use schema wording, type hints, blank-value conventions, or examples as evidence.
-8. Return ONLY valid JSON matching the schema.
+7. If state is 'found' or 'inferred', proposed_value must contain the extracted answer itself. Do not leave proposed_value null, blank, or filled with a placeholder when returning found/inferred.
+8. Never use schema wording, type hints, blank-value conventions, or examples as evidence.
+9. Return ONLY valid JSON matching the schema.
 </figure_protocol>

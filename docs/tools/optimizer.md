@@ -232,7 +232,7 @@ The reported counters include:
 - candidate-selection attempts, value changes, and blocked figure-over-text overrides
 - recall-rescue and whole-document eligibility, use, and skips
 
-Main-app run stats also include `figure_review_roi` diagnostics grouped by image source (`crop`, `full_page_fallback`, `full_page_preferred`), fallback reason, failure reason, and trigger reason. Use these counters to decide whether a slow run is dominated by full-page images, avoidable retries, broad vision triggers, or failed image delivery.
+Main-app run stats also include `figure_review_roi` diagnostics grouped by image source (`crop`, `full_page_fallback`, `full_page_preferred`), fallback reason, failure reason, and trigger reason. The ROI block also reports `succeeded_without_hit_count`, which counts successful vision calls that did not produce usable figure evidence. Use these counters to decide whether a slow run is dominated by full-page images, avoidable retries, broad vision triggers, failed image delivery, or vision responses that need better answer formatting.
 
 The external table must use stable `row_id` values matching the benchmark gold table. Wide format uses one row per paper and one column per field; long format uses `row_id,column_name,proposed_value`.
 

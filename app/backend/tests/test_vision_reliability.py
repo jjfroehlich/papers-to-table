@@ -8,6 +8,7 @@ import pytest
 
 from backend.app.extraction import (
     VISION_EXTRACTION_SCHEMA,
+    build_figure_extraction_prompt,
     build_figure_planner_prompt,
     decide_vision_trigger_reasons,
     run_figure_review,
@@ -281,6 +282,19 @@ def test_figure_planner_prompt_discourages_non_visual_confirmation():
 
     assert "Do not request vision for non-visual fields" in prompt_text
     assert "text or caption snippets already answer" in prompt_text
+
+
+def test_figure_extraction_prompt_requires_value_for_found_or_inferred():
+    messages = build_figure_extraction_prompt(
+        column_name="Number of plot panels",
+        column_description="Count visible plot panels.",
+        caption_text="Figure 1. Plot panels.",
+        nearby_text=None,
+    )
+    prompt_text = "\n".join(str(message.get("content")) for message in messages)
+
+    assert "If state is 'found' or 'inferred'" in prompt_text
+    assert "proposed_value must contain the extracted answer" in prompt_text
 
 
 @pytest.mark.asyncio

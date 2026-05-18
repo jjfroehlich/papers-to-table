@@ -547,6 +547,7 @@ async def run_pipeline(
             "figure_review_useful_cells": 0,
             "figure_review_rescue_cells": 0,
             "figure_review_hits_total": 0,
+            "figure_review_succeeded_without_hit_count": 0,
             "figure_planner_attempt_count": 0,
             "figure_planner_success_count": 0,
             "figure_planner_skipped_count": 0,
@@ -788,6 +789,11 @@ async def run_pipeline(
             if isinstance(cell.get("figure_review_diagnostics"), dict)
             and bool(cell["figure_review_diagnostics"].get("suppressed"))
         )
+        figure_review_succeeded_without_hit_count = sum(
+            int(cell["figure_review_diagnostics"].get("succeeded_without_hit_count", 0) or 0)
+            for cell in per_cell
+            if isinstance(cell.get("figure_review_diagnostics"), dict)
+        )
         candidate_selection_attempt_count = sum(int(cell.get("candidate_selection_calls", 0) or 0) for cell in per_cell)
         candidate_selection_value_change_count = sum(1 for cell in per_cell if bool(cell.get("candidate_selection_value_changed")))
         structured_output_repair_count = sum(
@@ -933,6 +939,7 @@ async def run_pipeline(
         counters["figure_review_succeeded_count"] = figure_review_succeeded_count
         counters["figure_review_failed_count"] = figure_review_failed_count
         counters["figure_review_suppressed_count"] = figure_review_suppressed_count
+        counters["figure_review_succeeded_without_hit_count"] = figure_review_succeeded_without_hit_count
         counters["figure_planner_attempt_count"] = figure_planner_attempt_count
         counters["figure_planner_success_count"] = figure_planner_success_count
         counters["figure_planner_skipped_count"] = figure_planner_skipped_count
@@ -2334,6 +2341,9 @@ async def run_pipeline(
             "useful_cells": int(run_stats["counters"].get("figure_review_useful_cells", 0) or 0),
             "rescue_cells": int(run_stats["counters"].get("figure_review_rescue_cells", 0) or 0),
             "hits_total": int(run_stats["counters"].get("figure_review_hits_total", 0) or 0),
+            "succeeded_without_hit_count": int(
+                run_stats["counters"].get("figure_review_succeeded_without_hit_count", 0) or 0
+            ),
             "total_ms": figure_review_total_ms,
             "avg_ms_per_triggered_cell": round(figure_review_total_ms / triggered_cells, 3) if triggered_cells else 0.0,
             "image_source_counts": image_source_counts,
