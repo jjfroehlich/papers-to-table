@@ -152,6 +152,7 @@ class ProposalRecord(BaseModel):
     provider_diagnostics: Optional[dict] = None
     retrieval_diagnostics: Optional[dict] = None
     figure_review_diagnostics: Optional[dict] = None
+    figure_planner_diagnostics: Optional[dict] = None
     extraction_lane: str = "content"
     failure_attribution: Optional[str] = None
     fallback_reasons: list[str] = []
@@ -183,6 +184,25 @@ class FigureReviewHit(BaseModel):
     rationale: Optional[str] = None
     numeric_value_form: Optional[NumericValueForm] = None
     evidence: EvidenceRecord
+
+
+class FigurePlannerTarget(BaseModel):
+    figure_ref: str
+    preferred_image: str = "crop"
+    reason: Optional[str] = None
+
+
+class FigurePlannerDecision(BaseModel):
+    attempted: bool = False
+    succeeded: bool = False
+    needs_vision: bool = False
+    target_figures: list[FigurePlannerTarget] = Field(default_factory=list)
+    rejected_figures: list[dict] = Field(default_factory=list)
+    vision_question: Optional[str] = None
+    planner_confidence: Optional[str] = None
+    skip_reason: Optional[str] = None
+    fallback_to_heuristic_shortlist: bool = False
+    failure_reason: Optional[str] = None
 
 
 @dataclass
@@ -375,7 +395,7 @@ VISION_EXTRACTION_SCHEMA = {
             "description": "What the figure shows that supports the value.",
         },
         "caption_relevant": {
-            "type": "boolean",
+            "type": ["boolean", "null"],
             "description": "Whether the figure caption directly supports the value.",
         },
     },
@@ -385,7 +405,47 @@ VISION_EXTRACTION_SCHEMA = {
         "rationale",
         "numeric_value_form",
         "figure_description",
-        "caption_relevant",
+    ],
+}
+
+FIGURE_PLANNER_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "needs_vision": {"type": "boolean"},
+        "target_figures": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "figure_ref": {"type": "string"},
+                    "preferred_image": {"type": "string", "enum": ["crop", "full_page"]},
+                    "reason": {"type": ["string", "null"]},
+                },
+                "required": ["figure_ref", "preferred_image", "reason"],
+            },
+        },
+        "rejected_figures": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "figure_ref": {"type": "string"},
+                    "reason": {"type": ["string", "null"]},
+                },
+                "required": ["figure_ref", "reason"],
+            },
+        },
+        "vision_question": {"type": ["string", "null"]},
+        "planner_confidence": {"type": "string", "enum": ["high", "medium", "low"]},
+        "skip_reason": {"type": ["string", "null"]},
+    },
+    "required": [
+        "needs_vision",
+        "target_figures",
+        "rejected_figures",
+        "vision_question",
+        "planner_confidence",
+        "skip_reason",
     ],
 }
 
@@ -681,7 +741,89 @@ def build_candidate_selection_prompt(
     return [
         {
             "role": "system",
-            "content": "Return JSON only. Compare generic text, recovered, rescued, and figure candidates against the column contract.",
+            "content": (
+                "Return JSON only. Compare generic text, recovered, rescued, and figure candidates against the column contract. "
+                "Do not select a figure-derived candidate over strong direct text evidence unless the figure candidate directly "
+                "answers the requested field. Reject candidates that are related but answer a different semantic question."
+            ),
+        },
+        {"role": "user", "content": user},
+    ]
+
+
+def _build_compact_figure_catalog(figures: list[dict], max_items: int = 40) -> list[dict]:
+    catalog: list[dict] = []
+    for figure in figures[:max_items]:
+        catalog.append(
+            {
+                "figure_ref": figure.get("figure_id"),
+                "page": figure.get("page_number"),
+                "caption": str(figure.get("caption_text") or "")[:700],
+                "section_context": figure.get("section_context"),
+                "crop_available": bool(figure.get("crop_path")),
+                "full_page_available": bool(figure.get("full_page_path")),
+            }
+        )
+    return catalog
+
+
+def _build_retrieved_snippet_payload(retrieval: Optional[RetrievalResult], max_items: int = 10) -> list[dict]:
+    if retrieval is None:
+        return []
+    snippets: list[dict] = []
+    for chunk in retrieval.chunks[:max_items]:
+        snippets.append(
+            {
+                "chunk_type": chunk.chunk_type,
+                "figure_ref": chunk.figure_ref,
+                "page": chunk.page_number,
+                "text": str(chunk.display_text or "")[:500],
+            }
+        )
+    return snippets
+
+
+def build_figure_planner_prompt(
+    *,
+    column_name: str,
+    column_description: str,
+    row_context: dict,
+    proposed_value: Optional[str],
+    rationale: Optional[str],
+    retrieval: Optional[RetrievalResult],
+    figures: list[dict],
+) -> list[dict]:
+    row_lines = []
+    for key in ("Title", "Authors", "Publication Year"):
+        if row_context.get(key):
+            row_lines.append(f"- {key}: {row_context[key]}")
+    payload = {
+        "column_name": column_name,
+        "column_description": column_description,
+        "row_context": row_lines,
+        "first_pass": {
+            "proposed_value": proposed_value,
+            "rationale": rationale,
+        },
+        "retrieved_snippets": _build_retrieved_snippet_payload(retrieval),
+        "figure_catalog": _build_compact_figure_catalog(figures),
+    }
+    user = (
+        "Decide whether image-based figure review is needed for this table cell. "
+        "If it is needed, choose the most relevant available figures to inspect. "
+        "Select figures that directly answer the cell request; do not select figures merely because they share a related keyword. "
+        "Use full_page when the request depends on layout, panel counting, or full-figure context; otherwise prefer crop. "
+        "Select at most two figures. Return JSON only.\n\n"
+        f"Planning payload JSON:\n{json.dumps(payload, ensure_ascii=False, indent=2)}"
+    )
+    return [
+        {
+            "role": "system",
+            "content": (
+                "You are a generic figure-review planner for scientific table extraction. "
+                "You choose whether vision is needed and which figures should be inspected. "
+                "Do not invent figure refs; use only figure_ref values from the catalog."
+            ),
         },
         {"role": "user", "content": user},
     ]
@@ -1378,6 +1520,96 @@ def build_figure_shortlist(
     return shortlist[:max_figures]
 
 
+async def run_figure_planner(
+    *,
+    provider: ProviderAdapter,
+    text_model_id: str,
+    column_name: str,
+    column_description: str,
+    row_context: dict,
+    proposed_value: Optional[str],
+    rationale: Optional[str],
+    retrieval: Optional[RetrievalResult],
+    figures: list[dict],
+    max_figures: int,
+) -> FigurePlannerDecision:
+    if not figures:
+        return FigurePlannerDecision(attempted=False, skip_reason="no_figures")
+    messages = build_figure_planner_prompt(
+        column_name=column_name,
+        column_description=column_description,
+        row_context=row_context,
+        proposed_value=proposed_value,
+        rationale=rationale,
+        retrieval=retrieval,
+        figures=figures,
+    )
+    result = await provider.chat_complete_structured(
+        messages=messages,
+        response_schema=FIGURE_PLANNER_SCHEMA,
+        model_id=text_model_id,
+        max_tokens=1400,
+    )
+    valid_refs = {str(figure.get("figure_id")) for figure in figures if figure.get("figure_id")}
+    targets: list[FigurePlannerTarget] = []
+    for raw_target in result.get("target_figures") or []:
+        ref = str(raw_target.get("figure_ref") or "")
+        if ref not in valid_refs:
+            continue
+        preferred = str(raw_target.get("preferred_image") or "crop")
+        if preferred not in {"crop", "full_page"}:
+            preferred = "crop"
+        targets.append(
+            FigurePlannerTarget(
+                figure_ref=ref,
+                preferred_image=preferred,
+                reason=raw_target.get("reason"),
+            )
+        )
+        if len(targets) >= max_figures:
+            break
+    return FigurePlannerDecision(
+        attempted=True,
+        succeeded=True,
+        needs_vision=bool(result.get("needs_vision")),
+        target_figures=targets,
+        rejected_figures=list(result.get("rejected_figures") or []),
+        vision_question=result.get("vision_question"),
+        planner_confidence=result.get("planner_confidence"),
+        skip_reason=result.get("skip_reason") if not targets else None,
+        fallback_to_heuristic_shortlist=bool(result.get("needs_vision")) and not targets,
+    )
+
+
+def _shortlist_from_planner(
+    *,
+    planner_decision: FigurePlannerDecision,
+    figures: list[dict],
+    retrieval: Optional[RetrievalResult],
+    doc_dict: dict,
+) -> list[FigureShortlistCandidate]:
+    if not planner_decision.target_figures:
+        return []
+    figure_by_id = {str(figure.get("figure_id")): figure for figure in figures if figure.get("figure_id")}
+    selected: list[FigureShortlistCandidate] = []
+    for target in planner_decision.target_figures:
+        figure = figure_by_id.get(target.figure_ref)
+        if not figure:
+            continue
+        candidate = _score_figure_candidate(
+            figure=figure,
+            column_name="",
+            column_description="",
+            retrieval=retrieval,
+            doc_dict=doc_dict,
+        )
+        candidate.rationale = [f"planner_selected={target.preferred_image}"]
+        if target.reason:
+            candidate.rationale.append(str(target.reason)[:240])
+        selected.append(candidate)
+    return selected
+
+
 def _looks_like_explicit_figure_request(column_name: str, column_description: str) -> bool:
     text = f"{column_name} {column_description}"
     return bool(re.search(r"\b(?:fig(?:ure)?\.?|extended data fig(?:ure)?\.?)\s*\d+\b", text, flags=re.IGNORECASE))
@@ -1430,13 +1662,26 @@ def _select_figure_image(
     *,
     column_name: str,
     column_description: str,
+    preferred_image: Optional[str] = None,
 ) -> FigureImageSelection:
     """Select the image sent to vision for a figure review attempt."""
     crop_path = _resolve_artifact_path(run_dir, figure.get("crop_path"))
     full_page_path = _resolve_artifact_path(run_dir, figure.get("full_page_path"))
     full_page_exists = bool(full_page_path and full_page_path.exists())
 
-    if _looks_like_explicit_figure_request(column_name, column_description) and full_page_exists and full_page_path:
+    if preferred_image == "full_page" and full_page_exists and full_page_path:
+        image_b64 = _encode_image_file_b64(full_page_path)
+        if image_b64:
+            return FigureImageSelection(
+                image_b64=image_b64,
+                image_source="full_page_preferred",
+                image_path=_display_artifact_path(run_dir, full_page_path),
+                failure_reason=None,
+                crop_quality="not_checked",
+                fallback_reason="planner_preferred_full_page",
+            )
+
+    if preferred_image is None and _looks_like_explicit_figure_request(column_name, column_description) and full_page_exists and full_page_path:
         image_b64 = _encode_image_file_b64(full_page_path)
         if image_b64:
             return FigureImageSelection(
@@ -1569,13 +1814,21 @@ async def run_figure_review(
     doc_dict: dict,
     run_dir: pathlib.Path,
     provider: ProviderAdapter,
+    text_model_id: Optional[str],
     vision_model_id: str,
+    row_context: Optional[dict] = None,
     retrieval: Optional[RetrievalResult] = None,
     current_proposed_value: Optional[str] = None,
+    current_rationale: Optional[str] = None,
     field_type: Optional[SchemaFieldType] = None,
     allowed_values: Optional[list[str]] = None,
     trigger_reasons: Optional[list[str]] = None,
     max_figures: int = 5,
+    max_calls: Optional[int] = None,
+    max_retries: int = 1,
+    planner_enabled: bool = False,
+    max_planner_calls: int = 1,
+    planner_diagnostics: Optional[dict] = None,
     prompt_bundle_name: Optional[str] = None,
     prompt_bundle_path: Optional[str] = None,
     attempt_diagnostics: Optional[list[dict]] = None,
@@ -1589,20 +1842,69 @@ async def run_figure_review(
     if not figures:
         return []
 
-    shortlist = build_figure_shortlist(
+    planner_decision = FigurePlannerDecision(attempted=False, skip_reason="disabled")
+    if planner_enabled and max_planner_calls > 0 and text_model_id:
+        try:
+            planner_decision = await run_figure_planner(
+                provider=provider,
+                text_model_id=text_model_id,
+                column_name=column_name,
+                column_description=column_description,
+                row_context=row_context or {},
+                proposed_value=current_proposed_value,
+                rationale=current_rationale,
+                retrieval=retrieval,
+                figures=figures,
+                max_figures=max_figures,
+            )
+        except Exception as exc:
+            planner_decision = FigurePlannerDecision(
+                attempted=True,
+                succeeded=False,
+                needs_vision=True,
+                fallback_to_heuristic_shortlist=True,
+                failure_reason=type(exc).__name__,
+            )
+    if planner_diagnostics is not None:
+        planner_diagnostics.update(planner_decision.model_dump(mode="json"))
+
+    if (
+        planner_decision.attempted
+        and planner_decision.succeeded
+        and not planner_decision.needs_vision
+        and not planner_decision.fallback_to_heuristic_shortlist
+    ):
+        return []
+
+    planner_preferred_by_ref = {
+        target.figure_ref: target.preferred_image for target in planner_decision.target_figures
+    }
+    shortlist = _shortlist_from_planner(
+        planner_decision=planner_decision,
         figures=figures,
-        column_name=column_name,
-        column_description=column_description,
         retrieval=retrieval,
         doc_dict=doc_dict,
-        max_figures=max_figures,
     )
+    if not shortlist:
+        if planner_diagnostics is not None and planner_decision.attempted:
+            planner_diagnostics["fallback_to_heuristic_shortlist"] = True
+        shortlist = build_figure_shortlist(
+            figures=figures,
+            column_name=column_name,
+            column_description=column_description,
+            retrieval=retrieval,
+            doc_dict=doc_dict,
+            max_figures=max_figures,
+        )
     if not shortlist:
         return []
 
     figure_hits: list[FigureReviewHit] = []
 
+    calls_attempted = 0
     for candidate in shortlist:
+        if max_calls is not None and calls_attempted >= max_calls:
+            break
         figure = candidate.figure
         fig_id = figure.get("figure_id", "unknown")
         caption = figure.get("caption_text", "")
@@ -1613,6 +1915,7 @@ async def run_figure_review(
             run_dir,
             column_name=column_name,
             column_description=column_description,
+            preferred_image=planner_preferred_by_ref.get(str(fig_id)),
         )
         if image_selection.image_b64 is None:
             if attempt_diagnostics is not None:
@@ -1646,11 +1949,13 @@ async def run_figure_review(
         )
 
         try:
+            calls_attempted += 1
             result = await provider.vision_complete_structured(
                 messages=messages,
                 response_schema=VISION_EXTRACTION_SCHEMA,
                 model_id=vision_model_id,
                 image_b64=image_selection.image_b64,
+                retry_malformed_structured_response=max_retries > 0,
             )
             if attempt_diagnostics is not None:
                 attempt_diagnostics.append(
@@ -1785,6 +2090,22 @@ def _retrieval_looks_figure_promising(retrieval: Optional[RetrievalResult]) -> b
     return False
 
 
+def _retrieval_has_direct_figure_context(retrieval: Optional[RetrievalResult]) -> bool:
+    if retrieval is None:
+        return False
+    return any(chunk.chunk_type in {"caption", "figure"} for chunk in retrieval.chunks[:8])
+
+
+def _cell_request_looks_visual(column_name: str, column_description: str) -> bool:
+    text = f"{column_name} {column_description}".lower()
+    return bool(
+        re.search(
+            r"\b(figure|fig\.?|panel|plot|chart|graph|schematic|image|microscopy|visual|spatial map|heatmap|umap)\b",
+            text,
+        )
+    )
+
+
 def _has_usable_quote_payload(quotes: list[dict]) -> bool:
     return any(str(quote.get("text") or "").strip() for quote in quotes)
 
@@ -1838,19 +2159,21 @@ def decide_vision_trigger_reasons(
     retrieval: Optional[RetrievalResult],
     needs_more_evidence: bool,
     proposed_value: Optional[str],
+    column_name: str = "",
+    column_description: str = "",
 ) -> list[str]:
     reasons: list[str] = []
     if state == ProposalState.unclear:
         reasons.append("text_unclear")
     if support == SupportLabel.weak_evidence or needs_more_evidence:
         reasons.append("text_weak")
-    if support == SupportLabel.inferred_from_evidence and state == ProposalState.found:
-        reasons.append("confirmation_useful")
     if _has_numeric_conflict_in_quotes(quotes):
         reasons.append("text_contradictory")
-    if _retrieval_looks_figure_promising(retrieval):
-        reasons.append("figure_graph_promising")
-    if proposed_value is None and _retrieval_looks_figure_promising(retrieval):
+    if _retrieval_has_direct_figure_context(retrieval):
+        reasons.append("direct_figure_context")
+    if _cell_request_looks_visual(column_name, column_description) and _retrieval_looks_figure_promising(retrieval):
+        reasons.append("visual_request")
+    if proposed_value is None and _retrieval_has_direct_figure_context(retrieval):
         reasons.append("figure_rescue_candidate")
     # Stable order + dedupe
     ordered: list[str] = []
@@ -1979,6 +2302,10 @@ async def extract_cell(
     provider_mode_str: str = "unknown",
     artifact_context: Optional[dict] = None,
     max_figures_for_review: int = 5,
+    max_figure_review_calls_per_cell: Optional[int] = None,
+    max_figure_review_retries_per_cell: int = 1,
+    figure_planner_enabled: bool = True,
+    max_figure_planner_calls_per_cell: int = 1,
     skip_figure_review_when_prompt_only_degraded: bool = False,
     candidate_selection_enabled: bool = True,
     max_candidate_selection_calls_per_cell: int = 1,
@@ -2024,6 +2351,7 @@ async def extract_cell(
     candidate_selection_value_changed = False
     candidate_answers_payload: Optional[list[dict]] = None
     selection_diagnostics: Optional[dict] = None
+    figure_planner_diagnostics: Optional[dict] = None
     provider_diag_cursor = _get_provider_diagnostics_cursor(provider)
     provider_diag_summary: Optional[dict] = None
     retrieval_diag_summary: Optional[dict] = None
@@ -2059,9 +2387,11 @@ async def extract_cell(
                 "figure_review_failed": any(bool(item.get("attempted")) and not bool(item.get("succeeded")) for item in figure_attempts),
                 "candidate_selection_calls": candidate_selection_calls,
                 "candidate_selection_value_changed": candidate_selection_value_changed,
+                "selection_diagnostics": selection_diagnostics,
                 "provider_diagnostics": provider_diag_summary,
                 "retrieval_diagnostics": retrieval_diag_summary,
                 "figure_review_diagnostics": figure_review_diag_summary,
+                "figure_planner_diagnostics": figure_planner_diagnostics,
             }
         )
         if proposal is not None:
@@ -2621,6 +2951,8 @@ async def extract_cell(
         retrieval=retrieval,
         needs_more_evidence=needs_more,
         proposed_value=proposed_value,
+        column_name=column_name,
+        column_description=column_description,
     )
     figure_review_suppressed_reason: Optional[str] = None
     figure_review_triggered = bool(doc_dict.get("figures") and vision_trigger_reasons)
@@ -2656,6 +2988,7 @@ async def extract_cell(
         ]
 
     if should_run_vision:
+        figure_planner_diagnostics = {}
         try:
             figure_review_started = perf_counter()
             figure_hits = await run_figure_review(
@@ -2667,13 +3000,21 @@ async def extract_cell(
                 doc_dict=doc_dict,
                 run_dir=run_dir,
                 provider=provider,
+                text_model_id=text_model_id,
                 vision_model_id=vision_model_id,
+                row_context=row_context,
                 retrieval=retrieval,
                 current_proposed_value=proposed_value,
+                current_rationale=rationale,
                 field_type=field_type,
                 allowed_values=allowed_values,
                 trigger_reasons=vision_trigger_reasons,
                 max_figures=max_figures_for_review,
+                max_calls=max_figure_review_calls_per_cell,
+                max_retries=max_figure_review_retries_per_cell,
+                planner_enabled=figure_planner_enabled,
+                max_planner_calls=max_figure_planner_calls_per_cell,
+                planner_diagnostics=figure_planner_diagnostics,
                 prompt_bundle_name=prompt_bundle_name,
                 prompt_bundle_path=prompt_bundle_path,
                 attempt_diagnostics=figure_attempts,
@@ -2822,6 +3163,10 @@ async def extract_cell(
         )
     ):
         previous_value = proposed_value
+        pre_selection_state = state
+        pre_selection_rationale = rationale
+        pre_selection_numeric_value_form = numeric_value_form
+        pre_selection_ranked_evidence = list(ranked_evidence)
         try:
             selection_started = perf_counter()
             selection_result = await run_candidate_selection(
@@ -2847,6 +3192,14 @@ async def extract_cell(
                 (candidate for candidate in candidate_answers if candidate.candidate_id == selected_candidate_id),
                 None,
             )
+            conservative_figure_override_blocked = bool(
+                selected_candidate
+                and selected_candidate.source == "figure_review"
+                and previous_value
+                and not _values_match(previous_value, selected_value)
+                and support == SupportLabel.direct_evidence
+                and not _cell_request_looks_visual(column_name, column_description)
+            )
             if selected_candidate and selected_candidate.evidence_ids:
                 selected_ids = set(selected_candidate.evidence_ids)
                 ranked_evidence = sorted(
@@ -2860,6 +3213,14 @@ async def extract_cell(
                 rationale = _normalize_rationale(selection_result.get("rationale"))
             needs_more = bool(selection_result.get("needs_more_evidence"))
             candidate_selection_value_changed = _candidate_value_key(previous_value) != _candidate_value_key(proposed_value)
+            if conservative_figure_override_blocked:
+                proposed_value = previous_value
+                state = pre_selection_state
+                rationale = pre_selection_rationale
+                numeric_value_form = pre_selection_numeric_value_form
+                ranked_evidence = pre_selection_ranked_evidence
+                needs_more = False
+                candidate_selection_value_changed = False
             selection_diagnostics = {
                 "attempted": True,
                 "succeeded": True,
@@ -2867,6 +3228,7 @@ async def extract_cell(
                 "rejected_candidate_ids": list(selection_result.get("rejected_candidate_ids") or []),
                 "needs_more_evidence": needs_more,
                 "value_changed": candidate_selection_value_changed,
+                "figure_override_blocked": conservative_figure_override_blocked,
             }
         except Exception as exc:
             selection_diagnostics = {
@@ -3012,6 +3374,7 @@ async def extract_cell(
         provider_diagnostics=provider_diag_summary,
         retrieval_diagnostics=retrieval_diag_summary,
         figure_review_diagnostics=figure_review_diag_summary,
+        figure_planner_diagnostics=figure_planner_diagnostics,
         extraction_lane=(metadata_resolution.extraction_lane if metadata_resolution is not None else "content"),
         failure_attribution=failure_attribution,
         fallback_reasons=fallback_reasons,
@@ -3163,6 +3526,8 @@ def _summarize_provider_attempts(attempts: list[dict]) -> Optional[dict]:
         return None
     request_kinds: dict[str, int] = {}
     outcomes: dict[str, int] = {}
+    retry_count = 0
+    repair_count = 0
     total_duration_ms = 0.0
     last_error: Optional[dict] = None
     for attempt in attempts:
@@ -3170,6 +3535,11 @@ def _summarize_provider_attempts(attempts: list[dict]) -> Optional[dict]:
         outcome = str(attempt.get("outcome") or "unknown")
         request_kinds[request_kind] = request_kinds.get(request_kind, 0) + 1
         outcomes[outcome] = outcomes.get(outcome, 0) + 1
+        if attempt.get("phase") == "retry":
+            retry_count += 1
+        details = attempt.get("error_details")
+        if isinstance(details, dict) and details.get("degraded_normalization_used"):
+            repair_count += 1
         total_duration_ms += float(attempt.get("duration_ms", 0.0) or 0.0)
         if outcome != "success":
             last_error = {
@@ -3185,6 +3555,8 @@ def _summarize_provider_attempts(attempts: list[dict]) -> Optional[dict]:
         "total_duration_ms": round(total_duration_ms, 3),
         "request_kinds": request_kinds,
         "outcomes": outcomes,
+        "retry_count": retry_count,
+        "repair_count": repair_count,
         "last_error": last_error,
     }
 

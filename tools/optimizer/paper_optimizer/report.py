@@ -163,6 +163,10 @@ def _build_caveats(
         caveats.append("At least one candidate suppressed figure review after visual triggers.")
     if any(int(_row_counters(row).get("figure_review_failed_count", 0) or 0) > 0 for row in rows):
         caveats.append("At least one candidate had failed vision review attempts.")
+    if any(int(_row_counters(row).get("figure_planner_fallback_count", 0) or 0) > 0 for row in rows):
+        caveats.append("At least one candidate fell back from figure planner output to heuristic figure shortlisting.")
+    if any(int(_row_counters(row).get("candidate_selection_figure_override_blocked_count", 0) or 0) > 0 for row in rows):
+        caveats.append("At least one candidate blocked a figure-derived answer from overriding stronger text evidence.")
     if any(int(_row_counters(row).get("recall_rescue_skipped_count", 0) or 0) > 0 for row in rows):
         caveats.append("Recall rescue was eligible but skipped for at least one candidate.")
     if any(int(_row_counters(row).get("whole_document_skipped_count", 0) or 0) > 0 for row in rows):
@@ -205,7 +209,15 @@ def _row_counters(row: dict[str, Any]) -> dict[str, Any]:
         "figure_review_suppressed_count",
         "figure_review_failed_count",
         "figure_derived_evidence_count",
+        "figure_planner_attempt_count",
+        "figure_planner_success_count",
+        "figure_planner_skipped_count",
+        "figure_planner_fallback_count",
+        "structured_output_repair_count",
+        "structured_output_retry_count",
         "candidate_selection_attempt_count",
+        "candidate_selection_value_change_count",
+        "candidate_selection_figure_override_blocked_count",
         "recall_rescue_used_count",
         "recall_rescue_eligible_count",
         "recall_rescue_skipped_count",
@@ -233,7 +245,13 @@ def _build_capability_cards(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             f"vision_suppressed={display_text(counters.get('figure_review_suppressed_count'), missing='0')}; "
             f"vision_failed={display_text(counters.get('figure_review_failed_count'), missing='0')}; "
             f"figure_evidence={display_text(counters.get('figure_derived_evidence_count'), missing='0')}; "
+            f"planner={display_text(counters.get('figure_planner_success_count'), missing='0')}/{display_text(counters.get('figure_planner_attempt_count'), missing='0')}; "
+            f"planner_skipped={display_text(counters.get('figure_planner_skipped_count'), missing='0')}; "
+            f"planner_fallback={display_text(counters.get('figure_planner_fallback_count'), missing='0')}; "
+            f"schema_repair={display_text(counters.get('structured_output_repair_count'), missing='0')}; "
+            f"schema_retry={display_text(counters.get('structured_output_retry_count'), missing='0')}; "
             f"candidate_select={display_text(counters.get('candidate_selection_attempt_count'), missing='0')}; "
+            f"figure_override_blocked={display_text(counters.get('candidate_selection_figure_override_blocked_count'), missing='0')}; "
             f"rescue_used={display_text(counters.get('recall_rescue_used_count'), missing='0')}/{display_text(counters.get('recall_rescue_eligible_count'), missing='0')}; "
             f"whole_doc_used={display_text(counters.get('whole_document_used_count'), missing='0')}/{display_text(counters.get('whole_document_eligible_count'), missing='0')}."
         )

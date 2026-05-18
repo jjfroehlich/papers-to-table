@@ -196,6 +196,20 @@ Benchmarks can include precomputed filled tables from external software. Optimiz
 ]
 ```
 
+## Capability Diagnostics
+
+Optimizer reports include a `Capability Use and Suppression` section when run artifacts expose main-app counters. This section is intended for diagnosing expensive or skipped extraction capabilities, especially figure review.
+
+The reported counters include:
+
+- vision triggers, actual vision calls, failures, and suppressions
+- figure planner attempts, successful planner calls, planner skips, and planner fallback to heuristic shortlisting
+- figure-derived evidence count
+- candidate-selection attempts, value changes, and blocked figure-over-text overrides
+- recall-rescue and whole-document eligibility, use, and skips
+
+Main-app run stats also include `figure_review_roi` diagnostics grouped by image source (`crop`, `full_page_fallback`, `full_page_preferred`), fallback reason, failure reason, and trigger reason. Use these counters to decide whether a slow run is dominated by full-page images, avoidable retries, broad vision triggers, or failed image delivery.
+
 The external table must use stable `row_id` values matching the benchmark gold table. Wide format uses one row per paper and one column per field; long format uses `row_id,column_name,proposed_value`.
 
 Checked-in model-compare runs include external filled-table baselines from `benchmark_datasets/data/` when the corresponding files are present. These external systems are scored once in the model-compare stage and appear in the content_correctness plots as comparison. 

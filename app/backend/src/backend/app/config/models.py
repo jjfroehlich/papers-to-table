@@ -157,6 +157,11 @@ class FigureReviewConfig(BaseModel):
     enabled: bool = False
     max_figures_per_paper: int = 20
     skip_when_prompt_only_degraded: bool = False
+    planner_enabled: bool = True
+    max_planner_calls_per_cell: int = Field(default=1, ge=0)
+    max_figures_per_cell: int = Field(default=2, ge=1)
+    max_calls_per_cell: int = Field(default=2, ge=1)
+    max_retries_per_cell: int = Field(default=1, ge=0)
 
 
 class ExtractionConfig(BaseModel):

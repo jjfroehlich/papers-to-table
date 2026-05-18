@@ -356,6 +356,13 @@ def normalize_candidate_row(row: dict[str, Any], *, primary_metric: str | None =
         "figure_review_suppressed_count": safe_int(first_present(row, ["figure_review_suppressed_count", "diagnostic.figure_review_suppressed_count"])),
         "figure_review_failed_count": safe_int(first_present(row, ["figure_review_failed_count", "diagnostic.figure_review_failed_count"])),
         "figure_derived_evidence_count": safe_int(first_present(row, ["figure_derived_evidence_count", "diagnostic.figure_derived_evidence_count"])),
+        "figure_planner_attempt_count": safe_int(first_present(row, ["figure_planner_attempt_count", "diagnostic.figure_planner_attempt_count"])),
+        "figure_planner_success_count": safe_int(first_present(row, ["figure_planner_success_count", "diagnostic.figure_planner_success_count"])),
+        "figure_planner_skipped_count": safe_int(first_present(row, ["figure_planner_skipped_count", "diagnostic.figure_planner_skipped_count"])),
+        "figure_planner_fallback_count": safe_int(first_present(row, ["figure_planner_fallback_count", "diagnostic.figure_planner_fallback_count"])),
+        "structured_output_repair_count": safe_int(first_present(row, ["structured_output_repair_count", "diagnostic.structured_output_repair_count"])),
+        "structured_output_retry_count": safe_int(first_present(row, ["structured_output_retry_count", "diagnostic.structured_output_retry_count"])),
+        "candidate_selection_figure_override_blocked_count": safe_int(first_present(row, ["candidate_selection_figure_override_blocked_count", "diagnostic.candidate_selection_figure_override_blocked_count"])),
         "recall_rescue_skipped_count": safe_int(first_present(row, ["recall_rescue_skipped_count", "diagnostic.recall_rescue_skipped_count"])),
         "whole_document_skipped_count": safe_int(first_present(row, ["whole_document_skipped_count", "diagnostic.whole_document_skipped_count"])),
     }

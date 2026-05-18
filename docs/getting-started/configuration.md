@@ -71,10 +71,15 @@ The `model_id` must match the model you downloaded or loaded in LM Studio.
 - `style_profiles.enabled`: create style examples from existing values in a column, to improve the extraction prompts. Enabled by default. 
 - `figure_review.enabled`: vision-model pass over targeted figures. Enabled in the example config, disabled by the code default.
 - `figure_review.skip_when_prompt_only_degraded`: when `false`, a vision-capable model may still run with prompt-only JSON if structured vision JSON schema is unavailable. Default is `false`.
+- `figure_review.planner_enabled`: when `true`, run one generic text-only planner before figure review to decide whether vision is needed and which figure images to inspect. Default is `true`.
+- `figure_review.max_planner_calls_per_cell`: hard cap on planner calls per cell. Default is `1`.
+- `figure_review.max_figures_per_cell`: maximum shortlisted figures inspected for one cell. Default is `2`.
+- `figure_review.max_calls_per_cell`: hard cap on actual vision calls per cell. Default is `2`.
+- `figure_review.max_retries_per_cell`: intended cap for figure-review structured-output retries. Prompt-only schema issues that can be repaired locally are not retried; malformed JSON gets at most one retry.
 - `extraction.candidate_selection_enabled`: when `true`, the app can run one generic selector call if collected candidates conflict or evidence is weak. Default is `true`.
 - `extraction.max_candidate_selection_calls_per_cell`: hard cap on selector calls per cell. Default is `1`.
 
-Retrieval includes figure-level chunks built from parsed figures when available. The app does not create panel-level retrieval chunks; vision prompts inspect the selected whole-figure crop when needed.
+Retrieval includes figure-level chunks built from parsed figures when available. The app does not create panel-level retrieval chunks. Figure review uses valid crops by default, falls back to full-page images when crops are missing or suspicious, and can prefer full-page images when the planner identifies layout or panel-counting work.
 
 **Diagnostics**
 

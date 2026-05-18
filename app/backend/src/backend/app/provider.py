@@ -200,6 +200,7 @@ class ProviderAdapter(abc.ABC):
         image_b64: str,
         max_tokens: int = 2048,
         temperature: Optional[float] = None,
+        retry_malformed_structured_response: bool = True,
     ) -> dict:
         """Vision-capable structured completion. Returns parsed dict."""
         ...
@@ -475,6 +476,11 @@ def _normalize_value_for_schema(value: object, schema: dict[str, Any]) -> object
     if value is None:
         return None
 
+    if "enum" in schema and None in schema["enum"] and isinstance(value, str):
+        stripped = value.strip().lower()
+        if stripped in {"", "n/a", "na", "none", "null", "not applicable", "not_applicable"}:
+            return None
+
     if _schema_allows_type(schema, "integer") and isinstance(value, str):
         stripped = value.strip()
         if stripped.isdigit():
@@ -501,6 +507,8 @@ def _normalize_value_for_schema(value: object, schema: dict[str, Any]) -> object
                 normalized[field_name] = None
             elif _schema_allows_type(field_schema, "array"):
                 normalized[field_name] = []
+            elif _schema_allows_type(field_schema, "boolean"):
+                normalized[field_name] = False
         return normalized
 
     if isinstance(value, list) and _schema_allows_type(schema, "array"):
@@ -589,6 +597,13 @@ def _parse_and_validate_response_with_details(
 def _parse_and_validate_response(raw: str, response_schema: dict) -> dict:
     parsed, _details = _parse_and_validate_response_with_details(raw, response_schema)
     return parsed
+
+
+def _should_retry_structured_output_error(error: StructuredOutputError) -> bool:
+    details = getattr(error, "details", None)
+    if isinstance(details, dict) and details.get("failure_stage") == "schema_validation":
+        return False
+    return getattr(error, "reason", None) != "structured_backend_incompatible"
 
 
 def _classify_lm_studio_response_error(status_code: int, body_text: str) -> tuple[Optional[str], Optional[str]]:
@@ -2370,7 +2385,11 @@ class LMStudioProvider(ProviderAdapter):
                 http_status=metadata.get("http_status"),
                 raw_preview=metadata.get("raw_preview"),
                 phase="initial",
-                error_details=parse_details if self._verbose_logging else None,
+                error_details=(
+                    parse_details
+                    if self._verbose_logging or parse_details.get("degraded_normalization_used")
+                    else None
+                ),
                 payload_summary=metadata.get("payload_summary"),
             )
             self._append_trace_record(
@@ -2439,7 +2458,7 @@ class LMStudioProvider(ProviderAdapter):
                 )
             if getattr(first_error, "reason", None) == "structured_backend_incompatible":
                 raise
-            if not retry_malformed_structured_response:
+            if not retry_malformed_structured_response or not _should_retry_structured_output_error(first_error):
                 raise
             self._bump("completion_retry_attempts")
             retry_instruction = self._build_retry_instruction(
@@ -2485,7 +2504,11 @@ class LMStudioProvider(ProviderAdapter):
                 http_status=metadata.get("http_status"),
                 raw_preview=metadata.get("raw_preview"),
                 phase="retry",
-                error_details=parse_details if self._verbose_logging else None,
+                error_details=(
+                    parse_details
+                    if self._verbose_logging or parse_details.get("degraded_normalization_used")
+                    else None
+                ),
                 payload_summary=metadata.get("payload_summary"),
             )
             self._append_trace_record(
@@ -2705,6 +2728,7 @@ class LMStudioProvider(ProviderAdapter):
         image_b64: str,
         max_tokens: int = 2048,
         temperature: Optional[float] = None,
+        retry_malformed_structured_response: bool = True,
     ) -> dict:
         """Vision-capable structured completion (T055).
 
@@ -2750,6 +2774,7 @@ class LMStudioProvider(ProviderAdapter):
                         structured_mode=mode,
                         request_kind="vision_structured",
                         post_method=self._post_vision_payload,
+                        retry_malformed_structured_response=retry_malformed_structured_response,
                     )
                 except StructuredOutputError as e:
                     last_error = e
@@ -2895,7 +2920,16 @@ class CloudProviderAdapter(ProviderAdapter):
     async def chat_complete_structured(self, messages, response_schema, model_id, max_tokens=2048, temperature=0.0) -> dict:
         raise NotImplementedError("Cloud provider structured completion not implemented in MVP.")
 
-    async def vision_complete_structured(self, messages, response_schema, model_id, image_b64, max_tokens=2048, temperature=0.0) -> dict:
+    async def vision_complete_structured(
+        self,
+        messages,
+        response_schema,
+        model_id,
+        image_b64,
+        max_tokens=2048,
+        temperature=0.0,
+        retry_malformed_structured_response=True,
+    ) -> dict:
         raise NotImplementedError("Cloud provider vision completion not implemented in MVP.")
 
 

@@ -547,8 +547,15 @@ async def run_pipeline(
             "figure_review_useful_cells": 0,
             "figure_review_rescue_cells": 0,
             "figure_review_hits_total": 0,
+            "figure_planner_attempt_count": 0,
+            "figure_planner_success_count": 0,
+            "figure_planner_skipped_count": 0,
+            "figure_planner_fallback_count": 0,
+            "structured_output_repair_count": 0,
+            "structured_output_retry_count": 0,
             "candidate_selection_attempt_count": 0,
             "candidate_selection_value_change_count": 0,
+            "candidate_selection_figure_override_blocked_count": 0,
             "recall_rescue_eligible_count": 0,
             "recall_rescue_skipped_count": 0,
             "whole_document_eligible_count": 0,
@@ -783,6 +790,47 @@ async def run_pipeline(
         )
         candidate_selection_attempt_count = sum(int(cell.get("candidate_selection_calls", 0) or 0) for cell in per_cell)
         candidate_selection_value_change_count = sum(1 for cell in per_cell if bool(cell.get("candidate_selection_value_changed")))
+        structured_output_repair_count = sum(
+            int((cell.get("provider_diagnostics") or {}).get("repair_count", 0) or 0)
+            for cell in per_cell
+            if isinstance(cell.get("provider_diagnostics"), dict)
+        )
+        structured_output_retry_count = sum(
+            int((cell.get("provider_diagnostics") or {}).get("retry_count", 0) or 0)
+            for cell in per_cell
+            if isinstance(cell.get("provider_diagnostics"), dict)
+        )
+        figure_planner_attempt_count = sum(
+            1
+            for cell in per_cell
+            if isinstance(cell.get("figure_planner_diagnostics"), dict)
+            and bool(cell["figure_planner_diagnostics"].get("attempted"))
+        )
+        figure_planner_success_count = sum(
+            1
+            for cell in per_cell
+            if isinstance(cell.get("figure_planner_diagnostics"), dict)
+            and bool(cell["figure_planner_diagnostics"].get("succeeded"))
+        )
+        figure_planner_skipped_count = sum(
+            1
+            for cell in per_cell
+            if isinstance(cell.get("figure_planner_diagnostics"), dict)
+            and bool(cell["figure_planner_diagnostics"].get("attempted"))
+            and not bool(cell["figure_planner_diagnostics"].get("needs_vision"))
+        )
+        figure_planner_fallback_count = sum(
+            1
+            for cell in per_cell
+            if isinstance(cell.get("figure_planner_diagnostics"), dict)
+            and bool(cell["figure_planner_diagnostics"].get("fallback_to_heuristic_shortlist"))
+        )
+        candidate_selection_figure_override_blocked_count = sum(
+            1
+            for cell in per_cell
+            if isinstance(cell.get("selection_diagnostics"), dict)
+            and bool(cell["selection_diagnostics"].get("figure_override_blocked"))
+        )
         recall_rescue_eligible_count = sum(1 for cell in per_cell if bool(cell.get("recall_rescue_eligible")))
         recall_rescue_skipped_count = sum(
             1
@@ -885,8 +933,15 @@ async def run_pipeline(
         counters["figure_review_succeeded_count"] = figure_review_succeeded_count
         counters["figure_review_failed_count"] = figure_review_failed_count
         counters["figure_review_suppressed_count"] = figure_review_suppressed_count
+        counters["figure_planner_attempt_count"] = figure_planner_attempt_count
+        counters["figure_planner_success_count"] = figure_planner_success_count
+        counters["figure_planner_skipped_count"] = figure_planner_skipped_count
+        counters["figure_planner_fallback_count"] = figure_planner_fallback_count
+        counters["structured_output_repair_count"] = structured_output_repair_count
+        counters["structured_output_retry_count"] = structured_output_retry_count
         counters["candidate_selection_attempt_count"] = candidate_selection_attempt_count
         counters["candidate_selection_value_change_count"] = candidate_selection_value_change_count
+        counters["candidate_selection_figure_override_blocked_count"] = candidate_selection_figure_override_blocked_count
         counters["recall_rescue_eligible_count"] = recall_rescue_eligible_count
         counters["recall_rescue_skipped_count"] = recall_rescue_skipped_count
         counters["whole_document_eligible_count"] = whole_document_eligible_count
@@ -2154,7 +2209,14 @@ async def run_pipeline(
                 whole_document_max_chars=config.retrieval.whole_document_max_chars,
                 provider_mode_str=provider_mode.mode if provider_mode else "unknown",
                 artifact_context=artifact_context,
-                max_figures_for_review=max(1, config.figure_review.max_figures_per_paper),
+                max_figures_for_review=max(
+                    1,
+                    min(config.figure_review.max_figures_per_paper, config.figure_review.max_figures_per_cell),
+                ),
+                max_figure_review_calls_per_cell=max(1, config.figure_review.max_calls_per_cell),
+                max_figure_review_retries_per_cell=config.figure_review.max_retries_per_cell,
+                figure_planner_enabled=config.figure_review.planner_enabled,
+                max_figure_planner_calls_per_cell=config.figure_review.max_planner_calls_per_cell,
                 skip_figure_review_when_prompt_only_degraded=(
                     config.figure_review.skip_when_prompt_only_degraded
                 ),
@@ -2191,6 +2253,23 @@ async def run_pipeline(
                 run_stats["counters"]["figure_review_useful_cells"] += 1
             if cell_stats.get("figure_review_rescued"):
                 run_stats["counters"]["figure_review_rescue_cells"] += 1
+            planner_diag = cell_stats.get("figure_planner_diagnostics")
+            if isinstance(planner_diag, dict):
+                if planner_diag.get("attempted"):
+                    run_stats["counters"]["figure_planner_attempt_count"] += 1
+                if planner_diag.get("succeeded"):
+                    run_stats["counters"]["figure_planner_success_count"] += 1
+                if planner_diag.get("attempted") and not planner_diag.get("needs_vision"):
+                    run_stats["counters"]["figure_planner_skipped_count"] += 1
+                if planner_diag.get("fallback_to_heuristic_shortlist"):
+                    run_stats["counters"]["figure_planner_fallback_count"] += 1
+            selection_diag = cell_stats.get("selection_diagnostics")
+            if isinstance(selection_diag, dict) and selection_diag.get("figure_override_blocked"):
+                run_stats["counters"]["candidate_selection_figure_override_blocked_count"] += 1
+            provider_diag = cell_stats.get("provider_diagnostics")
+            if isinstance(provider_diag, dict):
+                run_stats["counters"]["structured_output_repair_count"] += int(provider_diag.get("repair_count", 0) or 0)
+                run_stats["counters"]["structured_output_retry_count"] += int(provider_diag.get("retry_count", 0) or 0)
             pdf_stats["cells_processed"] += 1
             pdf_stats["pdf_cell_count"] = pdf_stats["cells_processed"]
             pdf_stats["text_model_call_count"] += int(cell_stats.get("text_model_calls", 0) or 0)
@@ -2226,6 +2305,28 @@ async def run_pipeline(
             3,
         )
         triggered_cells = int(run_stats["counters"].get("figure_review_triggered_cells", 0) or 0)
+        image_source_counts: dict[str, int] = {}
+        fallback_reason_counts: dict[str, int] = {}
+        failure_reason_counts: dict[str, int] = {}
+        trigger_reason_counts: dict[str, int] = {}
+        for cell in run_stats["per_cell"]:
+            diag = cell.get("figure_review_diagnostics")
+            if not isinstance(diag, dict):
+                continue
+            for reason in diag.get("trigger_reasons", []) or []:
+                if isinstance(reason, str):
+                    trigger_reason_counts[reason] = trigger_reason_counts.get(reason, 0) + 1
+            for attempt in diag.get("attempts", []) or []:
+                if not isinstance(attempt, dict):
+                    continue
+                source = str(attempt.get("image_source") or "none")
+                image_source_counts[source] = image_source_counts.get(source, 0) + 1
+                fallback = attempt.get("fallback_reason")
+                if fallback:
+                    fallback_reason_counts[str(fallback)] = fallback_reason_counts.get(str(fallback), 0) + 1
+                failure = attempt.get("failure_reason")
+                if failure:
+                    failure_reason_counts[str(failure)] = failure_reason_counts.get(str(failure), 0) + 1
         run_stats["per_run"]["figure_review_roi"] = {
             "triggered_cells": triggered_cells,
             "reviewed_cells": int(run_stats["counters"].get("figure_review_cells", 0) or 0),
@@ -2235,6 +2336,10 @@ async def run_pipeline(
             "hits_total": int(run_stats["counters"].get("figure_review_hits_total", 0) or 0),
             "total_ms": figure_review_total_ms,
             "avg_ms_per_triggered_cell": round(figure_review_total_ms / triggered_cells, 3) if triggered_cells else 0.0,
+            "image_source_counts": image_source_counts,
+            "fallback_reason_counts": fallback_reason_counts,
+            "failure_reason_counts": failure_reason_counts,
+            "trigger_reason_counts": trigger_reason_counts,
         }
         proposals = load_proposals(run_dir)
         fallback_count = sum("fallback_evidence_used" in proposal.warning_flags for proposal in proposals)

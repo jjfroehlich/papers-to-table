@@ -58,7 +58,12 @@
   "figure_review": {
     "enabled": true,
     "max_figures_per_paper": 20,
-    "skip_when_prompt_only_degraded": false
+    "skip_when_prompt_only_degraded": false,
+    "planner_enabled": true,
+    "max_planner_calls_per_cell": 1,
+    "max_figures_per_cell": 2,
+    "max_calls_per_cell": 2,
+    "max_retries_per_cell": 1
   },
   "extraction": {
     "candidate_selection_enabled": true,
