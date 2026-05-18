@@ -266,6 +266,21 @@ def test_full_benchmark_supports_run_local_initial_model_filter() -> None:
     assert "--initial-model" in wrapper
 
 
+def test_compare_models_supports_run_local_initial_model_filter() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    script = (repo_root / "scripts" / "compare_models.sh").read_text(encoding="utf-8")
+    wrapper = (repo_root.parents[1] / "scripts" / "papers_to_table.py").read_text(encoding="utf-8")
+
+    assert "--initial-model" in script
+    assert "materialize_initial_model_config" in script
+    assert 'materialized_dir="$overnight_dir/materialized_configs"' in script
+    assert 'compare_config="$materialized_dir/compare_models.json"' in script
+    assert 'config["compare_candidates"] = [deepcopy(selected)]' in script
+    assert 'payload["initial_model_filter"] = {"text_model_id": initial_model}' in script
+    assert 'optimizer_sub.add_parser("compare-models"' in wrapper
+    assert "--initial-model" in wrapper
+
+
 def test_propose_candidates_covers_multi_knob_combinations() -> None:
     incumbent = Candidate(
         candidate_id="cand_0000",

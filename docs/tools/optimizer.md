@@ -49,6 +49,15 @@ python scripts/papers_to_table.py optimizer compare-models
 Options:
 - `--help`: help
 - `--label LABEL`: choose the run label instead of the timestamped default. The label is used in optimizer run directory names and reports.
+- `--initial-model MODEL_ID`: run a model comparison with a run-local config limited to one text model id.
+
+To compare only one configured model while leaving `tools/optimizer/configs/compare_models.json` unchanged:
+
+```bash
+python scripts/papers_to_table.py optimizer compare-models --initial-model google/gemma-4-e4b
+```
+
+This writes `materialized_configs/compare_models.json` under the compare run directory, records the filter in `overnight_manifest.json`, and fails fast if the requested model id is not present in the canonical model preset.
 
 ### Full Benchmark
 - use when you want a broad end-to-end tuning pass rather than only model selection

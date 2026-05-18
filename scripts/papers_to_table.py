@@ -266,7 +266,9 @@ def cmd_eval(args: argparse.Namespace) -> int:
 
 def cmd_optimizer_compare_models(args: argparse.Namespace) -> int:
     label = args.label or f"compare_models_{time.strftime('%Y%m%d-%H%M%S')}"
-    cmd = ["bash", str(OPTIMIZER_DIR / "scripts" / "compare_models.sh"), label]
+    cmd = ["bash", str(OPTIMIZER_DIR / "scripts" / "compare_models.sh"), "--label", label]
+    if args.initial_model:
+        cmd.extend(["--initial-model", args.initial_model])
     return _run(cmd, cwd=OPTIMIZER_DIR, env=os.environ.copy())
 
 
@@ -353,6 +355,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     compare = optimizer_sub.add_parser("compare-models", help="Run the canonical model-comparison workflow")
     compare.add_argument("--label")
+    compare.add_argument(
+        "--initial-model",
+        help="Run a run-local model-compare config limited to this text model id",
+    )
     compare.set_defaults(func=cmd_optimizer_compare_models)
 
     full_benchmark = optimizer_sub.add_parser(
