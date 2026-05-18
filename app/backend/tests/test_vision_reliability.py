@@ -155,6 +155,27 @@ def test_prompt_only_vision_schema_repairs_malformed_propose_states(raw_state: s
     assert "state_synonym_normalized" in details["degraded_normalization_repairs"]
 
 
+@pytest.mark.parametrize(
+    ("state_fragment", "proposed_value", "expected"),
+    [('"state":null,', "architecture", "found"), ("", "architecture", "found"), ('"state":null,', None, "unclear")],
+)
+def test_prompt_only_vision_schema_repairs_null_or_missing_state(
+    state_fragment: str,
+    proposed_value: str | None,
+    expected: str,
+):
+    proposed_json = "null" if proposed_value is None else f'"{proposed_value}"'
+    parsed, details = _parse_and_validate_response_with_details(
+        '{"proposed_value":%s,%s"rationale":"draft",'
+        '"numeric_value_form":null,"figure_description":"diagram"}' % (proposed_json, state_fragment),
+        VISION_EXTRACTION_SCHEMA,
+        allow_degraded_normalization=True,
+    )
+
+    assert parsed["state"] == expected
+    assert "state_synonym_normalized" in details["degraded_normalization_repairs"]
+
+
 def test_state_repair_does_not_rewrite_unrelated_schema_enum():
     unrelated_schema = {
         "type": "object",
@@ -173,7 +194,8 @@ def test_state_repair_does_not_rewrite_unrelated_schema_enum():
 def test_schema_validation_omission_does_not_request_retry():
     with pytest.raises(Exception) as exc_info:
         _parse_and_validate_response_with_details(
-            '{"proposed_value":"x"}',
+            '{"proposed_value":"x","state":"found","rationale":null,'
+            '"numeric_value_form":null,"figure_description":null,"caption_relevant":"maybe"}',
             VISION_EXTRACTION_SCHEMA,
             allow_degraded_normalization=True,
         )
@@ -383,5 +405,67 @@ async def test_invalid_planner_refs_fall_back_to_heuristic_shortlist():
         assert provider.vision_calls == 1
         assert hits[0].evidence.figure_ref == "fig1"
         assert planner_diag["fallback_to_heuristic_shortlist"] is True
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+
+
+@pytest.mark.asyncio
+async def test_figure_review_keeps_value_when_vision_state_is_unclear():
+    scratch = _scratch_dir()
+    try:
+        page = scratch / "page_0001.png"
+        page.write_bytes(b"fake-image")
+        provider = FakeProvider(
+            planner_result={
+                "needs_vision": True,
+                "target_figures": [{"figure_ref": "fig1", "preferred_image": "full_page", "reason": "count panels"}],
+                "rejected_figures": [],
+                "vision_question": "Count bar-chart panels.",
+                "planner_confidence": "high",
+                "skip_reason": None,
+            },
+            vision_result={
+                "proposed_value": "2",
+                "state": "unclear",
+                "rationale": "The figure appears to contain two bar-chart panels.",
+                "numeric_value_form": "exact",
+                "figure_description": "Two bar-chart panels are visible.",
+                "caption_relevant": False,
+            },
+        )
+        attempts: list[dict] = []
+
+        hits = await run_figure_review(
+            run_id="run",
+            proposal_id="p1",
+            pdf_id="paper",
+            column_name="Number of bar-chart panels in Figure 3",
+            column_description="How many bar-chart panels are visible in Figure 3?",
+            doc_dict={
+                "figures": [
+                    {
+                        "figure_id": "fig1",
+                        "page_number": 1,
+                        "caption_text": "Figure 3. Bar-chart panels.",
+                        "full_page_path": "page_0001.png",
+                    }
+                ]
+            },
+            run_dir=scratch,
+            provider=provider,
+            text_model_id="text",
+            vision_model_id="vision",
+            field_type=SchemaFieldType.number,
+            max_figures=2,
+            max_calls=1,
+            planner_enabled=True,
+            attempt_diagnostics=attempts,
+        )
+
+        assert hits[0].proposed_value == "2"
+        assert hits[0].state == "inferred"
+        assert "vision_state_unclear_with_value" in hits[0].warning_flags
+        assert attempts[0]["promoted_unclear_value"] is True
+        assert "dropped_reason" not in attempts[0]
     finally:
         shutil.rmtree(scratch, ignore_errors=True)

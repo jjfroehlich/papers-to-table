@@ -181,9 +181,11 @@ class RecallRescueDecision(BaseModel):
 
 class FigureReviewHit(BaseModel):
     proposed_value: str
+    state: str = "inferred"
     rationale: Optional[str] = None
     numeric_value_form: Optional[NumericValueForm] = None
     evidence: EvidenceRecord
+    warning_flags: list[str] = Field(default_factory=list)
 
 
 class FigurePlannerTarget(BaseModel):
@@ -1960,6 +1962,13 @@ async def run_figure_review(
                 image_b64=image_selection.image_b64,
                 retry_malformed_structured_response=max_retries > 0,
             )
+            fig_state = str(result.get("state") or "unclear")
+            fig_value = result.get("proposed_value")
+            fig_value_text = _coerce_text_value(fig_value, joiner="; ")
+            fig_rationale = result.get("rationale")
+            fig_description = result.get("figure_description", "")
+            fig_numeric_form = _normalize_numeric_value_form(result.get("numeric_value_form"), field_type)
+            promoted_unclear_value = bool(fig_state == "unclear" and fig_value_text)
             if attempt_diagnostics is not None:
                 attempt_diagnostics.append(
                     {
@@ -1971,16 +1980,22 @@ async def run_figure_review(
                         "image_path": image_selection.image_path,
                         "crop_quality": image_selection.crop_quality,
                         "fallback_reason": image_selection.fallback_reason,
+                        "result_state": fig_state,
+                        "result_value_present": bool(fig_value_text),
+                        "result_value_preview": fig_value_text[:120] if fig_value_text else None,
+                        "promoted_unclear_value": promoted_unclear_value,
                     }
                 )
-            fig_state = result.get("state", "unclear")
-            fig_value = result.get("proposed_value")
-            fig_rationale = result.get("rationale")
-            fig_description = result.get("figure_description", "")
-            fig_numeric_form = _normalize_numeric_value_form(result.get("numeric_value_form"), field_type)
 
-            if fig_state == "unclear" or not fig_value:
+            if not fig_value_text:
+                if attempt_diagnostics is not None and attempt_diagnostics:
+                    attempt_diagnostics[-1]["dropped_reason"] = "missing_proposed_value"
                 continue  # This figure doesn't support the field
+            if fig_state == "unclear" and not promoted_unclear_value:
+                if attempt_diagnostics is not None and attempt_diagnostics:
+                    attempt_diagnostics[-1]["dropped_reason"] = "unclear_without_value"
+                continue  # This figure doesn't support the field
+            hit_state = "inferred" if promoted_unclear_value else (fig_state if fig_state in {"found", "inferred"} else "inferred")
 
             figure_source_type = (
                 EvidenceSourceType.caption_grounded_figure_evidence
@@ -2026,10 +2041,12 @@ async def run_figure_review(
             )
             figure_hits.append(
                 FigureReviewHit(
-                    proposed_value=str(fig_value).strip(),
+                    proposed_value=fig_value_text,
+                    state=hit_state,
                     rationale=fig_rationale,
                     numeric_value_form=fig_numeric_form,
                     evidence=ev,
+                    warning_flags=(["vision_state_unclear_with_value"] if promoted_unclear_value else []),
                 )
             )
         except Exception as exc:
@@ -3147,11 +3164,12 @@ async def extract_cell(
         )
     for hit in figure_hits:
         flags = ["figure_derived"]
+        flags.extend(hit.warning_flags)
         if proposed_value and not _values_match(hit.proposed_value, proposed_value):
             flags.append("competing_evidence")
         add_candidate(
             value=hit.proposed_value,
-            candidate_state="inferred",
+            candidate_state=hit.state,
             source="figure_review",
             evidence_ids=[hit.evidence.evidence_id],
             rationale_text=hit.rationale,
@@ -3702,6 +3720,12 @@ def _build_figure_review_diagnostics(
     attempted = any(bool(item.get("attempted")) for item in attempt_diagnostics)
     succeeded = any(bool(item.get("succeeded")) for item in attempt_diagnostics)
     failed = any(bool(item.get("attempted")) and not bool(item.get("succeeded")) for item in attempt_diagnostics)
+    succeeded_without_hit = sum(
+        1
+        for item in attempt_diagnostics
+        if bool(item.get("succeeded")) and item.get("dropped_reason")
+    )
+    promoted_unclear_values = sum(1 for item in attempt_diagnostics if bool(item.get("promoted_unclear_value")))
     failure_reason = next(
         (
             str(item.get("failure_reason"))
@@ -3723,6 +3747,8 @@ def _build_figure_review_diagnostics(
         "review_calls": figure_review_calls,
         "review_ms": round(figure_review_ms, 3),
         "hit_count": len(figure_hits),
+        "succeeded_without_hit_count": succeeded_without_hit,
+        "promoted_unclear_value_count": promoted_unclear_values,
         "useful": useful,
         "figure_evidence_persisted": figure_evidence_persisted,
         "rescued_value": figure_rescued_value,

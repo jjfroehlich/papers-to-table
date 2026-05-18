@@ -480,6 +480,8 @@ def _is_extraction_state_schema(schema: dict[str, Any]) -> bool:
 
 
 def _normalize_extraction_state_value(value: object, proposed_value: object = None) -> object:
+    if value is None:
+        return "found" if _coerce_schema_text_value(proposed_value) else "unclear"
     if not isinstance(value, str):
         return value
     normalized = re.sub(r"[^a-z0-9]+", "_", value.strip().lower()).strip("_")
