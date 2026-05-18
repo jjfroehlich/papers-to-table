@@ -299,6 +299,40 @@ def _remove_external_results(config: dict) -> None:
             manifest.pop("external_results", None)
 
 
+def _resolve_optimizer_config_paths(config: dict, *, source_config: Path) -> None:
+    base_dir = source_config.resolve().parent
+
+    def resolve(value: object) -> object:
+        if not isinstance(value, str) or not value.strip():
+            return value
+        candidate = Path(value)
+        if candidate.is_absolute():
+            return str(candidate)
+        return str((base_dir / candidate).resolve())
+
+    for section_name in ("main_app", "eval_app"):
+        section = config.get(section_name)
+        if isinstance(section, dict):
+            for key in ("repo_root", "base_config_path"):
+                if key in section:
+                    section[key] = resolve(section[key])
+
+    manifests = config.get("benchmarks", {}).get("manifests", {})
+    if isinstance(manifests, dict):
+        for manifest in manifests.values():
+            if not isinstance(manifest, dict):
+                continue
+            for key in ("table_path", "schema_path", "pdf_dir", "gold_path", "eval_schema_path"):
+                if key in manifest:
+                    manifest[key] = resolve(manifest[key])
+            for external in manifest.get("external_results", []) or []:
+                if not isinstance(external, dict):
+                    continue
+                for replicate in external.get("replicates", []) or []:
+                    if isinstance(replicate, dict) and "path" in replicate:
+                        replicate["path"] = resolve(replicate["path"])
+
+
 def _filter_compare_config_for_dev_check(config: dict, *, model_id: str, benchmark_id: str) -> dict:
     config = json.loads(json.dumps(config))
     config.setdefault("operator_todo", {}).setdefault("notes", []).append(
@@ -329,6 +363,11 @@ def _filter_compare_config_for_dev_check(config: dict, *, model_id: str, benchma
     suites = config.setdefault("benchmark_suites", {})
     suites["dev_check"] = {
         "benchmark_ids": [benchmark_id],
+        "aggregation": {
+            "method": "weighted_mean",
+            "primary_metric": "content_correctness",
+            "weights": {benchmark_id: 1.0},
+        },
         "description": "Single-benchmark development check suite.",
         "split": "dev",
     }
@@ -351,6 +390,7 @@ def cmd_optimizer_dev_check(args: argparse.Namespace) -> int:
     target_config = materialized_dir / "dev_check_compare_models.json"
     with open(source_config, "r", encoding="utf-8") as handle:
         config = json.load(handle)
+    _resolve_optimizer_config_paths(config, source_config=source_config)
     try:
         materialized = _filter_compare_config_for_dev_check(
             config,

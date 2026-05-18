@@ -291,6 +291,9 @@ def test_wrapper_exposes_optimizer_dev_check_shortcut() -> None:
     assert 'optimizer_sub.add_parser(\n        "dev-check"' in wrapper
     assert 'default="google/gemma-4-e4b"' in wrapper
     assert 'default="bench_genome_editing"' in wrapper
+    assert '"aggregation": {' in wrapper
+    assert '"primary_metric": "content_correctness"' in wrapper
+    assert "_resolve_optimizer_config_paths(config, source_config=source_config)" in wrapper
     assert "_remove_external_results(config)" in wrapper
     assert "dev-check" in docs
     assert "bench_genome_editing" in docs
