@@ -111,7 +111,7 @@ If a PDF does not match an existing row, the normal browser workflow must stage 
 - recall rescue and whole-document mode are bounded optional modes
 - one best proposal is persisted per eligible target cell
 - evidence quality stays explicit and honest
-- figure review is targeted and text-guided, not blanket page vision
+- figure review is planner-guided and evidence-gated, not blanket page vision
 - figures are first-class retrieval chunks at the figure level only; panel-level chunks are out of scope
 - candidate selection is a bounded optional final adjudication over collected text, rescue, recovery, and figure candidates
 
@@ -128,13 +128,29 @@ Backend extraction phases are ordered:
 9. retrieve text, table, caption, and figure-level evidence for each eligible target cell
 10. produce text-model proposals for target cells through the provider adapter
 11. run at most one selective recall-rescue pass, with optional whole-document context only when enabled and size-bounded
-12. run optional targeted figure review for cells whose evidence triggers vision review
+12. run optional targeted figure review for cells whose evidence triggers vision review; a generic figure planner may first skip vision, select figure-level targets, or request full-page images
 13. run at most one candidate-selection call when competing or weak candidates require adjudication
 14. merge, normalize, validate, and filter proposal candidates deterministically
 15. persist one best proposal per cell with evidence, diagnostics, and provider metadata
 16. write final summaries, provider diagnostics, reviewer summaries, artifact inventory, and model cleanup results
 
 The optimizer must not start eval for a candidate until the candidate's extraction run has finished proposal production, written final summaries, and left the run bundle readable from disk.
+
+Figure review requirements:
+
+- `figure` is the only figure-derived retrieval chunk type. The app does not create panel-level figure chunks.
+- figure review may inspect a valid crop, a full-page fallback when crop assets are missing or suspicious, or a planner-preferred full page for layout or panel-counting questions.
+- direct figure context is not a standalone reason to call vision. Vision requires weak, unclear, missing, or contradictory text evidence; a genuinely visual request with figure-promising retrieval; or another generic evidence-quality trigger.
+- prompt-only vision responses are repaired locally for recoverable schema issues, including omitted optional diagnostics, invalid `numeric_value_form` values such as `N/A`, and common state variants such as `yes`, `present`, `visible`, `clear`, `success`, `succeeded`, `possible`, `propose`, and `propose_value`.
+- a figure response with state `found` or `inferred` must place the extracted answer itself in `proposed_value`; blank placeholders are not usable figure evidence.
+- actual vision calls, retries, image source, fallback reason, repair status, failure reason, suppression reason, promoted unclear values, and successful calls without usable hits remain visible in diagnostics.
+
+Candidate selection requirements:
+
+- candidate selection is optional and bounded to one selector call per cell by default.
+- candidate sources are generic: first-pass text, rescued text, evidence recovery, and figure review.
+- figure-derived candidates may support or compete with text candidates, but must directly answer the cell request before overriding strong text evidence.
+- if text and figure candidates conflict and neither clearly satisfies the column contract, selection should keep the stronger text answer or return an unclear result rather than switching to semantically mismatched figure evidence.
 
 ### 5.5 Proposal and evidence truth
 
@@ -145,7 +161,7 @@ The proposal/evidence contract must preserve:
 - reviewer-visible support-quality truth
 - auditable evidence linkage
 - degraded-mode, fallback, metadata-lane, and failure-attribution truth when relevant
-- optional candidate answers and selection diagnostics when the app had to choose among competing evidence sources
+- optional candidate answers, figure planner diagnostics, figure review diagnostics, and selection diagnostics when the app planned, reviewed, or chose among competing evidence sources
 
 ### 5.6 Review semantics
 
@@ -241,6 +257,8 @@ Optimizer candidate execution phases are:
 
 The optimizer does not interleave proposal and judge work at cell granularity. Proposal generation is main-app-owned and happens for the whole candidate run before eval starts. Judging is eval-owned and happens after eval has collected all judge-needed cells for the completed run.
 
+Optimizer reports must expose capability use and suppression when run stats are present. At minimum this includes text and vision call counts, figure planner attempts/success/skips/fallbacks, figure-review attempts/success/failure/suppression, successful vision calls without usable hits, figure-derived evidence count, candidate-selection attempts and value changes, recall-rescue eligibility/use/skips, and whole-document eligibility/use/skips. Runtime diagnostics should group figure review by image source (`crop`, `full_page_fallback`, `full_page_preferred`) when available.
+
 ## 10. Config families
 
 ### 10.1 Main app
@@ -276,9 +294,14 @@ The repo exposes one central operator and agent command surface:
 - `python scripts/papers_to_table.py verify-contract --run ...`
 - `python scripts/papers_to_table.py eval ...`
 - `python scripts/papers_to_table.py optimizer compare-models`
+- `python scripts/papers_to_table.py optimizer compare-models --initial-model ...`
+- `python scripts/papers_to_table.py optimizer dev-check`
 - `python scripts/papers_to_table.py optimizer full-benchmark`
+- `python scripts/papers_to_table.py optimizer full-benchmark --initial-model ...`
 - `python scripts/papers_to_table.py docs serve`
 - `python scripts/papers_to_table.py docs build`
+
+Optimizer wrapper commands support `--label` for run-directory naming where applicable. `compare-models --initial-model` and `full-benchmark --initial-model` materialize run-local configs so checked-in presets remain unchanged. `dev-check` is the fast development signal: one configured model, one benchmark, and one replicate, defaulting to `google/gemma-4-e4b` on `bench_genome_editing`.
 
 ## 12. Diagnostics, reports, and limitations
 
@@ -289,6 +312,9 @@ The system must remain truthful about:
 - matching ambiguity
 - degraded structured-output modes
 - evidence weakness
+- selective recall-rescue and whole-document fallback eligibility, use, and skips
+- figure planner and figure-review suppression, failure, retry, repair, image-source, and no-hit outcomes
+- candidate-selection attempts, value changes, and conservative figure-over-text decisions
 - auto-accepted headless decisions
 - LM Studio channel errors, client disconnects, model-load cancellation, timeouts, and lock waits
 - eval/optimizer trust caveats, low replicate counts, and judge disagreement

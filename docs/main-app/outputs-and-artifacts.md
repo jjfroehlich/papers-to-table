@@ -25,7 +25,31 @@ Main-app runs write bundles under `app/runs/{run_id}/` by default unless `output
 - `exports/audit_log_*.json`: export audit log.
 - `exports/diagnostics_*.json`: export diagnostics.
 
-Eval and optimizer companion tools rely on run bundles without importing the main-app runtime, thats why much of the output stays in explicit directories.
+Eval and optimizer companion tools rely on run bundles without importing the main-app runtime, so much of the output stays in explicit directories.
+
+## Proposal Records
+
+Each proposal record keeps one final proposed value for one eligible target cell, plus evidence ids and support labels. Newer runs may also include optional diagnostics used by eval, optimizer, and review tooling:
+
+- `candidate_answers`: generic candidates considered before the final value was selected. Sources are `first_pass_text`, `rescued_text`, `evidence_recovery`, and `figure_review`.
+- `selection_diagnostics`: selector outcome, selected/rejected candidate ids, rationale, and whether additional evidence was requested.
+- `figure_planner_diagnostics`: whether the text-only figure planner ran, skipped vision, selected figures, requested crops or full-page images, or fell back to heuristic shortlisting.
+- `figure_review_diagnostics`: figure-review trigger, attempt, success, failure, suppression, image-source, fallback, retry, repair, and no-hit details.
+
+All of these fields are optional so older run bundles remain readable.
+
+## Run Stats
+
+Run summaries and diagnostics include counters that roll up capability use:
+
+- text and vision model call counts.
+- figure planner attempts, successes, skips, and heuristic fallbacks.
+- figure review triggered, attempted, succeeded, failed, suppressed, and actual vision-call counts.
+- figure-derived evidence counts and `figure_review_succeeded_without_hit_count`, which counts successful vision calls that did not produce usable figure evidence.
+- candidate-selection attempts and value changes.
+- recall-rescue and whole-document eligibility, use, and skip reasons.
+
+When available, `figure_review_roi` groups figure-review runtime and outcomes by image source (`crop`, `full_page_fallback`, `full_page_preferred`), fallback reason, failure reason, and trigger reason.
 
 ## Review Records
 

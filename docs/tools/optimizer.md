@@ -226,6 +226,7 @@ Optimizer reports include a `Capability Use and Suppression` section when run ar
 
 The reported counters include:
 
+- text calls, vision calls, and planner calls as separate runtime contributors
 - vision triggers, actual vision calls, failures, and suppressions
 - figure planner attempts, successful planner calls, planner skips, and planner fallback to heuristic shortlisting
 - figure-derived evidence count
