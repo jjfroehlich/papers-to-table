@@ -259,6 +259,7 @@ def test_full_benchmark_supports_run_local_initial_model_filter() -> None:
 
     assert "--initial-model" in script
     assert "materialize_initial_model_config" in script
+    assert "resolve_path_fields(config)" in script
     assert 'compare_config_materialized="$tmp_dir/compare_models.json"' in script
     assert 'config["compare_candidates"] = [deepcopy(selected)]' in script
     assert 'payload["initial_model_filter"] = {"text_model_id": initial_model}' in script
@@ -273,6 +274,7 @@ def test_compare_models_supports_run_local_initial_model_filter() -> None:
 
     assert "--initial-model" in script
     assert "materialize_initial_model_config" in script
+    assert "resolve_path_fields(config)" in script
     assert 'materialized_dir="$overnight_dir/materialized_configs"' in script
     assert 'compare_config="$materialized_dir/compare_models.json"' in script
     assert 'config["compare_candidates"] = [deepcopy(selected)]' in script

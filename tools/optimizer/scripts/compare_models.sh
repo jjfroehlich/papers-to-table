@@ -117,6 +117,32 @@ target_path = Path(sys.argv[2])
 model_id = sys.argv[3]
 
 config = json.loads(source_path.read_text(encoding="utf-8"))
+path_fields = {
+    "repo_root",
+    "base_config_path",
+    "table_path",
+    "schema_path",
+    "pdf_dir",
+    "gold_path",
+    "eval_schema_path",
+    "path",
+}
+
+def resolve_path_fields(value):
+    if isinstance(value, dict):
+        resolved = {}
+        for key, item in value.items():
+            if key in path_fields and isinstance(item, str):
+                path = Path(item)
+                resolved[key] = str(path.resolve() if path.is_absolute() else (source_path.parent / path).resolve())
+            else:
+                resolved[key] = resolve_path_fields(item)
+        return resolved
+    if isinstance(value, list):
+        return [resolve_path_fields(item) for item in value]
+    return value
+
+config = resolve_path_fields(config)
 candidates = [config["baseline_candidate"], *list(config.get("compare_candidates", []) or [])]
 matches = [deepcopy(candidate) for candidate in candidates if candidate.get("text_model_id") == model_id]
 if not matches:
