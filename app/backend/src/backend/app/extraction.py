@@ -2614,7 +2614,7 @@ async def extract_field_group(
             primary_evidence_id=primary_id,
             ordered_supporting_evidence_ids=[ev.evidence_id for ev in evidence_records[1:]],
             evidence_ids=[ev.evidence_id for ev in evidence_records],
-            warning_flags=["field_group_batch"],
+            warning_flags=["paper_batch"] if group == "paper_batch" else ["field_group_batch"],
             needs_more_evidence=needs_more,
             field_type=field_type,
             allowed_values=cell.get("allowed_values"),
@@ -2646,12 +2646,12 @@ async def extract_field_group(
                 evidence_records=evidence_records,
                 needs_more_evidence=needs_more,
                 recall_rescue_used=False,
-                recall_rescue_decision=RecallRescueDecision(eligible=False, skip_reason="field_group_batch"),
+                recall_rescue_decision=RecallRescueDecision(eligible=False, skip_reason=group),
                 whole_document_used=False,
-                whole_document_decision={"eligible": False, "used": False, "skip_reason": "field_group_batch"},
+                whole_document_decision={"eligible": False, "used": False, "skip_reason": group},
                 warning_flags=[],
             ),
-            extraction_lane="field_group",
+            extraction_lane="paper_batch" if group == "paper_batch" else "field_group",
             failure_attribution=_classify_failure_attribution(
                 state=state,
                 proposed_value=proposed_value,
@@ -2670,7 +2670,7 @@ async def extract_field_group(
         if isinstance(cell_stats, dict):
             cell_stats.update(
                 {
-                    "response_schema_profile": "field_group",
+                    "response_schema_profile": "paper_batch" if group == "paper_batch" else "field_group",
                     "text_model_calls": 1 if index == 0 else 0,
                     "text_model_ms": 0.0,
                     "evidence_anchor_attempts": len(evidence_records),

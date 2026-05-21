@@ -2123,7 +2123,11 @@ async def run_pipeline(
             row_id = generate_row_id(row_idx, str(row_dict.get("Title", "")))
             cell_id = generate_cell_id(row_id, col_name)
             existing_value = cell.get("current_value")
-            column_plan_entry = column_plan_by_column.get(col_name, {})
+            column_plan_entry = (
+                {}
+                if config.extraction.mode == "paper_batch"
+                else column_plan_by_column.get(col_name, {})
+            )
             artifact_context = {
                 "run_mode": run_data["run_mode"],
                 "retrieval_mode": run_data["retrieval_mode"],
@@ -2186,7 +2190,7 @@ async def run_pipeline(
                 retrieval_mode=config.retrieval.mode,
                 retrieval_cache=retrieval_cache,
                 cache_key=pdf_id,
-                column_plan=column_plan_entry,
+                column_plan=column_plan_entry if config.extraction.mode != "paper_batch" else None,
             )
 
             retrieval_stats = {}
@@ -2251,7 +2255,7 @@ async def run_pipeline(
                 ),
             }
 
-            if config.extraction.mode == "field_group":
+            if config.extraction.mode in {"field_group", "paper_batch"}:
                 field_group_work.append(
                     {
                         "cell": cell,
@@ -2271,7 +2275,11 @@ async def run_pipeline(
                         "artifact_context": artifact_context,
                         "cell_stats": cell_stats,
                         "column_plan": column_plan_entry,
-                        "group": str(column_plan_entry.get("group") or "results"),
+                        "group": (
+                            "paper_batch"
+                            if config.extraction.mode == "paper_batch"
+                            else str(column_plan_entry.get("group") or "results")
+                        ),
                     }
                 )
                 continue
@@ -2372,7 +2380,7 @@ async def run_pipeline(
             cell_stats["proposal_id"] = proposal.proposal_id
             run_stats["per_cell"].append(cell_stats)
 
-        if config.extraction.mode == "field_group" and field_group_work:
+        if config.extraction.mode in {"field_group", "paper_batch"} and field_group_work:
             grouped_work: dict[tuple[str, str, str], list[dict[str, object]]] = {}
             for work in field_group_work:
                 key = (

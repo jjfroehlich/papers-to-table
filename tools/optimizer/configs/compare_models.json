@@ -42,8 +42,8 @@
         "whole_document_max_chars": 20000,
         "parser_allow_basic_fallback": true,
         "parser_page_render_policy": "eager",
-        "extraction_mode": "field_group",
-        "column_planning_mode": "deterministic",
+        "extraction_mode": "paper_batch",
+        "column_planning_mode": "disabled",
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
         "figure_review_enabled": true

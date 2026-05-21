@@ -179,8 +179,8 @@ class ExtractionConfig(BaseModel):
 
     @model_validator(mode='after')
     def validate_extraction_config(self) -> 'ExtractionConfig':
-        if self.mode not in {'per_cell', 'field_group'}:
-            raise ValueError("extraction.mode must be either 'per_cell' or 'field_group'.")
+        if self.mode not in {'per_cell', 'field_group', 'paper_batch'}:
+            raise ValueError("extraction.mode must be one of: per_cell, field_group, paper_batch.")
         mode = str((self.column_planning or {}).get('mode') or 'deterministic')
         if mode not in {'disabled', 'deterministic', 'llm_primary'}:
             raise ValueError(
