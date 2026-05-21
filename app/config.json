@@ -28,7 +28,8 @@
     "backend": "docling",
     "ocr_enabled": false,
     "ocr_language": "en",
-    "allow_basic_fallback": false
+    "allow_basic_fallback": false,
+    "page_render_policy": "eager"
   },
   "matching": {
     "ambiguity_threshold": 0.15
@@ -58,6 +59,10 @@
     "max_retries_per_cell": 1
   },
   "extraction": {
+    "mode": "per_cell",
+    "column_planning": {
+      "mode": "deterministic"
+    },
     "candidate_selection_enabled": true,
     "max_candidate_selection_calls_per_cell": 1
   }

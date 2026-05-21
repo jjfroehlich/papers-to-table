@@ -244,7 +244,7 @@ def get_eligible_cells(
     """Return list of eligible cells: {row_id, row_index, column_name, current_value, eligibility}."""
     from .ids import generate_row_id
 
-    target_cols = set(get_target_columns(df, schema, include_required_metadata=verify_mode or eval_mode))
+    target_cols = set(get_target_columns(df, schema, include_required_metadata=True))
 
     eligible = []
     for row_idx, row in df.iterrows():
@@ -255,6 +255,12 @@ def get_eligible_cells(
                 continue
             value = str(row.get(col_name, ""))
             eligibility = classify_cell_eligibility(value, verify_mode, eval_mode)
+            if (
+                col_name in REQUIRED_METADATA_COLS
+                and not (verify_mode or eval_mode)
+                and eligibility == "already_filled"
+            ):
+                continue
             if eligibility in ("eligible", "placeholder") or (
                 (verify_mode or eval_mode) and eligibility == "already_filled"
             ):

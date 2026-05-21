@@ -37,9 +37,12 @@ from .artifacts import (
     read_json,
     write_json,
 )
+from .column_planning import build_column_plan, persist_column_plan, plan_columns
 from .config import RunConfig, check_readiness, get_run_mode
+from .evidence_cards import build_evidence_card, persist_evidence_card
 from .extraction import (
     extract_cell,
+    extract_field_group,
     get_prompt_identity,
     load_evidence,
     load_proposals,
@@ -390,6 +393,9 @@ def get_initial_run_data(
         "recall_rescue_enabled": config.retrieval.recall_rescue_enabled,
         "whole_document_mode": config.retrieval.whole_document_mode,
         "whole_document_max_chars": config.retrieval.whole_document_max_chars,
+        "extraction_mode": config.extraction.mode,
+        "column_planning_mode": str((config.extraction.column_planning or {}).get("mode") or "deterministic"),
+        "parser_page_render_policy": config.parser.page_render_policy,
         "recall_rescue_used": False,
         "recall_rescue_used_any": False,
         "recall_rescue_invocation_count": 0,
@@ -458,6 +464,8 @@ def get_initial_run_data(
         "parse_cache_hit_count": 0,
         "parse_cache_miss_count": 0,
         "parse_cache_rejected_count": 0,
+        "column_plan_path": None,
+        "evidence_card_count": 0,
         "eval_artifacts": None,
         "provider_readiness_error": None,
         "started_at": None,
@@ -528,6 +536,13 @@ async def run_pipeline(
             "parse_cache_hit_count": 0,
             "parse_cache_miss_count": 0,
             "parse_cache_rejected_count": 0,
+            "planner_call_count": 0,
+            "column_plan_entry_count": 0,
+            "evidence_card_count": 0,
+            "batch_call_count": 0,
+            "fallback_call_count": 0,
+            "batch_success_count": 0,
+            "batch_retry_count": 0,
             "matched_pdfs": 0,
             "unmatched_pdfs": 0,
             "ambiguous_pdfs": 0,
@@ -1550,6 +1565,16 @@ async def run_pipeline(
             **early_input_summary,
             "schema_hash": schema_hash,
         }
+        column_planning_mode = str((config.extraction.column_planning or {}).get("mode") or "deterministic")
+        if column_planning_mode == "disabled":
+            column_plan = None
+            run_data["column_plan_path"] = None
+        else:
+            column_plan = build_column_plan(schema, planner_mode="deterministic_preflight")
+            column_plan_path = persist_column_plan(run_dir, column_plan)
+            run_data["column_plan_path"] = _relative_run_path(run_dir, column_plan_path)
+            run_stats["counters"]["planner_call_count"] = 0
+            run_stats["counters"]["column_plan_entry_count"] = len(column_plan.entries)
 
         eligible = get_eligible_cells(
             df,
@@ -1772,6 +1797,28 @@ async def run_pipeline(
                         "vision_structured_output_error": getattr(caps, "vision_structured_output_error", None),
                     },
                 })
+
+        if column_planning_mode != "disabled":
+            column_plan = await plan_columns(
+                schema,
+                planner_mode=column_planning_mode,
+                provider=provider,
+                model_id=text_model_id,
+            )
+            column_plan_path = persist_column_plan(run_dir, column_plan)
+            run_data["column_plan_path"] = _relative_run_path(run_dir, column_plan_path)
+            run_stats["counters"]["planner_call_count"] = int(column_plan.planner_call_count or 0)
+            run_stats["counters"]["column_plan_entry_count"] = len(column_plan.entries)
+            run_stats["counters"]["column_plan_validation_warning_count"] = int(
+                column_plan.validation_warning_count or 0
+            )
+            if column_planning_mode == "llm_primary" and column_plan.planner_mode == "deterministic_fallback":
+                run_data.setdefault("warnings", []).append({
+                    "category": WC.provider_degraded.value,
+                    "message": "Column planner failed and used deterministic schema fallback.",
+                    "context": {"requested_mode": column_planning_mode, "effective_mode": column_plan.planner_mode},
+                })
+            save_run(run_data)
             run_data = sync_provider_artifacts(run_data, provider, run_dir)
             save_run(run_data)
 
@@ -1828,7 +1875,7 @@ async def run_pipeline(
                         ocr_enabled=config.parser.ocr_enabled,
                         ocr_language=config.parser.ocr_language,
                         run_dir=run_dir,
-                        generate_pages=True,
+                        generate_pages=config.parser.page_render_policy == "eager",
                     )
                     run_data["parse_cache_miss_count"] = int(run_data.get("parse_cache_miss_count", 0) or 0) + 1
                     run_stats["counters"]["parse_cache_miss_count"] = int(run_stats["counters"].get("parse_cache_miss_count", 0) or 0) + 1
@@ -1842,7 +1889,15 @@ async def run_pipeline(
                             pdf_id=pdf_id,
                         )
                 pdf_stats["parse_pdf_ms"] = round((perf_counter() - parse_started) * 1000.0, 3)
-                parsed_docs.append(doc.model_dump())
+                doc_payload = doc.model_dump()
+                parsed_docs.append(doc_payload)
+                card = build_evidence_card(run_id, doc_payload)
+                card_path = persist_evidence_card(run_dir, card)
+                pdf_stats["evidence_card_path"] = _relative_run_path(run_dir, card_path)
+                run_stats["counters"]["evidence_card_count"] = int(
+                    run_stats["counters"].get("evidence_card_count", 0) or 0
+                ) + 1
+                run_data["evidence_card_count"] = int(run_data.get("evidence_card_count", 0) or 0) + 1
 
                 if diagnostics.fallback_used:
                     key = (pdf_id, "fallback")
@@ -2014,6 +2069,7 @@ async def run_pipeline(
 
         proposals_generated = 0
         retrieval_cache: dict[tuple[str, bool, bool], object] = {}
+        field_group_work: list[dict[str, object]] = []
 
         # Build doc dict lookup: pdf_id → parsed_doc dict
         doc_by_pdf_id: dict[str, dict] = {}
@@ -2022,6 +2078,10 @@ async def run_pipeline(
 
         # Build column description lookup
         schema_by_column = {c["column_name"]: c for c in schema}
+        column_plan_by_column = {
+            entry.column_name: entry.model_dump()
+            for entry in (column_plan.entries if column_plan is not None else [])
+        }
         missing_doc_warnings: set[str] = set()
 
         # Process eligible cells only for rows with a usable PDF match.
@@ -2063,6 +2123,7 @@ async def run_pipeline(
             row_id = generate_row_id(row_idx, str(row_dict.get("Title", "")))
             cell_id = generate_cell_id(row_id, col_name)
             existing_value = cell.get("current_value")
+            column_plan_entry = column_plan_by_column.get(col_name, {})
             artifact_context = {
                 "run_mode": run_data["run_mode"],
                 "retrieval_mode": run_data["retrieval_mode"],
@@ -2125,6 +2186,7 @@ async def run_pipeline(
                 retrieval_mode=config.retrieval.mode,
                 retrieval_cache=retrieval_cache,
                 cache_key=pdf_id,
+                column_plan=column_plan_entry,
             )
 
             retrieval_stats = {}
@@ -2189,6 +2251,31 @@ async def run_pipeline(
                 ),
             }
 
+            if config.extraction.mode == "field_group":
+                field_group_work.append(
+                    {
+                        "cell": cell,
+                        "cell_id": cell_id,
+                        "row_id": row_id,
+                        "row_index": row_idx,
+                        "row_context": row_dict,
+                        "pdf_id": pdf_id,
+                        "doc_dict": doc_dict,
+                        "column_name": col_name,
+                        "column_description": col_desc,
+                        "field_type": col_def.get("field_type"),
+                        "allowed_values": col_def.get("allowed_values"),
+                        "retrieval": retrieval,
+                        "style_profile": style_profiles.get(col_name),
+                        "existing_value": existing_value,
+                        "artifact_context": artifact_context,
+                        "cell_stats": cell_stats,
+                        "column_plan": column_plan_entry,
+                        "group": str(column_plan_entry.get("group") or "results"),
+                    }
+                )
+                continue
+
             await asyncio.sleep(0)  # yield between cells
 
             proposal = await extract_cell(
@@ -2229,6 +2316,7 @@ async def run_pipeline(
                 ),
                 candidate_selection_enabled=config.extraction.candidate_selection_enabled,
                 max_candidate_selection_calls_per_cell=config.extraction.max_candidate_selection_calls_per_cell,
+                vision_policy=str(column_plan_entry.get("visual_policy") or "fallback_only"),
                 stats_sink=cell_stats,
                 retrieval_cache=retrieval_cache,
             )
@@ -2283,6 +2371,156 @@ async def run_pipeline(
             pdf_stats["vision_model_call_count"] += int(cell_stats.get("figure_review_calls", 0) or 0)
             cell_stats["proposal_id"] = proposal.proposal_id
             run_stats["per_cell"].append(cell_stats)
+
+        if config.extraction.mode == "field_group" and field_group_work:
+            grouped_work: dict[tuple[str, str, str], list[dict[str, object]]] = {}
+            for work in field_group_work:
+                key = (
+                    str(work.get("pdf_id") or ""),
+                    str(work.get("row_id") or ""),
+                    str(work.get("group") or "results"),
+                )
+                grouped_work.setdefault(key, []).append(work)
+
+            async def record_proposal_stats(proposal, cell_stats: dict[str, object], pdf_id: str) -> None:
+                nonlocal proposals_generated
+                proposals_generated += 1
+                run_stats["counters"]["processed_cells"] += 1
+                if cell_stats.get("recall_rescue_used"):
+                    run_stats["counters"]["recall_rescue_cells"] += 1
+                if cell_stats.get("whole_document_used"):
+                    run_stats["counters"]["whole_document_cells"] += 1
+                if cell_stats.get("needs_more_evidence"):
+                    run_stats["counters"]["needs_more_evidence_cells"] += 1
+                if cell_stats.get("figure_review_triggered"):
+                    run_stats["counters"]["figure_review_triggered_cells"] += 1
+                if cell_stats.get("figure_review_attempted"):
+                    run_stats["counters"]["figure_review_attempted_cells"] += 1
+                if cell_stats.get("figure_review_succeeded"):
+                    run_stats["counters"]["figure_review_succeeded_cells"] += 1
+                if cell_stats.get("figure_review_failed"):
+                    run_stats["counters"]["figure_review_failed_cells"] += 1
+                if isinstance(cell_stats.get("figure_review_diagnostics"), dict) and cell_stats["figure_review_diagnostics"].get("suppressed"):
+                    run_stats["counters"]["figure_review_suppressed_cells"] += 1
+                if cell_stats.get("figure_review_calls"):
+                    run_stats["counters"]["figure_review_cells"] += 1
+                if cell_stats.get("figure_hits_count"):
+                    run_stats["counters"]["figure_review_hit_cells"] += 1
+                    run_stats["counters"]["figure_review_hits_total"] += int(cell_stats.get("figure_hits_count", 0) or 0)
+                if cell_stats.get("figure_review_useful"):
+                    run_stats["counters"]["figure_review_useful_cells"] += 1
+                if cell_stats.get("figure_review_rescued"):
+                    run_stats["counters"]["figure_review_rescue_cells"] += 1
+                provider_diag = cell_stats.get("provider_diagnostics")
+                if isinstance(provider_diag, dict):
+                    run_stats["counters"]["structured_output_repair_count"] += int(provider_diag.get("repair_count", 0) or 0)
+                    run_stats["counters"]["structured_output_retry_count"] += int(provider_diag.get("retry_count", 0) or 0)
+                pdf_stats = ensure_pdf_stats(pdf_id)
+                pdf_stats["cells_processed"] += 1
+                pdf_stats["pdf_cell_count"] = pdf_stats["cells_processed"]
+                pdf_stats["text_model_call_count"] += int(cell_stats.get("text_model_calls", 0) or 0)
+                pdf_stats["vision_model_call_count"] += int(cell_stats.get("figure_review_calls", 0) or 0)
+                cell_stats["proposal_id"] = proposal.proposal_id
+                run_stats["per_cell"].append(cell_stats)
+
+            for (pdf_id, row_id, group), group_items in grouped_work.items():
+                await asyncio.sleep(0)
+                first = group_items[0]
+                batch_cells = [
+                    {
+                        "cell_id": str(item["cell_id"]),
+                        "column_name": str(item["column_name"]),
+                        "column_description": str(item.get("column_description") or ""),
+                        "field_type": item.get("field_type"),
+                        "allowed_values": item.get("allowed_values"),
+                        "retrieval": item.get("retrieval"),
+                        "cell_stats": item.get("cell_stats"),
+                    }
+                    for item in group_items
+                ]
+                doc_dict = first["doc_dict"]
+                proposals, fallback_cells, batch_stats = await extract_field_group(
+                    run_id=run_id,
+                    pdf_id=pdf_id,
+                    row_id=row_id,
+                    group=group,
+                    row_context=first["row_context"],
+                    doc_dict=doc_dict,
+                    run_dir=run_dir,
+                    provider=provider,
+                    text_model_id=text_model_id,
+                    cells=batch_cells,
+                    caps=provider_mode.capabilities if provider_mode else None,
+                    provider_mode_str=provider_mode.mode if provider_mode else "unknown",
+                    artifact_context=first["artifact_context"],
+                    evidence_card=build_evidence_card(run_id, doc_dict).model_dump(),
+                )
+                run_stats["counters"]["batch_call_count"] += int(batch_stats.get("batch_text_model_calls", 0) or 0)
+                if batch_stats.get("batch_success"):
+                    run_stats["counters"]["batch_success_count"] += 1
+                for proposal in proposals:
+                    source_item = next(
+                        (item for item in group_items if str(item.get("cell_id")) == proposal.cell_id),
+                        None,
+                    )
+                    if source_item is None:
+                        continue
+                    await record_proposal_stats(
+                        proposal,
+                        source_item["cell_stats"],
+                        str(source_item["pdf_id"]),
+                    )
+
+                fallback_by_cell_id = {str(item.get("cell_id")): item for item in fallback_cells}
+                run_stats["counters"]["fallback_call_count"] += len(fallback_by_cell_id)
+                for item in group_items:
+                    if str(item.get("cell_id")) not in fallback_by_cell_id:
+                        continue
+                    cell_stats = item["cell_stats"]
+                    cell_stats["field_group_fallback_reason"] = fallback_by_cell_id[str(item["cell_id"])].get("fallback_reason")
+                    fallback_proposal = await extract_cell(
+                        run_id=run_id,
+                        pdf_id=str(item["pdf_id"]),
+                        row_id=str(item["row_id"]),
+                        cell_id=str(item["cell_id"]),
+                        column_name=str(item["column_name"]),
+                        column_description=str(item.get("column_description") or ""),
+                        row_context=item["row_context"],
+                        doc_dict=item["doc_dict"],
+                        run_dir=run_dir,
+                        provider=provider,
+                        text_model_id=text_model_id,
+                        retrieval=item.get("retrieval"),
+                        style_profile=item.get("style_profile"),
+                        field_type=item.get("field_type"),
+                        allowed_values=item.get("allowed_values"),
+                        caps=provider_mode.capabilities if provider_mode else None,
+                        vision_model_id=vision_model_id if config.figure_review.enabled else None,
+                        is_verify_mode=config.verify_mode,
+                        existing_value=item.get("existing_value") if config.verify_mode else None,
+                        recall_rescue_enabled=config.retrieval.recall_rescue_enabled,
+                        whole_document_mode=config.retrieval.whole_document_mode,
+                        whole_document_max_chars=config.retrieval.whole_document_max_chars,
+                        provider_mode_str=provider_mode.mode if provider_mode else "unknown",
+                        artifact_context=item["artifact_context"],
+                        max_figures_for_review=max(
+                            1,
+                            min(config.figure_review.max_figures_per_paper, config.figure_review.max_figures_per_cell),
+                        ),
+                        max_figure_review_calls_per_cell=max(1, config.figure_review.max_calls_per_cell),
+                        max_figure_review_retries_per_cell=config.figure_review.max_retries_per_cell,
+                        figure_planner_enabled=config.figure_review.planner_enabled,
+                        max_figure_planner_calls_per_cell=config.figure_review.max_planner_calls_per_cell,
+                        skip_figure_review_when_prompt_only_degraded=(
+                            config.figure_review.skip_when_prompt_only_degraded
+                        ),
+                        candidate_selection_enabled=config.extraction.candidate_selection_enabled,
+                        max_candidate_selection_calls_per_cell=config.extraction.max_candidate_selection_calls_per_cell,
+                        vision_policy=str((item.get("column_plan") or {}).get("visual_policy") or "fallback_only"),
+                        stats_sink=cell_stats,
+                        retrieval_cache=retrieval_cache,
+                    )
+                    await record_proposal_stats(fallback_proposal, cell_stats, str(item["pdf_id"]))
 
         runtime_caps = getattr(provider, "_capabilities", None)
         if provider_mode and runtime_caps is not None:
@@ -2419,6 +2657,11 @@ async def run_pipeline(
                 "retrieval_top_k": run_data.get("retrieval_top_k"),
                 "recall_rescue_enabled": bool(run_data.get("recall_rescue_enabled", False)),
                 "whole_document_mode": bool(run_data.get("whole_document_mode", False)),
+                "extraction_mode": run_data.get("extraction_mode"),
+                "column_planning_mode": run_data.get("column_planning_mode"),
+                "column_plan_path": run_data.get("column_plan_path"),
+                "parser_page_render_policy": run_data.get("parser_page_render_policy"),
+                "evidence_card_count": int(run_data.get("evidence_card_count", 0) or 0),
                 "recall_rescue_used": bool(run_data.get("recall_rescue_used", False)),
                 "retrieval_provenance": run_data.get("retrieval_provenance"),
                 "prompt_version": run_data.get("prompt_version"),

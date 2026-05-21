@@ -75,6 +75,13 @@ class ParserConfig(BaseModel):
     allow_basic_fallback: bool = False
     cache_enabled: bool = True
     cache_dir: Optional[str] = None
+    page_render_policy: str = 'eager'
+
+    @model_validator(mode='after')
+    def validate_page_render_policy(self) -> 'ParserConfig':
+        if self.page_render_policy not in {'eager', 'lazy'}:
+            raise ValueError("parser.page_render_policy must be either 'eager' or 'lazy'.")
+        return self
 
 
 class MatchingConfig(BaseModel):
@@ -165,8 +172,23 @@ class FigureReviewConfig(BaseModel):
 
 
 class ExtractionConfig(BaseModel):
+    mode: str = 'per_cell'
     candidate_selection_enabled: bool = True
     max_candidate_selection_calls_per_cell: int = Field(default=1, ge=0)
+    column_planning: dict[str, Any] = Field(default_factory=lambda: {'mode': 'deterministic'})
+
+    @model_validator(mode='after')
+    def validate_extraction_config(self) -> 'ExtractionConfig':
+        if self.mode not in {'per_cell', 'field_group'}:
+            raise ValueError("extraction.mode must be either 'per_cell' or 'field_group'.")
+        mode = str((self.column_planning or {}).get('mode') or 'deterministic')
+        if mode not in {'disabled', 'deterministic', 'llm_primary'}:
+            raise ValueError(
+                "extraction.column_planning.mode must be one of: "
+                "disabled, deterministic, llm_primary."
+            )
+        self.column_planning['mode'] = mode
+        return self
 
 
 class ReviewConfig(BaseModel):

@@ -706,6 +706,7 @@ def run_retrieval_for_cell(
     retrieval_mode: str = "lexical",
     retrieval_cache: dict[tuple[str, str, bool, bool], RetrievalPreparedIndex] | None = None,
     cache_key: str | None = None,
+    column_plan: Optional[dict] = None,
 ) -> RetrievalResult:
     """Build and persist retrieval result for one (pdf, column) pair."""
     query, policy = _build_retrieval_query_with_policy(column_name, column_description)
@@ -714,6 +715,46 @@ def run_retrieval_for_cell(
     include_tables = True
     include_neighbor_window = True
     allowed_chunk_types = ["abstract", "caption", "figure", "list_item", "paragraph", "section", "table_region"]
+    retrieval_profile = "general"
+    retrieval_hints: list[str] = []
+    if isinstance(column_plan, dict):
+        retrieval_profile = str(column_plan.get("retrieval_profile") or "general")
+        raw_hints = column_plan.get("retrieval_hints")
+        if isinstance(raw_hints, list):
+            retrieval_hints = [str(hint).strip() for hint in raw_hints if str(hint).strip()]
+    if retrieval_hints:
+        query = f"{query} " + " ".join(retrieval_hints[:12])
+        policy.hint_terms = list(dict.fromkeys([*policy.hint_terms, *retrieval_hints[:12]]))
+    if retrieval_profile == "metadata":
+        include_captions = False
+        include_tables = False
+        include_neighbor_window = True
+        allowed_chunk_types = ["abstract", "paragraph", "section"]
+        top_k = min(max(top_k, 4), 7)
+    elif retrieval_profile == "methods":
+        include_captions = False
+        include_tables = True
+        include_neighbor_window = True
+        allowed_chunk_types = ["abstract", "list_item", "paragraph", "section", "table_region"]
+        top_k = max(top_k, 8)
+    elif retrieval_profile == "visual":
+        include_captions = True
+        include_tables = True
+        include_neighbor_window = True
+        allowed_chunk_types = ["caption", "figure", "paragraph", "section", "table_region"]
+        top_k = max(top_k, 10)
+    elif retrieval_profile == "claims":
+        include_captions = False
+        include_tables = False
+        include_neighbor_window = True
+        allowed_chunk_types = ["abstract", "paragraph", "section"]
+        top_k = max(top_k, 8)
+    elif retrieval_profile == "results":
+        include_captions = True
+        include_tables = True
+        include_neighbor_window = True
+        allowed_chunk_types = ["caption", "paragraph", "section", "table_region"]
+        top_k = max(top_k, 8)
     if retrieval_cache is not None and cache_key is not None:
         cache_tuple = (cache_key, retrieval_mode, include_captions, include_tables)
         prepared_index = retrieval_cache.get(cache_tuple)
@@ -748,6 +789,7 @@ def run_retrieval_for_cell(
             "include_tables": include_tables,
             "include_neighbor_window": include_neighbor_window,
             "top_k": top_k,
+            "retrieval_profile": retrieval_profile,
         }
     )
     result = RetrievalResult(

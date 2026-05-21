@@ -270,12 +270,29 @@ class TestGetEligibleCells:
             assert "current_value" in cell
             assert "eligibility" in cell
 
-    def test_metadata_cols_excluded(self):
-        df = load_table(FIXTURE_TABLE)
-        schema = load_schema(FIXTURE_SCHEMA, FIXTURE_TABLE)
+    def test_filled_metadata_cols_excluded_but_blank_metadata_is_eligible(self):
+        df = pd.DataFrame(
+            {
+                "Title": ["Paper A"],
+                "Authors": [""],
+                "Publication Year": ["2024"],
+                "Species": [""],
+            }
+        )
+        schema = [
+            {"column_name": "Title", "description": "Paper title"},
+            {"column_name": "Authors", "description": "Author list"},
+            {"column_name": "Publication Year", "description": "Publication year"},
+            {"column_name": "Species", "description": "Species"},
+        ]
+
         cells = get_eligible_cells(df, schema, verify_mode=False)
-        for cell in cells:
-            assert cell["column_name"] not in {"Title", "Authors", "Publication Year"}
+        columns = {cell["column_name"] for cell in cells}
+
+        assert "Authors" in columns
+        assert "Species" in columns
+        assert "Title" not in columns
+        assert "Publication Year" not in columns
 
     def test_eval_mode_includes_required_metadata_columns_for_proposal_generation(self):
         df = load_table(FIXTURE_TABLE)

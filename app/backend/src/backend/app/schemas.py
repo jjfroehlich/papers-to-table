@@ -220,6 +220,11 @@ class RunSummary(BaseModel):
     parse_cache_hit_count: int = 0
     parse_cache_miss_count: int = 0
     parse_cache_rejected_count: int = 0
+    extraction_mode: Optional[str] = None
+    column_planning_mode: Optional[str] = None
+    column_plan_path: Optional[str] = None
+    parser_page_render_policy: Optional[str] = None
+    evidence_card_count: int = 0
     eval_artifacts: Optional[dict] = None
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
@@ -257,6 +262,11 @@ class ReviewerSummary(BaseModel):
     retrieval_top_k: Optional[int] = None
     recall_rescue_enabled: bool = False
     whole_document_mode: bool = False
+    extraction_mode: Optional[str] = None
+    column_planning_mode: Optional[str] = None
+    column_plan_path: Optional[str] = None
+    parser_page_render_policy: Optional[str] = None
+    evidence_card_count: int = 0
     recall_rescue_used: bool = False
     retrieval_provenance: Optional[dict] = None
     prompt_version: Optional[str] = None

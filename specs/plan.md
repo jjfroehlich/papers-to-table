@@ -54,3 +54,45 @@ This file describes the current architecture direction and near-term roadmap for
 - keep screenshots aligned with UI truth when the review workflow changes
 - continue reducing stale or personal-path assumptions inside benchmark presets
 - finish archiving or pointer-replacing older scattered spec markdown once links are clean
+
+## Extraction accuracy and speed implementation plan
+
+This plan implements `specs/extraction-accuracy-speed-improvements.md` as runnable main-app behavior, not provenance-only scaffolding.
+
+### P0 guardrails
+
+- Keep normal `per_cell` extraction as the default control path.
+- Treat schema-defined blank required metadata cells as eligible while preserving filled metadata, row order, headers, non-target columns, and unsupported blank values.
+- Record text calls, vision calls, planner calls, batch calls, batch retries, fallback calls, blank rate, throughput, and score-per-minute inputs in run stats and optimizer summaries.
+
+### P1 column planning
+
+- Produce `planning/column_plan.json` for every run.
+- Use `extraction.column_planning.mode=llm_primary` to call the text model once per schema when live provider capability is available.
+- Clamp all planner output through deterministic validation: supported extraction kinds, groups, visual policies, blank policies, retrieval profiles, and schema allowed-values only.
+- Fall back to deterministic schema-derived planning on provider failure or invalid planner output.
+
+### P2 evidence cards and retrieval profiles
+
+- Produce one compact `evidence_cards/{pdf_id}.json` for each parsed PDF.
+- Use column-plan retrieval profiles to shape retrieval query hints, allowed chunk types, captions/tables inclusion, neighbor-window policy, and effective top-k.
+- Include evidence-card summaries in field-group prompts so the batched path sees paper-level context before per-column passages.
+
+### P3 field-group extraction
+
+- Implement `extraction.mode=field_group` as a real candidate path.
+- Group eligible cells by matched PDF and column-plan group.
+- Make one structured text-model call per `(pdf_id, group)`, returning multiple cell results.
+- Split successful group results into existing `ProposalRecord` and `EvidenceRecord` artifacts without changing proposal/evidence join keys or export semantics.
+- Retry only failed, invalid, unclear-without-evidence, or missing-result cells through the existing per-cell extractor.
+
+### P4 vision and lazy rendering
+
+- Trigger figure review from column-plan `visual_policy=prefer` or from explicit evidence/reasoning fallback, not from caption presence alone.
+- Keep eager rendering as the default; support `parser.page_render_policy=lazy` by skipping parse-time page image generation and generating page images on demand for figure review or review assets.
+
+### P5 optimizer quantification
+
+- Add optimizer knobs for extraction mode, planner mode, page render policy, and vision policy.
+- Compare the control `per_cell` mode with `field_group` candidates in extraction-feature configs.
+- Surface accuracy, wall time, text calls, vision calls, batch success rate, retry rate, blank rate, and score per minute in optimizer outputs.

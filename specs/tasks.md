@@ -24,6 +24,19 @@
 
 ## Current backlog
 
+- [x] P0 extraction guardrails: fill blank schema-defined metadata while preserving filled metadata, headers, row order, non-target columns, and unsupported blank values
+- [x] P0 metrics: persist planner, text, vision, batch, fallback, retry, blank-rate, throughput, and score-per-minute measurement inputs
+- [x] P1 planner: implement live LLM-primary schema planning with deterministic validation and deterministic fallback
+- [ ] P1 tests: cover synthetic non-benchmark schemas and invalid planner output clamping
+- [x] P2 evidence cards: persist one compact evidence card per parsed PDF
+- [x] P2 retrieval profiles: use column-plan profiles to alter retrieval hints, chunk types, caption/table inclusion, neighbor policy, and top-k
+- [x] P3 field-group mode: implement real `(pdf_id, group)` batch extraction calls that emit normal proposals/evidence
+- [x] P3 fallback: retry only invalid/missing/unsupported batch cells through per-cell extraction
+- [ ] P3 tests: verify field-group splitting, fallback, and contract-compatible artifacts
+- [x] P4 vision policy: trigger figure review from column-plan visual policy or explicit evidence fallback instead of caption presence alone
+- [x] P4 lazy rendering: skip parse-time page rendering when configured and render page images on demand for figure/review use
+- [x] P5 optimizer: expose extraction mode, planner mode, page render policy, and vision policy knobs in optimizer configs
+- [x] P5 reporting: report accuracy, wall time, text calls, vision calls, batch success rate, retry rate, blank rate, and score per minute
 - [ ] Continue removing personal-path assumptions from real benchmark preset examples
 - [ ] Refresh screenshots when the next visible UI workflow change lands
 - [ ] Pointer-replace or move older compatibility markdown under `specs/product/`, `specs/tools/`, `specs/contracts/`, `specs/architecture/`, and `specs/process/` into `specs/archive/` after downstream links are updated

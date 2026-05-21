@@ -410,6 +410,56 @@ VISION_EXTRACTION_SCHEMA = {
     ],
 }
 
+FIELD_GROUP_EXTRACTION_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "cells": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "cell_id": {"type": "string"},
+                    "column_name": {"type": "string"},
+                    "proposed_value": {"type": ["string", "null"]},
+                    "state": {"type": "string", "enum": ["found", "inferred", "unclear"]},
+                    "rationale": {"type": ["string", "null"]},
+                    "calculation": {"type": ["string", "null"]},
+                    "numeric_value_form": {
+                        "type": ["string", "null"],
+                        "enum": ["exact", "range", "approximate", None],
+                    },
+                    "quotes": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "text": {"type": "string"},
+                                "page": {"type": ["integer", "null"]},
+                                "source_type": {
+                                    "type": "string",
+                                    "enum": ["direct_quote", "inferred_reasoning", "calculation"],
+                                },
+                            },
+                            "required": ["text", "source_type"],
+                        },
+                    },
+                },
+                "required": [
+                    "cell_id",
+                    "column_name",
+                    "proposed_value",
+                    "state",
+                    "rationale",
+                    "calculation",
+                    "numeric_value_form",
+                    "quotes",
+                ],
+            },
+        }
+    },
+    "required": ["cells"],
+}
+
 FIGURE_PLANNER_SCHEMA = {
     "type": "object",
     "properties": {
@@ -1674,11 +1724,35 @@ def _select_figure_image(
     column_name: str,
     column_description: str,
     preferred_image: Optional[str] = None,
+    doc_dict: Optional[dict] = None,
 ) -> FigureImageSelection:
     """Select the image sent to vision for a figure review attempt."""
     crop_path = _resolve_artifact_path(run_dir, figure.get("crop_path"))
     full_page_path = _resolve_artifact_path(run_dir, figure.get("full_page_path"))
     full_page_exists = bool(full_page_path and full_page_path.exists())
+    if not full_page_exists and doc_dict is not None:
+        pdf_path = doc_dict.get("pdf_path")
+        pdf_id = doc_dict.get("pdf_id")
+        page_number = int(figure.get("page_number") or 0)
+        if pdf_path and pdf_id and page_number > 0:
+            try:
+                from .parsing import generate_page_artifacts
+
+                generated_paths = generate_page_artifacts(run_dir, str(pdf_path), str(pdf_id))
+                rel_path = next(
+                    (
+                        path.replace("\\", "/")
+                        for path in generated_paths
+                        if path.replace("\\", "/").endswith(f"page_{page_number:04d}.png")
+                    ),
+                    None,
+                )
+                if rel_path:
+                    figure["full_page_path"] = rel_path
+                    full_page_path = _resolve_artifact_path(run_dir, rel_path)
+                    full_page_exists = bool(full_page_path and full_page_path.exists())
+            except Exception:
+                full_page_exists = False
 
     if preferred_image == "full_page" and full_page_exists and full_page_path:
         image_b64 = _encode_image_file_b64(full_page_path)
@@ -1927,6 +2001,7 @@ async def run_figure_review(
             column_name=column_name,
             column_description=column_description,
             preferred_image=planner_preferred_by_ref.get(str(fig_id)),
+            doc_dict=doc_dict,
         )
         if image_selection.image_b64 is None:
             if attempt_diagnostics is not None:
@@ -2304,6 +2379,323 @@ def load_evidence(run_dir: pathlib.Path) -> list[EvidenceRecord]:
     return results
 
 
+def _field_group_messages(
+    *,
+    group: str,
+    row_context: dict,
+    cells: list[dict[str, Any]],
+    evidence_card: Optional[dict],
+) -> list[dict[str, str]]:
+    compact_cells: list[dict[str, Any]] = []
+    for cell in cells:
+        retrieval = cell.get("retrieval")
+        context = _build_context_block(retrieval) if retrieval is not None else "(no retrieval context)"
+        compact_cells.append(
+            {
+                "cell_id": cell["cell_id"],
+                "column_name": cell["column_name"],
+                "description": cell.get("column_description") or "",
+                "field_type": str(cell.get("field_type") or ""),
+                "allowed_values": cell.get("allowed_values"),
+                "retrieved_context": context[:9000],
+            }
+        )
+    card_payload = None
+    if isinstance(evidence_card, dict):
+        card_payload = {
+            "pdf_id": evidence_card.get("pdf_id"),
+            "title": evidence_card.get("title"),
+            "abstract": evidence_card.get("abstract"),
+            "figure_count": len(evidence_card.get("figures", []) or []),
+            "table_count": len(evidence_card.get("tables", []) or []),
+        }
+    return [
+        {
+            "role": "system",
+            "content": (
+                "Extract multiple cells from one scientific paper. Use only the supplied evidence context. "
+                "Return one result for every requested cell_id. If evidence is insufficient, use state=unclear "
+                "and null proposed_value. Quotes must directly support the proposed value."
+            ),
+        },
+        {
+            "role": "user",
+            "content": (
+                f"Extraction group: {group}\n"
+                f"Row context JSON: {json.dumps(row_context, ensure_ascii=False, default=str)[:6000]}\n"
+                f"Evidence card JSON: {json.dumps(card_payload, ensure_ascii=False, default=str)}\n"
+                f"Requested cells JSON: {json.dumps(compact_cells, ensure_ascii=False, default=str)}"
+            ),
+        },
+    ]
+
+
+async def extract_field_group(
+    *,
+    run_id: str,
+    pdf_id: str,
+    row_id: str,
+    group: str,
+    row_context: dict,
+    doc_dict: dict,
+    run_dir: pathlib.Path,
+    provider: ProviderAdapter,
+    text_model_id: str,
+    cells: list[dict[str, Any]],
+    caps=None,
+    provider_mode_str: str = "unknown",
+    artifact_context: Optional[dict] = None,
+    evidence_card: Optional[dict] = None,
+) -> tuple[list[ProposalRecord], list[dict[str, Any]], dict[str, object]]:
+    """Extract a same-paper field group with one structured text-model call."""
+    artifact_context = artifact_context or {}
+    group_started = perf_counter()
+    provider_diag_cursor = _get_provider_diagnostics_cursor(provider)
+    try:
+        raw_result = await provider.chat_complete_structured(
+            messages=_field_group_messages(
+                group=group,
+                row_context=row_context,
+                cells=cells,
+                evidence_card=evidence_card,
+            ),
+            response_schema=FIELD_GROUP_EXTRACTION_SCHEMA,
+            model_id=text_model_id,
+            max_tokens=min(8192, 1400 + 900 * max(len(cells), 1)),
+        )
+    except Exception:
+        return [], list(cells), {
+            "batch_text_model_calls": 1,
+            "batch_success": False,
+            "batch_ms": round((perf_counter() - group_started) * 1000.0, 3),
+            "fallback_count": len(cells),
+            "provider_diagnostics": _summarize_provider_attempts(
+                _get_provider_diagnostics_since(provider, provider_diag_cursor)
+            ),
+        }
+
+    raw_cells = raw_result.get("cells") if isinstance(raw_result, dict) else None
+    raw_by_id: dict[str, dict[str, Any]] = {}
+    if isinstance(raw_cells, list):
+        for item in raw_cells:
+            if isinstance(item, dict):
+                cell_id = str(item.get("cell_id") or "").strip()
+                if cell_id:
+                    raw_by_id[cell_id] = item
+
+    provider_diag_summary = _summarize_provider_attempts(
+        _get_provider_diagnostics_since(provider, provider_diag_cursor)
+    )
+    now = datetime.now(timezone.utc).isoformat()
+    run_mode = str(artifact_context.get("run_mode") or "normal")
+    proposals: list[ProposalRecord] = []
+    fallback_cells: list[dict[str, Any]] = []
+
+    for index, cell in enumerate(cells):
+        raw = raw_by_id.get(cell["cell_id"])
+        if not raw:
+            fallback_cells.append({**cell, "fallback_reason": "batch_missing_cell"})
+            continue
+
+        proposal_id = generate_proposal_id(run_id, cell["cell_id"])
+        field_type = cell.get("field_type")
+        if field_type is not None and not isinstance(field_type, SchemaFieldType):
+            try:
+                field_type = SchemaFieldType(str(field_type))
+            except ValueError:
+                field_type = None
+        proposed_value = _coerce_text_value(raw.get("proposed_value"), joiner="; ")
+        rationale = _normalize_rationale(_coerce_text_value(raw.get("rationale"), joiner="\n"))
+        calculation = _coerce_text_value(raw.get("calculation"), joiner="\n")
+        numeric_value_form = _normalize_numeric_value_form(raw.get("numeric_value_form"), field_type)
+        quotes = _normalize_quotes_payload(raw.get("quotes"))
+        state, _ = adjudicate_state(str(raw.get("state") or "unclear"), proposed_value, quotes, False)
+
+        evidence_records: list[EvidenceRecord] = []
+        for rank, quote in enumerate(quotes, start=1):
+            quote_text = _coerce_text_value(quote.get("text"), joiner=" ") or ""
+            if not quote_text:
+                continue
+            page_num = quote.get("page")
+            source_type = str(quote.get("source_type") or "direct_quote")
+            if source_type in {"inferred_reasoning", "calculation"}:
+                ev_source = (
+                    EvidenceSourceType.calculation
+                    if source_type == "calculation"
+                    else EvidenceSourceType.inferred_reasoning
+                )
+                ev = EvidenceRecord(
+                    evidence_id=generate_evidence_id(proposal_id),
+                    run_id=run_id,
+                    proposal_id=proposal_id,
+                    pdf_id=pdf_id,
+                    source_type=ev_source,
+                    quote_text=quote_text,
+                    page_number=page_num,
+                    reasoning=rationale,
+                    evidence_rank=rank,
+                    is_primary=rank == 1,
+                    run_mode=run_mode,
+                    prompt_version=artifact_context.get("prompt_version"),
+                    prompt_hash=artifact_context.get("prompt_hash"),
+                    schema_hash=artifact_context.get("schema_hash"),
+                    schema_version=artifact_context.get("schema_version"),
+                    config_hash=artifact_context.get("config_hash"),
+                    config_snapshot_path=artifact_context.get("config_snapshot_path"),
+                    parser_identity=artifact_context.get("parser_identity"),
+                    parser_version=artifact_context.get("parser_version"),
+                    text_model_id=text_model_id,
+                    created_at=now,
+                )
+            else:
+                anchored_type, exact_regions, approx_regions, confidence = anchor_evidence(
+                    quote_text,
+                    page_num,
+                    doc_dict,
+                )
+                resolved_page = (
+                    (exact_regions[0].get("page") if exact_regions else None)
+                    or (approx_regions[0].get("page") if approx_regions else None)
+                    or page_num
+                )
+                ev = EvidenceRecord(
+                    evidence_id=generate_evidence_id(proposal_id),
+                    run_id=run_id,
+                    proposal_id=proposal_id,
+                    pdf_id=pdf_id,
+                    source_type=anchored_type,
+                    quote_text=quote_text,
+                    page_number=resolved_page,
+                    exact_highlight_regions=exact_regions or None,
+                    approximate_highlight_regions=approx_regions or None,
+                    anchor_confidence=confidence,
+                    evidence_rank=rank,
+                    is_primary=rank == 1,
+                    run_mode=run_mode,
+                    prompt_version=artifact_context.get("prompt_version"),
+                    prompt_hash=artifact_context.get("prompt_hash"),
+                    schema_hash=artifact_context.get("schema_hash"),
+                    schema_version=artifact_context.get("schema_version"),
+                    config_hash=artifact_context.get("config_hash"),
+                    config_snapshot_path=artifact_context.get("config_snapshot_path"),
+                    parser_identity=artifact_context.get("parser_identity"),
+                    parser_version=artifact_context.get("parser_version"),
+                    text_model_id=text_model_id,
+                    created_at=now,
+                )
+            evidence_records.append(ev)
+
+        support = determine_support_label(
+            state,
+            evidence_records,
+            proposed_value=proposed_value,
+            field_type=field_type,
+        )
+        needs_more = bool(proposed_value and support == SupportLabel.weak_evidence)
+        if state != ProposalState.unclear and (not proposed_value or needs_more):
+            fallback_cells.append({**cell, "fallback_reason": "batch_weak_or_missing_evidence"})
+            continue
+
+        for evidence in evidence_records:
+            persist_evidence(run_dir, evidence)
+        primary_id = evidence_records[0].evidence_id if evidence_records else None
+        proposal = ProposalRecord(
+            proposal_id=proposal_id,
+            run_id=run_id,
+            pdf_id=pdf_id,
+            row_id=row_id,
+            column_name=cell["column_name"],
+            cell_id=cell["cell_id"],
+            state=state,
+            support=support,
+            proposed_value=proposed_value,
+            rationale=rationale,
+            calculation=calculation,
+            primary_evidence_id=primary_id,
+            ordered_supporting_evidence_ids=[ev.evidence_id for ev in evidence_records[1:]],
+            evidence_ids=[ev.evidence_id for ev in evidence_records],
+            warning_flags=["field_group_batch"],
+            needs_more_evidence=needs_more,
+            field_type=field_type,
+            allowed_values=cell.get("allowed_values"),
+            numeric_value_form=numeric_value_form,
+            provider_mode=provider_mode_str,
+            run_mode=run_mode,
+            prompt_version=artifact_context.get("prompt_version"),
+            prompt_hash=artifact_context.get("prompt_hash"),
+            schema_hash=artifact_context.get("schema_hash"),
+            schema_version=artifact_context.get("schema_version"),
+            config_hash=artifact_context.get("config_hash"),
+            config_snapshot_path=artifact_context.get("config_snapshot_path"),
+            parser_identity=artifact_context.get("parser_identity"),
+            parser_version=artifact_context.get("parser_version"),
+            text_model_id=text_model_id,
+            gold_table_source_reference=artifact_context.get("gold_table_source_reference"),
+            gold_table_hash=artifact_context.get("gold_table_hash"),
+            gold_table_snapshot_path=artifact_context.get("gold_table_snapshot_path"),
+            masked_working_table_path=artifact_context.get("masked_working_table_path"),
+            masked_working_table_hash=artifact_context.get("masked_working_table_hash"),
+            provider_diagnostics=provider_diag_summary,
+            retrieval_diagnostics=_build_retrieval_diagnostics(
+                doc_dict=doc_dict,
+                retrieval=cell.get("retrieval"),
+                state=state,
+                support=support,
+                proposed_value=proposed_value,
+                quotes=quotes,
+                evidence_records=evidence_records,
+                needs_more_evidence=needs_more,
+                recall_rescue_used=False,
+                recall_rescue_decision=RecallRescueDecision(eligible=False, skip_reason="field_group_batch"),
+                whole_document_used=False,
+                whole_document_decision={"eligible": False, "used": False, "skip_reason": "field_group_batch"},
+                warning_flags=[],
+            ),
+            extraction_lane="field_group",
+            failure_attribution=_classify_failure_attribution(
+                state=state,
+                proposed_value=proposed_value,
+                retrieval=cell.get("retrieval"),
+                doc_dict=doc_dict,
+                evidence_records=evidence_records,
+                provider_mode_str=provider_mode_str,
+                metadata_resolution=None,
+                warning_flags=[],
+            ),
+            style_profile_mode=artifact_context.get("style_profile_mode"),
+            created_at=now,
+        )
+        persist_proposal(run_dir, proposal)
+        cell_stats = cell.get("cell_stats")
+        if isinstance(cell_stats, dict):
+            cell_stats.update(
+                {
+                    "response_schema_profile": "field_group",
+                    "text_model_calls": 1 if index == 0 else 0,
+                    "text_model_ms": 0.0,
+                    "evidence_anchor_attempts": len(evidence_records),
+                    "needs_more_evidence": needs_more,
+                    "figure_review_triggered": False,
+                    "figure_review_attempted": False,
+                    "figure_review_succeeded": False,
+                    "figure_review_failed": False,
+                    "figure_review_calls": 0,
+                    "figure_hits_count": 0,
+                    "provider_diagnostics": provider_diag_summary,
+                    "cell_total_ms": round((perf_counter() - group_started) * 1000.0, 3),
+                }
+            )
+        proposals.append(proposal)
+
+    return proposals, fallback_cells, {
+        "batch_text_model_calls": 1,
+        "batch_success": bool(proposals),
+        "batch_ms": round((perf_counter() - group_started) * 1000.0, 3),
+        "fallback_count": len(fallback_cells),
+        "provider_diagnostics": provider_diag_summary,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Per-cell extraction orchestrator (T057)
 # ---------------------------------------------------------------------------
@@ -2341,6 +2733,7 @@ async def extract_cell(
     skip_figure_review_when_prompt_only_degraded: bool = False,
     candidate_selection_enabled: bool = True,
     max_candidate_selection_calls_per_cell: int = 1,
+    vision_policy: Optional[str] = None,
     stats_sink: Optional[dict[str, object]] = None,
     retrieval_cache: Optional[dict[tuple[str, bool, bool], Any]] = None,
 ) -> ProposalRecord:
@@ -2986,6 +3379,16 @@ async def extract_cell(
         column_name=column_name,
         column_description=column_description,
     )
+    if vision_policy == "prefer" and doc_dict.get("figures"):
+        if "column_plan_visual_prefer" not in vision_trigger_reasons:
+            vision_trigger_reasons.append("column_plan_visual_prefer")
+    elif vision_policy == "never":
+        vision_trigger_reasons = []
+    elif vision_policy == "fallback_only":
+        vision_trigger_reasons = [
+            reason for reason in vision_trigger_reasons
+            if reason in {"needs_more_evidence", "weak_evidence", "caption_retrieval"}
+        ]
     figure_review_suppressed_reason: Optional[str] = None
     figure_review_triggered = bool(doc_dict.get("figures") and vision_trigger_reasons)
     should_run_vision = bool(vision_model_id and figure_review_triggered)

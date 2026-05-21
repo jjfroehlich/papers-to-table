@@ -21,7 +21,10 @@
       "style_profiles_enabled": true,
       "style_profiles_max_examples": 3,
       "figure_review_enabled": false,
-      "parser_allow_basic_fallback": true
+      "parser_allow_basic_fallback": true,
+      "parser_page_render_policy": "eager",
+      "extraction_mode": "per_cell",
+      "column_planning_mode": "deterministic"
     }
   },
   "compare_candidates": [
@@ -37,8 +40,11 @@
         "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": false,
-        "parser_allow_basic_fallback": true
+      "figure_review_enabled": false,
+      "parser_allow_basic_fallback": true,
+      "parser_page_render_policy": "eager",
+      "extraction_mode": "per_cell",
+      "column_planning_mode": "deterministic"
       }
     },
     {
@@ -53,8 +59,11 @@
         "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": false,
-        "parser_allow_basic_fallback": true
+      "figure_review_enabled": false,
+      "parser_allow_basic_fallback": true,
+      "parser_page_render_policy": "eager",
+      "extraction_mode": "per_cell",
+      "column_planning_mode": "deterministic"
       }
     },
     {
@@ -69,8 +78,11 @@
         "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": false,
-        "parser_allow_basic_fallback": true
+      "figure_review_enabled": false,
+      "parser_allow_basic_fallback": true,
+      "parser_page_render_policy": "eager",
+      "extraction_mode": "per_cell",
+      "column_planning_mode": "deterministic"
       }
     },
     {
@@ -85,8 +97,11 @@
         "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": false,
-        "parser_allow_basic_fallback": true
+      "figure_review_enabled": false,
+      "parser_allow_basic_fallback": true,
+      "parser_page_render_policy": "eager",
+      "extraction_mode": "per_cell",
+      "column_planning_mode": "deterministic"
       }
     },
     {
@@ -101,8 +116,11 @@
         "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
-        "parser_allow_basic_fallback": true
+      "figure_review_enabled": true,
+      "parser_allow_basic_fallback": true,
+      "parser_page_render_policy": "eager",
+      "extraction_mode": "per_cell",
+      "column_planning_mode": "deterministic"
       }
     },
     {
@@ -117,8 +135,11 @@
         "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
-        "parser_allow_basic_fallback": true
+      "figure_review_enabled": true,
+      "parser_allow_basic_fallback": true,
+      "parser_page_render_policy": "eager",
+      "extraction_mode": "per_cell",
+      "column_planning_mode": "deterministic"
       }
     },
     {
@@ -133,8 +154,11 @@
         "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
-        "parser_allow_basic_fallback": true
+      "figure_review_enabled": true,
+      "parser_allow_basic_fallback": true,
+      "parser_page_render_policy": "eager",
+      "extraction_mode": "per_cell",
+      "column_planning_mode": "deterministic"
       }
     },
     {
@@ -149,8 +173,11 @@
         "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
-        "parser_allow_basic_fallback": true
+      "figure_review_enabled": true,
+      "parser_allow_basic_fallback": true,
+      "parser_page_render_policy": "eager",
+      "extraction_mode": "per_cell",
+      "column_planning_mode": "deterministic"
       }
     }
   ],
@@ -305,7 +332,10 @@
       "vision_repetition_penalty": "provider.vision_model.repetition_penalty",
       "vision_extra_body": "provider.vision_model.extra_body",
       "vision_chat_template_kwargs": "provider.vision_model.chat_template_kwargs",
-      "parser_allow_basic_fallback": "parser.allow_basic_fallback"
+      "parser_allow_basic_fallback": "parser.allow_basic_fallback",
+      "parser_page_render_policy": "parser.page_render_policy",
+      "extraction_mode": "extraction.mode",
+      "column_planning_mode": "extraction.column_planning.mode"
     }
   },
   "eval_app": {
