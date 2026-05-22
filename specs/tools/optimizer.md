@@ -61,6 +61,19 @@ The split names `smoke`, `dev`, and `holdout` may remain as convenience aliases 
 
 Tool-local `evaluate-candidate` is suite-based and accepts `--suite`.
 
+## Runtime planning note
+
+Optimizer studies are sequential by default, so full-benchmark runtime scales with candidate count, benchmark count, replicate count, and model speed.
+
+The 2026-05-15 full-benchmark attempt on the three-benchmark dev suite with three replicates is the current operator reference point:
+
+- model compare: 9 completed candidates, 12.45 h total, about 83 min per candidate
+- prompt compare: 3 completed candidates, 6.25 h total, about 125 min per candidate
+- retrieval sweep: 10 completed candidates, 22.54 h total, about 135 min per candidate
+- extraction feature sweep: 4 completed candidates, 8.64 h total, about 130 min per candidate before interruption
+
+Operator docs should therefore present full benchmark as a multi-day workflow when the candidate set is broad, and recommend reduced candidate sets for routine iteration.
+
 ## Benchmark manifests
 
 Single benchmark manifests remain valid as benchmark leaves inside suites.

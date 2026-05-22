@@ -122,6 +122,41 @@ Resume skips stages already recorded in the manifest and, for the currently acti
 
 `tools/optimizer/scripts/run_study.sh` is an internal helper used by both wrappers. It runs one compare study from one materialized config, writes logs and run metadata, calls the optimizer CLI, and builds the per-study summary.
 
+### Full-Benchmark Runtime Expectations
+
+Full benchmark runtime scales roughly as:
+
+```text
+candidate count x benchmark count x replicate count x model speed
+```
+
+The 2026-05-15 run `20260515_142227_full_benchmark_full_benchmark_20260515-142227` is the current real-world reference. It ran the three-benchmark dev suite with three replicates and was interrupted during the extraction-feature phase because it was taking too long.
+
+Completed candidate runtime from that run:
+
+| Stage | Completed Candidates | Completed Runtime | Mean Runtime Per Candidate |
+|---|---:|---:|---:|
+| model compare | 9 | 12.45 h | 83 min |
+| prompt compare | 3 | 6.25 h | 125 min |
+| retrieval sweep | 10 | 22.54 h | 135 min |
+| extraction feature sweep | 4 | 8.64 h | 130 min |
+
+Practical estimates:
+
+- A single candidate on the three-benchmark, three-replicate suite usually costs about `1.5-2.25 h`, depending on model speed and feature settings.
+- A broad full benchmark with dozens of candidates can take `2-4+ days`.
+- Use `dev-check` before full benchmark changes.
+- Prefer a reduced full benchmark unless the machine can be left running for multiple days.
+
+Useful reductions:
+
+- Limit the model phase with `--initial-model` when model choice is already known.
+- Remove clearly weak or obsolete models from `compare_models.json`.
+- Keep only the strongest one or two prompt bundles.
+- Shrink retrieval sweeps to the settings worth deciding between, for example one `hybrid_experimental` and one `lexical` candidate.
+- Avoid expanding extraction-feature sweeps over the top two retrieval seeds unless that specific interaction is the question.
+- Drop `recall_rescue=false` or `figure_review=true` combinations when recent evidence already shows they are not the focus.
+
 ## Low-level Command (tool-local)
 ```bash
 cd tools/optimizer
