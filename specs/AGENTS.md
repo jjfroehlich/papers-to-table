@@ -52,6 +52,16 @@ Before changing canonical spec text, inspect the current code path, relevant tes
 - `plan.md`: supportive technical-direction summary
 - `tasks.md`: canonical implementation checklist and verified progress state
 
+## Experiment and improvement docs
+
+- `experiment-results.md` owns tested evidence, eval results, dev-check outcomes that changed a decision, rejected ideas, and current recommendations.
+- `improvement-ideas.md` owns prioritized untested or not-yet-resolved ideas.
+- Do not recreate `extraction-improvement-backlog.md`, `extraction-experiment-results.md`, or `extraction-improvement-ideas.md`; they are superseded by the more general filenames above.
+- When recording optimizer or eval results, include model IDs or source labels alongside candidate IDs. Do not write only `cand_0001`; write a form like `cand_0001 / google/gemma-4-e4b`.
+- Keep result and idea entries within the length bands documented in those files unless a longer entry is needed for a broad benchmark comparison.
+- When an idea is implemented, benchmarked, rejected, or ruled out conceptually, move the evidence to `experiment-results.md` and update or remove the corresponding idea.
+- Update stale references when extraction improvement files are renamed, consolidated, or split.
+
 ## Current-file rule
 
 - Current files must be understandable without consulting archive material.
