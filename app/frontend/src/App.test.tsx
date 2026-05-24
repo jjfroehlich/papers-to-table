@@ -1,5 +1,5 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './App'
 
 const mockListRuns = vi.fn()
@@ -53,6 +53,26 @@ vi.mock('./components/ReviewWorkspace', () => ({
 }))
 
 describe('App', () => {
+  beforeEach(() => {
+    window.history.replaceState({}, '', '/')
+    window.localStorage.clear()
+    vi.unstubAllGlobals()
+    mockListRuns.mockReset()
+    mockCreateRunEventsSource.mockReset()
+    mockListRuns.mockResolvedValue({ runs: [] })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('renders the main app shell by default', async () => {
+    render(<App />)
+
+    await screen.findByText('Create run form')
+    expect(screen.getByText('Review ready')).toBeInTheDocument()
+  })
+
   it('refreshes runs quietly when the event stream reports an error', async () => {
     const source = new MockEventSource()
     vi.stubGlobal('EventSource', MockEventSource)

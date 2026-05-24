@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api/client'
 import type { ReviewTableCell, ReviewTableColumn, ReviewTableData, ReviewTableProposal, ReviewTableRow } from '../types'
 import {
@@ -24,6 +24,7 @@ interface Props {
   filter: ReviewFilter
   onFilterChange: (filter: ReviewFilter) => void
   onSelect: (proposalId: string) => void
+  onVisibleProposalOrderChange?: (proposalIds: string[]) => void
   onSelectCell?: (cell: SelectedReviewCell) => void
   refreshVersion?: number
 }
@@ -109,6 +110,10 @@ function buildSelectedCell(row: ReviewTableRow, column: ReviewTableColumn, cell:
   }
 }
 
+function cssEscape(value: string): string {
+  return globalThis.CSS?.escape ? globalThis.CSS.escape(value) : value.replace(/["\\]/g, '\\$&')
+}
+
 export function ReviewTableView({
   runId,
   outputDir,
@@ -116,12 +121,14 @@ export function ReviewTableView({
   filter,
   onFilterChange,
   onSelect,
+  onVisibleProposalOrderChange,
   onSelectCell,
   refreshVersion = 0,
 }: Props) {
   const [tableData, setTableData] = useState<ReviewTableData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const scrollRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -146,9 +153,40 @@ export function ReviewTableView({
   const filteredRows = useMemo(() => {
     if (!tableData) return []
     return tableData.rows.filter((row) => {
-      return Object.values(row.cells).some((cell) => proposalMatchesFilter(cell.proposal, filter))
+      return Object.values(row.cells).some(
+        (cell) => cell.proposal?.proposal_id === selectedProposalId || proposalMatchesFilter(cell.proposal, filter)
+      )
     })
-  }, [filter, tableData])
+  }, [filter, selectedProposalId, tableData])
+
+  const visibleProposalIds = useMemo(() => {
+    if (!tableData) return []
+    const ids: string[] = []
+    const seen = new Set<string>()
+    for (const row of filteredRows) {
+      for (const column of tableData.columns) {
+        const proposal = row.cells[column.name]?.proposal ?? null
+        if (!proposal) continue
+        if (proposal.proposal_id !== selectedProposalId && !proposalMatchesFilter(proposal, filter)) continue
+        if (seen.has(proposal.proposal_id)) continue
+        ids.push(proposal.proposal_id)
+        seen.add(proposal.proposal_id)
+      }
+    }
+    return ids
+  }, [filter, filteredRows, selectedProposalId, tableData])
+
+  useEffect(() => {
+    onVisibleProposalOrderChange?.(visibleProposalIds)
+  }, [onVisibleProposalOrderChange, visibleProposalIds])
+
+  useEffect(() => {
+    if (!selectedProposalId) return
+    window.requestAnimationFrame(() => {
+      const target = scrollRef.current?.querySelector<HTMLElement>(`[data-proposal-id="${cssEscape(selectedProposalId)}"]`)
+      target?.scrollIntoView?.({ block: 'center', inline: 'center' })
+    })
+  }, [filteredRows, selectedProposalId])
 
   if (loading && !tableData) {
     return <div className="flex h-32 items-center justify-center text-sm text-slate-400">Loading table...</div>
@@ -179,7 +217,7 @@ export function ReviewTableView({
         </select>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto" data-testid="review-table-scroll">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto" data-testid="review-table-scroll">
         <table className="min-w-full border-separate border-spacing-0 text-xs">
           <thead className="sticky top-0 z-20 bg-slate-50 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 shadow-sm">
             <tr>
@@ -215,14 +253,15 @@ export function ReviewTableView({
                           onSelectCell?.(buildSelectedCell(row, column, cell))
                         }}
                         title={formatCellValue(cell?.display_value)}
-                        className={`block h-full min-h-14 w-full px-2 py-2 text-left ring-1 ring-inset transition ${statusClass(cell)} ${
+                        className={`flex h-full min-h-20 w-full flex-col justify-between px-2 py-2 text-left ring-1 ring-inset transition ${statusClass(cell)} ${
                           'hover:ring-slate-400'
-                        } ${isSelected ? 'outline outline-2 outline-sky-500' : ''}`}
+                        } ${isSelected ? 'outline outline-2 outline-sky-600' : ''}`}
                         data-testid={proposal ? `review-table-cell-${proposal.proposal_id}` : undefined}
+                        data-proposal-id={proposal?.proposal_id}
                       >
-                        <span className="line-clamp-2 text-[12px] font-medium leading-4">{formatCellValue(cell?.display_value)}</span>
+                        <span className="line-clamp-2 min-h-8 text-[12px] font-medium leading-4">{formatCellValue(cell?.display_value)}</span>
                         {proposal && (
-                          <span className="mt-0.5 flex items-center gap-0.5">
+                          <span className="mt-1 flex h-4 items-center gap-0.5">
                             <ReviewStatusIndicator decision={proposal.latest_decision?.decision ?? null} size="xs" />
                             <ProposalStateIndicator state={proposal.state} size="xs" />
                             <ProposalSupportIndicator support={proposal.support} isFallback={proposal.is_fallback_evidence} size="xs" />

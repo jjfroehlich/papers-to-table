@@ -21,23 +21,23 @@ export function RunList({ runs, selectedRunId, onSelect }: Props) {
     )
   }
   return (
-    <ul className="divide-y divide-gray-200">
+    <ul className="divide-y divide-slate-100">
       {runs.map((run) => (
         <li
           key={run.run_id}
           data-testid="run-item"
-          className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
-            selectedRunId === run.run_id ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+          className={`cursor-pointer px-4 py-3 transition-colors hover:bg-slate-50 ${
+            selectedRunId === run.run_id ? 'border-l-2 border-slate-900 bg-slate-50' : ''
           }`}
           onClick={() => onSelect(run)}
         >
           <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-mono text-gray-700 truncate flex-1">{run.run_id}</span>
+            <span className="flex-1 truncate font-mono text-xs text-slate-700">{run.run_id}</span>
             <RunStatusBadge status={run.status} />
           </div>
-          <div className="mt-1 text-xs text-gray-500">
+          <div className="mt-1 text-xs text-slate-500">
             {run.current_stage ? (
-              <span className="text-blue-600">Stage: {run.current_stage}</span>
+              <span className="text-slate-700">Stage: {run.current_stage}</span>
             ) : (
               <span>{formatDate(run.created_at)}</span>
             )}

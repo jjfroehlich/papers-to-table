@@ -87,10 +87,10 @@ export function ReviewActionArea({
   const currentDecision = proposal.latest_decision?.decision
 
   return (
-    <div className="shrink-0 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur" data-testid="review-action-area">
+    <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-2.5" data-testid="review-action-area">
       {/* Current decision indicator */}
       {isDecided && (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+        <div className="mb-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
           Decision: <strong>{currentDecision?.replace(/_/g, ' ')}</strong>
           {proposal.latest_decision?.edited_value && (
             <span> → <em>{proposal.latest_decision.edited_value}</em></span>
@@ -118,18 +118,18 @@ export function ReviewActionArea({
               }
             }}
             placeholder="Enter corrected value…"
-            className="min-w-[220px] flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            className="min-w-[220px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
           />
           <button
             onClick={() => decide('accepted_with_edit', { edited_value: editValue.trim() })}
             disabled={!editValue.trim() || loading}
-            className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-50"
+            className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
           >
             Save
           </button>
           <button
             onClick={() => setShowEditInput(false)}
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
           >
             Cancel
           </button>
@@ -139,12 +139,13 @@ export function ReviewActionArea({
       {/* Main action buttons */}
       {!showEditInput && (
         <div className="flex flex-wrap items-center gap-2">
+          <span className="mr-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Decision</span>
           <button
             onClick={onPrev}
             disabled={loading}
             title="Previous ([)"
             aria-label="Previous proposal"
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
           >
             ←
           </button>
@@ -152,7 +153,7 @@ export function ReviewActionArea({
             onClick={() => decide('rejected')}
             disabled={loading}
             title="Reject (R)"
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
           >
             Reject
           </button>
@@ -160,14 +161,14 @@ export function ReviewActionArea({
             onClick={() => setShowEditInput(true)}
             disabled={loading}
             title="Edit proposed value (E)"
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
           >
             Edit
           </button>
           <button
             onClick={() => decide('confirmed_no_data')}
             disabled={loading}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
           >
             No Data
           </button>
@@ -175,7 +176,7 @@ export function ReviewActionArea({
             onClick={() => decide('accepted')}
             disabled={loading}
             title="Accept (A)"
-            className="rounded-lg border border-emerald-600 bg-emerald-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
+            className="rounded-md border border-emerald-600 bg-emerald-600 px-3.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
           >
             Accept
           </button>
@@ -184,7 +185,7 @@ export function ReviewActionArea({
             disabled={loading}
             title="Next (])"
             aria-label="Next proposal"
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
           >
             →
           </button>

@@ -297,6 +297,107 @@ describe('ReviewWorkspace', () => {
     })
   })
 
+  it('navigates in the active table order instead of the API proposal order', async () => {
+    const proposalA = makeProposal({ proposal_id: 'p1', row_id: 'row-1', column_name: 'Outcome', proposed_value: 'A' })
+    const proposalB = makeProposal({ proposal_id: 'p2', row_id: 'row-2', column_name: 'Outcome', proposed_value: 'B' })
+    const proposalC = makeProposal({ proposal_id: 'p3', row_id: 'row-1', column_name: 'Notes', proposed_value: 'C' })
+
+    function cellFor(proposal: EnrichedProposal) {
+      return {
+        column_name: proposal.column_name,
+        original_value: '',
+        display_value: proposal.proposed_value,
+        display_status: 'pending',
+        has_proposal: true,
+        proposal: {
+          ...proposal,
+          evidence_summary: {
+            count: 1,
+            primary_evidence_id: 'ev1',
+            primary_source_type: 'direct_quote',
+            primary_page_number: 1,
+            primary_quote_text: 'quote',
+          },
+        },
+      }
+    }
+
+    mockListProposals.mockResolvedValueOnce({
+      run_id: 'run_1',
+      count: 3,
+      proposals: [proposalA, proposalB, proposalC],
+    })
+    mockGetReviewTable.mockResolvedValueOnce({
+      run_id: 'run_1',
+      proposal_count: 3,
+      columns: [
+        { name: 'Title', description: null, field_type: null, is_target: false },
+        { name: 'Outcome', description: null, field_type: null, is_target: true },
+        { name: 'Notes', description: null, field_type: null, is_target: true },
+      ],
+      rows: [
+        {
+          row_id: 'row-1',
+          row_index: 0,
+          paper_label: 'Paper A',
+          title: 'Paper A',
+          values: { Title: 'Paper A', Outcome: '', Notes: '' },
+          cells: {
+            Title: {
+              column_name: 'Title',
+              original_value: 'Paper A',
+              display_value: 'Paper A',
+              display_status: 'unchanged',
+              has_proposal: false,
+              proposal: null,
+            },
+            Outcome: cellFor(proposalA),
+            Notes: cellFor(proposalC),
+          },
+        },
+        {
+          row_id: 'row-2',
+          row_index: 1,
+          paper_label: 'Paper B',
+          title: 'Paper B',
+          values: { Title: 'Paper B', Outcome: '', Notes: '' },
+          cells: {
+            Title: {
+              column_name: 'Title',
+              original_value: 'Paper B',
+              display_value: 'Paper B',
+              display_status: 'unchanged',
+              has_proposal: false,
+              proposal: null,
+            },
+            Outcome: cellFor(proposalB),
+            Notes: {
+              column_name: 'Notes',
+              original_value: '',
+              display_value: '',
+              display_status: 'unchanged',
+              has_proposal: false,
+              proposal: null,
+            },
+          },
+        },
+      ],
+    } satisfies ReviewTableData)
+    mockGetProposalDetail.mockImplementation(async (_runId: string, proposalId: string) => {
+      const proposal = proposalId === 'p3' ? proposalC : proposalId === 'p2' ? proposalB : proposalA
+      return makeDetail(proposal, proposal.proposed_value ?? proposal.proposal_id)
+    })
+
+    render(<ReviewWorkspace run={baseRun} outputDir="./runs" />)
+
+    fireEvent.click(await screen.findByTestId('review-table-cell-p1'))
+    fireEvent.click(screen.getByRole('button', { name: 'Next proposal' }))
+
+    await waitFor(() => {
+      expect(mockGetProposalDetail).toHaveBeenCalledWith('run_1', 'p3', './runs')
+    })
+  })
+
   it('switches left pane modes and persists the choice', async () => {
     render(<ReviewWorkspace run={baseRun} outputDir="./runs" />)
 

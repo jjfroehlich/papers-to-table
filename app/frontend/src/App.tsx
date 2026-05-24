@@ -109,6 +109,10 @@ export function App() {
     () => runs.filter((run) => run.status === 'created' || run.status === 'validating' || run.status === 'running'),
     [runs]
   )
+  const reviewReadyRuns = useMemo(
+    () => runs.filter((run) => run.status === 'completed' || run.status === 'completed_with_warnings').length,
+    [runs]
+  )
 
   useEffect(() => {
     if (activeRuns.length === 0) return
@@ -119,14 +123,14 @@ export function App() {
   }, [activeRuns.length, loadRuns])
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#e0f2fe_0%,#f8fafc_32%,#e2e8f0_100%)] text-slate-900">
-      <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-xl shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
-        <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-4 px-5 py-4">
-          <div className="flex min-w-0 items-center gap-4">
-            <img src="/logo_1.svg" alt="papers-to-table" className="h-12 w-12 shrink-0 rounded-xl object-contain" />
+    <div className="min-h-screen bg-[#f5f6f7] text-slate-900">
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-4 px-5 py-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <img src="/logo_1.svg" alt="papers-to-table" className="h-10 w-10 shrink-0 rounded-lg object-contain" />
             <div className="min-w-0">
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-950">papers-to-table</h1>
-              <p className="mt-1 text-sm font-medium text-slate-500">Evidence-backed literature extraction and review</p>
+              <h1 className="text-xl font-semibold tracking-tight text-slate-950">papers-to-table</h1>
+              <p className="mt-0.5 text-xs font-medium text-slate-500">Evidence-backed extraction and review</p>
             </div>
           </div>
 
@@ -136,10 +140,10 @@ export function App() {
                 {activeRuns.length} active run{activeRuns.length !== 1 ? 's' : ''}
               </div>
             )}
-            <nav className="flex rounded-full border border-slate-200 bg-white p-1 shadow-sm">
+            <nav className="flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
               <button
                 onClick={() => setView('run')}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition ${view === 'run' ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'run' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
               >
                 Run
               </button>
@@ -147,12 +151,12 @@ export function App() {
                 onClick={() => setView('review')}
                 disabled={!isReviewable}
                 title={!isReviewable ? 'Select a completed run to enable review' : undefined}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
                   view === 'review' && isReviewable
-                    ? 'bg-slate-950 text-white shadow-sm'
+                    ? 'bg-white text-slate-950 shadow-sm'
                     : !isReviewable
-                    ? 'cursor-not-allowed text-slate-300'
-                    : 'text-slate-600 hover:bg-slate-100'
+                      ? 'cursor-not-allowed text-slate-300'
+                      : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
                 Review
@@ -162,54 +166,76 @@ export function App() {
         </div>
       </header>
 
-      <main className={view === 'review' && isReviewable ? '' : 'mx-auto max-w-screen-2xl px-5 py-6'}>
+      <main className={view === 'review' && isReviewable ? '' : 'mx-auto max-w-screen-2xl px-5 py-5'}>
         {view === 'run' && (
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
-            <section className="space-y-6">
-              <div className="rounded-[32px] border border-white/70 bg-white/85 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
-                <h2 className="text-base font-semibold text-slate-900">Create run</h2>
-                <div className="mt-5">
-                  <RunLaunchSurface onRunCreated={handleRunCreated} />
-                </div>
+          <div className="space-y-4">
+            <div className="grid gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:grid-cols-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Runs</p>
+                <p className="mt-1 font-mono text-2xl font-semibold tabular-nums text-slate-950">{runs.length}</p>
               </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Review ready</p>
+                <p className="mt-1 font-mono text-2xl font-semibold tabular-nums text-slate-950">{reviewReadyRuns}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Active</p>
+                <p className="mt-1 font-mono text-2xl font-semibold tabular-nums text-slate-950">{activeRuns.length}</p>
+              </div>
+            </div>
 
-              <div className="rounded-[32px] border border-white/70 bg-white/85 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
-                <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                  <div>
-                    <h2 className="text-base font-semibold text-slate-900">Runs</h2>
-                    <p className="mt-1 text-xs text-slate-500">Newest runs stay at the top and update live while they execute.</p>
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-[400px_minmax(0,1fr)]">
+              <section className="space-y-4">
+                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <h2 className="text-sm font-semibold text-slate-900">Create run</h2>
+                    <span className="text-xs text-slate-400">Inputs</span>
                   </div>
-                  <button onClick={() => void loadRuns()} className="text-xs font-semibold text-sky-700 hover:underline">
-                    Refresh
-                  </button>
+                  <div className="mt-4">
+                    <RunLaunchSurface onRunCreated={handleRunCreated} />
+                  </div>
                 </div>
-                {loadingRuns ? (
-                  <div className="px-5 py-10 text-center text-sm text-slate-400">Loading runs…</div>
-                ) : loadError ? (
-                  <div className="px-5 py-5">
-                    <div className="text-sm text-rose-600">
-                      <strong>Cannot load runs:</strong> {loadError}
+
+                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                  <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                    <div>
+                      <h2 className="text-sm font-semibold text-slate-900">Runs</h2>
+                      <p className="mt-0.5 text-xs text-slate-500">Newest first, live updated.</p>
                     </div>
-                    <p className="mt-2 text-xs text-slate-500">Start the backend with <code className="rounded bg-slate-100 px-1 py-0.5">bash scripts/run-main-backend.sh</code>.</p>
+                    <button onClick={() => void loadRuns()} className="text-xs font-semibold text-sky-700 hover:underline">
+                      Refresh
+                    </button>
                   </div>
-                ) : (
-                  <RunList runs={runs} selectedRunId={selectedRun?.run_id ?? null} onSelect={setSelectedRun} />
-                )}
-              </div>
-            </section>
-
-            <section className="rounded-[36px] border border-white/70 bg-white/88 p-6 shadow-[0_26px_70px_rgba(15,23,42,0.09)] backdrop-blur">
-              {selectedRun ? (
-                <RunDetail run={selectedRun} onAbort={handleAbortRun} aborting={abortingRunId === selectedRun.run_id} />
-              ) : (
-                <div className="flex min-h-[420px] flex-col items-center justify-center text-center">
-                  <h2 className="text-2xl font-semibold tracking-tight text-slate-900">No run selected yet</h2>
-                  <p className="mt-3 max-w-md text-sm leading-6 text-slate-500">
-                    Launch a new run or select an existing run summary on the left.
-                  </p>
+                  {loadingRuns ? (
+                    <div className="px-5 py-10 text-center text-sm text-slate-400">Loading runs...</div>
+                  ) : loadError ? (
+                    <div className="px-5 py-5">
+                      <div className="text-sm text-rose-600">
+                        <strong>Cannot load runs:</strong> {loadError}
+                      </div>
+                      <p className="mt-2 text-xs text-slate-500">
+                        Start the backend with <code className="rounded bg-slate-100 px-1 py-0.5">bash scripts/run-main-backend.sh</code>.
+                      </p>
+                    </div>
+                  ) : (
+                    <RunList runs={runs} selectedRunId={selectedRun?.run_id ?? null} onSelect={setSelectedRun} />
+                  )}
                 </div>
-              )}
-            </section>
+              </section>
+
+              <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                {selectedRun ? (
+                  <RunDetail run={selectedRun} onAbort={handleAbortRun} aborting={abortingRunId === selectedRun.run_id} />
+                ) : (
+                  <div className="flex min-h-[420px] flex-col items-center justify-center text-center">
+                    <h2 className="text-xl font-semibold tracking-tight text-slate-900">No run selected yet</h2>
+                    <p className="mt-3 max-w-md text-sm leading-6 text-slate-500">
+                      Launch a new run or select an existing run summary on the left.
+                    </p>
+                  </div>
+                )}
+              </section>
+            </div>
           </div>
         )}
 
@@ -218,7 +244,7 @@ export function App() {
             {isReviewable && selectedRun ? (
               <ReviewWorkspace run={selectedRun} outputDir={selectedRun.output_dir} />
             ) : (
-              <div className="rounded-[28px] border border-slate-200 bg-white p-10 text-center shadow-sm">
+              <div className="rounded-xl border border-slate-200 bg-white p-10 text-center shadow-sm">
                 <div className="mx-auto inline-flex rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Review locked</div>
                 <h2 className="mt-4 text-xl font-semibold text-slate-800">Select a completed run to enter review</h2>
                 <p className="mt-2 text-sm text-slate-500">The review workspace stays gated until a run has completed and persisted reviewable proposals.</p>

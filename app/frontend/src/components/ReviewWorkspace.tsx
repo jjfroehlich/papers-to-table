@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { EvidenceItem, EnrichedProposal, ExportResult, ReviewProgress, RunData } from '../types'
 import { RunSummaryPanel } from './RunSummaryPanel'
 import { ProposalQueue } from './ProposalQueue'
@@ -131,6 +131,7 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
   const [showHelp, setShowHelp] = useState(false)
   const [showDiagnostics, setShowDiagnostics] = useState(false)
   const [proposalList, setProposalList] = useState<EnrichedProposal[]>([])
+  const [visibleProposalOrder, setVisibleProposalOrder] = useState<string[]>([])
   const [reviewProgress, setReviewProgress] = useState<ReviewProgress | null>(null)
   const [decisionVersion, setDecisionVersion] = useState(0)
   const [leftPaneWidth, setLeftPaneWidth] = useState(() => readStoredNumber('papersToTable.review.leftPaneWidth', 340))
@@ -182,22 +183,34 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
     void loadProposalList()
   }, [decisionVersion, loadProposalList])
 
-  const currentIndex = proposalList.findIndex((proposal) => proposal.proposal_id === selectedProposalId)
+  const navigationProposals = useMemo(() => {
+    if (visibleProposalOrder.length === 0) return proposalList
+    const proposalById = new Map(proposalList.map((proposal) => [proposal.proposal_id, proposal]))
+    const ordered = visibleProposalOrder
+      .map((proposalId) => proposalById.get(proposalId))
+      .filter((proposal): proposal is EnrichedProposal => !!proposal)
+    return ordered.length > 0 ? ordered : proposalList
+  }, [proposalList, visibleProposalOrder])
+  const currentIndex = navigationProposals.findIndex((proposal) => proposal.proposal_id === selectedProposalId)
   const currentProposal = proposalList.find((proposal) => proposal.proposal_id === selectedProposalId) ?? null
   const actionableTotal = reviewProgress?.total_proposals ?? proposalList.length
   const actionableReviewed = reviewProgress?.reviewed ?? proposalList.filter((proposal) => proposal.latest_decision).length
+  const actionablePending = Math.max(actionableTotal - actionableReviewed, 0)
+  const progressPct = actionableTotal > 0 ? Math.round((actionableReviewed / actionableTotal) * 100) : 0
   const activeEvidenceIndex = currentEvidenceList.findIndex((item) => item.evidence_id === selectedEvidenceId)
 
   function goNext() {
-    if (proposalList.length === 0) return
-    const nextIndex = currentIndex < proposalList.length - 1 ? currentIndex + 1 : 0
-    setSelectedProposalId(proposalList[nextIndex].proposal_id)
+    if (navigationProposals.length === 0) return
+    const nextIndex = currentIndex >= 0 && currentIndex < navigationProposals.length - 1 ? currentIndex + 1 : 0
+    setSelectedProposalId(navigationProposals[nextIndex].proposal_id)
+    setSelectedCell(null)
   }
 
   function goPrev() {
-    if (proposalList.length === 0) return
-    const previousIndex = currentIndex > 0 ? currentIndex - 1 : proposalList.length - 1
-    setSelectedProposalId(proposalList[previousIndex].proposal_id)
+    if (navigationProposals.length === 0) return
+    const previousIndex = currentIndex > 0 ? currentIndex - 1 : navigationProposals.length - 1
+    setSelectedProposalId(navigationProposals[previousIndex].proposal_id)
+    setSelectedCell(null)
   }
 
   function recordQuickDecision(decision: 'accepted' | 'rejected') {
@@ -209,21 +222,33 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
 
   const handleDecisionRecorded = useCallback(
     (options?: { autoAdvance?: boolean }) => {
-      if (options?.autoAdvance && proposalList.length > 1 && selectedProposalId) {
-        const pendingCandidates = proposalList.filter(
+      if (options?.autoAdvance && navigationProposals.length > 1 && selectedProposalId) {
+        const pendingCandidates = navigationProposals.filter(
           (proposal) => proposal.proposal_id !== selectedProposalId && !proposal.latest_decision
         )
         if (pendingCandidates.length > 0) {
-          const currentPendingIndex = proposalList.findIndex((proposal) => proposal.proposal_id === selectedProposalId)
-          const ordered = [...proposalList.slice(currentPendingIndex + 1), ...proposalList.slice(0, currentPendingIndex)]
+          const currentPendingIndex = navigationProposals.findIndex((proposal) => proposal.proposal_id === selectedProposalId)
+          const ordered = currentPendingIndex >= 0
+            ? [...navigationProposals.slice(currentPendingIndex + 1), ...navigationProposals.slice(0, currentPendingIndex)]
+            : navigationProposals
           const nextPending = ordered.find((proposal) => proposal.proposal_id !== selectedProposalId && !proposal.latest_decision)
           setSelectedProposalId(nextPending?.proposal_id ?? pendingCandidates[0].proposal_id)
+          setSelectedCell(null)
         }
       }
       setDecisionVersion((version) => version + 1)
     },
-    [proposalList, selectedProposalId]
+    [navigationProposals, selectedProposalId]
   )
+
+  const handleVisibleProposalOrderChange = useCallback((proposalIds: string[]) => {
+    setVisibleProposalOrder((current) => {
+      if (current.length === proposalIds.length && current.every((proposalId, index) => proposalId === proposalIds[index])) {
+        return current
+      }
+      return proposalIds
+    })
+  }, [])
 
   useReviewKeyboardShortcuts({
     onNext: goNext,
@@ -350,19 +375,30 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
   }
 
   return (
-    <div className="flex h-[calc(100vh-88px)] min-h-0 flex-col px-4 pb-4 pt-4" data-testid="review-workspace">
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_28px_70px_rgba(15,23,42,0.1)]">
-        <div className="shrink-0 border-b border-slate-200 bg-[linear-gradient(135deg,#f8fafc,#ffffff_60%,#eff6ff)] px-5 py-4" data-testid="review-toolbar">
+    <div className="flex h-[calc(100vh-73px)] min-h-0 flex-col bg-slate-100 px-3 pb-3 pt-3" data-testid="review-workspace">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-3" data-testid="review-toolbar">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Review workspace</p>
-              <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
-                <h2 className="max-w-[28rem] truncate text-lg font-semibold tracking-tight text-slate-950" title={run.run_id}>
-                  {run.run_id}
-                </h2>
-                <span className="rounded-xl bg-slate-950 px-3 py-1.5 text-xs font-semibold text-white">
-                  {actionableReviewed} / {actionableTotal} reviewed
-                </span>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Review</p>
+              <div className="inline-flex max-w-full flex-col">
+                <div className="mt-1 flex max-w-full flex-wrap items-center gap-2 text-sm">
+                  <h2 className="max-w-[28rem] truncate text-base font-semibold tracking-tight text-slate-950" title={run.run_id}>
+                    {run.run_id}
+                  </h2>
+                  <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+                    {actionableReviewed} / {actionableTotal} reviewed
+                  </span>
+                  <span className="rounded-md bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">
+                    {actionablePending} pending
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center gap-3">
+                  <div className="h-1.5 min-w-48 flex-1 overflow-hidden rounded-full bg-slate-100">
+                    <div className="h-full rounded-full bg-slate-950 transition-all" style={{ width: `${progressPct}%` }} />
+                  </div>
+                  <span className="font-mono text-xs font-semibold tabular-nums text-slate-500">{progressPct}%</span>
+                </div>
               </div>
             </div>
 
@@ -371,18 +407,18 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
               <button
                 onClick={() => setShowDiagnostics((value) => !value)}
                 aria-expanded={showDiagnostics}
-                className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${showDiagnostics ? 'bg-slate-950 text-white' : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${showDiagnostics ? 'bg-slate-950 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
               >
                 Diagnostics
               </button>
               <button
                 onClick={handleExport}
                 disabled={exporting}
-                className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 disabled:opacity-50"
+                className="rounded-lg bg-slate-950 px-3 py-1.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
               >
                 {exporting ? 'Exporting…' : 'Export reviewed workbook'}
               </button>
-              <button onClick={() => setShowHelp(true)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50" title="Keyboard shortcuts (?)">
+              <button onClick={() => setShowHelp(true)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-500 hover:bg-slate-50" title="Keyboard shortcuts (?)">
                 ?
               </button>
             </div>
@@ -410,12 +446,13 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
         )}
 
         <div ref={layoutRef} className="flex min-h-0 flex-1 overflow-hidden">
-            <div className="flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-slate-50/70" style={{ width: leftPaneWidth }}>
+            <div className="flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-slate-50" style={{ width: leftPaneWidth }}>
               <ProposalQueue
                 runId={run.run_id}
                 outputDir={outputDir}
                 selectedProposalId={selectedProposalId}
                 onSelect={handleProposalSelect}
+                onVisibleProposalOrderChange={handleVisibleProposalOrderChange}
                 mode={leftPaneMode}
                 filter={leftPaneFilter}
                 onModeChange={handleLeftPaneModeChange}
@@ -425,18 +462,18 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
               />
             </div>
 
-            <div role="separator" aria-orientation="vertical" aria-label="Resize proposal queue" onMouseDown={() => setResizeTarget('left')} className={`w-1.5 shrink-0 cursor-col-resize border-r border-slate-200 bg-slate-100 transition hover:bg-sky-200 ${resizeTarget === 'left' ? 'bg-sky-300' : ''}`} />
+            <div role="separator" aria-orientation="vertical" aria-label="Resize proposal queue" onMouseDown={() => setResizeTarget('left')} className={`w-1 shrink-0 cursor-col-resize border-r border-slate-200 bg-slate-100 transition hover:bg-slate-300 ${resizeTarget === 'left' ? 'bg-slate-400' : ''}`} />
 
             <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
               <div className="min-h-0 flex-1 overflow-hidden">
                 <ProposalDetailPane proposalId={selectedProposalId} selectedCell={selectedCell} runId={run.run_id} outputDir={outputDir} selectedEvidenceId={selectedEvidenceId} onEvidenceSelect={handleEvidenceSelect} key={`${selectedProposalId ?? selectedCell?.rowId ?? 'none'}-${selectedCell?.columnName ?? ''}-${decisionVersion}`} />
               </div>
               {currentProposal && (
-                <ReviewActionArea proposal={currentProposal} runId={run.run_id} outputDir={outputDir} onDecisionRecorded={handleDecisionRecorded} onNext={goNext} onPrev={goPrev} visibleProposals={proposalList} focusEditSignal={focusEditSignal} />
+                <ReviewActionArea proposal={currentProposal} runId={run.run_id} outputDir={outputDir} onDecisionRecorded={handleDecisionRecorded} onNext={goNext} onPrev={goPrev} visibleProposals={navigationProposals} focusEditSignal={focusEditSignal} />
               )}
             </div>
 
-            <div role="separator" aria-orientation="vertical" aria-label="Resize evidence panel" onMouseDown={() => setResizeTarget('right')} className={`w-1.5 shrink-0 cursor-col-resize border-l border-slate-200 bg-slate-100 transition hover:bg-sky-200 ${resizeTarget === 'right' ? 'bg-sky-300' : ''}`} />
+            <div role="separator" aria-orientation="vertical" aria-label="Resize evidence panel" onMouseDown={() => setResizeTarget('right')} className={`w-1 shrink-0 cursor-col-resize border-l border-slate-200 bg-slate-100 transition hover:bg-slate-300 ${resizeTarget === 'right' ? 'bg-slate-400' : ''}`} />
 
             <div className="flex min-h-0 shrink-0 flex-col overflow-hidden border-l border-slate-200 bg-white" style={{ width: rightPaneWidth }}>
               <EvidenceViewer runId={run.run_id} pdfId={currentPdfId} evidence={selectedEvidence} evidenceList={currentEvidenceList} selectedEvidenceId={selectedEvidenceId} activeEvidenceIndex={activeEvidenceIndex} onSelectEvidence={handleEvidenceSelect} outputDir={outputDir} />

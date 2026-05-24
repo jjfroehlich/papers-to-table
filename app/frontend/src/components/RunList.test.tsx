@@ -51,7 +51,7 @@ describe('RunList', () => {
     const { container } = render(
       <RunList runs={[mockRun]} selectedRunId={mockRun.run_id} onSelect={vi.fn()} />
     )
-    expect(container.innerHTML).toContain('border-l-4')
+    expect(container.innerHTML).toContain('border-l-2')
   })
 
   it('shows error message for failed runs', () => {

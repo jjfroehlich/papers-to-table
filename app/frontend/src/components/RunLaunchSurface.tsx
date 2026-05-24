@@ -30,14 +30,14 @@ function PathField({
   const fileRef = useRef<HTMLInputElement>(null)
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium text-slate-700">{label}</label>
+      <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</label>
       <div className="flex gap-2">
         <input
           type="text"
           value={value}
           onChange={(event) => onText(event.target.value)}
           placeholder={placeholder}
-          className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+          className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
         />
         <input
           ref={fileRef}
@@ -50,7 +50,7 @@ function PathField({
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="shrink-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+          className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
         >
           {buttonLabel}
         </button>
@@ -126,7 +126,7 @@ export function RunLaunchSurface({ onRunCreated }: Props) {
   }
 
   return (
-    <div className="space-y-5" data-testid="run-launch-surface">
+    <div className="space-y-4" data-testid="run-launch-surface">
       <PathField
         label="Table"
         value={tablePath}
@@ -172,7 +172,7 @@ export function RunLaunchSurface({ onRunCreated }: Props) {
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Output directory</label>
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Output directory</label>
           <input
             type="text"
             value={outputDir}
@@ -180,11 +180,11 @@ export function RunLaunchSurface({ onRunCreated }: Props) {
               setOutputDir(event.target.value)
             }}
             placeholder="./runs"
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Config file</label>
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Config file</label>
           <input
             type="text"
             value={configPath}
@@ -192,7 +192,7 @@ export function RunLaunchSurface({ onRunCreated }: Props) {
               setConfigPath(event.target.value)
             }}
             placeholder="config.json"
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
           />
         </div>
       </div>
@@ -212,7 +212,7 @@ export function RunLaunchSurface({ onRunCreated }: Props) {
           type="button"
           onClick={handleCreateRun}
           disabled={loading}
-          className="inline-flex w-full items-center justify-center rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex w-full items-center justify-center rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? 'Starting...' : 'Start run'}
         </button>

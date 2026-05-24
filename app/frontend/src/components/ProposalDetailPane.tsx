@@ -24,7 +24,7 @@ function EvidenceCard({ item, isSelected, onClick }: { item: EvidenceItem; isSel
   return (
     <button
       onClick={onClick}
-      className={`w-full rounded-[18px] border px-3 py-3 text-left transition ${
+      className={`w-full rounded-lg border px-3 py-2.5 text-left transition ${
         isSelected ? 'border-amber-300 bg-amber-50 shadow-sm ring-1 ring-amber-100' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
       }`}
     >
@@ -51,9 +51,9 @@ function CellDetail({ cell }: { cell: SelectedReviewCell }) {
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white">
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5" data-testid="cell-detail-scroll">
         <div className="space-y-4">
-          <section className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
+          <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Cell value</p>
-            <p className="mt-3 whitespace-pre-wrap break-words text-2xl font-semibold leading-snug text-slate-950">
+            <p className="mt-2 whitespace-pre-wrap break-words text-xl font-semibold leading-snug text-slate-950">
               {formatCellValue(cell.displayValue)}
             </p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
@@ -62,13 +62,13 @@ function CellDetail({ cell }: { cell: SelectedReviewCell }) {
             </div>
           </section>
 
-          <section className="rounded-[20px] border border-slate-200 bg-slate-50 p-5">
+          <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Field</p>
             <p className="mt-2 text-sm text-slate-700">{cell.columnName}</p>
             {cell.columnDescription && <p className="mt-2 text-sm leading-6 text-slate-600">{cell.columnDescription}</p>}
           </section>
 
-          <section className="rounded-[20px] border border-slate-200 bg-slate-50 p-5">
+          <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Paper</p>
             <p className="mt-2 text-sm text-slate-700">{cell.title || cell.paperLabel || cell.rowId}</p>
             <p className="mt-2 text-xs text-slate-500">{cell.paperLabel}</p>
@@ -139,10 +139,10 @@ export function ProposalDetailPane({ proposalId, runId, outputDir, selectedEvide
     (rowContext['Publication Year'] as string | number | undefined) ?? (rowContext['year'] as string | number | undefined)
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[linear-gradient(180deg,#ffffff,#f8fafc)]">
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5" data-testid="proposal-detail-scroll">
-        <div className="space-y-4">
-          <section className="rounded-[20px] border border-sky-100 bg-[linear-gradient(135deg,#eff6ff,#ffffff)] p-5 shadow-sm">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4" data-testid="proposal-detail-scroll">
+        <div className="space-y-3">
+          <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <ReviewStatusTag decision={proposal.latest_decision?.decision ?? null} />
                 <ProposalStateTag state={proposal.state} />
@@ -150,12 +150,12 @@ export function ProposalDetailPane({ proposalId, runId, outputDir, selectedEvide
                 {proposal.warning_flags.length > 0 && <WarningTag />}
                 {proposal.is_figure_derived && <FigureTag />}
               </div>
-              <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Proposed value</p>
-              <p className="mt-2 text-2xl font-semibold leading-tight text-slate-950">{proposal.proposed_value ?? 'No value proposed'}</p>
+              <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Proposed value</p>
+              <p className="mt-1.5 text-xl font-semibold leading-tight text-slate-950">{proposal.proposed_value ?? 'No value proposed'}</p>
           </section>
 
           {proposal.is_verify_mode && (proposal.existing_value != null || rowContext[proposal.column_name] !== undefined) && (
-              <section className="rounded-[20px] border border-violet-200 bg-violet-50 p-5 text-sm text-violet-900">
+              <section className="rounded-xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-900">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-violet-600">Verify mode</p>
                 <div className="mt-2 grid gap-2 md:grid-cols-2">
                   <div>
@@ -171,20 +171,20 @@ export function ProposalDetailPane({ proposalId, runId, outputDir, selectedEvide
             )}
 
             {proposal.calculation && (
-              <section className="rounded-[20px] border border-sky-200 bg-sky-50 p-5">
+              <section className="rounded-xl border border-sky-200 bg-sky-50 p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-700">Calculation</p>
                 <p className="mt-2 text-sm font-mono text-sky-900">{proposal.calculation}</p>
               </section>
             )}
 
             {proposal.rationale && (
-              <section className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
+              <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Rationale</p>
                 <div className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">{proposal.rationale}</div>
               </section>
             )}
 
-          <section className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
+          <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Evidence</p>
@@ -200,7 +200,7 @@ export function ProposalDetailPane({ proposalId, runId, outputDir, selectedEvide
             </div>
           </section>
 
-          <section className="rounded-[20px] border border-slate-200 bg-slate-50 p-5">
+          <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Field</p>
             <p className="mt-2 text-sm text-slate-700">
               {typeof columnDefinition?.name === 'string' ? columnDefinition.name : proposal.column_name}
@@ -210,7 +210,7 @@ export function ProposalDetailPane({ proposalId, runId, outputDir, selectedEvide
             )}
           </section>
 
-          <section className="rounded-[20px] border border-slate-200 bg-slate-50 p-5">
+          <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Paper</p>
             <h2 className="mt-2 text-sm text-slate-700">{rowTitle}</h2>
             {(rowAuthors || rowYear) && (
