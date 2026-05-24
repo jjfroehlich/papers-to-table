@@ -1,195 +1,169 @@
 # Experiment Results
 
-This file is the durable evidence record for completed experiments, benchmark results, rejected ideas, and decisions. Its current contents focus on extraction quality and runtime. Untested or not-yet-resolved improvement ideas belong in `specs/improvement-ideas.md`.
+This file is the durable evidence and decision record for tested app-improvement ideas. It should make clear what was tried, how it was evaluated, what decision followed, and what should or should not be retested.
 
 ## Outline
 
 - [Purpose And Rules](#purpose-and-rules)
-- [Current Recommendation](#current-recommendation)
-- [Result Entry Format](#result-entry-format)
-- [Latest Key Findings](#latest-key-findings)
-- [Experiment Results](#experiment-results)
+- [Decision Entry Format](#decision-entry-format)
 - [Dev-Check Runs](#dev-check-runs)
-- [Multi-Benchmark Comparisons](#multi-benchmark-comparisons)
+- [Full-Benchmark Idea Evaluations](#full-benchmark-idea-evaluations)
+- [Kept Or Partially Kept Ideas](#kept-or-partially-kept-ideas)
 - [Rejected Or Superseded Ideas](#rejected-or-superseded-ideas)
-- [Lessons Learned](#lessons-learned)
 - [Appendix: Historical Branches](#appendix-historical-branches)
 
 ## Purpose And Rules
 
-- Add completed tests, evals, benchmark comparisons, dev-checks that change a decision, and conceptual rejections here.
-- New ideas start in `specs/improvement-ideas.md`; when implemented, benchmarked, dev-checked, rejected, or ruled out, record the evidence here.
-- If partial evidence informs an idea but does not decide it, keep the idea in the ideas file with an `Evidence so far:` line and record the tested evidence here.
-- If an idea is rejected, remove it from the ideas file and add it under [Rejected Or Superseded Ideas](#rejected-or-superseded-ideas).
-- Always include model IDs or source labels alongside optimizer candidate IDs. Do not write only `cand_0001`; write `cand_0001 / google/gemma-4-e4b`.
-- Prefer comparisons with the same benchmark set, replicate count, model, judge configuration, and cache state.
+This file owns tested evidence and decisions. `improvement-ideas.md` owns prioritized ideas that are untested, partly tested, or still worth testing.
 
-Entry length guidance:
+- Record ideas and decisions, not long chronological run narratives.
+- Add a decision entry once an idea has been benchmarked, dev-checked, rejected, superseded, kept, or partly kept.
+- Use the run tables for comparability, then keep detailed interpretation in the linked decision entry.
+- A dev-check run is the default first evaluation for an implemented idea. Every dev-check row should link to the decision entry it informs.
+- A full-benchmark evaluation should usually use three benchmark datasets, three replicates, and `google/gemma-4-e4b` unless the model itself is the idea. Prefer the model-compare config where possible so retrieval, prompts, and other parameters stay comparable.
+- Every result entry must include candidate or variant names, model IDs, benchmark scope, score, runtime, key diagnostics, interpretation, and decision.
+- Never refer only to `cand_0001` or similar IDs. Include the model or source next to the candidate ID, for example `cand_0001 / google/gemma-4-e4b`.
+- Do not add broad sections named after analyses such as "model comparison" or "three-architecture comparison". Distill those analyses into kept, partly kept, rejected, or superseded idea entries, or use them to update `improvement-ideas.md`.
+- If an idea is rejected, remove it from `improvement-ideas.md` and add a clear retest boundary here.
+- If an idea remains worth testing after partial evidence, keep or reprioritize it in `improvement-ideas.md` and add an `Evidence so far` line there.
 
-- Normal result entries: 120-250 words plus one compact table if useful.
-- Large multi-benchmark entries: 300-600 words, starting with a short conclusion before details.
-- Dev-check table rows: one line each. Add a dated result entry only when the dev-check changes a decision.
+Normal decision entries should be 120-250 words. Larger multi-benchmark decisions may be 300-600 words, but must start with the conclusion in the `Decision` or `Result` row. Run table rows stay one line each.
 
-Every result entry should include:
+## Decision Entry Format
 
-- date
-- run folder or commit
-- candidate/variant names and model IDs or source labels
-- benchmark scope
-- score and runtime
-- key diagnostics
-- interpretation
-- decision
+Use one table per tested idea. Keep row names consistent so future agents can scan decisions quickly.
 
-## Current Recommendation
-
-Keep `main` at `6efabd7` as the default extraction architecture for now. The per-cell baseline remains the best measured local architecture. Preserve grouped extraction branches as research artifacts, but do not merge them into `main`.
-
-The next improvement push should start from per-cell extraction and focus on schema-aware value selection, retrieval/context quality, prompt repair by failure class, and model/runtime tradeoffs.
-
-## Result Entry Format
-
-```markdown
-### YYYY-MM-DD Short Experiment Name
-
-Conclusion: one sentence with the decision.
-
-- Run/commit:
-- Candidates and models:
-- Benchmark scope:
-- Result:
-- Runtime/cost:
-- Key diagnostics:
-- Interpretation:
-- Decision:
-```
-
-## Latest Key Findings
-
-- The strongest app candidate in the 2026-05-24 model comparison was `cand_0005 / qwen/qwen3.6-27b` with score `0.6748`, but it was much slower than the other app candidates.
-- The fastest app candidate was `cand_0002 / openai/gpt-oss-20b` with score `0.5552`; speed alone did not justify the accuracy loss.
-- External Codex tables scored higher than app candidates, which shows headroom but is not directly comparable to normal app execution.
-- Hard columns are mostly schema/value-semantics failures: representative figure panels, exact architecture strings, numeric maxima, sequence/barcode length disambiguation, and methods-section physical parameters.
-- Batching/grouped extraction has repeatedly reduced call count without improving end-to-end runtime or correctness enough to replace per-cell extraction.
-
-## Experiment Results
-
-### 2026-05-24 Model Comparison And Failure Analysis
-
-Conclusion: `cand_0005 / qwen/qwen3.6-27b` was the best app candidate, but its runtime cost means the next work should improve per-cell value selection and retrieval rather than simply switching every run to the slowest model.
-
-- Run/commit: `tools/optimizer/runs/20260524_020807_compare_models`
-- Candidates and models: external gold, external Codex outputs, `cand_0001 / google/gemma-4-e4b`, `cand_0002 / openai/gpt-oss-20b`, `cand_0003 / mistralai/ministral-3-14b-reasoning`, `cand_0004 / zai-org/glm-4.6v-flash`, `cand_0005 / qwen/qwen3.6-27b`
-- Benchmark scope: genome editing, MPRA, spatial transcriptomics; 3 replicates
-- Result: best app score was `0.6748` from `cand_0005 / qwen/qwen3.6-27b`; best external non-gold score was `0.8237`
-- Runtime/cost: `cand_0005 / qwen/qwen3.6-27b` took `12255 sec` total; `cand_0002 / openai/gpt-oss-20b` took `2871 sec`
-- Key diagnostics: all non-gold candidates had `judge_instability_observed`; structured-output failures were material for Qwen, GLM, and Ministral candidates
-- Interpretation: model choice matters, but many failures are generic extraction semantics that should be addressed before making a slower model the default
-- Decision: keep stronger-model sweeps active, but prioritize schema-aware candidate selection, retrieval improvements, and runtime-aware gates
-
-Hard-column analysis from `results/proposal_tables/column_difficulty.csv` and app-only cell review:
-
-| Benchmark | Column | App Accuracy | Common failure mode |
-|---|---:|---:|---|
-| Spatial transcriptomics | Representative spatial figure | 0.04 | Selected plausible but non-gold panels; often favored visually descriptive panels over the canonical representative panel. |
-| MPRA | Length of sequences (bp) | 0.28 | Confused insert/library length with spacer length, motif length, barcode length, or unrelated percentages. |
-| Genome editing | Main or best editor architecture | 0.31 | Returned shorthand system names or enhancement components instead of full architecture/component strings. |
-| Genome editing | Max editing efficiency (%) | 0.33 | Missed maxima in figures/tables, returned blanks, or selected non-maximum/nearby percentages. |
-| Genome editing | Architecture source figure | 0.35 | Chose figures that mention architecture generally instead of the specific source panel for the selected architecture. |
-| Spatial transcriptomics | Section thickness (micrometer) | 0.36 | Retrieval often missed methods/supplementary sectioning details; models substituted unrelated section/span text or blanked. |
-| MPRA | Barcode length (bp) | 0.43 | Confused barcode length with sequence length, motif embedding length, or decided `no BC` despite barcode evidence. |
-
-### 2026-05 Three-Architecture Comparison
-
-Conclusion: keep per-cell extraction as the default architecture; grouped extraction variants reduced completion-call count but lost correctness and did not improve end-to-end runtime.
-
-- Run/commit: `manual_baseline_per_cell_3bench_3rep_retry`, `manual_field_group_deterministic_3bench_3rep`, `manual_paper_batch_3bench_3rep`; baseline branch `main` at `6efabd7`
-- Candidates and models: per-cell baseline / `google/gemma-4-e4b`; field-group deterministic / `google/gemma-4-e4b`; paper-batch / `google/gemma-4-e4b`
-- Benchmark scope: genome editing, MPRA, spatial transcriptomics; 3 replicates
-- Result: per-cell baseline scored `0.6517`; field-group deterministic scored `0.6040`; paper-batch scored `0.5681`
-- Runtime/cost: per-cell baseline took `86.22 min`; field-group deterministic took `87.57 min`; paper-batch took `88.81 min`
-- Key diagnostics: all successful comparison runs completed with `scored=true`, `contract_valid=true`, and zero failed or degraded replicates; grouped variants had `judge_instability_observed`
-- Interpretation: batching can reduce structured completion calls, but the current grouped prompts make the model satisfy too many cells at once and lose accuracy
-- Decision: preserve grouped branches as research artifacts only; pursue accuracy improvements from the per-cell baseline
-
-Aggregate results:
-
-| Variant | Branch | Model | Run Folder | Score | Total Runtime | Completion Calls | Result |
-|---|---|---|---|---:|---:|---:|---|
-| Per-cell baseline | `main` | `google/gemma-4-e4b` | `manual_baseline_per_cell_3bench_3rep_retry` | 0.6517 | 86.22 min | 138 | Best score; keep as default. |
-| Field-group deterministic | `experiment-field-group-deterministic` | `google/gemma-4-e4b` | `manual_field_group_deterministic_3bench_3rep` | 0.6040 | 87.57 min | 114 | Fewer calls, lower score, not faster overall. |
-| Paper-batch | `experiment-paper-batch` | `google/gemma-4-e4b` | `manual_paper_batch_3bench_3rep` | 0.5681 | 88.81 min | 113 | Lowest score, not faster overall. |
+| Field | Required content |
+| --- | --- |
+| Status | `Kept`, `Partially kept`, `Rejected`, or `Superseded`. |
+| Tested idea | Short name of the idea or implementation strategy. |
+| What was tested | Branch, commit, config, mode, candidate IDs with model/source IDs, and any important implementation constraints. |
+| Why tested | The hypothesis or expected benefit. |
+| Evidence | Links or IDs for dev-check runs, full-benchmark runs, model-compare runs, or proposal/log analyses. |
+| Scope and models | Benchmark datasets, replicate count, model IDs, and comparison baseline. |
+| Result | Score, runtime, call count when available, key diagnostics, and whether the expected benefit appeared. |
+| Decision | What to keep, reject, supersede, or carry forward. |
+| Retest boundary | Conditions under which this exact idea should or should not be tried again. |
 
 ## Dev-Check Runs
 
-Use this table for quick checks, especially single-dataset optimizer `dev-check` runs. These are useful for iteration but should not decide architecture alone.
+| Date | Run | Idea entry | Model/source | Scope | Score | Runtime | Outcome |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-05-18 | `20260518_144007_compare_models / run_20260518_134825_8etyzg` | [Model Sweep And Failure Analysis](#model-sweep-and-failure-analysis) | model not recorded | Genome editing partial interrupted replicate | 0.60 | 8.65 min app | Partial second replicate; not a final aggregate. |
+| 2026-05-18 | `dev_check_20260518-192047` | [Per-Cell Baseline Architecture](#per-cell-baseline-architecture) | `google/gemma-4-e4b` | Genome editing | 0.56 | 9.46 min | Superseded by the later baseline dev-check after figure-review state/hit fixes. |
+| 2026-05-18 | `dev_check_20260518-195533` | [Per-Cell Baseline Architecture](#per-cell-baseline-architecture) | `google/gemma-4-e4b` | Genome editing | 0.62 | 9.28 min | Best prior baseline dev-check, main `6efabd7`. |
+| 2026-05-18 | `dev_check_20260518-230132` | [LLM-Primary Column Planning](#llm-primary-column-planning) | `google/gemma-4-e4b` | Genome editing | 0.56 | 11.45 min | Partial planner/evidence-card wiring; not a recommended endpoint. |
+| 2026-05-18 | `dev_check_20260518-234727` | [Field-Group Deterministic](#field-group-deterministic) | `google/gemma-4-e4b` | Genome editing | n/a | 1.02 min | Failed before scoring due grouped proposal diagnostics bug. |
+| 2026-05-18 | `dev_check_20260518-234927` | [LLM-Primary Column Planning](#llm-primary-column-planning) | `google/gemma-4-e4b` | Genome editing | 0.56 | 9.21 min | Valid contract, but no score improvement. |
+| 2026-05-19 | `dev_check_20260519-000015` | [LLM-Primary Column Planning](#llm-primary-column-planning) | `google/gemma-4-e4b` | Genome editing | 0.50 | 10.10 min | Planning and validation were too aggressive. |
+| 2026-05-19 | `dev_check_20260519-001119` | [Field-Group Deterministic](#field-group-deterministic) | `google/gemma-4-e4b` | Genome editing | 0.58 | 5.59 min | Fast single dev-check, but the speed benefit did not generalize. |
+| 2026-05-19 | `dev_check_20260519-001805` | [Conservative Batch Gate](#conservative-batch-gate) | `google/gemma-4-e4b` | Genome editing | 0.54 | 11.86 min | Worse score and runtime; rejected. |
 
-| Run | Variant | Model / Source | Benchmark Scope | Score | Runtime | Notes |
-|---|---|---|---|---:|---:|---|
-| `20260518_144007_compare_models / run_20260518_134825_8etyzg` | per-cell-like model compare | not recorded in summary | Genome editing, partial interrupted replicate | 0.60 | 8.65 min app | Second genome-editing replicate; not final aggregate. |
-| `dev_check_20260518-192047` | per-cell before figure-review state/hit fix | `google/gemma-4-e4b` | Genome editing dev-check | 0.56 | 9.46 min total | Before figure-review state/hit fix. |
-| `dev_check_20260518-195533` | per-cell baseline | `google/gemma-4-e4b` | Genome editing dev-check | 0.62 | 9.28 min total | Best prior genome-editing dev-check score; corresponds conceptually to `main` at `6efabd7`. |
-| `dev_check_20260518-230132` | partial planner/evidence-card wiring | `google/gemma-4-e4b` | Genome editing dev-check | 0.56 | 11.45 min total | Contract valid; not a recommended endpoint. |
-| `dev_check_20260518-234727` | early real field-group attempt | `google/gemma-4-e4b` | Genome editing dev-check | n/a | 1.02 min total | Failed before scoring due grouped proposal diagnostics bug. |
-| `dev_check_20260518-234927` | LLM planner field-group | `google/gemma-4-e4b` | Genome editing dev-check | 0.56 | 9.21 min total | Real grouped extraction plus LLM planner; valid contract. |
-| `dev_check_20260519-000015` | stricter LLM planner validation | `google/gemma-4-e4b` | Genome editing dev-check | 0.50 | 10.10 min total | LLM planning/validation was too aggressive. |
-| `dev_check_20260519-001119` | field-group deterministic | `google/gemma-4-e4b` | Genome editing dev-check | 0.58 | 5.59 min total | Fast single dev-check result; did not generalize to broader comparison. |
-| `dev_check_20260519-001805` | conservative batch gate | `google/gemma-4-e4b` | Genome editing dev-check | 0.54 | 11.86 min total | Worse score and runtime; rejected. |
+## Full-Benchmark Idea Evaluations
 
-## Multi-Benchmark Comparisons
+Use this table for full idea evaluations that should be compared across runs. Prefer three benchmark datasets, three replicates, and `google/gemma-4-e4b` unless the evaluated idea is model choice.
 
-| Date | Run Folder | Candidates / Models | Scope | Best Score | Decision |
-|---|---|---|---|---:|---|
-| 2026-05-24 | `20260524_020807_compare_models` | app model comparison plus external Codex/gold sources | 3 benchmarks, 3 replicates | 0.6748 app; 0.8237 external | Keep model sweep active, but fix value semantics and runtime gates first. |
-| 2026-05 | manual three-architecture runs | per-cell, field-group deterministic, paper-batch / `google/gemma-4-e4b` | 3 benchmarks, 3 replicates | 0.6517 | Keep per-cell baseline as default. |
+| Date | Evaluation | Idea entry | Run folder | Model/source | Scope | Score | Runtime | Decision |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-05 | Three-architecture comparison | [Per-Cell Baseline Architecture](#per-cell-baseline-architecture) | `manual_baseline_per_cell_3bench_3rep_retry` | `google/gemma-4-e4b` | Genome editing, MPRA, spatial transcriptomics; 3 reps | 0.6517 | 86.22 min; 138 calls | Kept as comparison baseline. |
+| 2026-05 | Three-architecture comparison | [Field-Group Deterministic](#field-group-deterministic) | `manual_field_group_deterministic_3bench_3rep` | `google/gemma-4-e4b` | Genome editing, MPRA, spatial transcriptomics; 3 reps | 0.6040 | 87.57 min; 114 calls | Rejected as default architecture. |
+| 2026-05 | Three-architecture comparison | [Paper-Batch](#paper-batch) | `manual_paper_batch_3bench_3rep` | `google/gemma-4-e4b` | Genome editing, MPRA, spatial transcriptomics; 3 reps | 0.5681 | 88.81 min; 113 calls | Rejected as default architecture. |
+| 2026-05-24 | Model-compare and failure analysis | [Model Sweep And Failure Analysis](#model-sweep-and-failure-analysis) | `tools/optimizer/runs/20260524_020807_compare_models` | `cand_0001 / google/gemma-4-e4b`; `cand_0002 / openai/gpt-oss-20b`; `cand_0003 / mistralai/ministral-3-14b-reasoning`; `cand_0004 / zai-org/glm-4.6v-flash`; `cand_0005 / qwen/qwen3.6-27b`; external gold; external Codex outputs | Genome editing, MPRA, spatial transcriptomics; 3 reps | Best app: `cand_0005 / qwen/qwen3.6-27b` 0.6748; fastest app: `cand_0002 / openai/gpt-oss-20b` 0.5552; best external non-gold 0.8237 | Best app runtime 12255 sec; fastest app runtime 2871 sec | Partially kept as evidence for model selection, retrieval, and structured-output ideas; no default model change from this alone. |
+
+## Kept Or Partially Kept Ideas
+
+### Per-Cell Baseline Architecture
+
+| Field | Details |
+| --- | --- |
+| Status | Kept as the comparison baseline. |
+| Tested idea | Per-cell extraction with focused retrieval and independent proposals for target cells. |
+| What was tested | `main` at commit `6efabd7`, run `manual_baseline_per_cell_3bench_3rep_retry`, model `google/gemma-4-e4b`. |
+| Why tested | Establish a stable reference before grouped, batched, or planner-led extraction changes. |
+| Evidence | Dev-checks `dev_check_20260518-192047` and `dev_check_20260518-195533`; full-benchmark row in [Full-Benchmark Idea Evaluations](#full-benchmark-idea-evaluations). |
+| Scope and models | Genome editing, MPRA, and spatial transcriptomics; three replicates; `google/gemma-4-e4b`. |
+| Result | Score 0.6517, runtime 86.22 min, 138 completion calls. It beat field-group deterministic and paper-batch variants on score and runtime stability. |
+| Decision | Keep this as the baseline architecture for future experiments until a new idea beats it on correctness without increasing runtime materially. |
+| Retest boundary | Retest the baseline only after core retrieval, prompt, scoring, or model defaults change. New experiments should compare against this or a clearly documented newer baseline. |
+
+### Model Sweep And Failure Analysis
+
+| Field | Details |
+| --- | --- |
+| Status | Partially kept as evidence for active ideas, not as a direct default-model decision. |
+| Tested idea | Compare several local and external model/source candidates and inspect failure modes on hard columns. |
+| What was tested | Run `tools/optimizer/runs/20260524_020807_compare_models` with external gold, external Codex outputs, `cand_0001 / google/gemma-4-e4b`, `cand_0002 / openai/gpt-oss-20b`, `cand_0003 / mistralai/ministral-3-14b-reasoning`, `cand_0004 / zai-org/glm-4.6v-flash`, and `cand_0005 / qwen/qwen3.6-27b`. |
+| Why tested | Determine whether model choice alone could improve correctness while keeping runtime stable, and identify columns that remained hard across candidates. |
+| Evidence | Full-benchmark row in [Full-Benchmark Idea Evaluations](#full-benchmark-idea-evaluations), `experiment/results/proposal_tables/column_difficulty.csv`, proposal logs, and model-compare summary artifacts. |
+| Scope and models | Genome editing, MPRA, and spatial transcriptomics; three replicates; multi-model plus external sources. |
+| Result | `cand_0005 / qwen/qwen3.6-27b` was the best app candidate at 0.6748 but slow at 12255 sec. `cand_0002 / openai/gpt-oss-20b` was fastest at 2871 sec but scored 0.5552. External non-gold outputs reached 0.8237. Hard columns included representative spatial figure, MPRA sequence length, editor architecture, max editing efficiency, architecture source figure, section thickness, and barcode length. Structured-output failures affected Qwen, GLM, and Ministral candidates. |
+| Decision | Keep model sweep, candidate-selection, retrieval, and structured-output improvements as active ideas in `improvement-ideas.md`. Do not switch the default model based only on this run because the best app score came with a large runtime cost and unresolved structured-output instability. |
+| Retest boundary | Repeat model sweeps only with a comparable config and record model IDs, score, runtime, structured-output failures, and hard-column changes. A default-model change needs a full benchmark result that improves correctness without unacceptable runtime cost. |
 
 ## Rejected Or Superseded Ideas
 
 ### Field-Group Deterministic
 
-- Status: tested; preserve branch only.
-- Branch/commit: `experiment-field-group-deterministic` at `ce960c2`.
-- Model/source: `google/gemma-4-e4b`.
-- Result: fewer structured completion calls than per-cell extraction, but lower aggregate score and no end-to-end runtime improvement in the broader comparison.
-- Decision: do not merge. Deterministic planning may return as advisory metadata, but it should not be routing-authoritative.
+| Field | Details |
+| --- | --- |
+| Status | Rejected as a default extraction architecture; partly superseded by advisory-only planning ideas. |
+| Tested idea | Deterministically group related columns into field groups, extract grouped proposals, then fall back to per-cell extraction when needed. |
+| What was tested | Branch `experiment-field-group-deterministic` at commit `ce960c2`; dev-checks `dev_check_20260518-234727` and `dev_check_20260519-001119`; full run `manual_field_group_deterministic_3bench_3rep`; model `google/gemma-4-e4b`. |
+| Why tested | Reduce completion calls and runtime by sharing evidence and model calls across related columns while preserving per-cell fallback. |
+| Evidence | Dev-check table rows and full-benchmark row in this file. |
+| Scope and models | Genome editing dev-checks; full benchmark across genome editing, MPRA, and spatial transcriptomics with three replicates; `google/gemma-4-e4b`. |
+| Result | Full score 0.6040 versus 0.6517 for the per-cell baseline. Runtime was 87.57 min versus baseline 86.22 min, despite fewer calls: 114 versus 138. The promising single dev-check runtime of 5.59 min did not generalize. |
+| Decision | Do not merge or restore this as an authoritative extraction architecture. The exact grouped-routing approach lost correctness and did not produce stable runtime gains. |
+| Retest boundary | Do not retest deterministic field grouping as the primary answer path. Retest only if planning is advisory, retrieval-only, or used as non-authoritative metadata, and compare on the full three-benchmark suite. |
 
 ### Paper-Batch
 
-- Status: tested; preserve branch only.
-- Branch/commit: `experiment-paper-batch` at `361f4f4`.
-- Model/source: `google/gemma-4-e4b`.
-- Result: lowest aggregate score in the three-architecture comparison and no runtime improvement.
-- Decision: do not merge. Whole-paper/row batching is conceptually general, but current prompt/output reliability is not good enough.
+| Field | Details |
+| --- | --- |
+| Status | Rejected as a default extraction architecture; superseded by narrower batch-then-verify ideas. |
+| Tested idea | Use larger paper-level or row-level batch extraction with structured calls and per-cell fallback. |
+| What was tested | Branch `experiment-paper-batch` at commit `361f4f4`; full run `manual_paper_batch_3bench_3rep`; model `google/gemma-4-e4b`. |
+| Why tested | Reduce repeated retrieval and completion overhead by extracting many cells from a paper in one batch. |
+| Evidence | Full-benchmark row in [Full-Benchmark Idea Evaluations](#full-benchmark-idea-evaluations). |
+| Scope and models | Genome editing, MPRA, and spatial transcriptomics; three replicates; `google/gemma-4-e4b`. |
+| Result | Score 0.5681, runtime 88.81 min, and 113 completion calls. It was lower scoring and slightly slower than the per-cell baseline despite fewer calls. |
+| Decision | Do not use paper-batch extraction as the default architecture. The approach lost too much cell-specific precision and did not deliver the expected runtime improvement. |
+| Retest boundary | Do not retest whole-paper batch extraction as the primary answer source. A future test should be a materially different [Batch-Then-Verify Hybrid](improvement-ideas.md#batch-then-verify-hybrid), where batch output is only a candidate generator and per-cell verification remains authoritative. |
 
 ### LLM-Primary Column Planning
 
-- Status: tested in earlier dev-check iterations; not preserved as the recommended branch.
-- Model/source: `google/gemma-4-e4b`.
-- Result: planning drift and overly aggressive validation lowered score in dev-check runs.
-- Decision: only revisit if planner output is advisory, heavily validated, and evaluated on synthetic non-benchmark schemas.
+| Field | Details |
+| --- | --- |
+| Status | Superseded as an authoritative planning strategy. |
+| Tested idea | Let an LLM planner choose or validate extraction strategy before cell-level extraction. |
+| What was tested | Partial planner/evidence-card wiring in `dev_check_20260518-230132`, LLM planner field-group run `dev_check_20260518-234927`, and stricter planner validation in `dev_check_20260519-000015`; model `google/gemma-4-e4b`. |
+| Why tested | Improve evidence targeting and reduce wasted extraction by planning column strategy before proposal generation. |
+| Evidence | Dev-check table rows in this file. |
+| Scope and models | Genome editing dev-check scope; `google/gemma-4-e4b`; compared against per-cell baseline dev-check `dev_check_20260518-195533`. |
+| Result | Scores were 0.56, 0.56, and 0.50, with runtimes 11.45 min, 9.21 min, and 10.10 min. Baseline scored 0.62 at 9.28 min. Stricter validation lowered score, suggesting planner errors and over-aggressive filtering removed useful evidence or answers. |
+| Decision | Do not use LLM planning as an authoritative gate or route selector. |
+| Retest boundary | Do not retest LLM-primary planning unless it is redesigned as advisory metadata, such as [Advisory Schema Planning](improvement-ideas.md#advisory-schema-planning), and cannot block per-cell extraction or discard candidates by itself. |
 
 ### Conservative Batch Gate
 
-- Status: tested and rejected.
-- Run: `dev_check_20260519-001805`.
-- Model/source: `google/gemma-4-e4b`.
-- Result: worse score and runtime than the faster field-group deterministic dev-check.
-- Decision: do not continue this specific gating approach.
-
-## Lessons Learned
-
-- Accuracy loss from grouped extraction is currently more costly than call-count savings.
-- Deterministic planning is fast and auditable, but risks making the app less general when schemas do not fit planner assumptions.
-- The best near-term path is better per-cell evidence/value selection, schema-aware numeric and identifier handling, and runtime-aware model/vision gating.
-- Judge disagreement and `judge_instability_observed` require caution when interpreting small score differences.
-- Structured-output reliability must be tracked alongside correctness and runtime in future model sweeps.
+| Field | Details |
+| --- | --- |
+| Status | Rejected. |
+| Tested idea | Add a conservative gate around batch-style extraction so only apparently safe grouped answers are accepted. |
+| What was tested | Dev-check `dev_check_20260519-001805`; model `google/gemma-4-e4b`. |
+| Why tested | Preserve the runtime benefits of grouping while preventing lower-confidence batch answers from replacing per-cell answers. |
+| Evidence | Dev-check row in [Dev-Check Runs](#dev-check-runs). |
+| Scope and models | Genome editing dev-check; `google/gemma-4-e4b`; compared with baseline and field-group deterministic dev-checks. |
+| Result | Score 0.54 and runtime 11.86 min. It was worse than the per-cell baseline dev-check at 0.62 and 9.28 min, and worse than the faster field-group deterministic dev-check at 0.58 and 5.59 min. |
+| Decision | Do not continue this specific gating design. It added cost without protecting correctness. |
+| Retest boundary | Do not retest this gate unchanged. A future verifier must define explicit acceptance metrics, preserve per-cell fallback as authoritative, and pass a dev-check before any full benchmark. |
 
 ## Appendix: Historical Branches
 
-The requested slash-namespaced branch names could not be created in this working tree, so the experiment branches use flat names:
+These branches are kept as historical references for tested ideas. Each branch must link to the idea entry that explains what was tested and why it was kept, rejected, or superseded.
 
-| Branch | Commit | Purpose |
-|---|---|---|
-| `main` | `6efabd7` | Pushed baseline before implementing the accuracy/speed ideas; kept as the per-cell accuracy reference. |
-| `experiment-field-group-deterministic` | `ce960c2` | Field-group extraction with deterministic column planning and per-cell fallback. |
-| `experiment-paper-batch` | `361f4f4` | Paper/row batch extraction without deterministic planning, using grouped structured calls and per-cell fallback. |
+| Branch | Commit | Idea entry | What it represents |
+| --- | --- | --- | --- |
+| `main` | `6efabd7` | [Per-Cell Baseline Architecture](#per-cell-baseline-architecture) | Baseline before grouped and batched extraction experiments. |
+| `experiment-field-group-deterministic` | `ce960c2` | [Field-Group Deterministic](#field-group-deterministic) | Deterministic column grouping with per-cell fallback. |
+| `experiment-paper-batch` | `361f4f4` | [Paper-Batch](#paper-batch) | Paper/row batch extraction without deterministic planning, with grouped structured calls and per-cell fallback. |

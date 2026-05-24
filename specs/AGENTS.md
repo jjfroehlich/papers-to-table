@@ -20,7 +20,7 @@ Within `specs/`, use this priority order:
 
 1. Current user request, when it preserves truthful current behavior.
 2. Root `AGENTS.md` and this file.
-3. `specs/README.md`, `spec.md`, `plan.md`, and `tasks.md`.
+3. `spec.md`, `plan.md`, and `tasks.md`.
 4. JSON schemas under `contracts/schemas/`.
 5. Compatibility references under `product/`, `tools/`, `contracts/`, `architecture/`, or `process/`.
 6. Archive material as historical context only.
@@ -31,11 +31,10 @@ When files conflict, update the smallest coherent canonical set. Do not let a RE
 
 For spec-driven work, use this order:
 
-1. `README.md`
-2. `spec.md`
-3. `plan.md`
-4. `tasks.md`
-5. compatibility references under `product/`, `tools/`, `contracts/`, `architecture/`, or `process/` only when they are still linked from active docs or needed to avoid stale claims
+1. `spec.md`
+2. `plan.md`
+3. `tasks.md`
+4. compatibility references under `product/`, `tools/`, `contracts/`, `architecture/`, or `process/` only when they are still linked from active docs or needed to avoid stale claims
 
 If these artifacts conflict, fix the smallest coherent set of docs first before changing code or task status.
 
@@ -54,13 +53,14 @@ Before changing canonical spec text, inspect the current code path, relevant tes
 
 ## Experiment and improvement docs
 
-- `experiment-results.md` owns tested evidence, eval results, dev-check outcomes that changed a decision, rejected ideas, and current recommendations.
+- `experiment-results.md` owns tested evidence, eval results, dev-check outcomes that changed a decision, and kept, partially kept, rejected, or superseded idea decisions. It should not become a broad run log or current-recommendation page.
 - `improvement-ideas.md` owns prioritized untested or not-yet-resolved ideas.
 - Do not recreate `extraction-improvement-backlog.md`, `extraction-experiment-results.md`, or `extraction-improvement-ideas.md`; they are superseded by the more general filenames above.
 - When recording optimizer or eval results, include model IDs or source labels alongside candidate IDs. Do not write only `cand_0001`; write a form like `cand_0001 / google/gemma-4-e4b`.
 - Keep result and idea entries within the length bands documented in those files unless a longer entry is needed for a broad benchmark comparison.
 - When an idea is implemented, benchmarked, rejected, or ruled out conceptually, move the evidence to `experiment-results.md` and update or remove the corresponding idea.
 - Update stale references when extraction improvement files are renamed, consolidated, or split.
+- Updates and improvements to the app still must be reflected by the specs, if necessary update specs. 
 
 ## Current-file rule
 
@@ -77,7 +77,6 @@ Before changing canonical spec text, inspect the current code path, relevant tes
 - Preserve the existing canonical section structure of each spec file when editing.
 - Prefer editing the correct existing section over appending an ad hoc note or temporary section.
 - Do not insert pass-specific instructions, temporary status banners, or execution-order notes into canonical spec files or `plan.md`.
-- If historical or temporary context is worth keeping, place it in a clearly labeled appendix or supporting audit doc rather than in the main body.
 - When operator or developer workflow changes, ensure the related README/MkDocs manual page is updated by the same work pass.
 - When manual pages are added, removed, or renamed, ensure `tools/docs/mkdocs.yml` navigation is updated outside `specs/`.
 
