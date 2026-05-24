@@ -74,6 +74,8 @@ The 2026-05-15 full-benchmark attempt on the three-benchmark dev suite with thre
 
 Operator docs should therefore present full benchmark as a multi-day workflow when the candidate set is broad, and recommend reduced candidate sets for routine iteration.
 
+The 2026-05-24 compare-models run on the same three-benchmark dev suite with three replicates took about 10 h wall time for five internal app candidates plus three external-result baselines. Internal app candidates accounted for about 8.3 h of summed candidate runtime, ranging from about 48 min for `openai/gpt-oss-20b` to about 204 min for `qwen/qwen3.6-27b`. Compare-models should therefore be treated as an overnight run when the full dev suite and larger models are enabled.
+
 ## Benchmark manifests
 
 Single benchmark manifests remain valid as benchmark leaves inside suites.

@@ -73,6 +73,14 @@ def _short_plot_label(label: Any, *, max_len: int = 34) -> str:
     return f"{text[: max_len - 1]}..."
 
 
+def _candidate_axis_label(candidate_id: str, label: str) -> str:
+    candidate = str(candidate_id or "").strip()
+    text = str(label or candidate or "unknown").strip()
+    if candidate and candidate not in text:
+        text = f"{text} ({candidate})"
+    return text
+
+
 def _annotate_points(xs: list[float], ys: list[float], labels: list[str]) -> None:
     for index, (x_value, y_value, label) in enumerate(zip(xs, ys, labels, strict=True)):
         x_offset = 5 if index % 2 == 0 else -5
@@ -792,8 +800,9 @@ def generate_suite_plots(experiment_dir: Path, primary_metric: str) -> None:
                 if row.get("candidate_id", "") in grouped_scores
             ] or sorted(grouped_scores)
             data = [grouped_scores[candidate_id] for candidate_id in ordered_ids]
-            labels = [grouped_labels.get(candidate_id, candidate_id) for candidate_id in ordered_ids]
-            plt.figure(figsize=(max(8, len(labels) * 1.15), 4.8))
+            labels = [_candidate_axis_label(candidate_id, grouped_labels.get(candidate_id, candidate_id)) for candidate_id in ordered_ids]
+            labels = [_short_plot_label(label, max_len=42) for label in labels]
+            plt.figure(figsize=(max(9, len(labels) * 1.35), 6.2))
             plt.boxplot(
                 data,
                 tick_labels=labels,
@@ -815,7 +824,7 @@ def generate_suite_plots(experiment_dir: Path, primary_metric: str) -> None:
                     alpha=0.78,
                     zorder=3,
                 )
-            plt.xticks(rotation=45, ha="right")
+            plt.xticks(rotation=35, ha="right")
             plt.ylabel(primary_metric)
             plt.title("Replicate score distribution by model")
             plt.legend(
@@ -828,6 +837,7 @@ def generate_suite_plots(experiment_dir: Path, primary_metric: str) -> None:
                 frameon=False,
             )
             plt.tight_layout()
+            plt.subplots_adjust(bottom=0.32)
             _save_plot(plots_dir / "suite_replicate_score_distribution.png")
             plt.close()
 

@@ -73,6 +73,13 @@ Use `main` at `6efabd7` as the current default architecture unless a later resul
 - Keep changes small enough that benchmark effects can be attributed.
 - Success criterion: improve weak failure classes without hurting other benchmark datasets.
 
+### Judge Calibration And Adjudication
+
+- Treat internal and external proposals with the same scoring path, including deterministic exact-match fast paths.
+- Compare candidate judge models on a small hand-reviewed calibration set before changing benchmark judge defaults.
+- Add an adjudication/tie-break option for dual-judge disagreements instead of silently trusting one judge.
+- Report primary score, disagreement rate, adjudicated score, and judge model IDs so benchmark outcomes stay auditable.
+
 ## Idea Entry Template
 
 ```markdown

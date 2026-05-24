@@ -247,9 +247,9 @@ def _build_capability_cards(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             f"vision_failed={display_text(counters.get('figure_review_failed_count'), missing='0')}; "
             f"vision_no_hit={display_text(counters.get('figure_review_succeeded_without_hit_count'), missing='0')}; "
             f"figure_evidence={display_text(counters.get('figure_derived_evidence_count'), missing='0')}; "
-            f"planner={display_text(counters.get('figure_planner_success_count'), missing='0')}/{display_text(counters.get('figure_planner_attempt_count'), missing='0')}; "
-            f"planner_skipped={display_text(counters.get('figure_planner_skipped_count'), missing='0')}; "
-            f"planner_fallback={display_text(counters.get('figure_planner_fallback_count'), missing='0')}; "
+            f"vision_considered={display_text(counters.get('figure_planner_success_count'), missing='0')}/{display_text(counters.get('figure_planner_attempt_count'), missing='0')}; "
+            f"vision_skipped={display_text(counters.get('figure_planner_skipped_count'), missing='0')}; "
+            f"vision_fallback={display_text(counters.get('figure_planner_fallback_count'), missing='0')}; "
             f"schema_repair={display_text(counters.get('structured_output_repair_count'), missing='0')}; "
             f"schema_retry={display_text(counters.get('structured_output_retry_count'), missing='0')}; "
             f"candidate_select={display_text(counters.get('candidate_selection_attempt_count'), missing='0')}; "
@@ -274,22 +274,19 @@ def _build_capability_cards(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def _call_counts_cell(row: dict[str, Any]) -> dict[str, Any]:
     counters = _row_counters(row)
-    planner_count = int(counters.get("figure_planner_attempt_count", 0) or 0)
+    vision_considered_count = int(counters.get("figure_planner_attempt_count", 0) or 0)
     scored_cells = row.get("scored_cell_count")
-    planner_per_cell = None
-    if scored_cells:
-        try:
-            planner_per_cell = planner_count / float(scored_cells)
-        except Exception:
-            planner_per_cell = None
     return build_table_cell(
         (
             f"text={display_text(counters.get('text_model_call_count'), missing='0')}; "
             f"vision={display_text(counters.get('vision_model_call_count'), missing='0')}; "
-            f"planner={display_text(planner_count, missing='0')}"
+            f"vision_considered={display_text(vision_considered_count, missing='0')}"
         ),
-        subtext=f"planner/cell={planner_per_cell:.2f}" if planner_per_cell is not None else "planner/cell=not recorded",
-        sort_value=planner_count,
+        subtext=(
+            f"triggered={display_text(counters.get('figure_review_triggered_count'), missing='0')}; "
+            f"skipped={display_text(counters.get('figure_planner_skipped_count'), missing='0')}"
+        ),
+        sort_value=vision_considered_count,
     )
 
 
@@ -521,7 +518,8 @@ def _build_plot_cards(experiment_dir: Path, *, study_type: str, variant: str) ->
     if has_suite:
         preferred = [
             "suite_replicate_score_distribution",
-            "suite_score_by_candidate",
+            "compare_correctness_vs_runtime",
+            "compare_correctness_vs_evidence",
             "suite_benchmark_breakdown",
             "compare_score_status_counts",
             "optimize_score_status_counts",

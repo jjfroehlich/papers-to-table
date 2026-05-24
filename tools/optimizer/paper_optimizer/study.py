@@ -1651,5 +1651,7 @@ def summarize(config: dict[str, Any], experiment_dir: Path) -> None:
         raise ValueError(f"Unsupported summary study type: {study_type}")
     primary_metric = config["acceptance"]["primary_metric"]
     generate_compare_plots(experiment_dir, primary_metric)
+    if manifest.get("suite_id") or len(manifest.get("benchmark_ids") or []) > 1:
+        generate_suite_plots(experiment_dir, primary_metric)
     write_proposal_tables(experiment_dir)
     generate_experiment_report(experiment_dir)

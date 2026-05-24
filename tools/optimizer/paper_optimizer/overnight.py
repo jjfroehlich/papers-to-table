@@ -433,17 +433,84 @@ def _build_plot_assets(output_dir: Path, stage_rows: list[dict[str, Any]], all_c
 
     scores = [row.get("best_score") for row in stage_rows if row.get("best_score") is not None]
     if scores:
+        stage_candidates: list[dict[str, Any]] = []
+        for stage in stage_rows:
+            stage_name = stage["stage_name"]
+            rows_for_stage = [
+                row
+                for row in all_candidate_rows
+                if row.get("stage_name") == stage_name and row.get("primary_metric_value") is not None
+            ]
+            external_rows = [
+                row
+                for row in rows_for_stage
+                if str(row.get("candidate_id") or "").startswith("external_")
+                or str(row.get("prompt_bundle_id") or "") == "external_result"
+            ]
+            internal_rows = [
+                row
+                for row in rows_for_stage
+                if row not in external_rows
+            ]
+            internal_rows = sorted(
+                internal_rows,
+                key=lambda row: float(row.get("primary_metric_value") or -1.0),
+                reverse=True,
+            )[:3]
+            for row in [*external_rows, *internal_rows]:
+                stage_candidates.append(
+                    {
+                        "stage_name": stage_name,
+                        "stage_index": stage["stage_index"],
+                        "candidate_id": row.get("candidate_id"),
+                        "candidate_label": model_nickname(row.get("text_model_id")),
+                        "primary_metric_value": row.get("primary_metric_value"),
+                        "runtime_seconds": row.get("runtime_seconds"),
+                        "included_reason": "external_result"
+                        if row in external_rows
+                        else "top_internal_candidate",
+                    }
+                )
         csv_rows = [
-            {"stage_name": row["stage_name"], "stage_index": row["stage_index"], "best_score": row.get("best_score")}
-            for row in stage_rows
+            row for row in stage_candidates
         ]
         csv_path = plots_dir / "pipeline_stage_trajectory.csv"
         png_path = plots_dir / "pipeline_stage_trajectory.png"
         _write_csv(csv_path, csv_rows)
-        plt.figure(figsize=(8, 4))
-        plt.plot([row["stage_name"] for row in stage_rows], [row.get("best_score") or 0.0 for row in stage_rows], marker="o")
-        plt.ylabel("best_score")
+        plt.figure(figsize=(max(8, len(stage_rows) * 1.8), 5.0))
+        by_reason = {
+            "external_result": {"marker": "D", "color": "tab:green", "label": "external result"},
+            "top_internal_candidate": {"marker": "o", "color": "tab:blue", "label": "top internal candidate"},
+        }
+        for reason, style in by_reason.items():
+            subset = [row for row in stage_candidates if row.get("included_reason") == reason]
+            if not subset:
+                continue
+            xs = [float(row["stage_index"]) for row in subset]
+            ys = [float(row["primary_metric_value"]) for row in subset]
+            plt.scatter(
+                xs,
+                ys,
+                marker=style["marker"],
+                color=style["color"],
+                edgecolors="white",
+                linewidths=0.7,
+                s=52,
+                label=style["label"],
+            )
+            _annotate_points(
+                xs,
+                ys,
+                [
+                    f"{display_text(row.get('candidate_id'), missing='candidate')} {display_text(row.get('candidate_label'), missing='')}"
+                    for row in subset
+                ],
+            )
+        plt.xticks([row["stage_index"] for row in stage_rows], [row["stage_name"] for row in stage_rows], rotation=20, ha="right")
+        plt.ylabel("primary_score")
         plt.title("Stage-to-stage score trajectory")
+        plt.legend(frameon=False)
+        plt.margins(x=0.18, y=0.14)
         plt.tight_layout()
         _save_plot(png_path)
         plt.close()
