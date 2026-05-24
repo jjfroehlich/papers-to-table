@@ -81,7 +81,8 @@ describe('RunDetail', () => {
       warnings: [{ category: 'unmatched_pdf', message: 'unmatched_1.pdf was not matched' }],
     }
     render(<RunDetail run={runWithWarnings} />)
-    expect(screen.getByText('unmatched_1.pdf was not matched')).toBeTruthy()
+    expect(screen.getByText('Run warnings')).toBeTruthy()
+    expect(screen.getByText('1 warning')).toBeTruthy()
   })
 
   it('shows verify mode status', () => {

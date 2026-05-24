@@ -5,9 +5,11 @@ import type { EnrichedProposal } from '../types'
 
 // vi.mock is hoisted - factory cannot reference outer variables
 const mockListProposals = vi.fn()
+const mockGetReviewTable = vi.fn()
 vi.mock('../api/client', () => ({
   api: {
     listProposals: (...args: Parameters<typeof mockListProposals>) => mockListProposals(...args),
+    getReviewTable: (...args: Parameters<typeof mockGetReviewTable>) => mockGetReviewTable(...args),
   },
 }))
 
@@ -113,53 +115,53 @@ const mockProposals: EnrichedProposal[] = [
 
 describe('ProposalQueue', () => {
   const onSelect = vi.fn()
+  const onModeChange = vi.fn()
+  const onFilterChange = vi.fn()
 
-  beforeEach(() => {
-    onSelect.mockClear()
-    mockListProposals.mockResolvedValue({ proposals: mockProposals, run_id: 'r1', count: 3 })
-  })
-
-  it('renders pending proposals with blue border', async () => {
-    render(
+  function renderQueue(overrides = {}) {
+    return render(
       <ProposalQueue
         runId="r1"
         outputDir="./runs"
         selectedProposalId={null}
         onSelect={onSelect}
+        mode="paper"
+        filter="pending"
+        onModeChange={onModeChange}
+        onFilterChange={onFilterChange}
+        {...overrides}
       />
     )
+  }
+
+  beforeEach(() => {
+    mockListProposals.mockReset()
+    mockGetReviewTable.mockReset()
+    onSelect.mockClear()
+    onModeChange.mockClear()
+    onFilterChange.mockClear()
+    mockListProposals.mockResolvedValue({ proposals: mockProposals, run_id: 'r1', count: 3 })
+    mockGetReviewTable.mockResolvedValue({ run_id: 'r1', columns: [], rows: [], proposal_count: 0 })
+  })
+
+  it('renders pending proposals with blue border', async () => {
+    renderQueue()
     await screen.findByText('sample_size')
     expect(screen.getByText('sample_size')).toBeInTheDocument()
     expect(screen.getByText('p_value')).toBeInTheDocument()
   })
 
   it('grouping by paper groups proposals by pdf_id', async () => {
-    render(
-      <ProposalQueue
-        runId="r1"
-        outputDir="./runs"
-        selectedProposalId={null}
-        onSelect={onSelect}
-      />
-    )
+    renderQueue({ filter: 'all' })
     await screen.findByText(/Smith et al\. 2024/)
     expect(screen.getByText(/Smith et al\. 2024/)).toBeInTheDocument()
     expect(screen.getByText(/Lee et al\. 2023/)).toBeInTheDocument()
   })
 
   it('grouping by column groups proposals by column_name', async () => {
-    render(
-      <ProposalQueue
-        runId="r1"
-        outputDir="./runs"
-        selectedProposalId={null}
-        onSelect={onSelect}
-      />
-    )
-    await screen.findByText(/Smith et al\. 2024/)
-    const colBtn = screen.getByText('By Column')
-    fireEvent.click(colBtn)
-    // After switching, groups should be column names (use getAllByText since name appears in header + card)
+    renderQueue({ mode: 'column', filter: 'all' })
+    await screen.findByText('sample_size')
+    // Column groups should be column names.
     expect(screen.getAllByText('effect_size').length).toBeGreaterThan(0)
   })
 
@@ -171,49 +173,22 @@ describe('ProposalQueue', () => {
       count: pendingOnly.length,
     })
 
-    render(
-      <ProposalQueue
-        runId="r1"
-        outputDir="./runs"
-        selectedProposalId={null}
-        onSelect={onSelect}
-      />
-    )
+    renderQueue()
     await screen.findByText('sample_size')
     const select = screen.getByRole('combobox')
     fireEvent.change(select, { target: { value: 'pending' } })
-    // Re-render with pending-only mock
-    mockListProposals.mockResolvedValueOnce({
-      proposals: pendingOnly,
-      run_id: 'r1',
-      count: pendingOnly.length,
-    })
+    expect(onFilterChange).toHaveBeenCalledWith('pending')
     await screen.findByText('sample_size')
   })
 
-  it('compact card shows support badge', async () => {
-    render(
-      <ProposalQueue
-        runId="r1"
-        outputDir="./runs"
-        selectedProposalId={null}
-        onSelect={onSelect}
-      />
-    )
-    // 'direct' badge appears for direct_evidence support
-    await screen.findAllByText('direct')
-    expect(screen.getAllByText('direct').length).toBeGreaterThan(0)
+  it('compact card shows categorized support badge', async () => {
+    renderQueue()
+    await screen.findAllByTitle('Support: direct evidence')
+    expect(screen.getAllByTitle('Support: direct evidence').length).toBeGreaterThan(0)
   })
 
   it('calls onSelect when a proposal card is clicked', async () => {
-    render(
-      <ProposalQueue
-        runId="r1"
-        outputDir="./runs"
-        selectedProposalId={null}
-        onSelect={onSelect}
-      />
-    )
+    renderQueue()
     await screen.findByText('sample_size')
     const card = screen.getByText('sample_size').closest('button')!
     fireEvent.click(card)

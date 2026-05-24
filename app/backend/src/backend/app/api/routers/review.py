@@ -8,6 +8,7 @@ from ...artifacts import get_run_dir, read_json
 from ...extraction import load_proposals
 from ...review import (
     ProposalFilter,
+    build_review_table,
     bulk_accept_proposals,
     get_export_candidates,
     get_proposal_detail,
@@ -84,6 +85,27 @@ async def get_proposals(
             proposal['paper_year'] = paper_context.get('paper_year')
             proposal['paper_label'] = paper_context.get('paper_label')
     return {'run_id': run_id, 'count': len(proposals), 'proposals': proposals}
+
+
+@router.get('/api/runs/{run_id}/review-table')
+async def get_review_table(run_id: str, output_dir: str = './runs'):
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f'Run not found: {run_id}')
+    run_data = None
+    try:
+        run_data = read_json(run_dir / 'run.json')
+    except Exception:
+        pass
+    lookup = None
+    if run_data and run_data.get('table_path'):
+        try:
+            lookup = ensure_review_lookup(output_dir, run_id, run_data['table_path'], run_data.get('schema_path'))
+        except Exception:
+            lookup = load_review_lookup(output_dir, run_id)
+    else:
+        lookup = load_review_lookup(output_dir, run_id)
+    return build_review_table(run_dir, lookup)
 
 
 @router.get('/api/runs/{run_id}/proposals/{proposal_id}')

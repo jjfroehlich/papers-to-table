@@ -379,15 +379,94 @@ def _external_replicates(external_result: dict[str, Any]) -> list[dict[str, Any]
             item = dict(replicate)
             item.setdefault("replicate_index", index)
             item["eval_args"] = [*base_eval_args, *list(item.get("eval_args", []))]
+            _apply_external_runtime_metadata(item, external_result)
             rows.append(item)
         return rows
-    return [
-        {
-            "path": external_result["path"],
-            "replicate_index": int(external_result.get("replicate_index", 1) or 1),
-            "eval_args": base_eval_args,
-        }
-    ]
+    item = {
+        "path": external_result["path"],
+        "replicate_index": int(external_result.get("replicate_index", 1) or 1),
+        "eval_args": base_eval_args,
+    }
+    _apply_external_runtime_metadata(item, external_result)
+    return [item]
+
+
+def _apply_external_runtime_metadata(replicate: dict[str, Any], external_result: dict[str, Any]) -> None:
+    if replicate.get("runtime_seconds") not in (None, ""):
+        replicate.setdefault("runtime_scope", external_result.get("runtime_scope") or "benchmark_replicate")
+        return
+
+    runtime_rows = _load_external_runtime_rows(replicate, external_result)
+    if not runtime_rows:
+        return
+
+    replicate_index = int(replicate.get("replicate_index", 1) or 1)
+    runtime_value = runtime_rows["replicates"].get(replicate_index)
+    if runtime_value is None:
+        return
+    replicate["runtime_seconds"] = runtime_value
+    replicate["runtime_scope"] = runtime_rows["runtime_scope"]
+    replicate["runtime_source_path"] = runtime_rows["source_path"]
+
+
+def _load_external_runtime_rows(
+    replicate: dict[str, Any],
+    external_result: dict[str, Any],
+) -> dict[str, Any] | None:
+    candidates: list[Path] = []
+    for key in ["runtime_path", "runtimes_path"]:
+        value = replicate.get(key) or external_result.get(key)
+        if isinstance(value, str) and value.strip():
+            candidates.append(Path(value))
+
+    path_value = replicate.get("path") or external_result.get("path")
+    if isinstance(path_value, str) and path_value.strip():
+        result_path = Path(path_value)
+        parents = list(result_path.parents)
+        for parent in parents[:3]:
+            candidates.extend([parent / "runtimes.json", parent / "runtime.json"])
+
+    for candidate_path in candidates:
+        if not candidate_path.exists():
+            continue
+        payload = read_json(candidate_path)
+        if not isinstance(payload, dict):
+            continue
+        runtime_scope = str(payload.get("runtime_scope") or "benchmark_replicate")
+        rows: dict[int, float] = {}
+        raw_replicates = payload.get("replicates")
+        if isinstance(raw_replicates, dict):
+            for key, value in raw_replicates.items():
+                parsed = _safe_runtime_seconds(value)
+                if parsed is not None:
+                    try:
+                        rows[int(key)] = parsed
+                    except (TypeError, ValueError):
+                        continue
+        elif isinstance(raw_replicates, list):
+            for item in raw_replicates:
+                if not isinstance(item, dict):
+                    continue
+                index = item.get("replicate_index")
+                parsed = _safe_runtime_seconds(item.get("runtime_seconds"))
+                if isinstance(index, int) and index > 0 and parsed is not None:
+                    rows[index] = parsed
+        if rows:
+            return {"runtime_scope": runtime_scope, "replicates": rows, "source_path": str(candidate_path.resolve())}
+    return None
+
+
+def _safe_runtime_seconds(value: Any) -> float | None:
+    if value in (None, ""):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _uses_suite_replicate_runtime(replicate: dict[str, Any]) -> bool:
+    return str(replicate.get("runtime_scope") or "").strip() == "suite_replicate"
 
 
 def _write_aggregate_tables(
@@ -539,6 +618,7 @@ def _evaluate_external_result_with_suite_and_replicates(
     )
     all_replicates: list[CandidateResult] = []
     benchmark_rows: list[dict[str, Any]] = []
+    suite_runtime_carriers: set[int] = set()
 
     for planned_benchmark_id in plan.benchmark_ids:
         external_result = external_results_by_benchmark.get(planned_benchmark_id)
@@ -561,6 +641,23 @@ def _evaluate_external_result_with_suite_and_replicates(
                 external_result=replicate_external,
                 study_type=study_type,
             )
+            if (
+                result.runtime_seconds is not None
+                and _uses_suite_replicate_runtime(replicate)
+                and replicate_index in suite_runtime_carriers
+            ):
+                result = replace(
+                    result,
+                    runtime_seconds=None,
+                    runtime_metadata={
+                        **result.runtime_metadata,
+                        "external_runtime_seconds": None,
+                        "external_runtime_suppressed_reason": "suite_replicate_runtime_already_counted",
+                        "total_duration_seconds": None,
+                    },
+                )
+            elif result.runtime_seconds is not None and _uses_suite_replicate_runtime(replicate):
+                suite_runtime_carriers.add(replicate_index)
             result.suite_id = plan.suite_id
             result.replicate_index = replicate_index
             result.replicate_id = f"{candidate.candidate_id}:{plan.suite_id}:{planned_benchmark_id}:r{replicate_index:03d}"

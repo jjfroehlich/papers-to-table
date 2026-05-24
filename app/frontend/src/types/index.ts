@@ -285,6 +285,58 @@ export interface ProposalDetail {
   support_label_display?: string
 }
 
+export interface ReviewTableColumn {
+  name: string
+  description: string | null
+  field_type: string | null
+  is_target: boolean
+}
+
+export interface ReviewTableEvidenceSummary {
+  count: number
+  primary_evidence_id: string | null
+  primary_source_type: string | null
+  primary_page_number: number | null
+  primary_quote_text: string | null
+}
+
+export interface ReviewTableProposal extends EnrichedProposal {
+  evidence_summary?: ReviewTableEvidenceSummary
+}
+
+export type ReviewTableCellStatus =
+  | 'unchanged'
+  | 'pending'
+  | 'accepted'
+  | 'accepted_with_edit'
+  | 'confirmed_no_data'
+  | 'rejected'
+
+export interface ReviewTableCell {
+  column_name: string
+  original_value: unknown
+  display_value: unknown
+  display_status: ReviewTableCellStatus | string
+  has_proposal: boolean
+  proposal: ReviewTableProposal | null
+}
+
+export interface ReviewTableRow {
+  row_id: string
+  row_index: number | null
+  paper_label: string
+  title: string | null
+  values: Record<string, unknown>
+  cells: Record<string, ReviewTableCell>
+}
+
+export interface ReviewTableData {
+  run_id: string
+  columns: ReviewTableColumn[]
+  rows: ReviewTableRow[]
+  proposal_count: number
+}
+
 export interface MatchingSummary {
   run_id: string
   total_pdfs: number

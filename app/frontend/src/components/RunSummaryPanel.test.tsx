@@ -5,11 +5,13 @@ import type { RunData } from '../types'
 
 const mockGetReviewProgress = vi.fn()
 const mockGetMatchingSummary = vi.fn()
+const mockGetReviewTable = vi.fn()
 
 vi.mock('../api/client', () => ({
   api: {
     getReviewProgress: (...args: Parameters<typeof mockGetReviewProgress>) => mockGetReviewProgress(...args),
     getMatchingSummary: (...args: Parameters<typeof mockGetMatchingSummary>) => mockGetMatchingSummary(...args),
+    getReviewTable: (...args: Parameters<typeof mockGetReviewTable>) => mockGetReviewTable(...args),
   },
 }))
 
@@ -50,6 +52,7 @@ describe('RunSummaryPanel', () => {
   beforeEach(() => {
     mockGetReviewProgress.mockReset()
     mockGetMatchingSummary.mockReset()
+    mockGetReviewTable.mockReset()
     mockGetReviewProgress.mockResolvedValue({
       run_id: 'run_1',
       total_proposals: 6,
@@ -68,32 +71,35 @@ describe('RunSummaryPanel', () => {
       ambiguous: 0,
       duplicate_row_conflict: 1,
     })
+    mockGetReviewTable.mockResolvedValue({
+      run_id: 'run_1',
+      columns: [],
+      rows: [],
+      proposal_count: 0,
+    })
   })
 
-  it('shows actionable review counts as the primary headline', async () => {
+  it('shows review and proposal counts in compact diagnostics', async () => {
     render(<RunSummaryPanel run={baseRun} outputDir="./runs" />)
 
     await waitFor(() => {
-      expect(
-        screen.getAllByText((_, element) => element?.textContent?.includes('Actionable review: 2 / 6') ?? false).length
-      ).toBeGreaterThan(0)
+      expect(screen.getByText('Reviewed')).toBeInTheDocument()
     })
-    expect(
-      screen.getAllByText((_, element) => element?.textContent?.includes('Attempted: 9') ?? false).length
-    ).toBeGreaterThan(0)
+    expect(screen.getByText('2 / 6')).toBeInTheDocument()
+    expect(screen.getByText('Attempted')).toBeInTheDocument()
+    expect(screen.getAllByText('9').length).toBeGreaterThan(0)
   })
 
-  it('surfaces parsing, duplicate-conflict, and evidence-fallback truth', async () => {
+  it('surfaces run warning count in runtime diagnostics', async () => {
     render(<RunSummaryPanel run={baseRun} outputDir="./runs" />)
 
     await waitFor(() => {
-      expect(screen.getByText(/parsing fallback/i)).toBeInTheDocument()
+      expect(screen.getByText('Run warnings')).toBeInTheDocument()
     })
-    expect(screen.getByText(/duplicate conflicts/i)).toBeInTheDocument()
-    expect(screen.getByText(/evidence fallback/i)).toBeInTheDocument()
+    expect(screen.getByText('3 warnings')).toBeInTheDocument()
   })
 
-  it('shows provider summary chips without hiding warning truth', async () => {
+  it('shows runtime details without hiding warning truth', async () => {
     const degradedRun = {
       ...baseRun,
       structured_output_mode: 'json_object' as const,
@@ -104,12 +110,13 @@ describe('RunSummaryPanel', () => {
     render(<RunSummaryPanel run={degradedRun} outputDir="./runs" />)
 
     await waitFor(() => {
-      expect(screen.getByText(/Provider:/i)).toBeInTheDocument()
+      expect(screen.getByText('Provider')).toBeInTheDocument()
     })
-    expect(screen.getByText(/LM Studio · live local/i)).toBeInTheDocument()
+    expect(screen.getByText('LM Studio')).toBeInTheDocument()
+    expect(screen.getByText('live local')).toBeInTheDocument()
   })
 
-  it('shows eval mode badge and masked table path', async () => {
+  it('shows eval mode in runtime diagnostics', async () => {
     const evalRun = {
       ...baseRun,
       eval_mode: true,
@@ -130,7 +137,7 @@ describe('RunSummaryPanel', () => {
     render(<RunSummaryPanel run={evalRun} outputDir="./runs" />)
 
     await waitFor(() => {
-      expect(screen.getByText(/artifact-only review context/i)).toBeInTheDocument()
+      expect(screen.getByText('eval')).toBeInTheDocument()
     })
   })
 })

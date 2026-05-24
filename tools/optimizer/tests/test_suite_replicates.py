@@ -9,8 +9,15 @@ import pytest
 from paper_optimizer.benchmarks import load_benchmarks
 from paper_optimizer.contracts import Candidate, CandidateResult
 from paper_optimizer.plotting import generate_suite_plots
+from paper_optimizer.results import ResultsWriter
 from paper_optimizer.settings import ConfigError, load_config
-from paper_optimizer.study import run_compare_mode
+from paper_optimizer.study import (
+    _evaluate_external_result_with_suite_and_replicates,
+    _external_replicates,
+    _suite_plan,
+    run_compare_mode,
+)
+
 
 def _write_config(tmp_path: Path, payload: dict[str, Any]) -> Path:
     path = tmp_path / "optimizer.json"
@@ -344,3 +351,107 @@ def test_suite_plots_include_replicate_variability_artifacts(tmp_path: Path) -> 
     )
     assert plot_rows[0]["primary_metric_sem"] == "0.05"
     assert plot_rows[1]["primary_metric_sem"] == "0.02"
+
+
+def test_external_replicates_load_adjacent_runtime_file(tmp_path: Path) -> None:
+    result_root = tmp_path / "external_tool"
+    rep1 = result_root / "rep1"
+    rep2 = result_root / "rep2"
+    rep1.mkdir(parents=True)
+    rep2.mkdir(parents=True)
+    (rep1 / "bench_filled.csv").write_text("row_id,value\nrow-1,yes\n", encoding="utf-8")
+    (rep2 / "bench_filled.csv").write_text("row_id,value\nrow-1,no\n", encoding="utf-8")
+    (result_root / "runtimes.json").write_text(
+        json.dumps(
+            {
+                "runtime_scope": "suite_replicate",
+                "unit": "seconds",
+                "replicates": [
+                    {"replicate_index": 1, "runtime_seconds": 1179},
+                    {"replicate_index": 2, "runtime_seconds": 912},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    replicates = _external_replicates(
+        {
+            "label": "external_tool",
+            "replicates": [
+                {"replicate_index": 1, "path": str(rep1 / "bench_filled.csv")},
+                {"replicate_index": 2, "path": str(rep2 / "bench_filled.csv")},
+            ],
+        }
+    )
+
+    assert replicates[0]["runtime_seconds"] == 1179.0
+    assert replicates[1]["runtime_seconds"] == 912.0
+    assert replicates[0]["runtime_scope"] == "suite_replicate"
+
+
+def test_external_suite_replicate_runtime_is_counted_once_per_replicate(
+    tmp_path: Path,
+    base_config: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = _add_suite(base_config, count=2)
+    plan = _suite_plan(config, "dev_suite")
+    result_root = tmp_path / "external_tool"
+    for replicate_index in [1, 2]:
+        rep_dir = result_root / f"rep{replicate_index}"
+        rep_dir.mkdir(parents=True)
+        (rep_dir / "bench_filled.csv").write_text("row_id,value\nrow-1,yes\n", encoding="utf-8")
+    (result_root / "runtimes.json").write_text(
+        json.dumps(
+            {
+                "runtime_scope": "suite_replicate",
+                "replicates": [
+                    {"replicate_index": 1, "runtime_seconds": 1179},
+                    {"replicate_index": 2, "runtime_seconds": 912},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    external_results_by_benchmark = {
+        benchmark_id: {
+            "label": "external_tool",
+            "system": "external_tool",
+            "replicates": [
+                {"replicate_index": 1, "path": str(result_root / "rep1" / "bench_filled.csv")},
+                {"replicate_index": 2, "path": str(result_root / "rep2" / "bench_filled.csv")},
+            ],
+        }
+        for benchmark_id in plan.benchmark_ids
+    }
+
+    def _fake_external_once(*args: Any, **kwargs: Any) -> CandidateResult:
+        external_result = kwargs["external_result"]
+        candidate = Candidate(
+            candidate_id=external_result["candidate_id"],
+            prompt_bundle_id="external_result",
+            text_model_id="external_tool",
+            vision_model_id=None,
+            optimizer_knobs={},
+        )
+        return _fake_result(
+            config,
+            candidate,
+            benchmark_id=kwargs["benchmark_id"],
+            score=0.8,
+            runtime_seconds=float(external_result["runtime_seconds"]),
+        )
+
+    monkeypatch.setattr("paper_optimizer.study.evaluate_external_result_once", _fake_external_once)
+
+    result = _evaluate_external_result_with_suite_and_replicates(
+        config,
+        ResultsWriter(tmp_path / "experiment"),
+        experiment_dir=tmp_path / "experiment",
+        plan=plan,
+        external_results_by_benchmark=external_results_by_benchmark,
+        study_type="compare",
+    )
+
+    assert result.runtime_seconds == 2091.0

@@ -255,6 +255,20 @@ Benchmarks can include precomputed filled tables from external software. Optimiz
 ]
 ```
 
+External runtimes are optional. When available, add `runtime_seconds` to each replicate or place a `runtimes.json`/`runtime.json` file beside the external result directory. For runs that produced every benchmark table in one wall-clock session, use `runtime_scope: "suite_replicate"` so suite summaries count each replicate runtime once instead of once per benchmark.
+
+```json
+{
+  "runtime_scope": "suite_replicate",
+  "unit": "seconds",
+  "replicates": [
+    {"replicate_index": 1, "runtime_seconds": 1179},
+    {"replicate_index": 2, "runtime_seconds": 912},
+    {"replicate_index": 3, "runtime_seconds": 941}
+  ]
+}
+```
+
 ## Capability Diagnostics
 
 Optimizer reports include a `Capability Use and Suppression` section when run artifacts expose main-app counters. This section is intended for diagnosing expensive or skipped extraction capabilities, especially figure review.

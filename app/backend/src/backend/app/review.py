@@ -284,6 +284,163 @@ def list_proposals(
     return result
 
 
+def _display_value_for_review_cell(original_value: Any, proposal: ProposalRecord, latest: Optional[ReviewDecisionRecord]) -> Any:
+    if latest is None:
+        return proposal.proposed_value
+    if latest.decision == ReviewDecision.accepted:
+        return proposal.proposed_value
+    if latest.decision == ReviewDecision.accepted_with_edit:
+        return latest.edited_value
+    return original_value
+
+
+def _display_status_for_review_cell(proposal: ProposalRecord, latest: Optional[ReviewDecisionRecord]) -> str:
+    if latest is None:
+        return "pending"
+    if latest.decision == ReviewDecision.accepted:
+        return "accepted"
+    if latest.decision == ReviewDecision.accepted_with_edit:
+        return "accepted_with_edit"
+    if latest.decision == ReviewDecision.confirmed_no_data:
+        return "confirmed_no_data"
+    if latest.decision == ReviewDecision.rejected:
+        return "rejected"
+    return proposal.state.value if hasattr(proposal.state, "value") else str(proposal.state)
+
+
+def build_review_table(run_dir: pathlib.Path, review_lookup: Optional[dict[str, Any]]) -> dict[str, Any]:
+    """Return a grid-oriented review payload from table, proposal, evidence, and decision artifacts."""
+    proposals = load_proposals(run_dir)
+    evidence = load_evidence(run_dir)
+    evidence_by_proposal_id: dict[str, list[EvidenceRecord]] = {}
+    for item in evidence:
+        evidence_by_proposal_id.setdefault(item.proposal_id, []).append(item)
+    for items in evidence_by_proposal_id.values():
+        items.sort(key=lambda item: item.evidence_rank)
+
+    rows_by_id = (review_lookup or {}).get("rows_by_id") if isinstance(review_lookup, dict) else {}
+    if not isinstance(rows_by_id, dict):
+        rows_by_id = {}
+    columns_by_name = (review_lookup or {}).get("columns_by_name") if isinstance(review_lookup, dict) else {}
+    if not isinstance(columns_by_name, dict):
+        columns_by_name = {}
+
+    column_names: list[str] = []
+    for row_info in sorted(rows_by_id.values(), key=lambda row: int(row.get("row_index", 0) or 0)):
+        values = row_info.get("values", {}) if isinstance(row_info, dict) else {}
+        if not isinstance(values, dict):
+            continue
+        for name in values.keys():
+            if name not in column_names:
+                column_names.append(str(name))
+    for name in columns_by_name.keys():
+        if name not in column_names:
+            column_names.append(str(name))
+    for proposal in proposals:
+        if proposal.column_name not in column_names:
+            column_names.append(proposal.column_name)
+
+    proposals_by_cell: dict[tuple[str, str], ProposalRecord] = {}
+    for proposal in proposals:
+        proposals_by_cell[(proposal.row_id, proposal.column_name)] = proposal
+
+    rows: list[dict[str, Any]] = []
+    for row_id, row_info in sorted(rows_by_id.items(), key=lambda item: int(item[1].get("row_index", 0) or 0)):
+        values = row_info.get("values", {}) if isinstance(row_info, dict) else {}
+        if not isinstance(values, dict):
+            values = {}
+        cells: dict[str, Any] = {}
+        for column_name in column_names:
+            original_value = values.get(column_name)
+            proposal = proposals_by_cell.get((row_id, column_name))
+            if proposal is None:
+                cells[column_name] = {
+                    "column_name": column_name,
+                    "original_value": original_value,
+                    "display_value": original_value,
+                    "display_status": "unchanged",
+                    "has_proposal": False,
+                    "proposal": None,
+                }
+                continue
+
+            latest = get_latest_decision(run_dir, proposal.proposal_id)
+            proposal_evidence = evidence_by_proposal_id.get(proposal.proposal_id, [])
+            primary_evidence = proposal_evidence[0] if proposal_evidence else None
+            cells[column_name] = {
+                "column_name": column_name,
+                "original_value": original_value,
+                "display_value": _display_value_for_review_cell(original_value, proposal, latest),
+                "display_status": _display_status_for_review_cell(proposal, latest),
+                "has_proposal": True,
+                "proposal": {
+                    **proposal.model_dump(),
+                    "latest_decision": latest.model_dump() if latest else None,
+                    "warning_categories": [c.value for c in _proposal_warning_categories(proposal)],
+                    "is_figure_derived": _is_figure_derived(proposal),
+                    "is_fallback_evidence": _is_fallback_evidence(proposal),
+                    "evidence_summary": {
+                        "count": len(proposal_evidence),
+                        "primary_evidence_id": primary_evidence.evidence_id if primary_evidence else None,
+                        "primary_source_type": (
+                            primary_evidence.source_type.value
+                            if primary_evidence and hasattr(primary_evidence.source_type, "value")
+                            else str(primary_evidence.source_type)
+                            if primary_evidence
+                            else None
+                        ),
+                        "primary_page_number": primary_evidence.page_number if primary_evidence else None,
+                        "primary_quote_text": primary_evidence.quote_text if primary_evidence else None,
+                    },
+                },
+            }
+        rows.append(
+            {
+                "row_id": row_id,
+                "row_index": row_info.get("row_index") if isinstance(row_info, dict) else None,
+                "paper_label": row_info.get("paper_label") if isinstance(row_info, dict) else row_id,
+                "title": row_info.get("title") if isinstance(row_info, dict) else None,
+                "values": values,
+                "cells": cells,
+            }
+        )
+
+    if not rows:
+        rows_with_proposals: dict[str, dict[str, Any]] = {}
+        for proposal in proposals:
+            rows_with_proposals.setdefault(
+                proposal.row_id,
+                {"row_id": proposal.row_id, "row_index": None, "paper_label": proposal.row_id, "values": {}, "cells": {}},
+            )
+        for row_id, row in rows_with_proposals.items():
+            for column_name in column_names:
+                proposal = proposals_by_cell.get((row_id, column_name))
+                row["cells"][column_name] = {
+                    "column_name": column_name,
+                    "original_value": None,
+                    "display_value": proposal.proposed_value if proposal else None,
+                    "display_status": "pending" if proposal else "unchanged",
+                    "has_proposal": proposal is not None,
+                    "proposal": proposal.model_dump() if proposal else None,
+                }
+            rows.append(row)
+
+    return {
+        "run_id": load_run_json(run_dir).get("run_id", run_dir.name),
+        "columns": [
+            {
+                "name": name,
+                "description": (columns_by_name.get(name) or {}).get("description") if isinstance(columns_by_name.get(name), dict) else None,
+                "field_type": (columns_by_name.get(name) or {}).get("field_type") if isinstance(columns_by_name.get(name), dict) else None,
+                "is_target": name in columns_by_name,
+            }
+            for name in column_names
+        ],
+        "rows": rows,
+        "proposal_count": len(proposals),
+    }
+
+
 # ---------------------------------------------------------------------------
 # T070 — Proposal detail payload
 # ---------------------------------------------------------------------------

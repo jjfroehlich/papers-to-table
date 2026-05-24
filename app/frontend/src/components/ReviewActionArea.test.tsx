@@ -51,10 +51,12 @@ const mockProposal = makeProposal()
 describe('ReviewActionArea', () => {
   const onDecisionRecorded = vi.fn()
   const onNext = vi.fn()
+  const onPrev = vi.fn()
 
   beforeEach(() => {
     onDecisionRecorded.mockClear()
     onNext.mockClear()
+    onPrev.mockClear()
     mockRecordDecision.mockClear()
     mockBulkAccept.mockClear()
     mockRecordDecision.mockResolvedValue({ review_decision_id: 'd1' })
@@ -69,6 +71,7 @@ describe('ReviewActionArea', () => {
         outputDir="./runs"
         onDecisionRecorded={onDecisionRecorded}
         onNext={onNext}
+        onPrev={onPrev}
         visibleProposals={[mockProposal, makeProposal({ proposal_id: 'p2' })]}
         focusEditSignal={0}
       />
@@ -89,6 +92,7 @@ describe('ReviewActionArea', () => {
         outputDir="./runs"
         onDecisionRecorded={onDecisionRecorded}
         onNext={onNext}
+        onPrev={onPrev}
         visibleProposals={[mockProposal]}
         focusEditSignal={0}
       />
@@ -122,6 +126,7 @@ describe('ReviewActionArea', () => {
         outputDir="./runs"
         onDecisionRecorded={onDecisionRecorded}
         onNext={onNext}
+        onPrev={onPrev}
         visibleProposals={[mockProposal, makeProposal({ proposal_id: 'p2' }), decidedProposal]}
         focusEditSignal={0}
       />
@@ -140,11 +145,12 @@ describe('ReviewActionArea', () => {
         outputDir="./runs"
         onDecisionRecorded={onDecisionRecorded}
         onNext={onNext}
+        onPrev={onPrev}
         visibleProposals={[mockProposal]}
         focusEditSignal={0}
       />
     )
-    fireEvent.click(screen.getByText('Accept with Edit'))
+    fireEvent.click(screen.getByText('Edit'))
     expect(screen.getByPlaceholderText(/Enter corrected value/i)).toBeInTheDocument()
   })
 
@@ -156,11 +162,12 @@ describe('ReviewActionArea', () => {
         outputDir="./runs"
         onDecisionRecorded={onDecisionRecorded}
         onNext={onNext}
+        onPrev={onPrev}
         visibleProposals={[mockProposal]}
         focusEditSignal={0}
       />
     )
-    fireEvent.click(screen.getByText('Accept with Edit'))
+    fireEvent.click(screen.getByText('Edit'))
     const input = screen.getByPlaceholderText(/Enter corrected value/i)
     fireEvent.change(input, { target: { value: '150' } })
     fireEvent.click(screen.getByText('Save'))
@@ -182,11 +189,12 @@ describe('ReviewActionArea', () => {
         outputDir="./runs"
         onDecisionRecorded={onDecisionRecorded}
         onNext={onNext}
+        onPrev={onPrev}
         visibleProposals={[mockProposal]}
         focusEditSignal={0}
       />
     )
-    fireEvent.click(screen.getByText('Next →'))
+    fireEvent.click(screen.getByRole('button', { name: /Next proposal/i }))
     expect(onNext).toHaveBeenCalled()
   })
 
@@ -198,6 +206,7 @@ describe('ReviewActionArea', () => {
         outputDir="./runs"
         onDecisionRecorded={onDecisionRecorded}
         onNext={onNext}
+        onPrev={onPrev}
         visibleProposals={[mockProposal]}
         focusEditSignal={0}
       />
@@ -210,6 +219,7 @@ describe('ReviewActionArea', () => {
         outputDir="./runs"
         onDecisionRecorded={onDecisionRecorded}
         onNext={onNext}
+        onPrev={onPrev}
         visibleProposals={[mockProposal]}
         focusEditSignal={1}
       />

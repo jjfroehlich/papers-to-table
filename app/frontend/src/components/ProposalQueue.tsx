@@ -1,22 +1,36 @@
 import { useEffect, useState, useMemo } from 'react'
 import { api } from '../api/client'
 import type { EnrichedProposal, ReviewDecision } from '../types'
+import { ReviewTableView, type ReviewFilter, type SelectedReviewCell } from './ReviewTableView'
+import {
+  ProposalStateIndicator,
+  ProposalSupportIndicator,
+  ReviewStatusIndicator,
+  WarningIndicator,
+} from './ReviewTags'
 
 interface Props {
   runId: string
   outputDir: string
   selectedProposalId: string | null
   onSelect: (proposalId: string) => void
+  mode: LeftPaneMode
+  filter: ReviewFilter
+  onModeChange: (mode: LeftPaneMode) => void
+  onFilterChange: (filter: ReviewFilter) => void
+  onSelectCell?: (cell: SelectedReviewCell) => void
+  refreshVersion?: number
 }
 
-type GroupBy = 'paper' | 'column'
-type Filter = 'all' | 'pending' | 'accepted' | 'no_data' | 'rejected'
+export type LeftPaneMode = 'paper' | 'column' | 'table'
 
-const DECISION_FILTER_MAP: Record<Filter, ReviewDecision | 'undecided' | null> = {
+const DECISION_FILTER_MAP: Record<ReviewFilter, ReviewDecision | 'undecided' | null> = {
   all: null,
   pending: 'undecided',
+  needs_attention: null,
   accepted: 'accepted',
-  no_data: 'confirmed_no_data',
+  accepted_with_edit: 'accepted_with_edit',
+  confirmed_no_data: 'confirmed_no_data',
   rejected: 'rejected',
 }
 
@@ -37,38 +51,6 @@ function stateColor(p: EnrichedProposal): string {
     default:
       return 'border-slate-200'
   }
-}
-
-function SupportBadge({ support }: { support: EnrichedProposal['support'] }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    direct_evidence: { label: 'direct', cls: 'bg-emerald-100 text-emerald-700' },
-    inferred_from_evidence: { label: 'inferred', cls: 'bg-amber-100 text-amber-700' },
-    weak_evidence: { label: 'weak', cls: 'bg-orange-100 text-orange-700' },
-    fallback: { label: 'fallback', cls: 'bg-orange-100 text-orange-700' },
-    blocked: { label: 'blocked', cls: 'bg-rose-100 text-rose-700' },
-    error: { label: 'error', cls: 'bg-slate-100 text-slate-600' },
-  }
-  const info = map[support] ?? { label: support, cls: 'bg-gray-100 text-gray-600' }
-  return (
-    <span className={`rounded-md px-2 py-1 text-[11px] font-semibold ${info.cls}`}>
-      {info.label}
-    </span>
-  )
-}
-
-function DecisionBadge({ decision }: { decision: ReviewDecision }) {
-  const map: Record<ReviewDecision, { label: string; cls: string }> = {
-    accepted: { label: 'accepted', cls: 'bg-emerald-100 text-emerald-700' },
-    accepted_with_edit: { label: 'edited', cls: 'bg-teal-100 text-teal-700' },
-    confirmed_no_data: { label: 'no data', cls: 'bg-violet-100 text-violet-700' },
-    rejected: { label: 'rejected', cls: 'bg-slate-100 text-slate-600' },
-  }
-  const info = map[decision]
-  return (
-    <span className={`rounded-md px-2 py-1 text-[11px] font-semibold ${info.cls}`}>
-      {info.label}
-    </span>
-  )
 }
 
 function isPending(p: EnrichedProposal) {
@@ -103,19 +85,45 @@ function groupStats(items: EnrichedProposal[]) {
   }
 }
 
-export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }: Props) {
+function proposalMatchesFilter(proposal: EnrichedProposal, filter: ReviewFilter) {
+  if (filter === 'all') return true
+  if (filter === 'pending') return !proposal.latest_decision
+  if (filter === 'needs_attention') {
+    return (
+      proposal.warning_flags.length > 0 ||
+      proposal.warning_categories.length > 0 ||
+      proposal.support === 'weak_evidence' ||
+      proposal.is_fallback_evidence
+    )
+  }
+  return proposal.latest_decision?.decision === filter
+}
+
+export function ProposalQueue({
+  runId,
+  outputDir,
+  selectedProposalId,
+  onSelect,
+  mode,
+  filter,
+  onModeChange,
+  onFilterChange,
+  onSelectCell,
+  refreshVersion = 0,
+}: Props) {
   const [proposals, setProposals] = useState<EnrichedProposal[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [groupBy, setGroupBy] = useState<GroupBy>('paper')
-  const [filter, setFilter] = useState<Filter>('pending')
-  const [search, setSearch] = useState('')
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     let cancelled = false
     const decisionParam = DECISION_FILTER_MAP[filter]
     async function load() {
+      if (mode === 'table') {
+        setLoading(false)
+        return
+      }
       setProposals([])
       setLoading(true)
       setError(null)
@@ -124,7 +132,7 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
         const resp = await api.listProposals(runId, {
           output_dir: outputDir,
           reviewable_only: true,
-          ...(decisionParam ? { decision: decisionParam } : {}),
+          ...(decisionParam && filter !== 'needs_attention' ? { decision: decisionParam } : {}),
         })
         if (!cancelled) setProposals(resp.proposals)
       } catch (err) {
@@ -135,28 +143,16 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
     }
     load()
     return () => { cancelled = true }
-  }, [runId, outputDir, filter])
+  }, [runId, outputDir, filter, mode, refreshVersion])
 
   const filtered = useMemo(() => {
-    let list = proposals
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      list = list.filter(
-        (p) =>
-          (p.paper_title ?? '').toLowerCase().includes(q) ||
-          (p.paper_authors ?? '').toLowerCase().includes(q) ||
-          p.column_name.toLowerCase().includes(q) ||
-          p.row_id.toLowerCase().includes(q) ||
-          (p.proposed_value ?? '').toLowerCase().includes(q)
-      )
-    }
-    return list
-  }, [proposals, search])
+    return proposals.filter((proposal) => proposalMatchesFilter(proposal, filter))
+  }, [proposals, filter])
 
   const groups = useMemo(() => {
     const map = new Map<string, EnrichedProposal[]>()
     for (const p of filtered) {
-      const key = groupBy === 'paper' ? p.pdf_id : p.column_name
+      const key = mode === 'paper' ? p.pdf_id : p.column_name
       if (!map.has(key)) map.set(key, [])
       map.get(key)!.push(p)
     }
@@ -166,7 +162,7 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
       const bPending = b.filter(isPending).length
       return bPending - aPending
     })
-  }, [filtered, groupBy])
+  }, [filtered, mode])
 
   function toggleGroup(key: string) {
     setCollapsedGroups((prev) => {
@@ -198,17 +194,17 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
       {/* Controls */}
       <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-4 space-y-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Queue</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Review list</p>
           <p className="mt-1 text-xs leading-5 text-slate-500">
-            Pick the next proposal, filter by review state, and keep pending items moving.
+            Pick cells by paper, by column, or from the table.
           </p>
         </div>
         {/* Group toggle */}
         <div className="flex gap-1">
           <button
-            onClick={() => setGroupBy('paper')}
+            onClick={() => onModeChange('paper')}
             className={`flex-1 rounded-xl px-3 py-2 text-xs font-medium ${
-              groupBy === 'paper'
+              mode === 'paper'
                 ? 'bg-slate-900 text-white shadow-sm'
                 : 'bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-100'
             }`}
@@ -216,36 +212,56 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
             By Paper
           </button>
           <button
-            onClick={() => setGroupBy('column')}
+            onClick={() => onModeChange('column')}
             className={`flex-1 rounded-xl px-3 py-2 text-xs font-medium ${
-              groupBy === 'column'
+              mode === 'column'
                 ? 'bg-slate-900 text-white shadow-sm'
                 : 'bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-100'
             }`}
           >
             By Column
           </button>
+          <button
+            onClick={() => onModeChange('table')}
+            className={`flex-1 rounded-xl px-3 py-2 text-xs font-medium ${
+              mode === 'table'
+                ? 'bg-slate-900 text-white shadow-sm'
+                : 'bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            As Table
+          </button>
         </div>
+      </div>
+
+      {mode === 'table' ? (
+        <ReviewTableView
+          runId={runId}
+          outputDir={outputDir}
+          selectedProposalId={selectedProposalId}
+          filter={filter}
+          onFilterChange={onFilterChange}
+          onSelect={onSelect}
+          onSelectCell={onSelectCell}
+          refreshVersion={refreshVersion}
+        />
+      ) : (
+        <>
+          <div className="shrink-0 space-y-3 border-b border-slate-200 bg-white px-4 py-3">
         {/* Filter */}
         <select
           value={filter}
-          onChange={(e) => setFilter(e.target.value as Filter)}
+          onChange={(e) => onFilterChange(e.target.value as ReviewFilter)}
           className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700"
         >
             <option value="pending">Pending</option>
-            <option value="all">All reviewable</option>
-            <option value="accepted">Accepted</option>
-            <option value="no_data">No Data</option>
-            <option value="rejected">Rejected</option>
+            <option value="needs_attention">Attention</option>
+            <option value="all">All</option>
+            <option value="accepted">Reviewed - Accepted</option>
+            <option value="accepted_with_edit">Reviewed - Edited</option>
+            <option value="confirmed_no_data">Reviewed - No data</option>
+            <option value="rejected">Reviewed - Rejected</option>
         </select>
-        {/* Search */}
-        <input
-          type="search"
-          placeholder="Search proposals…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700"
-        />
       </div>
 
       {/* Group list */}
@@ -256,17 +272,17 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
         {groups.map(([key, items]) => {
           const stats = groupStats(items)
           const isCollapsed = collapsedGroups.has(key)
-          const groupLabel = groupBy === 'paper' ? buildPaperGroupLabel(items[0]) : key
+          const groupLabel = mode === 'paper' ? buildPaperGroupLabel(items[0]) : key
           return (
-            <div key={key} className="mb-3 rounded-[24px] border border-slate-200 bg-slate-50/70 p-2 last:mb-0">
+            <div key={key} className="mb-3 overflow-hidden rounded-[18px] border border-slate-300 bg-white last:mb-0">
               {/* Group header */}
               <button
-                className="w-full rounded-[18px] px-3 py-2.5 text-left hover:bg-white/80"
+                className="w-full border-b border-slate-200 bg-slate-100 px-3 py-3 text-left hover:bg-slate-200/70"
                 onClick={() => toggleGroup(key)}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <span className="block truncate text-xs font-semibold text-slate-800" title={groupLabel}>
+                    <span className="block truncate text-[13px] font-semibold text-slate-900" title={groupLabel}>
                       {groupLabel}
                     </span>
                     <p className="mt-1 text-[11px] text-slate-500">
@@ -281,12 +297,13 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
 
               {/* Cards */}
               {!isCollapsed &&
-                <div className="mt-2 space-y-2">
+                <div className="space-y-1 bg-slate-50 px-2 py-2">
                   {items.map((p) => (
                     <button
                       key={p.proposal_id}
                       onClick={() => onSelect(p.proposal_id)}
-                      className={`w-full rounded-[18px] border px-3 py-3 text-left transition-colors ${stateColor(p)} ${
+                      title={p.proposed_value || 'No value proposed'}
+                      className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors ${stateColor(p)} ${
                         selectedProposalId === p.proposal_id
                           ? 'bg-sky-50 shadow-sm ring-1 ring-sky-200'
                           : 'bg-white hover:bg-slate-50'
@@ -294,22 +311,27 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
                     >
                       <div className="flex items-start gap-3">
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-xs font-semibold text-slate-900">{p.column_name}</div>
+                          {mode !== 'column' && (
+                            <div className="truncate text-xs font-semibold text-slate-900">
+                              {p.column_name}
+                            </div>
+                          )}
                           <div className="mt-1 truncate text-sm text-slate-700">
                             {p.proposed_value || 'No value proposed'}
                           </div>
-                          {groupBy === 'column' && (
-                            <div className="mt-1 truncate text-[11px] text-slate-400">{p.paper_title || p.row_id}</div>
+                          {mode === 'column' && (
+                            <div className="mt-1 truncate text-[11px] text-slate-400">
+                              {buildPaperGroupLabel(p)}
+                            </div>
                           )}
                         </div>
-                        <div className="flex shrink-0 flex-col items-end gap-1.5">
-                          <SupportBadge support={p.is_fallback_evidence ? ('fallback' as EnrichedProposal['support']) : p.support} />
-                          {p.latest_decision && <DecisionBadge decision={p.latest_decision.decision} />}
-                          {p.warning_flags.length > 0 && (
-                            <span className="text-[11px] font-semibold text-amber-600" title="Has warnings">
-                              Warning
-                            </span>
-                          )}
+                        <div className="flex shrink-0 flex-col items-end gap-0">
+                          <div className="flex items-center gap-0.5">
+                            <ReviewStatusIndicator decision={p.latest_decision?.decision ?? null} size="xs" />
+                            <ProposalStateIndicator state={p.state} size="xs" />
+                            <ProposalSupportIndicator support={p.support} isFallback={p.is_fallback_evidence} size="xs" />
+                          </div>
+                          {p.warning_flags.length > 0 && <WarningIndicator size="xs" />}
                         </div>
                       </div>
                     </button>
@@ -324,6 +346,8 @@ export function ProposalQueue({ runId, outputDir, selectedProposalId, onSelect }
       <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-3 text-xs text-slate-500">
         {filtered.length} {filter === 'pending' ? 'pending' : 'review'} proposal{filtered.length !== 1 ? 's' : ''}
       </div>
+        </>
+      )}
     </div>
   )
 }

@@ -89,6 +89,8 @@ class ResultsWriter:
             "unscored_reason": result.unscored_reason,
             "unscored_reason_detail": result.unscored_reason_detail,
             "runtime_seconds": result.runtime_seconds,
+            "runtime.external_runtime_seconds": result.runtime_metadata.get("external_runtime_seconds"),
+            "runtime.external_runtime_scope": result.runtime_metadata.get("external_runtime_scope"),
             "runtime.main_app_duration_seconds": result.runtime_metadata.get("main_app_duration_seconds"),
             "runtime.eval_duration_seconds": result.runtime_metadata.get("eval_duration_seconds"),
             "runtime.total_duration_seconds": result.runtime_metadata.get("total_duration_seconds"),

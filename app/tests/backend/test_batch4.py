@@ -1069,6 +1069,148 @@ class TestProposalListAPI:
         assert data["proposals"][0]["proposal_id"] == reviewable.proposal_id
 
 
+class TestReviewTableAPI:
+    def test_review_table_returns_original_rows_columns_and_unchanged_cells(self, client, tmp_path):
+        run_dir, run_id = _make_run(tmp_path)
+        row_id = generate_row_id(0, "Title A")
+        write_json(
+            run_dir / "review" / "review_lookup.json",
+            {
+                "run_id": run_id,
+                "rows_by_id": {
+                    row_id: {
+                        "row_id": row_id,
+                        "row_index": 0,
+                        "paper_label": "Smith 2024",
+                        "title": "Title A",
+                        "values": {"Title": "Title A", "Dose": "", "Outcome": "unchanged"},
+                    }
+                },
+                "columns_by_name": {
+                    "Dose": {"name": "Dose", "description": "Dose used", "field_type": "text"}
+                },
+            },
+        )
+
+        resp = client.get(f"/api/runs/{run_id}/review-table?output_dir={tmp_path}")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert [column["name"] for column in data["columns"]] == ["Title", "Dose", "Outcome"]
+        row = data["rows"][0]
+        assert row["row_id"] == row_id
+        assert row["cells"]["Outcome"]["display_status"] == "unchanged"
+        assert row["cells"]["Outcome"]["display_value"] == "unchanged"
+        assert row["cells"]["Outcome"]["has_proposal"] is False
+
+    def test_review_table_includes_proposal_decision_and_evidence_summary(self, client, tmp_path):
+        run_dir, run_id = _make_run(tmp_path)
+        pdf_id = generate_pdf_id("paper1.pdf")
+        row_id = generate_row_id(0, "Title A")
+        proposal = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose", proposed_value="25 mg")
+        _make_evidence(run_dir, proposal)
+        write_json(
+            run_dir / "review" / "review_lookup.json",
+            {
+                "run_id": run_id,
+                "rows_by_id": {
+                    row_id: {
+                        "row_id": row_id,
+                        "row_index": 0,
+                        "paper_label": "Smith 2024",
+                        "values": {"Title": "Title A", "Dose": ""},
+                    }
+                },
+                "columns_by_name": {"Dose": {"name": "Dose"}},
+            },
+        )
+
+        resp = client.get(f"/api/runs/{run_id}/review-table?output_dir={tmp_path}")
+
+        assert resp.status_code == 200
+        cell = resp.json()["rows"][0]["cells"]["Dose"]
+        assert cell["display_status"] == "pending"
+        assert cell["display_value"] == "25 mg"
+        assert cell["proposal"]["proposal_id"] == proposal.proposal_id
+        assert cell["proposal"]["latest_decision"] is None
+        assert cell["proposal"]["evidence_summary"]["count"] == 1
+        assert cell["proposal"]["evidence_summary"]["primary_quote_text"] == "Some quote."
+
+    def test_review_table_accepted_with_edit_displays_edited_value(self, client, tmp_path):
+        run_dir, run_id = _make_run(tmp_path)
+        pdf_id = generate_pdf_id("paper1.pdf")
+        row_id = generate_row_id(0, "Title A")
+        proposal = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose", proposed_value="25 mg")
+        record_review_decision(
+            run_dir,
+            proposal.proposal_id,
+            proposal.cell_id,
+            run_id,
+            decision=ReviewDecision.accepted_with_edit,
+            edited_value="30 mg",
+        )
+        write_json(
+            run_dir / "review" / "review_lookup.json",
+            {
+                "run_id": run_id,
+                "rows_by_id": {
+                    row_id: {
+                        "row_id": row_id,
+                        "row_index": 0,
+                        "paper_label": "Smith 2024",
+                        "values": {"Title": "Title A", "Dose": ""},
+                    }
+                },
+                "columns_by_name": {"Dose": {"name": "Dose"}},
+            },
+        )
+
+        resp = client.get(f"/api/runs/{run_id}/review-table?output_dir={tmp_path}")
+
+        assert resp.status_code == 200
+        cell = resp.json()["rows"][0]["cells"]["Dose"]
+        assert cell["display_status"] == "accepted_with_edit"
+        assert cell["display_value"] == "30 mg"
+        assert cell["proposal"]["latest_decision"]["decision"] == "accepted_with_edit"
+
+    def test_review_table_rejected_cell_keeps_original_value_and_export_excludes_it(self, client, tmp_path):
+        run_dir, run_id = _make_run(tmp_path)
+        pdf_id = generate_pdf_id("paper1.pdf")
+        row_id = generate_row_id(0, "Title A")
+        proposal = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose", proposed_value="25 mg")
+        record_review_decision(
+            run_dir,
+            proposal.proposal_id,
+            proposal.cell_id,
+            run_id,
+            decision=ReviewDecision.rejected,
+        )
+        write_json(
+            run_dir / "review" / "review_lookup.json",
+            {
+                "run_id": run_id,
+                "rows_by_id": {
+                    row_id: {
+                        "row_id": row_id,
+                        "row_index": 0,
+                        "paper_label": "Smith 2024",
+                        "values": {"Title": "Title A", "Dose": "original"},
+                    }
+                },
+                "columns_by_name": {"Dose": {"name": "Dose"}},
+            },
+        )
+
+        table_resp = client.get(f"/api/runs/{run_id}/review-table?output_dir={tmp_path}")
+        candidates_resp = client.get(f"/api/runs/{run_id}/export-candidates?output_dir={tmp_path}")
+
+        assert table_resp.status_code == 200
+        cell = table_resp.json()["rows"][0]["cells"]["Dose"]
+        assert cell["display_status"] == "rejected"
+        assert cell["display_value"] == "original"
+        assert candidates_resp.json()["count"] == 0
+
+
 class TestProposalDetailAPI:
     def test_get_proposal_detail_endpoint(self, client, run_with_proposals):
         output_dir, run_id = run_with_proposals

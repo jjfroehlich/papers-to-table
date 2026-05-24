@@ -584,12 +584,12 @@ export function EvidenceViewer({
       : null
     return (
       <div className="flex h-full min-h-0 flex-col bg-white">
-        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-3 py-2.5" data-testid="evidence-toolbar">
-          <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">{evidenceQualityLabel}</span>
-          <span className="rounded-md bg-purple-100 px-2 py-1 text-xs text-purple-600">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2" data-testid="evidence-toolbar">
+          <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600">{evidenceQualityLabel}</span>
+          <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600">
             {evidence.figure_ref}
           </span>
-          <span className="rounded-md bg-amber-100 px-2 py-1 text-xs text-amber-700">
+          <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600">
             Figure-derived
           </span>
           <div className="ml-auto flex items-center gap-2">
@@ -597,7 +597,7 @@ export function EvidenceViewer({
               <button
                 type="button"
                 onClick={() => setShowFigureFullPage((value) => !value)}
-                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100"
               >
                 {showFigureFullPage ? 'Hide full page' : 'Show full page'}
               </button>
@@ -610,9 +610,9 @@ export function EvidenceViewer({
                 onSelectEvidence(evidenceList[previousIndex].evidence_id)
               }}
               disabled={!canCycleEvidence}
-                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-40"
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40"
              >
-               Previous evidence
+               Prev
              </button>
             <button
               type="button"
@@ -622,9 +622,9 @@ export function EvidenceViewer({
                 onSelectEvidence(evidenceList[nextIndex].evidence_id)
               }}
               disabled={!canCycleEvidence}
-                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-40"
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40"
              >
-               Next evidence
+               Next
              </button>
           </div>
         </div>
@@ -676,15 +676,15 @@ export function EvidenceViewer({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-3 py-2.5" data-testid="evidence-toolbar">
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2" data-testid="evidence-toolbar">
         <button
           onClick={() => goToPage(currentPage - 1)}
           disabled={currentPage <= 1}
-          className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold hover:bg-slate-100 disabled:opacity-40"
+          className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40"
         >
           ‹
         </button>
-        <div className="flex items-center gap-1 text-xs">
+        <div className="flex items-center gap-1 text-xs text-slate-600">
           <input
             type="number"
             min={1}
@@ -693,18 +693,18 @@ export function EvidenceViewer({
             onChange={(event) => setPageInput(event.target.value)}
             onBlur={handlePageInputBlur}
             onKeyDown={(event) => event.key === 'Enter' && handlePageInputBlur()}
-            className="w-12 rounded-lg border border-slate-200 px-1.5 py-1 text-center text-xs"
+            className="w-12 rounded-lg border border-slate-200 bg-white px-1.5 py-1 text-center text-xs text-slate-600"
           />
             <span className="text-slate-400">/ {totalPages || '—'}</span>
         </div>
         <button
           onClick={() => goToPage(currentPage + 1)}
           disabled={currentPage >= totalPages}
-          className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold hover:bg-slate-100 disabled:opacity-40"
+          className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40"
         >
           ›
         </button>
-        <div className="w-px h-4 bg-slate-200" />
+        <div className="h-4 w-px bg-slate-200" />
         <button
           type="button"
           onClick={() => {
@@ -713,9 +713,9 @@ export function EvidenceViewer({
             onSelectEvidence(evidenceList[previousIndex].evidence_id)
           }}
           disabled={!canCycleEvidence}
-          className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold hover:bg-slate-100 disabled:opacity-40"
+          className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40"
         >
-          Previous evidence
+          Prev
         </button>
          <span className="text-xs text-slate-500">
            {selectedEvidenceId && activeEvidenceIndex >= 0 ? `${activeEvidenceIndex + 1} / ${evidenceList.length}` : 'No evidence'}
@@ -728,15 +728,15 @@ export function EvidenceViewer({
             onSelectEvidence(evidenceList[nextIndex].evidence_id)
           }}
           disabled={!canCycleEvidence}
-          className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold hover:bg-slate-100 disabled:opacity-40"
+          className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40"
         >
-          Next evidence
+          Next
         </button>
-        <div className="w-px h-4 bg-slate-200" />
+        <div className="h-4 w-px bg-slate-200" />
         <button
           onClick={() => setZoom((value) => Math.max(0.5, +(value - 0.25).toFixed(2)))}
           disabled={zoom <= 0.5}
-          className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold hover:bg-slate-100 disabled:opacity-40"
+          className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40"
         >
           −
         </button>
@@ -744,7 +744,7 @@ export function EvidenceViewer({
         <button
           onClick={() => setZoom((value) => Math.min(3.0, +(value + 0.25).toFixed(2)))}
           disabled={zoom >= 3.0}
-          className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold hover:bg-slate-100 disabled:opacity-40"
+          className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40"
         >
           +
         </button>
@@ -752,14 +752,10 @@ export function EvidenceViewer({
           type="button"
           onClick={handleOpenInLocalViewer}
           disabled={!pdfId || openingLocal}
-          className="ml-auto rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-40"
+          className="ml-auto rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40"
         >
-          {openingLocal ? 'Opening…' : 'Open in Local PDF Viewer'}
+          {openingLocal ? 'Opening…' : 'Open PDF'}
         </button>
-      </div>
-      <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-        <span className="font-medium text-slate-700">{evidenceQualityLabel}.</span>{' '}
-        This pane is optimized for evidence highlights and fast verification. Use the local PDF viewer for hand-pan, text selection, or full-document search.
       </div>
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto p-3" data-testid="evidence-scroll-region">
         {openLocalError && (

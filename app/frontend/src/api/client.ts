@@ -116,6 +116,11 @@ export const api = {
     )
   },
 
+  getReviewTable: (runId: string, outputDir?: string) => {
+    const q = outputDir ? `?output_dir=${encodeURIComponent(outputDir)}` : ''
+    return request<import('../types').ReviewTableData>(`/api/runs/${runId}/review-table${q}`)
+  },
+
   recordDecision: (
     runId: string,
     proposalId: string,

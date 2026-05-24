@@ -8,6 +8,7 @@ interface Props {
   outputDir: string
   onDecisionRecorded: (options?: { autoAdvance?: boolean }) => void
   onNext: () => void
+  onPrev: () => void
   visibleProposals: EnrichedProposal[]
   focusEditSignal?: number
 }
@@ -18,6 +19,7 @@ export function ReviewActionArea({
   outputDir,
   onDecisionRecorded,
   onNext,
+  onPrev,
   visibleProposals,
   focusEditSignal = 0,
 }: Props) {
@@ -85,7 +87,7 @@ export function ReviewActionArea({
   const currentDecision = proposal.latest_decision?.decision
 
   return (
-    <div className="shrink-0 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur" data-testid="review-action-area">
+    <div className="shrink-0 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur" data-testid="review-action-area">
       {/* Current decision indicator */}
       {isDecided && (
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
@@ -136,45 +138,55 @@ export function ReviewActionArea({
 
       {/* Main action buttons */}
       {!showEditInput && (
-        <div className="grid gap-2 md:grid-cols-[repeat(4,minmax(0,1fr))_auto]">
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => decide('accepted')}
+            onClick={onPrev}
             disabled={loading}
-            title="Accept (A)"
-            className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+            title="Previous ([)"
+            aria-label="Previous proposal"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
           >
-            Accept
-          </button>
-          <button
-            onClick={() => setShowEditInput(true)}
-            disabled={loading}
-            title="Accept with edit"
-            className="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-50"
-          >
-            Accept with Edit
-          </button>
-          <button
-            onClick={() => decide('confirmed_no_data')}
-            disabled={loading}
-            className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50"
-          >
-            No Data
+            ←
           </button>
           <button
             onClick={() => decide('rejected')}
             disabled={loading}
             title="Reject (R)"
-            className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
           >
             Reject
+          </button>
+          <button
+            onClick={() => setShowEditInput(true)}
+            disabled={loading}
+            title="Edit proposed value (E)"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => decide('confirmed_no_data')}
+            disabled={loading}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          >
+            No Data
+          </button>
+          <button
+            onClick={() => decide('accepted')}
+            disabled={loading}
+            title="Accept (A)"
+            className="rounded-lg border border-emerald-600 bg-emerald-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
+          >
+            Accept
           </button>
           <button
             onClick={onNext}
             disabled={loading}
             title="Next (])"
-            className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-200 disabled:opacity-50"
+            aria-label="Next proposal"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
           >
-            Next →
+            →
           </button>
         </div>
       )}

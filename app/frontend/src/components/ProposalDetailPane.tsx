@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { EvidenceItem, ProposalDetail } from '../types'
+import type { SelectedReviewCell } from './ReviewTableView'
+import {
+  EvidenceSourceTag,
+  FigureTag,
+  ProposalStateTag,
+  ProposalSupportTag,
+  ReviewStatusTag,
+  WarningTag,
+} from './ReviewTags'
 
 interface Props {
   proposalId: string | null
@@ -8,20 +17,7 @@ interface Props {
   outputDir: string
   selectedEvidenceId: string | null
   onEvidenceSelect: (evidenceId: string) => void
-}
-
-function SourceTypeBadge({ sourceType }: { sourceType: string }) {
-  const map: Record<string, string> = {
-    direct_quote: 'bg-emerald-100 text-emerald-800',
-    inferred_reasoning: 'bg-amber-100 text-amber-800',
-    calculation: 'bg-sky-100 text-sky-800',
-    approximate_highlight: 'bg-orange-100 text-orange-700',
-    quote_plus_page: 'bg-slate-100 text-slate-700',
-    caption_grounded_figure_evidence: 'bg-violet-100 text-violet-800',
-    visual_interpretation_figure_evidence: 'bg-fuchsia-100 text-fuchsia-800',
-  }
-  const label = sourceType.replace(/_/g, ' ')
-  return <span className={`rounded-md px-2 py-1 text-[11px] font-semibold ${map[sourceType] ?? 'bg-slate-100 text-slate-700'}`}>{label}</span>
+  selectedCell?: SelectedReviewCell | null
 }
 
 function EvidenceCard({ item, isSelected, onClick }: { item: EvidenceItem; isSelected: boolean; onClick: () => void }) {
@@ -29,11 +25,11 @@ function EvidenceCard({ item, isSelected, onClick }: { item: EvidenceItem; isSel
     <button
       onClick={onClick}
       className={`w-full rounded-[18px] border px-3 py-3 text-left transition ${
-        isSelected ? 'border-sky-300 bg-sky-50 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+        isSelected ? 'border-amber-300 bg-amber-50 shadow-sm ring-1 ring-amber-100' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
       }`}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <SourceTypeBadge sourceType={item.source_type} />
+        <EvidenceSourceTag sourceType={item.source_type} />
         {item.page_number != null && <span className="text-[11px] font-medium text-slate-500">p.{item.page_number}</span>}
         {item.anchor_confidence != null && (
           <span className="ml-auto text-[11px] font-semibold text-slate-400">{Math.round(item.anchor_confidence * 100)}% confidence</span>
@@ -45,11 +41,48 @@ function EvidenceCard({ item, isSelected, onClick }: { item: EvidenceItem; isSel
   )
 }
 
-export function ProposalDetailPane({ proposalId, runId, outputDir, selectedEvidenceId, onEvidenceSelect }: Props) {
+function formatCellValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return 'Blank'
+  return String(value)
+}
+
+function CellDetail({ cell }: { cell: SelectedReviewCell }) {
+  return (
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5" data-testid="cell-detail-scroll">
+        <div className="space-y-4">
+          <section className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Cell value</p>
+            <p className="mt-3 whitespace-pre-wrap break-words text-2xl font-semibold leading-snug text-slate-950">
+              {formatCellValue(cell.displayValue)}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
+              <span className="rounded-md bg-slate-100 px-2 py-1 font-medium">{cell.displayStatus.replace(/_/g, ' ')}</span>
+              {cell.rowIndex != null && <span className="rounded-md bg-slate-100 px-2 py-1 font-medium">row {cell.rowIndex + 1}</span>}
+            </div>
+          </section>
+
+          <section className="rounded-[20px] border border-slate-200 bg-slate-50 p-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Field</p>
+            <p className="mt-2 text-sm text-slate-700">{cell.columnName}</p>
+            {cell.columnDescription && <p className="mt-2 text-sm leading-6 text-slate-600">{cell.columnDescription}</p>}
+          </section>
+
+          <section className="rounded-[20px] border border-slate-200 bg-slate-50 p-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Paper</p>
+            <p className="mt-2 text-sm text-slate-700">{cell.title || cell.paperLabel || cell.rowId}</p>
+            <p className="mt-2 text-xs text-slate-500">{cell.paperLabel}</p>
+          </section>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function ProposalDetailPane({ proposalId, runId, outputDir, selectedEvidenceId, onEvidenceSelect, selectedCell }: Props) {
   const [detail, setDetail] = useState<ProposalDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [rationaleOpen, setRationaleOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -60,7 +93,6 @@ export function ProposalDetailPane({ proposalId, runId, outputDir, selectedEvide
       }
       setLoading(true)
       setError(null)
-      setRationaleOpen(false)
       try {
         const nextDetail = await api.getProposalDetail(runId, proposalId, outputDir)
         if (!cancelled) setDetail(nextDetail)
@@ -75,6 +107,10 @@ export function ProposalDetailPane({ proposalId, runId, outputDir, selectedEvide
       cancelled = true
     }
   }, [outputDir, proposalId, runId])
+
+  if (!proposalId && selectedCell) {
+    return <CellDetail cell={selectedCell} />
+  }
 
   if (!proposalId) {
     return <div className="flex h-full items-center justify-center text-sm text-slate-400">Select a proposal from the queue.</div>
@@ -102,67 +138,24 @@ export function ProposalDetailPane({ proposalId, runId, outputDir, selectedEvide
   const rowYear =
     (rowContext['Publication Year'] as string | number | undefined) ?? (rowContext['year'] as string | number | undefined)
 
-  const badgeClass = {
-    found: 'bg-emerald-100 text-emerald-800',
-    inferred: 'bg-amber-100 text-amber-800',
-    unclear: 'bg-orange-100 text-orange-700',
-    blocked: 'bg-rose-100 text-rose-700',
-    error: 'bg-slate-100 text-slate-700',
-    skipped: 'bg-slate-100 text-slate-500',
-  } as const
-
-  const supportClass = {
-    direct_evidence: 'bg-emerald-100 text-emerald-800',
-    inferred_from_evidence: 'bg-amber-100 text-amber-800',
-    weak_evidence: 'bg-orange-100 text-orange-700',
-    blocked: 'bg-rose-100 text-rose-700',
-    error: 'bg-slate-100 text-slate-700',
-  } as const
-
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[linear-gradient(180deg,#ffffff,#f8fafc)]">
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5" data-testid="proposal-detail-scroll">
         <div className="space-y-4">
-          <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Paper context</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{rowTitle}</h2>
-            {(rowAuthors || rowYear) && (
-              <p className="mt-2 text-sm text-slate-500">
-                {rowAuthors}
-                {rowAuthors && rowYear ? ' · ' : ''}
-                {rowYear}
-              </p>
-            )}
-
-            <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Field under review</p>
-              <p className="mt-2 text-sm font-semibold text-slate-900">
-                {typeof columnDefinition?.name === 'string' ? columnDefinition.name : proposal.column_name}
-              </p>
-              {typeof columnDefinition?.description === 'string' && (
-                <p className="mt-2 text-sm leading-6 text-slate-600">{columnDefinition.description}</p>
-              )}
-            </div>
-
-            <div className="mt-4 rounded-[24px] border border-sky-100 bg-[linear-gradient(135deg,#eff6ff,#ffffff)] px-4 py-5 shadow-sm">
+          <section className="rounded-[20px] border border-sky-100 bg-[linear-gradient(135deg,#eff6ff,#ffffff)] p-5 shadow-sm">
               <div className="flex flex-wrap items-center gap-2">
-                <span className={`rounded-md px-2 py-1 text-[11px] font-semibold ${badgeClass[proposal.state] ?? 'bg-slate-100 text-slate-700'}`}>
-                  {proposal.state}
-                </span>
-                <span className={`rounded-md px-2 py-1 text-[11px] font-semibold ${supportClass[proposal.support] ?? 'bg-slate-100 text-slate-700'}`}>
-                  {proposal.is_fallback_evidence ? 'fallback' : proposal.support.replace(/_/g, ' ')}
-                </span>
-                {proposal.is_figure_derived && (
-                  <span className="rounded-md bg-violet-100 px-2 py-1 text-[11px] font-semibold text-violet-700">figure evidence</span>
-                )}
+                <ReviewStatusTag decision={proposal.latest_decision?.decision ?? null} />
+                <ProposalStateTag state={proposal.state} />
+                <ProposalSupportTag support={proposal.support} isFallback={proposal.is_fallback_evidence} />
+                {proposal.warning_flags.length > 0 && <WarningTag />}
+                {proposal.is_figure_derived && <FigureTag />}
               </div>
-              <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Proposed value</p>
-              <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">{proposal.proposed_value ?? 'No value proposed'}</p>
-              {detail.support_label_display && <p className="mt-3 text-sm text-slate-600">{detail.support_label_display}</p>}
-            </div>
+              <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Proposed value</p>
+              <p className="mt-2 text-2xl font-semibold leading-tight text-slate-950">{proposal.proposed_value ?? 'No value proposed'}</p>
+          </section>
 
-            {proposal.is_verify_mode && (proposal.existing_value != null || rowContext[proposal.column_name] !== undefined) && (
-              <div className="mt-4 rounded-[24px] border border-violet-200 bg-violet-50 px-4 py-4 text-sm text-violet-900">
+          {proposal.is_verify_mode && (proposal.existing_value != null || rowContext[proposal.column_name] !== undefined) && (
+              <section className="rounded-[20px] border border-violet-200 bg-violet-50 p-5 text-sm text-violet-900">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-violet-600">Verify mode</p>
                 <div className="mt-2 grid gap-2 md:grid-cols-2">
                   <div>
@@ -174,22 +167,27 @@ export function ProposalDetailPane({ proposalId, runId, outputDir, selectedEvide
                     <p className="mt-1 font-mono text-sm">{proposal.proposed_value ?? '—'}</p>
                   </div>
                 </div>
-              </div>
+              </section>
             )}
 
             {proposal.calculation && (
-              <div className="mt-4 rounded-[24px] border border-sky-200 bg-sky-50 px-4 py-4">
+              <section className="rounded-[20px] border border-sky-200 bg-sky-50 p-5">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-700">Calculation</p>
                 <p className="mt-2 text-sm font-mono text-sky-900">{proposal.calculation}</p>
-              </div>
+              </section>
             )}
-          </section>
 
-          <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+            {proposal.rationale && (
+              <section className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Rationale</p>
+                <div className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">{proposal.rationale}</div>
+              </section>
+            )}
+
+          <section className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Evidence stack</p>
-                <p className="mt-2 text-sm text-slate-500">Select the strongest supporting passage to sync the PDF viewer.</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Evidence</p>
               </div>
               <span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
                 {evidence.length} item{evidence.length !== 1 ? 's' : ''}
@@ -202,15 +200,27 @@ export function ProposalDetailPane({ proposalId, runId, outputDir, selectedEvide
             </div>
           </section>
 
-          {proposal.rationale && (
-            <div className="rounded-[24px] border border-slate-200 bg-white shadow-sm">
-              <button onClick={() => setRationaleOpen((open) => !open)} className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                <span>Reviewer-visible rationale</span>
-                <span>{rationaleOpen ? '▲' : '▼'}</span>
-              </button>
-              {rationaleOpen && <div className="border-t border-slate-100 px-4 py-4 whitespace-pre-wrap text-sm leading-6 text-slate-600">{proposal.rationale}</div>}
-            </div>
-          )}
+          <section className="rounded-[20px] border border-slate-200 bg-slate-50 p-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Field</p>
+            <p className="mt-2 text-sm text-slate-700">
+              {typeof columnDefinition?.name === 'string' ? columnDefinition.name : proposal.column_name}
+            </p>
+            {typeof columnDefinition?.description === 'string' && (
+              <p className="mt-2 text-sm leading-6 text-slate-600">{columnDefinition.description}</p>
+            )}
+          </section>
+
+          <section className="rounded-[20px] border border-slate-200 bg-slate-50 p-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Paper</p>
+            <h2 className="mt-2 text-sm text-slate-700">{rowTitle}</h2>
+            {(rowAuthors || rowYear) && (
+              <p className="mt-2 text-sm text-slate-500">
+                {rowAuthors}
+                {rowAuthors && rowYear ? ' · ' : ''}
+                {rowYear}
+              </p>
+            )}
+          </section>
         </div>
       </div>
     </div>

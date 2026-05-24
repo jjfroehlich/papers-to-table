@@ -1,13 +1,15 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ReviewWorkspace } from './ReviewWorkspace'
-import type { EnrichedProposal, ProposalDetail, RunData } from '../types'
+import type { EnrichedProposal, ProposalDetail, ReviewTableData, RunData } from '../types'
 
 const mockListProposals = vi.fn()
 const mockGetReviewProgress = vi.fn()
 const mockGetProposalDetail = vi.fn()
 const mockRecordDecision = vi.fn()
 const mockTriggerExport = vi.fn()
+const mockGetReviewTable = vi.fn()
+const mockBulkAccept = vi.fn()
 
 vi.mock('../api/client', () => ({
   api: {
@@ -21,6 +23,7 @@ vi.mock('../api/client', () => ({
       ambiguous: 0,
       duplicate_row_conflict: 0,
     }),
+    getReviewTable: (...args: Parameters<typeof mockGetReviewTable>) => mockGetReviewTable(...args),
     getProposalDetail: (...args: Parameters<typeof mockGetProposalDetail>) => mockGetProposalDetail(...args),
     recordDecision: (...args: Parameters<typeof mockRecordDecision>) => mockRecordDecision(...args),
     triggerExport: (...args: Parameters<typeof mockTriggerExport>) => mockTriggerExport(...args),
@@ -34,7 +37,7 @@ vi.mock('../api/client', () => ({
     getUnmatched: vi.fn().mockResolvedValue({ unmatched: [] }),
     getAmbiguous: vi.fn().mockResolvedValue({ ambiguous: [] }),
     getConflicts: vi.fn().mockResolvedValue({ conflicts: [] }),
-    bulkAccept: vi.fn(),
+    bulkAccept: (...args: Parameters<typeof mockBulkAccept>) => mockBulkAccept(...args),
   },
 }))
 
@@ -123,6 +126,60 @@ function makeDetail(proposal: EnrichedProposal, title: string): ProposalDetail {
   }
 }
 
+function makeReviewTable(proposals: EnrichedProposal[]): ReviewTableData {
+  const byRow = new Map<string, EnrichedProposal>()
+  for (const proposal of proposals) byRow.set(proposal.row_id, proposal)
+  return {
+    run_id: 'run_1',
+    proposal_count: proposals.length,
+    columns: [
+      { name: 'Title', description: null, field_type: null, is_target: false },
+      { name: 'Outcome', description: 'Outcome description', field_type: 'text', is_target: true },
+      { name: 'Notes', description: null, field_type: null, is_target: false },
+    ],
+    rows: ['row-1', 'row-2'].map((rowId, index) => {
+      const proposal = byRow.get(rowId) ?? null
+      return {
+        row_id: rowId,
+        row_index: index,
+        paper_label: index === 0 ? 'Paper A' : 'Paper B',
+        title: index === 0 ? 'Paper A' : 'Paper B',
+        values: {
+          Title: index === 0 ? 'Paper A' : 'Paper B',
+          Outcome: '',
+          Notes: 'unchanged note',
+        },
+        cells: {
+          Title: {
+            column_name: 'Title',
+            original_value: index === 0 ? 'Paper A' : 'Paper B',
+            display_value: index === 0 ? 'Paper A' : 'Paper B',
+            display_status: 'unchanged',
+            has_proposal: false,
+            proposal: null,
+          },
+          Outcome: {
+            column_name: 'Outcome',
+            original_value: '',
+            display_value: proposal?.latest_decision?.edited_value ?? proposal?.proposed_value ?? '',
+            display_status: proposal?.latest_decision?.decision ?? 'pending',
+            has_proposal: !!proposal,
+            proposal: proposal ? { ...proposal, evidence_summary: { count: 2, primary_evidence_id: 'ev1', primary_source_type: 'direct_quote', primary_page_number: 1, primary_quote_text: 'quote' } } : null,
+          },
+          Notes: {
+            column_name: 'Notes',
+            original_value: 'unchanged note',
+            display_value: 'unchanged note',
+            display_status: 'unchanged',
+            has_proposal: false,
+            proposal: null,
+          },
+        },
+      }
+    }),
+  }
+}
+
 const baseRun: RunData = {
   run_id: 'run_1',
   status: 'completed_with_warnings',
@@ -157,11 +214,14 @@ const baseRun: RunData = {
 
 describe('ReviewWorkspace', () => {
   beforeEach(() => {
+    window.localStorage.clear()
     mockListProposals.mockReset()
     mockGetReviewProgress.mockReset()
     mockGetProposalDetail.mockReset()
     mockRecordDecision.mockReset()
     mockTriggerExport.mockReset()
+    mockGetReviewTable.mockReset()
+    mockBulkAccept.mockReset()
 
     const proposalA = makeProposal()
     const proposalB = makeProposal({
@@ -177,6 +237,7 @@ describe('ReviewWorkspace', () => {
       count: 2,
       proposals: [proposalA, proposalB],
     })
+    mockGetReviewTable.mockResolvedValue(makeReviewTable([proposalA, proposalB]))
     mockGetReviewProgress.mockResolvedValue({
       run_id: 'run_1',
       total_proposals: 2,
@@ -191,6 +252,7 @@ describe('ReviewWorkspace', () => {
       return proposalId === 'p2' ? makeDetail(proposalB, 'Paper B') : makeDetail(proposalA, 'Paper A')
     })
     mockRecordDecision.mockResolvedValue({ review_decision_id: 'd1' })
+    mockBulkAccept.mockResolvedValue({ run_id: 'run_1', accepted_count: 2, decisions: [] })
     mockTriggerExport.mockResolvedValue({
       run_id: 'run_1',
       exported_at: '2024-01-02T00:00:00Z',
@@ -207,9 +269,7 @@ describe('ReviewWorkspace', () => {
   it('auto-advances to the next proposal after an explicit decision', async () => {
     render(<ReviewWorkspace run={baseRun} outputDir="./runs" />)
 
-    await waitFor(() => {
-      expect(screen.getAllByText('Paper A').length).toBeGreaterThan(0)
-    })
+    fireEvent.click(await screen.findByTestId('review-table-cell-p1'))
 
     fireEvent.click(screen.getByText('Accept'))
 
@@ -219,6 +279,70 @@ describe('ReviewWorkspace', () => {
 
     await waitFor(() => {
       expect(mockGetProposalDetail).toHaveBeenCalledWith('run_1', 'p2', './runs')
+    })
+  })
+
+  it('opens in table mode by default and selects proposal cells for evidence inspection', async () => {
+    render(<ReviewWorkspace run={baseRun} outputDir="./runs" />)
+
+    expect(await screen.findByTestId('review-table-view')).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Table filter' })).toHaveValue('pending')
+    fireEvent.click(await screen.findByTestId('review-table-cell-p1'))
+
+    await waitFor(() => {
+      expect(mockGetProposalDetail).toHaveBeenCalledWith('run_1', 'p1', './runs')
+    })
+    await waitFor(() => {
+      expect(screen.getByTestId('evidence-viewer')).toHaveTextContent('ev1')
+    })
+  })
+
+  it('switches left pane modes and persists the choice', async () => {
+    render(<ReviewWorkspace run={baseRun} outputDir="./runs" />)
+
+    expect(await screen.findByTestId('review-table-view')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'By Paper' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('proposal-queue-scroll')).toBeInTheDocument()
+    })
+    expect(window.localStorage.getItem('papersToTable.review.leftPaneMode')).toBe('paper')
+  })
+
+  it('restores persisted left pane mode and filter', async () => {
+    window.localStorage.setItem('papersToTable.review.leftPaneMode', 'paper')
+    window.localStorage.setItem('papersToTable.review.leftPaneFilter', 'all')
+
+    render(<ReviewWorkspace run={baseRun} outputDir="./runs" />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('proposal-queue-scroll')).toBeInTheDocument()
+    })
+    expect(screen.getByRole('combobox')).toHaveValue('all')
+  })
+
+  it('records a decision from a selected table cell and refreshes the grid', async () => {
+    render(<ReviewWorkspace run={baseRun} outputDir="./runs" />)
+
+    fireEvent.click(await screen.findByTestId('review-table-cell-p1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Accept' }))
+
+    await waitFor(() => {
+      expect(mockRecordDecision).toHaveBeenCalledWith('run_1', 'p1', { decision: 'accepted' }, './runs')
+    })
+    await waitFor(() => {
+      expect(mockGetReviewTable).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  it('accept keyboard shortcut works after selecting a table cell', async () => {
+    render(<ReviewWorkspace run={baseRun} outputDir="./runs" />)
+
+    fireEvent.click(await screen.findByTestId('review-table-cell-p1'))
+    fireEvent.keyDown(document, { key: 'a' })
+
+    await waitFor(() => {
+      expect(mockRecordDecision).toHaveBeenCalledWith('run_1', 'p1', { decision: 'accepted' }, './runs')
     })
   })
 
@@ -260,6 +384,8 @@ describe('ReviewWorkspace', () => {
   it('renders contained scroll regions for queue, detail, evidence, and actions', async () => {
     render(<ReviewWorkspace run={baseRun} outputDir="./runs" />)
 
+    fireEvent.click(await screen.findByRole('button', { name: 'By Paper' }))
+
     await waitFor(() => {
       expect(screen.getByTestId('proposal-queue-scroll')).toBeInTheDocument()
       expect(screen.getByTestId('proposal-detail-scroll')).toBeInTheDocument()
@@ -268,7 +394,7 @@ describe('ReviewWorkspace', () => {
     })
   })
 
-  it('shows warning count in the compact toolbar', async () => {
+  it('moves warning count into diagnostics', async () => {
     const warningRun: RunData = {
       ...baseRun,
       warnings: [
@@ -279,9 +405,10 @@ describe('ReviewWorkspace', () => {
 
     render(<ReviewWorkspace run={warningRun} outputDir="./runs" />)
 
-    await waitFor(() => {
-      expect(screen.getByText('3 warnings')).toBeInTheDocument()
-    })
+    expect(screen.queryByText('3 warnings')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Diagnostics' }))
+    expect(await screen.findByText('Run warnings')).toBeInTheDocument()
+    expect(screen.getByText('3 warnings')).toBeInTheDocument()
   })
 
   it('shows export failure status without implying a completed export', async () => {
@@ -296,11 +423,12 @@ describe('ReviewWorkspace', () => {
     expect(screen.queryByRole('link', { name: 'Workbook' })).not.toBeInTheDocument()
   })
 
-  it('shows the unresolved inspection empty state when toggled', async () => {
+  it('shows diagnostics summary when toggled', async () => {
     render(<ReviewWorkspace run={baseRun} outputDir="./runs" />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Diagnostics' }))
 
-    expect(await screen.findByText(/No unmatched PDFs in this run/i)).toBeInTheDocument()
+    expect(await screen.findByText('Matching')).toBeInTheDocument()
+    expect(screen.queryByText(/No unmatched PDFs in this run/i)).not.toBeInTheDocument()
   })
 })

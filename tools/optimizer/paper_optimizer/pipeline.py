@@ -239,6 +239,13 @@ def evaluate_external_result_once(
         score_status = "unscored"
         unscored_reason = "metric_projection_failure"
 
+    external_runtime_seconds = None
+    if external_result.get("runtime_seconds") not in (None, ""):
+        try:
+            external_runtime_seconds = float(external_result["runtime_seconds"])
+        except (TypeError, ValueError):
+            external_runtime_seconds = None
+
     return CandidateResult(
         schema_version=str(config["schema_version"]),
         experiment_id=str(config["experiment_id"]),
@@ -260,10 +267,12 @@ def evaluate_external_result_once(
         scored=scored,
         score_status=score_status,
         unscored_reason=unscored_reason,
-        runtime_seconds=eval_launch.duration_seconds,
+        runtime_seconds=external_runtime_seconds,
         runtime_metadata={
+            "external_runtime_seconds": external_runtime_seconds,
+            "external_runtime_scope": external_result.get("runtime_scope"),
             "eval_duration_seconds": eval_launch.duration_seconds,
-            "total_duration_seconds": eval_launch.duration_seconds,
+            "total_duration_seconds": external_runtime_seconds,
         },
         started_at=eval_launch.started_at,
         ended_at=eval_launch.ended_at,

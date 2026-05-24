@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { EvidenceItem, EnrichedProposal, ExportResult, ReviewProgress, RunData } from '../types'
 import { RunSummaryPanel } from './RunSummaryPanel'
 import { ProposalQueue } from './ProposalQueue'
 import { ProposalDetailPane } from './ProposalDetailPane'
 import { ReviewActionArea } from './ReviewActionArea'
 import { EvidenceViewer } from './EvidenceViewer'
-import { UnresolvedInspection } from './UnresolvedInspection'
 import { useReviewKeyboardShortcuts } from '../hooks/useReviewKeyboardShortcuts'
 import { api } from '../api/client'
+import type { LeftPaneMode } from './ProposalQueue'
+import type { ReviewFilter, SelectedReviewCell } from './ReviewTableView'
 
 interface Props {
   run: RunData
@@ -15,19 +16,42 @@ interface Props {
 }
 
 type ResizeTarget = 'left' | 'right' | null
-
-const LEFT_PANE_MIN = 260
-const LEFT_PANE_MAX = 520
-const RIGHT_PANE_MIN = 320
-const RIGHT_PANE_MAX = 720
-const CENTER_PANE_MIN = 400
+const LEFT_PANE_MIN = 200
+const LEFT_PANE_MAX = 760
+const RIGHT_PANE_MIN = 240
+const RIGHT_PANE_MAX = 960
+const CENTER_PANE_MIN = 280
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
 }
 
-function formatWarningCount(count: number) {
-  return `${count} warning${count === 1 ? '' : 's'}`
+function readStoredNumber(key: string, fallback: number) {
+  try {
+    const raw = window.localStorage.getItem(key)
+    if (!raw) return fallback
+    const value = Number(raw)
+    return Number.isFinite(value) ? value : fallback
+  } catch {
+    return fallback
+  }
+}
+
+function readStoredValue<T extends string>(key: string, fallback: T, allowed: readonly T[]) {
+  try {
+    const raw = window.localStorage.getItem(key)
+    return allowed.includes(raw as T) ? (raw as T) : fallback
+  } catch {
+    return fallback
+  }
+}
+
+function storeValue(key: string, value: string | number) {
+  try {
+    window.localStorage.setItem(key, String(value))
+  } catch {
+    // Ignore storage failures; review workflow should remain usable.
+  }
 }
 
 function KeyboardHelpModal({ onClose }: { onClose: () => void }) {
@@ -82,8 +106,7 @@ function DiagnosticsDrawer({
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Diagnostics</p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-950">Run warnings and unresolved review context</h2>
-            <p className="mt-1 text-sm text-slate-500">Keep unmatched, ambiguous, conflict, and warning details secondary to the main review loop.</p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-950">Run diagnostics</h2>
           </div>
           <button onClick={onClose} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
             Close
@@ -91,9 +114,6 @@ function DiagnosticsDrawer({
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           <RunSummaryPanel run={run} outputDir={outputDir} />
-          <div className="px-5 py-5">
-            <UnresolvedInspection run={run} runId={run.run_id} outputDir={outputDir} />
-          </div>
         </div>
       </div>
     </div>
@@ -103,6 +123,7 @@ function DiagnosticsDrawer({
 export function ReviewWorkspace({ run, outputDir }: Props) {
   const layoutRef = useRef<HTMLDivElement | null>(null)
   const [selectedProposalId, setSelectedProposalId] = useState<string | null>(null)
+  const [selectedCell, setSelectedCell] = useState<SelectedReviewCell | null>(null)
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(null)
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceItem | null>(null)
   const [currentEvidenceList, setCurrentEvidenceList] = useState<EvidenceItem[]>([])
@@ -112,15 +133,28 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
   const [proposalList, setProposalList] = useState<EnrichedProposal[]>([])
   const [reviewProgress, setReviewProgress] = useState<ReviewProgress | null>(null)
   const [decisionVersion, setDecisionVersion] = useState(0)
-  const [leftPaneWidth, setLeftPaneWidth] = useState(340)
-  const [rightPaneWidth, setRightPaneWidth] = useState(430)
+  const [leftPaneWidth, setLeftPaneWidth] = useState(() => readStoredNumber('papersToTable.review.leftPaneWidth', 340))
+  const [rightPaneWidth, setRightPaneWidth] = useState(() => readStoredNumber('papersToTable.review.rightPaneWidth', 430))
   const [resizeTarget, setResizeTarget] = useState<ResizeTarget>(null)
   const [focusEditSignal, setFocusEditSignal] = useState(0)
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
   const [exportResult, setExportResult] = useState<ExportResult | null>(null)
   const [workspaceError, setWorkspaceError] = useState<string | null>(null)
-
+  const [leftPaneMode, setLeftPaneMode] = useState<LeftPaneMode>(() =>
+    readStoredValue<LeftPaneMode>('papersToTable.review.leftPaneMode', 'table', ['paper', 'column', 'table'])
+  )
+  const [leftPaneFilter, setLeftPaneFilter] = useState<ReviewFilter>(() =>
+    readStoredValue<ReviewFilter>('papersToTable.review.leftPaneFilter', 'pending', [
+      'pending',
+      'needs_attention',
+      'all',
+      'accepted',
+      'accepted_with_edit',
+      'confirmed_no_data',
+      'rejected',
+    ])
+  )
   const loadProposalList = useCallback(() => {
     return Promise.all([
       api.listProposals(run.run_id, { output_dir: outputDir, reviewable_only: true }),
@@ -152,9 +186,7 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
   const currentProposal = proposalList.find((proposal) => proposal.proposal_id === selectedProposalId) ?? null
   const actionableTotal = reviewProgress?.total_proposals ?? proposalList.length
   const actionableReviewed = reviewProgress?.reviewed ?? proposalList.filter((proposal) => proposal.latest_decision).length
-  const attemptedTotal = run.proposals_generated
   const activeEvidenceIndex = currentEvidenceList.findIndex((item) => item.evidence_id === selectedEvidenceId)
-  const warningCountLabel = useMemo(() => formatWarningCount(run.warnings.length), [run.warnings.length])
 
   function goNext() {
     if (proposalList.length === 0) return
@@ -220,10 +252,31 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
   })
 
   function handleProposalSelect(proposalId: string) {
+    if (proposalId === selectedProposalId) return
     setSelectedProposalId(proposalId)
+    setSelectedCell(null)
     setSelectedEvidenceId(null)
     setSelectedEvidence(null)
     setCurrentEvidenceList([])
+  }
+
+  function handleCellSelect(cell: SelectedReviewCell) {
+    setSelectedCell(cell)
+    setSelectedProposalId(null)
+    setSelectedEvidenceId(null)
+    setSelectedEvidence(null)
+    setCurrentEvidenceList([])
+    setCurrentPdfId(null)
+  }
+
+  function handleLeftPaneModeChange(mode: LeftPaneMode) {
+    setLeftPaneMode(mode)
+    storeValue('papersToTable.review.leftPaneMode', mode)
+  }
+
+  function handleLeftPaneFilterChange(filter: ReviewFilter) {
+    setLeftPaneFilter(filter)
+    storeValue('papersToTable.review.leftPaneFilter', filter)
   }
 
   useEffect(() => {
@@ -249,12 +302,16 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
 
       if (resizeTarget === 'left') {
         const maxWidth = Math.min(LEFT_PANE_MAX, rect.width - rightPaneWidth - CENTER_PANE_MIN)
-        setLeftPaneWidth(clamp(event.clientX - rect.left, LEFT_PANE_MIN, maxWidth))
+        const nextWidth = clamp(event.clientX - rect.left, LEFT_PANE_MIN, maxWidth)
+        setLeftPaneWidth(nextWidth)
+        storeValue('papersToTable.review.leftPaneWidth', nextWidth)
         return
       }
 
       const maxWidth = Math.min(RIGHT_PANE_MAX, rect.width - leftPaneWidth - CENTER_PANE_MIN)
-      setRightPaneWidth(clamp(rect.right - event.clientX, RIGHT_PANE_MIN, maxWidth))
+      const nextWidth = clamp(rect.right - event.clientX, RIGHT_PANE_MIN, maxWidth)
+      setRightPaneWidth(nextWidth)
+      storeValue('papersToTable.review.rightPaneWidth', nextWidth)
     }
 
     function handleMouseUp() {
@@ -306,15 +363,7 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
                 <span className="rounded-xl bg-slate-950 px-3 py-1.5 text-xs font-semibold text-white">
                   {actionableReviewed} / {actionableTotal} reviewed
                 </span>
-                <span className="text-xs text-slate-500">{warningCountLabel}</span>
-                <span className="text-xs text-slate-500">{attemptedTotal} attempted</span>
               </div>
-              {currentProposal && (
-                <p className="mt-2 truncate text-sm text-slate-500">
-                  Reviewing <span className="font-semibold text-slate-700">{currentProposal.column_name}</span> for{' '}
-                  <span className="font-semibold text-slate-700">{currentProposal.paper_title ?? currentProposal.row_id}</span>
-                </p>
-              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -361,27 +410,38 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
         )}
 
         <div ref={layoutRef} className="flex min-h-0 flex-1 overflow-hidden">
-          <div className="flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-slate-50/70" style={{ width: leftPaneWidth }}>
-            <ProposalQueue runId={run.run_id} outputDir={outputDir} selectedProposalId={selectedProposalId} onSelect={handleProposalSelect} key={`${run.run_id}-${decisionVersion}`} />
-          </div>
-
-          <div role="separator" aria-orientation="vertical" aria-label="Resize proposal queue" onMouseDown={() => setResizeTarget('left')} className={`w-1.5 shrink-0 cursor-col-resize border-r border-slate-200 bg-slate-100 transition hover:bg-sky-200 ${resizeTarget === 'left' ? 'bg-sky-300' : ''}`} />
-
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
-            <div className="min-h-0 flex-1 overflow-hidden">
-              <ProposalDetailPane proposalId={selectedProposalId} runId={run.run_id} outputDir={outputDir} selectedEvidenceId={selectedEvidenceId} onEvidenceSelect={handleEvidenceSelect} key={`${selectedProposalId}-${decisionVersion}`} />
+            <div className="flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-slate-50/70" style={{ width: leftPaneWidth }}>
+              <ProposalQueue
+                runId={run.run_id}
+                outputDir={outputDir}
+                selectedProposalId={selectedProposalId}
+                onSelect={handleProposalSelect}
+                mode={leftPaneMode}
+                filter={leftPaneFilter}
+                onModeChange={handleLeftPaneModeChange}
+                onFilterChange={handleLeftPaneFilterChange}
+                onSelectCell={handleCellSelect}
+                refreshVersion={decisionVersion}
+              />
             </div>
-            {currentProposal && (
-              <ReviewActionArea proposal={currentProposal} runId={run.run_id} outputDir={outputDir} onDecisionRecorded={handleDecisionRecorded} onNext={goNext} visibleProposals={proposalList} focusEditSignal={focusEditSignal} />
-            )}
-          </div>
 
-          <div role="separator" aria-orientation="vertical" aria-label="Resize evidence panel" onMouseDown={() => setResizeTarget('right')} className={`w-1.5 shrink-0 cursor-col-resize border-l border-slate-200 bg-slate-100 transition hover:bg-sky-200 ${resizeTarget === 'right' ? 'bg-sky-300' : ''}`} />
+            <div role="separator" aria-orientation="vertical" aria-label="Resize proposal queue" onMouseDown={() => setResizeTarget('left')} className={`w-1.5 shrink-0 cursor-col-resize border-r border-slate-200 bg-slate-100 transition hover:bg-sky-200 ${resizeTarget === 'left' ? 'bg-sky-300' : ''}`} />
 
-          <div className="flex min-h-0 shrink-0 flex-col overflow-hidden border-l border-slate-200 bg-white" style={{ width: rightPaneWidth }}>
-            <EvidenceViewer runId={run.run_id} pdfId={currentPdfId} evidence={selectedEvidence} evidenceList={currentEvidenceList} selectedEvidenceId={selectedEvidenceId} activeEvidenceIndex={activeEvidenceIndex} onSelectEvidence={handleEvidenceSelect} outputDir={outputDir} />
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
+              <div className="min-h-0 flex-1 overflow-hidden">
+                <ProposalDetailPane proposalId={selectedProposalId} selectedCell={selectedCell} runId={run.run_id} outputDir={outputDir} selectedEvidenceId={selectedEvidenceId} onEvidenceSelect={handleEvidenceSelect} key={`${selectedProposalId ?? selectedCell?.rowId ?? 'none'}-${selectedCell?.columnName ?? ''}-${decisionVersion}`} />
+              </div>
+              {currentProposal && (
+                <ReviewActionArea proposal={currentProposal} runId={run.run_id} outputDir={outputDir} onDecisionRecorded={handleDecisionRecorded} onNext={goNext} onPrev={goPrev} visibleProposals={proposalList} focusEditSignal={focusEditSignal} />
+              )}
+            </div>
+
+            <div role="separator" aria-orientation="vertical" aria-label="Resize evidence panel" onMouseDown={() => setResizeTarget('right')} className={`w-1.5 shrink-0 cursor-col-resize border-l border-slate-200 bg-slate-100 transition hover:bg-sky-200 ${resizeTarget === 'right' ? 'bg-sky-300' : ''}`} />
+
+            <div className="flex min-h-0 shrink-0 flex-col overflow-hidden border-l border-slate-200 bg-white" style={{ width: rightPaneWidth }}>
+              <EvidenceViewer runId={run.run_id} pdfId={currentPdfId} evidence={selectedEvidence} evidenceList={currentEvidenceList} selectedEvidenceId={selectedEvidenceId} activeEvidenceIndex={activeEvidenceIndex} onSelectEvidence={handleEvidenceSelect} outputDir={outputDir} />
+            </div>
           </div>
-        </div>
       </div>
 
       {showDiagnostics && <DiagnosticsDrawer run={run} outputDir={outputDir} onClose={() => setShowDiagnostics(false)} />}

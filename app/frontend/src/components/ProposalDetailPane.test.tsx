@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { ProposalDetailPane } from './ProposalDetailPane'
 import type { ProposalDetail } from '../types'
@@ -107,7 +107,7 @@ describe('ProposalDetailPane', () => {
     expect(screen.getByText('120')).toBeInTheDocument()
   })
 
-  it('renders rationale collapsed by default', async () => {
+  it('renders rationale expanded by default', async () => {
     render(
       <ProposalDetailPane
         proposalId="p1"
@@ -118,11 +118,11 @@ describe('ProposalDetailPane', () => {
         
       />
     )
-    await screen.findByText('Reviewer-visible rationale')
-    expect(screen.queryByText('The sample size of 120 participants was stated in the Methods section.')).not.toBeInTheDocument()
+    await screen.findByText('Rationale')
+    expect(screen.getByText('The sample size of 120 participants was stated in the Methods section.')).toBeInTheDocument()
   })
 
-  it('expands rationale on click', async () => {
+  it('shows simplified evidence heading', async () => {
     render(
       <ProposalDetailPane
         proposalId="p1"
@@ -133,9 +133,8 @@ describe('ProposalDetailPane', () => {
         
       />
     )
-    await screen.findByText('Reviewer-visible rationale')
-    fireEvent.click(screen.getByText('Reviewer-visible rationale'))
-    expect(screen.getByText('The sample size of 120 participants was stated in the Methods section.')).toBeInTheDocument()
+    await screen.findByText('Evidence')
+    expect(screen.queryByText('Evidence stack')).not.toBeInTheDocument()
   })
 
   it('shows evidence list with source type labels', async () => {
@@ -149,9 +148,9 @@ describe('ProposalDetailPane', () => {
         
       />
     )
-    await screen.findByText('direct quote')
-    expect(screen.getByText('direct quote')).toBeInTheDocument()
-    expect(screen.getByText('inferred reasoning')).toBeInTheDocument()
+    await screen.findByTitle('Evidence: direct quote')
+    expect(screen.getByTitle('Evidence: direct quote')).toBeInTheDocument()
+    expect(screen.getByTitle('Evidence: inferred reasoning')).toBeInTheDocument()
   })
 
   it('shows row context (title and year)', async () => {
@@ -217,9 +216,9 @@ describe('ProposalDetailPane', () => {
         
       />
     )
-    await screen.findByText('direct quote')
-    const quoteCard = screen.getByText('direct quote').closest('button')!
-    expect(quoteCard.className).toContain('border-sky-300')
+    await screen.findByTitle('Evidence: direct quote')
+    const quoteCard = screen.getByTitle('Evidence: direct quote').closest('button')!
+    expect(quoteCard.className).toContain('border-amber-300')
   })
 
   it('shows placeholder when no proposal is selected', () => {

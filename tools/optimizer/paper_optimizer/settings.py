@@ -32,6 +32,8 @@ def load_config(config_path: Path) -> dict[str, Any]:
             "gold_path",
             "eval_schema_path",
             "path",
+            "runtime_path",
+            "runtimes_path",
         },
     )
     normalized = normalize_config(config)

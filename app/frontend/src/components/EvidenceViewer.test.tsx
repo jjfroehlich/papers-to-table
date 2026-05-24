@@ -153,7 +153,7 @@ describe('EvidenceViewer', () => {
     })
   })
 
-  it('shows annotated-viewer guidance and local-viewer action', () => {
+  it('shows local-viewer action', () => {
     render(
       <EvidenceViewer
         runId="r1"
@@ -166,8 +166,8 @@ describe('EvidenceViewer', () => {
         outputDir="./runs"
       />
     )
-    expect(screen.getByText(/optimized for evidence highlights/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Open in Local PDF Viewer/i })).toBeInTheDocument()
+    expect(screen.queryByText(/optimized for evidence highlights/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Open PDF/i })).toBeInTheDocument()
   })
 
   it('renders quote text for quote_plus_page fallback', () => {
@@ -201,7 +201,7 @@ describe('EvidenceViewer', () => {
         outputDir="./runs"
       />
     )
-    fireEvent.click(screen.getByRole('button', { name: /Open in Local PDF Viewer/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Open PDF/i }))
     await waitFor(() => {
       expect(api.openPdfInLocalViewer).toHaveBeenCalledWith('r1', 'paper-a', './runs')
     })
@@ -332,7 +332,7 @@ describe('EvidenceViewer', () => {
       />
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /Next evidence/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }))
     expect(onSelectEvidence).toHaveBeenCalledWith('ev2')
   })
 
