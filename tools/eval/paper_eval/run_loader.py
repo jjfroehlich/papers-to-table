@@ -15,15 +15,8 @@ _OPTIONAL_RUN_FILES = (
     "summaries/run_summary.json",
     "summaries/reviewer_summary.json",
 )
-_SIDE_CAR_EVIDENCE_FILES = ("evidence/evidence.jsonl", "evidence/evidence.json", "support/evidence.jsonl")
-_PAGE_TEXT_FILES = (
-    "evidence/page_text.json",
-    "evidence/page_texts.json",
-    "evidence/pages.json",
-    "support/page_text.json",
-    "support/page_texts.json",
-    "support/pages.json",
-)
+_SIDE_CAR_EVIDENCE_FILES = ("evidence/evidence.jsonl", "evidence/evidence.json")
+_PAGE_TEXT_FILES = ("evidence/page_text.json", "evidence/page_texts.json", "evidence/pages.json")
 _EVAL_MODE = "eval"
 _EVAL_PROVENANCE_TEXT_FIELDS = {
     "gold_source_ref": (
@@ -86,7 +79,7 @@ _REQUIRED_EVAL_PROVENANCE_FIELDS = (
     "masked_table_snapshot_path",
 )
 _SUPPORTED_RUN_ARTIFACT_SCHEMA_VERSIONS = {None, "main_run_bundle.v2"}
-_SUPPORTED_PROPOSAL_SCHEMA_VERSIONS = {None, "main_proposal.v2"}
+_SUPPORTED_PROPOSAL_SCHEMA_VERSIONS = {None}
 _SUPPORTED_EVIDENCE_SCHEMA_VERSIONS = {None, "main_evidence.v2"}
 
 
@@ -252,11 +245,16 @@ def _load_proposals(
                     f"{', '.join(missing_fields)} in {proposal_path} line {line_number}."
                 )
             run_id = _required_text(payload.get("run_id")) or default_run_id
-            _validate_supported_schema_version(
-                kind="proposal artifact",
-                version=_required_text(payload.get("proposal_schema_version")),
-                supported_versions=_SUPPORTED_PROPOSAL_SCHEMA_VERSIONS,
-            )
+            missing_semantic_fields = [
+                field_name
+                for field_name in ("proposal_status", "evidence_status", "review_bucket", "reason_codes")
+                if payload.get(field_name) in (None, "")
+            ]
+            if missing_semantic_fields:
+                raise ContractError(
+                    "Proposal record is missing canonical semantic fields "
+                    f"{', '.join(missing_semantic_fields)} in {proposal_path} line {line_number}."
+                )
             proposals.append(
                 ProposalRecord(
                     run_id=run_id,
@@ -265,8 +263,10 @@ def _load_proposals(
                     cell_id=_required_text(payload.get("cell_id")),
                     proposed_value=payload.get("proposed_value"),
                     pdf_id=_required_text(payload.get("pdf_id")),
-                    state=_required_text(payload.get("state")),
-                    support=payload.get("support"),
+                    proposal_status=_required_text(payload.get("proposal_status")),
+                    evidence_status=_required_text(payload.get("evidence_status")),
+                    review_bucket=_required_text(payload.get("review_bucket")),
+                    reason_codes=[str(item) for item in _normalize_optional_list(payload.get("reason_codes"))],
                     field_type=_required_text(payload.get("field_type")),
                     allowed_values=_normalize_optional_list(payload.get("allowed_values")),
                     numeric_value_form=_required_text(payload.get("numeric_value_form")),
@@ -670,16 +670,6 @@ def _extract_evidence_items(
                 proposal_pdf_id=_required_text(payload.get("pdf_id")),
             )
             records.append(copied)
-
-    support = payload.get("support")
-    if isinstance(support, list):
-        records.extend(item for item in support if isinstance(item, dict))
-    elif isinstance(support, dict):
-        evidence_ids = support.get("evidence_ids") or support.get("support_ids") or []
-        for evidence_id in evidence_ids:
-            evidence_payload = sidecar_evidence.get(str(evidence_id))
-            if evidence_payload:
-                records.append(evidence_payload)
 
     for evidence_id in _top_level_evidence_ids(payload):
         evidence_payload = sidecar_evidence.get(str(evidence_id))

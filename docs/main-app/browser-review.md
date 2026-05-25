@@ -42,14 +42,18 @@ python scripts/papers_to_table.py preflight --config app/config.json
 - The queue defaults to actionable pending proposals, supports grouped triage by paper or column, and scrolls independently from the rest of the workspace.
 - The detail pane keeps the selected paper, field, proposed value, ordered evidence list, and review actions together, with its own internal scroll region.
 - The evidence panel keeps the PDF toolbar visible while the PDF page area scrolls independently for document inspection.
-- The top review bar stays compact: current run context, review progress, warning count, diagnostics, export, and keyboard help.
+- The top review bar stays compact: current run context, review progress, diagnostics, export, and keyboard help.
 
 ## Evidence Semantics
 
+- Proposal records use canonical proposal/evidence semantics: `proposal_status`, `evidence_status`, derived/validated `review_bucket`, and `reason_codes`.
+- The default queue remains focused on review-surface cells. It can include unresolved target cells with no proposed value when they carry useful rationale, reason codes, or retrieval/candidate context; global diagnostics stay in summaries/diagnostics.
+- Figure/vision evidence and approximate/fallback anchors are shown as provenance/evidence-quality metadata. They do not create a warning icon unless a separate caution condition is present.
+- The visible All filter means all non-diagnostic review-surface records; diagnostic records remain available through summaries and diagnostics views.
 - Direct quote: exact highlight anchored to page text.
 - Approximate highlight: region-level fallback when exact quote alignment fails.
 - Quote plus page: text fallback with page reference when highlight geometry is unavailable.
-- Inferred reasoning or calculation: reviewer-visible support types that stay distinct from direct quotes.
+- Inferred reasoning or calculation: reviewer-visible evidence statuses that stay distinct from direct quotes.
 - Figure evidence, when present, is labeled separately from text evidence.
 
 ## Provider, Parsing, And Fallback Truth

@@ -59,5 +59,15 @@ describe('RunList', () => {
     render(<RunList runs={[failedRun]} selectedRunId={null} onSelect={vi.fn()} />)
     expect(screen.getByText('Provider unreachable')).toBeTruthy()
   })
+
+  it('does not show warning counts in the run list', () => {
+    const runWithWarnings = {
+      ...mockRun,
+      status: 'completed_with_warnings' as const,
+      warnings: [{ category: 'partial_extraction', message: 'Parser fallback used.' }],
+    }
+    render(<RunList runs={[runWithWarnings]} selectedRunId={null} onSelect={vi.fn()} />)
+    expect(screen.queryByText('1 warning(s)')).toBeNull()
+  })
 })
 

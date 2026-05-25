@@ -145,13 +145,14 @@ Eval is intentionally staged so deterministic scoring and LLM judging are not in
 
 ## How To Read The Metrics
 
-Eval first joins run proposals to gold rows and columns. It uses stable run metadata when available (`row_id`, `row_index`, `column_name`) plus the gold table and optional eval schema. Cells that cannot be joined become join failures or missing-proposal counts rather than being treated as wrong values silently.
+Eval first joins canonical run proposals to gold rows and columns. It uses stable run metadata when available (`row_id`, `row_index`, `column_name`) plus the gold table and optional eval schema. Cells that cannot be joined become join failures or missing-proposal counts rather than being treated as wrong values silently.
 
 Metrics are calculated from these joined cells:
 
 - content correctness: the main score for target content cells. Numeric, boolean, and categorical fields are scored deterministically where possible; free-text fields can be judged by one or two configured LLM judges.
 - overall correctness: a broader aggregate that can include metadata lanes when the schema included them.
 - evidence quality: checks whether persisted evidence exists and remains usable, including anchor-valid highlights, page references, and evidence type.
+- canonical outcome accounting: `proposal_status`, `evidence_status`, `review_bucket`, and `reason_codes` are loaded from the proposal artifact. Diagnostic outcomes such as `error`, `not_attempted`, and `not_applicable` are accounted for separately from ordinary wrong values.
 - judge disagreement: the rate at which judge A and judge B differ on text-cell correctness.
 - missing proposals: target cells present in gold data but missing from the run proposals.
 - join failures: run or gold records that could not be aligned to the expected row/column contract.

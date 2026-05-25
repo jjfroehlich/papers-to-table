@@ -99,7 +99,6 @@ export function RunDetail({ run, onAbort, aborting }: Props) {
           <DetailRow label="Started" value={run.started_at ? new Date(run.started_at).toLocaleString() : null} />
           <DetailRow label="Completed" value={run.completed_at ? new Date(run.completed_at).toLocaleString() : null} />
           <DetailRow label="Current stage" value={run.current_stage ?? null} />
-          {run.warnings.length > 0 && <DetailRow label="Run warnings" value={`${run.warnings.length} warning${run.warnings.length === 1 ? '' : 's'}`} />}
         </div>
       </section>
 

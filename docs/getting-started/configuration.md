@@ -81,7 +81,7 @@ The `model_id` must match the model you downloaded or loaded in LM Studio.
 
 Retrieval includes figure-level chunks built from parsed figures when available. The app does not create panel-level retrieval chunks. Figure review uses valid crops by default, falls back to full-page images when crops are missing or suspicious, and can prefer full-page images when the planner identifies layout or panel-counting work.
 
-Figure review is evidence-gated. Direct figure context is not enough by itself to call vision for a strong non-visual text answer. Vision remains available for weak, unclear, missing, or contradictory text evidence, and for genuinely visual requests with promising figure retrieval. Prompt-only vision parsing repairs recoverable schema issues, including optional missing diagnostics, invalid `numeric_value_form` values such as `N/A`, and common state variants. If a figure response reports `found` or `inferred`, its `proposed_value` must contain the extracted answer.
+Figure review is evidence-gated. Direct figure context is not enough by itself to call vision for a strong non-visual text answer. Vision remains available for weak, unresolved, missing, or contradictory text evidence, and for genuinely visual requests with promising figure retrieval. Prompt-only vision parsing repairs recoverable schema issues, including optional missing diagnostics and invalid `numeric_value_form` values such as `N/A`. If a figure response proposes a value, its `proposed_value` must contain the extracted answer.
 
 Recall rescue is selective and bounded to one extra rescue pass per cell. Whole-document fallback only runs when enabled and under `retrieval.whole_document_max_chars`; it is not a default path for every difficult cell.
 

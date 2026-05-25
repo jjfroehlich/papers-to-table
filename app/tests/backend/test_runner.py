@@ -34,7 +34,7 @@ from backend.app.config import RunConfig
 from backend.app.runner import _load_cached_parse_bundle, _parse_cache_key, get_initial_run_data, run_pipeline
 from backend.app.ids import generate_proposal_id
 from backend.app.matching import MatchResult
-from backend.app.schemas import EvidenceSourceType, MatchOutcome, ProposalState, RunStatus, SupportLabel
+from backend.app.schemas import EvidenceSourceType, EvidenceStatus, MatchOutcome, ProposalStatus, ReviewBucket, RunStatus
 
 FIXTURE_TABLE = "../benchmark_datasets/massively_parallel_reporter_assays/table_template.csv"
 FIXTURE_SCHEMA = "../benchmark_datasets/massively_parallel_reporter_assays/schema.csv"
@@ -81,7 +81,7 @@ class TestGetInitialRunData:
         assert data["prompt_keys_used"]
         assert data["prompt_files"]
         assert data["artifact_schema_version"] == "main_run_bundle.v2"
-        assert data["proposal_schema_version"] == "main_proposal.v2"
+        assert "proposal_schema_version" not in data
         assert data["evidence_schema_version"] == "main_evidence.v2"
         assert data["structured_output_reason"] is None
 
@@ -1241,8 +1241,10 @@ async def _fake_extract_cell(**kwargs):
         row_id=kwargs["row_id"],
         column_name=kwargs["column_name"],
         cell_id=kwargs["cell_id"],
-        state=ProposalState.unclear,
-        support=SupportLabel.weak_evidence,
+        proposal_status=ProposalStatus.value_proposed,
+        evidence_status=EvidenceStatus.inferred_weak,
+        review_bucket=ReviewBucket.attention,
+        reason_codes=["insufficient_evidence"],
         proposed_value="candidate",
         rationale="- extracted",
         evidence_ids=[],
@@ -1280,8 +1282,10 @@ async def _fake_extract_cell_with_fallback(**kwargs):
         row_id=kwargs["row_id"],
         column_name=kwargs["column_name"],
         cell_id=kwargs["cell_id"],
-        state=ProposalState.unclear,
-        support=SupportLabel.weak_evidence,
+        proposal_status=ProposalStatus.value_proposed,
+        evidence_status=EvidenceStatus.inferred_weak,
+        review_bucket=ReviewBucket.attention,
+        reason_codes=["anchor_fallback"],
         proposed_value="candidate",
         rationale="- extracted",
         evidence_ids=[],
@@ -1383,8 +1387,10 @@ async def _fake_extract_cell_with_metrics(**kwargs):
         row_id=kwargs["row_id"],
         column_name=kwargs["column_name"],
         cell_id=kwargs["cell_id"],
-        state=ProposalState.unclear,
-        support=SupportLabel.weak_evidence,
+        proposal_status=ProposalStatus.value_proposed,
+        evidence_status=EvidenceStatus.inferred_weak,
+        review_bucket=ReviewBucket.attention,
+        reason_codes=["anchor_fallback"],
         proposed_value="candidate",
         rationale="- extracted",
         primary_evidence_id="ev_direct",

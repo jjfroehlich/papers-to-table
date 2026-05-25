@@ -45,9 +45,6 @@ export function RunList({ runs, selectedRunId, onSelect }: Props) {
           {run.error_message && (
             <div className="mt-1 text-xs text-red-600 truncate">{run.error_message}</div>
           )}
-          {run.warnings.length > 0 && (
-            <div className="mt-1 text-xs text-amber-600">{run.warnings.length} warning(s)</div>
-          )}
         </li>
       ))}
     </ul>

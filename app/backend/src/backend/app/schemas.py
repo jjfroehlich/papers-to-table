@@ -23,21 +23,28 @@ class MatchOutcome(str, Enum):
     duplicate_row_conflict = "duplicate_row_conflict"
 
 
-class ProposalState(str, Enum):
-    found = "found"
-    inferred = "inferred"
-    unclear = "unclear"
-    blocked = "blocked"
+class ProposalStatus(str, Enum):
+    value_proposed = "value_proposed"
+    no_data = "no_data"
+    unresolved = "unresolved"
+    not_applicable = "not_applicable"
+    not_attempted = "not_attempted"
     error = "error"
-    skipped = "skipped"
 
 
-class SupportLabel(str, Enum):
-    direct_evidence = "direct_evidence"
-    inferred_from_evidence = "inferred_from_evidence"
-    weak_evidence = "weak_evidence"
-    blocked = "blocked"
-    error = "error"
+class EvidenceStatus(str, Enum):
+    direct_strong = "direct_strong"
+    direct_weak = "direct_weak"
+    inferred_strong = "inferred_strong"
+    inferred_weak = "inferred_weak"
+    no_evidence = "no_evidence"
+    not_applicable = "not_applicable"
+
+
+class ReviewBucket(str, Enum):
+    review = "review"
+    attention = "attention"
+    diagnostic = "diagnostic"
 
 
 class EvidenceSourceType(str, Enum):
@@ -129,8 +136,10 @@ class Proposal(BaseModel):
     row_id: str
     column_name: str
     pdf_id: str
-    state: ProposalState
-    support: SupportLabel
+    proposal_status: ProposalStatus
+    evidence_status: EvidenceStatus
+    review_bucket: ReviewBucket
+    reason_codes: list[str]
     proposed_value: Optional[str] = None
     rationale: Optional[str] = None
     calculation: Optional[str] = None

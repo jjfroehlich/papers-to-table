@@ -39,17 +39,17 @@ The default workspace layout must be a viewport-contained three-panel review sur
 - proposal detail and decisions in the center
 - evidence and PDF inspection on the right
 
-The top review bar must stay compact and workflow-oriented. It should show current run context, review progress, warning count, diagnostics access, export, and any small mode labels that are still necessary. Large summary cards or dashboard-style status blocks must remain secondary rather than occupying the default review viewport.
+The top review bar must stay compact and workflow-oriented. It should show current run context, review progress, diagnostics access, export, and any small mode labels that are still necessary. Large summary cards or dashboard-style status blocks must remain secondary rather than occupying the default review viewport.
 
 ## Queue behavior
 
 - The queue must support grouped triage.
 - Reviewer-facing counts must distinguish actionable items from broader attempted or diagnostic totals.
-- Diagnostic-only outcomes such as unmatched rows, ambiguous matches, blocked extraction, and skipped cells must remain visible through diagnostics and summaries, but they must not dominate the main proposal queue.
+- Diagnostic-only outcomes such as unmatched rows, ambiguous matches, extraction errors, and intentionally not-attempted cells must remain visible through diagnostics and summaries, but they must not dominate the main proposal queue.
 - Unresolved diagnostics should not compete with the primary evidence panel for attention during normal review.
 - Bulk review actions apply only to the currently visible filtered subset, never to hidden queue items.
 - Grouping and ordering should support fast scanning rather than flattening every proposal into one undifferentiated list.
-- Queue rows should stay compact and calm: field name, proposed value or explicit no-value text, support marker, and warning indicator only when needed.
+- Queue rows should stay compact and calm: field name, proposed value or explicit semantic conclusion, proposal-status dot, evidence-status dot, and review decision marker. Proposal-level warning icons are not part of the normal review signal.
 
 ## Review decisions
 
@@ -78,12 +78,12 @@ No-value states must remain actionable. The review workspace should support expl
 - Direct quotes must be shown separately from reasoning or calculation text.
 - Evidence items must be ordered, with the most authoritative field-relevant evidence primary.
 - Exact highlighting should be used whenever possible.
-- When exact highlighting is unavailable, fallback evidence must be labeled honestly rather than presented as exact.
+- When exact highlighting is unavailable, anchor fallback must be labeled honestly as reason/provenance context rather than presented as exact evidence.
 - Figure-derived evidence must remain distinguishable from text-derived evidence.
 - When figure evidence is used, the reviewer should be able to understand whether it came from a targeted crop, a page-level region, or broader figure-context inspection.
 - The evidence list and the document viewer should stay synchronized around the selected evidence item.
 
-Shared evidence-type and support-label rules are canonical in `../spec.md`; this file preserves older compatibility detail.
+Shared proposal/evidence semantics are canonical in `../contracts/proposals-and-evidence.md`; this file preserves older compatibility detail.
 
 ## Review ergonomics
 

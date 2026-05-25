@@ -49,8 +49,11 @@ from backend.app.review import (
     validate_reviewer_summary_integrity,
 )
 from backend.app.schemas import (
+    EvidenceStatus,
+    ProposalStatus,
     ReviewDecision,
     ReviewResolutionReason,
+    ReviewBucket,
     ReviewerSummary,
     RunStatus,
     WarningCategory,
@@ -88,8 +91,10 @@ def _make_proposal(
     row_id: str,
     column_name: str,
     warning_flags: list[str] | None = None,
-    support: str = "direct_evidence",
-    state: str = "found",
+    proposal_status: ProposalStatus = ProposalStatus.value_proposed,
+    evidence_status: EvidenceStatus = EvidenceStatus.direct_strong,
+    review_bucket: ReviewBucket = ReviewBucket.review,
+    reason_codes: list[str] | None = None,
     proposed_value: str = "test_value",
 ) -> ProposalRecord:
     cell_id = generate_cell_id(row_id, column_name)
@@ -101,8 +106,10 @@ def _make_proposal(
         row_id=row_id,
         column_name=column_name,
         cell_id=cell_id,
-        state=state,
-        support=support,
+        proposal_status=proposal_status,
+        evidence_status=evidence_status,
+        review_bucket=review_bucket,
+        reason_codes=reason_codes or [],
         proposed_value=proposed_value,
         rationale="Some rationale.",
         evidence_ids=[],
@@ -398,13 +405,22 @@ class TestProposalListFilter:
         proposals = list_proposals(run_dir)
         assert proposals[0]["latest_decision"] is None
 
-    def test_reviewable_only_excludes_blocked_and_skipped(self, tmp_path):
+    def test_reviewable_only_excludes_diagnostic_not_attempted(self, tmp_path):
         run_dir, run_id = _make_run(tmp_path)
         pdf_id = generate_pdf_id("paper1.pdf")
         row_id = generate_row_id(0, "Title A")
-        reviewable = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose", state="unclear")
-        _make_proposal(run_dir, run_id, pdf_id, row_id, "Outcome", state="blocked")
-        _make_proposal(run_dir, run_id, pdf_id, row_id, "Study Type", state="skipped")
+        reviewable = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose")
+        _make_proposal(
+            run_dir,
+            run_id,
+            pdf_id,
+            row_id,
+            "Study Type",
+            proposal_status=ProposalStatus.not_attempted,
+            evidence_status=EvidenceStatus.not_applicable,
+            review_bucket=ReviewBucket.diagnostic,
+            reason_codes=["cell_not_targeted"],
+        )
 
         proposals = list_proposals(run_dir, ProposalFilter(reviewable_only=True))
 
@@ -449,7 +465,7 @@ class TestProposalDetail:
         assert detail["latest_decision"]["decision"] == "accepted"
         assert len(detail["decision_history"]) == 2
 
-    def test_includes_warning_categories(self, tmp_path):
+    def test_fallback_evidence_is_provenance_not_warning_category(self, tmp_path):
         run_dir, run_id = _make_run(tmp_path)
         pdf_id = generate_pdf_id("paper1.pdf")
         row_id = generate_row_id(0, "Title A")
@@ -457,7 +473,8 @@ class TestProposalDetail:
                            warning_flags=["fallback_evidence"])
 
         detail = get_proposal_detail(run_dir, p.proposal_id)
-        assert WarningCategory.fallback_evidence_used.value in detail["warning_categories"]
+        assert detail["is_fallback_evidence"] is True
+        assert WarningCategory.fallback_evidence_used.value not in detail["warning_categories"]
 
     def test_defaults_missing_row_and_column_context(self, tmp_path):
         run_dir, run_id = _make_run(tmp_path)
@@ -476,29 +493,41 @@ class TestProposalDetail:
 # ---------------------------------------------------------------------------
 
 class TestWarningCategories:
-    def test_figure_derived_flag_maps_to_category(self, tmp_path):
+    def test_figure_derived_flag_is_provenance_not_warning_category(self, tmp_path):
         run_dir, run_id = _make_run(tmp_path)
         pdf_id = generate_pdf_id("paper1.pdf")
         row_id = generate_row_id(0, "Title A")
-        p = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose",
-                           warning_flags=["figure_derived"])
+        _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose",
+                       warning_flags=["figure_derived"])
         proposals = list_proposals(run_dir)
-        assert WarningCategory.figure_derived_evidence.value in proposals[0]["warning_categories"]
+        assert proposals[0]["is_figure_derived"] is True
+        assert WarningCategory.figure_derived_evidence.value not in proposals[0]["warning_categories"]
 
-    def test_fallback_evidence_maps_to_category(self, tmp_path):
+    def test_fallback_evidence_flag_is_provenance_not_warning_category(self, tmp_path):
         run_dir, run_id = _make_run(tmp_path)
         pdf_id = generate_pdf_id("paper1.pdf")
         row_id = generate_row_id(0, "Title A")
         p = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose",
                            warning_flags=["fallback_evidence"])
         proposals = list_proposals(run_dir)
-        assert WarningCategory.fallback_evidence_used.value in proposals[0]["warning_categories"]
+        assert proposals[0]["is_fallback_evidence"] is True
+        assert WarningCategory.fallback_evidence_used.value not in proposals[0]["warning_categories"]
 
-    def test_weak_evidence_support_maps_to_category(self, tmp_path):
+    def test_weak_evidence_status_maps_to_category(self, tmp_path):
         run_dir, run_id = _make_run(tmp_path)
         pdf_id = generate_pdf_id("paper1.pdf")
         row_id = generate_row_id(0, "Title A")
-        _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose", support="weak_evidence")
+        _make_proposal(
+            run_dir,
+            run_id,
+            pdf_id,
+            row_id,
+            "Dose",
+            proposal_status=ProposalStatus.value_proposed,
+            evidence_status=EvidenceStatus.inferred_weak,
+            review_bucket=ReviewBucket.attention,
+            reason_codes=["insufficient_evidence"],
+        )
         proposals = list_proposals(run_dir)
         assert WarningCategory.weak_evidence.value in proposals[0]["warning_categories"]
 
@@ -656,12 +685,22 @@ class TestProgressCounters:
         assert progress["explicitly_rejected"] == 0
         assert progress["confirmed_absent"] == 1     # T075a: confirmed_no_data
 
-    def test_review_progress_excludes_blocked_proposals(self, tmp_path):
+    def test_review_progress_excludes_diagnostic_not_attempted_proposals(self, tmp_path):
         run_dir, run_id = _make_run(tmp_path)
         pdf_id = generate_pdf_id("paper1.pdf")
         row_id = generate_row_id(0, "Title A")
-        reviewable = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose", state="unclear")
-        _make_proposal(run_dir, run_id, pdf_id, row_id, "Outcome", state="blocked")
+        reviewable = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose")
+        _make_proposal(
+            run_dir,
+            run_id,
+            pdf_id,
+            row_id,
+            "Outcome",
+            proposal_status=ProposalStatus.not_attempted,
+            evidence_status=EvidenceStatus.not_applicable,
+            review_bucket=ReviewBucket.diagnostic,
+            reason_codes=["cell_not_targeted"],
+        )
 
         record_review_decision(run_dir, reviewable.proposal_id, reviewable.cell_id, run_id,
                                decision=ReviewDecision.accepted)
@@ -1052,12 +1091,22 @@ class TestProposalListAPI:
         resp = client.get(f"/api/runs/nonexistent/proposals?output_dir={tmp_path}")
         assert resp.status_code == 404
 
-    def test_reviewable_only_endpoint_excludes_blocked(self, client, tmp_path):
+    def test_reviewable_only_endpoint_excludes_diagnostic_not_attempted(self, client, tmp_path):
         run_dir, run_id = _make_run(tmp_path)
         pdf_id = generate_pdf_id("paper1.pdf")
         row_id = generate_row_id(0, "Title A")
-        reviewable = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose", state="unclear")
-        _make_proposal(run_dir, run_id, pdf_id, row_id, "Outcome", state="blocked")
+        reviewable = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose")
+        _make_proposal(
+            run_dir,
+            run_id,
+            pdf_id,
+            row_id,
+            "Outcome",
+            proposal_status=ProposalStatus.not_attempted,
+            evidence_status=EvidenceStatus.not_applicable,
+            review_bucket=ReviewBucket.diagnostic,
+            reason_codes=["cell_not_targeted"],
+        )
 
         resp = client.get(
             f"/api/runs/{run_id}/proposals?output_dir={tmp_path}&reviewable_only=true"
@@ -1320,8 +1369,18 @@ class TestProgressAPI:
         run_dir, run_id = _make_run(tmp_path)
         pdf_id = generate_pdf_id("paper1.pdf")
         row_id = generate_row_id(0, "Title A")
-        reviewable = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose", state="unclear")
-        _make_proposal(run_dir, run_id, pdf_id, row_id, "Outcome", state="blocked")
+        reviewable = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose")
+        _make_proposal(
+            run_dir,
+            run_id,
+            pdf_id,
+            row_id,
+            "Outcome",
+            proposal_status=ProposalStatus.not_attempted,
+            evidence_status=EvidenceStatus.not_applicable,
+            review_bucket=ReviewBucket.diagnostic,
+            reason_codes=["cell_not_targeted"],
+        )
 
         record_review_decision(run_dir, reviewable.proposal_id, reviewable.cell_id, run_id,
                                decision=ReviewDecision.accepted)

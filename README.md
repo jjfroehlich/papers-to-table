@@ -27,17 +27,25 @@ This is the primary workflow where the browser interface can be used to inspect 
 
 ```bash
 python scripts/papers_to_table.py review
-python scripts/papers_to_table.py preflight --config app/config.json
 ```
 
 ### Command-line interface
-Use this headless mode when a terminal workflow, batch script, or coding agent needs to run the app without reviewing the extracted values and browser UI. 
+Use this headless mode when a terminal workflow, batch script, or agent needs to run the app without reviewing the extracted values and browser UI. 
 
 ```bash
 python scripts/papers_to_table.py headless \
   --config app/config.json \
   --accept-all \
   --export
+```
+
+### Optimizer tool
+Optimizer is an orchestration tool for comparing different models, prompts, and configuration parameters with Eval scoring.
+
+```bash
+python scripts/papers_to_table.py optimizer dev-check
+python scripts/papers_to_table.py optimizer compare-models
+python scripts/papers_to_table.py optimizer full-benchmark
 ```
 
 ### Eval tool
@@ -49,14 +57,6 @@ python scripts/papers_to_table.py eval \
   --gold /absolute/path/to/gold.csv \
   --schema /absolute/path/to/schema.json \
   --out /absolute/path/to/eval_out
-```
-
-### Optimizer tool
-Optimizer is an orchestration tool for comparing different models, prompts, and configuration parameters with Eval scoring.
-
-```bash
-python scripts/papers_to_table.py optimizer compare-models
-python scripts/papers_to_table.py optimizer full-benchmark
 ```
 
 ### /Papers-to-table skill

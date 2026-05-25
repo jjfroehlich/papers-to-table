@@ -51,7 +51,7 @@ from backend.app.extraction import (
     make_skipped_proposal,
     persist_evidence,
     persist_proposal,
-    proposal_support_display,
+    _proposal_value_for_persistence,
     rank_evidence,
     select_relevant_figures,
     should_run_recall_rescue,
@@ -80,7 +80,7 @@ from backend.app.retrieval import (
     run_retrieval_for_cell,
     score_chunks,
 )
-from backend.app.schemas import EvidenceSourceType, ProposalState, SupportLabel
+from backend.app.schemas import EvidenceSourceType, EvidenceStatus, ProposalStatus, ReviewBucket
 from backend.app.style_profiles import (
     StyleProfile,
     _heuristic_profile,
@@ -1379,41 +1379,41 @@ class TestProviderCapabilities:
 # T067 — Extraction
 # ===========================================================================
 
-class TestProposalState:
-    """T058: Proposal state handling."""
+class TestTemporaryExtractionAdjudication:
+    """Temporary model-output adjudication before canonical proposal persistence."""
 
     def test_found_with_direct_quote(self):
         state, support = adjudicate_state(
             "found", "45.3%",
             [{"text": "BVF was 45.3%", "source_type": "direct_quote"}]
         )
-        assert state == ProposalState.found
-        assert support == SupportLabel.direct_evidence
+        assert state == "found"
+        assert support == "direct_evidence"
 
     def test_found_without_quotes_downgrades(self):
         state, support = adjudicate_state("found", "45.3%", [])
-        assert state == ProposalState.inferred
-        assert support == SupportLabel.inferred_from_evidence
+        assert state == "inferred"
+        assert support == "inferred_from_evidence"
 
     def test_inferred_with_quotes(self):
         state, support = adjudicate_state(
             "inferred", "derived value",
             [{"text": "some quote", "source_type": "inferred_reasoning"}]
         )
-        assert state == ProposalState.inferred
+        assert state == "inferred"
 
     def test_inferred_without_quotes_weak(self):
         state, support = adjudicate_state("inferred", "derived value", [])
-        assert state == ProposalState.inferred
-        assert support == SupportLabel.weak_evidence
+        assert state == "inferred"
+        assert support == "weak_evidence"
 
     def test_unclear_no_value(self):
         state, support = adjudicate_state("unclear", None, [])
-        assert state == ProposalState.unclear
+        assert state == "unclear"
 
     def test_unclear_empty_value(self):
         state, support = adjudicate_state("found", "", [])
-        assert state == ProposalState.unclear
+        assert state == "unclear"
 
     def test_blocked_proposal(self, run_dir: pathlib.Path):
         prop = make_blocked_proposal(
@@ -1425,8 +1425,9 @@ class TestProposalState:
             blocked_reason="No PDF matched",
             run_dir=run_dir,
         )
-        assert prop.state == ProposalState.blocked
-        assert prop.support == SupportLabel.blocked
+        assert prop.proposal_status == ProposalStatus.unresolved
+        assert prop.evidence_status == EvidenceStatus.no_evidence
+        assert prop.review_bucket == ReviewBucket.diagnostic
         assert "blocked" in prop.warning_flags
 
     def test_skipped_proposal(self, run_dir: pathlib.Path):
@@ -1439,13 +1440,13 @@ class TestProposalState:
             skip_reason="Provider unavailable",
             run_dir=run_dir,
         )
-        assert prop.state == ProposalState.skipped
+        assert prop.proposal_status == ProposalStatus.not_attempted
 
     def test_anti_guessing_unclear_preferred(self):
         """T058a: unclear preferred when no paper evidence."""
         state, support = adjudicate_state("found", "guessed value", [])
         # Without any quotes, should downgrade
-        assert state == ProposalState.inferred  # at best inferred, not found
+        assert state == "inferred"  # at best inferred, not found
 
 
 class TestEvidenceAnchoring:
@@ -1606,15 +1607,6 @@ class TestEvidenceTypeLabelMapping:
         label = evidence_type_display(EvidenceSourceType.caption_grounded_figure_evidence)
         assert "Figure" in label or "figure" in label.lower()
 
-    def test_proposal_support_direct_evidence_label(self):
-        label = proposal_support_display(SupportLabel.direct_evidence)
-        assert label == "Direct evidence"
-
-    def test_proposal_support_inferred_label(self):
-        label = proposal_support_display(SupportLabel.inferred_from_evidence)
-        assert "Inferred" in label
-
-
 class TestExtractionOrchestrator:
     """T057: Per-cell extraction orchestrator."""
 
@@ -1660,7 +1652,7 @@ class TestExtractionOrchestrator:
             provider=provider,
             text_model_id="test-model",
         )
-        assert proposal.state == ProposalState.found
+        assert proposal.proposal_status == ProposalStatus.value_proposed
         assert proposal.proposed_value == "Tibial defect"
         assert proposal.primary_evidence_id is not None
         persisted = load_proposals(run_dir)
@@ -1682,7 +1674,7 @@ class TestExtractionOrchestrator:
             provider=provider,
             text_model_id="test-model",
         )
-        assert proposal.state == ProposalState.error
+        assert proposal.proposal_status == ProposalStatus.error
         assert "provider_error" in proposal.warning_flags
 
     async def test_unclear_state_preserved(self, run_dir: pathlib.Path, minimal_doc_dict: dict):
@@ -1707,7 +1699,7 @@ class TestExtractionOrchestrator:
             provider=provider,
             text_model_id="test-model",
         )
-        assert proposal.state == ProposalState.unclear
+        assert proposal.proposal_status == ProposalStatus.unresolved
 
     async def test_evidence_persisted_separately(self, run_dir: pathlib.Path, minimal_doc_dict: dict):
         """T056: evidence persisted as separate linked records."""
@@ -1985,8 +1977,10 @@ class TestExtractionOrchestrator:
         decision = should_run_recall_rescue(
             recall_rescue_enabled=True,
             rescue_already_used=False,
-            state=ProposalState.found,
-            support=SupportLabel.direct_evidence,
+            proposal_status=ProposalStatus.value_proposed,
+            evidence_status=EvidenceStatus.direct_strong,
+            review_bucket=ReviewBucket.review,
+            reason_codes=[],
             quotes=[],
             retrieval=None,
             needs_more_evidence=True,
@@ -1999,8 +1993,10 @@ class TestExtractionOrchestrator:
         decision = should_run_recall_rescue(
             recall_rescue_enabled=False,
             rescue_already_used=False,
-            state=ProposalState.unclear,
-            support=SupportLabel.blocked,
+            proposal_status=ProposalStatus.unresolved,
+            evidence_status=EvidenceStatus.no_evidence,
+            review_bucket=ReviewBucket.attention,
+            reason_codes=["insufficient_evidence"],
             quotes=[],
             retrieval=None,
         )
@@ -2032,7 +2028,7 @@ class TestExtractionOrchestrator:
             text_model_id="test-model",
         )
 
-        assert proposal.state == ProposalState.found
+        assert proposal.proposal_status == ProposalStatus.value_proposed
         assert proposal.proposed_value == "Tibial defect"
         assert proposal.primary_evidence_id is not None
 
@@ -2348,7 +2344,7 @@ class TestFigureReview:
             vision_model_id="vision-model",
         )
         assert proposal.proposed_value == "45.3%"
-        assert proposal.state == ProposalState.inferred
+        assert proposal.proposal_status == ProposalStatus.value_proposed
         assert "figure_derived" in proposal.warning_flags
         assert text_provider.vision_complete_structured.called
 
@@ -2801,6 +2797,29 @@ class TestProposalPersistence:
         evs = load_evidence(run_dir)
         assert evs == []
 
+    def test_unresolved_placeholder_value_is_not_persisted(self):
+        assert (
+            _proposal_value_for_persistence(
+                proposal_status=ProposalStatus.unresolved,
+                proposed_value="unclear",
+            )
+            is None
+        )
+        assert (
+            _proposal_value_for_persistence(
+                proposal_status=ProposalStatus.unresolved,
+                proposed_value="No value proposed",
+            )
+            is None
+        )
+        assert (
+            _proposal_value_for_persistence(
+                proposal_status=ProposalStatus.value_proposed,
+                proposed_value="unclear",
+            )
+            == "unclear"
+        )
+
     def test_proposal_and_evidence_round_trip(self, run_dir: pathlib.Path):
         import datetime
 
@@ -2810,8 +2829,10 @@ class TestProposalPersistence:
             pdf_id="pdf_test",
             row_id="row_test",
             cell_id="cell_test",
-            state=ProposalState.found,
-            support=SupportLabel.direct_evidence,
+            proposal_status=ProposalStatus.value_proposed,
+            evidence_status=EvidenceStatus.direct_strong,
+            review_bucket=ReviewBucket.review,
+            reason_codes=[],
             column_name="Test",
             proposed_value="value",
             rationale="- Test bullet.",
@@ -2842,8 +2863,7 @@ class TestProposalPersistence:
 
         assert len(loaded_proposals) == 1
         assert loaded_proposals[0].proposal_id == "prop_roundtrip"
-        assert loaded_proposals[0].proposal_schema_version == "main_proposal.v2"
-        assert loaded_proposals[0].state == ProposalState.found
+        assert loaded_proposals[0].proposal_status == ProposalStatus.value_proposed
         assert len(loaded_evidence) == 1
         assert loaded_evidence[0].evidence_schema_version == "main_evidence.v2"
         assert loaded_evidence[0].source_type == EvidenceSourceType.direct_quote
@@ -2965,7 +2985,7 @@ class TestCanonicalFixtureReadiness:
 
         proposals = load_proposals(run_dir)
         assert len(proposals) == 1
-        assert proposals[0].state == ProposalState.skipped
+        assert proposals[0].proposal_status == ProposalStatus.not_attempted
         assert "Provider unavailable" in proposals[0].rationale
 
     def test_separate_text_and_vision_model_config(self):

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { api } from '../api/client'
 import type { MatchingSummary, ReviewProgress, ReviewTableData, ReviewTableProposal, RunData } from '../types'
+import { isGreenEvidenceStatus, isGreenProposalStatus } from './ReviewTags'
 
 interface Props {
   run: RunData
@@ -75,6 +76,13 @@ function uniqueProposals(table: ReviewTableData | null): ReviewTableProposal[] {
   return Array.from(proposals.values())
 }
 
+function hasAttentionSignal(proposal: ReviewTableProposal): boolean {
+  return !(
+    isGreenProposalStatus(proposal.proposal_status) &&
+    isGreenEvidenceStatus(proposal.evidence_status, proposal.is_fallback_evidence)
+  )
+}
+
 export function RunSummaryPanel({ run, outputDir }: Props) {
   const [progress, setProgress] = useState<ReviewProgress | null>(null)
   const [matching, setMatching] = useState<MatchingSummary | null>(null)
@@ -92,13 +100,12 @@ export function RunSummaryPanel({ run, outputDir }: Props) {
   const progressPct = actionableTotal > 0 ? Math.round((actionableReviewed / actionableTotal) * 100) : 0
   const proposals = useMemo(() => uniqueProposals(reviewTable), [reviewTable])
   const proposalStats = useMemo(() => ({
-    found: proposals.filter((proposal) => proposal.state === 'found').length,
-    inferred: proposals.filter((proposal) => proposal.state === 'inferred').length,
-    unclear: proposals.filter((proposal) => proposal.state === 'unclear').length,
-    blocked: proposals.filter((proposal) => proposal.state === 'blocked').length,
-    weak: proposals.filter((proposal) => proposal.support === 'weak_evidence').length,
+    valueProposed: proposals.filter((proposal) => proposal.proposal_status === 'value_proposed').length,
+    noData: proposals.filter((proposal) => proposal.proposal_status === 'no_data').length,
+    unresolved: proposals.filter((proposal) => proposal.proposal_status === 'unresolved').length,
+    diagnostic: proposals.filter((proposal) => proposal.review_bucket === 'diagnostic').length,
+    attention: proposals.filter(hasAttentionSignal).length,
     fallback: proposals.filter((proposal) => proposal.is_fallback_evidence).length,
-    warnings: proposals.filter((proposal) => proposal.warning_flags.length > 0 || proposal.warning_categories.length > 0).length,
   }), [proposals, run.proposals_generated])
 
   const providerLabel = run.provider_token === 'lm_studio' ? 'LM Studio' : run.provider_token ?? '—'
@@ -120,13 +127,12 @@ export function RunSummaryPanel({ run, outputDir }: Props) {
 
         <DiagnosticBox title="Proposals">
           <DetailRow label="Attempted" value={run.proposals_generated} />
-          <DetailRow label="Found" value={proposalStats.found} />
-          <DetailRow label="Inferred" value={proposalStats.inferred} />
-          <DetailRow label="Blocked" value={proposalStats.blocked} />
-          <DetailRow label="Warnings" value={proposalStats.warnings} />
-          <DetailRow label="Weak" value={proposalStats.weak} />
+          <DetailRow label="Values" value={proposalStats.valueProposed} />
+          <DetailRow label="No data" value={proposalStats.noData} />
+          <DetailRow label="Unresolved" value={proposalStats.unresolved} />
+          <DetailRow label="Diagnostic" value={proposalStats.diagnostic} />
+          <DetailRow label="Attention" value={proposalStats.attention} />
           <DetailRow label="Fallback" value={proposalStats.fallback} />
-          <DetailRow label="Unclear" value={proposalStats.unclear} />
         </DiagnosticBox>
 
         <DiagnosticBox title="Review">
@@ -167,7 +173,6 @@ export function RunSummaryPanel({ run, outputDir }: Props) {
             <DetailRow label="Started" value={run.started_at ? new Date(run.started_at).toLocaleString() : null} />
             <DetailRow label="Completed" value={run.completed_at ? new Date(run.completed_at).toLocaleString() : null} />
             <DetailRow label="Current stage" value={run.current_stage ?? null} />
-            {run.warnings.length > 0 && <DetailRow label="Run warnings" value={`${run.warnings.length} warning${run.warnings.length === 1 ? '' : 's'}`} />}
           </div>
         </section>
       </div>

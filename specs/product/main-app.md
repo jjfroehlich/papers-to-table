@@ -126,7 +126,7 @@ The backend may expose a stable non-UI automation entrypoint for tooling, includ
 - Eval/benchmark extraction must not send gold metadata values through LLM prompts, but it must emit parser/front-matter proposals for required metadata columns that eval scores, including `Title`, `Authors`, and `Publication Year`.
 - A target cell is eligible only when the run has passed readiness, the source paper has a usable row match or allowed metadata path, and the cell is in scope for the selected run mode.
 - The app persists one best proposal per eligible target cell, but weaker fallback evidence and failure attribution must remain explicit so reviewers and downstream tooling can tell why a proposal looks the way it does.
-- The app should prefer `unclear` over weak guessing when current-paper evidence is not strong enough.
+- The app should persist `proposal_status=unresolved` instead of weak guessing when current-paper evidence is not strong enough.
 - Matching metadata extraction must reject obvious correspondence or email lines as title candidates and preserve those rejection diagnostics in matching artifacts.
 
 ### Style-profile behavior
@@ -146,7 +146,7 @@ The backend may expose a stable non-UI automation entrypoint for tooling, includ
 ### Proposal and evidence truth
 
 - One best proposal is persisted per eligible target cell.
-- Evidence must remain inspectable, auditable, and clearly labeled by support quality.
+- Evidence must remain inspectable, auditable, and clearly labeled by canonical `evidence_status`.
 - Weak but reviewable proposals may still be shown, but they must be labeled honestly.
 - Evidence ranking must prefer source authority and field relevance rather than model-return order.
 
@@ -214,7 +214,7 @@ That means:
 - summaries and artifacts remain truthful enough for downstream tooling without importing runtime code
 - the setup surface remains understandable without reading source code
 - the documented LM Studio path is either genuinely usable or fails early with an actionable readiness error
-- the app does not load every blocked, skipped, or diagnostic-only outcome into the main review queue by default
+- the app does not load diagnostic-only outcomes into the main review queue by default
 
 ## Acceptance criteria
 
@@ -223,8 +223,8 @@ The main app is acceptable when:
 1. A normal operator can start a run from a config path and see truthful readiness failures before extraction when setup is broken.
 2. PDF-to-row matching never silently hides unmatched, ambiguous, or duplicate-row outcomes.
 2a. Matching artifacts must preserve extracted metadata, front-matter diagnostics, candidate-score breakdowns, and threshold or gap reasoning for matched, unmatched, and ambiguous papers.
-3. Proposal generation remains schema-first and keeps one best proposal per eligible target cell with inspectable support.
-4. Weak, inferred, and fallback evidence remain visibly distinguished from direct support.
+3. Proposal generation remains schema-first and keeps one best proposal per eligible target cell with inspectable evidence.
+4. Weak, inferred, and fallback evidence remain visibly distinguished from direct strong evidence through canonical evidence status and reason codes.
 5. Review stays queue-first and export writes a new workbook plus audit artifacts only after explicit reviewer action.
 6. Run artifacts remain sufficient for eval and optimizer tooling without runtime imports from the main app.
 6a. Run artifacts must preserve enough page-text and evidence context for downstream anchor validation, plus compact reviewer-summary truth for degraded structured-output and extraction-contract state.

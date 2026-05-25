@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { ProposalDetailPane } from './ProposalDetailPane'
 import type { ProposalDetail } from '../types'
@@ -19,8 +19,10 @@ const mockDetail: ProposalDetail = {
     row_id: 'row-001',
     column_name: 'sample_size',
     pdf_id: 'paper-a',
-    state: 'found',
-    support: 'direct_evidence',
+    proposal_status: 'value_proposed',
+    evidence_status: 'direct_strong',
+    review_bucket: 'review',
+    reason_codes: [],
     proposed_value: '120',
     rationale: 'The sample size of 120 participants was stated in the Methods section.',
     calculation: null,
@@ -87,6 +89,30 @@ const mockDetail: ProposalDetail = {
   },
 }
 
+function renderDetail(detail: ProposalDetail) {
+  mockGetProposalDetail.mockResolvedValueOnce(detail)
+  render(
+    <ProposalDetailPane
+      proposalId={detail.proposal.proposal_id}
+      runId={detail.proposal.run_id}
+      outputDir="./runs"
+      selectedEvidenceId={null}
+      onEvidenceSelect={vi.fn()}
+    />
+  )
+}
+
+function detailFor(overrides: Partial<ProposalDetail['proposal']>, evidence: ProposalDetail['evidence'] = mockDetail.evidence): ProposalDetail {
+  return {
+    ...mockDetail,
+    proposal: {
+      ...mockDetail.proposal,
+      ...overrides,
+    },
+    evidence,
+  }
+}
+
 describe('ProposalDetailPane', () => {
   beforeEach(() => {
     mockGetProposalDetail.mockResolvedValue(mockDetail)
@@ -107,7 +133,28 @@ describe('ProposalDetailPane', () => {
     expect(screen.getByText('120')).toBeInTheDocument()
   })
 
-  it('renders rationale expanded by default', async () => {
+  it('does not crash when warning categories are omitted from the payload', async () => {
+    const { warning_categories: _warningCategories, ...proposalWithoutWarningCategories } = mockDetail.proposal
+    mockGetProposalDetail.mockResolvedValueOnce({
+      ...mockDetail,
+      proposal: proposalWithoutWarningCategories,
+    })
+
+    render(
+      <ProposalDetailPane
+        proposalId="p1"
+        runId="r1"
+        outputDir="./runs"
+        selectedEvidenceId={null}
+        onEvidenceSelect={vi.fn()}
+      />
+    )
+
+    await screen.findByText('120')
+    expect(screen.getByText('120')).toBeInTheDocument()
+  })
+
+  it('renders rationale as a normal reviewer-facing section', async () => {
     render(
       <ProposalDetailPane
         proposalId="p1"
@@ -120,6 +167,21 @@ describe('ProposalDetailPane', () => {
     )
     await screen.findByText('Rationale')
     expect(screen.getByText('The sample size of 120 participants was stated in the Methods section.')).toBeInTheDocument()
+    expect(screen.queryByText('Context considered')).not.toBeInTheDocument()
+  })
+
+  it('uses Value as the section header', async () => {
+    render(
+      <ProposalDetailPane
+        proposalId="p1"
+        runId="r1"
+        outputDir="./runs"
+        selectedEvidenceId={null}
+        onEvidenceSelect={vi.fn()}
+      />
+    )
+    await screen.findByText('Value')
+    expect(screen.queryByText('Value or conclusion')).not.toBeInTheDocument()
   })
 
   it('shows simplified evidence heading', async () => {
@@ -233,5 +295,404 @@ describe('ProposalDetailPane', () => {
       />
     )
     expect(screen.getByText('Select a proposal from the queue.')).toBeInTheDocument()
+  })
+
+  it('does not display unresolved placeholder text as a proposed value', async () => {
+    mockGetProposalDetail.mockResolvedValueOnce({
+      ...mockDetail,
+      proposal: {
+        ...mockDetail.proposal,
+        proposal_status: 'unresolved',
+        evidence_status: 'no_evidence',
+        review_bucket: 'attention',
+        proposed_value: 'unclear',
+        reason_codes: ['insufficient_evidence'],
+        rationale: '- Relevant passages were inspected, but none settled the field.',
+        evidence_ids: [],
+        ordered_supporting_evidence_ids: [],
+        primary_evidence_id: null,
+        candidate_answers: [
+          {
+            candidate_id: 'cand_1',
+            value: 'unclear',
+            candidate_status: 'unclear',
+            source: 'first_pass_text',
+            confidence_rationale: '- Relevant passages were inspected, but none settled the field.',
+          },
+        ],
+        selection_diagnostics: {
+          attempted: false,
+          succeeded: false,
+          skip_reason: 'not_needed_or_disabled',
+          candidate_count: 1,
+        },
+      },
+      evidence: [],
+    })
+
+    render(
+      <ProposalDetailPane
+        proposalId="p1"
+        runId="r1"
+        outputDir="./runs"
+        selectedEvidenceId={null}
+        onEvidenceSelect={vi.fn()}
+      />
+    )
+
+    await screen.findByText('No value proposed')
+    expect(screen.queryByText('unclear')).not.toBeInTheDocument()
+    expect(screen.queryByText('No decisive evidence was found for this target cell.')).not.toBeInTheDocument()
+    expect(screen.queryByText('No usable evidence found for this target cell.')).not.toBeInTheDocument()
+  })
+
+  it('shows rationale by default and retrieval diagnostics only in collapsed advanced diagnostics', async () => {
+    mockGetProposalDetail.mockResolvedValueOnce({
+      ...mockDetail,
+      proposal: {
+        ...mockDetail.proposal,
+        proposal_status: 'unresolved',
+        evidence_status: 'no_evidence',
+        review_bucket: 'attention',
+        proposed_value: null,
+        reason_codes: ['insufficient_evidence'],
+        rationale: '- The retrieved passages were relevant but not decisive.',
+        evidence_ids: [],
+        ordered_supporting_evidence_ids: [],
+        primary_evidence_id: null,
+        retrieval_diagnostics: {
+          retrieved_chunk_count: 5,
+          chunks_considered: 5,
+        },
+      },
+      evidence: [],
+    })
+
+    render(
+      <ProposalDetailPane
+        proposalId="p1"
+        runId="r1"
+        outputDir="./runs"
+        selectedEvidenceId={null}
+        onEvidenceSelect={vi.fn()}
+      />
+    )
+
+    await screen.findByText('Rationale')
+    expect(screen.getByText('- The retrieved passages were relevant but not decisive.')).toBeInTheDocument()
+    expect(screen.getByText('No formal evidence items were persisted for this proposal.')).toBeInTheDocument()
+    expect(screen.getByText('Advanced diagnostics')).toBeInTheDocument()
+    expect(screen.getByText('Retrieval diagnostics')).not.toBeVisible()
+    fireEvent.click(screen.getByText('Advanced diagnostics'))
+    expect(screen.getByText('Retrieval diagnostics')).toBeVisible()
+    expect(screen.getByText('retrieved chunk count')).toBeVisible()
+  })
+
+  it('renders readable reason labels with explanatory titles', async () => {
+    mockGetProposalDetail.mockResolvedValueOnce({
+      ...mockDetail,
+      proposal: {
+        ...mockDetail.proposal,
+        proposal_status: 'unresolved',
+        evidence_status: 'no_evidence',
+        review_bucket: 'attention',
+        proposed_value: null,
+        reason_codes: ['conflicting_evidence', 'approximate_anchor', 'retrieval_empty'],
+        evidence_ids: [],
+        ordered_supporting_evidence_ids: [],
+        primary_evidence_id: null,
+      },
+      evidence: [],
+    })
+
+    render(
+      <ProposalDetailPane
+        proposalId="p1"
+        runId="r1"
+        outputDir="./runs"
+        selectedEvidenceId={null}
+        onEvidenceSelect={vi.fn()}
+      />
+    )
+
+    await screen.findByText('Conflicting evidence')
+    expect(screen.getByTitle('The system found competing or inconsistent candidates.')).toBeInTheDocument()
+    expect(screen.getByText('Approximate anchor')).toBeInTheDocument()
+    expect(screen.getByText('Retrieval empty')).toBeInTheDocument()
+  })
+
+  it('places reason-code chips in the top status tag row', async () => {
+    renderDetail(
+      detailFor({
+        proposal_status: 'unresolved',
+        evidence_status: 'no_evidence',
+        review_bucket: 'attention',
+        proposed_value: null,
+        reason_codes: ['insufficient_evidence'],
+      })
+    )
+
+    await screen.findByText('Insufficient evidence')
+    const statusSection = screen.getByText('Value').closest('section')!
+    expect(statusSection).toContainElement(screen.getByText('Insufficient evidence'))
+  })
+
+  it('shows metadata conflict candidate values in collapsed advanced diagnostics', async () => {
+    mockGetProposalDetail.mockResolvedValueOnce({
+      ...mockDetail,
+      proposal: {
+        ...mockDetail.proposal,
+        column_name: 'Journal',
+        proposal_status: 'unresolved',
+        evidence_status: 'no_evidence',
+        review_bucket: 'attention',
+        proposed_value: null,
+        reason_codes: ['conflicting_evidence'],
+        rationale: '- Parser-first metadata/front-matter inspection found conflicting candidates.',
+        evidence_ids: [],
+        ordered_supporting_evidence_ids: [],
+        primary_evidence_id: null,
+        metadata_diagnostics: {
+          candidate_count: 2,
+          candidate_sources: ['front_matter_block', 'front_matter_block'],
+          candidates: [
+            {
+              value: 'Candidate journal title',
+              source: 'front_matter_block',
+              page_number: 1,
+            },
+            {
+              value: 'Competing journal-like text',
+              source: 'front_matter_block',
+              page_number: 2,
+            },
+          ],
+        },
+      },
+      evidence: [],
+    })
+
+    render(
+      <ProposalDetailPane
+        proposalId="p1"
+        runId="r1"
+        outputDir="./runs"
+        selectedEvidenceId={null}
+        onEvidenceSelect={vi.fn()}
+      />
+    )
+
+    await screen.findByText('Advanced diagnostics')
+    expect(screen.getByText('Candidate values')).not.toBeVisible()
+    fireEvent.click(screen.getByText('Advanced diagnostics'))
+    expect(screen.getByText('Candidate values')).toBeVisible()
+    expect(screen.getByText('Candidate journal title')).toBeVisible()
+    expect(screen.getByText('Competing journal-like text')).toBeVisible()
+    expect(screen.getByText('Metadata diagnostics')).toBeVisible()
+    expect(screen.getByText('candidate count')).toBeVisible()
+  })
+
+  it('renders no-data direct evidence as an absence conclusion', async () => {
+    renderDetail(
+      detailFor({
+        proposal_status: 'no_data',
+        evidence_status: 'direct_strong',
+        review_bucket: 'review',
+        proposed_value: null,
+        reason_codes: ['explicitly_not_reported'],
+        rationale: '- The paper explicitly says the assay was not measured.',
+      })
+    )
+
+    await screen.findByText('No data reported')
+    expect(screen.getByText('Explicitly not reported')).toBeInTheDocument()
+    expect(screen.getByTitle('The paper directly says this information was not measured or not reported.')).toBeInTheDocument()
+    expect(screen.getByTitle('Evidence: direct strong')).toBeInTheDocument()
+  })
+
+  it('renders inferred no-data as no data reported with context', async () => {
+    renderDetail(
+      detailFor(
+        {
+          proposal_status: 'no_data',
+          evidence_status: 'inferred_weak',
+          review_bucket: 'attention',
+          proposed_value: null,
+          reason_codes: ['not_reported'],
+          rationale: '- Relevant sections did not report the field.',
+        },
+        []
+      )
+    )
+
+    await screen.findByText('No data reported')
+    expect(screen.getByText('Not reported')).toBeInTheDocument()
+    expect(screen.getByText('- Relevant sections did not report the field.')).toBeInTheDocument()
+    expect(screen.getByText('No formal evidence items were persisted for this proposal.')).toBeInTheDocument()
+  })
+
+  it('renders value proposals with inferred strong evidence as a proposed value', async () => {
+    renderDetail(
+      detailFor({
+        proposal_status: 'value_proposed',
+        evidence_status: 'inferred_strong',
+        review_bucket: 'review',
+        proposed_value: 'MPRA',
+      })
+    )
+
+    await screen.findByText('MPRA')
+    expect(screen.getByTitle('Evidence: inferred strong')).toBeInTheDocument()
+  })
+
+  it('renders weak direct value proposals with readable reason labels', async () => {
+    renderDetail(
+      detailFor({
+        proposal_status: 'value_proposed',
+        evidence_status: 'direct_weak',
+        review_bucket: 'attention',
+        proposed_value: 'HEK293T',
+        reason_codes: ['insufficient_evidence'],
+      })
+    )
+
+    await screen.findByText('HEK293T')
+    expect(screen.getByTitle('Evidence: direct weak')).toBeInTheDocument()
+    expect(screen.getByText('Insufficient evidence')).toBeInTheDocument()
+  })
+
+  it('renders not-applicable as a conclusion, not a missing proposal', async () => {
+    renderDetail(
+      detailFor(
+        {
+          proposal_status: 'not_applicable',
+          evidence_status: 'not_applicable',
+          review_bucket: 'diagnostic',
+          proposed_value: null,
+          reason_codes: ['schema_not_applicable'],
+        },
+        []
+      )
+    )
+
+    await screen.findByText('Not applicable')
+    expect(screen.queryByText('No value proposed')).not.toBeInTheDocument()
+    expect(screen.getByText('Not applicable by schema')).toBeInTheDocument()
+  })
+
+  it('renders errors as extraction errors with reason codes', async () => {
+    renderDetail(
+      detailFor(
+        {
+          proposal_status: 'error',
+          evidence_status: 'not_applicable',
+          review_bucket: 'diagnostic',
+          proposed_value: null,
+          reason_codes: ['provider_error', 'parser_error', 'invalid_model_output'],
+          rationale: 'Provider error: unavailable',
+        },
+        []
+      )
+    )
+
+    await screen.findByText('Extraction error')
+    expect(screen.getByText('Provider error')).toBeInTheDocument()
+    expect(screen.getByText('Parser error')).toBeInTheDocument()
+    expect(screen.getByText('Invalid model output')).toBeInTheDocument()
+  })
+
+  it('renders not-attempted as a conclusion with its reason', async () => {
+    renderDetail(
+      detailFor(
+        {
+          proposal_status: 'not_attempted',
+          evidence_status: 'not_applicable',
+          review_bucket: 'diagnostic',
+          proposed_value: null,
+          reason_codes: ['column_excluded'],
+        },
+        []
+      )
+    )
+
+    await screen.findByText('Not attempted')
+    expect(screen.getByText('column excluded')).toBeInTheDocument()
+  })
+
+  it('renders pure retrieval-empty unresolved without implying inspected context', async () => {
+    renderDetail(
+      detailFor(
+        {
+          proposal_status: 'unresolved',
+          evidence_status: 'no_evidence',
+          review_bucket: 'diagnostic',
+          proposed_value: null,
+          reason_codes: ['retrieval_empty'],
+          rationale: null,
+          candidate_answers: null,
+          selection_diagnostics: null,
+          retrieval_diagnostics: null,
+        },
+        []
+      )
+    )
+
+    await screen.findByText('No value proposed')
+    expect(screen.getAllByText('No formal evidence items were persisted for this proposal.').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Context considered')).not.toBeInTheDocument()
+    expect(screen.queryByText('No decisive evidence was found for this target cell. Context considered by the system is shown below.')).not.toBeInTheDocument()
+  })
+
+  it('falls back gracefully for unknown reason codes', async () => {
+    renderDetail(
+      detailFor({
+        reason_codes: ['future_reason_code'],
+      })
+    )
+
+    await screen.findByText('future reason code')
+    expect(screen.getByTitle('future_reason_code')).toBeInTheDocument()
+  })
+
+  it('does not duplicate a matching single candidate in the main pane', async () => {
+    renderDetail(
+      detailFor({
+        proposed_value: '120',
+        candidate_answers: [
+          {
+            candidate_id: 'cand_1',
+            value: '120',
+            candidate_status: 'found',
+            source: 'first_pass_text',
+            confidence_rationale: 'The sample size of 120 participants was stated in the Methods section.',
+          },
+        ],
+      })
+    )
+
+    await screen.findAllByText('120')
+    expect(screen.getByText('Candidate values')).not.toBeVisible()
+    expect(screen.getAllByText('The sample size of 120 participants was stated in the Methods section.')[0]).toBeVisible()
+    fireEvent.click(screen.getByText('Advanced diagnostics'))
+    expect(screen.getByText('Candidate values')).toBeVisible()
+  })
+
+  it('shows not-needed selection diagnostics without failure wording', async () => {
+    renderDetail(
+      detailFor({
+        selection_diagnostics: {
+          attempted: false,
+          succeeded: false,
+          skip_reason: 'not_needed_or_disabled',
+          candidate_count: 1,
+        },
+      })
+    )
+
+    await screen.findByText('Advanced diagnostics')
+    fireEvent.click(screen.getByText('Advanced diagnostics'))
+    expect(screen.getByText('Selection step not run because it was not needed')).toBeVisible()
+    expect(screen.queryByText('succeeded')).not.toBeInTheDocument()
+    expect(screen.queryByText('false')).not.toBeInTheDocument()
   })
 })

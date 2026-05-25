@@ -1,4 +1,4 @@
-import type { EvidenceSourceType, ProposalState, ReviewDecision, SupportLabel } from '../types'
+import type { EvidenceSourceType, EvidenceStatus, ProposalStatus, ReviewDecision } from '../types'
 
 type Tone = 'slate' | 'green' | 'amber' | 'orange' | 'red' | 'violet' | 'teal' | 'sky'
 type Size = 'xs' | 'sm'
@@ -25,10 +25,6 @@ function indicatorBoxClass(size: Size) {
 
 function markerSizeClass(size: Size) {
   return size === 'xs' ? 'h-2 w-2' : 'h-2.5 w-2.5'
-}
-
-function flagSizeClass(size: Size) {
-  return size === 'xs' ? 'h-3 w-3' : 'h-3.5 w-3.5'
 }
 
 export function ReviewTag({
@@ -106,96 +102,79 @@ function SignalDot({ active, label, size = 'sm' }: { active: Light; label: strin
   )
 }
 
-export function ProposalStateIndicator({ state, size = 'sm' }: { state: ProposalState; size?: Size }) {
-  const light: Record<ProposalState, Light> = {
-    found: 'green',
-    inferred: 'yellow',
-    unclear: 'yellow',
-    blocked: 'red',
+export function ProposalStatusIndicator({ status, size = 'sm' }: { status: ProposalStatus; size?: Size }) {
+  const light: Record<ProposalStatus, Light> = {
+    value_proposed: 'green',
+    no_data: 'yellow',
+    unresolved: 'yellow',
+    not_applicable: 'red',
+    not_attempted: 'red',
     error: 'red',
-    skipped: 'red',
   }
-  return <SignalDot active={light[state] ?? 'yellow'} label={`State: ${words(state)}`} size={size} />
+  return <SignalDot active={light[status] ?? 'yellow'} label={`Proposal: ${words(status)}`} size={size} />
 }
 
-export function ProposalStateTag({ state, size = 'sm' }: { state: ProposalState; size?: Size }) {
-  const tone: Record<ProposalState, Tone> = {
-    found: 'green',
-    inferred: 'amber',
-    unclear: 'orange',
-    blocked: 'red',
-    error: 'red',
-    skipped: 'slate',
-  }
-  return <ReviewTag category="State" value={words(state)} tone={tone[state] ?? 'slate'} size={size} />
+export function isGreenProposalStatus(status: ProposalStatus): boolean {
+  return status === 'value_proposed'
 }
 
-export function ProposalSupportIndicator({
-  support,
+export function ProposalStatusTag({ status, size = 'sm' }: { status: ProposalStatus; size?: Size }) {
+  const tone: Record<ProposalStatus, Tone> = {
+    value_proposed: 'green',
+    no_data: 'violet',
+    unresolved: 'orange',
+    not_applicable: 'slate',
+    not_attempted: 'slate',
+    error: 'red',
+  }
+  return <ReviewTag category="Proposal" value={words(status)} tone={tone[status] ?? 'slate'} size={size} />
+}
+
+export function EvidenceStatusIndicator({
+  evidenceStatus,
   isFallback,
   size = 'sm',
 }: {
-  support: SupportLabel
+  evidenceStatus: EvidenceStatus
   isFallback?: boolean
   size?: Size
 }) {
-  const light: Record<SupportLabel, Light> = {
-    direct_evidence: 'green',
-    inferred_from_evidence: 'yellow',
-    weak_evidence: 'yellow',
-    blocked: 'red',
-    error: 'red',
+  const light: Record<EvidenceStatus, Light> = {
+    direct_strong: 'green',
+    inferred_strong: 'green',
+    direct_weak: 'yellow',
+    inferred_weak: 'yellow',
+    no_evidence: 'red',
+    not_applicable: 'red',
   }
-  const label = isFallback ? 'Support: fallback evidence' : `Support: ${words(support)}`
-  return <SignalDot active={isFallback ? 'yellow' : light[support] ?? 'yellow'} label={label} size={size} />
+  const label = isFallback ? 'Evidence: anchor fallback' : `Evidence: ${words(evidenceStatus)}`
+  return <SignalDot active={isFallback ? 'yellow' : light[evidenceStatus] ?? 'yellow'} label={label} size={size} />
 }
 
-export function ProposalSupportTag({
-  support,
+export function isGreenEvidenceStatus(evidenceStatus: EvidenceStatus, isFallback?: boolean): boolean {
+  return !isFallback && (evidenceStatus === 'direct_strong' || evidenceStatus === 'inferred_strong')
+}
+
+export function EvidenceStatusTag({
+  evidenceStatus,
   isFallback,
   size = 'sm',
 }: {
-  support: SupportLabel
+  evidenceStatus: EvidenceStatus
   isFallback?: boolean
   size?: Size
 }) {
-  if (isFallback) return <ReviewTag category="Support" value="fallback evidence" tone="orange" size={size} />
-  const map: Record<SupportLabel, { value: string; tone: Tone }> = {
-    direct_evidence: { value: 'direct evidence', tone: 'green' },
-    inferred_from_evidence: { value: 'inferred evidence', tone: 'amber' },
-    weak_evidence: { value: 'weak evidence', tone: 'orange' },
-    blocked: { value: 'blocked', tone: 'red' },
-    error: { value: 'error', tone: 'red' },
+  if (isFallback) return <ReviewTag category="Evidence" value="anchor fallback" tone="orange" size={size} />
+  const map: Record<EvidenceStatus, { value: string; tone: Tone }> = {
+    direct_strong: { value: 'direct strong', tone: 'green' },
+    direct_weak: { value: 'direct weak', tone: 'orange' },
+    inferred_strong: { value: 'inferred strong', tone: 'green' },
+    inferred_weak: { value: 'inferred weak', tone: 'orange' },
+    no_evidence: { value: 'no evidence', tone: 'red' },
+    not_applicable: { value: 'not applicable', tone: 'slate' },
   }
-  const info = map[support]
-  return <ReviewTag category="Support" value={info.value} tone={info.tone} size={size} />
-}
-
-export function WarningTag({ size = 'sm' }: { size?: Size }) {
-  return <ReviewTag category="Warning" value="check" tone="orange" size={size} />
-}
-
-export function WarningIndicator({ size = 'sm' }: { size?: Size }) {
-  return (
-    <span
-      className={`inline-flex ${indicatorBoxClass(size)} items-center justify-center text-amber-600`}
-      title="Warning present"
-      aria-label="Warning present"
-    >
-      <svg className={flagSizeClass(size)} viewBox="0 0 12 12" fill="none" aria-hidden="true">
-        <path d="M2.75 10.4V1.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M3.25 1.8h5.5L8 3.55l.75 1.75h-5.5V1.8Z" fill="currentColor" />
-      </svg>
-    </span>
-  )
-}
-
-export function FigureTag({ size = 'sm' }: { size?: Size }) {
-  return (
-    <span className={`${size === 'xs' ? 'text-[10px]' : 'text-[11px]'} font-medium text-slate-500`} title="Evidence: figure">
-      Evidence: figure
-    </span>
-  )
+  const info = map[evidenceStatus]
+  return <ReviewTag category="Evidence" value={info.value} tone={info.tone} size={size} />
 }
 
 export function EvidenceSourceTag({ sourceType, size = 'sm' }: { sourceType: EvidenceSourceType | string; size?: Size }) {

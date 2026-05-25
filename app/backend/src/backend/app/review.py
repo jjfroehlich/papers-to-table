@@ -31,14 +31,14 @@ from .schemas import (
     DecisionSource,
     EvidenceSourceType,
     ProviderLocality,
-    ProposalState,
+    EvidenceStatus,
+    ReviewBucket,
     ReviewDecision,
     ReviewDecisionRecord,
     ReviewResolutionReason,
     ReviewerSummary,
     RunStatus,
     RunSummary,
-    SupportLabel,
     WarningCategory,
 )
 
@@ -170,10 +170,19 @@ def load_all_decisions(run_dir: pathlib.Path) -> list[ReviewDecisionRecord]:
 # ---------------------------------------------------------------------------
 
 _EVIDENCE_WARNING_FLAGS = {
-    "fallback_evidence_used": WarningCategory.fallback_evidence_used,
-    "fallback_evidence": WarningCategory.fallback_evidence_used,
-    "figure_derived": WarningCategory.figure_derived_evidence,
-    "weak_evidence": WarningCategory.weak_evidence,
+    "provider_error": WarningCategory.provider_unreachable,
+    "needs_more_evidence": WarningCategory.weak_evidence,
+    "low_confidence": WarningCategory.low_confidence_proposal,
+}
+
+_WARNING_REASON_CODES = {
+    "ambiguous_evidence",
+    "conflicting_evidence",
+    "insufficient_evidence",
+    "invalid_model_output",
+    "provider_error",
+    "parser_error",
+    "evidence_missing_for_value",
 }
 
 
@@ -184,18 +193,28 @@ def _proposal_warning_categories(proposal: ProposalRecord) -> list[WarningCatego
         cat = _EVIDENCE_WARNING_FLAGS.get(flag)
         if cat:
             cats.append(cat)
-    if proposal.support == SupportLabel.weak_evidence:
+    if _WARNING_REASON_CODES & set(proposal.reason_codes):
+        if WarningCategory.weak_evidence not in cats:
+            cats.append(WarningCategory.weak_evidence)
+    if proposal.evidence_status in {EvidenceStatus.direct_weak, EvidenceStatus.inferred_weak}:
         if WarningCategory.weak_evidence not in cats:
             cats.append(WarningCategory.weak_evidence)
     return cats
 
 
 def _is_figure_derived(proposal: ProposalRecord) -> bool:
+    figure_diag = proposal.figure_review_diagnostics or {}
+    if int(figure_diag.get("figure_evidence_persisted", 0) or 0) > 0:
+        return True
     return "figure_derived" in proposal.warning_flags
 
 
 def _is_fallback_evidence(proposal: ProposalRecord) -> bool:
-    return "fallback_evidence_used" in proposal.warning_flags or "fallback_evidence" in proposal.warning_flags
+    return (
+        "anchor_fallback" in proposal.reason_codes
+        or "fallback_evidence_used" in proposal.warning_flags
+        or "fallback_evidence" in proposal.warning_flags
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -243,7 +262,7 @@ class ProposalFilter:
                 return False
             elif self.evidence_status == "fallback" and not _is_fallback_evidence(proposal):
                 return False
-            elif self.evidence_status == "weak" and proposal.support != SupportLabel.weak_evidence:
+            elif self.evidence_status == "weak" and proposal.evidence_status not in {EvidenceStatus.direct_weak, EvidenceStatus.inferred_weak}:
                 return False
         if self.figure_derived is not None:
             if self.figure_derived != _is_figure_derived(proposal):
@@ -261,7 +280,7 @@ class ProposalFilter:
 
 
 def _is_reviewable_proposal(proposal: ProposalRecord) -> bool:
-    return proposal.state not in (ProposalState.blocked, ProposalState.skipped)
+    return proposal.review_bucket != ReviewBucket.diagnostic
 
 
 def list_proposals(
@@ -305,7 +324,7 @@ def _display_status_for_review_cell(proposal: ProposalRecord, latest: Optional[R
         return "confirmed_no_data"
     if latest.decision == ReviewDecision.rejected:
         return "rejected"
-    return proposal.state.value if hasattr(proposal.state, "value") else str(proposal.state)
+    return proposal.proposal_status.value if hasattr(proposal.proposal_status, "value") else str(proposal.proposal_status)
 
 
 def build_review_table(run_dir: pathlib.Path, review_lookup: Optional[dict[str, Any]]) -> dict[str, Any]:
@@ -487,7 +506,7 @@ def get_proposal_detail(
         "row_context": {},
         "column_definition": None,
         "warning_categories": [c.value for c in _proposal_warning_categories(proposal)],
-        "support_label_display": _support_label_display(proposal.support),
+        "evidence_status_display": _evidence_status_display(proposal.evidence_status),
         "is_figure_derived": _is_figure_derived(proposal),
         "is_fallback_evidence": _is_fallback_evidence(proposal),
     }
@@ -503,14 +522,15 @@ def get_proposal_detail(
     return detail
 
 
-def _support_label_display(support: SupportLabel) -> str:
+def _evidence_status_display(evidence_status: EvidenceStatus) -> str:
     return {
-        SupportLabel.direct_evidence: "Direct evidence",
-        SupportLabel.inferred_from_evidence: "Inferred from evidence",
-        SupportLabel.weak_evidence: "Weak evidence",
-        SupportLabel.blocked: "Blocked",
-        SupportLabel.error: "Error",
-    }.get(support, support.value)
+        EvidenceStatus.direct_strong: "Direct strong",
+        EvidenceStatus.direct_weak: "Direct weak",
+        EvidenceStatus.inferred_strong: "Inferred strong",
+        EvidenceStatus.inferred_weak: "Inferred weak",
+        EvidenceStatus.no_evidence: "No evidence",
+        EvidenceStatus.not_applicable: "Not applicable",
+    }.get(evidence_status, evidence_status.value)
 
 
 def _evidence_source_display(source_type: EvidenceSourceType) -> str:

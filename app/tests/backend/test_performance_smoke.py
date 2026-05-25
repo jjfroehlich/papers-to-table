@@ -45,11 +45,12 @@ from backend.app.review import (
 )
 from backend.app.schemas import (
     EvidenceSourceType,
-    ProposalState,
+    EvidenceStatus,
+    ProposalStatus,
     ReviewDecision,
     ReviewResolutionReason,
+    ReviewBucket,
     RunStatus,
-    SupportLabel,
 )
 
 pytestmark = pytest.mark.performance
@@ -128,8 +129,10 @@ def _setup_run(
                 row_id=row_id,
                 column_name=col,
                 cell_id=cell_id,
-                state=ProposalState.found,
-                support=SupportLabel.direct_evidence,
+                proposal_status=ProposalStatus.value_proposed,
+                evidence_status=EvidenceStatus.direct_strong,
+                review_bucket=ReviewBucket.review,
+                reason_codes=[],
                 proposed_value=f"value_{ri}_{col}",
                 evidence_ids=[],
                 warning_flags=[],

@@ -4,12 +4,11 @@ import type { EvidenceItem, ProposalDetail } from '../types'
 import type { SelectedReviewCell } from './ReviewTableView'
 import {
   EvidenceSourceTag,
-  FigureTag,
-  ProposalStateTag,
-  ProposalSupportTag,
+  ProposalStatusTag,
+  EvidenceStatusTag,
   ReviewStatusTag,
-  WarningTag,
 } from './ReviewTags'
+import { formatReasonCode, isPlaceholderValue, proposalConclusionLabel } from './proposalDisplay'
 
 interface Props {
   proposalId: string | null
@@ -44,6 +43,132 @@ function EvidenceCard({ item, isSelected, onClick }: { item: EvidenceItem; isSel
 function formatCellValue(value: unknown): string {
   if (value === null || value === undefined || value === '') return 'Blank'
   return String(value)
+}
+
+function hasAdvancedDiagnostics(proposal: ProposalDetail['proposal']): boolean {
+  return Boolean(
+      proposal.candidate_answers?.length ||
+      proposal.selection_diagnostics ||
+      proposal.retrieval_diagnostics ||
+      proposal.metadata_diagnostics ||
+      proposal.provider_diagnostics ||
+      proposal.figure_review_diagnostics ||
+      proposal.figure_planner_diagnostics
+  )
+}
+
+function compactValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return 'None'
+  if (typeof value === 'string') return value
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return String(value)
+  }
+}
+
+function diagnosticSummary(data: Record<string, unknown> | null | undefined): Array<[string, string]> {
+  if (!data) return []
+  if (data.attempted === false && data.skip_reason === 'not_needed_or_disabled') {
+    const rows: Array<[string, string]> = [['selection step', 'Selection step not run because it was not needed']]
+    if (data.candidate_count !== undefined && data.candidate_count !== null) {
+      rows.push(['candidate count', compactValue(data.candidate_count)])
+    }
+    return rows
+  }
+  const priority = [
+    'candidate_count',
+    'candidate_values',
+    'candidate_sources',
+    'attempted',
+    'skip_reason',
+    'failure_reason',
+    'failure_message',
+    'chunks_considered',
+    'retrieved_chunk_count',
+    'front_matter_detected',
+    'front_matter_pages',
+    'fallback_reasons',
+  ]
+  return priority
+    .filter((key) => data[key] !== undefined && data[key] !== null)
+    .map((key) => [key.replace(/_/g, ' '), compactValue(data[key])] as [string, string])
+}
+
+function AdvancedDiagnostics({ proposal }: { proposal: ProposalDetail['proposal'] }) {
+  if (!hasAdvancedDiagnostics(proposal)) return null
+
+  const candidates = (proposal.candidate_answers ?? []).filter((candidate) => !isPlaceholderValue(candidate.value))
+  const metadataCandidates = Array.isArray(proposal.metadata_diagnostics?.candidates)
+    ? proposal.metadata_diagnostics.candidates.slice(0, 4)
+    : []
+  const selectionSummary = diagnosticSummary(proposal.selection_diagnostics)
+  const retrievalSummary = diagnosticSummary(proposal.retrieval_diagnostics)
+  const metadataSummary = diagnosticSummary(proposal.metadata_diagnostics)
+
+  return (
+    <details className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+        Advanced diagnostics
+      </summary>
+
+      <div className="mt-4 space-y-4">
+        {(candidates.length > 0 || metadataCandidates.length > 0) && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-slate-600">Candidate values</p>
+          {candidates.map((candidate, index) => (
+            <div key={`candidate-${index}`} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              <p className="font-medium text-slate-800">{compactValue(candidate.value)}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {[compactValue(candidate.candidate_status), compactValue(candidate.source)].filter((item) => item !== 'None').join(' · ')}
+              </p>
+              {typeof candidate.confidence_rationale === 'string' && (
+                <p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-slate-500">{candidate.confidence_rationale}</p>
+              )}
+            </div>
+          ))}
+          {metadataCandidates.map((candidate, index) => {
+            const candidateRecord = candidate as Record<string, unknown>
+            return (
+              <div key={`metadata-candidate-${index}`} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                <p className="line-clamp-4 font-medium leading-5 text-slate-800">{compactValue(candidateRecord.value)}</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {[compactValue(candidateRecord.source), candidateRecord.page_number != null ? `p.${candidateRecord.page_number}` : null]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </p>
+              </div>
+            )
+          })}
+        </div>
+        )}
+
+        {(selectionSummary.length > 0 || retrievalSummary.length > 0 || metadataSummary.length > 0) && (
+        <div className="grid gap-3 text-xs text-slate-600">
+          {selectionSummary.length > 0 && <DiagnosticList title="Selection diagnostics" rows={selectionSummary} />}
+          {retrievalSummary.length > 0 && <DiagnosticList title="Retrieval diagnostics" rows={retrievalSummary} />}
+          {metadataSummary.length > 0 && <DiagnosticList title="Metadata diagnostics" rows={metadataSummary} />}
+        </div>
+        )}
+      </div>
+    </details>
+  )
+}
+
+function DiagnosticList({ title, rows }: { title: string; rows: Array<[string, string]> }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+      <p className="font-semibold text-slate-700">{title}</p>
+      <dl className="mt-2 space-y-1">
+        {rows.map(([key, value]) => (
+          <div key={key} className="grid gap-1 sm:grid-cols-[8rem_1fr]">
+            <dt className="font-medium text-slate-500">{key}</dt>
+            <dd className="break-words text-slate-700">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  )
 }
 
 function CellDetail({ cell }: { cell: SelectedReviewCell }) {
@@ -127,6 +252,7 @@ export function ProposalDetailPane({ proposalId, runId, outputDir, selectedEvide
   if (!detail) return null
 
   const { proposal, evidence } = detail
+  const reasonCodes = proposal.reason_codes ?? []
   const rowContext = detail.row_context ?? {}
   const columnDefinition = detail.column_definition ?? null
   const rowTitle =
@@ -145,13 +271,19 @@ export function ProposalDetailPane({ proposalId, runId, outputDir, selectedEvide
           <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <ReviewStatusTag decision={proposal.latest_decision?.decision ?? null} />
-                <ProposalStateTag state={proposal.state} />
-                <ProposalSupportTag support={proposal.support} isFallback={proposal.is_fallback_evidence} />
-                {proposal.warning_flags.length > 0 && <WarningTag />}
-                {proposal.is_figure_derived && <FigureTag />}
+                <ProposalStatusTag status={proposal.proposal_status} />
+                <EvidenceStatusTag evidenceStatus={proposal.evidence_status} isFallback={proposal.is_fallback_evidence} />
+                {reasonCodes.map((code) => {
+                  const reason = formatReasonCode(code)
+                  return (
+                    <span key={code} title={reason.title} className="rounded-md bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200">
+                      {reason.label}
+                    </span>
+                  )
+                })}
               </div>
-              <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Proposed value</p>
-              <p className="mt-1.5 text-xl font-semibold leading-tight text-slate-950">{proposal.proposed_value ?? 'No value proposed'}</p>
+              <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Value</p>
+              <p className="mt-1.5 text-xl font-semibold leading-tight text-slate-950">{proposalConclusionLabel(proposal)}</p>
           </section>
 
           {proposal.is_verify_mode && (proposal.existing_value != null || rowContext[proposal.column_name] !== undefined) && (
@@ -177,12 +309,12 @@ export function ProposalDetailPane({ proposalId, runId, outputDir, selectedEvide
               </section>
             )}
 
-            {proposal.rationale && (
-              <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Rationale</p>
-                <div className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">{proposal.rationale}</div>
-              </section>
-            )}
+          {proposal.rationale && (
+            <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Rationale</p>
+              <div className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">{proposal.rationale}</div>
+            </section>
+          )}
 
           <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between gap-3">
@@ -194,6 +326,11 @@ export function ProposalDetailPane({ proposalId, runId, outputDir, selectedEvide
               </span>
             </div>
             <div className="mt-4 space-y-3">
+              {evidence.length === 0 && (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-500">
+                  No formal evidence items were persisted for this proposal.
+                </div>
+              )}
               {evidence.map((item) => (
                 <EvidenceCard key={item.evidence_id} item={item} isSelected={selectedEvidenceId === item.evidence_id} onClick={() => onEvidenceSelect(item.evidence_id)} />
               ))}
@@ -221,6 +358,8 @@ export function ProposalDetailPane({ proposalId, runId, outputDir, selectedEvide
               </p>
             )}
           </section>
+
+          <AdvancedDiagnostics proposal={proposal} />
         </div>
       </div>
     </div>

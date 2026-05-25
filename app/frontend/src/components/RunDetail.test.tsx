@@ -74,15 +74,15 @@ describe('RunDetail', () => {
     expect(screen.getByText(/Run failed/)).toBeTruthy()
   })
 
-  it('shows warnings when present', () => {
+  it('does not surface warning counts in run details', () => {
     const runWithWarnings = {
       ...baseRun,
       status: 'completed_with_warnings' as const,
       warnings: [{ category: 'unmatched_pdf', message: 'unmatched_1.pdf was not matched' }],
     }
     render(<RunDetail run={runWithWarnings} />)
-    expect(screen.getByText('Run warnings')).toBeTruthy()
-    expect(screen.getByText('1 warning')).toBeTruthy()
+    expect(screen.queryByText('Run warnings')).toBeNull()
+    expect(screen.queryByText('1 warning')).toBeNull()
   })
 
   it('shows verify mode status', () => {

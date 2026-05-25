@@ -21,8 +21,10 @@ const mockProposals: EnrichedProposal[] = [
     row_id: 'row-001',
     column_name: 'sample_size',
     pdf_id: 'paper-a',
-    state: 'found',
-    support: 'direct_evidence',
+    proposal_status: 'value_proposed',
+    evidence_status: 'direct_strong',
+    review_bucket: 'review',
+    reason_codes: [],
     proposed_value: '120',
     rationale: 'Stated in methods',
     calculation: null,
@@ -50,8 +52,10 @@ const mockProposals: EnrichedProposal[] = [
     row_id: 'row-002',
     column_name: 'effect_size',
     pdf_id: 'paper-b',
-    state: 'found',
-    support: 'inferred_from_evidence',
+    proposal_status: 'value_proposed',
+    evidence_status: 'inferred_strong',
+    review_bucket: 'review',
+    reason_codes: [],
     proposed_value: '0.45',
     rationale: null,
     calculation: null,
@@ -89,8 +93,10 @@ const mockProposals: EnrichedProposal[] = [
     row_id: 'row-001',
     column_name: 'p_value',
     pdf_id: 'paper-a',
-    state: 'found',
-    support: 'direct_evidence',
+    proposal_status: 'value_proposed',
+    evidence_status: 'direct_strong',
+    review_bucket: 'review',
+    reason_codes: [],
     proposed_value: '0.03',
     rationale: null,
     calculation: null,
@@ -110,6 +116,68 @@ const mockProposals: EnrichedProposal[] = [
     paper_title: 'A study of sample size reporting in MPRA assays',
     paper_authors: 'Smith, J.; Doe, A.',
     paper_year: '2024',
+  },
+  {
+    proposal_id: 'p4',
+    run_id: 'r1',
+    cell_id: 'c4',
+    row_id: 'row-003',
+    column_name: 'integration_site',
+    pdf_id: 'paper-c',
+    proposal_status: 'unresolved',
+    evidence_status: 'no_evidence',
+    review_bucket: 'attention',
+    reason_codes: ['insufficient_evidence'],
+    proposed_value: null,
+    rationale: 'Relevant chunks were inspected but were not decisive.',
+    calculation: null,
+    primary_evidence_id: null,
+    ordered_supporting_evidence_ids: [],
+    evidence_ids: [],
+    warning_flags: [],
+    needs_more_evidence: false,
+    created_at: '2024-01-01T00:00:00Z',
+    latest_decision: null,
+    warning_categories: ['weak_evidence'],
+    is_figure_derived: false,
+    is_fallback_evidence: false,
+    is_verify_mode: false,
+    existing_value: null,
+    provider_mode: 'text',
+    paper_title: 'A paper with an unresolved target cell',
+    paper_authors: 'Nolan, M.',
+    paper_year: '2022',
+  },
+  {
+    proposal_id: 'p5',
+    run_id: 'r1',
+    cell_id: 'c5',
+    row_id: 'row-004',
+    column_name: 'architecture_figure',
+    pdf_id: 'paper-d',
+    proposal_status: 'value_proposed',
+    evidence_status: 'inferred_strong',
+    review_bucket: 'review',
+    reason_codes: [],
+    proposed_value: 'Fig. 2 architecture',
+    rationale: null,
+    calculation: null,
+    primary_evidence_id: 'ev5',
+    ordered_supporting_evidence_ids: [],
+    evidence_ids: ['ev5'],
+    warning_flags: ['figure_derived'],
+    needs_more_evidence: false,
+    created_at: '2024-01-01T00:00:00Z',
+    latest_decision: null,
+    warning_categories: [],
+    is_figure_derived: true,
+    is_fallback_evidence: false,
+    is_verify_mode: false,
+    existing_value: null,
+    provider_mode: 'text',
+    paper_title: 'A paper with figure evidence',
+    paper_authors: 'Patel, S.',
+    paper_year: '2021',
   },
 ]
 
@@ -140,7 +208,7 @@ describe('ProposalQueue', () => {
     onSelect.mockClear()
     onModeChange.mockClear()
     onFilterChange.mockClear()
-    mockListProposals.mockResolvedValue({ proposals: mockProposals, run_id: 'r1', count: 3 })
+    mockListProposals.mockResolvedValue({ proposals: mockProposals, run_id: 'r1', count: mockProposals.length })
     mockGetReviewTable.mockResolvedValue({ run_id: 'r1', columns: [], rows: [], proposal_count: 0 })
   })
 
@@ -181,10 +249,96 @@ describe('ProposalQueue', () => {
     await screen.findByText('sample_size')
   })
 
-  it('compact card shows categorized support badge', async () => {
+  it('compact card shows categorized evidence badge', async () => {
     renderQueue()
-    await screen.findAllByTitle('Support: direct evidence')
-    expect(screen.getAllByTitle('Support: direct evidence').length).toBeGreaterThan(0)
+    await screen.findAllByTitle('Evidence: direct strong')
+    expect(screen.getAllByTitle('Evidence: direct strong').length).toBeGreaterThan(0)
+  })
+
+  it('shows unresolved no-evidence target cells in reviewable pending queue', async () => {
+    renderQueue()
+    await screen.findByText('integration_site')
+    expect(screen.getByText('No value proposed')).toBeInTheDocument()
+  })
+
+  it('shows semantic conclusions on compact cards', async () => {
+    const conclusionProposals: EnrichedProposal[] = [
+      { ...mockProposals[0], proposal_id: 'p-no-data', cell_id: 'c-no-data', column_name: 'assay_absence', proposal_status: 'no_data', evidence_status: 'direct_strong', review_bucket: 'review', proposed_value: null },
+      { ...mockProposals[0], proposal_id: 'p-na', cell_id: 'c-na', column_name: 'schema_scope', proposal_status: 'not_applicable', evidence_status: 'not_applicable', review_bucket: 'attention', proposed_value: null },
+      { ...mockProposals[0], proposal_id: 'p-error', cell_id: 'c-error', column_name: 'provider_result', proposal_status: 'error', evidence_status: 'not_applicable', review_bucket: 'attention', proposed_value: null },
+    ]
+    mockListProposals.mockResolvedValueOnce({
+      proposals: conclusionProposals,
+      run_id: 'r1',
+      count: conclusionProposals.length,
+    })
+
+    renderQueue({ filter: 'all' })
+
+    await screen.findByText('No data reported')
+    expect(screen.getByText('Not applicable')).toBeInTheDocument()
+    expect(screen.getByText('Extraction error')).toBeInTheDocument()
+  })
+
+  it('does not show proposal-level warning or figure icons on compact cards', async () => {
+    renderQueue({ filter: 'all' })
+    await screen.findByText('architecture_figure')
+    expect(screen.queryByLabelText('Evidence: figure or vision')).toBeNull()
+    expect(screen.queryByLabelText('Warning present')).toBeNull()
+  })
+
+  it('renders inferred strong evidence with the green compact dot', async () => {
+    renderQueue({ filter: 'all' })
+    const inferredStrongDots = await screen.findAllByTitle('Evidence: inferred strong')
+    expect(inferredStrongDots[0].querySelector('.bg-emerald-500')).not.toBeNull()
+  })
+
+  it('attention filter is driven by non-green proposal or evidence dots', async () => {
+    const categoryOnlyProposal: EnrichedProposal = {
+      ...mockProposals[0],
+      proposal_id: 'p-warning-category-only',
+      cell_id: 'c-warning-category-only',
+      column_name: 'warning_category_only',
+      review_bucket: 'review',
+      warning_categories: ['weak_evidence'],
+    }
+    const attentionProposal: EnrichedProposal = {
+      ...mockProposals[0],
+      proposal_id: 'p-attention',
+      cell_id: 'c-attention',
+      column_name: 'attention_bucket',
+      evidence_status: 'direct_weak',
+      review_bucket: 'review',
+      warning_categories: [],
+    }
+    mockListProposals.mockResolvedValueOnce({
+      proposals: [categoryOnlyProposal, attentionProposal],
+      run_id: 'r1',
+      count: 2,
+    })
+
+    renderQueue({ filter: 'needs_attention' })
+    await screen.findByText('attention_bucket')
+    expect(screen.queryByText('warning_category_only')).toBeNull()
+  })
+
+  it('does not keep the selected proposal visible when it does not match the active filter', async () => {
+    const pendingProposal = {
+      ...mockProposals[0],
+      proposal_id: 'p-selected',
+      column_name: 'selected_pending',
+      latest_decision: null,
+    }
+    mockListProposals.mockResolvedValueOnce({
+      proposals: [pendingProposal],
+      run_id: 'r1',
+      count: 1,
+    })
+
+    renderQueue({ selectedProposalId: 'p-selected', filter: 'accepted' })
+
+    await screen.findByText('No proposals match the current filter.')
+    expect(screen.queryByText('selected_pending')).toBeNull()
   })
 
   it('calls onSelect when a proposal card is clicked', async () => {

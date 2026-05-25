@@ -2,11 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api/client'
 import type { ReviewTableCell, ReviewTableColumn, ReviewTableData, ReviewTableProposal, ReviewTableRow } from '../types'
 import {
-  ProposalStateIndicator,
-  ProposalSupportIndicator,
+  ProposalStatusIndicator,
+  EvidenceStatusIndicator,
   ReviewStatusIndicator,
-  WarningIndicator,
+  isGreenEvidenceStatus,
+  isGreenProposalStatus,
 } from './ReviewTags'
+import { proposalConclusionLabel } from './proposalDisplay'
 
 export type ReviewFilter =
   | 'pending'
@@ -57,13 +59,19 @@ function formatCellValue(value: unknown): string {
 }
 
 function isReviewableProposal(proposal: ReviewTableProposal | null): proposal is ReviewTableProposal {
-  return !!proposal && proposal.state !== 'blocked' && proposal.state !== 'skipped'
+  if (!proposal) return false
+  return proposal.review_bucket !== 'diagnostic'
+}
+
+function displayCellValue(cell: ReviewTableCell | undefined): string {
+  if (cell?.proposal) return proposalConclusionLabel(cell.proposal)
+  return formatCellValue(cell?.display_value)
 }
 
 function statusClass(cell: ReviewTableCell): string {
   const proposal = cell.proposal
   if (proposal?.is_fallback_evidence) return 'bg-orange-50 text-orange-950 ring-orange-200'
-  if (proposal?.support === 'weak_evidence') return 'bg-amber-50 text-amber-950 ring-amber-200'
+  if (proposal && hasAttentionSignal(proposal)) return 'bg-amber-50 text-amber-950 ring-amber-200'
   switch (cell.display_status) {
     case 'pending':
       return 'bg-sky-50 text-sky-950 ring-sky-200'
@@ -85,15 +93,17 @@ function proposalMatchesFilter(proposal: ReviewTableProposal | null, filter: Rev
   const decision = proposal.latest_decision?.decision
   if (filter === 'pending') return !decision
   if (filter === 'needs_attention') {
-    return (
-      proposal.warning_flags.length > 0 ||
-      proposal.warning_categories.length > 0 ||
-      proposal.support === 'weak_evidence' ||
-      proposal.is_fallback_evidence
-    )
+    return hasAttentionSignal(proposal)
   }
   if (filter === 'all') return true
   return decision === filter
+}
+
+function hasAttentionSignal(proposal: ReviewTableProposal): boolean {
+  return !(
+    isGreenProposalStatus(proposal.proposal_status) &&
+    isGreenEvidenceStatus(proposal.evidence_status, proposal.is_fallback_evidence)
+  )
 }
 
 function buildSelectedCell(row: ReviewTableRow, column: ReviewTableColumn, cell: ReviewTableCell): SelectedReviewCell {
@@ -154,10 +164,10 @@ export function ReviewTableView({
     if (!tableData) return []
     return tableData.rows.filter((row) => {
       return Object.values(row.cells).some(
-        (cell) => cell.proposal?.proposal_id === selectedProposalId || proposalMatchesFilter(cell.proposal, filter)
+        (cell) => proposalMatchesFilter(cell.proposal, filter)
       )
     })
-  }, [filter, selectedProposalId, tableData])
+  }, [filter, tableData])
 
   const visibleProposalIds = useMemo(() => {
     if (!tableData) return []
@@ -167,14 +177,14 @@ export function ReviewTableView({
       for (const column of tableData.columns) {
         const proposal = row.cells[column.name]?.proposal ?? null
         if (!proposal) continue
-        if (proposal.proposal_id !== selectedProposalId && !proposalMatchesFilter(proposal, filter)) continue
+        if (!proposalMatchesFilter(proposal, filter)) continue
         if (seen.has(proposal.proposal_id)) continue
         ids.push(proposal.proposal_id)
         seen.add(proposal.proposal_id)
       }
     }
     return ids
-  }, [filter, filteredRows, selectedProposalId, tableData])
+  }, [filter, filteredRows, tableData])
 
   useEffect(() => {
     onVisibleProposalOrderChange?.(visibleProposalIds)
@@ -252,20 +262,19 @@ export function ReviewTableView({
                           }
                           onSelectCell?.(buildSelectedCell(row, column, cell))
                         }}
-                        title={formatCellValue(cell?.display_value)}
+                        title={displayCellValue(cell)}
                         className={`flex h-full min-h-20 w-full flex-col justify-between px-2 py-2 text-left ring-1 ring-inset transition ${statusClass(cell)} ${
                           'hover:ring-slate-400'
                         } ${isSelected ? 'outline outline-2 outline-sky-600' : ''}`}
                         data-testid={proposal ? `review-table-cell-${proposal.proposal_id}` : undefined}
                         data-proposal-id={proposal?.proposal_id}
                       >
-                        <span className="line-clamp-2 min-h-8 text-[12px] font-medium leading-4">{formatCellValue(cell?.display_value)}</span>
+                        <span className="line-clamp-2 min-h-8 text-[12px] font-medium leading-4">{displayCellValue(cell)}</span>
                         {proposal && (
                           <span className="mt-1 flex h-4 items-center gap-0.5">
                             <ReviewStatusIndicator decision={proposal.latest_decision?.decision ?? null} size="xs" />
-                            <ProposalStateIndicator state={proposal.state} size="xs" />
-                            <ProposalSupportIndicator support={proposal.support} isFallback={proposal.is_fallback_evidence} size="xs" />
-                            {proposal.warning_flags.length > 0 && <WarningIndicator size="xs" />}
+                            <ProposalStatusIndicator status={proposal.proposal_status} size="xs" />
+                            <EvidenceStatusIndicator evidenceStatus={proposal.evidence_status} isFallback={proposal.is_fallback_evidence} size="xs" />
                           </span>
                         )}
                       </button>

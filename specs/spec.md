@@ -141,8 +141,8 @@ Figure review requirements:
 - `figure` is the only figure-derived retrieval chunk type. The app does not create panel-level figure chunks.
 - figure review may inspect a valid crop, a full-page fallback when crop assets are missing or suspicious, or a planner-preferred full page for layout or panel-counting questions.
 - direct figure context is not a standalone reason to call vision. Vision requires weak, unclear, missing, or contradictory text evidence; a genuinely visual request with figure-promising retrieval; or another generic evidence-quality trigger.
-- prompt-only vision responses are repaired locally for recoverable schema issues, including omitted optional diagnostics, invalid `numeric_value_form` values such as `N/A`, and common state variants such as `yes`, `present`, `visible`, `clear`, `success`, `succeeded`, `possible`, `propose`, and `propose_value`.
-- a figure response with state `found` or `inferred` must place the extracted answer itself in `proposed_value`; blank placeholders are not usable figure evidence.
+- prompt-only vision responses are repaired locally for recoverable schema issues, including omitted optional diagnostics, invalid `numeric_value_form` values such as `N/A`, and common value-proposal variants such as `yes`, `present`, `visible`, `clear`, `success`, `succeeded`, `possible`, `propose`, and `propose_value`.
+- a figure response that proposes a value must place the extracted answer itself in `proposed_value`; blank placeholders are not usable figure evidence.
 - actual vision calls, retries, image source, fallback reason, repair status, failure reason, suppression reason, promoted unclear values, and successful calls without usable hits remain visible in diagnostics.
 
 Candidate selection requirements:
@@ -150,7 +150,7 @@ Candidate selection requirements:
 - candidate selection is optional and bounded to one selector call per cell by default.
 - candidate sources are generic: first-pass text, rescued text, evidence recovery, and figure review.
 - figure-derived candidates may support or compete with text candidates, but must directly answer the cell request before overriding strong text evidence.
-- if text and figure candidates conflict and neither clearly satisfies the column contract, selection should keep the stronger text answer or return an unclear result rather than switching to semantically mismatched figure evidence.
+- if text and figure candidates conflict and neither clearly satisfies the column contract, selection should keep the stronger text answer or return `proposal_status=unresolved` rather than switching to semantically mismatched figure evidence.
 
 ### 5.5 Proposal and evidence truth
 
@@ -158,7 +158,7 @@ The proposal/evidence contract must preserve:
 
 - one best proposal per eligible target cell
 - stable join identity (`row_id`, `column_name`, `cell_id`)
-- reviewer-visible support-quality truth
+- reviewer-visible canonical proposal semantics from `contracts/proposals-and-evidence.md`: `proposal_status`, `evidence_status`, derived/validated `review_bucket`, and `reason_codes`
 - auditable evidence linkage
 - degraded-mode, fallback, metadata-lane, and failure-attribution truth when relevant
 - optional candidate answers, figure planner diagnostics, figure review diagnostics, and selection diagnostics when the app planned, reviewed, or chose among competing evidence sources

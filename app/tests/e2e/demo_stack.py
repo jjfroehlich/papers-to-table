@@ -10,7 +10,7 @@ from backend.app.ids import generate_cell_id, generate_evidence_id, generate_row
 from backend.app.ingest import load_table
 from backend.app.matching import MatchOutcome, MatchResult, persist_match_artifacts
 from backend.app.review import recompute_summaries
-from backend.app.schemas import EvidenceSourceType, ProposalState, RunStatus, SupportLabel, WarningCategory
+from backend.app.schemas import EvidenceSourceType, EvidenceStatus, ProposalStatus, ReviewBucket, RunStatus, WarningCategory
 
 
 @dataclass(frozen=True)
@@ -89,12 +89,12 @@ def _build_demo_run(
     pdf_id = "mpra01"
     created_iso = created_at.isoformat()
     additional_columns = [
-        ("Assay", "VAMP-seq", SupportLabel.direct_evidence, EvidenceSourceType.direct_quote, 1),
-        ("Gene", "PTEN", SupportLabel.direct_evidence, EvidenceSourceType.direct_quote, 1),
-        ("Variant count", "7,801", SupportLabel.direct_evidence, EvidenceSourceType.direct_quote, 1),
-        ("Cell line", "HEK293T", SupportLabel.weak_evidence, EvidenceSourceType.quote_plus_page, 3),
-        ("Readout", "variant abundance", SupportLabel.inferred_from_evidence, EvidenceSourceType.inferred_reasoning, 2),
-        ("Organism", "human", SupportLabel.direct_evidence, EvidenceSourceType.direct_quote, 1),
+        ("Assay", "VAMP-seq", EvidenceStatus.direct_strong, EvidenceSourceType.direct_quote, 1),
+        ("Gene", "PTEN", EvidenceStatus.direct_strong, EvidenceSourceType.direct_quote, 1),
+        ("Variant count", "7,801", EvidenceStatus.direct_strong, EvidenceSourceType.direct_quote, 1),
+        ("Cell line", "HEK293T", EvidenceStatus.direct_weak, EvidenceSourceType.quote_plus_page, 3),
+        ("Readout", "variant abundance", EvidenceStatus.inferred_strong, EvidenceSourceType.inferred_reasoning, 2),
+        ("Organism", "human", EvidenceStatus.direct_strong, EvidenceSourceType.direct_quote, 1),
     ] if run_id == "run_docs_screenshots" else []
     total_proposals = 2 + len(additional_columns)
 
@@ -221,8 +221,10 @@ def _build_demo_run(
             row_id=row_id,
             column_name="Species",
             cell_id=species_cell,
-            state=ProposalState.found,
-            support=SupportLabel.direct_evidence,
+            proposal_status=ProposalStatus.value_proposed,
+            evidence_status=EvidenceStatus.direct_strong,
+            review_bucket=ReviewBucket.review,
+            reason_codes=[],
             proposed_value="human",
             rationale="- Exact quote on page 1 names the human assay system.\n- Supporting passage keeps the paper context visible.",
             primary_evidence_id=exact_evidence_id,
@@ -284,8 +286,10 @@ def _build_demo_run(
             row_id=row_id,
             column_name="Model system",
             cell_id=model_cell,
-            state=ProposalState.unclear,
-            support=SupportLabel.weak_evidence,
+            proposal_status=ProposalStatus.value_proposed,
+            evidence_status=EvidenceStatus.direct_weak,
+            review_bucket=ReviewBucket.attention,
+            reason_codes=["insufficient_evidence", "anchor_fallback"],
             proposed_value="HEK293T",
             rationale="- The paper names HEK293T in a weaker context.\n- Review the fallback quote before exporting.",
             primary_evidence_id=model_evidence_id,
@@ -317,11 +321,12 @@ def _build_demo_run(
         ),
     )
 
-    for offset, (column_name, proposed_value, support, source_type, page_number) in enumerate(additional_columns, start=1):
+    for offset, (column_name, proposed_value, evidence_status, source_type, page_number) in enumerate(additional_columns, start=1):
         cell_id = generate_cell_id(row_id, column_name)
         proposal_id = f"{run_id}__{cell_id}"
         evidence_id = generate_evidence_id(proposal_id)
         is_direct = source_type == EvidenceSourceType.direct_quote
+        reason_codes = [] if evidence_status in {EvidenceStatus.direct_strong, EvidenceStatus.inferred_strong} else ["anchor_fallback"]
         persist_proposal(
             run_dir,
             ProposalRecord(
@@ -331,15 +336,17 @@ def _build_demo_run(
                 row_id=row_id,
                 column_name=column_name,
                 cell_id=cell_id,
-                state=ProposalState.found if is_direct else ProposalState.unclear,
-                support=support,
+                proposal_status=ProposalStatus.value_proposed,
+                evidence_status=evidence_status,
+                review_bucket=ReviewBucket.review if not reason_codes else ReviewBucket.attention,
+                reason_codes=reason_codes,
                 proposed_value=proposed_value,
                 rationale=f"- Demo screenshot proposal for {column_name}.\n- Keeps the queue tall enough to exercise internal scrolling.",
                 primary_evidence_id=evidence_id,
                 ordered_supporting_evidence_ids=[],
                 evidence_ids=[evidence_id],
-                warning_flags=["fallback_evidence_used"] if support != SupportLabel.direct_evidence else [],
-                needs_more_evidence=support != SupportLabel.direct_evidence,
+                warning_flags=["fallback_evidence_used"] if reason_codes else [],
+                needs_more_evidence=bool(reason_codes),
                 is_verify_mode=False,
                 provider_mode="live_local",
                 created_at=(created_at + timedelta(seconds=offset)).isoformat(),

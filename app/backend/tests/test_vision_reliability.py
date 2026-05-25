@@ -19,7 +19,7 @@ from backend.app.provider import (
     _should_retry_structured_output_error,
 )
 from backend.app.retrieval import RetrievalChunk, RetrievalResult
-from backend.app.schemas import ProposalState, ProviderLocality, SchemaFieldType, SupportLabel
+from backend.app.schemas import ProviderLocality, SchemaFieldType
 
 
 def _scratch_dir() -> Path:
@@ -206,8 +206,8 @@ def test_schema_validation_omission_does_not_request_retry():
 
 def test_vision_gate_skips_direct_figure_context_alone_for_strong_non_visual_text():
     reasons = decide_vision_trigger_reasons(
-        state=ProposalState.found,
-        support=SupportLabel.direct_evidence,
+        state="found",
+        support="direct_evidence",
         quotes=[{"text": "HEK293T cells were used."}],
         retrieval=_retrieval("caption"),
         needs_more_evidence=False,
@@ -221,8 +221,8 @@ def test_vision_gate_skips_direct_figure_context_alone_for_strong_non_visual_tex
 
 def test_vision_gate_keeps_direct_figure_context_when_text_is_weak():
     reasons = decide_vision_trigger_reasons(
-        state=ProposalState.found,
-        support=SupportLabel.weak_evidence,
+        state="found",
+        support="weak_evidence",
         quotes=[],
         retrieval=_retrieval("caption"),
         needs_more_evidence=False,
@@ -237,8 +237,8 @@ def test_vision_gate_keeps_direct_figure_context_when_text_is_weak():
 
 def test_vision_gate_keeps_visual_request_even_with_strong_text():
     reasons = decide_vision_trigger_reasons(
-        state=ProposalState.found,
-        support=SupportLabel.direct_evidence,
+        state="found",
+        support="direct_evidence",
         quotes=[{"text": "Figure 1 contains UMAP plots."}],
         retrieval=_retrieval("figure"),
         needs_more_evidence=False,
@@ -253,8 +253,8 @@ def test_vision_gate_keeps_visual_request_even_with_strong_text():
 
 def test_vision_gate_keeps_visual_weak_cells_active():
     reasons = decide_vision_trigger_reasons(
-        state=ProposalState.unclear,
-        support=SupportLabel.weak_evidence,
+        state="unclear",
+        support="weak_evidence",
         quotes=[],
         retrieval=_retrieval("figure"),
         needs_more_evidence=True,

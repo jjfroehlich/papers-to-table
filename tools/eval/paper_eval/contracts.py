@@ -156,9 +156,11 @@ class ProposalRecord:
     column_name: str
     cell_id: str
     proposed_value: Any
+    proposal_status: str
+    evidence_status: str
+    review_bucket: str
     pdf_id: str | None = None
-    state: str | None = None
-    support: Any = None
+    reason_codes: list[str] = field(default_factory=list)
     field_type: str | None = None
     allowed_values: list[str] = field(default_factory=list)
     numeric_value_form: str | None = None
@@ -296,7 +298,7 @@ class ScoredCell:
     judge_disagreement: bool | None = None
     diagnostic_flags: list[str] = field(default_factory=list)
     diagnostics: dict[str, Any] = field(default_factory=dict)
-    selected_proposal_state: str | None = None
+    selected_proposal_status: str | None = None
     extraction_lane: str | None = None
     failure_attribution: str | None = None
 

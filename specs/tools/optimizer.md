@@ -269,6 +269,8 @@ Optimizer-owned candidate bundle, result, and decision semantics are defined in 
 
 Shared eval-summary fields consumed by optimizer are defined in `../contracts/eval-summary.md`.
 
+Shared main-app proposal semantics consumed by optimizer proposal tables and trust reporting are defined in `../contracts/proposals-and-evidence.md`. Optimizer outputs should use canonical `proposal_status`, `evidence_status`, `review_bucket`, and `reason_codes` columns rather than legacy proposal state/support columns.
+
 ## Required behavior
 
 The optimizer must:
@@ -281,7 +283,7 @@ The optimizer must:
 - make degraded prompt-only candidates unmistakable rather than treating them as healthy peers
 - distinguish the raw benchmark winner from the recommended operational default when trust caveats differ
 - surface retrieval mode, top-k, rescue mode, whole-document mode, structured-output mode, fallback mode, dual-judge status, evidence-anchor audits, metadata-family summaries, capability-use/suppression counters, join failures, and runtime accounting in reports
-- treat judge disagreement, judge request failures, and evidence weakness as first-class trust signals in ranking and report warnings rather than burying them as secondary diagnostics
+- treat judge disagreement, judge request failures, weak canonical evidence status, and attention/diagnostic proposal buckets as first-class trust signals in ranking and report warnings rather than burying them as secondary diagnostics
 - sort healthy scored candidates ahead of scored-degraded, unscored, and failed candidates so unsupported structured-output candidates do not look equivalent to valid runs
 
 ## Ownership boundary

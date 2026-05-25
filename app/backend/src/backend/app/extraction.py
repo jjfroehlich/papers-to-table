@@ -32,11 +32,10 @@ from datetime import datetime, timezone
 from time import perf_counter
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from .artifacts import (
     EVIDENCE_RECORD_SCHEMA_VERSION,
-    PROPOSAL_RECORD_SCHEMA_VERSION,
     append_jsonl,
     hash_json_data,
     read_json,
@@ -50,13 +49,28 @@ from .provider import (
 )
 from .retrieval import RetrievalResult
 from .schemas import (
+    EvidenceStatus,
     EvidenceSourceType,
     NumericValueForm,
-    ProposalState,
+    ProposalStatus,
+    ReviewBucket,
     SchemaFieldType,
-    SupportLabel,
 )
 from .metadata import resolve_metadata_field
+from .proposal_semantics import (
+    ANCHOR_FALLBACK,
+    APPROXIMATE_ANCHOR,
+    CALCULATION,
+    CELL_NOT_TARGETED,
+    CONFLICTING_EVIDENCE,
+    INSUFFICIENT_EVIDENCE,
+    INVALID_MODEL_OUTPUT,
+    PROVIDER_ERROR,
+    RETRIEVAL_EMPTY,
+    build_semantics,
+    semantics_from_extraction,
+    validate_proposal_semantics,
+)
 from .style_profiles import StyleProfile
 
 
@@ -106,15 +120,16 @@ class EvidenceRecord(BaseModel):
 # ---------------------------------------------------------------------------
 
 class ProposalRecord(BaseModel):
-    proposal_schema_version: str = PROPOSAL_RECORD_SCHEMA_VERSION
     proposal_id: str
     run_id: str
     pdf_id: str
     row_id: str
     column_name: str
     cell_id: str
-    state: ProposalState
-    support: SupportLabel
+    proposal_status: ProposalStatus
+    evidence_status: EvidenceStatus
+    review_bucket: ReviewBucket
+    reason_codes: list[str] = []
     proposed_value: Optional[str] = None
     rationale: Optional[str] = None
     calculation: Optional[str] = None
@@ -162,11 +177,22 @@ class ProposalRecord(BaseModel):
     selection_diagnostics: Optional[dict] = None
     created_at: str
 
+    @model_validator(mode="after")
+    def _validate_semantics(self) -> "ProposalRecord":
+        semantics = validate_proposal_semantics(
+            self.proposal_status,
+            self.evidence_status,
+            self.review_bucket,
+            self.reason_codes,
+        )
+        self.reason_codes = semantics.reason_codes
+        return self
+
 
 class CandidateAnswer(BaseModel):
     candidate_id: str
     value: Optional[str] = None
-    state: str = "unclear"
+    candidate_status: str = "unclear"
     source: str
     evidence_ids: list[str] = Field(default_factory=list)
     confidence_rationale: Optional[str] = None
@@ -241,17 +267,6 @@ class FigureShortlistCandidate:
 
 
 # ---------------------------------------------------------------------------
-# Support-label mapping (T065)
-# ---------------------------------------------------------------------------
-
-SUPPORT_LABEL_DISPLAY = {
-    SupportLabel.direct_evidence: "Direct evidence",
-    SupportLabel.inferred_from_evidence: "Inferred from evidence",
-    SupportLabel.weak_evidence: "Weak evidence",
-    SupportLabel.blocked: "Blocked",
-    SupportLabel.error: "Error",
-}
-
 EVIDENCE_TYPE_DISPLAY = {
     EvidenceSourceType.direct_quote: "Direct quote",
     EvidenceSourceType.inferred_reasoning: "Inferred reasoning",
@@ -261,10 +276,6 @@ EVIDENCE_TYPE_DISPLAY = {
     EvidenceSourceType.caption_grounded_figure_evidence: "Caption-grounded figure evidence",
     EvidenceSourceType.visual_interpretation_figure_evidence: "Visual-interpretation figure evidence",
 }
-
-
-def proposal_support_display(support: SupportLabel) -> str:
-    return SUPPORT_LABEL_DISPLAY.get(support, support.value)
 
 
 def evidence_type_display(source_type: EvidenceSourceType) -> str:
@@ -1074,54 +1085,126 @@ def adjudicate_state(
     proposed_value: Optional[str],
     quotes: list[dict],
     is_verify_mode: bool = False,
-) -> tuple[ProposalState, SupportLabel]:
-    """Map raw model state to ProposalState + SupportLabel.
+) -> tuple[str, str]:
+    """Map raw model state to str + str.
 
     T058a: prefer unclear over guesses with weak support.
     """
     normalized_value = _coerce_text_value(proposed_value, joiner="; ")
     if not normalized_value:
-        return ProposalState.unclear, SupportLabel.blocked
+        return "unclear", "blocked"
 
     has_any_quote = bool(quotes)
 
     if raw_state == "found":
         if any(q.get("source_type") == "direct_quote" for q in quotes):
-            return ProposalState.found, SupportLabel.direct_evidence
+            return "found", "direct_evidence"
         if any(q.get("source_type") != "direct_quote" for q in quotes):
-            return ProposalState.found, SupportLabel.inferred_from_evidence
+            return "found", "inferred_from_evidence"
         else:
-            return ProposalState.inferred, SupportLabel.inferred_from_evidence
+            return "inferred", "inferred_from_evidence"
 
     elif raw_state == "inferred":
         if has_any_quote:
-            return ProposalState.inferred, SupportLabel.inferred_from_evidence
+            return "inferred", "inferred_from_evidence"
         else:
-            return ProposalState.inferred, SupportLabel.weak_evidence
+            return "inferred", "weak_evidence"
 
     else:  # unclear or unknown
-        return ProposalState.unclear, SupportLabel.blocked
+        return "unclear", "blocked"
 
 
 def determine_support_label(
-    state: ProposalState,
+    state: str,
     evidence_records: list[EvidenceRecord],
     proposed_value: Optional[str] = None,
     field_type: Optional[SchemaFieldType] = None,
-) -> SupportLabel:
-    if state == ProposalState.error:
-        return SupportLabel.error
-    if state in (ProposalState.blocked, ProposalState.skipped, ProposalState.unclear):
-        return SupportLabel.blocked
+) -> str:
+    if state == "error":
+        return "error"
+    if state in ("blocked", "skipped", "unclear"):
+        return "blocked"
     if any(
         ev.source_type == EvidenceSourceType.direct_quote
         and _quote_directly_supports_value(ev.quote_text, proposed_value, field_type)
         for ev in evidence_records
     ):
-        return SupportLabel.direct_evidence
+        return "direct_evidence"
     if evidence_records:
-        return SupportLabel.inferred_from_evidence
-    return SupportLabel.weak_evidence
+        return "inferred_from_evidence"
+    return "weak_evidence"
+
+
+def _evidence_status_from_internal_support(
+    *,
+    state: str,
+    support: str,
+    evidence_records: list[EvidenceRecord],
+    proposed_value: Optional[str],
+    reason_codes: list[str],
+) -> EvidenceStatus:
+    if state == "error" or support == "error":
+        return EvidenceStatus.not_applicable
+    if state in {"blocked", "skipped"}:
+        return EvidenceStatus.not_applicable
+    if not evidence_records:
+        return EvidenceStatus.no_evidence
+    inferred = support == "inferred_from_evidence" or any(
+        ev.source_type in {EvidenceSourceType.inferred_reasoning, EvidenceSourceType.calculation}
+        for ev in evidence_records
+    )
+    weak = (
+        support == "weak_evidence"
+        or INSUFFICIENT_EVIDENCE in reason_codes
+        or any(ev.source_type in {EvidenceSourceType.quote_plus_page, EvidenceSourceType.approximate_highlight} for ev in evidence_records)
+    )
+    if inferred:
+        return EvidenceStatus.inferred_weak if weak else EvidenceStatus.inferred_strong
+    return EvidenceStatus.direct_weak if weak else EvidenceStatus.direct_strong
+
+
+def _canonical_semantics_kwargs(
+    *,
+    state: str,
+    support: str,
+    proposed_value: Optional[str],
+    evidence_records: list[EvidenceRecord],
+    reason_codes: list[str],
+) -> dict[str, object]:
+    evidence_status = _evidence_status_from_internal_support(
+        state=state,
+        support=support,
+        evidence_records=evidence_records,
+        proposed_value=proposed_value,
+        reason_codes=reason_codes,
+    )
+    semantics = semantics_from_extraction(
+        raw_state=state,
+        evidence_status_hint=evidence_status.value,
+        proposed_value=proposed_value,
+        evidence_count=len(evidence_records),
+        reason_codes=reason_codes,
+    )
+    return {
+        "proposal_status": semantics.proposal_status,
+        "evidence_status": semantics.evidence_status,
+        "review_bucket": semantics.review_bucket,
+        "reason_codes": semantics.reason_codes,
+    }
+
+
+def _semantics_fields(
+    proposal_status: ProposalStatus | str,
+    evidence_status: EvidenceStatus | str,
+    reason_codes: list[str] | None = None,
+) -> dict[str, object]:
+    semantics = build_semantics(proposal_status, evidence_status, reason_codes or [])
+    return {
+        "proposal_status": semantics.proposal_status,
+        "evidence_status": semantics.evidence_status,
+        "review_bucket": semantics.review_bucket,
+        "reason_codes": semantics.reason_codes,
+    }
 
 
 def _normalize_support_text(text: Optional[str]) -> str:
@@ -1770,10 +1853,10 @@ def _candidate_value_key(value: Optional[str]) -> str:
 def _candidate_selection_needed(
     *,
     candidates: list[CandidateAnswer],
-    support: SupportLabel,
+    support: str,
     needs_more_evidence: bool,
     recall_rescue_used: bool,
-    state: ProposalState,
+    state: str,
 ) -> bool:
     valued = [candidate for candidate in candidates if candidate.value]
     distinct_values = {_candidate_value_key(candidate.value) for candidate in valued if candidate.value}
@@ -1784,11 +1867,11 @@ def _candidate_selection_needed(
         return False
     return (
         len(distinct_values) > 1
-        or support == SupportLabel.weak_evidence
+        or support == "weak_evidence"
         or needs_more_evidence
         or text_figure_conflict
         or (recall_rescue_used and len(valued) > 1)
-        or state == ProposalState.unclear
+        or state == "unclear"
         or (has_figure and len(valued) > 1)
     )
 
@@ -2140,8 +2223,8 @@ def should_run_recall_rescue(
     *,
     recall_rescue_enabled: bool,
     rescue_already_used: bool,
-    state: ProposalState,
-    support: Optional[SupportLabel] = None,
+    state: str,
+    support: Optional[str] = None,
     quotes: Optional[list[dict]] = None,
     retrieval: Optional[RetrievalResult] = None,
     needs_more_evidence: bool = False,
@@ -2151,11 +2234,11 @@ def should_run_recall_rescue(
 ) -> RecallRescueDecision:
     reasons: list[str] = []
     quote_items = quotes or []
-    if state == ProposalState.unclear:
+    if state == "unclear":
         reasons.append("unclear_state")
     if needs_more_evidence or not _has_usable_quote_payload(quote_items):
         reasons.append("missing_usable_evidence")
-    if support in {SupportLabel.weak_evidence, SupportLabel.inferred_from_evidence}:
+    if support in {"weak_evidence", "inferred_from_evidence"}:
         reasons.append("weak_or_inferred_evidence")
     if _retrieval_looks_figure_promising(retrieval) and figure_evidence_count == 0:
         reasons.append("figure_relevant_without_figure_evidence")
@@ -2179,8 +2262,8 @@ def should_run_recall_rescue(
 
 
 def decide_vision_trigger_reasons(
-    state: ProposalState,
-    support: SupportLabel,
+    state: str,
+    support: str,
     quotes: list[dict],
     retrieval: Optional[RetrievalResult],
     needs_more_evidence: bool,
@@ -2189,8 +2272,8 @@ def decide_vision_trigger_reasons(
     column_description: str = "",
 ) -> list[str]:
     reasons: list[str] = []
-    text_unclear = state == ProposalState.unclear
-    text_weak = support == SupportLabel.weak_evidence or needs_more_evidence
+    text_unclear = state == "unclear"
+    text_weak = support == "weak_evidence" or needs_more_evidence
     text_contradictory = _has_numeric_conflict_in_quotes(quotes)
     direct_figure_context = _retrieval_has_direct_figure_context(retrieval)
     visual_request = _cell_request_looks_visual(column_name, column_description) and _retrieval_looks_figure_promising(retrieval)
@@ -2248,8 +2331,10 @@ def persist_proposal(
         "row_id": proposal.row_id,
         "column_name": proposal.column_name,
         "pdf_id": proposal.pdf_id,
-        "state": proposal.state.value,
-        "support": proposal.support.value,
+        "proposal_status": proposal.proposal_status.value,
+        "evidence_status": proposal.evidence_status.value,
+        "review_bucket": proposal.review_bucket.value,
+        "reason_codes": list(proposal.reason_codes),
         "warning_flags": proposal.warning_flags,
         "line_number": line_count,
     }
@@ -2427,10 +2512,10 @@ async def extract_cell(
             }
         )
         if proposal is not None:
-            state_value = proposal.state.value if hasattr(proposal.state, "value") else str(proposal.state)
-            support_value = proposal.support.value if hasattr(proposal.support, "value") else str(proposal.support)
-            stats_sink["proposal_state"] = state_value
-            stats_sink["proposal_support"] = support_value
+            stats_sink["proposal_status"] = proposal.proposal_status.value
+            stats_sink["evidence_status"] = proposal.evidence_status.value
+            stats_sink["review_bucket"] = proposal.review_bucket.value
+            stats_sink["reason_codes"] = list(proposal.reason_codes)
             stats_sink["warning_flags"] = list(proposal.warning_flags)
             stats_sink["figure_review_triggered"] = bool((proposal.figure_review_diagnostics or {}).get("triggered"))
             stats_sink["figure_review_useful"] = bool((proposal.figure_review_diagnostics or {}).get("useful"))
@@ -2501,8 +2586,7 @@ async def extract_cell(
             row_id=row_id,
             column_name=column_name,
             cell_id=cell_id,
-            state=ProposalState.found,
-            support=SupportLabel.direct_evidence,
+            **_semantics_fields(ProposalStatus.value_proposed, EvidenceStatus.direct_strong, []),
             proposed_value=metadata_resolution.proposed_value,
             rationale=_normalize_rationale(
                 f"Resolved from parser-first {metadata_resolution.field_kind} metadata before retrieval/model extraction."
@@ -2557,8 +2641,7 @@ async def extract_cell(
             row_id=row_id,
             column_name=column_name,
             cell_id=cell_id,
-            state=ProposalState.unclear,
-            support=SupportLabel.blocked,
+            **_semantics_fields(ProposalStatus.unresolved, EvidenceStatus.no_evidence, [CONFLICTING_EVIDENCE]),
             proposed_value=None,
             rationale=_normalize_rationale(
                 "Parser-first metadata/front-matter inspection found conflicting candidates, so the cell stayed unclear."
@@ -2639,8 +2722,7 @@ async def extract_cell(
             row_id=row_id,
             column_name=column_name,
             cell_id=cell_id,
-            state=ProposalState.error,
-            support=SupportLabel.error,
+            **_semantics_fields(ProposalStatus.error, EvidenceStatus.not_applicable, [PROVIDER_ERROR]),
             proposed_value=None,
             rationale=f"Provider error: {e}",
             evidence_ids=[],
@@ -2696,10 +2778,10 @@ async def extract_cell(
         for quote in first_pass_quotes
     )
     first_pass_support = (
-        SupportLabel.direct_evidence
-        if first_pass_state != ProposalState.unclear and first_pass_has_direct_quote
-        else SupportLabel.inferred_from_evidence
-        if first_pass_state != ProposalState.unclear and first_pass_has_inferred_quote
+        "direct_evidence"
+        if first_pass_state != "unclear" and first_pass_has_direct_quote
+        else "inferred_from_evidence"
+        if first_pass_state != "unclear" and first_pass_has_inferred_quote
         else determine_support_label(
             first_pass_state,
             [],
@@ -2790,8 +2872,7 @@ async def extract_cell(
                 row_id=row_id,
                 column_name=column_name,
                 cell_id=cell_id,
-                state=ProposalState.error,
-                support=SupportLabel.error,
+                **_semantics_fields(ProposalStatus.error, EvidenceStatus.not_applicable, [INVALID_MODEL_OUTPUT]),
                 proposed_value=None,
                 rationale=f"Provider error: {e}",
                 evidence_ids=[],
@@ -2943,7 +3024,7 @@ async def extract_cell(
         or ev.quote_text
         for ev in evidence_records
     )
-    needs_more = not has_usable_evidence and state != ProposalState.unclear
+    needs_more = not has_usable_evidence and state != "unclear"
 
     if needs_more and proposed_value:
         recovery_started = perf_counter()
@@ -3093,7 +3174,7 @@ async def extract_cell(
             numeric_value_form = best_figure_hit.numeric_value_form
         if not rationale:
             rationale = _normalize_rationale(best_figure_hit.rationale)
-        state = ProposalState.inferred
+        state = "inferred"
         needs_more = False
 
     support = determine_support_label(
@@ -3129,7 +3210,7 @@ async def extract_cell(
             CandidateAnswer(
                 candidate_id=candidate_id,
                 value=candidate_value,
-                state=candidate_state if candidate_state in {"found", "inferred", "unclear"} else "unclear",
+                candidate_status=candidate_state if candidate_state in {"found", "inferred", "unclear"} else "unclear",
                 source=source,
                 evidence_ids=list(evidence_ids),
                 confidence_rationale=_normalize_rationale(rationale_text),
@@ -3151,7 +3232,7 @@ async def extract_cell(
     if recall_rescue_used:
         add_candidate(
             value=proposed_value,
-            candidate_state=state.value,
+            candidate_state=state,
             source="rescued_text",
             evidence_ids=[ev.evidence_id for ev in evidence_records],
             rationale_text=rationale,
@@ -3161,7 +3242,7 @@ async def extract_cell(
     if any(ev.source_type == EvidenceSourceType.quote_plus_page for ev in evidence_records):
         add_candidate(
             value=proposed_value,
-            candidate_state=state.value,
+            candidate_state=state,
             source="evidence_recovery",
             evidence_ids=[ev.evidence_id for ev in evidence_records],
             rationale_text=rationale,
@@ -3220,7 +3301,7 @@ async def extract_cell(
             if selected_value:
                 proposed_value = selected_value
             if selected_state_raw in {"found", "inferred", "unclear"}:
-                state = ProposalState(selected_state_raw)
+                state = str(selected_state_raw)
             selected_candidate = next(
                 (candidate for candidate in candidate_answers if candidate.candidate_id == selected_candidate_id),
                 None,
@@ -3230,7 +3311,7 @@ async def extract_cell(
                 and selected_candidate.source == "figure_review"
                 and previous_value
                 and not _values_match(previous_value, selected_value)
-                and support == SupportLabel.direct_evidence
+                and support == "direct_evidence"
                 and not _cell_request_looks_visual(column_name, column_description)
             )
             if selected_candidate and selected_candidate.evidence_ids:
@@ -3287,9 +3368,9 @@ async def extract_cell(
         field_type=field_type,
     )
 
-    if support == SupportLabel.weak_evidence and proposed_value:
-        state = ProposalState.unclear
-        support = SupportLabel.blocked
+    if support == "weak_evidence" and proposed_value:
+        state = "unclear"
+        support = "blocked"
 
     warning_flags = []
     if needs_more:
@@ -3298,16 +3379,23 @@ async def extract_cell(
         warning_flags.append("recall_rescue_used")
     if whole_document_used:
         warning_flags.append("whole_document_used")
-    if any(ev.is_figure_derived for ev in ranked_evidence):
-        warning_flags.append("figure_derived")
-    if any(ev.source_type == EvidenceSourceType.quote_plus_page for ev in ranked_evidence):
-        warning_flags.append("fallback_evidence_used")
-    if any(ev.source_type == EvidenceSourceType.approximate_highlight for ev in ranked_evidence):
-        warning_flags.append("approximate_highlight")
     if numeric_value_form == NumericValueForm.approximate:
         warning_flags.append("approximate_value")
     if numeric_value_form == NumericValueForm.range:
         warning_flags.append("range_value")
+
+    reason_codes: list[str] = []
+    if needs_more or support == "weak_evidence":
+        reason_codes.append(INSUFFICIENT_EVIDENCE)
+    if calculation:
+        reason_codes.append(CALCULATION)
+    if any(ev.source_type == EvidenceSourceType.quote_plus_page for ev in ranked_evidence):
+        reason_codes.append(ANCHOR_FALLBACK)
+    if any(ev.source_type == EvidenceSourceType.approximate_highlight for ev in ranked_evidence):
+        reason_codes.append(APPROXIMATE_ANCHOR)
+    retrieval_chunks = retrieval.chunks if retrieval is not None else []
+    if not ranked_evidence and not retrieval_chunks:
+        reason_codes.append(RETRIEVAL_EMPTY)
 
     fallback_reasons = list(metadata_resolution.fallback_reasons) if metadata_resolution is not None else []
     failure_attribution = _classify_failure_attribution(
@@ -3361,6 +3449,18 @@ async def extract_cell(
     supporting_ids = [ev.evidence_id for ev in ranked_evidence[1:]]
     all_ev_ids = [ev.evidence_id for ev in ranked_evidence]
 
+    semantic_kwargs = _canonical_semantics_kwargs(
+        state=state,
+        support=support,
+        proposed_value=proposed_value,
+        evidence_records=ranked_evidence,
+        reason_codes=reason_codes,
+    )
+    persisted_proposed_value = _proposal_value_for_persistence(
+        proposal_status=semantic_kwargs["proposal_status"],
+        proposed_value=proposed_value,
+    )
+
     proposal = ProposalRecord(
         proposal_id=proposal_id,
         run_id=run_id,
@@ -3368,9 +3468,8 @@ async def extract_cell(
         row_id=row_id,
         column_name=column_name,
         cell_id=cell_id,
-        state=state,
-        support=support,
-        proposed_value=proposed_value,
+        **semantic_kwargs,
+        proposed_value=persisted_proposed_value,
         rationale=rationale,
         calculation=calculation,
         primary_evidence_id=primary_ev_id,
@@ -3426,6 +3525,20 @@ async def extract_cell(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _proposal_value_for_persistence(
+    *,
+    proposal_status: ProposalStatus,
+    proposed_value: Optional[str],
+) -> Optional[str]:
+    if proposal_status == ProposalStatus.unresolved and str(proposed_value or "").strip().lower() in {
+        "",
+        "unclear",
+        "no value proposed",
+    }:
+        return None
+    return proposed_value
+
 
 def _normalize_rationale(rationale: Optional[str]) -> Optional[str]:
     """Ensure rationale is compact markdown bullets (T053a)."""
@@ -3488,7 +3601,7 @@ def _coerce_text_value(value: Any, joiner: str = "\n") -> Optional[str]:
 
 def _classify_failure_attribution(
     *,
-    state: ProposalState,
+    state: str,
     proposed_value: Optional[str],
     retrieval: Optional[RetrievalResult],
     doc_dict: dict,
@@ -3497,7 +3610,7 @@ def _classify_failure_attribution(
     metadata_resolution: Optional[object],
     warning_flags: list[str],
 ) -> Optional[str]:
-    if state not in {ProposalState.unclear, ProposalState.error, ProposalState.blocked}:
+    if state not in {"unclear", "error", "blocked"}:
         return None
     if metadata_resolution is not None:
         failure_attribution = getattr(metadata_resolution, "failure_attribution", None)
@@ -3625,8 +3738,8 @@ def _build_retrieval_diagnostics(
     *,
     doc_dict: dict,
     retrieval: Optional[RetrievalResult],
-    state: ProposalState,
-    support: SupportLabel,
+    state: str,
+    support: str,
     proposed_value: Optional[str],
     quotes: list[dict],
     evidence_records: list[EvidenceRecord],
@@ -3666,9 +3779,9 @@ def _build_retrieval_diagnostics(
         signals.append("figure_evidence_present")
 
     classification = "not_needed"
-    if "provider_error" in warning_flags or state == ProposalState.error:
+    if "provider_error" in warning_flags or state == "error":
         classification = "provider_failure"
-    elif state in (ProposalState.blocked, ProposalState.skipped):
+    elif state in ("blocked", "skipped"):
         classification = "blocked_upstream"
     elif not retrieval_chunks:
         classification = "parser_source_gap" if parser_signals else "retrieval_miss"
@@ -3676,9 +3789,9 @@ def _build_retrieval_diagnostics(
         classification = "evidence_anchoring_gap"
     elif recall_rescue_used or whole_document_used:
         classification = "retrieval_policy_limit"
-    elif (state == ProposalState.unclear or needs_more_evidence or support == SupportLabel.weak_evidence) and (proposed_value_present or quoted_text_present):
+    elif (state == "unclear" or needs_more_evidence or support == "weak_evidence") and (proposed_value_present or quoted_text_present):
         classification = "reasoning_gap"
-    elif state == ProposalState.unclear or needs_more_evidence or support == SupportLabel.weak_evidence:
+    elif state == "unclear" or needs_more_evidence or support == "weak_evidence":
         classification = "retrieval_miss"
     elif parser_signals and exact_evidence == 0:
         classification = "parser_source_gap"
@@ -3813,6 +3926,19 @@ def _safe_evidence_filename(evidence_id: str, max_len: int = 16) -> str:
     return f"{truncated}_{digest}"
 
 
+def reason_code_for_blocked(blocked_reason: str) -> str:
+    text = str(blocked_reason or "").lower()
+    if "provider" in text:
+        return PROVIDER_ERROR
+    if "parser" in text or "parse" in text:
+        return INVALID_MODEL_OUTPUT
+    if "retrieval" in text:
+        return RETRIEVAL_EMPTY
+    if "target" in text or "cell" in text:
+        return CELL_NOT_TARGETED
+    return INSUFFICIENT_EVIDENCE
+
+
 def make_blocked_proposal(
     run_id: str,
     pdf_id: str,
@@ -3831,8 +3957,7 @@ def make_blocked_proposal(
         row_id=row_id,
         column_name=column_name,
         cell_id=cell_id,
-        state=ProposalState.blocked,
-        support=SupportLabel.blocked,
+        **_semantics_fields(ProposalStatus.unresolved, EvidenceStatus.no_evidence, [reason_code_for_blocked(blocked_reason)]),
         proposed_value=None,
         rationale=blocked_reason,
         evidence_ids=[],
@@ -3861,8 +3986,7 @@ def make_skipped_proposal(
         row_id=row_id,
         column_name=column_name,
         cell_id=cell_id,
-        state=ProposalState.skipped,
-        support=SupportLabel.blocked,
+        **_semantics_fields(ProposalStatus.not_attempted, EvidenceStatus.not_applicable, [CELL_NOT_TARGETED]),
         proposed_value=None,
         rationale=skip_reason,
         evidence_ids=[],

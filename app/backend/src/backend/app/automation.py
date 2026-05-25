@@ -26,7 +26,7 @@ from .ids import generate_run_id
 from .ingest import load_schema, load_table
 from .review import bulk_accept_proposals, get_export_candidates, get_latest_decision, recompute_summaries
 from .runner import run_pipeline
-from .schemas import DecisionSource, ProposalState, RunStatus
+from .schemas import DecisionSource, ReviewBucket, RunStatus
 
 AUTOMATION_PAYLOAD_SCHEMA_VERSION = "main_app_automation.v1"
 HEADLESS_ACCEPT_ALL_NOTE = "Auto-accepted by headless CLI (--accept-all)."
@@ -556,7 +556,7 @@ def run_preflight(
 def _reviewable_undecided_proposal_ids(run_dir: pathlib.Path) -> list[str]:
     proposal_ids: list[str] = []
     for proposal in load_proposals(run_dir):
-        if proposal.state in (ProposalState.blocked, ProposalState.skipped):
+        if proposal.review_bucket == ReviewBucket.diagnostic:
             continue
         if get_latest_decision(run_dir, proposal.proposal_id) is not None:
             continue

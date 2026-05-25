@@ -90,13 +90,14 @@ describe('RunSummaryPanel', () => {
     expect(screen.getAllByText('9').length).toBeGreaterThan(0)
   })
 
-  it('surfaces run warning count in runtime diagnostics', async () => {
+  it('does not surface run warning counts in the review summary', async () => {
     render(<RunSummaryPanel run={baseRun} outputDir="./runs" />)
 
     await waitFor(() => {
-      expect(screen.getByText('Run warnings')).toBeInTheDocument()
+      expect(screen.getByText('Runtime details')).toBeInTheDocument()
     })
-    expect(screen.getByText('3 warnings')).toBeInTheDocument()
+    expect(screen.queryByText('Run warnings')).toBeNull()
+    expect(screen.queryByText('3 warnings')).toBeNull()
   })
 
   it('shows runtime details without hiding warning truth', async () => {

@@ -94,9 +94,9 @@ Older tool-local benchmark locations are historical only; active datasets should
 Eval must emit inspectable audit summaries in stable per-run outputs for:
 
 - evidence-anchor validation totals, validated-versus-unvalidated counts, invalid-anchor counts, and reason histograms
-- evidence ID resolution from nested support fields and top-level `primary_evidence_id`, `evidence_ids`, and `ordered_supporting_evidence_ids`
+- evidence ID resolution from top-level `primary_evidence_id`, `evidence_ids`, and `ordered_supporting_evidence_ids`
 - anchor outcome counts for missing evidence, valid anchors, invalid anchors, present-but-unvalidated evidence, invalid pages, missing quote text, page bounds, missing persisted text, and quote locatability
-- metadata-family summaries grouped by field kind, state, and failure attribution
+- metadata-family summaries grouped by field kind, canonical proposal status, and failure attribution
 - dual-judge completion truth and disagreement diagnostics
 - ratio and coverage metrics must remain within valid numeric bounds; impossible values are contract defects
 

@@ -212,7 +212,7 @@ def score_run(
                     judge_input_hash=None,
                     diagnostic_flags=["proposal_cell_id_mismatch"],
                     diagnostics={"gold_cell_id": gold_cell.cell_id, "proposal_cell_id": proposal.cell_id},
-                    selected_proposal_state=proposal.state,
+                    selected_proposal_status=proposal.proposal_status,
                 )
             )
             continue
@@ -302,7 +302,7 @@ def score_run(
                         **support_proxy.diagnostics,
                     },
                 },
-                selected_proposal_state=proposal.state,
+                selected_proposal_status=proposal.proposal_status,
                 extraction_lane=proposal.extraction_lane,
                 failure_attribution=proposal.failure_attribution,
             )
@@ -345,7 +345,7 @@ def score_run(
                     judge_input_hash=None,
                     diagnostic_flags=["proposal_without_matching_gold_cell"],
                     diagnostics={},
-                    selected_proposal_state=proposal.state,
+                    selected_proposal_status=proposal.proposal_status,
                 )
             )
 
@@ -481,7 +481,7 @@ def _prepare_text_cell(
                 "text": text_diagnostics,
                 "evidence": evidence_result.diagnostics,
             },
-            selected_proposal_state=proposal.state,
+            selected_proposal_status=proposal.proposal_status,
             extraction_lane=proposal.extraction_lane,
             failure_attribution=proposal.failure_attribution,
         )
@@ -514,7 +514,7 @@ def _prepare_text_cell(
                 "text": text_diagnostics,
                 "evidence": evidence_result.diagnostics,
             },
-            selected_proposal_state=proposal.state,
+            selected_proposal_status=proposal.proposal_status,
             extraction_lane=proposal.extraction_lane,
             failure_attribution=proposal.failure_attribution,
         )
@@ -788,7 +788,7 @@ def _merge_judged_text_cell(
             },
             "evidence": pending.evidence_result.diagnostics,
         },
-        selected_proposal_state=pending.proposal.state,
+        selected_proposal_status=pending.proposal.proposal_status,
         extraction_lane=pending.proposal.extraction_lane,
         failure_attribution=(
             "judge_failure"

@@ -431,8 +431,8 @@ def _build_metadata_summary(records: Iterable[ScoredCell]) -> dict[str, object]:
             },
         )
         field_row["total"] = int(field_row["total"]) + 1
-        state = "found" if record.join_status == "matched" else ("missing_proposal" if record.join_status == "missing_proposal" else "unclear")
-        field_row[state] = int(field_row[state]) + 1
+        status = record.selected_proposal_status or ("missing_proposal" if record.join_status == "missing_proposal" else "unresolved")
+        field_row[status] = int(field_row.get(status, 0)) + 1
         if record.failure_attribution:
             failure_map = field_row["failure_attribution"]
             assert isinstance(failure_map, dict)

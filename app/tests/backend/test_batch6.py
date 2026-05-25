@@ -47,11 +47,12 @@ from backend.app.review import (
 )
 from backend.app.schemas import (
     EvidenceSourceType,
-    ProposalState,
+    EvidenceStatus,
+    ProposalStatus,
     ReviewDecision,
     ReviewResolutionReason,
+    ReviewBucket,
     RunStatus,
-    SupportLabel,
     WarningCategory,
 )
 
@@ -140,8 +141,10 @@ def _make_proposal_and_accept(
         row_id=row_id,
         column_name=column_name,
         cell_id=cell_id,
-        state=ProposalState.found,
-        support=SupportLabel.direct_evidence,
+        proposal_status=ProposalStatus.value_proposed,
+        evidence_status=EvidenceStatus.direct_strong,
+        review_bucket=ReviewBucket.review,
+        reason_codes=[],
         proposed_value=proposed_value,
         evidence_ids=[],
         warning_flags=[],
@@ -318,7 +321,10 @@ class TestGenerateXlsxExport:
         prop = ProposalRecord(
             proposal_id=proposal_id, run_id=run_id, pdf_id="pdf_test",
             row_id=row_id, column_name="Method", cell_id=cell_id,
-            state=ProposalState.found, support=SupportLabel.direct_evidence,
+            proposal_status=ProposalStatus.value_proposed,
+            evidence_status=EvidenceStatus.direct_strong,
+            review_bucket=ReviewBucket.review,
+            reason_codes=[],
             proposed_value="PCR", evidence_ids=[], warning_flags=[],
             created_at=datetime.now(timezone.utc).isoformat(),
         )
@@ -351,7 +357,10 @@ class TestGenerateXlsxExport:
         prop = ProposalRecord(
             proposal_id=proposal_id, run_id=run_id, pdf_id="pdf_test",
             row_id=row_id, column_name="Method", cell_id=cell_id,
-            state=ProposalState.found, support=SupportLabel.direct_evidence,
+            proposal_status=ProposalStatus.value_proposed,
+            evidence_status=EvidenceStatus.direct_strong,
+            review_bucket=ReviewBucket.review,
+            reason_codes=[],
             proposed_value="PCR", evidence_ids=[], warning_flags=[],
             created_at=datetime.now(timezone.utc).isoformat(),
         )
@@ -582,7 +591,10 @@ class TestGenerateDiagnostics:
         prop = ProposalRecord(
             proposal_id=proposal_id, run_id=run_id, pdf_id="pdf_test",
             row_id=row_id, column_name="Method", cell_id=cell_id,
-            state=ProposalState.blocked, support=SupportLabel.blocked,
+            proposal_status=ProposalStatus.unresolved,
+            evidence_status=EvidenceStatus.no_evidence,
+            review_bucket=ReviewBucket.diagnostic,
+            reason_codes=["pdf_unmatched"],
             proposed_value=None, evidence_ids=[], warning_flags=[],
             created_at=datetime.now(timezone.utc).isoformat(),
         )
@@ -590,8 +602,8 @@ class TestGenerateDiagnostics:
         run_data = read_json(run_dir / "run.json")
         path = generate_diagnostics(run_dir, run_data, [])
         data = read_json(path)
-        assert data["proposals"]["blocked_count"] == 1
-        assert any(e["proposal_id"] == proposal_id for e in data["proposals"]["blocked"])
+        assert data["proposals"]["by_review_bucket"]["diagnostic"]["count"] == 1
+        assert any(e["proposal_id"] == proposal_id for e in data["proposals"]["by_review_bucket"]["diagnostic"]["items"])
 
     def test_diagnostics_fidelity_boundary_present(self, tmp_path: pathlib.Path):
         run_dir, run_id = _make_run(tmp_path)

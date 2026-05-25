@@ -15,7 +15,6 @@ import pandas as pd
 
 from .artifacts import (
     EVIDENCE_RECORD_SCHEMA_VERSION,
-    PROPOSAL_RECORD_SCHEMA_VERSION,
     RUN_BUNDLE_ARTIFACT_SCHEMA_VERSION,
     get_artifact_summary_path,
     hash_file,
@@ -71,7 +70,7 @@ from .review_lookup import persist_review_lookup
 from .retrieval import run_retrieval_for_cell
 from .run_events import publish_run_update
 from .run_executor import get_run_executor
-from .schemas import EvidenceSourceType, MatchOutcome, RunStatus, SupportLabel, WarningCategory
+from .schemas import EvidenceSourceType, EvidenceStatus, MatchOutcome, RunStatus, WarningCategory
 from .style_profiles import run_style_profiles_stage
 
 _STAGE_TIMING_KEYS = {
@@ -435,7 +434,6 @@ def get_initial_run_data(
         "prompt_keys_used": prompt_identity.get("prompt_keys_used", []),
         "prompt_files": prompt_identity.get("prompt_files", {}),
         "artifact_schema_version": RUN_BUNDLE_ARTIFACT_SCHEMA_VERSION,
-        "proposal_schema_version": PROPOSAL_RECORD_SCHEMA_VERSION,
         "evidence_schema_version": EVIDENCE_RECORD_SCHEMA_VERSION,
         "config_hash": None,
         "config_snapshot_path": None,
@@ -2353,7 +2351,7 @@ async def run_pipeline(
         }
         proposals = load_proposals(run_dir)
         fallback_count = sum("fallback_evidence_used" in proposal.warning_flags for proposal in proposals)
-        weak_count = sum(proposal.support == SupportLabel.weak_evidence for proposal in proposals)
+        weak_count = sum(proposal.evidence_status in {EvidenceStatus.direct_weak, EvidenceStatus.inferred_weak} for proposal in proposals)
         if fallback_count:
             run_data.setdefault("warnings", []).append({
                 "category": WC.fallback_evidence_used.value,

@@ -3,11 +3,13 @@ import { api } from '../api/client'
 import type { EnrichedProposal } from '../types'
 import { ReviewTableView, type ReviewFilter, type SelectedReviewCell } from './ReviewTableView'
 import {
-  ProposalStateIndicator,
-  ProposalSupportIndicator,
+  ProposalStatusIndicator,
+  EvidenceStatusIndicator,
   ReviewStatusIndicator,
-  WarningIndicator,
+  isGreenEvidenceStatus,
+  isGreenProposalStatus,
 } from './ReviewTags'
+import { proposalConclusionLabel } from './proposalDisplay'
 
 interface Props {
   runId: string
@@ -28,7 +30,7 @@ export type LeftPaneMode = 'paper' | 'column' | 'table'
 function stateColor(p: EnrichedProposal): string {
   const decision = p.latest_decision?.decision
   if (!decision) {
-    if (p.state === 'blocked') return 'border-amber-300'
+    if (p.review_bucket === 'diagnostic') return 'border-amber-300'
     return 'border-slate-200'
   }
   switch (decision) {
@@ -77,17 +79,23 @@ function groupStats(items: EnrichedProposal[]) {
 }
 
 function proposalMatchesFilter(proposal: EnrichedProposal, filter: ReviewFilter) {
-  if (filter === 'all') return true
+  if (filter === 'all') return isReviewSurfaceProposal(proposal)
   if (filter === 'pending') return !proposal.latest_decision
   if (filter === 'needs_attention') {
-    return (
-      proposal.warning_flags.length > 0 ||
-      proposal.warning_categories.length > 0 ||
-      proposal.support === 'weak_evidence' ||
-      proposal.is_fallback_evidence
-    )
+    return hasAttentionSignal(proposal)
   }
   return proposal.latest_decision?.decision === filter
+}
+
+function hasAttentionSignal(proposal: EnrichedProposal): boolean {
+  return !(
+    isGreenProposalStatus(proposal.proposal_status) &&
+    isGreenEvidenceStatus(proposal.evidence_status, proposal.is_fallback_evidence)
+  )
+}
+
+function isReviewSurfaceProposal(proposal: EnrichedProposal): boolean {
+  return proposal.review_bucket !== 'diagnostic'
 }
 
 function cssEscape(value: string): string {
@@ -141,8 +149,8 @@ export function ProposalQueue({
   }, [runId, outputDir, filter, mode, refreshVersion])
 
   const filtered = useMemo(() => {
-    return proposals.filter((proposal) => proposal.proposal_id === selectedProposalId || proposalMatchesFilter(proposal, filter))
-  }, [proposals, filter, selectedProposalId])
+    return proposals.filter((proposal) => proposalMatchesFilter(proposal, filter))
+  }, [proposals, filter])
 
   const groups = useMemo(() => {
     const map = new Map<string, EnrichedProposal[]>()
@@ -323,7 +331,7 @@ export function ProposalQueue({
                       key={p.proposal_id}
                       data-proposal-id={p.proposal_id}
                       onClick={() => onSelect(p.proposal_id)}
-                      title={p.proposed_value || 'No value proposed'}
+                      title={proposalConclusionLabel(p)}
                       className={`w-full rounded-md border px-2.5 py-2 text-left transition-colors ${stateColor(p)} ${
                         selectedProposalId === p.proposal_id
                           ? 'border-sky-400 bg-sky-100 shadow-sm ring-2 ring-sky-300'
@@ -338,7 +346,7 @@ export function ProposalQueue({
                             </div>
                           )}
                           <div className="mt-1 truncate text-sm text-slate-700">
-                            {p.proposed_value || 'No value proposed'}
+                            {proposalConclusionLabel(p)}
                           </div>
                           {mode === 'column' && (
                             <div className="mt-1 truncate text-[11px] text-slate-400">
@@ -349,10 +357,9 @@ export function ProposalQueue({
                         <div className="flex shrink-0 flex-col items-end gap-0">
                           <div className="flex items-center gap-0.5">
                             <ReviewStatusIndicator decision={p.latest_decision?.decision ?? null} size="xs" />
-                            <ProposalStateIndicator state={p.state} size="xs" />
-                            <ProposalSupportIndicator support={p.support} isFallback={p.is_fallback_evidence} size="xs" />
+                            <ProposalStatusIndicator status={p.proposal_status} size="xs" />
+                            <EvidenceStatusIndicator evidenceStatus={p.evidence_status} isFallback={p.is_fallback_evidence} size="xs" />
                           </div>
-                          {p.warning_flags.length > 0 && <WarningIndicator size="xs" />}
                         </div>
                       </div>
                     </button>

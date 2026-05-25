@@ -19,7 +19,7 @@ from .extraction import load_proposals
 from .ingest import load_table, xlsx_data_start_row
 from .matching import load_unmatched, load_ambiguous, load_conflicts
 from .review import get_export_candidates, get_latest_decision
-from .schemas import ProposalState, SupportLabel, WarningCategory
+from .schemas import WarningCategory
 
 # Yellow fill for changed cells (T096)
 HIGHLIGHT_FILL = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
@@ -356,7 +356,7 @@ def generate_diagnostics(
     Collects:
     - run-level warnings from run.json
     - matching failures (unmatched, ambiguous, blocked)
-    - proposal-level outcomes (unclear, skipped, error, weak evidence)
+    - proposal-level canonical outcomes by status, evidence status, review bucket, and reason code
     - unsupported workbook feature warnings
     - completed_with_warnings summary
     """
@@ -379,23 +379,26 @@ def generate_diagnostics(
 
     # Proposal-level diagnostics
     proposals = load_proposals(run_dir)
-    unclear_proposals: list[dict] = []
-    skipped_proposals: list[dict] = []
-    error_proposals: list[dict] = []
-    weak_evidence_proposals: list[dict] = []
-    blocked_proposals: list[dict] = []
+    by_status: dict[str, list[dict]] = {}
+    by_evidence_status: dict[str, list[dict]] = {}
+    by_review_bucket: dict[str, list[dict]] = {}
+    by_reason_code: dict[str, list[dict]] = {}
 
     for p in proposals:
-        if p.state == ProposalState.unclear:
-            unclear_proposals.append({"proposal_id": p.proposal_id, "cell_id": p.cell_id, "column_name": p.column_name})
-        elif p.state == ProposalState.skipped:
-            skipped_proposals.append({"proposal_id": p.proposal_id, "cell_id": p.cell_id, "column_name": p.column_name})
-        elif p.state == ProposalState.error:
-            error_proposals.append({"proposal_id": p.proposal_id, "cell_id": p.cell_id, "column_name": p.column_name})
-        elif p.state == ProposalState.blocked:
-            blocked_proposals.append({"proposal_id": p.proposal_id, "cell_id": p.cell_id, "column_name": p.column_name})
-        if p.support == SupportLabel.weak_evidence:
-            weak_evidence_proposals.append({"proposal_id": p.proposal_id, "cell_id": p.cell_id, "column_name": p.column_name})
+        item = {
+            "proposal_id": p.proposal_id,
+            "cell_id": p.cell_id,
+            "column_name": p.column_name,
+            "proposal_status": p.proposal_status.value,
+            "evidence_status": p.evidence_status.value,
+            "review_bucket": p.review_bucket.value,
+            "reason_codes": list(p.reason_codes),
+        }
+        by_status.setdefault(p.proposal_status.value, []).append(item)
+        by_evidence_status.setdefault(p.evidence_status.value, []).append(item)
+        by_review_bucket.setdefault(p.review_bucket.value, []).append(item)
+        for reason_code in p.reason_codes:
+            by_reason_code.setdefault(reason_code, []).append(item)
 
     status = run_data.get("status", "")
     completed_with_warnings = status == "completed_with_warnings"
@@ -416,16 +419,10 @@ def generate_diagnostics(
         },
         "proposals": {
             "total": len(proposals),
-            "blocked_count": len(blocked_proposals),
-            "blocked": blocked_proposals,
-            "unclear_count": len(unclear_proposals),
-            "unclear": unclear_proposals,
-            "skipped_count": len(skipped_proposals),
-            "skipped": skipped_proposals,
-            "error_count": len(error_proposals),
-            "error": error_proposals,
-            "weak_evidence_count": len(weak_evidence_proposals),
-            "weak_evidence": weak_evidence_proposals,
+            "by_status": {key: {"count": len(value), "items": value} for key, value in sorted(by_status.items())},
+            "by_evidence_status": {key: {"count": len(value), "items": value} for key, value in sorted(by_evidence_status.items())},
+            "by_review_bucket": {key: {"count": len(value), "items": value} for key, value in sorted(by_review_bucket.items())},
+            "by_reason_code": {key: {"count": len(value), "items": value} for key, value in sorted(by_reason_code.items())},
         },
         "unsupported_workbook_features": {
             "warnings_count": len(unsupported_feature_warnings),

@@ -22,7 +22,7 @@ The main product is a local-first paper-to-table review app that ingests PDFs pl
 
 The specs are canonical implementation truth, not after-the-fact notes.
 
-For any substantial behavior, architecture, workflow, config, artifact, provider, UI, eval, optimizer, or CLI change:
+For any substantial change of: behavior, architecture, workflow, config, artifact, provider, UI, eval, optimizer, or CLI:
 
 - update `specs/spec.md` plus the owning supporting spec in the same pass, or explicitly state why no spec update was needed
 - keep specs detailed enough that a capable coding assistant could rebuild a similar app from the specs alone
@@ -185,11 +185,25 @@ Done means the operator can understand what to do next without reading source co
 - Prefer relative paths in docs. If absolute paths are required, document both `/d/...` and `D:\...` forms.
 - Canonical fixture root: `app/tests/fixtures/`.
 
-## Compounding lessons
+## Commit Message Helper
 
-- Write a compounding lesson only when a bug, edge case, or workflow mistake reveals a reusable repo-level lesson.
-- Keep them under `/specs/archive/old-research-notes/engineering-lessons`.
-- Check existing lessons when you hit a suspicious repeat issue.
+When making or planning code changes, keep the draft commit message in
+`D:\code\notes\git_commit_-_papers-to-table.sh` up to date.
+
+Rules:
+- Update the draft `git commit -m "..."` message so it accurately summarizes the current uncommitted changes.
+- Keep the commit subject concise, preferably under ~72 characters.
+- Limit the subject line to 50 characters.
+- Capitalize only the first letter in the subject line.
+- Insert a blank line between the subject line and the body.
+- Don't put a period at the end of the subject line.
+- Use a conventional prefix when practical, e.g. `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, or `chore:`.
+- Use `!` for intentional breaking changes, e.g. `refactor!: replace legacy proposal semantics`.
+- Keep the commit body short: usually 3–6 bullet points.
+- If the existing draft message has grown too long or stale, summarize/edit it instead of appending indefinitely.
+- Use the imperative mood.
+- Describe what was done and why, but not how.
+- Do not commit automatically unless explicitly asked; only keep the script ready for the user to run.
 
 ## Final rule
 

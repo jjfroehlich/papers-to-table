@@ -6,19 +6,20 @@ from pydantic import ValidationError
 
 from backend.app.schemas import (
     Evidence,
+    EvidenceStatus,
     EvidenceSourceType,
     MatchOutcome,
     Proposal,
-    ProposalState,
+    ProposalStatus,
     ProviderLocality,
     ReviewDecision,
     ReviewDecisionRecord,
+    ReviewBucket,
     ReviewResolutionReason,
     ReviewerSummary,
     RunStatus,
     RunSummary,
     RunWarning,
-    SupportLabel,
     WarningCategory,
 )
 
@@ -48,20 +49,27 @@ class TestMatchOutcome:
         assert "duplicate_row_conflict" in values
 
 
-class TestProposalState:
+class TestProposalStatus:
     def test_all_values(self):
-        values = {s.value for s in ProposalState}
-        assert {"found", "inferred", "unclear", "blocked", "error", "skipped"} == values
+        values = {s.value for s in ProposalStatus}
+        assert {"value_proposed", "no_data", "unresolved", "not_applicable", "not_attempted", "error"} == values
 
 
-class TestSupportLabel:
+class TestEvidenceStatus:
     def test_all_values(self):
-        values = {s.value for s in SupportLabel}
-        assert "direct_evidence" in values
-        assert "inferred_from_evidence" in values
-        assert "weak_evidence" in values
-        assert "blocked" in values
-        assert "error" in values
+        values = {s.value for s in EvidenceStatus}
+        assert "direct_strong" in values
+        assert "direct_weak" in values
+        assert "inferred_strong" in values
+        assert "inferred_weak" in values
+        assert "no_evidence" in values
+        assert "not_applicable" in values
+
+
+class TestReviewBucket:
+    def test_all_values(self):
+        values = {s.value for s in ReviewBucket}
+        assert {"review", "attention", "diagnostic"} == values
 
 
 class TestEvidenceSourceType:
@@ -119,8 +127,10 @@ class TestProposalModel:
             row_id="row_abc123def456",
             column_name="Abstract",
             pdf_id="pdf_paper_1_abc123def456",
-            state=ProposalState.found,
-            support=SupportLabel.direct_evidence,
+            proposal_status=ProposalStatus.value_proposed,
+            evidence_status=EvidenceStatus.direct_strong,
+            review_bucket=ReviewBucket.review,
+            reason_codes=[],
             proposed_value="Some value",
             evidence_ids=["ev_p1"],
             warning_flags=[],
@@ -138,8 +148,10 @@ class TestProposalModel:
             row_id="row_1",
             column_name="Col",
             pdf_id="pdf_1",
-            state=ProposalState.blocked,
-            support=SupportLabel.blocked,
+            proposal_status=ProposalStatus.unresolved,
+            evidence_status=EvidenceStatus.no_evidence,
+            review_bucket=ReviewBucket.diagnostic,
+            reason_codes=["retrieval_empty"],
             evidence_ids=[],
             warning_flags=[],
             created_at=datetime.now(timezone.utc).isoformat(),

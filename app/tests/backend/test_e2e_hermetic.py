@@ -53,11 +53,12 @@ from backend.app.review import (
 )
 from backend.app.schemas import (
     EvidenceSourceType,
-    ProposalState,
+    EvidenceStatus,
+    ProposalStatus,
     ReviewDecision,
     ReviewResolutionReason,
+    ReviewBucket,
     RunStatus,
-    SupportLabel,
     WarningCategory,
 )
 
@@ -109,8 +110,10 @@ def _seed_proposal(
     title: str,
     column_name: str,
     proposed_value: str | None = "test_value",
-    state: ProposalState = ProposalState.found,
-    support: SupportLabel = SupportLabel.direct_evidence,
+    proposal_status: ProposalStatus = ProposalStatus.value_proposed,
+    evidence_status: EvidenceStatus = EvidenceStatus.direct_strong,
+    review_bucket: ReviewBucket = ReviewBucket.review,
+    reason_codes: list[str] | None = None,
     pdf_id: str = "pdf_paper1",
     is_verify_mode: bool = False,
     existing_value: str | None = None,
@@ -125,8 +128,10 @@ def _seed_proposal(
         row_id=row_id,
         column_name=column_name,
         cell_id=cell_id,
-        state=state,
-        support=support,
+        proposal_status=proposal_status,
+        evidence_status=evidence_status,
+        review_bucket=review_bucket,
+        reason_codes=reason_codes or [],
         proposed_value=proposed_value,
         rationale="Evidence found in section 3.",
         evidence_ids=[],
@@ -256,7 +261,10 @@ class TestHermeticBlockedFlows:
         run_dir, run_id = _make_run(tmp_path)
         prop = _seed_proposal(
             run_dir, run_id, 0, "Paper One", "Method", None,
-            state=ProposalState.blocked, support=SupportLabel.blocked,
+            proposal_status=ProposalStatus.unresolved,
+            evidence_status=EvidenceStatus.no_evidence,
+            review_bucket=ReviewBucket.diagnostic,
+            reason_codes=["pdf_unmatched"],
         )
         # Even if someone tried to record a spurious decision — get_export_candidates only picks accepted
         candidates = get_export_candidates(run_dir)
@@ -267,7 +275,10 @@ class TestHermeticBlockedFlows:
         run_dir, run_id = _make_run(tmp_path)
         _seed_proposal(
             run_dir, run_id, 0, "Paper One", "Method", None,
-            state=ProposalState.skipped, support=SupportLabel.error,
+            proposal_status=ProposalStatus.not_attempted,
+            evidence_status=EvidenceStatus.not_applicable,
+            review_bucket=ReviewBucket.diagnostic,
+            reason_codes=["cell_not_targeted"],
         )
         candidates = get_export_candidates(run_dir)
         assert len(candidates) == 0
@@ -277,7 +288,10 @@ class TestHermeticBlockedFlows:
         run_dir, run_id = _make_run(tmp_path)
         _seed_proposal(
             run_dir, run_id, 0, "Paper One", "Method", "Maybe PCR",
-            state=ProposalState.unclear, support=SupportLabel.weak_evidence,
+            proposal_status=ProposalStatus.unresolved,
+            evidence_status=EvidenceStatus.direct_weak,
+            review_bucket=ReviewBucket.attention,
+            reason_codes=["insufficient_evidence"],
         )
         candidates = get_export_candidates(run_dir)
         assert len(candidates) == 0
@@ -335,7 +349,9 @@ class TestHermeticWeakEvidencePaths:
         run_dir, run_id = _make_run(tmp_path)
         prop = _seed_proposal(
             run_dir, run_id, 0, "Paper One", "Method", "Maybe PCR",
-            support=SupportLabel.weak_evidence,
+            evidence_status=EvidenceStatus.direct_weak,
+            review_bucket=ReviewBucket.attention,
+            reason_codes=["insufficient_evidence"],
         )
         ev = _seed_evidence(
             run_dir, run_id, prop,
@@ -353,7 +369,9 @@ class TestHermeticWeakEvidencePaths:
         run_dir, run_id = _make_run(tmp_path)
         prop = _seed_proposal(
             run_dir, run_id, 0, "Paper One", "Method", "PCR",
-            support=SupportLabel.weak_evidence,
+            evidence_status=EvidenceStatus.direct_weak,
+            review_bucket=ReviewBucket.attention,
+            reason_codes=["insufficient_evidence"],
         )
         _seed_evidence(
             run_dir, run_id, prop,
@@ -502,7 +520,9 @@ class TestHermeticFigureEvidence:
         run_dir, run_id = _make_run(tmp_path)
         prop = _seed_proposal(
             run_dir, run_id, 0, "Paper One", "Method", "FACS",
-            support=SupportLabel.weak_evidence,
+            evidence_status=EvidenceStatus.direct_weak,
+            review_bucket=ReviewBucket.attention,
+            reason_codes=["insufficient_evidence"],
         )
         # Add weak text evidence
         ev_text = _seed_evidence(

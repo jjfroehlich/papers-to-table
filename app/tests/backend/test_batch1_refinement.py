@@ -44,11 +44,12 @@ from backend.app.review import get_proposal_detail
 from backend.app.runner import run_pipeline
 from backend.app.schemas import (
     EvidenceSourceType,
+    EvidenceStatus,
     MatchOutcome,
     NumericValueForm,
-    ProposalState,
+    ProposalStatus,
+    ReviewBucket,
     SchemaFieldType,
-    SupportLabel,
     WarningCategory,
 )
 
@@ -361,7 +362,7 @@ class TestExtractionRefinement:
         proposal_lines = proposals_jsonl.read_text(encoding="utf-8").strip().splitlines()
         index = json.loads(proposal_index.read_text(encoding="utf-8"))
 
-        assert proposal.support == SupportLabel.direct_evidence
+        assert proposal.evidence_status == EvidenceStatus.direct_strong
         assert proposal.numeric_value_form == NumericValueForm.exact
         assert len(proposal.evidence_ids) == 2
         assert len(proposal_lines) == 1
@@ -396,7 +397,7 @@ class TestExtractionRefinement:
             field_type=SchemaFieldType.number,
         )
 
-        assert proposal.support == SupportLabel.inferred_from_evidence
+        assert proposal.evidence_status == EvidenceStatus.inferred_strong
         assert "fallback_evidence_used" in proposal.warning_flags
 
     async def test_eval_artifact_metadata_propagates_to_proposal_and_evidence(
@@ -500,7 +501,7 @@ class TestExtractionRefinement:
         # The quote is real and anchorable, but it only reports a BVF measurement.
         # It does not directly state the broader outcome summary value, so support
         # must stay inferred rather than direct evidence.
-        assert proposal.support == SupportLabel.inferred_from_evidence
+        assert proposal.evidence_status == EvidenceStatus.inferred_strong
 
     async def test_unclear_triggers_recall_rescue_and_optional_whole_document(
         self,
@@ -657,8 +658,10 @@ class TestReviewWarningTruth:
             row_id="row_test",
             column_name="Dose",
             cell_id="cell_test",
-            state=ProposalState.found,
-            support=SupportLabel.inferred_from_evidence,
+            proposal_status=ProposalStatus.value_proposed,
+            evidence_status=EvidenceStatus.inferred_strong,
+            review_bucket=ReviewBucket.attention,
+            reason_codes=["anchor_fallback"],
             proposed_value="5 mg",
             rationale="- fallback evidence used",
             evidence_ids=["ev_test"],

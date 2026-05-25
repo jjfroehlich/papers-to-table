@@ -8,14 +8,13 @@
     "row_id",
     "column_name",
     "cell_id",
-    "state",
-    "support",
+    "proposal_status",
+    "evidence_status",
+    "review_bucket",
+    "reason_codes",
     "evidence_ids"
   ],
   "properties": {
-    "proposal_schema_version": {
-      "type": "string"
-    },
     "proposal_id": {
       "type": "string"
     },
@@ -31,11 +30,41 @@
     "cell_id": {
       "type": "string"
     },
-    "state": {
-      "type": "string"
+    "proposal_status": {
+      "type": "string",
+      "enum": [
+        "value_proposed",
+        "no_data",
+        "unresolved",
+        "not_applicable",
+        "not_attempted",
+        "error"
+      ]
     },
-    "support": {
-      "type": "string"
+    "evidence_status": {
+      "type": "string",
+      "enum": [
+        "direct_strong",
+        "direct_weak",
+        "inferred_strong",
+        "inferred_weak",
+        "no_evidence",
+        "not_applicable"
+      ]
+    },
+    "review_bucket": {
+      "type": "string",
+      "enum": [
+        "review",
+        "attention",
+        "diagnostic"
+      ]
+    },
+    "reason_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     },
     "proposed_value": {},
     "evidence_ids": {
@@ -56,7 +85,7 @@
             "type": "string"
           },
           "value": {},
-          "state": {
+          "candidate_status": {
             "type": "string"
           },
           "source": {
@@ -84,6 +113,7 @@
         },
         "required": [
           "candidate_id",
+          "candidate_status",
           "source",
           "evidence_ids"
         ],

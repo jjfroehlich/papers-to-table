@@ -25,7 +25,8 @@ describe('RunStatusBadge', () => {
 
   it('renders completed_with_warnings status', () => {
     render(<RunStatusBadge status="completed_with_warnings" />)
-    expect(screen.getByText('Completed (warnings)')).toBeTruthy()
+    expect(screen.getByText('Completed')).toBeTruthy()
+    expect(screen.queryByText('Completed (warnings)')).toBeNull()
   })
 
   it('renders interrupted status', () => {

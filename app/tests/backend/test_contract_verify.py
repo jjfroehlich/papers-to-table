@@ -14,7 +14,7 @@ def _make_run(tmp_path: Path) -> Path:
     (run / 'run.json').write_text(json.dumps({'run_id':'r1','status':'completed','artifact_schema_version':'main_run_bundle.v2'}), encoding='utf-8')
     (run / 'summaries' / 'run_summary.json').write_text(json.dumps({'run_id':'r1','status':'completed','total_rows':1,'eligible_cells':1,'proposals_generated':1,'proposals_reviewed':1}), encoding='utf-8')
     _write_jsonl(run / 'evidence' / 'evidence.jsonl', [{'evidence_id':'e1','run_id':'r1','proposal_id':'p1','source_type':'direct_quote','is_primary':True}])
-    _write_jsonl(run / 'proposals' / 'proposals.jsonl', [{'proposal_id':'p1','run_id':'r1','row_id':'row-1','column_name':'col','cell_id':'row-1::col','state':'found','support':'direct_evidence','evidence_ids':['e1']}])
+    _write_jsonl(run / 'proposals' / 'proposals.jsonl', [{'proposal_id':'p1','run_id':'r1','row_id':'row-1','column_name':'col','cell_id':'row-1::col','proposal_status':'value_proposed','evidence_status':'direct_strong','review_bucket':'review','reason_codes':[],'evidence_ids':['e1']}])
     _write_jsonl(run / 'review' / 'decisions.jsonl', [{'review_decision_id':'d1','run_id':'r1','proposal_id':'p1','cell_id':'row-1::col','decision':'accepted','decision_source':'human_individual','decided_at':'2026-01-01T00:00:00Z'}])
     (run / 'exports' / 'audit_log_1.json').write_text(json.dumps([{'proposal_id':'p1','cell_id':'row-1::col','decision':'accepted','decision_source':'human_individual','auto_accepted':False,'exported_value':'x'}]), encoding='utf-8')
     return run

@@ -8,8 +8,9 @@ export type RunStatus =
   | 'interrupted'
 
 export type MatchOutcome = 'matched' | 'ambiguous' | 'unmatched' | 'duplicate_row_conflict'
-export type ProposalState = 'found' | 'inferred' | 'unclear' | 'blocked' | 'error' | 'skipped'
-export type SupportLabel = 'direct_evidence' | 'inferred_from_evidence' | 'weak_evidence' | 'blocked' | 'error'
+export type ProposalStatus = 'value_proposed' | 'no_data' | 'unresolved' | 'not_applicable' | 'not_attempted' | 'error'
+export type EvidenceStatus = 'direct_strong' | 'direct_weak' | 'inferred_strong' | 'inferred_weak' | 'no_evidence' | 'not_applicable'
+export type ReviewBucket = 'review' | 'attention' | 'diagnostic'
 export type EvidenceSourceType =
   | 'direct_quote'
   | 'inferred_reasoning'
@@ -196,13 +197,15 @@ export interface Proposal {
   row_id: string
   column_name: string
   pdf_id: string
-  state: ProposalState
-  support: SupportLabel
+  proposal_status: ProposalStatus
+  evidence_status: EvidenceStatus
+  review_bucket: ReviewBucket
+  reason_codes: string[]
   proposed_value: string | null
   rationale: string | null
   calculation: string | null
   evidence_ids: string[]
-  warning_flags: string[]
+  warning_flags?: string[]
   candidate_answers?: Array<Record<string, unknown>> | null
   selection_diagnostics?: Record<string, unknown> | null
   created_at: string
@@ -245,15 +248,17 @@ export interface EnrichedProposal {
   row_id: string
   column_name: string
   pdf_id: string
-  state: ProposalState
-  support: SupportLabel
+  proposal_status: ProposalStatus
+  evidence_status: EvidenceStatus
+  review_bucket: ReviewBucket
+  reason_codes: string[]
   proposed_value: string | null
   rationale: string | null
   calculation: string | null
   primary_evidence_id: string | null
   ordered_supporting_evidence_ids: string[]
   evidence_ids: string[]
-  warning_flags: string[]
+  warning_flags?: string[]
   needs_more_evidence: boolean
   is_verify_mode: boolean
   existing_value?: string | null
@@ -264,10 +269,15 @@ export interface EnrichedProposal {
   whole_document_used?: boolean
   candidate_answers?: Array<Record<string, unknown>> | null
   selection_diagnostics?: Record<string, unknown> | null
+  provider_diagnostics?: Record<string, unknown> | null
+  retrieval_diagnostics?: Record<string, unknown> | null
+  metadata_diagnostics?: Record<string, unknown> | null
+  figure_review_diagnostics?: Record<string, unknown> | null
+  figure_planner_diagnostics?: Record<string, unknown> | null
   provider_mode?: string
   created_at: string
   latest_decision: DecisionRecord | null
-  warning_categories: string[]
+  warning_categories?: string[]
   is_figure_derived: boolean
   is_fallback_evidence: boolean
   paper_title?: string | null
@@ -282,7 +292,7 @@ export interface ProposalDetail {
   decision_history: DecisionRecord[]
   row_context: Record<string, unknown>
   column_definition: Record<string, unknown> | null
-  support_label_display?: string
+  evidence_status_display?: string
 }
 
 export interface ReviewTableColumn {

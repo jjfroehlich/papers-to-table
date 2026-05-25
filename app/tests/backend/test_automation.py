@@ -19,7 +19,7 @@ from backend.app.artifacts import (
 )
 from backend.app.automation import AUTOMATION_PAYLOAD_SCHEMA_VERSION, run_headless, run_preflight, run_start, run_status, run_wait
 from backend.app.extraction import ProposalRecord
-from backend.app.schemas import ProposalState, RunStatus, SupportLabel
+from backend.app.schemas import EvidenceStatus, ProposalStatus, ReviewBucket, RunStatus
 
 
 @pytest.fixture
@@ -124,8 +124,10 @@ def _append_proposal(run_dir: pathlib.Path, *, run_id: str, proposal_id: str, ro
             row_id=row_id,
             column_name=column_name,
             cell_id=f"{row_id}:{column_name}",
-            state=ProposalState.found,
-            support=SupportLabel.direct_evidence,
+            proposal_status=ProposalStatus.value_proposed,
+            evidence_status=EvidenceStatus.direct_strong,
+            review_bucket=ReviewBucket.review,
+            reason_codes=[],
             proposed_value=f"value-for-{column_name}",
             evidence_ids=[],
             created_at=datetime.now(timezone.utc).isoformat(),

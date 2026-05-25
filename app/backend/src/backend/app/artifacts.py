@@ -9,7 +9,6 @@ from typing import Any
 
 
 RUN_BUNDLE_ARTIFACT_SCHEMA_VERSION = "main_run_bundle.v2"
-PROPOSAL_RECORD_SCHEMA_VERSION = "main_proposal.v2"
 EVIDENCE_RECORD_SCHEMA_VERSION = "main_evidence.v2"
 
 

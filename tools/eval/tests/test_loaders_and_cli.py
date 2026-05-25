@@ -108,6 +108,10 @@ class LoaderAndCliTests(unittest.TestCase):
                         "column_name": "notes",
                         "cell_id": "cell-1",
                         "proposed_value": "Some value",
+                        "proposal_status": "value_proposed",
+                        "evidence_status": "direct_strong",
+                        "review_bucket": "review",
+                        "reason_codes": [],
                         "field_type": "text",
                     }
                 )
@@ -160,8 +164,12 @@ class LoaderAndCliTests(unittest.TestCase):
                         "cell_id": "cell-1",
                         "pdf_id": "pdf-1",
                         "proposed_value": "Some value",
+                        "proposal_status": "value_proposed",
+                        "evidence_status": "direct_strong",
+                        "review_bucket": "review",
+                        "reason_codes": [],
                         "field_type": "text",
-                        "support": {"evidence_ids": ["ev-1"]},
+                        "evidence_ids": ["ev-1"],
                     }
                 )
                 + "\n",
@@ -202,6 +210,10 @@ class LoaderAndCliTests(unittest.TestCase):
                         "cell_id": "cell-1",
                         "pdf_id": "pdf-1",
                         "proposed_value": "Some value",
+                        "proposal_status": "value_proposed",
+                        "evidence_status": "direct_strong",
+                        "review_bucket": "review",
+                        "reason_codes": [],
                         "field_type": "text",
                         "primary_evidence_id": "ev-primary",
                         "evidence_ids": ["ev-primary", "ev-support"],
@@ -244,7 +256,10 @@ class LoaderAndCliTests(unittest.TestCase):
                         "column_name": "notes",
                         "cell_id": "cell-1",
                         "proposed_value": None,
-                        "state": "error",
+                        "proposal_status": "error",
+                        "evidence_status": "not_applicable",
+                        "review_bucket": "diagnostic",
+                        "reason_codes": ["provider_error"],
                         "field_type": None,
                         "allowed_values": None,
                         "aliases": None,
@@ -928,6 +943,10 @@ class LoaderAndCliTests(unittest.TestCase):
         ]
         with (run_dir / "proposals" / "proposals.jsonl").open("w", encoding="utf-8") as handle:
             for row in proposal_rows:
+                row.setdefault("proposal_status", "value_proposed")
+                row.setdefault("evidence_status", "direct_strong")
+                row.setdefault("review_bucket", "review")
+                row.setdefault("reason_codes", [])
                 handle.write(json.dumps(row))
                 handle.write("\n")
         if matched_row_indices is not None:
