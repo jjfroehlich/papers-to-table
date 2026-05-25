@@ -185,26 +185,6 @@ Done means the operator can understand what to do next without reading source co
 - Prefer relative paths in docs. If absolute paths are required, document both `/d/...` and `D:\...` forms.
 - Canonical fixture root: `app/tests/fixtures/`.
 
-## Commit Message Helper
-
-When making or planning code changes, keep the draft commit message in
-`D:\code\notes\git_commit_-_papers-to-table.sh` up to date.
-
-Rules:
-- Update the draft `git commit -m "..."` message so it accurately summarizes the current uncommitted changes.
-- Keep the commit subject concise, preferably under ~72 characters.
-- Limit the subject line to 50 characters.
-- Capitalize only the first letter in the subject line.
-- Insert a blank line between the subject line and the body.
-- Don't put a period at the end of the subject line.
-- Use a conventional prefix when practical, e.g. `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, or `chore:`.
-- Use `!` for intentional breaking changes, e.g. `refactor!: replace legacy proposal semantics`.
-- Keep the commit body short: usually 3–6 bullet points.
-- If the existing draft message has grown too long or stale, summarize/edit it instead of appending indefinitely.
-- Use the imperative mood.
-- Describe what was done and why, but not how.
-- Do not commit automatically unless explicitly asked; only keep the script ready for the user to run.
-
 ## Final rule
 
 Leave the repository more truthful than you found it:
