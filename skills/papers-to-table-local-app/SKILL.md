@@ -1,4 +1,9 @@
-# papers-to-table (headless extraction) skill
+---
+name: papers-to-table-local-app
+description: Operate the installed papers-to-table local app/headless workflow with local LLMs, usually LM Studio. Use when a user wants app-backed PDF-to-table extraction with config preflight, run bundles, accept-all decisions, diagnostics, and exported workbook artifacts.
+---
+
+# Papers-To-Table Local App Skill
 
 ## Purpose
 
@@ -102,4 +107,4 @@ Return:
 - `references/headless-usage.md`
 - `references/diagnostics.md`
 - `references/config-template.md`
-- manual page: `docs/agents/agent-usage.md`
+- manual page: `docs/tools/papers-to-table-local-app.md`

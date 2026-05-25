@@ -20,6 +20,8 @@ Additional benchmark-adjacent filled tables live under `benchmark_datasets/data/
 Current external-result folders:
 
 - `benchmark_datasets/data/20260517_external_codex_gpt-pro-5-5-extra-high`
+- `benchmark_datasets/data/20260517_external_codex_gpt-pro-5-5-extra-high_jkitchin-scientific-data-extraction`
+- `benchmark_datasets/data/20260517_external_codex_gpt-pro-5-5-extra-high_jjfroehlich-papers-to-table-agent-kit`
 - `benchmark_datasets/data/20260517_gold_positive_control`
 
 Each folder is organized by replicate:

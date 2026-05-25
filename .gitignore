@@ -39,6 +39,9 @@ node_modules/
 **/.docker/
 
 # Editor and temporary files
+.tmp*/
+pytest-cache-files-*/
+**/pytest-cache-files-*/
 .vscode/*
 !.vscode/extensions.json
 .idea/

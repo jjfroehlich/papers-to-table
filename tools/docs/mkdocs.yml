@@ -68,4 +68,5 @@ nav:
       - Benchmark Datasets: tools/benchmark-datasets.md
       - Eval: tools/eval.md
       - Optimizer: tools/optimizer.md
-      - Papers-to-Table Skill: tools/papers-to-table-skill.md
+      - Papers-to-Table Agent Kit: tools/papers-to-table-agent-kit.md
+      - Papers-to-Table Local App Skill: tools/papers-to-table-local-app.md

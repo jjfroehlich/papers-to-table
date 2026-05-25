@@ -326,4 +326,5 @@ Known practical limits include parser dependency drift, live model readiness var
 - `README.md` is the concise repository entry point.
 - `docs/` is the operator/developer manual and is also buildable as a local/static MkDocs Material site; its MkDocs config and optional docs requirements live under `tools/docs/`.
 - `specs/` remains the canonical rebuild-grade implementation truth.
-- `agent-skills/papers-to-table/` provides a focused headless operating procedure for external coding agents and must not replace installation or runtime readiness checks.
+- `skills/papers-to-table-local-app/` provides a focused local-app/headless operating procedure for external coding agents and must not replace installation or runtime readiness checks.
+- `skills/papers-to-table-agent-kit/` is a companion portable skill for agent-native extraction. It may use loose agent-owned extraction workspaces and only normalizes data at optional review/export/report-handoff boundaries; it is not part of the main app runtime contract.

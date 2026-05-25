@@ -72,12 +72,12 @@ Use the same eight-row table for every active idea. Fold implementation notes, g
 | Field | Details |
 |---|---|
 | **Problem** | Hard failures often involve missing or weak evidence for methods parameters, exact identifiers, figure/panel fields, and numeric values. |
-| **Direction** | Improve retrieval/context assembly for individual cells instead of batching cells together. Add typed contextual chunk text for retrieval, such as page, element type, section path, caption/table markers, and local heading context, while keeping display text source-preserving for review. |
-| **Why it might work** | Schema descriptions, field types, allowed values, row context, paper metadata, and schema-aware query expansions can target maxima, figure/panel citations, methods parameters, physical dimensions, sequence/barcode lengths, and exact system names. |
+| **Direction** | Improve retrieval/context assembly for individual cells instead of batching cells together. Add typed contextual chunk text for retrieval, such as page, element type, section path, caption/table markers, and local heading context, while keeping display text source-preserving for review. Also test score-shape-aware context gating: persist per-chunk retrieval scores, allow empty context when candidates are weak, trim to top-1 when the lead chunk has a large confidence gap, and keep only a small coherent bundle when top scores are close. |
+| **Why it might work** | Schema descriptions, field types, allowed values, row context, paper metadata, and schema-aware query expansions can target maxima, figure/panel citations, methods parameters, physical dimensions, sequence/barcode lengths, and exact system names. Score-shape gating may prevent one relevant chunk from being diluted by weak neighbors and may avoid feeding topical but non-answering context into the extraction prompt. |
 | **Evidence so far** | The 2026-05-24 proposal review and archived research notes both point to weak typed context for figures, methods, and numeric values. |
 | **Generality risk** | Hard filters could hide unusual evidence; prefer additive context and reranking. |
-| **Runtime/cost risk** | Moderate if retrieval expands too broadly. |
-| **Test** | Run on the three-benchmark suite. |
+| **Runtime/cost risk** | Moderate if retrieval expands too broadly; low for lexical score gating, higher if a local cross-encoder reranker is added. |
+| **Test** | Run on the three-benchmark suite. Compare fixed top-k against dynamic top-k, confidence-gap trimming, normalized-score thresholds, and only then optional local cross-encoder reranking. |
 | **Decision criterion** | Improve or preserve per-cell baseline score while keeping runtime stable. |
 
 ### Table-Aware Retrieval Units

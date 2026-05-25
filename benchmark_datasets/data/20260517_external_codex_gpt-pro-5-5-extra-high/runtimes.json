@@ -5,15 +5,15 @@
   "replicates": [
     {
       "replicate_index": 1,
-      "runtime_seconds": 1179
+      "runtime_seconds": 1170
     },
     {
       "replicate_index": 2,
-      "runtime_seconds": 912
+      "runtime_seconds": 935
     },
     {
       "replicate_index": 3,
-      "runtime_seconds": 941
+      "runtime_seconds": 1241
     }
   ]
 }

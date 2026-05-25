@@ -12,7 +12,8 @@
 - [x] `specs/spec.md`, `specs/plan.md`, and `specs/tasks.md` are the canonical markdown truth files
 - [x] Docs are now buildable as a local/static MkDocs Material manual
 - [x] Repo command surface includes docs serve/build wrappers
-- [x] Reusable headless agent skill exists under `agent-skills/papers-to-table/`
+- [x] Reusable local-app headless agent skill exists under `skills/papers-to-table-local-app/`
+- [x] Portable agent-native review/export kit exists under `skills/papers-to-table-agent-kit/`
 - [x] Main-app LM Studio provider has configurable request, vision request, model load, model unload, and lock wait timeouts
 - [x] Main-app LM Studio provider serializes load, unload, probe, text completion, and vision completion calls through a shared lock by default
 - [x] Eval LM Studio judge serializes model load, model unload, and completion calls through the same shared lock by default
@@ -25,6 +26,7 @@
 ## Current backlog
 
 - [ ] Continue removing personal-path assumptions from real benchmark preset examples
+- [ ] Consider future eval/import-compatible mode for agent-kit lite bundles after MVP helper-script usage stabilizes
 - [ ] Refresh screenshots when the next visible UI workflow change lands
 - [ ] Pointer-replace or move older compatibility markdown under `specs/product/`, `specs/tools/`, `specs/contracts/`, `specs/architecture/`, and `specs/process/` into `specs/archive/` after downstream links are updated
 - [x] Add optimizer benchmark suite config validation

@@ -19,7 +19,7 @@ This file preserves compatibility notes for monorepo layout and role boundaries.
 - `tools/eval/` contains the internal scoring tool.
 - `tools/optimizer/` contains the internal orchestration tool.
 - `docs/` contains the operator/developer manual source (Markdown + MkDocs navigation).
-- `agent-skills/` contains reusable external agent operating procedures.
+- `skills/` contains reusable external agent operating procedures and portable skill workflows.
 - `specs/` contains the canonical spec system for all three surfaces.
 
 ## Spec ownership model

@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Papers-to-table review</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Arial, Helvetica, sans-serif;
+      --border: #d8dee8;
+      --muted: #607086;
+      --bg: #f7f9fc;
+      --panel: #ffffff;
+      --ink: #152033;
+      --accent: #136f63;
+      --danger: #a43a47;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: var(--bg); }
+    header { padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--panel); }
+    header h1 { margin: 0 0 4px; font-size: 20px; }
+    header p { margin: 0; color: var(--muted); font-size: 13px; }
+    button, input, textarea, select { font: inherit; }
+    button { border: 1px solid var(--border); background: #fff; color: var(--ink); padding: 8px 10px; border-radius: 6px; cursor: pointer; }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    button.danger { color: var(--danger); }
+    button:disabled { opacity: .5; cursor: default; }
+    main { display: grid; grid-template-columns: 340px 1fr; gap: 0; min-height: calc(100vh - 73px); }
+    aside { border-right: 1px solid var(--border); background: var(--panel); overflow: auto; }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px; border-bottom: 1px solid var(--border); }
+    .queue-item { display: block; width: 100%; text-align: left; padding: 10px 12px; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; }
+    .queue-item.active { background: #eaf4f2; border-left: 4px solid var(--accent); }
+    .queue-item small { display: block; color: var(--muted); margin-top: 3px; }
+    .detail { padding: 18px 22px; overflow: auto; }
+    .field { margin-bottom: 16px; }
+    .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+    .value { padding: 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; white-space: pre-wrap; }
+    .evidence { padding: 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; background: #fff; }
+    .evidence small { display: block; color: var(--muted); margin-bottom: 6px; }
+    textarea { width: 100%; min-height: 86px; border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .status { color: var(--muted); font-size: 13px; margin-top: 10px; }
+    .empty { padding: 24px; color: var(--muted); }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Papers-to-table review</h1>
+  <p id="summary"></p>
+</header>
+<main>
+  <aside>
+    <div class="toolbar">
+      <button class="primary" id="download-decisions">Download decisions</button>
+      <button id="auto-accept">Auto-accept all proposals</button>
+      <button id="review-first">Review proposals first</button>
+    </div>
+    <div id="queue"></div>
+  </aside>
+  <section class="detail" id="detail"></section>
+</main>
+<script>
+const reviewData = __REVIEW_DATA_JSON__;
+const items = reviewData.items || [];
+let selected = items[0]?.proposal_id || null;
+let decisions = {};
+
+function decisionTemplate(item, decision, extras = {}) {
+  return {
+    review_decision_id: `rev_${item.proposal_id}_${Date.now()}`,
+    run_id: reviewData.run_id,
+    proposal_id: item.proposal_id,
+    cell_id: item.cell_id || `${item.row_id}::${item.column_name}`,
+    decision,
+    decision_source: extras.decision_source || "human_individual",
+    edited_value: extras.edited_value ?? null,
+    reviewer_note: extras.reviewer_note ?? null,
+    decided_at: new Date().toISOString()
+  };
+}
+
+function escapeText(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[ch]));
+}
+
+function renderQueue() {
+  const queue = document.getElementById("queue");
+  if (!items.length) {
+    queue.innerHTML = '<div class="empty">No review items in this package.</div>';
+    return;
+  }
+  queue.innerHTML = items.map((item) => {
+    const d = decisions[item.proposal_id]?.decision || "pending";
+    const active = item.proposal_id === selected ? " active" : "";
+    return `<button class="queue-item${active}" data-id="${escapeText(item.proposal_id)}">
+      <strong>${escapeText(item.column_name)}</strong>
+      <small>${escapeText(item.row_label || item.row_id)} - ${escapeText(d.replaceAll("_", " "))}</small>
+    </button>`;
+  }).join("");
+  queue.querySelectorAll(".queue-item").forEach((button) => {
+    button.addEventListener("click", () => {
+      selected = button.dataset.id;
+      render();
+    });
+  });
+}
+
+function renderDetail() {
+  const detail = document.getElementById("detail");
+  const item = items.find((candidate) => candidate.proposal_id === selected);
+  if (!item) {
+    detail.innerHTML = '<div class="empty">Select a proposal to review.</div>';
+    return;
+  }
+  const current = decisions[item.proposal_id] || null;
+  const evidence = (item.evidence || []).map((ev) => `
+    <div class="evidence">
+      <small>${escapeText(ev.source_pdf || ev.pdf_id || "source unknown")}${ev.page_number ? `, page ${escapeText(ev.page_number)}` : ""}${ev.source_location ? `, ${escapeText(ev.source_location)}` : ""}</small>
+      <div>${escapeText(ev.raw_text || ev.caption || ev.reasoning || "No evidence text supplied.")}</div>
+    </div>
+  `).join("") || '<div class="evidence">No evidence note supplied.</div>';
+  detail.innerHTML = `
+    <div class="field"><div class="label">Paper / row</div><div>${escapeText(item.row_label || item.row_id)}</div></div>
+    <div class="field"><div class="label">Column</div><div>${escapeText(item.column_name)}</div></div>
+    <div class="field"><div class="label">Proposed value</div><div class="value">${escapeText(item.proposed_value)}</div></div>
+    <div class="field"><div class="label">Rationale</div><div class="value">${escapeText(item.rationale || "No rationale supplied.")}</div></div>
+    ${item.caveat ? `<div class="field"><div class="label">Caveat</div><div class="value">${escapeText(item.caveat)}</div></div>` : ""}
+    <div class="field"><div class="label">Evidence</div>${evidence}</div>
+    <div class="field"><div class="label">Edit value</div><textarea id="edited-value">${escapeText(current?.edited_value ?? item.proposed_value ?? "")}</textarea></div>
+    <div class="actions">
+      <button class="primary" id="accept">Accept</button>
+      <button id="accept-edit">Edit + accept</button>
+      <button id="no-data">Confirm no data</button>
+      <button class="danger" id="reject">Reject</button>
+    </div>
+    <div class="status">Current decision: ${escapeText(current?.decision || "pending")}</div>
+  `;
+  document.getElementById("accept").addEventListener("click", () => decide(item, "accepted"));
+  document.getElementById("accept-edit").addEventListener("click", () => {
+    decide(item, "accepted_with_edit", {edited_value: document.getElementById("edited-value").value});
+  });
+  document.getElementById("no-data").addEventListener("click", () => decide(item, "confirmed_no_data"));
+  document.getElementById("reject").addEventListener("click", () => decide(item, "rejected"));
+}
+
+function decide(item, decision, extras = {}) {
+  decisions[item.proposal_id] = decisionTemplate(item, decision, extras);
+  const index = items.findIndex((candidate) => candidate.proposal_id === item.proposal_id);
+  selected = items[index + 1]?.proposal_id || item.proposal_id;
+  render();
+}
+
+function downloadDecisions() {
+  const payload = {
+    schema_version: "agent_review_decisions.v1",
+    run_id: reviewData.run_id,
+    created_at: new Date().toISOString(),
+    decisions: Object.values(decisions)
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type: "application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${reviewData.run_id || "papers_to_table"}_decisions.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function autoAcceptAll() {
+  items.forEach((item) => {
+    decisions[item.proposal_id] = decisionTemplate(item, "accepted", {
+      decision_source: "automation_accept_all",
+      reviewer_note: "Auto-accepted from static review UI."
+    });
+  });
+  render();
+  downloadDecisions();
+}
+
+function render() {
+  document.getElementById("summary").textContent = `${items.length} proposal(s). Review is optional; exported values require accepted decisions.`;
+  renderQueue();
+  renderDetail();
+}
+
+document.getElementById("download-decisions").addEventListener("click", downloadDecisions);
+document.getElementById("auto-accept").addEventListener("click", autoAcceptAll);
+document.getElementById("review-first").addEventListener("click", () => document.getElementById("detail").scrollIntoView());
+render();
+</script>
+</body>
+</html>

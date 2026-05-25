@@ -40,7 +40,9 @@ This file describes the current architecture direction and near-term roadmap for
 - keep `tasks.md` limited to verified status and backlog
 - keep JSON schemas under `contracts/schemas/` as the machine-readable contracts
 - retire or pointer-replace older normative-looking markdown after downstream links have been updated
-- keep external agent usage guidance compact through a reusable headless skill package
+- keep external agent usage guidance compact through reusable skill packages:
+  - a local-app skill for installed app/headless/LM Studio workflows
+  - a portable agent kit for loose agent-native extraction with optional static review/export packaging
 
 ### Local model operations
 
@@ -51,6 +53,7 @@ This file describes the current architecture direction and near-term roadmap for
 ## Near-term roadmap
 
 - expand focused validation for docs-referenced commands and presets
+- harden the portable agent kit around review/export helper boundaries without turning it into a second app
 - keep screenshots aligned with UI truth when the review workflow changes
 - continue reducing stale or personal-path assumptions inside benchmark presets
 - finish archiving or pointer-replacing older scattered spec markdown once links are clean

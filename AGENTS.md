@@ -145,7 +145,7 @@ Done means the operator can understand what to do next without reading source co
 - Remove stale text rather than letting old and new descriptions coexist.
 - Preserve the existing canonical section structure when editing `README.md`, `AGENTS.md`, and files under `specs/`.
 - Prefer editing the correct existing section over appending ad hoc notes.
-- If `agent-skills/` procedures change, update the corresponding manual page under `/docs/tools/papers-to-table-skill.md` and keep skill references aligned with current CLI/config/artifact truth.
+- If `skills/` procedures change, update the corresponding manual page under `/docs/tools/` and keep skill references aligned with current CLI/config/artifact truth.
 
 ## Dependency policy
 
@@ -170,7 +170,7 @@ Done means the operator can understand what to do next without reading source co
 - `docs/main-app/`: main app operator and artifact docs
 - `docs/screenshots/`: browser screenshots referenced by docs
 - `specs/`: canonical normative/supportive spec system
-- `agent-skills/`: agent operating procedures for installed skill workflows
+- `skills/`: agent operating procedures and portable skill workflows
 - `app/tests/fixtures/`: canonical workbook and PDF fixtures
 - `app/backend/src/backend/app/`: FastAPI app, pipeline logic, and runtime services
 - `app/frontend/`: React review UI

@@ -59,9 +59,13 @@ python scripts/papers_to_table.py eval \
   --out /absolute/path/to/eval_out
 ```
 
-### /Papers-to-table skill
-Agents can use this experimental skill when the task is to extract structured values from one or several scientific publications (for which .pdf files are available). 
-Copy `./skills/papers-to-table/` into your agent system's skill directory. Keep the `references/` files with it.
+### Agent skills
+Two experimental agent-skill workflows:
+
+- `skills/papers-to-table-agent-kit/`: portable agent workflow for extracting information from PDFs, with optional human-review interface. This can be used directly within agent systems such as Codex, Claude, or Copilot, without needing the app or local LLMs. Based on principles learned while building the local app.
+- `skills/papers-to-table-local-app/`: local-app workflow for agents that can run the locally installed app with local LLM provider LM Studio.
+
+Install by telling your agent, for example `install the skills at https://github.com/jjfroehlich/papers-to-table/tree/main/skills/`. Alternatively, copy the relevant skill folder into your agent system's skill directory.
 
 ## Documentation
 The manual source lives in [`docs/`](docs/). 

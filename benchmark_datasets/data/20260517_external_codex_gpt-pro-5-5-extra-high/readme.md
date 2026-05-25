@@ -2,14 +2,14 @@
 Codex App 26.513.40821
 ChatGPT 5.5 
 Extra High
-Skills: scientific-data-extraction (https://github.com/jkitchin/skillz/tree/main/skills/research/scientific-data-extraction), pdf
+Skills: pdf
 Auto-review ON
 
 rep1
-19 min 39 sec
+19 min 30 sec
 
 rep2 
-15 min 12 sec
+15 min 35 sec
 
 rep3
-15 min 41 sec
+20 min 41 sec
