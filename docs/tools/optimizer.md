@@ -41,7 +41,7 @@ bash scripts/test-optimizer-tool.sh
 - model-specific request settings come from `app/backend/src/backend/app/model_profiles/default_profiles.json`; one can add optimizer knobs to compare model-settings such as temperature/top-p/chat-templates.
 - Python command delegates to `tools/optimizer/scripts/compare_models.sh`
 - uses `tools/optimizer/configs/compare_models.json`
-- Treat compare-models as an overnight run. It can take 10 hrs with 5 models and 2 external results.
+- Treat compare-models as an overnight run. It can take 10 hrs with 5 models and 4 external baselines.
 
 ```bash
 python scripts/papers_to_table.py optimizer compare-models
@@ -156,12 +156,13 @@ A simple run is on one benchmark dataset with 1 replicate, for example used by `
 
 ## External Result Baselines
 
-Benchmarks can include precomputed filled tables from external software. Optimizer scores them with Eval before the internal candidates and includes them in `results/results.csv`, plots, and the HTML report as `external_{label}` rows.
+Benchmarks can include precomputed filled tables from external software. Optimizer scores them with Eval before the internal candidates and includes them in `results/results.csv`, plots, and the HTML report as external baseline rows. Set a short <40 char `candidate_id` for each external result to avoid long paths that may exceed operating system limits.
 
 ```json
 "external_results": [
   {
     "label": "external_tool_v1",
+    "candidate_id": "ext_tool_v1",
     "system": "external-tool",
     "replicates": [
       {"replicate_index": 1, "path": "../../../benchmark_datasets/data/external_tool_v1/rep1/mpra_filled.csv"},

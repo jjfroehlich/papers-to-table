@@ -8,7 +8,7 @@ from .bundle import candidate_hash, materialize_candidate_bundle
 from .contracts import Candidate, CandidateResult
 from .launch_eval import launch_eval_app, map_eval_summary_to_metric_groups
 from .launch_main import LaunchError, launch_main_app
-from .utils import flatten_dict, read_json
+from .utils import external_candidate_id, flatten_dict, read_json
 from .validation import validate_eval_summary_contract, validate_main_launch_contract
 
 
@@ -186,9 +186,9 @@ def evaluate_external_result_once(
     benchmark = benchmarks.manifests[benchmark_id]
     label = str(external_result.get("label") or Path(str(external_result["path"])).stem)
     candidate = Candidate(
-        candidate_id=str(external_result.get("candidate_id") or f"external_{label}"),
+        candidate_id=external_candidate_id(external_result),
         prompt_bundle_id="external_result",
-        text_model_id=str(external_result.get("system") or "external"),
+        text_model_id=str(external_result.get("system") or label),
         vision_model_id=None,
         optimizer_knobs={},
     )
@@ -336,6 +336,11 @@ def evaluate_candidate_once(
 
     main_ref_path = main_out / config["main_app"].get("run_reference_file", "main_run.json")
     if not main_launch.success or not main_launch.run_path:
+        main_payload = main_launch.payload if isinstance(main_launch.payload, dict) else {}
+        main_launch_error = main_payload.get("error_message")
+        extra_metadata = {"failure_stage": "main_app_launch"}
+        if main_launch_error:
+            extra_metadata["launch_error"] = str(main_launch_error)
         return _failure_result(
             config,
             candidate=candidate,
@@ -345,7 +350,7 @@ def evaluate_candidate_once(
             reason="main_app_launch_failed",
             candidate_dir=candidate_dir,
             main_launch=main_launch,
-            extra_metadata={"failure_stage": "main_app_launch"},
+            extra_metadata=extra_metadata,
         )
 
     main_contract_errors = validate_main_launch_contract(candidate, main_launch)

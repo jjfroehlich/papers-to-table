@@ -4,7 +4,6 @@ import csv
 import json
 import asyncio
 import math
-import re
 import sys
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -20,7 +19,7 @@ from .proposal_tables import write_proposal_tables
 from .report import generate_experiment_report
 from .results import ResultsWriter, load_results_jsonl
 from .settings import normalize_config
-from .utils import read_json, write_json
+from .utils import external_candidate_id, read_json, write_json
 
 
 @dataclass(frozen=True)
@@ -359,16 +358,8 @@ def _aggregate_result_from_summary(
     )
 
 
-def _slug(value: str) -> str:
-    slug = re.sub(r"[^A-Za-z0-9_.-]+", "_", value.strip()).strip("_")
-    return slug or "external"
-
-
 def _external_candidate_id(external_result: dict[str, Any]) -> str:
-    if isinstance(external_result.get("candidate_id"), str) and external_result["candidate_id"].strip():
-        return str(external_result["candidate_id"]).strip()
-    label = str(external_result.get("label") or external_result.get("system") or "external")
-    return f"external_{_slug(label)}"
+    return external_candidate_id(external_result)
 
 
 def _external_replicates(external_result: dict[str, Any]) -> list[dict[str, Any]]:

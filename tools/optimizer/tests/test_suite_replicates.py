@@ -13,10 +13,12 @@ from paper_optimizer.results import ResultsWriter
 from paper_optimizer.settings import ConfigError, load_config
 from paper_optimizer.study import (
     _evaluate_external_result_with_suite_and_replicates,
+    _external_candidate_id,
     _external_replicates,
     _suite_plan,
     run_compare_mode,
 )
+from paper_optimizer.utils import EXTERNAL_CANDIDATE_ID_MAX_LENGTH, SAFE_IDENTIFIER_RE
 
 
 def _write_config(tmp_path: Path, payload: dict[str, Any]) -> Path:
@@ -388,6 +390,18 @@ def test_external_replicates_load_adjacent_runtime_file(tmp_path: Path) -> None:
     assert replicates[0]["runtime_seconds"] == 1179.0
     assert replicates[1]["runtime_seconds"] == 912.0
     assert replicates[0]["runtime_scope"] == "suite_replicate"
+
+
+def test_external_candidate_id_fallback_is_path_safe_and_stable() -> None:
+    long_label = "codex_gpt_pro_5_5_extra_high_jjfroehlich_papers_to_table_agent_kit"
+
+    candidate_id = _external_candidate_id({"label": long_label})
+
+    assert candidate_id == _external_candidate_id({"label": long_label})
+    assert candidate_id.startswith("external_")
+    assert len(candidate_id) <= EXTERNAL_CANDIDATE_ID_MAX_LENGTH
+    assert SAFE_IDENTIFIER_RE.fullmatch(candidate_id)
+    assert candidate_id != f"external_{long_label}"
 
 
 def test_external_suite_replicate_runtime_is_counted_once_per_replicate(

@@ -105,6 +105,8 @@ You need:
 - gold table (csv/xlsx)
 - optional eval schema JSON for field typing, aliases, tolerances, and text-scoring overrides
 
+When no eval schema JSON declares a column `field_type`, eval resolves the scoring type per cell from the proposal metadata first, then schema metadata, then inference from the gold/proposed values: boolean-looking pairs become `boolean`, numeric-looking pairs become `numeric`, columns with allowed values become `categorical`, and everything else becomes `text`. Non-text fields use deterministic scoring by default; text fields use LLM judges by default, including normalized exact matches unless `--enable-text-exact-match-fast-path` is explicitly enabled.
+
 Required run-bundle artifacts:
 
 - `run.json`

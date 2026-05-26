@@ -2,11 +2,13 @@
 
 Curated benchmark datasets live at the repository root under `benchmark_datasets/` so they are visible to users and usable by the app, Eval, and Optimizer.
 
+## Gold datasets for eval scoring
+
 Each dataset has the same basic shape:
 
 - `table_template.csv`: app-facing input table with stable `row_id` / `row_index`, paper metadata, and blank target cells.
 - `schema.csv`: extraction schema used by the main app. The descriptions become prompt instructions.
-- `table_gold.csv`: human-curated answer table used by Eval.
+- `table_gold.csv`: human-curated answer table.
 - `pdfs/`: source PDFs for the benchmark.
 
 Available datasets:
@@ -15,14 +17,16 @@ Available datasets:
 - `genome_editing_tools`
 - `spatial_transcriptomics`
 
-Additional benchmark-adjacent filled tables live under `benchmark_datasets/data/`. These are not new benchmark definitions; they are completed proposal tables from external systems or positive controls. Optimizer configs can reference them under each benchmark manifest's `external_results` section so Eval scores them beside local app runs.
+## Results from external agents as comparison
 
-Current external-result folders:
+Completed proposal tables from external systems or positive controls. Optimizer configs can reference them under each benchmark manifest's `external_results` so Eval scores them besides the local app runs.
 
-- `benchmark_datasets/data/20260517_external_codex_gpt-pro-5-5-extra-high`
-- `benchmark_datasets/data/20260517_external_codex_gpt-pro-5-5-extra-high_jkitchin-scientific-data-extraction`
-- `benchmark_datasets/data/20260517_external_codex_gpt-pro-5-5-extra-high_jjfroehlich-papers-to-table-agent-kit`
-- `benchmark_datasets/data/20260517_gold_positive_control`
+Current external-results:
+
+- `benchmark_datasets/data/20260517_ext_codex`
+- `benchmark_datasets/data/20260517_ext_kitchin`
+- `benchmark_datasets/data/20260517_ext_agentkit`
+- `benchmark_datasets/data/20260517_gold`
 
 Each folder is organized by replicate:
 
@@ -31,6 +35,8 @@ rep1/{benchmark_name}_filled.csv
 rep2/{benchmark_name}_filled.csv
 rep3/{benchmark_name}_filled.csv
 ```
+
+## Gold datasets tables in detail
 
 <style>
 .gold-table-details {

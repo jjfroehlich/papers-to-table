@@ -200,4 +200,8 @@ def semantics_from_extraction(
         return build_semantics(ProposalStatus.unresolved, EvidenceStatus.no_evidence, reasons)
     if evidence_count == 0:
         return build_semantics(ProposalStatus.unresolved, EvidenceStatus.no_evidence, reasons or [INSUFFICIENT_EVIDENCE])
+    if evidence_status in {EvidenceStatus.direct_strong, EvidenceStatus.inferred_strong} and not (
+        {CONFLICTING_EVIDENCE, AMBIGUOUS_EVIDENCE} & set(reasons)
+    ):
+        reasons.append(AMBIGUOUS_EVIDENCE)
     return build_semantics(ProposalStatus.unresolved, evidence_status, reasons or [INSUFFICIENT_EVIDENCE])

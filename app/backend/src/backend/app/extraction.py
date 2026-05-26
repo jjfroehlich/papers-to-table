@@ -3300,6 +3300,9 @@ async def extract_cell(
             selected_candidate_id = _coerce_text_value(selection_result.get("selected_candidate_id"), joiner=" ")
             if selected_value:
                 proposed_value = selected_value
+            elif selected_state_raw == "unclear":
+                proposed_value = None
+                numeric_value_form = None
             if selected_state_raw in {"found", "inferred", "unclear"}:
                 state = str(selected_state_raw)
             selected_candidate = next(
@@ -3535,6 +3538,8 @@ def _proposal_value_for_persistence(
         "",
         "unclear",
         "no value proposed",
+        "not_found",
+        "not found",
     }:
         return None
     return proposed_value

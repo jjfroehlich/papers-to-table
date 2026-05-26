@@ -5,12 +5,14 @@ import pytest
 from backend.app.extraction import ProposalRecord
 from backend.app.proposal_semantics import (
     ANCHOR_FALLBACK,
+    AMBIGUOUS_EVIDENCE,
     EXPLICITLY_NOT_REPORTED,
     INSUFFICIENT_EVIDENCE,
     PDF_UNMATCHED,
     RETRIEVAL_EMPTY,
     build_semantics,
     derive_review_bucket,
+    semantics_from_extraction,
     validate_proposal_semantics,
 )
 from backend.app.review import _is_figure_derived, _is_reviewable_proposal, _proposal_warning_categories
@@ -88,6 +90,21 @@ def test_unresolved_no_evidence_with_insufficient_evidence_needs_attention():
         EvidenceStatus.no_evidence,
         [INSUFFICIENT_EVIDENCE],
     )
+    assert semantics.review_bucket == ReviewBucket.attention
+
+
+def test_unresolved_strong_evidence_records_ambiguity_reason():
+    semantics = semantics_from_extraction(
+        raw_state="unclear",
+        evidence_status_hint=EvidenceStatus.inferred_strong.value,
+        proposed_value=None,
+        evidence_count=1,
+        reason_codes=[],
+    )
+
+    assert semantics.proposal_status == ProposalStatus.unresolved
+    assert semantics.evidence_status == EvidenceStatus.inferred_strong
+    assert semantics.reason_codes == [AMBIGUOUS_EVIDENCE]
     assert semantics.review_bucket == ReviewBucket.attention
 
 

@@ -129,6 +129,49 @@ def test_evaluate_candidate_records_failure_when_main_artifacts_missing(base_con
     assert result.metadata["failure_stage"] == "main_app_launch"
 
 
+def test_evaluate_candidate_surfaces_main_payload_error_detail(base_config: dict, tmp_path: Path) -> None:
+    failed_run_dir = tmp_path / "failed_main_run"
+    payload = {
+        "schema_version": "main_app_automation.v1",
+        "run_id": "run_failed",
+        "status": "failed",
+        "is_terminal": True,
+        "error_message": "unresolved with strong evidence requires ambiguity/conflict reason",
+        "artifacts": {
+            "run_dir": str(failed_run_dir),
+            "run_json_path": str(failed_run_dir / "run.json"),
+        },
+    }
+    broken_script = tmp_path / "contract_failed_main.py"
+    broken_script.write_text(
+        f"import json, sys\nprint(json.dumps({payload!r}))\nsys.exit(2)\n",
+        encoding="utf-8",
+    )
+    config = json.loads(json.dumps(base_config))
+    config["main_app"]["command_prefix"] = [config["main_app"]["command_prefix"][0], str(broken_script)]
+
+    candidate = build_candidate_from_dict(
+        "cand_0100",
+        config["compare_candidates"][0],
+        parent_candidate_id=None,
+        round_index=None,
+    )
+    result = evaluate_candidate_once(
+        config,
+        experiment_dir=tmp_path / "exp",
+        candidate=candidate,
+        benchmark_id="bench_dev",
+        study_type="compare",
+        decision="not_promoted",
+        reason="test_main_payload_error",
+    )
+
+    assert result.candidate_status == "failed"
+    assert result.decision_reason == "main_app_launch_failed"
+    assert result.metadata["launch_error"] == payload["error_message"]
+    assert result.unscored_reason_detail == payload["error_message"]
+
+
 def test_config_normalization_builds_smoke_dev_holdout_suites(base_config: dict) -> None:
     config = normalize_config(base_config)
 

@@ -80,6 +80,7 @@ from backend.app.retrieval import (
     run_retrieval_for_cell,
     score_chunks,
 )
+from backend.app.proposal_semantics import AMBIGUOUS_EVIDENCE
 from backend.app.schemas import EvidenceSourceType, EvidenceStatus, ProposalStatus, ReviewBucket
 from backend.app.style_profiles import (
     StyleProfile,
@@ -2405,6 +2406,75 @@ class TestFigureReview:
         assert proposal.proposed_value == "Tibial defect"
         assert not any(ev.is_figure_derived for ev in proposal_evidence)
 
+    async def test_candidate_selection_can_reject_stale_figure_value_as_unclear(
+        self,
+        run_dir: pathlib.Path,
+        minimal_doc_dict: dict,
+    ):
+        crop_path = run_dir / "fig_crop_selection_reject.png"
+        crop_path.write_bytes(_minimal_png_bytes())
+
+        doc_with_crop = dict(minimal_doc_dict)
+        doc_with_crop["figures"] = [
+            {**minimal_doc_dict["figures"][0], "crop_path": str(crop_path)}
+        ]
+
+        provider = AsyncMock()
+        provider.chat_complete_structured = AsyncMock(
+            side_effect=[
+                {
+                    "proposed_value": "NOT_FOUND",
+                    "state": "unclear",
+                    "rationale": "- No clear architecture answer.",
+                    "calculation": None,
+                    "numeric_value_form": None,
+                    "quotes": [],
+                },
+                {
+                    "selected_candidate_id": None,
+                    "selected_value": None,
+                    "selected_state": "unclear",
+                    "rejected_candidate_ids": ["cand_2"],
+                    "rationale": "- Figure candidate is related but not specific enough.",
+                    "needs_more_evidence": False,
+                },
+            ]
+        )
+        provider.vision_complete_structured = AsyncMock(return_value={
+            "proposed_value": "L-1333N_R-1333C",
+            "state": "found",
+            "rationale": "- Figure shows a DdCBE split pair.",
+            "figure_description": "DdCBE schematic",
+            "caption_relevant": True,
+        })
+
+        proposal = await extract_cell(
+            run_id="run_test",
+            pdf_id="paper_test",
+            row_id="row_test",
+            cell_id="cell_selection_reject",
+            column_name="Main or best editor architecture",
+            column_description=(
+                "Extract a compact protein architecture; use NOT_FOUND when no clear architecture "
+                "can be recovered. Expect figure evidence."
+            ),
+            row_context={},
+            doc_dict=doc_with_crop,
+            run_dir=run_dir,
+            provider=provider,
+            text_model_id="test-model",
+            vision_model_id="vision-model",
+            recall_rescue_enabled=False,
+            figure_planner_enabled=False,
+        )
+
+        assert proposal.proposal_status == ProposalStatus.unresolved
+        assert proposal.proposed_value is None
+        assert proposal.evidence_status in {EvidenceStatus.direct_strong, EvidenceStatus.inferred_strong}
+        assert AMBIGUOUS_EVIDENCE in proposal.reason_codes
+        assert proposal.selection_diagnostics["attempted"] is True
+        assert proposal.selection_diagnostics["selected_candidate_id"] is None
+
     async def test_vision_request_includes_retrieved_and_reference_context(
         self, run_dir: pathlib.Path, minimal_doc_dict: dict
     ):
@@ -2798,6 +2868,20 @@ class TestProposalPersistence:
         assert evs == []
 
     def test_unresolved_placeholder_value_is_not_persisted(self):
+        assert (
+            _proposal_value_for_persistence(
+                proposal_status=ProposalStatus.unresolved,
+                proposed_value="NOT_FOUND",
+            )
+            is None
+        )
+        assert (
+            _proposal_value_for_persistence(
+                proposal_status=ProposalStatus.unresolved,
+                proposed_value="not found",
+            )
+            is None
+        )
         assert (
             _proposal_value_for_persistence(
                 proposal_status=ProposalStatus.unresolved,

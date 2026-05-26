@@ -3,7 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .utils import read_json, resolve_path_fields
+from .utils import (
+    EXTERNAL_CANDIDATE_ID_MAX_LENGTH,
+    SAFE_IDENTIFIER_RE,
+    read_json,
+    resolve_path_fields,
+)
 
 
 class ConfigError(ValueError):
@@ -159,6 +164,19 @@ def validate_config(config: dict[str, Any]) -> None:
                     raise ConfigError(f"benchmarks.manifests.{bench_id}.external_results[{index}] must define path or replicates")
                 if "label" in item and item["label"] is not None and not isinstance(item["label"], str):
                     raise ConfigError(f"benchmarks.manifests.{bench_id}.external_results[{index}].label must be a string")
+                if "candidate_id" in item:
+                    candidate_id = item["candidate_id"]
+                    if not isinstance(candidate_id, str) or not candidate_id.strip():
+                        raise ConfigError(f"benchmarks.manifests.{bench_id}.external_results[{index}].candidate_id must be a non-empty string")
+                    if len(candidate_id.strip()) > EXTERNAL_CANDIDATE_ID_MAX_LENGTH:
+                        raise ConfigError(
+                            f"benchmarks.manifests.{bench_id}.external_results[{index}].candidate_id must be at most "
+                            f"{EXTERNAL_CANDIDATE_ID_MAX_LENGTH} characters"
+                        )
+                    if SAFE_IDENTIFIER_RE.fullmatch(candidate_id.strip()) is None:
+                        raise ConfigError(
+                            f"benchmarks.manifests.{bench_id}.external_results[{index}].candidate_id must be a path-safe identifier"
+                        )
                 if "system" in item and item["system"] is not None and not isinstance(item["system"], str):
                     raise ConfigError(f"benchmarks.manifests.{bench_id}.external_results[{index}].system must be a string")
                 if "eval_args" in item and (

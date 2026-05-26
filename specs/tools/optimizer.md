@@ -74,7 +74,7 @@ The 2026-05-15 full-benchmark attempt on the three-benchmark dev suite with thre
 
 Operator docs should therefore present full benchmark as a multi-day workflow when the candidate set is broad, and recommend reduced candidate sets for routine iteration.
 
-The 2026-05-24 compare-models run on the same three-benchmark dev suite with three replicates took about 10 h wall time for five internal app candidates plus three external-result baselines. Internal app candidates accounted for about 8.3 h of summed candidate runtime, ranging from about 48 min for `openai/gpt-oss-20b` to about 204 min for `qwen/qwen3.6-27b`. Compare-models should therefore be treated as an overnight run when the full dev suite and larger models are enabled.
+The 2026-05-24 compare-models run on the same three-benchmark dev suite with three replicates took about 10 h wall time for five internal app candidates plus three external-result baselines and one gold positive control. Internal app candidates accounted for about 8.3 h of summed candidate runtime, ranging from about 48 min for `openai/gpt-oss-20b` to about 204 min for `qwen/qwen3.6-27b`. Compare-models should therefore be treated as an overnight run when the full dev suite and larger models are enabled.
 
 ## Benchmark manifests
 
@@ -93,6 +93,12 @@ One manifest represents one benchmark definition with one:
 Manifest-level `benchmark_kind` and `benchmark_label` remain important because they distinguish real benchmark evidence from fixture, smoke, or other non-canonical evidence.
 
 `BenchmarkManifest` corresponds to one table/schema/pdf_dir/gold/eval setup. Multi-benchmark behavior belongs to suite execution, not to an overloaded manifest.
+
+## External result baselines
+
+Benchmark manifests may include `external_results` entries for precomputed filled tables and positive controls. These entries must use the same eval path as internal candidates so text scoring remains comparable.
+
+External-result `candidate_id` values must be explicit, path-safe identifiers when stored in checked-in canonical configs. Keep them short, at most 40 characters, because optimizer nests external eval outputs under `r/{candidate_id}/{benchmark_id}/repXXX/per-run/{run_id}` and long label-derived ids can exceed Windows path limits. Descriptive `label` and `system` fields may remain longer.
 
 ## Benchmark suites
 

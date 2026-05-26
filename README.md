@@ -48,6 +48,8 @@ python scripts/papers_to_table.py optimizer compare-models
 python scripts/papers_to_table.py optimizer full-benchmark
 ```
 
+The canonical `compare-models` preset includes external baselines and a gold positive control. Text cells are judge-scored by default, including normalized exact matches; only pass `--enable-text-exact-match-fast-path` through eval args for calibration runs that intentionally want deterministic text bypasses.
+
 ### Eval tool
 Eval can score main-app output against benchmarking datasets to create benchmark scores. 
 

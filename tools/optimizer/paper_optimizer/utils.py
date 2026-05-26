@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sys
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -19,6 +20,33 @@ def stable_json_dumps(obj: Any) -> str:
 
 def sha256_text(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+EXTERNAL_CANDIDATE_ID_MAX_LENGTH = 40
+SAFE_IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
+
+
+def slugify_identifier(value: str) -> str:
+    slug = re.sub(r"[^A-Za-z0-9_.-]+", "_", value.strip()).strip("_")
+    return slug or "external"
+
+
+def shorten_identifier(value: str, *, max_length: int = EXTERNAL_CANDIDATE_ID_MAX_LENGTH) -> str:
+    slug = slugify_identifier(value)
+    if len(slug) <= max_length:
+        return slug
+    digest = sha256_text(slug)[:8]
+    prefix_length = max(1, max_length - len(digest) - 1)
+    prefix = slug[:prefix_length].rstrip("_.-") or "external"
+    return f"{prefix}_{digest}"
+
+
+def external_candidate_id(external_result: dict[str, Any]) -> str:
+    explicit = external_result.get("candidate_id")
+    if isinstance(explicit, str) and explicit.strip():
+        return shorten_identifier(explicit)
+    label = str(external_result.get("label") or external_result.get("system") or "external")
+    return shorten_identifier(f"external_{label}")
 
 
 def flatten_dict(source: dict[str, Any], prefix: str = "") -> dict[str, Any]:

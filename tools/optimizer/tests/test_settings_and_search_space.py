@@ -8,7 +8,8 @@ import pytest
 from paper_optimizer.contracts import Candidate
 from paper_optimizer.propose import propose_candidates
 from paper_optimizer.search_space import load_search_space
-from paper_optimizer.settings import ConfigError, load_config
+from paper_optimizer.settings import ConfigError, load_config, validate_config
+from paper_optimizer.utils import EXTERNAL_CANDIDATE_ID_MAX_LENGTH, SAFE_IDENTIFIER_RE
 
 REQUIRED_COMPARE_MODELS = {
     "openai/gpt-oss-20b",
@@ -152,6 +153,52 @@ def test_real_benchmark_configs_use_real_inputs_and_dual_judges() -> None:
             assert {"judge_a", "judge_b"}.issubset(set(dev_manifest["required_judges"]))
             assert "--judge-model" in dev_manifest["eval_args"]
             assert "--judge-model-b" in dev_manifest["eval_args"]
+
+
+def test_compare_models_external_results_use_path_safe_candidate_ids() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    payload = json.loads((repo_root / "configs" / "compare_models.json").read_text(encoding="utf-8"))
+    dev_ids = payload["benchmark_suites"]["dev_suite"]["benchmark_ids"]
+    ids_by_label: dict[str, str] = {}
+
+    for benchmark_id in dev_ids:
+        external_results = payload["benchmarks"]["manifests"][benchmark_id]["external_results"]
+        for result in external_results:
+            candidate_id = result.get("candidate_id")
+            assert isinstance(candidate_id, str)
+            assert len(candidate_id) <= EXTERNAL_CANDIDATE_ID_MAX_LENGTH
+            assert SAFE_IDENTIFIER_RE.fullmatch(candidate_id)
+            prior = ids_by_label.setdefault(result["label"], candidate_id)
+            assert prior == candidate_id
+
+    assert ids_by_label == {
+        "codex_gpt_pro_5_5_extra_high": "ext_codex",
+        "codex_gpt_pro_5_5_extra_high_jjfroehlich_papers_to_table_agent_kit": "ext_agentkit",
+        "codex_gpt_pro_5_5_extra_high_jkitchin_scientific_data_extraction": "ext_kitchin",
+        "gold_positive_control": "ext_gold",
+    }
+
+
+def test_external_result_candidate_id_must_be_path_safe() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    payload = json.loads((repo_root / "configs" / "compare_models.json").read_text(encoding="utf-8"))
+    payload["benchmarks"]["manifests"]["bench_massively_parallel_reporter_assays"]["external_results"][0][
+        "candidate_id"
+    ] = "not path safe"
+
+    with pytest.raises(ConfigError, match="path-safe"):
+        validate_config(payload)
+
+
+def test_external_result_candidate_id_length_is_bounded() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    payload = json.loads((repo_root / "configs" / "compare_models.json").read_text(encoding="utf-8"))
+    payload["benchmarks"]["manifests"]["bench_massively_parallel_reporter_assays"]["external_results"][0][
+        "candidate_id"
+    ] = "x" * (EXTERNAL_CANDIDATE_ID_MAX_LENGTH + 1)
+
+    with pytest.raises(ConfigError, match="at most"):
+        validate_config(payload)
 
 
 def test_compare_models_tracks_requested_model_set() -> None:
