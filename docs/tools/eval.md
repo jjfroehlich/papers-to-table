@@ -28,6 +28,8 @@ Common optional arguments:
 - `--judge-api-base`
 - `--judge-api-base-b`
 
+Low-level `paper_eval evaluate` also supports `--enable-text-exact-match-fast-path` for calibration runs that intentionally want normalized exact-match text cells to bypass judge scoring. This is disabled by default.
+
 Real benchmark studies should use two judges. Current defaults are:
 
 - `judge_a=google/gemma-4-26b-a4b`
@@ -136,8 +138,8 @@ Eval is intentionally staged so deterministic scoring and LLM judging are not in
 
 1. Load inputs: read the run bundle, proposals, gold table, optional eval schema, and run metadata.
 2. Join cells: align proposals to gold values by stable row and column identity. Missing or ambiguous joins become explicit metrics.
-3. Score deterministic cells: numeric, boolean, categorical, date-like, and exact/normalized text cases are scored without an LLM when the eval schema allows it.
-4. Collect judge-needed cells: fuzzy free-text cells that still need semantic grading are collected into a pending judge queue.
+3. Score deterministic cells: numeric, boolean, categorical, date-like, and text fields with an explicit deterministic policy are scored without an LLM.
+4. Collect judge-needed cells: judge-backed free-text cells, including normalized exact text matches by default, are collected into a pending judge queue. The low-level `--enable-text-exact-match-fast-path` flag restores the older exact-match bypass when deliberately requested.
 5. Run judge-major batches: eval iterates by judge label first, then groups cells by provider, model, and settings. This means judge A handles its grouped cells, then judge B handles its grouped cells, instead of switching models for every individual cell.
 6. Merge judged cells: per-judge verdicts, disagreement state, evidence checks, and deterministic scores are merged into `scored_cells`.
 7. Aggregate outputs: write per-run summaries first, then comparison files when multiple runs or existing summaries are compared.

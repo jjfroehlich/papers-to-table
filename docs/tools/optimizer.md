@@ -194,7 +194,7 @@ Optimizer is orchestration-only. It does not extract values itself and it does n
 2. Materialize candidate bundle: write the candidate manifest and resolved config overlays for that candidate.
 3. Launch main-app extraction: start a headless/eval-mode main-app run for that candidate and benchmark. This run parses PDFs, matches rows, retrieves evidence, produces canonical proposal records, runs optional figure review, and writes the run bundle.
 4. Validate main-app output: confirm the expected run reference, run directory, `run.json`, config snapshot, summaries, and proposal artifacts exist.
-5. Launch eval: pass the completed run bundle to eval. Eval then performs its own deterministic scoring phase followed by scoring with one or two judge language models. In dual-judge mode, both judges' per-cell records are preserved and disagreement is reported as a trust signal.
+5. Launch eval: pass the completed run bundle to eval. Eval scores structured fields and explicit deterministic text overrides first, then sends judge-backed text cells to one or two judge language models; normalized exact text matches are judged by default unless a benchmark passes `--enable-text-exact-match-fast-path` through `eval_args`. In dual-judge mode, both judges' per-cell records are preserved and disagreement is reported as a trust signal.
 6. Validate eval output: confirm eval summary and expected per-run artifacts satisfy the optimizer contract.
 7. Record candidate result: merge main-app runtime metadata, eval metrics, diagnostics, warnings, and artifact references into candidate result rows.
 8. Aggregate replicates and suites: summarize candidate x benchmark, candidate x suite, and study-level results.

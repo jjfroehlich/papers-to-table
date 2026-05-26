@@ -48,6 +48,7 @@ def score_run(
     judge_config: JudgeConfig | None = None,
     text_judges: dict[str, TextJudge] | None = None,
     judge_configs: dict[str, JudgeConfig] | None = None,
+    enable_text_exact_match_fast_path: bool = False,
 ) -> ScoreRunResult:
     normalized_judges, normalized_configs = _normalize_judge_runtime(
         text_judge=text_judge,
@@ -237,6 +238,7 @@ def score_run(
                 evidence_result=evidence_result,
                 judge_configs=normalized_configs,
                 sequence=len(scored_entries),
+                enable_text_exact_match_fast_path=enable_text_exact_match_fast_path,
             )
             scored_entries.append(scored_cell_or_pending)
             if isinstance(scored_cell_or_pending, _PendingJudgeCell):
@@ -444,6 +446,7 @@ def _prepare_text_cell(
     evidence_result: Any,
     judge_configs: dict[str, JudgeConfig],
     sequence: int,
+    enable_text_exact_match_fast_path: bool,
 ) -> ScoredCell | _PendingJudgeCell:
     normalized_gold = normalize_text_for_match(gold_cell.raw_value)
     normalized_proposed = normalize_text_for_match(proposal.proposed_value)
@@ -452,7 +455,11 @@ def _prepare_text_cell(
         "normalized_gold_text": normalized_gold,
         "normalized_proposed_text": normalized_proposed,
     }
-    if normalized_gold is not None and normalized_gold == normalized_proposed:
+    if (
+        enable_text_exact_match_fast_path
+        and normalized_gold is not None
+        and normalized_gold == normalized_proposed
+    ):
         return ScoredCell(
             record_kind="gold_cell",
             run_id=loaded_run.metadata.run_id,

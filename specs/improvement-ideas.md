@@ -165,7 +165,7 @@ Use the same eight-row table for every active idea. Fold implementation notes, g
 | Field | Details |
 |---|---|
 | **Problem** | Benchmark interpretation is limited when judge disagreement is high or one judge is systematically harsher. |
-| **Direction** | Treat internal and external proposals with the same scoring path, including deterministic exact-match fast paths. Compare judge models on a small hand-reviewed calibration set, and add adjudication or tie-break options for dual-judge disagreements. |
+| **Direction** | Treat internal and external proposals with the same scoring path, keeping text exact-match fast paths opt-in for calibration rather than default scoring. Compare judge models on a small hand-reviewed calibration set, and add adjudication or tie-break options for dual-judge disagreements. |
 | **Why it might work** | Calibration separates true extraction differences from judge noise and makes small score differences more interpretable. |
 | **Evidence so far** | All non-gold candidates in the 2026-05-24 model comparison carried `judge_instability_observed`, and judge disagreement affected fine-grained interpretation. |
 | **Generality risk** | Adjudication can hide judge weakness if not reported transparently. |

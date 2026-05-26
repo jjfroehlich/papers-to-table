@@ -496,7 +496,7 @@ class TextJudgeScoringTests(unittest.TestCase):
         with self.assertRaisesRegex(ContractError, "--judge-model"):
             score_run(loaded_run, gold, load_schema(None))
 
-    def test_exact_text_match_skips_judge_even_when_policy_defaults_to_judge(self) -> None:
+    def test_exact_text_match_uses_judge_by_default_when_policy_defaults_to_judge(self) -> None:
         loaded_run = self._loaded_run(
             ProposalRecord(
                 run_id="run-a",
@@ -504,6 +504,9 @@ class TextJudgeScoringTests(unittest.TestCase):
                 column_name="notes",
                 cell_id="cell-notes-1",
                 proposed_value="Expanded biological description",
+                proposal_status="value_proposed",
+                evidence_status="direct_strong",
+                review_bucket="review",
                 field_type="text",
             )
         )
@@ -524,6 +527,49 @@ class TextJudgeScoringTests(unittest.TestCase):
             load_schema(None),
             text_judge=judge,
             judge_config=JudgeConfig(model_id="judge-model-1"),
+        )
+
+        self.assertEqual(len(judge.requests), 1)
+        self.assertEqual(len(result.judge_records), 1)
+        scored_cell = result.scored_cells[0]
+        self.assertTrue(scored_cell.was_scored)
+        self.assertFalse(scored_cell.is_correct)
+        self.assertEqual(scored_cell.scoring_policy, "judge")
+        self.assertEqual(scored_cell.judge_verdict, "incorrect")
+        self.assertNotIn("text_exact_match_fast_path", scored_cell.diagnostic_flags)
+
+    def test_exact_text_match_fast_path_can_be_enabled_explicitly(self) -> None:
+        loaded_run = self._loaded_run(
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="notes",
+                cell_id="cell-notes-1",
+                proposed_value="Expanded biological description",
+                proposal_status="value_proposed",
+                evidence_status="direct_strong",
+                review_bucket="review",
+                field_type="text",
+            )
+        )
+        gold = self._gold_dataset(
+            GoldCell(
+                row_id="row-1",
+                column_name="notes",
+                cell_id="cell-notes-1",
+                raw_value="expanded   biological description",
+                is_present=True,
+            )
+        )
+        judge = FakeJudge(verdict="incorrect")
+
+        result = score_run(
+            loaded_run,
+            gold,
+            load_schema(None),
+            text_judge=judge,
+            judge_config=JudgeConfig(model_id="judge-model-1"),
+            enable_text_exact_match_fast_path=True,
         )
 
         self.assertEqual(len(judge.requests), 0)

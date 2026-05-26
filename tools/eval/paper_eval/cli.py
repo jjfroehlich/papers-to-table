@@ -75,6 +75,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Emit a machine-readable completion JSON payload to stdout.",
     )
+    evaluate.add_argument(
+        "--enable-text-exact-match-fast-path",
+        action="store_true",
+        help="Allow normalized exact-match text cells to be scored deterministically instead of sent to the judge.",
+    )
     evaluate.add_argument("--out", type=Path, required=True, help="Output directory for evaluation artifacts.")
     evaluate.set_defaults(handler=_handle_evaluate)
 
@@ -159,6 +164,7 @@ def _handle_evaluate(args: argparse.Namespace) -> int:
                 schema,
                 text_judges=text_judges,
                 judge_configs=judge_configs,
+                enable_text_exact_match_fast_path=args.enable_text_exact_match_fast_path,
             )
             summary = build_run_summary(
                 loaded_run,

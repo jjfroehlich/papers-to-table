@@ -80,6 +80,94 @@ def test_launch_eval_reports_explicit_cli_failure(base_config: dict, tmp_path: P
         raise AssertionError("Expected launch_eval_app to raise ValueError for a non-JSON eval CLI failure")
 
 
+def test_launch_eval_passes_benchmark_eval_args(base_config: dict, tmp_path: Path) -> None:
+    eval_script = tmp_path / "eval_assert_args.py"
+    eval_script.write_text(
+        """
+import json
+import sys
+from pathlib import Path
+
+args = sys.argv[1:]
+if "--enable-text-exact-match-fast-path" not in args:
+    sys.stderr.write("missing exact-match fast-path flag\\n")
+    raise SystemExit(2)
+
+run_dir = Path(args[args.index("--run") + 1])
+out_dir = Path(args[args.index("--out") + 1])
+run_id = json.loads((run_dir / "run.json").read_text(encoding="utf-8")).get("run_id", run_dir.name)
+run_output_dir = out_dir / "per-run" / run_id
+(out_dir / "compare").mkdir(parents=True, exist_ok=True)
+run_output_dir.mkdir(parents=True, exist_ok=True)
+summary_path = run_output_dir / "run_summary.json"
+summary_path.write_text(
+    json.dumps(
+        {
+            "run_id": run_id,
+            "run_dir": str(run_dir.resolve()),
+            "gold_source": args[args.index("--gold") + 1],
+            "metrics": {"structured_accuracy": 1.0},
+            "metadata": {},
+            "contract_warnings": [],
+            "join_diagnostics": [],
+        }
+    ),
+    encoding="utf-8",
+)
+(run_output_dir / "scored_cells.jsonl").write_text("", encoding="utf-8")
+print(
+    json.dumps(
+        {
+            "schema_version": "paper_eval_cli.v1",
+            "command": "evaluate",
+            "status": "ok",
+            "success": True,
+            "output_dir": str(out_dir.resolve()),
+            "per_run_dir": str((out_dir / "per-run").resolve()),
+            "compare_dir": str((out_dir / "compare").resolve()),
+            "run_count": 1,
+            "run_ids": [run_id],
+            "run_summary_paths": [str(summary_path.resolve())],
+            "scored_cells_paths": [str((run_output_dir / "scored_cells.jsonl").resolve())],
+            "judge_records_paths": [],
+            "comparison_artifacts": {},
+        },
+        sort_keys=True,
+    )
+)
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    main_run_dir = tmp_path / "run-dir"
+    main_run_dir.mkdir(parents=True, exist_ok=True)
+    (main_run_dir / "run.json").write_text(json.dumps({"run_id": "run-test"}), encoding="utf-8")
+
+    config = dict(base_config)
+    config["eval_app"] = dict(base_config["eval_app"])
+    config["eval_app"]["command_prefix"] = [sys.executable, str(eval_script)]
+    config["benchmarks"] = dict(base_config["benchmarks"])
+    config["benchmarks"]["manifests"] = dict(base_config["benchmarks"]["manifests"])
+    config["benchmarks"]["manifests"]["bench_dev"] = dict(base_config["benchmarks"]["manifests"]["bench_dev"])
+    config["benchmarks"]["manifests"]["bench_dev"]["eval_args"] = ["--enable-text-exact-match-fast-path"]
+
+    benchmark = load_benchmarks(config).manifests["bench_dev"]
+
+    launch, summary = launch_eval_app(
+        config,
+        benchmark=benchmark,
+        benchmark_id="bench_dev",
+        main_run_ref_path=tmp_path / "main_run.json",
+        main_run_dir=main_run_dir,
+        out_dir=tmp_path / "eval-out",
+    )
+
+    assert launch.success
+    assert "--enable-text-exact-match-fast-path" in launch.command
+    assert summary["metrics"]["structured_accuracy"] == 1.0
+
+
 def test_build_real_main_command_rewrites_generic_python_prefix_to_active_interpreter(base_config: dict) -> None:
     config = dict(base_config["main_app"])
     config["command_prefix"] = ["python", "-m", "backend.app.automation"]

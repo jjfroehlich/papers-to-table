@@ -75,6 +75,7 @@ Older tool-local benchmark locations are historical only; active datasets should
 - Gold-empty cells are reported as diagnostics, not silently folded into headline correctness.
 - Boolean, categorical, and numeric scoring remain deterministic.
 - Text scoring is judge-backed by default, with explicit deterministic override support where appropriate.
+- Normalized exact-match text cells are judged by default; the low-level eval CLI may opt into the deterministic exact-match fast path with `--enable-text-exact-match-fast-path`, and optimizer benchmarks may pass that flag through `eval_args`.
 - Runs that are degraded but contract-valid should remain scoreable whenever possible.
 - Unscored outcomes must stay explicit through `scored = false` and `unscored_reason` rather than appearing as silent blanks.
 

@@ -595,6 +595,74 @@ class LoaderAndCliTests(unittest.TestCase):
             self.assertEqual(judge_records[0]["judge_verdict"], "correct")
             self.assertIsNotNone(judge_records[0]["judge_input_hash"])
 
+    def test_cli_can_enable_text_exact_match_fast_path(self) -> None:
+        try:
+            from openpyxl import Workbook  # noqa: F401
+        except ModuleNotFoundError as exc:  # pragma: no cover
+            self.skipTest(str(exc))
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            run_dir = self._create_run_bundle(base / "run-a")
+            gold_path = base / "gold.csv"
+            gold_path.write_text(
+                "row_id,row_index,status,score,notes\n"
+                "row-1,1,yes,10,\n"
+                "row-2,2,,11,some   text\n"
+                "row-3,3,no,20,\n",
+                encoding="utf-8",
+            )
+            schema_path = base / "schema.json"
+            schema_path.write_text(
+                json.dumps(
+                    {
+                        "columns": {
+                            "status": {"field_type": "boolean"},
+                            "score": {"field_type": "numeric"},
+                            "notes": {"field_type": "text", "scoring_policy": "judge"},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            output_dir = base / "out"
+
+            class FailingJudge:
+                def judge(self, judge_request) -> JudgeResponse:
+                    raise AssertionError(f"judge should not be called for {judge_request.column_name}")
+
+            with mock.patch("paper_eval.cli.build_text_judge", return_value=FailingJudge()):
+                exit_code = main(
+                    [
+                        "evaluate",
+                        "--run",
+                        str(run_dir),
+                        "--gold",
+                        str(gold_path),
+                        "--schema",
+                        str(schema_path),
+                        "--judge-model",
+                        "fake-judge-v1",
+                        "--enable-text-exact-match-fast-path",
+                        "--out",
+                        str(output_dir),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            run_output = output_dir / "per-run" / "run-a"
+            self.assertFalse((run_output / "judge_records.jsonl").exists())
+
+            summary = json.loads((run_output / "run_summary.json").read_text(encoding="utf-8"))
+            self.assertEqual(summary["metrics"]["judge_text_scored_cell_count"], 0)
+            self.assertEqual(summary["metrics"]["deterministic_text_scored_cell_count"], 1)
+
+            rows = self._read_csv(run_output / "scored_cells.csv")
+            note_row = self._find_row(rows, row_id="row-2", column_name="notes")
+            self.assertEqual(note_row["scoring_policy"], "deterministic")
+            self.assertEqual(note_row["is_correct"], "True")
+            self.assertIn("text_exact_match_fast_path", note_row["diagnostic_flags"])
+
     def test_cli_restricts_gold_scoring_to_rows_with_matched_pdfs(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             base = Path(temp_dir)

@@ -223,8 +223,8 @@ Eval execution is phase-separated:
 
 1. load and validate the run bundle and gold dataset
 2. join proposals to gold cells by stable row and column identity, recording missing proposals and join failures explicitly
-3. score deterministic fields and exact/normalized matches first
-4. collect fuzzy text cells requiring LLM judging into a pending queue
+3. score structured fields and explicit deterministic text overrides first
+4. collect judge-backed text cells, including normalized exact text matches by default, into a pending queue
 5. execute judging in judge-major batches grouped by judge label, provider, model, and settings
 6. unload/cleanup a judge model only after that judge-major batch is complete
 7. merge per-judge verdicts back into scored cells while preserving disagreement, request failures, and unscored states
