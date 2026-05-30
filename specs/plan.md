@@ -1,59 +1,46 @@
-# Technical direction
+# Current Plan
 
-## Purpose
+This file is the current technical direction and near-term roadmap. It is not a historical implementation plan.
 
-This file describes the current architecture direction and near-term roadmap for the monorepo.
+## Technical Direction
 
-## Current architecture
+- Keep the main app local-first, browser-first, and config-first.
+- Keep run bundles as the cross-tool contract between main app, eval, optimizer, review, and export.
+- Keep eval file-driven and separate from extraction.
+- Keep optimizer orchestration-only and explicit about suites, replicates, raw winners, recommended defaults, and trust caveats.
+- Keep LM Studio provider behavior conservative: serialized access by default, explicit readiness failure, and visible degraded-mode truth.
+- Keep active specs small, rebuild-grade, and owned by the root canonical files in this directory.
+- Keep improvement ideas and experiment results in active support ledgers without letting them replace durable behavior specs.
 
-### Main app
+## Near-Term Roadmap
 
-- backend: FastAPI plus stable run-bundle artifact writing
-- frontend: React review UI
-- automation: stable terminal entrypoint for preflight, start, status, wait, and headless workflows
+- Add focused validation for docs-referenced commands and spec drift checks.
+- Continue improving hard extraction columns through generic candidate selection, retrieval context, table-aware retrieval units, and targeted prompt repair.
+- Use `improvement-ideas.md` for untested or unresolved improvement hypotheses and `experiment-results.md` for benchmarked, rejected, superseded, or partly kept ideas.
+- Harden the portable agent kit around review/export helper boundaries without turning it into a second app.
+- Refresh screenshots when the next visible UI workflow change lands.
+- Continue reducing personal-path assumptions in benchmark presets and historical external-result material.
+- Keep benchmark reporting clear about low replicate counts, degraded scoring, judge instability, and raw-winner versus recommended-default distinctions.
 
-### Companion tools
+## Deferred / Not Now
 
-- eval reads run bundles and writes score artifacts
-- optimizer launches repeated main-app and eval studies from explicit configs
+- Do not make eval or optimizer separate end-user products.
+- Do not replace the browser review workflow with unattended export as the default path.
+- Do not add broad cloud-provider behavior without preserving local-first defaults and explicit provider locality.
+- Do not add new active spec files unless an existing canonical owner cannot hold the durable truth.
+- Do not restore long compatibility-reference files to active folders.
+- Do not treat improvement ledgers as a replacement for updating `spec.md` and the focused owner when behavior changes.
 
-## Direction
+## Spec-System Direction
 
-### Usability and operability
+The active spec set is intentionally small:
 
-- keep one obvious repo-level command surface
-- keep install, review startup, headless mode, eval, and optimizer discoverable from one place
-- keep browser-first human workflow and config authority intact
+- integrated truth in `spec.md`
+- focused truth in `architecture.md`, `contracts.md`, `ui-review-workflow.md`, and `eval-and-optimizer.md`
+- durable decisions in `decisions.md`
+- active experiment planning/evidence in `improvement-ideas.md` and `experiment-results.md`
+- current direction here
+- living status in `tasks.md`
+- machine-readable validation in `contracts/schemas/*.json`
 
-### Contract clarity
-
-- keep run bundles consumable from files alone
-- keep auto-accept and degraded-mode truth visible in summaries and audit artifacts
-- keep config families clearly labeled by purpose and benchmark intent
-
-### Documentation and specs
-
-- keep README concise and task-oriented
-- keep docs navigable from a single central index and local/static MkDocs Material site
-- keep `spec.md` as the canonical product/system truth
-- keep `plan.md` limited to roadmap and technical direction
-- keep `tasks.md` limited to verified status and backlog
-- keep JSON schemas under `contracts/schemas/` as the machine-readable contracts
-- retire or pointer-replace older normative-looking markdown after downstream links have been updated
-- keep external agent usage guidance compact through reusable skill packages:
-  - a local-app skill for installed app/headless/LM Studio workflows
-  - a portable agent kit for loose agent-native extraction with optional static review/export packaging
-
-### Local model operations
-
-- prefer stable serialized LM Studio use over parallel local throughput
-- keep model load/unload/completion phases explicit across main app, eval, and optimizer
-- keep timeout, lock, and model-management diagnostics visible in artifacts
-
-## Near-term roadmap
-
-- expand focused validation for docs-referenced commands and presets
-- harden the portable agent kit around review/export helper boundaries without turning it into a second app
-- keep screenshots aligned with UI truth when the review workflow changes
-- continue reducing stale or personal-path assumptions inside benchmark presets
-- finish archiving or pointer-replacing older scattered spec markdown once links are clean
+Historical task ledgers, superseded rationale, and compatibility references belong under `archive/` and must remain non-normative.

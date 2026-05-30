@@ -79,3 +79,6 @@ Compile the static site to /site:
 ```bash
 python scripts/papers_to_table.py docs build
 ```
+
+## Specifications
+The active rebuild-grade spec system starts at [`specs/README.md`](specs/README.md), with integrated truth in [`specs/spec.md`](specs/spec.md). Active improvement tracking lives in `specs/improvement-ideas.md` and `specs/experiment-results.md`; historical compatibility references live under `specs/archive/` only.

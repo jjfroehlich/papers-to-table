@@ -1,38 +1,30 @@
-# Current status and backlog
+# Current Tasks
 
-## Verified current status
+## Active Backlog
 
-- [x] Main app has one central repo-level command surface for install, review startup, preflight, and headless use
-- [x] Headless mode supports explicit `--accept-all` and rejects unattended export when review is still pending
-- [x] Headless auto-accept is recorded in decision artifacts and reviewer summaries
-- [x] Eval is packaged as an installable companion CLI
-- [x] Optimizer exposes canonical `compare_models.json` and `optimize_parameter_sweeps.json` presets for model comparison and full-benchmark parameter sweeps
-- [x] README and docs now expose one clear install/run/navigation path
-- [x] Integrated current truth now exists in `specs/spec.md`
-- [x] `specs/spec.md`, `specs/plan.md`, and `specs/tasks.md` are the canonical markdown truth files
-- [x] Docs are now buildable as a local/static MkDocs Material manual
-- [x] Repo command surface includes docs serve/build wrappers
-- [x] Reusable local-app headless agent skill exists under `skills/papers-to-table-local-app/`
-- [x] Portable agent-native review/export kit exists under `skills/papers-to-table-agent-kit/`
-- [x] Main-app LM Studio provider has configurable request, vision request, model load, model unload, and lock wait timeouts
-- [x] Main-app LM Studio provider serializes load, unload, probe, text completion, and vision completion calls through a shared lock by default
-- [x] Eval LM Studio judge serializes model load, model unload, and completion calls through the same shared lock by default
-- [x] Eval remains judge-major for text judging: deterministic scoring first, then grouped judge/model/settings batches
-- [x] Optimizer suite/replicate execution keeps reports, plots, trust caveats, recommended default, and raw winner outputs explicit
-- [x] Main-app architecture Mermaid rendering is configured and labels are Mermaid-safe
-- [x] Manual pages explain backend extraction, eval judging, and optimizer proposal-before-judging phases
-- [x] Spec governance no longer treats scattered subfolder markdown as normative truth
+- [ ] Add or expand checks that validate docs-referenced wrapper commands and canonical spec links.
+- [ ] Continue removing personal-path assumptions from benchmark preset examples and historical external-result references where they affect active workflows.
+- [ ] Evaluate generic candidate selection and normalization on the active three-dataset benchmark suite.
+- [ ] Evaluate retrieval context improvements, especially table-aware retrieval units and per-cell score-shape gating.
+- [ ] Keep `improvement-ideas.md` and `experiment-results.md` current as improvement ideas are tested, kept, rejected, or superseded.
+- [ ] Refresh screenshots of the web interface (for docs).
+- [ ] Consider an eval/import-compatible mode for agent-kit lite bundles after helper-script usage stabilizes.
 
-## Current backlog
+## Blocked
 
-- [ ] Continue removing personal-path assumptions from real benchmark preset examples
-- [ ] Consider future eval/import-compatible mode for agent-kit lite bundles after MVP helper-script usage stabilizes
-- [ ] Refresh screenshots when the next visible UI workflow change lands
-- [ ] Pointer-replace or move older compatibility markdown under `specs/product/`, `specs/tools/`, `specs/contracts/`, `specs/architecture/`, and `specs/process/` into `specs/archive/` after downstream links are updated
-- [x] Add optimizer benchmark suite config validation
-- [x] Add optimizer replicate config validation
-- [x] Add optimizer suite and replicate orchestration
-- [x] Add optimizer aggregation artifacts for benchmark-level and suite-level summaries
-- [x] Update optimizer reports and plots with replicate caveats and `n=1` warnings
-- [x] Replace old optimizer one-benchmark execution branches with canonical suite and replicate execution
-- [x] Migrate checked-in optimizer configs to explicit benchmark suites and replicate settings
+- [ ] None currently recorded.
+
+## Recently Verified
+
+- [x] Active spec system consolidated around `README.md`, `spec.md`, `architecture.md`, `contracts.md`, `ui-review-workflow.md`, `eval-and-optimizer.md`, `decisions.md`, `plan.md`, `tasks.md`, and `contracts/schemas/*.json`.
+- [x] Actual agent skill directories are `skills/papers-to-table-agent-kit/` and `skills/papers-to-table-local-app/`.
+- [x] Active benchmark dataset directories are `massively_parallel_reporter_assays`, `genome_editing_tools`, and `spatial_transcriptomics`.
+- [x] Optimizer active benchmark ids are `bench_massively_parallel_reporter_assays`, `bench_genome_editing`, and `bench_spatial_transcriptomics`; `bench_smoke` is fixture-only.
+- [x] Headless mode supports explicit `--accept-all` and records automation decisions as `automation_accept_all`.
+- [x] Main-app, eval, and optimizer use run bundles and summary artifacts as their integration boundary.
+- [x] JSON schemas remain under `specs/contracts/schemas/` as machine-readable contract checks.
+- [x] Active improvement ledgers remain in `specs/improvement-ideas.md` and `specs/experiment-results.md`.
+
+## Archived Task Ledgers
+
+Older completed task history was moved to `specs/archive/task-ledgers/2026-05-30-pre-spec-simplification.md`.

@@ -1,0 +1,42 @@
+# Archived Task Ledger: Pre Spec Simplification
+
+This file preserves the active `specs/tasks.md` contents before the 2026-05-30 spec-system simplification. It is historical only. Current task status lives in `../../tasks.md`.
+
+## Verified Current Status
+
+- [x] Main app has one central repo-level command surface for install, review startup, preflight, and headless use
+- [x] Headless mode supports explicit `--accept-all` and rejects unattended export when review is still pending
+- [x] Headless auto-accept is recorded in decision artifacts and reviewer summaries
+- [x] Eval is packaged as an installable companion CLI
+- [x] Optimizer exposes canonical `compare_models.json` and `optimize_parameter_sweeps.json` presets for model comparison and full-benchmark parameter sweeps
+- [x] README and docs now expose one clear install/run/navigation path
+- [x] Integrated current truth now exists in `specs/spec.md`
+- [x] `specs/spec.md`, `specs/plan.md`, and `specs/tasks.md` are the canonical markdown truth files
+- [x] Docs are now buildable as a local/static MkDocs Material manual
+- [x] Repo command surface includes docs serve/build wrappers
+- [x] Reusable local-app headless agent skill exists under `skills/papers-to-table-local-app/`
+- [x] Portable agent-native review/export kit exists under `skills/papers-to-table-agent-kit/`
+- [x] Main-app LM Studio provider has configurable request, vision request, model load, model unload, and lock wait timeouts
+- [x] Main-app LM Studio provider serializes load, unload, probe, text completion, and vision completion calls through a shared lock by default
+- [x] Eval LM Studio judge serializes model load, model unload, and completion calls through the same shared lock by default
+- [x] Eval remains judge-major for text judging: deterministic scoring first, then grouped judge/model/settings batches
+- [x] Optimizer suite/replicate execution keeps reports, plots, trust caveats, recommended default, and raw winner outputs explicit
+- [x] Main-app architecture Mermaid rendering is configured and labels are Mermaid-safe
+- [x] Manual pages explain backend extraction, eval judging, and optimizer proposal-before-judging phases
+- [x] Spec governance no longer treats scattered subfolder markdown as normative truth
+
+## Current Backlog At Archive Time
+
+- [ ] Continue removing personal-path assumptions from real benchmark preset examples
+- [ ] Consider future eval/import-compatible mode for agent-kit lite bundles after MVP helper-script usage stabilizes
+- [ ] Refresh screenshots when the next visible UI workflow change lands
+- [ ] Pointer-replace or move older compatibility markdown under active spec subdirectories into archive after downstream links are updated
+- [x] Add optimizer benchmark suite config validation
+- [x] Add optimizer replicate config validation
+- [x] Add optimizer suite and replicate orchestration
+- [x] Add optimizer aggregation artifacts for benchmark-level and suite-level summaries
+- [x] Update optimizer reports and plots with replicate caveats and `n=1` warnings
+- [x] Replace old optimizer one-benchmark execution branches with canonical suite and replicate execution
+- [x] Migrate checked-in optimizer configs to explicit benchmark suites and replicate settings
+
+Note: The archived claim about `optimize_parameter_sweeps.json` reflects the older task ledger wording. The current repo does not have that checked-in preset; current truth lives in `../../eval-and-optimizer.md`.

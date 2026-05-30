@@ -14,12 +14,15 @@ Durable editing and verification rules for coding agents working in this reposit
 
 ## Canonical spec roles
 
-- `../../specs/tools/optimizer.md`: stable optimizer behavior and scope only.
-- `../../specs/tools/eval.md` records stable eval-tool behavior and scope.
-- `../../specs/contracts/`: shared cross-tool contracts.
-- `../../specs/architecture/`: monorepo structure and integration boundaries.
-- `../../specs/process/`: change and testing policy.
-- `../../specs/tasks.md`: canonical implementation checklist and status tracking only.
+- `../../specs/spec.md`: integrated product and system truth.
+- `../../specs/eval-and-optimizer.md`: stable eval and optimizer behavior, benchmark policy, suite/replicate behavior, and report semantics.
+- `../../specs/contracts.md`: shared human-readable cross-tool contracts.
+- `../../specs/contracts/schemas/`: machine-readable artifact contracts.
+- `../../specs/architecture.md`: monorepo structure and integration boundaries.
+- `../../specs/decisions.md`: durable decisions.
+- `../../specs/improvement-ideas.md`: active untested or unresolved improvement ideas.
+- `../../specs/experiment-results.md`: tested evidence and decisions for improvement ideas.
+- `../../specs/tasks.md`: living current backlog/status only.
 - `README.md`: operator-facing workflow and current behavior/limitations only.
 
 ## Editing rules for spec files
@@ -28,9 +31,9 @@ Durable editing and verification rules for coding agents working in this reposit
 2. Prefer editing the correct existing section over appending ad hoc sections.
 3. Do not insert pass-specific, temporary, or sequencing instructions into the unified root spec files or `../../specs/plan.md`.
 4. Do not create new batch/phase frameworks unless explicitly requested.
-5. Keep implementation status in `../../specs/tasks.md` only.
+5. Keep current implementation status in `../../specs/tasks.md` only.
 6. Do not leave stale and new truths side by side; replace stale statements in the same pass.
-7. If historical notes are useful, place them in an appendix, not in canonical body sections.
+7. If historical notes are useful, place them under `../../specs/archive/`, not in canonical body sections.
 8. If a file accumulates scattered edits, reorganize it in the same pass instead of only appending.
 
 ## Editing rules for tasks
@@ -38,7 +41,7 @@ Durable editing and verification rules for coding agents working in this reposit
 1. Keep one canonical checked/unchecked checklist in `../../specs/tasks.md`.
 2. Keep each task listed exactly once.
 3. Organize tasks by durable product area, not historical implementation order.
-4. Keep completed tasks visible.
+4. Keep only recently verified completed tasks visible.
 5. Reclassify task status when repo truth changes.
 
 ## Verification requirements for truth edits

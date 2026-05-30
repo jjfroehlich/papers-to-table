@@ -29,7 +29,7 @@ Eval and optimizer companion tools rely on run bundles without importing the mai
 
 ## Proposal Records
 
-Each proposal record keeps one target-cell semantic outcome using canonical fields from `specs/contracts/proposals-and-evidence.md`: `proposal_status`, `evidence_status`, derived/validated `review_bucket`, and `reason_codes`. Records also keep evidence ids and optional diagnostics used by eval, optimizer, and review tooling:
+Each proposal record keeps one target-cell semantic outcome using canonical fields from `specs/contracts.md`: `proposal_status`, `evidence_status`, derived/validated `review_bucket`, and `reason_codes`. Records also keep evidence ids and optional diagnostics used by eval, optimizer, and review tooling:
 
 - `candidate_answers`: generic candidates considered before the final value was selected. Sources are `first_pass_text`, `rescued_text`, `evidence_recovery`, and `figure_review`.
 - `selection_diagnostics`: selector outcome, selected/rejected candidate ids, rationale, and whether additional evidence was requested.

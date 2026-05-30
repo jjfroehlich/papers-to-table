@@ -62,7 +62,7 @@ When sources conflict, identify the owning current spec, update code/docs/tests 
 
 ## Evidence-first workflow
 
-1. Read `README.md`, `specs/README.md`, `specs/spec.md`, and the owning supporting spec before behavior changes.
+1. Read `README.md`, `specs/README.md`, `specs/spec.md`, and the focused owning spec before behavior changes. Focused owners are `specs/architecture.md`, `specs/contracts.md`, `specs/ui-review-workflow.md`, and `specs/eval-and-optimizer.md`.
 2. Prefer the existing wrapper scripts in `scripts/` for install, run, test, and verification flows.
 3. Trace the current code path before editing; do not rely on filenames or older docs alone.
 4. Inspect relevant tests, fixtures, config examples, and run artifacts before changing behavior or declaring artifacts stale.
@@ -129,13 +129,16 @@ Done means the operator can understand what to do next without reading source co
 - For UI-affecting work, browser-level verification or equivalent e2e coverage is part of done.
 - Preflight and readiness checks are part of done, not polish.
 - Provider-affecting work must verify parity across runtime validation, config examples, docs, tests, and UI summaries.
+- Spec/doc-governance changes should run `python scripts/check_specs.py`.
 - A documented live path is not done unless it either:
   - produces at least one non-empty proposal with reviewer-usable evidence on the canonical checked-in fixture path, or
   - fails early with a clear readiness error explaining why proposal generation cannot proceed.
 
 ## Documentation and spec rules
 
-- Current source of truth: `specs/README.md` for the spec-system guide, `specs/spec.md` for integrated current product/system truth, `specs/product/` for main-app product requirements, `specs/tools/` for companion-tool behavior, `specs/contracts/` for shared cross-tool rules, `specs/architecture/` for monorepo boundaries, `specs/process/` for maintenance policy, `specs/plan.md` for supportive planning, `specs/tasks.md` for verified implementation status, and this file for repo-level operating rules.
+- Current source of truth: `specs/README.md` for the spec-system guide, `specs/spec.md` for integrated current product/system truth, `specs/architecture.md` for layout/integration boundaries, `specs/contracts.md` for human-readable shared contracts, `specs/ui-review-workflow.md` for browser review workflow, `specs/eval-and-optimizer.md` for companion-tool behavior, `specs/decisions.md` for durable decisions, `specs/improvement-ideas.md` for active improvement ideas, `specs/experiment-results.md` for tested improvement evidence and decisions, `specs/plan.md` for current direction, `specs/tasks.md` for living status/backlog, `specs/contracts/schemas/*.json` for machine-readable contracts, and this file for repo-level operating rules.
+- Required spec read order: `specs/README.md`, then `specs/spec.md`, then the focused owner for the change, then `specs/decisions.md`, then `specs/improvement-ideas.md` and `specs/experiment-results.md` for experiment work, then `specs/plan.md` and `specs/tasks.md` when direction or status matters.
+- Historical compatibility references and old ledgers under `specs/archive/` are non-normative. Do not use archive material to justify current behavior unless the needed truth has been promoted into the active owning spec.
 - When working inside `specs/`, follow `specs/AGENTS.md` for the spec-specific workflow.
 - `README.md` is the short repo entry point. `docs/` is the MkDocs manual for operators, agents, and developers. `specs/` is canonical implementation truth. 
 - Update only the docs whose truth changed, but do it in the same pass as the behavior change.
@@ -146,6 +149,11 @@ Done means the operator can understand what to do next without reading source co
 - Preserve the existing canonical section structure when editing `README.md`, `AGENTS.md`, and files under `specs/`.
 - Prefer editing the correct existing section over appending ad hoc notes.
 - If `skills/` procedures change, update the corresponding manual page under `/docs/tools/` and keep skill references aligned with current CLI/config/artifact truth.
+- Do not solve drift by copying the same truth into multiple files. Promote durable truth into the owning canonical spec, replace stale references, and archive obsolete duplicates.
+- Do not add active normative spec files without updating `specs/README.md`, `specs/AGENTS.md`, root `AGENTS.md`, relevant docs, and drift checks in the same pass.
+- `specs/tasks.md` is a living current tracker, not a historical ledger. Move old task history to `specs/archive/` only when it is useful.
+- `specs/plan.md` is current direction only, not a completed phase-plan archive.
+- `specs/improvement-ideas.md` and `specs/experiment-results.md` are active supporting ledgers for experiments; durable behavior from them still must be promoted into the owning specs.
 
 ## Dependency policy
 
@@ -171,7 +179,8 @@ Done means the operator can understand what to do next without reading source co
 - `docs/screenshots/`: browser screenshots referenced by docs
 - `specs/`: canonical normative/supportive spec system
 - `skills/`: agent operating procedures and portable skill workflows
-- `app/tests/fixtures/`: canonical workbook and PDF fixtures
+- `benchmark_datasets/`: canonical checked-in benchmark and fixture corpus
+- `app/tests/`: backend, frontend-adjacent, and e2e test fixtures/helpers
 - `app/backend/src/backend/app/`: FastAPI app, pipeline logic, and runtime services
 - `app/frontend/`: React review UI
 - `tools/eval/`: evaluator tool
@@ -183,7 +192,7 @@ Done means the operator can understand what to do next without reading source co
 - Preferred shell is Git Bash on Windows; use bash-friendly commands in docs and scripts.
 - Do not use PowerShell in repo docs unless there is a separate audience that truly needs it.
 - Prefer relative paths in docs. If absolute paths are required, document both `/d/...` and `D:\...` forms.
-- Canonical fixture root: `app/tests/fixtures/`.
+- Canonical checked-in benchmark/fixture root: `benchmark_datasets/`.
 
 ## Final rule
 
