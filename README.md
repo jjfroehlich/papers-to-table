@@ -2,11 +2,7 @@
   <img src="./app/frontend/public/banner_1.jpg" width="900" alt="Title banner" />
 </p>
 
-papers-to-table is an experimental system to extract information from scientific PDFs into structured tables using large language models. It runs locally with open models via LM Studio, supports a browser interface for human review, auditable run bundles, and tools for benchmarking analyses.
-
-## Related systems
-
-Commercial and research systems also use extraction into structured tables. [Google Labs Science](https://labs.google/science/), [Elicit](https://elicit.com/), and [Scite](https://scite.ai/) all involve tables with structured information extracted from literature. 
+Papers-to-table is an experimental system to extract information from scientific PDFs into structured tables, using large language models. It runs fully local, and includes an interface for human review, auditable run bundles, and tools for benchmarking and experiments.
 
 ## Quickstart
 
@@ -86,3 +82,6 @@ python scripts/papers_to_table.py docs build
 
 ## Specifications
 The active rebuild-grade spec system starts at [`specs/README.md`](specs/README.md), with integrated truth in [`specs/spec.md`](specs/spec.md). Active improvement tracking lives in `specs/improvement-ideas.md` and `specs/experiment-results.md`; historical compatibility references live under `specs/archive/` only.
+
+## Related systems
+Commercial and research systems [Google Labs Science](https://labs.google/science/), [Elicit](https://elicit.com/), and [Scite](https://scite.ai/), all use structured information extracted from literature. This here is a free open source project. It can be used locally to for literature reviews, to experiment with large language models, or to be integrated in agentic research systems. 
