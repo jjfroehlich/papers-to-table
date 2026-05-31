@@ -3,12 +3,13 @@
   "title": "run.json",
   "type": "object",
   "required": [
+    "artifact_schema_version",
     "run_id",
     "status"
   ],
   "properties": {
     "artifact_schema_version": {
-      "type": "string"
+      "const": "main_run_bundle"
     },
     "run_id": {
       "type": "string",

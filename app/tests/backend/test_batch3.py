@@ -2949,7 +2949,7 @@ class TestProposalPersistence:
         assert loaded_proposals[0].proposal_id == "prop_roundtrip"
         assert loaded_proposals[0].proposal_status == ProposalStatus.value_proposed
         assert len(loaded_evidence) == 1
-        assert loaded_evidence[0].evidence_schema_version == "main_evidence.v2"
+        assert loaded_evidence[0].evidence_schema_version == "main_evidence"
         assert loaded_evidence[0].source_type == EvidenceSourceType.direct_quote
         assert evidence_jsonl_path.exists()
 

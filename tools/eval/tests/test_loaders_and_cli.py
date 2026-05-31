@@ -32,7 +32,10 @@ class LoaderAndCliTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             run_dir = Path(temp_dir) / "run-a"
             (run_dir / "proposals").mkdir(parents=True)
-            (run_dir / "run.json").write_text(json.dumps({"run_id": "run-a"}), encoding="utf-8")
+            (run_dir / "run.json").write_text(
+                json.dumps({"artifact_schema_version": "main_run_bundle", "run_id": "run-a"}),
+                encoding="utf-8",
+            )
             (run_dir / "proposals" / "proposals.jsonl").write_text(
                 json.dumps({"run_id": "run-a", "column_name": "outcome", "cell_id": "cell-1"}) + "\n",
                 encoding="utf-8",
@@ -71,6 +74,26 @@ class LoaderAndCliTests(unittest.TestCase):
             with self.assertRaisesRegex(ContractError, "Unsupported run artifact version"):
                 load_run(run_dir)
 
+    def test_run_loader_rejects_missing_artifact_schema_version(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_dir = self._create_run_bundle(Path(temp_dir) / "run-a")
+            run_payload = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+            run_payload.pop("artifact_schema_version")
+            (run_dir / "run.json").write_text(json.dumps(run_payload), encoding="utf-8")
+
+            with self.assertRaisesRegex(ContractError, "Unsupported run artifact version: <missing>"):
+                load_run(run_dir)
+
+    def test_run_loader_rejects_legacy_artifact_schema_version(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_dir = self._create_run_bundle(Path(temp_dir) / "run-a")
+            run_payload = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+            run_payload["artifact_schema_version"] = "main_run_bundle" + ".v2"
+            (run_dir / "run.json").write_text(json.dumps(run_payload), encoding="utf-8")
+
+            with self.assertRaisesRegex(ContractError, "Unsupported run artifact version"):
+                load_run(run_dir)
+
     def test_run_loader_accepts_main_app_eval_artifacts_shape(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             run_dir = Path(temp_dir) / "run-a"
@@ -80,6 +103,7 @@ class LoaderAndCliTests(unittest.TestCase):
             (run_dir / "inputs" / "gold_table.xlsx").write_text("gold", encoding="utf-8")
             (run_dir / "inputs" / "masked_working_table.xlsx").write_text("masked", encoding="utf-8")
             run_payload = {
+                "artifact_schema_version": "main_run_bundle",
                 "run_id": "run-a",
                 "run_mode": "eval",
                 "provider_text_model_id": "text-model-1",
@@ -178,7 +202,7 @@ class LoaderAndCliTests(unittest.TestCase):
             (run_dir / "evidence" / "ev-1.json").write_text(
                 json.dumps(
                     {
-                        "evidence_schema_version": "main_evidence.v2",
+                        "evidence_schema_version": "main_evidence",
                         "evidence_id": "ev-1",
                         "pdf_id": "pdf-1",
                         "page_number": 1,
@@ -230,6 +254,7 @@ class LoaderAndCliTests(unittest.TestCase):
                 (run_dir / "evidence" / f"{evidence_id}.json").write_text(
                     json.dumps(
                         {
+                            "evidence_schema_version": "main_evidence",
                             "evidence_id": evidence_id,
                             "pdf_id": "pdf-1",
                             "page_number": 1,
@@ -288,7 +313,10 @@ class LoaderAndCliTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             run_dir = Path(temp_dir) / "run-a"
             (run_dir / "proposals").mkdir(parents=True)
-            (run_dir / "run.json").write_text(json.dumps({"run_id": "run-a"}), encoding="utf-8")
+            (run_dir / "run.json").write_text(
+                json.dumps({"artifact_schema_version": "main_run_bundle", "run_id": "run-a"}),
+                encoding="utf-8",
+            )
             (run_dir / "proposals" / "proposals.jsonl").write_text("{bad json\n", encoding="utf-8")
 
             with self.assertRaisesRegex(ContractError, "Invalid JSON in .*proposals.jsonl line 1"):
@@ -926,7 +954,7 @@ class LoaderAndCliTests(unittest.TestCase):
         (run_dir / "run.json").write_text(
             json.dumps(
                 {
-                    "artifact_schema_version": "main_run_bundle.v2",
+                    "artifact_schema_version": "main_run_bundle",
                     "run_id": run_dir.name,
                     "run_mode": "eval",
                     "provider_text_model_id": "model-1",

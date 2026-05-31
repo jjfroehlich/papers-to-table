@@ -3,6 +3,7 @@
   "title": "evidence.jsonl record",
   "type": "object",
   "required": [
+    "evidence_schema_version",
     "evidence_id",
     "run_id",
     "proposal_id",
@@ -11,7 +12,7 @@
   ],
   "properties": {
     "evidence_schema_version": {
-      "type": "string"
+      "const": "main_evidence"
     },
     "evidence_id": {
       "type": "string"

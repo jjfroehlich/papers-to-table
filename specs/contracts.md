@@ -23,6 +23,13 @@ Current machine-readable schemas:
 
 Schemas are versioned contract checks, not examples. Runtime artifacts may carry additional fields, but required fields and enums in schemas must remain truthful.
 
+Current artifact schema tags are canonical names, not compatibility-version lanes:
+
+- `run.json.artifact_schema_version` must be `main_run_bundle`.
+- Every evidence record's `evidence_schema_version` must be `main_evidence`.
+
+Active tooling must reject missing, legacy `.v2`, and unknown values. Archive material may preserve old tags only as historical data.
+
 ## Run Bundle Directory Contract
 
 One main-app run writes one run bundle rooted at `{output_dir}/{run_id}/`. The bundle must be consumable from files alone by the browser UI after reload, eval, optimizer, and audit tooling.
@@ -189,7 +196,7 @@ Optimizer reports must distinguish best raw completed candidate, eligible winner
 
 ## Schema-Version And Verification Expectations
 
-Run bundles and record streams must publish explicit schema-version fields where supported by the artifact. Downstream tools must validate supported versions instead of guessing.
+Run bundles and evidence record streams must publish explicit schema-version fields. Downstream tools must validate the canonical supported values instead of guessing or accepting legacy unversioned bundles.
 
 Contract verification command:
 

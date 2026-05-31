@@ -1,4 +1,5 @@
 {
+  "artifact_schema_version": "main_run_bundle",
   "run_id": "run-a",
   "run_mode": "eval",
   "provider_text_model_id": "model-a",

@@ -8,8 +8,8 @@ import tempfile
 from typing import Any
 
 
-RUN_BUNDLE_ARTIFACT_SCHEMA_VERSION = "main_run_bundle.v2"
-EVIDENCE_RECORD_SCHEMA_VERSION = "main_evidence.v2"
+RUN_BUNDLE_ARTIFACT_SCHEMA_VERSION = "main_run_bundle"
+EVIDENCE_RECORD_SCHEMA_VERSION = "main_evidence"
 
 
 def get_run_dir(output_dir: str, run_id: str) -> pathlib.Path:

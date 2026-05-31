@@ -81,3 +81,11 @@ Decision: Older detailed compatibility references and legacy ledgers live under 
 Rationale: Long semi-current compatibility files made it unclear which source owned current truth.
 
 Implications: Active current behavior must be understandable from the root canonical spec set. Archived files may preserve context, but cannot justify current behavior unless the relevant truth is promoted back into an active spec.
+
+## D011 Canonical artifact tags
+
+Decision: Current main-app run bundles use `main_run_bundle` and evidence records use `main_evidence` as canonical artifact schema tags.
+
+Rationale: The previous `.v2` suffix implied a compatibility ladder the repo does not intend to maintain for the canonical local app.
+
+Implications: Active producers must write the canonical tags. Active consumers, eval loaders, and contract verification must reject missing, legacy `.v2`, and unknown tags clearly.

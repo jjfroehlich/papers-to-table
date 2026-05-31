@@ -80,9 +80,9 @@ class TestGetInitialRunData:
         assert data["prompt_bundle_path"] is not None
         assert data["prompt_keys_used"]
         assert data["prompt_files"]
-        assert data["artifact_schema_version"] == "main_run_bundle.v2"
+        assert data["artifact_schema_version"] == "main_run_bundle"
         assert "proposal_schema_version" not in data
-        assert data["evidence_schema_version"] == "main_evidence.v2"
+        assert data["evidence_schema_version"] == "main_evidence"
         assert data["structured_output_reason"] is None
 
     def test_timestamps(self, tmp_path):

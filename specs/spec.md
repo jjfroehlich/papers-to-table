@@ -200,6 +200,13 @@ Export writes a new workbook and audit artifacts. Export includes only accepted 
 
 The run bundle rooted at `{output_dir}/{run_id}/` is the stable artifact contract consumed from files alone.
 
+Current canonical artifact tags:
+
+- `run.json.artifact_schema_version`: `main_run_bundle`
+- evidence records' `evidence_schema_version`: `main_evidence`
+
+These are stable current-contract identifiers, not semver-style compatibility channels. Active producers must write the canonical tags. Active consumers and verification tools must reject missing, old `.v2`, or unknown artifact tags clearly instead of accepting legacy bundles by default.
+
 Stable categories include:
 
 - inputs

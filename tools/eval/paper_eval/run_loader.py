@@ -78,9 +78,9 @@ _REQUIRED_EVAL_PROVENANCE_FIELDS = (
     "masked_table_hash",
     "masked_table_snapshot_path",
 )
-_SUPPORTED_RUN_ARTIFACT_SCHEMA_VERSIONS = {None, "main_run_bundle.v2"}
+_SUPPORTED_RUN_ARTIFACT_SCHEMA_VERSIONS = {"main_run_bundle"}
 _SUPPORTED_PROPOSAL_SCHEMA_VERSIONS = {None}
-_SUPPORTED_EVIDENCE_SCHEMA_VERSIONS = {None, "main_evidence.v2"}
+_SUPPORTED_EVIDENCE_SCHEMA_VERSIONS = {"main_evidence"}
 
 
 def _normalize_optional_list(value: Any) -> list[Any]:
@@ -821,9 +821,12 @@ def _validate_supported_schema_version(
 ) -> None:
     if version in supported_versions:
         return
-    supported_text = ", ".join(sorted(item for item in supported_versions if item is not None)) or "legacy-unversioned"
+    supported_values = sorted(item for item in supported_versions if item is not None)
+    supported_text = ", ".join(supported_values)
+    label = "version" if len(supported_values) == 1 else "versions"
+    version_text = version if version is not None else "<missing>"
     raise ContractError(
-        f"Unsupported {kind} version: {version}. Supported versions: {supported_text} plus legacy unversioned bundles."
+        f"Unsupported {kind} version: {version_text}. Supported {label}: {supported_text}."
     )
 
 
