@@ -27,6 +27,7 @@ The rich kit promises:
 
 - proposal queue/table review
 - PDF.js page and quote evidence inspection
+- bundled PDF.js runtime assets so copying `skills/papers-to-table-agent-kit/` keeps quote highlighting working
 - visible weak-evidence labels
 - accept, accept-with-edit, reject, and confirmed-no-data decisions
 - decision download or localhost writeback
@@ -89,6 +90,7 @@ Evidence source-type inference:
 
 - If `source_type` is absent and `quote_text`, `table_text`, `evidence_text`, or `caption_text` is present, direct evidence is inferred.
 - If `source_type` is absent and only `page_number` plus `reasoning` and/or `source_location` is present, `inferred_reasoning` is inferred.
+- Generated evidence keeps `source_type` main-compatible and preserves the authored evidence kind separately in `authored_evidence_kind` when the input used kit-specific text kinds.
 
 Evidence tiers:
 
@@ -98,6 +100,8 @@ Evidence tiers:
 - Tier D: no structured evidence -> invalid for non-empty `proposed_value`
 
 Strong evidence requires `pdf_id`, `page_number`, and at least one of `quote_text`, `table_text`, `evidence_text`, exact/approximate bbox regions, or `figure_ref` plus `caption_text`.
+
+Highlight regions and bboxes must use finite numeric coordinates, a positive page reference, and nonzero area. Validation also checks normalized coordinates and warns about ambiguous coordinate conventions.
 
 ## Script Workflow
 

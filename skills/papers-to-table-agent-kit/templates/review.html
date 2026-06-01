@@ -32,6 +32,7 @@
     h1 { margin: 0; font-size: 18px; letter-spacing: 0; }
     .subtle { color: var(--muted); font-size: 12px; }
     .top-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .status-stack { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
     .btn {
       border: 1px solid var(--border); background: #fff; color: #344054;
       border-radius: 7px; padding: 7px 10px; font-weight: 650; font-size: 13px;
@@ -116,7 +117,10 @@ window.__REVIEW_PACKAGE__ = __REVIEW_PACKAGE_JSON__;
     <div class="subtle" id="run-summary">Loading review package...</div>
   </div>
   <div class="top-actions">
-    <span class="tag info" id="server-status">Download mode</span>
+    <div class="status-stack">
+      <span class="tag info" id="server-status">Download mode</span>
+      <span class="subtle" id="save-status-detail">Decisions are saved only in this browser until downloaded.</span>
+    </div>
     <button class="btn" id="download-decisions">Download decisions</button>
     <button class="btn primary" id="write-decisions">Write decisions</button>
     <button class="btn accept" id="export-csv">Export CSV</button>
@@ -186,7 +190,11 @@ const state = {
   page: 1,
   pages: 0,
   zoom: 1.25,
-  renderToken: 0
+  renderToken: 0,
+  saveStatusKind: served ? "ready" : "download",
+  saveStatusDetail: served
+    ? "Localhost writeback is available."
+    : "Decisions are saved only in this browser until downloaded."
 };
 
 function esc(value) {
@@ -254,17 +262,71 @@ function storeLocalDecisions() {
   localStorage.setItem(localKey, JSON.stringify(state.decisions));
 }
 
+function setSaveStatus(kind, detail) {
+  state.saveStatusKind = kind;
+  state.saveStatusDetail = detail;
+}
+
+function renderSaveStatus() {
+  const tag = document.getElementById("server-status");
+  const detail = document.getElementById("save-status-detail");
+  const statuses = {
+    download: {
+      className: "tag info",
+      label: "Download mode",
+      detail: "Decisions are saved only in this browser until downloaded."
+    },
+    ready: {
+      className: "tag info",
+      label: "Server ready",
+      detail: "Localhost writeback is available."
+    },
+    local: {
+      className: "tag warn",
+      label: "Saved locally",
+      detail: "Latest decision is only in browser storage until server writeback succeeds."
+    },
+    syncing: {
+      className: "tag info",
+      label: "Writing to server",
+      detail: "Syncing decisions to review/decisions.jsonl..."
+    },
+    server: {
+      className: "tag ok",
+      label: "Saved to server",
+      detail: "Decisions were written to review/decisions.jsonl."
+    },
+    error: {
+      className: "tag danger",
+      label: "Server write failed",
+      detail: "Latest decision stayed only in browser storage."
+    }
+  };
+  const status = statuses[state.saveStatusKind] || statuses.ready;
+  tag.className = status.className;
+  tag.textContent = status.label;
+  detail.textContent = state.saveStatusDetail || status.detail;
+}
+
 async function loadServerDecisions() {
   if (!served) return;
   try {
     const response = await fetch("/api/decisions");
-    if (!response.ok) return;
+    if (!response.ok) {
+      setSaveStatus("error", `Could not load existing server decisions: ${await response.text()}`);
+      return;
+    }
     const payload = await response.json();
     for (const decision of payload.decisions || []) {
       state.decisions[decision.proposal_id] = decision;
     }
     storeLocalDecisions();
-  } catch {}
+    setSaveStatus(payload.decisions?.length ? "server" : "ready", payload.decisions?.length
+      ? "Loaded existing server decisions and mirrored them into browser storage."
+      : "Localhost writeback is available.");
+  } catch (error) {
+    setSaveStatus("error", `Could not load existing server decisions: ${error.message || error}`);
+  }
 }
 
 function progress() {
@@ -282,9 +344,9 @@ function render() {
   const prog = progress();
   document.getElementById("run-summary").textContent =
     `${pkg.run_id} - ${prog.reviewed} / ${prog.total} reviewed - ${prog.pending} pending`;
-  document.getElementById("server-status").textContent = served ? "Local writeback" : "Download mode";
   document.getElementById("write-decisions").disabled = !served;
   document.getElementById("export-csv").disabled = !served;
+  renderSaveStatus();
   renderList();
   renderDetail();
 }
@@ -451,7 +513,20 @@ function makeDecision(decision, extras = {}) {
   };
   state.decisions[proposal.proposal_id] = record;
   storeLocalDecisions();
-  if (served) void postDecisions([record]);
+  if (served) {
+    setSaveStatus("syncing", "Syncing the latest decision to review/decisions.jsonl...");
+    void postDecisions([record])
+      .then(() => {
+        setSaveStatus("server", "Latest decision was written to review/decisions.jsonl.");
+        renderSaveStatus();
+      })
+      .catch((error) => {
+        setSaveStatus("error", `Latest decision stayed only in browser storage: ${error.message || error}`);
+        renderSaveStatus();
+      });
+  } else {
+    setSaveStatus("download", "Decisions are saved only in this browser until downloaded.");
+  }
   moveSelection(1);
   render();
   return record;
@@ -489,8 +564,18 @@ function downloadDecisions() {
 
 async function writeDecisions() {
   if (!served) return;
-  await postDecisions(allDecisionRows());
-  alert("Decisions written to review/decisions.jsonl");
+  setSaveStatus("syncing", "Syncing all decisions to review/decisions.jsonl...");
+  try {
+    await postDecisions(allDecisionRows());
+    setSaveStatus("server", "All decisions were written to review/decisions.jsonl.");
+    renderSaveStatus();
+    alert("Decisions written to review/decisions.jsonl");
+  } catch (error) {
+    setSaveStatus("error", `Server write failed; decisions remain in browser storage: ${error.message || error}`);
+    renderSaveStatus();
+    alert(`Write failed: ${error.message || error}`);
+    throw error;
+  }
 }
 
 async function exportCsv() {
@@ -571,11 +656,12 @@ async function renderCurrentPage(evidence) {
   await page.render({canvasContext: canvas.getContext("2d"), viewport}).promise;
   if (token !== state.renderToken) return;
   const text = evidence?.quote_text || evidence?.table_text || evidence?.evidence_text || evidence?.caption_text || "";
-  let boxes = [];
+  let quoteMatch = {boxes: [], partial: false};
   if (text) {
     const content = await page.getTextContent();
-    boxes = quoteBoxes(content.items, viewport, text);
+    quoteMatch = buildQuoteHighlightMatch(content.items, viewport, text);
   }
+  let boxes = quoteMatch.boxes;
   if (!boxes.length) boxes = regionBoxes(evidence, viewport);
   for (const box of boxes) {
     const div = document.createElement("div");
@@ -589,7 +675,12 @@ async function renderCurrentPage(evidence) {
   const pdf = pdfById(evidence.pdf_id);
   document.getElementById("pdf-page").textContent = `${pdf?.label || evidence.pdf_id}, page ${state.page} / ${state.pages}`;
   document.getElementById("zoom-label").textContent = `${Math.round(state.zoom * 100)}%`;
-  if (text && !boxes.length) {
+  if (quoteMatch.partial && quoteMatch.boxes.length) {
+    const note = document.createElement("div");
+    note.className = "viewer-note";
+    note.textContent = "Partial quote match highlighted; verify the highlighted span against the evidence text.";
+    stage.appendChild(note);
+  } else if (text && !quoteMatch.boxes.length && !boxes.length) {
     const note = document.createElement("div");
     note.className = "viewer-note";
     note.textContent = `Text fallback - exact highlighting unavailable: "${text}"`;
@@ -597,49 +688,127 @@ async function renderCurrentPage(evidence) {
   }
 }
 
-function norm(text) {
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function normalizeSearchText(text) {
   return String(text || "").normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").replace(/\s+/g, " ").trim();
 }
 
-function quoteBoxes(items, viewport, quote) {
-  const quoteTokens = norm(quote).split(" ").filter(Boolean);
-  if (!quoteTokens.length) return [];
+function tokenizeSearchText(text) {
+  const normalized = normalizeSearchText(text);
+  return normalized ? normalized.split(" ") : [];
+}
+
+function extractTextFragments(items, viewport) {
   const fragments = [];
-  for (const item of items) {
-    const tokens = norm(item.str).split(" ").filter(Boolean);
-    if (!tokens.length) continue;
+  for (const item of items || []) {
+    if (!item || typeof item.str !== "string" || !Array.isArray(item.transform)) continue;
+    const tokenText = normalizeSearchText(item.str);
+    if (!tokenText) continue;
     const transform = window.pdfjsLib?.Util?.transform
       ? window.pdfjsLib.Util.transform(viewport.transform, item.transform)
       : multiply(viewport.transform, item.transform);
-    const h = Math.max(Math.abs(item.height * viewport.scale), 8);
-    fragments.push({tokens, x: transform[4], y: transform[5] - h, w: Math.max(item.width * viewport.scale, 1), h});
+    const h = Math.max(Math.hypot(transform[2], transform[3]) || Math.abs((item.height || 0) * viewport.scale), 1);
+    const w = Math.max(Math.abs((item.width || 0) * viewport.scale), 1);
+    const x = clamp(transform[4], 0, viewport.width);
+    const y = clamp(transform[5] - h, 0, viewport.height);
+    const width = clamp(w, 0, Math.max(0, viewport.width - x));
+    const height = clamp(h, 0, Math.max(0, viewport.height - y));
+    if (width <= 0.5 || height <= 0.5) continue;
+    fragments.push({x, y, w: width, h: height, tokenText});
   }
-  const stream = [];
-  fragments.forEach((fragment, fragmentIndex) => {
-    fragment.tokens.forEach((token) => stream.push({token, fragmentIndex}));
-  });
-  const start = findSpan(stream.map((item) => item.token), quoteTokens);
-  if (start < 0) return [];
-  const end = start + quoteTokens.length - 1;
-  const indexes = new Set();
-  for (let i = start; i <= end; i++) indexes.add(stream[i].fragmentIndex);
-  return mergeBoxes(fragments.filter((_, index) => indexes.has(index)));
+  return fragments;
 }
 
-function findSpan(tokens, quoteTokens) {
-  for (let i = 0; i <= tokens.length - quoteTokens.length; i++) {
-    let ok = true;
-    for (let j = 0; j < quoteTokens.length; j++) {
-      if (tokens[i + j] !== quoteTokens[j]) { ok = false; break; }
+function findTokenSequence(pageTokens, quoteTokens, quoteStart, length) {
+  const lastStart = pageTokens.length - length;
+  outer: for (let pageStart = 0; pageStart <= lastStart; pageStart += 1) {
+    for (let offset = 0; offset < length; offset += 1) {
+      if (pageTokens[pageStart + offset] !== quoteTokens[quoteStart + offset]) continue outer;
     }
-    if (ok) return i;
+    return pageStart;
   }
   return -1;
 }
 
-function mergeBoxes(boxes) {
+function findBestTokenSpan(pageTokens, quoteTokens) {
+  if (!pageTokens.length || !quoteTokens.length) return null;
+  for (let windowLength = quoteTokens.length; windowLength >= 1; windowLength -= 1) {
+    for (let quoteStart = 0; quoteStart + windowLength <= quoteTokens.length; quoteStart += 1) {
+      const pageStart = findTokenSequence(pageTokens, quoteTokens, quoteStart, windowLength);
+      if (pageStart !== -1) {
+        return {start: pageStart, end: pageStart + windowLength - 1, matchLength: windowLength};
+      }
+    }
+    if (windowLength <= 6 && quoteTokens.length > 24) break;
+  }
+  return null;
+}
+
+function buildQuoteHighlightMatch(items, viewport, quoteText) {
+  const fragments = extractTextFragments(items, viewport);
+  if (!fragments.length) return {boxes: [], partial: false};
+  const quoteTokens = tokenizeSearchText(quoteText);
+  if (!quoteTokens.length) return {boxes: [], partial: false};
+  const stream = [];
+  fragments.forEach((fragment, fragmentIndex) => {
+    fragment.tokenText.split(" ").filter(Boolean).forEach((token) => {
+      stream.push({token, fragmentIndex});
+    });
+  });
+  const tokenSpan = findBestTokenSpan(stream.map((item) => item.token), quoteTokens);
+  if (!tokenSpan) return {boxes: [], partial: false};
+  const indexes = new Set();
+  for (let i = tokenSpan.start; i <= tokenSpan.end; i += 1) indexes.add(stream[i].fragmentIndex);
+  return {
+    boxes: mergeFragmentBoxes(fragments.filter((_, index) => indexes.has(index)), viewport),
+    partial: tokenSpan.matchLength < quoteTokens.length
+  };
+}
+
+function mergeFragmentBoxes(boxes, viewport) {
   if (!boxes.length) return [];
-  return boxes.map((box) => ({x: Math.max(0, box.x - 2), y: Math.max(0, box.y - 2), w: box.w + 4, h: box.h + 4, approx: false}));
+  const ordered = [...boxes].sort((left, right) => {
+    if (Math.abs(left.y - right.y) > 3) return left.y - right.y;
+    return left.x - right.x;
+  });
+  const merged = [];
+  for (const box of ordered) {
+    const current = {
+      x: clamp(box.x - 2, 0, viewport.width),
+      y: clamp(box.y - 1, 0, viewport.height),
+      w: clamp(box.w + 4, 0, viewport.width),
+      h: clamp(box.h + 2, 0, viewport.height),
+      approx: false
+    };
+    const previous = merged.at(-1);
+    if (!previous) {
+      merged.push(current);
+      continue;
+    }
+    const previousMid = previous.y + previous.h / 2;
+    const currentMid = current.y + current.h / 2;
+    const sameLine = Math.abs(previousMid - currentMid) <= Math.max(previous.h, current.h) * 0.7;
+    const closeEnough = current.x <= previous.x + previous.w + 24;
+    if (sameLine && closeEnough) {
+      const nextX = Math.min(previous.x, current.x);
+      const nextY = Math.min(previous.y, current.y);
+      const nextRight = Math.max(previous.x + previous.w, current.x + current.w);
+      const nextBottom = Math.max(previous.y + previous.h, current.y + current.h);
+      merged[merged.length - 1] = {
+        x: nextX,
+        y: nextY,
+        w: clamp(nextRight - nextX, 0, viewport.width - nextX),
+        h: clamp(nextBottom - nextY, 0, viewport.height - nextY),
+        approx: false
+      };
+      continue;
+    }
+    merged.push(current);
+  }
+  return merged;
 }
 
 function multiply(a, b) {

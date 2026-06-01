@@ -17,6 +17,7 @@ from review_package_common import (  # noqa: E402
     NORMALIZED_PROPOSAL_SCHEMA_VERSION,
     REVIEW_INPUT_SCHEMA_VERSION,
     REVIEW_PACKAGE_SCHEMA_VERSION,
+    authored_evidence_kind,
     evidence_tier,
     infer_source_type,
     is_non_empty,
@@ -54,10 +55,15 @@ def _template_path() -> Path:
     return Path(__file__).resolve().parents[1] / "templates" / "review.html"
 
 
+def _vendored_pdfjs_dir() -> Path:
+    return Path(__file__).resolve().parents[1] / "assets" / "pdfjs"
+
+
 def _copy_pdfjs_assets(run_dir: Path) -> list[str]:
-    """Copy local pdfjs-dist runtime assets when the repo install has them."""
+    """Copy vendored or repo-local pdfjs-dist runtime assets."""
     repo_root = _repo_root()
     candidates = [
+        _vendored_pdfjs_dir(),
         repo_root / "app" / "frontend" / "node_modules" / "pdfjs-dist" / "build",
         repo_root / "app" / "frontend" / "node_modules" / "pdfjs-dist" / "legacy" / "build",
     ]
@@ -290,6 +296,7 @@ def _normalize_evidence(
         )
         text_value = text_evidence_value(item)
         source_type = infer_source_type(item)
+        authored_kind = authored_evidence_kind(item)
         evidence_id = str(item.get("evidence_id") or "").strip() or stable_id(
             "ev",
             proposal_id,
@@ -307,6 +314,7 @@ def _normalize_evidence(
             "pdf_id": pdf_id,
             "source_type": source_type,
             "source_type_inferred": not is_non_empty(item.get("source_type")),
+            "authored_evidence_kind": authored_kind,
             "quote_text": item.get("quote_text") or item.get("table_text") or item.get("evidence_text") or item.get("caption_text"),
             "table_text": item.get("table_text"),
             "evidence_text": item.get("evidence_text"),

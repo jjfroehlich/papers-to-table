@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 from typing import Any
@@ -14,12 +15,16 @@ if str(SCRIPT_DIR) not in sys.path:
 from review_package_common import (  # noqa: E402
     DECISIONS,
     EVIDENCE_STATUSES,
+    MAIN_COMPAT_SOURCE_TYPES,
+    MAIN_EVIDENCE_SCHEMA_VERSION,
     PROPOSAL_STATUSES,
     REVIEW_BUCKETS,
     REVIEW_INPUT_SCHEMA_VERSION,
     evidence_tier,
+    is_finite_number,
     is_non_empty,
     load_review_input,
+    normalized_regions,
     read_json,
     read_jsonl,
     write_json,
@@ -35,6 +40,70 @@ def _report(mode: str, errors: list[str], warnings: list[str], counts: dict[str,
         "warnings": warnings,
         "counts": counts,
     }
+
+
+def _page_number(value: Any) -> int | None:
+    if isinstance(value, int) and value > 0:
+        return value
+    if isinstance(value, str) and value.strip().isdigit():
+        parsed = int(value.strip())
+        return parsed if parsed > 0 else None
+    return None
+
+
+def _validate_regions(
+    raw_value: Any,
+    *,
+    context: str,
+    label: str,
+    default_page: Any,
+    errors: list[str],
+    warnings: list[str],
+) -> None:
+    if raw_value is None:
+        return
+    regions = normalized_regions(raw_value, default_page=_page_number(default_page))
+    if not regions:
+        errors.append(f"{context}.{label} must be a region object/list or a [x0, y0, x1, y1] bbox.")
+        return
+
+    conventions: set[str] = set()
+    for index, region in enumerate(regions):
+        prefix = f"{context}.{label}[{index}]"
+        coords: dict[str, float] = {}
+        for key in ("x0", "y0", "x1", "y1"):
+            value = region.get(key)
+            if not is_finite_number(value):
+                errors.append(f"{prefix}.{key} must be a finite number.")
+                continue
+            coords[key] = float(value)
+
+        page = _page_number(region.get("page"))
+        if page is None:
+            errors.append(f"{prefix}.page must be present and a positive integer.")
+
+        if len(coords) != 4:
+            continue
+        if math.isclose(coords["x0"], coords["x1"]) or math.isclose(coords["y0"], coords["y1"]):
+            errors.append(f"{prefix} must have nonzero area.")
+            continue
+
+        max_abs = max(abs(value) for value in coords.values())
+        min_value = min(coords.values())
+        max_value = max(coords.values())
+        if max_abs <= 1.05:
+            conventions.add("normalized")
+            if min_value < 0 or max_value > 1:
+                errors.append(f"{prefix} looks normalized but coordinates must stay within [0, 1].")
+        else:
+            conventions.add("absolute")
+            if max_abs <= 100:
+                warnings.append(
+                    f"{prefix} uses small absolute coordinates; verify they are page-space units rather than percentages."
+                )
+
+    if len(conventions) > 1:
+        warnings.append(f"{context}.{label} mixes normalized and absolute coordinate conventions.")
 
 
 def validate_authoring(run_dir: Path) -> dict[str, Any]:
@@ -155,6 +224,23 @@ def validate_authoring(run_dir: Path) -> dict[str, Any]:
             evidence_pdf_id = str(evidence.get("pdf_id") or proposal_pdf_id or "").strip()
             if evidence_pdf_id and evidence_pdf_id not in pdf_ids:
                 errors.append(f"proposals[{proposal_index}].evidence[{evidence_index}] references unknown pdf_id: {evidence_pdf_id}")
+            context = f"proposals[{proposal_index}].evidence[{evidence_index}]"
+            _validate_regions(
+                evidence.get("exact_highlight_regions"),
+                context=context,
+                label="exact_highlight_regions",
+                default_page=evidence.get("page_number"),
+                errors=errors,
+                warnings=warnings,
+            )
+            _validate_regions(
+                evidence.get("approximate_highlight_regions") or evidence.get("bbox"),
+                context=context,
+                label="approximate_highlight_regions" if evidence.get("approximate_highlight_regions") else "bbox",
+                default_page=evidence.get("page_number"),
+                errors=errors,
+                warnings=warnings,
+            )
             tier = evidence_tier(evidence, inherited_pdf_id=proposal_pdf_id)
             if tier["tier"] != "D":
                 valid_evidence_count += 1
@@ -219,12 +305,33 @@ def validate_generated(run_dir: Path) -> dict[str, Any]:
         for field in ["evidence_id", "proposal_id", "run_id", "pdf_id", "source_type", "is_primary", "evidence_status", "review_bucket"]:
             if field not in item:
                 errors.append(f"evidence #{index + 1} is missing {field}.")
+        if item.get("evidence_schema_version") != MAIN_EVIDENCE_SCHEMA_VERSION:
+            errors.append(f"evidence {item.get('evidence_id')} has invalid evidence_schema_version.")
         if item.get("proposal_id") not in proposal_ids:
             errors.append(f"evidence {item.get('evidence_id')} references missing proposal_id {item.get('proposal_id')}.")
+        if item.get("source_type") not in MAIN_COMPAT_SOURCE_TYPES:
+            errors.append(f"evidence {item.get('evidence_id')} has invalid main-compatible source_type {item.get('source_type')!r}.")
         if item.get("evidence_status") not in EVIDENCE_STATUSES:
             errors.append(f"evidence {item.get('evidence_id')} has invalid evidence_status.")
         if item.get("review_bucket") not in REVIEW_BUCKETS:
             errors.append(f"evidence {item.get('evidence_id')} has invalid review_bucket.")
+        context = f"normalized/evidence.jsonl[{index}]"
+        _validate_regions(
+            item.get("exact_highlight_regions"),
+            context=context,
+            label="exact_highlight_regions",
+            default_page=item.get("page_number"),
+            errors=errors,
+            warnings=warnings,
+        )
+        _validate_regions(
+            item.get("approximate_highlight_regions"),
+            context=context,
+            label="approximate_highlight_regions",
+            default_page=item.get("page_number"),
+            errors=errors,
+            warnings=warnings,
+        )
 
     pdfs = package.get("pdfs") if isinstance(package, dict) else []
     if isinstance(pdfs, list):
