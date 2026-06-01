@@ -30,6 +30,8 @@ Common optional arguments:
 
 Low-level `paper_eval evaluate` also supports `--enable-text-exact-match-fast-path` for calibration runs that intentionally want normalized exact-match text cells to bypass judge scoring. This is disabled by default.
 
+Low-level `paper_eval calibrate-structured` reads existing `scored_cells.jsonl` artifacts and writes a deterministic structured-failure calibration report. It does not call judges and does not change existing scores.
+
 Real benchmark studies should use two judges. Current defaults are:
 
 - `judge_a=google/gemma-4-26b-a4b`
@@ -48,6 +50,7 @@ Eval tool will:
 - compare the values with the correct values, and use LLMs as judges to determine if the proposed values are correct. 
 - evaluate per-cell correctness and evidence quality
 - quantify judge disagreement and degraded behavior
+- audit deterministic structured false-negative risk before deciding whether any future structured judge adjudication is needed
 
 ## Install
 The main installation command will have this installed already. 
@@ -91,6 +94,15 @@ python -m paper_eval evaluate \
   --out /abs/eval_out
 ```
 
+Structured failure calibration:
+
+```bash
+cd tools/eval
+python -m paper_eval calibrate-structured \
+  --input /abs/eval_out \
+  --out /abs/structured_calibration
+```
+
 ## Test command
 ```bash
 bash scripts/test-eval-tool.sh
@@ -105,7 +117,9 @@ You need:
 - gold table (csv/xlsx)
 - optional eval schema JSON for field typing, aliases, tolerances, and text-scoring overrides
 
-When no eval schema JSON declares a column `field_type`, eval resolves the scoring type per cell from the proposal metadata first, then schema metadata, then inference from the gold/proposed values: boolean-looking pairs become `boolean`, numeric-looking pairs become `numeric`, columns with allowed values become `categorical`, and everything else becomes `text`. Non-text fields use deterministic scoring by default; text fields use LLM judges by default, including normalized exact matches unless `--enable-text-exact-match-fast-path` is explicitly enabled.
+Eval accepts canonical field types `boolean`, `categorical`, `numeric`, and `text`. It also accepts aliases: `bool` for `boolean`; `category` and `enum` for `categorical`; `number`, `int`, `integer`, and `float` for `numeric`; and `string`, `free_text`, and `free-text` for `text`. Unknown field types in schema or proposal metadata fail early with an explicit contract error.
+
+When no eval schema JSON declares a column `field_type`, eval resolves the scoring type per cell from proposal metadata first, then schema metadata, then inference from the values. Columns with allowed values infer `categorical`; pairs where both values parse as numbers infer `numeric`, so bare `0`/`1` count-like fields do not become boolean; clear boolean vocabulary such as `yes/no`, `present/absent`, and `true/false` infers `boolean`; everything else becomes `text`. Non-text fields use deterministic scoring by default; text fields use LLM judges by default, including normalized exact matches unless `--enable-text-exact-match-fast-path` is explicitly enabled.
 
 Required run-bundle artifacts:
 
@@ -160,8 +174,11 @@ Metrics are calculated from these joined cells:
 - judge disagreement: the rate at which judge A and judge B differ on text-cell correctness.
 - missing proposals: target cells present in gold data but missing from the run proposals.
 - join failures: run or gold records that could not be aligned to the expected row/column contract.
+- structured deterministic failures: `structured_deterministic_failure_count` counts incorrect deterministic structured cells; `structured_adjudication_eligible_count` and `structured_adjudication_eligible_rate` show how many failures look like soft mismatches that might be worth future adjudication.
 
 The evaluator writes per-cell records first, then aggregates those records into `run_summary.json`, `run_summary.csv`, and the cross-run comparison files.
+
+Structured per-cell records include `deterministic_failure_kind` and `adjudication_eligible`. These are diagnostics only in the current evaluator: headline correctness metrics remain deterministic for structured fields, and there is no structured LLM adjudication path yet.
 
 ## Warnings
 
@@ -178,3 +195,21 @@ Can be used to re-generate cross-run comparison files for an existing batch of r
 cd tools/eval
 paper-eval compare --summaries /absolute/path/to/per-run --out /absolute/path/to/compare_out
 ```
+
+## Calibrating Structured Scoring
+
+Use `calibrate-structured` after one or more eval runs when you need to inspect whether deterministic structured scoring is producing likely false negatives.
+
+```bash
+cd tools/eval
+paper-eval calibrate-structured --input /absolute/path/to/eval_out --out /absolute/path/to/calibration_out
+```
+
+The input can be a `scored_cells.jsonl` file or an eval output directory. The command recursively discovers `scored_cells.jsonl` files and writes:
+
+- `structured_calibration_summary.json`
+- `structured_calibration_by_column.csv`
+- `structured_calibration_by_kind.csv`
+- `structured_calibration_examples.csv`
+
+The report groups structured deterministic failures by field type, failure kind, and column, and includes example gold/proposed pairs. It is the evidence gate before adding any future opt-in structured judge adjudication.

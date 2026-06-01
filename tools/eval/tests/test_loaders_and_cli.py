@@ -429,6 +429,48 @@ class LoaderAndCliTests(unittest.TestCase):
             with self.assertRaisesRegex(ContractError, "Schema 'columns' must be either"):
                 load_schema(schema_path)
 
+    def test_schema_loader_canonicalizes_field_type_aliases(self) -> None:
+        temp_root = Path.cwd() / ".tmp_schema_loader_aliases"
+        shutil.rmtree(temp_root, ignore_errors=True)
+        try:
+            temp_root.mkdir(parents=True)
+            schema_path = temp_root / "schema.json"
+            schema_path.write_text(
+                json.dumps(
+                    {
+                        "columns": {
+                            "count": {"field_type": "number"},
+                            "status": {"field_type": "bool"},
+                            "label": {"field_type": "enum"},
+                            "notes": {"field_type": "free-text"},
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            schema = load_schema(schema_path)
+
+            self.assertEqual(schema.column("count").field_type, "numeric")
+            self.assertEqual(schema.column("status").field_type, "boolean")
+            self.assertEqual(schema.column("label").field_type, "categorical")
+            self.assertEqual(schema.column("notes").field_type, "text")
+        finally:
+            shutil.rmtree(temp_root, ignore_errors=True)
+
+    def test_schema_loader_rejects_unknown_field_type(self) -> None:
+        temp_root = Path.cwd() / ".tmp_schema_loader_unknown_type"
+        shutil.rmtree(temp_root, ignore_errors=True)
+        try:
+            temp_root.mkdir(parents=True)
+            schema_path = temp_root / "schema.json"
+            schema_path.write_text(json.dumps({"columns": {"value": {"field_type": "mystery"}}}), encoding="utf-8")
+
+            with self.assertRaisesRegex(ContractError, "Unsupported field_type 'mystery'"):
+                load_schema(schema_path)
+        finally:
+            shutil.rmtree(temp_root, ignore_errors=True)
+
     def test_schema_loader_excludes_metadata_columns_from_scoring_by_default(self) -> None:
         schema = load_schema(None)
 
@@ -589,6 +631,8 @@ class LoaderAndCliTests(unittest.TestCase):
             self.assertEqual(summary["metrics"]["judge_text_scored_cell_count"], 1)
             self.assertAlmostEqual(summary["metrics"]["text_accuracy"], 1.0)
             self.assertAlmostEqual(summary["metrics"]["structured_accuracy"], 1.0)
+            self.assertEqual(summary["metrics"]["structured_deterministic_failure_count"], 0)
+            self.assertEqual(summary["metrics"]["structured_adjudication_eligible_count"], 0)
 
             rows = self._read_csv(run_output / "scored_cells.csv")
             row_1_score = self._find_row(rows, row_id="row-1", column_name="score")
@@ -598,6 +642,8 @@ class LoaderAndCliTests(unittest.TestCase):
 
             self.assertEqual(row_1_score["was_scored"], "True")
             self.assertEqual(row_1_score["is_correct"], "True")
+            self.assertEqual(row_1_score["deterministic_failure_kind"], "")
+            self.assertEqual(row_1_score["adjudication_eligible"], "False")
             self.assertIn('"allowed_error": 0.5', row_1_score["diagnostics"])
             self.assertEqual(row_2_status["join_status"], "gold_empty_diagnostic")
             self.assertIn("filled_on_gold_empty", row_2_status["diagnostic_flags"])

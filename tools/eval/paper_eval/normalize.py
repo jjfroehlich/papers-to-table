@@ -8,6 +8,8 @@ from paper_eval.contracts import NormalizedNumber
 
 _BOOLEAN_TRUE = {"true", "yes", "present", "positive", "1"}
 _BOOLEAN_FALSE = {"false", "no", "absent", "negative", "0"}
+_CLEAR_BOOLEAN_TRUE = {"true", "yes", "present", "positive"}
+_CLEAR_BOOLEAN_FALSE = {"false", "no", "absent", "negative"}
 _MULTISPACE_RE = re.compile(r"\s+")
 _PUNCT_RE = re.compile(r"[^0-9a-z]+")
 _APPROX_PREFIX_RE = re.compile(r"^(~|≈|about\b|approx(?:\.|imately)?\b)")
@@ -16,6 +18,16 @@ _RANGE_RE = re.compile(
     rf"^\s*(?P<left>{_NUMBER_RE})\s*(?:to|-|–|—)\s*(?P<right>{_NUMBER_RE})\s*$"
 )
 _NUMERIC_RE = re.compile(rf"^\s*(?P<value>{_NUMBER_RE})\s*$")
+_NUMERIC_TOKEN_RE = re.compile(_NUMBER_RE)
+_INEQUALITY_RE = re.compile(r"(<=|>=|<|>|≤|≥)")
+_PLUS_MINUS_RE = re.compile(r"(±|\+/-)")
+_RANGE_LIKE_RE = re.compile(rf"{_NUMBER_RE}\s*(?:to|-|–|—)\s*{_NUMBER_RE}")
+_BOOLEAN_CUE_RE = re.compile(
+    r"(^\s*[+-]\s*$|\+/-|"
+    r"\b(?:y|n|yes|no|true|false|present|absent|positive|negative|"
+    r"detected|undetected|reported|unreported|available|unavailable)\b)",
+    re.IGNORECASE,
+)
 
 
 def normalize_whitespace(value: str) -> str:
@@ -49,6 +61,34 @@ def normalize_boolean(value: Any) -> bool | None:
     return None
 
 
+def is_clear_boolean_value(value: Any) -> bool:
+    if isinstance(value, bool):
+        return True
+    if value is None or isinstance(value, (int, float)):
+        return False
+    text = normalize_whitespace(str(value)).casefold()
+    return text in _CLEAR_BOOLEAN_TRUE or text in _CLEAR_BOOLEAN_FALSE
+
+
+def boolean_format_diagnostics(value: Any) -> dict[str, Any]:
+    text = "" if value is None else normalize_whitespace(str(value))
+    normalized = normalize_boolean(value)
+    return {
+        "parse_success": normalized is not None,
+        "normalized_value": normalized,
+        "clear_boolean_vocabulary": is_clear_boolean_value(value),
+        "boolean_like_cue": bool(text and _BOOLEAN_CUE_RE.search(text)),
+    }
+
+
+def canonicalize_category_text(value: Any) -> str | None:
+    if is_empty_value(value):
+        return None
+    text = normalize_whitespace(str(value)).casefold()
+    text = _PUNCT_RE.sub(" ", text)
+    return normalize_whitespace(text)
+
+
 def normalize_categorical(
     value: Any,
     *,
@@ -59,9 +99,7 @@ def normalize_categorical(
         return None
 
     def canonicalize(text: str) -> str:
-        text = normalize_whitespace(text).casefold()
-        text = _PUNCT_RE.sub(" ", text)
-        return normalize_whitespace(text)
+        return canonicalize_category_text(text) or ""
 
     normalized = canonicalize(str(value))
     alias_map = {canonicalize(key): canonicalize(mapped) for key, mapped in (aliases or {}).items()}
@@ -72,6 +110,32 @@ def normalize_categorical(
         normalized = allowed_map.get(normalized, normalized)
 
     return normalized
+
+
+def categorical_format_diagnostics(
+    value: Any,
+    *,
+    aliases: dict[str, str] | None = None,
+    allowed_values: list[str] | None = None,
+) -> dict[str, Any]:
+    raw_canonical = canonicalize_category_text(value)
+    alias_map = {
+        (canonicalize_category_text(key) or ""): (canonicalize_category_text(mapped) or "")
+        for key, mapped in (aliases or {}).items()
+    }
+    alias_target = alias_map.get(raw_canonical or "")
+    normalized = normalize_categorical(value, aliases=aliases, allowed_values=allowed_values)
+    allowed_canonical = {canonicalize_category_text(item) for item in (allowed_values or [])}
+    text = "" if value is None else normalize_whitespace(str(value))
+    token_count = len((raw_canonical or "").split())
+    return {
+        "raw_canonical": raw_canonical,
+        "normalized_value": normalized,
+        "alias_hit": alias_target is not None,
+        "alias_target": alias_target,
+        "allowed_value_match": normalized in allowed_canonical if allowed_values else None,
+        "list_like": bool(re.search(r"[,;/|]|\band\b", text, re.IGNORECASE)) and token_count > 1,
+    }
 
 
 def normalize_text_for_match(value: Any) -> str | None:
@@ -102,6 +166,25 @@ def text_overlap_diagnostics(gold_value: Any, proposed_value: Any) -> dict[str, 
 
 def _parse_float(text: str) -> float:
     return float(text.replace(",", ""))
+
+
+def numeric_format_diagnostics(value: Any) -> dict[str, Any]:
+    text = "" if value is None else normalize_whitespace(str(value))
+    normalized = normalize_numeric(value)
+    numeric_tokens = _NUMERIC_TOKEN_RE.findall(text)
+    has_alpha_unit = bool(re.search(rf"{_NUMBER_RE}\s*[A-Za-zµμ]+", text))
+    return {
+        "parse_success": normalized is not None,
+        "normalized_value": normalized.to_dict() if normalized else None,
+        "numeric_token_count": len(numeric_tokens),
+        "has_numeric_token": bool(numeric_tokens),
+        "has_percent": "%" in text,
+        "has_unit": has_alpha_unit,
+        "has_inequality": bool(_INEQUALITY_RE.search(text)),
+        "has_plus_minus": bool(_PLUS_MINUS_RE.search(text)),
+        "range_like": bool(_RANGE_LIKE_RE.search(text)),
+        "list_like": len(numeric_tokens) > 1 and bool(re.search(r"[,;]", text)) and not _RANGE_LIKE_RE.search(text),
+    }
 
 
 def normalize_numeric(value: Any) -> NormalizedNumber | None:

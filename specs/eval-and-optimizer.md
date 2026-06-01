@@ -19,6 +19,7 @@ Eval must:
 - read run bundles from files alone
 - keep correctness metrics separate from evidence metrics
 - keep deterministic structured scoring separate from judge-backed text scoring
+- expose deterministic structured failure diagnostics before adding any structured judge adjudication
 - preserve join failures and missing proposals explicitly
 - write filesystem artifacts as the canonical output surface
 
@@ -46,21 +47,34 @@ out/
     runs_comparison.csv
     runs_comparison.xlsx
     runs_comparison.parquet
+  structured-calibration/
+    structured_calibration_summary.json
+    structured_calibration_by_column.csv
+    structured_calibration_by_kind.csv
+    structured_calibration_examples.csv
 ```
 
 Comparison artifacts may be rebuilt from existing summaries.
+
+Structured calibration artifacts are written only when the operator runs the calibration command against existing `scored_cells.jsonl` files. Calibration does not call an LLM and does not alter scored outputs.
 
 ## Eval Execution Phases
 
 1. Load and validate the run bundle, proposals, gold table, optional eval schema, and run metadata.
 2. Join proposals to gold cells by stable row and column identity.
-3. Score deterministic fields first: numeric, boolean, categorical, date-like, and text fields with explicit deterministic policy.
-4. Collect judge-backed text cells into a pending queue, including normalized exact text matches by default.
-5. Run judge-major batches grouped by judge label, provider, model, and settings.
-6. Merge per-judge verdicts, disagreement state, evidence checks, and deterministic scores into scored cells.
-7. Aggregate per-run summaries and comparison files.
+3. Resolve field types from proposal metadata, eval schema, or inference. Accepted canonical field types are `boolean`, `categorical`, `numeric`, and `text`; aliases such as `number`, `bool`, `enum`, and `free_text` canonicalize to those values. Unknown non-empty field types fail with a contract error.
+4. Score deterministic fields first: numeric, boolean, categorical, date-like, and text fields with explicit deterministic policy.
+5. For deterministic structured failures, preserve `deterministic_failure_kind` and `adjudication_eligible` diagnostics without changing the deterministic score.
+6. Collect judge-backed text cells into a pending queue, including normalized exact text matches by default.
+7. Run judge-major batches grouped by judge label, provider, model, and settings.
+8. Merge per-judge verdicts, disagreement state, evidence checks, and deterministic scores into scored cells.
+9. Aggregate per-run summaries and comparison files.
 
 Low-level eval may opt into the deterministic text exact-match fast path with `--enable-text-exact-match-fast-path`; default real benchmark scoring judges text cells, including normalized exact matches.
+
+Field-type inference must not treat bare `0`/`1` numeric pairs as boolean. Allowed values infer `categorical`; pairs where both values parse numerically infer `numeric`; boolean is inferred only for clear boolean vocabulary such as `yes/no`, `present/absent`, or `true/false`; otherwise the field is treated as `text`.
+
+Structured fields remain deterministic-only in the current implementation. Numeric, categorical, and boolean comparisons emit parse and mismatch diagnostics so completed runs can be calibrated for likely deterministic false negatives. The summary includes `structured_deterministic_failure_count`, `structured_adjudication_eligible_count`, and `structured_adjudication_eligible_rate`; these are diagnostic counts and do not change headline correctness.
 
 ## Judge Policy
 
@@ -72,6 +86,8 @@ LM Studio is the default local-first judge path. Real benchmark evaluation shoul
 Dual-judge scoring must preserve per-judge records and expose disagreement metrics. Judge failures on one cell must not abort an otherwise valid evaluation run; they become explicit unscored or failure diagnostics.
 
 Eval judge execution is judge-major: prepare all eligible text-cell requests, execute all `judge_a` work, execute all `judge_b` work, group batches by effective provider/model/settings, then merge results back into deterministic scored-cell order.
+
+Structured judge adjudication is intentionally deferred. It must not be added as a default path without first using structured calibration artifacts to show that deterministic structured false negatives are common enough to affect benchmark or optimizer ranking quality.
 
 ## Benchmark Dataset Policy
 

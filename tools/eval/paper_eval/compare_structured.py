@@ -3,7 +3,14 @@ from __future__ import annotations
 from typing import Any
 
 from paper_eval.contracts import ComparisonResult, NumericTolerance
-from paper_eval.normalize import normalize_boolean, normalize_categorical, normalize_numeric
+from paper_eval.normalize import (
+    boolean_format_diagnostics,
+    categorical_format_diagnostics,
+    normalize_boolean,
+    normalize_categorical,
+    normalize_numeric,
+    numeric_format_diagnostics,
+)
 
 
 def compare_boolean(gold_value: Any, proposed_value: Any) -> ComparisonResult:
@@ -13,7 +20,16 @@ def compare_boolean(gold_value: Any, proposed_value: Any) -> ComparisonResult:
         is_correct=normalized_gold is not None and normalized_gold == normalized_proposed,
         normalized_gold=normalized_gold,
         normalized_proposed=normalized_proposed,
-        diagnostics={},
+        diagnostics={
+            "gold_boolean": boolean_format_diagnostics(gold_value),
+            "proposed_boolean": boolean_format_diagnostics(proposed_value),
+            "boolean_parse_success": normalized_gold is not None and normalized_proposed is not None,
+            "boolean_contradiction": (
+                normalized_gold is not None
+                and normalized_proposed is not None
+                and normalized_gold != normalized_proposed
+            ),
+        },
     )
 
 
@@ -34,11 +50,26 @@ def compare_categorical(
         aliases=aliases,
         allowed_values=allowed_values,
     )
+    gold_diagnostics = categorical_format_diagnostics(
+        gold_value,
+        aliases=aliases,
+        allowed_values=allowed_values,
+    )
+    proposed_diagnostics = categorical_format_diagnostics(
+        proposed_value,
+        aliases=aliases,
+        allowed_values=allowed_values,
+    )
     return ComparisonResult(
         is_correct=normalized_gold is not None and normalized_gold == normalized_proposed,
         normalized_gold=normalized_gold,
         normalized_proposed=normalized_proposed,
-        diagnostics={"allowed_values": list(allowed_values or [])},
+        diagnostics={
+            "allowed_values": list(allowed_values or []),
+            "gold_categorical": gold_diagnostics,
+            "proposed_categorical": proposed_diagnostics,
+            "categorical_list_like": bool(gold_diagnostics["list_like"] or proposed_diagnostics["list_like"]),
+        },
     )
 
 
@@ -54,7 +85,12 @@ def compare_numeric(
 ) -> ComparisonResult:
     normalized_gold = normalize_numeric(gold_value)
     normalized_proposed = normalize_numeric(proposed_value)
-    diagnostics: dict[str, Any] = {"tolerance": tolerance.to_dict()}
+    diagnostics: dict[str, Any] = {
+        "tolerance": tolerance.to_dict(),
+        "gold_numeric_format": numeric_format_diagnostics(gold_value),
+        "proposed_numeric_format": numeric_format_diagnostics(proposed_value),
+    }
+    diagnostics["numeric_parse_success"] = normalized_gold is not None and normalized_proposed is not None
 
     if normalized_gold is None or normalized_proposed is None:
         return ComparisonResult(

@@ -5,7 +5,13 @@ from json import JSONDecodeError
 from pathlib import Path
 from typing import Any
 
-from paper_eval.contracts import ColumnSchema, EvaluatorSchema, NumericTolerance
+from paper_eval.contracts import (
+    ColumnSchema,
+    EvaluatorSchema,
+    NumericTolerance,
+    canonicalize_field_type,
+    supported_field_type_message,
+)
 from paper_eval.errors import ContractError
 
 
@@ -33,6 +39,15 @@ def _parse_numeric_tolerance(payload: dict[str, Any] | None) -> NumericTolerance
         abs_tol=float(payload.get("abs_tol", payload.get("abs", 0.0))),
         rel_tol=float(payload.get("rel_tol", payload.get("rel", 0.0))),
     )
+
+
+def _parse_field_type(value: Any, *, column_name: str) -> str | None:
+    canonical = canonicalize_field_type(value)
+    if value is not None and str(value).strip() and canonical is None:
+        raise ContractError(
+            f"Unsupported field_type '{value}' for schema column '{column_name}' ({supported_field_type_message()})."
+        )
+    return canonical
 
 
 def load_schema(path: Path | None) -> EvaluatorSchema:
@@ -70,7 +85,7 @@ def load_schema(path: Path | None) -> EvaluatorSchema:
             raise ContractError(f"Schema column '{column_name}' must be an object.")
         columns[column_name] = ColumnSchema(
             name=column_name,
-            field_type=item.get("field_type"),
+            field_type=_parse_field_type(item.get("field_type"), column_name=str(column_name)),
             description=item.get("description"),
             allowed_values=_normalize_optional_list(item.get("allowed_values")),
             aliases=_normalize_optional_dict(item.get("aliases")),

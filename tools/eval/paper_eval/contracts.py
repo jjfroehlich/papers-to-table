@@ -6,9 +6,39 @@ from typing import Any
 
 
 STRUCTURED_FIELD_TYPES = {"boolean", "categorical", "numeric"}
+FIELD_TYPES = {*STRUCTURED_FIELD_TYPES, "text"}
+FIELD_TYPE_ALIASES = {
+    "bool": "boolean",
+    "category": "categorical",
+    "enum": "categorical",
+    "float": "numeric",
+    "free_text": "text",
+    "int": "numeric",
+    "integer": "numeric",
+    "number": "numeric",
+    "string": "text",
+}
 DEFAULT_JUDGE_PROVIDER = "lm_studio"
 DEFAULT_JUDGE_MODEL_ID = "google/gemma-4-26b-a4b"
 DEFAULT_LM_STUDIO_API_BASE = "http://127.0.0.1:1234/v1"
+
+
+def canonicalize_field_type(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    key = text.casefold().replace("-", "_").replace(" ", "_")
+    canonical = FIELD_TYPE_ALIASES.get(key, key)
+    if canonical in FIELD_TYPES:
+        return canonical
+    return None
+
+
+def supported_field_type_message() -> str:
+    aliases = ", ".join(f"{alias}->{target}" for alias, target in sorted(FIELD_TYPE_ALIASES.items()))
+    return f"supported field types: {', '.join(sorted(FIELD_TYPES))}; aliases: {aliases}"
 
 
 @dataclass(frozen=True)
@@ -301,6 +331,8 @@ class ScoredCell:
     selected_proposal_status: str | None = None
     extraction_lane: str | None = None
     failure_attribution: str | None = None
+    deterministic_failure_kind: str | None = None
+    adjudication_eligible: bool = False
 
 
 @dataclass

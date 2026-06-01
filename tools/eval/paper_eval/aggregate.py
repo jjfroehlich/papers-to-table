@@ -37,6 +37,10 @@ def build_run_summary(
     boolean_records = [cell for cell in structured_records if cell.field_type == "boolean"]
     categorical_records = [cell for cell in structured_records if cell.field_type == "categorical"]
     numeric_records = [cell for cell in structured_records if cell.field_type == "numeric"]
+    structured_failure_records = [cell for cell in structured_records if cell.is_correct is False]
+    structured_adjudication_eligible_records = [
+        cell for cell in structured_failure_records if cell.adjudication_eligible
+    ]
     text_records = [cell for cell in scored_records if cell.field_type == "text"]
     judge_text_records = [cell for cell in text_records if cell.scoring_policy == "judge"]
     deterministic_text_records = [cell for cell in text_records if cell.scoring_policy == "deterministic"]
@@ -175,6 +179,12 @@ def build_run_summary(
         "categorical_accuracy": _accuracy(categorical_records),
         "numeric_accuracy": _accuracy(numeric_records),
         "text_accuracy": _accuracy(text_records),
+        "structured_deterministic_failure_count": len(structured_failure_records),
+        "structured_adjudication_eligible_count": len(structured_adjudication_eligible_records),
+        "structured_adjudication_eligible_rate": _ratio(
+            len(structured_adjudication_eligible_records),
+            len(structured_failure_records),
+        ),
         "proposal_coverage_on_content_gold_present": content_proposal_coverage_on_gold_present,
         "proposal_coverage_on_all_gold_present": overall_proposal_coverage_on_gold_present,
         "proposal_coverage_on_gold_present": content_proposal_coverage_on_gold_present,

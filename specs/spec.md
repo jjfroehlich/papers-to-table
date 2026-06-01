@@ -243,13 +243,17 @@ Eval phases:
 
 1. load and validate run bundle or external table plus gold data
 2. join proposals to gold cells by stable row and column identity
-3. score structured fields and explicit deterministic text overrides
-4. collect judge-backed text cells, including normalized exact matches by default
-5. execute judging in judge-major batches grouped by judge label, provider, model, and settings
-6. merge per-judge verdicts back into scored cells
-7. aggregate metrics, evidence audits, comparison rows, and output artifacts
+3. resolve canonical field types from proposal metadata, eval schema, or inference
+4. score structured fields and explicit deterministic text overrides
+5. record structured deterministic failure diagnostics without changing structured correctness
+6. collect judge-backed text cells, including normalized exact matches by default
+7. execute judging in judge-major batches grouped by judge label, provider, model, and settings
+8. merge per-judge verdicts back into scored cells
+9. aggregate metrics, evidence audits, comparison rows, and output artifacts
 
 Dual-judge runs must preserve per-judge verdicts and disagreement metrics instead of collapsing uncertainty away.
+
+Eval accepts canonical field types `boolean`, `categorical`, `numeric`, and `text`, with aliases such as `bool`, `enum`, `number`, and `free_text`. Unknown field types fail early. Inference prioritizes allowed values, then numeric parsing, then clear boolean vocabulary; bare `0`/`1` numeric pairs must not infer boolean. Structured fields remain deterministic-only, but scored structured cells preserve `deterministic_failure_kind` and `adjudication_eligible` diagnostics plus aggregate structured-failure counts. Structured LLM adjudication is deferred until calibration over existing scored-cell artifacts shows that likely deterministic false negatives materially affect benchmark interpretation.
 
 ## 13. Optimizer Companion
 

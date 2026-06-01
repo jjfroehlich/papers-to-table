@@ -17,11 +17,21 @@ from paper_eval.contracts import (
     ScoreRunResult,
     STRUCTURED_FIELD_TYPES,
     EvaluatorSchema,
+    canonicalize_field_type,
+    supported_field_type_message,
 )
 from paper_eval.evidence import validate_evidence_anchors
 from paper_eval.errors import ContractError, EvaluationError
 from paper_eval.judge import TextJudge, build_judge_request, judge_record_from_result
-from paper_eval.normalize import normalize_boolean, normalize_numeric, normalize_text_for_match, text_overlap_diagnostics
+from paper_eval.normalize import (
+    boolean_format_diagnostics,
+    is_clear_boolean_value,
+    normalize_boolean,
+    normalize_numeric,
+    normalize_text_for_match,
+    numeric_format_diagnostics,
+    text_overlap_diagnostics,
+)
 from paper_eval.structured_support import evaluate_structured_support_proxy
 
 
@@ -58,6 +68,11 @@ def score_run(
     )
     proposals_by_key: dict[tuple[str, str], list[Any]] = defaultdict(list)
     for proposal in loaded_run.proposals:
+        _canonical_field_type_for_record(
+            proposal.field_type,
+            column_name=proposal.column_name,
+            source="proposal",
+        )
         proposals_by_key[proposal.join_key].append(proposal)
 
     gold_keys = {cell.join_key for cell in gold_dataset.cells}
@@ -80,7 +95,15 @@ def score_run(
                     cell_id=gold_cell.cell_id,
                     gold_value=gold_cell.raw_value,
                     proposed_value=proposals[0].proposed_value if proposal_count == 1 else None,
-                    field_type=proposals[0].field_type if proposal_count == 1 else None,
+                    field_type=(
+                        _canonical_field_type_for_record(
+                            proposals[0].field_type,
+                            column_name=proposals[0].column_name,
+                            source="proposal",
+                        )
+                        if proposal_count == 1
+                        else None
+                    ),
                     scoring_policy=proposals[0].scoring_policy if proposal_count == 1 else None,
                     is_gold_present=False,
                     is_gold_empty=True,
@@ -189,7 +212,11 @@ def score_run(
                     cell_id=gold_cell.cell_id,
                     gold_value=gold_cell.raw_value,
                     proposed_value=proposal.proposed_value,
-                    field_type=proposal.field_type,
+                    field_type=_canonical_field_type_for_record(
+                        proposal.field_type,
+                        column_name=proposal.column_name,
+                        source="proposal",
+                    ),
                     scoring_policy=proposal.scoring_policy,
                     is_gold_present=True,
                     is_gold_empty=False,
@@ -253,6 +280,14 @@ def score_run(
             allowed_values=field_config.allowed_values,
             numeric_tolerance=field_config.numeric_tolerance,
         )
+        failure_kind, adjudication_eligible = _classify_structured_failure(
+            field_type=field_config.field_type,
+            comparison=comparison,
+            gold_value=gold_cell.raw_value,
+            proposed_value=proposal.proposed_value,
+            allowed_values=field_config.allowed_values,
+            numeric_tolerance=field_config.numeric_tolerance,
+        )
         support_proxy = evaluate_structured_support_proxy(
             field_type=field_config.field_type,
             proposed_value=proposal.proposed_value,
@@ -294,11 +329,13 @@ def score_run(
                 judge_prompt_hash=None,
                 judge_temperature=None,
                 judge_input_hash=None,
-                    diagnostics={
-                        **comparison.diagnostics,
-                        "metadata_diagnostics": proposal.metadata_diagnostics,
-                        "evidence": evidence_result.diagnostics,
-                        "structured_support_proxy": {
+                diagnostics={
+                    **comparison.diagnostics,
+                    "deterministic_failure_kind": failure_kind,
+                    "adjudication_eligible": adjudication_eligible,
+                    "metadata_diagnostics": proposal.metadata_diagnostics,
+                    "evidence": evidence_result.diagnostics,
+                    "structured_support_proxy": {
                         "status": support_proxy.status,
                         "matched_evidence_ids": support_proxy.matched_evidence_ids,
                         **support_proxy.diagnostics,
@@ -307,6 +344,8 @@ def score_run(
                 selected_proposal_status=proposal.proposal_status,
                 extraction_lane=proposal.extraction_lane,
                 failure_attribution=proposal.failure_attribution,
+                deterministic_failure_kind=failure_kind,
+                adjudication_eligible=adjudication_eligible,
             )
         )
 
@@ -325,7 +364,11 @@ def score_run(
                     cell_id=proposal.cell_id,
                     gold_value=None,
                     proposed_value=proposal.proposed_value,
-                    field_type=proposal.field_type,
+                    field_type=_canonical_field_type_for_record(
+                        proposal.field_type,
+                        column_name=proposal.column_name,
+                        source="proposal",
+                    ),
                     scoring_policy=proposal.scoring_policy,
                     is_gold_present=False,
                     is_gold_empty=False,
@@ -375,10 +418,14 @@ def resolve_field_config(
     schema: EvaluatorSchema,
 ) -> ResolvedFieldConfig:
     column_schema = schema.column(column_name)
-    field_type = (
-        proposal.field_type
-        or (column_schema.field_type if column_schema else None)
-        or _infer_field_type(gold_value, proposal.proposed_value, proposal.allowed_values, column_schema)
+    field_type = _resolve_field_type(
+        column_name=column_name,
+        proposal_field_type=proposal.field_type,
+        schema_field_type=column_schema.field_type if column_schema else None,
+        gold_value=gold_value,
+        proposed_value=proposal.proposed_value,
+        allowed_values=proposal.allowed_values,
+        column_schema=column_schema,
     )
     scoring_policy = (
         proposal.scoring_policy
@@ -401,18 +448,61 @@ def resolve_field_config(
     )
 
 
+def _resolve_field_type(
+    *,
+    column_name: str,
+    proposal_field_type: Any,
+    schema_field_type: Any,
+    gold_value: Any,
+    proposed_value: Any,
+    allowed_values: list[str],
+    column_schema: Any,
+) -> str:
+    if proposal_field_type is not None and str(proposal_field_type).strip():
+        canonical = canonicalize_field_type(proposal_field_type)
+        if canonical is None:
+            raise ContractError(
+                f"Unsupported field_type '{proposal_field_type}' in proposal for column '{column_name}' "
+                f"({supported_field_type_message()})."
+            )
+        return canonical
+    if schema_field_type is not None and str(schema_field_type).strip():
+        canonical = canonicalize_field_type(schema_field_type)
+        if canonical is None:
+            raise ContractError(
+                f"Unsupported field_type '{schema_field_type}' in schema for column '{column_name}' "
+                f"({supported_field_type_message()})."
+            )
+        return canonical
+    return _infer_field_type(gold_value, proposed_value, allowed_values, column_schema)
+
+
+def _canonical_field_type_for_record(value: Any, *, column_name: str | None, source: str) -> str | None:
+    canonical = canonicalize_field_type(value)
+    if value is not None and str(value).strip() and canonical is None:
+        column_detail = f" for column '{column_name}'" if column_name else ""
+        raise ContractError(
+            f"Unsupported field_type '{value}' in {source}{column_detail} ({supported_field_type_message()})."
+        )
+    return canonical
+
+
 def _infer_field_type(
     gold_value: Any,
     proposed_value: Any,
     allowed_values: list[str],
     column_schema: Any,
 ) -> str:
-    if normalize_boolean(gold_value) is not None and normalize_boolean(proposed_value) is not None:
-        return "boolean"
-    if normalize_numeric(gold_value) is not None and normalize_numeric(proposed_value) is not None:
-        return "numeric"
     if allowed_values or (column_schema and column_schema.allowed_values):
         return "categorical"
+    if normalize_numeric(gold_value) is not None and normalize_numeric(proposed_value) is not None:
+        return "numeric"
+    if (
+        normalize_boolean(gold_value) is not None
+        and normalize_boolean(proposed_value) is not None
+        and (is_clear_boolean_value(gold_value) or is_clear_boolean_value(proposed_value))
+    ):
+        return "boolean"
     return "text"
 
 
@@ -435,6 +525,97 @@ def _compare_structured(
             allowed_values=allowed_values,
         )
     return compare_numeric(gold_value, proposed_value, tolerance=numeric_tolerance)
+
+
+def _classify_structured_failure(
+    *,
+    field_type: str,
+    comparison: Any,
+    gold_value: Any,
+    proposed_value: Any,
+    allowed_values: list[str],
+    numeric_tolerance: NumericTolerance,
+) -> tuple[str | None, bool]:
+    if comparison.is_correct:
+        return None, False
+    if field_type == "numeric":
+        return _classify_numeric_failure(comparison, gold_value, proposed_value, numeric_tolerance)
+    if field_type == "boolean":
+        return _classify_boolean_failure(comparison, gold_value, proposed_value)
+    if field_type == "categorical":
+        return _classify_categorical_failure(comparison, allowed_values)
+    return "structured_unknown_failure", False
+
+
+def _classify_numeric_failure(
+    comparison: Any,
+    gold_value: Any,
+    proposed_value: Any,
+    numeric_tolerance: NumericTolerance,
+) -> tuple[str, bool]:
+    diagnostics = comparison.diagnostics
+    gold_number = normalize_numeric(gold_value)
+    proposed_number = normalize_numeric(proposed_value)
+    if gold_number is None or proposed_number is None:
+        gold_format = numeric_format_diagnostics(gold_value)
+        proposed_format = numeric_format_diagnostics(proposed_value)
+        format_values = [gold_format, proposed_format]
+        has_numeric_cue = any(item["has_numeric_token"] for item in format_values)
+        if any(item["has_plus_minus"] for item in format_values):
+            return "numeric_plus_minus_format", has_numeric_cue
+        if any(item["has_inequality"] for item in format_values):
+            return "numeric_inequality_format", has_numeric_cue
+        if any(item["has_percent"] or item["has_unit"] for item in format_values):
+            return "numeric_unit_or_percent_format", has_numeric_cue
+        if any(item["range_like"] for item in format_values):
+            return "numeric_range_format", has_numeric_cue
+        if any(item["list_like"] for item in format_values):
+            return "numeric_list_format", has_numeric_cue
+        return "numeric_parse_failure", has_numeric_cue
+
+    if "absolute_error" in diagnostics:
+        allowed_error = float(diagnostics.get("allowed_error") or 0.0)
+        absolute_error = float(diagnostics.get("absolute_error") or 0.0)
+        if absolute_error <= _near_numeric_window(gold_number.center, allowed_error, numeric_tolerance):
+            return "numeric_near_miss", True
+        return "numeric_hard_mismatch", False
+
+    gap = float(diagnostics.get("gap") or 0.0)
+    allowed_gap = float(diagnostics.get("allowed_gap") or 0.0)
+    if gap <= _near_numeric_window(gold_number.center, allowed_gap, numeric_tolerance):
+        return "numeric_near_miss", True
+    return "numeric_hard_mismatch", False
+
+
+def _near_numeric_window(reference_value: float, allowed_error: float, tolerance: NumericTolerance) -> float:
+    configured_window = max(allowed_error * 2.0, tolerance.abs_tol * 2.0)
+    relative_window = abs(reference_value) * max(tolerance.rel_tol * 2.0, 0.05)
+    return max(configured_window, relative_window, 1e-12)
+
+
+def _classify_boolean_failure(comparison: Any, gold_value: Any, proposed_value: Any) -> tuple[str, bool]:
+    normalized_gold = comparison.normalized_gold
+    normalized_proposed = comparison.normalized_proposed
+    if normalized_gold is not None and normalized_proposed is not None and normalized_gold != normalized_proposed:
+        return "boolean_contradiction", False
+    gold_diagnostics = boolean_format_diagnostics(gold_value)
+    proposed_diagnostics = boolean_format_diagnostics(proposed_value)
+    if gold_diagnostics["boolean_like_cue"] or proposed_diagnostics["boolean_like_cue"]:
+        return "boolean_unknown_vocabulary", True
+    return "boolean_parse_failure", False
+
+
+def _classify_categorical_failure(comparison: Any, allowed_values: list[str]) -> tuple[str, bool]:
+    diagnostics = comparison.diagnostics
+    gold_diag = diagnostics.get("gold_categorical", {})
+    proposed_diag = diagnostics.get("proposed_categorical", {})
+    if bool(gold_diag.get("list_like") or proposed_diag.get("list_like")):
+        return "categorical_list_format_mismatch", True
+    if allowed_values and gold_diag.get("allowed_value_match") and proposed_diag.get("allowed_value_match"):
+        return "categorical_allowed_value_mismatch", False
+    if allowed_values and (not gold_diag.get("allowed_value_match") or not proposed_diag.get("allowed_value_match")):
+        return "categorical_alias_gap", True
+    return "categorical_alias_gap", True
 
 
 def _prepare_text_cell(

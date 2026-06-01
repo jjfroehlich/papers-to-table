@@ -164,10 +164,15 @@ Eval outputs must preserve stable per-run and comparison artifacts containing:
 - evidence metrics and anchor-validation totals
 - missing-proposal and join-failure accounting
 - judge failure and judge-disagreement diagnostics
+- structured deterministic failure diagnostics
 - compact main-app provenance passthrough needed by optimizer
 - canonical proposal-status, evidence-status, review-bucket, and reason-code accounting
 
 Dual-judge runs must preserve per-judge verdicts, request failures, unclear counts, disagreement metrics, response-mode usage, and enough detail for trust reporting.
+
+Per-cell scored records for structured fields must preserve `deterministic_failure_kind` and `adjudication_eligible`. These fields are diagnostic only: current structured scoring remains deterministic, headline correctness metrics are unchanged by future-adjudication eligibility, and no structured judge records are emitted.
+
+Run summaries must include the diagnostic metrics `structured_deterministic_failure_count`, `structured_adjudication_eligible_count`, and `structured_adjudication_eligible_rate`. Calibration reports built from `scored_cells.jsonl` must group deterministic structured failures by field type, failure kind, column, and example gold/proposed pairs without altering prior scores.
 
 ## Optimizer Candidate And Result Contract
 
