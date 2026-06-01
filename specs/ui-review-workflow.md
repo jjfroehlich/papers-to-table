@@ -143,10 +143,10 @@ The agent-kit review UI is acceptable for MVP when:
 
 - proposals appear in a queue/table
 - selecting a proposal opens the corresponding PDF page when possible
-- quote text is highlighted when PDF.js can match it
+- quote text is highlighted when the bundled PDF.js viewer can match it, including partial matches for long or slightly imperfect quotes
 - page-only or reasoning-only evidence is visibly labeled weak/attention
 - reviewers can accept, accept with edit, reject, or confirm no data
-- decisions can be downloaded or written through localhost server writeback
+- decisions can be downloaded or written through localhost server writeback, and the UI visibly distinguishes browser-only saves from confirmed server writeback or writeback errors
 - accepted-only `exports/final_table.csv` is produced
 - a valid package can be produced from quote/page evidence without bboxes, figure crops, page images, source table, or schema
 

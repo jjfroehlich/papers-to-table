@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import math
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,6 +14,15 @@ REVIEW_INPUT_SCHEMA_VERSION = "papers_to_table.review_input.v1"
 REVIEW_PACKAGE_SCHEMA_VERSION = "papers_to_table.review_package.v1"
 NORMALIZED_PROPOSAL_SCHEMA_VERSION = "papers_to_table.agent_normalized_proposal.v1"
 MAIN_EVIDENCE_SCHEMA_VERSION = "main_evidence"
+MAIN_COMPAT_SOURCE_TYPES = {
+    "direct_quote",
+    "inferred_reasoning",
+    "calculation",
+    "approximate_highlight",
+    "quote_plus_page",
+    "caption_grounded_figure_evidence",
+    "visual_interpretation_figure_evidence",
+}
 
 DECISIONS = {"accepted", "accepted_with_edit", "rejected", "confirmed_no_data"}
 ACCEPTED_DECISIONS = {"accepted", "accepted_with_edit"}
@@ -38,12 +48,15 @@ REVIEW_BUCKETS = {"review", "attention", "diagnostic"}
 TEXT_EVIDENCE_KEYS = ("quote_text", "table_text", "evidence_text", "caption_text")
 DIRECT_TEXT_SOURCE_TYPES = {
     "direct_quote",
-    "table_text",
-    "evidence_text",
-    "caption_text",
     "quote_plus_page",
     "caption_grounded_figure_evidence",
     "visual_interpretation_figure_evidence",
+}
+KIT_TEXT_SOURCE_TYPE_MAP = {
+    "quote_text": "direct_quote",
+    "table_text": "direct_quote",
+    "caption_text": "direct_quote",
+    "evidence_text": "direct_quote",
 }
 
 
@@ -144,23 +157,35 @@ def text_evidence_value(evidence: dict[str, Any]) -> str:
     return ""
 
 
-def infer_source_type(evidence: dict[str, Any]) -> str:
+def authored_evidence_kind(evidence: dict[str, Any]) -> str | None:
     source_type = str(evidence.get("source_type") or "").strip()
     if source_type:
         return source_type
+    for key in TEXT_EVIDENCE_KEYS:
+        if is_non_empty(evidence.get(key)):
+            return key
+    if evidence.get("exact_highlight_regions"):
+        return "exact_highlight_regions"
+    if evidence.get("approximate_highlight_regions"):
+        return "approximate_highlight_regions"
+    if evidence.get("bbox"):
+        return "bbox"
+    if is_non_empty(evidence.get("reasoning")):
+        return "reasoning"
+    return None
+
+
+def infer_source_type(evidence: dict[str, Any]) -> str:
+    source_type = str(evidence.get("source_type") or "").strip()
+    if source_type:
+        return KIT_TEXT_SOURCE_TYPE_MAP.get(source_type, source_type)
     if is_non_empty(evidence.get("figure_ref")) and is_non_empty(evidence.get("caption_text")):
         return "caption_grounded_figure_evidence"
-    if is_non_empty(evidence.get("quote_text")):
+    if any(is_non_empty(evidence.get(key)) for key in TEXT_EVIDENCE_KEYS):
         return "direct_quote"
-    if is_non_empty(evidence.get("table_text")):
-        return "table_text"
-    if is_non_empty(evidence.get("caption_text")):
-        return "caption_text"
-    if is_non_empty(evidence.get("evidence_text")):
-        return "evidence_text"
     if evidence.get("exact_highlight_regions") or evidence.get("approximate_highlight_regions") or evidence.get("bbox"):
         return "approximate_highlight"
-    if is_non_empty(evidence.get("reasoning")):
+    if is_non_empty(evidence.get("reasoning")) or is_non_empty(evidence.get("source_location")):
         return "inferred_reasoning"
     return "inferred_reasoning"
 
@@ -187,6 +212,10 @@ def normalized_regions(value: Any, *, default_page: int | None = None) -> list[d
         }
         regions.append(region)
     return regions
+
+
+def is_finite_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
 def evidence_tier(evidence: dict[str, Any], *, inherited_pdf_id: str | None = None) -> dict[str, Any]:

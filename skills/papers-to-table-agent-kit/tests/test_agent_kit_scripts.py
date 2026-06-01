@@ -164,6 +164,8 @@ def test_authoring_validation_and_build_generate_mvp_artifacts() -> None:
         assert proposals[0]["proposal_id"].startswith("prop_")
         assert evidence[0]["evidence_schema_version"] == "main_evidence"
         assert any(proposal["evidence_status"] == "inferred_weak" for proposal in proposals)
+        assert (run_dir / "review" / "assets" / "pdf.mjs").exists()
+        assert (run_dir / "review" / "assets" / "pdf.worker.mjs").exists()
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
@@ -220,6 +222,89 @@ def test_valid_package_requires_only_quote_page_evidence_no_table_or_schema() ->
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
+def test_build_remains_portable_when_only_skill_directory_is_copied() -> None:
+    tmp_path = make_workspace("portable")
+    try:
+        skill_copy = tmp_path / "portable_skill"
+        shutil.copytree(SKILL_DIR, skill_copy, ignore=shutil.ignore_patterns("tmp_runtime"))
+        run_dir = make_run(tmp_path)
+
+        completed = run_cmd(str(skill_copy / "scripts" / "build_review_package.py"), "--run", str(run_dir), "--json")
+        result = json.loads(completed.stdout)
+
+        assert result["pdfjs_assets_copied"] is True
+        assert (run_dir / "review" / "assets" / "pdf.mjs").exists()
+        assert (run_dir / "review" / "assets" / "pdf.worker.mjs").exists()
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_text_evidence_kinds_map_to_main_compatible_source_types() -> None:
+    tmp_path = make_workspace("source_types")
+    try:
+        run_dir = make_run(tmp_path)
+        payload = json.loads((run_dir / "review_input.json").read_text(encoding="utf-8"))
+        payload["proposals"][0]["evidence"] = [
+            {
+                "pdf_id": "paper_a",
+                "source_type": "table_text",
+                "page_number": 1,
+                "table_text": "Row entry copied from the results table.",
+            },
+            {
+                "pdf_id": "paper_a",
+                "page_number": 1,
+                "caption_text": "Figure caption evidence that still behaves like direct text evidence.",
+            },
+        ]
+        (run_dir / "review_input.json").write_text(json.dumps(payload), encoding="utf-8")
+
+        build_package(run_dir)
+        evidence = read_jsonl(run_dir / "normalized" / "evidence.jsonl")
+
+        assert evidence[0]["source_type"] == "direct_quote"
+        assert evidence[0]["authored_evidence_kind"] == "table_text"
+        assert evidence[1]["source_type"] == "direct_quote"
+        assert evidence[1]["authored_evidence_kind"] == "caption_text"
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_authoring_validation_checks_highlight_regions_and_warns_on_ambiguous_coordinates() -> None:
+    tmp_path = make_workspace("highlight_validation")
+    try:
+        run_dir = make_run(tmp_path)
+        payload = json.loads((run_dir / "review_input.json").read_text(encoding="utf-8"))
+        payload["proposals"][0]["evidence"] = [
+            {
+                "pdf_id": "paper_a",
+                "quote_text": "Quoted text with invalid exact highlight coordinates.",
+                "exact_highlight_regions": [{"x0": "1", "y0": 0.2, "x1": 0.4, "y1": 0.6}],
+            },
+            {
+                "pdf_id": "paper_a",
+                "page_number": 1,
+                "quote_text": "Quoted text with ambiguous approximate highlight coordinates.",
+                "approximate_highlight_regions": [{"x0": 12, "y0": 18, "x1": 42, "y1": 55}],
+            },
+        ]
+        (run_dir / "review_input.json").write_text(json.dumps(payload), encoding="utf-8")
+
+        completed = subprocess.run(
+            [sys.executable, str(VALIDATE_SCRIPT), "--run", str(run_dir), "--mode", "authoring", "--json"],
+            text=True,
+            capture_output=True,
+        )
+
+        assert completed.returncode == 1
+        report = json.loads(completed.stdout)
+        assert any("exact_highlight_regions[0].x0 must be a finite number" in error for error in report["errors"])
+        assert any("exact_highlight_regions[0].page must be present" in error for error in report["errors"])
+        assert any("small absolute coordinates" in warning for warning in report["warnings"])
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
 def test_apply_decisions_exports_accepted_only_csv() -> None:
     tmp_path = make_workspace("apply")
     try:
@@ -267,6 +352,10 @@ def test_serve_review_writes_decisions_and_exports() -> None:
             with urllib.request.urlopen(url, timeout=5) as response:
                 assert response.status == 200
                 assert b"Papers-to-table rich review" in response.read()
+            html = (run_dir / "review" / "index.html").read_text(encoding="utf-8")
+            assert "Saved locally" in html
+            assert "Saved to server" in html
+            assert "Partial quote match highlighted" in html
 
             payload = json.dumps(
                 {

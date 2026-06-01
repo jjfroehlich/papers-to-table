@@ -189,7 +189,9 @@ Every non-empty proposed value must have at least one structured evidence record
 - Tier C: `pdf_id` plus `page_number` plus `source_location` and/or `reasoning` maps to `inferred_weak` and attention.
 - Tier D: no structured evidence is invalid for non-empty proposed values.
 
-Generated agent-kit evidence records use `evidence_schema_version="main_evidence"` where practical, but generated agent-kit artifacts are not a main-app run bundle unless an optional explicit `main_compat/` export is later generated and contract-verified.
+Generated agent-kit evidence records use `evidence_schema_version="main_evidence"` and must emit main-compatible `source_type` values. Kit-authored text kinds such as `table_text`, `caption_text`, and `evidence_text` are preserved in a separate `authored_evidence_kind` field while normalized `source_type` maps to a main-compatible value such as `direct_quote`.
+
+`validate_review_package.py` must validate authored and generated highlight regions for finite numeric coordinates, positive page references, nonzero area, normalized-coordinate ranges when applicable, and warnings for mixed or otherwise ambiguous coordinate conventions.
 
 ## Eval Summary Contract
 

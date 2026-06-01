@@ -59,6 +59,10 @@ Minimal example:
 
 Every non-empty proposed value needs at least one structured evidence record. Quote, table, caption, evidence text, bbox regions, or figure-caption evidence produce stronger labels; page-plus-reasoning evidence is allowed but is visibly marked weak/attention in the review UI.
 
+Generated evidence keeps `evidence_schema_version="main_evidence"` and normalizes `source_type` to main-compatible values. If the authored evidence used kit-specific text kinds such as `table_text`, `caption_text`, or `evidence_text`, the original kind is preserved in `authored_evidence_kind`.
+
+Highlight regions must use finite numeric coordinates, a positive page reference, and nonzero area. Normalized coordinates must stay within `[0, 1]`; validation also warns when coordinate conventions look ambiguous.
+
 ## Build And Review
 
 Validate the agent-authored inputs:
@@ -79,7 +83,7 @@ Serve the review bundle on localhost:
 python skills/papers-to-table-agent-kit/scripts/serve_review.py --run RUN_DIR
 ```
 
-The server prints and opens a `http://127.0.0.1:.../review/index.html` URL. Localhost mode supports decision writeback and accepted-only export. Opening `RUN_DIR/review/index.html` directly can work as download-only mode when the browser allows local PDF access.
+The server prints and opens a `http://127.0.0.1:.../review/index.html` URL. Localhost mode supports decision writeback and accepted-only export. The review header visibly distinguishes browser-only saves, confirmed server writeback, and server writeback failures. Opening `RUN_DIR/review/index.html` directly can work as download-only mode when the browser allows local PDF access.
 
 ## Generated Artifacts
 
@@ -132,4 +136,4 @@ Auto-accepted decisions are recorded with `decision_source="automation_accept_al
 
 ## Installation
 
-Install by telling your agent to use `https://github.com/jjfroehlich/papers-to-table/tree/main/skills/papers-to-table-agent-kit/`, or copy `skills/papers-to-table-agent-kit/` into the agent system's skill directory. Keep `references/`, `scripts/`, and `templates/` with it.
+Install by telling your agent to use `https://github.com/jjfroehlich/papers-to-table/tree/main/skills/papers-to-table-agent-kit/`, or copy `skills/papers-to-table-agent-kit/` into the agent system's skill directory. Keep `assets/`, `references/`, `scripts/`, and `templates/` with it so the bundled PDF.js viewer remains portable and quote highlighting works in the default workflow.

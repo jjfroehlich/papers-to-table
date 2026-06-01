@@ -250,9 +250,9 @@ The kit scripts derive generated artifacts under `review/`, `normalized/`, `summ
 
 `review_input.json` uses `papers_to_table.review_input.v1`. `proposal_id`, `evidence_id`, `cell_id`, and `created_at` are optional authoring fields. When absent, `build_review_package.py` generates stable deterministic IDs; when present, validation checks uniqueness and references.
 
-Every non-empty proposed value must carry at least one structured Tier A/B/C evidence record. Strong direct evidence requires `pdf_id`, `page_number`, and quote/table/caption/evidence text, exact/approximate bbox regions, or `figure_ref` plus `caption_text`. Page-plus-reasoning evidence remains reviewable but is visibly labeled weak/attention.
+Every non-empty proposed value must carry at least one structured Tier A/B/C evidence record. Strong direct evidence requires `pdf_id`, `page_number`, and quote/table/caption/evidence text, exact/approximate bbox regions, or `figure_ref` plus `caption_text`. Page-plus-reasoning evidence remains reviewable but is visibly labeled weak/attention. Region-bearing evidence must validate finite numeric coordinates, positive pages, nonzero area, normalized-coordinate ranges when applicable, and emit warnings for ambiguous coordinate conventions.
 
-The kit's generated evidence stream uses the canonical `main_evidence` tag where practical so downstream audit tooling can reuse evidence semantics. The generated bundle is not a main-app run bundle unless an optional later `main_compat/` export is explicitly generated and validated.
+The kit's generated evidence stream uses the canonical `main_evidence` tag plus main-compatible `source_type` values so downstream audit tooling can reuse evidence semantics. Kit-specific text evidence kinds are preserved separately in `authored_evidence_kind`. The generated bundle is not a main-app run bundle unless an optional later `main_compat/` export is explicitly generated and validated.
 
 ## 12. Eval Companion
 
