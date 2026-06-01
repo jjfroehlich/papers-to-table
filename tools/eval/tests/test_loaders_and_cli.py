@@ -440,9 +440,14 @@ class LoaderAndCliTests(unittest.TestCase):
                     {
                         "columns": {
                             "count": {"field_type": "number"},
+                            "replicates": {"field_type": "integer"},
+                            "score": {"field_type": "float"},
                             "status": {"field_type": "bool"},
                             "label": {"field_type": "enum"},
-                            "notes": {"field_type": "free-text"},
+                            "group": {"field_type": "category"},
+                            "summary": {"field_type": "string"},
+                            "notes_snake": {"field_type": "free_text"},
+                            "notes_kebab": {"field_type": "free-text"},
                         }
                     }
                 ),
@@ -452,9 +457,14 @@ class LoaderAndCliTests(unittest.TestCase):
             schema = load_schema(schema_path)
 
             self.assertEqual(schema.column("count").field_type, "numeric")
+            self.assertEqual(schema.column("replicates").field_type, "numeric")
+            self.assertEqual(schema.column("score").field_type, "numeric")
             self.assertEqual(schema.column("status").field_type, "boolean")
             self.assertEqual(schema.column("label").field_type, "categorical")
-            self.assertEqual(schema.column("notes").field_type, "text")
+            self.assertEqual(schema.column("group").field_type, "categorical")
+            self.assertEqual(schema.column("summary").field_type, "text")
+            self.assertEqual(schema.column("notes_snake").field_type, "text")
+            self.assertEqual(schema.column("notes_kebab").field_type, "text")
         finally:
             shutil.rmtree(temp_root, ignore_errors=True)
 

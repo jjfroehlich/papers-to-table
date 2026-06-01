@@ -181,6 +181,10 @@ def build_run_summary(
         "text_accuracy": _accuracy(text_records),
         "structured_deterministic_failure_count": len(structured_failure_records),
         "structured_adjudication_eligible_count": len(structured_adjudication_eligible_records),
+        "structured_adjudication_eligible_failure_rate": _ratio(
+            len(structured_adjudication_eligible_records),
+            len(structured_failure_records),
+        ),
         "structured_adjudication_eligible_rate": _ratio(
             len(structured_adjudication_eligible_records),
             len(structured_failure_records),

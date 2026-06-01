@@ -687,7 +687,7 @@ class TextJudgeScoringTests(unittest.TestCase):
         self.assertEqual(scored_cell.deterministic_failure_kind, "numeric_hard_mismatch")
         self.assertFalse(scored_cell.adjudication_eligible)
 
-    def test_unknown_proposal_field_type_fails_early(self) -> None:
+    def test_unknown_proposal_field_type_fails_when_used_for_scoring(self) -> None:
         loaded_run = self._loaded_run(
             ProposalRecord(
                 run_id="run-a",
@@ -713,6 +713,70 @@ class TextJudgeScoringTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ContractError, "Unsupported field_type 'mystery'"):
             score_run(loaded_run, gold, load_schema(None))
+
+    def test_unknown_proposal_field_type_is_ignored_for_gold_empty_diagnostic_rows(self) -> None:
+        loaded_run = self._loaded_run(
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="count",
+                cell_id="cell-count-1",
+                proposed_value="20",
+                proposal_status="value_proposed",
+                evidence_status="direct_strong",
+                review_bucket="review",
+                field_type="mystery",
+            )
+        )
+        gold = self._gold_dataset(
+            GoldCell(
+                row_id="row-1",
+                column_name="count",
+                cell_id="cell-count-1",
+                raw_value=None,
+                is_present=False,
+            )
+        )
+
+        result = score_run(loaded_run, gold, load_schema(None))
+
+        scored_cell = result.scored_cells[0]
+        self.assertEqual(scored_cell.join_status, "gold_empty_diagnostic")
+        self.assertIsNone(scored_cell.field_type)
+        self.assertIn("unsupported_field_type_ignored", scored_cell.diagnostic_flags)
+        self.assertEqual(scored_cell.diagnostics["unsupported_field_type"]["value"], "mystery")
+
+    def test_unknown_proposal_field_type_is_ignored_for_unmatched_diagnostic_rows(self) -> None:
+        loaded_run = self._loaded_run(
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-2",
+                column_name="count",
+                cell_id="cell-count-2",
+                proposed_value="20",
+                proposal_status="value_proposed",
+                evidence_status="direct_strong",
+                review_bucket="review",
+                field_type="mystery",
+            )
+        )
+        gold = self._gold_dataset(
+            GoldCell(
+                row_id="row-1",
+                column_name="count",
+                cell_id="cell-count-1",
+                raw_value="10",
+                is_present=True,
+            )
+        )
+
+        result = score_run(loaded_run, gold, load_schema(None))
+
+        scored_cell = next(cell for cell in result.scored_cells if cell.record_kind == "proposal_diagnostic")
+        self.assertEqual(scored_cell.join_status, "unmatched_proposal")
+        self.assertIsNone(scored_cell.field_type)
+        self.assertIn("unsupported_field_type_ignored", scored_cell.diagnostic_flags)
+        self.assertEqual(scored_cell.diagnostics["unsupported_field_type"]["value"], "mystery")
 
     def test_infers_bare_zero_one_as_numeric_not_boolean(self) -> None:
         loaded_run = self._loaded_run(
@@ -848,7 +912,212 @@ class TextJudgeScoringTests(unittest.TestCase):
         self.assertTrue(by_column["detected"].adjudication_eligible)
         self.assertEqual(summary.metrics["structured_deterministic_failure_count"], 3)
         self.assertEqual(summary.metrics["structured_adjudication_eligible_count"], 3)
+        self.assertEqual(summary.metrics["structured_adjudication_eligible_failure_rate"], 1.0)
         self.assertEqual(summary.metrics["structured_adjudication_eligible_rate"], 1.0)
+
+    def test_structured_failure_kind_marks_other_soft_failures_as_adjudication_eligible(self) -> None:
+        loaded_run = self._loaded_run(
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="efficiency_inequality",
+                cell_id="cell-efficiency-ineq",
+                proposed_value="65",
+                proposal_status="value_proposed",
+                evidence_status="direct_strong",
+                review_bucket="review",
+                field_type="numeric",
+            ),
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="efficiency_pm",
+                cell_id="cell-efficiency-pm",
+                proposed_value="65",
+                proposal_status="value_proposed",
+                evidence_status="direct_strong",
+                review_bucket="review",
+                field_type="numeric",
+            ),
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="efficiency_near",
+                cell_id="cell-efficiency-near",
+                proposed_value="10.2",
+                proposal_status="value_proposed",
+                evidence_status="direct_strong",
+                review_bucket="review",
+                field_type="numeric",
+            ),
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="method_alias_gap",
+                cell_id="cell-method-alias-gap",
+                proposed_value="canonical label",
+                proposal_status="value_proposed",
+                evidence_status="direct_strong",
+                review_bucket="review",
+                field_type="categorical",
+                allowed_values=["Canonical Label", "Other"],
+            ),
+        )
+        gold = self._gold_dataset(
+            GoldCell(
+                row_id="row-1",
+                column_name="efficiency_inequality",
+                cell_id="cell-efficiency-ineq",
+                raw_value=">=65",
+                is_present=True,
+            ),
+            GoldCell(
+                row_id="row-1",
+                column_name="efficiency_pm",
+                cell_id="cell-efficiency-pm",
+                raw_value="65 ± 2",
+                is_present=True,
+            ),
+            GoldCell(
+                row_id="row-1",
+                column_name="efficiency_near",
+                cell_id="cell-efficiency-near",
+                raw_value="10.0",
+                is_present=True,
+            ),
+            GoldCell(
+                row_id="row-1",
+                column_name="method_alias_gap",
+                cell_id="cell-method-alias-gap",
+                raw_value="canonical short",
+                is_present=True,
+            ),
+        )
+
+        result = score_run(loaded_run, gold, load_schema(None))
+        by_column = {cell.column_name: cell for cell in result.scored_cells}
+
+        self.assertEqual(by_column["efficiency_inequality"].deterministic_failure_kind, "numeric_inequality_format")
+        self.assertTrue(by_column["efficiency_inequality"].adjudication_eligible)
+        self.assertEqual(by_column["efficiency_pm"].deterministic_failure_kind, "numeric_plus_minus_format")
+        self.assertTrue(by_column["efficiency_pm"].adjudication_eligible)
+        self.assertEqual(by_column["efficiency_near"].deterministic_failure_kind, "numeric_near_miss")
+        self.assertTrue(by_column["efficiency_near"].adjudication_eligible)
+        self.assertEqual(by_column["method_alias_gap"].deterministic_failure_kind, "categorical_alias_gap")
+        self.assertTrue(by_column["method_alias_gap"].adjudication_eligible)
+
+    def test_structured_failure_kind_marks_hard_failures_as_not_adjudication_eligible(self) -> None:
+        loaded_run = self._loaded_run(
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="status",
+                cell_id="cell-status-1",
+                proposed_value="no",
+                proposal_status="value_proposed",
+                evidence_status="direct_strong",
+                review_bucket="review",
+                field_type="boolean",
+            ),
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="count",
+                cell_id="cell-count-1",
+                proposed_value="20",
+                proposal_status="value_proposed",
+                evidence_status="direct_strong",
+                review_bucket="review",
+                field_type="numeric",
+            ),
+            ProposalRecord(
+                run_id="run-a",
+                row_id="row-1",
+                column_name="method",
+                cell_id="cell-method-1",
+                proposed_value="mouse",
+                proposal_status="value_proposed",
+                evidence_status="direct_strong",
+                review_bucket="review",
+                field_type="categorical",
+                allowed_values=["human", "mouse"],
+            ),
+        )
+        gold = self._gold_dataset(
+            GoldCell(
+                row_id="row-1",
+                column_name="status",
+                cell_id="cell-status-1",
+                raw_value="yes",
+                is_present=True,
+            ),
+            GoldCell(
+                row_id="row-1",
+                column_name="count",
+                cell_id="cell-count-1",
+                raw_value="10",
+                is_present=True,
+            ),
+            GoldCell(
+                row_id="row-1",
+                column_name="method",
+                cell_id="cell-method-1",
+                raw_value="human",
+                is_present=True,
+            ),
+        )
+
+        result = score_run(loaded_run, gold, load_schema(None))
+        by_column = {cell.column_name: cell for cell in result.scored_cells}
+
+        self.assertEqual(by_column["status"].deterministic_failure_kind, "boolean_contradiction")
+        self.assertFalse(by_column["status"].adjudication_eligible)
+        self.assertEqual(by_column["count"].deterministic_failure_kind, "numeric_hard_mismatch")
+        self.assertFalse(by_column["count"].adjudication_eligible)
+        self.assertEqual(by_column["method"].deterministic_failure_kind, "categorical_allowed_value_mismatch")
+        self.assertFalse(by_column["method"].adjudication_eligible)
+
+    def test_proposal_field_type_aliases_canonicalize_when_used(self) -> None:
+        cases = [
+            ("number", "numeric", "10", "10", None),
+            ("integer", "numeric", "10", "10", None),
+            ("float", "numeric", "10.5", "10.5", None),
+            ("bool", "boolean", "yes", "yes", None),
+            ("enum", "categorical", "Human", "Human", None),
+            ("category", "categorical", "Human", "Human", None),
+            ("string", "text", "alpha", "alpha", "deterministic"),
+            ("free_text", "text", "alpha", "alpha", "deterministic"),
+            ("free-text", "text", "alpha", "alpha", "deterministic"),
+        ]
+        for index, (proposal_field_type, expected, gold_value, proposed_value, scoring_policy) in enumerate(cases, start=1):
+            with self.subTest(proposal_field_type=proposal_field_type):
+                loaded_run = self._loaded_run(
+                    ProposalRecord(
+                        run_id="run-a",
+                        row_id=f"row-{index}",
+                        column_name=f"column-{index}",
+                        cell_id=f"cell-{index}",
+                        proposed_value=proposed_value,
+                        proposal_status="value_proposed",
+                        evidence_status="direct_strong",
+                        review_bucket="review",
+                        field_type=proposal_field_type,
+                        scoring_policy=scoring_policy,
+                    )
+                )
+                gold = self._gold_dataset(
+                    GoldCell(
+                        row_id=f"row-{index}",
+                        column_name=f"column-{index}",
+                        cell_id=f"cell-{index}",
+                        raw_value=gold_value,
+                        is_present=True,
+                    )
+                )
+
+                result = score_run(loaded_run, gold, load_schema(None))
+
+                self.assertEqual(result.scored_cells[0].field_type, expected)
 
     def test_structured_support_proxy_marks_supported_numeric_and_categorical_values(self) -> None:
         loaded_run = self._loaded_run(

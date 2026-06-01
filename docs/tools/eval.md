@@ -174,7 +174,7 @@ Metrics are calculated from these joined cells:
 - judge disagreement: the rate at which judge A and judge B differ on text-cell correctness.
 - missing proposals: target cells present in gold data but missing from the run proposals.
 - join failures: run or gold records that could not be aligned to the expected row/column contract.
-- structured deterministic failures: `structured_deterministic_failure_count` counts incorrect deterministic structured cells; `structured_adjudication_eligible_count` and `structured_adjudication_eligible_rate` show how many failures look like soft mismatches that might be worth future adjudication.
+- structured deterministic failures: `structured_deterministic_failure_count` counts incorrect deterministic structured cells; `structured_adjudication_eligible_count`, `structured_adjudication_eligible_failure_rate`, and the older compatibility alias `structured_adjudication_eligible_rate` show how many failures look like soft mismatches that might be worth future adjudication.
 
 The evaluator writes per-cell records first, then aggregates those records into `run_summary.json`, `run_summary.csv`, and the cross-run comparison files.
 
