@@ -12,10 +12,10 @@ The review bundle builder for the agent kit copies PDF.js runtime assets into ge
 
 ## How to refresh
 
-1. Update the `pdfjs-dist` version used by `/tmp/workspace/jjfroehlich/papers-to-table/app/frontend/package.json` if needed.
+1. Update the `pdfjs-dist` version used by `app/frontend/package.json` if needed.
 2. Install frontend dependencies so `app/frontend/node_modules/pdfjs-dist/` contains the target version.
 3. Copy `app/frontend/node_modules/pdfjs-dist/build/pdf.mjs` to `skills/papers-to-table-agent-kit/assets/pdfjs/pdf.mjs`.
 4. Copy `app/frontend/node_modules/pdfjs-dist/build/pdf.worker.mjs` to `skills/papers-to-table-agent-kit/assets/pdfjs/pdf.worker.mjs`.
 5. Confirm the version header in both vendored files still matches this README, and update this file if the version or source path changes.
 6. Keep `skills/papers-to-table-agent-kit/assets/pdfjs/LICENSE` aligned with the upstream PDF.js package/repository license text.
-7. Re-run the relevant validations for the agent kit before merging.
+7. Re-run the relevant validations for the agent kit before merging, including `python -m pytest skills/papers-to-table-agent-kit/tests/test_agent_kit_scripts.py` and `python scripts/check_specs.py`.
