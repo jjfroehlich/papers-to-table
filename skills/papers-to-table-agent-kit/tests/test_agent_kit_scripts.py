@@ -5,13 +5,26 @@ import json
 import shutil
 import subprocess
 import sys
+import urllib.request
 import uuid
 from pathlib import Path
 
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
-BUILD_SCRIPT = SKILL_DIR / "scripts" / "build_review_package.py"
-APPLY_SCRIPT = SKILL_DIR / "scripts" / "apply_review_decisions.py"
+SCRIPT_DIR = SKILL_DIR / "scripts"
+BUILD_SCRIPT = SCRIPT_DIR / "build_review_package.py"
+VALIDATE_SCRIPT = SCRIPT_DIR / "validate_review_package.py"
+APPLY_SCRIPT = SCRIPT_DIR / "apply_review_decisions.py"
+RUNTIME_TMP = SKILL_DIR / "tests" / "tmp_runtime"
+
+sys.path.insert(0, str(SCRIPT_DIR))
+from serve_review import serve  # noqa: E402
+
+
+def make_workspace(name: str) -> Path:
+    workspace = RUNTIME_TMP / f"{name}_{uuid.uuid4().hex}"
+    workspace.mkdir(parents=True, exist_ok=False)
+    return workspace
 
 
 def write_csv(path: Path, rows: list[dict[str, str]], fieldnames: list[str]) -> None:
@@ -32,91 +45,89 @@ def run_cmd(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run([sys.executable, *args], check=True, text=True, capture_output=True)
 
 
-def workspace(name: str) -> Path:
-    root = SKILL_DIR / "tests" / ".tmp"
-    root.mkdir(parents=True, exist_ok=True)
-    path = root / f"{name}_{uuid.uuid4().hex[:12]}"
-    path.mkdir(parents=True, exist_ok=False)
-    return path
+def write_dummy_pdf(path: Path, text: str = "dummy") -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(
+        b"%PDF-1.4\n"
+        b"1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n"
+        b"2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n"
+        b"3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >> endobj\n"
+        + f"% {text}\n".encode("utf-8")
+        + b"%%EOF\n"
+    )
 
 
-def make_run(tmp_path: Path) -> Path:
-    run_dir = tmp_path / "run_agent"
-    fieldnames = ["row_id", "Title", "Method", "Main finding", "Rejected value", "No data field"]
-    source_rows = [
-        {
-            "row_id": "row_1",
-            "Title": "Paper One",
-            "Method": "",
-            "Main finding": "",
-            "Rejected value": "",
-            "No data field": "",
-        }
-    ]
-    draft_rows = [
-        {
-            "row_id": "row_1",
-            "Title": "Paper One",
-            "Method": "spatial transcriptomics",
-            "Main finding": "higher resolution mapping",
-            "Rejected value": "unsupported claim",
-            "No data field": "not reported",
-        }
-    ]
-    write_csv(run_dir / "inputs" / "source_table.csv", source_rows, fieldnames)
-    write_csv(run_dir / "tables" / "draft_table.csv", draft_rows, fieldnames)
-    (run_dir / "inputs" / "schema.json").parent.mkdir(parents=True, exist_ok=True)
-    (run_dir / "inputs" / "schema.json").write_text(
+def make_run(tmp_path: Path, *, with_source_table: bool = True) -> Path:
+    run_dir = tmp_path / "agent_review"
+    write_dummy_pdf(run_dir / "pdfs" / "paper_a.pdf", "Paper A")
+    write_dummy_pdf(run_dir / "pdfs" / "paper_b.pdf", "Paper B")
+    if with_source_table:
+        write_csv(
+            run_dir / "source_table.csv",
+            [
+                {"row_id": "row_1", "pdf_id": "paper_a", "Title": "Paper A", "Finding": "", "Weak field": ""},
+                {"row_id": "row_2", "pdf_id": "paper_b", "Title": "Paper B", "Finding": "", "Weak field": ""},
+            ],
+            ["row_id", "pdf_id", "Title", "Finding", "Weak field"],
+        )
+    (run_dir / "review_input.json").write_text(
         json.dumps(
             {
+                "schema_version": "papers_to_table.review_input.v1",
+                "run_id": "agent_review",
+                "pdfs": [
+                    {"pdf_id": "paper_a", "path": "pdfs/paper_a.pdf", "label": "Paper A"},
+                    {"pdf_id": "paper_b", "path": "pdfs/paper_b.pdf", "label": "Paper B"},
+                ],
                 "columns": [
-                    {"column_name": "Method", "description": "Primary method"},
-                    {"column_name": "Main finding", "description": "Main finding"},
-                    {"column_name": "Rejected value", "description": "A value to reject"},
-                    {"column_name": "No data field", "description": "A value to mark no data"},
-                ]
+                    {"column_name": "Finding", "description": "Main reported finding", "field_type": "text"},
+                    {"column_name": "Weak field", "description": "Field with weak page evidence", "field_type": "text"},
+                ],
+                "rows": [
+                    {"row_id": "row_1", "pdf_id": "paper_a", "values": {"Title": "Paper A"}},
+                    {"row_id": "row_2", "pdf_id": "paper_b", "values": {"Title": "Paper B"}},
+                ],
+                "proposals": [
+                    {
+                        "row_id": "row_1",
+                        "column_name": "Finding",
+                        "proposed_value": "directly supported value",
+                        "evidence": [
+                            {
+                                "pdf_id": "paper_a",
+                                "source_type": "direct_quote",
+                                "page_number": 1,
+                                "quote_text": "Exact supporting sentence from the PDF.",
+                            }
+                        ],
+                    },
+                    {
+                        "row_id": "row_2",
+                        "column_name": "Weak field",
+                        "proposed_value": "weakly inferred value",
+                        "evidence": [
+                            {
+                                "pdf_id": "paper_b",
+                                "page_number": 1,
+                                "source_location": "Results",
+                                "reasoning": "The agent inferred the value from page context without an exact quote.",
+                            }
+                        ],
+                    },
+                    {
+                        "row_id": "row_2",
+                        "column_name": "Finding",
+                        "proposal_status": "no_data",
+                        "evidence": [
+                            {
+                                "pdf_id": "paper_b",
+                                "page_number": 1,
+                                "quote_text": "The paper does not report the requested finding.",
+                            }
+                        ],
+                    },
+                ],
             }
-        ),
-        encoding="utf-8",
-    )
-    (run_dir / "evidence").mkdir(parents=True, exist_ok=True)
-    (run_dir / "evidence" / "evidence_notes.json").write_text(
-        json.dumps(
-            [
-                {
-                    "row_id": "row_1",
-                    "column_name": "Method",
-                    "evidence": "The paper uses spatial transcriptomics throughout the methods.",
-                    "rationale": "The methods section directly names the assay.",
-                    "source_pdf": "paper_one.pdf",
-                    "page_number": 3,
-                    "confidence": "high",
-                },
-                {
-                    "row_id": "row_1",
-                    "column_name": "Main finding",
-                    "evidence": "The authors report higher resolution mapping in the results.",
-                    "rationale": "This is the main result sentence.",
-                    "source_pdf": "paper_one.pdf",
-                    "page_number": 7,
-                    "confidence": "medium",
-                    "needs_review": True,
-                    "caveat": "Summarized wording.",
-                },
-                {
-                    "row_id": "row_1",
-                    "column_name": "Rejected value",
-                    "evidence": "Weak support only.",
-                    "rationale": "Included to test rejection.",
-                    "source_pdf": "paper_one.pdf",
-                },
-                {
-                    "row_id": "row_1",
-                    "column_name": "No data field",
-                    "rationale": "Included to test confirmed no data.",
-                    "source_pdf": "paper_one.pdf",
-                },
-            ]
         ),
         encoding="utf-8",
     )
@@ -128,149 +139,163 @@ def build_package(run_dir: Path) -> dict:
     return json.loads(completed.stdout)
 
 
-def proposal_map(run_dir: Path) -> dict[str, dict]:
-    proposals = []
-    for line in (run_dir / "proposals" / "proposals.jsonl").read_text(encoding="utf-8").splitlines():
-        if line.strip():
-            proposals.append(json.loads(line))
-    return {proposal["column_name"]: proposal for proposal in proposals}
+def read_jsonl(path: Path) -> list[dict]:
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def test_build_review_package_from_table_and_lightweight_evidence() -> None:
-    tmp_path = workspace("build_review")
+def test_authoring_validation_and_build_generate_mvp_artifacts() -> None:
+    tmp_path = make_workspace("build")
     try:
         run_dir = make_run(tmp_path)
+        validation = json.loads(run_cmd(str(VALIDATE_SCRIPT), "--run", str(run_dir), "--mode", "authoring", "--json").stdout)
+        assert validation["ok"] is True
+
         result = build_package(run_dir)
 
-        review_data = json.loads((run_dir / "review" / "review_data.json").read_text(encoding="utf-8"))
-        review_html = (run_dir / "review" / "review.html").read_text(encoding="utf-8")
+        assert result["review_items"] == 3
+        assert (run_dir / "review" / "index.html").exists()
+        assert (run_dir / "review" / "review_package.json").exists()
+        assert (run_dir / "normalized" / "proposals.jsonl").exists()
+        assert (run_dir / "normalized" / "evidence.jsonl").exists()
+        assert (run_dir / "summaries" / "validation_report.json").exists()
 
-        assert result["review_items"] == 4
-        assert review_data["coverage"]["policy"] == "sparse_non_empty_values_only"
-        assert any(item["rationale"] == "The methods section directly names the assay." for item in review_data["items"])
-        assert "spatial transcriptomics" in review_html
-        assert "The paper uses spatial transcriptomics" in review_html
-        assert "Auto-accept all proposals" in review_html
-        assert "Review proposals first" in review_html
+        proposals = read_jsonl(run_dir / "normalized" / "proposals.jsonl")
+        evidence = read_jsonl(run_dir / "normalized" / "evidence.jsonl")
+        assert proposals[0]["proposal_id"].startswith("prop_")
+        assert evidence[0]["evidence_schema_version"] == "main_evidence"
+        assert any(proposal["evidence_status"] == "inferred_weak" for proposal in proposals)
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
-def test_apply_decisions_exports_accepted_values_without_mutating_source() -> None:
-    tmp_path = workspace("apply_decisions")
+def test_deterministic_ids_are_stable_across_rebuilds() -> None:
+    tmp_path = make_workspace("deterministic")
     try:
         run_dir = make_run(tmp_path)
         build_package(run_dir)
-        proposals = proposal_map(run_dir)
-        source_before = (run_dir / "inputs" / "source_table.csv").read_text(encoding="utf-8")
+        first_ids = [row["proposal_id"] for row in read_jsonl(run_dir / "normalized" / "proposals.jsonl")]
+
+        build_package(run_dir)
+        second_ids = [row["proposal_id"] for row in read_jsonl(run_dir / "normalized" / "proposals.jsonl")]
+
+        assert first_ids == second_ids
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_authoring_validation_rejects_non_empty_value_without_evidence() -> None:
+    tmp_path = make_workspace("invalid")
+    try:
+        run_dir = make_run(tmp_path)
+        payload = json.loads((run_dir / "review_input.json").read_text(encoding="utf-8"))
+        payload["proposals"][0]["evidence"] = []
+        (run_dir / "review_input.json").write_text(json.dumps(payload), encoding="utf-8")
+
+        completed = subprocess.run(
+            [sys.executable, str(VALIDATE_SCRIPT), "--run", str(run_dir), "--mode", "authoring", "--json"],
+            text=True,
+            capture_output=True,
+        )
+
+        assert completed.returncode == 1
+        report = json.loads(completed.stdout)
+        assert any("non-empty proposed_value" in error for error in report["errors"])
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_valid_package_requires_only_quote_page_evidence_no_table_or_schema() -> None:
+    tmp_path = make_workspace("minimal")
+    try:
+        run_dir = make_run(tmp_path, with_source_table=False)
+
+        result = build_package(run_dir)
+        package = json.loads((run_dir / "review" / "review_package.json").read_text(encoding="utf-8"))
+
+        assert result["review_items"] == 3
+        assert package["source"]["source_table_present"] is False
+        assert not (run_dir / "assets" / "pages").exists()
+        assert not (run_dir / "assets" / "figures").exists()
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_apply_decisions_exports_accepted_only_csv() -> None:
+    tmp_path = make_workspace("apply")
+    try:
+        run_dir = make_run(tmp_path)
+        build_package(run_dir)
+        proposals = read_jsonl(run_dir / "normalized" / "proposals.jsonl")
         decisions_path = run_dir / "review" / "downloaded_decisions.json"
         decisions_path.write_text(
             json.dumps(
                 {
                     "decisions": [
-                        {"proposal_id": proposals["Method"]["proposal_id"], "decision": "accepted"},
+                        {"proposal_id": proposals[0]["proposal_id"], "decision": "accepted", "cell_id": proposals[0]["cell_id"]},
                         {
-                            "proposal_id": proposals["Main finding"]["proposal_id"],
+                            "proposal_id": proposals[1]["proposal_id"],
                             "decision": "accepted_with_edit",
-                            "edited_value": "higher-resolution spatial map",
+                            "edited_value": "reviewer edited value",
+                            "cell_id": proposals[1]["cell_id"],
                         },
-                        {"proposal_id": proposals["Rejected value"]["proposal_id"], "decision": "rejected"},
-                        {"proposal_id": proposals["No data field"]["proposal_id"], "decision": "confirmed_no_data"},
+                        {"proposal_id": proposals[2]["proposal_id"], "decision": "confirmed_no_data", "cell_id": proposals[2]["cell_id"]},
                     ]
                 }
             ),
             encoding="utf-8",
         )
 
-        run_cmd(str(APPLY_SCRIPT), "--run", str(run_dir), "--decisions", str(decisions_path), "--json")
+        result = json.loads(run_cmd(str(APPLY_SCRIPT), "--run", str(run_dir), "--decisions", str(decisions_path), "--json").stdout)
 
         final_rows = read_csv(run_dir / "exports" / "final_table.csv")
-        assert final_rows[0]["Method"] == "spatial transcriptomics"
-        assert final_rows[0]["Main finding"] == "higher-resolution spatial map"
-        assert final_rows[0]["Rejected value"] == ""
-        assert final_rows[0]["No data field"] == ""
-        assert (run_dir / "inputs" / "source_table.csv").read_text(encoding="utf-8") == source_before
+        assert result["accepted_changes_count"] == 2
+        assert final_rows[0]["Finding"] == "directly supported value"
+        assert final_rows[1]["Weak field"] == "reviewer edited value"
+        assert final_rows[1]["Finding"] == ""
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
-def test_auto_accept_records_automation_accept_all() -> None:
-    tmp_path = workspace("auto_accept")
+def test_serve_review_writes_decisions_and_exports() -> None:
+    tmp_path = make_workspace("serve")
     try:
         run_dir = make_run(tmp_path)
         build_package(run_dir)
+        proposal = read_jsonl(run_dir / "normalized" / "proposals.jsonl")[0]
+        server, url = serve(run_dir, open_browser=False, quiet=True)
+        try:
+            with urllib.request.urlopen(url, timeout=5) as response:
+                assert response.status == 200
+                assert b"Papers-to-table rich review" in response.read()
 
-        run_cmd(str(APPLY_SCRIPT), "--run", str(run_dir), "--accept-all", "--json")
+            payload = json.dumps(
+                {
+                    "decisions": [
+                        {
+                            "proposal_id": proposal["proposal_id"],
+                            "cell_id": proposal["cell_id"],
+                            "decision": "accepted",
+                            "decision_source": "human_individual",
+                        }
+                    ]
+                }
+            ).encode("utf-8")
+            request = urllib.request.Request(
+                url.rsplit("/review/", 1)[0] + "/api/decisions",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(request, timeout=5) as response:
+                assert response.status == 200
 
-        decisions = [
-            json.loads(line)
-            for line in (run_dir / "review" / "decisions.jsonl").read_text(encoding="utf-8").splitlines()
-            if line.strip()
-        ]
-        assert decisions
-        assert {decision["decision_source"] for decision in decisions} == {"automation_accept_all"}
-        audit_files = list((run_dir / "exports").glob("audit_log_*.json"))
-        audit = json.loads(audit_files[0].read_text(encoding="utf-8"))
-        assert all(entry["auto_accepted"] for entry in audit["entries"])
-    finally:
-        shutil.rmtree(tmp_path, ignore_errors=True)
-
-
-def test_sparse_coverage_policy_is_reported() -> None:
-    tmp_path = workspace("sparse_report")
-    try:
-        run_dir = make_run(tmp_path)
-        build_package(run_dir)
-
-        report = (run_dir / "summaries" / "run_report.md").read_text(encoding="utf-8")
-        assert "sparse_non_empty_values_only" in report
-        assert "Omitted blank cells" in report
-    finally:
-        shutil.rmtree(tmp_path, ignore_errors=True)
-
-
-def test_report_handoff_labels_reviewed_and_draft_values() -> None:
-    tmp_path = workspace("handoff")
-    try:
-        run_dir = make_run(tmp_path)
-        build_package(run_dir)
-        proposals = proposal_map(run_dir)
-        decisions_path = run_dir / "review" / "partial_decisions.json"
-        decisions_path.write_text(
-            json.dumps({"decisions": [{"proposal_id": proposals["Method"]["proposal_id"], "decision": "accepted"}]}),
-            encoding="utf-8",
-        )
-
-        run_cmd(str(APPLY_SCRIPT), "--run", str(run_dir), "--decisions", str(decisions_path), "--json")
-
-        handoff = json.loads((run_dir / "summaries" / "report_handoff.json").read_text(encoding="utf-8"))
-        assert handoff["summary"]["human_reviewed"] == 1
-        assert handoff["summary"]["draft_unreviewed"] == 3
-        labels = {item["column_name"]: item["handoff_label"] for item in handoff["items"]}
-        assert labels["Method"] == "human_reviewed"
-        assert labels["Main finding"] == "draft_unreviewed"
-    finally:
-        shutil.rmtree(tmp_path, ignore_errors=True)
-
-
-def test_bootstrap_seed_table_and_column_plan_can_build_review_package() -> None:
-    tmp_path = workspace("bootstrap")
-    try:
-        run_dir = tmp_path / "bootstrap_run"
-        write_csv(
-            run_dir / "inputs" / "seed_table.csv",
-            [{"row_id": "row_pdf_1", "PDF": "paper.pdf", "Main claim": "Agent-created claim"}],
-            ["row_id", "PDF", "Main claim"],
-        )
-        (run_dir / "inputs" / "schema.json").write_text(
-            json.dumps({"columns": [{"column_name": "Main claim", "description": "Main claim from the paper"}]}),
-            encoding="utf-8",
-        )
-
-        build_package(run_dir)
-
-        review_data = json.loads((run_dir / "review" / "review_data.json").read_text(encoding="utf-8"))
-        assert review_data["columns"][0]["column_name"] == "Main claim"
-        assert review_data["items"][0]["proposed_value"] == "Agent-created claim"
+            export_request = urllib.request.Request(url.rsplit("/review/", 1)[0] + "/api/export", data=b"{}", method="POST")
+            with urllib.request.urlopen(export_request, timeout=5) as response:
+                export_result = json.loads(response.read().decode("utf-8"))
+            assert export_result["ok"] is True
+            assert (run_dir / "review" / "decisions.jsonl").exists()
+            assert (run_dir / "exports" / "final_table.csv").exists()
+        finally:
+            server.shutdown()
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)

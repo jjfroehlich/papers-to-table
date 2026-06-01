@@ -19,6 +19,8 @@ The monorepo has three coordinated surfaces:
 
 Eval and optimizer support the main app. They do not redefine the product.
 
+The repo also ships `skills/papers-to-table-agent-kit/` as a portable review handoff kit for external agents. That kit does not run the main app, FastAPI backend, LM Studio provider path, or local extraction pipeline. It standardizes the handoff from agent extraction to human review by accepting `review_input.json`, PDFs, and optional table/schema files, then generating a rich local review bundle and accepted-only CSV export.
+
 ## 2. Operating Principles
 
 Repo-wide requirements:
@@ -234,6 +236,23 @@ Machine-readable schemas live under `specs/contracts/schemas/` and are consumed 
 ```bash
 python scripts/papers_to_table.py verify-contract --run /abs/path/to/run_bundle
 ```
+
+### 11.1 Portable Agent-Kit Review Contract
+
+The portable agent kit owns a separate authoring contract for external agents. Agents author only:
+
+- `review_input.json`
+- `pdfs/`
+- optional `source_table.csv`
+- optional `schema.json`
+
+The kit scripts derive generated artifacts under `review/`, `normalized/`, `summaries/`, and `exports/`. Main-app-compatible artifacts are optional generated outputs and are never required inputs.
+
+`review_input.json` uses `papers_to_table.review_input.v1`. `proposal_id`, `evidence_id`, `cell_id`, and `created_at` are optional authoring fields. When absent, `build_review_package.py` generates stable deterministic IDs; when present, validation checks uniqueness and references.
+
+Every non-empty proposed value must carry at least one structured Tier A/B/C evidence record. Strong direct evidence requires `pdf_id`, `page_number`, and quote/table/caption/evidence text, exact/approximate bbox regions, or `figure_ref` plus `caption_text`. Page-plus-reasoning evidence remains reviewable but is visibly labeled weak/attention.
+
+The kit's generated evidence stream uses the canonical `main_evidence` tag where practical so downstream audit tooling can reuse evidence semantics. The generated bundle is not a main-app run bundle unless an optional later `main_compat/` export is explicitly generated and validated.
 
 ## 12. Eval Companion
 

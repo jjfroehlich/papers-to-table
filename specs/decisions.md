@@ -89,3 +89,11 @@ Decision: Current main-app run bundles use `main_run_bundle` and evidence record
 Rationale: The previous `.v2` suffix implied a compatibility ladder the repo does not intend to maintain for the canonical local app.
 
 Implications: Active producers must write the canonical tags. Active consumers, eval loaders, and contract verification must reject missing, legacy `.v2`, and unknown tags clearly.
+
+## D012 Portable agent-kit authoring boundary
+
+Decision: External agents using `skills/papers-to-table-agent-kit/` author only `review_input.json`, `pdfs/`, and optional `source_table.csv` or `schema.json`.
+
+Rationale: The kit's value is a rich human review handoff for agent-extracted values, not a second extraction app or a requirement that agents construct internal run artifacts correctly.
+
+Implications: Kit scripts derive normalized proposals/evidence, review-package JSON, validation summaries, decisions, audit logs, and accepted-only exports. Main-app-compatible artifacts are optional generated outputs, never required authored inputs.

@@ -153,6 +153,44 @@ Export writes new artifacts under `exports/`. The source workbook is never mutat
 
 Exports include only explicitly accepted changes. Rejected, unreviewed, diagnostic, and confirmed-no-data outcomes are not written as accepted cell values. Audit logs must preserve proposal id, cell id, decision, decision source, exported value when applicable, and auto-accept truth.
 
+## Portable Agent-Kit Review Contract
+
+`skills/papers-to-table-agent-kit/` has a separate authoring contract for external agents that bring their own extraction capability. It is not a main-app run bundle input contract.
+
+Agents author only:
+
+- `review_input.json`
+- `pdfs/`
+- optional `source_table.csv`
+- optional `schema.json`
+
+`build_review_package.py` derives the MVP generated artifacts:
+
+- `review/index.html`
+- `review/assets/*`
+- `review/review_package.json`
+- `normalized/proposals.jsonl`
+- `normalized/evidence.jsonl`
+- `summaries/validation_report.json`
+
+Review/export then generates:
+
+- `review/decisions.jsonl`
+- `exports/final_table.csv`
+- `exports/audit_log_*.json`
+- `summaries/reviewer_summary.json`
+
+`review_input.json` uses `papers_to_table.review_input.v1`. Authored `proposal_id`, `evidence_id`, `cell_id`, and `created_at` are optional. The builder generates stable deterministic IDs when they are absent and validation checks uniqueness and references when they are supplied.
+
+Every non-empty proposed value must have at least one structured evidence record. Evidence is tiered for validation and UI labels:
+
+- Tier A: `pdf_id` plus `page_number` plus quote/table/caption/evidence text maps to `direct_strong`.
+- Tier B: `pdf_id` plus `page_number` plus exact/approximate bbox regions maps to `direct_strong` or `direct_weak`.
+- Tier C: `pdf_id` plus `page_number` plus `source_location` and/or `reasoning` maps to `inferred_weak` and attention.
+- Tier D: no structured evidence is invalid for non-empty proposed values.
+
+Generated agent-kit evidence records use `evidence_schema_version="main_evidence"` where practical, but generated agent-kit artifacts are not a main-app run bundle unless an optional explicit `main_compat/` export is later generated and contract-verified.
+
 ## Eval Summary Contract
 
 Eval outputs must preserve stable per-run and comparison artifacts containing:

@@ -2,101 +2,95 @@
 from __future__ import annotations
 
 import argparse
-import csv
-import hashlib
 import json
-from datetime import datetime, timezone
+import shutil
+import sys
 from pathlib import Path
 from typing import Any
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
 
-SCHEMA_VERSION = "papers_to_table_agent_review_data.v1"
-PROPOSAL_SCHEMA_VERSION = "papers_to_table_agent_proposal.v1"
-EVIDENCE_SCHEMA_VERSION = "papers_to_table_agent_evidence.v1"
-INTERNAL_COLUMNS = {"row_id", "row_index"}
-
-
-def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-def stable_id(prefix: str, *parts: object) -> str:
-    raw = "::".join(str(part or "") for part in parts)
-    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
-    return f"{prefix}_{digest}"
-
-
-def read_json(path: Path, default: Any) -> Any:
-    if not path.exists():
-        return default
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def write_json(path: Path, payload: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+from review_package_common import (  # noqa: E402
+    MAIN_EVIDENCE_SCHEMA_VERSION,
+    NORMALIZED_PROPOSAL_SCHEMA_VERSION,
+    REVIEW_INPUT_SCHEMA_VERSION,
+    REVIEW_PACKAGE_SCHEMA_VERSION,
+    evidence_tier,
+    infer_source_type,
+    is_non_empty,
+    merged_evidence_semantics,
+    normalized_regions,
+    read_csv,
+    read_json,
+    safe_filename,
+    stable_id,
+    text_evidence_value,
+    utc_now,
+    write_json,
+    write_jsonl,
+)
+from validate_review_package import persist_report, validate_authoring, validate_generated  # noqa: E402
 
 
-def read_csv(path: Path) -> tuple[list[dict[str, str]], list[str]]:
-    with path.open("r", encoding="utf-8-sig", newline="") as handle:
-        reader = csv.DictReader(handle)
-        rows = [{key: (value or "") for key, value in row.items()} for row in reader]
-        return rows, list(reader.fieldnames or [])
+INTERNAL_COLUMNS = {"row_id", "pdf_id"}
+FIELD_TYPE_ALIASES = {
+    "string": "text",
+    "free_text": "text",
+    "number": "number",
+    "numeric": "number",
+    "enum": "categorical",
+    "category": "categorical",
+    "bool": "boolean",
+}
 
 
-def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="\n") as handle:
-        for row in rows:
-            handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[3]
 
 
-def read_jsonl(path: Path) -> list[dict[str, Any]]:
-    if not path.exists():
-        return []
-    rows: list[dict[str, Any]] = []
-    with path.open("r", encoding="utf-8") as handle:
-        for line_number, line in enumerate(handle, start=1):
-            if not line.strip():
-                continue
-            try:
-                rows.append(json.loads(line))
-            except json.JSONDecodeError as exc:
-                raise ValueError(f"Invalid JSON in {path} line {line_number}: {exc.msg}") from exc
-    return rows
+def _template_path() -> Path:
+    return Path(__file__).resolve().parents[1] / "templates" / "review.html"
 
 
-def table_path_for_run(run_dir: Path) -> Path:
+def _copy_pdfjs_assets(run_dir: Path) -> list[str]:
+    """Copy local pdfjs-dist runtime assets when the repo install has them."""
+    repo_root = _repo_root()
     candidates = [
-        run_dir / "tables" / "draft_table.csv",
-        run_dir / "inputs" / "seed_table.csv",
-        run_dir / "inputs" / "source_table.csv",
+        repo_root / "app" / "frontend" / "node_modules" / "pdfjs-dist" / "build",
+        repo_root / "app" / "frontend" / "node_modules" / "pdfjs-dist" / "legacy" / "build",
     ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    raise FileNotFoundError(
-        "No table found. Expected one of tables/draft_table.csv, "
-        "inputs/seed_table.csv, or inputs/source_table.csv."
-    )
+    out_dir = run_dir / "review" / "assets"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    copied: list[str] = []
+    for candidate_dir in candidates:
+        pdf = candidate_dir / "pdf.mjs"
+        worker = candidate_dir / "pdf.worker.mjs"
+        if pdf.exists() and worker.exists():
+            shutil.copy2(pdf, out_dir / "pdf.mjs")
+            shutil.copy2(worker, out_dir / "pdf.worker.mjs")
+            copied.extend(["review/assets/pdf.mjs", "review/assets/pdf.worker.mjs"])
+            break
+    return copied
 
 
-def normalize_schema(schema_payload: Any, table_columns: list[str]) -> list[dict[str, Any]]:
-    if isinstance(schema_payload, dict):
-        columns = schema_payload.get("columns", [])
+def _load_schema_columns(run_dir: Path) -> list[dict[str, Any]]:
+    schema_path = run_dir / "schema.json"
+    if not schema_path.exists():
+        return []
+    payload = read_json(schema_path)
+    columns: Any
+    if isinstance(payload, dict):
+        columns = payload.get("columns", [])
         if isinstance(columns, dict):
-            iterable = [{"column_name": name, **(value or {})} for name, value in columns.items()]
-        elif isinstance(columns, list):
-            iterable = columns
-        else:
-            iterable = []
-    elif isinstance(schema_payload, list):
-        iterable = schema_payload
+            columns = [{"column_name": name, **(value or {})} for name, value in columns.items()]
     else:
-        iterable = []
-
+        columns = payload
+    if not isinstance(columns, list):
+        return []
     normalized: list[dict[str, Any]] = []
-    for item in iterable:
+    for item in columns:
         if not isinstance(item, dict):
             continue
         name = str(item.get("column_name") or item.get("name") or "").strip()
@@ -105,343 +99,466 @@ def normalize_schema(schema_payload: Any, table_columns: list[str]) -> list[dict
         normalized.append(
             {
                 "column_name": name,
-                "description": str(item.get("description") or "").strip(),
-                "format": item.get("format") or item.get("field_type") or item.get("type"),
-                "guidance": item.get("guidance") or item.get("extraction_guidance"),
+                "description": item.get("description"),
+                "field_type": _normalize_field_type(item.get("field_type") or item.get("type") or item.get("format")),
+                "allowed_values": item.get("allowed_values"),
+                "is_target": bool(item.get("is_target", True)),
             }
         )
-
-    if normalized:
-        return normalized
-    return [{"column_name": column, "description": "", "format": None, "guidance": None} for column in table_columns if column not in INTERNAL_COLUMNS]
+    return normalized
 
 
-def load_schema(run_dir: Path, table_columns: list[str]) -> list[dict[str, Any]]:
-    path = run_dir / "inputs" / "schema.json"
-    return normalize_schema(read_json(path, []), table_columns)
+def _normalize_field_type(value: Any) -> str | None:
+    if value is None:
+        return None
+    raw = str(value).strip().lower()
+    return FIELD_TYPE_ALIASES.get(raw, raw if raw in {"text", "number", "categorical", "boolean"} else None)
 
 
-def load_evidence_notes(run_dir: Path) -> list[dict[str, Any]]:
-    payload = read_json(run_dir / "evidence" / "evidence_notes.json", [])
-    if isinstance(payload, list):
-        return [item for item in payload if isinstance(item, dict)]
-    if isinstance(payload, dict):
-        notes: list[dict[str, Any]] = []
-        for key, value in payload.items():
-            if isinstance(value, dict):
-                item = dict(value)
-                item.setdefault("cell_key", key)
-                notes.append(item)
-        return notes
-    return []
+def _source_table(run_dir: Path) -> tuple[list[dict[str, str]], list[str]]:
+    path = run_dir / "source_table.csv"
+    if not path.exists():
+        return [], []
+    return read_csv(path)
 
 
-def row_id_for(row: dict[str, str], row_index: int) -> str:
-    if row.get("row_id"):
-        return str(row["row_id"]).strip()
-    return stable_id("row", row_index, row_label_for(row, row_index))
-
-
-def row_label_for(row: dict[str, str], row_index: int) -> str:
-    for key in ("Title", "title", "Paper", "paper", "source_pdf", "PDF", "pdf"):
-        value = str(row.get(key, "")).strip()
-        if value:
-            return value
-    return f"row {row_index + 1}"
-
-
-def note_matches(note: dict[str, Any], *, row_id: str, row_index: int, column_name: str, row_label: str) -> bool:
-    note_column = str(note.get("column_name") or note.get("column") or "").strip()
-    if note_column and note_column != column_name:
-        return False
-    if str(note.get("row_id") or "").strip() == row_id:
-        return True
-    if str(note.get("row_label") or "").strip() == row_label:
-        return True
-    if str(note.get("row_index") or "").strip() == str(row_index):
-        return True
-    cell_key = str(note.get("cell_key") or "").strip()
-    return cell_key in {f"{row_id}::{column_name}", f"{row_index}::{column_name}", f"{row_label}::{column_name}"}
-
-
-def find_note(notes: list[dict[str, Any]], *, row_id: str, row_index: int, column_name: str, row_label: str) -> dict[str, Any]:
-    for note in notes:
-        if note_matches(note, row_id=row_id, row_index=row_index, column_name=column_name, row_label=row_label):
-            return note
-    return {}
-
-
-def note_text(note: dict[str, Any], *keys: str) -> str:
-    for key in keys:
-        value = note.get(key)
-        if value is not None and str(value).strip():
+def _row_label(row: dict[str, Any], row_id: str, index: int) -> str:
+    values = row.get("values") if isinstance(row.get("values"), dict) else row
+    for key in ("Title", "title", "Paper", "paper", "label", "pdf_id"):
+        value = values.get(key) if isinstance(values, dict) else None
+        if is_non_empty(value):
             return str(value).strip()
-    return ""
+    return row_id or f"row {index + 1}"
 
 
-def build_from_table(run_dir: Path, table_path: Path) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
-    rows, fieldnames = read_csv(table_path)
-    schema = load_schema(run_dir, fieldnames)
-    target_columns = [item["column_name"] for item in schema if item["column_name"] in fieldnames and item["column_name"] not in INTERNAL_COLUMNS]
-    if not target_columns:
-        target_columns = [column for column in fieldnames if column not in INTERNAL_COLUMNS]
-
-    notes = load_evidence_notes(run_dir)
-    run_id = run_dir.name
-    generated_at = utc_now()
-
-    review_rows: list[dict[str, Any]] = []
-    proposals: list[dict[str, Any]] = []
-    evidence_rows: list[dict[str, Any]] = []
-    review_items: list[dict[str, Any]] = []
-    omitted_blank_cells = 0
-
-    for row_index, row in enumerate(rows):
-        row_id = row_id_for(row, row_index)
-        row_label = row_label_for(row, row_index)
-        review_rows.append(
+def _normalize_pdfs(run_dir: Path, payload: dict[str, Any]) -> list[dict[str, Any]]:
+    raw_pdfs = payload.get("pdfs") if isinstance(payload.get("pdfs"), list) else []
+    pdf_dir = run_dir / "pdfs"
+    pdf_dir.mkdir(parents=True, exist_ok=True)
+    normalized: list[dict[str, Any]] = []
+    for item in raw_pdfs:
+        if not isinstance(item, dict):
+            continue
+        pdf_id = str(item.get("pdf_id") or "").strip()
+        if not pdf_id:
+            continue
+        raw_path = str(item.get("path") or "").strip()
+        source = (run_dir / raw_path).resolve() if raw_path and not Path(raw_path).is_absolute() else Path(raw_path)
+        target = source
+        try:
+            target.relative_to(run_dir.resolve())
+        except ValueError:
+            suffix = source.suffix if source.suffix else ".pdf"
+            target = pdf_dir / f"{safe_filename(pdf_id, 'pdf')}{suffix}"
+            if source.exists():
+                shutil.copy2(source, target)
+        rel_path = target.resolve().relative_to(run_dir.resolve()).as_posix()
+        normalized.append(
             {
-                "row_id": row_id,
-                "row_index": row_index,
-                "row_label": row_label,
-                "values": row,
+                "pdf_id": pdf_id,
+                "label": item.get("label") or item.get("title") or pdf_id,
+                "path": rel_path,
+                "asset_path": f"../{rel_path}",
+                "title": item.get("title"),
+                "authors": item.get("authors"),
+                "year": item.get("year"),
             }
         )
-        for column_name in target_columns:
-            value = str(row.get(column_name, "") or "").strip()
-            if not value:
-                omitted_blank_cells += 1
-                continue
-            cell_id = stable_id("cell", row_id, column_name)
-            proposal_id = stable_id("prop", run_id, cell_id, value)
-            note = find_note(notes, row_id=row_id, row_index=row_index, column_name=column_name, row_label=row_label)
-            rationale = note_text(note, "rationale", "reasoning", "note")
-            caveat = note_text(note, "caveat", "warning")
-            confidence = note.get("confidence")
-            needs_review = bool(note.get("needs_review", False) or caveat)
-            source_pdf = note_text(note, "source_pdf", "pdf", "pdf_path")
-            raw_text = note_text(note, "raw_text", "quote", "evidence")
-            caption = note_text(note, "caption")
-            reasoning = note_text(note, "reasoning") or rationale
-            evidence_for_item: list[dict[str, Any]] = []
+    return normalized
 
-            if raw_text or caption or reasoning or source_pdf or note.get("page_number") is not None:
-                evidence_id = stable_id("ev", proposal_id, source_pdf, note.get("page_number"), raw_text, caption, reasoning)
-                source_type = str(note.get("source_type") or ("direct_quote" if raw_text else "inferred_reasoning"))
-                pdf_id = str(note.get("pdf_id") or (stable_id("pdf", source_pdf) if source_pdf else ""))
-                evidence_record = {
-                    "evidence_schema_version": EVIDENCE_SCHEMA_VERSION,
-                    "evidence_id": evidence_id,
-                    "proposal_id": proposal_id,
-                    "run_id": run_id,
-                    "row_id": row_id,
-                    "column_name": column_name,
-                    "pdf_id": pdf_id,
-                    "source_pdf": source_pdf,
-                    "source_type": source_type,
-                    "page_number": note.get("page_number"),
-                    "source_location": note.get("source_location"),
-                    "raw_text": raw_text,
-                    "caption": caption,
-                    "reasoning": reasoning,
-                    "bbox": note.get("bbox"),
-                    "figure_id": note.get("figure_id"),
-                    "is_primary": True,
-                    "created_at": generated_at,
-                }
-                evidence_rows.append(evidence_record)
-                evidence_for_item.append(evidence_record)
-                evidence_ids = [evidence_id]
+
+def _normalize_rows(
+    payload: dict[str, Any],
+    table_rows: list[dict[str, str]],
+    table_fieldnames: list[str],
+    proposals: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    raw_rows = payload.get("rows") if isinstance(payload.get("rows"), list) else []
+    for index, item in enumerate(raw_rows):
+        if not isinstance(item, dict):
+            continue
+        row_id = str(item.get("row_id") or "").strip()
+        if not row_id:
+            continue
+        values = item.get("values") if isinstance(item.get("values"), dict) else {}
+        row = {
+            "row_id": row_id,
+            "row_index": item.get("row_index", index),
+            "pdf_id": item.get("pdf_id"),
+            "paper_label": item.get("label") or _row_label({"values": values, **item}, row_id, index),
+            "values": values,
+        }
+        rows.append(row)
+        seen.add(row_id)
+
+    for index, table_row in enumerate(table_rows):
+        row_id = str(table_row.get("row_id") or "").strip() or stable_id("row", index, table_row)
+        if row_id in seen:
+            continue
+        row = {
+            "row_id": row_id,
+            "row_index": index,
+            "pdf_id": table_row.get("pdf_id"),
+            "paper_label": _row_label(table_row, row_id, index),
+            "values": table_row,
+        }
+        rows.append(row)
+        seen.add(row_id)
+
+    for proposal in proposals:
+        row_id = str(proposal.get("row_id") or "").strip()
+        if row_id and row_id not in seen:
+            row = {
+                "row_id": row_id,
+                "row_index": len(rows),
+                "pdf_id": proposal.get("pdf_id"),
+                "paper_label": row_id,
+                "values": {"row_id": row_id},
+            }
+            rows.append(row)
+            seen.add(row_id)
+
+    if not rows and table_fieldnames:
+        rows.append({"row_id": "row_1", "row_index": 0, "pdf_id": None, "paper_label": "row_1", "values": {}})
+    return rows
+
+
+def _normalize_columns(
+    payload: dict[str, Any],
+    schema_columns: list[dict[str, Any]],
+    table_fieldnames: list[str],
+    proposals: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    columns: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def add_column(column: dict[str, Any], *, is_target: bool = True) -> None:
+        name = str(column.get("column_name") or column.get("name") or "").strip()
+        if not name or name in seen:
+            return
+        seen.add(name)
+        columns.append(
+            {
+                "column_name": name,
+                "description": column.get("description"),
+                "field_type": _normalize_field_type(column.get("field_type") or column.get("type") or column.get("format")),
+                "allowed_values": column.get("allowed_values"),
+                "is_target": bool(column.get("is_target", is_target)),
+            }
+        )
+
+    raw_columns = payload.get("columns") if isinstance(payload.get("columns"), list) else []
+    for column in raw_columns:
+        if isinstance(column, dict):
+            add_column(column, is_target=True)
+    for column in schema_columns:
+        add_column(column, is_target=True)
+    for name in table_fieldnames:
+        add_column({"column_name": name, "is_target": name not in INTERNAL_COLUMNS}, is_target=name not in INTERNAL_COLUMNS)
+    for proposal in proposals:
+        add_column({"column_name": proposal.get("column_name"), "is_target": True}, is_target=True)
+    return columns
+
+
+def _row_pdf_lookup(rows: list[dict[str, Any]]) -> dict[str, str]:
+    return {str(row.get("row_id")): str(row.get("pdf_id") or "") for row in rows if row.get("pdf_id")}
+
+
+def _normalize_evidence(
+    run_id: str,
+    proposal_id: str,
+    proposal: dict[str, Any],
+    evidence_items: list[Any],
+    inherited_pdf_id: str | None,
+    generated_at: str,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    normalized: list[dict[str, Any]] = []
+    tiers: list[dict[str, Any]] = []
+    for index, item in enumerate(evidence_items):
+        if not isinstance(item, dict):
+            continue
+        tier = evidence_tier(item, inherited_pdf_id=inherited_pdf_id)
+        tiers.append(tier)
+        pdf_id = str(item.get("pdf_id") or inherited_pdf_id or "").strip()
+        page_number = _page_number(item.get("page_number"))
+        exact_regions = normalized_regions(item.get("exact_highlight_regions"), default_page=page_number)
+        approximate_regions = normalized_regions(
+            item.get("approximate_highlight_regions") or item.get("bbox"),
+            default_page=page_number,
+        )
+        text_value = text_evidence_value(item)
+        source_type = infer_source_type(item)
+        evidence_id = str(item.get("evidence_id") or "").strip() or stable_id(
+            "ev",
+            proposal_id,
+            index,
+            pdf_id,
+            page_number,
+            text_value,
+            item.get("reasoning"),
+        )
+        evidence = {
+            "evidence_schema_version": MAIN_EVIDENCE_SCHEMA_VERSION,
+            "evidence_id": evidence_id,
+            "run_id": run_id,
+            "proposal_id": proposal_id,
+            "pdf_id": pdf_id,
+            "source_type": source_type,
+            "source_type_inferred": not is_non_empty(item.get("source_type")),
+            "quote_text": item.get("quote_text") or item.get("table_text") or item.get("evidence_text") or item.get("caption_text"),
+            "table_text": item.get("table_text"),
+            "evidence_text": item.get("evidence_text"),
+            "page_number": page_number,
+            "source_location": item.get("source_location"),
+            "exact_highlight_regions": exact_regions or None,
+            "approximate_highlight_regions": approximate_regions or None,
+            "figure_ref": item.get("figure_ref"),
+            "caption_text": item.get("caption_text"),
+            "crop_path": item.get("crop_path"),
+            "full_page_path": item.get("full_page_path"),
+            "anchor_confidence": item.get("anchor_confidence"),
+            "evidence_rank": int(item.get("evidence_rank") or index + 1),
+            "reasoning": item.get("reasoning"),
+            "is_primary": index == 0,
+            "evidence_tier": tier["tier"],
+            "evidence_tier_label": tier["label"],
+            "evidence_status": tier["evidence_status"],
+            "review_bucket": tier["review_bucket"],
+            "reason_codes": tier["reason_codes"],
+            "created_at": item.get("created_at") or generated_at,
+        }
+        normalized.append(evidence)
+    normalized.sort(key=lambda row: int(row.get("evidence_rank") or 9999))
+    for index, evidence in enumerate(normalized):
+        evidence["is_primary"] = index == 0
+    return normalized, tiers
+
+
+def _page_number(value: Any) -> int | None:
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.strip().isdigit():
+        return int(value.strip())
+    return None
+
+
+def _normalize_proposals(
+    run_id: str,
+    payload: dict[str, Any],
+    rows: list[dict[str, Any]],
+    columns: list[dict[str, Any]],
+    generated_at: str,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    raw_proposals = payload.get("proposals") if isinstance(payload.get("proposals"), list) else []
+    row_pdf = _row_pdf_lookup(rows)
+    column_defs = {item["column_name"]: item for item in columns}
+    proposals: list[dict[str, Any]] = []
+    evidence: list[dict[str, Any]] = []
+
+    for index, item in enumerate(raw_proposals):
+        if not isinstance(item, dict):
+            continue
+        row_id = str(item.get("row_id") or "").strip()
+        column_name = str(item.get("column_name") or "").strip()
+        proposed_value = item.get("proposed_value")
+        proposal_status = str(item.get("proposal_status") or "").strip()
+        if not proposal_status:
+            if is_non_empty(proposed_value):
+                proposal_status = "value_proposed"
+            elif bool(item.get("no_data")):
+                proposal_status = "no_data"
             else:
-                evidence_ids = []
-
-            proposal = {
-                "proposal_schema_version": PROPOSAL_SCHEMA_VERSION,
+                proposal_status = "unresolved"
+        cell_id = str(item.get("cell_id") or "").strip() or stable_id("cell", row_id, column_name)
+        proposal_id = str(item.get("proposal_id") or "").strip() or stable_id(
+            "prop",
+            run_id,
+            row_id,
+            column_name,
+            proposed_value,
+            index,
+        )
+        inherited_pdf_id = str(item.get("pdf_id") or row_pdf.get(row_id, "")).strip() or None
+        normalized_evidence, tiers = _normalize_evidence(
+            run_id,
+            proposal_id,
+            item,
+            item.get("evidence") if isinstance(item.get("evidence"), list) else [],
+            inherited_pdf_id,
+            generated_at,
+        )
+        evidence.extend(normalized_evidence)
+        semantics = merged_evidence_semantics(tiers, proposal_status)
+        explicit_reason_codes = item.get("reason_codes") if isinstance(item.get("reason_codes"), list) else []
+        reason_codes: list[str] = []
+        for code in [*semantics["reason_codes"], *explicit_reason_codes]:
+            code_str = str(code)
+            if code_str and code_str not in reason_codes:
+                reason_codes.append(code_str)
+        evidence_ids = [row["evidence_id"] for row in normalized_evidence]
+        proposal_pdf_id = inherited_pdf_id or (normalized_evidence[0]["pdf_id"] if normalized_evidence else "")
+        warning_flags = list(item.get("warning_flags") if isinstance(item.get("warning_flags"), list) else [])
+        if semantics["evidence_status"] in {"direct_weak", "inferred_weak", "no_evidence"} and "weak_evidence" not in warning_flags:
+            warning_flags.append("weak_evidence")
+        column_def = column_defs.get(column_name, {})
+        proposals.append(
+            {
+                "proposal_schema_version": NORMALIZED_PROPOSAL_SCHEMA_VERSION,
                 "proposal_id": proposal_id,
                 "run_id": run_id,
+                "pdf_id": proposal_pdf_id,
                 "row_id": row_id,
-                "row_index": row_index,
-                "row_label": row_label,
                 "column_name": column_name,
                 "cell_id": cell_id,
-                "proposed_value": value,
-                "rationale": rationale,
-                "confidence": confidence,
-                "needs_review": needs_review,
-                "caveat": caveat,
-                "source_location": note.get("source_location"),
+                "proposal_status": proposal_status,
+                "evidence_status": item.get("evidence_status") or semantics["evidence_status"],
+                "review_bucket": item.get("review_bucket") or semantics["review_bucket"],
+                "reason_codes": reason_codes,
+                "proposed_value": proposed_value,
+                "rationale": item.get("rationale") or item.get("reasoning"),
+                "calculation": item.get("calculation"),
+                "primary_evidence_id": evidence_ids[0] if evidence_ids else None,
+                "ordered_supporting_evidence_ids": evidence_ids[1:],
                 "evidence_ids": evidence_ids,
-                "review_state": "draft_unreviewed",
-                "created_at": generated_at,
-                "compat": {
-                    "proposal_status": "value_proposed",
-                    "evidence_status": "direct_weak" if not evidence_ids else "direct_strong",
-                    "review_bucket": "review",
-                    "reason_codes": [],
-                },
+                "warning_flags": warning_flags,
+                "field_type": column_def.get("field_type"),
+                "allowed_values": column_def.get("allowed_values"),
+                "evidence_tiers": [tier["tier"] for tier in tiers],
+                "latest_decision": None,
+                "is_figure_derived": any(row.get("figure_ref") for row in normalized_evidence),
+                "is_fallback_evidence": any(tier["tier"] in {"B", "C"} for tier in tiers),
+                "created_at": item.get("created_at") or generated_at,
             }
-            proposals.append(proposal)
-            review_items.append({**proposal, "evidence": evidence_for_item})
+        )
+    return proposals, evidence
 
-    coverage = {
-        "policy": "sparse_non_empty_values_only",
-        "rows": len(rows),
-        "target_columns": len(target_columns),
-        "review_items": len(review_items),
-        "omitted_blank_cells": omitted_blank_cells,
-    }
-    review_data = {
-        "schema_version": SCHEMA_VERSION,
+
+def _build_review_package(
+    run_id: str,
+    generated_at: str,
+    payload: dict[str, Any],
+    source_table_present: bool,
+    pdfs: list[dict[str, Any]],
+    rows: list[dict[str, Any]],
+    columns: list[dict[str, Any]],
+    proposals: list[dict[str, Any]],
+    evidence: list[dict[str, Any]],
+) -> dict[str, Any]:
+    evidence_by_proposal: dict[str, list[dict[str, Any]]] = {}
+    for row in evidence:
+        evidence_by_proposal.setdefault(str(row.get("proposal_id")), []).append(row)
+    proposal_items: list[dict[str, Any]] = []
+    for proposal in proposals:
+        item = dict(proposal)
+        item["evidence"] = evidence_by_proposal.get(str(proposal.get("proposal_id")), [])
+        proposal_items.append(item)
+    return {
+        "schema_version": REVIEW_PACKAGE_SCHEMA_VERSION,
         "run_id": run_id,
         "generated_at": generated_at,
-        "coverage": coverage,
-        "columns": schema,
-        "rows": review_rows,
-        "items": review_items,
-    }
-    return review_data, proposals, evidence_rows
-
-
-def load_from_proposals(run_dir: Path) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
-    proposals = read_jsonl(run_dir / "proposals" / "proposals.jsonl")
-    evidence_rows = read_jsonl(run_dir / "evidence" / "evidence.jsonl")
-    evidence_by_proposal: dict[str, list[dict[str, Any]]] = {}
-    for evidence in evidence_rows:
-        evidence_by_proposal.setdefault(str(evidence.get("proposal_id")), []).append(evidence)
-    items = [{**proposal, "evidence": evidence_by_proposal.get(str(proposal.get("proposal_id")), [])} for proposal in proposals]
-    row_map: dict[str, dict[str, Any]] = {}
-    for item in items:
-        row_id = str(item.get("row_id") or "")
-        if row_id and row_id not in row_map:
-            row_map[row_id] = {
-                "row_id": row_id,
-                "row_index": item.get("row_index"),
-                "row_label": item.get("row_label"),
-                "values": {},
-            }
-    review_data = {
-        "schema_version": SCHEMA_VERSION,
-        "run_id": run_dir.name,
-        "generated_at": utc_now(),
-        "coverage": {
-            "policy": "from_existing_proposals_jsonl",
-            "review_items": len(items),
+        "source": {
+            "review_input_schema_version": payload.get("schema_version") or REVIEW_INPUT_SCHEMA_VERSION,
+            "source_table_present": source_table_present,
         },
-        "columns": [],
-        "rows": list(row_map.values()),
-        "items": items,
+        "pdfs": pdfs,
+        "columns": columns,
+        "rows": rows,
+        "proposals": proposal_items,
+        "review_progress": {
+            "total_proposals": len([item for item in proposals if item.get("review_bucket") != "diagnostic"]),
+            "reviewed": 0,
+            "pending": len([item for item in proposals if item.get("review_bucket") != "diagnostic"]),
+            "accepted": 0,
+            "accepted_with_edit": 0,
+            "rejected": 0,
+            "confirmed_no_data": 0,
+        },
     }
-    return review_data, proposals, evidence_rows
 
 
-def write_review_html(run_dir: Path, review_data: dict[str, Any]) -> Path:
-    template_path = Path(__file__).resolve().parents[1] / "templates" / "review.html"
-    template = template_path.read_text(encoding="utf-8")
-    data_json = json.dumps(review_data, ensure_ascii=False).replace("</", "<\\/")
-    html = template.replace("__REVIEW_DATA_JSON__", data_json)
-    out_path = run_dir / "review" / "review.html"
+def _write_review_html(run_dir: Path, package: dict[str, Any]) -> Path:
+    template = _template_path().read_text(encoding="utf-8")
+    package_json = json.dumps(package, ensure_ascii=False).replace("</", "<\\/")
+    html = template.replace("__REVIEW_PACKAGE_JSON__", package_json)
+    out_path = run_dir / "review" / "index.html"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(html, encoding="utf-8")
     return out_path
 
 
-def write_reports(run_dir: Path, review_data: dict[str, Any]) -> None:
-    summaries_dir = run_dir / "summaries"
-    summaries_dir.mkdir(parents=True, exist_ok=True)
-    coverage = review_data.get("coverage", {})
-    report = [
-        "# Papers-to-table agent kit run report",
-        "",
-        f"- Run id: `{review_data.get('run_id')}`",
-        "- Mode: `human_review` package prepared",
-        f"- Coverage policy: `{coverage.get('policy', 'unknown')}`",
-        f"- Review items: {coverage.get('review_items', len(review_data.get('items', [])))}",
-        f"- Omitted blank cells: {coverage.get('omitted_blank_cells', 'not tracked')}",
-        "",
-        "Values in this package are draft/unreviewed until decisions are applied.",
-    ]
-    (summaries_dir / "run_report.md").write_text("\n".join(report) + "\n", encoding="utf-8")
-    extraction_log = [
-        "# Extraction log",
-        "",
-        "This file records high-level reproducibility metadata only; it does not contain private chain-of-thought.",
-        "",
-        "- Review package generated from normalized table/proposal artifacts.",
-        f"- Generated at: {review_data.get('generated_at')}",
-    ]
-    (summaries_dir / "extraction_log.md").write_text("\n".join(extraction_log) + "\n", encoding="utf-8")
-    handoff = {
-        "schema_version": "papers_to_table_agent_report_handoff.v1",
-        "run_id": review_data.get("run_id"),
-        "status": "draft_unreviewed",
-        "summary": {
-            "draft_unreviewed": len(review_data.get("items", [])),
-            "human_reviewed": 0,
-            "auto_accepted": 0,
-        },
-        "items": [
-            {
-                "proposal_id": item.get("proposal_id"),
-                "row_id": item.get("row_id"),
-                "column_name": item.get("column_name"),
-                "value": item.get("proposed_value"),
-                "handoff_label": "draft_unreviewed",
-            }
-            for item in review_data.get("items", [])
-        ],
-    }
-    write_json(summaries_dir / "report_handoff.json", handoff)
-
-
-def build_review_package(run_dir: Path, *, rebuild_from_table: bool = False) -> dict[str, Any]:
+def build_review_package(run_dir: Path, *, from_review_input: bool = True) -> dict[str, Any]:
+    if not from_review_input:
+        raise ValueError("The rich agent kit now builds from review_input.json by default.")
     run_dir = run_dir.resolve()
-    proposal_path = run_dir / "proposals" / "proposals.jsonl"
-    if proposal_path.exists() and not rebuild_from_table:
-        review_data, proposals, evidence_rows = load_from_proposals(run_dir)
-    else:
-        review_data, proposals, evidence_rows = build_from_table(run_dir, table_path_for_run(run_dir))
-        write_jsonl(run_dir / "proposals" / "proposals.jsonl", proposals)
-        write_jsonl(run_dir / "evidence" / "evidence.jsonl", evidence_rows)
+    payload = read_json(run_dir / "review_input.json")
+    authoring_report = validate_authoring(run_dir)
+    persist_report(run_dir, authoring_report)
+    if not authoring_report["ok"]:
+        raise ValueError("review_input.json failed authoring validation. See summaries/validation_report.json.")
 
-    write_json(run_dir / "review" / "review_data.json", review_data)
-    html_path = write_review_html(run_dir, review_data)
-    write_reports(run_dir, review_data)
-    write_json(
-        run_dir / "run.json",
-        {
-            "run_id": run_dir.name,
-            "mode": "human_review",
-            "kit": "papers-to-table-agent-kit",
-            "schema_version": "papers_to_table_agent_run.v1",
-            "coverage": review_data.get("coverage", {}),
-            "review_data_path": "review/review_data.json",
-            "review_html_path": "review/review.html",
-            "generated_at": utc_now(),
-        },
+    generated_at = utc_now()
+    run_id = str(payload.get("run_id") or run_dir.name)
+    table_rows, table_fieldnames = _source_table(run_dir)
+    schema_columns = _load_schema_columns(run_dir)
+    raw_proposals = payload.get("proposals") if isinstance(payload.get("proposals"), list) else []
+    pdfs = _normalize_pdfs(run_dir, payload)
+    rows = _normalize_rows(payload, table_rows, table_fieldnames, raw_proposals)
+    columns = _normalize_columns(payload, schema_columns, table_fieldnames, raw_proposals)
+    proposals, evidence = _normalize_proposals(run_id, payload, rows, columns, generated_at)
+    package = _build_review_package(
+        run_id,
+        generated_at,
+        payload,
+        bool((run_dir / "source_table.csv").exists()),
+        pdfs,
+        rows,
+        columns,
+        proposals,
+        evidence,
     )
+
+    write_jsonl(run_dir / "normalized" / "proposals.jsonl", proposals)
+    write_jsonl(run_dir / "normalized" / "evidence.jsonl", evidence)
+    write_json(run_dir / "review" / "review_package.json", package)
+    html_path = _write_review_html(run_dir, package)
+    copied_assets = _copy_pdfjs_assets(run_dir)
+    generated_report = validate_generated(run_dir)
+    generated_report["authoring"] = authoring_report
+    generated_report["copied_assets"] = copied_assets
+    persist_report(run_dir, generated_report)
+    if not generated_report["ok"]:
+        raise ValueError("Generated review package failed validation. See summaries/validation_report.json.")
     return {
-        "run_id": run_dir.name,
-        "review_items": len(review_data.get("items", [])),
-        "review_data_path": str((run_dir / "review" / "review_data.json").resolve()),
-        "review_html_path": str(html_path.resolve()),
-        "proposals_path": str((run_dir / "proposals" / "proposals.jsonl").resolve()),
-        "evidence_path": str((run_dir / "evidence" / "evidence.jsonl").resolve()),
+        "run_id": run_id,
+        "review_items": len(proposals),
+        "review_index_path": str(html_path),
+        "review_package_path": str(run_dir / "review" / "review_package.json"),
+        "proposals_path": str(run_dir / "normalized" / "proposals.jsonl"),
+        "evidence_path": str(run_dir / "normalized" / "evidence.jsonl"),
+        "validation_report_path": str(run_dir / "summaries" / "validation_report.json"),
+        "pdfjs_assets_copied": bool(copied_assets),
     }
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build a static papers-to-table agent review package.")
-    parser.add_argument("--run", required=True, help="Path to the lite run bundle directory.")
-    parser.add_argument("--rebuild-from-table", action="store_true", help="Regenerate proposals/evidence from tables/draft_table.csv.")
+    parser = argparse.ArgumentParser(description="Build a rich static papers-to-table agent review package.")
+    parser.add_argument("--run", required=True, help="Path to the run directory containing review_input.json.")
+    parser.add_argument("--from-review-input", action="store_true", help="Explicitly use review_input.json; this is the default.")
     parser.add_argument("--json", action="store_true", help="Print a machine-readable summary.")
     args = parser.parse_args(argv)
 
-    result = build_review_package(Path(args.run), rebuild_from_table=args.rebuild_from_table)
+    result = build_review_package(Path(args.run), from_review_input=True)
     if args.json:
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     else:
-        print(f"review_data: {result['review_data_path']}")
-        print(f"review_html: {result['review_html_path']}")
+        print(f"review_index: {Path(result['review_index_path']).resolve()}")
+        print(f"review_package: {Path(result['review_package_path']).resolve()}")
+        print(f"proposals: {Path(result['proposals_path']).resolve()}")
+        print(f"evidence: {Path(result['evidence_path']).resolve()}")
+        if not result["pdfjs_assets_copied"]:
+            print("warning: PDF.js assets were not copied; the review UI will use browser PDF fallback.")
     return 0
 
 

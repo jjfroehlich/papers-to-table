@@ -3,192 +3,723 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Papers-to-table review</title>
+  <title>Papers-to-table rich review</title>
   <style>
     :root {
       color-scheme: light;
-      font-family: Arial, Helvetica, sans-serif;
-      --border: #d8dee8;
-      --muted: #607086;
-      --bg: #f7f9fc;
+      --ink: #101828;
+      --muted: #667085;
+      --border: #d7dde7;
       --panel: #ffffff;
-      --ink: #152033;
-      --accent: #136f63;
-      --danger: #a43a47;
+      --paper: #f5f7fb;
+      --accent: #0f766e;
+      --accent-2: #2563eb;
+      --warn: #b45309;
+      --danger: #be123c;
+      --ok: #047857;
+      --shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
+      font-family: "Aptos", "Segoe UI", system-ui, sans-serif;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; color: var(--ink); background: var(--bg); }
-    header { padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--panel); }
-    header h1 { margin: 0 0 4px; font-size: 20px; }
-    header p { margin: 0; color: var(--muted); font-size: 13px; }
+    body { margin: 0; background: var(--paper); color: var(--ink); }
     button, input, textarea, select { font: inherit; }
-    button { border: 1px solid var(--border); background: #fff; color: var(--ink); padding: 8px 10px; border-radius: 6px; cursor: pointer; }
-    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-    button.danger { color: var(--danger); }
-    button:disabled { opacity: .5; cursor: default; }
-    main { display: grid; grid-template-columns: 340px 1fr; gap: 0; min-height: calc(100vh - 73px); }
-    aside { border-right: 1px solid var(--border); background: var(--panel); overflow: auto; }
-    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px; border-bottom: 1px solid var(--border); }
-    .queue-item { display: block; width: 100%; text-align: left; padding: 10px 12px; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; }
-    .queue-item.active { background: #eaf4f2; border-left: 4px solid var(--accent); }
-    .queue-item small { display: block; color: var(--muted); margin-top: 3px; }
-    .detail { padding: 18px 22px; overflow: auto; }
-    .field { margin-bottom: 16px; }
-    .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
-    .value { padding: 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; white-space: pre-wrap; }
-    .evidence { padding: 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; background: #fff; }
-    .evidence small { display: block; color: var(--muted); margin-bottom: 6px; }
-    textarea { width: 100%; min-height: 86px; border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
-    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
-    .status { color: var(--muted); font-size: 13px; margin-top: 10px; }
-    .empty { padding: 24px; color: var(--muted); }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .55; }
+    header {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      min-height: 66px; padding: 12px 18px; background: #fff; border-bottom: 1px solid var(--border);
+    }
+    h1 { margin: 0; font-size: 18px; letter-spacing: 0; }
+    .subtle { color: var(--muted); font-size: 12px; }
+    .top-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .btn {
+      border: 1px solid var(--border); background: #fff; color: #344054;
+      border-radius: 7px; padding: 7px 10px; font-weight: 650; font-size: 13px;
+    }
+    .btn:hover { background: #f8fafc; }
+    .btn.primary { background: var(--ink); border-color: var(--ink); color: #fff; }
+    .btn.accept { background: var(--ok); border-color: var(--ok); color: #fff; }
+    .btn.danger { color: var(--danger); }
+    .layout {
+      height: calc(100vh - 66px); min-height: 620px; display: grid;
+      grid-template-columns: minmax(260px, 23vw) minmax(360px, 1fr) minmax(360px, 34vw);
+      gap: 0; padding: 10px;
+    }
+    .pane {
+      min-height: 0; background: var(--panel); border: 1px solid var(--border);
+      overflow: hidden; display: flex; flex-direction: column;
+    }
+    .pane.left { border-radius: 10px 0 0 10px; border-right: 0; }
+    .pane.middle { border-radius: 0; }
+    .pane.right { border-radius: 0 10px 10px 0; border-left: 0; }
+    .pane-head { flex: 0 0 auto; padding: 12px; border-bottom: 1px solid var(--border); background: #fbfcfe; }
+    .pane-title { margin: 0 0 8px; font-size: 12px; color: #475467; text-transform: uppercase; font-weight: 750; letter-spacing: .08em; }
+    .seg { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; padding: 3px; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
+    .seg button { border: 0; border-radius: 6px; padding: 7px; background: transparent; color: #667085; font-size: 12px; font-weight: 700; }
+    .seg button.active { background: #111827; color: #fff; }
+    .filters { margin-top: 8px; width: 100%; border: 1px solid var(--border); border-radius: 7px; padding: 8px; color: #344054; background: #fff; }
+    .scroll { flex: 1 1 auto; min-height: 0; overflow: auto; }
+    .queue-item {
+      width: 100%; display: block; border: 0; border-bottom: 1px solid #edf0f5;
+      background: #fff; padding: 11px 12px; text-align: left;
+    }
+    .queue-item:hover { background: #f8fafc; }
+    .queue-item.active { background: #e8f3ff; box-shadow: inset 4px 0 0 var(--accent-2); }
+    .queue-main { display: flex; gap: 10px; align-items: start; justify-content: space-between; }
+    .queue-value { margin-top: 4px; color: #344054; font-size: 13px; line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .queue-meta { margin-top: 5px; color: var(--muted); font-size: 11px; }
+    .tag-row { display: flex; flex-wrap: wrap; gap: 5px; }
+    .tag { border: 1px solid #d8e0ea; background: #f8fafc; color: #475467; border-radius: 5px; padding: 2px 5px; font-size: 11px; font-weight: 700; }
+    .tag.ok { background: #ecfdf3; border-color: #a6f4c5; color: #067647; }
+    .tag.warn { background: #fffaeb; border-color: #fedf89; color: var(--warn); }
+    .tag.danger { background: #fff1f3; border-color: #fecdd6; color: var(--danger); }
+    .tag.info { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+    .detail-scroll { padding: 14px; }
+    .card { border: 1px solid var(--border); border-radius: 8px; background: #fff; padding: 12px; box-shadow: 0 1px 2px rgba(16,24,40,.03); margin-bottom: 10px; }
+    .label { margin: 0 0 5px; font-size: 11px; text-transform: uppercase; color: #667085; font-weight: 800; letter-spacing: .08em; }
+    .value { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; }
+    .big-value { font-size: 20px; font-weight: 760; line-height: 1.25; }
+    .evidence-card { width: 100%; border: 1px solid var(--border); border-radius: 8px; background: #fff; padding: 10px; text-align: left; margin-top: 8px; }
+    .evidence-card.active { border-color: #f59e0b; background: #fffbeb; }
+    .action-bar { flex: 0 0 auto; border-top: 1px solid var(--border); padding: 10px 12px; background: #fff; display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+    .edit-row { width: 100%; display: none; gap: 7px; }
+    .edit-row.visible { display: flex; }
+    .edit-row input { flex: 1; min-width: 200px; border: 1px solid var(--border); border-radius: 7px; padding: 8px; }
+    .table-wrap { overflow: auto; height: 100%; }
+    table { border-collapse: separate; border-spacing: 0; min-width: 100%; font-size: 12px; }
+    th, td { border-right: 1px solid #edf0f5; border-bottom: 1px solid #edf0f5; padding: 0; vertical-align: top; }
+    th { position: sticky; top: 0; z-index: 4; background: #f8fafc; color: #667085; text-align: left; padding: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+    td button { min-width: 150px; min-height: 74px; border: 0; background: #fff; text-align: left; padding: 8px; color: #344054; }
+    td button:hover { background: #f8fafc; }
+    td button.active { outline: 2px solid var(--accent-2); outline-offset: -2px; background: #eff6ff; }
+    .pdf-toolbar { flex: 0 0 auto; display: flex; align-items: center; gap: 7px; padding: 9px; border-bottom: 1px solid var(--border); background: #fbfcfe; }
+    .pdf-stage { position: relative; flex: 1 1 auto; min-height: 0; overflow: auto; padding: 12px; background: #e9edf3; }
+    .canvas-wrap { position: relative; display: inline-block; background: #fff; box-shadow: var(--shadow); }
+    canvas { display: block; }
+    .hl { position: absolute; pointer-events: none; background: rgba(250, 204, 21, .28); border: 2px solid rgba(180, 83, 9, .78); border-radius: 2px; }
+    .hl.approx { background: rgba(249, 115, 22, .12); border: 2px dashed rgba(194, 65, 12, .75); }
+    .viewer-note { margin: 10px; padding: 10px; border: 1px solid #fedf89; border-radius: 8px; background: #fffaeb; color: #92400e; font-size: 12px; }
+    .empty { padding: 24px; color: var(--muted); text-align: center; font-size: 14px; }
+    @media (max-width: 1050px) {
+      .layout { height: auto; min-height: 0; grid-template-columns: 1fr; }
+      .pane { min-height: 420px; border: 1px solid var(--border) !important; border-radius: 10px !important; margin-bottom: 10px; }
+    }
   </style>
 </head>
 <body>
-<header>
-  <h1>Papers-to-table review</h1>
-  <p id="summary"></p>
-</header>
-<main>
-  <aside>
-    <div class="toolbar">
-      <button class="primary" id="download-decisions">Download decisions</button>
-      <button id="auto-accept">Auto-accept all proposals</button>
-      <button id="review-first">Review proposals first</button>
-    </div>
-    <div id="queue"></div>
-  </aside>
-  <section class="detail" id="detail"></section>
-</main>
 <script>
-const reviewData = __REVIEW_DATA_JSON__;
-const items = reviewData.items || [];
-let selected = items[0]?.proposal_id || null;
-let decisions = {};
+window.__REVIEW_PACKAGE__ = __REVIEW_PACKAGE_JSON__;
+</script>
+<header>
+  <div>
+    <h1>Papers-to-table review</h1>
+    <div class="subtle" id="run-summary">Loading review package...</div>
+  </div>
+  <div class="top-actions">
+    <span class="tag info" id="server-status">Download mode</span>
+    <button class="btn" id="download-decisions">Download decisions</button>
+    <button class="btn primary" id="write-decisions">Write decisions</button>
+    <button class="btn accept" id="export-csv">Export CSV</button>
+  </div>
+</header>
+<main class="layout">
+  <section class="pane left">
+    <div class="pane-head">
+      <p class="pane-title">Review list</p>
+      <div class="seg">
+        <button id="mode-queue" class="active">Queue</button>
+        <button id="mode-table">Table</button>
+      </div>
+      <select class="filters" id="filter">
+        <option value="pending">Pending</option>
+        <option value="attention">Attention</option>
+        <option value="all">All</option>
+        <option value="accepted">Accepted</option>
+        <option value="accepted_with_edit">Edited</option>
+        <option value="confirmed_no_data">No data</option>
+        <option value="rejected">Rejected</option>
+      </select>
+    </div>
+    <div class="scroll" id="list"></div>
+  </section>
+  <section class="pane middle">
+    <div class="scroll detail-scroll" id="detail"></div>
+    <div class="action-bar">
+      <button class="btn" id="prev-proposal">Prev</button>
+      <button class="btn danger" id="reject">Reject</button>
+      <button class="btn" id="edit">Edit</button>
+      <button class="btn" id="no-data">Confirm no data</button>
+      <button class="btn accept" id="accept">Accept</button>
+      <button class="btn" id="next-proposal">Next</button>
+      <div class="edit-row" id="edit-row">
+        <input id="edit-value" placeholder="Corrected value">
+        <button class="btn primary" id="save-edit">Save edit</button>
+        <button class="btn" id="cancel-edit">Cancel</button>
+      </div>
+    </div>
+  </section>
+  <section class="pane right">
+    <div class="pdf-toolbar">
+      <button class="btn" id="pdf-prev">Prev page</button>
+      <span class="subtle" id="pdf-page">No PDF selected</span>
+      <button class="btn" id="pdf-next">Next page</button>
+      <button class="btn" id="zoom-out">-</button>
+      <span class="subtle" id="zoom-label">125%</span>
+      <button class="btn" id="zoom-in">+</button>
+    </div>
+    <div class="pdf-stage" id="pdf-stage"></div>
+  </section>
+</main>
+<script type="module">
+const pkg = window.__REVIEW_PACKAGE__;
+const served = location.protocol.startsWith("http") && ["localhost", "127.0.0.1", "::1"].includes(location.hostname);
+const localKey = `papersToTable.agentKit.decisions.${pkg.run_id}`;
+const state = {
+  mode: "queue",
+  filter: "pending",
+  selectedProposalId: pkg.proposals?.[0]?.proposal_id || null,
+  selectedEvidenceId: null,
+  decisions: loadLocalDecisions(),
+  pdfjs: null,
+  pdfDoc: null,
+  pdfId: null,
+  page: 1,
+  pages: 0,
+  zoom: 1.25,
+  renderToken: 0
+};
 
-function decisionTemplate(item, decision, extras = {}) {
-  return {
-    review_decision_id: `rev_${item.proposal_id}_${Date.now()}`,
-    run_id: reviewData.run_id,
-    proposal_id: item.proposal_id,
-    cell_id: item.cell_id || `${item.row_id}::${item.column_name}`,
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[ch]));
+}
+
+function proposalById(id) {
+  return (pkg.proposals || []).find((proposal) => proposal.proposal_id === id) || null;
+}
+
+function pdfById(id) {
+  return (pkg.pdfs || []).find((pdf) => pdf.pdf_id === id) || null;
+}
+
+function currentProposal() {
+  return proposalById(state.selectedProposalId);
+}
+
+function latestDecision(proposal) {
+  return proposal ? state.decisions[proposal.proposal_id] || null : null;
+}
+
+function decisionValue(proposal) {
+  return latestDecision(proposal)?.decision || "pending";
+}
+
+function displayValue(proposal) {
+  const decision = latestDecision(proposal);
+  if (decision?.decision === "accepted_with_edit") return decision.edited_value || "";
+  if (proposal?.proposal_status === "no_data") return "No data proposed";
+  if (!proposal || proposal.proposed_value === null || proposal.proposed_value === undefined || proposal.proposed_value === "") return "Unresolved";
+  return proposal.proposed_value;
+}
+
+function isWeak(proposal) {
+  return proposal?.review_bucket === "attention" || ["direct_weak", "inferred_weak", "no_evidence"].includes(proposal?.evidence_status);
+}
+
+function proposalMatches(proposal) {
+  const decision = decisionValue(proposal);
+  if (state.filter === "all") return proposal.review_bucket !== "diagnostic";
+  if (state.filter === "pending") return decision === "pending";
+  if (state.filter === "attention") return isWeak(proposal);
+  return decision === state.filter;
+}
+
+function visibleProposals() {
+  return (pkg.proposals || []).filter(proposalMatches);
+}
+
+function loadLocalDecisions() {
+  try {
+    const raw = localStorage.getItem(localKey);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function storeLocalDecisions() {
+  localStorage.setItem(localKey, JSON.stringify(state.decisions));
+}
+
+async function loadServerDecisions() {
+  if (!served) return;
+  try {
+    const response = await fetch("/api/decisions");
+    if (!response.ok) return;
+    const payload = await response.json();
+    for (const decision of payload.decisions || []) {
+      state.decisions[decision.proposal_id] = decision;
+    }
+    storeLocalDecisions();
+  } catch {}
+}
+
+function progress() {
+  const reviewable = (pkg.proposals || []).filter((proposal) => proposal.review_bucket !== "diagnostic");
+  const counts = {accepted: 0, accepted_with_edit: 0, rejected: 0, confirmed_no_data: 0, pending: 0};
+  for (const proposal of reviewable) {
+    const decision = decisionValue(proposal);
+    counts[decision] = (counts[decision] || 0) + 1;
+  }
+  const reviewed = reviewable.length - counts.pending;
+  return {total: reviewable.length, reviewed, ...counts};
+}
+
+function render() {
+  const prog = progress();
+  document.getElementById("run-summary").textContent =
+    `${pkg.run_id} - ${prog.reviewed} / ${prog.total} reviewed - ${prog.pending} pending`;
+  document.getElementById("server-status").textContent = served ? "Local writeback" : "Download mode";
+  document.getElementById("write-decisions").disabled = !served;
+  document.getElementById("export-csv").disabled = !served;
+  renderList();
+  renderDetail();
+}
+
+function renderList() {
+  if (state.mode === "table") {
+    renderTable();
+    return;
+  }
+  const list = document.getElementById("list");
+  const items = visibleProposals();
+  if (!items.length) {
+    list.innerHTML = '<div class="empty">No proposals match the current filter.</div>';
+    return;
+  }
+  list.innerHTML = items.map((proposal) => `
+    <button class="queue-item ${proposal.proposal_id === state.selectedProposalId ? "active" : ""}" data-proposal="${esc(proposal.proposal_id)}">
+      <div class="queue-main">
+        <div><strong>${esc(proposal.column_name)}</strong><div class="queue-meta">${esc(rowLabel(proposal))}</div></div>
+        <div class="tag-row">${statusTags(proposal)}</div>
+      </div>
+      <div class="queue-value">${esc(displayValue(proposal))}</div>
+      <div class="queue-meta">${esc(decisionValue(proposal).replaceAll("_", " "))}</div>
+    </button>
+  `).join("");
+  list.querySelectorAll("[data-proposal]").forEach((button) => {
+    button.addEventListener("click", () => selectProposal(button.dataset.proposal));
+  });
+}
+
+function renderTable() {
+  const list = document.getElementById("list");
+  const columns = pkg.columns || [];
+  const rows = pkg.rows || [];
+  const proposals = new Map((pkg.proposals || []).map((proposal) => [`${proposal.row_id}::${proposal.column_name}`, proposal]));
+  list.innerHTML = `
+    <div class="table-wrap"><table>
+      <thead><tr>${columns.map((column) => `<th>${esc(column.column_name)}</th>`).join("")}</tr></thead>
+      <tbody>${rows.map((row) => `<tr>${columns.map((column) => {
+        const proposal = proposals.get(`${row.row_id}::${column.column_name}`);
+        const value = proposal ? displayValue(proposal) : row.values?.[column.column_name] || "";
+        const active = proposal?.proposal_id === state.selectedProposalId ? "active" : "";
+        return `<td><button class="${active}" ${proposal ? `data-proposal="${esc(proposal.proposal_id)}"` : ""}>
+          <div class="value">${esc(value || "-")}</div>
+          ${proposal ? `<div class="tag-row" style="margin-top:6px">${statusTags(proposal)}</div>` : ""}
+        </button></td>`;
+      }).join("")}</tr>`).join("")}</tbody>
+    </table></div>`;
+  list.querySelectorAll("[data-proposal]").forEach((button) => {
+    button.addEventListener("click", () => selectProposal(button.dataset.proposal));
+  });
+}
+
+function rowLabel(proposal) {
+  const row = (pkg.rows || []).find((candidate) => candidate.row_id === proposal.row_id);
+  return row?.paper_label || row?.values?.Title || proposal.pdf_id || proposal.row_id;
+}
+
+function statusTags(proposal) {
+  const decision = decisionValue(proposal);
+  const decisionClass = decision === "pending" ? "" : decision === "rejected" ? "danger" : "ok";
+  const evidenceClass = isWeak(proposal) ? "warn" : "ok";
+  const tier = proposal.evidence_tiers?.length ? `Tier ${proposal.evidence_tiers.join("/")}` : "No tier";
+  return `
+    <span class="tag ${decisionClass}">${esc(decision.replaceAll("_", " "))}</span>
+    <span class="tag ${evidenceClass}">${esc(proposal.evidence_status.replaceAll("_", " "))}</span>
+    <span class="tag ${evidenceClass}">${esc(tier)}</span>
+  `;
+}
+
+function renderDetail() {
+  const detail = document.getElementById("detail");
+  const proposal = currentProposal();
+  if (!proposal) {
+    detail.innerHTML = '<div class="empty">Select a proposal to review.</div>';
+    renderPdf(null);
+    return;
+  }
+  if (!state.selectedEvidenceId && proposal.evidence?.length) {
+    state.selectedEvidenceId = proposal.primary_evidence_id || proposal.evidence[0].evidence_id;
+  }
+  const evidence = proposal.evidence || [];
+  detail.innerHTML = `
+    <div class="card">
+      <div class="tag-row">${statusTags(proposal)}</div>
+      <p class="label" style="margin-top:10px">Proposed value</p>
+      <div class="big-value">${esc(displayValue(proposal))}</div>
+    </div>
+    ${proposal.rationale ? `<div class="card"><p class="label">Rationale</p><div class="value">${esc(proposal.rationale)}</div></div>` : ""}
+    <div class="card">
+      <p class="label">Evidence</p>
+      ${evidence.length ? evidence.map((item) => evidenceCard(item)).join("") : '<div class="subtle">No evidence persisted for this proposal.</div>'}
+    </div>
+    <div class="card">
+      <p class="label">Field</p>
+      <div class="value"><strong>${esc(proposal.column_name)}</strong></div>
+      <div class="subtle">${esc(columnDescription(proposal.column_name) || "")}</div>
+    </div>
+    <div class="card">
+      <p class="label">Paper / row</p>
+      <div class="value">${esc(rowLabel(proposal))}</div>
+      <div class="subtle">${esc(proposal.row_id)} ${proposal.pdf_id ? "- " + esc(proposal.pdf_id) : ""}</div>
+    </div>
+  `;
+  detail.querySelectorAll("[data-evidence]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedEvidenceId = button.dataset.evidence;
+      renderDetail();
+    });
+  });
+  const selectedEvidence = evidence.find((item) => item.evidence_id === state.selectedEvidenceId) || evidence[0] || null;
+  renderPdf(selectedEvidence);
+}
+
+function evidenceCard(item) {
+  const active = item.evidence_id === state.selectedEvidenceId ? "active" : "";
+  const text = item.quote_text || item.table_text || item.evidence_text || item.caption_text || item.reasoning || "No evidence text supplied.";
+  const weak = item.evidence_tier === "C" || item.evidence_tier === "D";
+  return `
+    <button class="evidence-card ${active}" data-evidence="${esc(item.evidence_id)}">
+      <div class="tag-row">
+        <span class="tag ${weak ? "warn" : "ok"}">Tier ${esc(item.evidence_tier || "?")}</span>
+        <span class="tag">${esc((item.source_type || "evidence").replaceAll("_", " "))}</span>
+        ${item.page_number ? `<span class="tag info">p.${esc(item.page_number)}</span>` : ""}
+      </div>
+      <div class="value" style="margin-top:7px">${esc(text)}</div>
+      ${weak ? '<div class="subtle" style="margin-top:6px">Weak evidence: review before accepting.</div>' : ""}
+    </button>
+  `;
+}
+
+function columnDescription(name) {
+  return (pkg.columns || []).find((column) => column.column_name === name)?.description || null;
+}
+
+function selectProposal(id) {
+  state.selectedProposalId = id;
+  const proposal = currentProposal();
+  state.selectedEvidenceId = proposal?.primary_evidence_id || proposal?.evidence?.[0]?.evidence_id || null;
+  render();
+}
+
+function moveSelection(delta) {
+  const items = visibleProposals();
+  if (!items.length) return;
+  const index = Math.max(0, items.findIndex((proposal) => proposal.proposal_id === state.selectedProposalId));
+  const next = items[(index + delta + items.length) % items.length];
+  selectProposal(next.proposal_id);
+}
+
+function makeDecision(decision, extras = {}) {
+  const proposal = currentProposal();
+  if (!proposal) return null;
+  const record = {
+    review_decision_id: `rev_${proposal.proposal_id}_${Date.now()}`,
+    run_id: pkg.run_id,
+    proposal_id: proposal.proposal_id,
+    cell_id: proposal.cell_id,
     decision,
     decision_source: extras.decision_source || "human_individual",
     edited_value: extras.edited_value ?? null,
     reviewer_note: extras.reviewer_note ?? null,
     decided_at: new Date().toISOString()
   };
-}
-
-function escapeText(value) {
-  return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-  }[ch]));
-}
-
-function renderQueue() {
-  const queue = document.getElementById("queue");
-  if (!items.length) {
-    queue.innerHTML = '<div class="empty">No review items in this package.</div>';
-    return;
-  }
-  queue.innerHTML = items.map((item) => {
-    const d = decisions[item.proposal_id]?.decision || "pending";
-    const active = item.proposal_id === selected ? " active" : "";
-    return `<button class="queue-item${active}" data-id="${escapeText(item.proposal_id)}">
-      <strong>${escapeText(item.column_name)}</strong>
-      <small>${escapeText(item.row_label || item.row_id)} - ${escapeText(d.replaceAll("_", " "))}</small>
-    </button>`;
-  }).join("");
-  queue.querySelectorAll(".queue-item").forEach((button) => {
-    button.addEventListener("click", () => {
-      selected = button.dataset.id;
-      render();
-    });
-  });
-}
-
-function renderDetail() {
-  const detail = document.getElementById("detail");
-  const item = items.find((candidate) => candidate.proposal_id === selected);
-  if (!item) {
-    detail.innerHTML = '<div class="empty">Select a proposal to review.</div>';
-    return;
-  }
-  const current = decisions[item.proposal_id] || null;
-  const evidence = (item.evidence || []).map((ev) => `
-    <div class="evidence">
-      <small>${escapeText(ev.source_pdf || ev.pdf_id || "source unknown")}${ev.page_number ? `, page ${escapeText(ev.page_number)}` : ""}${ev.source_location ? `, ${escapeText(ev.source_location)}` : ""}</small>
-      <div>${escapeText(ev.raw_text || ev.caption || ev.reasoning || "No evidence text supplied.")}</div>
-    </div>
-  `).join("") || '<div class="evidence">No evidence note supplied.</div>';
-  detail.innerHTML = `
-    <div class="field"><div class="label">Paper / row</div><div>${escapeText(item.row_label || item.row_id)}</div></div>
-    <div class="field"><div class="label">Column</div><div>${escapeText(item.column_name)}</div></div>
-    <div class="field"><div class="label">Proposed value</div><div class="value">${escapeText(item.proposed_value)}</div></div>
-    <div class="field"><div class="label">Rationale</div><div class="value">${escapeText(item.rationale || "No rationale supplied.")}</div></div>
-    ${item.caveat ? `<div class="field"><div class="label">Caveat</div><div class="value">${escapeText(item.caveat)}</div></div>` : ""}
-    <div class="field"><div class="label">Evidence</div>${evidence}</div>
-    <div class="field"><div class="label">Edit value</div><textarea id="edited-value">${escapeText(current?.edited_value ?? item.proposed_value ?? "")}</textarea></div>
-    <div class="actions">
-      <button class="primary" id="accept">Accept</button>
-      <button id="accept-edit">Edit + accept</button>
-      <button id="no-data">Confirm no data</button>
-      <button class="danger" id="reject">Reject</button>
-    </div>
-    <div class="status">Current decision: ${escapeText(current?.decision || "pending")}</div>
-  `;
-  document.getElementById("accept").addEventListener("click", () => decide(item, "accepted"));
-  document.getElementById("accept-edit").addEventListener("click", () => {
-    decide(item, "accepted_with_edit", {edited_value: document.getElementById("edited-value").value});
-  });
-  document.getElementById("no-data").addEventListener("click", () => decide(item, "confirmed_no_data"));
-  document.getElementById("reject").addEventListener("click", () => decide(item, "rejected"));
-}
-
-function decide(item, decision, extras = {}) {
-  decisions[item.proposal_id] = decisionTemplate(item, decision, extras);
-  const index = items.findIndex((candidate) => candidate.proposal_id === item.proposal_id);
-  selected = items[index + 1]?.proposal_id || item.proposal_id;
+  state.decisions[proposal.proposal_id] = record;
+  storeLocalDecisions();
+  if (served) void postDecisions([record]);
+  moveSelection(1);
   render();
+  return record;
+}
+
+async function postDecisions(decisions) {
+  const response = await fetch("/api/decisions", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({decisions})
+  });
+  if (!response.ok) throw new Error(await response.text());
+  return response.json();
+}
+
+function allDecisionRows() {
+  return Object.values(state.decisions);
 }
 
 function downloadDecisions() {
   const payload = {
-    schema_version: "agent_review_decisions.v1",
-    run_id: reviewData.run_id,
+    schema_version: "papers_to_table.agent_review_decisions.v1",
+    run_id: pkg.run_id,
     created_at: new Date().toISOString(),
-    decisions: Object.values(decisions)
+    decisions: allDecisionRows()
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type: "application/json"});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${reviewData.run_id || "papers_to_table"}_decisions.json`;
-  a.click();
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `${pkg.run_id || "review"}_decisions.json`;
+  anchor.click();
   URL.revokeObjectURL(url);
 }
 
-function autoAcceptAll() {
-  items.forEach((item) => {
-    decisions[item.proposal_id] = decisionTemplate(item, "accepted", {
-      decision_source: "automation_accept_all",
-      reviewer_note: "Auto-accepted from static review UI."
-    });
+async function writeDecisions() {
+  if (!served) return;
+  await postDecisions(allDecisionRows());
+  alert("Decisions written to review/decisions.jsonl");
+}
+
+async function exportCsv() {
+  if (!served) {
+    downloadDecisions();
+    return;
+  }
+  await writeDecisions();
+  const response = await fetch("/api/export", {method: "POST"});
+  if (!response.ok) {
+    alert(`Export failed: ${await response.text()}`);
+    return;
+  }
+  const payload = await response.json();
+  alert(`Exported ${payload.accepted_changes_count} accepted value(s) to ${payload.final_table_path}`);
+}
+
+async function loadPdfJs() {
+  if (state.pdfjs !== null) return state.pdfjs;
+  try {
+    const mod = await import("./assets/pdf.mjs");
+    mod.GlobalWorkerOptions.workerSrc = "./assets/pdf.worker.mjs";
+    window.pdfjsLib = mod;
+    state.pdfjs = mod;
+  } catch {
+    state.pdfjs = false;
+  }
+  return state.pdfjs;
+}
+
+async function renderPdf(evidence) {
+  const stage = document.getElementById("pdf-stage");
+  if (!evidence?.pdf_id) {
+    stage.innerHTML = '<div class="empty">No PDF evidence selected.</div>';
+    document.getElementById("pdf-page").textContent = "No PDF selected";
+    return;
+  }
+  const pdf = pdfById(evidence.pdf_id);
+  if (!pdf) {
+    stage.innerHTML = '<div class="empty">PDF metadata missing for selected evidence.</div>';
+    return;
+  }
+  const page = evidence.page_number || 1;
+  const token = ++state.renderToken;
+  const pdfjs = await loadPdfJs();
+  if (token !== state.renderToken) return;
+  if (!pdfjs) {
+    stage.innerHTML = `<object data="${esc(pdf.asset_path)}#page=${esc(page)}" type="application/pdf" width="100%" height="100%">
+      <div class="viewer-note">PDF.js assets are unavailable. Open the PDF manually: <a href="${esc(pdf.asset_path)}#page=${esc(page)}">page ${esc(page)}</a>.</div>
+    </object>`;
+    document.getElementById("pdf-page").textContent = `${pdf.label || pdf.pdf_id}, page ${page}`;
+    return;
+  }
+  try {
+    if (!state.pdfDoc || state.pdfId !== evidence.pdf_id) {
+      state.pdfDoc = await pdfjs.getDocument(pdf.asset_path).promise;
+      state.pdfId = evidence.pdf_id;
+      state.pages = state.pdfDoc.numPages;
+    }
+    state.page = Math.max(1, Math.min(page, state.pages || page));
+    await renderCurrentPage(evidence);
+  } catch (error) {
+    stage.innerHTML = `<div class="viewer-note">PDF render failed: ${esc(error.message || error)}</div>`;
+  }
+}
+
+async function renderCurrentPage(evidence) {
+  const token = state.renderToken;
+  const stage = document.getElementById("pdf-stage");
+  const page = await state.pdfDoc.getPage(state.page);
+  if (token !== state.renderToken) return;
+  const viewport = page.getViewport({scale: state.zoom});
+  stage.innerHTML = '<div class="canvas-wrap"><canvas id="pdf-canvas"></canvas></div>';
+  const canvas = document.getElementById("pdf-canvas");
+  const wrap = stage.querySelector(".canvas-wrap");
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  await page.render({canvasContext: canvas.getContext("2d"), viewport}).promise;
+  if (token !== state.renderToken) return;
+  const text = evidence?.quote_text || evidence?.table_text || evidence?.evidence_text || evidence?.caption_text || "";
+  let boxes = [];
+  if (text) {
+    const content = await page.getTextContent();
+    boxes = quoteBoxes(content.items, viewport, text);
+  }
+  if (!boxes.length) boxes = regionBoxes(evidence, viewport);
+  for (const box of boxes) {
+    const div = document.createElement("div");
+    div.className = `hl ${box.approx ? "approx" : ""}`;
+    div.style.left = `${box.x}px`;
+    div.style.top = `${box.y}px`;
+    div.style.width = `${box.w}px`;
+    div.style.height = `${box.h}px`;
+    wrap.appendChild(div);
+  }
+  const pdf = pdfById(evidence.pdf_id);
+  document.getElementById("pdf-page").textContent = `${pdf?.label || evidence.pdf_id}, page ${state.page} / ${state.pages}`;
+  document.getElementById("zoom-label").textContent = `${Math.round(state.zoom * 100)}%`;
+  if (text && !boxes.length) {
+    const note = document.createElement("div");
+    note.className = "viewer-note";
+    note.textContent = `Text fallback - exact highlighting unavailable: "${text}"`;
+    stage.appendChild(note);
+  }
+}
+
+function norm(text) {
+  return String(text || "").normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").replace(/\s+/g, " ").trim();
+}
+
+function quoteBoxes(items, viewport, quote) {
+  const quoteTokens = norm(quote).split(" ").filter(Boolean);
+  if (!quoteTokens.length) return [];
+  const fragments = [];
+  for (const item of items) {
+    const tokens = norm(item.str).split(" ").filter(Boolean);
+    if (!tokens.length) continue;
+    const transform = window.pdfjsLib?.Util?.transform
+      ? window.pdfjsLib.Util.transform(viewport.transform, item.transform)
+      : multiply(viewport.transform, item.transform);
+    const h = Math.max(Math.abs(item.height * viewport.scale), 8);
+    fragments.push({tokens, x: transform[4], y: transform[5] - h, w: Math.max(item.width * viewport.scale, 1), h});
+  }
+  const stream = [];
+  fragments.forEach((fragment, fragmentIndex) => {
+    fragment.tokens.forEach((token) => stream.push({token, fragmentIndex}));
   });
-  render();
-  downloadDecisions();
+  const start = findSpan(stream.map((item) => item.token), quoteTokens);
+  if (start < 0) return [];
+  const end = start + quoteTokens.length - 1;
+  const indexes = new Set();
+  for (let i = start; i <= end; i++) indexes.add(stream[i].fragmentIndex);
+  return mergeBoxes(fragments.filter((_, index) => indexes.has(index)));
 }
 
-function render() {
-  document.getElementById("summary").textContent = `${items.length} proposal(s). Review is optional; exported values require accepted decisions.`;
-  renderQueue();
-  renderDetail();
+function findSpan(tokens, quoteTokens) {
+  for (let i = 0; i <= tokens.length - quoteTokens.length; i++) {
+    let ok = true;
+    for (let j = 0; j < quoteTokens.length; j++) {
+      if (tokens[i + j] !== quoteTokens[j]) { ok = false; break; }
+    }
+    if (ok) return i;
+  }
+  return -1;
 }
 
+function mergeBoxes(boxes) {
+  if (!boxes.length) return [];
+  return boxes.map((box) => ({x: Math.max(0, box.x - 2), y: Math.max(0, box.y - 2), w: box.w + 4, h: box.h + 4, approx: false}));
+}
+
+function multiply(a, b) {
+  return [
+    a[0] * b[0] + a[2] * b[1],
+    a[1] * b[0] + a[3] * b[1],
+    a[0] * b[2] + a[2] * b[3],
+    a[1] * b[2] + a[3] * b[3],
+    a[0] * b[4] + a[2] * b[5] + a[4],
+    a[1] * b[4] + a[3] * b[5] + a[5]
+  ];
+}
+
+function regionBoxes(evidence, viewport) {
+  const regions = evidence?.exact_highlight_regions || evidence?.approximate_highlight_regions || [];
+  return regions.filter((region) => Number(region.page || evidence.page_number) === state.page).map((region) => {
+    const normalized = Math.max(Math.abs(region.x0), Math.abs(region.x1), Math.abs(region.y0), Math.abs(region.y1)) <= 1.05;
+    if (normalized) {
+      const x0 = Math.min(region.x0, region.x1);
+      const x1 = Math.max(region.x0, region.x1);
+      const y0 = Math.min(region.y0, region.y1);
+      const y1 = Math.max(region.y0, region.y1);
+      return {x: x0 * viewport.width, y: (1 - y1) * viewport.height, w: (x1 - x0) * viewport.width, h: (y1 - y0) * viewport.height, approx: true};
+    }
+    return {x: region.x0 * state.zoom, y: viewport.height - region.y1 * state.zoom, w: (region.x1 - region.x0) * state.zoom, h: (region.y1 - region.y0) * state.zoom, approx: true};
+  });
+}
+
+document.getElementById("mode-queue").addEventListener("click", () => {
+  state.mode = "queue";
+  document.getElementById("mode-queue").classList.add("active");
+  document.getElementById("mode-table").classList.remove("active");
+  renderList();
+});
+document.getElementById("mode-table").addEventListener("click", () => {
+  state.mode = "table";
+  document.getElementById("mode-table").classList.add("active");
+  document.getElementById("mode-queue").classList.remove("active");
+  renderList();
+});
+document.getElementById("filter").addEventListener("change", (event) => { state.filter = event.target.value; renderList(); });
+document.getElementById("accept").addEventListener("click", () => makeDecision("accepted"));
+document.getElementById("reject").addEventListener("click", () => makeDecision("rejected"));
+document.getElementById("no-data").addEventListener("click", () => makeDecision("confirmed_no_data"));
+document.getElementById("edit").addEventListener("click", () => {
+  const proposal = currentProposal();
+  document.getElementById("edit-value").value = displayValue(proposal);
+  document.getElementById("edit-row").classList.add("visible");
+});
+document.getElementById("save-edit").addEventListener("click", () => {
+  const value = document.getElementById("edit-value").value.trim();
+  if (value) makeDecision("accepted_with_edit", {edited_value: value});
+  document.getElementById("edit-row").classList.remove("visible");
+});
+document.getElementById("cancel-edit").addEventListener("click", () => document.getElementById("edit-row").classList.remove("visible"));
+document.getElementById("prev-proposal").addEventListener("click", () => moveSelection(-1));
+document.getElementById("next-proposal").addEventListener("click", () => moveSelection(1));
 document.getElementById("download-decisions").addEventListener("click", downloadDecisions);
-document.getElementById("auto-accept").addEventListener("click", autoAcceptAll);
-document.getElementById("review-first").addEventListener("click", () => document.getElementById("detail").scrollIntoView());
+document.getElementById("write-decisions").addEventListener("click", writeDecisions);
+document.getElementById("export-csv").addEventListener("click", exportCsv);
+document.getElementById("pdf-prev").addEventListener("click", async () => {
+  if (!state.pdfDoc) return;
+  state.page = Math.max(1, state.page - 1);
+  await renderCurrentPage(currentProposal()?.evidence?.find((item) => item.evidence_id === state.selectedEvidenceId));
+});
+document.getElementById("pdf-next").addEventListener("click", async () => {
+  if (!state.pdfDoc) return;
+  state.page = Math.min(state.pages, state.page + 1);
+  await renderCurrentPage(currentProposal()?.evidence?.find((item) => item.evidence_id === state.selectedEvidenceId));
+});
+document.getElementById("zoom-out").addEventListener("click", async () => {
+  state.zoom = Math.max(.65, +(state.zoom - .15).toFixed(2));
+  await renderCurrentPage(currentProposal()?.evidence?.find((item) => item.evidence_id === state.selectedEvidenceId));
+});
+document.getElementById("zoom-in").addEventListener("click", async () => {
+  state.zoom = Math.min(2.5, +(state.zoom + .15).toFixed(2));
+  await renderCurrentPage(currentProposal()?.evidence?.find((item) => item.evidence_id === state.selectedEvidenceId));
+});
+
+await loadServerDecisions();
 render();
 </script>
 </body>

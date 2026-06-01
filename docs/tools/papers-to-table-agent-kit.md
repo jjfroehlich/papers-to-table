@@ -1,18 +1,135 @@
 # Papers-To-Table Agent Kit
 
-`skills/papers-to-table-agent-kit/` is a portable skill for capable agents that need to extract structured tables or write research reports from PDFs without running the local app.
+`skills/papers-to-table-agent-kit/` is a portable review handoff kit for capable agents that extract structured values from PDFs without running the local app.
 
-This is based on principles learned from building this app, but is an independent and portable skill for your agent of choice (Codex, Claude, Hermes, etc). It just provides some guidance, an optional human-review html, and doesnt require a local app or local LLM provider. It lets an agent intentionally do the extraction using any of its tools and capabilities. 
+The kit does not improve the agent's extraction intelligence. It standardizes the handoff from agent extraction to human review: agents provide `review_input.json`, PDFs, and optional table/schema inputs; kit scripts generate the rich local review UI, normalized artifacts, decisions, audit logs, and accepted-only exports.
 
-## Use Cases
+## Input Layout
 
-Agents can use this skill when the task is to:
+External agents author only:
 
-- extract useful structured tables from one or several scientific PDF files without installing the local app
-- create a table as a working artifact for a research report or literature review
-- generate a lightweight static browser review package with values, evidence, and rationale
-- collect information from PDF files and provide a human review interface
+```text
+RUN_DIR/
+  review_input.json
+  pdfs/
+  source_table.csv  # optional
+  schema.json       # optional
+```
+
+The generated directories are script-owned. Do not hand-author `normalized/`, `summaries/`, `exports/`, or main-app-compatible artifacts.
+
+## Review Input
+
+`review_input.json` uses schema version `papers_to_table.review_input.v1`.
+
+Minimal example:
+
+```json
+{
+  "schema_version": "papers_to_table.review_input.v1",
+  "run_id": "agent_review_001",
+  "pdfs": [
+    {"pdf_id": "paper_a", "path": "pdfs/paper_a.pdf", "label": "Paper A"}
+  ],
+  "columns": [
+    {"column_name": "Finding", "description": "Main reported finding", "field_type": "text"}
+  ],
+  "rows": [
+    {"row_id": "row_1", "pdf_id": "paper_a", "values": {"Title": "Paper A"}}
+  ],
+  "proposals": [
+    {
+      "row_id": "row_1",
+      "column_name": "Finding",
+      "proposed_value": "Example value",
+      "evidence": [
+        {
+          "pdf_id": "paper_a",
+          "source_type": "direct_quote",
+          "page_number": 3,
+          "quote_text": "Exact supporting sentence from the PDF."
+        }
+      ]
+    }
+  ]
+}
+```
+
+`proposal_id`, `evidence_id`, `cell_id`, and `created_at` are optional. The builder generates deterministic IDs when they are absent and validates uniqueness when they are supplied.
+
+Every non-empty proposed value needs at least one structured evidence record. Quote, table, caption, evidence text, bbox regions, or figure-caption evidence produce stronger labels; page-plus-reasoning evidence is allowed but is visibly marked weak/attention in the review UI.
+
+## Build And Review
+
+Validate the agent-authored inputs:
+
+```bash
+python skills/papers-to-table-agent-kit/scripts/validate_review_package.py --run RUN_DIR --mode authoring
+```
+
+Build the static review bundle:
+
+```bash
+python skills/papers-to-table-agent-kit/scripts/build_review_package.py --run RUN_DIR
+```
+
+Serve the review bundle on localhost:
+
+```bash
+python skills/papers-to-table-agent-kit/scripts/serve_review.py --run RUN_DIR
+```
+
+The server prints and opens a `http://127.0.0.1:.../review/index.html` URL. Localhost mode supports decision writeback and accepted-only export. Opening `RUN_DIR/review/index.html` directly can work as download-only mode when the browser allows local PDF access.
+
+## Generated Artifacts
+
+`build_review_package.py` writes:
+
+```text
+review/
+  index.html
+  assets/*
+  review_package.json
+normalized/
+  proposals.jsonl
+  evidence.jsonl
+summaries/
+  validation_report.json
+```
+
+After review/export, the kit writes:
+
+```text
+review/decisions.jsonl
+exports/final_table.csv
+exports/audit_log_*.json
+summaries/reviewer_summary.json
+```
+
+`exports/final_table.csv` includes only accepted and accepted-with-edit values. Rejected, pending, and confirmed-no-data proposals are preserved in audit artifacts but are not exported as filled values.
+
+## Applying Decisions
+
+If decisions were downloaded from the browser, apply them with:
+
+```bash
+python skills/papers-to-table-agent-kit/scripts/apply_review_decisions.py --run RUN_DIR --decisions RUN_DIR/review/downloaded_decisions.json
+```
+
+If `serve_review.py` wrote `review/decisions.jsonl`, export with:
+
+```bash
+python skills/papers-to-table-agent-kit/scripts/apply_review_decisions.py --run RUN_DIR --use-existing-decisions
+```
+
+For trusted automation, the kit can explicitly auto-accept all proposals:
+
+```bash
+python skills/papers-to-table-agent-kit/scripts/apply_review_decisions.py --run RUN_DIR --accept-all
+```
+
+Auto-accepted decisions are recorded with `decision_source="automation_accept_all"`.
 
 ## Installation
 
-Just tell your agent, for example `install the skill at https://github.com/jjfroehlich/papers-to-table/tree/main/skills/papers-to-table-agent-kit/`. Alternatively, copy `skills/papers-to-table-agent-kit/` into your agent system's skill directory. Keep the `references/`, `scripts/`, and `templates/` files with it.
+Install by telling your agent to use `https://github.com/jjfroehlich/papers-to-table/tree/main/skills/papers-to-table-agent-kit/`, or copy `skills/papers-to-table-agent-kit/` into the agent system's skill directory. Keep `references/`, `scripts/`, and `templates/` with it.

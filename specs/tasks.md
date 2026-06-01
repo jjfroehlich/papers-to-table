@@ -8,7 +8,7 @@
 - [ ] Evaluate retrieval context improvements, especially table-aware retrieval units and per-cell score-shape gating.
 - [ ] Keep `improvement-ideas.md` and `experiment-results.md` current as improvement ideas are tested, kept, rejected, or superseded.
 - [ ] Refresh screenshots of the web interface (for docs).
-- [ ] Consider an eval/import-compatible mode for agent-kit lite bundles after helper-script usage stabilizes.
+- [ ] Consider optional agent-kit XLSX export, `main_compat/` generation, bbox overlays, figure/page-image assets, and Playwright coverage after the rich review MVP stabilizes.
 
 ## Blocked
 
@@ -24,6 +24,7 @@
 - [x] Main-app, eval, and optimizer use run bundles and summary artifacts as their integration boundary.
 - [x] JSON schemas remain under `specs/contracts/schemas/` as machine-readable contract checks.
 - [x] Active improvement ledgers remain in `specs/improvement-ideas.md` and `specs/experiment-results.md`.
+- [x] Portable agent kit now uses `review_input.json` plus PDFs and optional table/schema files as the authored boundary for rich static/local review.
 
 ## Archived Task Ledgers
 

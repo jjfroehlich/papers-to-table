@@ -1,0 +1,67 @@
+{
+  "schema_version": "papers_to_table.review_input.v1",
+  "run_id": "agent_review_example",
+  "pdfs": [
+    {
+      "pdf_id": "paper_a",
+      "path": "pdfs/paper_a.pdf",
+      "label": "Paper A"
+    },
+    {
+      "pdf_id": "paper_b",
+      "path": "pdfs/paper_b.pdf",
+      "label": "Paper B"
+    }
+  ],
+  "columns": [
+    {
+      "column_name": "Finding",
+      "description": "Main reported finding",
+      "field_type": "text"
+    }
+  ],
+  "rows": [
+    {
+      "row_id": "row_1",
+      "pdf_id": "paper_a",
+      "values": {
+        "Title": "Paper A"
+      }
+    },
+    {
+      "row_id": "row_2",
+      "pdf_id": "paper_b",
+      "values": {
+        "Title": "Paper B"
+      }
+    }
+  ],
+  "proposals": [
+    {
+      "row_id": "row_1",
+      "column_name": "Finding",
+      "proposed_value": "Example value with direct support",
+      "evidence": [
+        {
+          "pdf_id": "paper_a",
+          "source_type": "direct_quote",
+          "page_number": 3,
+          "quote_text": "Exact supporting sentence from the PDF."
+        }
+      ]
+    },
+    {
+      "row_id": "row_2",
+      "column_name": "Finding",
+      "proposed_value": "Example value needing careful review",
+      "evidence": [
+        {
+          "pdf_id": "paper_b",
+          "page_number": 4,
+          "source_location": "Results",
+          "reasoning": "The agent inferred this from the page context, but did not capture an exact quote."
+        }
+      ]
+    }
+  ]
+}

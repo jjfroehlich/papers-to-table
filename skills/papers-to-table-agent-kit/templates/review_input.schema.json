@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "papers-to-table agent kit review_input.json",
+  "type": "object",
+  "required": ["schema_version", "pdfs", "proposals"],
+  "properties": {
+    "schema_version": {
+      "const": "papers_to_table.review_input.v1"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "pdfs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["pdf_id", "path"],
+        "properties": {
+          "pdf_id": {"type": "string"},
+          "path": {"type": "string"},
+          "label": {"type": "string"},
+          "title": {"type": "string"},
+          "authors": {},
+          "year": {}
+        },
+        "additionalProperties": true
+      }
+    },
+    "columns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["column_name"],
+        "properties": {
+          "column_name": {"type": "string"},
+          "description": {"type": "string"},
+          "field_type": {"type": ["string", "null"]},
+          "allowed_values": {"type": ["array", "null"]}
+        },
+        "additionalProperties": true
+      }
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["row_id"],
+        "properties": {
+          "row_id": {"type": "string"},
+          "pdf_id": {"type": ["string", "null"]},
+          "label": {"type": ["string", "null"]},
+          "values": {"type": "object"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "proposals": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["row_id", "column_name"],
+        "properties": {
+          "proposal_id": {"type": "string"},
+          "row_id": {"type": "string"},
+          "column_name": {"type": "string"},
+          "cell_id": {"type": "string"},
+          "pdf_id": {"type": "string"},
+          "proposal_status": {"type": "string"},
+          "proposed_value": {},
+          "rationale": {"type": ["string", "null"]},
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "evidence_id": {"type": "string"},
+                "pdf_id": {"type": "string"},
+                "source_type": {"type": "string"},
+                "page_number": {"type": "integer", "minimum": 1},
+                "quote_text": {"type": "string"},
+                "table_text": {"type": "string"},
+                "evidence_text": {"type": "string"},
+                "caption_text": {"type": "string"},
+                "reasoning": {"type": "string"},
+                "source_location": {"type": "string"},
+                "exact_highlight_regions": {"type": "array"},
+                "approximate_highlight_regions": {"type": "array"},
+                "bbox": {},
+                "figure_ref": {"type": "string"}
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -17,7 +17,7 @@ This file owns the repository layout, runtime boundaries, and cross-tool integra
 - `app/frontend/`: React browser UI for run setup, status, proposal review, diagnostics, and export.
 - `benchmark_datasets/`: checked-in benchmark inputs and external-result comparison data. Current active benchmark datasets are `massively_parallel_reporter_assays`, `genome_editing_tools`, and `spatial_transcriptomics`; historical/external result tables live under `benchmark_datasets/data/`.
 - `docs/`: MkDocs manual for operators, agents, and developers.
-- `skills/`: reusable external agent workflows. The current skill directories are `skills/papers-to-table-agent-kit/` and `skills/papers-to-table-local-app/`; there is no alternate active skill-root directory.
+- `skills/`: reusable external agent workflows. The current skill directories are `skills/papers-to-table-agent-kit/` and `skills/papers-to-table-local-app/`; there is no alternate active skill-root directory. `papers-to-table-agent-kit` is a portable rich review handoff kit whose authored input is `review_input.json` plus PDFs and optional table/schema files; its scripts generate static/local review, normalized, decision, summary, and export artifacts without running the main app backend or extraction pipeline.
 - `specs/`: canonical active spec set plus historical archive.
 - `tools/eval/`: file-driven evaluator companion tool.
 - `tools/optimizer/`: orchestration-only optimizer companion tool.

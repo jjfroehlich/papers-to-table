@@ -64,7 +64,7 @@ python scripts/papers_to_table.py eval \
 ### Agent skills
 Two experimental agent-skill workflows:
 
-- `skills/papers-to-table-agent-kit/`: portable agent workflow for extracting information from PDFs, with optional human-review interface. This can be used directly within agent systems such as Codex, Claude, or Copilot, without needing the app or local LLMs. Based on principles learned while building the local app.
+- `skills/papers-to-table-agent-kit/`: portable rich review handoff for agents that already extract values from PDFs. Agents author `review_input.json` plus PDFs and optional table/schema files; the kit generates the local review UI, decisions, audit artifacts, and accepted-only CSV export without requiring the main app, backend, or local LLM provider.
 - `skills/papers-to-table-local-app/`: local-app workflow for agents that can run the locally installed app with local LLM provider LM Studio.
 
 Install by telling your agent, for example `install the skills at https://github.com/jjfroehlich/papers-to-table/tree/main/skills/`. Alternatively, copy the relevant skill folder into your agent system's skill directory.

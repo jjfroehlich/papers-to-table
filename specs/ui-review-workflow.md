@@ -135,6 +135,23 @@ Only explicit export writes a new workbook and audit artifacts. Only accepted an
 
 Export should clearly report where the workbook and audit artifacts were written and preserve enough audit detail to reconstruct what was proposed, what evidence was shown, what decision was made, and what was exported.
 
+## Portable Agent-Kit Review UI
+
+`skills/papers-to-table-agent-kit/` provides a static/local rich review UI for external-agent outputs. It follows the same review decision and accepted-only export semantics, but it is intentionally not full main-app parity.
+
+The agent-kit review UI is acceptable for MVP when:
+
+- proposals appear in a queue/table
+- selecting a proposal opens the corresponding PDF page when possible
+- quote text is highlighted when PDF.js can match it
+- page-only or reasoning-only evidence is visibly labeled weak/attention
+- reviewers can accept, accept with edit, reject, or confirm no data
+- decisions can be downloaded or written through localhost server writeback
+- accepted-only `exports/final_table.csv` is produced
+- a valid package can be produced from quote/page evidence without bboxes, figure crops, page images, source table, or schema
+
+The agent-kit UI must not grow implicit full backend expectations such as provider diagnostics, run lifecycle state, eval mode, mandatory page image generation, mandatory figure extraction, or mandatory bbox anchoring.
+
 ## Acceptance Criteria
 
 The review UI is acceptable when:
