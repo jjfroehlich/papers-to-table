@@ -74,7 +74,7 @@ Low-level eval may opt into the deterministic text exact-match fast path with `-
 
 Field-type inference must not treat bare `0`/`1` numeric pairs as boolean. Allowed values infer `categorical`; pairs where both values parse numerically infer `numeric`; boolean is inferred only for clear boolean vocabulary such as `yes/no`, `present/absent`, or `true/false`; otherwise the field is treated as `text`.
 
-Structured fields remain deterministic-only in the current implementation. Numeric, categorical, and boolean comparisons emit parse and mismatch diagnostics so completed runs can be calibrated for likely deterministic false negatives. The summary includes `structured_deterministic_failure_count`, `structured_adjudication_eligible_count`, and `structured_adjudication_eligible_rate`; these are diagnostic counts and do not change headline correctness.
+Structured fields remain deterministic-only in the current implementation. Numeric, categorical, and boolean comparisons emit parse and mismatch diagnostics so completed runs can be calibrated for likely deterministic false negatives. The summary includes `structured_deterministic_failure_count`, `structured_adjudication_eligible_count`, `structured_adjudication_eligible_failure_rate`, and the older compatibility alias `structured_adjudication_eligible_rate`; these are diagnostic counts and do not change headline correctness.
 
 ## Judge Policy
 

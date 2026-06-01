@@ -6,7 +6,7 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from paper_eval.calibration import build_structured_calibration_report
+from paper_eval.calibration import build_structured_calibration_report, write_structured_calibration_report
 from paper_eval.cli import main
 
 
@@ -32,6 +32,7 @@ class StructuredCalibrationTests(unittest.TestCase):
             self.assertEqual(report["structured_scored_cell_count"], 3)
             self.assertEqual(report["structured_deterministic_failure_count"], 2)
             self.assertEqual(report["structured_adjudication_eligible_count"], 1)
+            self.assertEqual(report["structured_adjudication_eligible_failure_rate"], 0.5)
             self.assertEqual(report["failure_counts_by_field_type"], {"numeric": 2})
             self.assertEqual(report["failure_counts_by_kind"]["numeric_unit_or_percent_format"], 1)
             self.assertEqual(report["top_columns_by_eligible_failure_count"][0]["column_name"], "efficiency")
@@ -77,6 +78,73 @@ class StructuredCalibrationTests(unittest.TestCase):
             with (output_dir / "structured_calibration_by_column.csv").open(encoding="utf-8", newline="") as handle:
                 rows = list(csv.DictReader(handle))
             self.assertEqual(rows[0]["column_name"], "method")
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+
+    def test_build_report_and_csv_outputs_handle_zero_failures_cleanly(self) -> None:
+        root = Path.cwd() / ".tmp_structured_calibration_empty"
+        shutil.rmtree(root, ignore_errors=True)
+        try:
+            root.mkdir(parents=True)
+            scored_path = root / "scored_cells.jsonl"
+            self._write_jsonl(
+                scored_path,
+                [
+                    self._row("numeric", "efficiency", True, None, False),
+                    self._row("text", "notes", False, None, False),
+                ],
+            )
+
+            report = build_structured_calibration_report([scored_path], example_limit=0)
+            artifact_paths = write_structured_calibration_report(root / "out", report)
+
+            self.assertEqual(report["structured_scored_cell_count"], 1)
+            self.assertEqual(report["structured_deterministic_failure_count"], 0)
+            self.assertEqual(report["structured_adjudication_eligible_count"], 0)
+            self.assertIsNone(report["structured_adjudication_eligible_failure_rate"])
+            self.assertIsNone(report["structured_adjudication_eligible_rate"])
+            self.assertEqual(report["examples_by_kind"], {})
+            with Path(artifact_paths["by_column_csv"]).open(encoding="utf-8", newline="") as handle:
+                reader = csv.DictReader(handle)
+                self.assertEqual(
+                    reader.fieldnames,
+                    [
+                        "column_name",
+                        "field_type",
+                        "structured_deterministic_failure_count",
+                        "structured_adjudication_eligible_count",
+                        "failure_kind_counts",
+                    ],
+                )
+                self.assertEqual(list(reader), [])
+            with Path(artifact_paths["by_kind_csv"]).open(encoding="utf-8", newline="") as handle:
+                reader = csv.DictReader(handle)
+                self.assertEqual(
+                    reader.fieldnames,
+                    [
+                        "deterministic_failure_kind",
+                        "structured_deterministic_failure_count",
+                        "structured_adjudication_eligible_count",
+                        "field_type_counts",
+                    ],
+                )
+                self.assertEqual(list(reader), [])
+            with Path(artifact_paths["examples_csv"]).open(encoding="utf-8", newline="") as handle:
+                reader = csv.DictReader(handle)
+                self.assertEqual(
+                    reader.fieldnames,
+                    [
+                        "deterministic_failure_kind",
+                        "adjudication_eligible",
+                        "field_type",
+                        "column_name",
+                        "row_id",
+                        "gold_value",
+                        "proposed_value",
+                        "scored_cells_path",
+                    ],
+                )
+                self.assertEqual(list(reader), [])
         finally:
             shutil.rmtree(root, ignore_errors=True)
 

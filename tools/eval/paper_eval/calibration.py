@@ -91,6 +91,7 @@ def build_structured_calibration_report(inputs: Iterable[Path], *, example_limit
         "structured_scored_cell_count": structured_scored_count,
         "structured_deterministic_failure_count": len(failures),
         "structured_adjudication_eligible_count": eligible_count,
+        "structured_adjudication_eligible_failure_rate": _ratio(eligible_count, len(failures)),
         "structured_adjudication_eligible_rate": _ratio(eligible_count, len(failures)),
         "failure_counts_by_field_type": dict(sorted(by_field_type.items())),
         "failure_counts_by_kind": dict(sorted(by_kind.items())),
@@ -108,14 +109,43 @@ def write_structured_calibration_report(output_dir: Path, report: dict[str, Any]
     examples_path = output_dir / "structured_calibration_examples.csv"
 
     summary_path.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
-    _write_csv(columns_path, report.get("top_columns_by_eligible_failure_count", []))
-    _write_csv(kinds_path, report.get("failure_kinds", []))
+    _write_csv(
+        columns_path,
+        report.get("top_columns_by_eligible_failure_count", []),
+        fieldnames=[
+            "column_name",
+            "field_type",
+            "structured_deterministic_failure_count",
+            "structured_adjudication_eligible_count",
+            "failure_kind_counts",
+        ],
+    )
+    _write_csv(
+        kinds_path,
+        report.get("failure_kinds", []),
+        fieldnames=[
+            "deterministic_failure_kind",
+            "structured_deterministic_failure_count",
+            "structured_adjudication_eligible_count",
+            "field_type_counts",
+        ],
+    )
     _write_csv(
         examples_path,
         [
             example
             for examples in (report.get("examples_by_kind", {}) or {}).values()
             for example in examples
+        ],
+        fieldnames=[
+            "deterministic_failure_kind",
+            "adjudication_eligible",
+            "field_type",
+            "column_name",
+            "row_id",
+            "gold_value",
+            "proposed_value",
+            "scored_cells_path",
         ],
     )
     return {
@@ -193,15 +223,15 @@ def _finalize_counter_fields(row: dict[str, Any], keys: list[str]) -> dict[str, 
     return finalized
 
 
-def _write_csv(path: Path, rows: Iterable[dict[str, Any]]) -> None:
+def _write_csv(path: Path, rows: Iterable[dict[str, Any]], *, fieldnames: list[str] | None = None) -> None:
     rows = list(rows)
-    fieldnames: list[str] = []
+    ordered_fieldnames = list(fieldnames or [])
     for row in rows:
         for key in row:
-            if key not in fieldnames:
-                fieldnames.append(key)
+            if key not in ordered_fieldnames:
+                ordered_fieldnames.append(key)
     with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer = csv.DictWriter(handle, fieldnames=ordered_fieldnames)
         writer.writeheader()
         for row in rows:
             writer.writerow({key: _csv_value(value) for key, value in row.items()})

@@ -68,11 +68,6 @@ def score_run(
     )
     proposals_by_key: dict[tuple[str, str], list[Any]] = defaultdict(list)
     for proposal in loaded_run.proposals:
-        _canonical_field_type_for_record(
-            proposal.field_type,
-            column_name=proposal.column_name,
-            source="proposal",
-        )
         proposals_by_key[proposal.join_key].append(proposal)
 
     gold_keys = {cell.join_key for cell in gold_dataset.cells}
@@ -86,6 +81,11 @@ def score_run(
         proposal_count = len(proposals)
 
         if not gold_cell.is_present:
+            field_type, extra_flags, extra_diagnostics = _diagnostic_field_type_for_record(
+                proposals[0].field_type,
+                column_name=proposals[0].column_name,
+                source="proposal",
+            ) if proposal_count == 1 else (None, [], {})
             scored_entries.append(
                 ScoredCell(
                     record_kind="gold_cell",
@@ -95,15 +95,7 @@ def score_run(
                     cell_id=gold_cell.cell_id,
                     gold_value=gold_cell.raw_value,
                     proposed_value=proposals[0].proposed_value if proposal_count == 1 else None,
-                    field_type=(
-                        _canonical_field_type_for_record(
-                            proposals[0].field_type,
-                            column_name=proposals[0].column_name,
-                            source="proposal",
-                        )
-                        if proposal_count == 1
-                        else None
-                    ),
+                    field_type=field_type,
                     scoring_policy=proposals[0].scoring_policy if proposal_count == 1 else None,
                     is_gold_present=False,
                     is_gold_empty=True,
@@ -123,8 +115,8 @@ def score_run(
                     judge_prompt_hash=None,
                     judge_temperature=None,
                     judge_input_hash=None,
-                    diagnostic_flags=["gold_empty_unscored"] + (["filled_on_gold_empty"] if proposal_count else []),
-                    diagnostics={},
+                    diagnostic_flags=["gold_empty_unscored"] + (["filled_on_gold_empty"] if proposal_count else []) + extra_flags,
+                    diagnostics=extra_diagnostics,
                     )
                 )
             continue
@@ -355,6 +347,11 @@ def score_run(
         for proposal in proposals:
             if scoped_row_ids and proposal.row_id not in scoped_row_ids:
                 continue
+            field_type, extra_flags, extra_diagnostics = _diagnostic_field_type_for_record(
+                proposal.field_type,
+                column_name=proposal.column_name,
+                source="proposal",
+            )
             scored_entries.append(
                 ScoredCell(
                     record_kind="proposal_diagnostic",
@@ -364,11 +361,7 @@ def score_run(
                     cell_id=proposal.cell_id,
                     gold_value=None,
                     proposed_value=proposal.proposed_value,
-                    field_type=_canonical_field_type_for_record(
-                        proposal.field_type,
-                        column_name=proposal.column_name,
-                        source="proposal",
-                    ),
+                    field_type=field_type,
                     scoring_policy=proposal.scoring_policy,
                     is_gold_present=False,
                     is_gold_empty=False,
@@ -388,8 +381,8 @@ def score_run(
                     judge_prompt_hash=None,
                     judge_temperature=None,
                     judge_input_hash=None,
-                    diagnostic_flags=["proposal_without_matching_gold_cell"],
-                    diagnostics={},
+                    diagnostic_flags=["proposal_without_matching_gold_cell"] + extra_flags,
+                    diagnostics=extra_diagnostics,
                     selected_proposal_status=proposal.proposal_status,
                 )
             )
@@ -485,6 +478,30 @@ def _canonical_field_type_for_record(value: Any, *, column_name: str | None, sou
             f"Unsupported field_type '{value}' in {source}{column_detail} ({supported_field_type_message()})."
         )
     return canonical
+
+
+def _diagnostic_field_type_for_record(
+    value: Any,
+    *,
+    column_name: str | None,
+    source: str,
+) -> tuple[str | None, list[str], dict[str, Any]]:
+    canonical = canonicalize_field_type(value)
+    if value is None or not str(value).strip() or canonical is not None:
+        return canonical, [], {}
+    column_detail = f" for column '{column_name}'" if column_name else ""
+    return None, ["unsupported_field_type_ignored"], {
+        "unsupported_field_type": {
+            "value": value,
+            "source": source,
+            "column_name": column_name,
+            "message": (
+                f"Unsupported field_type '{value}' in {source}{column_detail}; "
+                "ignoring it because this record is diagnostic-only."
+            ),
+            "supported_field_types": supported_field_type_message(),
+        }
+    }
 
 
 def _infer_field_type(
