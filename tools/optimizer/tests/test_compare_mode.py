@@ -135,6 +135,17 @@ def test_compare_plots_keep_unscored_candidates(tmp_path: Path) -> None:
             "guardrail.null_count": "9",
             "guardrail.failure_count": "9",
         },
+        {
+            "candidate_id": "ext_gold",
+            "candidate_status": "completed",
+            "text_model_id": "external_gold",
+            "prompt_bundle_id": "external_result",
+            "primary.correctness": "1.0",
+            "runtime_seconds": "1.0",
+            "guardrail.evidence_quality": "",
+            "guardrail.null_count": "0",
+            "guardrail.failure_count": "0",
+        },
     ]
 
     with results_csv.open("w", encoding="utf-8", newline="") as handle:
@@ -147,11 +158,12 @@ def test_compare_plots_keep_unscored_candidates(tmp_path: Path) -> None:
     candidate_rows = list(
         csv.DictReader((experiment_dir / "plots" / "compare_primary_by_candidate.csv").open("r", encoding="utf-8", newline=""))
     )
-    assert [row["candidate_id"] for row in candidate_rows] == ["cand_0001", "cand_0002"]
-    assert candidate_rows[0]["candidate_label"] == "qwen/qwen3.5-9b"
+    assert [row["candidate_id"] for row in candidate_rows] == ["cand_0001", "cand_0002", "ext_gold"]
+    assert candidate_rows[0]["candidate_label"] == "qwen/qwen3.5-9b [default]"
     assert candidate_rows[0]["primary_score_display"] == "NA"
     assert candidate_rows[0]["score_available"] == "False"
-    assert candidate_rows[1]["candidate_label"] == "google/gemma-4-26b-a4b"
+    assert candidate_rows[1]["candidate_label"] == "google/gemma-4-26b-a4b [default]"
+    assert candidate_rows[2]["candidate_label"] == "external_gold [external_result]"
 
     model_rows = list(
         csv.DictReader((experiment_dir / "plots" / "compare_primary_by_text_model.csv").open("r", encoding="utf-8", newline=""))

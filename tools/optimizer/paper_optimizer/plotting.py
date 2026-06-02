@@ -81,6 +81,18 @@ def _candidate_axis_label(candidate_id: str, label: str) -> str:
     return text
 
 
+def _is_external_control(row: dict[str, Any]) -> bool:
+    candidate_id = str(row.get("candidate_id") or "")
+    prompt_bundle_id = str(row.get("prompt_bundle_id") or "")
+    text_model_id = str(row.get("text_model_id") or "")
+    return (
+        candidate_id.startswith("ext_")
+        or candidate_id.startswith("external_")
+        or prompt_bundle_id == "external_result"
+        or text_model_id.startswith("external_")
+    )
+
+
 def _annotate_points(xs: list[float], ys: list[float], labels: list[str]) -> None:
     for index, (x_value, y_value, label) in enumerate(zip(xs, ys, labels, strict=True)):
         x_offset = 5 if index % 2 == 0 else -5
@@ -124,6 +136,8 @@ def _candidate_labels(rows: list[dict[str, str]]) -> dict[str, str]:
 def _category_score_rows(rows: list[dict[str, str]], *, category_key: str, primary_key: str) -> list[dict[str, Any]]:
     grouped: dict[str, dict[str, Any]] = {}
     for row in rows:
+        if _is_external_control(row):
+            continue
         category = row.get(category_key)
         if category in (None, ""):
             continue
@@ -719,12 +733,16 @@ def generate_suite_plots(experiment_dir: Path, primary_metric: str) -> None:
                 {
                     "benchmark_id": benchmark_id,
                     "candidate_count": 0,
+                    "external_control_count": 0,
                     "best_primary_score": None,
                     "scored_candidate_count": 0,
                     "failed_replicate_count": 0,
                     "unscored_replicate_count": 0,
                 },
             )
+            if _is_external_control(row):
+                bucket["external_control_count"] += 1
+                continue
             bucket["candidate_count"] += 1
             bucket["failed_replicate_count"] += int(_safe_float(row.get("n_failed")) or 0)
             bucket["unscored_replicate_count"] += int(_safe_float(row.get("n_unscored")) or 0)

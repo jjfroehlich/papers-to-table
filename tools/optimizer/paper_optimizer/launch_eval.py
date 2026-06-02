@@ -193,17 +193,17 @@ def launch_eval_app(
     command = command_prefix + [
         "evaluate",
         "--run",
-        str(main_run_dir),
+        str(main_run_dir.resolve()),
         "--gold",
-        gold_path,
+        str(Path(gold_path).resolve()),
         "--out",
-        str(out_dir),
+        str(out_dir.resolve()),
         "--json-output",
     ]
     if benchmark.gold_sheet:
         command.extend(["--gold-sheet", benchmark.gold_sheet])
     if benchmark.eval_schema_path:
-        command.extend(["--schema", benchmark.eval_schema_path])
+        command.extend(["--schema", str(Path(benchmark.eval_schema_path).resolve())])
     command.extend(list(benchmark.eval_args))
 
     working_dir = str(Path(eval_cfg["repo_root"]).resolve())
@@ -268,7 +268,7 @@ def launch_external_eval_app(
     out_dir.mkdir(parents=True, exist_ok=True)
     if not benchmark.gold_path:
         raise ValueError(f"Benchmark '{benchmark_id}' is missing gold_path required for external eval")
-    external_result_for_eval = out_dir / f"external_input{external_result_path.suffix}"
+    external_result_for_eval = (out_dir / f"external_input{external_result_path.suffix}").resolve()
     if external_result_path.resolve() != external_result_for_eval.resolve():
         shutil.copyfile(external_result_path, external_result_for_eval)
 
@@ -281,17 +281,17 @@ def launch_external_eval_app(
     command = command_prefix + [
         "evaluate",
         "--external-result",
-        str(external_result_for_eval),
+        str(external_result_for_eval.resolve()),
         "--gold",
-        benchmark.gold_path,
+        str(Path(benchmark.gold_path).resolve()),
         "--out",
-        str(out_dir),
+        str(out_dir.resolve()),
         "--json-output",
     ]
     if benchmark.gold_sheet:
         command.extend(["--gold-sheet", benchmark.gold_sheet])
     if benchmark.eval_schema_path:
-        command.extend(["--schema", benchmark.eval_schema_path])
+        command.extend(["--schema", str(Path(benchmark.eval_schema_path).resolve())])
     command.extend(list(benchmark.eval_args))
     command.extend(list(extra_eval_args or []))
 

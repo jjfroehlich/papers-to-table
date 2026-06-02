@@ -301,6 +301,17 @@ def test_suite_plots_include_replicate_variability_artifacts(tmp_path: Path) -> 
         )
         writer.writerow(
             {
+                "candidate_id": "ext_gold",
+                "suite_id": "dev_suite",
+                "benchmark_id": "bench_dev",
+                "primary_metric_mean": "1.0",
+                "primary_metric_sem": "0.0",
+                "n_total": "3",
+                "n_scored": "3",
+            }
+        )
+        writer.writerow(
+            {
                 "candidate_id": "cand_0001",
                 "suite_id": "dev_suite",
                 "benchmark_id": "bench_other",
@@ -352,7 +363,16 @@ def test_suite_plots_include_replicate_variability_artifacts(tmp_path: Path) -> 
         )
     )
     assert plot_rows[0]["primary_metric_sem"] == "0.05"
-    assert plot_rows[1]["primary_metric_sem"] == "0.02"
+    assert plot_rows[1]["primary_metric_sem"] == "0.0"
+    assert plot_rows[2]["primary_metric_sem"] == "0.02"
+    breakdown_rows = list(
+        __import__("csv").DictReader(
+            (experiment_dir / "plots" / "suite_benchmark_breakdown_by_benchmark.csv").open("r", encoding="utf-8", newline="")
+        )
+    )
+    assert breakdown_rows[0]["benchmark_id"] == "bench_dev"
+    assert breakdown_rows[0]["best_primary_score"] == "0.81"
+    assert breakdown_rows[0]["external_control_count"] == "1"
 
 
 def test_external_replicates_load_adjacent_runtime_file(tmp_path: Path) -> None:

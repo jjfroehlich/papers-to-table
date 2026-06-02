@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 from paper_optimizer.bundle import build_candidate_from_dict
-from paper_optimizer.launch_eval import launch_eval_app
+from paper_optimizer.launch_eval import launch_eval_app, launch_external_eval_app
 from paper_optimizer.launch_main import _build_real_main_command
 from paper_optimizer.pipeline import evaluate_candidate_once
 from paper_optimizer.benchmarks import load_benchmarks
@@ -165,6 +165,99 @@ print(
 
     assert launch.success
     assert "--enable-text-exact-match-fast-path" in launch.command
+    assert summary["metrics"]["structured_accuracy"] == 1.0
+
+
+def test_launch_external_eval_uses_absolute_paths(base_config: dict, tmp_path: Path, monkeypatch) -> None:
+    eval_script = tmp_path / "eval_external_assert_paths.py"
+    eval_script.write_text(
+        """
+import json
+import sys
+from pathlib import Path
+
+args = sys.argv[1:]
+external_path = Path(args[args.index("--external-result") + 1])
+gold_path = Path(args[args.index("--gold") + 1])
+out_dir = Path(args[args.index("--out") + 1])
+schema_path = Path(args[args.index("--schema") + 1])
+if not external_path.is_absolute():
+    sys.stderr.write("external result path was not absolute\\n")
+    raise SystemExit(2)
+if not gold_path.is_absolute():
+    sys.stderr.write("gold path was not absolute\\n")
+    raise SystemExit(2)
+if not out_dir.is_absolute():
+    sys.stderr.write("out path was not absolute\\n")
+    raise SystemExit(2)
+if not schema_path.is_absolute():
+    sys.stderr.write("schema path was not absolute\\n")
+    raise SystemExit(2)
+run_id = external_path.name
+run_output_dir = out_dir / "per-run" / run_id
+(out_dir / "compare").mkdir(parents=True, exist_ok=True)
+run_output_dir.mkdir(parents=True, exist_ok=True)
+summary_path = run_output_dir / "run_summary.json"
+summary_path.write_text(
+    json.dumps(
+        {
+            "run_id": run_id,
+            "run_dir": str(external_path.resolve()),
+            "gold_source": str(gold_path.resolve()),
+            "metrics": {"structured_accuracy": 1.0},
+            "metadata": {},
+            "contract_warnings": [],
+            "join_diagnostics": [],
+        }
+    ),
+    encoding="utf-8",
+)
+(run_output_dir / "scored_cells.jsonl").write_text("", encoding="utf-8")
+print(
+    json.dumps(
+        {
+            "schema_version": "paper_eval_cli.v1",
+            "command": "evaluate",
+            "status": "ok",
+            "success": True,
+            "output_dir": str(out_dir.resolve()),
+            "per_run_dir": str((out_dir / "per-run").resolve()),
+            "compare_dir": str((out_dir / "compare").resolve()),
+            "run_count": 1,
+            "run_ids": [run_id],
+            "run_summary_paths": [str(summary_path.resolve())],
+            "scored_cells_paths": [str((run_output_dir / "scored_cells.jsonl").resolve())],
+            "judge_records_paths": [],
+            "comparison_artifacts": {},
+        },
+        sort_keys=True,
+    )
+)
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    external_result = tmp_path / "external.csv"
+    external_result.write_text("row_id,value\nrow-1,yes\n", encoding="utf-8")
+    config = dict(base_config)
+    config["eval_app"] = dict(base_config["eval_app"])
+    config["eval_app"]["command_prefix"] = [sys.executable, str(eval_script)]
+    benchmark = load_benchmarks(config).manifests["bench_dev"]
+
+    monkeypatch.chdir(tmp_path)
+    launch, summary = launch_external_eval_app(
+        config,
+        benchmark=benchmark,
+        benchmark_id="bench_dev",
+        external_result_path=external_result,
+        out_dir=Path("relative-external-eval-out"),
+    )
+
+    assert launch.success
+    assert Path(launch.command[launch.command.index("--external-result") + 1]).is_absolute()
+    assert Path(launch.command[launch.command.index("--gold") + 1]).is_absolute()
+    assert Path(launch.command[launch.command.index("--out") + 1]).is_absolute()
     assert summary["metrics"]["structured_accuracy"] == 1.0
 
 

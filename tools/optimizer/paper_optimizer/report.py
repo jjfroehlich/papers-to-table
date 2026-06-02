@@ -53,6 +53,31 @@ def _winner_row(rows: list[dict[str, Any]], winner_id: str | None) -> dict[str, 
     return next((row for row in rows if row.get("candidate_id") == winner_id), None)
 
 
+def _is_external_control(row: dict[str, Any]) -> bool:
+    candidate_id = str(row.get("candidate_id") or "")
+    prompt_bundle_id = str(row.get("prompt_bundle_id") or "")
+    text_model_id = str(row.get("text_model_id") or "")
+    return (
+        candidate_id.startswith("ext_")
+        or candidate_id.startswith("external_")
+        or prompt_bundle_id == "external_result"
+        or text_model_id.startswith("external_")
+    )
+
+
+def _report_winner_row(rows: list[dict[str, Any]], winner_row: dict[str, Any] | None) -> dict[str, Any] | None:
+    if winner_row is not None and not _is_external_control(winner_row):
+        return winner_row
+    return next((row for row in rows if not _is_external_control(row) and row.get("primary_metric_value") is not None), None)
+
+
+def _recommendation_rows(rows: list[dict[str, Any]], winner_row: dict[str, Any] | None) -> list[dict[str, Any]]:
+    report_winner = _report_winner_row(rows, winner_row)
+    if report_winner is None:
+        return [row for row in rows if not _is_external_control(row)]
+    return [report_winner, *[row for row in rows if row.get("candidate_id") != report_winner.get("candidate_id") and not _is_external_control(row)]]
+
+
 def _status_mix_text(counts: dict[str, int]) -> str:
     return (
         f"{counts.get('scored', 0)} scored, "
@@ -626,16 +651,17 @@ def _build_suite_report_cards(experiment_dir: Path) -> list[dict[str, Any]]:
         if str(row.get("score_status")) == "scored_degraded" or str(row.get("prompt_only_degraded_mode_used")).lower() == "true"
     )
     single_replicate = any(str(row.get("n_total")) == "1" for row in benchmark_rows)
-    top_suite = suite_rows[0] if suite_rows else {}
+    control_count = sum(1 for row in suite_rows if _is_external_control(row))
+    top_suite = next((row for row in suite_rows if not _is_external_control(row)), suite_rows[0] if suite_rows else {})
     return [
         {
             "title": "Suite Ranking",
-            "lead": "Suite-level ranking distinguishes the raw weighted-mean winner from the recommended default by retaining trust caveats.",
+            "lead": "Suite-level ranking excludes external controls from recommendation language while retaining them in artifacts for calibration.",
             "items": [
-                f"Top suite candidate: {display_text(top_suite.get('candidate_id'), missing='not recorded')}.",
+                f"Top internal suite candidate: {display_text(top_suite.get('candidate_id'), missing='not recorded')}.",
                 f"Weighted suite score: {format_score(top_suite.get('suite_primary_metric_weighted_mean'))}.",
                 f"Benchmark coverage: {display_text(top_suite.get('benchmark_coverage'), missing='not recorded')}.",
-                "Raw winner and recommended default can diverge when failures, degraded mode, invalid contracts, judge instability, missing evidence, or coverage loss are present.",
+                f"External control candidates excluded from recommendation ranking: {control_count}.",
             ],
             "badges": [{"text": "suite", "tone": "neutral"}],
         },
@@ -889,9 +915,12 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
     candidate_rows = merge_candidate_rows(results_rows, diagnostics_rows, primary_metric=primary_metric)
     candidate_rows = sort_candidates(candidate_rows)
     study_type = str(experiment_json.get("study_type") or summary.get("study_type") or "compare")
-    variant = study_variant(candidate_rows, study_type, experiment_id=str(experiment_json.get("experiment_id") or ""))
     winner_id = _winner_id(summary, best_candidate, compare_summary)
     winner_row = _winner_row(candidate_rows, winner_id)
+    report_winner_row = _report_winner_row(candidate_rows, winner_row)
+    report_rows = _recommendation_rows(candidate_rows, winner_row)
+    report_winner_id = report_winner_row.get("candidate_id") if report_winner_row else None
+    variant = study_variant(report_rows, study_type, experiment_id=str(experiment_json.get("experiment_id") or ""))
     best_raw_row = _winner_row(candidate_rows, summary.get("best_raw_candidate_id"))
     started_at, ended_at = _time_window(candidate_rows, run_metadata)
     counts = status_counts(candidate_rows)
@@ -899,26 +928,28 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
     main_sentence = (
         _optimize_summary_sentence(
             winner_label=winner_label,
-            winner_row=winner_row,
-            rows=candidate_rows,
+            winner_row=report_winner_row,
+            rows=report_rows,
             primary_metric=primary_metric,
             summary=summary,
         )
         if study_type == "optimize"
         else _compare_summary_sentence(
             winner_label=winner_label,
-            winner_row=winner_row,
-            rows=candidate_rows,
+            winner_row=report_winner_row,
+            rows=report_rows,
             primary_metric=primary_metric,
             variant=variant,
         )
     )
     caveats = _build_caveats(candidate_rows, study_type=study_type)
+    if any(_is_external_control(row) for row in candidate_rows):
+        caveats.insert(0, "External results and external gold are shown only as controls; they are excluded from report recommendations, winner rationale, and benchmark-best plots.")
     if str(run_metadata.get("status") or "").lower() == "running" and ended_at not in {"not recorded", "", None}:
         caveats.insert(0, "Wrapper run metadata still says running even though experiment artifacts show an end time; treat wrapper status as stale.")
-    next_checks = _build_next_checks(candidate_rows, variant=variant, study_type=study_type)
-    gap = _gap_to_runner_up(candidate_rows)
-    winner_name = model_nickname(winner_row.get("text_model_id")) if winner_row else None
+    next_checks = _build_next_checks(report_rows, variant=variant, study_type=study_type)
+    gap = _gap_to_runner_up(report_rows)
+    winner_name = model_nickname(report_winner_row.get("text_model_id")) if report_winner_row else None
     best_raw_name = model_nickname(best_raw_row.get("text_model_id")) if best_raw_row else None
 
     page = {
@@ -929,11 +960,11 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
             {"text": variant.replace("_", " "), "tone": "neutral"},
         ],
         "hero_meta": [
-            {"label": "Recommended Model", "value": display_text(winner_name, missing="not recorded"), "note": display_text(winner_row.get("candidate_id") if winner_row else None, missing="")},
-            {"label": "Suite Score", "value": format_score(winner_row.get("primary_metric_value") if winner_row else None), "note": f"coverage={format_percent(winner_row.get('benchmark_coverage') if winner_row else None)}"},
-            {"label": "Benchmark Scope", "value": display_text(summary.get("benchmark_id"), missing=display_text(winner_row.get("suite_id") if winner_row else None, missing="not recorded")), "note": display_text(winner_row.get("suite_benchmark_ids") if winner_row else None, missing=None)},
-            {"label": "Replicates", "value": display_text(winner_row.get("suite_replicate_count") if winner_row else None, missing="not recorded"), "note": _status_mix_text(counts)},
-            {"label": "Total Runtime", "value": format_runtime(winner_row.get("runtime_seconds") if winner_row else None), "note": f"per benchmark={format_runtime(winner_row.get('runtime_mean_per_benchmark_seconds') if winner_row else None)}"},
+            {"label": "Recommended Model", "value": display_text(winner_name, missing="not recorded"), "note": display_text(report_winner_row.get("candidate_id") if report_winner_row else None, missing="")},
+            {"label": "Suite Score", "value": format_score(report_winner_row.get("primary_metric_value") if report_winner_row else None), "note": f"coverage={format_percent(report_winner_row.get('benchmark_coverage') if report_winner_row else None)}"},
+            {"label": "Benchmark Scope", "value": display_text(summary.get("benchmark_id"), missing=display_text(report_winner_row.get("suite_id") if report_winner_row else None, missing="not recorded")), "note": display_text(report_winner_row.get("suite_benchmark_ids") if report_winner_row else None, missing=None)},
+            {"label": "Replicates", "value": display_text(report_winner_row.get("suite_replicate_count") if report_winner_row else None, missing="not recorded"), "note": _status_mix_text(counts)},
+            {"label": "Total Runtime", "value": format_runtime(report_winner_row.get("runtime_seconds") if report_winner_row else None), "note": f"per benchmark={format_runtime(report_winner_row.get('runtime_mean_per_benchmark_seconds') if report_winner_row else None)}"},
             {"label": "Ended", "value": ended_at, "note": f"started={started_at}"},
         ],
         "executive_cards": [],
@@ -942,10 +973,10 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
                 "title": "Ranking Drivers",
                 "lead": "Deterministic explanation derived from score, coverage, status, and runtime.",
                 "items": [
-                    *_build_why_winner(winner_row, candidate_rows, primary_metric=primary_metric, study_type=study_type),
-                    *_build_why_others(candidate_rows, winner_id)[:2],
+                    *_build_why_winner(report_winner_row, report_rows, primary_metric=primary_metric, study_type=study_type),
+                    *_build_why_others(report_rows, report_winner_id)[:2],
                 ],
-                "badges": [{"text": winner_label.lower(), "tone": "good"}] if winner_row else [{"text": "no winner", "tone": "warn"}],
+                "badges": [{"text": winner_label.lower(), "tone": "good"}] if report_winner_row else [{"text": "no winner", "tone": "warn"}],
             },
             {
                 "title": "Study Interpretation",
@@ -966,11 +997,11 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
                 "badges": [{"text": "follow-up", "tone": "neutral"}],
             },
         ],
-        "candidate_table": _build_candidate_table(candidate_rows, study_type=study_type, primary_metric=primary_metric, winner_id=winner_id),
+        "candidate_table": _build_candidate_table(report_rows + [row for row in candidate_rows if _is_external_control(row)], study_type=study_type, primary_metric=primary_metric, winner_id=report_winner_id),
         "study_cards": [*_build_capability_cards(candidate_rows), *_build_suite_report_cards(experiment_dir)],
         "plots": _build_plot_cards(experiment_dir, study_type=study_type, variant=variant),
         "artifact_links": _build_artifact_links(experiment_dir),
-        "provenance_items": _build_provenance_items(winner_row, summary=summary, run_metadata=run_metadata),
+        "provenance_items": _build_provenance_items(report_winner_row, summary=summary, run_metadata=run_metadata),
     }
     return page
 
