@@ -28,9 +28,7 @@ Common optional arguments:
 - `--judge-api-base`
 - `--judge-api-base-b`
 
-Low-level `paper_eval evaluate` also supports `--enable-text-exact-match-fast-path` for calibration runs that intentionally want normalized exact-match text cells to bypass judge scoring. This is disabled by default.
-
-Low-level `paper_eval calibrate-structured` reads existing `scored_cells.jsonl` artifacts and writes a deterministic structured-failure calibration report. It does not call judges and does not change existing scores.
+Low-level `paper_eval evaluate` also supports `--enable-text-exact-match-fast-path` for diagnostic runs that intentionally want normalized exact-match text cells to bypass judge scoring. This is disabled by default.
 
 Real benchmark studies should use two judges. Current defaults are:
 
@@ -50,7 +48,7 @@ Eval tool will:
 - compare the values with the correct values, and use LLMs as judges to determine if the proposed values are correct. 
 - evaluate per-cell correctness and evidence quality
 - quantify judge disagreement and degraded behavior
-- audit deterministic structured false-negative risk before deciding whether any future structured judge adjudication is needed
+- inspect deterministic structured false-negative risk through normal eval diagnostics
 
 ## Install
 The main installation command will have this installed already. 
@@ -92,15 +90,6 @@ python -m paper_eval evaluate \
   --external-result /abs/external_filled_table.csv \
   --gold /abs/table_gold.csv \
   --out /abs/eval_out
-```
-
-Structured failure calibration:
-
-```bash
-cd tools/eval
-python -m paper_eval calibrate-structured \
-  --input /abs/eval_out \
-  --out /abs/structured_calibration
 ```
 
 ## Test command
@@ -196,20 +185,3 @@ cd tools/eval
 paper-eval compare --summaries /absolute/path/to/per-run --out /absolute/path/to/compare_out
 ```
 
-## Calibrating Structured Scoring
-
-Use `calibrate-structured` after one or more eval runs when you need to inspect whether deterministic structured scoring is producing likely false negatives.
-
-```bash
-cd tools/eval
-paper-eval calibrate-structured --input /absolute/path/to/eval_out --out /absolute/path/to/calibration_out
-```
-
-The input can be a `scored_cells.jsonl` file or an eval output directory. The command recursively discovers `scored_cells.jsonl` files and writes:
-
-- `structured_calibration_summary.json`
-- `structured_calibration_by_column.csv`
-- `structured_calibration_by_kind.csv`
-- `structured_calibration_examples.csv`
-
-The report groups structured deterministic failures by field type, failure kind, and column, and includes example gold/proposed pairs. It is the evidence gate before adding any future opt-in structured judge adjudication.

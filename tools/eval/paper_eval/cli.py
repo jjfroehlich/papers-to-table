@@ -6,7 +6,6 @@ import os
 from pathlib import Path
 
 from paper_eval.aggregate import build_run_summary
-from paper_eval.calibration import build_structured_calibration_report, write_structured_calibration_report
 from paper_eval.contracts import (
     DEFAULT_JUDGE_MODEL_ID,
     DEFAULT_JUDGE_PROVIDER,
@@ -99,31 +98,6 @@ def build_parser() -> argparse.ArgumentParser:
     compare.add_argument("--out", type=Path, required=True, help="Output directory for comparison artifacts.")
     compare.set_defaults(handler=_handle_compare)
 
-    calibrate = subparsers.add_parser(
-        "calibrate-structured",
-        help="Summarize deterministic structured failures from existing scored_cells.jsonl artifacts.",
-    )
-    calibrate.add_argument(
-        "--input",
-        dest="inputs",
-        action="append",
-        type=Path,
-        required=True,
-        help="A scored_cells.jsonl file or an eval output directory. May be provided more than once.",
-    )
-    calibrate.add_argument(
-        "--example-limit",
-        type=int,
-        default=5,
-        help="Maximum example rows to retain for each deterministic failure kind.",
-    )
-    calibrate.add_argument(
-        "--json-output",
-        action="store_true",
-        help="Emit a machine-readable completion JSON payload to stdout.",
-    )
-    calibrate.add_argument("--out", type=Path, required=True, help="Output directory for calibration artifacts.")
-    calibrate.set_defaults(handler=_handle_calibrate_structured)
     return parser
 
 
@@ -281,33 +255,6 @@ def _handle_compare(args: argparse.Namespace) -> int:
         print(json.dumps(payload, sort_keys=True, ensure_ascii=False))
     else:
         print(f"Wrote comparison artifacts -> {output_dir}")
-    return 0
-
-
-def _handle_calibrate_structured(args: argparse.Namespace) -> int:
-    if args.example_limit < 0:
-        raise CliUsageError("--example-limit must be non-negative.")
-    output_dir = args.out.resolve()
-    report = build_structured_calibration_report(
-        [path.resolve() for path in args.inputs],
-        example_limit=args.example_limit,
-    )
-    artifact_paths = write_structured_calibration_report(output_dir, report)
-    if args.json_output:
-        payload = {
-            "schema_version": EVAL_STDOUT_SCHEMA_VERSION,
-            "command": "calibrate-structured",
-            "status": "ok",
-            "success": True,
-            "output_dir": str(output_dir.resolve()),
-            "scored_cells_path_count": report["scored_cells_path_count"],
-            "structured_deterministic_failure_count": report["structured_deterministic_failure_count"],
-            "structured_adjudication_eligible_count": report["structured_adjudication_eligible_count"],
-            "calibration_artifacts": artifact_paths,
-        }
-        print(json.dumps(payload, sort_keys=True, ensure_ascii=False))
-    else:
-        print(f"Wrote structured calibration artifacts -> {output_dir}")
     return 0
 
 

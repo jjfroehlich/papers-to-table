@@ -272,7 +272,7 @@ Eval phases:
 
 Dual-judge runs must preserve per-judge verdicts and disagreement metrics instead of collapsing uncertainty away.
 
-Eval accepts canonical field types `boolean`, `categorical`, `numeric`, and `text`, with aliases such as `bool`, `enum`, `number`, and `free_text`. Unknown field types fail early. Inference prioritizes allowed values, then numeric parsing, then clear boolean vocabulary; bare `0`/`1` numeric pairs must not infer boolean. Structured fields remain deterministic-only, but scored structured cells preserve `deterministic_failure_kind` and `adjudication_eligible` diagnostics plus aggregate structured-failure counts. Structured LLM adjudication is deferred until calibration over existing scored-cell artifacts shows that likely deterministic false negatives materially affect benchmark interpretation.
+Eval accepts canonical field types `boolean`, `categorical`, `numeric`, and `text`, with aliases such as `bool`, `enum`, `number`, and `free_text`. Unknown field types fail early. Inference prioritizes allowed values, then numeric parsing, then clear boolean vocabulary; bare `0`/`1` numeric pairs must not infer boolean. Structured fields remain deterministic-only, but scored structured cells preserve `deterministic_failure_kind` and `adjudication_eligible` diagnostics plus aggregate structured-failure counts. Structured LLM adjudication is deferred unless normal eval diagnostics show that likely deterministic false negatives materially affect benchmark interpretation.
 
 ## 13. Optimizer Companion
 

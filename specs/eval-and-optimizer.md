@@ -47,16 +47,9 @@ out/
     runs_comparison.csv
     runs_comparison.xlsx
     runs_comparison.parquet
-  structured-calibration/
-    structured_calibration_summary.json
-    structured_calibration_by_column.csv
-    structured_calibration_by_kind.csv
-    structured_calibration_examples.csv
 ```
 
 Comparison artifacts may be rebuilt from existing summaries.
-
-Structured calibration artifacts are written only when the operator runs the calibration command against existing `scored_cells.jsonl` files. Calibration does not call an LLM and does not alter scored outputs.
 
 ## Eval Execution Phases
 
@@ -74,7 +67,7 @@ Low-level eval may opt into the deterministic text exact-match fast path with `-
 
 Field-type inference must not treat bare `0`/`1` numeric pairs as boolean. Allowed values infer `categorical`; pairs where both values parse numerically infer `numeric`; boolean is inferred only for clear boolean vocabulary such as `yes/no`, `present/absent`, or `true/false`; otherwise the field is treated as `text`.
 
-Structured fields remain deterministic-only in the current implementation. Numeric, categorical, and boolean comparisons emit parse and mismatch diagnostics so completed runs can be calibrated for likely deterministic false negatives. The summary includes `structured_deterministic_failure_count`, `structured_adjudication_eligible_count`, `structured_adjudication_eligible_failure_rate`, and the older compatibility alias `structured_adjudication_eligible_rate`; these are diagnostic counts and do not change headline correctness.
+Structured fields remain deterministic-only in the current implementation. Numeric, categorical, and boolean comparisons emit parse and mismatch diagnostics in normal eval outputs. The summary includes `structured_deterministic_failure_count`, `structured_adjudication_eligible_count`, `structured_adjudication_eligible_failure_rate`, and the older compatibility alias `structured_adjudication_eligible_rate`; these are diagnostic counts and do not change headline correctness.
 
 ## Judge Policy
 
@@ -87,7 +80,7 @@ Dual-judge scoring must preserve per-judge records and expose disagreement metri
 
 Eval judge execution is judge-major: prepare all eligible text-cell requests, execute all `judge_a` work, execute all `judge_b` work, group batches by effective provider/model/settings, then merge results back into deterministic scored-cell order.
 
-Structured judge adjudication is intentionally deferred. It must not be added as a default path without first using structured calibration artifacts to show that deterministic structured false negatives are common enough to affect benchmark or optimizer ranking quality.
+Structured judge adjudication is intentionally deferred. It must not be added as a default path unless normal eval diagnostics show that deterministic structured false negatives are common enough to affect benchmark or optimizer ranking quality.
 
 ## Benchmark Dataset Policy
 

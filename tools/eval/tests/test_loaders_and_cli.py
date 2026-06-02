@@ -8,7 +8,7 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
 
-from paper_eval.cli import main
+from paper_eval.cli import build_parser, main
 from paper_eval.contracts import JudgeResponse
 from paper_eval.evidence import validate_evidence_anchors
 from paper_eval.errors import CliUsageError, ContractError
@@ -20,6 +20,11 @@ FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures" / "example_eval"
 
 
 class LoaderAndCliTests(unittest.TestCase):
+    def test_cli_exposes_only_active_commands(self) -> None:
+        parser = build_parser()
+        with self.assertRaises(SystemExit):
+            parser.parse_args(["calibrate" + "-structured", "--help"])
+
     def test_run_loader_requires_required_artifact_files_with_explicit_message(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             run_dir = Path(temp_dir) / "run-a"

@@ -212,7 +212,7 @@ Dual-judge runs must preserve per-judge verdicts, request failures, unclear coun
 
 Per-cell scored records for structured fields must preserve `deterministic_failure_kind` and `adjudication_eligible`. These fields are diagnostic only: current structured scoring remains deterministic, headline correctness metrics are unchanged by future-adjudication eligibility, and no structured judge records are emitted.
 
-Run summaries must include the diagnostic metrics `structured_deterministic_failure_count`, `structured_adjudication_eligible_count`, `structured_adjudication_eligible_failure_rate`, and the compatibility alias `structured_adjudication_eligible_rate`. Calibration reports built from `scored_cells.jsonl` must group deterministic structured failures by field type, failure kind, column, and example gold/proposed pairs without altering prior scores.
+Run summaries must include the diagnostic metrics `structured_deterministic_failure_count`, `structured_adjudication_eligible_count`, `structured_adjudication_eligible_failure_rate`, and the compatibility alias `structured_adjudication_eligible_rate`.
 
 ## Optimizer Candidate And Result Contract
 
