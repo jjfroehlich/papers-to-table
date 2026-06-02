@@ -67,18 +67,18 @@ Use the same eight-row table for every active idea. Fold implementation notes, g
 | **Test** | Compare hard-column accuracy and aggregate score. |
 | **Decision criterion** | Improve hard columns without lowering aggregate score or adding meaningful runtime. |
 
-### Paper-Level Candidate Census
+### Schema-Conditioned Paper Context
 
 | Field | Details |
 |---|---|
 | **Problem** | Per-cell extraction often missed values that require aggregating scattered information across a paper, while whole-paper batching as the authoritative answer path was previously less accurate. |
-| **Direction** | Build an evidence-backed candidate inventory per paper before per-cell extraction. The inventory should list generic typed candidates such as cell lines/model systems, species, sequence lengths, barcode lengths and locations, assay mode, figure/panel citations, methods parameters, and URLs with evidence anchors; per-cell extraction remains authoritative and may only cite, verify, or reject inventory candidates. |
-| **Why it might work** | External Codex-style outputs were much stronger and faster on synthesis-heavy fields, suggesting that paper-level candidate gathering helps, but rejected paper-batch results show that final answers still need cell-level verification. |
+| **Direction** | Build a schema-derived candidate census, not a benchmark-derived census. For each paper/schema pair, create a schema-conditioned compressed whole-paper context and/or evidence-backed candidate census. First infer generic column needs from the input schema, such as quantity, identifier, presence/absence, location, figure/table reference, method parameter, named entity, URL/citation, list/set, or best/max/min value; then mine compact paper candidates for only those needs with evidence anchors. Per-cell extraction remains authoritative and may only cite, verify, or reject these candidates. |
+| **Why it might work** | External Codex-style outputs were much stronger and faster on synthesis-heavy fields, suggesting that paper-level context helps, but rejected paper-batch results show that final answers still need cell-level verification. A compressed context or census can supply global candidates without giving every cell a long full-paper prompt. |
 | **Evidence so far** | In the 2026-06-02 run, external non-gold candidates scored 0.7841-0.8000 versus the best app candidate at 0.6469. The largest external gaps were MPRA sequence length, episomal/genomic status, section thickness, architecture/source figures, DNA extraction/genotyping method, barcode length/location, and links. |
-| **Generality risk** | Inventories can become benchmark-specific if candidate categories are hard-coded too narrowly; derive inventory types from schema descriptions and reusable scientific value classes. |
-| **Runtime/cost risk** | Moderate if it adds large paper-level calls. Keep inventories compact, cache per paper, and skip when the schema has few synthesis-heavy fields. |
-| **Test** | Run a matched three-benchmark comparison with inventory enabled as advisory-only metadata. Measure inventory hit rate, verified-use rate, rejection rate, hard-column accuracy, aggregate score, and added runtime. |
-| **Decision criterion** | Improve synthesis-heavy hard columns and score-per-minute without lowering unrelated fields or accepting unverified inventory values. |
+| **Generality risk** | High if candidate categories are hard-coded from benchmarks. Production logic must derive needs from schema text, allowed values, examples, field type, and reusable document structures rather than branch on domain-specific terms; benchmark-specific categories belong only in tests and analysis notes. |
+| **Runtime/cost risk** | Low to moderate if the context is deterministic or one compact per-paper/per-schema call that replaces repeated failed recovery calls. High if every cell receives full-paper text. Cache per paper/schema and inject only a small filtered subset per cell. |
+| **Test** | Compare three variants: current retrieval-only baseline, existing `whole_document_mode` rescue, and schema-conditioned compressed context/census. Measure candidate hit rate, verified-use rate, rejection rate, hard-column accuracy, aggregate score, added calls, prompt tokens, and runtime. |
+| **Decision criterion** | Improve synthesis-heavy hard columns and score-per-minute without lowering unrelated fields or accepting unverified paper-level candidates. |
 
 ### Per-Cell Retrieval Improvements
 
@@ -234,7 +234,7 @@ Use the same eight-row table for every active idea. Fold implementation notes, g
 | **Problem** | Direct batching reduced call count but hurt correctness. |
 | **Direction** | Try batching only as a candidate-value generator, then verify or correct at the per-cell level. A possible mode is `extraction.mode = batch_then_verify`, accepting only high-confidence verified batch outputs and falling back to full per-cell extraction for missing, invalid, or low-confidence cells. |
 | **Why it might work** | Batch prompts may cheaply surface candidate values, while per-cell verification can prevent the cross-cell contamination that hurt direct batching. |
-| **Evidence so far** | Field-group and paper-batch architectures lost accuracy and did not improve end-to-end runtime, but they were not limited to candidate generation. The 2026-06-02 external-result gap suggests paper-level candidate gathering is valuable; test [Paper-Level Candidate Census](#paper-level-candidate-census) first because it is a narrower advisory version of this idea. |
+| **Evidence so far** | Field-group and paper-batch architectures lost accuracy and did not improve end-to-end runtime, but they were not limited to candidate generation. The 2026-06-02 external-result gap suggests paper-level candidate gathering is valuable; test [Schema-Conditioned Paper Context](#schema-conditioned-paper-context) first because it is a narrower advisory version of this idea. |
 | **Generality risk** | Batch prompts can still bias values across columns or rows. |
 | **Runtime/cost risk** | High if verification plus fallback doubles work. |
 | **Test** | Measure acceptance rate, verifier rejection rate, fallback rate, score, and runtime. |
