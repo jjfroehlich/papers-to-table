@@ -300,6 +300,7 @@ Optimizer phases:
 
 Optimizer is sequential by default. Future parallel mode must be explicit and preserve local provider locking and model-residency safety.
 
+
 ## 14. Benchmark Datasets
 
 The current curated benchmark suite lives at repository root under `benchmark_datasets/`.

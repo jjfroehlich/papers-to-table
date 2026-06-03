@@ -14,6 +14,7 @@ from paper_optimizer.utils import EXTERNAL_CANDIDATE_ID_MAX_LENGTH, SAFE_IDENTIF
 REQUIRED_COMPARE_MODELS = {
     "openai/gpt-oss-20b",
     "google/gemma-4-e4b",
+    "google/gemma-4-12b",
     "mistralai/ministral-3-14b-reasoning",
     "qwen/qwen3.6-27b",
     "zai-org/glm-4.6v-flash",
@@ -223,6 +224,7 @@ def test_compare_models_tracks_requested_model_set() -> None:
     assert "qwen/qwen3.6-35b-a3b" not in all_models
     assert "unsloth/qwen3.6-35b-a3b" not in all_models
     assert "qwen/qwen3.6-27b" in all_models
+    assert "google/gemma-4-12b" in all_models
     assert payload["baseline_candidate"]["text_model_id"] == "google/gemma-4-e4b"
     assert payload["baseline_candidate"]["vision_model_id"] == "google/gemma-4-e4b"
     for candidate in [payload["baseline_candidate"], *payload["compare_candidates"]]:
@@ -246,25 +248,42 @@ def test_compare_models_config_runs_triplicate() -> None:
     assert payload["replicates"]["count"] == 3
 
 
-def test_compare_prompts_tracks_three_prompt_bundles() -> None:
+def test_compare_prompts_tracks_bounded_prompt_bundles() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     payload = json.loads((repo_root / "configs" / "compare_prompts.json").read_text(encoding="utf-8"))
 
     prompt_ids = {candidate["prompt_bundle_id"] for candidate in payload["compare_candidates"]}
-    assert prompt_ids == {"default", "context_balanced", "checklist_guided"}
+    assert prompt_ids == {"default", "checklist_guided"}
     assert set(payload["search_space"]["prompt_bundle_ids"]) == prompt_ids
 
 
-def test_full_benchmark_compare_phases_run_triplicate_with_figure_review() -> None:
+def test_compare_retrieval_parameters_tracks_bounded_retrieval_candidates() -> None:
     repo_root = Path(__file__).resolve().parents[1]
-    for config_name in ["compare_models.json", "compare_prompts.json", "compare_retrieval_parameters.json"]:
+    payload = json.loads((repo_root / "configs" / "compare_retrieval_parameters.json").read_text(encoding="utf-8"))
+
+    retrieval_pairs = {
+        (candidate["optimizer_knobs"]["retrieval_mode"], candidate["optimizer_knobs"]["retrieval_top_k"])
+        for candidate in payload["compare_candidates"]
+    }
+    assert retrieval_pairs == {("hybrid_experimental", 8), ("lexical", 12)}
+    assert payload["search_space"]["numeric_knobs"]["retrieval_top_k"]["values"] == [8, 12]
+
+
+def test_full_benchmark_compare_phases_run_triplicate_with_bounded_vision_cost() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    model_payload = json.loads((repo_root / "configs" / "compare_models.json").read_text(encoding="utf-8"))
+    assert model_payload["replicates"]["count"] == 3
+    for candidate in [model_payload["baseline_candidate"], *model_payload.get("compare_candidates", [])]:
+        assert candidate["optimizer_knobs"]["figure_review_enabled"] is True
+
+    for config_name in ["compare_prompts.json", "compare_retrieval_parameters.json"]:
         payload = json.loads((repo_root / "configs" / config_name).read_text(encoding="utf-8"))
         assert payload["replicates"]["count"] == 3
         for candidate in [payload["baseline_candidate"], *payload.get("compare_candidates", [])]:
-            assert candidate["optimizer_knobs"]["figure_review_enabled"] is True
+            assert candidate["optimizer_knobs"]["figure_review_enabled"] is False
 
 
-def test_extraction_feature_config_runs_triplicate_factorial() -> None:
+def test_extraction_feature_config_runs_triplicate_bounded_feature_comparison() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     payload = json.loads((repo_root / "configs" / "compare_extraction_features.json").read_text(encoding="utf-8"))
 
@@ -278,12 +297,10 @@ def test_extraction_feature_config_runs_triplicate_factorial() -> None:
         )
         for candidate in payload["compare_candidates"]
     }
-    assert len(feature_sets) == 8
     assert feature_sets == {
-        (recall_rescue_enabled, whole_document_mode, figure_review_enabled)
-        for recall_rescue_enabled in [False, True]
-        for whole_document_mode in [False, True]
-        for figure_review_enabled in [False, True]
+        (True, False, False),
+        (True, True, False),
+        (True, False, True),
     }
 
 
@@ -295,6 +312,7 @@ def test_full_benchmark_stage_run_names_are_path_length_safe() -> None:
     assert 'prompt_run_name="${session_id}_fb_prompt"' in script
     assert 'retrieval_parameter_run_name="${session_id}_fb_retrieval"' in script
     assert 'extraction_feature_run_name="${session_id}_fb_features"' in script
+    assert 'materialize_extraction_feature_config "$extraction_feature_config" "$(resolve_results_jsonl "$retrieval_parameter_run_name")" "$extraction_feature_config_materialized" 1' in script
     assert "fb_optimize" not in script
     assert "compare_retrieval_parameters_${safe_label}" not in script
 

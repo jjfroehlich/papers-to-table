@@ -43,7 +43,7 @@ Substantial behavior, architecture, workflow, config, artifact, provider, UI, ev
 - `tasks.md` is not a historical ledger. Keep current work there and archive old ledgers only when useful.
 - `plan.md` is current roadmap only. Do not preserve old completed phase plans there.
 - `improvement-ideas.md` owns untested or still-open ideas. When an idea is benchmarked, rejected, superseded, or partly kept, move the evidence to `experiment-results.md` and update or remove the idea entry.
-- `experiment-results.md` owns tested evidence and decisions. Include model/source labels alongside candidate ids, for example `cand_0001 / google/gemma-4-e4b`, not bare candidate ids.
+- `experiment-results.md` owns tested evidence and decisions. Run-table `Model` columns should contain only model ids.
 - Improvement ledgers are active supporting files, but they do not own durable product behavior. Promote durable behavior changes into `spec.md` and the focused owner.
 - Archive material may preserve history, but current behavior must be justified by current active specs and schemas.
 

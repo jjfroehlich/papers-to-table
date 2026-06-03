@@ -500,8 +500,8 @@ materialize_config_with_winner "$retrieval_parameter_config" "$(require_best_can
 preflight_config "$retrieval_parameter_config_materialized"
 run_stage retrieval_parameter_compare "$retrieval_parameter_run_name" compare "$retrieval_parameter_config_materialized" retrieval_parameters
 
-echo "[$(date -Iseconds)] Step 5: extraction feature sweep on the top retrieval-parameter candidates"
-materialize_extraction_feature_config "$extraction_feature_config" "$(resolve_results_jsonl "$retrieval_parameter_run_name")" "$extraction_feature_config_materialized" 2
+echo "[$(date -Iseconds)] Step 5: extraction feature sweep on the top retrieval-parameter candidate"
+materialize_extraction_feature_config "$extraction_feature_config" "$(resolve_results_jsonl "$retrieval_parameter_run_name")" "$extraction_feature_config_materialized" 1
 preflight_config "$extraction_feature_config_materialized"
 run_stage extraction_feature_compare "$extraction_feature_run_name" compare "$extraction_feature_config_materialized" extraction_features
 

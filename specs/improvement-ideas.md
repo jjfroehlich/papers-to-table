@@ -61,7 +61,7 @@ Use the same eight-row table for every active idea. Fold implementation notes, g
 | **Problem** | Wrong proposals often had plausible evidence but selected the wrong value type, such as a generic figure instead of a panel, a shorthand system name instead of a full architecture, or a spacer length instead of a barcode length. |
 | **Direction** | Add a small post-extraction selector that compares candidate values against generic schema semantics before finalizing. Normalize numeric units, figure/panel citations, exact identifiers, count-vs-length distinctions, insert-vs-spacer/barcode lengths, barcode presence/location, absent-feature answers, and model-system-vs-species/genome wording. |
 | **Why it might work** | The failure mode is often choosing among plausible candidate values, not complete absence of information. A generic selector can enforce schema semantics without changing the base extraction architecture. |
-| **Evidence so far** | The 2026-06-02 comparison confirmed low app accuracy on representative/source figures, architecture, max efficiency, MPRA sequence length, UMI, barcode length/location, model system, and section thickness. Proposal logs show wrong-value selection: spacer length chosen as sequence length, barcode count chosen as barcode length, STARR-seq reporter location chosen as barcode location when no barcode existed, and broad genome/species context chosen as model system. |
+| **Evidence so far** | The 2026-06-02 comparison confirmed low app accuracy on representative/source figures, architecture, max efficiency, MPRA sequence length, UMI, barcode length/location, model system, and section thickness. Proposal logs show wrong-value selection: spacer length chosen as sequence length, barcode count chosen as barcode length, STARR-seq reporter location chosen as barcode location when no barcode existed, and broad genome/species context chosen as model system. Two 2026-06-03 schema-semantic guardrail branches scored only 0.40 and 0.46 on genome editing and were rejected as default implementations; see `experiment-results.md#schema-semantic-candidate-selection-guardrails`. |
 | **Generality risk** | Overfitting if keyed to benchmark column names; keep rules driven by field type, units, and schema wording. |
 | **Runtime/cost risk** | Low if selector reuses existing candidates. |
 | **Test** | Compare hard-column accuracy and aggregate score. |
@@ -85,12 +85,12 @@ Use the same eight-row table for every active idea. Fold implementation notes, g
 | Field | Details |
 |---|---|
 | **Problem** | Hard failures often involve missing or weak evidence for methods parameters, exact identifiers, figure/panel fields, and numeric values. |
-| **Direction** | Improve retrieval/context assembly for individual cells instead of batching cells together. Add typed contextual chunk text for retrieval, such as page, element type, section path, caption/table markers, table row/column labels, and local heading context, while keeping display text source-preserving for review. Also test score-shape-aware context gating: persist per-chunk retrieval scores, allow empty context when candidates are weak, trim to top-1 when the lead chunk has a large confidence gap, and keep only a small coherent bundle when top scores are close. |
-| **Why it might work** | Schema descriptions, field types, allowed values, row context, paper metadata, and schema-aware query expansions can target maxima, figure/panel citations, methods parameters, physical dimensions, sequence/barcode lengths, and exact system names. Score-shape gating may prevent one relevant chunk from being diluted by weak neighbors and may avoid feeding topical but non-answering context into the extraction prompt. |
-| **Evidence so far** | The 2026-06-02 proposal logs show retrieval often found topical but non-answering evidence: spacer-length passages for sequence length, barcode-count passages for barcode length, broad Drosophila genome passages for model system, and figure-level evidence when panel-level answers were needed. Retrieval chunk and IDF repeated-work counters were already zero, so the next gain is better context semantics rather than simply rebuilding less. |
+| **Direction** | Improve retrieval/context assembly for individual cells instead of batching cells together. Add typed contextual chunk text for retrieval, such as page, element type, section path, caption/table markers, table row/column labels, and local heading context, while keeping display text source-preserving for review. Do not rely on threshold-only score-shape prompt trimming as the next step; the tested branches did not show a reliable gain. |
+| **Why it might work** | Schema descriptions, field types, allowed values, row context, paper metadata, and schema-aware query expansions can target maxima, figure/panel citations, methods parameters, physical dimensions, sequence/barcode lengths, and exact system names. Better chunk semantics and evidence-aware reranking may avoid feeding topical but non-answering context into the extraction prompt. |
+| **Evidence so far** | The 2026-06-02 proposal logs show retrieval often found topical but non-answering evidence: spacer-length passages for sequence length, barcode-count passages for barcode length, broad Drosophila genome passages for model system, and figure-level evidence when panel-level answers were needed. Retrieval chunk and IDF repeated-work counters were already zero, so the next gain is better context semantics rather than simply rebuilding less. Two 2026-06-03 score-shape prompt-gating branches were rejected: v1 scored 0.56 but applied no gates, while v2 applied 20 prompt gates and dropped to 0.52 with structured-output retries/errors; see `experiment-results.md#retrieval-score-shape-prompt-gating`. |
 | **Generality risk** | Hard filters could hide unusual evidence; prefer additive context and reranking. |
 | **Runtime/cost risk** | Moderate if retrieval expands too broadly; low for lexical score gating, higher if a local cross-encoder reranker is added. |
-| **Test** | Run on the three-benchmark suite. Compare fixed top-k against dynamic top-k, confidence-gap trimming, normalized-score thresholds, and only then optional local cross-encoder reranking. |
+| **Test** | Run on the three-benchmark suite. Compare fixed top-k against typed context, table-aware units, targeted semantic reranking, and recovery policies. Only revisit dynamic top-k or confidence gating when the gate is evidence-aware rather than normalized-score-threshold-only. |
 | **Decision criterion** | Improve or preserve per-cell baseline score while keeping runtime stable. |
 
 ### Table-Aware Retrieval Units
@@ -118,19 +118,6 @@ Use the same eight-row table for every active idea. Fold implementation notes, g
 | **Runtime/cost risk** | Low if prompt length stays controlled. |
 | **Test** | Apply one small prompt patch at a time and compare column difficulty. |
 | **Decision criterion** | Improve targeted weak failure classes without lowering aggregate score on other datasets. |
-
-### Stronger Model And Parameter Sweep
-
-| Field | Details |
-|---|---|
-| **Problem** | Model choice materially changed score, but the highest-scoring app model was much slower and still missed core schema-semantic distinctions. |
-| **Direction** | Keep the per-cell architecture and run interpretable model-only comparisons first, then vary retrieval, top-k, prompt settings, and structured-output modes one factor at a time. |
-| **Why it might work** | Separating model effects from retrieval and prompt changes makes regressions easier to interpret and avoids attributing gains to the wrong factor. |
-| **Evidence so far** | `cand_0005 / qwen/qwen3.6-27b` was again the best app candidate in the 2026-06-02 comparison at 0.6469, but took 11496 sec versus `cand_0001 / google/gemma-4-e4b` at 0.5718 and 8061 sec. `cand_0004 / zai-org/glm-4.6v-flash` scored 0.3965 with the most structured errors, so deprioritize it for this workflow unless reliability changes. |
-| **Generality risk** | Optimizing for one benchmark suite could hide field-specific weakness. |
-| **Runtime/cost risk** | High for larger models. |
-| **Test** | Record score, runtime, provider request counts, text/vision calls, score per minute, structured errors, failed structured elapsed time, retries, parse repairs, and failures per 100 cells. |
-| **Decision criterion** | Materially improve aggregate score without unacceptable runtime, structured-output fragility, or cost. |
 
 ### Cached RetrievalIndex
 

@@ -41,7 +41,7 @@ bash scripts/test-optimizer-tool.sh
 - model-specific request settings come from `app/backend/src/backend/app/model_profiles/default_profiles.json`; one can add optimizer knobs to compare model-settings such as temperature/top-p/chat-templates.
 - Python command delegates to `tools/optimizer/scripts/compare_models.sh`
 - uses `tools/optimizer/configs/compare_models.json`
-- Treat compare-models as an overnight run. It can take 10 hrs with 5 models and 4 external baselines.
+- Treat compare-models as an overnight run. It can take 10+ hrs with 6 models and 4 external baselines.
 
 ```bash
 python scripts/papers_to_table.py optimizer compare-models
@@ -77,13 +77,14 @@ Options:
 - use when you want a broad end-to-end tuning pass rather than only model selection
 - compare models first, then compare prompt packages, retrieval parameters, and extraction feature toggles
 - each phase runs in triplicate on the current three-dataset dev suite
+- the routine preset is bounded: broad model compare, two prompt candidates, two retrieval candidates, and three extraction-feature candidates from the top retrieval seed
 - model-specific request settings are inherited from `app/backend/src/backend/app/model_profiles/default_profiles.json` unless a future config deliberately sweeps model settings
 - Python command delegates to `tools/optimizer/scripts/full_benchmark.sh`
 - model phase uses `tools/optimizer/configs/compare_models.json`
-- prompt phase materializes `compare_prompts.json` with the model-phase winner
-- retrieval-parameter phase materializes `compare_retrieval_parameters.json` with the prompt-phase winner
-- extraction-feature phase materializes `compare_extraction_features.json` from the top retrieval-parameter candidates
-- Full benchmark runtime scales roughly as: `candidate count x benchmark count x replicate count x model speed`. A single candidate costs about `1 - 3 h`, depending on model speed and feature settings. A broad full benchmark with dozens of candidates can take `2-4+ days`.
+- prompt phase materializes `compare_prompts.json` with the model-phase winner and compares `default` against `checklist_guided`
+- retrieval-parameter phase materializes `compare_retrieval_parameters.json` with the prompt-phase winner and compares `hybrid_experimental` top-k 8 against `lexical` top-k 12
+- extraction-feature phase materializes `compare_extraction_features.json` from the top retrieval-parameter candidate and compares three recall-rescue-enabled feature combinations
+- Full benchmark runtime scales roughly as: `candidate count x benchmark count x replicate count x model speed`. A single candidate costs about `1 - 3 h`, depending on model speed and feature settings. 
 
 ```bash
 python scripts/papers_to_table.py optimizer full-benchmark
@@ -99,7 +100,18 @@ Options:
 
 ## Runtimes
 
-Real world data below, three-benchmark suite with three replicates, with machine `Geforce RTX3090 24GB, 32GB RAM, AMD Ryzen 9 5959X 16-core processor, Win 64x`:
+Real world data below, three-benchmark suite with three replicates, with machine `Geforce RTX3090 24GB, 32GB RAM, AMD Ryzen 9 5959X 16-core processor, Win 64x`.
+
+The checked-in routine full-benchmark preset now uses this bounded phase size:
+
+| Stage | Routine Candidates | Notes |
+|---|---:|---|
+| model compare | 6 | Keeps the current model shortlist. |
+| prompt compare | 2 | `default` versus `checklist_guided`; `context_balanced` is excluded from the routine preset. |
+| retrieval compare | 2 | `hybrid_experimental` top-k 8 and `lexical` top-k 12 only. |
+| extraction feature compare | 3 | Top retrieval seed only; all candidates keep `recall_rescue_enabled=true`. |
+
+The 2026-05-15 full-benchmark attempt was broader and should be treated as a cautionary reference, not the current routine preset:
 
 | Stage | Completed Candidates | Completed Runtime | Mean Runtime Per Candidate |
 |---|---:|---:|---:|

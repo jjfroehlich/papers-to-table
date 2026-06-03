@@ -4,8 +4,9 @@
   "operator_todo": {
     "notes": [
       "This file is now the extraction-feature sweep template used after the retrieval-parameter stage.",
-      "full_benchmark.sh materializes the top 1-2 retrieval-parameter candidates into this feature sweep.",
-      "This phase compares extraction feature toggles: recall_rescue_enabled, whole_document_mode, and figure_review_enabled."
+      "full_benchmark.sh materializes only the top retrieval-parameter candidate into this feature sweep.",
+      "This bounded routine full-benchmark phase compares recall rescue alone, recall rescue plus whole-document context, and recall rescue plus figure review.",
+      "The 2026-05-15 full-benchmark run showed recall_rescue=false candidates were worse in completed feature candidates, so they are excluded from this routine preset."
     ]
   },
   "baseline_candidate": {
@@ -48,39 +49,7 @@
       "optimizer_knobs": {
         "retrieval_mode": "lexical",
         "retrieval_top_k": 10,
-        "recall_rescue_enabled": false,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false,
-        "parser_allow_basic_fallback": true
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-e4b",
-      "vision_model_id": "google/gemma-4-e4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "lexical",
-        "retrieval_top_k": 10,
         "recall_rescue_enabled": true,
-        "whole_document_mode": true,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": false,
-        "parser_allow_basic_fallback": true
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-e4b",
-      "vision_model_id": "google/gemma-4-e4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "lexical",
-        "retrieval_top_k": 10,
-        "recall_rescue_enabled": false,
         "whole_document_mode": true,
         "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
@@ -98,54 +67,6 @@
         "retrieval_top_k": 10,
         "recall_rescue_enabled": true,
         "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
-        "parser_allow_basic_fallback": true
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-e4b",
-      "vision_model_id": "google/gemma-4-e4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "lexical",
-        "retrieval_top_k": 10,
-        "recall_rescue_enabled": false,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
-        "parser_allow_basic_fallback": true
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-e4b",
-      "vision_model_id": "google/gemma-4-e4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "lexical",
-        "retrieval_top_k": 10,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": true,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
-        "parser_allow_basic_fallback": true
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-e4b",
-      "vision_model_id": "google/gemma-4-e4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "lexical",
-        "retrieval_top_k": 10,
-        "recall_rescue_enabled": false,
-        "whole_document_mode": true,
         "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,

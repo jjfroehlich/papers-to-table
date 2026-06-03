@@ -4,9 +4,10 @@
   "operator_todo": {
     "notes": [
       "full_benchmark.sh materializes this config onto the winner of the preceding prompt-compare stage.",
-      "This is the retrieval-core sweep: lexical vs hybrid_experimental across top_k = 8/10/12/14/16.",
+      "This routine full-benchmark retrieval compare is intentionally bounded to hybrid_experimental top_k=8 plus lexical top_k=12 as a contrast.",
+      "The 2026-05-15 full-benchmark run made broad top_k sweeps too expensive; top_k=10/14/16 and duplicate-ish top_k=12 variants are reserved for deliberate retrieval studies.",
       "Skip holdout for tonight; add a real holdout split before re-enabling validate-best.",
-      "Full-benchmark preset uses triplicate runs and keeps figure_review_enabled=true through this phase."
+      "Full-benchmark preset uses triplicate runs and keeps figure_review_enabled=false through this phase to avoid vision cost before the feature stage explicitly tests it."
     ]
   },
   "baseline_candidate": {
@@ -21,7 +22,7 @@
       "whole_document_max_chars": 20000,
       "style_profiles_enabled": true,
       "style_profiles_max_examples": 3,
-      "figure_review_enabled": true,
+      "figure_review_enabled": false,
       "parser_allow_basic_fallback": true
     }
   },
@@ -31,22 +32,6 @@
       "text_model_id": "google/gemma-4-e4b",
       "vision_model_id": "google/gemma-4-e4b",
       "optimizer_knobs": {
-        "retrieval_mode": "lexical",
-        "retrieval_top_k": 8,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
-        "parser_allow_basic_fallback": true
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-e4b",
-      "vision_model_id": "google/gemma-4-e4b",
-      "optimizer_knobs": {
         "retrieval_mode": "hybrid_experimental",
         "retrieval_top_k": 8,
         "recall_rescue_enabled": true,
@@ -54,39 +39,7 @@
         "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
-        "parser_allow_basic_fallback": true
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-e4b",
-      "vision_model_id": "google/gemma-4-e4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "lexical",
-        "retrieval_top_k": 10,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
-        "parser_allow_basic_fallback": true
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-e4b",
-      "vision_model_id": "google/gemma-4-e4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "hybrid_experimental",
-        "retrieval_top_k": 10,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
+        "figure_review_enabled": false,
         "parser_allow_basic_fallback": true
       }
     },
@@ -102,87 +55,7 @@
         "whole_document_max_chars": 20000,
         "style_profiles_enabled": true,
         "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
-        "parser_allow_basic_fallback": true
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-e4b",
-      "vision_model_id": "google/gemma-4-e4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "hybrid_experimental",
-        "retrieval_top_k": 12,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
-        "parser_allow_basic_fallback": true
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-e4b",
-      "vision_model_id": "google/gemma-4-e4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "lexical",
-        "retrieval_top_k": 14,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
-        "parser_allow_basic_fallback": true
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-e4b",
-      "vision_model_id": "google/gemma-4-e4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "hybrid_experimental",
-        "retrieval_top_k": 14,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
-        "parser_allow_basic_fallback": true
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-e4b",
-      "vision_model_id": "google/gemma-4-e4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "lexical",
-        "retrieval_top_k": 16,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
-        "parser_allow_basic_fallback": true
-      }
-    },
-    {
-      "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-e4b",
-      "vision_model_id": "google/gemma-4-e4b",
-      "optimizer_knobs": {
-        "retrieval_mode": "hybrid_experimental",
-        "retrieval_top_k": 16,
-        "recall_rescue_enabled": true,
-        "whole_document_mode": false,
-        "whole_document_max_chars": 20000,
-        "style_profiles_enabled": true,
-        "style_profiles_max_examples": 3,
-        "figure_review_enabled": true,
+        "figure_review_enabled": false,
         "parser_allow_basic_fallback": true
       }
     }
@@ -201,10 +74,7 @@
       "retrieval_top_k": {
         "values": [
           8,
-          10,
-          12,
-          14,
-          16
+          12
         ]
       }
     }

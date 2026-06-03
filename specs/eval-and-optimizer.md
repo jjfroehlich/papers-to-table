@@ -136,11 +136,11 @@ Primary wrapper workflows:
 - `python scripts/papers_to_table.py optimizer dev-check`
 - `python scripts/papers_to_table.py optimizer full-benchmark`
 
-`compare-models` ranks a fixed model list on the current three-dataset dev suite in triplicate and includes external baselines and the gold positive control when configured.
+`compare-models` ranks a fixed model list on the current three-dataset dev suite in triplicate and includes external baselines and the gold positive control when configured. The current shortlist includes both `google/gemma-4-e4b` and `google/gemma-4-12b` alongside the other configured local candidates.
 
 `dev-check` is the fast development signal. It materializes a run-local config from `compare_models.json`, removes external-result scoring, runs one model, one benchmark, and one replicate, and defaults to `google/gemma-4-e4b` on `bench_genome_editing`.
 
-`full-benchmark` runs phased model, prompt, retrieval-parameter, and extraction-feature studies. Broad runs can take days because runtime scales by candidate count x benchmark count x replicate count x model speed.
+`full-benchmark` runs phased model, prompt, retrieval-parameter, and extraction-feature studies. Runtime scales by candidate count x benchmark count x replicate count x model speed.
 
 ## Suite And Replicate Semantics
 
