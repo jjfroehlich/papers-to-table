@@ -1,6 +1,6 @@
 # Papers-To-Table Agent Kit
 
-`skills/papers-to-table-agent-kit/` is a portable review handoff kit for capable agents that extract structured values from PDFs without running the local app.
+`skills/papers-to-table-agent-kit/` is a portable review handoff kit for regular agents (Codex, Claude, Hermes) that extract structured values from PDFs without running the local app. Based on insights from building the local app.
 
 The kit does not improve the agent's extraction intelligence. It standardizes the handoff from agent extraction to human review: agents provide `review_input.json`, PDFs, and optional table/schema inputs; kit scripts generate the rich local review UI, normalized artifacts, decisions, audit logs, and accepted-only exports.
 

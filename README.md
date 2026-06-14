@@ -48,7 +48,7 @@ python scripts/papers_to_table.py optimizer compare-models
 python scripts/papers_to_table.py optimizer full-benchmark
 ```
 
-The canonical `compare-models` preset includes external baselines and a gold positive control. Text cells are judge-scored by default, including normalized exact matches; only pass `--enable-text-exact-match-fast-path` through eval args for calibration runs that intentionally want deterministic text bypasses.
+The canonical `compare-models` preset includes external baselines and a gold positive control. Text cells are judge-scored by default, including normalized exact matches.
 
 ### Eval tool
 Eval can score main-app output against benchmarking datasets to create benchmark scores. 
@@ -64,8 +64,8 @@ python scripts/papers_to_table.py eval \
 ### Agent skills
 Two experimental agent-skill workflows:
 
-- `skills/papers-to-table-agent-kit/`: portable rich review handoff for agents that already extract values from PDFs. Agents author `review_input.json` plus PDFs and optional table/schema files; the kit generates the local review UI, decisions, audit artifacts, and accepted-only CSV export without requiring the main app, backend, or local LLM provider.
-- `skills/papers-to-table-local-app/`: local-app workflow for agents that can run the locally installed app with local LLM provider LM Studio.
+- `skills/papers-to-table-agent-kit/`: skill for regular agent systems (Codex, Claude, Hermes, etc.). Instructs agent for systematic extraction and provides interface for human review. 
+- `skills/papers-to-table-local-app/`: local-first skill for agents that can run the locally installed app with local LLM provider LM Studio.
 
 Install by telling your agent, for example `install the skills at https://github.com/jjfroehlich/papers-to-table/tree/main/skills/`. Alternatively, copy the relevant skill folder into your agent system's skill directory.
 
