@@ -15,7 +15,10 @@ REQUIRED_COMPARE_MODELS = {
     "openai/gpt-oss-20b",
     "google/gemma-4-e4b",
     "google/gemma-4-12b",
+    "google/gemma-4-26b-a4b",
     "mistralai/ministral-3-14b-reasoning",
+    "nvidia/nemotron-3-nano-omni",
+    "numind/NuExtract3",
     "qwen/qwen3.6-27b",
     "zai-org/glm-4.6v-flash",
 }
@@ -215,9 +218,7 @@ def test_compare_models_tracks_requested_model_set() -> None:
     assert all_models == REQUIRED_COMPARE_MODELS
     assert compared_models == REQUIRED_COMPARE_MODELS
     assert search_models == REQUIRED_COMPARE_MODELS
-    assert "google/gemma-4-26b-a4b" not in all_models
     assert "nvidia/nemotron-3-nano-4b" not in all_models
-    assert "nvidia/nemotron-3-nano-omni" not in all_models
     assert "qwen/qwen3.5-9b" not in all_models
     assert "unsloth/gemma-4-26b-a4b-it" not in all_models
     assert "unsloth/qwen3.6-27b" not in all_models
@@ -225,6 +226,9 @@ def test_compare_models_tracks_requested_model_set() -> None:
     assert "unsloth/qwen3.6-35b-a3b" not in all_models
     assert "qwen/qwen3.6-27b" in all_models
     assert "google/gemma-4-12b" in all_models
+    assert "google/gemma-4-26b-a4b" in all_models
+    assert "nvidia/nemotron-3-nano-omni" in all_models
+    assert "numind/NuExtract3" in all_models
     assert payload["baseline_candidate"]["text_model_id"] == "google/gemma-4-e4b"
     assert payload["baseline_candidate"]["vision_model_id"] == "google/gemma-4-e4b"
     for candidate in [payload["baseline_candidate"], *payload["compare_candidates"]]:
