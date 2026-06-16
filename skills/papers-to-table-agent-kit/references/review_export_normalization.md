@@ -26,7 +26,7 @@ summaries/
 
 ## Proposal Shape
 
-Generated proposal records align with main-app review semantics where practical:
+Generated proposal records use a stable review/export shape:
 
 ```json
 {
@@ -61,7 +61,7 @@ Supported new decision sources are:
 
 ## Evidence Shape
 
-Generated evidence records use the canonical main-app evidence tag `main_evidence`:
+Generated evidence records currently use the canonical evidence schema tag `main_evidence`:
 
 ```json
 {
@@ -113,7 +113,6 @@ These are optional generated outputs, not authored inputs:
 exports/final_table.xlsx
 normalized/proposal_index.json
 normalized/review_lookup.json
-main_compat/
 assets/pages/
 assets/figures/
 ```

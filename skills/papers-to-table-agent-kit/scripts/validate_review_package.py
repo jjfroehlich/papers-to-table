@@ -310,7 +310,7 @@ def validate_generated(run_dir: Path) -> dict[str, Any]:
         if item.get("proposal_id") not in proposal_ids:
             errors.append(f"evidence {item.get('evidence_id')} references missing proposal_id {item.get('proposal_id')}.")
         if item.get("source_type") not in MAIN_COMPAT_SOURCE_TYPES:
-            errors.append(f"evidence {item.get('evidence_id')} has invalid main-compatible source_type {item.get('source_type')!r}.")
+            errors.append(f"evidence {item.get('evidence_id')} has invalid review-compatible source_type {item.get('source_type')!r}.")
         if item.get("evidence_status") not in EVIDENCE_STATUSES:
             errors.append(f"evidence {item.get('evidence_id')} has invalid evidence_status.")
         if item.get("review_bucket") not in REVIEW_BUCKETS:

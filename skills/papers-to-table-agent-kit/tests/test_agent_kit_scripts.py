@@ -13,11 +13,13 @@ from pathlib import Path
 SKILL_DIR = Path(__file__).resolve().parents[1]
 SCRIPT_DIR = SKILL_DIR / "scripts"
 BUILD_SCRIPT = SCRIPT_DIR / "build_review_package.py"
+WRAPPER_SCRIPT = SCRIPT_DIR / "build_and_serve_review.py"
 VALIDATE_SCRIPT = SCRIPT_DIR / "validate_review_package.py"
 APPLY_SCRIPT = SCRIPT_DIR / "apply_review_decisions.py"
 RUNTIME_TMP = SKILL_DIR / "tests" / "tmp_runtime"
 
 sys.path.insert(0, str(SCRIPT_DIR))
+from build_and_serve_review import build_and_serve_review  # noqa: E402
 from serve_review import serve  # noqa: E402
 
 
@@ -170,6 +172,46 @@ def test_authoring_validation_and_build_generate_mvp_artifacts() -> None:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
+def test_build_and_serve_wrapper_build_only_json_generates_review_package() -> None:
+    tmp_path = make_workspace("wrapper_build_only")
+    try:
+        run_dir = make_run(tmp_path)
+
+        result = json.loads(run_cmd(str(WRAPPER_SCRIPT), "--run", str(run_dir), "--build-only", "--json").stdout)
+
+        assert result["validation_status"] == "ok"
+        assert result["authoring_validation"] == "ok"
+        assert result["generated_validation"] == "ok"
+        assert result["served"] is False
+        assert result["review_url"] is None
+        assert result["review_items"] == 3
+        assert (run_dir / "review" / "index.html").exists()
+        assert (run_dir / "review" / "review_package.json").exists()
+        assert (run_dir / "normalized" / "proposals.jsonl").exists()
+        assert (run_dir / "normalized" / "evidence.jsonl").exists()
+        assert (run_dir / "summaries" / "validation_report.json").exists()
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_build_and_serve_wrapper_can_start_localhost_server() -> None:
+    tmp_path = make_workspace("wrapper_serve")
+    try:
+        run_dir = make_run(tmp_path)
+        result, server = build_and_serve_review(run_dir, open_browser=False, quiet=True)
+        try:
+            assert result["served"] is True
+            assert result["review_url"].startswith("http://127.0.0.1:")
+            with urllib.request.urlopen(result["review_url"], timeout=5) as response:
+                assert response.status == 200
+                assert b"Papers-to-table rich review" in response.read()
+        finally:
+            if server is not None:
+                server.shutdown()
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
 def test_deterministic_ids_are_stable_across_rebuilds() -> None:
     tmp_path = make_workspace("deterministic")
     try:
@@ -226,7 +268,7 @@ def test_build_remains_portable_when_only_skill_directory_is_copied() -> None:
     tmp_path = make_workspace("portable")
     try:
         skill_copy = tmp_path / "portable_skill"
-        shutil.copytree(SKILL_DIR, skill_copy, ignore=shutil.ignore_patterns("tmp_runtime"))
+        shutil.copytree(SKILL_DIR, skill_copy, ignore=shutil.ignore_patterns("tmp_runtime", ".tmp", "__pycache__"))
         run_dir = make_run(tmp_path)
 
         completed = run_cmd(str(skill_copy / "scripts" / "build_review_package.py"), "--run", str(run_dir), "--json")
@@ -239,7 +281,7 @@ def test_build_remains_portable_when_only_skill_directory_is_copied() -> None:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
-def test_text_evidence_kinds_map_to_main_compatible_source_types() -> None:
+def test_text_evidence_kinds_map_to_review_compatible_source_types() -> None:
     tmp_path = make_workspace("source_types")
     try:
         run_dir = make_run(tmp_path)

@@ -1,13 +1,15 @@
 ---
 name: papers-to-table-agent-kit
-description: Portable papers-to-table review handoff for capable agents. Use when an agent already extracted structured values from scientific PDFs and needs a rich local review bundle with PDF evidence inspection, decisions, and accepted-only exports without running the main app, FastAPI backend, LM Studio, or extraction pipeline.
+description: Standalone skill for extracting structured information from research publications, scientific PDFs, and technical documents into evidence-backed tables. Use when an agent needs to fill benchmark tables, create structured literature-review tables, preserve source evidence, inspect proposed values in a local review UI, or export accepted results as CSV/report-ready tables.
 ---
 
 # Papers-To-Table Agent Kit
 
-Use this skill when a capable external agent performs extraction and needs a standardized handoff to human review.
+Use this skill when an agent extracts structured information from research publications, scientific PDFs, or other technical documents and needs a reviewable table with source evidence.
 
-Core product boundary: this kit does not try to improve the agent's extraction intelligence. It standardizes the handoff from agent extraction to human review.
+The skill is self-contained: it gives lightweight extraction guidance, defines the review-package input format, validates evidence-backed proposals, builds a local browser review interface, and exports accepted results. The agent still decides how to read documents and infer proposed values using the tools available in the current environment.
+
+Default workflow: build a formal review package. Do not stop at `_filled.csv` outputs unless the user explicitly requests CSV-only extraction. Draft filled CSVs are optional secondary artifacts; the reviewable deliverable is `review_input.json` plus PDFs, validation, generated review files, and a localhost review URL or exact serve command.
 
 External agents author only:
 
@@ -19,12 +21,15 @@ RUN_DIR/
   schema.json       # optional
 ```
 
-The kit scripts derive all normalized artifacts, review-package JSON, indexes, summaries, decisions, and exports. Agents should not hand-author `normalized/`, `summaries/`, `exports/`, `main_compat/`, or generated review files.
+The kit scripts derive all normalized artifacts, review-package JSON, indexes, summaries, decisions, and exports. Agents should not hand-author `normalized/`, `summaries/`, `exports/`, compatibility outputs, or generated review files.
+
+When extracting from PDFs, capture structured evidence while authoring each proposed value. Every non-empty `proposed_value` in `review_input.json` must include Tier A, B, or C evidence at extraction time.
 
 ## Product Scope
 
-The rich kit promises:
+The kit provides:
 
+- light schema-first and row-aware extraction guidance
 - proposal queue/table review
 - PDF.js page and quote evidence inspection
 - bundled PDF.js runtime assets so copying `skills/papers-to-table-agent-kit/` keeps quote highlighting working
@@ -32,9 +37,10 @@ The rich kit promises:
 - accept, accept-with-edit, reject, and confirmed-no-data decisions
 - decision download or localhost writeback
 - accepted-only `exports/final_table.csv`
+- report-ready reviewed values that can be summarized in research reports when the task benefits from prose or table synthesis
 - optional future XLSX export
 
-The kit does not promise full main-app parity. It has no full backend API, provider diagnostics, run lifecycle, eval mode, mandatory page image generation, mandatory figure extraction, mandatory bbox anchoring, or complex diagnostics beyond generated validation/export summaries.
+The kit is not a full extraction service. It does not provide a model provider, OCR engine, citation manager, batch scheduler, benchmark evaluator, or document-ingestion backend. It keeps the handoff portable: author `review_input.json` with evidence, then let the bundled scripts validate, build, review, and export.
 
 ## Authoring Contract
 
@@ -90,7 +96,7 @@ Evidence source-type inference:
 
 - If `source_type` is absent and `quote_text`, `table_text`, `evidence_text`, or `caption_text` is present, direct evidence is inferred.
 - If `source_type` is absent and only `page_number` plus `reasoning` and/or `source_location` is present, `inferred_reasoning` is inferred.
-- Generated evidence keeps `source_type` main-compatible and preserves the authored evidence kind separately in `authored_evidence_kind` when the input used kit-specific text kinds.
+- Generated evidence normalizes `source_type` to a stable review/export vocabulary and preserves the authored evidence kind separately in `authored_evidence_kind` when the input used kit-specific text kinds.
 
 Evidence tiers:
 
@@ -105,21 +111,25 @@ Highlight regions and bboxes must use finite numeric coordinates, a positive pag
 
 ## Script Workflow
 
-Validate author-authored inputs:
+Default one-step build and serve:
+
+```bash
+python skills/papers-to-table-agent-kit/scripts/build_and_serve_review.py --run RUN_DIR
+```
+
+For non-interactive validation or tests, build without starting the long-running server:
+
+```bash
+python skills/papers-to-table-agent-kit/scripts/build_and_serve_review.py --run RUN_DIR --build-only --json
+```
+
+The wrapper validates author-authored inputs, builds the rich review bundle, validates generated artifacts, starts the localhost review UI by default, and prints `review_url`.
+
+Equivalent explicit steps:
 
 ```bash
 python skills/papers-to-table-agent-kit/scripts/validate_review_package.py --run RUN_DIR --mode authoring
-```
-
-Build the rich review bundle:
-
-```bash
 python skills/papers-to-table-agent-kit/scripts/build_review_package.py --run RUN_DIR
-```
-
-Serve the review UI with localhost decision writeback and export:
-
-```bash
 python skills/papers-to-table-agent-kit/scripts/serve_review.py --run RUN_DIR
 ```
 
@@ -164,18 +174,26 @@ Optional future artifacts:
 exports/final_table.xlsx
 normalized/proposal_index.json
 normalized/review_lookup.json
-main_compat/
 assets/pages/
 assets/figures/
 ```
 
-Main-app-compatible artifacts are optional generated outputs, never required agent-authored inputs.
+Compatibility artifacts are optional generated outputs, never required agent-authored inputs.
 
 ## Report Handoff
 
-You may use extracted values internally for a literature review or research report. If values were not human-reviewed, do not imply that they were. Label information as human-reviewed, auto-accepted, agent-extracted, or draft/unreviewed where relevant.
+You may use extracted values internally for a literature review or research report. If the task calls for it, render accepted values as a concise summarizing table in addition to writing CSV outputs. If values were not human-reviewed, do not imply that they were. Label information as human-reviewed, auto-accepted, agent-extracted, or draft/unreviewed where relevant.
+
+Final agent response after extraction should include:
+
+- `RUN_DIR`
+- validation status
+- `review_url` if the UI is running
+- the exact wrapper or `serve_review.py` command if the UI could not be kept running
+- paths to any optional draft `_filled.csv` outputs
 
 ## References
 
 - `references/extraction_workflow.md`: agent extraction and review-input workflow.
 - `references/review_export_normalization.md`: generated review/export artifact and decision semantics.
+- `templates/extraction_to_review_prompt.md`: reusable external-agent prompt for evidence-first extraction to review.

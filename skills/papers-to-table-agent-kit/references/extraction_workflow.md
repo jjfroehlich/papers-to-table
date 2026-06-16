@@ -2,19 +2,47 @@
 
 ## Purpose
 
-This kit is for agent-native extraction followed by standardized review handoff. The agent decides how to read PDFs and propose values. The kit scripts validate and normalize the handoff for human review, decisions, and export.
+This kit is for agent-native extraction from research publications, scientific PDFs, and technical documents followed by standardized review handoff. The agent decides how to read documents and propose values. The kit scripts validate and normalize the handoff for human review, decisions, and export.
 
-The kit does not try to improve the agent's extraction intelligence.
+The kit gives light extraction discipline, not a complete extraction engine. It helps agents keep the work schema-first, row-aware, evidence-backed, and inspectable.
 
-## Practical Flow
+## Default Flow
 
-1. Clarify whether the user needs a draft table/report or a formal review/export package.
+1. Treat the formal review package as the default deliverable.
 2. If a schema exists, follow it. If not, draft a lightweight column plan before extraction.
-3. Extract values using whatever works in the environment.
-4. Preserve structured evidence for every non-empty proposed value.
-5. Write only `review_input.json`, `pdfs/`, and optional `source_table.csv` or `schema.json`.
-6. Run `build_review_package.py` to derive normalized proposals/evidence and the rich review UI.
-7. Run `serve_review.py` for localhost decision writeback and accepted-only export.
+3. Extract values row-by-row and cell-by-cell, preserving structured evidence as each non-empty value is authored.
+4. Write only `review_input.json`, `pdfs/`, and optional `source_table.csv` or `schema.json`.
+5. Run `build_and_serve_review.py --run RUN_DIR` to validate, build, validate generated artifacts, and start localhost review.
+6. If the review server cannot be kept running, run `build_and_serve_review.py --run RUN_DIR --build-only --json` and report the exact serve command.
+
+Do not stop at `_filled.csv` outputs unless the user explicitly requested CSV-only extraction. A filled CSV is a secondary draft; formal review and accepted-only export start from `review_input.json`.
+
+## Benchmark/Table Workflow
+
+For benchmark folders, literature-review matrices, or table-completion tasks:
+
+1. Create one `RUN_DIR` for the extraction handoff.
+2. Copy source PDFs into `RUN_DIR/pdfs/`.
+3. Copy the empty table/template to `RUN_DIR/source_table.csv`.
+4. Copy the task schema to `RUN_DIR/schema.json` when available.
+5. Map schema target columns into `review_input.json.columns`.
+6. Map template rows into `review_input.json.rows`, preserving `row_id`, `row_index`, `pdf_id`, paper title, and any existing metadata.
+7. Author one proposal per supported target cell in `review_input.json.proposals`.
+8. Optionally write a draft `_filled.csv` with the same headers as the template, but keep it secondary to the review package.
+
+Every proposal should reference the relevant `row_id`, `column_name`, `proposed_value`, and structured evidence. Leave unsupported cells out of `proposals`, or use `proposal_status="no_data"` only when the paper explicitly indicates absence.
+
+## Extraction Guidance
+
+Use the schema first. Respect allowed values, null policy, column descriptions, units, and formatting guidance. Do not guess.
+
+Use row-aware extraction. Resolve the paper/document and row identity before filling target cells, and do not let evidence from one source support another row.
+
+Use table-, caption-, and figure-aware reading. Many values are reported in tables, captions, figure labels, methods details, supplement references, or result prose. Capture the strongest available support as direct quotes, table snippets, caption text, page numbers, and source locations.
+
+Prefer concise proposed values that match the schema. Preserve direct quotes and page numbers where possible. Use reasoning-only evidence only when exact text cannot be captured.
+
+When the broader task benefits from synthesis, the reviewed or clearly labeled draft table can be reused in a research report. Keep report prose separate from the review package, and make the review status of table values clear.
 
 ## Authoring Workspace
 
@@ -28,7 +56,7 @@ RUN_DIR/
   schema.json       # optional
 ```
 
-Generated directories such as `normalized/`, `summaries/`, `review/`, `exports/`, and `main_compat/` are script-owned. Do not create them by hand.
+Generated directories such as `normalized/`, `summaries/`, `review/`, `exports/`, and compatibility outputs are script-owned. Do not create them by hand.
 
 ## Column Planning
 
