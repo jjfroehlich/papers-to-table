@@ -8,6 +8,7 @@ This file is the durable evidence and decision record for tested app-improvement
 - [Decision Entry Format](#decision-entry-format)
 - [Dev-Check Runs](#dev-check-runs)
 - [Full-Benchmark Idea Evaluations](#full-benchmark-idea-evaluations)
+- [Model-Comparison Decisions](#model-comparison-decisions)
 - [Kept Or Partially Kept Ideas](#kept-or-partially-kept-ideas)
 - [Rejected Or Superseded Ideas](#rejected-or-superseded-ideas)
 - [Appendix: Historical Branches](#appendix-historical-branches)
@@ -75,6 +76,32 @@ This table contains only default-model app-idea evaluations over genome editing,
 | 2026-05 | `manual_field_group_deterministic_3bench_3rep` | [Field-Group Deterministic](#field-group-deterministic) | `google/gemma-4-e4b` | Genome editing, MPRA, spatial transcriptomics | 3 | 0.6040 | 87.57 min | Rejected as default architecture. |
 | 2026-05 | `manual_paper_batch_3bench_3rep` | [Paper-Batch](#paper-batch) | `google/gemma-4-e4b` | Genome editing, MPRA, spatial transcriptomics | 3 | 0.5681 | 88.81 min | Rejected as default architecture. |
 | 2026-06-02 | `tools/optimizer/runs/20260602_compare_models_direct` | Current main reference | `google/gemma-4-e4b` | Genome editing, MPRA, spatial transcriptomics | 3 | 0.5718 | 134.35 min | Current-main default-model row from the latest compare-model run; full suite coverage, scored, with judge-instability caveat. |
+
+## Model-Comparison Decisions
+
+This section records model-comparison conclusions that affect future experiment defaults. These runs are not app-improvement ideas, so they remain outside the full-benchmark idea table.
+
+### 2026-06-15 Compare Models Default
+
+| Field | Details |
+| --- | --- |
+| Status | Partially kept as a default-model and comparison-set decision. |
+| Tested idea | Broad local model comparison for the current per-cell pipeline. |
+| What was tested | `tools/optimizer/runs/20260615_004637_compare_models`, stage `compare_models`, over the dev suite with figure review enabled, recall rescue disabled, retrieval `hybrid_experimental`, top-k 12, and parser fallback allowed. The run compared 11 local candidates plus external gold and external agent-style baselines. |
+| Why tested | Determine whether near-term gains should come from a better local default model or from workflow, prompt, retrieval, evidence handling, recovery, and figure/table handling. |
+| Evidence | Run artifacts under `tools/optimizer/runs/20260615_004637_compare_models/compare/experiment/`, especially `summary.json`, `candidate_diagnostics.json`, `results/results.csv`, `results/candidate_diagnostics.csv`, and `report.html`. |
+| Scope and models | Three benchmark datasets in the dev suite. Best local score: `google/gemma-4-12b-qat` at 0.6784 in 2.93 h. Practical default: `google/gemma-4-12b` at 0.6467 in 1.87 h. Best non-Gemma quality reference: `qwen/qwen3.6-27b` at 0.6562 in 3.25 h. |
+| Result | QAT won locally but was much slower than regular Gemma 12B for a modest score gain. `qwen3.6-27b-mtp` scored lower than regular Qwen with only modest runtime improvement. `nuextract3` scored but was not competitive. External agent-style baselines remained substantially higher at 0.8019-0.8259. |
+| Decision | Use `google/gemma-4-12b` as the default model for upcoming local improvement experiments. Keep `qwen/qwen3.6-27b` as the non-Gemma quality reference and `google/gemma-4-12b-qat` only as an occasional slow ceiling, not the default. Drop weaker or slower variants from routine comparison unless a future change specifically targets their failure mode. |
+| Retest boundary | Do not run another broad model sweep until the extraction workflow changes materially or a new local model is expected to change the quality/runtime frontier. Near-term experiments should test retrieval, context, recovery, figure/table handling, and evidence behavior with regular Gemma 12B. |
+
+### 2026-06-15 Compare Models Diagnostics Note
+
+The constant internal `join_failure_count=16` in the report is an eval/reporting diagnostic artifact, not a PDF or row-matching failure. The current eval schema excludes default metadata columns through `DEFAULT_EXCLUDED_SCORE_COLUMNS`, but proposal diagnostics for unmatched proposal keys still include metadata proposals and `aggregate.py` counts `unmatched_proposal` records as join problems. In inspected `cand_0002` scored-cell rollups, all unmatched proposal rows were default-excluded metadata fields: `Title`, `Authors`, `Publication Year`, `Journal`, and `DOI` where the benchmark template included DOI. Content cells were matched, and the run diagnostics reported `matched_pdf_count=5`.
+
+The targeted future fix is to split excluded-column proposal diagnostics from true join failures. For example, eval can emit an `excluded_proposal` status or `proposal_for_excluded_column` diagnostic for proposals whose columns are intentionally not scored, keep those counts visible separately, and exclude them from `join_failure_count`. Tests should prove that proposals for excluded metadata columns do not increment `join_failure_count`, while true extra non-excluded proposal columns still do.
+
+Figure-review counters show that the dominant issue is not simply "use more vision." The current behavior is mostly planner gating and acceptance behavior: regular Gemma 12B had 34 triggers, 34 planner skips, and 0 vision calls; QAT had 38 triggers, 28 skips, 13 calls, 12 no-hit outcomes, and 1 figure-derived evidence item; regular Qwen had 31 triggers, 27 skips, 6 calls, 3 failed attempts, and 2 figure-derived evidence items. Figure evidence currently mostly rescues empty or weak proposals and is not a broad override path for non-empty text answers. This supports a targeted vision/planner audit rather than broader uncapped vision use.
 
 ## Kept Or Partially Kept Ideas
 

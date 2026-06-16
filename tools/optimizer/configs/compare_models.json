@@ -109,8 +109,8 @@
     },
     {
       "prompt_bundle_id": "default",
-      "text_model_id": "numind/NuExtract3",
-      "vision_model_id": "numind/NuExtract3",
+      "text_model_id": "nuextract3",
+      "vision_model_id": "nuextract3",
       "optimizer_knobs": {
         "retrieval_mode": "hybrid_experimental",
         "retrieval_top_k": 12,
@@ -170,6 +170,38 @@
         "style_profiles_max_examples": 3,
         "figure_review_enabled": true
       }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "google/gemma-4-12b-qat",
+      "vision_model_id": "google/gemma-4-12b-qat",
+      "optimizer_knobs": {
+        "retrieval_mode": "hybrid_experimental",
+        "retrieval_top_k": 12,
+        "recall_rescue_enabled": false,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
+        "parser_allow_basic_fallback": true,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": true
+      }
+    },
+    {
+      "prompt_bundle_id": "default",
+      "text_model_id": "qwen3.6-27b-mtp",
+      "vision_model_id": "qwen3.6-27b-mtp",
+      "optimizer_knobs": {
+        "retrieval_mode": "hybrid_experimental",
+        "retrieval_top_k": 12,
+        "recall_rescue_enabled": false,
+        "whole_document_mode": false,
+        "whole_document_max_chars": 20000,
+        "parser_allow_basic_fallback": true,
+        "style_profiles_enabled": true,
+        "style_profiles_max_examples": 3,
+        "figure_review_enabled": true
+      }
     }
   ],
   "search_space": {
@@ -182,20 +214,24 @@
       "google/gemma-4-26b-a4b",
       "openai/gpt-oss-20b",
       "nvidia/nemotron-3-nano-omni",
-      "numind/NuExtract3",
+      "nuextract3",
       "mistralai/ministral-3-14b-reasoning",
       "zai-org/glm-4.6v-flash",
-      "qwen/qwen3.6-27b"
+      "qwen/qwen3.6-27b",
+      "google/gemma-4-12b-qat",
+      "qwen3.6-27b-mtp"
     ],
     "vision_model_ids": [
       "google/gemma-4-e4b",
       "google/gemma-4-12b",
       "google/gemma-4-26b-a4b",
       "nvidia/nemotron-3-nano-omni",
-      "numind/NuExtract3",
+      "nuextract3",
       "mistralai/ministral-3-14b-reasoning",
       "zai-org/glm-4.6v-flash",
-      "qwen/qwen3.6-27b"
+      "qwen/qwen3.6-27b",
+      "google/gemma-4-12b-qat",
+      "qwen3.6-27b-mtp"
     ],
     "numeric_knobs": {
       "retrieval_top_k": {

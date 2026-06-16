@@ -94,6 +94,15 @@ def _gap_to_runner_up(rows: list[dict[str, Any]]) -> float | None:
     return (scored_rows[0]["primary_metric_value"] or 0.0) - (scored_rows[1]["primary_metric_value"] or 0.0)
 
 
+def _score_for_candidate(rows: list[dict[str, Any]], candidate_id: str | None) -> float | None:
+    if not candidate_id:
+        return None
+    for row in rows:
+        if row.get("candidate_id") == candidate_id and row.get("primary_metric_value") is not None:
+            return row.get("primary_metric_value")
+    return None
+
+
 def _time_window(rows: list[dict[str, Any]], run_metadata: dict[str, Any]) -> tuple[str, str]:
     starts = [str(row.get("started_at")) for row in rows if not is_missing(row.get("started_at"))]
     ends = [str(row.get("ended_at")) for row in rows if not is_missing(row.get("ended_at"))]
@@ -826,7 +835,7 @@ def _build_candidate_table(
             {"label": "Rank", "align": "right", "sort": "number"},
             {"label": "Candidate", "align": "left", "sort": "string"},
             {"label": primary_metric.title(), "align": "right", "sort": "number"},
-            {"label": "Gap To Winner", "align": "right", "sort": "number"},
+            {"label": "Gap To Recommended", "align": "right", "sort": "number"},
             {"label": "Status", "align": "left", "sort": "string"},
             {"label": "Runtime", "align": "right", "sort": "number"},
             {"label": "Coverage", "align": "right", "sort": "number"},
@@ -837,7 +846,9 @@ def _build_candidate_table(
             {"label": "Structure", "align": "left", "sort": "string"},
             {"label": "Reason / Trust", "align": "left", "sort": "string"},
         ]
-        winner_score = rows[0].get("primary_metric_value") if rows else None
+        winner_score = _score_for_candidate(rows, winner_id)
+        if winner_score is None:
+            winner_score = rows[0].get("primary_metric_value") if rows else None
         for index, row in enumerate(rows, start=1):
             gap = None
             if winner_score is not None and row.get("primary_metric_value") is not None:
@@ -964,7 +975,7 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
             {"label": "Suite Score", "value": format_score(report_winner_row.get("primary_metric_value") if report_winner_row else None), "note": f"coverage={format_percent(report_winner_row.get('benchmark_coverage') if report_winner_row else None)}"},
             {"label": "Benchmark Scope", "value": display_text(summary.get("benchmark_id"), missing=display_text(report_winner_row.get("suite_id") if report_winner_row else None, missing="not recorded")), "note": display_text(report_winner_row.get("suite_benchmark_ids") if report_winner_row else None, missing=None)},
             {"label": "Replicates", "value": display_text(report_winner_row.get("suite_replicate_count") if report_winner_row else None, missing="not recorded"), "note": _status_mix_text(counts)},
-            {"label": "Total Runtime", "value": format_runtime(report_winner_row.get("runtime_seconds") if report_winner_row else None), "note": f"per benchmark={format_runtime(report_winner_row.get('runtime_mean_per_benchmark_seconds') if report_winner_row else None)}"},
+            {"label": "Winner Runtime", "value": format_runtime(report_winner_row.get("runtime_seconds") if report_winner_row else None), "note": f"winner per benchmark={format_runtime(report_winner_row.get('runtime_mean_per_benchmark_seconds') if report_winner_row else None)}"},
             {"label": "Ended", "value": ended_at, "note": f"started={started_at}"},
         ],
         "executive_cards": [],
@@ -981,7 +992,7 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
             {
                 "title": "Study Interpretation",
                 "lead": "Study-aware takeaways generated from metrics and statuses.",
-                "items": _build_interpretation(candidate_rows, study_type=study_type, variant=variant, summary=summary),
+                "items": _build_interpretation(report_rows, study_type=study_type, variant=variant, summary=summary),
                 "badges": [{"text": variant.replace("_", " "), "tone": "neutral"}],
             },
             {

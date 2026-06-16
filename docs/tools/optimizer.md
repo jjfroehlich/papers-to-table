@@ -41,7 +41,7 @@ bash scripts/test-optimizer-tool.sh
 - model-specific request settings come from `app/backend/src/backend/app/model_profiles/default_profiles.json`; one can add optimizer knobs to compare model-settings such as temperature/top-p/chat-templates.
 - Python command delegates to `tools/optimizer/scripts/compare_models.sh`
 - uses `tools/optimizer/configs/compare_models.json`
-- Treat compare-models as an overnight run. It can take 10+ hrs with 9 models and 4 external baselines.
+- Treat compare-models as an overnight run. It can take 10+ hrs with 11 models and 4 external baselines.
 
 ```bash
 python scripts/papers_to_table.py optimizer compare-models
@@ -106,7 +106,7 @@ The checked-in routine full-benchmark preset now uses this bounded phase size:
 
 | Stage | Routine Candidates | Notes |
 |---|---:|---|
-| model compare | 9 | Keeps the current model shortlist. |
+| model compare | 11 | Keeps the current model shortlist. |
 | prompt compare | 2 | `default` versus `checklist_guided`; `context_balanced` is excluded from the routine preset. |
 | retrieval compare | 2 | `hybrid_experimental` top-k 8 and `lexical` top-k 12 only. |
 | extraction feature compare | 3 | Top retrieval seed only; all candidates keep `recall_rescue_enabled=true`. |
