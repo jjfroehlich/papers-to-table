@@ -19,7 +19,7 @@ Download a model in LM Studio before starting papers-to-table.
 The current default model documented by this repo is:
 
 ```text
-google/gemma-4-e4b
+google/gemma-4-12b
 ```
 
 If you choose a different model, update `provider.text_model.model_id` in `app/config.json` so the app and LM Studio agree.
@@ -40,6 +40,6 @@ The app expects an LM Studio/OpenAI-compatible local API at that base URL unless
 
 - provider token: `lm_studio`
 - default base URL: `http://localhost:1234`
-- default text model: `google/gemma-4-e4b`
+- default text model: `google/gemma-4-12b`
 - provider must be reachable before extraction starts
 - configured model must be available in LM Studio

@@ -245,7 +245,7 @@ class TestLoadConfig:
         p = tmp_path / "config.json"
         p.write_text(json.dumps(data), encoding="utf-8")
         config = load_config(str(p))
-        assert config.provider.text_model.model_id == "google/gemma-4-e4b"
+        assert config.provider.text_model.model_id == "google/gemma-4-12b"
 
     def test_separate_text_and_vision_model(self):
         config = load_config(FIXTURE_CONFIG)
@@ -346,7 +346,7 @@ class TestReadiness:
     @pytest.mark.asyncio
     @respx.mock
     async def test_accepts_real_default_lm_studio_model_id(self, tmp_path, minimal_config_dict, monkeypatch):
-        minimal_config_dict["provider"]["text_model"]["model_id"] = "google/gemma-4-e4b"
+        minimal_config_dict["provider"]["text_model"]["model_id"] = "google/gemma-4-12b"
         minimal_config_dict["output_dir"] = str(tmp_path / "runs")
         config = RunConfig.model_validate(minimal_config_dict)
         monkeypatch.setattr("backend.app.parsing.check_parser_readiness", lambda *_args: [])

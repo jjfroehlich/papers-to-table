@@ -58,7 +58,7 @@ Options:
 - uses the same candidate settings as the canonical model-compare preset
 - runs one model, one benchmark, and one replicate
 - removes external-result scoring from the run-local config so the report reflects only the app candidate
-- defaults to `google/gemma-4-e4b` on `bench_genome_editing`
+- defaults to `google/gemma-4-12b` on `bench_genome_editing`
 - writes only run-local materialized config files; checked-in optimizer configs are unchanged
 
 ```bash
@@ -69,7 +69,7 @@ python scripts/papers_to_table.py optimizer dev-check --label dev_check_after_pa
 Options:
 - `--help`: help
 - `--label LABEL`: choose the run directory label under `tools/optimizer/runs`.
-- `--model MODEL_ID`: choose the configured model id. Defaults to `google/gemma-4-e4b`.
+- `--model MODEL_ID`: choose the configured model id. Defaults to `google/gemma-4-12b`.
 - `--benchmark-id BENCHMARK_ID`: choose one benchmark dataset. Defaults to `bench_genome_editing`, which has a useful mix of retrieval-heavy method fields and clear figure-dependent fields such as architecture figures and Figure 3 bar-chart counting.
 
 
@@ -88,7 +88,7 @@ Options:
 
 ```bash
 python scripts/papers_to_table.py optimizer full-benchmark
-python scripts/papers_to_table.py optimizer full-benchmark --initial-model google/gemma-4-e4b
+python scripts/papers_to_table.py optimizer full-benchmark --initial-model google/gemma-4-12b
 python scripts/papers_to_table.py optimizer full-benchmark --resume tools/optimizer/runs/<run_id>/overnight_manifest.json
 ```
 

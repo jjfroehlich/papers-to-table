@@ -233,8 +233,8 @@ def test_compare_models_tracks_requested_model_set() -> None:
     assert "nvidia/nemotron-3-nano-omni" in all_models
     assert "nuextract3" in all_models
     assert "qwen3.6-27b-mtp" in all_models
-    assert payload["baseline_candidate"]["text_model_id"] == "google/gemma-4-e4b"
-    assert payload["baseline_candidate"]["vision_model_id"] == "google/gemma-4-e4b"
+    assert payload["baseline_candidate"]["text_model_id"] == "google/gemma-4-12b"
+    assert payload["baseline_candidate"]["vision_model_id"] == "google/gemma-4-12b"
     for candidate in [payload["baseline_candidate"], *payload["compare_candidates"]]:
         knobs = candidate["optimizer_knobs"]
         assert knobs["retrieval_mode"] == "hybrid_experimental"
@@ -244,7 +244,7 @@ def test_compare_models_tracks_requested_model_set() -> None:
         assert MODEL_PROFILE_MANAGED_KNOBS.isdisjoint(knobs)
 
         if candidate["text_model_id"] == "openai/gpt-oss-20b":
-            assert candidate["vision_model_id"] == "google/gemma-4-e4b"
+            assert candidate["vision_model_id"] == "google/gemma-4-12b"
         else:
             assert candidate["vision_model_id"] == candidate["text_model_id"]
 
@@ -362,7 +362,7 @@ def test_wrapper_exposes_optimizer_dev_check_shortcut() -> None:
     docs = (repo_root.parents[1] / "docs" / "tools" / "optimizer.md").read_text(encoding="utf-8")
 
     assert 'optimizer_sub.add_parser(\n        "dev-check"' in wrapper
-    assert 'default="google/gemma-4-e4b"' in wrapper
+    assert 'default="google/gemma-4-12b"' in wrapper
     assert 'default="bench_genome_editing"' in wrapper
     assert '"aggregation": {' in wrapper
     assert '"primary_metric": "content_correctness"' in wrapper

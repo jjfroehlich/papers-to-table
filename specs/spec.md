@@ -131,7 +131,7 @@ Current defaults:
 - retrieval top-k: `12`
 - recall rescue: disabled by default
 - whole-document mode: disabled by default
-- default text model in config example: `google/gemma-4-e4b`
+- default text model in config example: `google/gemma-4-12b`
 
 Retrieval should remain row-aware and column-aware rather than defaulting to whole-document prompts. Whole-document and recall-rescue paths are bounded configured modes and must remain explicit in artifacts.
 
@@ -333,7 +333,7 @@ Primary wrapper commands:
 - `python scripts/papers_to_table.py docs serve`
 - `python scripts/papers_to_table.py docs build`
 
-Optimizer wrapper commands support `--label` where applicable. `dev-check` defaults to `google/gemma-4-e4b` on `bench_genome_editing`.
+Optimizer wrapper commands support `--label` where applicable. `dev-check` defaults to `google/gemma-4-12b` on `bench_genome_editing`.
 
 ## 16. Diagnostics And Failure Truth
 

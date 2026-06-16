@@ -19,7 +19,7 @@ The main app uses JSON as the advanced-control authority.
     "token": "lm_studio",
     "base_url": "http://localhost:1234",
     "text_model": {
-      "model_id": "google/gemma-4-e4b"
+      "model_id": "google/gemma-4-12b"
     }
   }
 }
@@ -30,7 +30,7 @@ The `model_id` must match the model you downloaded or loaded in LM Studio.
 ## Current Defaults
 
 - provider token: `lm_studio`
-- default vision model: `google/gemma-4-e4b`
+- default vision model: `google/gemma-4-12b`
 - retrieval mode: `hybrid_experimental`
 - retrieval top-k: `12`
 - recall rescue: disabled
@@ -38,7 +38,7 @@ The `model_id` must match the model you downloaded or loaded in LM Studio.
 - figure review: disabled (code default); enabled in the example config
 - prompt-only vision review: enabled by default when figure review is enabled
 - candidate selection: enabled, max one selector call per cell
-- default text model: `google/gemma-4-e4b`
+- default text model: `google/gemma-4-12b`
 
 ## Most Important Parameters
 
