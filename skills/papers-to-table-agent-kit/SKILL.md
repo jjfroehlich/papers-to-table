@@ -9,7 +9,17 @@ Use this skill when an agent extracts structured information from research publi
 
 The skill is self-contained: it gives lightweight extraction guidance, defines the review-package input format, validates evidence-backed proposals, builds a local browser review interface, and exports accepted results. The agent still decides how to read documents and infer proposed values using the tools available in the current environment.
 
-Default workflow: build a formal review package. Do not stop at `_filled.csv` outputs unless the user explicitly requests CSV-only extraction. Draft filled CSVs are optional secondary artifacts; the reviewable deliverable is `review_input.json` plus PDFs, validation, generated review files, and a localhost review URL or exact serve command.
+Default workflow: build a formal review package. Do not stop at `_filled.csv` or `completed_table.csv` outputs unless the user explicitly requests CSV-only extraction. A request for CSV outputs is not a CSV-only request. Treat the task as CSV-only only when the user says "CSV only", "skip review", "do not build the review UI", or equivalent. Draft filled CSVs are optional secondary artifacts; the reviewable deliverable is `review_input.json` plus PDFs, validation, generated review files, and a localhost review URL or exact serve command.
+
+Before extracting values for any table-completion task:
+
+1. Create a `RUN_DIR` for the review handoff.
+2. Copy source PDFs into `RUN_DIR/pdfs/`.
+3. Copy the empty table/template to `RUN_DIR/source_table.csv` when present.
+4. Copy the task schema to `RUN_DIR/schema.json` or `RUN_DIR/schema.csv` when present.
+5. Create a `review_input.json` skeleton with `pdfs`, `columns`, `rows`, and an initially empty `proposals` array.
+6. Append one proposal with structured evidence as each non-empty target cell is authored.
+7. Optionally maintain a draft CSV in parallel, but keep the review package as the controlling artifact.
 
 External agents author only:
 
@@ -19,11 +29,12 @@ RUN_DIR/
   pdfs/
   source_table.csv  # optional
   schema.json       # optional
+  schema.csv        # optional
 ```
 
 The kit scripts derive all normalized artifacts, review-package JSON, indexes, summaries, decisions, and exports. Agents should not hand-author `normalized/`, `summaries/`, `exports/`, compatibility outputs, or generated review files.
 
-When extracting from PDFs, capture structured evidence while authoring each proposed value. Every non-empty `proposed_value` in `review_input.json` must include Tier A, B, or C evidence at extraction time.
+When extracting from PDFs, capture structured evidence while authoring each proposed value. Every non-empty `proposed_value` in `review_input.json` must include Tier A, B, or C evidence at extraction time. Do not defer evidence capture to a later cleanup pass.
 
 ## Product Scope
 
@@ -111,6 +122,12 @@ Highlight regions and bboxes must use finite numeric coordinates, a positive pag
 
 ## Script Workflow
 
+For benchmark folders with a table template and schema, scaffold the handoff before extraction:
+
+```bash
+python skills/papers-to-table-agent-kit/scripts/scaffold_benchmark_run.py --dataset-dir DATASET_DIR --run RUN_DIR
+```
+
 Default one-step build and serve:
 
 ```bash
@@ -183,6 +200,23 @@ Compatibility artifacts are optional generated outputs, never required agent-aut
 ## Report Handoff
 
 You may use extracted values internally for a literature review or research report. If the task calls for it, render accepted values as a concise summarizing table in addition to writing CSV outputs. If values were not human-reviewed, do not imply that they were. Label information as human-reviewed, auto-accepted, agent-extracted, or draft/unreviewed where relevant.
+
+Final artifact gate: before reporting completion, verify that all required review artifacts exist:
+
+- `RUN_DIR/review_input.json`
+- `RUN_DIR/normalized/proposals.jsonl`
+- `RUN_DIR/normalized/evidence.jsonl`
+- `RUN_DIR/summaries/validation_report.json`
+- `RUN_DIR/review/index.html`
+- `review_url` or an exact `serve_review.py` command
+
+If any required review artifact is missing and the user did not explicitly request CSV-only extraction, do not call the task complete. Create the missing artifact or report the blocker.
+
+For benchmark tasks, it is acceptable to produce both a draft CSV and a review package:
+
+- `draft_completed_table.csv` or another clearly named draft CSV: agent-extracted, not human-reviewed
+- `review_input.json` plus the generated review UI: evidence-backed review package
+- `exports/final_table.csv`: accepted-only output after human review or after an explicit `--accept-all` decision
 
 Final agent response after extraction should include:
 

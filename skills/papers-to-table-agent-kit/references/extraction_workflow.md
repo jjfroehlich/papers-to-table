@@ -15,7 +15,7 @@ The kit gives light extraction discipline, not a complete extraction engine. It 
 5. Run `build_and_serve_review.py --run RUN_DIR` to validate, build, validate generated artifacts, and start localhost review.
 6. If the review server cannot be kept running, run `build_and_serve_review.py --run RUN_DIR --build-only --json` and report the exact serve command.
 
-Do not stop at `_filled.csv` outputs unless the user explicitly requested CSV-only extraction. A filled CSV is a secondary draft; formal review and accepted-only export start from `review_input.json`.
+Do not stop at `_filled.csv` or `completed_table.csv` outputs unless the user explicitly requested CSV-only extraction. A request for CSV outputs is not a CSV-only request. Treat the task as CSV-only only when the user says "CSV only", "skip review", "do not build the review UI", or equivalent. A filled CSV is a secondary draft; formal review and accepted-only export start from `review_input.json`.
 
 ## Benchmark/Table Workflow
 
@@ -24,13 +24,21 @@ For benchmark folders, literature-review matrices, or table-completion tasks:
 1. Create one `RUN_DIR` for the extraction handoff.
 2. Copy source PDFs into `RUN_DIR/pdfs/`.
 3. Copy the empty table/template to `RUN_DIR/source_table.csv`.
-4. Copy the task schema to `RUN_DIR/schema.json` when available.
+4. Copy the task schema to `RUN_DIR/schema.json` or `RUN_DIR/schema.csv` when available.
 5. Map schema target columns into `review_input.json.columns`.
 6. Map template rows into `review_input.json.rows`, preserving `row_id`, `row_index`, `pdf_id`, paper title, and any existing metadata.
 7. Author one proposal per supported target cell in `review_input.json.proposals`.
 8. Optionally write a draft `_filled.csv` with the same headers as the template, but keep it secondary to the review package.
 
 Every proposal should reference the relevant `row_id`, `column_name`, `proposed_value`, and structured evidence. Leave unsupported cells out of `proposals`, or use `proposal_status="no_data"` only when the paper explicitly indicates absence.
+
+For benchmark folders with a standard template/schema/PDF layout, prefer the scaffold script before extraction:
+
+```bash
+python skills/papers-to-table-agent-kit/scripts/scaffold_benchmark_run.py --dataset-dir DATASET_DIR --run RUN_DIR
+```
+
+The scaffolded package is intentionally incomplete until proposals are added, but it prevents agents from losing row, schema, and PDF mappings.
 
 ## Extraction Guidance
 
@@ -110,6 +118,31 @@ Weak but reviewable evidence is allowed when the agent cannot provide exact text
 ```
 
 The UI labels weak evidence visibly. Non-empty proposed values with no structured Tier A/B/C evidence are invalid.
+
+Do not keep evidence only in scratch notes. Convert the supporting quote, table snippet, caption text, figure reference, page number, or reasoning into the proposal evidence object while the value is authored.
+
+## Draft CSVs and Review Status
+
+For benchmark tasks, producing a draft CSV is useful but secondary:
+
+- `draft_completed_table.csv`, `_filled.csv`, or `completed_table.csv`: agent-extracted draft values, not human-reviewed
+- `review_input.json` plus generated review files: evidence-backed review package
+- `exports/final_table.csv`: accepted-only table after human review or explicit `--accept-all`
+
+Do not imply that a draft CSV is reviewed. Label it as draft, agent-extracted, or unreviewed unless decisions have been applied.
+
+## Final Artifact Gate
+
+Before final response, verify that the review package exists unless the user explicitly requested CSV-only extraction:
+
+- `RUN_DIR/review_input.json`
+- `RUN_DIR/normalized/proposals.jsonl`
+- `RUN_DIR/normalized/evidence.jsonl`
+- `RUN_DIR/summaries/validation_report.json`
+- `RUN_DIR/review/index.html`
+- `review_url` or exact `serve_review.py` command
+
+If any required artifact is missing, do not call the task complete. Create it or report the blocker.
 
 ## Coverage
 

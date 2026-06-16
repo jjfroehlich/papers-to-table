@@ -16,6 +16,7 @@ BUILD_SCRIPT = SCRIPT_DIR / "build_review_package.py"
 WRAPPER_SCRIPT = SCRIPT_DIR / "build_and_serve_review.py"
 VALIDATE_SCRIPT = SCRIPT_DIR / "validate_review_package.py"
 APPLY_SCRIPT = SCRIPT_DIR / "apply_review_decisions.py"
+SCAFFOLD_SCRIPT = SCRIPT_DIR / "scaffold_benchmark_run.py"
 RUNTIME_TMP = SKILL_DIR / "tests" / "tmp_runtime"
 
 sys.path.insert(0, str(SCRIPT_DIR))
@@ -260,6 +261,42 @@ def test_valid_package_requires_only_quote_page_evidence_no_table_or_schema() ->
         assert package["source"]["source_table_present"] is False
         assert not (run_dir / "assets" / "pages").exists()
         assert not (run_dir / "assets" / "figures").exists()
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_scaffold_benchmark_run_creates_incomplete_review_input_skeleton() -> None:
+    tmp_path = make_workspace("scaffold")
+    try:
+        dataset_dir = tmp_path / "dataset"
+        write_dummy_pdf(dataset_dir / "pdfs" / "paper_a.pdf", "Paper A")
+        write_dummy_pdf(dataset_dir / "pdfs" / "paper_b.pdf", "Paper B")
+        write_csv(
+            dataset_dir / "table_template.csv",
+            [
+                {"row_id": "row_1", "row_index": "0", "Title": "Paper A", "Finding": ""},
+                {"row_id": "row_2", "row_index": "1", "Title": "Paper B", "Finding": ""},
+            ],
+            ["row_id", "row_index", "Title", "Finding"],
+        )
+        write_csv(
+            dataset_dir / "schema.csv",
+            [{"column_name": "Finding", "description": "Main reported finding", "field_type": "text"}],
+            ["column_name", "description", "field_type"],
+        )
+        run_dir = tmp_path / "review_run"
+
+        result = json.loads(run_cmd(str(SCAFFOLD_SCRIPT), "--dataset-dir", str(dataset_dir), "--run", str(run_dir), "--json").stdout)
+        payload = json.loads((run_dir / "review_input.json").read_text(encoding="utf-8"))
+
+        assert result["status"] == "scaffolded_incomplete_until_proposals_are_added"
+        assert (run_dir / "pdfs" / "paper_a.pdf").exists()
+        assert (run_dir / "source_table.csv").exists()
+        assert (run_dir / "schema.csv").exists()
+        assert [row["row_id"] for row in payload["rows"]] == ["row_1", "row_2"]
+        assert [row["pdf_id"] for row in payload["rows"]] == ["paper_a", "paper_b"]
+        assert payload["columns"] == [{"column_name": "Finding", "description": "Main reported finding", "field_type": "text"}]
+        assert payload["proposals"] == []
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
