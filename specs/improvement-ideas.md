@@ -6,6 +6,7 @@ This file is the prioritized backlog of untested or not-yet-resolved improvement
 
 - [Purpose And Rules](#purpose-and-rules)
 - [Current Priorities](#current-priorities)
+- [Experiment Bundles And Dependencies](#experiment-bundles-and-dependencies)
 - [Priority 1: Next Best Bets](#priority-1-next-best-bets)
 - [Priority 2: Promising But Needs More Evidence](#priority-2-promising-but-needs-more-evidence)
 - [Priority 3: Longer-Term Or Riskier Ideas](#priority-3-longer-term-or-riskier-ideas)
@@ -53,6 +54,19 @@ Use the same eight-row table for every active idea. Fold implementation notes, g
 4. Keep runtime stable by measuring score-per-minute, structured-output reliability, targeted recovery acceptance rates, accepted figure-derived evidence, and retrieval/indexing overhead.
 5. Preserve generality across research fields and unknown schemas; avoid benchmark-specific production logic.
 
+## Experiment Bundles And Dependencies
+
+The priority sections below remain the active improvement backlog. This section explains how to test related ideas so conclusions are interpretable: some ideas are standalone experiments, while others are infrastructure or dependent layers that should be tested as an ablation ladder. The goal is to avoid falsely rejecting infrastructure because it does not improve score alone, and to avoid uninterpretable wins from bundles that change too many variables at once.
+
+| Bundle | Includes | Suggested ablation ladder | Interpretation |
+|---|---|---|---|
+| **A. Evidence Index And Retrieval Quality** | [Persistent Evidence Index](#persistent-evidence-index), [Per-Cell Retrieval Improvements](#per-cell-retrieval-improvements), [Table-Aware Retrieval Units](#table-aware-retrieval-units), and optional lexical/hybrid/embedding retrieval backends. | A0: current retrieval baseline. A1: persistent index with retrieval-equivalent behavior. A2: add typed contextual retrieval text. A3: add table-aware retrieval units. A4: optional hybrid/embedding reranking. | A1 mainly tests equivalence, cacheability, diagnostics, and auditability; A2-A4 are the quality tests. |
+| **B. Paper-Level Candidate Memory** | [Schema-Conditioned Paper Context](#schema-conditioned-paper-context), [Candidate Selection And Normalization](#candidate-selection-and-normalization), and later [Batch-Then-Verify Hybrid](#batch-then-verify-hybrid). | B0: best per-cell retrieval baseline. B1: schema-conditioned candidate census, advisory only. B2: selector/normalizer using those candidates. B3: batch-then-verify only if B1/B2 show promise. | Per-cell extraction remains authoritative; track candidate hit rate, verified-use rate, rejection rate, score, tokens, and runtime. |
+| **C. Recovery** | [Uncertainty-Gated Recovery](#uncertainty-gated-recovery). | C0: no recovery/current baseline. C1: uncertainty-gated recovery with current retrieval. C2: recovery using the persistent evidence index. C3: recovery using schema-conditioned candidate census. | Recovery should be capped and judged by net score gain per added runtime plus recovered-correct versus recovered-wrong cells. |
+| **D. Vision** | [Targeted Vision Fallback](#targeted-vision-fallback). | D0: no vision. D1: current/default figure-review behavior. D2: targeted vision gate only. D3: targeted vision plus shared page/figure batching if applicable. | Broad vision triggering is not the same idea as targeted vision fallback; use matched controls and accepted-correct-per-added-call metrics. |
+| **E. Prompt And Selection** | [Candidate Selection And Normalization](#candidate-selection-and-normalization) and [Failure-Driven Prompt Repair](#failure-driven-prompt-repair). | E1: selector/normalizer. E2: one narrow prompt-repair class at a time. E3: selector plus successful prompt-repair classes. | Separate selector changes from prompt changes first because one changes candidate choice and the other changes candidate generation. |
+| **F. Evaluation And Runtime Reliability** | [Judge Calibration And Adjudication](#judge-calibration-and-adjudication), [Improve Structured Output For Local Models](#improve-structured-output-for-local-models), and [Lazy Page Rendering](#lazy-page-rendering). | Test independently unless an experiment needs measurement cleanup before quality comparisons. | These are mostly measurement, reliability, or runtime experiments, not direct extraction-quality interventions. |
+
 ## Priority 1: Next Best Bets
 
 ### Schema-Conditioned Paper Context
@@ -60,25 +74,25 @@ Use the same eight-row table for every active idea. Fold implementation notes, g
 | Field | Details |
 |---|---|
 | **Problem** | Per-cell extraction often missed values that require aggregating scattered information across a paper, while whole-paper batching as the authoritative answer path was previously less accurate. |
-| **Direction** | Build a schema-derived candidate census, not a benchmark-derived census. For each paper/schema pair, create a schema-conditioned compressed whole-paper context and/or evidence-backed candidate census. First infer generic column needs from the input schema, such as quantity, identifier, presence/absence, location, figure/table reference, method parameter, named entity, URL/citation, list/set, or best/max/min value; then mine compact paper candidates for only those needs with evidence anchors. Per-cell extraction remains authoritative and may only cite, verify, or reject these candidates. |
+| **Direction** | Build a schema-derived candidate census, not a benchmark-derived census, preferably using the [Persistent Evidence Index](#persistent-evidence-index) as its auditable substrate. First infer generic column needs from the input schema, such as quantity, identifier, presence/absence, location, figure/table reference, method parameter, named entity, URL/citation, list/set, or best/max/min value; then mine compact paper candidates for only those needs with evidence anchors. Per-cell extraction remains authoritative and may only cite, verify, or reject these candidates. |
 | **Why it might work** | External Codex-style outputs were much stronger and faster on synthesis-heavy fields, suggesting that paper-level context helps, but rejected paper-batch results show that final answers still need cell-level verification. A compressed context or census can supply global candidates without giving every cell a long full-paper prompt. |
 | **Evidence so far** | The 2026-06-15 compare run kept a large external-agent gap after broad local model shopping: external baselines scored 0.8019-0.8259 while the best local pipeline score was 0.6784 and the practical default `google/gemma-4-12b` scored 0.6467. This supports paper/context workflow changes over more routine model sweeps; see `experiment-results.md#2026-06-15-compare-models-default`. |
 | **Generality risk** | High if candidate categories are hard-coded from benchmarks. Production logic must derive needs from schema text, allowed values, examples, field type, and reusable document structures rather than branch on domain-specific terms; benchmark-specific categories belong only in tests and analysis notes. |
 | **Runtime/cost risk** | Low to moderate if the context is deterministic or one compact per-paper/per-schema call that replaces repeated failed recovery calls. High if every cell receives full-paper text. Cache per paper/schema and inject only a small filtered subset per cell. |
-| **Test** | Use `google/gemma-4-12b` and compare three variants: current retrieval-only baseline, existing `whole_document_mode` rescue, and schema-conditioned compressed context/census. Measure candidate hit rate, verified-use rate, rejection rate, hard-column accuracy, aggregate score, added calls, prompt tokens, and runtime. |
-| **Decision criterion** | Improve synthesis-heavy hard columns and score-per-minute without lowering unrelated fields or accepting unverified paper-level candidates. |
+| **Test** | Use `google/gemma-4-12b` and follow Bundle B: compare the best per-cell retrieval baseline against advisory-only schema-conditioned candidate census before adding selector or batch-verify layers. |
+| **Decision criterion** | Improve candidate hit rate, verified-use rate, synthesis-heavy hard columns, and score-per-minute without lowering unrelated fields or accepting unverified paper-level candidates. |
 
 ### Uncertainty-Gated Recovery
 
 | Field | Details |
 |---|---|
 | **Problem** | Proposals marked `unclear`, blocked, missing evidence, anchor invalid, or low-confidence inferred can still become final scored outputs. |
-| **Direction** | Treat these states as targeted recovery signals. Recovery should rerun retrieval with schema-specific query expansion, inspect methods/supplement/table/figure-caption chunks, use paper-level candidate inventories when available, or ask a stricter value-selection prompt. Add special handling for absent-feature fields so `unresolved` can be accepted when the schema asks for presence/location and the evidence supports no feature. |
+| **Direction** | Treat these states as targeted recovery signals. Recovery should first run against current retrieval, then later variants may use the [Persistent Evidence Index](#persistent-evidence-index) or schema-conditioned candidate census. Add special handling for absent-feature fields so `unresolved` can be accepted when the schema asks for presence/location and the evidence supports no feature. |
 | **Why it might work** | Uncertainty flags already identify cells where the pipeline suspects weak support, so recovery can focus extra work on high-risk outputs instead of all cells. |
 | **Evidence so far** | The 2026-06-15 compare run repeatedly found recall rescue eligibility but no use because recall rescue was disabled: regular Gemma 12B had 57 eligible/0 used, QAT had 62/0, Qwen had 59/0, and other internal candidates had 60-66 eligible/0 used. This is now the clearest low-scope workflow lever to test with the practical default model. |
 | **Generality risk** | Excessive retries on genuinely absent values; require a schema-relevant candidate or explicit absent-feature evidence before spending another model call. |
 | **Runtime/cost risk** | Moderate unless capped per row/paper and measured against score-per-minute. |
-| **Test** | With `google/gemma-4-12b`, compare current recall-rescue-disabled behavior against a capped uncertainty-gated recovery branch. Measure recovered-correct cells, recovered-wrong cells, added calls, runtime, missing evidence, anchor validity, and score. |
+| **Test** | With `google/gemma-4-12b`, follow Bundle C: C1 tests capped recovery with current retrieval; C2/C3 test the same gate after the evidence index or candidate census exists. Measure recovered-correct cells, recovered-wrong cells, added calls, runtime, missing evidence, anchor validity, and score. |
 | **Decision criterion** | Net score gain per added minute beats simply switching to the slower QAT model. |
 
 ### Per-Cell Retrieval Improvements
@@ -91,8 +105,8 @@ Use the same eight-row table for every active idea. Fold implementation notes, g
 | **Evidence so far** | The 2026-06-15 compare run showed that changing local models did not close the external-agent gap, while top candidates still had missing evidence and modest anchor-valid rates. Regular Gemma 12B had 10 missing-evidence cells and 34.6% anchor-valid evidence; QAT had 13 missing-evidence cells and 51.9% anchor-valid evidence; Qwen had 9 missing-evidence cells and 61.5% anchor-valid evidence. Earlier score-shape prompt-gating branches were rejected, so the next retrieval work should improve typed context and answerability rather than trim by normalized lexical thresholds alone. |
 | **Generality risk** | Hard filters could hide unusual evidence; prefer additive context and reranking. |
 | **Runtime/cost risk** | Moderate if retrieval expands too broadly; low for lexical score gating, higher if a local cross-encoder reranker is added. |
-| **Test** | Use `google/gemma-4-12b` on the three-benchmark suite. Compare fixed top-k against typed context, table-aware units, targeted semantic reranking, and recovery policies. Only revisit dynamic top-k or confidence gating when the gate is evidence-aware rather than normalized-score-threshold-only. |
-| **Decision criterion** | Improve or preserve per-cell baseline score while keeping runtime stable. |
+| **Test** | Use `google/gemma-4-12b` and follow Bundle A: A2 tests typed contextual retrieval text after A1 proves retrieval-equivalent indexing; A3/A4 add table units or reranking separately. |
+| **Decision criterion** | Improve retrieval answerability, hard-column accuracy, or aggregate score without broad regressions or unstable runtime. |
 
 ### Table-Aware Retrieval Units
 
@@ -104,7 +118,7 @@ Use the same eight-row table for every active idea. Fold implementation notes, g
 | **Evidence so far** | The 2026-06-15 model comparison did not make table/numeric failures disappear: the practical default remains below the external baselines by about 0.155-0.179 score, and the stronger local variants are slower rather than qualitatively different. Earlier failure analysis still points to max editing efficiency, MPRA sequence length, barcode length, section thickness, and methods parameters as fields where table or structured local context may matter. |
 | **Generality risk** | Table parsing varies across papers and fields, so table units must degrade gracefully to raw text. |
 | **Runtime/cost risk** | Low to moderate depending on parser cost and table count. |
-| **Test** | Compare matched `google/gemma-4-12b` runs with and without table-aware chunks. |
+| **Test** | Test as Bundle A3 after the evidence-index and typed-context stages are stable; compare matched `google/gemma-4-12b` runs with and without table-aware chunks. |
 | **Decision criterion** | Improve table/numeric hard columns without reducing aggregate score or adding large runtime. |
 
 ### Targeted Vision Fallback
@@ -117,7 +131,7 @@ Use the same eight-row table for every active idea. Fold implementation notes, g
 | **Evidence so far** | The 2026-06-15 compare run showed planner/acceptance problems: regular Gemma 12B had 34 triggers, 34 planner skips, and 0 vision calls; QAT had 38 triggers, 28 skips, 13 calls, 12 no-hit outcomes, and 1 figure-derived evidence item; Qwen had 31 triggers, 27 skips, 6 calls, 3 failed attempts, and 2 figure-derived evidence items. This updates the earlier targeted-vision idea toward evidence-gated planner/acceptance diagnostics rather than broader uncapped vision use. |
 | **Generality risk** | Visual heuristics may miss nonstandard figures. |
 | **Runtime/cost risk** | High without budgets, moderate if calls are capped and shared across cells that target the same page or figure. |
-| **Test** | With `google/gemma-4-12b`, compare current vision behavior, a matched no-vision control, and one targeted planner/acceptance-audit branch. Report trigger, skip, call, failure, no-hit, accepted figure-evidence, value-change, score, and runtime counts. |
+| **Test** | With `google/gemma-4-12b`, follow Bundle D: compare no-vision, current/default figure review, targeted gate, and optional shared page/figure batching. Report trigger, skip, call, failure, no-hit, accepted figure-evidence, accepted-correct-per-added-call, score, and runtime counts. |
 | **Decision criterion** | Accepted vision value changes must improve score enough to justify added runtime; increased call count alone is not success. |
 
 ### Failure-Driven Prompt Repair
@@ -130,7 +144,7 @@ Use the same eight-row table for every active idea. Fold implementation notes, g
 | **Evidence so far** | The 2026-06-15 compare run showed that model choice changes did not eliminate the same hard-column families, so failure-class prompt repair remains relevant but should follow evidence and retrieval audits. Earlier failure analysis identified wrong figure panel granularity, wrong numeric scope, count-vs-length confusion, absent-feature handling, model-system-vs-species/genome confusion, exact architecture shortening, methods-parameter misses, and maximum/best-value selection errors. |
 | **Generality risk** | Prompt examples must not leak benchmark answers or encode field-specific shortcuts. |
 | **Runtime/cost risk** | Low if prompt length stays controlled. |
-| **Test** | Use `google/gemma-4-12b`; apply one small prompt patch at a time and compare column difficulty, aggregate score, structured-output reliability, and runtime. |
+| **Test** | Use `google/gemma-4-12b` and follow Bundle E: test one prompt-repair class at a time before combining it with selector changes. Compare column difficulty, aggregate score, structured-output reliability, and runtime. |
 | **Decision criterion** | Improve targeted weak failure classes without lowering aggregate score on other datasets. |
 
 ## Priority 2: Promising But Needs More Evidence
@@ -145,21 +159,21 @@ Use the same eight-row table for every active idea. Fold implementation notes, g
 | **Evidence so far** | The 2026-06-02 comparison confirmed wrong-value selection on representative/source figures, architecture, max efficiency, sequence length, barcode length/location, model system, and section thickness. Two 2026-06-03 schema-semantic guardrail branches scored only 0.40 and 0.46 on genome editing and were rejected as default implementations; this broader idea remains open only after better evidence candidates or recovery create a stronger candidate set. |
 | **Generality risk** | Overfitting if keyed to benchmark column names; keep rules driven by field type, units, and schema wording. |
 | **Runtime/cost risk** | Low if selector reuses existing candidates, but previous selector branches added reliability and runtime cost. |
-| **Test** | Revisit only after retrieval/recovery changes produce explicit competing candidates; compare hard-column accuracy, value-change correctness, aggregate score, and runtime. |
+| **Test** | Revisit through Bundle B or Bundle E only after retrieval, recovery, or candidate-census changes produce explicit competing candidates; compare hard-column accuracy, value-change correctness, aggregate score, and runtime. |
 | **Decision criterion** | Improve hard columns without lowering aggregate score or adding meaningful runtime. |
 
-### Cached RetrievalIndex
+### Persistent Evidence Index
 
 | Field | Details |
 |---|---|
-| **Problem** | Repeated per-cell retrieval can spend runtime rebuilding chunks, tokenization, and scoring state that are stable for a parsed PDF, but the remaining retrieval problem is now mostly semantic rather than repeated work. |
-| **Direction** | Keep or introduce a per-PDF `RetrievalIndex` built once after parsing, with cached chunks, tokenization, IDF/statistics, typed contextual retrieval text, retrieval scores, score-shape diagnostics, and optional future embedding slots. Treat this as infrastructure for typed retrieval and recovery, not as a standalone score improvement. |
-| **Why it might work** | Retrieval calls can query the index without changing current extraction semantics, and the same structure can support later recall-rescue, dynamic top-k, hybrid retrieval, and table-aware retrieval units. |
+| **Problem** | Retrieval, recovery, table-aware chunks, and diagnostics need a reusable auditable evidence substrate, but the current evidence path is still organized mainly around per-cell retrieval calls. |
+| **Direction** | Build a persistent per-paper/per-run evidence index after parsing and before extraction. Store or organize raw text chunks, table chunks, figure/caption chunks, section/page/source metadata, typed contextual retrieval text, diagnostics, and optional embedding/vector index slots. This is not one embedding per paper and not an LLM summary-only memory; it remains an auditable evidence store with raw snippets, tables, figures, and source anchors. |
+| **Why it might work** | The index gives later retrieval, table-aware, recovery, and paper-census experiments a common substrate while preserving source-grounded auditability. It can also make retrieval-output comparisons and diagnostics cleaner before quality layers are added. |
 | **Evidence so far** | The 2026-06-15 compare run still showed zero repeated retrieval/index build work for inspected top candidates, while missing evidence and low anchor-valid rates remained. That keeps this as enabling infrastructure for typed retrieval and recovery rather than a direct score-lift priority. |
 | **Generality risk** | Index artifacts must preserve parser-version and schema-independent document state, not benchmark assumptions. |
-| **Runtime/cost risk** | Low if snapshot tests preserve retrieval output equivalence; do not expect a large runtime win unless additional repeated work appears in future counters. |
-| **Test** | Compare retrieval artifact diffs, end-to-end runtime, and score. |
-| **Decision criterion** | Preserve runtime while enabling typed retrieval, dynamic top-k, recovery, or table-aware retrieval to improve score. |
+| **Runtime/cost risk** | Low to moderate for a simple local lexical or hybrid index. SQLite FTS/BM25, local hybrid retrieval, FAISS, TurboVec, or other vector backends are possible future backend candidates, but TurboVec is not a default or production dependency. Do not expect a large runtime win unless repeated work counters regress. |
+| **Test** | Test as Bundle A1: compare current retrieval against index-backed retrieval-equivalent behavior, retrieval artifact diffs, runtime, and diagnostics before adding typed text or table units. |
+| **Decision criterion** | Infrastructure-only success means retrieval-output equivalence, stable runtime, clean diagnostics, and enabling later A2/A3/C2/B1 quality tests; immediate score improvement is not required. |
 
 ### Judge Calibration And Adjudication
 
@@ -171,7 +185,7 @@ Use the same eight-row table for every active idea. Fold implementation notes, g
 | **Evidence so far** | The 2026-06-15 compare run still showed high dual-judge disagreement: regular Gemma 12B was 31.0%, QAT was 20.5%, Qwen was 31.6%, and several other internal candidates were near or above 29%. This does not overturn the model ranking, but it makes small margins and per-column conclusions less stable. |
 | **Generality risk** | Adjudication can hide judge weakness if not reported transparently. |
 | **Runtime/cost risk** | Extra judge calls can be expensive. |
-| **Test** | Record primary score, disagreement rate, adjudicated score, and judge model IDs. |
+| **Test** | Treat as Bundle F measurement work: record primary score, disagreement rate, adjudicated score, and judge model IDs. |
 | **Decision criterion** | Benchmark outcomes become more auditable without obscuring raw judge behavior. |
 
 ### Improve Structured Output For Local Models
@@ -184,7 +198,7 @@ Use the same eight-row table for every active idea. Fold implementation notes, g
 | **Evidence so far** | The 2026-06-15 compare run showed reliability cost across more than one model family: regular Gemma 12B had 11 provider retries and 14 structured errors, QAT had 2 structured errors plus 13 structured repairs, and Qwen had 3 structured errors with about 165 sec failed structured elapsed time. This is worth improving, but the model-comparison decision makes it secondary to retrieval/recovery quality. |
 | **Generality risk** | Overly permissive repair may accept corrupted semantic content. |
 | **Runtime/cost risk** | Low for local repair, but retries add latency. |
-| **Test** | Replay captured malformed outputs. |
+| **Test** | Treat as Bundle F reliability work: replay captured malformed outputs and measure retry, repair, invalid-schema acceptance, and runtime effects. |
 | **Decision criterion** | Reduce structured-output errors without accepting invalid schema content or hiding provider instability. |
 
 ## Priority 3: Longer-Term Or Riskier Ideas
@@ -212,7 +226,7 @@ Use the same eight-row table for every active idea. Fold implementation notes, g
 | **Evidence so far** | Earlier grouped-extraction work touched lazy rendering, but the decisive comparisons did not prove a runtime win. |
 | **Generality risk** | Review/export artifacts must remain available when operators need them. |
 | **Runtime/cost risk** | Low if cache invalidation is correct. |
-| **Test** | Measure rendered page count, render time, review/export behavior, and end-to-end runtime. |
+| **Test** | Treat as Bundle F runtime work: measure rendered page count, render time, review/export behavior, and end-to-end runtime. |
 | **Decision criterion** | Reduce runtime or disk work without breaking review/export artifacts. |
 
 ### Batch-Then-Verify Hybrid
@@ -220,12 +234,12 @@ Use the same eight-row table for every active idea. Fold implementation notes, g
 | Field | Details |
 |---|---|
 | **Problem** | Direct batching reduced call count but hurt correctness. |
-| **Direction** | Try batching only as a candidate-value generator, then verify or correct at the per-cell level. A possible mode is `extraction.mode = batch_then_verify`, accepting only high-confidence verified batch outputs and falling back to full per-cell extraction for missing, invalid, or low-confidence cells. |
+| **Direction** | Try batching only as a candidate-value generator, then verify or correct at the per-cell level. This is Bundle B3 and should come after advisory schema-conditioned candidate memory and candidate selection show promise; per-cell extraction remains authoritative. |
 | **Why it might work** | Batch prompts may cheaply surface candidate values, while per-cell verification can prevent the cross-cell contamination that hurt direct batching. |
 | **Evidence so far** | Field-group and paper-batch architectures lost accuracy and did not improve end-to-end runtime, but they were not limited to candidate generation. The 2026-06-02 external-result gap suggests paper-level candidate gathering is valuable; test [Schema-Conditioned Paper Context](#schema-conditioned-paper-context) first because it is a narrower advisory version of this idea. |
 | **Generality risk** | Batch prompts can still bias values across columns or rows. |
 | **Runtime/cost risk** | High if verification plus fallback doubles work. |
-| **Test** | Measure acceptance rate, verifier rejection rate, fallback rate, score, and runtime. |
+| **Test** | Measure acceptance rate, verifier rejection rate, fallback rate, score, and runtime only after B1/B2 establish useful candidate memory. |
 | **Decision criterion** | Beat per-cell score-per-minute on the broader benchmark suite. |
 
 ## Parking Lot
