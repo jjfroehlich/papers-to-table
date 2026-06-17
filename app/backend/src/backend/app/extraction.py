@@ -569,7 +569,14 @@ def _build_context_block(retrieval: Optional[RetrievalResult]) -> str:
         return "No retrieved context available."
     parts = ["Relevant passages from the paper:"]
     for i, chunk in enumerate(retrieval.chunks[:10], 1):
-        tag = f"[{chunk.chunk_type.upper()}, page {chunk.page_number}]"
+        tag_parts = [chunk.chunk_type.upper(), f"page {chunk.page_number}"]
+        if chunk.section_context:
+            tag_parts.append(f"section: {chunk.section_context}")
+        if chunk.figure_ref:
+            tag_parts.append(f"figure: {chunk.figure_ref}")
+        if chunk.chunk_type == "table_region":
+            tag_parts.append("table")
+        tag = f"[{'; '.join(tag_parts)}]"
         neighbor_tag = " (context)" if chunk.is_neighbor else ""
         parts.append(f"\n--- Passage {i}{neighbor_tag} {tag} ---\n{chunk.display_text}")
     return "\n".join(parts)
@@ -2138,6 +2145,8 @@ async def run_figure_review(
                     warning_flags=(["vision_state_unclear_with_value"] if promoted_unclear_value else []),
                 )
             )
+            if attempt_diagnostics is not None and attempt_diagnostics:
+                attempt_diagnostics[-1]["accepted_as_hit"] = True
         except Exception as exc:
             if attempt_diagnostics is not None:
                 attempt_diagnostics.append(
@@ -3850,6 +3859,19 @@ def _build_figure_review_diagnostics(
         if bool(item.get("succeeded")) and item.get("dropped_reason")
     )
     promoted_unclear_values = sum(1 for item in attempt_diagnostics if bool(item.get("promoted_unclear_value")))
+    accepted_hit_count = sum(1 for item in attempt_diagnostics if bool(item.get("accepted_as_hit")))
+    value_present_count = sum(1 for item in attempt_diagnostics if bool(item.get("result_value_present")))
+    dropped_reason_counts: dict[str, int] = {}
+    result_state_counts: dict[str, int] = {}
+    for item in attempt_diagnostics:
+        result_state = item.get("result_state")
+        if result_state:
+            key = str(result_state)
+            result_state_counts[key] = result_state_counts.get(key, 0) + 1
+        dropped_reason = item.get("dropped_reason")
+        if dropped_reason:
+            key = str(dropped_reason)
+            dropped_reason_counts[key] = dropped_reason_counts.get(key, 0) + 1
     failure_reason = next(
         (
             str(item.get("failure_reason"))
@@ -3873,6 +3895,10 @@ def _build_figure_review_diagnostics(
         "hit_count": len(figure_hits),
         "succeeded_without_hit_count": succeeded_without_hit,
         "promoted_unclear_value_count": promoted_unclear_values,
+        "accepted_hit_count": accepted_hit_count,
+        "value_present_count": value_present_count,
+        "dropped_reason_counts": dropped_reason_counts,
+        "result_state_counts": result_state_counts,
         "useful": useful,
         "figure_evidence_persisted": figure_evidence_persisted,
         "rescued_value": figure_rescued_value,

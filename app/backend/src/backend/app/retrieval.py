@@ -7,12 +7,14 @@ T048 – Persist retrieval artifacts for inspection
 
 Retrieval text separation is honest:
   - display_text: source-preserving text from the parsed document
-  - retrieval_text: contextualized version with section header prepended
+  - retrieval_text: conservative contextualized version used for scoring
+  - prepared indexes: run-local caches of chunks and lexical scoring metadata
 """
 
 from __future__ import annotations
 
 import hashlib
+import json
 import math
 import pathlib
 import re
@@ -23,11 +25,12 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from .artifacts import write_json
+from .artifacts import read_json, write_json
 
 _INVALID_FILENAME_CHARS = re.compile(r'[\\/:*?"<>|]')
 _COUNT_LIKE_PATTERN = re.compile(r"(^\s*#)|\b(how many|number|count|total|sample size|n\s*=)\b", re.IGNORECASE)
 SUPPORTED_RETRIEVAL_MODES = frozenset({"lexical", "hybrid_experimental"})
+PREPARED_RETRIEVAL_INDEX_SCHEMA_VERSION = "prepared_retrieval_index.v1"
 
 
 def _safe_filename(name: str, max_len: int = 16) -> str:
@@ -42,6 +45,45 @@ def _safe_filename(name: str, max_len: int = 16) -> str:
     digest = hashlib.sha1(name.encode("utf-8")).hexdigest()[:10]
     truncated = safe[:max_len].rstrip("._") or "artifact"
     return f"{truncated}_{digest}"
+
+
+def _document_retrieval_fingerprint(doc_dict: dict) -> str:
+    """Fingerprint parsed content that affects retrieval chunks.
+
+    The prepared retrieval index is run-local, but this guard prevents a reused
+    run directory from silently loading an index built from different parsed
+    text or figure metadata.
+    """
+    blocks = []
+    for block in doc_dict.get("blocks") or []:
+        if not isinstance(block, dict):
+            continue
+        blocks.append(
+            {
+                "block_id": block.get("block_id"),
+                "block_type": block.get("block_type"),
+                "text": block.get("text"),
+                "page_number": block.get("page_number"),
+                "reading_order": block.get("reading_order"),
+            }
+        )
+    figures = []
+    for figure in doc_dict.get("figures") or []:
+        if not isinstance(figure, dict):
+            continue
+        figures.append(
+            {
+                "figure_id": figure.get("figure_id"),
+                "figure_ref": figure.get("figure_ref") or figure.get("id"),
+                "page_number": figure.get("page_number"),
+                "caption": figure.get("caption") or figure.get("caption_text"),
+                "nearby_text": figure.get("nearby_text"),
+                "section_context": figure.get("section_context"),
+            }
+        )
+    payload = {"blocks": blocks, "figures": figures}
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 # ---------------------------------------------------------------------------
 # Retrieval chunk contract (T045)
@@ -113,6 +155,12 @@ class RetrievalStats(BaseModel):
     chunk_build_count: int = 1
     idf_build_count: int = 1
     cached_index_used: bool = False
+    persistent_index_source: Optional[str] = None
+    persistent_index_path: Optional[str] = None
+    persistent_index_schema_version: Optional[str] = None
+    persistent_index_build_ms: float = 0.0
+    persistent_index_load_ms: float = 0.0
+    persistent_index_load_error: Optional[str] = None
 
 
 class RetrievalPreparedIndex(BaseModel):
@@ -665,6 +713,98 @@ def get_retrieval_artifact_path(run_dir: pathlib.Path, pdf_id: str, column_name:
     return get_retrieval_dir(run_dir) / pdf_id / f"{safe_col}.json"
 
 
+def get_prepared_retrieval_index_path(
+    run_dir: pathlib.Path,
+    pdf_id: str,
+    retrieval_mode: str,
+    include_captions: bool = True,
+    include_tables: bool = True,
+) -> pathlib.Path:
+    safe_pdf = _safe_filename(pdf_id, max_len=64)
+    safe_mode = _safe_filename(retrieval_mode, max_len=32)
+    captions = "cap1" if include_captions else "cap0"
+    tables = "tbl1" if include_tables else "tbl0"
+    return get_retrieval_dir(run_dir) / "_indexes" / f"{safe_pdf}__{safe_mode}__{captions}__{tables}.json"
+
+
+def _run_relative_path(run_dir: pathlib.Path, path: pathlib.Path) -> str:
+    try:
+        return path.relative_to(run_dir).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def persist_prepared_retrieval_index(
+    run_dir: pathlib.Path,
+    *,
+    pdf_id: str,
+    retrieval_mode: str,
+    include_captions: bool,
+    include_tables: bool,
+    document_fingerprint: str,
+    index: RetrievalPreparedIndex,
+) -> pathlib.Path:
+    path = get_prepared_retrieval_index_path(
+        run_dir,
+        pdf_id,
+        retrieval_mode,
+        include_captions=include_captions,
+        include_tables=include_tables,
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_json(
+        path,
+        {
+            "schema_version": PREPARED_RETRIEVAL_INDEX_SCHEMA_VERSION,
+            "pdf_id": pdf_id,
+            "retrieval_mode": retrieval_mode,
+            "include_captions": include_captions,
+            "include_tables": include_tables,
+            "document_fingerprint": document_fingerprint,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "index": index.model_dump(),
+        },
+    )
+    return path
+
+
+def load_prepared_retrieval_index(
+    run_dir: pathlib.Path,
+    *,
+    pdf_id: str,
+    retrieval_mode: str,
+    include_captions: bool,
+    include_tables: bool,
+    expected_document_fingerprint: str | None = None,
+) -> RetrievalPreparedIndex | None:
+    path = get_prepared_retrieval_index_path(
+        run_dir,
+        pdf_id,
+        retrieval_mode,
+        include_captions=include_captions,
+        include_tables=include_tables,
+    )
+    if not path.exists():
+        return None
+    data = read_json(path)
+    if data.get("schema_version") != PREPARED_RETRIEVAL_INDEX_SCHEMA_VERSION:
+        raise ValueError("prepared retrieval index has an unknown schema_version")
+    if data.get("pdf_id") != pdf_id:
+        raise ValueError("prepared retrieval index pdf_id does not match request")
+    if data.get("retrieval_mode") != retrieval_mode:
+        raise ValueError("prepared retrieval index retrieval_mode does not match request")
+    if bool(data.get("include_captions")) != include_captions:
+        raise ValueError("prepared retrieval index caption policy does not match request")
+    if bool(data.get("include_tables")) != include_tables:
+        raise ValueError("prepared retrieval index table policy does not match request")
+    if (
+        expected_document_fingerprint is not None
+        and data.get("document_fingerprint") != expected_document_fingerprint
+    ):
+        raise ValueError("prepared retrieval index document_fingerprint does not match request")
+    return RetrievalPreparedIndex.model_validate(data.get("index") or {})
+
+
 def persist_retrieval_result(
     run_dir: pathlib.Path,
     result: RetrievalResult,
@@ -685,7 +825,6 @@ def load_retrieval_result(
     path = get_retrieval_artifact_path(run_dir, pdf_id, column_name)
     if not path.exists():
         return None
-    from .artifacts import read_json
     try:
         data = read_json(path)
         return RetrievalResult.model_validate(data)
@@ -714,19 +853,67 @@ def run_retrieval_for_cell(
     include_tables = True
     include_neighbor_window = True
     allowed_chunk_types = ["abstract", "caption", "figure", "list_item", "paragraph", "section", "table_region"]
+    document_fingerprint = _document_retrieval_fingerprint(doc_dict)
+    persistent_index_path = get_prepared_retrieval_index_path(
+        run_dir,
+        pdf_id,
+        retrieval_mode,
+        include_captions=include_captions,
+        include_tables=include_tables,
+    )
+    persistent_index_source: str | None = None
+    persistent_index_build_ms = 0.0
+    persistent_index_load_ms = 0.0
+    persistent_index_load_error: str | None = None
+    used_cached_index = False
     if retrieval_cache is not None and cache_key is not None:
         cache_tuple = (cache_key, retrieval_mode, include_captions, include_tables)
         prepared_index = retrieval_cache.get(cache_tuple)
         used_cached_index = prepared_index is not None
-        if prepared_index is None:
-            prepared_index = prepare_retrieval_index(
-                doc_dict,
+        if used_cached_index:
+            persistent_index_source = "memory"
+
+    if prepared_index is None:
+        load_started = perf_counter()
+        try:
+            prepared_index = load_prepared_retrieval_index(
+                run_dir,
+                pdf_id=pdf_id,
+                retrieval_mode=retrieval_mode,
                 include_captions=include_captions,
                 include_tables=include_tables,
+                expected_document_fingerprint=document_fingerprint,
             )
+        except Exception as exc:
+            prepared_index = None
+            persistent_index_load_error = str(exc)
+        persistent_index_load_ms = (perf_counter() - load_started) * 1000.0
+        if prepared_index is not None:
+            used_cached_index = True
+            persistent_index_source = "disk"
+            if retrieval_cache is not None and cache_key is not None:
+                retrieval_cache[cache_tuple] = prepared_index
+
+    if prepared_index is None:
+        build_started = perf_counter()
+        prepared_index = prepare_retrieval_index(
+            doc_dict,
+            include_captions=include_captions,
+            include_tables=include_tables,
+        )
+        persistent_index_build_ms = (perf_counter() - build_started) * 1000.0
+        persist_prepared_retrieval_index(
+            run_dir,
+            pdf_id=pdf_id,
+            retrieval_mode=retrieval_mode,
+            include_captions=include_captions,
+            include_tables=include_tables,
+            document_fingerprint=document_fingerprint,
+            index=prepared_index,
+        )
+        persistent_index_source = "built"
+        if retrieval_cache is not None and cache_key is not None:
             retrieval_cache[cache_tuple] = prepared_index
-    else:
-        used_cached_index = False
 
     chunks, stats = _retrieve_with_metadata(
         query,
@@ -738,6 +925,21 @@ def run_retrieval_for_cell(
         retrieval_mode=retrieval_mode,
         prepared_index=prepared_index,
         used_cached_index=used_cached_index,
+    )
+    stats = stats.model_copy(
+        update={
+            "chunk_build_ms": round(float(stats.chunk_build_ms) + persistent_index_build_ms, 3),
+            "total_ms": round(
+                float(stats.total_ms) + persistent_index_build_ms + persistent_index_load_ms,
+                3,
+            ),
+            "persistent_index_source": persistent_index_source,
+            "persistent_index_path": _run_relative_path(run_dir, persistent_index_path),
+            "persistent_index_schema_version": PREPARED_RETRIEVAL_INDEX_SCHEMA_VERSION,
+            "persistent_index_build_ms": round(persistent_index_build_ms, 3),
+            "persistent_index_load_ms": round(persistent_index_load_ms, 3),
+            "persistent_index_load_error": persistent_index_load_error,
+        }
     )
     scoring_profile = "bm25_plus_token_coverage" if retrieval_mode == "hybrid_experimental" else "bm25_lite"
     policy = policy.model_copy(

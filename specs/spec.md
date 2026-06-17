@@ -100,7 +100,7 @@ The backend extraction pipeline is phase-separated:
 6. parse PDFs into normalized documents, page images, figures, captions, and diagnostics
 7. match PDFs to table rows and stage unmatched PDF rows when allowed
 8. generate style profiles once per column when enabled and filled cells exist, otherwise use heuristic or schema-only guidance
-9. retrieve text, table, caption, and figure-level evidence for each eligible target cell
+9. build or load a per-paper prepared retrieval index and retrieve text, table, caption, and figure-level evidence for each eligible target cell
 10. produce text-model proposals through the provider adapter
 11. run at most one selective recall-rescue pass when enabled and evidence-quality signals justify it
 12. run optional targeted figure review for cells whose evidence triggers vision review
@@ -131,9 +131,13 @@ Current defaults:
 - retrieval top-k: `12`
 - recall rescue: disabled by default
 - whole-document mode: disabled by default
-- default text model in config example: `google/gemma-4-12b`
+- default text model in config example: `google/gemma-4-e4b`
 
 Retrieval should remain row-aware and column-aware rather than defaulting to whole-document prompts. Whole-document and recall-rescue paths are bounded configured modes and must remain explicit in artifacts.
+
+Retrieval persists a prepared per-paper/per-run index under `retrieval/_indexes/` and reuses it across cells with the same document, retrieval mode, and caption/table inclusion policy. Each prepared index carries schema version, document fingerprint, PDF id, retrieval mode, caption/table policy, source-grounded chunks, candidate chunks, chunk counts, and lexical scoring metadata. Disk loads must reject mismatched document fingerprints and rebuild rather than silently using stale indexes. Per-cell and per-run diagnostics report whether the index source was `built`, `disk`, or `memory`, along with index path, schema tag, load/build time, and load error if a stale or invalid index was ignored.
+
+Retrieval chunks keep separate source-preserving `display_text` and contextual `retrieval_text`. Current retrieval scoring text remains conservative: section context and existing figure references may be prepended, but page-number and element-type markers are not added to scoring text. Extraction prompt passage headers may expose typed orientation metadata such as section, figure reference, and table marker while the passage body remains source text that reviewers can audit.
 
 The app persists one best proposal per eligible target cell. It should prefer `proposal_status=unresolved` over weak guessing when current-paper evidence is not strong enough.
 
@@ -173,7 +177,7 @@ Figure review requirements:
 - the app may inspect a crop, full-page fallback, or planner-preferred full page
 - prompt-only vision responses may be repaired for recoverable schema issues
 - a figure response proposing a value must place the extracted answer in `proposed_value`
-- diagnostics record actual calls, retries, image source, fallback reason, repair status, failure/suppression reason, and no-hit outcomes
+- diagnostics record actual calls, retries, image source, fallback reason, repair status, failure/suppression reason, no-hit outcomes, dropped result states, accepted figure hits, planner skip reasons, and per-run ROI rollups
 
 Candidate selection is optional and bounded to one selector call per cell by default. Candidate sources are generic: first-pass text, rescued text, evidence recovery, and figure review. Figure candidates may support or compete with text candidates, but must directly answer the cell request before overriding strong text evidence. If text and figure conflict without a clear winner, selection should keep stronger text evidence or return unresolved.
 
@@ -333,7 +337,7 @@ Primary wrapper commands:
 - `python scripts/papers_to_table.py docs serve`
 - `python scripts/papers_to_table.py docs build`
 
-Optimizer wrapper commands support `--label` where applicable. `dev-check` defaults to `google/gemma-4-12b` on `bench_genome_editing`.
+Optimizer wrapper commands support `--label` where applicable. `dev-check` defaults to `google/gemma-4-e4b` on `bench_genome_editing`.
 
 ## 16. Diagnostics And Failure Truth
 

@@ -12,8 +12,8 @@
   },
   "baseline_candidate": {
     "prompt_bundle_id": "default",
-    "text_model_id": "google/gemma-4-12b",
-    "vision_model_id": "google/gemma-4-12b",
+    "text_model_id": "google/gemma-4-e4b",
+    "vision_model_id": "google/gemma-4-e4b",
     "optimizer_knobs": {
       "retrieval_mode": "hybrid_experimental",
       "retrieval_top_k": 12,
@@ -78,7 +78,7 @@
     {
       "prompt_bundle_id": "default",
       "text_model_id": "openai/gpt-oss-20b",
-      "vision_model_id": "google/gemma-4-12b",
+      "vision_model_id": "google/gemma-4-e4b",
       "optimizer_knobs": {
         "retrieval_mode": "hybrid_experimental",
         "retrieval_top_k": 12,

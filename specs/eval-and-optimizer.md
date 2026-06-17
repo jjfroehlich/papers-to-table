@@ -138,7 +138,7 @@ Primary wrapper workflows:
 
 `compare-models` ranks a fixed model list on the current three-dataset dev suite in triplicate and includes external baselines and the gold positive control when configured. The current shortlist includes both `google/gemma-4-e4b` and `google/gemma-4-12b` alongside the other configured local candidates.
 
-`dev-check` is the fast development signal. It materializes a run-local config from `compare_models.json`, removes external-result scoring, runs one model, one benchmark, and one replicate, and defaults to `google/gemma-4-12b` on `bench_genome_editing`.
+`dev-check` is the fast development signal. It materializes a run-local config from `compare_models.json`, removes external-result scoring, runs one model, one benchmark, and one replicate, and defaults to `google/gemma-4-e4b` on `bench_genome_editing`.
 
 `full-benchmark` runs phased model, prompt, retrieval-parameter, and extraction-feature studies. Runtime scales by candidate count x benchmark count x replicate count x model speed.
 
@@ -185,7 +185,7 @@ Optimizer reports must make these questions answerable:
 
 Reports and plots must distinguish raw winner from recommended default when trust caveats differ. Candidate-level, benchmark-level, suite-level, replicate-level, and run-level artifacts are all relevant when present.
 
-Capability-use reporting should include text and vision calls, figure planner attempts/success/skips/fallbacks, figure-review attempts/success/failure/suppression, successful vision calls without usable hits, figure-derived evidence count, candidate-selection attempts/value changes, recall-rescue eligibility/use/skips, and whole-document eligibility/use/skips when run stats expose them.
+Capability-use reporting should include text and vision calls, prepared retrieval index source counts, figure planner attempts/success/skips/fallbacks, planner skip reasons/confidence, figure-review attempts/success/failure/suppression, successful vision calls without usable hits, dropped/no-hit reasons, accepted figure hits, figure-derived evidence count, candidate-selection attempts/value changes, recall-rescue eligibility/use/skips, and whole-document eligibility/use/skips when run stats expose them.
 
 ## Canonical Presets
 

@@ -53,17 +53,24 @@ Prioritize experiments that are:
 * aligned with the current `Current Priorities`
 * not dependent on unimplemented prerequisite layers unless explicitly testing that prerequisite
 
-Suggested first loop:
+Suggested loop:
 
-* Bundle A1: Persistent Evidence Index retrieval-equivalent infrastructure
-* Bundle A2: typed contextual retrieval text
-* Bundle C1: uncertainty-gated recovery with current retrieval
-* Bundle D2: targeted vision gate/planner/acceptance diagnostics
+Current main already includes the A1 prepared retrieval index substrate, a safer partial A2 prompt-header orientation change, and D2 figure-review ROI diagnostics. Do not recreate those experiments as standalone branches unless explicitly testing a narrower ablation against current main.
+
+Recommended starting points:
+
+* Bundle A3: table-aware retrieval units on top of the prepared-index baseline
+* Bundle A4 or A2b: evidence-aware reranking, or a narrow typed retrieval-scoring ablation that excludes page-number tokens
+* Bundle B1: advisory schema-conditioned candidate census using the prepared retrieval index
+* Bundle C2: narrower uncertainty-gated recovery using prepared-index evidence, not broad current-retrieval rescue
+* Bundle D3: targeted vision acceptance/gate change or shared page/figure batching using current D2 diagnostics
 * one narrow Bundle E2 prompt-repair class only if it can be cleanly isolated
 * optionally one Bundle F reliability/runtime experiment if it improves measurement quality for the above
 
 Do not start with:
 
+* A1 prepared-index infrastructure, exact A2 broad typed retrieval text, or D2 diagnostics-only instrumentation, because those have already been integrated or partially integrated into current main
+* broad current-retrieval recall rescue, because C1 was rejected
 * Bundle B3 batch-then-verify
 * large all-in-one retrieval + recovery + selector changes
 * TurboVec or a new vector DB dependency
@@ -72,7 +79,7 @@ Do not start with:
 * anything that makes results impossible to attribute
 
 Model/config default:
-Use the current local experimental default from `specs/improvement-ideas.md`, currently `google/gemma-4-12b`, unless the existing configs or latest specs clearly specify another default. If LM Studio/model availability prevents running a model-dependent experiment, record the branch as blocked and explain exactly what was missing.
+Use the current local experimental default from `specs/improvement-ideas.md`, currently `google/gemma-4-e4b`, unless the existing configs or latest specs clearly specify another default. If LM Studio/model availability prevents running a model-dependent experiment, record the branch as blocked and explain exactly what was missing.
 
 Parallelism:
 
@@ -124,10 +131,10 @@ Metrics to capture when available:
 * score-per-minute or runtime
 * token usage if available
 * structured-output errors/retries/repairs
-* retrieval/index build overhead
+* prepared retrieval index source counts (`built`, `disk`, `memory`) and build/load overhead
 * retrieval/evidence diagnostics
 * recall-rescue eligibility/use/recovery counts
-* vision trigger/skip/call/failure/no-hit/accepted evidence counts
+* vision trigger/skip/call/failure/no-hit/dropped-reason/accepted-hit/accepted-evidence counts
 * candidate hit rate / verified-use rate / rejection rate, where relevant
 * tests passed/failed
 * blockers
@@ -198,8 +205,8 @@ After the loop, produce a final summary on `main` and in your response:
 
 Important interpretation rules:
 
-* Infrastructure-only experiments, such as Persistent Evidence Index A1, do not need immediate score improvement. Success means retrieval-output equivalence, stable runtime, clean diagnostics, and enabling later quality tests.
-* Quality experiments, such as typed retrieval text or table-aware units, need score, hard-column, evidence-support, or score-per-minute improvement without broad regressions.
+* Current prepared-index behavior is baseline infrastructure. New infrastructure experiments still do not need immediate score improvement, but they must preserve retrieval-output equivalence, stable runtime, clean diagnostics, and enabling value for later quality tests.
+* Quality experiments, such as table-aware units, evidence-aware reranking, typed retrieval-scoring ablations, or prompt repair, need score, hard-column, evidence-support, or score-per-minute improvement without broad regressions.
 * Recovery and vision experiments must be judged by net score gain per added runtime/call and by recovered-correct versus recovered-wrong changes.
 * Candidate-memory experiments must keep per-cell extraction authoritative and track candidate hit rate, verified-use rate, rejection rate, score, tokens, and runtime.
 * Broad bundled improvements are not allowed in the first pass unless they follow the ablation order in `specs/improvement-ideas.md`.

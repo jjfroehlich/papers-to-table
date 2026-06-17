@@ -74,6 +74,8 @@ from backend.app.retrieval import (
     _tokenize,
     build_retrieval_query,
     build_chunks_from_parsed_doc,
+    get_prepared_retrieval_index_path,
+    load_prepared_retrieval_index,
     load_retrieval_result,
     persist_retrieval_result,
     retrieve,
@@ -736,6 +738,111 @@ class TestRetrievalChunks:
         assert second.stats["chunk_build_count"] == 0
         assert second.stats["idf_build_count"] == 0
         assert second.stats["cached_index_used"] is True
+        assert second.stats["persistent_index_source"] == "memory"
+
+    def test_retrieval_persists_prepared_index_artifact(
+        self,
+        run_dir: pathlib.Path,
+        minimal_doc_dict: dict,
+    ):
+        result = run_retrieval_for_cell(
+            run_id="run_test001",
+            pdf_id="paper_test",
+            column_name="Bone volume fraction",
+            column_description="Measured BVF value and supporting context",
+            doc_dict=minimal_doc_dict,
+            run_dir=run_dir,
+            top_k=4,
+            retrieval_mode="hybrid_experimental",
+        )
+
+        index_path = get_prepared_retrieval_index_path(
+            run_dir,
+            "paper_test",
+            "hybrid_experimental",
+        )
+        payload = json.loads(index_path.read_text(encoding="utf-8"))
+
+        assert index_path.exists()
+        assert payload["schema_version"] == "prepared_retrieval_index.v1"
+        assert payload["pdf_id"] == "paper_test"
+        assert payload["retrieval_mode"] == "hybrid_experimental"
+        assert payload["document_fingerprint"]
+        assert result.stats["persistent_index_source"] == "built"
+        assert result.stats["persistent_index_path"] == "retrieval/_indexes/paper_test__hybrid_experimental__cap1__tbl1.json"
+        assert payload["index"]["all_chunks"]
+        assert payload["index"]["candidate_chunks"]
+
+    def test_retrieval_loads_persisted_index_without_memory_cache(
+        self,
+        run_dir: pathlib.Path,
+        minimal_doc_dict: dict,
+    ):
+        first = run_retrieval_for_cell(
+            run_id="run_test001",
+            pdf_id="paper_test",
+            column_name="Bone volume fraction",
+            column_description="Measured BVF value and supporting context",
+            doc_dict=minimal_doc_dict,
+            run_dir=run_dir,
+            top_k=4,
+            retrieval_mode="hybrid_experimental",
+        )
+        loaded_index = load_prepared_retrieval_index(
+            run_dir,
+            pdf_id="paper_test",
+            retrieval_mode="hybrid_experimental",
+            include_captions=True,
+            include_tables=True,
+        )
+        second = run_retrieval_for_cell(
+            run_id="run_test001",
+            pdf_id="paper_test",
+            column_name="Bone volume fraction",
+            column_description="Measured BVF value and supporting context",
+            doc_dict=minimal_doc_dict,
+            run_dir=run_dir,
+            top_k=4,
+            retrieval_mode="hybrid_experimental",
+        )
+
+        assert loaded_index is not None
+        assert [chunk.chunk_id for chunk in second.chunks] == [chunk.chunk_id for chunk in first.chunks]
+        assert second.stats["cached_index_used"] is True
+        assert second.stats["chunk_build_count"] == 0
+        assert second.stats["idf_build_count"] == 0
+        assert second.stats["persistent_index_source"] == "disk"
+
+    def test_stale_persisted_index_is_rebuilt_when_document_changes(
+        self,
+        run_dir: pathlib.Path,
+        minimal_doc_dict: dict,
+    ):
+        run_retrieval_for_cell(
+            run_id="run_test001",
+            pdf_id="paper_test",
+            column_name="Bone volume fraction",
+            column_description="Measured BVF value and supporting context",
+            doc_dict=minimal_doc_dict,
+            run_dir=run_dir,
+            top_k=4,
+            retrieval_mode="hybrid_experimental",
+        )
+        changed_doc = json.loads(json.dumps(minimal_doc_dict))
+        changed_doc["blocks"][1]["text"] = "A changed methods sentence should invalidate the prepared index."
+        second = run_retrieval_for_cell(
+            run_id="run_test001",
+            pdf_id="paper_test",
+            column_name="Bone volume fraction",
+            column_description="Measured BVF value and supporting context",
+            doc_dict=changed_doc,
+            run_dir=run_dir,
+            top_k=4,
+            retrieval_mode="hybrid_experimental",
+        )
+
+        assert second.stats["persistent_index_source"] == "built"
+        assert "document_fingerprint" in str(second.stats["persistent_index_load_error"])
 
     def test_retrieval_cache_is_scoped_by_retrieval_mode(
         self,
@@ -2148,6 +2255,7 @@ class TestFigureReview:
             doc_dict=doc_with_crop,
             run_dir=run_dir,
             provider=provider,
+            text_model_id=None,
             vision_model_id="vision-model",
         )
         # Should have been called with the bone ingrowth figure
@@ -2255,6 +2363,7 @@ class TestFigureReview:
             doc_dict=doc_with_page,
             run_dir=run_dir,
             provider=provider,
+            text_model_id=None,
             vision_model_id="vision-model",
             attempt_diagnostics=attempts,
         )
@@ -2263,6 +2372,7 @@ class TestFigureReview:
         assert attempts[0]["attempted"] is True
         assert attempts[0]["image_source"] == "full_page_fallback"
         assert attempts[0]["fallback_reason"] == "missing_figure_crop"
+        assert attempts[0]["accepted_as_hit"] is True
 
     async def test_figure_evidence_supports_any_field_type(
         self, run_dir: pathlib.Path, minimal_doc_dict: dict
@@ -2296,6 +2406,7 @@ class TestFigureReview:
             doc_dict=doc_with_crop,
             run_dir=run_dir,
             provider=provider,
+            text_model_id=None,
             vision_model_id="vision-model",
         )
         # Vision model should have been attempted for any field type
@@ -2526,6 +2637,7 @@ class TestFigureReview:
             doc_dict=doc_with_crop,
             run_dir=run_dir,
             provider=provider,
+            text_model_id=None,
             vision_model_id="vision-model",
             retrieval=retrieval,
             trigger_reasons=["figure_graph_promising"],
@@ -3142,13 +3254,14 @@ class TestCanonicalFixtureReadiness:
 
     def test_build_text_extraction_prompt_includes_context(self, minimal_doc_dict: dict):
         """T053: Extraction prompt assembles row context + column + retrieval."""
+        chunks = build_chunks_from_parsed_doc(minimal_doc_dict)
         retrieval = RetrievalResult(
             run_id="run_test",
             pdf_id="pdf_test",
             column_name="Integration site",
             query="Integration site: Site of implantation",
             top_k=6,
-            chunks=build_chunks_from_parsed_doc(minimal_doc_dict)[:3],
+            chunks=[*chunks[:3], next(chunk for chunk in chunks if chunk.chunk_type == "figure")],
             retrieved_at="2024-01-01T00:00:00+00:00",
         )
         messages = build_text_extraction_prompt(
@@ -3164,6 +3277,35 @@ class TestCanonicalFixtureReadiness:
         assert "Where scaffold was implanted" in user_content
         # Should include passages from retrieval
         assert "Passage" in user_content or "scaffold" in user_content.lower()
+        assert "section: Methods" in user_content
+        assert "figure: fig_1" in user_content
+
+    def test_prompt_context_marks_table_passages_without_changing_body(self, minimal_doc_dict: dict):
+        chunks = build_chunks_from_parsed_doc(minimal_doc_dict)
+        table_chunk = next(chunk for chunk in chunks if chunk.chunk_type == "table_region")
+        retrieval = RetrievalResult(
+            run_id="run_test",
+            pdf_id="pdf_test",
+            column_name="Bone volume fraction",
+            query="Bone volume fraction",
+            top_k=1,
+            chunks=[table_chunk],
+            retrieved_at="2024-01-01T00:00:00+00:00",
+        )
+
+        messages = build_text_extraction_prompt(
+            column_name="Bone volume fraction",
+            column_description="Measured BVF value",
+            row_context={},
+            retrieval=retrieval,
+            style_profile=None,
+        )
+        user_content = messages[1]["content"]
+
+        assert "[TABLE_REGION; page 3; section: Methods; table]" in user_content
+        assert table_chunk.display_text in user_content
+        assert "[Element:" not in table_chunk.retrieval_text
+        assert "[Page:" not in table_chunk.retrieval_text
 
     def test_build_text_extraction_prompt_verify_mode(self):
         """T066: verify mode includes existing value in prompt."""

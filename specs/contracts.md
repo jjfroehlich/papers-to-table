@@ -50,6 +50,7 @@ Stable files when produced:
 - evidence artifacts under `evidence/`
 - parsed or page-text-compatible artifacts needed for evidence anchor validation
 - matching artifacts for metadata extraction, candidate row scores, ambiguity, and duplicate-row diagnostics
+- retrieval artifacts under `retrieval/`, including per-cell retrieval records and prepared per-paper indexes under `retrieval/_indexes/`
 - export artifacts under `exports/`
 
 Stable conceptual directories:
@@ -67,6 +68,8 @@ Stable conceptual directories:
 - `exports/`
 
 Directory internals may evolve, but downstream tools must keep finding the stable conceptual categories above.
+
+Prepared retrieval indexes are generated run artifacts, not authored inputs. Each index must carry a schema tag, document fingerprint, document identity, retrieval mode, caption/table inclusion policy, source-grounded retrieval chunks, candidate chunks, chunk counts, and lexical scoring metadata. Consumers must treat mismatched schema, document, mode, or inclusion policy as invalid rather than silently reusing the index.
 
 ## Stable Identifiers
 
@@ -111,6 +114,10 @@ Supported evidence categories include:
 Figure-derived evidence must remain distinguishable from text-derived evidence. Retrieval figure chunks are whole-figure chunks, not panel-level persisted retrieval units. Panel reasoning may happen inside a prompt, but the persisted retrieval contract remains figure-level.
 
 Evidence artifacts must preserve enough source text, page reference, quote text, and compatible parsed-document material for eval to distinguish valid anchors, present-but-unvalidated evidence, invalid anchors, and missing evidence.
+
+Retrieval artifacts must preserve source text separately from retrieval-only context. `display_text` remains the source-preserving text used for review and evidence anchoring, while `retrieval_text` may include conservative context used for retrieval scoring. Extraction prompt headers may expose section, table, and figure orientation metadata, but prompt passage bodies must remain source-preserving.
+
+Figure-review diagnostics are part of the run-bundle evidence contract. Per-cell diagnostics record trigger reasons, planner decisions, shortlisted figures, image source/fallback, attempt result states, dropped/no-hit reasons, accepted hit counts, and persisted useful evidence. Per-run summaries roll these fields up for optimizer comparison.
 
 ## Reason Codes And Support Labels
 

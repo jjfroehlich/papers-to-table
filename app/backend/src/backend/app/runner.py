@@ -577,6 +577,7 @@ async def run_pipeline(
             "chunk_build_repeated_work_count": 0,
             "idf_build_repeated_work_count": 0,
             "retrieval_repeated_work_count": 0,
+            "persistent_index_source_counts": {},
             "text_model_call_count": 0,
             "vision_model_call_count": 0,
             "evidence_item_count": 0,
@@ -645,6 +646,7 @@ async def run_pipeline(
                 "idf_build_count": 0,
                 "chunk_count_total": 0,
                 "chunk_count_by_type": _empty_chunk_type_counts(),
+                "persistent_index_source_counts": {},
                 "neighbor_chunks_added_count": 0,
                 "selected_chunk_count_total": 0,
                 "candidate_chunk_count_total": 0,
@@ -683,9 +685,15 @@ async def run_pipeline(
         neighbor_chunks_added_count = 0
         chunk_build_repeated_work_count = 0
         idf_build_repeated_work_count = 0
+        persistent_index_source_counts: dict[str, int] = {}
 
         for pdf_id, pdf_stats in sorted(per_pdf.items()):
             pdf_stats["chunk_count_by_type"] = _normalized_chunk_type_counts(pdf_stats.get("chunk_count_by_type"))
+            pdf_source_counts = {
+                str(source): int(count or 0)
+                for source, count in (pdf_stats.get("persistent_index_source_counts") or {}).items()
+            }
+            pdf_stats["persistent_index_source_counts"] = pdf_source_counts
             pdf_stats["pdf_cell_count"] = int(pdf_stats.get("cells_processed", 0) or 0)
             pdf_stats["parse_pdf_ms"] = round(float(pdf_stats.get("parse_pdf_ms", 0.0) or 0.0), 3)
             pdf_stats["retrieval_prep_ms"] = round(float(pdf_stats.get("retrieval_prep_ms", 0.0) or 0.0), 3)
@@ -710,6 +718,8 @@ async def run_pipeline(
                 chunk_count_by_type_total,
                 pdf_stats["chunk_count_by_type"],
             )
+            for source, count in pdf_source_counts.items():
+                persistent_index_source_counts[source] = persistent_index_source_counts.get(source, 0) + count
 
         proposals = load_proposals(run_dir) if run_dir.exists() else []
         evidence_records = load_evidence(run_dir) if run_dir.exists() else []
@@ -922,6 +932,7 @@ async def run_pipeline(
         counters["retrieval_repeated_work_count"] = (
             chunk_build_repeated_work_count + idf_build_repeated_work_count
         )
+        counters["persistent_index_source_counts"] = persistent_index_source_counts
         counters["text_model_call_count"] = text_model_call_count
         counters["vision_model_call_count"] = vision_model_call_count
         counters["evidence_item_count"] = evidence_item_count
@@ -2157,6 +2168,10 @@ async def run_pipeline(
                 pdf_stats["candidate_chunk_count_total"] += int(
                     retrieval_stats.get("candidate_chunk_count", 0) or 0
                 )
+                index_source = retrieval_stats.get("persistent_index_source")
+                if isinstance(index_source, str) and index_source:
+                    source_counts = pdf_stats.setdefault("persistent_index_source_counts", {})
+                    source_counts[index_source] = int(source_counts.get(index_source, 0) or 0) + 1
                 if not pdf_stats.get("chunk_count_total"):
                     pdf_stats["chunk_count_total"] = int(retrieval_stats.get("chunk_count_total", 0) or 0)
                     pdf_stats["chunk_count_by_type"] = _normalized_chunk_type_counts(
@@ -2185,6 +2200,12 @@ async def run_pipeline(
                 "chunk_count_by_type": _normalized_chunk_type_counts(
                     dict(retrieval_stats.get("chunk_count_by_type", {}) or {})
                 ),
+                "persistent_index_source": retrieval_stats.get("persistent_index_source"),
+                "persistent_index_path": retrieval_stats.get("persistent_index_path"),
+                "persistent_index_schema_version": retrieval_stats.get("persistent_index_schema_version"),
+                "persistent_index_build_ms": float(retrieval_stats.get("persistent_index_build_ms", 0.0) or 0.0),
+                "persistent_index_load_ms": float(retrieval_stats.get("persistent_index_load_ms", 0.0) or 0.0),
+                "persistent_index_load_error": retrieval_stats.get("persistent_index_load_error"),
             }
 
             await asyncio.sleep(0)  # yield between cells
@@ -2314,24 +2335,55 @@ async def run_pipeline(
         fallback_reason_counts: dict[str, int] = {}
         failure_reason_counts: dict[str, int] = {}
         trigger_reason_counts: dict[str, int] = {}
+        attempt_dropped_reason_counts: dict[str, int] = {}
+        attempt_result_state_counts: dict[str, int] = {}
+        planner_skip_reason_counts: dict[str, int] = {}
+        planner_confidence_counts: dict[str, int] = {}
+        planner_needs_vision_count = 0
+        planner_target_figure_count = 0
+        planner_rejected_figure_count = 0
+        accepted_hit_count = 0
+        value_present_count = 0
+        succeeded_without_hit_count = 0
         for cell in run_stats["per_cell"]:
             diag = cell.get("figure_review_diagnostics")
-            if not isinstance(diag, dict):
-                continue
-            for reason in diag.get("trigger_reasons", []) or []:
-                if isinstance(reason, str):
-                    trigger_reason_counts[reason] = trigger_reason_counts.get(reason, 0) + 1
-            for attempt in diag.get("attempts", []) or []:
-                if not isinstance(attempt, dict):
-                    continue
-                source = str(attempt.get("image_source") or "none")
-                image_source_counts[source] = image_source_counts.get(source, 0) + 1
-                fallback = attempt.get("fallback_reason")
-                if fallback:
-                    fallback_reason_counts[str(fallback)] = fallback_reason_counts.get(str(fallback), 0) + 1
-                failure = attempt.get("failure_reason")
-                if failure:
-                    failure_reason_counts[str(failure)] = failure_reason_counts.get(str(failure), 0) + 1
+            if isinstance(diag, dict):
+                for reason in diag.get("trigger_reasons", []) or []:
+                    if isinstance(reason, str):
+                        trigger_reason_counts[reason] = trigger_reason_counts.get(reason, 0) + 1
+                succeeded_without_hit_count += int(diag.get("succeeded_without_hit_count", 0) or 0)
+                accepted_hit_count += int(diag.get("accepted_hit_count", 0) or 0)
+                value_present_count += int(diag.get("value_present_count", 0) or 0)
+                for reason, count in (diag.get("dropped_reason_counts") or {}).items():
+                    key = str(reason)
+                    attempt_dropped_reason_counts[key] = attempt_dropped_reason_counts.get(key, 0) + int(count or 0)
+                for state, count in (diag.get("result_state_counts") or {}).items():
+                    key = str(state)
+                    attempt_result_state_counts[key] = attempt_result_state_counts.get(key, 0) + int(count or 0)
+                for attempt in diag.get("attempts", []) or []:
+                    if not isinstance(attempt, dict):
+                        continue
+                    source = str(attempt.get("image_source") or "none")
+                    image_source_counts[source] = image_source_counts.get(source, 0) + 1
+                    fallback = attempt.get("fallback_reason")
+                    if fallback:
+                        fallback_reason_counts[str(fallback)] = fallback_reason_counts.get(str(fallback), 0) + 1
+                    failure = attempt.get("failure_reason")
+                    if failure:
+                        failure_reason_counts[str(failure)] = failure_reason_counts.get(str(failure), 0) + 1
+            planner_diag = cell.get("figure_planner_diagnostics")
+            if isinstance(planner_diag, dict) and planner_diag.get("attempted"):
+                if planner_diag.get("needs_vision"):
+                    planner_needs_vision_count += 1
+                else:
+                    reason = str(planner_diag.get("skip_reason") or "needs_vision_false")
+                    planner_skip_reason_counts[reason] = planner_skip_reason_counts.get(reason, 0) + 1
+                confidence = planner_diag.get("planner_confidence")
+                if confidence:
+                    key = str(confidence)
+                    planner_confidence_counts[key] = planner_confidence_counts.get(key, 0) + 1
+                planner_target_figure_count += len(planner_diag.get("target_figures") or [])
+                planner_rejected_figure_count += len(planner_diag.get("rejected_figures") or [])
         run_stats["per_run"]["figure_review_roi"] = {
             "triggered_cells": triggered_cells,
             "reviewed_cells": int(run_stats["counters"].get("figure_review_cells", 0) or 0),
@@ -2339,15 +2391,22 @@ async def run_pipeline(
             "useful_cells": int(run_stats["counters"].get("figure_review_useful_cells", 0) or 0),
             "rescue_cells": int(run_stats["counters"].get("figure_review_rescue_cells", 0) or 0),
             "hits_total": int(run_stats["counters"].get("figure_review_hits_total", 0) or 0),
-            "succeeded_without_hit_count": int(
-                run_stats["counters"].get("figure_review_succeeded_without_hit_count", 0) or 0
-            ),
+            "succeeded_without_hit_count": succeeded_without_hit_count,
             "total_ms": figure_review_total_ms,
             "avg_ms_per_triggered_cell": round(figure_review_total_ms / triggered_cells, 3) if triggered_cells else 0.0,
             "image_source_counts": image_source_counts,
             "fallback_reason_counts": fallback_reason_counts,
             "failure_reason_counts": failure_reason_counts,
             "trigger_reason_counts": trigger_reason_counts,
+            "attempt_dropped_reason_counts": attempt_dropped_reason_counts,
+            "attempt_result_state_counts": attempt_result_state_counts,
+            "accepted_hit_count": accepted_hit_count,
+            "value_present_count": value_present_count,
+            "planner_needs_vision_count": planner_needs_vision_count,
+            "planner_skip_reason_counts": planner_skip_reason_counts,
+            "planner_confidence_counts": planner_confidence_counts,
+            "planner_target_figure_count": planner_target_figure_count,
+            "planner_rejected_figure_count": planner_rejected_figure_count,
         }
         proposals = load_proposals(run_dir)
         fallback_count = sum("fallback_evidence_used" in proposal.warning_flags for proposal in proposals)

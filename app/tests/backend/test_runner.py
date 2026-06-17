@@ -449,6 +449,7 @@ class TestRunPipeline:
         assert counters["retrieval_calls_per_pdf"] == {"paper_1": 1}
         assert counters["chunk_build_count_per_pdf"] == {"paper_1": 3}
         assert counters["idf_build_count_per_pdf"] == {"paper_1": 2}
+        assert counters["persistent_index_source_counts"] == {"memory": 1}
         assert counters["neighbor_chunks_added_count"] == 2
         assert counters["chunk_build_repeated_work_count"] == 2
         assert counters["idf_build_repeated_work_count"] == 1
@@ -465,6 +466,17 @@ class TestRunPipeline:
         assert counters["figure_review_triggered_count"] == 1
         assert counters["figure_review_succeeded_without_hit_count"] == 2
         assert stats["per_run"]["figure_review_roi"]["succeeded_without_hit_count"] == 2
+        assert stats["per_run"]["figure_review_roi"]["accepted_hit_count"] == 1
+        assert stats["per_run"]["figure_review_roi"]["value_present_count"] == 2
+        assert stats["per_run"]["figure_review_roi"]["attempt_dropped_reason_counts"] == {
+            "missing_proposed_value": 2
+        }
+        assert stats["per_run"]["figure_review_roi"]["attempt_result_state_counts"] == {"found": 3}
+        assert stats["per_run"]["figure_review_roi"]["planner_skip_reason_counts"] == {
+            "text_evidence_sufficient": 1
+        }
+        assert stats["per_run"]["figure_review_roi"]["planner_confidence_counts"] == {"high": 1}
+        assert stats["per_run"]["figure_review_roi"]["planner_rejected_figure_count"] == 1
         assert counters["cells_per_pdf"] == {"paper_1": 1}
         assert counters["chunk_count_total"] == 6
         assert counters["chunk_count_by_type"]["paragraph"] == 2
@@ -491,7 +503,10 @@ class TestRunPipeline:
 
         assert pdf_stats["pdf_cell_count"] == 1
         assert pdf_stats["retrieval_calls"] == 1
+        assert pdf_stats["persistent_index_source_counts"] == {"memory": 1}
         assert pdf_stats["neighbor_chunks_added_count"] == 2
+        assert cell_stats["persistent_index_source"] == "memory"
+        assert cell_stats["persistent_index_schema_version"] == "prepared_retrieval_index.v1"
         assert pdf_stats["text_model_call_count"] == 1
         assert pdf_stats["vision_model_call_count"] == 1
         assert pdf_stats["evidence_item_count"] == 4
@@ -1328,6 +1343,12 @@ def _fake_retrieval_result(**kwargs):
             "chunk_build_count": 3,
             "idf_build_count": 2,
             "cached_index_used": True,
+            "persistent_index_source": "memory",
+            "persistent_index_path": "retrieval/_indexes/paper_1__lexical__cap1__tbl1.json",
+            "persistent_index_schema_version": "prepared_retrieval_index.v1",
+            "persistent_index_build_ms": 0.0,
+            "persistent_index_load_ms": 0.25,
+            "persistent_index_load_error": None,
             "candidate_chunk_count": 4,
             "selected_chunk_count": 2,
             "neighbor_chunk_count": 2,
@@ -1373,6 +1394,37 @@ async def _fake_extract_cell_with_metrics(**kwargs):
                     "useful": True,
                     "rescued_value": False,
                     "succeeded_without_hit_count": 2,
+                    "accepted_hit_count": 1,
+                    "value_present_count": 2,
+                    "dropped_reason_counts": {"missing_proposed_value": 2},
+                    "result_state_counts": {"found": 3},
+                    "attempts": [
+                        {
+                            "attempted": True,
+                            "succeeded": True,
+                            "image_source": "crop",
+                            "result_state": "found",
+                            "result_value_present": True,
+                            "accepted_as_hit": True,
+                        },
+                        {
+                            "attempted": True,
+                            "succeeded": True,
+                            "image_source": "crop",
+                            "result_state": "found",
+                            "result_value_present": True,
+                            "dropped_reason": "missing_proposed_value",
+                        },
+                    ],
+                },
+                "figure_planner_diagnostics": {
+                    "attempted": True,
+                    "succeeded": True,
+                    "needs_vision": False,
+                    "skip_reason": "text_evidence_sufficient",
+                    "planner_confidence": "high",
+                    "target_figures": [],
+                    "rejected_figures": ["fig_2"],
                 },
                 "figure_review_triggered": True,
                 "figure_review_useful": True,
@@ -1404,6 +1456,19 @@ async def _fake_extract_cell_with_metrics(**kwargs):
             "useful": True,
             "rescued_value": False,
             "succeeded_without_hit_count": 2,
+            "accepted_hit_count": 1,
+            "value_present_count": 2,
+            "dropped_reason_counts": {"missing_proposed_value": 2},
+            "result_state_counts": {"found": 3},
+        },
+        figure_planner_diagnostics={
+            "attempted": True,
+            "succeeded": True,
+            "needs_vision": False,
+            "skip_reason": "text_evidence_sufficient",
+            "planner_confidence": "high",
+            "target_figures": [],
+            "rejected_figures": ["fig_2"],
         },
         created_at=datetime.now(timezone.utc).isoformat(),
     )

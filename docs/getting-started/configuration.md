@@ -19,7 +19,7 @@ The main app uses JSON as the advanced-control authority.
     "token": "lm_studio",
     "base_url": "http://localhost:1234",
     "text_model": {
-      "model_id": "google/gemma-4-12b"
+      "model_id": "google/gemma-4-e4b"
     }
   }
 }
@@ -30,7 +30,7 @@ The `model_id` must match the model you downloaded or loaded in LM Studio.
 ## Current Defaults
 
 - provider token: `lm_studio`
-- default vision model: `google/gemma-4-12b`
+- default vision model: `google/gemma-4-e4b`
 - retrieval mode: `hybrid_experimental`
 - retrieval top-k: `12`
 - recall rescue: disabled
@@ -38,7 +38,7 @@ The `model_id` must match the model you downloaded or loaded in LM Studio.
 - figure review: disabled (code default); enabled in the example config
 - prompt-only vision review: enabled by default when figure review is enabled
 - candidate selection: enabled, max one selector call per cell
-- default text model: `google/gemma-4-12b`
+- default text model: `google/gemma-4-e4b`
 
 ## Most Important Parameters
 
@@ -79,7 +79,7 @@ The `model_id` must match the model you downloaded or loaded in LM Studio.
 - `extraction.candidate_selection_enabled`: when `true`, the app can run one generic selector call if collected candidates conflict or evidence is weak. Default is `true`.
 - `extraction.max_candidate_selection_calls_per_cell`: hard cap on selector calls per cell. Default is `1`.
 
-Retrieval includes figure-level chunks built from parsed figures when available. The app does not create panel-level retrieval chunks. Figure review uses valid crops by default, falls back to full-page images when crops are missing or suspicious, and can prefer full-page images when the planner identifies layout or panel-counting work.
+Retrieval includes figure-level chunks built from parsed figures when available. The app does not create panel-level retrieval chunks. Runs also write prepared per-paper retrieval indexes under `retrieval/_indexes/`; these are generated run artifacts with document fingerprints and source counts, not authored configuration. Figure review uses valid crops by default, falls back to full-page images when crops are missing or suspicious, and can prefer full-page images when the planner identifies layout or panel-counting work.
 
 Figure review is evidence-gated. Direct figure context is not enough by itself to call vision for a strong non-visual text answer. Vision remains available for weak, unresolved, missing, or contradictory text evidence, and for genuinely visual requests with promising figure retrieval. Prompt-only vision parsing repairs recoverable schema issues, including optional missing diagnostics and invalid `numeric_value_form` values such as `N/A`. If a figure response proposes a value, its `proposed_value` must contain the extracted answer.
 
@@ -90,4 +90,4 @@ Candidate selection is also bounded. It compares existing text, rescue, evidence
 **Diagnostics**
 
 - `diagnostics.verbose_provider_logging`: record detailed provider request/response logs in the run bundle. Useful for debugging and development.
-- Run diagnostics include figure planner counts, actual vision calls, image-source/fallback reasons, retry/repair details, successful vision calls without usable hits, candidate-selection outcomes, recall-rescue eligibility/use/skips, and whole-document eligibility/use/skips.
+- Run diagnostics include prepared-index source counts, figure planner counts and skip reasons, actual vision calls, image-source/fallback reasons, retry/repair details, dropped/no-hit reasons, accepted figure hits, successful vision calls without usable hits, candidate-selection outcomes, recall-rescue eligibility/use/skips, and whole-document eligibility/use/skips.

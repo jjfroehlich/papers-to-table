@@ -11,8 +11,8 @@
   },
   "baseline_candidate": {
     "prompt_bundle_id": "default",
-    "text_model_id": "google/gemma-4-12b",
-    "vision_model_id": "google/gemma-4-12b",
+    "text_model_id": "google/gemma-4-e4b",
+    "vision_model_id": "google/gemma-4-e4b",
     "optimizer_knobs": {
       "retrieval_mode": "lexical",
       "retrieval_top_k": 10,
@@ -28,8 +28,8 @@
   "compare_candidates": [
     {
       "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-12b",
-      "vision_model_id": "google/gemma-4-12b",
+      "text_model_id": "google/gemma-4-e4b",
+      "vision_model_id": "google/gemma-4-e4b",
       "optimizer_knobs": {
         "retrieval_mode": "lexical",
         "retrieval_top_k": 10,
@@ -44,8 +44,8 @@
     },
     {
       "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-12b",
-      "vision_model_id": "google/gemma-4-12b",
+      "text_model_id": "google/gemma-4-e4b",
+      "vision_model_id": "google/gemma-4-e4b",
       "optimizer_knobs": {
         "retrieval_mode": "lexical",
         "retrieval_top_k": 10,
@@ -60,8 +60,8 @@
     },
     {
       "prompt_bundle_id": "default",
-      "text_model_id": "google/gemma-4-12b",
-      "vision_model_id": "google/gemma-4-12b",
+      "text_model_id": "google/gemma-4-e4b",
+      "vision_model_id": "google/gemma-4-e4b",
       "optimizer_knobs": {
         "retrieval_mode": "lexical",
         "retrieval_top_k": 10,
@@ -80,10 +80,10 @@
       "default"
     ],
     "text_model_ids": [
-      "google/gemma-4-12b"
+      "google/gemma-4-e4b"
     ],
     "vision_model_ids": [
-      "google/gemma-4-12b"
+      "google/gemma-4-e4b"
     ],
     "numeric_knobs": {
       "retrieval_top_k": {

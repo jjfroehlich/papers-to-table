@@ -528,7 +528,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run one configured model on one benchmark and one replicate for development feedback",
     )
     dev_check.add_argument("--label", help="Run directory label under tools/optimizer/runs")
-    dev_check.add_argument("--model", default="google/gemma-4-12b", help="Model id to test")
+    dev_check.add_argument("--model", default="google/gemma-4-e4b", help="Model id to test")
     dev_check.add_argument(
         "--benchmark-id",
         default="bench_genome_editing",
