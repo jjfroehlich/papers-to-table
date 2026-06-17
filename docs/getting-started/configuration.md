@@ -33,6 +33,7 @@ The `model_id` must match the model you downloaded or loaded in LM Studio.
 - default vision model: `google/gemma-4-e4b`
 - retrieval mode: `hybrid_experimental`
 - retrieval top-k: `12`
+- retrieval typed scoring context: `chunk_type_section_figure_v1`
 - recall rescue: disabled
 - whole-document mode: disabled
 - figure review: disabled (code default); enabled in the example config
@@ -63,6 +64,7 @@ The `model_id` must match the model you downloaded or loaded in LM Studio.
 
 - `retrieval.mode`: how the app builds context for extraction. Two modes are supported: `hybrid_experimental` (default) blends BM25 frequency scoring with a query-term recall component (what fraction of the query's distinct terms appear in a chunk) — weighted 0.7 BM25 + 0.3 recall; `lexical` uses BM25 scoring only. 
 - `retrieval.top_k`: how many chunks to include in the extraction context. Default is `12`. 
+- `retrieval.typed_scoring_context`: whether retrieval scoring text includes conservative chunk-type, section, figure, and table markers. Default is `chunk_type_section_figure_v1`; use `none` only for ablation or diagnostics. Page-number tokens are not added to scoring text.
 - `retrieval.recall_rescue_enabled`: whether to do an extra retrieval pass when the initial context looks weak. Disabled by default. 
 - `retrieval.whole_document_mode`: whether to fall back to feeding the whole document when retrieval confidence is low. Disabled by default. 
 - `retrieval.whole_document_max_chars`: maximum characters to include when `whole_document_mode` is active or triggered by recall rescue. Default is `40000`. 
@@ -79,7 +81,7 @@ The `model_id` must match the model you downloaded or loaded in LM Studio.
 - `extraction.candidate_selection_enabled`: when `true`, the app can run one generic selector call if collected candidates conflict or evidence is weak. Default is `true`.
 - `extraction.max_candidate_selection_calls_per_cell`: hard cap on selector calls per cell. Default is `1`.
 
-Retrieval includes figure-level chunks built from parsed figures when available. The app does not create panel-level retrieval chunks. Runs also write prepared per-paper retrieval indexes under `retrieval/_indexes/`; these are generated run artifacts with document fingerprints and source counts, not authored configuration. Figure review uses valid crops by default, falls back to full-page images when crops are missing or suspicious, and can prefer full-page images when the planner identifies layout or panel-counting work.
+Retrieval includes figure-level chunks built from parsed figures when available. The app does not create panel-level retrieval chunks. Runs also write prepared per-paper retrieval indexes under `retrieval/_indexes/`; these are generated run artifacts keyed by document fingerprint, retrieval mode, caption/table inclusion policy, and typed scoring context, with source counts for `built`, `disk`, and `memory` reuse. Figure review uses valid crops by default, falls back to full-page images when crops are missing or suspicious, and can prefer full-page images when the planner identifies layout or panel-counting work.
 
 Figure review is evidence-gated. Direct figure context is not enough by itself to call vision for a strong non-visual text answer. Vision remains available for weak, unresolved, missing, or contradictory text evidence, and for genuinely visual requests with promising figure retrieval. Prompt-only vision parsing repairs recoverable schema issues, including optional missing diagnostics and invalid `numeric_value_form` values such as `N/A`. If a figure response proposes a value, its `proposed_value` must contain the extracted answer.
 

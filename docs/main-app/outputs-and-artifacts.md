@@ -11,7 +11,7 @@ Main-app runs write bundles under `app/runs/{run_id}/` by default unless `output
 - `parsed/`
 - `matching/`
 - `retrieval/`
-- `retrieval/_indexes/`: generated prepared retrieval indexes keyed by PDF, retrieval mode, and caption/table policy.
+- `retrieval/_indexes/`: generated prepared retrieval indexes keyed by PDF, retrieval mode, caption/table policy, and typed scoring context.
 - `proposals/`
 - `proposals/proposals.jsonl`: persisted proposals.
 - `evidence/`

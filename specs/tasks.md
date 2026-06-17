@@ -5,7 +5,7 @@
 - [ ] Add or expand checks that validate docs-referenced wrapper commands and canonical spec links.
 - [ ] Continue removing personal-path assumptions from benchmark preset examples and historical external-result references where they affect active workflows.
 - [ ] Evaluate generic candidate selection and normalization on the active three-dataset benchmark suite.
-- [ ] Deepen the A2b typed retrieval-scoring result with replication or broader benchmark coverage; do not repeat the rejected line-based A3 table-unit branch unchanged.
+- [ ] Test the next improvement batch from the current A2b retrieval baseline: C2 targeted recovery, D3 vision acceptance/gating, one narrow E2 prompt repair, and one F measurement/runtime experiment.
 - [ ] Keep `improvement-ideas.md` and `experiment-results.md` current as improvement ideas are tested, kept, rejected, or superseded.
 - [ ] Refresh screenshots of the web interface (for docs).
 - [ ] Consider optional agent-kit XLSX export, `main_compat/` generation, bbox overlays, figure/page-image assets, and Playwright coverage after the rich review MVP stabilizes.
@@ -25,7 +25,7 @@
 - [x] JSON schemas remain under `specs/contracts/schemas/` as machine-readable contract checks.
 - [x] Active improvement ledgers remain in `specs/improvement-ideas.md` and `specs/experiment-results.md`.
 - [x] Portable agent kit now uses `review_input.json` plus PDFs and optional table/schema files as the authored boundary for rich static/local review.
-- [x] 2026-06-17 wave-2 improvement dev-checks completed for A3, A4, A2b, and B1 against matched `google/gemma-4-e4b` current main; A2b is promising, A4 is neutral, and A3/B1 should not be merged unchanged.
+- [x] 2026-06-17 wave-2 improvement dev-checks completed for A3, A4, A2b, and B1 against matched `google/gemma-4-e4b` current main; A2b was merged as default typed retrieval scoring, A4 is neutral, and A3/B1 should not be merged unchanged.
 
 ## Archived Task Ledgers
 

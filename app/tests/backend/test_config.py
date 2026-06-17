@@ -72,6 +72,7 @@ class TestLoadConfig:
         assert config.schema_path == str(pathlib.Path(FIXTURE_SCHEMA).resolve())
         assert config.pdf_dir == str(pathlib.Path(FIXTURE_PDF_DIR).resolve())
         assert config.retrieval.mode == "hybrid_experimental"
+        assert config.retrieval.typed_scoring_context == "chunk_type_section_figure_v1"
         assert config.prompt.bundle == "default"
 
     def test_file_not_found(self):
@@ -103,6 +104,7 @@ class TestLoadConfig:
         assert config.matching.ambiguity_threshold == 0.15
         assert config.retrieval.top_k == 12
         assert config.retrieval.mode == "hybrid_experimental"
+        assert config.retrieval.typed_scoring_context == "chunk_type_section_figure_v1"
         assert config.prompt.bundle is None
         assert config.prompt.bundle_path is None
         assert config.provider.text_model.working_context_budget == 12000
@@ -179,6 +181,32 @@ class TestLoadConfig:
 
         assert config.retrieval.mode == "lexical"
         assert config.retrieval.strategy == "lexical"
+        assert config.retrieval.typed_scoring_context == "chunk_type_section_figure_v1"
+
+    def test_allows_typed_scoring_context_ablation_mode(self):
+        config = RunConfig.model_validate({
+            "table_path": "t.xlsx",
+            "pdf_dir": "pdfs/",
+            "provider": {
+                "token": "lm_studio",
+                "text_model": {"model_id": "qwen/qwen3-30b-a3b-2507"},
+            },
+            "retrieval": {"typed_scoring_context": "none"},
+        })
+
+        assert config.retrieval.typed_scoring_context == "none"
+
+    def test_rejects_unknown_typed_scoring_context(self):
+        with pytest.raises(Exception, match="retrieval.typed_scoring_context"):
+            RunConfig.model_validate({
+                "table_path": "t.xlsx",
+                "pdf_dir": "pdfs/",
+                "provider": {
+                    "token": "lm_studio",
+                    "text_model": {"model_id": "qwen/qwen3-30b-a3b-2507"},
+                },
+                "retrieval": {"typed_scoring_context": "page_tokens"},
+            })
 
     def test_rejects_unknown_retrieval_mode(self):
         with pytest.raises(Exception, match="Unknown retrieval.mode"):

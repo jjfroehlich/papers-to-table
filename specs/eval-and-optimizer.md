@@ -185,7 +185,7 @@ Optimizer reports must make these questions answerable:
 
 Reports and plots must distinguish raw winner from recommended default when trust caveats differ. Candidate-level, benchmark-level, suite-level, replicate-level, and run-level artifacts are all relevant when present.
 
-Capability-use reporting should include text and vision calls, prepared retrieval index source counts, figure planner attempts/success/skips/fallbacks, planner skip reasons/confidence, figure-review attempts/success/failure/suppression, successful vision calls without usable hits, dropped/no-hit reasons, accepted figure hits, figure-derived evidence count, candidate-selection attempts/value changes, recall-rescue eligibility/use/skips, and whole-document eligibility/use/skips when run stats expose them.
+Capability-use reporting should include text and vision calls, retrieval typed scoring context, prepared retrieval index source counts, figure planner attempts/success/skips/fallbacks, planner skip reasons/confidence, figure-review attempts/success/failure/suppression, successful vision calls without usable hits, dropped/no-hit reasons, accepted figure hits, figure-derived evidence count, candidate-selection attempts/value changes, recall-rescue eligibility/use/skips, and whole-document eligibility/use/skips when run stats expose them.
 
 ## Canonical Presets
 

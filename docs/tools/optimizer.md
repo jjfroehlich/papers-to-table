@@ -220,7 +220,7 @@ Optimizer is orchestration-only. It does not extract values itself and it does n
 - per-candidate run/eval outputs
 - optional external-result baselines scored by Eval and shown beside internal candidates
 - recommended winner/default diagnostics
-- capability-use diagnostics when exposed by run bundles, including prepared retrieval index source counts, figure planner skip reasons, accepted figure hits, dropped/no-hit figure reasons, recovery use, and whole-document use
+- capability-use diagnostics when exposed by run bundles, including retrieval typed scoring context, prepared retrieval index source counts, figure planner skip reasons, accepted figure hits, dropped/no-hit figure reasons, recovery use, and whole-document use
 
 ### How Outputs Are Organized
 

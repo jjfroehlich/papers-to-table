@@ -122,7 +122,7 @@ class RetrievalConfig(BaseModel):
     recall_rescue_enabled: bool = False
     whole_document_mode: bool = False
     whole_document_max_chars: int = 20000
-    typed_scoring_context: str = 'none'
+    typed_scoring_context: str = 'chunk_type_section_figure_v1'
 
     @model_validator(mode='before')
     @classmethod
