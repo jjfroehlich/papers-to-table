@@ -57,6 +57,7 @@ def _default_knob_path(knob_name: str) -> str:
     alias_map = {
         "retrieval_mode": "retrieval.mode",
         "retrieval_top_k": "retrieval.top_k",
+        "typed_scoring_context": "retrieval.typed_scoring_context",
         "recall_rescue_enabled": "retrieval.recall_rescue_enabled",
         "whole_document_mode": "retrieval.whole_document_mode",
         "whole_document_max_chars": "retrieval.whole_document_max_chars",

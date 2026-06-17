@@ -773,6 +773,60 @@ class TestRetrievalChunks:
         assert payload["index"]["all_chunks"]
         assert payload["index"]["candidate_chunks"]
 
+    def test_typed_scoring_context_excludes_page_tokens_and_preserves_display_text(
+        self,
+        run_dir: pathlib.Path,
+        minimal_doc_dict: dict,
+    ):
+        baseline = run_retrieval_for_cell(
+            run_id="run_test001",
+            pdf_id="paper_test",
+            column_name="Bone volume fraction",
+            column_description="Measured BVF value and supporting context",
+            doc_dict=minimal_doc_dict,
+            run_dir=run_dir,
+            top_k=4,
+            retrieval_mode="hybrid_experimental",
+        )
+        typed = run_retrieval_for_cell(
+            run_id="run_test001",
+            pdf_id="paper_test",
+            column_name="Bone volume fraction",
+            column_description="Measured BVF value and supporting context",
+            doc_dict=minimal_doc_dict,
+            run_dir=run_dir,
+            top_k=4,
+            retrieval_mode="hybrid_experimental",
+            typed_scoring_context="chunk_type_section_figure_v1",
+        )
+
+        baseline_index = load_prepared_retrieval_index(
+            run_dir,
+            pdf_id="paper_test",
+            retrieval_mode="hybrid_experimental",
+            include_captions=True,
+            include_tables=True,
+        )
+        typed_index = load_prepared_retrieval_index(
+            run_dir,
+            pdf_id="paper_test",
+            retrieval_mode="hybrid_experimental",
+            include_captions=True,
+            include_tables=True,
+            typed_scoring_context="chunk_type_section_figure_v1",
+        )
+        assert typed_index is not None
+        assert typed.policy["typed_scoring_context"] == "chunk_type_section_figure_v1"
+        assert typed.stats["persistent_index_path"].endswith("__typedctx1.json")
+        assert baseline_index is not None
+        typed_chunk = next(chunk for chunk in typed_index.all_chunks if chunk.chunk_type == "table_region")
+        baseline_chunk = next(chunk for chunk in baseline_index.all_chunks if chunk.chunk_id == typed_chunk.chunk_id)
+        assert "[Chunk type: table_region]" in typed_chunk.retrieval_text
+        assert "[Table]" in typed_chunk.retrieval_text
+        assert "[Page:" not in typed_chunk.retrieval_text
+        assert "page 2" not in typed_chunk.retrieval_text.lower()
+        assert typed_chunk.display_text == baseline_chunk.display_text
+
     def test_retrieval_loads_persisted_index_without_memory_cache(
         self,
         run_dir: pathlib.Path,

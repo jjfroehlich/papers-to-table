@@ -2423,6 +2423,7 @@ async def extract_cell(
     is_verify_mode: bool = False,
     existing_value: Optional[str] = None,
     recall_rescue_enabled: bool = True,
+    typed_scoring_context: str = "none",
     whole_document_mode: bool = False,
     whole_document_max_chars: int = 12000,
     provider_mode_str: str = "unknown",
@@ -2826,6 +2827,7 @@ async def extract_cell(
                 rescue_reason=",".join(recall_rescue_decision.trigger_reasons) or "evidence_quality",
                 retrieval_cache=retrieval_cache,
                 cache_key=pdf_id,
+                typed_scoring_context=typed_scoring_context,
             )
             rescue_stats = rescue_retrieval.stats if isinstance(rescue_retrieval.stats, dict) else {}
             recall_rescue_retrieval_ms += float(rescue_stats.get("total_ms", 0.0) or 0.0)

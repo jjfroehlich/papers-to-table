@@ -2134,6 +2134,7 @@ async def run_pipeline(
                 retrieval_mode=config.retrieval.mode,
                 retrieval_cache=retrieval_cache,
                 cache_key=pdf_id,
+                typed_scoring_context=config.retrieval.typed_scoring_context,
             )
 
             retrieval_stats = {}
@@ -2231,6 +2232,7 @@ async def run_pipeline(
                 is_verify_mode=config.verify_mode,
                 existing_value=existing_value if config.verify_mode else None,
                 recall_rescue_enabled=config.retrieval.recall_rescue_enabled,
+                typed_scoring_context=config.retrieval.typed_scoring_context,
                 whole_document_mode=config.retrieval.whole_document_mode,
                 whole_document_max_chars=config.retrieval.whole_document_max_chars,
                 provider_mode_str=provider_mode.mode if provider_mode else "unknown",

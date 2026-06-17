@@ -122,6 +122,7 @@ class RetrievalConfig(BaseModel):
     recall_rescue_enabled: bool = False
     whole_document_mode: bool = False
     whole_document_max_chars: int = 20000
+    typed_scoring_context: str = 'none'
 
     @model_validator(mode='before')
     @classmethod
@@ -145,6 +146,11 @@ class RetrievalConfig(BaseModel):
             raise ValueError(
                 f"Unknown retrieval.mode '{self.mode}'. "
                 f'Supported retrieval modes: {sorted(CANONICAL_RETRIEVAL_MODES)}.'
+            )
+        if self.typed_scoring_context not in {'none', 'chunk_type_section_figure_v1'}:
+            raise ValueError(
+                "retrieval.typed_scoring_context must be one of: "
+                "['chunk_type_section_figure_v1', 'none']."
             )
         return self
 

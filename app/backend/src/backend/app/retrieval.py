@@ -30,6 +30,7 @@ from .artifacts import read_json, write_json
 _INVALID_FILENAME_CHARS = re.compile(r'[\\/:*?"<>|]')
 _COUNT_LIKE_PATTERN = re.compile(r"(^\s*#)|\b(how many|number|count|total|sample size|n\s*=)\b", re.IGNORECASE)
 SUPPORTED_RETRIEVAL_MODES = frozenset({"lexical", "hybrid_experimental"})
+SUPPORTED_TYPED_SCORING_CONTEXTS = frozenset({"none", "chunk_type_section_figure_v1"})
 PREPARED_RETRIEVAL_INDEX_SCHEMA_VERSION = "prepared_retrieval_index.v1"
 
 
@@ -140,6 +141,7 @@ class RetrievalPolicy(BaseModel):
     include_tables: bool = True
     include_neighbor_window: bool = True
     top_k: int = 6
+    typed_scoring_context: str = "none"
 
 
 class RetrievalStats(BaseModel):
@@ -191,7 +193,34 @@ def _to_block_chunk_type(block_type: str) -> str:
     return mapping.get(block_type, "paragraph")
 
 
-def build_chunks_from_parsed_doc(doc_dict: dict) -> list[RetrievalChunk]:
+def _apply_typed_scoring_context(
+    chunks: list[RetrievalChunk],
+    typed_scoring_context: str,
+) -> list[RetrievalChunk]:
+    if typed_scoring_context == "none":
+        return chunks
+    if typed_scoring_context not in SUPPORTED_TYPED_SCORING_CONTEXTS:
+        raise ValueError(f"Unknown typed scoring context: {typed_scoring_context}")
+
+    contextualized: list[RetrievalChunk] = []
+    for chunk in chunks:
+        marker_parts = [f"[Chunk type: {chunk.chunk_type}]"]
+        if chunk.section_context:
+            marker_parts.append(f"[Section: {chunk.section_context}]")
+        if chunk.figure_ref:
+            marker_parts.append(f"[Figure: {chunk.figure_ref}]")
+        if chunk.chunk_type == "table_region":
+            marker_parts.append("[Table]")
+        retrieval_text = " ".join([*marker_parts, chunk.retrieval_text]).strip()
+        contextualized.append(chunk.model_copy(update={"retrieval_text": retrieval_text}))
+    return contextualized
+
+
+def build_chunks_from_parsed_doc(
+    doc_dict: dict,
+    *,
+    typed_scoring_context: str = "none",
+) -> list[RetrievalChunk]:
     """Build retrieval chunks from a ParsedDocument dict.
 
     Produces one chunk per block, mapping block_type to chunk_type.
@@ -292,7 +321,7 @@ def build_chunks_from_parsed_doc(doc_dict: dict) -> list[RetrievalChunk]:
             )
         )
 
-    return chunks
+    return _apply_typed_scoring_context(chunks, typed_scoring_context)
 
 
 # ---------------------------------------------------------------------------
@@ -569,6 +598,7 @@ def _retrieve_with_metadata(
     retrieval_mode: str = "lexical",
     prepared_index: RetrievalPreparedIndex | None = None,
     used_cached_index: bool = False,
+    typed_scoring_context: str = "none",
 ) -> tuple[list[RetrievalChunk], RetrievalStats]:
     """Retrieve top-k relevant chunks from a ParsedDocument dict with stats.
 
@@ -581,7 +611,10 @@ def _retrieve_with_metadata(
     total_started = perf_counter()
     if prepared_index is None:
         chunk_started = perf_counter()
-        all_chunks = build_chunks_from_parsed_doc(doc_dict)
+        all_chunks = build_chunks_from_parsed_doc(
+            doc_dict,
+            typed_scoring_context=typed_scoring_context,
+        )
         chunk_build_ms = (perf_counter() - chunk_started) * 1000.0
     else:
         all_chunks = prepared_index.all_chunks
@@ -650,8 +683,12 @@ def prepare_retrieval_index(
     *,
     include_captions: bool = True,
     include_tables: bool = True,
+    typed_scoring_context: str = "none",
 ) -> RetrievalPreparedIndex:
-    all_chunks = build_chunks_from_parsed_doc(doc_dict)
+    all_chunks = build_chunks_from_parsed_doc(
+        doc_dict,
+        typed_scoring_context=typed_scoring_context,
+    )
     chunk_count_by_type: dict[str, int] = {}
     for chunk in all_chunks:
         chunk_count_by_type[chunk.chunk_type] = chunk_count_by_type.get(chunk.chunk_type, 0) + 1
@@ -719,12 +756,14 @@ def get_prepared_retrieval_index_path(
     retrieval_mode: str,
     include_captions: bool = True,
     include_tables: bool = True,
+    typed_scoring_context: str = "none",
 ) -> pathlib.Path:
     safe_pdf = _safe_filename(pdf_id, max_len=64)
     safe_mode = _safe_filename(retrieval_mode, max_len=32)
     captions = "cap1" if include_captions else "cap0"
     tables = "tbl1" if include_tables else "tbl0"
-    return get_retrieval_dir(run_dir) / "_indexes" / f"{safe_pdf}__{safe_mode}__{captions}__{tables}.json"
+    typed_suffix = "" if typed_scoring_context == "none" else "__typedctx1"
+    return get_retrieval_dir(run_dir) / "_indexes" / f"{safe_pdf}__{safe_mode}__{captions}__{tables}{typed_suffix}.json"
 
 
 def _run_relative_path(run_dir: pathlib.Path, path: pathlib.Path) -> str:
@@ -743,6 +782,7 @@ def persist_prepared_retrieval_index(
     include_tables: bool,
     document_fingerprint: str,
     index: RetrievalPreparedIndex,
+    typed_scoring_context: str = "none",
 ) -> pathlib.Path:
     path = get_prepared_retrieval_index_path(
         run_dir,
@@ -750,6 +790,7 @@ def persist_prepared_retrieval_index(
         retrieval_mode,
         include_captions=include_captions,
         include_tables=include_tables,
+        typed_scoring_context=typed_scoring_context,
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     write_json(
@@ -760,6 +801,7 @@ def persist_prepared_retrieval_index(
             "retrieval_mode": retrieval_mode,
             "include_captions": include_captions,
             "include_tables": include_tables,
+            "typed_scoring_context": typed_scoring_context,
             "document_fingerprint": document_fingerprint,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "index": index.model_dump(),
@@ -776,6 +818,7 @@ def load_prepared_retrieval_index(
     include_captions: bool,
     include_tables: bool,
     expected_document_fingerprint: str | None = None,
+    typed_scoring_context: str = "none",
 ) -> RetrievalPreparedIndex | None:
     path = get_prepared_retrieval_index_path(
         run_dir,
@@ -783,6 +826,7 @@ def load_prepared_retrieval_index(
         retrieval_mode,
         include_captions=include_captions,
         include_tables=include_tables,
+        typed_scoring_context=typed_scoring_context,
     )
     if not path.exists():
         return None
@@ -797,6 +841,8 @@ def load_prepared_retrieval_index(
         raise ValueError("prepared retrieval index caption policy does not match request")
     if bool(data.get("include_tables")) != include_tables:
         raise ValueError("prepared retrieval index table policy does not match request")
+    if str(data.get("typed_scoring_context") or "none") != typed_scoring_context:
+        raise ValueError("prepared retrieval index typed scoring context does not match request")
     if (
         expected_document_fingerprint is not None
         and data.get("document_fingerprint") != expected_document_fingerprint
@@ -843,8 +889,9 @@ def run_retrieval_for_cell(
     mode: str = "baseline",
     rescue_reason: Optional[str] = None,
     retrieval_mode: str = "lexical",
-    retrieval_cache: dict[tuple[str, str, bool, bool], RetrievalPreparedIndex] | None = None,
+    retrieval_cache: dict[tuple[str, str, bool, bool, str], RetrievalPreparedIndex] | None = None,
     cache_key: str | None = None,
+    typed_scoring_context: str = "none",
 ) -> RetrievalResult:
     """Build and persist retrieval result for one (pdf, column) pair."""
     query, policy = _build_retrieval_query_with_policy(column_name, column_description)
@@ -860,6 +907,7 @@ def run_retrieval_for_cell(
         retrieval_mode,
         include_captions=include_captions,
         include_tables=include_tables,
+        typed_scoring_context=typed_scoring_context,
     )
     persistent_index_source: str | None = None
     persistent_index_build_ms = 0.0
@@ -867,7 +915,7 @@ def run_retrieval_for_cell(
     persistent_index_load_error: str | None = None
     used_cached_index = False
     if retrieval_cache is not None and cache_key is not None:
-        cache_tuple = (cache_key, retrieval_mode, include_captions, include_tables)
+        cache_tuple = (cache_key, retrieval_mode, include_captions, include_tables, typed_scoring_context)
         prepared_index = retrieval_cache.get(cache_tuple)
         used_cached_index = prepared_index is not None
         if used_cached_index:
@@ -883,6 +931,7 @@ def run_retrieval_for_cell(
                 include_captions=include_captions,
                 include_tables=include_tables,
                 expected_document_fingerprint=document_fingerprint,
+                typed_scoring_context=typed_scoring_context,
             )
         except Exception as exc:
             prepared_index = None
@@ -900,6 +949,7 @@ def run_retrieval_for_cell(
             doc_dict,
             include_captions=include_captions,
             include_tables=include_tables,
+            typed_scoring_context=typed_scoring_context,
         )
         persistent_index_build_ms = (perf_counter() - build_started) * 1000.0
         persist_prepared_retrieval_index(
@@ -910,6 +960,7 @@ def run_retrieval_for_cell(
             include_tables=include_tables,
             document_fingerprint=document_fingerprint,
             index=prepared_index,
+            typed_scoring_context=typed_scoring_context,
         )
         persistent_index_source = "built"
         if retrieval_cache is not None and cache_key is not None:
@@ -925,6 +976,7 @@ def run_retrieval_for_cell(
         retrieval_mode=retrieval_mode,
         prepared_index=prepared_index,
         used_cached_index=used_cached_index,
+        typed_scoring_context=typed_scoring_context,
     )
     stats = stats.model_copy(
         update={
@@ -950,6 +1002,7 @@ def run_retrieval_for_cell(
             "include_tables": include_tables,
             "include_neighbor_window": include_neighbor_window,
             "top_k": top_k,
+            "typed_scoring_context": typed_scoring_context,
         }
     )
     result = RetrievalResult(
