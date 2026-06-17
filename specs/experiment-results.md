@@ -65,6 +65,11 @@ Use one table per rejected or superseded idea. Kept ideas are summarized in the 
 | 2026-06-03 | `retrieval_score_shape_gating_20260603 / run_20260603_104949_pmw6sy` | [Retrieval Score-Shape Prompt Gating](#retrieval-score-shape-prompt-gating) | `google/gemma-4-e4b` | Genome editing | 0.56 | 9.71 min | Conservative gate applied to 0 proposals with text-prompt diagnostics; no-op/inconclusive. |
 | 2026-06-03 | `retrieval_score_shape_gating_v2_20260603 / run_20260603_134126_pufw3u` | [Retrieval Score-Shape Prompt Gating](#retrieval-score-shape-prompt-gating) | `google/gemma-4-e4b` | Genome editing | 0.52 | 10.35 min | V2 gated 20 proposals but lowered score and added structured-output errors; rejected. |
 | 2026-06-03 | `main_reference_retry_20260603 / run_20260603_195702_otoed8` | Current main reference | `google/gemma-4-e4b` | Genome editing | unscored | 0.20 min | Current-main comparison attempted on `main` commit `3f0b2bf`; LM Studio listed the model but failed to load it through app readiness, raw `/v1/chat/completions`, raw `/api/v1/models/load`, and `lms load`; `nvidia/nemotron-3-nano-4b` loaded successfully, so this is a model-specific LM Studio load failure rather than an app score. |
+| 2026-06-16 | `exp_a1_evidence_index_branchpy_20260617 / run_20260616_223105_7my7n6` | [Persistent Evidence Index](#kept-or-partially-kept-ideas) | `google/gemma-4-12b` | Genome editing | 0.54 | 13.01 min | Prepared retrieval index artifacts proved viable; infrastructure value, no standalone score lift. |
+| 2026-06-16 | `exp_a2_typed_retrieval_context_20260617 / run_20260616_225354_i8d16k` | [Typed Retrieval Context (A2)](#typed-retrieval-context-a2) | `google/gemma-4-12b` | Genome editing | 0.50 | 19.29 min | Typed retrieval/prompt markers lowered score and increased runtime; rejected as tested. |
+| 2026-06-16 | `exp_c1_uncertainty_recovery_20260617 / run_20260616_235459_xvhsrp` | [Recall Rescue With Current Retrieval (C1)](#recall-rescue-with-current-retrieval-c1) | `google/gemma-4-12b` | Genome editing | 0.50 | 22.69 min | Broad current-retrieval rescue used 33/33 eligible cells but lowered score and reliability; rejected as tested. |
+| 2026-06-17 | `exp_d2_vision_gate_diagnostics_20260617 / run_20260617_063031_f0p0j2` | [Targeted Vision Gate Diagnostics](#kept-or-partially-kept-ideas) | `google/gemma-4-12b` | Genome editing | 0.50 | 21.84 min | Diagnostic rollups are useful; score/runtime do not justify a default behavior change. |
+| 2026-06-16 | `main_gemma4_12b_baseline_20260616 / run_20260616_214652_a2cozj` | Current main reference | `google/gemma-4-12b` | Genome editing | 0.56 | 14.07 min | Current-main comparison baseline at `main` commit `0b96027`; use as the matched 12B reference for this loop, with judge-instability caveat. |
 
 ## Full-Benchmark Idea Evaluations
 
@@ -108,8 +113,38 @@ Figure-review counters show that the dominant issue is not simply "use more visi
 | Date | Commit | Idea | Details |
 | --- | --- | --- | --- |
 | 2026-05 | `6efabd7` | Per-Cell Baseline Architecture | Kept as the historical comparison baseline after `manual_baseline_per_cell_3bench_3rep_retry` scored 0.6517 over the three benchmark datasets in triplicate with `google/gemma-4-e4b`. Retest current main when architecture, retrieval, prompt, model default, or scoring defaults change materially. |
+| 2026-06 | `baf66cd` | Persistent Evidence Index (A1) | Partially kept as enabling infrastructure branch `exp-20260616-a1-evidence-index`, not as a standalone quality lift. The corrected branch-PYTHONPATH dev-check scored 0.54 versus the matched current-main 12B baseline at 0.56, but created five persistent `_indexes` artifacts and showed index source counts `built=5`, `memory=70` with no repeated retrieval work. Continue only as substrate for later index-backed retrieval or recovery tests. |
+| 2026-06 | `2215246` | Targeted Vision Gate Diagnostics (D2) | Partially kept as diagnostic instrumentation branch `exp-20260616-d2-vision-gate-diagnostics`, not as a default extraction change. The dev-check scored 0.50 versus the matched current-main 12B baseline at 0.56, but the new rollups exposed the decision funnel: 20 triggered cells, 5 reviewed cells, 1 accepted figure hit, 4 missing-value/no-hit outcomes, 15 planner skips, and 1 structured vision failure. Use this branch to guide future vision acceptance tests. |
 
 ## Rejected Or Superseded Ideas
+
+### Typed Retrieval Context (A2)
+
+| Field | Details |
+| --- | --- |
+| Status | Rejected as a default retrieval prompt-context implementation. |
+| Tested idea | Bundle A2: prepend typed page, element, section, caption, table, and figure metadata to retrieval text and extraction prompt passage headers while preserving reviewer-facing display text. |
+| What was tested | Branch `exp-20260616-a2-typed-retrieval-context`, commit `6a1348b`; retrieval text gained typed markers and extraction prompts surfaced section/figure/table metadata. |
+| Why tested | The hypothesis was that lightweight typed context would help `google/gemma-4-12b` distinguish captions, figures, tables, and sections without changing source evidence artifacts. |
+| Evidence | Focused tests passed: `TestRetrievalChunks` plus prompt-context coverage (`25 passed`) and `python scripts/check_specs.py`. Dev-check `exp_a2_typed_retrieval_context_20260617 / run_20260616_225354_i8d16k` completed and scored. |
+| Scope and models | Genome editing dev-check; one replicate; `google/gemma-4-12b`; default prompt bundle; retrieval `hybrid_experimental`, top-k 12; recall rescue and whole-document mode disabled. |
+| Result | Score was 0.50 versus matched current-main 12B baseline 0.56. Runtime rose to 19.29 min versus 14.07 min. The run had 16 structured errors, 14 provider retries, 8 structured-output repairs, 75 retrieval calls, no repeated retrieval work, 35 recall-rescue eligible/skipped cells, and only 1 useful figure-derived evidence item. |
+| Decision | Do not merge this exact typed-marker prompt expansion as default behavior. The broader retrieval-quality idea remains open, but this implementation appears to add prompt/runtime cost without improving answer selection. |
+| Retest boundary | Retest only with a materially different, measured answerability strategy such as table-aware units, evidence-aware reranking, or shorter typed hints with token/runtime diagnostics and a matched current-main dev-check. |
+
+### Recall Rescue With Current Retrieval (C1)
+
+| Field | Details |
+| --- | --- |
+| Status | Rejected as a default recovery strategy. |
+| Tested idea | Bundle C1: enable uncertainty-gated recall rescue against current retrieval, without whole-document mode, through a run-local dev-check override. |
+| What was tested | Branch `exp-20260616-c1-uncertainty-recovery`, commit `aa64a77`; added `optimizer dev-check --recall-rescue` and materialized only the run-local candidate config with `recall_rescue_enabled=true`, `whole_document_mode=false`. |
+| Why tested | The 2026-06-15 model comparison showed many recall-rescue-eligible cells but rescue disabled, making current-retrieval rescue a low-scope lever to test. |
+| Evidence | Focused CLI/config tests passed (`3 passed`) and `python scripts/check_specs.py` passed. Dev-check `exp_c1_uncertainty_recovery_20260617 / run_20260616_235459_xvhsrp` completed and scored. |
+| Scope and models | Genome editing dev-check; one replicate; `google/gemma-4-12b`; default prompt bundle; retrieval `hybrid_experimental`, top-k 12; recall rescue enabled; whole-document mode disabled. |
+| Result | Score was 0.50 versus matched current-main 12B baseline 0.56. Runtime rose to 22.69 min versus 14.07 min. Rescue ran on 33/33 eligible cells, but provider retries rose to 23 in the summary, structured errors to 27, text structured completions to 152, and candidate selection to 17 attempts with 9 value changes. |
+| Decision | Do not use broad current-retrieval recall rescue as default. The tested gate spends substantial runtime and reliability budget without net quality gain. |
+| Retest boundary | Future recovery should be narrower: require schema-specific absent-feature handling, stronger evidence candidates, persistent-index or candidate-census inputs, and recovered-correct versus recovered-wrong accounting before another model-heavy run. |
 
 ### Retrieval Score-Shape Prompt Gating
 
@@ -208,3 +243,7 @@ These branches are kept as historical references for tested ideas. Each branch m
 | `codex/candidate-selection-normalization-v2` | `c9d59ba` | [Schema-Semantic Candidate Selection Guardrails](#schema-semantic-candidate-selection-guardrails) | Narrower selector-only guardrail implementation. |
 | `codex/retrieval-score-shape-gating` | `0142947` | [Retrieval Score-Shape Prompt Gating](#retrieval-score-shape-prompt-gating) | Conservative score-shape prompt gating that did not apply on the dev-check. |
 | `codex/retrieval-score-shape-gating-v2` | `9f5838e` | [Retrieval Score-Shape Prompt Gating](#retrieval-score-shape-prompt-gating) | Wider score-shape prompt gating that applied but reduced score. |
+| `exp-20260616-a1-evidence-index` | `baf66cd` | [Persistent Evidence Index](#kept-or-partially-kept-ideas) | Prepared retrieval index artifacts and retrieval-equivalence diagnostics. |
+| `exp-20260616-a2-typed-retrieval-context` | `6a1348b` | [Typed Retrieval Context (A2)](#typed-retrieval-context-a2) | Typed retrieval text and prompt passage metadata experiment. |
+| `exp-20260616-c1-uncertainty-recovery` | `aa64a77` | [Recall Rescue With Current Retrieval (C1)](#recall-rescue-with-current-retrieval-c1) | Dev-check recall-rescue override for current retrieval. |
+| `exp-20260616-d2-vision-gate-diagnostics` | `2215246` | [Targeted Vision Gate Diagnostics](#kept-or-partially-kept-ideas) | Figure-review planner, no-hit, dropped-result, and accepted-hit diagnostics. |
