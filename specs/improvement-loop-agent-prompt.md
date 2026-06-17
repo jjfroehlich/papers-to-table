@@ -95,7 +95,7 @@ For each experiment branch:
 2. Define a single hypothesis in one sentence.
 3. Define the smallest implementation that can test it.
 4. Implement only that change.
-5. Add config flags if needed so the experiment can be turned on/off.
+5. Add branch-local config flags only when needed to isolate an experiment; do not merge flags into main unless they are a deliberate durable operator control. Prefer merging proven improvements as canonical behavior when the decision is clear.
 6. Preserve default app behavior unless the branch is explicitly testing a changed default.
 7. Add or update tests where practical.
 8. Run the relevant checks.

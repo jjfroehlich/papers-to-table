@@ -34,7 +34,6 @@
       "optimizer_knobs": {
         "retrieval_mode": "hybrid_experimental",
         "retrieval_top_k": 12,
-        "typed_scoring_context": "chunk_type_section_figure_v1",
         "recall_rescue_enabled": false,
         "whole_document_mode": false,
         "whole_document_max_chars": 20000,
@@ -51,7 +50,6 @@
       "optimizer_knobs": {
         "retrieval_mode": "hybrid_experimental",
         "retrieval_top_k": 12,
-        "typed_scoring_context": "chunk_type_section_figure_v1",
         "recall_rescue_enabled": false,
         "whole_document_mode": false,
         "whole_document_max_chars": 20000,

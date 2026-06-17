@@ -129,7 +129,6 @@ Current defaults:
 
 - retrieval mode: `hybrid_experimental`
 - retrieval top-k: `12`
-- retrieval typed scoring context: `chunk_type_section_figure_v1`
 - recall rescue: disabled by default
 - whole-document mode: disabled by default
 - default text model in config example: `google/gemma-4-e4b`
@@ -138,7 +137,7 @@ Retrieval should remain row-aware and column-aware rather than defaulting to who
 
 Retrieval persists a prepared per-paper/per-run index under `retrieval/_indexes/` and reuses it across cells with the same document, retrieval mode, caption/table inclusion policy, and typed scoring context. Each prepared index carries schema version, document fingerprint, PDF id, retrieval mode, caption/table policy, typed scoring context, source-grounded chunks, candidate chunks, chunk counts, and lexical scoring metadata. Disk loads must reject mismatched document fingerprints, mode, inclusion policy, or typed scoring context and rebuild rather than silently using stale indexes. Per-cell and per-run diagnostics report whether the index source was `built`, `disk`, or `memory`, along with index path, schema tag, load/build time, and load error if a stale or invalid index was ignored.
 
-Retrieval chunks keep separate source-preserving `display_text` and contextual `retrieval_text`. Current retrieval scoring text prepends conservative typed markers for chunk type, section context, existing figure references, and table-region status through `retrieval.typed_scoring_context = chunk_type_section_figure_v1`. Page-number tokens are deliberately excluded from scoring text. Extraction prompt passage headers may also expose typed orientation metadata such as section, figure reference, and table marker while the passage body remains source text that reviewers can audit. Advanced configs may set `retrieval.typed_scoring_context = none` only for ablation or diagnostics.
+Retrieval chunks keep separate source-preserving `display_text` and contextual `retrieval_text`. Current retrieval scoring text canonically prepends conservative typed markers for chunk type, section context, existing figure references, and table-region status. Page-number tokens are deliberately excluded from scoring text. Extraction prompt passage headers may also expose typed orientation metadata such as section, figure reference, and table marker while the passage body remains source text that reviewers can audit. This typed scoring behavior is part of the main app, not an operator config flag.
 
 The app persists one best proposal per eligible target cell. It should prefer `proposal_status=unresolved` over weak guessing when current-paper evidence is not strong enough.
 
