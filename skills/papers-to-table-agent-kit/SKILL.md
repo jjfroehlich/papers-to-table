@@ -13,11 +13,11 @@ The skill is self-contained: it gives lightweight extraction guidance, defines t
 
 Fail closed on the review workflow. CSV filenames, `_filled.csv`, `completed_table.csv`, or instructions such as `Return one completed CSV` do not mean CSV-only. A request for CSV outputs is not a CSV-only request. Treat CSV outputs as draft convenience artifacts unless the user explicitly says "CSV only", "skip review", "do not build the review UI", or equivalent.
 
-Before extracting any value, scaffold a run directory and create `review_input.json`. Every non-empty proposal must be written with structured evidence at authoring time, not reconstructed after filling a CSV. The task is incomplete until `build_and_serve_review.py` has produced the required review artifacts and either started the localhost review UI or returned an exact `serve_review.py` command.
+Before extracting any value, scaffold a run directory and create `review_input.json`. Every non-empty proposal must be written with structured evidence at authoring time, not reconstructed after filling a CSV. The task is incomplete until `build_and_serve_review.py` has produced the required review artifacts and the agent has made the review UI usable: open a live localhost review page in the agent app/browser when browser control is available, or provide clickable localhost links that have been verified to return HTTP 200. Do not stop at an exact `serve_review.py` command unless active serving is genuinely blocked; if blocked, state the blocker and provide the exact command as a fallback.
 
 Common failure trap: benchmark folders with PDFs plus a schema/template and requested files like `genome_editing_tools_filled.csv` still require a review package. Produce optional draft `_filled.csv` files only alongside `review_input.json`, validation outputs, and the review UI handoff.
 
-Default workflow: build a formal review package. Do not stop at `_filled.csv` or `completed_table.csv` outputs unless the user explicitly requests CSV-only extraction. A request for CSV outputs is not a CSV-only request. Treat the task as CSV-only only when the user says "CSV only", "skip review", "do not build the review UI", or equivalent. Draft filled CSVs are optional secondary artifacts; the reviewable deliverable is `review_input.json` plus PDFs, validation, generated review files, and a localhost review URL or exact serve command.
+Default workflow: build a formal review package. Do not stop at `_filled.csv` or `completed_table.csv` outputs unless the user explicitly requests CSV-only extraction. A request for CSV outputs is not a CSV-only request. Treat the task as CSV-only only when the user says "CSV only", "skip review", "do not build the review UI", or equivalent. Draft filled CSVs are optional secondary artifacts; the reviewable deliverable is `review_input.json` plus PDFs, validation, generated review files, and a live localhost review URL opened in an available browser surface or returned as a clickable, verified link.
 
 Before extracting values for any table-completion task:
 
@@ -142,6 +142,8 @@ Default one-step build and serve:
 python skills/papers-to-table-agent-kit/scripts/build_and_serve_review.py --run RUN_DIR
 ```
 
+This is useful for manual use, but it starts a long-running foreground server. For agent handoff, prefer the build-only plus detached-serving pattern below so the agent can finish with verified links instead of waiting on the server process.
+
 For non-interactive validation or tests, build without starting the long-running server:
 
 ```bash
@@ -150,12 +152,50 @@ python skills/papers-to-table-agent-kit/scripts/build_and_serve_review.py --run 
 
 The wrapper validates author-authored inputs, builds the rich review bundle, validates generated artifacts, starts the localhost review UI by default, and prints `review_url`.
 
+## Serving And Opening The Review UI
+
+Make the review UI directly usable before reporting completion. The preferred handoff is an active localhost URL, not a command the user must run.
+
+Use this pattern when the current environment supports a browser or browser-like app surface:
+
+1. Build and validate first:
+   ```bash
+   python skills/papers-to-table-agent-kit/scripts/build_and_serve_review.py --run RUN_DIR --build-only --json
+   ```
+2. Start `serve_review.py` as a background process on localhost. When starting from an agent shell, pass `--no-open --quiet`; the script's default browser-opening behavior can hang or disappear in desktop, sandboxed, or headless contexts.
+3. Verify the URL returns HTTP 200 before giving it to the user.
+4. Open the URL directly in the agent app/browser when browser control is available. In Codex Desktop or similar agent apps, use the available browser-control tool to show the page to the user. If direct browser control is unavailable, return the verified localhost URL as a clickable Markdown link.
+
+On Windows, prefer `pythonw.exe` next to the Python interpreter when available so the server starts detached without tying up the agent command:
+
+```powershell
+$runDir = "RUN_DIR"
+$pyw = "pythonw.exe"
+$script = "skills\papers-to-table-agent-kit\scripts\serve_review.py"
+$port = 8761
+Start-Process -FilePath $pyw -ArgumentList @($script, "--run", $runDir, "--host", "127.0.0.1", "--port", "$port", "--no-open", "--quiet") -WindowStyle Hidden -PassThru
+Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:$port/" -TimeoutSec 3
+```
+
+On macOS/Linux:
+
+```bash
+nohup python skills/papers-to-table-agent-kit/scripts/serve_review.py \
+  --run "$RUN_DIR" --host 127.0.0.1 --port "$PORT" --no-open --quiet \
+  > "$RUN_DIR/review_server.log" 2>&1 &
+curl -fsS "http://127.0.0.1:$PORT/" >/dev/null
+```
+
+For multiple benchmark datasets or multiple run directories, serve each review package independently on a distinct free localhost port and report all verified links with dataset labels. Open at least the first review in the in-app browser when available; open all of them if the browser surface supports multiple usable tabs.
+
+If active serving fails because of sandbox restrictions, missing browser capabilities, port binding failures, or unavailable long-running processes, do not silently downgrade to commands-only. Report the blocker, include any generated `review/index.html` path as a static fallback if it can be opened safely, and include the exact `serve_review.py` command the user can run manually.
+
 Equivalent explicit steps:
 
 ```bash
 python skills/papers-to-table-agent-kit/scripts/validate_review_package.py --run RUN_DIR --mode authoring
 python skills/papers-to-table-agent-kit/scripts/build_review_package.py --run RUN_DIR
-python skills/papers-to-table-agent-kit/scripts/serve_review.py --run RUN_DIR
+python skills/papers-to-table-agent-kit/scripts/serve_review.py --run RUN_DIR --host 127.0.0.1 --port PORT --no-open --quiet
 ```
 
 For download-only review, open `RUN_DIR/review/index.html` directly when browser security allows it. Localhost serving is the default path because it permits decision writeback and export.
@@ -216,9 +256,9 @@ Final artifact gate: before reporting completion, verify that all required revie
 - `RUN_DIR/normalized/evidence.jsonl`
 - `RUN_DIR/summaries/validation_report.json`
 - `RUN_DIR/review/index.html`
-- `review_url` or an exact `serve_review.py` command
+- a live `review_url` that was opened in an available browser surface or returned as a clickable verified link
 
-If any required review artifact is missing and the user did not explicitly request CSV-only extraction, do not call the task complete. Create the missing artifact or report the blocker.
+If any required review artifact is missing, or if no live review URL is available, and the user did not explicitly request CSV-only extraction, do not call the task complete. Create the missing artifact, start and verify the review server, or report the specific blocker and provide the manual command only as a fallback.
 
 For benchmark tasks, it is acceptable to produce both a draft CSV and a review package:
 
@@ -230,8 +270,9 @@ Final agent response after extraction should include:
 
 - `RUN_DIR`
 - validation status
-- `review_url` if the UI is running
-- the exact wrapper or `serve_review.py` command if the UI could not be kept running
+- verified clickable `review_url` links for each served review UI
+- whether the UI was opened directly in the agent app/browser
+- the exact wrapper or `serve_review.py` command only if the UI could not be kept running, with the blocker stated
 - paths to any optional draft `_filled.csv` outputs
 
 ## References
