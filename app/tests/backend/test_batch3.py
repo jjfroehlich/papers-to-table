@@ -71,6 +71,7 @@ from backend.app.provider import (
 from backend.app.retrieval import (
     RetrievalChunk,
     RetrievalResult,
+    _rerank_scored_chunks,
     _tokenize,
     build_retrieval_query,
     build_chunks_from_parsed_doc,
@@ -806,6 +807,116 @@ class TestRetrievalChunks:
         assert "[Page:" not in table_chunk.retrieval_text
         assert "page 2" not in table_chunk.retrieval_text.lower()
         assert table_chunk.display_text in table_chunk.retrieval_text
+
+    def test_evidence_aware_rerank_promotes_numeric_table_context(self):
+        paragraph = RetrievalChunk(
+            chunk_id="paragraph",
+            source_block_id="p1",
+            chunk_type="paragraph",
+            page_number=1,
+            reading_order=1,
+            display_text="The maximum editing efficiency was discussed in the results.",
+            retrieval_text="maximum editing efficiency results",
+        )
+        table = RetrievalChunk(
+            chunk_id="table",
+            source_block_id="t1",
+            chunk_type="table_region",
+            page_number=2,
+            reading_order=2,
+            display_text="Condition A | editing efficiency | 93%",
+            retrieval_text="[Chunk type: table_region] [Table] Condition A editing efficiency 93%",
+        )
+
+        reranked, meta = _rerank_scored_chunks(
+            "maximum editing efficiency percentage",
+            [(0.40, paragraph), (0.30, table)],
+            top_k=1,
+        )
+
+        assert [chunk.chunk_id for _, chunk in reranked[:1]] == ["table"]
+        assert meta["rerank_profile"] == "evidence_aware_v1"
+        assert meta["rerank_changed_count"] == 1
+
+    def test_evidence_aware_rerank_promotes_visual_caption_or_figure_context(self):
+        paragraph = RetrievalChunk(
+            chunk_id="paragraph",
+            source_block_id="p1",
+            chunk_type="paragraph",
+            page_number=1,
+            reading_order=1,
+            display_text="The graph result is summarized in the text.",
+            retrieval_text="graph result summarized text",
+        )
+        caption = RetrievalChunk(
+            chunk_id="caption",
+            source_block_id="c1",
+            chunk_type="caption",
+            page_number=2,
+            reading_order=2,
+            display_text="Figure 2. Load-displacement plot with peak around 120 N.",
+            retrieval_text="[Chunk type: caption] [Figure: fig_2] Figure 2 load displacement plot",
+        )
+
+        reranked, meta = _rerank_scored_chunks(
+            "figure panel graph value",
+            [(0.40, paragraph), (0.33, caption)],
+            top_k=1,
+        )
+
+        assert [chunk.chunk_id for _, chunk in reranked[:1]] == ["caption"]
+        assert meta["rerank_changed_count"] == 1
+
+    def test_evidence_aware_rerank_promotes_identifier_like_source_text(self):
+        generic = RetrievalChunk(
+            chunk_id="generic",
+            source_block_id="p1",
+            chunk_type="paragraph",
+            page_number=1,
+            reading_order=1,
+            display_text="The construct name is described in this section.",
+            retrieval_text="construct name described section",
+        )
+        identifier = RetrievalChunk(
+            chunk_id="identifier",
+            source_block_id="p2",
+            chunk_type="paragraph",
+            page_number=1,
+            reading_order=2,
+            display_text="The MPRA-ABC123 construct was used for the reporter assay.",
+            retrieval_text="construct reporter assay",
+        )
+
+        reranked, meta = _rerank_scored_chunks(
+            "construct identifier name",
+            [(0.40, generic), (0.37, identifier)],
+            top_k=1,
+        )
+
+        assert [chunk.chunk_id for _, chunk in reranked[:1]] == ["identifier"]
+        assert meta["rerank_changed_count"] == 1
+
+    def test_canonical_rerank_profile_is_recorded_without_changing_typed_index(
+        self,
+        run_dir: pathlib.Path,
+        minimal_doc_dict: dict,
+    ):
+        result = run_retrieval_for_cell(
+            run_id="run_test001",
+            pdf_id="paper_test",
+            column_name="Maximum bone volume fraction",
+            column_description="Maximum numeric BVF percentage",
+            doc_dict=minimal_doc_dict,
+            run_dir=run_dir,
+            top_k=4,
+            retrieval_mode="hybrid_experimental",
+        )
+
+        assert result.policy["typed_scoring_context"] == "chunk_type_section_figure_v1"
+        assert result.policy["rerank_profile"] == "evidence_aware_v1"
+        assert result.stats["rerank_profile"] == "evidence_aware_v1"
+        assert result.stats["rerank_ms"] >= 0
+        assert result.stats["persistent_index_path"].endswith("__typedctx1.json")
 
     def test_retrieval_loads_persisted_index_without_memory_cache(
         self,

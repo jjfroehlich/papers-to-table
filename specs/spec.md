@@ -139,6 +139,8 @@ Retrieval persists a prepared per-paper/per-run index under `retrieval/_indexes/
 
 Retrieval chunks keep separate source-preserving `display_text` and contextual `retrieval_text`. Current retrieval scoring text canonically prepends conservative typed markers for chunk type, section context, existing figure references, and table-region status. Page-number tokens are deliberately excluded from scoring text. Extraction prompt passage headers may also expose typed orientation metadata such as section, figure reference, and table marker while the passage body remains source text that reviewers can audit. This typed scoring behavior is part of the main app, not an operator config flag.
 
+After lexical or hybrid scoring and before top-k selection, current retrieval applies a canonical evidence-aware reranking pass. The reranker is additive and deterministic: numeric-looking queries receive small boosts for answer-like numeric text and table chunks, visual/figure/panel queries receive small boosts for caption or figure chunks, identifier/name-like queries receive small boosts for acronym, hyphenated, or digit-bearing source identifiers, and broad abstract/section chunks receive a small demotion. This is main-app behavior, not a durable operator config flag. Retrieval policy and run stats expose `rerank_profile=evidence_aware_v1`, rerank time, and the count of changed top-k positions so optimizer reports can separate retrieval behavior from model behavior.
+
 The app persists one best proposal per eligible target cell. It should prefer `proposal_status=unresolved` over weak guessing when current-paper evidence is not strong enough.
 
 Style profiles may improve output format from existing filled cells, but they are formatting aids, not semantic labels or hidden row-level answer leakage. Eval mode must avoid target-answer leakage.
@@ -278,6 +280,8 @@ Dual-judge runs must preserve per-judge verdicts and disagreement metrics instea
 
 Eval accepts canonical field types `boolean`, `categorical`, `numeric`, and `text`, with aliases such as `bool`, `enum`, `number`, and `free_text`. Unknown field types fail early. Inference prioritizes allowed values, then numeric parsing, then clear boolean vocabulary; bare `0`/`1` numeric pairs must not infer boolean. Structured fields remain deterministic-only, but scored structured cells preserve `deterministic_failure_kind` and `adjudication_eligible` diagnostics plus aggregate structured-failure counts. Structured LLM adjudication is deferred unless normal eval diagnostics show that likely deterministic false negatives materially affect benchmark interpretation.
 
+Eval join diagnostics distinguish true target-cell join failures from proposals for intentionally excluded metadata columns. A proposal for a schema-excluded or otherwise unscored column is emitted as `excluded_proposal`, counted in `excluded_proposal_count`, and listed in `excluded_proposal_diagnostics`; it must not increment `join_failure_count` or true `unmatched_proposal_count`. Non-excluded proposals without matching gold cells remain `unmatched_proposal` join failures.
+
 ## 13. Optimizer Companion
 
 Optimizer is orchestration-only. It loads explicit candidate bundles and search spaces, launches main-app and eval runs, distinguishes compare and optimize workflows, and reports raw winners separately from recommended defaults when trust caveats differ.
@@ -350,6 +354,7 @@ The system must remain truthful about:
 - row/PDF matching ambiguity
 - metadata extraction failures
 - evidence weakness and fallback anchors
+- retrieval typed scoring, reranking, prepared-index reuse, and changed top-k diagnostics
 - recall rescue and whole-document eligibility, use, and skips
 - figure planner and figure-review attempts, suppression, failures, repairs, and no-hit outcomes
 - candidate-selection attempts and value changes

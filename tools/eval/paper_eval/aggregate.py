@@ -100,6 +100,9 @@ def build_run_summary(
         for cell in scored_cells
         if cell.join_status in {"missing_proposal", "duplicate_proposals", "cell_id_mismatch", "unmatched_proposal"}
     ]
+    excluded_proposal_records = [
+        cell for cell in scored_cells if cell.join_status == "excluded_proposal"
+    ]
     judge_labels = sorted(
         {
             label
@@ -251,6 +254,7 @@ def build_run_summary(
         "unmatched_proposal_count": sum(
             1 for cell in scored_cells if cell.join_status == "unmatched_proposal"
         ),
+        "excluded_proposal_count": len(excluded_proposal_records),
         "join_failure_count": len(join_problem_records),
         "contract_warning_count": len(loaded_run.contract_warnings),
         "extraction_contract_valid": loaded_run.metadata.extraction_contract_valid,
@@ -289,6 +293,10 @@ def build_run_summary(
         f"{cell.join_status}:{cell.row_id}:{cell.column_name}:{cell.cell_id}"
         for cell in join_problem_records
     ]
+    excluded_proposal_diagnostics = [
+        f"{cell.join_status}:{cell.row_id}:{cell.column_name}:{cell.cell_id}"
+        for cell in excluded_proposal_records
+    ]
     return RunSummary(
         run_id=loaded_run.metadata.run_id,
         run_dir=loaded_run.run_dir,
@@ -301,6 +309,7 @@ def build_run_summary(
         unscored_reason_detail=unscored_reason_detail,
         contract_warnings=list(loaded_run.contract_warnings),
         join_diagnostics=join_diagnostics,
+        excluded_proposal_diagnostics=excluded_proposal_diagnostics,
     )
 
 
@@ -315,8 +324,10 @@ def comparison_row_from_summary(summary: RunSummary) -> dict[str, object]:
         "unscored_reason_detail": summary.unscored_reason_detail,
         "contract_warning_count": len(summary.contract_warnings),
         "join_diagnostic_count": len(summary.join_diagnostics),
+        "excluded_proposal_diagnostic_count": len(summary.excluded_proposal_diagnostics),
         "contract_warnings": json.dumps(summary.contract_warnings),
         "join_diagnostics": json.dumps(summary.join_diagnostics),
+        "excluded_proposal_diagnostics": json.dumps(summary.excluded_proposal_diagnostics),
     }
     row.update(summary.metadata)
     row.update(summary.metrics)

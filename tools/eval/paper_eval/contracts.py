@@ -348,6 +348,7 @@ class RunSummary:
     unscored_reason_detail: str | None = None
     contract_warnings: list[str] = field(default_factory=list)
     join_diagnostics: list[str] = field(default_factory=list)
+    excluded_proposal_diagnostics: list[str] = field(default_factory=list)
 
 
 @dataclass

@@ -347,11 +347,24 @@ def score_run(
         for proposal in proposals:
             if scoped_row_ids and proposal.row_id not in scoped_row_ids:
                 continue
+            excluded_proposal = not schema.should_score_column(proposal.column_name)
             field_type, extra_flags, extra_diagnostics = _diagnostic_field_type_for_record(
                 proposal.field_type,
                 column_name=proposal.column_name,
                 source="proposal",
             )
+            if excluded_proposal:
+                join_status = "excluded_proposal"
+                diagnostic_flags = ["proposal_for_excluded_column"] + extra_flags
+                diagnostic_details = {
+                    **extra_diagnostics,
+                    "excluded_column": True,
+                    "excluded_column_reason": _excluded_column_reason(schema, proposal.column_name),
+                }
+            else:
+                join_status = "unmatched_proposal"
+                diagnostic_flags = ["proposal_without_matching_gold_cell"] + extra_flags
+                diagnostic_details = extra_diagnostics
             scored_entries.append(
                 ScoredCell(
                     record_kind="proposal_diagnostic",
@@ -367,7 +380,7 @@ def score_run(
                     is_gold_empty=False,
                     was_scored=False,
                     is_correct=None,
-                    join_status="unmatched_proposal",
+                    join_status=join_status,
                     comparison_kind="not_scored",
                     evidence_outcome="not_evaluated",
                     proposal_count=1,
@@ -381,8 +394,8 @@ def score_run(
                     judge_prompt_hash=None,
                     judge_temperature=None,
                     judge_input_hash=None,
-                    diagnostic_flags=["proposal_without_matching_gold_cell"] + extra_flags,
-                    diagnostics=extra_diagnostics,
+                    diagnostic_flags=diagnostic_flags,
+                    diagnostics=diagnostic_details,
                     selected_proposal_status=proposal.proposal_status,
                 )
             )
@@ -401,6 +414,14 @@ def score_run(
         judge_records=judge_records,
         judge_execution_summary=judge_execution_summary,
     )
+
+
+def _excluded_column_reason(schema: EvaluatorSchema, column_name: str) -> str:
+    if schema.scored_columns and column_name not in set(schema.scored_columns):
+        return "not_in_scored_columns"
+    if column_name in set(schema.excluded_columns):
+        return "excluded_columns"
+    return "not_scored_by_schema"
 
 
 def resolve_field_config(

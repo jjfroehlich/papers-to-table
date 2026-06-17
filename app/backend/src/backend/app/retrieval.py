@@ -2,7 +2,7 @@
 
 T045 – MVP retrieval chunks (paragraph, section, caption, table_region)
 T046 – Contextualized retrieval text + separate display text
-T047 – MVP retrieval assembly (top_k=6, neighbor window, no reranking/HyDE)
+T047 – MVP retrieval assembly (top_k=6, neighbor window, canonical reranking, no HyDE)
 T048 – Persist retrieval artifacts for inspection
 
 Retrieval text separation is honest:
@@ -31,6 +31,7 @@ _INVALID_FILENAME_CHARS = re.compile(r'[\\/:*?"<>|]')
 _COUNT_LIKE_PATTERN = re.compile(r"(^\s*#)|\b(how many|number|count|total|sample size|n\s*=)\b", re.IGNORECASE)
 SUPPORTED_RETRIEVAL_MODES = frozenset({"lexical", "hybrid_experimental"})
 CANONICAL_TYPED_SCORING_CONTEXT = "chunk_type_section_figure_v1"
+CANONICAL_RERANK_PROFILE = "evidence_aware_v1"
 PREPARED_RETRIEVAL_INDEX_SCHEMA_VERSION = "prepared_retrieval_index.v1"
 
 
@@ -142,6 +143,7 @@ class RetrievalPolicy(BaseModel):
     include_neighbor_window: bool = True
     top_k: int = 6
     typed_scoring_context: str = CANONICAL_TYPED_SCORING_CONTEXT
+    rerank_profile: str = CANONICAL_RERANK_PROFILE
 
 
 class RetrievalStats(BaseModel):
@@ -163,6 +165,9 @@ class RetrievalStats(BaseModel):
     persistent_index_build_ms: float = 0.0
     persistent_index_load_ms: float = 0.0
     persistent_index_load_error: Optional[str] = None
+    rerank_profile: str = CANONICAL_RERANK_PROFILE
+    rerank_ms: float = 0.0
+    rerank_changed_count: int = 0
 
 
 class RetrievalPreparedIndex(BaseModel):
@@ -529,6 +534,86 @@ def score_chunks(
     return scored
 
 
+def _looks_numeric_query(query: str) -> bool:
+    return bool(
+        re.search(
+            r"\b(number|count|max|maximum|highest|best|length|size|unit|efficiency|percent|percentage|rate|"
+            r"temperature|thickness|diameter|dose|concentration|bp|nt|kb|mm|um|nm|cm|fold)\b",
+            query,
+            re.IGNORECASE,
+        )
+    )
+
+
+def _looks_visual_query(query: str) -> bool:
+    return bool(
+        re.search(
+            r"\b(fig(?:ure)?\.?|panel|plot|chart|graph|image|microscopy|visual)\b",
+            query,
+            re.IGNORECASE,
+        )
+    )
+
+
+def _looks_identifier_query(query: str) -> bool:
+    return bool(
+        re.search(
+            r"\b(identifier|architecture|system|barcode|sequence|construct|vector|plasmid|name)\b",
+            query,
+            re.IGNORECASE,
+        )
+    )
+
+
+def _evidence_aware_boost(query: str, chunk: RetrievalChunk) -> float:
+    text = f"{chunk.display_text} {chunk.retrieval_text}"
+    boost = 0.0
+    numeric_query = _looks_numeric_query(query)
+    if numeric_query and re.search(r"\b\d+(?:\.\d+)?\s*(?:%|bp|nt|kb|mm|um|µm|nm|cm|x|fold)?\b", text):
+        boost += 0.12
+    if numeric_query and chunk.chunk_type == "table_region":
+        boost += 0.10
+    if _looks_visual_query(query) and chunk.chunk_type in {"caption", "figure"}:
+        boost += 0.10
+    if _looks_identifier_query(query) and re.search(
+        r"\b(?:[A-Z]{2,}[A-Za-z0-9-]*|[A-Za-z]+-[A-Za-z0-9-]+|[A-Za-z]*\d[A-Za-z0-9-]*)\b",
+        chunk.display_text,
+    ):
+        boost += 0.05
+    if chunk.chunk_type in {"abstract", "section"}:
+        boost -= 0.02
+    return boost
+
+
+def _rerank_scored_chunks(
+    query: str,
+    scored: list[tuple[float, RetrievalChunk]],
+    *,
+    top_k: int,
+) -> tuple[list[tuple[float, RetrievalChunk]], dict[str, float | int | str]]:
+    if not scored:
+        return scored, {
+            "rerank_profile": CANONICAL_RERANK_PROFILE,
+            "rerank_ms": 0.0,
+            "rerank_changed_count": 0,
+        }
+
+    started = perf_counter()
+    before_ids = [chunk.chunk_id for _, chunk in scored[:top_k]]
+    adjusted = [
+        (score + _evidence_aware_boost(query, chunk), chunk)
+        for score, chunk in scored
+    ]
+    adjusted.sort(key=lambda item: -item[0])
+    after_ids = [chunk.chunk_id for _, chunk in adjusted[:top_k]]
+    changed = sum(1 for before, after in zip(before_ids, after_ids) if before != after)
+    return adjusted, {
+        "rerank_profile": CANONICAL_RERANK_PROFILE,
+        "rerank_ms": round((perf_counter() - started) * 1000.0, 3),
+        "rerank_changed_count": changed,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Neighbor-window expansion (T047)
 # ---------------------------------------------------------------------------
@@ -593,7 +678,8 @@ def _retrieve_with_metadata(
     - top_k = 6 default
     - captions and tables included when relevant
     - one neighbor window added per selected chunk
-    - NO reranking, HyDE, or query expansion in MVP baseline
+    - canonical evidence-aware reranking after lexical scoring
+    - NO HyDE or query expansion
     """
     total_started = perf_counter()
     if prepared_index is None:
@@ -636,6 +722,7 @@ def _retrieve_with_metadata(
         precomputed_idf=idf,
         precomputed_avgdl=avgdl,
     )
+    scored, rerank_meta = _rerank_scored_chunks(query, scored, top_k=top_k)
     top_chunks = [chunk for _, chunk in scored[:top_k]]
     selected_ids = {c.chunk_id for c in top_chunks}
 
@@ -658,6 +745,9 @@ def _retrieve_with_metadata(
         chunk_build_count=0 if used_cached_index else 1,
         idf_build_count=0 if used_cached_index else 1,
         cached_index_used=used_cached_index,
+        rerank_profile=str(rerank_meta["rerank_profile"]),
+        rerank_ms=float(rerank_meta["rerank_ms"]),
+        rerank_changed_count=int(rerank_meta["rerank_changed_count"]),
     )
     return result, stats
 
@@ -971,6 +1061,7 @@ def run_retrieval_for_cell(
             "include_neighbor_window": include_neighbor_window,
             "top_k": top_k,
             "typed_scoring_context": CANONICAL_TYPED_SCORING_CONTEXT,
+            "rerank_profile": CANONICAL_RERANK_PROFILE,
         }
     )
     result = RetrievalResult(

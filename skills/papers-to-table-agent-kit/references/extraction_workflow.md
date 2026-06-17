@@ -6,6 +6,12 @@ This kit is for agent-native extraction from research publications, scientific P
 
 The kit gives light extraction discipline, not a complete extraction engine. It helps agents keep the work schema-first, row-aware, evidence-backed, and inspectable.
 
+## Hard Gate For CSV Requests
+
+CSV filenames, `_filled.csv`, `completed_table.csv`, or instructions such as `Return one completed CSV` do not mean CSV-only. A request for CSV outputs is not a CSV-only request. Treat CSV outputs as draft convenience artifacts unless the user explicitly says "CSV only", "skip review", "do not build the review UI", or equivalent.
+
+Before extracting any value, scaffold a run directory and create `review_input.json`. Every non-empty proposal must be written with structured evidence at authoring time, not reconstructed after filling a CSV. The task is incomplete until `build_and_serve_review.py` has produced the required review artifacts and either started the localhost review UI or returned an exact `serve_review.py` command.
+
 ## Default Flow
 
 1. Treat the formal review package as the default deliverable.
@@ -20,6 +26,14 @@ Do not stop at `_filled.csv` or `completed_table.csv` outputs unless the user ex
 ## Benchmark/Table Workflow
 
 For benchmark folders, literature-review matrices, or table-completion tasks:
+
+Evidence-first loop:
+
+1. Scaffold each dataset run.
+2. Append each target-cell proposal directly into `review_input.json` with evidence.
+3. Optionally maintain a draft `_filled.csv`.
+4. Run validation and build with `build_and_serve_review.py`.
+5. Start the review UI or return the exact `serve_review.py` command.
 
 1. Create one `RUN_DIR` for the extraction handoff.
 2. Copy source PDFs into `RUN_DIR/pdfs/`.

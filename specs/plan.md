@@ -15,8 +15,10 @@ This file is the current technical direction and near-term roadmap. It is not a 
 ## Near-Term Roadmap
 
 - Add focused validation for docs-referenced commands and spec drift checks.
-- Continue improving hard extraction columns from the current A2b retrieval baseline through targeted recovery, targeted vision acceptance/gating, narrow prompt repair, and better measurement. Do not repeat the rejected line-based table-unit or prompt-injected candidate-census experiments unchanged.
 - Use `improvement-ideas.md` for untested or unresolved improvement hypotheses and `experiment-results.md` for benchmarked, rejected, superseded, or partly kept ideas.
+- Treat A2b typed retrieval scoring, A4 evidence-aware reranking, and F excluded-column join diagnostics as current main behavior, not experiment flags.
+- Before another prompt/recovery/vision value-acceptance dev-check, inspect evidence-anchor and artifact diffs from the C2/D3/E2 guardrail failures.
+- Use ignored `.tmp/` or external sibling worktrees for future experiment loops; do not recreate a visible top-level `w/` worktree container.
 - Keep the portable agent kit centered on `review_input.json` authoring, rich static/local review, and accepted-only export without turning it into a second app.
 - Refresh screenshots when the next visible UI workflow change lands.
 - Continue reducing personal-path assumptions in benchmark presets and historical external-result material.

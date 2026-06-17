@@ -69,6 +69,8 @@ Field-type inference must not treat bare `0`/`1` numeric pairs as boolean. Allow
 
 Structured fields remain deterministic-only in the current implementation. Numeric, categorical, and boolean comparisons emit parse and mismatch diagnostics in normal eval outputs. The summary includes `structured_deterministic_failure_count`, `structured_adjudication_eligible_count`, `structured_adjudication_eligible_failure_rate`, and the older compatibility alias `structured_adjudication_eligible_rate`; these are diagnostic counts and do not change headline correctness.
 
+Join diagnostics distinguish target-cell failures from intentionally excluded metadata proposals. `join_failure_count` includes missing proposals, duplicate proposals, cell-id mismatches, and true non-excluded unmatched proposals. Proposals for excluded or otherwise unscored columns use `join_status=excluded_proposal`, contribute to `excluded_proposal_count`, and are listed in `excluded_proposal_diagnostics`; they must not increment `join_failure_count` or true `unmatched_proposal_count`.
+
 ## Judge Policy
 
 LM Studio is the default local-first judge path. Real benchmark evaluation should use two judges by default when available:
@@ -185,7 +187,7 @@ Optimizer reports must make these questions answerable:
 
 Reports and plots must distinguish raw winner from recommended default when trust caveats differ. Candidate-level, benchmark-level, suite-level, replicate-level, and run-level artifacts are all relevant when present.
 
-Capability-use reporting should include text and vision calls, canonical typed retrieval scoring metadata, prepared retrieval index source counts, figure planner attempts/success/skips/fallbacks, planner skip reasons/confidence, figure-review attempts/success/failure/suppression, successful vision calls without usable hits, dropped/no-hit reasons, accepted figure hits, figure-derived evidence count, candidate-selection attempts/value changes, recall-rescue eligibility/use/skips, and whole-document eligibility/use/skips when run stats expose them.
+Capability-use reporting should include text and vision calls, canonical typed retrieval scoring metadata, evidence-aware rerank profile/time/changed-top-k counts, prepared retrieval index source counts, figure planner attempts/success/skips/fallbacks, planner skip reasons/confidence, figure-review attempts/success/failure/suppression, successful vision calls without usable hits, dropped/no-hit reasons, accepted figure hits, figure-derived evidence count, candidate-selection attempts/value changes, recall-rescue eligibility/use/skips, and whole-document eligibility/use/skips when run stats expose them.
 
 ## Canonical Presets
 

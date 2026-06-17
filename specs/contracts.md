@@ -117,6 +117,10 @@ Evidence artifacts must preserve enough source text, page reference, quote text,
 
 Retrieval artifacts must preserve source text separately from retrieval-only context. `display_text` remains the source-preserving text used for review and evidence anchoring, while `retrieval_text` may include conservative context used for retrieval scoring. The default typed scoring context may add chunk-type, section, figure, and table markers to `retrieval_text`, but it must not add page-number tokens. Extraction prompt headers may expose section, table, and figure orientation metadata, but prompt passage bodies must remain source-preserving.
 
+Retrieval policy and stats must expose the canonical rerank profile when evidence-aware reranking is applied. Reranking changes only scored chunk ordering before top-k selection; it must not mutate `display_text`, prepared-index chunk text, typed scoring context, or source/evidence anchoring text. Per-cell/run diagnostics should include rerank profile, rerank time, and changed top-k count when available.
+
+Eval join diagnostics must reserve `missing_proposal`, `duplicate_proposals`, `cell_id_mismatch`, and true non-excluded `unmatched_proposal` records for target-cell join failures. Proposals for intentionally excluded or otherwise unscored metadata columns use `excluded_proposal`, `excluded_proposal_count`, and `excluded_proposal_diagnostics` instead of inflating `join_failure_count`.
+
 Figure-review diagnostics are part of the run-bundle evidence contract. Per-cell diagnostics record trigger reasons, planner decisions, shortlisted figures, image source/fallback, attempt result states, dropped/no-hit reasons, accepted hit counts, and persisted useful evidence. Per-run summaries roll these fields up for optimizer comparison.
 
 ## Reason Codes And Support Labels

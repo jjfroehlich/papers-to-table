@@ -9,6 +9,14 @@ Use this skill when an agent extracts structured information from research publi
 
 The skill is self-contained: it gives lightweight extraction guidance, defines the review-package input format, validates evidence-backed proposals, builds a local browser review interface, and exports accepted results. The agent still decides how to read documents and infer proposed values using the tools available in the current environment.
 
+## Hard Gate: Evidence And Review UI
+
+Fail closed on the review workflow. CSV filenames, `_filled.csv`, `completed_table.csv`, or instructions such as `Return one completed CSV` do not mean CSV-only. A request for CSV outputs is not a CSV-only request. Treat CSV outputs as draft convenience artifacts unless the user explicitly says "CSV only", "skip review", "do not build the review UI", or equivalent.
+
+Before extracting any value, scaffold a run directory and create `review_input.json`. Every non-empty proposal must be written with structured evidence at authoring time, not reconstructed after filling a CSV. The task is incomplete until `build_and_serve_review.py` has produced the required review artifacts and either started the localhost review UI or returned an exact `serve_review.py` command.
+
+Common failure trap: benchmark folders with PDFs plus a schema/template and requested files like `genome_editing_tools_filled.csv` still require a review package. Produce optional draft `_filled.csv` files only alongside `review_input.json`, validation outputs, and the review UI handoff.
+
 Default workflow: build a formal review package. Do not stop at `_filled.csv` or `completed_table.csv` outputs unless the user explicitly requests CSV-only extraction. A request for CSV outputs is not a CSV-only request. Treat the task as CSV-only only when the user says "CSV only", "skip review", "do not build the review UI", or equivalent. Draft filled CSVs are optional secondary artifacts; the reviewable deliverable is `review_input.json` plus PDFs, validation, generated review files, and a localhost review URL or exact serve command.
 
 Before extracting values for any table-completion task:

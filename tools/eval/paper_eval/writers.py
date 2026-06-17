@@ -35,6 +35,7 @@ def write_run_summary(path: Path, summary: RunSummary) -> None:
         "metadata": summary.metadata,
         "contract_warnings": summary.contract_warnings,
         "join_diagnostics": summary.join_diagnostics,
+        "excluded_proposal_diagnostics": summary.excluded_proposal_diagnostics,
     }
     summary_json_path.write_text(json.dumps(summary_payload, indent=2, sort_keys=True), encoding="utf-8")
     _write_csv(summary_csv_path, [comparison_row_from_summary(summary)])
@@ -96,8 +97,10 @@ def load_summary_rows_from_directory(path: Path) -> list[dict[str, Any]]:
             "unscored_reason_detail": payload.get("unscored_reason_detail"),
             "contract_warning_count": len(payload.get("contract_warnings", [])),
             "join_diagnostic_count": len(payload.get("join_diagnostics", [])),
+            "excluded_proposal_diagnostic_count": len(payload.get("excluded_proposal_diagnostics", [])),
             "contract_warnings": json.dumps(payload.get("contract_warnings", [])),
             "join_diagnostics": json.dumps(payload.get("join_diagnostics", [])),
+            "excluded_proposal_diagnostics": json.dumps(payload.get("excluded_proposal_diagnostics", [])),
         }
         row.update(payload.get("metadata", {}))
         row.update(payload.get("metrics", {}))

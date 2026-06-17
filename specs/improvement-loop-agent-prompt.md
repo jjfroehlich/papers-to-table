@@ -1,7 +1,7 @@
 You are working in the GitHub repo `jjfroehlich/papers-to-table`.
 
 Goal:
-Run an experimental implementation loop over selected ideas from `specs/improvement-ideas.md`. For each tested idea, create an isolated branch/worktree, implement the smallest useful testable change, run the appropriate checks/eval/dev-checks, and record the result in `specs/experiment-results.md`. Do not merge anything. The final output should let me inspect branches and read the results file to decide which ideas are worth deeper analysis, continuation, rejection, or combination.
+Run an experimental implementation loop over selected ideas from `specs/improvement-ideas.md`. For each tested idea, create an isolated branch/worktree from current `main`, implement the smallest useful testable change, and run the appropriate checks/eval/dev-checks. Do not merge experiment code into `main` during the loop. After all selected experiment branches finish, switch back to `main`, summarize the results in `specs/experiment-results.md` and `specs/improvement-ideas.md`, then give the chat summary. The final output should let me inspect branches and read the main-branch specs to decide which ideas are worth deeper analysis, rejection, combination, or a later explicit merge/port task.
 
 Important:
 This is an experiment loop, not a production implementation sprint. Prefer small, interpretable experiments over large bundled changes. Use the experiment bundles and ablation ladders in `specs/improvement-ideas.md` to choose the right unit of testing.
@@ -27,12 +27,14 @@ High-level workflow:
 3. Read `specs/improvement-ideas.md` and identify candidate experiments.
 4. Use `main` as the aggregation point for documentation and experiment tracking:
 
-   * Record experiment summaries and final updates in `specs/experiment-results.md` on `main`.
-   * Do not merge experiment implementation branches back into `main`.
+   * Keep implementation code isolated to experiment branches while tests/dev-checks run.
+   * After all selected experiment checks finish, switch back to `main` and record consolidated summaries in `specs/experiment-results.md`.
+   * Update `specs/improvement-ideas.md` on `main` to remove, reprioritize, or add retest boundaries for decided ideas.
+   * Do not merge experiment implementation branches back into `main` unless the user explicitly starts a separate merge/port task.
 5. For each selected experiment, create a separate branch from the same base commit:
 
    * `exp/<YYYYMMDD>-<bundle-or-idea-slug>`
-   * Use a separate git worktree for each branch if practical.
+   * Use a separate git worktree for each branch if practical. Put worktrees under an ignored `.tmp/` path or an external sibling directory, not under a visible top-level `w/` folder.
 6. A subagent may work on each branch, but the primary agent remains responsible for:
 
    * selecting experiments
@@ -55,24 +57,30 @@ Prioritize experiments that are:
 
 Suggested loop:
 
-Current main already includes the A1 prepared retrieval index substrate, a safer partial A2 prompt-header orientation change, D2 figure-review ROI diagnostics, and A2b typed retrieval scoring without page-number tokens as default behavior. The 2026-06-17 wave-2 branch dev-checks also tested A3, A4, A2b, and B1 against a matched `google/gemma-4-e4b` current-main baseline. Use those results before picking new work: A2b was merged to main; A4 is neutral with better evidence quality; A3 is neutral with a large runtime penalty; B1 is a score/evidence regression.
+Current main already includes the A1 prepared retrieval index substrate, a safer partial A2 prompt-header orientation change, D2 figure-review ROI diagnostics, A2b typed retrieval scoring without page-number tokens, A4 evidence-aware reranking, and F excluded-column join diagnostics as default behavior. The 2026-06-17 wave-2 branch dev-checks also tested A3, A4, A2b, and B1 against a matched `google/gemma-4-e4b` current-main baseline. Use those results before picking new work: A2b is current main behavior and the later A2b rechecks did not prove a regression; A4 is now a canonical deterministic reranking support layer after a post-port dev-check scored 0.56 with evidence quality 0.82; A3 is neutral with a large runtime penalty; B1 is a score/evidence regression.
+
+The 2026-06-17 next-batch loop tested C2, D3, E2, and F from current main `da2ead2`. Use those results before picking new work: C2 prepared-index recovery, D3 figure value acceptance, and E2 max/best prompt guidance all had nominal score lifts but unacceptable evidence-quality regressions, so do not retest those exact implementations unchanged. F is now current eval/reporting behavior because it split intentionally excluded metadata proposals from true join failures.
 
 Recommended starting points:
 
-* Bundle C2: narrower uncertainty-gated recovery using prepared-index evidence and current A2b retrieval context, not broad current-retrieval rescue.
-* Bundle D3: targeted vision acceptance/gate change or shared page/figure batching using current D2 diagnostics.
-* Bundle E2: one narrow failure-driven prompt-repair class only if it can be cleanly isolated and measured.
-* Bundle F: one reliability/runtime or measurement experiment if it improves interpretation, such as judge calibration, excluded-column join diagnostics, structured-output replay/repair, or lazy rendering.
-* Optional A4 follow-up only if retrieval artifact diffs show that the reranker promotes answer-bearing hard-column chunks or if it is tested as a small A2b support layer.
-* Optional B1b only as an offline/artifact candidate hit-rate audit or verifier/selector-gated candidate-memory test; do not inject mined candidates into every prompt unchanged.
+* Evidence-anchor and artifact-diff analysis for the C2/D3/E2 guardrail collapse before another prompt, recovery, or vision value-acceptance dev-check.
+* Bundle F reliability/runtime work that does not change extraction values, such as structured-output replay/repair, judge calibration/adjudication reporting, or lazy rendering.
+* Bundle B1b only as an offline/artifact candidate hit-rate audit or verifier/selector-gated candidate-memory test; do not inject mined candidates into every prompt unchanged.
+* Optional D follow-up as shared page/figure batching or diagnostic-only accepted-correct analysis that preserves current value acceptance until evidence-anchor behavior is understood.
+* Optional retrieval follow-up only if artifact diffs suggest a new parser-structured table/figure unit, schema-conditioned query, or retrieval diagnostic can explain hard-column misses beyond current A2b/A4 behavior.
 
 Do not start with:
 
 * A1 prepared-index infrastructure, exact A2 broad typed retrieval text, or D2 diagnostics-only instrumentation, because those have already been integrated or partially integrated into current main
 * A2b typed retrieval scoring as a standalone branch, because it is now current main behavior
+* A4 evidence-aware reranking as a standalone branch, because it is now current main behavior
 * the rejected A3 line-based table-unit implementation unchanged
 * the rejected B1 prompt-injected advisory candidate census unchanged
 * broad current-retrieval recall rescue, because C1 was rejected
+* the rejected C2 prepared-index recall-rescue gate unchanged
+* the rejected D3 figure value-override policy unchanged
+* the rejected E2 max/best scoped prompt block unchanged
+* the F excluded-column join diagnostics experiment unchanged, because it is now current eval behavior
 * Bundle B3 batch-then-verify
 * large all-in-one retrieval + recovery + selector changes
 * TurboVec or a new vector DB dependency
@@ -113,6 +121,7 @@ Minimum checks:
 Baseline/comparison rules:
 
 * Use the same base commit, model, config, dataset, and scoring settings wherever possible.
+* For worktree dev-checks that modify backend, eval, or optimizer code, make sure the branch source paths are actually used by subprocesses. For backend-code branches, run with `PYTHONPATH=<branch>/app/backend/src;<branch>/tools/eval;<branch>/tools/optimizer` or an equivalent wrapper fix. A backend experiment run without branch `app/backend/src` on the main-app subprocess import path is invalid for backend-code decisions.
 * If a baseline run from the same base/config already exists in `specs/experiment-results.md`, reuse it only if it is clearly comparable.
 * Otherwise run or identify a matched baseline.
 * Do not claim an idea improved the app unless it beats a comparable baseline on relevant metrics.
@@ -143,7 +152,7 @@ Metrics to capture when available:
 * interpretation
 
 Result recording:
-After each experiment, append a compact but useful result entry to `specs/experiment-results.md`.
+During branch work, collect enough result facts to avoid losing run ids, commits, metrics, and caveats. After the selected experiment batch completes, switch back to `main` and append compact but useful result entries to `specs/experiment-results.md`. Avoid leaving the only result summary inside an experiment branch.
 
 Use a consistent format like:
 
@@ -173,6 +182,7 @@ Keep results honest:
 * `inconclusive`: implementation ran, but comparison was too weak to decide
 
 If an experiment is clearly rejected or completed, update `specs/improvement-ideas.md` only if appropriate under its own rules. Otherwise leave the idea active and record only the experiment result.
+Rejected exact implementations must get an explicit retest boundary in `specs/experiment-results.md` so future loops do not rerun the same idea blindly. If a broader idea remains promising, keep the broader idea active in `specs/improvement-ideas.md` with the rejected exact variant called out.
 
 Branch and commit behavior:
 
@@ -181,7 +191,7 @@ Branch and commit behavior:
 * Do not merge experiment branches.
 * Do not delete branches.
 * Do not open PRs unless explicitly useful; if you do, make them draft PRs and clearly label them as experiments.
-* Do not change production defaults on `main`.
+* Do not change production defaults on `main` during an experiment loop. Accepted improvements are merged or ported to `main` only in a later explicit merge task.
 * Do not introduce large new dependencies unless the idea explicitly requires it and the experiment plan justifies it.
 
 Failure handling:

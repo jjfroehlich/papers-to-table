@@ -146,6 +146,29 @@ def read_jsonl(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
+def test_instructions_fail_closed_on_csv_only_misread() -> None:
+    instruction_files = {
+        "SKILL.md": SKILL_DIR / "SKILL.md",
+        "references/extraction_workflow.md": SKILL_DIR / "references" / "extraction_workflow.md",
+        "templates/extraction_to_review_prompt.md": SKILL_DIR / "templates" / "extraction_to_review_prompt.md",
+    }
+    required_phrases = [
+        "A request for CSV outputs is not a CSV-only request",
+        "Return one completed CSV",
+        "_filled.csv",
+        "Before extracting any value",
+        "review_input.json",
+        "Every non-empty proposal must be written with structured evidence at authoring time",
+        "build_and_serve_review.py",
+        "serve_review.py",
+    ]
+
+    for label, path in instruction_files.items():
+        text = path.read_text(encoding="utf-8")
+        for phrase in required_phrases:
+            assert phrase in text, f"{phrase!r} missing from {label}"
+
+
 def test_authoring_validation_and_build_generate_mvp_artifacts() -> None:
     tmp_path = make_workspace("build")
     try:

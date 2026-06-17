@@ -265,85 +265,67 @@ class BatchEvaluationTests(unittest.TestCase):
                 "row-2,no,20,cell-score-2\n",
                 encoding="utf-8",
             )
+            proposal_defaults = {
+                "run_id": "run-a",
+                "proposal_status": "value_proposed",
+                "evidence_status": "direct_strong",
+                "review_bucket": "review",
+                "reason_codes": [],
+            }
+            proposal_rows = [
+                {
+                    "row_id": "row-1",
+                    "column_name": "status",
+                    "cell_id": "cell-status-1",
+                    "proposed_value": "yes",
+                    "field_type": "boolean",
+                },
+                {
+                    "row_id": "row-1",
+                    "column_name": "score",
+                    "cell_id": "cell-score-1",
+                    "proposed_value": "10",
+                    "field_type": "numeric",
+                },
+                {
+                    "row_id": "row-2",
+                    "column_name": "score",
+                    "cell_id": "wrong-cell-id",
+                    "proposed_value": "20",
+                    "field_type": "numeric",
+                },
+                {
+                    "row_id": "row-2",
+                    "column_name": "status",
+                    "cell_id": "cell-status-2a",
+                    "proposed_value": "no",
+                    "field_type": "boolean",
+                },
+                {
+                    "row_id": "row-2",
+                    "column_name": "status",
+                    "cell_id": "cell-status-2b",
+                    "proposed_value": "no",
+                    "field_type": "boolean",
+                },
+                {
+                    "row_id": "row-9",
+                    "column_name": "status",
+                    "cell_id": "cell-status-9",
+                    "proposed_value": "yes",
+                    "field_type": "boolean",
+                },
+                {
+                    "row_id": "row-1",
+                    "column_name": "Title",
+                    "cell_id": "cell-title-1",
+                    "proposed_value": "Study title",
+                    "field_type": "text",
+                },
+            ]
             with (run_dir / "proposals" / "proposals.jsonl").open("w", encoding="utf-8") as handle:
-                handle.write(
-                    json.dumps(
-                        {
-                            "run_id": "run-a",
-                            "row_id": "row-1",
-                            "column_name": "status",
-                            "cell_id": "cell-status-1",
-                            "proposed_value": "yes",
-                            "field_type": "boolean",
-                        }
-                    )
-                    + "\n"
-                )
-                handle.write(
-                    json.dumps(
-                        {
-                            "run_id": "run-a",
-                            "row_id": "row-1",
-                            "column_name": "score",
-                            "cell_id": "cell-score-1",
-                            "proposed_value": "10",
-                            "field_type": "numeric",
-                        }
-                    )
-                    + "\n"
-                )
-                handle.write(
-                    json.dumps(
-                        {
-                            "run_id": "run-a",
-                            "row_id": "row-2",
-                            "column_name": "score",
-                            "cell_id": "wrong-cell-id",
-                            "proposed_value": "20",
-                            "field_type": "numeric",
-                        }
-                    )
-                    + "\n"
-                )
-                handle.write(
-                    json.dumps(
-                        {
-                            "run_id": "run-a",
-                            "row_id": "row-2",
-                            "column_name": "status",
-                            "cell_id": "cell-status-2a",
-                            "proposed_value": "no",
-                            "field_type": "boolean",
-                        }
-                    )
-                    + "\n"
-                )
-                handle.write(
-                    json.dumps(
-                        {
-                            "run_id": "run-a",
-                            "row_id": "row-2",
-                            "column_name": "status",
-                            "cell_id": "cell-status-2b",
-                            "proposed_value": "no",
-                            "field_type": "boolean",
-                        }
-                    )
-                    + "\n"
-                )
-                handle.write(
-                    json.dumps(
-                        {
-                            "run_id": "run-a",
-                            "row_id": "row-9",
-                            "column_name": "status",
-                            "cell_id": "cell-status-9",
-                            "proposed_value": "yes",
-                            "field_type": "boolean",
-                        }
-                    )
-                    + "\n"
-                )
+                for proposal_row in proposal_rows:
+                    handle.write(json.dumps({**proposal_defaults, **proposal_row}) + "\n")
 
             output_dir = base / "out"
             self.assertEqual(
@@ -366,10 +348,25 @@ class BatchEvaluationTests(unittest.TestCase):
             self.assertEqual(summary["metrics"]["duplicate_proposal_join_count"], 1)
             self.assertEqual(summary["metrics"]["cell_id_mismatch_count"], 1)
             self.assertEqual(summary["metrics"]["unmatched_proposal_count"], 1)
+            self.assertEqual(summary["metrics"]["excluded_proposal_count"], 1)
             self.assertEqual(summary["metrics"]["join_failure_count"], 3)
             self.assertIn("duplicate_proposals:row-2:status:None", summary["join_diagnostics"])
             self.assertIn("cell_id_mismatch:row-2:score:cell-score-2", summary["join_diagnostics"])
             self.assertIn("unmatched_proposal:row-9:status:cell-status-9", summary["join_diagnostics"])
+            self.assertNotIn("excluded_proposal:row-1:Title:cell-title-1", summary["join_diagnostics"])
+            self.assertIn(
+                "excluded_proposal:row-1:Title:cell-title-1",
+                summary["excluded_proposal_diagnostics"],
+            )
+
+            scored_records = [
+                json.loads(line)
+                for line in (output_dir / "per-run" / "run-a" / "scored_cells.jsonl").read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            excluded_record = next(record for record in scored_records if record["join_status"] == "excluded_proposal")
+            self.assertEqual(excluded_record["column_name"], "Title")
+            self.assertIn("proposal_for_excluded_column", excluded_record["diagnostic_flags"])
 
     def test_compare_command_rebuilds_comparison_outputs_from_per_run_summaries(self) -> None:
         try:
@@ -434,6 +431,7 @@ class BatchEvaluationTests(unittest.TestCase):
         (run_dir / "proposals").mkdir(parents=True)
         (run_dir / "inputs").mkdir(parents=True)
         (run_dir / "summaries").mkdir(parents=True)
+        run_payload = {"artifact_schema_version": "main_run_bundle", **run_payload}
         (run_dir / "run.json").write_text(json.dumps(run_payload), encoding="utf-8")
         (run_dir / "config.snapshot.json").write_text(json.dumps(config_payload), encoding="utf-8")
         (run_dir / "inputs" / "input_summary.json").write_text(json.dumps({"page_count": 3}), encoding="utf-8")
@@ -446,6 +444,10 @@ class BatchEvaluationTests(unittest.TestCase):
                 "cell_id": "cell-status-1",
                 "proposed_value": "yes",
                 "field_type": "boolean",
+                "proposal_status": "value_proposed",
+                "evidence_status": "direct_strong",
+                "review_bucket": "review",
+                "reason_codes": [],
                 "evidence": [{"page": 1, "quote_text": "result was positive"}],
             }
         ]

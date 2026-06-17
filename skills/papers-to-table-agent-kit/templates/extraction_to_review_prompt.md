@@ -13,6 +13,10 @@ Use the local agent kit:
 
 ## Required Deliverable
 
+Do both unless explicitly told CSV-only: draft CSV outputs plus evidence-backed review package.
+
+CSV filenames, `_filled.csv`, `completed_table.csv`, or instructions such as `Return one completed CSV` do not mean CSV-only. A request for CSV outputs is not a CSV-only request.
+
 Do not stop after producing `_filled.csv`, `completed_table.csv`, or other draft CSV files. A filled CSV alone is incomplete for review. A request for CSV outputs is not a CSV-only request. Treat the task as CSV-only only when the user explicitly says "CSV only", "skip review", "do not build the review UI", or equivalent.
 
 The required deliverable is a formal review package:
@@ -28,7 +32,7 @@ RUN_DIR/
 
 Copy all source PDFs into `RUN_DIR/pdfs/`. Preserve the source table template as `RUN_DIR/source_table.csv` and the schema as `RUN_DIR/schema.json` when available.
 
-Before extracting values, create the `review_input.json` skeleton with `pdfs`, `columns`, `rows`, and an initially empty `proposals` array. Append one evidence-backed proposal as each non-empty target cell is authored.
+Before extracting any value, create the `review_input.json` skeleton with `pdfs`, `columns`, `rows`, and an initially empty `proposals` array. Every non-empty proposal must be written with structured evidence at authoring time. Append one evidence-backed proposal as each non-empty target cell is authored.
 
 ## Extraction Rules
 

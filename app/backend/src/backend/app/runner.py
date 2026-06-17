@@ -518,6 +518,7 @@ async def run_pipeline(
             "include_tables_values": [],
             "include_neighbor_window_values": [],
             "top_k_values": [],
+            "rerank_profiles": [],
         },
         "counters": {
             "provider_request_counts": {},
@@ -578,6 +579,8 @@ async def run_pipeline(
             "idf_build_repeated_work_count": 0,
             "retrieval_repeated_work_count": 0,
             "persistent_index_source_counts": {},
+            "rerank_changed_count": 0,
+            "rerank_ms_total": 0.0,
             "text_model_call_count": 0,
             "vision_model_call_count": 0,
             "evidence_item_count": 0,
@@ -647,6 +650,8 @@ async def run_pipeline(
                 "chunk_count_total": 0,
                 "chunk_count_by_type": _empty_chunk_type_counts(),
                 "persistent_index_source_counts": {},
+                "rerank_changed_count": 0,
+                "rerank_ms_total": 0.0,
                 "neighbor_chunks_added_count": 0,
                 "selected_chunk_count_total": 0,
                 "candidate_chunk_count_total": 0,
@@ -686,6 +691,8 @@ async def run_pipeline(
         chunk_build_repeated_work_count = 0
         idf_build_repeated_work_count = 0
         persistent_index_source_counts: dict[str, int] = {}
+        rerank_changed_count = 0
+        rerank_ms_total = 0.0
 
         for pdf_id, pdf_stats in sorted(per_pdf.items()):
             pdf_stats["chunk_count_by_type"] = _normalized_chunk_type_counts(pdf_stats.get("chunk_count_by_type"))
@@ -698,11 +705,13 @@ async def run_pipeline(
             pdf_stats["parse_pdf_ms"] = round(float(pdf_stats.get("parse_pdf_ms", 0.0) or 0.0), 3)
             pdf_stats["retrieval_prep_ms"] = round(float(pdf_stats.get("retrieval_prep_ms", 0.0) or 0.0), 3)
             pdf_stats["retrieval_query_ms"] = round(float(pdf_stats.get("retrieval_query_ms", 0.0) or 0.0), 3)
+            pdf_stats["rerank_ms_total"] = round(float(pdf_stats.get("rerank_ms_total", 0.0) or 0.0), 3)
 
             retrieval_calls = int(pdf_stats.get("retrieval_calls", 0) or 0)
             chunk_build_count = int(pdf_stats.get("chunk_build_count", 0) or 0)
             idf_build_count = int(pdf_stats.get("idf_build_count", 0) or 0)
             neighbor_count = int(pdf_stats.get("neighbor_chunks_added_count", 0) or 0)
+            pdf_rerank_changed_count = int(pdf_stats.get("rerank_changed_count", 0) or 0)
 
             retrieval_calls_per_pdf[pdf_id] = retrieval_calls
             chunk_build_count_per_pdf[pdf_id] = chunk_build_count
@@ -711,6 +720,8 @@ async def run_pipeline(
 
             retrieval_calls_total += retrieval_calls
             neighbor_chunks_added_count += neighbor_count
+            rerank_changed_count += pdf_rerank_changed_count
+            rerank_ms_total += float(pdf_stats.get("rerank_ms_total", 0.0) or 0.0)
             chunk_build_repeated_work_count += max(chunk_build_count - 1, 0)
             idf_build_repeated_work_count += max(idf_build_count - 1, 0)
             chunk_count_total += int(pdf_stats.get("chunk_count_total", 0) or 0)
@@ -752,6 +763,9 @@ async def run_pipeline(
             cell_stats.setdefault("figure_review_ms", 0.0)
             cell_stats.setdefault("cell_total_ms", 0.0)
             cell_stats.setdefault("neighbor_chunks_added_count", 0)
+            cell_stats.setdefault("rerank_profile", None)
+            cell_stats.setdefault("rerank_ms", 0.0)
+            cell_stats.setdefault("rerank_changed_count", 0)
             proposal_id = str(cell_stats.get("proposal_id") or "")
             proposal = proposal_by_id.get(proposal_id)
             proposal_evidence = evidence_by_proposal_id.get(proposal_id, [])
@@ -868,6 +882,7 @@ async def run_pipeline(
         include_tables_values: set[bool] = set()
         include_neighbor_window_values: set[bool] = set()
         top_k_values: set[int] = set()
+        rerank_profiles: set[str] = set()
 
         for cell in per_cell:
             policy = cell.get("retrieval_policy")
@@ -897,6 +912,9 @@ async def run_pipeline(
             top_k = policy.get("top_k")
             if isinstance(top_k, int):
                 top_k_values.add(top_k)
+            rerank_profile = policy.get("rerank_profile")
+            if isinstance(rerank_profile, str) and rerank_profile:
+                rerank_profiles.add(rerank_profile)
 
         retrieval_policy_summary.update(
             {
@@ -909,6 +927,7 @@ async def run_pipeline(
                 "include_tables_values": sorted(include_tables_values),
                 "include_neighbor_window_values": sorted(include_neighbor_window_values),
                 "top_k_values": sorted(top_k_values),
+                "rerank_profiles": sorted(rerank_profiles),
             }
         )
 
@@ -933,6 +952,8 @@ async def run_pipeline(
             chunk_build_repeated_work_count + idf_build_repeated_work_count
         )
         counters["persistent_index_source_counts"] = persistent_index_source_counts
+        counters["rerank_changed_count"] = rerank_changed_count
+        counters["rerank_ms_total"] = round(rerank_ms_total, 3)
         counters["text_model_call_count"] = text_model_call_count
         counters["vision_model_call_count"] = vision_model_call_count
         counters["evidence_item_count"] = evidence_item_count
@@ -2168,6 +2189,14 @@ async def run_pipeline(
                 pdf_stats["candidate_chunk_count_total"] += int(
                     retrieval_stats.get("candidate_chunk_count", 0) or 0
                 )
+                pdf_stats["rerank_changed_count"] += int(
+                    retrieval_stats.get("rerank_changed_count", 0) or 0
+                )
+                pdf_stats["rerank_ms_total"] = round(
+                    float(pdf_stats.get("rerank_ms_total", 0.0) or 0.0)
+                    + float(retrieval_stats.get("rerank_ms", 0.0) or 0.0),
+                    3,
+                )
                 index_source = retrieval_stats.get("persistent_index_source")
                 if isinstance(index_source, str) and index_source:
                     source_counts = pdf_stats.setdefault("persistent_index_source_counts", {})
@@ -2206,6 +2235,9 @@ async def run_pipeline(
                 "persistent_index_build_ms": float(retrieval_stats.get("persistent_index_build_ms", 0.0) or 0.0),
                 "persistent_index_load_ms": float(retrieval_stats.get("persistent_index_load_ms", 0.0) or 0.0),
                 "persistent_index_load_error": retrieval_stats.get("persistent_index_load_error"),
+                "rerank_profile": retrieval_stats.get("rerank_profile"),
+                "rerank_ms": float(retrieval_stats.get("rerank_ms", 0.0) or 0.0),
+                "rerank_changed_count": int(retrieval_stats.get("rerank_changed_count", 0) or 0),
             }
 
             await asyncio.sleep(0)  # yield between cells
