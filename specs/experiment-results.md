@@ -75,6 +75,11 @@ Use one table per rejected or superseded idea. Kept ideas are summarized in the 
 | 2026-06-17 | `exp_c1_uncertainty_recovery_e4b_20260617 / run_20260617_080207_gcpqb9` | [Recall Rescue With Current Retrieval (C1)](#recall-rescue-with-current-retrieval-c1) | `google/gemma-4-e4b` | Genome editing | 0.46 | 16.12 min | Primary e4b comparison: broad current-retrieval rescue used 48/48 eligible cells and regressed; rejected as tested. |
 | 2026-06-17 | `exp_d2_vision_gate_diagnostics_e4b_20260617 / run_20260617_081904_53l6nq` | [Targeted Vision Gate Diagnostics](#kept-or-partially-kept-ideas) | `google/gemma-4-e4b` | Genome editing | 0.54 | 11.54 min | Primary e4b comparison: partially kept for diagnostics; score delta is not treated as causal. |
 | 2026-06-17 | `main_gemma4_e4b_baseline_20260617 / run_20260617_072009_e6g1tc` | Current main reference | `google/gemma-4-e4b` | Genome editing | 0.50 | 12.62 min | Current-main development baseline after reverting default model truth to e4b. |
+| 2026-06-17 | `exp_a3_table_units_e4b_20260617 / run_20260617_121742_7b5b5l` | [Table-Aware Retrieval Units (A3)](#table-aware-retrieval-units-a3) | `google/gemma-4-e4b` | Genome editing | 0.58 | 15.10 min | Neutral score with 129 added `table_unit` chunks and a large runtime increase; do not merge exact line-based implementation. |
+| 2026-06-17 | `exp_a4_evidence_rerank_e4b_20260617_rerun / run_20260617_135352_wowqdc` | [Evidence-Aware Reranking (A4)](#kept-or-partially-kept-ideas) | `google/gemma-4-e4b` | Genome editing | 0.58 | 13.08 min | Neutral score, evidence quality improved to 0.82; keep as an inconclusive support-layer candidate rather than standalone default. |
+| 2026-06-17 | `exp_a2b_typed_scoring_e4b_20260617 / run_20260617_140741_s16g3m` | [Typed Retrieval Scoring (A2b)](#kept-or-partially-kept-ideas) | `google/gemma-4-e4b` | Genome editing | 0.62 | 14.00 min | Promising narrow ablation without page-number tokens; best wave-2 score but still single-replicate and slower than baseline. |
+| 2026-06-17 | `exp_b1_schema_candidate_census_e4b_20260617 / run_20260617_142227_sx2a7g` | [Schema Candidate Census Prompt Injection (B1)](#schema-candidate-census-prompt-injection-b1) | `google/gemma-4-e4b` | Genome editing | 0.48 | 13.39 min | Regression; 75 census cells and 120 advisory candidates lowered score and evidence quality. |
+| 2026-06-17 | `main_wave2_baseline_e4b_20260617 / run_20260617_114230_wd7zwd` | Current main reference | `google/gemma-4-e4b` | Genome editing | 0.58 | 9.98 min | Current-main wave-2 baseline after A1 infrastructure, safer A2 prompt-header orientation, D2 diagnostics, and e4b development default. |
 
 ## Full-Benchmark Idea Evaluations
 
@@ -135,8 +140,38 @@ Figure-review counters show that the dominant issue is not simply "use more visi
 | 2026-06 | `baf66cd` | Persistent Evidence Index (A1) | Kept as enabling infrastructure, not as a standalone quality lift. The e4b dev-check scored 0.54 versus current-main e4b at 0.50, while the 12B sensitivity run scored 0.54 versus 0.56. Current main now persists guarded prepared indexes under `retrieval/_indexes/`, verifies document fingerprints before disk reuse, and reports `built`/`disk`/`memory` source counts. Continue with index-backed retrieval, recovery, table-aware units, or paper-census tests. |
 | 2026-06 | `6a1348b` | Typed Retrieval Context (A2) | Partially kept as safer prompt orientation, not the exact branch implementation. The e4b dev-check scored 0.60 versus current-main e4b at 0.50, but the 12B sensitivity run regressed at 0.50 versus 0.56. Current main exposes section, table, and figure metadata in extraction prompt passage headers while keeping page/element markers out of retrieval scoring text. Retest broader typed retrieval scoring only through a narrower ablation or full benchmark. |
 | 2026-06 | `2215246` | Targeted Vision Gate Diagnostics (D2) | Kept as diagnostic instrumentation, not as a default extraction-routing change. The e4b dev-check scored 0.54 in 11.54 min with zero provider retries, but the branch is diagnostic-only, so score deltas are not causal. Current main now rolls up triggered/reviewed/hit/useful/rescue counts, accepted hits, dropped/no-hit reasons, image source/fallback, planner skip/confidence counts, and planner target/rejected figure counts. Use these diagnostics to guide future vision acceptance tests. |
+| 2026-06 | `82fcd28` | Evidence-Aware Reranking (A4) | Inconclusive as a standalone retrieval-quality layer. The e4b dev-check scored 0.58 versus the matched current-main wave-2 baseline at 0.58, while evidence quality improved from 0.78 to 0.82 and total runtime increased from 9.98 to 13.08 min. Do not merge this branch by itself. It may be worth retesting only as a small support layer after hard-column diffs show the reranker promotes genuinely answer-bearing chunks. |
+| 2026-06 | `681e998` | Typed Retrieval Scoring (A2b) | Promising but not accepted as a default yet. This narrow ablation excludes page-number tokens, keeps reviewer-visible display text unchanged, and adds only chunk-type/section/figure/table markers to retrieval scoring text. The e4b dev-check scored 0.62 versus matched current-main wave-2 baseline 0.58, with evidence quality 0.82 versus 0.78 and runtime 14.00 min versus 9.98 min. Next step is a replicated or three-dataset dev/full benchmark before merging. |
 
 ## Rejected Or Superseded Ideas
+
+### Table-Aware Retrieval Units (A3)
+
+| Field | Details |
+| --- | --- |
+| Status | Rejected as a standalone default implementation. |
+| Tested idea | Bundle A3: add line-based `table_unit` chunks from parsed table-region text as additive retrieval units. |
+| What was tested | Branch `exp/20260617-a3-table-aware-retrieval-units`, commit `cbcda65`; opt-in `retrieval.table_aware_units_enabled`, prepared-index cache separation, optimizer knob alias, and focused retrieval/cache tests. |
+| Why tested | The hypothesis was that preserving table-row/header context would improve numeric or table-derived cells without replacing normal paragraph, caption, or figure chunks. |
+| Evidence | Focused tests passed on the branch (`29 passed` with branch-local `PYTHONPATH`), `python scripts/check_specs.py` passed, and dev-check `exp_a3_table_units_e4b_20260617 / run_20260617_121742_7b5b5l` completed. |
+| Scope and models | Genome editing dev-check; one replicate; `google/gemma-4-e4b`; compared with matched current-main wave-2 baseline `main_wave2_baseline_e4b_20260617 / run_20260617_114230_wd7zwd`. |
+| Result | Score stayed flat at 0.58 and evidence quality stayed flat at 0.78, while runtime increased from 9.98 to 15.10 min. The branch added 129 `table_unit` chunks, raised total chunks from 1409 to 1538, and produced no aggregate quality gain. |
+| Decision | Do not merge the exact line-based table-unit implementation. The broader table-aware retrieval idea remains open only for a materially better table representation, such as parser-structured cells/headers or a targeted table-field path with retrieval diffs proving answer-bearing promotion. |
+| Retest boundary | Do not retest this same line-splitting implementation unchanged. A future A3 variant should first show table-answer retrieval improvements on per-cell artifact diffs and avoid a broad runtime penalty before another model-heavy dev-check. |
+
+### Schema Candidate Census Prompt Injection (B1)
+
+| Field | Details |
+| --- | --- |
+| Status | Rejected as a default advisory-census implementation. |
+| Tested idea | Bundle B1: mine generic schema-conditioned candidates from retrieved chunks and inject a small advisory candidate block into each per-cell extraction prompt. |
+| What was tested | Branch `exp/20260617-b1-schema-candidate-census`, commit `fa94cfc`; opt-in `extraction.schema_candidate_census_enabled`, artifact persistence under `context/schema_candidate_census/`, prompt advisory block, optimizer knob aliases, run counters, and focused tests for candidate mining/prompt/artifact behavior. |
+| Why tested | The hypothesis was that a compact paper/schema candidate memory could supply global candidate values while keeping per-cell extraction authoritative. |
+| Evidence | Focused tests passed on the branch (`30 passed` with branch-local `PYTHONPATH`), `python scripts/check_specs.py` passed, and dev-check `exp_b1_schema_candidate_census_e4b_20260617 / run_20260617_142227_sx2a7g` completed. |
+| Scope and models | Genome editing dev-check; one replicate; `google/gemma-4-e4b`; compared with matched current-main wave-2 baseline `main_wave2_baseline_e4b_20260617 / run_20260617_114230_wd7zwd`. |
+| Result | Score regressed to 0.48 versus baseline 0.58 and evidence quality fell to 0.58 versus 0.78. The branch generated census candidates for all 75 cells and 120 advisory candidates total, increased text structured calls to 120, and did not produce a useful score-per-minute tradeoff. |
+| Decision | Do not merge the prompt-injected advisory census. The broader schema-conditioned paper-context idea remains open only after the candidate source is evaluated offline for hit rate and then used through verification or selector logic rather than simply adding mined values to every extraction prompt. |
+| Retest boundary | Do not retest this exact advisory prompt block unchanged. A future B experiment should report candidate hit rate, verified-use rate, rejection rate, and recovered-correct versus recovered-wrong cells before candidate memory affects final prompts. |
 
 ### Recall Rescue With Current Retrieval (C1)
 
@@ -253,3 +288,7 @@ These branches are kept as historical references for tested ideas. Each branch m
 | `exp-20260616-a2-typed-retrieval-context` | `6a1348b` | [Typed Retrieval Context (A2)](#kept-or-partially-kept-ideas) | Typed retrieval text and prompt passage metadata experiment. |
 | `exp-20260616-c1-uncertainty-recovery` | `aa64a77` | [Recall Rescue With Current Retrieval (C1)](#recall-rescue-with-current-retrieval-c1) | Dev-check recall-rescue override for current retrieval. |
 | `exp-20260616-d2-vision-gate-diagnostics` | `2215246` | [Targeted Vision Gate Diagnostics](#kept-or-partially-kept-ideas) | Figure-review planner, no-hit, dropped-result, and accepted-hit diagnostics. |
+| `exp/20260617-a3-table-aware-retrieval-units` | `cbcda65` | [Table-Aware Retrieval Units (A3)](#table-aware-retrieval-units-a3) | Line-based additive table-unit retrieval chunks; rejected as standalone default after neutral score and slower runtime. |
+| `exp/20260617-a4-evidence-aware-reranking` | `82fcd28` | [Evidence-Aware Reranking (A4)](#kept-or-partially-kept-ideas) | Deterministic evidence-aware retrieval reranker; neutral score, improved evidence quality, not standalone-ready. |
+| `exp/20260617-a2b-typed-retrieval-scoring` | `681e998` | [Typed Retrieval Scoring (A2b)](#kept-or-partially-kept-ideas) | Narrow typed scoring-text ablation without page-number tokens; promising single dev-check. |
+| `exp/20260617-b1-schema-candidate-census` | `fa94cfc` | [Schema Candidate Census Prompt Injection (B1)](#schema-candidate-census-prompt-injection-b1) | Advisory schema-candidate census prompt injection; rejected as default after score/evidence regression. |

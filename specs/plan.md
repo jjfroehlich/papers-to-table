@@ -15,7 +15,7 @@ This file is the current technical direction and near-term roadmap. It is not a 
 ## Near-Term Roadmap
 
 - Add focused validation for docs-referenced commands and spec drift checks.
-- Continue improving hard extraction columns through generic candidate selection, retrieval context, table-aware retrieval units, and targeted prompt repair.
+- Continue improving hard extraction columns through A2b-style retrieval context, targeted recovery, targeted vision acceptance/gating, narrow prompt repair, and better measurement. Do not repeat the rejected line-based table-unit or prompt-injected candidate-census experiments unchanged.
 - Use `improvement-ideas.md` for untested or unresolved improvement hypotheses and `experiment-results.md` for benchmarked, rejected, superseded, or partly kept ideas.
 - Keep the portable agent kit centered on `review_input.json` authoring, rich static/local review, and accepted-only export without turning it into a second app.
 - Refresh screenshots when the next visible UI workflow change lands.

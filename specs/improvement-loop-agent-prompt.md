@@ -55,21 +55,23 @@ Prioritize experiments that are:
 
 Suggested loop:
 
-Current main already includes the A1 prepared retrieval index substrate, a safer partial A2 prompt-header orientation change, and D2 figure-review ROI diagnostics. Do not recreate those experiments as standalone branches unless explicitly testing a narrower ablation against current main.
+Current main already includes the A1 prepared retrieval index substrate, a safer partial A2 prompt-header orientation change, and D2 figure-review ROI diagnostics. The 2026-06-17 wave-2 branch dev-checks also tested A3, A4, A2b, and B1 against a matched `google/gemma-4-e4b` current-main baseline. Use those results before picking new work: A2b is the only score-positive branch so far; A4 is neutral with better evidence quality; A3 is neutral with a large runtime penalty; B1 is a score/evidence regression.
 
 Recommended starting points:
 
-* Bundle A3: table-aware retrieval units on top of the prepared-index baseline
-* Bundle A4 or A2b: evidence-aware reranking, or a narrow typed retrieval-scoring ablation that excludes page-number tokens
-* Bundle B1: advisory schema-conditioned candidate census using the prepared retrieval index
-* Bundle C2: narrower uncertainty-gated recovery using prepared-index evidence, not broad current-retrieval rescue
-* Bundle D3: targeted vision acceptance/gate change or shared page/figure batching using current D2 diagnostics
-* one narrow Bundle E2 prompt-repair class only if it can be cleanly isolated
-* optionally one Bundle F reliability/runtime experiment if it improves measurement quality for the above
+* A2b follow-up: replicate, run a broader dev/full benchmark, or prepare a careful main-merge candidate for narrow typed retrieval scoring without page-number tokens.
+* Bundle C2: narrower uncertainty-gated recovery using prepared-index evidence and/or A2b retrieval context, not broad current-retrieval rescue.
+* Bundle D3: targeted vision acceptance/gate change or shared page/figure batching using current D2 diagnostics.
+* Bundle E2: one narrow failure-driven prompt-repair class only if it can be cleanly isolated and measured.
+* Bundle F: one reliability/runtime or measurement experiment if it improves interpretation, such as judge calibration, excluded-column join diagnostics, structured-output replay/repair, or lazy rendering.
+* Optional A4 follow-up only if retrieval artifact diffs show that the reranker promotes answer-bearing hard-column chunks or if it is tested as a small A2b support layer.
+* Optional B1b only as an offline/artifact candidate hit-rate audit or verifier/selector-gated candidate-memory test; do not inject mined candidates into every prompt unchanged.
 
 Do not start with:
 
 * A1 prepared-index infrastructure, exact A2 broad typed retrieval text, or D2 diagnostics-only instrumentation, because those have already been integrated or partially integrated into current main
+* the rejected A3 line-based table-unit implementation unchanged
+* the rejected B1 prompt-injected advisory candidate census unchanged
 * broad current-retrieval recall rescue, because C1 was rejected
 * Bundle B3 batch-then-verify
 * large all-in-one retrieval + recovery + selector changes
