@@ -141,6 +141,7 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
   const [exportResult, setExportResult] = useState<ExportResult | null>(null)
+  const [exportNotice, setExportNotice] = useState<string | null>(null)
   const [workspaceError, setWorkspaceError] = useState<string | null>(null)
   const [leftPaneMode, setLeftPaneMode] = useState<LeftPaneMode>(() =>
     readStoredValue<LeftPaneMode>('papersToTable.review.leftPaneMode', 'table', ['paper', 'column', 'table'])
@@ -364,7 +365,14 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
   async function handleExport() {
     setExporting(true)
     setExportError(null)
+    setExportNotice(null)
     try {
+      if (!api.isServed()) {
+        await api.downloadDecisions()
+        setExportResult(null)
+        setExportNotice('Review decisions downloaded. To create exports/final_table.csv and exports/reviewed_bundle/, run apply_review_decisions.py with the downloaded_decisions.json file for this review run.')
+        return
+      }
       const result = await api.triggerExport(run.run_id, outputDir)
       setExportResult(result)
     } catch (error) {
@@ -372,10 +380,6 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
     } finally {
       setExporting(false)
     }
-  }
-
-  function handleDownloadDecisions() {
-    void api.downloadDecisions()
   }
 
   return (
@@ -408,9 +412,6 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
 
             <div className="flex flex-wrap items-center gap-2">
               {run.eval_mode && <span className="rounded-md bg-indigo-100 px-2 py-1 text-xs font-semibold text-indigo-700">Eval mode</span>}
-              <span className={`rounded-md px-2 py-1 text-xs font-semibold ${api.isServed() ? 'bg-emerald-50 text-emerald-800' : 'bg-sky-50 text-sky-800'}`}>
-                {api.isServed() ? 'Server writeback' : 'Download mode'}
-              </span>
               <button
                 onClick={() => setShowDiagnostics((value) => !value)}
                 aria-expanded={showDiagnostics}
@@ -419,18 +420,12 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
                 Diagnostics
               </button>
               <button
-                onClick={handleDownloadDecisions}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                Download decisions
-              </button>
-              <button
                 onClick={handleExport}
-                disabled={exporting || !api.isServed()}
-                title={api.isServed() ? 'Export reviewed bundle' : 'Serve on localhost to export reviewed bundle'}
+                disabled={exporting}
+                title={api.isServed() ? 'Write exports/final_table.csv and exports/reviewed_bundle/.' : 'Finish this static review by downloading decisions for the export script.'}
                 className="rounded-lg bg-slate-950 px-3 py-1.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
               >
-                {exporting ? 'Exporting…' : 'Export reviewed bundle'}
+                {exporting ? 'Finishing…' : api.isServed() ? 'Export reviewed bundle' : 'Finish review'}
               </button>
               <button onClick={() => setShowHelp(true)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-500 hover:bg-slate-50" title="Keyboard shortcuts (?)">
                 ?
@@ -439,9 +434,10 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
           </div>
         </div>
 
-        {(exportError || exportResult) && (
+        {(exportError || exportResult || exportNotice) && (
           <div className="border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs" data-testid="export-status">
             {exportError && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700"><strong>Export failed:</strong> {exportError}</div>}
+            {exportNotice && <div className="rounded-2xl border border-sky-200 bg-sky-50 px-3 py-2 text-sky-800"><strong>Decisions downloaded:</strong> {exportNotice}</div>}
             {exportResult && (
               <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800">
                 <span>Export completed at {new Date(exportResult.exported_at).toLocaleString()} with {exportResult.accepted_changes_count} accepted change(s).</span>

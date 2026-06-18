@@ -11,10 +11,11 @@ const mockRecordDecision = vi.fn()
 const mockBulkAccept = vi.fn()
 const mockTriggerExport = vi.fn()
 const mockDownloadDecisions = vi.fn()
+let mockIsServed = true
 
 vi.mock('../api/client', () => ({
   api: {
-    isServed: () => true,
+    isServed: () => mockIsServed,
     downloadDecisions: () => mockDownloadDecisions(),
     listProposals: (...args: Parameters<typeof mockListProposals>) => mockListProposals(...args),
     getReviewProgress: (...args: Parameters<typeof mockGetReviewProgress>) => mockGetReviewProgress(...args),
@@ -155,6 +156,7 @@ describe('standalone ReviewWorkspace', () => {
   beforeEach(() => {
     localStorage.clear()
     vi.clearAllMocks()
+    mockIsServed = true
     mockListProposals.mockResolvedValue({ run_id: 'standalone_run', count: proposals.length, proposals })
     mockGetReviewProgress.mockResolvedValue({
       run_id: 'standalone_run',
@@ -195,10 +197,23 @@ describe('standalone ReviewWorkspace', () => {
     expect(screen.getByRole('button', { name: 'By Column' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'As Table' })).toBeInTheDocument()
     expect(screen.getAllByRole('separator')).toHaveLength(2)
-    expect(screen.getByRole('button', { name: 'Download decisions' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Download decisions' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Download mode')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /Export reviewed bundle/i }))
     expect(await screen.findByText(/Reviewed bundle: exports\/reviewed_bundle/i)).toBeInTheDocument()
+  })
+
+  it('uses one contextual export button in static file mode', async () => {
+    mockIsServed = false
+    render(<ReviewWorkspace run={makeRun()} outputDir="" />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /Finish review/i }))
+
+    await waitFor(() => expect(mockDownloadDecisions).toHaveBeenCalledTimes(1))
+    expect(mockTriggerExport).not.toHaveBeenCalled()
+    expect(screen.getByText(/Decisions downloaded:/)).toBeInTheDocument()
+    expect(screen.getByText(/apply_review_decisions.py/)).toBeInTheDocument()
   })
 
   it('shows guarded bulk accept confirmation for the visible view', async () => {

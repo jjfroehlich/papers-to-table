@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import shutil
 import sys
@@ -349,6 +350,17 @@ def _normalize_evidence(
     return normalized, tiers
 
 
+def _proposal_rationale(proposal: dict[str, Any], evidence_items: list[dict[str, Any]]) -> str | None:
+    for value in (proposal.get("rationale"), proposal.get("reasoning")):
+        if is_non_empty(value):
+            return str(value).strip()
+    for evidence in evidence_items:
+        reasoning = evidence.get("reasoning")
+        if is_non_empty(reasoning):
+            return str(reasoning).strip()
+    return None
+
+
 def _page_number(value: Any) -> int | None:
     if isinstance(value, int):
         return value
@@ -430,7 +442,7 @@ def _normalize_proposals(
                 "review_bucket": item.get("review_bucket") or semantics["review_bucket"],
                 "reason_codes": reason_codes,
                 "proposed_value": proposed_value,
-                "rationale": item.get("rationale") or item.get("reasoning"),
+                "rationale": _proposal_rationale(item, normalized_evidence),
                 "calculation": item.get("calculation"),
                 "primary_evidence_id": evidence_ids[0] if evidence_ids else None,
                 "ordered_supporting_evidence_ids": evidence_ids[1:],
@@ -571,6 +583,17 @@ def _copy_review_app_assets(run_dir: Path) -> list[str]:
     copied: list[str] = []
     review_dir = run_dir / "review"
     review_dir.mkdir(parents=True, exist_ok=True)
+
+    def make_script_file_safe(path: Path) -> None:
+        text = path.read_text(encoding="utf-8")
+        if "import.meta.url" not in text:
+            return
+        current_script_url = (
+            "((globalThis.document && globalThis.document.currentScript && globalThis.document.currentScript.src) "
+            "|| globalThis.location.href)"
+        )
+        path.write_text(text.replace("import.meta.url", current_script_url), encoding="utf-8")
+
     for child in dist_dir.iterdir():
         if child.name == "index.html":
             continue
@@ -584,15 +607,79 @@ def _copy_review_app_assets(run_dir: Path) -> list[str]:
                 for path in destination.rglob("*")
                 if path.is_file()
             )
+            for path in destination.rglob("*.js"):
+                make_script_file_safe(path)
         elif child.is_file():
             shutil.copy2(child, destination)
+            if destination.suffix == ".js":
+                make_script_file_safe(destination)
             copied.append(destination.relative_to(run_dir).as_posix())
     return copied
+
+
+def _write_embedded_pdf_data(run_dir: Path, pdfs: list[dict[str, Any]]) -> Path:
+    """Write lazy PDF byte scripts so file:// review pages can render them."""
+    pdf_data_dir = run_dir / "review" / "assets" / "pdf-data"
+    if pdf_data_dir.exists():
+        shutil.rmtree(pdf_data_dir)
+    pdf_data_dir.mkdir(parents=True, exist_ok=True)
+
+    index_payload: dict[str, str] = {}
+    used_names: set[str] = set()
+    for pdf in pdfs:
+        pdf_id = str(pdf.get("pdf_id") or "").strip()
+        pdf_path = str(pdf.get("path") or "").strip()
+        if not pdf_id or not pdf_path:
+            continue
+        source = Path(pdf_path)
+        if not source.is_absolute():
+            source = run_dir / source
+        if not source.exists() or not source.is_file():
+            continue
+
+        base_name = safe_filename(pdf_id, "pdf")
+        script_name = f"{base_name}.js"
+        suffix = 2
+        while script_name in used_names:
+            script_name = f"{base_name}_{suffix}.js"
+            suffix += 1
+        used_names.add(script_name)
+
+        encoded = base64.b64encode(source.read_bytes()).decode("ascii")
+        script_path = pdf_data_dir / script_name
+        script_path.write_text(
+            "window.__REVIEW_PDF_DATA__ = window.__REVIEW_PDF_DATA__ || {};\n"
+            f"window.__REVIEW_PDF_DATA__[{json.dumps(pdf_id, ensure_ascii=True)}] = "
+            f"{json.dumps(encoded, ensure_ascii=True)};\n",
+            encoding="utf-8",
+        )
+        index_payload[pdf_id] = f"./assets/pdf-data/{script_name}"
+
+    out_path = run_dir / "review" / "assets" / "pdf-data.js"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    json_payload = json.dumps(index_payload, ensure_ascii=True, sort_keys=True)
+    out_path.write_text(
+        "window.__REVIEW_PDF_DATA__ = window.__REVIEW_PDF_DATA__ || {};\n"
+        "window.__REVIEW_PDF_DATA_INDEX__ = "
+        + json_payload.replace("</", "<\\/")
+        + ";\n",
+        encoding="utf-8",
+    )
+    return out_path
 
 
 def _write_review_html(run_dir: Path, package: dict[str, Any]) -> Path:
     template_path = _review_app_dist_dir() / "index.html"
     template = template_path.read_text(encoding="utf-8")
+    template = template.replace('<script type="module" crossorigin src=', '<script defer src=')
+    template = template.replace('<script type="module" src=', '<script defer src=')
+    template = template.replace(" crossorigin", "")
+    if "./assets/pdf-data.js" not in template:
+        template = template.replace(
+            '<script defer src="./assets/index-',
+            '<script defer src="./assets/pdf-data.js"></script>\n    <script defer src="./assets/index-',
+            1,
+        )
     package_json = json.dumps(package, ensure_ascii=False).replace("</", "<\\/")
     html = template.replace("__REVIEW_PACKAGE_JSON__", package_json)
     out_path = run_dir / "review" / "index.html"
@@ -637,12 +724,14 @@ def build_review_package(run_dir: Path, *, from_review_input: bool = True) -> di
     write_json(run_dir / "review" / "review_package.json", package)
     draft_table_path = _write_draft_filled_table(run_dir, table_rows, table_fieldnames, rows, columns, proposals)
     copied_review_app_assets = _copy_review_app_assets(run_dir)
+    pdf_data_path = _write_embedded_pdf_data(run_dir, pdfs)
     html_path = _write_review_html(run_dir, package)
     copied_assets = _copy_pdfjs_assets(run_dir)
     generated_report = validate_generated(run_dir)
     generated_report["authoring"] = authoring_report
     generated_report["copied_assets"] = copied_assets
     generated_report["copied_review_app_assets"] = copied_review_app_assets
+    generated_report["embedded_pdf_data"] = pdf_data_path.relative_to(run_dir).as_posix()
     persist_report(run_dir, generated_report)
     if not generated_report["ok"]:
         raise ValueError("Generated review package failed validation. See summaries/validation_report.json.")

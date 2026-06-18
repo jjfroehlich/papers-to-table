@@ -189,6 +189,19 @@ The priority sections below remain the active improvement backlog. This section 
 | **Test** | Treat as Bundle F reliability work: replay captured malformed outputs and measure retry, repair, invalid-schema acceptance, and runtime effects. |
 | **Decision criterion** | Reduce structured-output errors without accepting invalid schema content or hiding provider instability. |
 
+### Rationale Requirement Ablation
+
+| Field | Details |
+|---|---|
+| **Problem** | Requiring model-authored rationales may improve review transparency, but it may not improve benchmark score and could increase prompt length, output length, structured-output failures, and runtime. |
+| **Direction** | Treat rationale authoring as a measured review/provenance feature rather than an assumed extraction-quality improvement. Compare no rationale, rationale only for weak/inferred/no-data proposals, and rationale for every value-bearing proposal. |
+| **Why it might work** | Rationale may help reviewers understand normalization and weak-evidence judgments, and could improve model self-checking in some cases. It may also be pure overhead if evidence quotes already carry the useful signal. |
+| **Evidence so far** | The external benchmark review packages previously had 0 authored proposal rationales, and adding rationale requirements has not yet been scored as an extraction-quality intervention. Normalization can recover some evidence-level reasoning into the UI, but that is not the same as model-authored proposal rationales. |
+| **Generality risk** | Rationales can become post-hoc explanations that sound convincing without improving correctness. Keep them separate from source evidence and do not let rationale text substitute for quote/table/page evidence. |
+| **Runtime/cost risk** | Moderate to high if every cell requires an additional explanation, especially for local models with longer generation time or weaker structured-output reliability. Track tokens, runtime, repair/retry counts, and score-per-minute. |
+| **Test** | Use `google/gemma-4-e4b` with matched seeds/configs and compare three modes: disabled, weak-only, and all-proposals. Measure score, evidence quality, rationale presence, rationale usefulness on a small manual review sample, output parse/repair rate, tokens, and wall time. |
+| **Decision criterion** | Keep mandatory rationale only if it improves reviewer utility or correctness enough to justify the added runtime; otherwise prefer weak-only rationales or UI fallback from evidence reasoning. |
+
 ## Priority 3: Longer-Term Or Riskier Ideas
 
 ### Advisory Schema Planning

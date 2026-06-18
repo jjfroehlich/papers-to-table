@@ -100,18 +100,23 @@ The kit is not a full extraction service. It does not provide a model provider, 
 
 `templates/review_input.schema.json` is the local schema and `templates/review_input.example.json` is the compact example.
 
-Optional fields in `review_input.json`:
+Optional identity fields in `review_input.json`:
 
 - `proposal_id`
 - `evidence_id`
 - `cell_id`
+- `calculation`
 - `created_at`
 
 If IDs are absent, `build_review_package.py` generates stable deterministic IDs. If IDs are present, validation checks uniqueness and references.
 
+Every value-bearing proposal should include a concise proposal-level `rationale`. Treat this as workflow-required even though the JSON schema accepts older packages without it. The rationale explains why the proposed value follows from the evidence. It is especially important when the value involves interpretation, normalization to schema labels, calculation, weak/inferred evidence, or a no-data conclusion. Direct quote-only values may use a short rationale such as "The quoted Methods sentence directly supports the value."
+
 ## Evidence Requirements
 
 Every non-empty `proposed_value` must have at least one structured evidence record. Prefer `pdf_id`, `page_number`, and text evidence.
+
+Use `rationale` for the agent's explanation of why the proposed value follows from the evidence. Keep `rationale` separate from `quote_text`, `table_text`, `caption_text`, and `evidence_text`; evidence fields should preserve source-grounded support, while `rationale` should summarize the extraction judgment.
 
 Evidence source-type inference:
 

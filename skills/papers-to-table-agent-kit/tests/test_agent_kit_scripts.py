@@ -159,6 +159,7 @@ def test_instructions_fail_closed_on_csv_only_misread() -> None:
         "Before extracting any value",
         "review_input.json",
         "Every non-empty proposal must be written with structured evidence at authoring time",
+        "proposal-level `rationale`",
         "build_and_serve_review.py",
         "serve_review.py",
     ]
@@ -186,14 +187,38 @@ def test_authoring_validation_and_build_generate_mvp_artifacts() -> None:
         assert (run_dir / "summaries" / "validation_report.json").exists()
         assert (run_dir / "exports" / "draft_filled_table.csv").exists()
         assert result["review_app_assets_copied"] is True
+        assert (run_dir / "review" / "assets" / "pdf-data.js").exists()
+        pdf_data_source = (run_dir / "review" / "assets" / "pdf-data.js").read_text(encoding="utf-8")
+        assert "window.__REVIEW_PDF_DATA__" in pdf_data_source
+        assert "window.__REVIEW_PDF_DATA_INDEX__" in pdf_data_source
+        assert "paper_a" in pdf_data_source
+        assert (run_dir / "review" / "assets" / "pdf-data" / "paper_a.js").exists()
 
         proposals = read_jsonl(run_dir / "normalized" / "proposals.jsonl")
         evidence = read_jsonl(run_dir / "normalized" / "evidence.jsonl")
         assert proposals[0]["proposal_id"].startswith("prop_")
         assert evidence[0]["evidence_schema_version"] == "main_evidence"
         assert any(proposal["evidence_status"] == "inferred_weak" for proposal in proposals)
+        weak_proposal = next(proposal for proposal in proposals if proposal["evidence_status"] == "inferred_weak")
+        assert weak_proposal["rationale"] == "The agent inferred the value from page context without an exact quote."
         assert (run_dir / "review" / "assets" / "pdf.mjs").exists()
         assert (run_dir / "review" / "assets" / "pdf.worker.mjs").exists()
+        review_script = next((run_dir / "review" / "assets").glob("index-*.js"))
+        assert "import.meta" not in review_script.read_text(encoding="utf-8")
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_authoring_validation_warns_when_proposal_rationale_is_missing() -> None:
+    tmp_path = make_workspace("rationale_warning")
+    try:
+        run_dir = make_run(tmp_path)
+
+        validation = json.loads(run_cmd(str(VALIDATE_SCRIPT), "--run", str(run_dir), "--mode", "authoring", "--json").stdout)
+
+        assert validation["ok"] is True
+        assert any("no proposal-level rationale" in warning for warning in validation["warnings"])
+        assert any("weak/inferred evidence" in warning for warning in validation["warnings"])
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
@@ -596,18 +621,32 @@ def test_serve_review_writes_decisions_and_exports() -> None:
             assert "__REVIEW_PACKAGE_JSON__" not in html
             assert "window.__REVIEW_PACKAGE__ = {" in html
             assert "./assets/index-" in html
+            assert "./logo_1.svg" in html or (run_dir / "review" / "logo_1.svg").exists()
+            assert 'type="module"' not in html
+            assert "crossorigin" not in html
+            assert '<script defer src="./assets/index-' in html
+            assert '<script defer src="./assets/pdf-data.js"></script>' in html
+            app_source = (SKILL_DIR / "review_app" / "src" / "App.tsx").read_text(encoding="utf-8")
             review_workspace_source = (SKILL_DIR / "review_app" / "src" / "components" / "ReviewWorkspace.tsx").read_text(encoding="utf-8")
             action_source = (SKILL_DIR / "review_app" / "src" / "components" / "ReviewActionArea.tsx").read_text(encoding="utf-8")
             evidence_source = (SKILL_DIR / "review_app" / "src" / "components" / "EvidenceViewer.tsx").read_text(encoding="utf-8")
             queue_source = (SKILL_DIR / "review_app" / "src" / "components" / "ProposalQueue.tsx").read_text(encoding="utf-8")
+            assert "Evidence-backed extraction and review" in app_source
+            assert "Agent skill review" in app_source
             assert "Export reviewed bundle" in review_workspace_source
-            assert "Download decisions" in review_workspace_source
+            assert "Finish review" in review_workspace_source
+            assert "Download mode" not in review_workspace_source
+            assert "downloaded_decisions.json" in review_workspace_source
             assert "role=\"separator\"" in review_workspace_source
             assert "decision_source=human_bulk_accept" in action_source
             assert "Quote-anchored highlight" in evidence_source
             assert "Quote + page fallback" in evidence_source
             assert "Approximate region highlight" in evidence_source
             assert "evidence?.table_text" in evidence_source
+            assert "pdf.worker.min.mjs?worker&inline" in evidence_source
+            assert "loadFileModePdfData" in evidence_source
+            assert "embeddedFileModePdfData" in evidence_source
+            assert "loadEmbeddedFileModePdfData" in evidence_source
             assert "By Paper" in queue_source
             assert "By Column" in queue_source
             assert "As Table" in queue_source

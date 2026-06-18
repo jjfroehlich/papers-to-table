@@ -1,12 +1,103 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as pdfjsLib from 'pdfjs-dist'
+import InlinePdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?worker&inline'
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import type { EvidenceItem } from '../types'
 import { api } from '../api/client'
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).href
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
+
+interface PdfWorkerHandle {
+  pdfWorker: pdfjsLib.PDFWorker
+  port: Worker
+}
+
+const embeddedPdfScriptPromises = new Map<string, Promise<void>>()
+
+function createFileModePdfWorker(): PdfWorkerHandle | null {
+  if (globalThis.location?.protocol !== 'file:' || typeof Worker === 'undefined') {
+    return null
+  }
+  const port = new InlinePdfWorker({ name: 'papers-to-table-pdf-worker' })
+  return {
+    pdfWorker: new pdfjsLib.PDFWorker({ port } as ConstructorParameters<typeof pdfjsLib.PDFWorker>[0]),
+    port,
+  }
+}
+
+function isFileModePdfUrl(url: string): boolean {
+  if (globalThis.location?.protocol !== 'file:') return false
+  try {
+    return new URL(url, globalThis.location.href).protocol === 'file:'
+  } catch {
+    return false
+  }
+}
+
+function loadFileModePdfData(url: string): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest()
+    request.open('GET', new URL(url, globalThis.location.href).href)
+    request.responseType = 'arraybuffer'
+    request.onload = () => {
+      if ((request.status === 0 || request.status === 200) && request.response instanceof ArrayBuffer) {
+        resolve(new Uint8Array(request.response))
+        return
+      }
+      reject(new Error(`Unable to load local PDF bytes (${request.status || 0}).`))
+    }
+    request.onerror = () => reject(new Error(`Unable to load local PDF bytes (${request.status || 0}).`))
+    request.onabort = () => reject(new Error('Local PDF byte load was aborted.'))
+    request.send(null)
+  })
+}
+
+function loadEmbeddedPdfScript(scriptPath: string): Promise<void> {
+  const scriptUrl = new URL(scriptPath, document.baseURI).href
+  const existing = embeddedPdfScriptPromises.get(scriptUrl)
+  if (existing) return existing
+
+  const promise = new Promise<void>((resolve, reject) => {
+    const script = document.createElement('script')
+    script.defer = true
+    script.src = scriptUrl
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error(`Unable to load embedded PDF data script: ${scriptPath}`))
+    document.head.appendChild(script)
+  })
+  embeddedPdfScriptPromises.set(scriptUrl, promise)
+  return promise
+}
+
+function embeddedFileModePdfData(pdfId: string | null): Uint8Array | null {
+  if (globalThis.location?.protocol !== 'file:' || !pdfId) return null
+  const encoded = window.__REVIEW_PDF_DATA__?.[pdfId]
+  if (!encoded) return null
+
+  const binary = globalThis.atob(encoded)
+  const bytes = new Uint8Array(binary.length)
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index)
+  }
+  return bytes
+}
+
+async function loadEmbeddedFileModePdfData(pdfId: string | null): Promise<Uint8Array | null> {
+  if (globalThis.location?.protocol !== 'file:' || !pdfId) return null
+
+  const existing = embeddedFileModePdfData(pdfId)
+  if (existing) return existing
+
+  const scriptPath = window.__REVIEW_PDF_DATA_INDEX__?.[pdfId]
+  if (!scriptPath) return null
+
+  await loadEmbeddedPdfScript(scriptPath)
+  const loaded = embeddedFileModePdfData(pdfId)
+  if (!loaded) {
+    throw new Error(`Embedded PDF data script did not provide bytes for ${pdfId}.`)
+  }
+  return loaded
+}
 
 interface HighlightRegion {
   x0: number
@@ -377,6 +468,7 @@ export function EvidenceViewer({
   useEffect(() => {
     let cancelled = false
     let loadingTask: ReturnType<typeof pdfjsLib.getDocument> | null = null
+    let fileModeWorker: PdfWorkerHandle | null = null
 
     async function loadPdf() {
       if (!pdfId) {
@@ -392,7 +484,15 @@ export function EvidenceViewer({
       setLoadError(null)
       const url = api.getPdfUrl(runId, pdfId, outputDir)
       try {
-        loadingTask = pdfjsLib.getDocument(url)
+        fileModeWorker = createFileModePdfWorker()
+        const embeddedPdfData = await loadEmbeddedFileModePdfData(pdfId)
+        const fileModeData = embeddedPdfData ?? (isFileModePdfUrl(url) ? await loadFileModePdfData(url) : null)
+        if (cancelled) return
+        loadingTask = pdfjsLib.getDocument(
+          fileModeWorker
+            ? (fileModeData ? { data: fileModeData, worker: fileModeWorker.pdfWorker } : { url, worker: fileModeWorker.pdfWorker })
+            : url,
+        )
         const doc = await loadingTask.promise
         if (!cancelled) {
           setPdfDoc(doc)
@@ -413,6 +513,10 @@ export function EvidenceViewer({
       cancelled = true
       if (loadingTask && typeof loadingTask.destroy === 'function') {
         void loadingTask.destroy()
+      }
+      if (fileModeWorker) {
+        fileModeWorker.pdfWorker.destroy()
+        fileModeWorker.port.terminate()
       }
     }
   }, [outputDir, pdfId, runId])

@@ -32,7 +32,7 @@ RUN_DIR/
 
 Copy all source PDFs into `RUN_DIR/pdfs/`. Preserve the source table template as `RUN_DIR/source_table.csv` and the schema as `RUN_DIR/schema.json` when available.
 
-Before extracting any value, create the `review_input.json` skeleton with `pdfs`, `columns`, `rows`, and an initially empty `proposals` array. Every non-empty proposal must be written with structured evidence at authoring time. Append one evidence-backed proposal as each non-empty target cell is authored.
+Before extracting any value, create the `review_input.json` skeleton with `pdfs`, `columns`, `rows`, and an initially empty `proposals` array. Every non-empty proposal must be written with structured evidence at authoring time, and should include a concise proposal-level `rationale`. Append one evidence-backed proposal as each non-empty target cell is authored.
 
 ## Extraction Rules
 
@@ -45,6 +45,7 @@ Before extracting any value, create the `review_input.json` skeleton with `pdfs`
 - Use `proposal_status="no_data"` only when the paper explicitly indicates absence.
 - Keep per-cell proposals row-aware: evidence from one paper must not support another row.
 - Capture table, caption, figure, methods, supplement, and result-prose evidence when relevant.
+- Add proposal-level `rationale` for every value-bearing proposal. Keep it concise and reviewer-facing. It is mandatory for interpretation, normalization to schema labels, calculation, weak/inferred evidence, or a no-data conclusion.
 
 ## Evidence Requirements
 
@@ -62,6 +63,8 @@ Prefer direct evidence:
 ```
 
 Table, caption, figure-caption, and generic evidence text are also acceptable when they directly support the value. If exact text cannot be captured, include `pdf_id`, `page_number`, `source_location`, and concise reasoning so the reviewer can inspect it.
+
+Keep `rationale` separate from evidence text: evidence fields preserve the source support, while `rationale` briefly explains the extraction judgment for the reviewer.
 
 ## Build And Serve
 

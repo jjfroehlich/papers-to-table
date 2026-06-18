@@ -212,6 +212,7 @@ def validate_authoring(run_dir: Path) -> dict[str, Any]:
         evidence_items = proposal.get("evidence") if isinstance(proposal.get("evidence"), list) else []
         counts["evidence"] += len(evidence_items)
         valid_evidence_count = 0
+        evidence_tiers: list[dict[str, Any]] = []
         for evidence_index, evidence in enumerate(evidence_items):
             if not isinstance(evidence, dict):
                 errors.append(f"proposals[{proposal_index}].evidence[{evidence_index}] must be an object.")
@@ -242,11 +243,22 @@ def validate_authoring(run_dir: Path) -> dict[str, Any]:
                 warnings=warnings,
             )
             tier = evidence_tier(evidence, inherited_pdf_id=proposal_pdf_id)
+            evidence_tiers.append(tier)
             if tier["tier"] != "D":
                 valid_evidence_count += 1
         if is_non_empty(proposed_value) and valid_evidence_count == 0:
             errors.append(
                 f"proposals[{proposal_index}] has non-empty proposed_value but no structured Tier A/B/C evidence."
+            )
+        has_rationale = is_non_empty(proposal.get("rationale"))
+        has_weak_or_inferred_evidence = any(tier.get("tier") == "C" or tier.get("evidence_status") == "inferred_weak" for tier in evidence_tiers)
+        if not has_rationale and has_weak_or_inferred_evidence:
+            warnings.append(
+                f"proposals[{proposal_index}] uses weak/inferred evidence but has no proposal-level rationale."
+            )
+        elif not has_rationale and (is_non_empty(proposed_value) or str(proposal.get("proposal_status") or "") == "no_data"):
+            warnings.append(
+                f"proposals[{proposal_index}] has no proposal-level rationale; add a concise reviewer-facing extraction rationale."
             )
 
     return _report("authoring", errors, warnings, counts)

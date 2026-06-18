@@ -41,6 +41,7 @@
       "row_id": "row_1",
       "column_name": "Finding",
       "proposed_value": "Example value with direct support",
+      "rationale": "The quoted sentence directly supports the proposed value.",
       "evidence": [
         {
           "pdf_id": "paper_a",
@@ -54,6 +55,7 @@
       "row_id": "row_2",
       "column_name": "Finding",
       "proposed_value": "Example value needing careful review",
+      "rationale": "The value is inferred from the Results page context because no exact supporting quote was captured.",
       "evidence": [
         {
           "pdf_id": "paper_b",

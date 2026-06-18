@@ -64,6 +64,8 @@ Use table-, caption-, and figure-aware reading. Many values are reported in tabl
 
 Prefer concise proposed values that match the schema. Preserve direct quotes and page numbers where possible. Use reasoning-only evidence only when exact text cannot be captured.
 
+Add proposal-level `rationale` when the value requires interpretation, normalization to schema labels, calculation, weak/inferred evidence, or a no-data conclusion. Keep it short and reviewer-facing: explain why the proposed value follows from the evidence without duplicating long source quotes.
+
 When the broader task benefits from synthesis, the reviewed or clearly labeled draft table can be reused in a research report. Keep report prose separate from the review package, and make the review status of table values clear.
 
 ## Authoring Workspace
@@ -98,6 +100,8 @@ More detail such as allowed values, null policy, evidence requirements, and form
 
 Every non-empty `proposed_value` needs at least one structured evidence object in `review_input.json`.
 
+Use `rationale` on the proposal for extraction judgment, and use evidence fields for source support. Rationale is especially important for inferred values, normalized labels, calculations, and no-data proposals.
+
 Preferred direct evidence:
 
 ```json
@@ -130,6 +134,8 @@ Weak but reviewable evidence is allowed when the agent cannot provide exact text
   "reasoning": "The page context implies the value, but no exact quote was captured."
 }
 ```
+
+For the proposal containing that evidence, add a short proposal-level rationale such as: `"rationale": "The value is inferred from the Results page context; no exact source quote was captured."`
 
 The UI labels weak evidence visibly. Non-empty proposed values with no structured Tier A/B/C evidence are invalid.
 
