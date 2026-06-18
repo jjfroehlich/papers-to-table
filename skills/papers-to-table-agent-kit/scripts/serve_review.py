@@ -10,14 +10,14 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from apply_review_decisions import apply_decisions, write_latest_decisions  # noqa: E402
-from review_package_common import DECISIONS, latest_decisions, read_jsonl, stable_id, utc_now  # noqa: E402
+from review_package_common import DECISIONS, latest_decisions, read_json, read_jsonl, stable_id, utc_now  # noqa: E402
 
 
 def _json_bytes(payload: Any) -> bytes:
@@ -37,6 +37,191 @@ def _safe_path(root: Path, request_path: str) -> Path | None:
     except ValueError:
         return None
     return candidate
+
+
+def _review_package(run_dir: Path) -> dict[str, Any]:
+    payload = read_json(run_dir / "review" / "review_package.json")
+    if not isinstance(payload, dict):
+        raise ValueError("review/review_package.json must contain an object.")
+    return payload
+
+
+def _text_value(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _row_title(row: dict[str, Any] | None, pdf: dict[str, Any] | None) -> str | None:
+    values = row.get("values") if isinstance(row, dict) and isinstance(row.get("values"), dict) else {}
+    for key in ("Title", "title", "paper_title", "Paper", "paper"):
+        value = _text_value(values.get(key))
+        if value:
+            return value
+    return _text_value(pdf.get("title") if pdf else None) or _text_value(row.get("paper_label") if row else None)
+
+
+def _row_authors(row: dict[str, Any] | None, pdf: dict[str, Any] | None) -> str | None:
+    values = row.get("values") if isinstance(row, dict) and isinstance(row.get("values"), dict) else {}
+    authors = values.get("Authors") or values.get("authors") or (pdf.get("authors") if pdf else None)
+    if isinstance(authors, list):
+        return "; ".join(str(item) for item in authors if _text_value(item))
+    return _text_value(authors)
+
+
+def _row_year(row: dict[str, Any] | None, pdf: dict[str, Any] | None) -> str | int | None:
+    values = row.get("values") if isinstance(row, dict) and isinstance(row.get("values"), dict) else {}
+    return _text_value(values.get("Publication Year")) or _text_value(values.get("year")) or (pdf.get("year") if pdf else None)
+
+
+def _package_maps(package: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+    rows = {
+        str(row.get("row_id")): row
+        for row in package.get("rows", [])
+        if isinstance(row, dict) and row.get("row_id")
+    }
+    pdfs = {
+        str(pdf.get("pdf_id")): pdf
+        for pdf in package.get("pdfs", [])
+        if isinstance(pdf, dict) and pdf.get("pdf_id")
+    }
+    columns = {
+        str(column.get("column_name")): column
+        for column in package.get("columns", [])
+        if isinstance(column, dict) and column.get("column_name")
+    }
+    return rows, pdfs, columns
+
+
+def _evidence_by_proposal(run_dir: Path) -> dict[str, list[dict[str, Any]]]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for row in read_jsonl(run_dir / "normalized" / "evidence.jsonl"):
+        row = dict(row)
+        if not row.get("quote_text"):
+            row["quote_text"] = row.get("table_text") or row.get("evidence_text") or row.get("caption_text")
+        grouped.setdefault(str(row.get("proposal_id") or ""), []).append(row)
+    for rows in grouped.values():
+        rows.sort(key=lambda item: int(item.get("evidence_rank") or 9999))
+    return grouped
+
+
+def _enriched_proposals(run_dir: Path) -> list[dict[str, Any]]:
+    package = _review_package(run_dir)
+    rows, pdfs, _columns = _package_maps(package)
+    latest = latest_decisions(read_jsonl(run_dir / "review" / "decisions.jsonl"))
+    proposals: list[dict[str, Any]] = []
+    for proposal in read_jsonl(run_dir / "normalized" / "proposals.jsonl"):
+        item = dict(proposal)
+        row = rows.get(str(item.get("row_id") or ""))
+        pdf = pdfs.get(str(item.get("pdf_id") or ""))
+        item["latest_decision"] = latest.get(str(item.get("proposal_id") or ""))
+        item.setdefault("paper_title", _row_title(row, pdf))
+        item.setdefault("paper_authors", _row_authors(row, pdf))
+        item.setdefault("paper_year", _row_year(row, pdf))
+        item.setdefault("is_figure_derived", False)
+        item.setdefault("is_fallback_evidence", False)
+        proposals.append(item)
+    return proposals
+
+
+def _proposal_detail(run_dir: Path, proposal_id: str) -> dict[str, Any]:
+    package = _review_package(run_dir)
+    rows, _pdfs, columns = _package_maps(package)
+    decisions = read_jsonl(run_dir / "review" / "decisions.jsonl")
+    decision_history = [row for row in decisions if str(row.get("proposal_id") or "") == proposal_id]
+    latest = latest_decisions(decisions).get(proposal_id)
+    evidence = _evidence_by_proposal(run_dir).get(proposal_id, [])
+    for proposal in _enriched_proposals(run_dir):
+        if str(proposal.get("proposal_id") or "") != proposal_id:
+            continue
+        proposal["latest_decision"] = latest
+        return {
+            "proposal": proposal,
+            "evidence": evidence,
+            "latest_decision": latest,
+            "decision_history": decision_history,
+            "row_context": rows.get(str(proposal.get("row_id") or ""), {}).get("values", {}),
+            "column_definition": columns.get(str(proposal.get("column_name") or "")),
+        }
+    raise KeyError(f"Unknown proposal_id: {proposal_id}")
+
+
+def _review_progress(run_dir: Path) -> dict[str, Any]:
+    proposals = [item for item in _enriched_proposals(run_dir) if item.get("review_bucket") != "diagnostic"]
+    counts = {"accepted": 0, "accepted_with_edit": 0, "confirmed_no_data": 0, "rejected": 0}
+    for proposal in proposals:
+        decision = (proposal.get("latest_decision") or {}).get("decision")
+        if decision in counts:
+            counts[decision] += 1
+    reviewed = sum(counts.values())
+    return {
+        "run_id": proposals[0].get("run_id") if proposals else _review_package(run_dir).get("run_id", run_dir.name),
+        "total_proposals": len(proposals),
+        "reviewed": reviewed,
+        "pending": max(len(proposals) - reviewed, 0),
+        **counts,
+    }
+
+
+def _review_table(run_dir: Path) -> dict[str, Any]:
+    package = _review_package(run_dir)
+    proposals = _enriched_proposals(run_dir)
+    proposals_by_cell = {
+        (str(proposal.get("row_id") or ""), str(proposal.get("column_name") or "")): proposal
+        for proposal in proposals
+    }
+    columns = [
+        {
+            "name": str(column.get("column_name") or ""),
+            "description": column.get("description"),
+            "field_type": column.get("field_type"),
+            "is_target": bool(column.get("is_target", True)),
+        }
+        for column in package.get("columns", [])
+        if isinstance(column, dict) and column.get("column_name")
+    ]
+    out_rows = []
+    for row in package.get("rows", []):
+        if not isinstance(row, dict):
+            continue
+        values = row.get("values") if isinstance(row.get("values"), dict) else {}
+        cells: dict[str, Any] = {}
+        for column in columns:
+            column_name = column["name"]
+            proposal = proposals_by_cell.get((str(row.get("row_id") or ""), column_name))
+            original_value = values.get(column_name)
+            decision = (proposal.get("latest_decision") or {}).get("decision") if proposal else None
+            display_status = decision or ("pending" if proposal else "unchanged")
+            if decision == "accepted":
+                display_value = proposal.get("proposed_value")
+            elif decision == "accepted_with_edit":
+                display_value = (proposal.get("latest_decision") or {}).get("edited_value") or proposal.get("proposed_value")
+            elif decision in {"confirmed_no_data", "rejected"}:
+                display_value = original_value
+            elif proposal:
+                display_value = proposal.get("proposed_value") or original_value
+            else:
+                display_value = original_value
+            cells[column_name] = {
+                "column_name": column_name,
+                "original_value": original_value,
+                "display_value": display_value,
+                "display_status": display_status,
+                "has_proposal": proposal is not None,
+                "proposal": proposal,
+            }
+        out_rows.append(
+            {
+                "row_id": row.get("row_id"),
+                "row_index": row.get("row_index"),
+                "paper_label": row.get("paper_label") or row.get("row_id"),
+                "title": _row_title(row, None),
+                "values": values,
+                "cells": cells,
+            }
+        )
+    return {"run_id": package.get("run_id", run_dir.name), "columns": columns, "rows": out_rows, "proposal_count": len(proposals)}
 
 
 def make_handler(run_dir: Path):
@@ -65,9 +250,63 @@ def make_handler(run_dir: Path):
             self.end_headers()
             self.wfile.write(body)
 
+        def _send_file(self, path: Path) -> None:
+            content_type = mimetypes.guess_type(str(path))[0] or "application/octet-stream"
+            body = path.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store" if path.suffix in {".json", ".html"} else "public, max-age=60")
+            self.end_headers()
+            self.wfile.write(body)
+
         def do_GET(self) -> None:
-            if self.path == "/api/decisions":
-                self._send_json(200, {"decisions": read_jsonl(run_dir / "review" / "decisions.jsonl")})
+            parsed = urlparse(self.path)
+            try:
+                if parsed.path == "/api/decisions":
+                    self._send_json(200, {"decisions": read_jsonl(run_dir / "review" / "decisions.jsonl")})
+                    return
+                if parsed.path == "/api/proposals":
+                    proposals = _enriched_proposals(run_dir)
+                    query = parse_qs(parsed.query)
+                    if (query.get("reviewable_only") or [""])[0].lower() in {"1", "true", "yes"}:
+                        proposals = [proposal for proposal in proposals if proposal.get("review_bucket") != "diagnostic"]
+                    self._send_json(200, {"run_id": _review_package(run_dir).get("run_id", run_dir.name), "count": len(proposals), "proposals": proposals})
+                    return
+                if parsed.path.startswith("/api/proposals/"):
+                    proposal_id = unquote(parsed.path.removeprefix("/api/proposals/"))
+                    self._send_json(200, _proposal_detail(run_dir, proposal_id))
+                    return
+                if parsed.path == "/api/review-table":
+                    self._send_json(200, _review_table(run_dir))
+                    return
+                if parsed.path == "/api/progress-review":
+                    self._send_json(200, _review_progress(run_dir))
+                    return
+                if parsed.path.startswith("/api/assets/pdf/"):
+                    pdf_id = unquote(parsed.path.removeprefix("/api/assets/pdf/"))
+                    package = _review_package(run_dir)
+                    pdf = next((item for item in package.get("pdfs", []) if isinstance(item, dict) and str(item.get("pdf_id")) == pdf_id), None)
+                    if not pdf:
+                        self._send_text(404, f"Unknown pdf_id: {pdf_id}")
+                        return
+                    rel_path = str(pdf.get("path") or "").strip()
+                    candidate = (run_dir / rel_path).resolve()
+                    try:
+                        candidate.relative_to(run_dir)
+                    except ValueError:
+                        self._send_text(403, "PDF path escapes run directory.")
+                        return
+                    if not candidate.exists() or not candidate.is_file():
+                        self._send_text(404, f"PDF not found: {pdf_id}")
+                        return
+                    self._send_file(candidate)
+                    return
+            except KeyError as exc:
+                self._send_json(404, {"ok": False, "error": str(exc)})
+                return
+            except Exception as exc:
+                self._send_json(500, {"ok": False, "error": str(exc)})
                 return
             path = _safe_path(run_dir, self.path)
             if path is None:
@@ -78,14 +317,7 @@ def make_handler(run_dir: Path):
             if not path.exists() or not path.is_file():
                 self._send_text(404, f"Not found: {self.path}")
                 return
-            content_type = mimetypes.guess_type(str(path))[0] or "application/octet-stream"
-            body = path.read_bytes()
-            self.send_response(200)
-            self.send_header("Content-Type", content_type)
-            self.send_header("Content-Length", str(len(body)))
-            self.send_header("Cache-Control", "no-store" if path.suffix in {".json", ".html"} else "public, max-age=60")
-            self.end_headers()
-            self.wfile.write(body)
+            self._send_file(path)
 
         def do_POST(self) -> None:
             try:
@@ -93,7 +325,39 @@ def make_handler(run_dir: Path):
             except ValueError:
                 length = 0
             body = self.rfile.read(length) if length else b"{}"
-            if self.path == "/api/decisions":
+            parsed = urlparse(self.path)
+            if parsed.path.startswith("/api/proposals/") and parsed.path.endswith("/decision"):
+                try:
+                    proposal_id = unquote(parsed.path.removeprefix("/api/proposals/").removesuffix("/decision"))
+                    payload = json.loads(body.decode("utf-8"))
+                    if not isinstance(payload, dict):
+                        raise ValueError("Expected a decision object.")
+                    if payload.get("decision") not in DECISIONS:
+                        raise ValueError(f"Unsupported decision: {payload.get('decision')!r}")
+                    proposal_map = {str(proposal.get("proposal_id")): proposal for proposal in _enriched_proposals(run_dir)}
+                    proposal = proposal_map.get(proposal_id)
+                    if proposal is None:
+                        raise ValueError(f"Unknown proposal_id: {proposal_id}")
+                    decided_at = utc_now()
+                    row = {
+                        "review_decision_id": stable_id("rev", proposal_id, payload.get("decision"), decided_at),
+                        "run_id": proposal.get("run_id") or _review_package(run_dir).get("run_id", run_dir.name),
+                        "proposal_id": proposal_id,
+                        "cell_id": proposal.get("cell_id"),
+                        "decision": payload.get("decision"),
+                        "decision_source": payload.get("decision_source") or "human_individual",
+                        "resolution_reason": payload.get("resolution_reason"),
+                        "edited_value": payload.get("edited_value"),
+                        "reviewer_note": payload.get("reviewer_note"),
+                        "decided_at": decided_at,
+                    }
+                    write_latest_decisions(run_dir, [row])
+                except Exception as exc:
+                    self._send_json(422, {"ok": False, "error": str(exc)})
+                    return
+                self._send_json(200, row)
+                return
+            if parsed.path == "/api/decisions":
                 try:
                     payload = json.loads(body.decode("utf-8"))
                     rows = payload.get("decisions", []) if isinstance(payload, dict) else payload
@@ -122,7 +386,7 @@ def make_handler(run_dir: Path):
                     return
                 self._send_json(200, {"ok": True, "decision_count": len(decisions), "decisions": decisions})
                 return
-            if self.path == "/api/bulk-accept":
+            if parsed.path in {"/api/bulk-accept", "/api/proposals/bulk-accept"}:
                 try:
                     payload = json.loads(body.decode("utf-8"))
                     proposal_ids = payload.get("proposal_ids", []) if isinstance(payload, dict) else []
@@ -158,7 +422,7 @@ def make_handler(run_dir: Path):
                     return
                 self._send_json(200, {"ok": True, "accepted_count": len(rows), "decision_count": len(decisions), "decisions": rows})
                 return
-            if self.path == "/api/export":
+            if parsed.path == "/api/export":
                 try:
                     result = apply_decisions(run_dir, use_existing_decisions=True, export=True)
                 except Exception as exc:

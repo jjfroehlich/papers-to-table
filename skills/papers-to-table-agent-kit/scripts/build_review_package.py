@@ -56,6 +56,10 @@ def _template_path() -> Path:
     return Path(__file__).resolve().parents[1] / "templates" / "review.html"
 
 
+def _review_app_dist_dir() -> Path:
+    return Path(__file__).resolve().parents[1] / "assets" / "review_app"
+
+
 def _vendored_pdfjs_dir() -> Path:
     return Path(__file__).resolve().parents[1] / "assets" / "pdfjs"
 
@@ -557,8 +561,38 @@ def _write_draft_filled_table(
     return out_path
 
 
+def _copy_review_app_assets(run_dir: Path) -> list[str]:
+    dist_dir = _review_app_dist_dir()
+    if not (dist_dir / "index.html").exists():
+        raise FileNotFoundError(
+            "Missing built React review app assets. Run "
+            "npm --prefix skills/papers-to-table-agent-kit/review_app run build."
+        )
+    copied: list[str] = []
+    review_dir = run_dir / "review"
+    review_dir.mkdir(parents=True, exist_ok=True)
+    for child in dist_dir.iterdir():
+        if child.name == "index.html":
+            continue
+        destination = review_dir / child.name
+        if child.is_dir():
+            if destination.exists():
+                shutil.rmtree(destination)
+            shutil.copytree(child, destination)
+            copied.extend(
+                path.relative_to(run_dir).as_posix()
+                for path in destination.rglob("*")
+                if path.is_file()
+            )
+        elif child.is_file():
+            shutil.copy2(child, destination)
+            copied.append(destination.relative_to(run_dir).as_posix())
+    return copied
+
+
 def _write_review_html(run_dir: Path, package: dict[str, Any]) -> Path:
-    template = _template_path().read_text(encoding="utf-8")
+    template_path = _review_app_dist_dir() / "index.html"
+    template = template_path.read_text(encoding="utf-8")
     package_json = json.dumps(package, ensure_ascii=False).replace("</", "<\\/")
     html = template.replace("__REVIEW_PACKAGE_JSON__", package_json)
     out_path = run_dir / "review" / "index.html"
@@ -602,11 +636,13 @@ def build_review_package(run_dir: Path, *, from_review_input: bool = True) -> di
     write_jsonl(run_dir / "normalized" / "evidence.jsonl", evidence)
     write_json(run_dir / "review" / "review_package.json", package)
     draft_table_path = _write_draft_filled_table(run_dir, table_rows, table_fieldnames, rows, columns, proposals)
+    copied_review_app_assets = _copy_review_app_assets(run_dir)
     html_path = _write_review_html(run_dir, package)
     copied_assets = _copy_pdfjs_assets(run_dir)
     generated_report = validate_generated(run_dir)
     generated_report["authoring"] = authoring_report
     generated_report["copied_assets"] = copied_assets
+    generated_report["copied_review_app_assets"] = copied_review_app_assets
     persist_report(run_dir, generated_report)
     if not generated_report["ok"]:
         raise ValueError("Generated review package failed validation. See summaries/validation_report.json.")
@@ -620,6 +656,7 @@ def build_review_package(run_dir: Path, *, from_review_input: bool = True) -> di
         "validation_report_path": str(run_dir / "summaries" / "validation_report.json"),
         "draft_filled_table_path": str(draft_table_path),
         "pdfjs_assets_copied": bool(copied_assets),
+        "review_app_assets_copied": bool(copied_review_app_assets),
     }
 
 

@@ -185,6 +185,7 @@ def test_authoring_validation_and_build_generate_mvp_artifacts() -> None:
         assert (run_dir / "normalized" / "evidence.jsonl").exists()
         assert (run_dir / "summaries" / "validation_report.json").exists()
         assert (run_dir / "exports" / "draft_filled_table.csv").exists()
+        assert result["review_app_assets_copied"] is True
 
         proposals = read_jsonl(run_dir / "normalized" / "proposals.jsonl")
         evidence = read_jsonl(run_dir / "normalized" / "evidence.jsonl")
@@ -354,8 +355,10 @@ def test_build_remains_portable_when_only_skill_directory_is_copied() -> None:
         result = json.loads(completed.stdout)
 
         assert result["pdfjs_assets_copied"] is True
+        assert result["review_app_assets_copied"] is True
         assert (run_dir / "review" / "assets" / "pdf.mjs").exists()
         assert (run_dir / "review" / "assets" / "pdf.worker.mjs").exists()
+        assert any(path.name.startswith("index-") and path.suffix == ".js" for path in (run_dir / "review" / "assets").iterdir())
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
@@ -528,6 +531,56 @@ def test_serve_review_bulk_accepts_only_provided_pending_ids() -> None:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
+def test_serve_review_react_adapter_endpoints() -> None:
+    tmp_path = make_workspace("react_adapter")
+    try:
+        run_dir = make_run(tmp_path)
+        build_package(run_dir)
+        proposal = read_jsonl(run_dir / "normalized" / "proposals.jsonl")[0]
+        server, url = serve(run_dir, open_browser=False, quiet=True)
+        try:
+            base_url = url.rsplit("/review/", 1)[0]
+            with urllib.request.urlopen(base_url + "/api/proposals", timeout=5) as response:
+                proposals_payload = json.loads(response.read().decode("utf-8"))
+            assert proposals_payload["count"] == 3
+            assert proposals_payload["proposals"][0]["paper_title"] == "Paper A"
+
+            with urllib.request.urlopen(base_url + f"/api/proposals/{proposal['proposal_id']}", timeout=5) as response:
+                detail_payload = json.loads(response.read().decode("utf-8"))
+            assert detail_payload["proposal"]["proposal_id"] == proposal["proposal_id"]
+            assert detail_payload["evidence"][0]["quote_text"] == "Exact supporting sentence from the PDF."
+            assert detail_payload["row_context"]["Title"] == "Paper A"
+
+            with urllib.request.urlopen(base_url + "/api/review-table", timeout=5) as response:
+                table_payload = json.loads(response.read().decode("utf-8"))
+            assert table_payload["proposal_count"] == 3
+            assert table_payload["rows"][0]["cells"]["Finding"]["proposal"]["proposal_id"] == proposal["proposal_id"]
+
+            with urllib.request.urlopen(base_url + "/api/progress-review", timeout=5) as response:
+                progress_payload = json.loads(response.read().decode("utf-8"))
+            assert progress_payload["pending"] == 3
+
+            with urllib.request.urlopen(base_url + "/api/assets/pdf/paper_a", timeout=5) as response:
+                assert response.status == 200
+                assert response.read(8).startswith(b"%PDF")
+
+            decision_payload = json.dumps({"decision": "accepted"}).encode("utf-8")
+            decision_request = urllib.request.Request(
+                base_url + f"/api/proposals/{proposal['proposal_id']}/decision",
+                data=decision_payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(decision_request, timeout=5) as response:
+                decision_result = json.loads(response.read().decode("utf-8"))
+            assert decision_result["decision"] == "accepted"
+            assert decision_result["decision_source"] == "human_individual"
+        finally:
+            server.shutdown()
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
 def test_serve_review_writes_decisions_and_exports() -> None:
     tmp_path = make_workspace("serve")
     try:
@@ -540,14 +593,24 @@ def test_serve_review_writes_decisions_and_exports() -> None:
                 assert response.status == 200
                 assert b"Papers-to-table rich review" in response.read()
             html = (run_dir / "review" / "index.html").read_text(encoding="utf-8")
-            assert "Saved locally" in html
-            assert "Saved to server" in html
-            assert "Partial quote match highlighted" in html
-            assert "resize-left" in html
-            assert "Export reviewed bundle" in html
-            assert "decision_source=human_bulk_accept" in html
-            assert "Text fallback - exact highlighting unavailable" in html
-            assert "fallback shown because the quote text did not match rendered PDF text" in html
+            assert "__REVIEW_PACKAGE_JSON__" not in html
+            assert "window.__REVIEW_PACKAGE__ = {" in html
+            assert "./assets/index-" in html
+            review_workspace_source = (SKILL_DIR / "review_app" / "src" / "components" / "ReviewWorkspace.tsx").read_text(encoding="utf-8")
+            action_source = (SKILL_DIR / "review_app" / "src" / "components" / "ReviewActionArea.tsx").read_text(encoding="utf-8")
+            evidence_source = (SKILL_DIR / "review_app" / "src" / "components" / "EvidenceViewer.tsx").read_text(encoding="utf-8")
+            queue_source = (SKILL_DIR / "review_app" / "src" / "components" / "ProposalQueue.tsx").read_text(encoding="utf-8")
+            assert "Export reviewed bundle" in review_workspace_source
+            assert "Download decisions" in review_workspace_source
+            assert "role=\"separator\"" in review_workspace_source
+            assert "decision_source=human_bulk_accept" in action_source
+            assert "Quote-anchored highlight" in evidence_source
+            assert "Quote + page fallback" in evidence_source
+            assert "Approximate region highlight" in evidence_source
+            assert "evidence?.table_text" in evidence_source
+            assert "By Paper" in queue_source
+            assert "By Column" in queue_source
+            assert "As Table" in queue_source
 
             payload = json.dumps(
                 {
